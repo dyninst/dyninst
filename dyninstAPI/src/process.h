@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.246 2003/03/28 23:28:19 pcroth Exp $
+/* $Id: process.h,v 1.247 2003/04/02 07:12:26 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -958,11 +958,13 @@ void saveWorldData(Address address, int size, const void* src);
   // getMainFunction: returns the main function for this process
   function_base *getMainFunction() const { return mainFunction; }
 
+#if !defined(BPATCH_LIBRARY)
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
-  function_base *findOneFunction(resource *func,resource *mod);
+  function_base *findOnlyOneFunction(resource *func,resource *mod);
+#endif
 
   typedef struct {
     const instPoint *loc;
@@ -1033,12 +1035,12 @@ void saveWorldData(Address address, int size, const void* src);
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  function_base *findOneFunction(const string &func_name) const;
+  function_base *findOnlyOneFunction(const string &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  pd_Function *findFuncByName(const string &func_name);
+  //pd_Function *findFuncByName(const string &func_name);
 
   // And do it, returning a vector if multiple matches
   bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res);
@@ -1059,9 +1061,11 @@ void saveWorldData(Address address, int size, const void* src);
   pdvector<pd_Function *>pcsToFuncs(pdvector<Frame> stackWalk);
 #endif
 
-
+#ifndef BPATCH_LIBRARY
   module *findModule(const string &mod_name,bool check_excluded);
-
+#else
+  module *findModule(const string &mod_name);
+#endif
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
   // baseAddr is set to the base address of the object containing the symbol
@@ -1079,11 +1083,13 @@ void saveWorldData(Address address, int size, const void* src);
   // getIncludedFunctions: returns a vector of all functions defined in the
   // a.out and in shared objects that are not excluded by an mdl option 
   pdvector<function_base *> *getIncludedFunctions();
-#endif
 
   // getIncludedModules: returns a vector of all functions defined in the
   // a.out and in shared objects that are  not excluded by an mdl option
   pdvector<module *> *getIncludedModules();
+#endif
+
+
 
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped

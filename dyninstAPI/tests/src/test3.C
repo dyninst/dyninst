@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.27 2003/01/02 19:52:04 schendel Exp $
+// $Id: test3.C,v 1.28 2003/04/02 07:12:27 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -126,7 +126,7 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
     // Find the point(s) we'll be instrumenting
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      inFunction);
       exit(1);
@@ -155,12 +155,15 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 BPatch_snippet *makeCallSnippet(BPatch_image *appImage, char *funcName,
 				int testNo, char *testName)
 {
-    BPatch_function *call_func = appImage->findFunction(funcName);
-    if (call_func == NULL) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to find function %s\n", funcName);
-	exit(1);
-    }
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(funcName, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+    fprintf(stderr, "    Unable to find function %s\n", funcName);
+    exit(1);
+  }
+
+  BPatch_function *call_func = bpfv[0];
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
     BPatch_snippet *ret = new BPatch_funcCallExpr(*call_func, nullArgs);
@@ -405,7 +408,7 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
         BPatch_image *img = appThread[n]->getImage();
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == img->findFunction(Func, found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == img->findFunction(Func, &found_funcs, 1)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      Func);
       exit(1);
@@ -431,13 +434,17 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
             MopUpMutatees(Mutatees,appThread);
             return;
         }
-        BPatch_function *callFunc = img->findFunction(Call);
-        if (callFunc == NULL) {
-            printf("  Unable to find target function \"%s\".\n", Call);
-            printf("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(Mutatees,appThread);
-            return;
-        }
+
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == img->findFunction(Call, &bpfv) || !bpfv.size()
+	    || NULL == bpfv[0]){
+	  printf("  Unable to find target function \"%s\".\n", Call);
+	  printf("**Failed** test #3 (instrument multiple processes)\n");
+	  exit(1);
+	}
+
+	BPatch_function *callFunc = bpfv[0];
+
         // start with a simple snippet
         BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr((int)n));
         BPatchSnippetHandle *inst = appThread[n]->insertSnippet(snip, *point);

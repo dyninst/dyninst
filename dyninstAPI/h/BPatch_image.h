@@ -42,6 +42,11 @@
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
 
+
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+#include <regex.h>
+#endif 
+
 #include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
@@ -49,7 +54,8 @@
 #include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
-
+class string;
+typedef bool (*BPatchFunctionNameSieve)(const string &test,void *data);
 class process;
 class image;
 
@@ -67,12 +73,13 @@ typedef enum BPatch_LpModel {
 #endif
 #endif
 
+
+					    
+					  
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     process	*proc;
 
-    void findFunctionInImage(const char *name, image *img,
-			     BPatch_Vector<BPatch_function*>& funcs);
-public:
+ public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
     BPatch_image();
@@ -101,10 +108,9 @@ public:
 					BPatch_function* bpf = NULL);
 
 
-    BPatch_function	*findFunction(const char *name, bool showError=true);
-    BPatch_function	*findBPFunction(const char *name);
-BPatch_Vector<BPatch_function *>  *findBPFunction(const char *name,
-						  BPatch_Vector<BPatch_function *> &funclist);
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError=true, bool regex_case_sensitive=true);
+
+    BPatch_Vector<BPatch_function *> *findFunction(BPatch_Vector<BPatch_function *> *funcs, BPatchFunctionNameSieve bpsieve, void *user_data=NULL, int showError=0);
     BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 
@@ -120,11 +126,26 @@ BPatch_Vector<BPatch_function *>  *findBPFunction(const char *name,
     int  lpType();
 #endif
 
-    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError=true);
+  
+  
 
 private:
     BPatch_Vector<BPatch_module *> *modlist;
     AddrToVarExprHash *AddrToVarExpr;
+
+    // These private "find" functions convert from internal pd_Function
+    // representation to the exported BPatch_Function type
+    void findFunctionInImage(const char *name, image *img,
+			     BPatch_Vector<BPatch_function*> *funcs);
+    
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+    void findFunctionPatternInImage(regex_t *comp_pat, image *img, 
+				    BPatch_Vector<BPatch_function*> *funcs);
+#endif
+    void sieveFunctionsInImage(image *img, 
+			      BPatch_Vector<BPatch_function *> *funcs,
+			      BPatchFunctionNameSieve bpsieve, 
+			      void *user_data);
 };
 
 #endif /* _BPatch_image_h_ */

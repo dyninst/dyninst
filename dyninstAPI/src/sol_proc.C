@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.18 2003/03/31 21:59:06 jodom Exp $
+// $Id: sol_proc.C,v 1.19 2003/04/02 07:12:26 jaw Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1493,6 +1493,7 @@ bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv)
     char **envptr = (char **)procinfo.pr_envp;
     bool need_path = true;
     bool need_pwd = true;
+
     while(need_path || need_pwd) { //ccw 30 jan 2003
         char *env;
         if (pread(as_fd, &env, sizeof(char *), (Address) envptr) != sizeof(char *)) {

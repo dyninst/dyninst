@@ -228,21 +228,25 @@ FunctionCoverage* CodeCoverage::newFunctionCoverage(BPatch_function* f,
 void initializeLineSets(FileLineCoverage* flc,FunctionInfo* le,
 			FileLineInformation* fe)
 {
+	BPatch_Set<unsigned short> unExecuted;
+
 	if(!le->validInfo)
 		return;
 
+#ifdef OLD_LINE_INFO
 	tuple** lineToAddr = fe->getLineToAddrMap();
 	if(!lineToAddr)
 		return;
 
-	BPatch_Set<unsigned short> unExecuted;
 	unsigned short i = 0, e = 0;
 
 	i = le->startLinePtr->linePtr;
 	e = le->endLinePtr->linePtr;
 	for(;i <= e;i++)
 		unExecuted += lineToAddr[i]->lineNo;
-
+#else
+	fe->getFunctionLines(le,&unExecuted);	
+#endif
 	if(unExecuted.size())
 		flc->initializeLines(unExecuted);
 	return;
@@ -332,6 +336,7 @@ int CodeCoverage::selectFunctions(){
 		LineInformation* linfo = appModule->getLineInformation();
 
 		unsigned short sourceFileCount = linfo->getSourceFileCount();
+#ifdef OLD_LINE_INFO
 		string** sourceFileList = linfo->getSourceFileList();
 		FileLineInformation** lineInformationList = 
 				linfo->getLineInformationList();
@@ -393,6 +398,55 @@ int CodeCoverage::selectFunctions(){
 				}
 			}
 		}
+#else // not OLD_FILE_LINE_INFO
+
+		dictionary_hash<string, FileLineInformation * > *fileHash = linfo->getFileLineInfoHash();
+		dictionary_hash_iter<string, FileLineInformation *> iter(*fileHash);
+		string sName;
+		FileLineInformation *flInfo;
+		while (iter.next(sName, flInfo)){ // for each source file
+		  dictionary_hash<string, FunctionInfo *> *functionHash = flInfo->getFunctionInfoHash();
+		  dictionary_hash_iter<string, FunctionInfo *> fiter(*functionHash);
+		  string fName;
+		  FunctionInfo *fInfo;
+		  while (fiter.next(fName, fInfo)){ // for each function 
+		    	/** get the starting address of the function in stab records */
+		      if (!fInfo->validInfo) continue;
+	
+		      Address min = fInfo->startAddrPtr->codeAddress;
+		      Address max = fInfo->endAddrPtr->codeAddress;
+ 
+		      /** check whether stab record matches the dyninst records */
+		      BPatch_function* currFunc = validateFunction(fName.c_str(),min);
+		      if(!currFunc) continue;
+			
+		      FunctionCoverage* fc = NULL;
+		      FileLineCoverage* flc = NULL;
+
+		      /** if already not created create the function 
+		       * coverage object for the function 
+		       */
+		      if(!instFunctions.contains(currFunc)){
+			instFunctions += currFunc;
+			flc = new FileLineCoverage(sName.c_str());
+			initializeLineSets(flc,fInfo,flInfo);
+			fc = newFunctionCoverage(currFunc, fName.c_str(),flc);
+			(*allCoverageHash)[fName] = fc;
+			available += fc;
+		      }
+		      else{
+			fc = (*allCoverageHash)[fName];
+			if(fc){
+			  FileLineCoverage* flc =
+			    new FileLineCoverage(sName.c_str());
+			  initializeLineSets(flc,fInfo,flInfo);
+			  fc->addSourceFile(flc);
+			  flc->setOwner(fc);
+			}
+		      }
+		    }
+		}
+#endif
 	}
 
 	if(!available.size())

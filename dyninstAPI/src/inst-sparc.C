@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.139 2003/03/13 17:00:15 jodom Exp $
+// $Id: inst-sparc.C,v 1.140 2003/04/02 07:12:25 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1463,8 +1463,8 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
   // find the main function
   // first look for main or _main
-  if (!((mainFunction = findOneFunction("main")) 
-        || (mainFunction = findOneFunction("_main")))) {
+  if (!((mainFunction = findOnlyOneFunction("main")) 
+        || (mainFunction = findOnlyOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
 #if defined(BPATCH_LIBRARY)

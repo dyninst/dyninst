@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.59 2003/03/06 20:58:58 zandy Exp $
+// $Id: inst-alpha.C,v 1.60 2003/04/02 07:12:24 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -628,12 +628,12 @@ void installBaseTramp(instPoint *location,
   Address baseAddr;
 
   if (location->ipType == otherPoint) {
-      fun_save = proc->findOneFunction("DYNINSTsave_conservative");
-      fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+      fun_save = proc->findOnlyOneFunction("DYNINSTsave_conservative");
+      fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_conservative");
       proc->getSymbolInfo("DYNINSTsave_conservative", info, baseAddr);
   } else {
-      fun_save = proc->findOneFunction("DYNINSTsave_temp");
-      fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+      fun_save = proc->findOnlyOneFunction("DYNINSTsave_temp");
+      fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
       proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   }
 
@@ -808,7 +808,7 @@ void emitSaveConservative(process *proc, char *code, Address &offset)
 
   Symbol info;
   Address baseAddr;
-  fun_save = proc->findOneFunction("DYNINSTsave_conservative");
+  fun_save = proc->findOnlyOneFunction("DYNINSTsave_conservative");
   proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_save);
 
@@ -848,7 +848,7 @@ void emitRestoreConservative(process *proc, char *code, Address &offset)
 
   Symbol info;
   Address baseAddr;
-  fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+  fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_conservative");
   proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_restore);
 
@@ -1098,8 +1098,8 @@ generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
   Address baseAddr;
 
   proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
-  function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
-  function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_misc");
+  function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
+  function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
   assert(fun_save && fun_restore);
   Address dyn_save = fun_save->addr() + baseAddr;
   Address dyn_restore = fun_restore->addr() + baseAddr;
@@ -1820,8 +1820,8 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
   // find the main function
   // first look for main or _main
-  if (!((mainFunction = findOneFunction("main")) 
-        || (mainFunction = findOneFunction("_main")))) {
+  if (!((mainFunction = findOnlyOneFunction("main")) 
+        || (mainFunction = findOnlyOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
@@ -1904,7 +1904,7 @@ emitFuncCall(opCode /* op */,
   else {
        addr = proc->findInternalAddress(callee, false, err);
        if (err) {
-	    function_base *func_b = proc->findOneFunction(callee);
+	    function_base *func_b = proc->findOnlyOneFunction(callee);
 	    if (!func_b) {
 		 ostrstream os(errorLine, 1024, ios::out);
 		 os << "Internal error: unable to find addr of " << callee << endl;
@@ -1922,8 +1922,8 @@ emitFuncCall(opCode /* op */,
   Address dyn_restore;
 
   if (!skipSaveCalls) {
-      function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
-      function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_misc");
+      function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
+      function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
       assert(fun_save && fun_restore);
       dyn_save = fun_save->addr();
       dyn_restore = fun_restore->addr();
@@ -2125,7 +2125,7 @@ void emitFuncJump(opCode op,
     // call DYNINSTrestore_temp
     Symbol info;
     Address baseAddr;
-    function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+    function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
     proc->getSymbolInfo("DYNINSTrestore_temp", info, baseAddr);
     assert(fun_restore);
     Address dyn_restore = fun_restore->addr() + baseAddr;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.15 2002/12/20 07:49:59 jaw Exp $
+ * $Id: RTsolaris.c,v 1.16 2003/04/02 07:12:27 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -242,7 +242,7 @@ int DYNINSTloadLibrary(char *libname)
   gLoadLibraryErrorString[0]='\0';
   
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
-    // An error has occurred
+    /* An error has occurred */
     perror( "DYNINSTloadLibrary -- dlopen" );
     
     if (NULL != (err_str = dlerror()))

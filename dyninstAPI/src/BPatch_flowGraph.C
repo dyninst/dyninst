@@ -46,13 +46,24 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *bpf, bool &valid)
 //given as a parameter and calls the other constructor using the bpatch 
 //function value.
 BPatch_flowGraph::BPatch_flowGraph(BPatch_image *bpim,char *functionName, bool &valid){
-	BPatch_function *bpf = NULL;
-	bpf = bpim->findBPFunction(functionName);
-	if(bpf)
-		*(this) = *(new BPatch_flowGraph(bpf, valid));
+
+	BPatch_Vector<BPatch_function *> bpfv;
+
+	if (NULL == bpim->findFunction(functionName, &bpfv)) {
+	  cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
+	  cerr << functionName <<" does not have BPatch_function object\n" ;
+	}
+
+	if (bpfv.size() > 1) {
+	  cerr << "WARNING:  BPatch_flowGraph found " << bpfv.size() << "functions called "
+	       << functionName << " using the first" <<endl;
+	}
+
+	if (NULL != bpfv[0])
+	  *(this) = *(new BPatch_flowGraph(bpfv[0], valid));
 	else{
-		cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
-		cerr << functionName <<" does not have BPatch_function object\n" ;
+	  cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
+	  cerr << functionName <<" does not have BPatch_function object\n" ;
 	}
 }
 
@@ -532,8 +543,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	BPatch_Vector<BPatch_module*>* appModules =  bpImage->getModules();
 	for(i=0;i<appModules->size();i++){
-
-		lineInformation = (*appModules)[i]->lineInformation;
+		lineInformation = (*appModules)[i]->getLineInformation();
 		if(!lineInformation)
 			continue;
 

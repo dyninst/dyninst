@@ -211,11 +211,11 @@ class pd_process {
    }
    
    function_base *findOneFunction(resource *func, resource *mod) {
-       return dyninst_process->findOneFunction(func, mod);
+      return dyninst_process->findOnlyOneFunction(func, mod);
    }
 
    function_base *findOneFunction(const string &func_name) const {
-      return dyninst_process->findOneFunction(func_name);
+      return dyninst_process->findOnlyOneFunction(func_name);
    }
 
    bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const {

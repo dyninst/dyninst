@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.35 2003/03/14 23:18:29 bernat Exp $
+// $Id: aixDL.C,v 1.36 2003/04/02 07:12:24 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -377,7 +377,7 @@ void process::handleTrapAtEntryPointOfMain()
 
 void process::insertTrapAtEntryPointOfMain()
 {
-  function_base *f_main = findOneFunction("main");
+  function_base *f_main = findOnlyOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
@@ -551,7 +551,7 @@ bool process::loadDYNINSTlibCleanup()
 
 Address process::get_dlopen_addr() const {
 
-  function_base *pdf = findOneFunction("dlopen");
+  function_base *pdf = findOnlyOneFunction("dlopen");
 
   if (pdf)
     return pdf->addr();

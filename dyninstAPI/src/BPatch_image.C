@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.38 2002/12/21 03:16:43 jaw Exp $
+// $Id: BPatch_image.C,v 1.39 2003/04/02 07:12:23 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -383,7 +383,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
  * but it's here since it deals with BPatch_functions and not pd_Functions.
  */
 void BPatch_image::findFunctionInImage(
-	const char *name, image *img, BPatch_Vector<BPatch_function*>& funcs)
+	const char *name, image *img, BPatch_Vector<BPatch_function*> *funcs)
 {
     pd_Function *pdf;
     pdvector<pd_Function*> *pdfv;
@@ -392,54 +392,55 @@ void BPatch_image::findFunctionInImage(
 	assert(pdfv->size() > 0);
 
 	for (unsigned int i = 0; i < pdfv->size(); i++)
-	    funcs.push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
+	    funcs->push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
     } else {
 
 	if ((pdf = img->findFuncByMangled(name)) != NULL)
-	    funcs.push_back(proc->findOrCreateBPFunc(pdf));
+	    funcs->push_back(proc->findOrCreateBPFunc(pdf));
     }
 
     // Note that we can only return one non instrumentable function right now.
     if ((pdf = img->findNonInstruFunc(name)) != NULL)
-	funcs.push_back(proc->findOrCreateBPFunc(pdf));
+	funcs->push_back(proc->findOrCreateBPFunc(pdf));
 
-    // Note that we can only return one excluded function right now.
-    if ((pdf = img->findExcludedFunc(name)) != NULL)
-	funcs.push_back(proc->findOrCreateBPFunc(pdf));
+    // Note:  there used to be a call to findExcludedFunction here, which properly
+    //        does not belong in the dyninstAPI -- removed by JAW 02-03
 }
-
 
 /*
- * BPatch_image::findFunction
+ * BPatch_image::findFunctionPatternInImage
  *
- * Returns a BPatch_function* representing the named function upon success,
- * and NULL upon failure.
+ * Searches a single image (class image object) for all functions that match
+ * the given regex pattern.  Results are returned in the vector that is passed in.
+ * Note that the vector is not cleared first, so anything in the vector
+ * when it is passed in remains there.
  *
- * name		The name of function to look up.
+ * pattern	The compiled regex pattern of function to look up.
+ * img		The image to search.
+ * funcs	The vector in which to return the results.
+ *
+ * This function would make a lot more sense as a method of the image class,
+ * but it's here since it deals with BPatch_functions and not pd_Functions.
  */
-BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img, 
+					      BPatch_Vector<BPatch_function*> *funcs)
 {
-    BPatch_Vector<BPatch_function*> funcs;
+  pd_Function *pdf;
+  pdvector<pd_Function*> pdfv;
+  
+  img->findFuncVectorByPrettyRegex(&pdfv, comp_pat);
 
-    findFunction(name, funcs, false);
-
-    if (funcs.size() == 0) {
-	string fullname = string(name) + string("_");
-	findFunction(fullname.c_str(), funcs, false);
-    }
-
-    if (funcs.size() > 0) {
-	return funcs[0];
-    }
-    else {
-	if (showError) {
-	    string msg = string("Unable to find function: ") + string(name);
-	    BPatch_reportError(BPatchSerious, 100, msg.c_str());
-	}
-	return NULL;
-    }
+  for (unsigned int i = 0; i < pdfv.size(); i++)
+    funcs->push_back(proc->findOrCreateBPFunc((pdfv)[i]));
+  
+  if (!pdfv.size()) { // didn't find any pretty matches, try mangled    
+    img->findFuncVectorByMangledRegex(&pdfv, comp_pat);
+    for (unsigned int j = 0; j < pdfv.size(); ++j) 
+      funcs->push_back(proc->findOrCreateBPFunc(pdfv[j]));
+  }
 }
-
+#endif
 
 /*
  * BPatch_image::findFunction
@@ -451,40 +452,149 @@ BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
  * name		The name of function to look up.
  * funcs	The vector in which to place the results.
  */
+
+
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
-	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError)
+	const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
+	bool regex_case_sensitive)
 {
 
-#ifdef USE_STL_VECTOR
-  BPatch_Vector<BPatch_function*> *init_funcs = new BPatch_Vector<BPatch_function*>();
-  funcs = *init_funcs;
-#else  
-  funcs = BPatch_Vector<BPatch_function*>();
-#endif
-
+  if (NULL == strpbrk(name, REGEX_CHARSET)) {
+    //  usual case, no regex
     findFunctionInImage(name, proc->symbols, funcs);
-
+    
     if (proc->dynamiclinking && proc->shared_objects) {
-	for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
-	    const image *obj_image = ((*proc->shared_objects)[j])->getImage();
-	    if (obj_image) {
-	      findFunctionInImage(name, (image*)obj_image, funcs);
-	    }
+      for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+	const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+	if (obj_image) {
+	  findFunctionInImage(name, (image*)obj_image, funcs);
 	}
+      }
     }
-
-    if (funcs.size() > 0) {
-	return &funcs;
+    
+    if (funcs->size() > 0) {
+      return funcs;
     } else {
-
-        if (showError) {
-	    string msg = string("Unable to find function: ") + string(name);
-	    BPatch_reportError(BPatchSerious, 100, msg.c_str());
-	}
-	return NULL;
+      
+      if (showError) {
+	string msg = string("Unable to find function: ") + string(name);
+	BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
+      return NULL;
     }
+  }
+
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+  // REGEX falls through:
+  regex_t comp_pat;
+  int err, cflags = REG_NOSUB | REG_EXTENDED;
+  
+  if( !regex_case_sensitive )
+    cflags |= REG_ICASE;
+  
+  cerr << "compiling regex: " <<name<<endl;
+
+  if (0 != (err = regcomp( &comp_pat, name, cflags ))) {
+    char errbuf[80];
+    regerror( err, &comp_pat, errbuf, 80 );
+    if (showError) {
+      cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+      string msg = string("Unable to find function pattern: ") 
+	+ string(name) + ": regex error --" + string(errbuf);
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    }
+    // remove this line
+    cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+    return NULL;
+  }
+    
+  findFunctionPatternInImage(&comp_pat, proc->symbols, funcs);
+  cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs->size()<<endl;
+
+  if (proc->dynamiclinking && proc->shared_objects) {
+    for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+      const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+      if (obj_image) {
+	findFunctionPatternInImage(&comp_pat, (image*)obj_image, funcs);
+	cerr << "matched regex: " <<name<<"in so, results: "<<funcs->size()<<endl;
+      }
+    }
+  }
+  
+  regfree(&comp_pat);
+
+  if (funcs->size() > 0) {
+    return funcs;
+  } 
+    
+  if (showError) {
+    string msg = string("Unable to find pattern: ") + string(name);
+    BPatch_reportError(BPatchSerious, 100, msg.c_str());
+  }
+#endif
+  return NULL;
 }
 
+void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
+					BPatchFunctionNameSieve bpsieve, void *user_data) 
+{
+  pdvector<pd_Function*> pdfv;
+  
+  if (NULL != img->findFuncVectorByPretty(bpsieve, user_data,&pdfv)) {
+    assert(pdfv.size() > 0);
+    
+    for (unsigned int i = 0; i < pdfv.size(); i++)
+      funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
+  } else {
+    
+    if (NULL != img->findFuncVectorByMangled(bpsieve, user_data, &pdfv))
+      for (unsigned int i = 0; i < pdfv.size(); i++)
+	funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
+  }
+}
+
+/*
+ * BPatch_image::findFunction 2
+ *
+ * Fills a vector with BPatch_function pointers representing all functions in
+ * the image according to the user defined sieving function.  
+ * Returns a pointer to the vector that was passed in on success, and NULL on error.
+ * 
+ *
+ * bpsieve      User-provided boolean function used to determine inclusion in the
+ *              filtered set.
+ * user_data    a pointer to a user-defined data space for use by bpsieve
+ * funcs	The vector in which to place the results.
+ */
+
+BPatch_Vector<BPatch_function *> *
+BPatch_image::findFunction(BPatch_Vector<BPatch_function *> *funcs, 
+			   BPatchFunctionNameSieve bpsieve,
+			   void *user_data, int showError)
+{
+
+  sieveFunctionsInImage(proc->symbols, funcs, bpsieve, user_data);
+  
+  if (proc->dynamiclinking && proc->shared_objects) {
+    for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+      const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+      if (obj_image) {
+	sieveFunctionsInImage((image*)obj_image, funcs, bpsieve, user_data);
+      }
+    }
+  }
+
+  if (funcs->size() > 0) {
+    return funcs;
+  } 
+    
+  if (showError) {
+    const char *msg = "No function matches for sieve provided";
+    BPatch_reportError(BPatchSerious, 100, msg);
+  }
+
+  return NULL;
+}
 
 /*
  * BPatch_image::findVariable
@@ -603,120 +713,6 @@ BPatch_type *BPatch_image::findType(const char *name)
 }
 
 /*
- * BPatch_image::findBPFunnction
- *
- * Returns a BPatch_function* representing the named function or if no func
- * exists, returns NULL.
- *
- * name		The name of function to look up.
- */
-BPatch_function  *BPatch_image::findBPFunction(const char *name)
-{
-    char *fullName;
-    BPatch_function *func;
-    BPatch_Vector<BPatch_function *> * funclist =
-      new BPatch_Vector<BPatch_function *>;
-      
-    assert(BPatch::bpatch != NULL);
-
-    // XXX - should this stuff really be by image ??? jkh 3/19/99
-    BPatch_Vector<BPatch_module *> *mods = getModules();
-    //printf(" Number of Modules %d\n",mods->size());
-    for (unsigned int m = 0; m < mods->size(); m++) {
-	BPatch_module *module = (*mods)[m];
-	func = module->findFunction(name);
-	if (func) {
-	    if (func->getProc() != proc) {
-		printf("got func in the wrong proc\n");
-	    }
-	    funclist->push_back(func);
-	}
-    }
-
-    if (!funclist->size()) {
-	fullName = (char *) malloc(strlen(name) + 2);
-	sprintf(fullName, "%s_", name);
-	for (unsigned int m = 0; m < mods->size(); m++) {
-	    BPatch_module *module = (*mods)[m];
-	    func = module->findFunction(fullName);
-	    if (func) {
-		if (func->getProc() != proc) {
-		    printf("got func in the wrong proc\n");
-		}
-		funclist->push_back(func);
-	    }
-	}
-	free(fullName);
-    }
-
-    if( funclist->size()){
-      //printf("Function list has %d functions\n", funclist->size());
-      if( funclist->size() == 2)
-	return (*funclist)[1];
-      else 
-	return (*funclist)[0];
-    }
-    // check the default base types of last resort
-    else
-      return NULL;
-}
-
-
-/*
- * BPatch_image::findBPFunnction
- *
- * Returns a BPatch_function* representing the named function or if no func
- * exists, returns NULL.
- *
- * name		The name of function to look up.
- */
-BPatch_Vector<BPatch_function *>  *BPatch_image::findBPFunction(const char *name,
-								BPatch_Vector<BPatch_function *> &funclist)
-{
-    char *fullName;
-    BPatch_function *func;
-    assert(BPatch::bpatch != NULL);
-
-    // XXX - should this stuff really be by image ??? jkh 3/19/99
-    BPatch_Vector<BPatch_module *> *mods = getModules();
-    //printf(" Number of Modules %d\n",mods->size());
-    for (unsigned int m = 0; m < mods->size(); m++) {
-	BPatch_module *module = (*mods)[m];
-	func = module->findFunction(name);
-	if (func) {
-	    if (func->getProc() != proc) {
-		printf("got func in the wrong proc\n");
-	    }
-	    funclist.push_back(func);
-	}
-    }
-
-    if (!funclist.size()) {
-	fullName = (char *) malloc(strlen(name) + 2);
-	sprintf(fullName, "%s_", name);
-	for (unsigned int m = 0; m < mods->size(); m++) {
-	    BPatch_module *module = (*mods)[m];
-	    func = module->findFunction(fullName);
-	    if (func) {
-		if (func->getProc() != proc) {
-		    printf("got func in the wrong proc\n");
-		}
-		funclist.push_back(func);
-	    }
-	}
-	free(fullName);
-    }
-
-    if( funclist.size()){
-      return &funclist;
-    }
-    // check the default base types of last resort
-    else
-      return NULL;
-}
-
-
-/*
  * BPatch_image::addModule
  *
  * Adds a new module to the BPatch_module vector
@@ -770,9 +766,11 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 		
 	//in each module try to find the file
 	for(unsigned int i=0;i<appModules->size();i++){
-		lineInformation = (*appModules)[i]->lineInformation;
-		if(!lineInformation)
+		lineInformation = (*appModules)[i]->getLineInformation();
+		if(!lineInformation) {
+		  cerr << __FILE__ << __LINE__ <<":  no Line Information avail!!!" << endl;
 			continue;
+		}
 		fLineInformation = lineInformation->getFileLineInformation(fName);		
 		if(fLineInformation)
 			break;

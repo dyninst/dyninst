@@ -592,7 +592,7 @@ Address lookup_fn(process *p, const string &f)
   
   // findOneFunction()
   if (ret == 0) {
-    pd_Function *pdf = (pd_Function *)p->findOneFunction(f);
+    pd_Function *pdf = (pd_Function *)p->findOnlyOneFunction(f);
     if (pdf) {
       Address obj_base;
       p->getBaseAddress(pdf->file()->exec(), obj_base);
@@ -1228,6 +1228,7 @@ unsigned
 void pd_Function::checkCallPoints() 
 {
   TRACE_B( "pd_Function::checkCallPoints" );
+  if (call_points_have_been_checked) return;
 
   //fprintf(stderr, ">>> pd_Function::checkCallPoints()\n");
 #ifdef CSS_DEBUG_INST
@@ -1265,6 +1266,7 @@ void pd_Function::checkCallPoints()
   }
   calls = calls2;
   setVectorIds();
+  call_points_have_been_checked = true;
 
   TRACE_E( "pd_Function::checkCallPoints" );
 }
@@ -4410,7 +4412,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #1: unmodified
   name = fn_name;
-  ret = p->findFuncByName(name);
+  ret = p->findOnlyOneFunction(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4420,7 +4422,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #2: leading underscore (C)
   name = "_" + fn_name;
-  ret = p->findFuncByName(name);
+  ret = p->findOnlyOneFunction(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4430,7 +4432,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #3: trailing underscore (Fortran)
   name = fn_name + "_";
-  ret = p->findFuncByName(name);
+  ret = p->findOnlyOneFunction(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4440,7 +4442,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #4: two leading underscores (libm)
   name = "__" + fn_name;
-  ret = p->findFuncByName(name);
+  ret = p->findOnlyOneFunction(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );

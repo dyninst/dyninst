@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.15 2003/03/08 01:23:49 bernat Exp $
+// $Id: test6.C,v 1.16 2003/04/02 07:12:27 jaw Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -114,7 +114,16 @@ void instCall(BPatch_thread* bpthr, const char* fname,
   snprintf(buf, 30, "count%s", fname);
 
   BPatch_Vector<BPatch_snippet*> callArgs;
-  BPatch_function *countXXXFunc = bpthr->getImage()->findFunction(buf);
+  BPatch_image *appImage = bpthr->getImage();
+
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(buf, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "    Unable to find function %s\n", buf);
+    exit(1);
+  }
+  BPatch_function *countXXXFunc = bpfv[0];  
+
   BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
   bpthr->insertSnippet(countXXXCall, *res);
 }
@@ -131,7 +140,15 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_effectiveAddressExpr eae;
   listArgs.push_back(&eae);
 
-  BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
+  BPatch_image *appImage = bpthr->getImage();
+
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(buf, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "    Unable to find function %s\n", buf);
+    exit(1);
+  }
+  BPatch_function *listXXXFunc = bpfv[0];  
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
 
   if(!conditional)
@@ -169,7 +186,16 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
   BPatch_bytesAccessedExpr bae;
   listArgs.push_back(&bae);
 
-  BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
+  BPatch_image *appImage = bpthr->getImage();
+
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(buf, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "    Unable to find function %s\n", buf);
+    exit(1);
+  }
+  BPatch_function *listXXXFunc = bpfv[0];  
+
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
   if(!conditional)
     bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
@@ -699,7 +725,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -741,7 +767,7 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -782,7 +808,7 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -827,7 +853,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -875,7 +901,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -912,7 +938,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -950,7 +976,7 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);
@@ -986,7 +1012,7 @@ void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
 
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
-  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == bpimg->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    inFunction);
     exit(1);

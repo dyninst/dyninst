@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.134 2003/03/29 02:02:08 hollings Exp $
+// $Id: aix.C,v 1.135 2003/04/02 07:12:24 jaw Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2427,7 +2427,7 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= stopPage){
+			if(imagePatches[k]->startPage <= (unsigned int)stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{
@@ -2596,7 +2596,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= stopPage){
+			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{
@@ -2654,28 +2654,26 @@ void process::addLib(char* lname){
 
 	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
     BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
+    BPatch_Vector<BPatch_function *> bpfv;
+    if (NULL == appImage->findFunction("main", &bpfv) || !bpfv.size()) {
+      fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
+      return;
+    }
 
-	BPatch_function *mainFuncPtr = 	appImage->findFunction("main");
-	if( mainFuncPtr == NULL){
-		fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
-		return;
-	}
-
-	mainFunc = mainFuncPtr->findPoint(BPatch_entry);
-
+    BPatch_function *mainFuncPtr =bpfv[0];
+    mainFunc = mainFuncPtr->findPoint(BPatch_entry);
+    
     if (!mainFunc || ((*mainFunc).size() == 0)) {
 	fprintf(stderr, "    Unable to find entry point to \"main.\"\n");
 	exit(1);
     }
 
-    BPatch_function *dlopen_func;
-
-    dlopen_func = appImage->findFunction("dlopen");
-
-    if (dlopen_func == NULL) {
-	fprintf(stderr, "Unable to find function \"dlopen\"\n");
-	exit(1);
+    bpfv.clear();
+    if (NULL == appImage->findFunction("dlopen", &bpfv) || !bpfv.size()) {
+      fprintf(stderr,"Unable to find function \"dlopen\". Save the world will fail.\n");
+      return;
     }
+    BPatch_function *dlopen_func = bpfv[0];
 
     BPatch_Vector<BPatch_snippet *> dlopen_args;
     BPatch_constExpr nameArg(lname);

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.162 2003/03/14 23:18:30 bernat Exp $
+ * $Id: inst-power.C,v 1.163 2003/04/02 07:12:24 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -311,6 +311,8 @@ void pd_Function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
+  if (call_points_have_been_checked) return;
+
   image *owner = file_->exec();
 
   pdvector<instPoint*> non_lib;
@@ -354,7 +356,7 @@ void pd_Function::checkCallPoints() {
 
 
   calls = non_lib;
-
+  call_points_have_been_checked = true;
 }
 
 // TODO we cannot find the called function by address at this point in time
@@ -2104,7 +2106,7 @@ Register emitFuncCall(opCode /* ocode */,
   else {
        dest = proc->findInternalAddress(callee, false, err);
        if (err) {
-	    function_base *func = proc->findOneFunction(callee);
+	    function_base *func = proc->findOnlyOneFunction(callee);
 	    if (!func) {
 		 ostrstream os(errorLine, 1024, ios::out);
 		 os << "Internal error: unable to find addr of " << callee << endl;
@@ -3307,8 +3309,8 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
   // find the main function
   // first look for main or _main
-  if (!((mainFunction = findOneFunction("main")) 
-        || (mainFunction = findOneFunction("_main")))) {
+  if (!((mainFunction = findOnlyOneFunction("main")) 
+        || (mainFunction = findOnlyOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);

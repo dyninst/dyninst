@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.400 2003/03/28 23:28:18 pcroth Exp $
+// $Id: process.C,v 1.401 2003/04/02 07:12:25 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4116,7 +4116,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     }
 #else
     if(!signal_handler){
-        signal_handler = img->findFuncByName(SIGNAL_HANDLER);
+        signal_handler = img->findOnlyOneFunction(SIGNAL_HANDLER);
     }
 #endif
 
@@ -4178,6 +4178,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
 	BPatch_module *bpmod = NULL;
 	if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
 	  if( image->ModuleListExist() )
+	    //cout << __FILE__ << ":" << __LINE__ << ": creating module " << name << endl;
 	    bpmod = new BPatch_module(this, curr, image);
 	}
 	// add to module list
@@ -4250,7 +4251,7 @@ bool process::getSharedObjects() {
 // static and dynamically linked objects, this should return NULL
 // if the function being sought is excluded....
 #ifndef BPATCH_LIBRARY
-function_base *process::findOneFunction(resource *func, resource *mod){
+function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
@@ -4259,6 +4260,8 @@ function_base *process::findOneFunction(resource *func, resource *mod){
     const pdvector<string> &m_names = mod->names();
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
+
+    pd_Function *found;
 
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
@@ -4274,8 +4277,9 @@ function_base *process::findOneFunction(resource *func, resource *mod){
             if(next){
                 if(((*shared_objects)[j])->includeFunctions()){ 
                   //cerr << "function found in module " << mod_name.c_str() << endl;
-                    return(((*shared_objects)[j])->findFuncByName(func_name));
-                } 
+		  //return(((*shared_objects)[j])->findFuncByName(func_name));
+		  return (*shared_objects)[j]->findOnlyOneFunction(func_name);
+		} 
                 else { 
                   //cerr << "function found in module " << mod_name.c_str()
                   //    << " that module excluded" << endl;
@@ -4284,8 +4288,8 @@ function_base *process::findOneFunction(resource *func, resource *mod){
             }
         }
     }
-
-    return(symbols->findFuncByName(func_name));
+    
+    return symbols->findOnlyOneFunction(func_name);
 }
 #endif /* BPATCH_LIBRARY */
 
@@ -4397,10 +4401,11 @@ bool matchLibName(string &lib_name, const string &name) {
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOneFunction(const string &name) const {
+function_base *process::findOnlyOneFunction(const string &name) const {
 
     string lib_name;
     string func_name;
+    function_base *pdf, *ret = NULL;
 
     // Split name into library and function
     getLibAndFunc(name, lib_name, func_name);
@@ -4409,17 +4414,23 @@ function_base *process::findOneFunction(const string &name) const {
     if (lib_name == "") {
 
       // first check a.out for function symbol
-      function_base *pdf = symbols->findFuncByName(func_name);
+      pdf = symbols->findOnlyOneFunction(func_name);
       if(pdf) {
-        return pdf;
+        ret = pdf;
       }
 
       // search any shared libraries for the file name 
       if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-          pdf = ((*shared_objects)[j])->findFuncByName(func_name);
+          pdf = ((*shared_objects)[j])->findOnlyOneFunction(func_name);
           if(pdf){
-            return(pdf);
+	    // fail if we already found a match
+	    if (ret) {
+	      cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+		   << "found more than one match for function " << func_name <<endl;
+	      return NULL;
+	    }
+	    ret = pdf;
           }
         }
       }
@@ -4435,21 +4446,28 @@ function_base *process::findOneFunction(const string &name) const {
 	      lib_name = "*" + lib_name;             
 
             if(matchLibName(lib_name, so->getName())) {
-              function_base *fb = so->findFuncByName(func_name);
+              function_base *fb = so->findOnlyOneFunction(func_name);
               if (fb) {
-                //cerr << "Found " << func_name << " in " << lib_name << endl;
+		if (ret) {
+		  cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+		       << "found more than one match for function " << func_name <<endl;
+		  return NULL;
+		}
+		ret = fb;
+		//cerr << "Found " << func_name << " in " << lib_name << endl;
               } 
-              return fb;
-            }
+	    }
 	  }
 	}
     }
-    return(0);
+
+    return ret;
 }
 
 // findFuncByName: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
+/*
 pd_Function *process::findFuncByName(const string &name){
 
     string lib_name;
@@ -4498,6 +4516,7 @@ pd_Function *process::findFuncByName(const string &name){
 
     return(0);
 }
+*/
 
 // findAllFuncsByName: return a vector of all functions in all images
 // matching the given string
@@ -4505,7 +4524,8 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
 {
   string lib_name;
   string func_name;
-  
+  pdvector<pd_Function *> *pdfv=NULL;
+
   // Split name into library and function
   getLibAndFunc(name, lib_name, func_name);
   
@@ -4513,17 +4533,19 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
   if (lib_name == "") {
     
     // first check a.out for function symbol
-    function_base *pdf = static_cast<function_base *>(symbols->findFuncByName(func_name));
-    if (pdf)
-      res.push_back(pdf);
+    if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
+      for (unsigned int i = 0; i < pdfv->size(); ++i)
+	res.push_back((*pdfv)[i]);
+    }
 
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
       for(u_int j=0; j < shared_objects->size(); j++){
-	pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
-	if(pdf){
-           res.push_back(pdf);
+	if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(func_name))) {
+	  for (unsigned int i = 0; i < pdfv->size(); ++i)
+	    res.push_back((*pdfv)[i]);
 	}
+	//pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
       }
     }
     
@@ -4538,15 +4560,19 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
 	lib_name = "*" + lib_name;             
 	
 	if(matchLibName(lib_name, so->getName())) {
-	  function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
-	  if (fb) {
-	    res.push_back(fb);
-	  }
+	if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
+	  for (unsigned int i = 0; i < pdfv->size(); ++i)
+	    res.push_back((*pdfv)[i]);
+	}
+
+	//function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
 	}
       }
     }
   }
-  return true; 
+  if (res.size())
+    return true; 
+  return false;
 }
 
 // Returns the named symbol from the image or a shared object
@@ -4561,8 +4587,10 @@ bool process::getSymbolInfo( const string &name, Symbol &ret )
    if(sflag)
       return true;
 
+ 
    if( dynamiclinking && shared_objects ) {
       for( u_int j = 0; j < shared_objects->size(); ++j ) {
+	if (!(*shared_objects)[j]) abort();
          sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
          if( sflag ) {
             ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
@@ -4698,6 +4726,7 @@ pd_Function *process::findFuncByAddr(Address adr)
 // images for this resource
 // if check_excluded is true it checks to see if the module is excluded
 // and if it is it returns 0.  If check_excluded is false it doesn't check
+#ifndef BPATCH_LIBRARY
 module *process::findModule(const string &mod_name, bool check_excluded) {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
@@ -4718,6 +4747,28 @@ module *process::findModule(const string &mod_name, bool check_excluded) {
    module *mret = symbols->findModule(mod_name, check_excluded);
    return mret;
 }
+#else
+module *process::findModule(const string &mod_name)
+{
+   // KLUDGE: first search any shared libraries for the module name 
+   //  (there is only one module in each shared library, and that 
+   //  is the library name)
+   if(dynamiclinking && shared_objects){
+      for(u_int j=0; j < shared_objects->size(); j++){
+	module *next = ((*shared_objects)[j])->findModule(mod_name);
+	if(next) {
+            return(next);
+         }
+      }
+   }
+
+   // check a.out for function symbol
+   //  Note that symbols is data member of type image* (comment says
+   //  "information related to the process"....
+   module *mret = symbols->findModule(mod_name);
+   return mret;
+}
+#endif
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
 // this routine starts looking a.out for symbol and then in shared objects
@@ -4758,7 +4809,8 @@ pdvector<function_base *> *process::getAllFunctions(){
     // else create the list of all functions
     all_functions = new pdvector<function_base *>;
     const pdvector<function_base *> &blah = 
-                    (pdvector<function_base *> &)(symbols->getAllFunctions());
+    (pdvector<function_base *> &)(symbols->getAllFunctions());
+
     VECTOR_APPEND(*all_functions,blah);
 
     if(dynamiclinking && shared_objects){
@@ -4766,6 +4818,7 @@ pdvector<function_base *> *process::getAllFunctions(){
            pdvector<function_base *> *funcs = (pdvector<function_base *> *) 
                         const_cast< pdvector<pd_Function *> *>
                         (((*shared_objects)[j])->getAllFunctions());
+
            if(funcs){
                VECTOR_APPEND(*all_functions,*funcs); 
            }
@@ -4784,8 +4837,11 @@ pdvector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new pdvector<module *>;
+#ifdef BPATCH_LIBRARY
+    VECTOR_APPEND(*all_modules,*((const pdvector<module *> *)(&(symbols->getModules()))));
+#else
     VECTOR_APPEND(*all_modules,*((const pdvector<module *> *)(&(symbols->getAllModules()))));
-
+#endif
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
            const pdvector<module *> *mods = (const pdvector<module *> *)
@@ -4839,6 +4895,7 @@ pdvector<function_base *> *process::getIncludedFunctions(){
 // getIncludedModules: returns a vector of all modules defined in the
 // a.out and in the shared objects that are included as specified in
 // the mdl
+
 pdvector<module *> *process::getIncludedModules(){
 
     //cerr << "process::getIncludedModules called" << endl;
@@ -5123,13 +5180,13 @@ void process::findSignalHandler(){
     if(SIGNAL_HANDLER == 0) return;
     if(!signal_handler) { 
         // first check a.out for signal handler function
-        signal_handler = symbols->findFuncByName(SIGNAL_HANDLER);
+        signal_handler = symbols->findOnlyOneFunction(SIGNAL_HANDLER);
 
         // search any shared libraries for signal handler function
         if(!signal_handler && dynamiclinking && shared_objects) { 
             for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
                 signal_handler = 
-                      ((*shared_objects)[j])->findFuncByName(SIGNAL_HANDLER);
+                      ((*shared_objects)[j])->findOnlyOneFunction(SIGNAL_HANDLER);
         } }
         signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
         if (!signal_handler) signal_cerr << " NOT";
@@ -5720,8 +5777,9 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
 
       getLibAndFunc(req->func, lib_name, func_name);
       
-      if (lib_name != "*") {
-	function_base *func2 = static_cast<function_base *>(findFuncByName(req->func));
+      if ((lib_name != "*") && (lib_name != "")) {
+	cerr << "about to find only one function in "<<lib_name << endl;
+	function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
         if(func2 != NULL)
            matchingFuncs.push_back(func2);
         //else
@@ -6221,7 +6279,7 @@ void process::FillInCallGraphStatic()
   //  that call graph PC searches will NOT catch time spent in the
   //  environment specific setup of _start.
 
-  pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
+  pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
   assert(entry_pdf);
   
   CallGraphAddProgramCallback(symbols->file());
@@ -6262,7 +6320,7 @@ void process::MonitorDynamicCallSites(string function_name){
   mod = symbols->findModule(p->name());
   if(!mod){
     //Must be the weird case where main() isn't in the executable
-    pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
+    pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
     assert(entry_pdf);
     image *main_img = entry_pdf->file()->exec();
     assert(main_img);
@@ -6271,8 +6329,17 @@ void process::MonitorDynamicCallSites(string function_name){
   assert(mod);
   
   function_base *func, *temp;
-  func = mod->findFunction(r->name());
-  assert(func);
+  pdvector<function_base *> fbv;
+  if (NULL == mod->findFunction(r->name(), &fbv) || !fbv.size()) {
+    fprintf(stderr, "%s[%d]: Cannot find %s, currently fatal\n", __FILE__, __LINE__,
+	    r->name().c_str());
+    abort();
+  }
+  if (fbv.size() > 1) {
+    fprintf(stderr, "%s[%d]: Warning, found %d %s()\n", __FILE__, __LINE__, fbv.size(),
+	    r->name().c_str());
+  }
+  func = fbv[0];
 
   //Should I just be using a resource::handle here instead of going through
   //all of this crap to find a pointer to the function???
@@ -6694,7 +6761,7 @@ dyn_thread *process::createThread(
     thr->update_start_func(pdf) ;
   } else {
     cerr << "createThread: zero startPC found!" << endl;
-    pdf = findOneFunction("main");
+    pdf = findOnlyOneFunction("main");
     assert(pdf);
     //thr->update_start_pc(pdf->addr()) ;
     thr->update_start_pc(0);
@@ -6721,7 +6788,7 @@ void process::updateThread(dyn_thread *thr, int tid,
   thr->update_pos(pos);
   thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOneFunction("main");
+  function_base *f_main = findOnlyOneFunction("main");
   assert(f_main);
 
   //unsigned addr = f_main->addr();
@@ -6762,7 +6829,7 @@ void process::updateThread(
     thr->update_start_func(pdf) ;
     thr->update_stack_addr(stackbase) ;
   } else {
-    pdf = findOneFunction("main");
+    pdf = findOnlyOneFunction("main");
     assert(pdf);
     thr->update_start_pc(startpc) ;
     //thr->update_start_pc(pdf->addr()) ;

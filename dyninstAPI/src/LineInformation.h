@@ -7,12 +7,19 @@
 #include "common/h/String.h"
 #include "BPatch_Set.h"
 
+#ifndef OLD_LINE_INFO
+#include <algorithm>
+#include <functional>
+#include <map>
+#endif
+
 typedef struct tuple {
 	unsigned short lineNo;
 	Address codeAddress;
+#ifdef OLD_LINE_INFO
 	unsigned short linePtr;
 	unsigned short addrPtr;
-
+#endif
 	tuple(unsigned short l,Address a): lineNo(l),codeAddress(a) {}
 
 } tuple;
@@ -26,6 +33,21 @@ typedef struct FunctionInfo {
 
 	FunctionInfo() : validInfo(false) {}
 } FunctionInfo;
+
+#ifndef OLD_LINE_INFO
+	//  The following typedefs define map-of-maps structures for storing tuple information
+	//  maps are nice here because they have a fast access time while remaining ordered,
+	//  so we can also find nearest elements to a nonexistent target.
+typedef std::map<unsigned short, tuple *, std::less<unsigned short> > line_to_tuple_t;
+typedef line_to_tuple_t::iterator lt_iter_t;
+typedef std::map<Address, tuple *, std::less<Address> > addr_to_tuple_t;
+typedef addr_to_tuple_t::iterator at_iter_t;
+
+typedef std::map<unsigned short, addr_to_tuple_t *, std::less<unsigned short> > line_to_addr_t;
+typedef line_to_addr_t::iterator l2a_iter_t;
+typedef std::map<Address, line_to_tuple_t *, std::less<Address> > addr_to_line_t;
+typedef addr_to_line_t::iterator a2l_iter_t;
+#endif
 
 //the following class declarations keep the line information for modules.
 
@@ -52,6 +74,7 @@ private:
 	/** name of the source file this class represents */
 	string sourceFileName;
 
+#ifdef OLD_LINE_INFO
 	/** number of entries in the mapping array */
 	unsigned short size;
 
@@ -62,17 +85,26 @@ private:
 	tuple** addrToLine;
 
 	/** a mapping from function name to the structure FunctionInfo */
-	unsigned short functionCount;
+
 	string** functionNameList;
 	FunctionInfo** lineInformationList;
-
 	int binarySearch(string functionName);
+	unsigned short functionCount;
+#else
+
+	line_to_addr_t lineToAddr;
+	addr_to_line_t addrToLine;
+
+	dictionary_hash<string, FunctionInfo *> functionInfoHash;
+#endif
+
+
+
 
 public:
 	/** constructor
 	  * @param fileName name of the source file this object is created */
 	FileLineInformation(string fileName);
-
 
 	string getFileName() { return sourceFileName; }
 
@@ -99,6 +131,11 @@ public:
 
 	/** method that cleans function entries that do not have any line info records */
 	void cleanEmptyFunctions();
+
+#ifndef OLD_LINE_INFO
+	//  return a set of line numbers belonging to the function provided
+	int getFunctionLines(FunctionInfo *fInfo, BPatch_Set<unsigned short> *);
+#endif
 
 	/** method that updates the info for a function */
 	FunctionInfo* insertFunction(string functionName,Address beginAddr,
@@ -152,14 +189,22 @@ public:
 			     unsigned short lineNo,bool isFile=false,
 			     bool isExactMatch=true);
 
-	bool getMinMaxAddress(int n,Address& min,Address& max);
+
 
 	unsigned short getFunctionCount();
+#ifdef OLD_LINE_INFO
+	bool getMinMaxAddress(int n,Address& min,Address& max);
 	string** getFunctionNameList();
 	FunctionInfo** getLineInformationList();
 	tuple** getLineToAddrMap();
 	tuple** getAddrToLineMap();
-
+#else
+	dictionary_hash<string, FunctionInfo *> *getFunctionInfoHash() {return &functionInfoHash;}
+#endif
+#ifndef OLD_LINE_INFO
+	int a2l_map_size() {return addrToLine.size();}
+	int l2a_map_size(){return lineToAddr.size();}
+#endif
 	/** tempoprary method to be deleted in commit */
 	void print();
 };
@@ -172,20 +217,26 @@ private:
 	friend class BPatch_thread;
 	friend ostream& operator<<(ostream&,LineInformation&);
 
-	/** name of the module this object belongs to */
-	string moduleName;
-
 	/** mapping from source file name to line info object for that
 	  * file. If the module has more than 1 source file than it 
 	  * will contain entry for each source file. The file names are
 	  * inserted as given by stab info ( it may be full path or only
 	  * file name).
 	  */
-	unsigned short sourceFileCount;
+#ifdef OLD_LINE_INFO
+
 	string** sourceFileList;
 	FileLineInformation** lineInformationList;
-
+	unsigned short sourceFileCount;
 	int binarySearch(string fileName);
+#else
+	// first string (hash key) is short file name, full name is stored in FileLineInformation struct
+	dictionary_hash<string, FileLineInformation * > fileLineInfoHash;
+#endif
+
+	/** name of the module this object belongs to */
+	string moduleName;
+
 public:
 
 	/** constructor 
@@ -195,7 +246,12 @@ public:
 	
 	/** destructor */
 	~LineInformation(); 
-
+	
+	short unsigned int getSourceFileCount();
+#ifndef OLD_LINE_INFO
+	bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
+			    char* fileName,int size);
+#endif
 	/** method to insert an entry to the line info for a file.
 	  * inserts an entry to the mapping from file name to line
 	  * info object for the given function. The latest one always replaces the
@@ -261,10 +317,14 @@ public:
 	void insertFunction(string functionName,Address beginAddr,
 			    Address functionSize);
 			     
-
+#ifdef OLD_LINE_INFO
 	string** getSourceFileList();
-	unsigned short getSourceFileCount();
 	FileLineInformation** getLineInformationList();
+#else
+	dictionary_hash<string, FileLineInformation * > *getFileLineInfoHash() {return &fileLineInfoHash;}
+#endif
+	//unsigned short getSourceFileCount();
+
 
 	/** tempoprary method to be deleted in commit */
 	void print();

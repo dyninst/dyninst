@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.51 2003/01/02 19:52:02 schendel Exp $
+// $Id: test2.C,v 1.52 2003/04/02 07:12:27 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -191,14 +191,17 @@ void test5(BPatch_image *img)
 {
     gotError = false;
     expectErrors = true; // test #5 causes error #100 (Unable to find function)
-    BPatch_function *func = img->findFunction("NoSuchFunction");
     expectErrors = false;
-    if (func || !gotError) {
-	printf("**Failed** test #5 (look up nonexistent function)\n");
-	if (func)
-    	    printf("    non-null for findFunction on non-existant func\n");
-	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
+
+    BPatch_Vector<BPatch_function *> bpfv, *res;
+    char *fn = "NoSuchFunction";
+    if (!(NULL == (res=img->findFunction(fn, &bpfv)) || !bpfv.size()
+	|| NULL == bpfv[0]) || !gotError){
+      printf("**Failed** test #5 (look up nonexistent function)\n");
+      if (res)
+	printf("    non-null for findFunction on non-existant func\n");
+      if (!gotError)
+	printf("    the error callback should have been called but wasn't\n");
     } else {
 	printf("Passed test #5 (look up nonexistent function)\n");
 	passedTest[5] = true;
@@ -322,7 +325,7 @@ void test8a(BPatch_thread *appThread, BPatch_image *appImage)
      */
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func8_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findFunction("func8_1", &found_funcs, 1)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func8_1");
       exit(1);
@@ -467,7 +470,7 @@ void test11(BPatch_thread * appThread, BPatch_image *appImage)
 {
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func11_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findFunction("func11_1", &found_funcs, 1)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func11_1");
       exit(1);
@@ -519,7 +522,7 @@ void test12(BPatch_thread *appThread, BPatch_image *appImage)
 {
    
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func12_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findFunction("func12_1", &found_funcs, 1)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func12_1");
       exit(1);
@@ -579,7 +582,7 @@ void test13( BPatch_thread * appThread, BPatch_image * appImage )
 
   bpatch->registerErrorCallback(llErrorFunc);
   
-  if (appThread->loadLibrary("adskfoieweadsf")) {
+  if (appThread->loadLibrary("noSuchLibrary.Ever")) {
     fprintf(stderr, "**Failed** test #13 (failure reporting for loadLibrary)\n");
     exit(1);
   }

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.123 2003/03/28 23:28:18 pcroth Exp $
+ * $Id: inst-x86.C,v 1.124 2003/04/02 07:12:25 jaw Exp $
  */
 
 #include <iomanip.h>
@@ -323,6 +323,7 @@ void pd_Function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
+  if (call_points_have_been_checked) return;
 
   pdvector<instPoint*> non_lib;
 
@@ -357,7 +358,7 @@ void pd_Function::checkCallPoints() {
     }
   }
   calls = non_lib;
-
+  call_points_have_been_checked = true;
 }
 
 // this function is not needed
@@ -2274,10 +2275,11 @@ Register emitFuncCall(opCode op,
   else {
        addr = proc->findInternalAddress(callee, false, err);
        if (err) {
-	    function_base *func = proc->findOneFunction(callee);
+	    function_base *func = proc->findOnlyOneFunction(callee);
 	    if (!func) {
 		 ostrstream os(errorLine, 1024, ios::out);
-		 os << "Internal error: unable to find addr of " << callee << endl;
+		 os << __FILE__ << ":" <<__LINE__
+		    <<": Internal error: unable to find addr of " << callee << endl;
 		 logLine(errorLine);
 		 showErrorCallback(80, (const char *) errorLine);
 		 P_abort();
@@ -3003,24 +3005,35 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Symbol sym;
   string str;
   Address baseAddr;
+  pdvector<pd_Function *> *pdfv=NULL;
+ 
+
 
   // find the main function
   // first look for main or _main
 #if !defined(i386_unknown_nt4_0)
-  if (!((mainFunction = findOneFunction("main")) 
-        || (mainFunction = findOneFunction("_main")))) {
+  if (NULL == (pdfv = symbols->findFuncVectorByPretty("main")) || !pdfv->size()) {
+    if (NULL == (pdfv = symbols->findFuncVectorByPretty("_main")) || !pdfv->size()) {
+      cerr << __FILE__ << __LINE__ << ":  findFuncVectorByPretty(main) failed!" << endl;
      string msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
+    }
   }
+
+  if (pdfv->size() > 1)
+    cerr << __FILE__ << __LINE__ << ":  Found more than one main!  using the first" << endl;
+
+  mainFunction = (function_base *) (*pdfv)[0];
 #else
-  if (!((mainFunction = findOneFunction("main")) 
-        || (mainFunction = findOneFunction("_main"))
-	|| (mainFunction = findOneFunction("WinMain"))
-	|| (mainFunction = findOneFunction("_WinMain"))
-	|| (mainFunction = findOneFunction("wWinMain"))
-	|| (mainFunction = findOneFunction("_wWinMain")))) {
+
+  if (!((mainFunction = findOnlyOneFunction("main")) 
+        || (mainFunction = findOnlyOneFunction("_main"))
+	|| (mainFunction = findOnlyOneFunction("WinMain"))
+	|| (mainFunction = findOnlyOneFunction("_WinMain"))
+	|| (mainFunction = findOnlyOneFunction("wWinMain"))
+	|| (mainFunction = findOnlyOneFunction("_wWinMain")))) {
      string msg = "Cannot find main or WinMain. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
@@ -4153,6 +4166,9 @@ bool pd_Function::fillInRelocInstPoints(
   int originalOffset, newOffset, originalArrayOffset, newArrayOffset;
   Address adr;
 
+  if (!call_points_have_been_checked)
+    checkCallPoints();
+
   instPoint *point = 0; 
 
   assert(newAdr);
@@ -4837,6 +4853,8 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
     
     unsigned retId = 0, callId = 0,arbitraryID = 0;
     bool found = false;
+    if (!call_points_have_been_checked)
+      checkCallPoints();
 
     if(relocatable_ && !(const_cast<instPoint *>(location)->getRelocated())){
         for(u_int i=0; i < relocatedByProcess.size(); i++){

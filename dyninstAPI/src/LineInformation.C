@@ -3,6 +3,10 @@
 #include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/src/util.h"
 
+#ifdef TIMED_PARSE
+extern int max_addr_per_line;
+extern int max_line_per_addr;
+#endif
 
 //this function implements binary search and returns the found element.
 //besides the found element it returns the next bigger line numbered one
@@ -11,6 +15,7 @@
 //in case it is not found it will RETURN NULL. if the next element
 //is not available it will assign NULL to the reference.
 //the next contains the entry with the first greater line number
+#ifdef OLD_LINE_INFO
 tuple** binarySearchLineFirst(tuple element,tuple** array,int howMany,tuple**& next)
 {
 	int low = 0;
@@ -46,6 +51,43 @@ tuple** binarySearchLineFirst(tuple element,tuple** array,int howMany,tuple**& n
 
 	return ret;
 }
+#endif
+#ifdef NOTDEF
+//  need a replacement function for binary search that is compat with map struct
+tuple *FileLineInformation::findByLine(unsigned short lineNo, tuple **next)
+{
+  tuple *ret = NULL;
+  *next = NULL;
+  l2a_iter_t l2a_iter = lineToAddr.find(lineNo);
+  if (lineToAddr.end() == l2a_iter) return NULL;  // lineNo not in map
+
+  tuple_list_t *line_addrs = l2a_iter->second;
+  if (!line_addrs->size()) {
+    cerr << __FILE__ << ":" << __LINE__ << "ERROR: empty set for line " << lineNo << endl;
+    return NULL;
+  }
+
+  ret = (*line_addrs)[0]; // the smallest address tuple in the list
+
+  //  Not sure if this is functionally equivalent to the code above... but it should behave
+  // in the manner that the comment suggests.  Danger!
+
+  // do the same thing with iter++
+  il2a_iter++;
+  if (l2a_iter == lineToAddr.end())  return ret;  // No next line
+
+  line_addrs = l2a_iter.second;
+  if (!line_addrs->size()) {
+    cerr << __FILE__ << ":" << __LINE__ << "ERROR: empty set for line " << lineNo << endl;
+    return ret;
+  }
+
+  *next = (*line_addrs)[0]; // the smallest address tuple in the list
+  return ret;
+}
+
+#endif
+
 //this function implements binary search and returns the found element.
 //besides the found element it returns the previous smaller address entry
 //The found element is the first same values element in the array in existence
@@ -53,6 +95,7 @@ tuple** binarySearchLineFirst(tuple element,tuple** array,int howMany,tuple**& n
 //in case it is not found it will RETURN NULL. if the next element
 //is not available it will assign NULL to the reference.
 //the next contains the entry with the previous smaller address
+#ifdef OLD_LINE_INFO
 tuple** binarySearchAddrFirst(tuple element,tuple** array,int howMany,tuple**& next)
 {
 	int low = 0;
@@ -91,61 +134,119 @@ tuple** binarySearchAddrFirst(tuple element,tuple** array,int howMany,tuple**& n
 	}
 	return ret;
 }
+#endif
 
 //constructor
 FileLineInformation::FileLineInformation(string fileName)
-	: sourceFileName(fileName),
-	  size(0),
-	  lineToAddr(NULL),
-	  addrToLine(NULL),
-	  functionCount(0),
-	  functionNameList(NULL),
-	  lineInformationList(NULL){}
+  :  sourceFileName(fileName),
+#ifdef OLD_LINE_INFO
+     size(0),
+     lineToAddr(NULL),
+     addrToLine(NULL),
+     functionNameList(NULL),
+     lineInformationList(NULL),
+     functionCount(0)
+#else
+  functionInfoHash(string::hash)
+#endif
+ 
+{}
 
 //destructor
 FileLineInformation::~FileLineInformation(){
+
+
+#ifdef OLD_LINE_INFO
 	int i;
 	for(i=0;i<size;i++)
 		delete lineToAddr[i];
 	free(lineToAddr);
 	free(addrToLine);
+
 	for(i=0;i<functionCount;i++){
 		delete lineInformationList[i];
 		delete functionNameList[i];
 	}
 	free(functionNameList);
 	free(lineInformationList);
+
+#else
+
+	//  Delete all tuples from just one of our maps (contents are duplicates)
+	l2a_iter_t map_iter;
+	for (map_iter = lineToAddr.begin(); map_iter != lineToAddr.end(); ++map_iter) {
+	  addr_to_tuple_t * tmap = map_iter->second;
+	  at_iter_t tuple_iter;
+	  for (tuple_iter = tmap->begin(); tuple_iter != tmap->end(); ++tuple_iter) 
+	    delete (tuple_iter->second);
+	  tmap->clear();
+	  delete tmap;
+	}
+
+	//  Delete sub-maps (but not tuples) from second structure
+	a2l_iter_t map_iter2;
+	for (map_iter2 = addrToLine.begin(); map_iter2 != addrToLine.end(); ++map_iter2) {
+	  line_to_tuple_t *tmap = map_iter2->second;
+	  tmap->clear();
+	  delete tmap;
+	}
+
+	lineToAddr.clear();
+	addrToLine.clear();
+
+	dictionary_hash_iter<string, FunctionInfo *> del_iter(functionInfoHash);
+	string fName;
+	FunctionInfo *fInfo;
+	while (del_iter.next(fName, fInfo))
+	  delete (fInfo);
+	
+	functionInfoHash.clear();
+#endif
+	
 }
 
+#ifdef OLD_LINE_INFO
 int FileLineInformation::binarySearch(string functionName){
-	int low = 0;
-	int high = functionCount-1;
-	int mid;
-	while (low <= high){
-		mid = (low+high)/2;
-		string entryName = *functionNameList[mid];
-		if(functionName < entryName)
-			high = mid - 1;
-		else if(functionName > entryName)
-			low = mid + 1;
-		else 
-			return (int)mid;
-	}
-	return -1;
+
+  int low = 0;
+  int high = functionCount-1;
+  int mid;
+  while (low <= high){
+    mid = (low+high)/2;
+    string entryName = *functionNameList[mid];
+    if(functionName < entryName)
+      high = mid - 1;
+    else if(functionName > entryName)
+      low = mid + 1;
+    else 
+      return (int)mid;
+  }
+
+  return -1;
 }
+#endif
 
 //returns the function info structure
-FunctionInfo *FileLineInformation::findFunctionInfo(string functionName){
+FunctionInfo *FileLineInformation::findFunctionInfo(string functionName)
+{
+#ifdef OLD_LINE_INFO
 	int check = binarySearch(functionName);
 	if( check >= 0 )
 		return lineInformationList[check];
+#else
+	if (functionInfoHash.defines(functionName))
+	  return functionInfoHash[functionName];
+
+#endif
 	return NULL;
 }
 
 //inserts function wntry to the mapping from function name to its info
 FunctionInfo* FileLineInformation::insertFunction(string functionName){
+#ifdef OLD_LINE_INFO
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
 	if(!fInfo){
+
 		functionNameList = (string**)(functionCount ? 
 			realloc(functionNameList,(functionCount+1)*sizeof(string*)) : 
 			malloc(sizeof(string*)));
@@ -157,8 +258,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 		for(;i > 0;i--){
                         if(functionName < *functionNameList[i-1]){
                                 functionNameList[i] = functionNameList[i-1];
-                                lineInformationList[i] = lineInformationList[i-1
-];
+                                lineInformationList[i] = lineInformationList[i-1];
                         }
                         else
                                 break;
@@ -167,18 +267,28 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 		lineInformationList[i] = fInfo;
 		functionNameList[i] = new string(functionName);
 		functionCount++;
-	}	
+	}		
+#else
+	FunctionInfo *fInfo = new FunctionInfo();
+	functionInfoHash[functionName] = fInfo;
+#endif
+
 	return fInfo;
 }
 
 //returns true if the function has an entry in the mapping
 bool FileLineInformation::findFunction(string functionName){
+#ifdef OLD_LINE_INFO
 	int check = binarySearch(functionName);
 	return (check >= 0);
+#else
+	return functionInfoHash.defines(functionName);
+#endif
 }
 
 void FileLineInformation::cleanEmptyFunctions(){
 
+#ifdef OLD_LINE_INFO
 	int maxFunctionCount = functionCount;
 	int shift = 0;
 
@@ -207,10 +317,45 @@ void FileLineInformation::cleanEmptyFunctions(){
 	lineInformationList =
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
 
+#else
+	dictionary_hash_iter<string, FunctionInfo *> iter(functionInfoHash);
+	string fName;
+	FunctionInfo *fInfo;
+	while (iter.next(fName, fInfo))
+	  if (!fInfo->validInfo)
+	    functionInfoHash.undef(fName);
+#endif
 }
+
+#ifndef OLD_LINE_INFO
+int FileLineInformation::getFunctionLines(FunctionInfo *fInfo, BPatch_Set<unsigned short> *res)
+{
+  unsigned short startLine = fInfo->startLinePtr->lineNo; 
+  unsigned short endLine = fInfo->endLinePtr->lineNo; 
+  l2a_iter_t line_iter;
+
+  if (lineToAddr.end() == (line_iter = lineToAddr.find(startLine))) {
+    cerr << "ERROR:  no record of line " << startLine << endl;
+    return -1;
+  }
+
+  do {
+    (*res) += line_iter->first;
+    line_iter++;
+  } while ((line_iter != lineToAddr.end()) && (line_iter->first <= endLine));
+
+  if ((line_iter == lineToAddr.end()) && ((--line_iter)->first < endLine)) {
+    cerr << "ERROR:  reached end of map before end of function was found!" << endl;
+    return -1;
+  }
+
+  return 0;
+}
+#endif
 
 //delete the records for function
 void FileLineInformation::deleteFunction(string functionName){
+#ifdef OLD_LINE_INFO
 	int i = binarySearch(functionName);
 	if(i < 0)
 		return;
@@ -235,12 +380,22 @@ void FileLineInformation::deleteFunction(string functionName){
 		(string**)realloc(functionNameList,functionCount*sizeof(string*));
 	lineInformationList = 
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
+
+#else
+	if (functionInfoHash.defines(functionName)) {
+	  FunctionInfo *delInfo = functionInfoHash[functionName];
+	  functionInfoHash.undef(functionName);
+	  delete delInfo;
+	}
+	
+#endif
 }
 
 //updates records for a function
 FunctionInfo* FileLineInformation::insertFunction(string functionName,Address baseAddr,
 					 Address functionSize)
 {
+#ifdef OLD_LINE_INFO
 	tuple toSearchBegin(0,baseAddr);
 	tuple toSearchEnd(0,baseAddr+functionSize-1);
 
@@ -274,7 +429,6 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) :
 			malloc(sizeof(FunctionInfo*)));
 
-
 		FunctionInfo* fInfo = new FunctionInfo();
                 fInfo->startLinePtr = lineToAddr[beginLineIndex];
                 fInfo->endLinePtr = lineToAddr[endLineIndex];
@@ -298,9 +452,73 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 		functionCount++;
 		return fInfo;
 	}
+
+#else
+	// find the start address of this function in our maps
+	a2l_iter_t a2l_iter;
+	if (addrToLine.end() == (a2l_iter = addrToLine.find(baseAddr))) {
+	  cout << __FILE__ << ":" << __LINE__ << ": inserFunction:  baseAddress not found!" << endl;
+	  return NULL; // baseAddress not found
+	}
+
+	line_to_tuple_t *base_addr_tuples = a2l_iter->second;
+	if (!base_addr_tuples->size()) {
+	  cerr << __FILE__ ":" << __LINE__ << ": no tuples for address " << baseAddr << endl;
+	  return NULL;  // this should never happen
+	}
+
+	tuple *start_tuple = base_addr_tuples->begin()->second;
+
+	// find the end address of this function in our maps
+	// if end is not represented, find next address greater than end
+	//
+	// lower_bound is the last node that is NOT LESS than the arg.
+	// if the lower bound does not match the arg, we want the node before it,
+	// which is less than the arg.
+
+	a2l_iter = addrToLine.find(baseAddr+functionSize -1);
+	if (addrToLine.end() == a2l_iter) { // could not find end, try lower_bound (this could be 
+	  // constructed better)
+	  a2l_iter = addrToLine.lower_bound(baseAddr+functionSize -1);
+	  if (a2l_iter == addrToLine.end()) {
+	    cerr << __FILE__ ":" << __LINE__ << ": lower_bound failed! " << addrToLine.size() << endl;
+	    return NULL;
+	  }
+	  if (a2l_iter == addrToLine.begin()) {
+	    // we are already at the bottom of our range, there are no lesser addresses
+	    cerr << __FILE__ ":" << __LINE__ << ": weird result " << baseAddr +functionSize -1<< endl;
+	    return NULL;
+	  }
+
+	  a2l_iter--;
+	  if ((baseAddr +functionSize -1) < a2l_iter->first) {
+	    cerr << __FILE__ ":" << __LINE__ << ": weird result " << baseAddr +functionSize -1<< endl;
+	  }
+	}
+
+	line_to_tuple_t *end_addr_tuples = a2l_iter->second;
+	if (!end_addr_tuples->size()) {
+	  cerr << __FILE__ ":" << __LINE__ << ": no tuples for address " 
+	       << baseAddr +functionSize -1<< endl;
+	  return NULL;  // this should never happen ??
+	}
+
+	//  this next line should probably be end_addr_tuples->end()--, or some such???
+	//  in theory there should be only one anyways...
+	tuple *end_tuple = end_addr_tuples->begin()->second;
+
+	FunctionInfo* fInfo = new FunctionInfo();
+	fInfo->startLinePtr = start_tuple;
+	fInfo->endLinePtr = end_tuple;
+	fInfo->startAddrPtr = start_tuple;
+	fInfo->endAddrPtr = end_tuple;
+	fInfo->validInfo = true;
+	functionInfoHash[functionName] = fInfo;
+	return fInfo;
+	
+#endif
 	return NULL;
 }
-
 //insert a mapping from line number to address and address to line number
 //to the corresponding structures and updates the records for the function
 //given
@@ -310,6 +528,11 @@ void FileLineInformation::insertLineAddress(string functionName,
 {
 
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
+	if (NULL == fInfo) {
+	  cerr << __FILE__ << ":" << __LINE__ << ":  cannot insert address for "
+	       << functionName << ", no record of this function." << endl;
+	  return;
+	}
 	insertLineAddress(fInfo,lineNo,codeAddress);
 }
 
@@ -320,6 +543,7 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	if(!fInfo)
 		return;
 
+#ifdef OLD_LINE_INFO
 	lineToAddr = !lineToAddr ? ((tuple**)malloc(sizeof(tuple*))) :
 		     ((tuple**)realloc(lineToAddr,sizeof(tuple*)*(size+1)));
 	addrToLine = !addrToLine ? ((tuple**)malloc(sizeof(tuple*))) :
@@ -374,6 +598,83 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 
 	if(fInfo->endAddrPtr->codeAddress <= codeAddress)
 		fInfo->endAddrPtr = addrToLine[index2];
+#else
+	tuple *newTuple = new tuple(lineNo,codeAddress);
+
+	// add tuple to both maps
+
+	l2a_iter_t l2a_iter;
+	if (lineToAddr.end() == (l2a_iter = lineToAddr.find(lineNo))) {
+	  // not in map yet 
+	  addr_to_tuple_t *newTupleMap = new addr_to_tuple_t();
+	  (*newTupleMap)[codeAddress] = newTuple;
+	  if (newTupleMap != (lineToAddr[lineNo] = newTupleMap)) {
+	    cerr << __FILE__ << ":" << __LINE__ << ": broken insert!" << endl;
+	  }
+#ifdef TIMED_PARSE
+	  if (newTupleMap->size() > max_addr_per_line) 
+	    max_addr_per_line = newTupleMap->size();
+#endif
+	}
+	else {
+	  // in map, get map and add tuple 
+	  addr_to_tuple_t *tupleMap = l2a_iter->second;
+	  assert(tupleMap);
+	  // do we care about collisions here -- I think not -- they lead to replacement
+	  (*tupleMap)[codeAddress] = newTuple;
+
+#ifdef TIMED_PARSE
+	  if (tupleMap->size() > max_addr_per_line) 
+	    max_addr_per_line = tupleMap->size();
+#endif
+	}
+
+	a2l_iter_t a2l_iter;
+	if (addrToLine.end() == (a2l_iter = addrToLine.find(codeAddress))) {
+	  // not in map yet
+	  line_to_tuple_t *newTupleMap = new line_to_tuple_t();
+	  (*newTupleMap)[lineNo] = newTuple;
+	  if (newTupleMap != (addrToLine[codeAddress] = newTupleMap)){
+	    cerr << __FILE__ << ":" << __LINE__ << ": broken insert!" << endl;
+	  }
+#ifdef TIMED_PARSE
+	  if (newTupleMap->size() > max_line_per_addr) 
+	    max_line_per_addr = newTupleMap->size();
+#endif
+	}
+	else {
+	  // in map, get list and add tuple 
+	  line_to_tuple_t *tupleMap = a2l_iter->second;
+	  assert(tupleMap);
+	  (*tupleMap)[lineNo] = newTuple;
+
+#ifdef TIMED_PARSE
+	  if (tupleMap->size() > max_line_per_addr) 
+	    max_line_per_addr = tupleMap->size();
+#endif
+	}
+
+	// update fInfo
+	if(!fInfo->validInfo){
+	  fInfo->startLinePtr = newTuple;
+	  fInfo->endLinePtr = newTuple;
+	  fInfo->startAddrPtr = newTuple;
+	  fInfo->endAddrPtr = newTuple;
+	  fInfo->validInfo = true;
+	  return;
+	}
+	if(fInfo->startLinePtr->lineNo > lineNo)
+		fInfo->startLinePtr = newTuple;
+
+	if(fInfo->endLinePtr->lineNo <= lineNo)
+		fInfo->endLinePtr = newTuple;
+
+	if(fInfo->startAddrPtr->codeAddress > codeAddress)
+		fInfo->startAddrPtr = newTuple;
+
+	if(fInfo->endAddrPtr->codeAddress <= codeAddress)
+		fInfo->endAddrPtr = newTuple;
+#endif
 }
  
 //returns true in case of success, false otherwise.
@@ -392,6 +693,7 @@ bool FileLineInformation::getLineFromAddr(string name,unsigned short& lineNo,
 	lineNo = lines.maximum();
 	return true;
 }
+
 //returns true in case of success, false otherwise.
 //this method finds the line numbers corresponding to an address.
 //if name of the function is supplied and isFile is false
@@ -403,49 +705,106 @@ bool FileLineInformation::getLineFromAddr(string name,
 					  Address codeAddress,bool isFile,
 					  bool isExactMatch)
 {
-	tuple** beginPtr;
-	tuple** endPtr;
-	int howMany;
+#ifdef OLD_LINE_INFO
+  tuple** beginPtr;
+  tuple** endPtr;
+  int howMany;
+  
+  if(!addrToLine)
+    return false;
+  if(isFile){
+    beginPtr = addrToLine;
+    endPtr = (tuple**) (addrToLine+(size-1));
+    howMany = size;
+  }
+  else{
+    FunctionInfo* fInfo = findFunctionInfo(name);
+    if(!fInfo)
+      return false;
+    if(!fInfo->validInfo)
+      return false;
+    beginPtr = (tuple**)(addrToLine+fInfo->startAddrPtr->addrPtr);
+    endPtr = (tuple**)(addrToLine+fInfo->endAddrPtr->addrPtr);
+    howMany = (fInfo->endAddrPtr->addrPtr - fInfo->startAddrPtr->addrPtr)+1;
+  }
+  
+  if((codeAddress < (*beginPtr)->codeAddress) || 
+     ((*endPtr)->codeAddress < codeAddress))
+    return false;
+  
+  tuple toSearch(0,codeAddress);
+  tuple** next=NULL;
+  tuple** ret = binarySearchAddrFirst(toSearch,beginPtr,howMany,next);
+  if(!ret){
+    if(isExactMatch)
+      return false;
+    if(!next)
+      return false;
+    ret = next;
+    codeAddress = (*ret)->codeAddress;
+  }
+  do{
+    lines += (*ret)->lineNo;
+    ret++;
+  }while((ret <= endPtr) && ((*ret)->codeAddress == codeAddress));
+  
+  return true;
+#else
+  FunctionInfo *fInfo = NULL;
 
-	if(!addrToLine)
-		return false;
-	if(isFile){
-		beginPtr = addrToLine;
-		endPtr = (tuple**) (addrToLine+(size-1));
-		howMany = size;
-	}
-	else{
-		FunctionInfo* fInfo = findFunctionInfo(name);
-        	if(!fInfo)
-			return false;
-		if(!fInfo->validInfo)
-			return false;
-		beginPtr = (tuple**)(addrToLine+fInfo->startAddrPtr->addrPtr);
-		endPtr = (tuple**)(addrToLine+fInfo->endAddrPtr->addrPtr);
-		howMany = (fInfo->endAddrPtr->addrPtr - fInfo->startAddrPtr->addrPtr)+1;
-	}
+  if (!isFile && (!(fInfo = findFunctionInfo(name)) || (!fInfo->validInfo))) {
+    cerr << __FILE__ << __LINE__ << ":  Nonxistent/invalid info for "<< name << endl;
+    return false;
+  }
 
-	if((codeAddress < (*beginPtr)->codeAddress) || 
-	   ((*endPtr)->codeAddress < codeAddress))
-		return false;
+  // get list of line numbers corresponding to this address
+  if (!addrToLine.size()) {
+    cerr << "!!!! addrToLine.size() == 0 !!!!" << endl;
+    return false;
+  }
 
-	tuple toSearch(0,codeAddress);
-	tuple** next=NULL;
-	tuple** ret = binarySearchAddrFirst(toSearch,beginPtr,howMany,next);
-	if(!ret){
-		if(isExactMatch)
-			return false;
-		if(!next)
-			return false;
-		ret = next;
-		codeAddress = (*ret)->codeAddress;
-	}
-	do{
-		lines += (*ret)->lineNo;
-		ret++;
-	}while((ret <= endPtr) && ((*ret)->codeAddress == codeAddress));
+  a2l_iter_t a2l_iter;
+  if (addrToLine.end() == (a2l_iter = addrToLine.lower_bound(codeAddress))) {
+    cerr << "!!!! no lower bound in find! !!!!   addrToLine.size() = "<< addrToLine.size() << endl;
+    return false;
+  }
 
-	return true;
+  Address closest = a2l_iter->first;
+  if (codeAddress != closest) {
+    if (isExactMatch) return false;
+    if (a2l_iter == addrToLine.begin()) return false;
+
+    // lower_bound produces an iterator w/key that is greater than or equal to the search term.
+    // in the case of no match, we want the element that is one less than this, so we have to decrement
+    a2l_iter--;
+    closest = a2l_iter->first;
+  }  
+
+  line_to_tuple_t *addr_tuples = a2l_iter->second;
+
+  if (isFile) 
+    // in case of isFile, just grab them all
+    for (lt_iter_t iter = addr_tuples->begin(); iter != addr_tuples->end(); ++iter) 
+      lines += iter->second->lineNo;
+  
+  else {
+    lt_iter_t iter;
+    Address startAddr = fInfo->startAddrPtr->codeAddress;
+    Address endAddr = fInfo->endAddrPtr->codeAddress;
+    
+    if (addr_tuples->end() == (iter = addr_tuples->find(startAddr))) {
+      //  startAddr not in map, this is an error
+      cerr << "!!!! startAddress not in map !!!!   addr_tuples->size() = "<< addr_tuples->size() << endl;
+      return false;
+    }
+
+    // SOMETHING IS NOT RIGHT HERE!!!!
+
+    for (; iter != addr_tuples->end() && iter->second->codeAddress <= endAddr; ++iter)
+      lines += iter->second->lineNo;
+  }
+#endif
+  return true;
 }
 
 //method that retuns set of addresses corresponding to a given line number
@@ -457,6 +816,7 @@ bool FileLineInformation::getAddrFromLine(string name,
 					  unsigned short lineNo,bool isFile,
 					  bool isExactMatch)
 {
+#ifdef OLD_LINE_INFO
 	tuple** beginPtr;
 	tuple** endPtr;
 	int howMany;
@@ -497,10 +857,72 @@ bool FileLineInformation::getAddrFromLine(string name,
 		codeAddress += (*ret)->codeAddress;
 		ret++;
 	}while((ret <= endPtr) && ((*ret)->lineNo == lineNo));
+#else
+
+  FunctionInfo *fInfo = NULL;
+
+  if (!isFile && (!(fInfo = findFunctionInfo(name)) || (!fInfo->validInfo))) {
+    cerr << __FILE__ << __LINE__ << ":  Nonxistent/invalid info for "<< name << endl;
+    return false;
+  }
+  
+
+  if (! lineToAddr.size()) {
+    cerr << __FILE__ << __LINE__ << ":  lineToAddr.size() == 0 !!! " << endl;
+  }
+  // get list of addressess corresponding to this lineNo
+  l2a_iter_t l2a_iter;
+  if (lineToAddr.end() == (l2a_iter = lineToAddr.lower_bound(lineNo))) {
+    // no lower bound
+    cerr << __FILE__ << ":" << __LINE__ << ": no lower bound for " << lineNo << endl;
+    cerr << __FILE__ << ":" << __LINE__ << ": valid range is from " 
+	 << lineToAddr.begin()->first  << " to " << ((lineToAddr.end()--))->first 
+	 << endl;
+    return false;
+  }
+  
+  unsigned short closest = l2a_iter->first;
+  if (closest != lineNo) {
+    if (isExactMatch) return false;
+    if (l2a_iter == lineToAddr.begin()) return false;
+    l2a_iter--;
+    closest = l2a_iter->first;
+  }
+
+  // map representing all addresses on this line
+  addr_to_tuple_t *line_tuple_map = l2a_iter->second;
+  
+  if (isFile) {
+    at_iter_t iter;
+    for (iter = line_tuple_map->begin(); iter != line_tuple_map->end(); ++iter) {
+      codeAddress += iter->second->codeAddress;
+    }
+  }
+  else {
+    at_iter_t iter;
+    Address startAddress = fInfo->startLinePtr->codeAddress;
+    Address endAddress = fInfo->endAddrPtr->codeAddress;
+    if (line_tuple_map->end() == (iter = line_tuple_map->find(startAddress)))
+      return false; // could not find startAddress
+
+    do {
+      codeAddress += iter->second->codeAddress;
+      iter++;
+    } while(iter != line_tuple_map->end() && iter->second->codeAddress <= endAddress);
+
+    //    unsigned short startLine = fInfo->startLinePtr->lineNo;
+    //unsigned short endLine = fInfo->endLinePtr->lineNo;
+    
+    //for (iter = line_tuple_map->begin(); iter != line_tuple_map->end(); ++iter) {
+    //if ( ((*iter)->lineNo >= startLine) && (((*iter)->lineNo) <= endLine))
+    //codeAddress += (*iter)->codeAddress;
+    //}
+  }
+#endif
 
 	return true;
 }
-
+#ifdef OLD_LINE_INFO
 bool FileLineInformation::getMinMaxAddress(int n,Address& min,Address& max){
 	FunctionInfo* fi = lineInformationList[n];
 	if(!fi->validInfo)
@@ -509,79 +931,158 @@ bool FileLineInformation::getMinMaxAddress(int n,Address& min,Address& max){
 	max = fi->endAddrPtr->codeAddress;
 	return true;
 }
+#endif
 
 unsigned short FileLineInformation::getFunctionCount(){
+#ifdef OLD_LINE_INFO
 	return functionCount;
+#else
+	return functionInfoHash.size();
+#endif
 }
 
+#ifdef OLD_LINE_INFO
 string** FileLineInformation::getFunctionNameList(){
 	return functionNameList;
 }
-
+FunctionInfo** FileLineInformation::getLineInformationList(){
+	return lineInformationList;
+}
 tuple** FileLineInformation::getLineToAddrMap(){
 	return lineToAddr;	
 }
 tuple** FileLineInformation::getAddrToLineMap(){
 	return addrToLine;	
 }
-FunctionInfo** FileLineInformation::getLineInformationList(){
-	return lineInformationList;
-}
+
+#endif
+
+
+
 
 //constructor whose argument is the name of the module name
 LineInformation::LineInformation(string mName) 
-		: moduleName(mName),
-		  sourceFileCount(0),
-		  sourceFileList(NULL),
-		  lineInformationList(NULL){}
+  : 
+#ifdef OLD_LINE_INFO
+  lineInformationList(NULL),
+  sourceFileList(NULL),
+  sourceFileCount(0),
+#else
+  fileLineInfoHash(string::hash),  
+#endif
+  moduleName(mName)
+
+{}
 
 
 //desctructor
 LineInformation::~LineInformation() {
+#ifdef OLD_LINE_INFO
 	for(int i=0;i<sourceFileCount;i++){
 		delete sourceFileList[i];
 		delete lineInformationList[i];
 	}
 	free(sourceFileList);
 	free(lineInformationList);
+#else
+	dictionary_hash_iter<string, FileLineInformation * > del_iter = fileLineInfoHash.begin();
+		
+	for(;
+	    del_iter != fileLineInfoHash.end(); 
+	    ++del_iter) {
+	  delete (*del_iter);
+	}
+	fileLineInfoHash.clear();
+#endif
 }
 
+
+#ifndef OLD_LINE_INFO
+bool LineInformation::getLineAndFile(unsigned long addr,unsigned short& lineNo,
+			    char* fileName,int size)
+{
+  dictionary_hash_iter<string, FileLineInformation * > find_iter(fileLineInfoHash);
+  string fileN;
+  FileLineInformation *fInfo;
+  while(find_iter.next(fileN, fInfo)) {
+    if(fInfo->getLineFromAddr(fileN,lineNo,addr,true,false)){
+      if(fileN.length() < (unsigned)size)
+	size = fileN.length();
+      strncpy(fileName,fileN.c_str(),size);
+      fileName[size] = '\0';
+      return true;
+    }
+  }
+  // cerr << __FILE__ <<__LINE__ <<":  getLineAndFile could not find address: " << addr 
+  //     << "in module: " << moduleName <<endl;
+  return false;
+}
+
+#endif
+/*
+short unsigned int LineInformation::getSourceFileCount() 
+{
+#ifdef OLD_LINE_INFO
+  return sourceFileCount;
+#else
+  return fileLineInfoHash.size();
+#endif
+}
+*/
 //method to insert entries for the given file name and function name
 //it creates the necessary structures and inserts into the maps
 void LineInformation::insertSourceFileName(string functionName,string fileName,
 					   FileLineInformation** retFileInfo,
 					   FunctionInfo** retFuncInfo)
 {
-	FileLineInformation* fInfo = getFileLineInformation(fileName);
-	if(!fInfo){
-		sourceFileList = (string**)(sourceFileCount ? 
-			realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
-			malloc(sizeof(string*)));
-		lineInformationList = (FileLineInformation**)(sourceFileCount ? 
-			realloc(lineInformationList,(sourceFileCount+1)*sizeof(FileLineInformation*)) : 
-			malloc(sizeof(FileLineInformation*)));
+  FileLineInformation *fInfo = NULL;
+#ifdef OLD_LINE_INFO
+  fInfo = getFileLineInformation(fileName);
+  if(!fInfo){
 
-		unsigned short i = sourceFileCount;
-		for(;i > 0;i--){
-			if(fileName < *sourceFileList[i-1]){
-				sourceFileList[i] = sourceFileList[i-1];
-				lineInformationList[i] = lineInformationList[i-1];
-			}
-			else
-				break;
-		}
-		fInfo = new FileLineInformation(fileName);
-		lineInformationList[i] = fInfo;
-		sourceFileList[i] = new string(fileName);
-		sourceFileCount++;
-	}
+    sourceFileList = (string**)(sourceFileCount ? 
+				realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
+				malloc(sizeof(string*)));
+    lineInformationList = (FileLineInformation**)(sourceFileCount ? 
+						  realloc(lineInformationList,
+							  (sourceFileCount+1)  *
+							  sizeof(FileLineInformation*)) : 
+						  malloc(sizeof(FileLineInformation*)));
+    
+    unsigned short i = sourceFileCount;
+    for(;i > 0;i--){
+      if(fileName < *sourceFileList[i-1]){
+	sourceFileList[i] = sourceFileList[i-1];
+	lineInformationList[i] = lineInformationList[i-1];
+      }
+      else
+	break;
+    }
+    fInfo = new FileLineInformation(fileName);
+    lineInformationList[i] = fInfo;
+    sourceFileList[i] = new string(fileName);
+    sourceFileCount++;
+  }
+#else
+  char *lname = (char *) fileName.c_str();
+  char *sname = strrchr(lname, '/');
+  string hash_name_str = string(sname ? sname + 1 : lname);
 
-	FunctionInfo* funcInfo = fInfo->insertFunction(functionName);
-	if(retFileInfo)
-		*retFileInfo = fInfo;
+  if (NULL == (fInfo = getFileLineInformation(hash_name_str))) {
+    fInfo = new FileLineInformation(fileName);
+    fileLineInfoHash[hash_name_str] = fInfo;
+  }
+#endif
 
-	if(retFuncInfo)
-		*retFuncInfo = funcInfo;
+
+  FunctionInfo* funcInfo = fInfo->insertFunction(functionName);
+  if (NULL == funcInfo)
+    cerr << "inser function returned NULL!" << endl;
+  if(retFileInfo)
+    *retFileInfo = fInfo;
+  
+  if(retFuncInfo)
+    *retFuncInfo = funcInfo;
 }
 
 //inserts line to address and address to line mapping to the line info
@@ -608,6 +1109,7 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 				      lineNo,true,isExactMatch);
 }
 
+#ifdef OLD_LINE_INFO
 int LineInformation::binarySearch(string fileName){
 
 	int low = 0;
@@ -625,10 +1127,12 @@ int LineInformation::binarySearch(string fileName){
 	}
 	return -1;
 }
+#endif
 
 //returns the line information for the given filename
 FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 
+#ifdef OLD_LINE_INFO
 	int check = binarySearch(fileName);
 	if(check >= 0)
 		return lineInformationList[check];
@@ -651,17 +1155,39 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 		}
 		delete[] name;
 	}
+#else
+	if (fileLineInfoHash.defines(fileName))
+	  return fileLineInfoHash[fileName];
+	/* linear search if not found is no longer necessary since we store both the */
+	/* short and long paths (and already did a preemptive strrchr before calling, right?) */
+#endif
 	return NULL;
 } 
 
 //method retuns the file line information object which the function belongs to.
 //if there is no entry than it retuns NULL
 FileLineInformation* 
-LineInformation::getFunctionLineInformation(string functionName){
-	for(int i=0;i<sourceFileCount;i++)
-		if(lineInformationList[i]->findFunction(functionName))
-			return lineInformationList[i];
-	return NULL;
+LineInformation::getFunctionLineInformation(string functionName)
+{
+
+#ifdef OLD_LINE_INFO
+  for(int i=0;i<sourceFileCount;i++)
+    if(lineInformationList[i]->findFunction(functionName))
+      return lineInformationList[i];
+
+#else
+  dictionary_hash_iter<string, FileLineInformation * > find_iter(fileLineInfoHash);
+  string fileN;
+  FileLineInformation *fInfo;
+
+  while(find_iter.next(fileN, fInfo)) 
+    if (fInfo->findFunction(functionName))
+      return fInfo;
+
+#endif
+
+  cerr << __FILE__ << __LINE__ << ":  No info for " << functionName << endl;
+  return NULL;
 } 
 
 //method that fills the possible file array with the linenumber objects
@@ -679,8 +1205,10 @@ LineInformation::getFunctionLineInformation(string functionName,
 		return false;
 
 	possibleFiles[capacity] = NULL;
-
 	int entryCount = 0;
+
+#ifdef OLD_LINE_INFO
+
 	for(int i=0;i<sourceFileCount;i++)
 		if(lineInformationList[i]->findFunction(functionName)){
 			if(entryCount >= capacity)
@@ -690,6 +1218,20 @@ LineInformation::getFunctionLineInformation(string functionName,
 		}
 
 	possibleFiles[entryCount] = NULL;
+#else
+
+	dictionary_hash_iter<string, FileLineInformation *> iter(fileLineInfoHash);
+	string sName;
+	FileLineInformation *flInfo;
+
+	while (iter.next(sName, flInfo))
+	  if(flInfo->findFunction(functionName)){
+	    if(entryCount >= capacity)
+	      return true;
+	    possibleFiles[entryCount] = flInfo;
+	    entryCount++;
+	  }
+#endif
 
 	if(!entryCount)
 		return false;
@@ -701,49 +1243,88 @@ LineInformation::getFunctionLineInformation(string functionName,
 //false otherwise
 bool LineInformation::findFunction(string functionName){
 	bool ret = false;
+#ifdef OLD_LINE_INFO
 	for(int i=0;!ret && (i<sourceFileCount);i++)
 		ret = lineInformationList[i]->findFunction(functionName);
+#else
+	dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+	for (; find_iter != fileLineInfoHash.end(); ++find_iter) {
+	  if ((*find_iter)->findFunction(functionName)) {
+	    ret = true; break;
+	  }
+	}
+#endif
 	return ret;
 }
 
 //delete the records for function
 void LineInformation::deleteFunction(string functionName){
-	for(int i=0;i<sourceFileCount;i++)
-		lineInformationList[i]->deleteFunction(functionName);
+#ifdef OLD_LINE_INFO
+  for(int i=0;i<sourceFileCount;i++)
+    lineInformationList[i]->deleteFunction(functionName);
+#else
+  dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+  for (; find_iter != fileLineInfoHash.end(); ++find_iter) 
+    (*find_iter)->deleteFunction(functionName);
+#endif
 }
 
 //delete the records for function
 void LineInformation::cleanEmptyFunctions(){
+#ifdef OLD_LINE_INFO
 	for(int i=0;i<sourceFileCount;i++)
 		lineInformationList[i]->cleanEmptyFunctions();
+#else
+	dictionary_hash_iter<string, FileLineInformation *> iter(fileLineInfoHash);
+	string sName;
+	FileLineInformation *flInfo;
+
+	while (iter.next(sName, flInfo))
+	  flInfo->cleanEmptyFunctions();
+#endif
 }
 
 //updates records for a function
 void LineInformation::insertFunction(string functionName,Address baseAddr,
 				     Address functionSize)
 {
-	if(findFunction(functionName))
-		return;
-	FunctionInfo* ret = NULL;
-	for(int i=0;!ret && (i<sourceFileCount);i++)
-		ret = lineInformationList[i]->insertFunction(functionName,
-						       baseAddr,functionSize);
+  if(findFunction(functionName))
+    return;
+  FunctionInfo* ret = NULL;
+#ifdef OLD_LINE_INFO
+  for(int i=0;!ret && (i<sourceFileCount);i++)
+    ret = lineInformationList[i]->insertFunction(functionName,
+						 baseAddr,functionSize);
+#else
+  dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+  for (; find_iter != fileLineInfoHash.end(); ++find_iter) 
+    if ((*find_iter)->insertFunction(functionName, baseAddr,functionSize)) break;
+#endif
 }
 
+#ifdef OLD_LINE_INFO
 string** LineInformation::getSourceFileList(){
 	return sourceFileList;
 }
-
-unsigned short LineInformation::getSourceFileCount(){
-	return sourceFileCount;
-}
-
 FileLineInformation** LineInformation::getLineInformationList(){
 	return lineInformationList;
 }
+#endif
+
+unsigned short LineInformation::getSourceFileCount(){
+#ifdef OLD_LINE_INFO
+  return sourceFileCount;
+#else
+  return fileLineInfoHash.size();
+#endif
+}
+
+
 
 ostream& operator<<(ostream& os,FileLineInformation& linfo){
+
 	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
+#ifdef OLD_LINE_INFO
 	for(int j=0;j<linfo.size;j++){
 		os << ostream::dec << j << "\t";
 		os << ostream::dec << linfo.lineToAddr[j]->lineNo << " ----> ";
@@ -753,6 +1334,7 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 		   << " ----> ";
 		os << ostream::dec << linfo.addrToLine[j]->lineNo << "\n";
 	}
+
 	for(int i=0;i<linfo.functionCount;i++){
 		FunctionInfo* funcinfo = linfo.lineInformationList[i];
 		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
@@ -766,10 +1348,44 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 		os << ostream::hex << funcinfo->endAddrPtr->codeAddress 
 		   << "\n";
 	}
+#else
+	/*
+	dictionary_hash_iter<string, functionInfo *> printIter;
+	for (printIter = functionInfoHash.begin(); printIter != functionInfoHash.end(); ++printIter) {
+	  FunctionInfo* funcinfo = linfo.lineInformationList[i];
+	  os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
+	  if(!funcinfo->validInfo)
+	    continue;
+	  os << ostream::dec << funcinfo->startLinePtr->lineNo 
+	     << " --- ";
+	  os << ostream::dec << funcinfo->endLinePtr->lineNo << "\t\t";
+	  os << ostream::hex << funcinfo->startAddrPtr->codeAddress 
+	     << " --- ";
+	  os << ostream::hex << funcinfo->endAddrPtr->codeAddress 
+	     << "\n";
+	*/
+#endif
 	return os;
 }
 
+#ifndef OLD_LINE_INFO
+void LineInformation::print() 
+{
+  cout <<__FILE__ << ":" << __LINE__ << "Line Information summary:" << endl;
+  cout << "Module Name:  " << moduleName << ".  Source File Count: " << fileLineInfoHash.size();
+  /*
+  dictionary_hash_iter<string, FileLineInformation * > iter = fileLineInfoHash.begin();
+  for (; iter != fileLineInfoHash.end(); ++iter) {
+    FileLineInformation *finfo = *iter;
+    cout << "   source: " << finfo->getFileName() << ".  " << finfo->getFunctionCount() << " functions."
+	 << "[" << finfo->a2l_map_size() << ", " << finfo->l2a_map_size() << "]" << endl;
+  }
+  */
+}
+#endif
+
 ostream& operator<<(ostream& os,LineInformation& linfo){
+#ifdef OLDFILE_INFO
 	os << "**********************************************\n";
 	os << "MODULE : " << linfo.moduleName << "\n";  
 	os << "**********************************************\n";
@@ -777,6 +1393,7 @@ ostream& operator<<(ostream& os,LineInformation& linfo){
 		os << "FILE : " << *(linfo.sourceFileList[i]) << "\n";
 		os << *(linfo.lineInformationList[i]);
 	}
+#endif
 	return os;
 }
 

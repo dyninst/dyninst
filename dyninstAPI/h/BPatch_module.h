@@ -41,7 +41,6 @@
 
 #ifndef _BPatch_module_h_
 #define _BPatch_module_h_
-
 #include "BPatch_dll.h"
 #include <BPatch_Vector.h>
 #include <BPatch_sourceObj.h>
@@ -60,9 +59,9 @@ extern BPatch_builtInTypeCollection * builtInTypes;
 class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
 
     friend class process;
-    friend class BPatch_function;
-    friend class BPatch_image;
-    friend class BPatch_thread;
+    //friend class BPatch_function;
+    //friend class BPatch_image;
+    //friend class BPatch_thread;
     friend class BPatch_flowGraph;
     friend class InstrucIter;
 
@@ -94,12 +93,17 @@ public:
     char *getFullName(char *buffer, int length);
 
     BPatch_Vector<BPatch_function *> *getProcedures();
-
-    BPatch_function *findFunction(const char * name);
-
+    BPatch_Vector<BPatch_function *> *findFunction(const char *name,
+						   BPatch_Vector<BPatch_function *> *funcs,
+						   bool regex_case_sensitive=true);
     // parse stab stuff when needed
+#ifndef PARSE_ALL_AT_ONCE
+    void parseTypes(); // parse type and variable info
+    void parseFileLineInfo();  // parses line information
+    // this function assumes that parseTypes has already been called.
+#else
     void parseTypes();
-
+#endif
     bool isSharedLib() const;
 
     inline bool isNativeCompiler() const { return nativeCompiler; }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.13 2002/12/20 07:49:55 jaw Exp $
+// $Id: BPatch_Vector.h,v 1.14 2003/04/02 07:12:23 jaw Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -90,6 +90,7 @@ public:
     unsigned int size() const { return len; }
     void	push_back(const T& x);
     void	push_front(const T& x);
+    void        clear();
 
     T&		operator[](int n) const;
 };
@@ -191,6 +192,16 @@ void BPatch_Vector<T>::push_front(const T& x)
     for (i=len; i > 0; i--) data[i] = data[i-1];
     data[0] = x;
     len++;
+}
+
+// Clear vector 
+template<class T>
+void BPatch_Vector<T>::clear()
+{
+  if( data != NULL ) delete [] data;
+  len = 0;
+  reserved = 0;
+  data = NULL;
 }
 
 // Reference the nth element of the vector.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.94 2003/03/21 23:40:39 jodom Exp $
+// $Id: linux.C,v 1.95 2003/04/02 07:12:25 jaw Exp $
 
 #include <fstream.h>
 
@@ -1289,7 +1289,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          } 
          else {
             // just try to find a function with the same name as entry 
-            target = findFuncByName((*fbt)[i].name());
+            target = findOnlyOneFunction((*fbt)[i].name());
             if(target){
 	            return true;
             }
@@ -1310,13 +1310,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
                string s = string("_");
                s += (*fbt)[i].name();
-               target = findFuncByName(s);
+               target = findOnlyOneFunction(s);
                if(target){
                   return true;
                }
                s = string("__");
                s += (*fbt)[i].name();
-               target = findFuncByName(s);
+               target = findOnlyOneFunction(s);
                if(target){
                   return true;
                }

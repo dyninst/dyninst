@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.55 2003/03/21 23:40:39 jodom Exp $
+// $Id: irix.C,v 1.56 2003/04/02 07:12:25 jaw Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -646,8 +646,8 @@ bool process::continueProc_()
 
 bool process::heapIsOk(const pdvector<sym_data>&findUs)
 {
-  if (!(mainFunction = findOneFunction("main")) &&
-      !(mainFunction = findOneFunction("_main"))) {
+  if (!(mainFunction = findOnlyOneFunction("main")) &&
+      !(mainFunction = findOnlyOneFunction("_main"))) {
     fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
     return false;
   }

@@ -39,11 +39,60 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.14 2002/12/20 07:49:58 jaw Exp $
+// $Id: sharedobject.C,v 1.15 2003/04/02 07:12:26 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
 #define FS_FIELD_SEPERATOR '/'
+
+shared_object::shared_object():
+#ifndef BPATCH_LIBRARY
+  include_funcs(true), 
+  included_funcs(0),
+#endif
+  desc(0),
+  name(0),
+  short_name(0),
+  base_addr(0),
+  processed(false),
+  mapped(false),
+  objs_image(0),
+  dlopenUsed(false)
+{
+}
+shared_object::shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
+#ifndef BPATCH_LIBRARY
+  include_funcs(i), 
+  included_funcs(0),
+#endif
+  name(n), 
+  base_addr(b),
+  processed(p),
+  mapped(m),
+  objs_image(d)
+{ 
+  desc = new fileDescriptor(n, b);
+  set_short_name();
+  dirty_=false; 
+}
+
+shared_object::shared_object(fileDescriptor *f,
+			     bool p, bool m, bool i, image *d):
+#ifndef BPATCH_LIBRARY
+      include_funcs(i), 
+      included_funcs(0),
+#endif
+      desc(f),
+      name(f->file()), 
+      base_addr(0),
+      processed(p),
+      mapped(m),
+      objs_image(d),
+      dlopenUsed(false)
+{ 
+  set_short_name();
+  dirty_=false;
+}
 
 // TODO: this should probably not be a shared_object method, but since
 // for now it is only used by shared_objects it is
@@ -74,7 +123,17 @@ char *shared_object::getModulePart(string &full_path_name) {
     return 0;
 }
 
-pdmodule *shared_object::findModule(string m_name, bool check_excluded) {
+#ifdef BPATCH_LIBRARY
+pdmodule *shared_object::findModule(string m_name)
+{
+   if(objs_image) {
+     return (objs_image->findModule(m_name));
+   }
+   return 0;
+}
+#else
+pdmodule *shared_object::findModule(string m_name, bool check_excluded) 
+{
    if(objs_image) {
       if(check_excluded==false && !include_funcs){
          return 0;
@@ -84,6 +143,7 @@ pdmodule *shared_object::findModule(string m_name, bool check_excluded) {
    return 0;
 }
 
+#endif
 
 // fill in "short_name" data member.  Use last component of "name" data
 // member with FS_FIELD_SEPERATOR ("/") as field seperator....
@@ -96,8 +156,63 @@ void shared_object::set_short_name() {
         short_name = string("");
     }
 }
+/*
+pdvector<pd_Function *> *shared_object::findFunction(string f_name, 
+						     pdvector<pd_Function *> *v,
+						     bool check_excluded )
+{
+  pdvector<pd_Function *> *pdfv;
+  pd_Function *pdf;
 
+  if (f_name.c_str() == 0) return NULL;
+
+  if(objs_image) {
+
+    if ( (NULL != (pdfv = objs_image->findFuncVectorByPretty(f_name)))) {
+      (*v) = (*pdfv);
+      return v;
+    }
+    if ( (NULL != (pdf = objs_image->findFuncByMangled(f_name)))){
+      v->push_back(pdf);
+      return v;
+    }
+
+    if (check_excluded)
+      if ( (NULL != objs_image->findExcludedFunc(f_name,v) ) && v->size())
+	return v;
+  }
+
+  return NULL;
+}
+*/
+pd_Function *shared_object::findOnlyOneFunction(const string &funcname) 
+{
+  if (funcname.c_str() == 0) return NULL;
+  if(objs_image) {
+    return (objs_image->findOnlyOneFunction(funcname));
+  }
+  return NULL;
+} 
+
+pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const string &funcname) 
+{
+  if (funcname.c_str() == 0) return NULL;
+  if(objs_image) {
+    return (objs_image->findFuncVectorByPretty(funcname));
+  }
+  return NULL;
+} 
+
+const pdvector<pd_Function *> *shared_object::getAllFunctions(){
+  if(objs_image) {
+    // previously objs_image->mdlNormal....
+    return (&(objs_image->getAllFunctions()));
+  }
+  return 0;
+}
 #ifndef BPATCH_LIBRARY
+
+
 // returns all the functions not excluded by exclude_lib or exclude_func
 // mdl option
 pdvector<pd_Function *> *shared_object::getIncludedFunctions(){

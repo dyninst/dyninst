@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.79 2003/03/17 21:16:46 bernat Exp $
+// $Id: BPatch_thread.C,v 1.80 2003/04/02 07:12:24 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -105,11 +105,25 @@ static void insertVForkInst(BPatch_thread *thread)
     if (!appImage) return;
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-    BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
+
+    BPatch_Vector<BPatch_function *>  dyninst_vforks;
+    if (NULL == appImage->findFunction("DYNINSTvfork", &dyninst_vforks) || 
+	!dyninst_vforks.size()) {
+      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`DYNINSTvfork`, ...), "
+	      "no DYNINSTvfork found!\n", __FILE__, __LINE__);
+      return;
+    }
+    
+    if (dyninst_vforks.size() > 1)
+      fprintf(stderr, "%s[%d]:  SERIOUS  : found %d functions called 'DYNINSTvfork' "
+	      "in image, might be picking the wrong one\n", __FILE__, __LINE__, 
+	      dyninst_vforks.size());
+
+    BPatch_function *vforkFunc = dyninst_vforks[0];
 
     BPatch_Vector<BPatch_function *>  vforks;
-    if (NULL == appImage->findBPFunction("vfork", vforks) || ( 0 == vforks.size())) {
-      fprintf(stderr, "%s[%d]:  FATAL  : findBPFunction(`vfork`, ...), no vfork found!\n",
+    if (NULL == appImage->findFunction("vfork", &vforks) || !vforks.size()) {
+      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
 	      __FILE__, __LINE__);
       return;
     }
@@ -1279,8 +1293,20 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
 
     args.push_back(&nameArg);
     // args.push_back(&modeArg);
+    BPatch_Vector<BPatch_function *> bpfv;
+    if ((NULL == image->findFunction("DYNINSTloadLibrary", &bpfv) || !bpfv.size())) {
+      cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function "
+	   << "DYNINSTloadLibrary" << endl;
+      abort();
+    }
 
-    BPatch_function *dlopen_func = image->findFunction("DYNINSTloadLibrary");
+    if (bpfv.size() > 1) {
+      string msg = string("Found ") + string(bpfv.size()) 
+	+ string("functions called DYNINSTloadLibrary -- not fatal but weird");
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    }
+
+    BPatch_function *dlopen_func = bpfv[0]; 
     if (dlopen_func == NULL) return false;
 
     BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
@@ -1294,6 +1320,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
       
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);
+      cerr << dlerror_str << endl;
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
       return false;
     }
@@ -1327,10 +1354,11 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	LineInformation* lineInformation = NULL;
 	BPatch_Vector<BPatch_module*>* appModules = image->getModules();
 	for(unsigned int i=0;i<appModules->size();i++){
-		lineInformation = (*appModules)[i]->lineInformation;
+		lineInformation = (*appModules)[i]->getLineInformation();
 		if(!lineInformation)
 			continue;
-		for(int j=0;j<lineInformation->sourceFileCount;j++){
+#ifdef OLD_LINE_INFO
+		for(int j=0;j<lineInformation->getSourceFileCount();j++){
 			string* fileN = lineInformation->sourceFileList[j];
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
@@ -1342,7 +1370,12 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 				return true;
 			}	
 		}
+#else
+		if (lineInformation->getLineAndFile(addr, lineNo, fileName, size))
+		    return true;
+#endif
 	}
+	cerr << __FILE__ << __LINE__ << "lI->getLineAndFile failed!" << endl;
 	return false;
 }
 
@@ -1392,7 +1425,7 @@ void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
     // multiple threads.
     assert(stackWalks.size() == 1);
 
-    for (int i = 0; i < stackWalks[0].size(); i++) {
+    for (unsigned int i = 0; i < stackWalks[0].size(); i++) {
 	stack.push_back(BPatch_frame(this,
 				     (void*)stackWalks[0][i].getPC(),
 				     (void*)stackWalks[0][i].getFP()));

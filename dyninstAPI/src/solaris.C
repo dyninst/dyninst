@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.140 2003/03/21 23:40:40 jodom Exp $
+// $Id: solaris.C,v 1.141 2003/04/02 07:12:26 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -482,7 +482,7 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
 
-  function_base *f_main = findOneFunction("main");
+  function_base *f_main = findOnlyOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
@@ -523,7 +523,12 @@ bool process::loadDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
-  function_base *_startfn = this->findFuncByName("_start");
+  function_base *_startfn = this->findOnlyOneFunction("_start");
+  if (NULL == _startfn) {
+    cerr << "could not find _start!" << endl;
+    return false;
+  }
+
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
 
@@ -677,7 +682,11 @@ bool process::loadDYNINSTlibCleanup()
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  function_base *_startfn = this->findFuncByName("_start");
+  function_base *_startfn = this->findOnlyOneFunction("_start");
+  if (NULL == _startfn) {
+    cerr << "could not find _start!" << endl;
+    return false;
+  }
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
   if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer)) return false;
@@ -1224,7 +1233,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	    } 
 	    else {
 		// just try to find a function with the same name as entry 
-		target = findFuncByName((*fbt)[i].name());
+		target = findOnlyOneFunction((*fbt)[i].name());
 		if(target){
 	            return true;
 		}
@@ -1245,13 +1254,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
 		    string s = string("_");
 		    s += (*fbt)[i].name();
-		    target = findFuncByName(s);
+		    target = findOnlyOneFunction(s);
 		    if(target){
 	                return true;
 		    }
 		    s = string("__");
 		    s += (*fbt)[i].name();
-		    target = findFuncByName(s);
+		    target = findOnlyOneFunction(s);
 		    if(target){
 	                return true;
 		    }

@@ -162,6 +162,9 @@ class dictionary_hash {
     return const_iterator(*this).end();
   }
 
+  //int linear_filter(pdvector< pdpair<K, V> > &matches, 
+  //	    bool (*filt_func)(const V&));
+  pdvector<V> linear_filter(bool (*filt_func)(const K&, void *), void *data);
  private:
   bool enoughBins() const {
     //return bins.size() * max_bin_load >= size();

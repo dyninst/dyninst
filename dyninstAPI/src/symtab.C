@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.156 2003/03/28 23:28:19 pcroth Exp $
+// $Id: symtab.C,v 1.157 2003/04/02 07:12:26 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +70,10 @@
 extern pdvector<sym_data> syms_to_find;
 #endif
 
+
+#if defined(TIMED_PARSE)
+#include <sys/time.h>
+#endif
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -129,13 +133,19 @@ ostream &operator<<(ostream &os, function_base &f) {
 
 pdmodule *image::newModule(const string &name, const Address addr)
 {
-    pdmodule *ret;
+    pdmodule *ret = NULL;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
+#ifndef BPATCH_LIBRARY
     if ((ret = findModule(name, TRUE))) {
       return(ret);
     }
-
+#else
+    // seperate out references to excluded modules .. a bit pedantic, but here we go...
+    if ((ret = findModule(name))) {
+      return(ret);
+    }
+#endif
     string fullNm, fileNm;
     char *out = P_strdup(name.c_str());
     char *sl = P_strrchr(out, '/');
@@ -157,12 +167,14 @@ pdmodule *image::newModule(const string &name, const Address addr)
     if (module_is_excluded(ret)) {
        excludedMods += ret;
     } else {
-#endif /* BPATCH_LIBRARY */
-        modsByFileName[ret->fileName()] = ret;
-        modsByFullName[ret->fullName()] = ret;
-	includedMods.push_back(ret);
-#ifndef BPATCH_LIBRARY
+      modsByFileName[ret->fileName()] = ret;
+      modsByFullName[ret->fullName()] = ret;
+      includedMods.push_back(ret);
     }
+#else
+    modsByFileName[ret->fileName()] = ret;
+    modsByFullName[ret->fullName()] = ret;
+    _mods.push_back(ret);
 #endif /* BPATCH_LIBRARY */
 
     return(ret);
@@ -209,13 +221,6 @@ bool image::newFunc(pdmodule *mod, const string &name,
 		    const unsigned size) {
   pd_Function *func;
 
-  // KLUDGE
-  if ((func = findFuncByAddr(addr))){
-    //string temp = name;
-    //temp += string(" findFunction succeeded\n");
-    //logLine(P_strdup(temp.c_str()));
-    return false;
-  }
 
   if (!mod) {
     logLine("Error function without module\n");
@@ -246,48 +251,53 @@ bool image::newFunc(pdmodule *mod, const string &name,
     addNotInstruFunc(func, mod);
     return false;
   }
-  addInstruFunction(func, mod, addr,
+  
 #ifdef BPATCH_LIBRARY
-		    false);
+  addInstruFunction(func, mod, addr,false);
 #else
-		    function_is_excluded(func, mod->fileName()));
+  addInstruFunction(func, mod, addr,function_is_excluded(func, mod->fileName()));
 #endif
   return true;
 }
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 			      const Address addr, bool excluded) {
-    pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
-    pdvector<pd_Function*> *funcsByMangledEntry = NULL;
+  pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
+  pdvector<pd_Function*> *funcsByMangledEntry = NULL;
+  
+  // any functions whose instrumentation info could be determined 
+  //  get added to instrumentableFunctions, and mod->funcs.
+  instrumentableFunctions.push_back(func);
+  mod->funcs.push_back(func);
 
-    // any functions whose instrumentation info could be determined 
-    //  get added to instrumentableFunctions, and mod->funcs.
-    instrumentableFunctions.push_back(func);
-    mod->funcs.push_back(func);
+#ifndef BPATCH_LIBRARY
+  if (excluded) {
+    excludedFunctions[func->prettyName()] = func;
+    return;
+    } 
+  includedFunctions.push_back(func);
+#endif
 
-    if (excluded) {
-	excludedFunctions[func->prettyName()] = func;
-    } else {
-        includedFunctions.push_back(func);
-	funcsByAddr[addr] = func;
-	if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
-            funcsByPrettyEntry = new pdvector<pd_Function*>;
-            funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
-	}
-	// several functions may have the same demangled name, and each one
-        // will appear in a different module
-        assert(funcsByPrettyEntry);
-        (*funcsByPrettyEntry).push_back(func);
 
-	if (!funcsByMangled.find(func->symTabName(), funcsByMangledEntry)) {
-            funcsByMangledEntry = new pdvector<pd_Function*>;
-            funcsByMangled[func->symTabName()] = funcsByMangledEntry;
-	}
-	// several functions may have the same demangled name, and each one
-        // will appear in a different module
-        assert(funcsByMangledEntry);
-        (*funcsByMangledEntry).push_back(func);
-    }
+
+  funcsByAddr[addr] = func;
+  if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
+    funcsByPrettyEntry = new pdvector<pd_Function*>;
+    funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
+  }
+  // several functions may have the same demangled name, and each one
+  // will appear in a different module
+  assert(funcsByPrettyEntry);
+  (*funcsByPrettyEntry).push_back(func);
+  
+  if (!funcsByMangled.find(func->symTabName(), funcsByMangledEntry)) {
+    funcsByMangledEntry = new pdvector<pd_Function*>;
+    funcsByMangled[func->symTabName()] = funcsByMangledEntry;
+  }
+  // several functions may have the same demangled name, and each one
+  // will appear in a different module
+  assert(funcsByMangledEntry);
+  (*funcsByMangledEntry).push_back(func);
 }
 
 void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
@@ -389,6 +399,11 @@ void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
 
 bool image::addAllFunctions(pdvector<Symbol> &mods)
 {
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
   Symbol lookUp;
   string symString;
 
@@ -442,6 +457,10 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
  
 #endif
  
+  // JAW 02-03 -- restructured below slightly to get rid of multiple loops
+  // through entire symbol list
+  pdvector<Symbol> kludge_symbols;
+  
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
@@ -460,10 +479,11 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
       addMultipleFunctionNames(mods, lookUp);
       continue;
     }
+
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
+      string msg;
+      char tempBuffer[40];
       if (!isValidAddress(lookUp.addr())) {
-	string msg;
-	char tempBuffer[40];
 	sprintf(tempBuffer,"0x%lx",lookUp.addr());
 	msg = string("Function ") + lookUp.name() + string(" has bad address ")
 	  + string(tempBuffer);
@@ -473,23 +493,41 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
       }
       addOneFunction(mods, lookUp);
     }
-  }
 
-  // now find the pseudo functions -- this gets ugly
-  // kludge has been set if the symbol could be a function
-  // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
-  for(SymbolIter symIter2(linkedFile);symIter2;symIter2++) {
-    lookUp = symIter2.currval();
-    if (funcsByAddr.defines(lookUp.addr()))
-      // Already defined a symbol at this addr
-      continue;
-    if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
-      //logLine(P_strdup(symString.c_str()));
-      // Figure out where this happens
-      cerr << "Found <KLUDGE> function " << lookUp.name().c_str() << endl;
-      addOneFunction(mods, lookUp);
+    if (lookUp.type() ==  Symbol::PDST_OBJECT) {
+      //  JAW: This is here for legacy purposes, I do not know if it still applies:
+      if (lookUp.kludge()) {
+	//logLine(P_strdup(symString.c_str()));
+	// Figure out where this happens
+	
+	// now find the pseudo functions -- this gets ugly
+	// kludge has been set if the symbol could be a function
+	// WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
+	
+	cerr << "Found <KLUDGE> function " << lookUp.name().c_str() << endl;
+	kludge_symbols.push_back(lookUp);
+	
+      }
     }
   }
+
+  // go through vector of kludge functions found and add ones that are not already def'd. 
+  for (unsigned int i = 0; i < kludge_symbols.size(); ++i) {
+    if (funcsByAddr.defines(kludge_symbols[i].addr()))
+      // Already defined a symbol at this addr
+      continue;
+    addOneFunction(mods, lookUp);
+  }
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": addAllFunctions took "<<dursecs <<" msecs" << endl;
+#endif
   return true;
 }
 
@@ -499,6 +537,12 @@ bool image::addAllVariables()
  * the type information here).
  */
 #if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
   string mangledName; 
   Symbol symInfo;
 
@@ -522,6 +566,17 @@ bool image::addAllVariables()
        }
     }
   }
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": addAllVariables took "<<dursecs <<" msecs" << endl;
+#endif
+
 #endif
   return true;
 }
@@ -574,10 +629,17 @@ bool image::findInternalByPrefix(const string &prefix,
 	flag = true;
       }
   }
+  //if (!flag) {
+  //  cerr << __FILE__ << __LINE__ << ":  findInternalByPrefix("<<prefix
+  //	 <<") failed, num symbols: " << linkedFile.nsymbols() << endl;
+  //}
   return flag;
 }
-
+#ifndef BPATCH_LIBRARY
 pdmodule *image::findModule(const string &name, bool find_if_excluded)
+#else
+pdmodule *image::findModule(const string &name)
+#endif
 {
   unsigned i;
 
@@ -593,6 +655,7 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
     return (modsByFullName[name]);
   }
 
+#ifndef BPATCH_LIBRARY
   // if also looking for excluded functions, check through 
   //  excludedFunction list to see if any match function by FullName
   //  or FileName....
@@ -605,7 +668,7 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
 	}
       }
   }
-
+#endif
   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
   return NULL;
 }
@@ -615,8 +678,14 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
  */
 bool image::symbolExists(const string &symname)
 {
-  pd_Function *dummy = findFuncByName(symname);
-  return (dummy != NULL);
+  pdvector<pd_Function *> *pdfv;
+  if (NULL != (pdfv = findFuncVectorByPretty(symname)) && pdfv->size())
+    return true;
+
+  if (NULL != (findFuncByMangled(symname)))
+    return true;
+
+  return false;
 }
 
 #ifndef BPATCH_LIBRARY
@@ -698,10 +767,12 @@ void image::defineModules() {
     mod->define();
   }
 
+#ifndef BPATCH_LIBRARY
   for(i=0;i<excludedMods.size();i++) {
     mod = excludedMods[i];
     mod->define();
   }
+
 
 #ifdef DEBUG_MDL
   char buffer[100];
@@ -714,6 +785,9 @@ void image::defineModules() {
     of << includedFunctions[ni]->prettyName() << "\t\t" 
        << includedFunctions[ni]->addr() << "\t\t" << endl;
   }
+  
+#endif
+
   
 #endif
 }
@@ -952,7 +1026,7 @@ const pdvector<pd_Function*> &image::getIncludedFunctions() {
     // what about shared objects????
     return includedFunctions;
 }
-#endif
+
 
 
 // get all functions in module which are not "excluded" (e.g.
@@ -985,16 +1059,24 @@ pdvector<function_base *> *pdmodule::getIncludedFunctions() {
     //print_func_vector_by_pretty_name(string("  "),(pdvector<function_base *>*) &some_funcs);
     return (pdvector<function_base *>*)&some_funcs;
 }
+#endif
 
-
-const pdvector<pd_Function*> &image::getAllFunctions() {
-    //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
-    //print_func_vector_by_pretty_name(string("  "),
-    //        (pdvector<function_base*>*)&instrumentableFunctions);
+const pdvector<pd_Function*> &image::getAllFunctions() 
+{
     return instrumentableFunctions;
 }
 
-const pdvector <pdmodule*> &image::getAllModules() {
+#ifdef BPATCH_LIBRARY
+const pdvector <pdmodule*> &image::getModules() 
+{
+  return _mods;
+}
+#else
+
+
+
+const pdvector <pdmodule*> &image::getAllModules() 
+{
     // reinit all modules to empty vector....
     allMods.resize(0);
 
@@ -1013,7 +1095,7 @@ const pdvector <pdmodule*> &image::getAllModules() {
 }
 
 
-#ifndef BPATCH_LIBRARY
+
 const pdvector <pdmodule*> &image::getIncludedModules() {
     //cerr << "image::getIncludedModules called" << endl;
     //cerr << " about to return includedMods = " << endl;
@@ -1051,6 +1133,7 @@ void print_func_vector_by_pretty_name(string prefix,
     }
 }
 
+#ifndef BPATCH_LIBRARY
 // rip module name out of constraint....
 // Assumes that constraint is of form module/function, or
 // module.... 
@@ -1086,7 +1169,7 @@ string getFunctionName(string constraint) {
 }
 
 
-#ifndef BPATCH_LIBRARY
+
 
 // mcheyney, Oct. 6, 1997
 static dictionary_hash<string, string> func_constraint_hash(string::hash);
@@ -1130,6 +1213,7 @@ bool function_is_excluded(pd_Function *func, string module_name) {
     }
     return FALSE;
 }
+
 
 bool module_is_excluded(pdmodule *module) {
     static bool func_constraint_hash_loaded = FALSE;
@@ -1184,12 +1268,6 @@ bool filter_excluded_functions(pdvector<pd_Function*> all_funcs,
             some_funcs += all_funcs[i];
         }
     }
-    
-    //cerr << " looks successful : about to return TRUE" << endl;
-    //cerr << " some_funcs (by pretty name) " << endl;
-    //for (i=0;i<some_funcs.size();i++) {
-    //    cerr << "  " << some_funcs[i]->prettyName() << endl;
-    //}
     
     return TRUE;
 }
@@ -1367,26 +1445,33 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
 
 image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   : 
-    desc_(desc),
-    is_libdyninstRT(false),
-    is_a_out(false),
-    main_call_addr_(0),
-    nativeCompiler(false),    
-    linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
-    knownJumpTargets(int_addrHash, 8192),
-    includedMods(0),
-    excludedMods(0),
-    allMods(0),
-    includedFunctions(0),
-    instrumentableFunctions(0),
-    funcsByAddr(addrHash4),
-    funcsByPretty(string::hash),
-    funcsByMangled(string::hash),
-    notInstruFunctions(string::hash),
-    excludedFunctions(string::hash),
-    modsByFileName(string::hash),
-    modsByFullName(string::hash),
-    varsByPretty(string::hash)
+  desc_(desc),
+  is_libdyninstRT(false),
+#ifndef BPATCH_LIBRARY
+  is_libparadynRT(false),
+#endif
+  is_a_out(false),
+  main_call_addr_(0),
+  nativeCompiler(false),    
+  linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
+  knownJumpTargets(int_addrHash, 8192),
+#ifndef BPATCH_LIBRARY
+  includedFunctions(0),
+  excludedFunctions(string::hash),
+  includedMods(0),
+  excludedMods(0),
+  allMods(0),
+#else
+  _mods(0),
+#endif
+  instrumentableFunctions(0),
+  funcsByAddr(addrHash4),
+  funcsByPretty(string::hash),
+  funcsByMangled(string::hash),
+  notInstruFunctions(string::hash),
+  modsByFileName(string::hash),
+  modsByFullName(string::hash),
+  varsByPretty(string::hash)
 {
   sharedobj_cerr << "image::image for file name="
 		 << desc->file() << endl;
@@ -1517,9 +1602,11 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   //     when BPATCH_LIBRARY is defined
   addAllVariables();
   
+#ifdef CHECK_ALL_CALL_POINTS
   statusLine("checking call points");
   checkAllCallPoints();
-  
+#endif
+
   // TODO -- remove duplicates -- see earlier note
   dictionary_hash<Address, unsigned> addr_dict(addrHash4);
   pdvector<pd_Function*> temp_vec;
@@ -1552,40 +1639,140 @@ void pdmodule::updateForFork(process *childProcess,
   }
 }
 
+#ifdef CHECK_ALL_CALL_POINTS
 void pdmodule::checkAllCallPoints() {
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++)
       funcs[f]->checkCallPoints();
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": checkAllCallPoints took "<<dursecs <<" msecs" << endl;
+#endif
 }
+#endif
 
-function_base *pdmodule::findFunctionFromAll(const string &name) {
-  unsigned fsize = funcs.size();
-  unsigned f;
-  function_base *func;
-  if ( (func = findFunction(name)))
-    return func;
-  
-  fsize = notInstruFuncs.size();
-  for (f=0; f<fsize; f++) {
-    pdvector<string> funcNames = notInstruFuncs[f]->symTabNameVector();
-    for (unsigned i = 0; i < funcNames.size(); i++)
-      if (funcNames[i] == name)
-	return notInstruFuncs[f];
-    funcNames = notInstruFuncs[f]->prettyNameVector();
-    for (unsigned j = 0; j < funcNames.size(); j++)
-      if (funcNames[j] == name)
-	return notInstruFuncs[f];
-  }
+#define PDMODULE_FIND(name, src, dest, type) {  \
+  for (unsigned int f=0; f<src.size(); f++) {\
+    pdvector<string> funcNames = src[f]->##type##NameVector(); \
+    for (unsigned i = 0; i < funcNames.size(); i++) \
+      if (funcNames[i] == name) {\
+	dest->push_back(src[f]); break;}\
+  }}
+
+inline pdvector<function_base *> *
+pdmodule::findFunction(const string &name, pdvector<function_base *> *found)
+{
+  // pretty first
+  PDMODULE_FIND(name, funcs, found, pretty)
+  if (found->size()) return found;
+
+  // then mangled
+  PDMODULE_FIND(name, funcs, found, symTab)
+  if (found->size()) return found;
+
   return NULL;
 }
 
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+//  This big ugly macro performs a regex search of src, and puts matches in dest.
+//  type is either "pretty" or "symTab" and specifies which vectors of
+//  names are used.  This is here because otherwise there'd be a lot of search
+//  functions here with nearly the same code.
+
+#define REGEX_FIND(pat, src, dest, type) { \
+  for (unsigned int i = 0; i < src.size(); ++i) { \
+    pdvector<string> funcNames = src[i]->##type##NameVector(); \
+    for (unsigned int j =  0; j <funcNames.size(); ++j) { \
+      int err; \
+      if (0 == (err = regexec( (regex_t *)pat, funcNames[j].c_str(), 1, NULL, 0 ))){ \
+	dest->push_back(src[i]); \
+	break; \
+      } \
+      if (REG_NOMATCH == err) \
+	continue; \
+      char errbuf[80]; \
+      regerror( err, (regex_t *)pat, errbuf, 80 ); \
+      cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl; \
+      return NULL; \
+    } \
+  } }
+#endif
+
+pdvector<function_base *> *
+pdmodule::findFunctionFromAll(const string &name,
+			      pdvector<function_base *> *found, 
+			      bool regex_case_sensitive) 
+{
+  if (NULL == strpbrk(name.c_str(), REGEX_CHARSET)) {
+
+    if (NULL != findFunction(name, found) 
+	&& found->size())
+      return found;
+
+    // could not find in instrumentable, check non-instrumentable
+    PDMODULE_FIND(name, notInstruFuncs, found, pretty);
+    if (found->size()) return found;
+
+    PDMODULE_FIND(name, notInstruFuncs, found, symTab);
+    if (found->size()) return found;
+  
+    return NULL;
+  }
+
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+  // regex falls through
+  regex_t comp_pat;
+  int err, cflags = REG_NOSUB | REG_EXTENDED;
+  
+  if( !regex_case_sensitive )
+    cflags |= REG_ICASE;
+  
+  if (0 != (err = regcomp( &comp_pat, name.c_str(), cflags ))) {
+    char errbuf[80];
+    regerror( err, &comp_pat, errbuf, 80 );
+    cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+    return NULL;
+  }
+
+  REGEX_FIND(&comp_pat, funcs, found, pretty);
+  if (found->size()) goto regex_done;
+
+  REGEX_FIND(&comp_pat, funcs, found, symTab);
+  if (found->size()) goto regex_done;
+
+  // no matches found yet, check notInstruFuncs
+
+  REGEX_FIND(&comp_pat, notInstruFuncs, found, pretty);
+  if (found->size()) goto regex_done;
+
+  REGEX_FIND(&comp_pat, notInstruFuncs, found, symTab);
+  if (found->size()) goto regex_done;
+
+ regex_done:
+  regfree(&comp_pat);
+  if (found->size()) return found;
+#endif
+  
+  return NULL;
+}
+
+#ifdef CHECK_ALL_CALL_POINTS
 void image::checkAllCallPoints() {
   dictionary_hash_iter<string, pdmodule*> di(modsByFullName);
   string s; pdmodule *mod;
   while (di.next(s, mod))
     mod->checkAllCallPoints();
 }
-
+#endif
 pdmodule *image::getOrCreateModule(const string &modName, 
 				      const Address modAddr) {
   const char *str = modName.c_str();
@@ -1622,7 +1809,8 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
 #ifndef BPATCH_LIBRARY
   funcResource(0),
 #endif
-  relocatable_(false)
+  relocatable_(false),
+  call_points_have_been_checked(false)
 {
   err = findInstPoints(owner) == false;
 
@@ -1698,9 +1886,11 @@ pd_Function *image::findFuncByAddr(const Address &addr,
       return pdf;
   }
 
+  string str;
+#ifndef BPATCH_LIBRARY
   // next, look in excludedFunctions...
   dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-  string str;
+ 
   while (ex.next(str, pdf)) {
     if ( p &&
 	 (addr>=pdf->getEffectiveAddress(p)) &&
@@ -1712,7 +1902,8 @@ pd_Function *image::findFuncByAddr(const Address &addr,
 	 )
       return pdf;
   }
-  
+#endif
+
   dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
   while (ni.next(str, pdf)) {
     if ( p &&
@@ -1757,16 +1948,19 @@ pd_Function *image::findFuncByRelocAddr(const Address &addr,
       return pdf;
   }
 
+  string str;
+#ifndef BPATCH_LIBRARY
   // next, look in excludedFunctions...
   dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-  string str;
+
   while (ex.next(str, pdf)) {
     if ( (addr>=pdf->getAddress(p)) && 
 	 (addr < (pdf->getAddress(p)+pdf->size()))
 	 )
       return pdf;
   }
-  
+#endif
+
   dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
   while (ni.next(str, pdf)) {
     if ( (addr>=pdf->getAddress(p)) && 
@@ -1793,9 +1987,11 @@ pd_Function *image::findFuncByOrigAddr(const Address &addr,
       return pdf;
   }
 
+  string str;
+#ifndef BPATCH_LIBRARY
   // next, look in excludedFunctions...
   dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-  string str;
+
   while (ex.next(str, pdf)) {
     if ( p &&
 	 (addr>=pdf->getEffectiveAddress(p)) &&
@@ -1803,7 +1999,8 @@ pd_Function *image::findFuncByOrigAddr(const Address &addr,
 	 )
       return pdf;
   }
-  
+#endif
+
   dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
   while (ni.next(str, pdf)) {
     if ( p &&
@@ -1832,6 +2029,7 @@ pdvector <pd_Function *> *image::findFuncVectorByPretty(const string &name)
 // Return a single function associated with a demangled name. Arbitrarily
 // pick the first one.
 
+/*
 pd_Function *image::findFuncByPretty(const string &name)
 {
   pdvector <pd_Function *> *a;
@@ -1842,6 +2040,7 @@ pd_Function *image::findFuncByPretty(const string &name)
   }
   return NULL;
 }
+*/
 
 pd_Function *image::findFuncByMangled(const string &name)
 {
@@ -1854,12 +2053,14 @@ pd_Function *image::findFuncByMangled(const string &name)
   return NULL;
 }
 
+#ifndef BPATCH_LIBRARY
 pd_Function *image::findExcludedFunc(const string &name)
 {
   if (excludedFunctions.defines(name))
     return excludedFunctions[name];
   return NULL;
 }
+#endif
 
 pd_Function *image::findNonInstruFunc(const string &name)
 {
@@ -1868,6 +2069,7 @@ pd_Function *image::findNonInstruFunc(const string &name)
   return NULL;
 }
 
+
 // TODO -- this is only being used in cases where only one function
 // should exist -- should I assert that the vector size <= 1 ?
 // mcheyney - should return NULL when function being searched for 
@@ -1875,6 +2077,7 @@ pd_Function *image::findNonInstruFunc(const string &name)
 // Checks for function in pretty name hash first, then in
 //  mangled name hash to better handle many (mangled name) to one 
 //  (pretty name) mapping in C++ function names....
+/*
 pd_Function *image::findFuncByName(const string &name)
 {
   pd_Function *pdf;
@@ -1885,65 +2088,253 @@ pd_Function *image::findFuncByName(const string &name)
 
   return NULL;
 }
+*/
 
 // This function supposely is only used to find function that
 // is not instrumentable which may not be totally defined.
 // Use with caution.  
 // NEW - also can be used to find an excluded function....
-pd_Function *image::findOneFunctionFromAll(const string &name) {
-    pd_Function *ret = NULL;
-    if ( (ret = findFuncByName(name))) 
-      return ret;
+pd_Function *image::findOnlyOneFunctionFromAll(const string &name) {
+  
+    pd_Function *found,*ret = NULL;
+    pdvector<pd_Function *> pdfv;
 
-    if ( (ret = findNonInstruFunc(name)))
-      return ret;
+    if (NULL != (found = findOnlyOneFunction(name)))
+      ret = found;
 
-    if ( (ret = findExcludedFunc(name)))
-      return ret;
+    if (NULL != (found = findNonInstruFunc(name))) {
+      // fail if we already found a match
+      if (ret) return NULL;
+      ret = found;
+    }
 
-    return NULL;
+#ifndef BPATCH_LIBRARY
+    if (NULL != (found = findExcludedFunc(name))) {
+      // fail if we already found a match
+      if (ret) return NULL;
+      ret = found;
+    }
+#endif
+
+    return ret;
+}
+
+//  image::findOnlyOneFunction(const string &name)
+//  
+//  searches for function with name <name> and fails if it finds more than
+//  one match.
+//
+//  In order to be as comprehensive as possible, if no <name> is found in the 
+//  "pretty" list, a search on the mangled list is performed.  Due to
+//  duplication between many pretty and mangled names, this function does not
+//  care about the same name appearing in both the pretty and mangled lists.
+pd_Function *image::findOnlyOneFunction(const string &name) {
+  pdvector<pd_Function *> *pdfv;
+  pd_Function *pdf;
+
+  if (NULL != (pdfv=findFuncVectorByPretty(name)) && pdfv->size()) {
+    // fail if more than one match
+    if (pdfv->size() > 1) {
+      cerr << __FILE__ << ":" << __LINE__ << ": findOnlyOneFunction(" << name
+	   << ")...  found more than one... failing... " << endl;
+      return NULL;
+    }
+    return (*pdfv)[0];
+  }
+
+  if (NULL != (pdf = findFuncByMangled(name))) {
+    return pdf;
+  }
+  
+  return NULL;
 }
 
 void image::updateForFork(process *childProcess, const process *parentProcess)
 {
+#ifdef BPATCH_LIBRARY
+  for(unsigned i=0; i<_mods.size(); i++) {
+    _mods[i]->updateForFork(childProcess, parentProcess);
+  }
+#else
   for(unsigned i=0; i<includedMods.size(); i++) {
     includedMods[i]->updateForFork(childProcess, parentProcess);
   }
   for(unsigned j=0; j<excludedMods.size(); j++) {
     excludedMods[j]->updateForFork(childProcess, parentProcess);
   }
+#endif
 }
 
-pdmodule *image::findModule(function_base *func) {
-   for(unsigned i=0; i<includedMods.size(); i++) {
-      pdmodule *curMod = includedMods[i];
-      function_base *foundFunc = curMod->findFunction(func->prettyName());
-      if(foundFunc != NULL) return curMod;
-   }
-   return NULL;
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, string pattern,
+				       bool case_sensitive)
+{
+  // This function compiles regex patterns and then calls its overloaded variant,
+  // which does not.  This behavior is desirable so we can avoid re-compiling
+  // expressions for broad searches (across images) -- allowing for higher level
+  // functions to compile expressions just once. jaw 01-03
+
+  regex_t comp_pat;
+  int err, cflags = REG_NOSUB;
+  
+  if( !case_sensitive )
+    cflags |= REG_ICASE;
+  
+  if (0 == (err = regcomp( &comp_pat, pattern.c_str(), cflags ))) {
+    int ret = findFuncVectorByPrettyRegex(found, &comp_pat); 
+    regfree(&comp_pat);
+    return ret;  
+  }
+  
+  // errors fall through
+  char errbuf[80];
+  regerror( err, &comp_pat, errbuf, 80 );
+  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+  
+  return -1;
 }
 
-#if 0
-// Only looks for function by pretty name.
-//  Should it also look by mangled name??
-bool image::findFunction(const string &name, pdvector<pd_Function*> &retList,
-        bool find_if_excluded) {
+int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, string pattern,
+					bool case_sensitive)
+{
+  // Almost identical to its "Pretty" counterpart
 
-    bool found = FALSE;
-    if (funcsByPretty.defines(name)) {
-        retList = *funcsByPretty[name];
-        found = TRUE;
-    } 
-
-    if (find_if_excluded) {
-      // should APPEND to retList!!!!
-      if (excludedFunctions.defines(name))
-	retList.push_back(excludedFunctions[name]);
-      found = TRUE;
-    }
-    return found;
+  regex_t comp_pat;
+  int err, cflags = REG_NOSUB;
+  
+  if( !case_sensitive )
+    cflags |= REG_ICASE;
+  
+  if (0 == (err = regcomp( &comp_pat, pattern.c_str(), cflags ))) {
+    int ret = findFuncVectorByMangledRegex(found, &comp_pat); 
+    regfree(&comp_pat);
+    return ret;
+  }
+  // errors fall through
+  char errbuf[80];
+  regerror( err, &comp_pat, errbuf, 80 );
+  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+  
+  return -1;
 }
 #endif
+
+pdvector<pd_Function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+						       void *user_data,
+						       pdvector<pd_Function *> *found)
+{
+  pdvector<pdvector<pd_Function *> *> result;
+  result = funcsByPretty.linear_filter(bpsieve, user_data);
+
+  // Need to consolodate vector of vectors into just one vector  
+  // This is wasteful in general, but hopefully result.size() is small
+  // Besides, a more efficient approach would probably require different
+  // data structs
+  for (unsigned int i = 0; i < result.size(); ++i) 
+    for (unsigned int j = 0; j < result[i]->size(); ++j) 
+      found->push_back((*result[i])[j]);
+
+  if (found->size()) return found;
+
+  return NULL;
+}
+
+pdvector<pd_Function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+							void *user_data,
+							pdvector<pd_Function *> *found)
+{
+  pdvector<pdvector<pd_Function *> *> result;
+  result = funcsByMangled.linear_filter(bpsieve, user_data);
+
+  // Need to consolodate vector of vectors into just one vector  
+  // This is wasteful in general, but hopefully result.size() is small
+  // Besides, a more efficient approach would probably require different
+  // data structs
+  for (unsigned int i = 0; i < result.size(); ++i) 
+    for (unsigned int j = 0; j < result[i]->size(); ++j) 
+      found->push_back((*result[i])[j]);
+
+  if (found->size()) return found;
+
+  return NULL;
+}
+
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+bool regex_filter_func(const string &test, void *comp_pat)
+{
+
+  int err;
+
+  if (0 == (err = regexec( (regex_t *)comp_pat, test.c_str(), 1, NULL, 0 ))){
+    cerr << test.c_str() << "does match" <<endl;
+    return TRUE; // no error, match
+  }
+  if (REG_NOMATCH == err) {
+    cerr << test.c_str() << "does not match" <<endl;
+    return FALSE; // no error, but no match
+  }
+  char errbuf[80];
+  regerror( err, (regex_t *)comp_pat, errbuf, 80 );
+  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+
+  return FALSE; // error, no match
+}
+
+int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *comp_pat)
+{
+  //  This is a bit ugly in that it has to iterate through the entire dict hash 
+  //  to find matches.  If this turns out to be a popular way of searching for
+  //  functions (in particular "name*"), we might consider adding a data struct that
+  //  preserves the string ordering realation to make this O(1)-ish in that special case.
+  //  jaw 01-03
+
+  pdvector<pdvector<pd_Function *> *> result;
+  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
+
+  // Need to consolodate vector of vectors into just one vector  
+  // This is wasteful in general, but hopefully result.size() is small
+  // Besides, a more efficient approach would probably require different
+  // data structs
+  cerr <<"pretty regex result.size() = " << result.size() <<endl;
+  for (unsigned int i = 0; i < result.size(); ++i) 
+    for (unsigned int j = 0; j < result[i]->size(); ++j) 
+      found->push_back((*result[i])[j]);
+  
+  return found->size();
+}
+
+int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t *comp_pat)
+{
+  // almost identical to its "Pretty" counterpart.
+
+  pdvector<pdvector<pd_Function *> *> result;
+  result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
+  cerr <<"mangled regex result.size() = " << result.size() <<endl;
+  for (unsigned int i = 0; i < result.size(); ++i) 
+    for (unsigned int j = 0; j < result[i]->size(); ++j) 
+      found->push_back((*result[i])[j]);
+  
+  return found->size();
+}
+#endif // !windows
+
+pdmodule *image::findModule(function_base *func) {
+#ifndef BPATCH_LIBRARY
+  for(unsigned i=0; i<includedMods.size(); i++) {
+    pdmodule *curMod = includedMods[i];
+    pdvector<function_base *> bpfv;
+    if (NULL != curMod->findFunction(func->prettyName(), &bpfv) && bpfv.size()) 
+      return curMod;
+  }
+#else
+  for(unsigned i=0; i<_mods.size(); i++) {
+    pdvector<function_base *> bpfv;
+    if (NULL != _mods[i]->findFunction(func->prettyName(), &bpfv) && bpfv.size()) 
+      return _mods[i];
+  }
+#endif
+  return NULL;
+}
 
 // Returns TRUE if module belongs to a shared library, and FALSE otherwise
 
@@ -1989,5 +2380,7 @@ static bool parseCompilerType(Object *objPtr) {
 
   }
   return false; // Shouldn't happen - maybe N_OPT stripped
+#else // sparc def'd
+  return false; 
 #endif
 }

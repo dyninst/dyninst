@@ -55,6 +55,13 @@
 #include "BPatch_type.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
 #include "LineInformation.h"
+#if defined(TIMED_PARSE)
+#include <sys/time.h>
+#endif
+#ifdef TIMED_PARSE
+int max_addr_per_line =0;
+int max_line_per_addr =0;
+#endif
 
 char * current_func_name = NULL;
 
@@ -112,6 +119,11 @@ char *BPatch_module::getFullName(char *buffer, int length)
 BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     proc(_proc), mod(_mod), img(_img), BPfuncs(NULL),lineInformation(NULL) 
 {
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
     _srcType = BPatch_sourceModule;
     nativeCompiler = _mod->exec()->isNativeCompiler();
 
@@ -121,11 +133,27 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
 #if !defined(mips_sgi_irix6_4)
 
     if (BPatch::bpatch->parseDebugInfo()){ 
+#ifdef PARSE_ALL_AT_ONCE
 	lineInformation = new LineInformation(mod->fileName());
+#endif
 	parseTypes();
+#ifdef PARSE_ALL_AT_ONCE
 	lineInformation->cleanEmptyFunctions();
+#endif
 	}
 #endif
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": BPatch_module("<< mod->fileName()
+       <<") took "<<dursecs <<" msecs" << endl;
+#endif
+
 }
 
 BPatch_module::~BPatch_module()
@@ -165,7 +193,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 /*
  * BPatch_module::findFunction
  *
- * Returns a BPatch_function* with the same name that is provided or
+ * Returns a vector of BPatch_function* with the same name that is provided or
  * NULL if no function with that name is in the module.  This function
  * searches the BPatch_function vector of the module followed by
  * the function_base of the module.  If a function_base is found, then
@@ -174,6 +202,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  * name The name of function to look up.
  */
 
+/*
 extern bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler);
 
 BPatch_function * BPatch_module::findFunction(const char * name)
@@ -219,6 +248,36 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 
     return bpfunc;
     
+}
+*/
+
+BPatch_Vector<BPatch_function *> *
+BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> *funcs,
+			    bool regex_case_sensitive)
+{
+  pdvector<function_base *> pdfuncs;
+
+  if (!name) {
+    cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
+    return NULL;
+  }
+  if (NULL == mod->findFunctionFromAll(string(name), &pdfuncs, regex_case_sensitive) 
+      || !pdfuncs.size()) {
+    string msg = string("Unable to find function: ") + string(name);
+    BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    return NULL;
+  } 
+
+  // found function(s), translate to BPatch_functions  
+  for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
+    BPatch_function * bpfunc = proc->findOrCreateBPFunc((pd_Function *)pdfuncs[i], this);
+    funcs->push_back(bpfunc);
+    if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
+      this->BPfuncs->push_back(bpfunc);
+    }
+  }
+
+  return funcs;
 }
 
 string* processDirectories(string* fn){
@@ -405,6 +464,10 @@ void BPatch_module::parseTypes()
     BPatch_variableExpr *commonBlockVar;
     string* currentSourceFile = NULL;
 
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
     BPatch_Vector<IncludeFileInfo> includeFiles;
 
     //Using pdmodule to get the image Object.
@@ -544,12 +607,12 @@ void BPatch_module::parseTypes()
 	      }
 	  } else if (sym->n_sclass == C_ECOMM) {
 	      // copy this set of fields
-	      BPatch_function *func = findFunction(funcName);
-	      if (!func) {
-		  printf("unable to locate current function %s\n", funcName);
+	    BPatch_Vector<BPatch_function *> bpmv;
+   	    if (NULL == findFunction(funcName, &bpmv) || !bpmv.size()) {
+	      printf("unable to locate current function %s\n", funcName);
 	      } else {
-		  commonBlock->endCommonBlock(func, 
-		      commonBlockVar->getBaseAddr());
+		BPatch_function *func = bpmv[0];
+		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
 	      }
 
 	      // update size if needed
@@ -591,6 +654,16 @@ void BPatch_module::parseTypes()
 	  }
       }
     }
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
+       <<") took "<<dursecs <<" msecs" << endl;
+#endif
 }
 
 #endif
@@ -600,24 +673,615 @@ void BPatch_module::parseTypes()
     defined(i386_unknown_linux2_0) || \
     defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
 
+#ifndef PARSE_ALL_AT_ONCE
+// parseTypes:  parses type and variable info, does some init
+//              does NOT parse file-line info anymore, this is done later, upon request.
+void BPatch_module::parseTypes() 
+{
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  struct stab_entry *stabptr = NULL;
+  int i;
+  char *modName;
+  char * temp=NULL;
+  image * imgPtr=NULL;
+  char *ptr, *ptr2, *ptr3;
+  bool parseActive = false;
+
+  string* currentFunctionName = NULL;
+  Address currentFunctionBase = 0;
+  BPatch_variableExpr *commonBlockVar = NULL;
+ char *commonBlockName;
+  BPatch_type *commonBlock = NULL;
+ int mostRecentLinenum = 0;
+
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+  unsigned int pss_count = 0;
+  double pss_dur = 0;
+  unsigned int src_count = 0;
+  double src_dur = 0;
+  unsigned int fun_count = 0;
+  double fun_dur = 0;
+  struct timeval t1, t2;
+#endif
+
+  //Using pdmodule to get the image Object.
+  imgPtr = mod->exec();
+
+  // Building the BPatch_Vector<BPatch_function *> for use later when playing
+  // with BPatch_functions
+  this->BPfuncs = this->getProcedures();
+
+
+  //Using the image to get the Object (class)
+  Object *objPtr = (Object *) &(imgPtr->getObject());
+
+  //Using the Object to get the pointers to the .stab and .stabstr
+  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+  // cerr << "checkpoint A" << endl;
+
+  for(i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    switch(stabptr[i].type){
+    case N_UNDF: /* start of object file */
+      /* value contains offset of the next string table for next module */
+      // assert(stabptr[i].name == 1);
+      stabstrs = stabstr_nextoffset;
+      stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
+      
+      //N_UNDF is the start of object file. It is time to 
+      //clean source file name at this moment.
+      /*
+      if(currentSourceFile){
+	delete currentSourceFile;
+	currentSourceFile = NULL;
+	delete absoluteDirectory;
+	absoluteDirectory = NULL;
+	delete currentFunctionName;
+	currentFunctionName = NULL;
+	currentFileInfo = NULL;
+	currentFuncInfo = NULL;
+      }
+      */
+      break;
+      
+    case N_ENDM: /* end of object file */
+      break;
+
+    case N_SO: /* compilation source or file name */
+      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+#ifdef TIMED_PARSE
+      src_count++;
+      gettimeofday(&t1, NULL);
+#endif
+      current_func_name = NULL; // reset for next object file
+      modName = (char*)(&stabstrs[stabptr[i].name]);
+      // cerr << "checkpoint B" << endl;
+      ptr = strrchr(modName, '/');
+      //  cerr << "checkpoint C" << endl;
+      if (ptr) {
+	ptr++;
+	modName = ptr;
+      }
+
+      if (!strcmp(modName, mod->fileName().c_str())) {
+	parseActive = true;
+	switch (stabptr[i].desc) {
+	case N_SO_FORTRAN:
+	  setLanguage(BPatch_fortran);
+	  break;
+	  
+	case N_SO_F90:
+	  setLanguage(BPatch_fortran90);
+	  break;
+	  
+	case N_SO_AS:
+	  setLanguage(BPatch_assembly);
+	  break;
+	  
+	case N_SO_ANSI_C:
+	case N_SO_C:
+	  setLanguage(BPatch_c);
+	  break;
+	  
+	case N_SO_CC:
+	  setLanguage(BPatch_cPlusPlus);
+	  break;
+	  
+	default:
+	  setLanguage(BPatch_unknownLanguage);
+	  break;
+	}
+      } else {
+	parseActive = false;
+      }
+
+#ifdef TIMED_PARSE
+	    gettimeofday(&t2, NULL);
+	    src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	    //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+#endif
+	    break;
+    case N_SLINE:
+      mostRecentLinenum = stabptr[i].desc;
+      break;
+    default:
+      break;
+    }
+
+
+    if(parseActive || mod->isShared()) {
+      BPatch_Vector<BPatch_function *> bpfv;
+      switch(stabptr[i].type){
+      case N_FUN:
+#ifdef TIMED_PARSE
+	fun_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	//all we have to do with function stabs at this point is to assure that we have
+	//properly set the var currentFunctionName for the later case of (parseActive)
+      int currentEntry = i;
+      ptr = new char[1024];
+      strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      while(ptr[strlen(ptr)-1] == '\\'){
+	ptr[strlen(ptr)-1] = '\0';
+	currentEntry++;
+	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      }
+      
+      char* colonPtr = NULL;
+      if(currentFunctionName) delete currentFunctionName;
+      if(!ptr || !(colonPtr = strchr(ptr,':')))
+	currentFunctionName = NULL;
+      else {
+	char* tmp = new char[colonPtr-ptr+1];
+	strncpy(tmp,ptr,colonPtr-ptr);
+	tmp[colonPtr-ptr] = '\0';
+	currentFunctionName = new string(tmp);
+      }
+      //  used to be a symbol lookup here to find currentFunctionBase, do we need it?
+      delete[] ptr;
+#ifdef TIMED_PARSE
+      gettimeofday(&t2, NULL);
+      fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+      //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+#endif
+      break;
+      }
+    if (!parseActive) continue;
+
+    switch(stabptr[i].type){
+      case N_BCOMM:	{
+	// begin Fortran named common block 
+	commonBlockName = (char *) &stabstrs[stabptr[i].name];
+
+	// find the variable for the common block
+	BPatch_image *progam = (BPatch_image *) getObjParent();
+#ifdef TIMED_PARSE
+	cout << __FILE__ << __LINE__ << ": parseTypes N_BCOMM "<< commonBlockName << endl;
+#endif
+	commonBlockVar = progam->findVariable(commonBlockName);
+	if (!commonBlockVar) {
+	  printf("unable to find variable %s\n", commonBlockName);
+	} else {
+	  commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
+	  if (commonBlock->getDataClass() != BPatch_dataCommon) {
+	    // its still the null type, create a new one for it
+	    commonBlock = new BPatch_type(commonBlockName, false);
+	    commonBlockVar->setType(commonBlock);
+	    moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
+	    
+	    commonBlock->setDataClass(BPatch_dataCommon);
+	  }
+	  // reset field list
+	  commonBlock->beginCommonBlock();
+	}
+	break;
+      }
+      
+      case N_ECOMM: {
+	// copy this set of fields
+	
+	assert(currentFunctionName);
+#ifdef TIMED_PARSE
+	cout << __FILE__ << __LINE__ << ": parseTypes N_ECOMM "<< currentFunctionName << endl;
+#endif
+	if (NULL == findFunction(currentFunctionName->c_str(), &bpfv) || !bpfv.size()) {
+	  printf("unable to locate current function %s\n", currentFunctionName->c_str());
+	} else {
+	  if (bpfv.size() > 1) {
+	    // warn if we find more than one function with this name
+	    printf("%s[%d]:  WARNING: found %d funcs matching name %s, using the first\n",
+		   __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
+	  }
+	  
+	  BPatch_function *func = bpfv[0];
+	  commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
+	}
+	
+	// update size if needed
+	if (commonBlockVar)
+	  commonBlockVar->setSize(commonBlock->getSize());
+	commonBlockVar = NULL;
+	commonBlock = NULL;
+	break;
+      }
+      
+      // case C_BINCL: -- what is the elf version of this jkh 8/21/01
+      // case C_EINCL: -- what is the elf version of this jkh 8/21/01
+      case 32:    // Global symbols -- N_GYSM 
+      case N_FUN:
+      case 128:   // typedefs and variables -- N_LSYM
+      case 160:   // parameter variable -- N_PSYM 
+#ifdef TIMED_PARSE
+	pss_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	ptr = (char *) &stabstrs[stabptr[i].name];
+	while (ptr[strlen(ptr)-1] == '\\') {
+	  //ptr[strlen(ptr)-1] = '\0';
+	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  strcpy(ptr3, ptr);
+	  ptr3[strlen(ptr)-1] = '\0';
+	  strcat(ptr3, ptr2);
+	  
+	  ptr = ptr3;
+	  i++;
+	  // XXX - memory leak on multiple cont. lines
+	}
+	
+	// printf("stab #%d = %s\n", i, ptr);
+	// may be nothing to parse - XXX  jdd 5/13/99
+	if (nativeCompiler)
+	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
+	else
+	  temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
+	if (*temp) {
+	  //Error parsing the stabstr, return should be \0
+	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+		  temp);
+	}
+	
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+#endif
+	break;
+      default:
+	break;
+      }
+    }       		    
+  }
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
+       <<") took "<<dursecs <<" msecs" << endl;
+  cout << "Breakdown:" << endl;
+  cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
+  cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
+  cout << "     parseStabString: " << pss_count << " took " << pss_dur << "msec" << endl;
+  cout << "     Total: " << pss_dur + fun_dur + src_dur 
+       << " msec" << endl;
+#endif
+}
+
+// parseLineInformation():  parses symtab for file and line info.  Should not be called before parseTypes
+// the ptr to lineInformation should be NULL before this is called.
+#if !defined(rs6000_ibm_aix4_1)
+void BPatch_module::parseFileLineInfo() 
+{
+ int i;
+  char *modName;
+  image * imgPtr=NULL;
+  char *ptr;
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  struct stab_entry *stabptr = NULL;
+  int parseActive;
+
+  if (lineInformation) {
+    cerr << __FILE__ << ":" << __LINE__ << ": Internal error, not fatal, probabl:, duplicated call to"
+	 << "parseFileLineInfo()...  ignoring" << endl;
+  }
+
+  lineInformation = new LineInformation(mod->fileName());
+ 
+
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+  unsigned int fun_count = 0;
+  double fun_dur = 0;
+  unsigned int src_count = 0;
+  double src_dur = 0;
+  unsigned int sol_count = 0;
+  double sol_dur = 0;
+  unsigned int sline_count = 0;
+  double sline_dur = 0;
+  struct timeval t1, t2;
+#endif
+ //Using pdmodule to get the image Object.
+  imgPtr = mod->exec();
+
+  //Using the image to get the Object (class)
+  Object *objPtr = (Object *) &(imgPtr->getObject());
+  assert (objPtr);
+
+  //Using the Object to get the pointers to the .stab and .stabstr
+  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+
+  //these variables are used to keep track of the source files
+  //and function names being processes at a moment
+
+  string* currentFunctionName = NULL;
+  Address currentFunctionBase = 0;
+  string* currentSourceFile = NULL;
+  string* absoluteDirectory = NULL;
+  FunctionInfo* currentFuncInfo = NULL;
+  FileLineInformation* currentFileInfo = NULL;
+
+  for(i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    switch(stabptr[i].type){
+
+    case N_UNDF: /* start of object file */
+	    /* value contains offset of the next string table for next module */
+	    // assert(stabptr[i].name == 1);
+	    stabstrs = stabstr_nextoffset;
+	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
+
+	    //N_UNDF is the start of object file. It is time to 
+	    //clean source file name at this moment.
+	    if(currentSourceFile){
+	  	delete currentSourceFile;
+		currentSourceFile = NULL;
+		delete absoluteDirectory;
+		absoluteDirectory = NULL;
+		currentFileInfo = NULL;
+		currentFuncInfo = NULL;
+	    }
+	    break;
+
+    case N_SO: /* compilation source or file name */
+      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+#ifdef TIMED_PARSE
+      src_count++;
+      gettimeofday(&t1, NULL);
+#endif
+            current_func_name = NULL; // reset for next object file
+
+	    //  JAW -- not sure we need this block here
+            modName = (char*)(&stabstrs[stabptr[i].name]);
+            ptr = strrchr(modName, '/');
+            if (ptr) {
+                ptr++;
+		modName = ptr;
+	    }
+
+	    if (!strcmp(modName, mod->fileName().c_str())) 
+	      parseActive = true;
+	    else
+	      parseActive = false;
+	    //time to create the source file name to be used
+	    //for latter processing of line information
+	    if(!currentSourceFile){
+		currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	    	absoluteDirectory = new string(*currentSourceFile);
+	    }
+	    else if(!strlen(&stabstrs[stabptr[i].name])){
+		delete currentSourceFile;
+		currentSourceFile = NULL;
+		delete absoluteDirectory;
+		absoluteDirectory = NULL;
+	    }
+	    else
+		*currentSourceFile += &stabstrs[stabptr[i].name];
+
+	    currentSourceFile = processDirectories(currentSourceFile);
+ 
+
+#ifdef TIMED_PARSE
+	    gettimeofday(&t2, NULL);
+	    src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	    //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+#endif
+           break;
+    default:
+      break;
+    }
+
+    if( parseActive || mod->isShared())
+      switch(stabptr[i].type){
+      case N_SOL:
+#ifdef TIMED_PARSE
+	sol_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	if(absoluteDirectory){
+	  const char* newSuffix = &stabstrs[stabptr[i].name];
+	  if(newSuffix[0] == '/'){
+	    delete currentSourceFile;
+	    currentSourceFile = new string;
+	  }
+	  else{
+	    char* tmp = new char[absoluteDirectory->length()+1];
+	    strcpy(tmp,absoluteDirectory->c_str());
+	    char* p=strrchr(tmp,'/');
+	    if(p) 
+	      *(++p)='\0';
+	    delete currentSourceFile;
+	    currentSourceFile = new string(tmp);
+	    delete[] tmp;
+	  }
+	  (*currentSourceFile) += newSuffix;
+	  currentSourceFile = processDirectories(currentSourceFile);
+	  if(currentFunctionName)
+	    lineInformation->insertSourceFileName(
+						  *currentFunctionName,
+						  *currentSourceFile,
+						  &currentFileInfo,&currentFuncInfo);
+	}
+	else{
+	  currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	  currentSourceFile = processDirectories(currentSourceFile);
+	  if(currentFunctionName)
+	    lineInformation->insertSourceFileName(
+						  *currentFunctionName,
+						  *currentSourceFile,
+						  &currentFileInfo,&currentFuncInfo);
+	}
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	sol_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//sol_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000); 
+#endif
+	break;
+      case N_SLINE:
+#ifdef TIMED_PARSE
+	sline_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	//if the stab information is a line information
+	//then insert an entry to the line info object
+	if(!currentFunctionName) break;
+	if(currentFileInfo)
+	  currentFileInfo->insertLineAddress(currentFuncInfo,
+					     stabptr[i].desc,
+					     stabptr[i].val+currentFunctionBase);
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	sline_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//sline_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+#endif
+	break;
+    case N_FUN:
+#ifdef TIMED_PARSE
+      fun_count++;
+      gettimeofday(&t1, NULL);
+#endif
+      //if it is a function stab then we have to insert an entry 
+      //to initialize the entries in the line information object
+      int currentEntry = i;
+      ptr = new char[1024];
+      strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      while(ptr[strlen(ptr)-1] == '\\'){
+	ptr[strlen(ptr)-1] = '\0';
+	currentEntry++;
+	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+      }
+      
+      char* colonPtr = NULL;
+      if(currentFunctionName) delete currentFunctionName;
+      if(!ptr || !(colonPtr = strchr(ptr,':')))
+	currentFunctionName = NULL;
+      else {
+	char* tmp = new char[colonPtr-ptr+1];
+	strncpy(tmp,ptr,colonPtr-ptr);
+	tmp[colonPtr-ptr] = '\0';
+	currentFunctionName = new string(tmp);
+	
+	currentFunctionBase = 0;
+	Symbol info;
+	if (!proc->getSymbolInfo(*currentFunctionName,
+				 info,currentFunctionBase))
+	  {
+	    string fortranName = *currentFunctionName + string("_");
+	    if (proc->getSymbolInfo(fortranName,info,
+				    currentFunctionBase))
+	      {
+		delete currentFunctionName;
+		currentFunctionName = new string(fortranName);
+	      }
+	  }
+	
+	currentFunctionBase += info.addr();
+	
+	delete[] tmp;		
+	if(currentSourceFile)
+	  lineInformation->insertSourceFileName(
+						*currentFunctionName,
+						*currentSourceFile,
+						&currentFileInfo,&currentFuncInfo);
+      }
+      delete[] ptr;
+#ifdef TIMED_PARSE
+      gettimeofday(&t2, NULL);
+      fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+      //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+#endif
+      break;
+      }
+  }
+
+  lineInformation->cleanEmptyFunctions();
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
+       <<") took "<<dursecs <<" msecs" << endl;
+  cout << "Breakdown:" << endl;
+  cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
+  cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
+  cout << "     SOL?s: " << sol_count << " took " << sol_dur << "msec" << endl;
+  cout << "     Sliness: " << sline_count << " took " << sline_dur << "msec" << endl;
+  cout << "     Total: " << sline_dur + sol_dur + fun_dur + src_dur 
+       << " msec" << endl;
+  lineInformation->print();
+  cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
+       << max_line_per_addr << endl;
+#endif
+}
+#endif //!rs6k
+#endif // notdef PARSE_ALL_AT_ONCE
+
+#ifdef PARSE_ALL_AT_ONCE
 // Gets the stab and stabstring section and parses it for types
 // and variables
 void BPatch_module::parseTypes()
 {
+ 
   int i;
   char *modName;
-  int stab_nsyms;
   char * temp=NULL;
   image * imgPtr=NULL;
-  char *commonBlockName;
+
   char *ptr, *ptr2, *ptr3;
   bool parseActive = false;
+  int stab_nsyms;
   char *stabstr_nextoffset;
   const char *stabstrs = 0;
   struct stab_entry *stabptr = NULL;
+  char *commonBlockName;
   BPatch_type *commonBlock = NULL;
   BPatch_variableExpr *commonBlockVar = NULL;
-
+  assert(lineInformation); // should not be NULL under PARSE_ALL_AT_ONCE
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
   //Using pdmodule to get the image Object.
   imgPtr = mod->exec();
   
@@ -643,10 +1307,23 @@ void BPatch_module::parseTypes()
   string* absoluteDirectory = NULL;
   FunctionInfo* currentFuncInfo = NULL;
   FileLineInformation* currentFileInfo = NULL;
-  int currentEntry = 0;
-  char* colonPtr = NULL;
   
   int mostRecentLinenum = 0;
+
+#ifdef TIMED_PARSE
+  unsigned int fun_count = 0;
+  double fun_dur = 0;
+  unsigned int src_count = 0;
+  double src_dur = 0;
+  unsigned int sol_count = 0;
+  double sol_dur = 0;
+  unsigned int sline_count = 0;
+  double sline_dur = 0;
+  unsigned int pss_count = 0;
+  double pss_dur = 0;
+  struct timeval t1, t2;
+  double dsec1, dsec2, dusec1, dusec2;
+#endif
 
   for(i=0;i<stab_nsyms;i++){
     // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
@@ -665,12 +1342,9 @@ void BPatch_module::parseTypes()
 		currentSourceFile = NULL;
 		delete absoluteDirectory;
 		absoluteDirectory = NULL;
-		delete currentFunctionName;
-		currentFunctionName = NULL;
 		currentFileInfo = NULL;
 		currentFuncInfo = NULL;
 	    }
-
 	    break;
 
     case N_ENDM: /* end of object file */
@@ -678,6 +1352,10 @@ void BPatch_module::parseTypes()
 
     case N_SO: /* compilation source or file name */
       /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+#ifdef TIMED_PARSE
+      src_count++;
+      gettimeofday(&t1, NULL);
+#endif
             current_func_name = NULL; // reset for next object file
             modName = (char*)(&stabstrs[stabptr[i].name]);
             ptr = strrchr(modName, '/');
@@ -717,6 +1395,7 @@ void BPatch_module::parseTypes()
 	    } else {
 		parseActive = false;
 	    }
+
 	    //time to create the source file name to be used
 	    //for latter processing of line information
 	    if(!currentSourceFile){
@@ -733,204 +1412,274 @@ void BPatch_module::parseTypes()
 		*currentSourceFile += &stabstrs[stabptr[i].name];
 
 	    currentSourceFile = processDirectories(currentSourceFile);
-	    currentFunctionName = NULL;
-
-            break;
-
+ 
+#ifdef TIMED_PARSE
+	    gettimeofday(&t2, NULL);
+	    src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	    //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+#endif
+           break;
     }
 
-	if(parseActive || mod->isShared())
-    switch(stabptr[i].type){
-
-    case N_SOL:
-	    if(absoluteDirectory){
-	        const char* newSuffix = &stabstrs[stabptr[i].name];
-		if(newSuffix[0] == '/'){
-			delete currentSourceFile;
-			currentSourceFile = new string;
-		}
-		else{
-   			char* tmp = new char[absoluteDirectory->length()+1];
-                	strcpy(tmp,absoluteDirectory->c_str());
-                	char* p=strrchr(tmp,'/');
-			if(p) 
-                		*(++p)='\0';
-                	delete currentSourceFile;
-                	currentSourceFile = new string(tmp);
-                	delete[] tmp;
-		}
-                (*currentSourceFile) += newSuffix;
-		currentSourceFile = processDirectories(currentSourceFile);
-                if(currentFunctionName){
-			lineInformation->insertSourceFileName(
-				*currentFunctionName,
-				*currentSourceFile,
-				&currentFileInfo,&currentFuncInfo);
-		}
+    if(parseActive || mod->isShared())
+      switch(stabptr[i].type){
+      case N_SOL:
+#ifdef TIMED_PARSE
+	sol_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	if(absoluteDirectory){
+	  const char* newSuffix = &stabstrs[stabptr[i].name];
+	  if(newSuffix[0] == '/'){
+	    delete currentSourceFile;
+	    currentSourceFile = new string;
+	  }
+	  else{
+	    char* tmp = new char[absoluteDirectory->length()+1];
+	    strcpy(tmp,absoluteDirectory->c_str());
+	    char* p=strrchr(tmp,'/');
+	    if(p) 
+	      *(++p)='\0';
+	    delete currentSourceFile;
+	    currentSourceFile = new string(tmp);
+	    delete[] tmp;
+	  }
+	  (*currentSourceFile) += newSuffix;
+	  currentSourceFile = processDirectories(currentSourceFile);
+	  if(currentFunctionName)
+	    lineInformation->insertSourceFileName(
+						  *currentFunctionName,
+						  *currentSourceFile,
+						  &currentFileInfo,&currentFuncInfo);
+	}
+	else{
+	  currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	  currentSourceFile = processDirectories(currentSourceFile);
+	  if(currentFunctionName)
+	    lineInformation->insertSourceFileName(
+						  *currentFunctionName,
+						  *currentSourceFile,
+						  &currentFileInfo,&currentFuncInfo);
             }
-            else{
-                currentSourceFile = new string(&stabstrs[stabptr[i].name]);
-	 	currentSourceFile = processDirectories(currentSourceFile);
-                if(currentFunctionName){
-			lineInformation->insertSourceFileName(
-					*currentFunctionName,
-  					*currentSourceFile,
-					&currentFileInfo,&currentFuncInfo);
-		}
-            }
-            break;
-
-    case N_FUN:
-	    //if it is a function stab then we have to insert an entry 
-            //to initialize the entries in the line information object
-	    currentEntry = i;
-	    char tmpBuffer[5096];
-	    ptr = tmpBuffer;
-      	    strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-	    while(ptr[strlen(ptr)-1] == '\\'){
-		ptr[strlen(ptr)-1] = '\0';
-		currentEntry++;
-		strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-	    }
-
-	    colonPtr = NULL;
-	    if(currentFunctionName) delete currentFunctionName;
-	    if(!ptr || !(colonPtr = strchr(ptr,':')))
-		currentFunctionName = NULL;
-	    else {
-		char* tmp = new char[colonPtr-ptr+1];
-		strncpy(tmp,ptr,colonPtr-ptr);
-		tmp[colonPtr-ptr] = '\0';
-		currentFunctionName = new string(tmp);
-
-		currentFunctionBase = 0;
-		Symbol info;
-
-		if (!proc->getSymbolInfo(*currentFunctionName,
-					 info,currentFunctionBase))
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	sol_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//sol_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000); 
+#endif
+	break;
+      case N_SLINE:
+#ifdef TIMED_PARSE
+	sline_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	mostRecentLinenum = stabptr[i].desc;
+	//if the stab information is a line information
+	//then insert an entry to the line info object
+	if(!currentFunctionName) break;
+	if(currentFileInfo)
+	  currentFileInfo->insertLineAddress(currentFuncInfo,
+					     stabptr[i].desc,
+					     stabptr[i].val+currentFunctionBase);
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	sline_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//sline_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+#endif
+	break;
+      case N_FUN:
+#ifdef TIMED_PARSE
+	fun_count++;
+	gettimeofday(&t1, NULL);
+#endif
+	//if it is a function stab then we have to insert an entry 
+	//to initialize the entries in the line information object
+	int currentEntry = i;
+	ptr = new char[1024];
+	strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	while(ptr[strlen(ptr)-1] == '\\'){
+	  ptr[strlen(ptr)-1] = '\0';
+	  currentEntry++;
+	  strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	}
+	
+	char* colonPtr = NULL;
+	if(currentFunctionName) delete currentFunctionName;
+	if(!ptr || !(colonPtr = strchr(ptr,':')))
+	  currentFunctionName = NULL;
+	else {
+	  char* tmp = new char[colonPtr-ptr+1];
+	  strncpy(tmp,ptr,colonPtr-ptr);
+	  tmp[colonPtr-ptr] = '\0';
+	  currentFunctionName = new string(tmp);
+	  
+	  currentFunctionBase = 0;
+	  Symbol info;
+	  if (!proc->getSymbolInfo(*currentFunctionName,
+				   info,currentFunctionBase))
+	    {
+	      string fortranName = *currentFunctionName + string("_");
+	      if (proc->getSymbolInfo(fortranName,info,
+				      currentFunctionBase))
 		{
-			string fortranName = *currentFunctionName + string("_");
-			if (proc->getSymbolInfo(fortranName,info,
-					        currentFunctionBase))
-			{
-				delete currentFunctionName;
-				currentFunctionName = new string(fortranName);
-			}
+		  delete currentFunctionName;
+		  currentFunctionName = new string(fortranName);
 		}
-
-		currentFunctionBase += info.addr();
-
-		delete[] tmp;		
-		if(currentSourceFile && (currentFunctionBase > 0)){
-			lineInformation->insertSourceFileName(
-					*currentFunctionName,
-					*currentSourceFile,
-					&currentFileInfo,&currentFuncInfo);
-		}
-	     }
-	     break;
-
-    case N_SLINE:
-	    mostRecentLinenum = stabptr[i].desc;
-	    //if the stab information is a line information
-	    //then insert an entry to the line info object
-	    if(!currentFunctionName) break;
-	    if(currentFileInfo){
-		currentFileInfo->insertLineAddress(currentFuncInfo,
-			stabptr[i].desc,
-			stabptr[i].val+currentFunctionBase);
 	    }
-	    break;
-    }
 
+	  currentFunctionBase += info.addr();
+	  
+	  delete[] tmp;		
+	  if(currentSourceFile)
+	    lineInformation->insertSourceFileName(
+						  *currentFunctionName,
+						  *currentSourceFile,
+						  &currentFileInfo,&currentFuncInfo);
+	}
+	delete[] ptr;
+#ifdef TIMED_PARSE
+	gettimeofday(&t2, NULL);
+	fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	//fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+#endif
+	break;
+      }
+    
     if (!parseActive) continue;
-
+    
+    BPatch_Vector<BPatch_function *> bpfv;
     switch(stabptr[i].type){
-        case N_BCOMM:	{
+    case N_BCOMM:	{
 	    // begin Fortran named common block 
-	    commonBlockName = (char *) &stabstrs[stabptr[i].name];
-
-	    // find the variable for the common block
-	    BPatch_image *progam = (BPatch_image *) getObjParent();
-	      
-	    commonBlockVar = progam->findVariable(commonBlockName);
-	    if (!commonBlockVar) {
-		printf("unable to find variable %s\n", commonBlockName);
-	    } else {
-		commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
-		if (commonBlock->getDataClass() != BPatch_dataCommon) {
-		    // its still the null type, create a new one for it
-		    commonBlock = new BPatch_type(commonBlockName, false);
-		    commonBlockVar->setType(commonBlock);
-		    moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
-
-		    commonBlock->setDataClass(BPatch_dataCommon);
-		}
-		// reset field list
-		commonBlock->beginCommonBlock();
-	    }
-	    break;
+      commonBlockName = (char *) &stabstrs[stabptr[i].name];
+      
+      // find the variable for the common block
+      BPatch_image *progam = (BPatch_image *) getObjParent();
+#ifdef TIMED_PARSE
+      cout << __FILE__ << __LINE__ << ": parseTypes N_BCOMM "<< commonBlockName << endl;
+#endif
+      commonBlockVar = progam->findVariable(commonBlockName);
+      if (!commonBlockVar) {
+	printf("unable to find variable %s\n", commonBlockName);
+      } else {
+	commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
+	if (commonBlock->getDataClass() != BPatch_dataCommon) {
+	  // its still the null type, create a new one for it
+	  commonBlock = new BPatch_type(commonBlockName, false);
+	  commonBlockVar->setType(commonBlock);
+	  moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
+	  
+	  commonBlock->setDataClass(BPatch_dataCommon);
+	}
+	// reset field list
+	commonBlock->beginCommonBlock();
+      }
+      break;
+    }
+    
+    case N_ECOMM: {
+      // copy this set of fields
+      
+      assert(currentFunctionName);
+#ifdef TIMED_PARSE
+      cout << __FILE__ << __LINE__ << ": parseTypes N_ECOMM "<< currentFunctionName << endl;
+#endif
+      if (NULL == findFunction(currentFunctionName->c_str(), &bpfv) || !bpfv.size()) {
+	printf("unable to locate current function %s\n", currentFunctionName->c_str());
+      } else {
+	if (bpfv.size() > 1) {
+	  // warn if we find more than one function with this name
+	  printf("%s[%d]:  WARNING: found %d funcs matching name %s, using the first\n",
+		 __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
 	}
 
-        case N_ECOMM: {
-	    // copy this set of fields
-	    assert(currentFunctionName);
-	    BPatch_function *func = findFunction(currentFunctionName->c_str());
-	    if (!func) {
-		printf("unable to locate current function %s\n", currentFunctionName->c_str());
-	    } else {
-		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
-	    }
 
-	    // update size if needed
-	    if (commonBlockVar)
-		commonBlockVar->setSize(commonBlock->getSize());
-	    commonBlockVar = NULL;
-	    commonBlock = NULL;
-	    break;
-	}
+	
+	BPatch_function *func = bpfv[0];
+	commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
+      }
+      
+      // update size if needed
+      if (commonBlockVar)
+	commonBlockVar->setSize(commonBlock->getSize());
+      commonBlockVar = NULL;
+      commonBlock = NULL;
+      break;
+    }
+    
+    // case C_BINCL: -- what is the elf version of this jkh 8/21/01
+    // case C_EINCL: -- what is the elf version of this jkh 8/21/01
+    case 32:    // Global symbols -- N_GYSM 
+    case N_FUN:
+    case 128:   // typedefs and variables -- N_LSYM
+    case 160:   // parameter variable -- N_PSYM 
+#ifdef TIMED_PARSE
+      pss_count++;
+      gettimeofday(&t1, NULL);
+#endif
 
-        // case C_BINCL: -- what is the elf version of this jkh 8/21/01
-        // case C_EINCL: -- what is the elf version of this jkh 8/21/01
-        case 32:    // Global symbols -- N_GYSM 
-        case N_FUN:
-        case 128:   // typedefs and variables -- N_LSYM
-        case 160:   // parameter variable -- N_PSYM 
-        case 0xc6:  // position-independant local typedefs -- N_ISYM
-        case 0xc8: // position-independant external typedefs -- N_ESYM
+      ptr = (char *) &stabstrs[stabptr[i].name];
+      while (ptr[strlen(ptr)-1] == '\\') {
+	//ptr[strlen(ptr)-1] = '\0';
+	ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	strcpy(ptr3, ptr);
+	ptr3[strlen(ptr)-1] = '\0';
+	strcat(ptr3, ptr2);
+	
+	ptr = ptr3;
+	i++;
+	// XXX - memory leak on multiple cont. lines
+      }
+      
+      // printf("stab #%d = %s\n", i, ptr);
+      // may be nothing to parse - XXX  jdd 5/13/99
+      if (nativeCompiler)
+	temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
+      else
+	temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
+      if (*temp) {
+	//Error parsing the stabstr, return should be \0
+	fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+		temp);
+      }
 
-	     ptr = (char *) &stabstrs[stabptr[i].name];
-             while (ptr[strlen(ptr)-1] == '\\') {
-	        //ptr[strlen(ptr)-1] = '\0';
-	          ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
-	          ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
-	          strcpy(ptr3, ptr);
-	          ptr3[strlen(ptr)-1] = '\0';
-	          strcat(ptr3, ptr2);
-	          
-	          ptr = ptr3;
-	          i++;
-	          // XXX - memory leak on multiple cont. lines
-              }
-
-              // printf("stab #%d = %s\n", i, ptr);
-              // may be nothing to parse - XXX  jdd 5/13/99
-	     if (nativeCompiler)
-	      temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
-	     else
-              temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
-              if (*temp) {
-	          //Error parsing the stabstr, return should be \0
-	          fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
-	              temp);
-              }
-              break;
-        default:
-              break;
+      
+#ifdef TIMED_PARSE
+      gettimeofday(&t2, NULL);
+      pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+      //      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+#endif
+      break;
+    default:
+      break;
     }       		    
   }
-}
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
+       <<") took "<<dursecs <<" msecs" << endl;
+  cout << "Breakdown:" << endl;
+  cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
+  cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
+  cout << "     SOL?s: " << sol_count << " took " << sol_dur << "msec" << endl;
+  cout << "     Sliness: " << sline_count << " took " << sline_dur << "msec" << endl;
+  cout << "     parseStabString: " << pss_count << " took " << pss_dur << "msec" << endl;
+  cout << "     Total: " << pss_dur +sline_dur + sol_dur + fun_dur + src_dur 
+       << " msec" << endl;
+  lineInformation->print();
+  cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
+       << max_line_per_addr << endl;
+#endif
 
+  
+  }
+
+#endif // PARSE_ALL_AT_ONCE
 #endif //end of #if defined(i386_unknown_linux2_0)
 
 // Parsing symbol table for Alpha platform
@@ -952,6 +1701,8 @@ void BPatch_module::parseTypes()
 
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
+
+  assert(lineInformation);
 
   parseCoff(this, file, mod->fileName(),lineInformation);
 }
@@ -1022,6 +1773,23 @@ void BPatch_module::parseTypes()
 #endif
 
 
+bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
+{
+ 
+  BPatch_variableExpr *var;
+  pdvector<string> keys = moduleTypes->globalVarsByName.keys();
+  int limit = keys.size();
+  for (int j = 0; j < limit; j++) {
+    string name = keys[j];
+    var = img->createVarExprByName(this, name.c_str());
+    vars.push_back(var);
+  }
+  if (limit) 
+    return true;
+  
+  return false;
+}
+
 /** method that finds the corresponding addresses for a source line
   * this methid returns true in sucess, otherwise false.
   * it can be called to find the exact match or, in case, exact match
@@ -1032,18 +1800,29 @@ void BPatch_module::parseTypes()
 bool BPatch_module::getLineToAddr(unsigned short lineNo,
 				  BPatch_Vector<unsigned long>& buffer,
 		                  bool exactMatch)
+
 {
+
 	//if the line information is not created yet return false
 
 	if(!lineInformation){
-		return false;
+#ifndef PARSE_ALL_AT_ONCE
+#if !defined(rs6000_ibm_aix4_1)
+	  parseFileLineInfo();
+#else
+	  return false;
+#endif
+#else
+	  return false;
+#endif
 	}
 	
 	//query the line info object to get set of addresses if it exists.
 	BPatch_Set<Address> addresses;
-	if(!lineInformation->getAddrFromLine(addresses,lineNo,exactMatch))
+	if(!lineInformation->getAddrFromLine(addresses,lineNo,exactMatch)) {
+	  cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
 		return false;
-
+	}
 	//then insert the elements to the vector given
 	Address* elements = new Address[addresses.size()];
 	addresses.elements(elements);
@@ -1054,24 +1833,18 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 }
 
 
-bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
-{
-    BPatch_variableExpr *var;
-    pdvector<string> keys = moduleTypes->globalVarsByName.keys();
-    int limit = keys.size();
-    for (int j = 0; j < limit; j++) {
-	string name = keys[j];
-	var = img->createVarExprByName(this, name.c_str());
-	vars.push_back(var);
-    }
-    if (limit) 
-	return true;
-
-    return false;
-}
 
 LineInformation* BPatch_module::getLineInformation(){
-	return lineInformation;
+  
+#ifndef PARSE_ALL_AT_ONCE
+#if !defined(rs6000_ibm_aix4_1)
+  if (!lineInformation) parseFileLineInfo();
+#endif
+  return lineInformation;	
+#else
+  return lineInformation;
+#endif
+
 }
 
 bool BPatch_module::isSharedLib() const {

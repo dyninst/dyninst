@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.32 2003/03/25 01:49:47 buck Exp $
+// $Id: BPatch_function.C,v 1.33 2003/04/02 07:12:23 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -525,8 +525,9 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 {
 
 	//get the line info object and check whether it is available
-	LineInformation* lineInformation = mod->lineInformation;
+	LineInformation* lineInformation = mod->getLineInformation();
 	if(!lineInformation){
+	  cerr << __FILE__ << __LINE__ << ":  no line information!" << endl;
 		return false;
 	}
 
@@ -534,15 +535,17 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 	FileLineInformation* fLineInformation = 
 			lineInformation->getFunctionLineInformation(func->symTabName());
 	if(!fLineInformation){
+	  cerr << __FILE__ << __LINE__ << ":  no file line information!" << endl;
 		return false;
 	}
 
 	//retrieve the addresses
 	BPatch_Set<Address> addresses;
 	if(!fLineInformation->getAddrFromLine(func->symTabName(),addresses,
-					      lineNo,false,exactMatch))
+					      lineNo,false,exactMatch)) {
+	  cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
 		return false;
-
+	}
 	//then insert the elements to the vector given
 	Address* elements = new Address[addresses.size()];
 	addresses.elements(elements);
@@ -563,7 +566,7 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
     start = end = 0;
 
     //get the line info object and check whether it is available
-    LineInformation* lineInformation = mod->lineInformation;
+    LineInformation* lineInformation = mod->getLineInformation();
 
     if (!lineInformation) {
         logLine("BPatch_function::getLineToAddr : Line info is not available");

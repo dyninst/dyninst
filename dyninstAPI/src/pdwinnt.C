@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.86 2003/03/28 23:28:18 pcroth Exp $
+// $Id: pdwinnt.C,v 1.87 2003/04/02 07:12:25 jaw Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1873,15 +1873,15 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 //	DebugBreak();
 
 
-  if (!(mainFunction = findOneFunction("WinMain")) &&
-	  !(mainFunction = findOneFunction("_WinMain"))) {
+  if (!(mainFunction = findOnlyOneFunction("WinMain")) &&
+	  !(mainFunction = findOnlyOneFunction("_WinMain"))) {
 		fprintf(stderr, "process::heapIsOk(): failed to find \"WinMain\"\n");
 
-		if (!(mainFunction = findOneFunction("main")) &&
-		!(mainFunction = findOneFunction("_main"))) {
+		if (!(mainFunction = findOnlyOneFunction("main")) &&
+		!(mainFunction = findOnlyOneFunction("_main"))) {
 
-			if (!(mainFunction = findOneFunction("wWinMain")) &&
-				!(mainFunction = findOneFunction("_wWinMain"))) {
+			if (!(mainFunction = findOnlyOneFunction("wWinMain")) &&
+				!(mainFunction = findOnlyOneFunction("_wWinMain"))) {
 
 				fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
 				return false;
@@ -2189,12 +2189,12 @@ void process::insertTrapAtEntryPointOfMain() {
     
     function_base *mainFunc;
     //DebugBreak();//ccw 14 may 2001  
-    if (!((mainFunc = findOneFunction("main")))){
-        if(!(mainFunc = findOneFunction("_main"))){
-            if(!(mainFunc = findOneFunction("WinMain"))){
-                if(!(mainFunc = findOneFunction("_WinMain"))){
-		    if(!(mainFunc = findOneFunction("wWinMain"))){
-			if(!(mainFunc = findOneFunction("_wWinMain"))){
+    if (!((mainFunc = findOnlyOneFunction("main")))){
+        if(!(mainFunc = findOnlyOneFunction("_main"))){
+            if(!(mainFunc = findOnlyOneFunction("WinMain"))){
+                if(!(mainFunc = findOnlyOneFunction("_WinMain"))){
+		    if(!(mainFunc = findOnlyOneFunction("wWinMain"))){
+			if(!(mainFunc = findOnlyOneFunction("_wWinMain"))){
 			    assert(0);
 			}
 		    }

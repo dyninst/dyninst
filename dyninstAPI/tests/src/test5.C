@@ -119,20 +119,16 @@ void checkCost(BPatch_snippet snippet)
 void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
-  BPatch_Vector<BPatch_function *> found_funcs;
-  const char *inFunction = "arg_test::call_cpp";
-  if ((NULL == appImage->findBPFunction(inFunction, found_funcs)) || (0 == found_funcs.size())) {
-    fprintf(stderr, "    Unable to find function %s\n",
-	    inFunction);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "arg_test::call_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
     exit(1);
   }
-  
-  if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs.size(), inFunction);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point1_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point1_1 = f1->findPoint(BPatch_subroutine);
        
    assert(point1_1);
 
@@ -187,32 +183,32 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
    appThread->insertSnippet(expr1_1, *point1_1);
 
    // pass a paramter to a class member function
-
-  BPatch_Vector<BPatch_function *> found_funcs2;
-  const char *inFunction2 = "arg_test::func_cpp";
-  if ((NULL == appImage->findBPFunction(inFunction2, found_funcs2)) || (0 == found_funcs2.size())) {
-    fprintf(stderr, "    Unable to find function %s\n",
-	    inFunction2);
-    exit(1);
-  }
-  
-  if (1 < found_funcs2.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs2.size(), inFunction2);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point1_2 = found_funcs2[0]->findPoint(BPatch_subroutine);
+   bpfv.clear();
+   char *fn2 = "arg_test::func_cpp";
+   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+       || NULL == bpfv[0]){
+     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
+     fprintf(stderr, "    Unable to find function %s\n", fn2);
+     exit(1);
+   }
+   BPatch_function *f2 = bpfv[0];  
+   BPatch_Vector<BPatch_point *> *point1_2 = f2->findPoint(BPatch_subroutine);
 
    if (!point1_2 || (point1_2->size() < 1)) {
+     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
       fprintf(stderr, "Unable to find point arg_test::func_cpp - exit.\n");
       exit(-1);
    }
 
-   BPatch_function *call1_func = appImage->findFunction("arg_test::arg_pass");
-   if (call1_func == NULL) {
-       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
-       exit(1);
+   bpfv.clear();
+   char *fn3 = "arg_test::arg_pass";
+   if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+       || NULL == bpfv[0]) {
+     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
+     fprintf(stderr, "    Unable to find function %s\n", fn3);
+     exit(1);
    }
+   BPatch_function *call1_func = bpfv[0];  
 
    BPatch_variableExpr *this1 = appImage->findVariable("test1");
    if (this1 == NULL) {
@@ -240,25 +236,28 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
 #if defined(sparc_sun_solaris2_4)
-  BPatch_Vector<BPatch_function *> found_funcs2;
-  const char *inFunction = "overload_func_test::func_cpp";
-  if ((NULL == appImage->findBPFunction(inFunction, found_funcs2)) || (0 == found_funcs2.size())) {
-    fprintf(stderr, "    Unable to find function %s\n",
-	    inFunction);
+
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "overload_func_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
     exit(1);
   }
-  
-  if (1 < found_funcs2.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs2.size(), inFunction);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point2_1 = found_funcs2[0]->findPoint(BPatch_subroutine);
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point2_1 = f1->findPoint(BPatch_subroutine);
 
-    if (!point2_1 || (point2_1->size() < 2)) {
-         fprintf(stderr, "Unable to find point overload_func_test::func_cpp - calls. \n");
-         exit(-1);
-    }
+  if (!point2_1 || (point2_1->size() < 2)) {
+    fprintf(stderr, "Unable to find point overload_func_test::func_cpp - calls. \n");
+    exit(-1);
+  }
+
+  BPatch_Vector<BPatch_point *> *point2_3 = f1->findPoint(BPatch_exit);
+  if (!point2_3 || point2_3->size() <1) {
+    fprintf(stderr, "Unable to find point overload_func_test::func_cpp - exit.\n");
+    exit(-1);
+  }
 
     for (int n=0; n<point2_1->size(); n++) {
        BPatch_function *func;
@@ -324,30 +323,15 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
        };
     }
 
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findBPFunction(inFunction, found_funcs)) || (0 == found_funcs.size())) {
-    fprintf(stderr, "    Unable to find function %s\n",
-	    inFunction);
-    exit(1);
-  }
-  
-  if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs.size(), inFunction);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point2_3 = found_funcs[0]->findPoint(BPatch_exit);
-
-    if (!point2_3 || point2_3->size() <1) {
-         fprintf(stderr, "Unable to find point overload_func_test::func_cpp - exit.\n");
-         exit(-1);
+    bpfv.clear();  
+    char *fn2 = "cpp_test_util::call_cpp";
+    if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+	|| NULL == bpfv[0]){
+      fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
+      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      exit(1);
     }
-
-    BPatch_function *call2_func = appImage->findFunction("cpp_test_util::call_cpp");
-    if (call2_func == NULL) {
-        fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
-        exit(1);
-    }
+    BPatch_function *call2_func = bpfv[0];  
 
     BPatch_variableExpr *this2 = appImage->findVariable("test2");
     if (this2 == NULL) {
@@ -374,23 +358,18 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "overload_op_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs)) || 
-       (0 == found_funcs.size())) {
-      fprintf(stderr, "%s[%d]:    Unable to find function %s\n", __FILE__, 
-              __LINE__, inFunction);
-      exit(1);
-   }
-   
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point3_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "overload_op_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #3 (overloaded operation)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point3_1 = f1->findPoint(BPatch_subroutine);
 
-   assert(point3_1);
+  assert(point3_1);
 
   int index = 0;
   BPatch_function *func;
@@ -406,23 +385,27 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
      index ++;
   }
 
-   BPatch_Vector<BPatch_point *> *point3_2 = func->findPoint(BPatch_exit);
-   assert(point3_2);
-
-   BPatch_function *call3_1 = appImage->findFunction("overload_op_test_call_cpp");
-   if (call3_1 == NULL) {
-       fprintf(stderr, "Unable to find function \"overload_op_test_call_cpp\"\n");
-       exit(1);
-   }
-
-   BPatch_Vector<BPatch_snippet *> opArgs;
-   opArgs.push_back(new BPatch_retExpr());
-   BPatch_funcCallExpr call3_1Expr(*call3_1, opArgs);
-
-   checkCost(call3_1Expr);
-   appThread->insertSnippet(call3_1Expr, *point3_2);
-   //  int tag = 1;
-   //  while (tag != 0) {}
+  BPatch_Vector<BPatch_point *> *point3_2 = func->findPoint(BPatch_exit);
+  assert(point3_2);
+  
+  bpfv.clear();
+  char *fn2 = "overload_op_test_call_cpp";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #3 (overloaded operation)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *call3_1 = bpfv[0];  
+  
+  BPatch_Vector<BPatch_snippet *> opArgs;
+  opArgs.push_back(new BPatch_retExpr());
+  BPatch_funcCallExpr call3_1Expr(*call3_1, opArgs);
+  
+  checkCost(call3_1Expr);
+  appThread->insertSnippet(call3_1Expr, *point3_2);
+  //  int tag = 1;
+  //  while (tag != 0) {}
 }
 
 //  
@@ -431,84 +414,80 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
-
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "static_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n",
-              inFunction);
-      exit(1);
-   }
-   
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point4_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-
-   assert(point4_1);
-
-   int index = 0;
-   BPatch_function *func;
-   int bound = point4_1->size();
-   BPatch_Vector<BPatch_variableExpr *> vect4_1;
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "static_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #4 (static member)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point4_1 = f1->findPoint(BPatch_subroutine);
+  BPatch_Vector<BPatch_point *> *point4_3 = f1->findPoint(BPatch_exit);
+  assert(point4_3);
+  assert(point4_1);
   
-   while ((index < bound) && (vect4_1.size() < 2)) {
-     if ((func = (*point4_1)[index]->getCalledFunction()) == NULL) {
-        fprintf(stderr, "**Failed** test #4 (static member)\n");
-        fprintf(stderr, "    Can't find the invoked function\n");
-        exit(1);
-     }
+  int index = 0;
+  BPatch_function *func;
+  int bound = point4_1->size();
+  BPatch_Vector<BPatch_variableExpr *> vect4_1;
+  
+  while ((index < bound) && (vect4_1.size() < 2)) {
+    if ((func = (*point4_1)[index]->getCalledFunction()) == NULL) {
+      fprintf(stderr, "**Failed** test #4 (static member)\n");
+      fprintf(stderr, "    Can't find the invoked function\n");
+      exit(1);
+    }
 
-     char fn[256];
-     if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
-        BPatch_Vector<BPatch_point *> *point4_2 = func->findPoint(BPatch_exit);
-        assert(point4_2);
+    char fn[256];
+    if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
+      BPatch_Vector<BPatch_point *> *point4_2 = func->findPoint(BPatch_exit);
+      assert(point4_2);
+      
+      // use getComponent to access this "count". However, getComponent is
+      // causing core dump at this point
+      BPatch_variableExpr *var4_1 = appImage->findVariable(*(*point4_2)[0],
+							   "count");
+      if (!var4_1) {
+	fprintf(stderr, "**Failed** test #4 (static member)\n");
+	fprintf(stderr, "  Can't find static variable count\n");
+	return;
+      }
+      vect4_1.push_back(var4_1);
+    }
+    index ++;
+  }
+  
+  if (2 != vect4_1.size()) {
+    fprintf(stderr, "**Failed** test #4 (static member)\n");
+    fprintf(stderr, "  Incorrect size of an vector\n");
+    exit(1);
+  }
+  if (vect4_1[0]->getBaseAddr() != vect4_1[1]->getBaseAddr()) {
+    fprintf(stderr, "**Failed** test #4 (static member)\n");
+    fprintf(stderr, "  Static member does not have a same address\n");
+    exit(1);
+  };
+  
+  bpfv.clear();
+  char *fn2 = "static_test_call_cpp";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #4 (static member)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *call4_func = bpfv[0];  
 
-        // use getComponent to access this "count". However, getComponent is
-        // causing core dump at this point
-        BPatch_variableExpr *var4_1 = appImage->findVariable(*(*point4_2)[0],
-             "count");
-        if (!var4_1) {
-           fprintf(stderr, "**Failed** test #4 (static member)\n");
-           fprintf(stderr, "  Can't find static variable count\n");
-           return;
-        }
-        vect4_1.push_back(var4_1);
-     }
-     index ++;
-   }
-
-   if (2 != vect4_1.size()) {
-       fprintf(stderr, "**Failed** test #4 (static member)\n");
-       fprintf(stderr, "  Incorrect size of an vector\n");
-       exit(1);
-   }
-   if (vect4_1[0]->getBaseAddr() != vect4_1[1]->getBaseAddr()) {
-       fprintf(stderr, "**Failed** test #4 (static member)\n");
-       fprintf(stderr, "  Static member does not have a same address\n");
-       exit(1);
-   };
-
-   BPatch_Vector<BPatch_point *> *point4_3 = found_funcs[0]->findPoint(BPatch_exit);
- 
-   assert(point4_3);
-
-   BPatch_function *call4_func = appImage->findFunction("static_test_call_cpp");
-   if (call4_func == NULL) {
-       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
-       exit(1);
-   }
-
-   BPatch_Vector<BPatch_snippet *> call4_args;
-   BPatch_constExpr expr4_0(4);
-   call4_args.push_back(&expr4_0);
-   BPatch_funcCallExpr call4Expr(*call4_func, call4_args);
-
-   checkCost(call4Expr);
-   appThread->insertSnippet(call4Expr, *point4_3);
-
+  BPatch_Vector<BPatch_snippet *> call4_args;
+  BPatch_constExpr expr4_0(4);
+  call4_args.push_back(&expr4_0);
+  BPatch_funcCallExpr call4Expr(*call4_func, call4_args);
+  
+  checkCost(call4Expr);
+  appThread->insertSnippet(call4Expr, *point4_3);
+  
 #endif
 }
 
@@ -519,20 +498,16 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "namespace_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n",
-              inFunction);
-      exit(1);
-   }
-   
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point5_1 = found_funcs[0]->findPoint(BPatch_exit);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "namespace_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #5 (namespace)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point5_1 = f1->findPoint(BPatch_exit);
 
    assert(point5_1);
    BPatch_variableExpr *var1 = appImage->findVariable(*(*point5_1)[0],
@@ -552,20 +527,17 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
          fprintf(stderr, "  can't find global variable CPP_DEFLT_ARG\n");
       return;
     }
-   BPatch_Vector<BPatch_function *> found_funcs2;
-   const char *inFunction2 = "main";
-   if ((NULL == appImage->findFunction(inFunction2, found_funcs2, 1)) || 
-       (0 == found_funcs2.size())) {
-      fprintf(stderr, "    Unable to find function %s\n", inFunction2);
-      exit(1);
-   }
-   
-   if (1 < found_funcs2.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs2.size(), inFunction2);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point5_2 = found_funcs2[0]->findPoint(BPatch_allLocations);
+
+   bpfv.clear();
+   char *fn2 = "main";
+   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+	 || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #5 (namespace)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *f2 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point5_2 = f2->findPoint(BPatch_allLocations);
 
    if (!point5_2 || (point5_2->size() < 1)) {
       fprintf(stderr, "Unable to find point in main.\n");
@@ -587,13 +559,17 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
    int index = 0;
    while ( index < fields->size() ) {
       if (!strcmp("class_variable", (*fields)[index]->getName()) ) {
-         BPatch_function *call5_func = appImage->findFunction("cpp_test_util::call_cpp");
-         if (call5_func == NULL) {
-            fprintf(stderr, "**Failed** test #5 (namespace)\n");
-            fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
-            exit(1);
-         }
-         
+
+	BPatch_Vector<BPatch_function *> bpfv2;
+	char *fn3 = "cpp_test_util::call_cpp";
+	if (NULL == appImage->findFunction(fn3, &bpfv2) || !bpfv2.size()
+	    || NULL == bpfv2[0]){
+	  fprintf(stderr, "**Failed** test #5 (namespace)\n");
+	  fprintf(stderr, "    Unable to find function %s\n", fn3);
+	  exit(1);
+	}
+	BPatch_function *call5_func = bpfv2[0];  
+            
          BPatch_variableExpr *this5 = appImage->findVariable("test5");
          if (this5 == NULL) {
             fprintf(stderr, "**Failed** test #5 (namespace)\n");
@@ -626,20 +602,17 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "exception_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n", inFunction);
-      exit(1);
-   }
-   
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point6_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-   assert(point6_1);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn2 = "exception_test::func_cpp";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #6 (exception)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point6_1 = f1->findPoint(BPatch_subroutine);
+  assert(point6_1);
    
    int index = 0;
    BPatch_function *func;
@@ -664,14 +637,17 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
          BPatch_Vector<BPatch_point *> *point6_2 = func->findPoint(BPatch_exit);
          assert(point6_2);
 
-         BPatch_function *call6_func =
-           appImage->findFunction("exception_test_call_cpp");
-         if (call6_func == NULL) {
-             fprintf(stderr, "Unable to find function \"exception_test_call_cpp.\"\n");
-             exit(1);
-         }
-
-         BPatch_Vector<BPatch_snippet *> call6_args;
+	 bpfv.clear();
+	 char *fn3 = "exception_test_call_cpp";
+	 if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+	     || NULL == bpfv[0]){
+	   fprintf(stderr, "**Failed** test #6 (exception)\n");
+	   fprintf(stderr, "    Unable to find function %s\n", fn3);
+	   exit(1);
+	 }
+	 BPatch_function *call6_func = bpfv[0];
+  
+	 BPatch_Vector<BPatch_snippet *> call6_args;
          BPatch_constExpr expr6_0(6);
          call6_args.push_back(&expr6_0);
          BPatch_funcCallExpr call6Expr(*call6_func, call6_args);
@@ -692,22 +668,17 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "template_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n",
-              inFunction);
-      exit(1);
-   }
-   
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point7_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-   
-   assert(point7_1);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn2 = "template_test::func_cpp";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #7 (template)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    abort();
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point7_1 = f1->findPoint(BPatch_subroutine);
+  assert(point7_1);
 
    int index = 0;
    int flag = 0;
@@ -720,7 +691,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
      if ((func = (*point7_1)[index]->getCalledFunction()) == NULL) {
         fprintf(stderr, "**Failed** test #7 (template)\n");
         fprintf(stderr, "    Can't find the invoked function\n");
-        exit(1);
+	abort();
      }
 
      char fn[256];
@@ -732,7 +703,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
          if (!content7_1) {
             fprintf(stderr, "**Failed** test #7 (template)\n");
             fprintf(stderr, "  Can't find local variable ret\n");
-            return;
+	    abort();
          }
          flag++;
      } else if (!strcmp("sample_template<char>::content", func->getName(fn, 256))) {
@@ -744,7 +715,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
             if (!content7_2) {
                fprintf(stderr, "**Failed** test #7 (template)\n");
                fprintf(stderr, "  Can't find local variable ret\n");
-               return;
+	       abort();
             }
             flag++;
      }
@@ -753,7 +724,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 
   if (flag != 2) {
      fprintf(stderr, "**Failed** test #7 (template)\n");
-     exit(1);
+     abort();
   }
 
    BPatch_type *type7_0 = appImage->findType("int");
@@ -764,23 +735,30 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
    if (!type7_0->isCompatible(type7_1)) {
       fprintf(stderr, "**Failed** test #7 (template)\n");
       fprintf(stderr,"    type7_0 reported as incompatibile with type7_1\n");
-      return;
+      abort();
    }
 
    if (!type7_2->isCompatible(type7_3)) {
       fprintf(stderr, "**Failed** test #7 (template)\n");
       fprintf(stderr,"    type7_2 reported as incompatibile with type7_3\n");
-      return;
+      abort();
    }
    
-   BPatch_Vector<BPatch_point *> *point7_4 = found_funcs[0]->findPoint(BPatch_exit);
-   assert(point7_4);
-
-   BPatch_function *call7_func = appImage->findFunction("template_test_call_cpp");
-   if (call7_func == NULL) {
-       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
-       exit(1);
+   bpfv.clear();
+   char *fn3 = "template_test_call_cpp";
+   if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+       || NULL == bpfv[0]){
+     fprintf(stderr, "**Failed** test #7 (template)\n");
+     fprintf(stderr, "    Unable to find function %s\n", fn3);
+     abort();
    }
+   if (bpfv.size() > 1) {
+     fprintf(stderr, "WARNING:  found %d functions matching '%s'\n", bpfv.size(), fn3);
+   }
+   BPatch_function *call7_func = bpfv[0];  
+
+   BPatch_Vector<BPatch_point *> *point7_4 = f1->findPoint(BPatch_exit);
+   assert(point7_4);
 
    BPatch_Vector<BPatch_snippet *> call7_args;
    BPatch_constExpr expr7_0(7);
@@ -799,69 +777,59 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4)
    // Find the exit point to the procedure "func_cpp"
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction = "decl_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || 
-       (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n",
-              inFunction);
-      exit(1);
-   }
-       
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using"
-              " the first.\n", __FILE__, __LINE__, found_funcs.size(), 
-              inFunction);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point8_1 = 
-      found_funcs[0]->findPoint(BPatch_exit);
-   
-   if (!point8_1 || (point8_1->size() < 1)) {
-      fprintf(stderr, "Unable to find point decl_test::func_cpp - exit.\n");
-      exit(-1);
-   }
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "decl_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #8 (declaration)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point8_1 = f1->findPoint(BPatch_exit);
+  if (!point8_1 || (point8_1->size() < 1)) {
+    fprintf(stderr, "Unable to find point decl_test::func_cpp - exit.\n");
+    exit(-1);
+  }
 
-   BPatch_Vector<BPatch_function *> found_funcs2;
-   const char *inFunction2="main";
-   if ((NULL == appImage->findFunction(inFunction2, found_funcs2, 1)) || 
-       (0 == found_funcs2.size())) {
-      fprintf(stderr, "    Unable to find function %s\n", inFunction2);
-      exit(1);
-   }
-       
-   if (1 < found_funcs2.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs2.size(), inFunction2);
-   }
-       
-   BPatch_Vector<BPatch_point *> *point8_2 = found_funcs2[0]->findPoint(BPatch_allLocations);
-   
-     if (!point8_2 || (point8_2->size() < 1)) {
-            fprintf(stderr, "Unable to find point in main.\n");
-            exit(-1);
-     }
+  bpfv.clear();
+  char *fn2 = "main";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #8 (declaration)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *f2 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point8_2 = f2->findPoint(BPatch_allLocations);
+  if (!point8_2 || (point8_2->size() < 1)) {
+    fprintf(stderr, "Unable to find point in main.\n");
+    exit(-1);
+  }
 
-     BPatch_function *call8_func  = appImage->findFunction("decl_test::call_cpp");
-     if (call8_func == NULL ) {
-        fprintf(stderr, "**Failed** test #8 (declaration)\n");
-        fprintf(stderr, "Unable to find function \"decl_test::call_cpp\"\n");
-        exit(1);
-     }
+  bpfv.clear();
+  char *fn3 = "decl_test::call_cpp";
+  if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #8 (declaration)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn3);
+    exit(1);
+  }
+  BPatch_function *call8_func = bpfv[0];  
 
-     BPatch_variableExpr *this8 = appImage->findVariable("test8");
-     if (this8 == NULL) {
-        fprintf(stderr, "**Failed** test #8 (declaration)\n");
-        fprintf(stderr, "Unable to find variable \"test8\"\n");
-        exit(1);
-     }
+  BPatch_variableExpr *this8 = appImage->findVariable("test8");
+  if (this8 == NULL) {
+    fprintf(stderr, "**Failed** test #8 (declaration)\n");
+    fprintf(stderr, "Unable to find variable \"test8\"\n");
+    exit(1);
+  }
 
-     BPatch_Vector<BPatch_snippet *> call8_args;
-     BPatch_constExpr expr8_0((unsigned long)this8->getBaseAddr());
-     call8_args.push_back(&expr8_0);
-     BPatch_constExpr expr8_1(8);
-     call8_args.push_back(&expr8_1);
-     BPatch_funcCallExpr call8Expr(*call8_func, call8_args);
+  BPatch_Vector<BPatch_snippet *> call8_args;
+  BPatch_constExpr expr8_0((unsigned long)this8->getBaseAddr());
+  call8_args.push_back(&expr8_0);
+  BPatch_constExpr expr8_1(8);
+  call8_args.push_back(&expr8_1);
+  BPatch_funcCallExpr call8Expr(*call8_func, call8_args);
 
      // find the variables of different scopes
      BPatch_variableExpr *expr8_2=appImage->findVariable("CPP_DEFLT_ARG");
@@ -905,49 +873,35 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4)
    bool found = false;
    
-   // Find the exit point to the procedure "func_cpp"
-   BPatch_Vector<BPatch_function *> found_funcs;
-   const char *inFunction="derivation_test::func_cpp";
-   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
-      fprintf(stderr, "    Unable to find function %s\n",
-              inFunction);
-      exit(1);
-   }
-       
-   if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs.size(), inFunction);
-   }
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "derivation_test::func_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #9 (derivation)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *f1 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point9_1 = f1->findPoint(BPatch_exit);
+  if (!point9_1 || (point9_1->size() < 1)) {
+    fprintf(stderr, "Unable to find point derivation_test::func_cpp - exit.\n");
+    exit(-1);
+  }
    
-   BPatch_Vector<BPatch_point *> *point9_1 = 
-      found_funcs[0]->findPoint(BPatch_exit);
-   
-   if (!point9_1 || (point9_1->size() < 1)) {
-      fprintf(stderr, "Unable to find point derivation_test::func_cpp - exit.\n");
-      exit(-1);
-   }
-   
-   // access inherited class member variables has been examined in the test 8
-   // now let's try to access the inherited class member function.
-   BPatch_Vector<BPatch_function *> found_funcs2;
-   const char *inFunction2="main";
-   if ((NULL == appImage->findFunction(inFunction2, found_funcs2, 1)) || 
-       (0 == found_funcs2.size())) {
-      fprintf(stderr, "    Unable to find function %s\n", inFunction2);
-      exit(1);
-   }
-   
-   if (1 < found_funcs2.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-              __FILE__, __LINE__, found_funcs2.size(), inFunction2);
-   }
-   
-   BPatch_Vector<BPatch_point *> *point9_2 = found_funcs2[0]->findPoint(BPatch_allLocations);
-   
-   if (!point9_2 || (point9_2->size() < 1)) {
-      fprintf(stderr, "Unable to find point in main.\n");
-      exit(-1);
-   }
+  bpfv.clear();
+  char *fn2 = "main";
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #9 (derivation)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
+  }
+  BPatch_function *f2 = bpfv[0];  
+  BPatch_Vector<BPatch_point *> *point9_2 = f2->findPoint(BPatch_allLocations);
+  if (!point9_2 || (point9_2->size() < 1)) {
+    fprintf(stderr, "Unable to find point in main.\n");
+    exit(-1);
+  }
 
    BPatch_variableExpr *expr9_0=appImage->findVariable(*(*point9_2)[0], "test9");
    if (!expr9_0) {
@@ -1018,12 +972,12 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
    }
 
    // find ostream::operator<< function in the standard library
-   BPatch_function *func = modStdC->findFunction("ostream::operator<<");
-   if (! func) {
-       fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
-       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
-       exit(1);
-   }
+   BPatch_Vector<BPatch_function *> bpmv;
+   if (NULL == modStdC->findFunction("ostream::operator<<", &bpmv) || !bpmv.size()) {
+     fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
+     fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
+     exit(1);
+   } 
 
 #endif
 }
@@ -1067,9 +1021,22 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 
    // Replace a shlib function with a shlib function
    char buf1[64], buf2[64];
+   BPatch_Vector<BPatch_function *> bpmv;
+   if (NULL == modStdC->findFunction("ostream::operator<<", &bpmv) || !bpmv.size()) {
+     fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
+     fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
+     exit(1);
+   } 
+   BPatch_function *func1 = bpmv[0];
 
-   BPatch_function *func1 = modStdC->findFunction("ostream::operator<<");
-   BPatch_function *func2 = modStdC->findFunction("istream::operator>>");
+   bpmv.clear();
+   if (NULL == modStdC->findFunction("istream::operator>>", &bpmv) || !bpmv.size()) {
+     fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
+     fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
+     exit(1);
+   } 
+   BPatch_function *func2 = bpmv[0];
+
    func1->getName(buf1, 64);
    func2->getName(buf2, 64);
 
@@ -1084,17 +1051,20 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
    }
 
    // Replace a shlib function with an a.out function
-   BPatch_function *func3 = appImage->findFunction("stdlib_test2::call_cpp");
-   if (! func3 ) {
-      fprintf(stderr, "**Failed test #11 (replace function in standard C++ library)\n");
-      fprintf(stderr, "Unable to find function \"stdlib_test2::call_cpp\"\n");
-      exit(1);
-   }
-   if (! appThread->replaceFunction(*func1, *func3)) {
-      fprintf(stderr, "**Failed test #11 (replace function in standard C++ library)\n");
-      fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
-      exit(1);
-   }
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "stdlib_test2::call_cpp";
+  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #11 (replace function in standard C++ library)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
+  BPatch_function *func3 = bpfv[0];  
+  if (! appThread->replaceFunction(*func1, *func3)) {
+    fprintf(stderr, "**Failed test #11 (replace function in standard C++ library)\n");
+    fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
+    exit(1);
+  }
 
    // Replace an a.out function with a shlib function
     if (! appThread->replaceFunction(*func3, *func2) ) {
@@ -1111,58 +1081,52 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
 {
-  BPatch_Vector<BPatch_function *> found_funcs, found_funcs2, found_funcs3, found_funcs4;
-  const char *inFunction="cpp_test::func2_cpp";
-  const char *inFunction2="cpp_test::func_cpp";
-  const char *inFunction3="func_test::func_cpp";
-  const char *inFunction4="func_test::call_cpp";
+ 
+  const char *fn1="cpp_test::func2_cpp";
+  const char *fn2="cpp_test::func_cpp";
+  const char *fn3="func_test::func_cpp";
+  const char *fn4="func_test::call_cpp";
 
-  if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || 
-      (0 == found_funcs.size())) {
-     fprintf(stderr, "    Unable to find function %s\n", inFunction);
-     exit(1);
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(fn1, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn1);
+    exit(1);
   }
-  if ((NULL == appImage->findFunction(inFunction2, found_funcs2, 1)) || 
-      (0 == found_funcs2.size())) {
-     fprintf(stderr, "    Unable to find function %s\n", inFunction2);
-     exit(1);
+  BPatch_function *f1 = bpfv[0];  
+
+  bpfv.clear();
+  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    exit(1);
   }
-  if ((NULL == appImage->findFunction(inFunction3, found_funcs3, 1)) || 
-      (0 == found_funcs3.size())) {
-     fprintf(stderr, "    Unable to find function %s\n", inFunction3);
-     exit(1);
+  BPatch_function *f2 = bpfv[0];  
+
+  bpfv.clear();
+  if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn3);
+    exit(1);
   }
-  if ((NULL == appImage->findFunction(inFunction4, found_funcs4, 1)) || 
-      (0 == found_funcs4.size())) {
-     fprintf(stderr, "    Unable to find function %s\n", inFunction4);
-     exit(1);
+  BPatch_function *f3 = bpfv[0];  
+
+  bpfv.clear();
+  if (NULL == appImage->findFunction(fn4, &bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
+    fprintf(stderr, "    Unable to find function %s\n", fn4);
+    exit(1);
   }
-       
-  if (1 < found_funcs.size()) {
-     fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-             __FILE__, __LINE__, found_funcs.size(), inFunction);
-  }
-  if (1 < found_funcs2.size()) {
-     fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-             __FILE__, __LINE__, found_funcs2.size(), inFunction2);
-  }
-  if (1 < found_funcs3.size()) {
-     fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-             __FILE__, __LINE__, found_funcs3.size(), inFunction3);
-  }
-  if (1 < found_funcs4.size()) {
-     fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-             __FILE__, __LINE__, found_funcs4.size(), inFunction4);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point12_0 = 
-     found_funcs[0]->findPoint(BPatch_allLocations);
-  BPatch_Vector<BPatch_point *> *point12_1 = 
-     found_funcs2[0]->findPoint(BPatch_allLocations);
-  BPatch_Vector<BPatch_point *> *point12_2 = 
-     found_funcs3[0]->findPoint(BPatch_allLocations);
-  BPatch_Vector<BPatch_point *> *point12_3 = 
-     found_funcs4[0]->findPoint(BPatch_allLocations);
+  BPatch_function *f4 = bpfv[0]; 
+ 
+  BPatch_Vector<BPatch_point *> *point12_0 = f1->findPoint(BPatch_allLocations);
+  BPatch_Vector<BPatch_point *> *point12_1 = f2->findPoint(BPatch_allLocations);
+  BPatch_Vector<BPatch_point *> *point12_2 = f3->findPoint(BPatch_allLocations);
+  BPatch_Vector<BPatch_point *> *point12_3 = f4->findPoint(BPatch_allLocations);
   
   if ( !point12_0 || (point12_0->size() < 1) ||
        !point12_1 || (point12_1->size() < 1) ||

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.20 2003/03/10 15:05:29 chadd Exp $
+// $Id: linux-x86.C,v 1.21 2003/04/02 07:12:25 jaw Exp $
 
 #include <fstream.h>
 
@@ -408,14 +408,21 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = 0;
-  f_main = findOneFunction("main");
-  if (!f_main) {
+  pdvector<pd_Function *> *pdfv=NULL;
+ 
+  // first check a.out for function symbol
+  if (NULL == (pdfv = symbols->findFuncVectorByPretty("main")) || !pdfv->size()) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
     extern void cleanUpAndExit(int);
     cleanUpAndExit(-1); 
     return;
   }
+
+  if (pdfv->size() > 1) {
+    cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
+  }
+  f_main = (function_base *) (*pdfv)[0];
   assert(f_main);
   Address addr = f_main->addr();
 
@@ -506,7 +513,6 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	char* fullName = new char[strlen(directoryName) + strlen ( (const char*)imageFileName.c_str())+1];
         strcpy(fullName, directoryName);
         strcat(fullName, (const char*)imageFileName.c_str());
-
 
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0;
@@ -861,7 +867,7 @@ bool process::loadDYNINSTlib() {
       bool err;
       addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
       if (err) {
-	  function_base *func = findOneFunction(DL_OPEN_FUNC_NAME);
+	  function_base *func = findOnlyOneFunction(DL_OPEN_FUNC_NAME);
 	  if (!func) {
 	      ostrstream os(errorLine, 1024, ios::out);
 	      os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;

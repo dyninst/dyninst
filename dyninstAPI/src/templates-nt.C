@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.37 2003/03/28 23:28:19 pcroth Exp $
+// $Id: templates-nt.C,v 1.38 2003/04/02 07:12:26 jaw Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -53,6 +53,7 @@
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/LineInformation.h"
 
 template class vectorSet<inferiorRPCtoDo>;
 template class vectorSet<inferiorRPCinProgress>;
@@ -122,3 +123,18 @@ template class BPatch_Vector<BPatch_frame>;
 // Library callback templates
 template class dictionary_hash<string, libraryCallback *>;
 template class pdvector<dictionary_hash <string, libraryCallback *>::entry>;
+
+#ifndef OLD_LINE_INFO
+template class  dictionary_hash <string, FunctionInfo *>;
+template class  pdvector< dictionary_hash <string, FunctionInfo * >::entry >;
+template class  dictionary_hash_iter <string, FunctionInfo *>;
+
+template class  dictionary_hash <string, FileLineInformation *>;
+template class  pdvector< dictionary_hash <string, FileLineInformation * >::entry >;
+template class  dictionary_hash_iter <string, FileLineInformation *>;
+
+template class std::map<unsigned short, tuple *, std::less<unsigned short> >;
+template class  std::map<Address, tuple *, std::less<Address> >;
+template class std::map<unsigned short, std::map<Address, tuple *, std::less<Address> > *, std::less<unsigned short> >;
+template class std::map<Address,std::map<unsigned short, tuple *, std::less<unsigned short> > *, std::less<Address> >;
+#endif

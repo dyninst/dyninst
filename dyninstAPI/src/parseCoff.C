@@ -457,6 +457,7 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
     // SYMTAB() macro (or any other way).  We must use the underlying
     // FDR structure instead.
     int i;
+    BPatch_Vector<BPatch_function *> bpfv;
     BPatch_function *fp;
     pCFDR fileDesc = info.file;
 
@@ -483,8 +484,9 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
             continue;
 
         // get the base address of the procedure
-        fp = mod->findFunction(currentFunctionName.c_str());
-        if (!fp) continue;
+        mod->findFunction(currentFunctionName.c_str(), &bpfv);
+        if (!bpfv.size() || !bpfv[0]) continue;
+	fp = bpfv[0];
 
         unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
 
@@ -885,7 +887,12 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
     int endIndex;
     BPatch_type *typePtr;
     BPatch_localVar *local;
-    BPatch_function *fp = mod->findFunction(symbol.name.c_str());
+    BPatch_Vector<BPatch_function *> bpfv;
+    BPatch_function *fp = NULL;
+
+    mod->findFunction(symbol.name.c_str(), &bpfv);
+    if (!bpfv.size()) return;
+    fp = bpfv[0];
 
     // Sanity check.
     if (!fp || symbol.sym->st != stProc && symbol.sym->st != stStaticProc)

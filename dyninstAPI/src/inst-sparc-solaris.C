@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.126 2003/03/21 20:58:31 jodom Exp $
+// $Id: inst-sparc-solaris.C,v 1.127 2003/04/02 07:12:24 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -93,7 +93,7 @@ void AstNode::sysFlag(instPoint *location)
 void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
-
+  if (call_points_have_been_checked) return;
   //cerr << "pd_Function:: checkCallPoints called, *this = " << *this;
 
   pdvector<instPoint*> non_lib;
@@ -135,6 +135,7 @@ void pd_Function::checkCallPoints() {
     }
   }
   calls = non_lib;
+  call_points_have_been_checked = true;
 }
 
 /****************************************************************************/
@@ -1377,7 +1378,7 @@ Register emitFuncCall(opCode op,
       addr = proc->findInternalAddress(callee, false, err);
       
       if (err) {
-         function_base *func = proc->findOneFunction(callee);
+         function_base *func = proc->findOnlyOneFunction(callee);
          if (!func) {
             ostrstream os(errorLine, 1024, ios::out);
             os << "Internal error: unable to find addr of " << callee << endl;
@@ -2962,6 +2963,8 @@ bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
     instruction instr, nexti;
     TailCallOptimization *tail_call;
 
+    if (!call_points_have_been_checked)
+      checkCallPoints();
     // previously referred to calls[i] directly, but gdb seems to be having
     //  trouble with templated types with the new compiler - making debugging
     //  difficult - so, directly assign calls[i] to the_call so can use gdb
@@ -3273,7 +3276,8 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
         relocatedFuncInfo *info, Address oldAdr) {
     instPoint *point;
     int offset, shift, i;    
-
+    if (!call_points_have_been_checked)
+      checkCallPoints();
     // try to handle entry point....
     point = info->funcEntry();
     UPDATE_ADDR(point);
@@ -3377,6 +3381,8 @@ bool pd_Function::fillInRelocInstPoints(
     int originalOffset, newOffset, arrayOffset;
     instPoint *point;
     Address tmp, tmp2;
+    if (!call_points_have_been_checked)
+      checkCallPoints();
 
     assert(reloc_info);
 

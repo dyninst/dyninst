@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.12 2002/12/20 07:49:56 jaw Exp $
+// $Id: CodeView.C,v 1.13 2003/04/02 07:12:24 jaw Exp $
 
 #include <assert.h>
 
@@ -486,6 +486,7 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 	BPatch_function  *fp = NULL;
 	BPatch_type *ptrType = NULL;
 	BPatch_localVar *locVar = NULL;
+	BPatch_Vector<BPatch_function *> bpfv;
 
 	//Initialize required member variables
 	char *startAddr = ((char *)pTypeBase->offType) + pTypeBase->cType * sizeof(DWORD);
@@ -504,7 +505,20 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			currFuncName[len] = '\0';
 
 			//Find function in the module
-			fp = mod->findFunction(currFuncName);
+			if (NULL == mod->findFunction(currFuncName, &bpfv) || !bpfv.size()){
+			  cerr << __FILE__ << __LINE__ << ":  Could not find function: " 
+			       << currFuncName << endl;
+			  fp = NULL;
+			}
+			else {
+			  if (bpfv.size() > 1) {
+			    // warn if more than one found
+			    cerr << __FILE__ << __LINE__ << ":  Found " << bpfv.size() 
+				 <<" functions called: " 
+				 << currFuncName << endl;
+			  }
+			  fp = bpfv[0];
+			}
 			if (fp) {
 				lineInformation->insertFunction(
 					string(currFuncName),

@@ -357,6 +357,35 @@ dictionary_hash<K,V>::keysAndValues() const {
 }
 
 #endif //ifndef(_KERNEL)
+/*
+template<class K, class V>
+int dictionary_hash<K,V>::linear_filter(pdvector< pdpair<K, V> > &matches, 
+					bool (*filt_func)(const V&)) 
+{
+  const_iterator finish = end();
+  for (const_iterator iter = begin(); iter != finish; ++iter) {
+    if ((*filt_func)(*iter))
+      matches.push_back(make_pdpair(iter.currkey(),iter.currval()));
+  }
+  return 0;
+}
+*/
+template<class K, class V>
+pdvector<V>  dictionary_hash<K,V>::linear_filter(bool (*filt_func)(const K&, void *data),
+						 void *param) 
+{
+  pdvector< V > result;
+  result.reserve(size());
+  const_iterator finish = end();
+  for (const_iterator iter = begin(); iter != finish; ++iter) {
+    if ((*filt_func)(iter.currkey(), param)) {
+      cerr << "adding value" << endl;
+      result.push_back(iter.currval());
+    }
+  }
+  cerr <<"result.size() = " << result.size() <<endl;
+  return result;
+}
 
 template<class K, class V>
 void dictionary_hash<K,V>::clear() {

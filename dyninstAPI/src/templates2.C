@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.19 2003/02/28 22:13:46 bernat Exp $
+// $Id: templates2.C,v 1.20 2003/04/02 07:12:26 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -62,12 +62,29 @@
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 #if defined(BPATCH_LIBRARY)
+#include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
 class BPatch_thread;
 class BPatch_field;
 class BPatch_variableExpr;
+
+
+#ifndef OLD_LINE_INFO
+template class  dictionary_hash <string, FunctionInfo *>;
+template class  pdvector< dictionary_hash <string, FunctionInfo * >::entry >;
+template class  dictionary_hash_iter <string, FunctionInfo *>;
+
+template class  dictionary_hash <string, FileLineInformation *>;
+template class  pdvector< dictionary_hash <string, FileLineInformation * >::entry >;
+template class  dictionary_hash_iter <string, FileLineInformation *>;
+
+template class std::map<unsigned short, tuple *, std::less<unsigned short> >;
+template class  std::map<Address, tuple *, std::less<Address> >;
+template class std::map<unsigned short, std::map<Address, tuple *, std::less<Address> > *, std::less<unsigned short> >;
+template class std::map<Address,std::map<unsigned short, tuple *, std::less<unsigned short> > *, std::less<Address> >;
+#endif
 #endif
 
 #ifndef alpha_dec_osf4_0
@@ -82,6 +99,7 @@ template class pdvector<string>;
 template class pdpair<string, pdvector<string> >;
 
 template class pdvector<pdpair<string, pdvector<string> > >;
+template class pdvector<pdvector<pd_Function * >* >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;

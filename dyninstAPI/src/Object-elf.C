@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.45 2003/01/02 19:51:49 schendel Exp $
+ * $Id: Object-elf.C,v 1.46 2003/04/02 07:12:24 jaw Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -62,6 +62,9 @@
 #include <libdwarf.h>
 #endif
 
+#if defined(TIMED_PARSE)
+#include <sys/time.h>
+#endif
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -238,6 +241,11 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 
   txtaddr = 0;
 
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
   Elf_Scn *scnp = NULL;
   while ((scnp = elf_nextscn(elfp, scnp)) != NULL) {
     // ELF section header: wrapper object
@@ -378,7 +386,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 			break;
 		} // switch
 	} // for
-}// .dynamic
+    }// .dynamic
 
 #endif /* ia64_unknown_linux2_4 */
 
@@ -500,6 +508,15 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   // sort the section headers by base address
   allSectionHdrs.sort( SectionHeaderSortFunction );
   //sort(allSectionHdrs.begin(), allSectionHdrs.end(), sort_func());
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
+#endif
 
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!bssaddr || !symscnp || !strscnp) {
@@ -726,12 +743,26 @@ void Object::load_object()
     // Leaving aside the grow factor, lets allocate an initial #
     // of bins = nsyms / max bin load.
     
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
     pdvector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, false, module);
     VECTOR_SORT(allsymbols,symbol_compare);
     fix_zero_function_sizes(allsymbols, 0);
     override_weak_symbols(allsymbols);
     
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000);
+  cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
+#endif
+
     // dump "allsymbols" into "symbols_" (data member)
     // or "global_symbols" (parameter) according to linkage
     dictionary_hash<string, Symbol> global_symbols(string::hash, allsymbols.size(), 100);
@@ -822,7 +853,10 @@ void Object::load_shared_object()
     // short module name
     string module = extract_pathname_tail(file_);
     string name   = "DEFAULT_NAME";
-
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
     // build symbol dictionary
     pdvector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, true, module);
@@ -830,7 +864,17 @@ void Object::load_shared_object()
     fix_zero_function_sizes(allsymbols, 0);
     override_weak_symbols(allsymbols);
     insert_symbols_shared(allsymbols);
-       
+
+    
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000);
+  cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
+#endif       
     if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
       if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
 	goto cleanup2;
@@ -875,6 +919,10 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
 			   Elf_Data *symdatap, Elf_Data *strdatap,
 			   bool shared, string smodule)
 {
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
   if (is_elf64_) {
 #ifndef USES_ELF32_ONLY
     Elf64_Sym *syms = (Elf64_Sym *)symdatap->d_buf;
@@ -954,6 +1002,15 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
     }
 
   }
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 * 1000);
+  cout << "parsing elf took "<<dursecs <<" secs" << endl;
+#endif
   //if (is_elf64_) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
 }
 
@@ -1429,6 +1486,10 @@ void Object::insert_symbols_static(pdvector<Symbol> allsymbols,
      dictionary_hash<string, Symbol> &global_symbols)
 {
   unsigned nsymbols = allsymbols.size();
+#ifdef TIMED_PARSE
+   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+	 << " symbols into symbols_ dictionary" << endl; 
+#endif
   for (unsigned u = 0; u < nsymbols; u++) {
     // We are done with the local symbols. We save the global so that
     // we can get their module from the .stab section.
@@ -1456,6 +1517,10 @@ void Object::insert_symbols_shared(pdvector<Symbol> allsymbols) {
     unsigned i, nsymbols;
 
     nsymbols = allsymbols.size();
+#ifdef TIMED_PARSE
+    cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+	 << " symbols into symbols_ dictionary" << endl; 
+#endif
     for (i=0;i<nsymbols;i++) {
 	symbols_[allsymbols[i].name()] =
 		    Symbol(allsymbols[i].name(), allsymbols[i].module(),
@@ -1547,16 +1612,20 @@ const char *Object::elf_vaddr_to_ptr(Address vaddr) const
 void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr)
 {
   // check that file has .stab info
-  if (!stab_off_ || !stab_size_ || !stabstr_off_) {
-    *stabs = NULL;
-    nstabs = 0;
-    *stabstr = NULL;
-    return;
-  }
+  if (!stab_off_) goto fail;
+  if (!stab_size_) goto fail;
+  if (!stabstr_off_) goto fail;
   
   *stabs = (void *)(file_ptr_ + stab_off_);
   nstabs = stab_size_ / sizeof(struct stab_entry);
   *stabstr = (void *)(file_ptr_ + stabstr_off_);
+  return;
+
+ fail:
+    *stabs = NULL;
+    nstabs = 0;
+    *stabstr = NULL;
+    return;
 }
 
 Object::Object(const string file, void (*err_func)(const char *))

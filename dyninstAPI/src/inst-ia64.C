@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.25 2003/03/06 20:58:59 zandy Exp $
+ * $Id: inst-ia64.C,v 1.26 2003/04/02 07:12:24 jaw Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -350,6 +350,7 @@ void pd_Function::checkCallPoints() {
 
 	   On other architectures, those without explicit call instructions,
 	   we winnow out potential call sites whose target resides in the same function. */
+  if (call_points_have_been_checked) return;
 
 	instPoint * callSite;
 	Address targetAddress;
@@ -374,7 +375,8 @@ void pd_Function::checkCallPoints() {
 		} /* end callee loop */
 
 	calls = pdfCalls;
-	} /* end checkCallPoints() */
+	call_points_have_been_checked = true;
+} /* end checkCallPoints() */
 
 /* Required by symtab.C:
    Locate the entry point (funcEntry_, an InstPoint), the call sites

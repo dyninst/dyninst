@@ -118,16 +118,26 @@ block: statement
 
 func_call: IDENTIFIER '(' param_list ')'
     { 
-	BPatch_function *func;
-	func = appImage->findFunction($1);
-	if (!func) {
-	    printf("unable to find function %s\n", $1);
-	    free($1);
-	    return 1;
-	}
-
+      BPatch_Vector<BPatch_function *>bpfv;
+      if (NULL == appImage->findFunction($1, &bpfv) || !bpfv.size()) {
+	printf("unable to find function %s\n", $1);
 	free($1);
-	$$ = new BPatch_funcCallExpr(*func, *$3); 
+	return 1;
+      }
+      if (bpfv.size() > 1) {
+	printf("found %d references to  %s\n", bpfv.size(), $1);
+      }
+
+      BPatch_function *func = bpfv[0];
+	
+      if (!func) {
+	printf("unable to find function %s\n", $1);
+	free($1);
+	return 1;
+      }
+      
+      free($1);
+      $$ = new BPatch_funcCallExpr(*func, *$3); 
     }
     ;
 

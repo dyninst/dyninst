@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.86 2003/03/17 16:31:53 schendel Exp $ */
+/* $Id: test1.mutatee.c,v 1.87 2003/04/02 07:12:27 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1846,6 +1846,7 @@ int func30_1()
 		     ((globalVariable30_2 <= globalVariable30_3) &&
 #endif
 		      (globalVariable30_3 <= globalVariable30_9));
+
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
@@ -1858,6 +1859,7 @@ int func30_1()
 		     ((globalVariable30_2 <= globalVariable30_4) &&
 #endif
 		      (globalVariable30_4 <= globalVariable30_9));
+
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
@@ -1870,15 +1872,20 @@ int func30_1()
 		     ((globalVariable30_2 <= globalVariable30_5) &&
 #endif
 		      (globalVariable30_5 <= globalVariable30_9));
-    if (!passedTest[30]){
-    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	return 0;
-    }
+
+		      if (!passedTest[30]){
+			printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+    printf("gv30_6 = %d, gv30_1 = %d, should be equal and nonzero!\n", globalVariable30_6,
+	     globalVariable30_1);
+			return 0;
+		      }
 
     passedTest[30] = !globalVariable30_6 ||
 		     (globalVariable30_1 == globalVariable30_6);
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+	printf("gv30_6 = %d, gv30_1 = %d, should be equal and nonzero!\n", globalVariable30_6,
+	       globalVariable30_1);
 	return 0;
     }
 
