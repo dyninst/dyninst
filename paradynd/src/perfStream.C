@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.8 1994/04/11 23:25:25 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.9 1994/05/03 05:06:19 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.8  1994/04/11 23:25:25  hollings
+ * Revision 1.9  1994/05/03 05:06:19  markc
+ * Passed exit status to pvm.
+ *
+ * Revision 1.8  1994/04/11  23:25:25  hollings
  * Added pause_time metric.
  *
  * Revision 1.7  1994/04/09  18:34:55  hollings
@@ -134,7 +137,7 @@ extern "C" {
 #ifdef PARADYND_PVM
 #include "pvm3.h"
 extern int PDYN_handle_pvmd_message();
-extern void PDYN_reportSIGCHLD (int pid, int status);
+extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 #endif
 
 extern dynRPC *tp;
@@ -330,7 +333,7 @@ int handleSigChild(int pid, int status)
 	}
     } else if (WIFEXITED(status)) {
 #ifdef PARADYND_PVM
-		PDYN_reportSIGCHLD (pid, status);
+		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 #endif
 	printf("process %d has terminated\n", curr->pid);
 	curr->status = exited;
@@ -388,7 +391,7 @@ void controllerMainLoop()
     struct timeval pollTime;
 
 #ifdef PARADYND_PVM
-    int fd_num, *fd_ptr, i;
+    int fd_num, *fd_ptr;
     if (pvm_mytid() < 0)
       {
 	printf("pvm not working\n");
