@@ -39,19 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.13 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-x86.h,v 1.14 2004/03/24 23:30:11 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 
-#define REG_MT_POS NUM_VIRTUAL_REGISTERS /* register saved to keep the address */
-                                     /* of the current vector of           */
-                                     /* counter/timers for each thread     */
+// Undefine REG_MT_POS, basically
+#define REG_MT_POS NUM_VIRTUAL_REGISTERS
 
 //#ifndef DEBUG_FUNC_RELOC
 //#define DEBUG_FUNC_RELOC
 //#endif
 
+// Define access method for saved register (GPR)
+#define GET_GPR(x, insn) emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET-(x*4), insn)
+
+// Define access method for virtual registers (stack-based)
+#define LOAD_VIRTUAL(x, insn) emitMovRMToReg(EAX, EBP, -(x*4), insn)
+#define SAVE_VIRTUAL(x, insn) emitMovRegToRM(EBP, -(x*4), EAX, insn)
 #endif
