@@ -14,7 +14,7 @@ DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
  dataManager.thread.CLNT.h dyninstRPC.xdr.CLNT.h \
  ../../pdutil/h/makenan.h ../src/DMthread/DMmetric.h ../../pdutil/h/hist.h \
  ../../paradyn/src/UIthread/Status.h \
- ../../pdutil/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMdaemon.h ../../common/h/machineType.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
  ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
@@ -44,7 +44,7 @@ DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../thread/h/thread.h \
  ../../common/h/machineType.h dataManager.thread.SRVR.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
- ../src/DMthread/DMperfstream.h ../../pdutil/h/aggregateSample.h \
+ ../src/DMthread/DMperfstream.h ../../pdutil/h/sampleAggregator.h \
  ../../pdutil/h/hist.h ../../pdutil/h/makenan.h ../src/DMthread/DMphase.h \
  ../../paradyn/src/TCthread/tunableConst.h ../src/DMthread/DMmetric.h \
  ../../paradyn/src/met/metricExt.h ../src/DMthread/DMtime.h
@@ -63,7 +63,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
  ../../paradyn/src/UIthread/Status.h \
- ../../pdutil/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMdaemon.h ../../common/h/machineType.h \
  dyninstRPC.xdr.CLNT.h ../src/DMthread/../UIthread/Status.h \
  ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
@@ -87,7 +87,7 @@ DMmain.obj: ../src/DMthread/DMmain.C ../../thread/h/thread.h \
  ../src/DMthread/../UIthread/Status.h \
  ../src/DMthread/DMinclude.h ../src/DMthread/DMresource.h \
  ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
+ ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../src/DMthread/DMphase.h ../src/DMthread/DMmetric.h \
  ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
@@ -108,7 +108,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
+ ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../src/DMthread/DMphase.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
@@ -162,7 +162,7 @@ DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../thread/h/thread.h \
  ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
  ../src/DMthread/DMmetric.h ../../pdutil/h/hist.h ../../pdutil/h/makenan.h \
  ../../paradyn/src/UIthread/Status.h \
- ../../pdutil/h/aggregateSample.h ../src/DMthread/DMinclude.h \
+ ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMdaemon.h ../../common/h/machineType.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
  ../src/DMthread/DMabstractions.h ../src/DMthread/DMperfstream.h \
@@ -185,7 +185,7 @@ DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
  ../../common/h/stringDecl.h ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
+ ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
  ../../common/h/machineType.h dyninstRPC.xdr.CLNT.h \
@@ -921,7 +921,7 @@ metMain.obj: ../src/met/metMain.C ../../paradyn/src/met/metParse.h \
  ../../paradyn/src/DMthread/DMresource.h \
  ../../paradyn/src/DMthread/DMabstractions.h \
  ../../paradyn/src/DMthread/DMperfstream.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
+ ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/DMthread/DMphase.h
 metParser.obj: metParser.C ../../paradyn/src/met/metParse.h \
  ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
@@ -983,7 +983,7 @@ templatesDM.obj: ../src/templatesDM.C ../../common/h/list.h \
  ../../paradyn/src/DMthread/DMresource.h \
  ../../paradyn/src/DMthread/DMabstractions.h \
  ../../paradyn/src/DMthread/DMperfstream.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
+ ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../../paradyn/src/DMthread/DMphase.h \
  ../../paradyn/src/DMthread/DMmetric.h \
