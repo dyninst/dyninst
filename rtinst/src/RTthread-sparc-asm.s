@@ -21,15 +21,23 @@ x:
 */
         ENTRY(DYNINSTthreadPosFAST)
 	retl
-  	mov %g6, %o0
+  	mov %g7, %o0
         SET_SIZE(DYNINSTthreadPosFAST)
 
+/* 
+// void* DYNINST_curthread() 
+*/
+        ENTRY(DYNINST_curthread)
+        retl
+        mov %g7, %o0
+        SET_SIZE(DYNINST_curthread)
+	
 /* 
 // int tc_lock_lock(tc_lock_t *) 
 */
         ENTRY(tc_lock_lock)
         save    %sp,-96,%sp
-        call    DYNINSTthreadSelf,0     ! Result = %o0
+        call    pthread_self,0     ! Result = %o0
         nop
         or      %g0,%o0,%i1
 
@@ -55,7 +63,7 @@ x:
 */
         ENTRY(tc_lock_trylock)
         save    %sp,-96,%sp
-        call    DYNINSTthreadSelf,0     ! Result = %o0
+        call    pthread_self,0     ! Result = %o0
         nop
         or      %g0,%o0,%i1
 	ldstub   [%i0], %o0

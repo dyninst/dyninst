@@ -7,21 +7,19 @@
 #include <stdio.h>
 #include "RTthread.h"
 
-int DYNINSTthreadSelf()
-{
-  return thr_self();
-}
-
 int DYNINSTthreadPos ()
 {
   int tid;
   int curr_pos = DYNINSTthreadPosFAST();
   if (!DYNINST_initialize_done)
     return 0;
-  tid = DYNINSTthreadSelf();
+  tid = P_thread_self();
   if (tid <= 0) {
     abort();
   }
+
+  fprintf(stderr, "DYNINSTthreadPos on thread %d\n", tid);
+  
   /* Quick method. Could we get away with a logical AND? */
   /*
   if ((curr_pos >= 0) && 
@@ -32,6 +30,7 @@ int DYNINSTthreadPos ()
   */
   /* Slow method */
   curr_pos = DYNINSTthreadPosSLOW(tid);
+  fprintf(stderr, "slow method returned %d\n", curr_pos);
   if (curr_pos == MAX_NUMBER_OF_THREADS) {
     /* Oh, crud. Really slow */
     curr_pos = DYNINSTthreadCreate(tid);
