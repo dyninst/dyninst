@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.12  1995/10/06 19:52:25  naim
+# Revision 1.13  1995/10/06 21:38:18  naim
+# Minor change to complete previous fix - naim.
+#
+# Revision 1.12  1995/10/06  19:52:25  naim
 # Minor change: DONE key is disabled if there are no metrics selected - naim
 #
 # Revision 1.11  1995/09/26  20:47:49  naim
@@ -181,7 +184,8 @@ proc getMetsAndRes {metsAndResID rdo} {
     mkMessage $w.top.msg "" {top expand padx 20 pady 20} \
 	    -aspect 1000 -text "Select Metrics and Focus(es) below" \
 	    -font -Adobe-times-bold-r-normal--*-120*
-    
+   
+    set metSelected 0
     if {$metCount == 0} {
 	mkMessage $w.top.nometsmsg $msg3 {top expand} \
 		-font -Adobe-times-medium-r-normal--*-120*
@@ -196,7 +200,6 @@ proc getMetsAndRes {metsAndResID rdo} {
 	}
 	set colNum 1
 	set cCnt 1
-	set metSelected 0
 	for {set i 0} {$i < $metCount} {incr i} {
 	    checkbutton $w.top.$colNum.cb$i  -width 20 -anchor w -padx 2 \
 		    -variable metmenuCB([expr $i]) \
