@@ -3,7 +3,15 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.17  1994/08/17 17:16:45  markc
+ * Revision 1.18  1994/08/22 16:05:37  markc
+ * Removed lastValue array.
+ * Added lastValue variable to timer structure.
+ * Added error messages for timer regression.
+ * Removed lastValue array.
+ * Added lastValue variable to timer structure.
+ * Added error messages for timer regression.
+ *
+ * Revision 1.17  1994/08/17  17:16:45  markc
  * Increased the size of the lastValue and lastTime arrays.  lastValue is
  * referenced by the timer id, which can be greater than 200.  There should
  * be some way of enforcing a limit between paradynd and rtinst.
@@ -436,8 +444,8 @@ void DYNINSTflushTrace()
     if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
 
-time64 lastValue[500];
-double lastTime[500];
+/* time64 lastValue[10000]; */
+double lastTime[200];
 
 void DYNINSTreportTimer(tTimer *timer)
 {
@@ -464,25 +472,28 @@ void DYNINSTreportTimer(tTimer *timer)
     } else {
 	total = timer->total;
     }
-    if (total < lastValue[timer->id.id]) {
+    if (total < timer->lastValue) {
 	 if (timer->type == processTime) {
 	     printf("process ");
 	 } else {
 	     printf("wall ");
 	 }
 	 printf("time regressed timer %d, total = %f, last = %f\n",
-	     timer->id.id, (float) total, (float) lastValue[timer->id.id]);
+	     timer->id.id, (float) total, (float) timer->lastValue);
 	if (timer->counter) {
 	    printf("timer was active\n");
 	} else {
 	    printf("timer was inactive\n");
 	}
-	printf("now = %f, start = %f, total = %f\n",
-	     (double) now, (double) timer->start, (double) timer->total);
-	 fflush(stdout);
-	 sigpause(0xffff);
+        printf("mutex=%d, counter=%d, sampled=%d, snapShot=%f\n\n",
+	       (int)timer->mutex, (int)timer->counter, (int)timer->sampled,
+	       (double) timer->snapShot);
+	printf("now = %f\n start = %f\n total = %f\n",
+	       (double) now, (double) timer->start, (double) timer->total);
+	fflush(stdout);
+	sigpause(0xffff);
     }
-    lastValue[timer->id.id] = total;
+    timer->lastValue = total;
 
     sample.id = timer->id;
     sample.value = ((double) total) / (double) timer->normalize;
