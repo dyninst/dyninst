@@ -538,7 +538,7 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
 #define STACHE_BLK_SIZE          stache_blk_size
 
 //Blizzard
-extern int stache_blk_size ;
+int stache_blk_size ;
 void
 DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_size)
 /*
