@@ -1,9 +1,14 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.8  1995/09/22 19:25:29  tamches
-/* removed warnings under g++ 2.7.0
+/* Revision 1.9  1996/01/10 02:24:25  tamches
+/* dataFormatHasChangedCommand now takes in an arg
+/* added getMetricColorNameCommand
+/* hardcoded barColorNames here
 /*
+ * Revision 1.8  1995/09/22 19:25:29  tamches
+ * removed warnings under g++ 2.7.0
+ *
  * Revision 1.7  1994/11/06  10:24:59  tamches
  * minor cleanups (especially comments)
  *
@@ -85,7 +90,6 @@ int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) 
 
    if (barChartIsValid && argc==2) {
       theBarChart->RethinkMetricsAndResources();
-
       return TCL_OK;
    }
    else
@@ -97,11 +101,10 @@ int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
 
-   // argument: new height
+   // argument: new height (but currently unused)
 
    if (barChartIsValid && argc==2) {
       theBarChart->RethinkMetricsAndResources();
-
       return TCL_OK;
    }
    else
@@ -109,10 +112,12 @@ int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
 }
 
 int newScrollPositionCommand(ClientData, Tcl_Interp *, int, char **argv) {
-   // called by tcl code when it's time to scroll the bars to a given value
+   // called by tcl code when it's time to scroll the bars to a given value.
+   // argument: new scrollbar position, in pixels.  Note: this is a bit old;
+   // shouldn't we change to tk4.0's floating point representation???
+
    if (barChartIsValid) {
       int newPos = atoi(argv[1]);
-
       theBarChart->processNewScrollPosition(newPos);
       return TCL_OK;
    }
@@ -120,9 +125,19 @@ int newScrollPositionCommand(ClientData, Tcl_Interp *, int, char **argv) {
       return TCL_ERROR;
 }
 
-int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int, char **) {
+int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+   // rethink current vs. average vs. total
+   assert(argc == 2);
    if (barChartIsValid) {
-      theBarChart->rethinkDataFormat();
+      char *dataFormatString = argv[1];
+      if (0==strcmp(dataFormatString, "Instantaneous"))
+         theBarChart->rethinkDataFormat(BarChart::Current);
+      else if (0==strcmp(dataFormatString, "Average"))
+         theBarChart->rethinkDataFormat(BarChart::Average);
+      else if (0==strcmp(dataFormatString, "Sum"))
+         theBarChart->rethinkDataFormat(BarChart::Total);
+      else
+         panic("barChart dataFormatHasChangedCommand: unrecognized argument");
       return TCL_OK;
    }
    else
@@ -130,6 +145,7 @@ int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int, char **) {
 }
 
 int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, char **) {
+   // rethink how things are sorted
    if (barChartIsValid) {
       theBarChart->rethinkIndirectResources();
       return TCL_OK;
@@ -138,12 +154,24 @@ int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, char **) {
       return TCL_ERROR;
 }
 
+int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
+			      int argc, char **argv) {
+   // argument: metric index
+   assert(argc==2);
+   unsigned index = atoi(argv[1]);
+
+   const string &result = theBarChart->getMetricColorName(index);
+   strcpy(interp->result, result.string_of());
+   return TCL_OK;
+}
+
 int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // called just once to fix some information needed by drawBarsCommand, especially
    // the (sub-)window in which to draw.
 
    // parameters:
-   // 1) window name (tk-style; e.g. ".top.middle.bar") of the area in which the bars are drawn
+   // 1) window name (tk-style; e.g. ".top.middle.bar") of the area in which the bars
+   //    are drawn.
    // 2) do you want double-buffering? ("doublebuffer" or "nodoublebuffer")
    // 3) do you want no-flicker?       ("noflicker" or "flicker")
    //       [you automatically get noflicker with doublebuffer]
@@ -161,10 +189,16 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    const int iNumResources = atoi(argv[5]);
 //   const bool iFlushFlag = (0==strcmp("1", argv[6]));
 
-   theBarChart = new BarChart(wname,
-			      iNumMetrics, iNumResources);
-   if (theBarChart == NULL)
-      panic("launchBarChartCommand() -- out of memory!");
+   // bar colors: (see /usr/lib/X11/rgb.txt)
+   vector<string> barColorNames;
+   barColorNames += "cornflower blue";
+   barColorNames += "medium sea green";
+   barColorNames += "hotpink";
+   barColorNames += "chocolate";
+   barColorNames += "orange";
+
+   theBarChart = new BarChart(wname, iNumMetrics, iNumResources, barColorNames);
+   assert(theBarChart);
 
    barChartIsValid = true;
    return TCL_OK;
