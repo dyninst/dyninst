@@ -39,73 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * inst-sunos.C - sunos specifc code for paradynd.
- *
- * $Log: inst-sunos.C,v $
- * Revision 1.47  1998/04/22 02:30:18  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.46  1997/07/01 16:53:14  tamches
- * added define of NULL
- *
- * Revision 1.45  1997/03/18 19:44:17  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.44  1997/02/21 20:13:37  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.43  1997/01/16 22:04:46  tamches
- * removed flushPtrace
- *
- * Revision 1.42  1996/10/31 08:50:33  tamches
- * removed a warning
- *
- * Revision 1.41  1996/10/18 23:54:08  mjrg
- * Solaris/X86 port
- *
- * Revision 1.40  1996/08/16 21:19:03  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.39  1996/08/12 16:27:12  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.38  1996/04/29 03:37:23  tamches
- * computePauseTimeMetric now takes in a param (but doesn't use it)
- *
- * Revision 1.37  1996/02/13 21:37:45  naim
- * Minor changes related to cost model - naim
- *
- * Revision 1.36  1996/02/12  16:43:35  naim
- * Minor change to cost model - naim
- *
- * Revision 1.35  1996/02/09  23:54:10  naim
- * Changes to the cost model - naim
- *
- * Revision 1.34  1995/12/13  23:57:31  mjrg
- * Commented out logLine message.
- *
- * Revision 1.33  1995/12/08 16:07:27  naim
- * Error message changed (adding newline) - naim
- *
- * Revision 1.32  1995/11/22  00:02:31  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.31  1995/10/19  22:36:41  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
- *
- */
+// $Id: inst-sunos.C,v 1.48 1998/12/25 22:02:13 wylie Exp $
 
 #ifndef NULL
 #define NULL 0

@@ -39,71 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/*
+ * inst-power.h - Common definitions to the POWER specific instrumentation code.
+ * $Id: inst-power.h,v 1.11 1998/12/25 22:02:11 wylie Exp $
+ */
 
 #ifndef INST_POWER_H
 #define INST_POWER_H
-
-/*
- * $Log: inst-power.h,v $
- * Revision 1.10  1998/09/15 04:16:00  buck
- * Commit of changes for Dyninst API version 1.2.  Includes support for
- * instrumentation at arbitrary points on AIX, and the addition of various
- * minor API calls.
- *
- * Revision 1.1.1.3  1997/07/08 20:02:29  buck
- * Bring latest changes from Wisconsin over to Maryland repository.
- *
- * Revision 1.9  1997/06/23 17:06:48  tamches
- * class instPoint moved to another file
- *
- * Revision 1.8  1997/06/15 19:24:07  ssuen
- * Changed iPgetFunction and iPgetCallee to return const function_base *
- *
- * Revision 1.7  1997/06/15 00:02:41  ssuen
- * Included following new public access functions in class instPoint.
- *
- *         function_base *iPgetFunction() const { ... }
- *         function_base *iPgetCallee()   const { ... }
- *         const image   *iPgetOwner()    const { ... }
- *         Address        iPgetAddress()  const { ... }
- *
- * Revision 1.6  1997/04/14 00:21:53  newhall
- * removed class pdFunction and replaced it with base class function_base and
- * derived class pd_Function
- *
- * Revision 1.5  1997/02/21 20:13:27  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.4  1997/02/18 21:24:09  sec
- * Added a field to instPoint, which identifies what the instrumentation
- * point is for (an enum saying ipFuncEntry, ipFuncReturn, ipFuncCallPoint).
- *
- * Revision 1.3  1997/01/27 19:40:48  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.2  1996/08/16 21:18:56  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1995/08/24 15:03:58  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- *
- */
-
-/*
- * inst-power.h - Common definitions to the POWER specific instrumentation code.
- *
- * inst-power.h,v
- */
 
 
 #include "dyninstAPI/src/ast.h"

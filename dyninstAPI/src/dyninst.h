@@ -39,42 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * dyninst.h - exported interface to instrumentation.
- *
- * $Log: dyninst.h,v $
- * Revision 1.14  1997/09/28 22:22:28  buck
- * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
- * library dependencies on files in rtinst.
- *
- * Revision 1.13  1996/08/16 21:18:28  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.12  1994/11/02 11:03:46  markc
- * Removed stringPool
- *
- * Revision 1.11  1994/09/22  01:50:54  markc
- * reorganized, temporary
- *
- * Revision 1.10  1994/08/08  20:13:34  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.9  1994/06/27  21:28:08  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.8  1994/05/18  00:52:26  hollings
- * added ability to gather IO from application processes and forward it to
- * the paradyn proces.
- *
- * Revision 1.7  1994/05/16  22:31:49  hollings
- * added way to request unique resource name.
- *
- * Revision 1.6  1994/04/09  18:34:52  hollings
- * Changed {pause,continue}Application to {pause,continue}AllProceses, and
- * made the RPC interfaces use these.  This makes the computation of pause
- * Time correct.
- *
- */
+// $Id: dyninst.h,v 1.15 1998/12/25 22:02:09 wylie Exp $
+// dyninst.h - exported interface to instrumentation.
 
 #ifndef INSTRUMENTATION_H
 #define INSTRUMENTATION_H

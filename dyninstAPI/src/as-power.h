@@ -39,48 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: as-power.h,v 1.7 1998/12/25 22:02:07 wylie Exp $
+
 #ifndef AS_POWER_H
 #define AS_POWER_H
-
-/*
- * $Log: as-power.h,v $
- * Revision 1.6  1997/02/18 21:13:36  sec
- * Added a label, UPDATE_LR, used in tramp-power.S for the code which will
- * update the link register.
- *
- * Revision 1.5  1997/01/27 19:40:35  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.4  1996/11/11 01:39:19  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.3  1996/10/04 15:01:02  naim
- * Changes in the base-trampoline to support arrays of counters and timers
- * (multithreaded case). On AIX registers are saved only when needed, so we
- * don't need to move save/restores to base-tramp - naim
- *
- * Revision 1.2  1996/08/16 21:18:09  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1995/08/24 15:03:41  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- *
- */
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with
  *   its top 6 bits as 0 is invalid (technically UNIMP?).
- *
  */
 
 #define UPDATE_LR       0x5

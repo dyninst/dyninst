@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: inst-x86.h,v 1.7 1998/12/25 22:02:13 wylie Exp $
+
 #ifndef INST_X86_H
 #define INST_X86_H
 

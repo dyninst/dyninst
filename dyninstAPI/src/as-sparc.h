@@ -39,38 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: as-sparc.h,v 1.6 1998/12/25 22:02:08 wylie Exp $
+
 #ifndef AS_SPARC_H
 #define AS_SPARC_H
 
-/*
- * $Log: as-sparc.h,v $
- * Revision 1.5  1996/11/11 01:39:40  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.4  1996/09/12 15:08:25  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.3  1996/08/16 21:18:10  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1995/05/30 05:04:53  krisna
- * upgrade from solaris-2.3 to solaris-2.4.
- * architecture-os based include protection of header files.
- * removed architecture-os dependencies in generic sources.
- * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
- *
- * Revision 1.1  1994/11/01  16:57:05  markc
- * sparc architecture includes
- *
- */
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with
  *   its top 10 bits as 0 is invalid (technically UNIMP).
- *
  */
 
 /* place to put the ba,a insn to return to main code */

@@ -39,78 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * util.h - support functions.
- *
- * $Log: util.h,v $
- * Revision 1.21  1998/08/25 19:35:39  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.5  1997/09/29 00:12:18  buck
- * Import latest changes from Wisconsin into Maryland repository.
- *
- * Revision 1.20  1997/09/28 22:22:36  buck
- * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
- * library dependencies on files in rtinst.
- *
- * Revision 1.19  1997/08/18 01:34:33  buck
- * Ported the Dyninst API to Windows NT.
- *
- * Revision 1.1.1.3  1997/07/08 20:03:24  buck
- * Bring latest changes from Wisconsin over to Maryland repository.
- *
- * Revision 1.18  1997/06/23 17:13:40  tamches
- * some additional hash functions
- *
- * Revision 1.17  1997/04/29 23:16:35  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.16  1997/02/26 23:43:11  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.15  1997/02/21 20:14:00  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.14  1997/01/27 19:41:19  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.13  1996/10/31 08:54:04  tamches
- * added headers for some time routines and vrbles
- *
- * Revision 1.12  1996/08/16 21:20:15  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.11  1996/06/01 00:01:18  tamches
- * addrHash --> addrHash16
- *
- * Revision 1.10  1996/05/11 23:16:07  tamches
- * added addrHash
- *
- * Revision 1.9  1996/05/09 22:46:51  karavan
- * changed uiHash.
- *
- * Revision 1.8  1995/02/16  08:54:30  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.7  1995/02/16  08:35:05  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- */
+// $Id: util.h,v 1.22 1998/12/25 22:02:17 wylie Exp $
 
 #ifndef UTIL_H
 #define UTIL_H

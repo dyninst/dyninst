@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: pdwinnt.h,v 1.3 1998/12/25 22:02:16 wylie Exp $
+
 #if !defined(i386_unknown_nt4_0)
 #error "invalid architecture-os inclusion"
 #endif

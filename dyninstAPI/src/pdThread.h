@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: pdThread.h,v 1.6 1998/12/25 22:02:16 wylie Exp $
+
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
 

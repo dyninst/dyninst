@@ -39,29 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: inst-winnt.C,v $
- * Revision 1.4  1998/04/22 02:30:19  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.3  1997/08/18 01:34:22  buck
- * Ported the Dyninst API to Windows NT.
- *
- * Revision 1.1.1.2  1997/07/08 20:02:42  buck
- * Bring latest changes from Wisconsin over to Maryland repository.
- *
- * Revision 1.2  1997/06/17 20:11:34  newhall
- * Added support to solaris platforms to find the target of call instructions that
- * are in dynamic executables and shared objects and that are bound after startup
- * by the runtime linker (delayed binding).
- * Added process methods: findpdFunctionIn, hasBeenBound, findCallee
- *
- * Revision 1.1  1997/05/23 23:01:24  mjrg
- * Windows NT port
- * bug fix to inst-x86.C
- *
- *
- */
+// $Id: inst-winnt.C,v 1.5 1998/12/25 22:02:13 wylie Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
 #include "dyninstAPI/src/os.h"

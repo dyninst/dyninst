@@ -39,55 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _DYNINSTP_H
-#define _DYNINSTP_H
-
-/*
+/* $Id: dyninstP.h,v 1.15 1998/12/25 22:02:09 wylie Exp $
+ *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
  *   include this file.
  *  
  * This file will be empty during the restructuring of the paradyn daemon
- *
- * $Log: dyninstP.h,v $
- * Revision 1.14  1996/10/31 08:39:15  tamches
- * removed an old cm5 call
- *
- * Revision 1.13  1996/08/16 21:18:29  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.12  1996/08/12 16:27:19  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.11  1995/10/19  22:36:37  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
- *
- * Revision 1.10  1995/09/18  22:41:32  mjrg
- * added directory command.
- *
- * Revision 1.9  1995/05/18  10:31:57  markc
- * Cleaned up declarations of metric functions
- *
- * Revision 1.8  1995/02/26  22:45:09  markc
- * Changed addProcess interface to use reference to string vectors.
- *
- * Revision 1.7  1995/02/16  08:53:06  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.6  1995/02/16  08:33:10  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
  */
+
+#ifndef _DYNINSTP_H
+#define _DYNINSTP_H
 
 #include "util/h/Vector.h"
 #include "util/h/String.h"

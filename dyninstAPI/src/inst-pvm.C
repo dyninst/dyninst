@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -40,65 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * inst-pvm.C - sunos specifc code for paradynd.
- *
- * $Log: inst-pvm.C,v $
- * Revision 1.27  1997/09/28 22:22:30  buck
- * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
- * library dependencies on files in rtinst.
- *
- * Revision 1.26  1997/02/21 20:13:28  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.25  1997/01/16 22:04:34  tamches
- * removed flushPtrace
- *
- * Revision 1.24  1996/10/31 08:48:12  tamches
- * removed forkNodeProcess
- *
- * Revision 1.23  1996/08/16 21:18:57  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.22  1996/04/29 03:36:22  tamches
- * computePauseTimeMetric now takes in a metric (but doesn't use it)
- *
- * Revision 1.21  1995/08/24 15:03:59  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.20  1995/05/18  10:35:23  markc
- * Removed tag dictionary
- *
- * Revision 1.19  1995/02/26  22:45:36  markc
- * Updated to compile under new system.
- *
- * Revision 1.18  1995/02/16  08:33:24  markc
- * Changed igen interfaces to use strings/vectors rather than char* igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.17  1994/11/10  18:58:01  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.16  1994/11/09  18:40:08  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.15  1994/11/02  11:06:18  markc
- * Removed redundant code into inst.C
- * Provide "tag" dictionary for known functions.
- *
+/* $Id
+ * PVM specific code for paradynd.
  */
 
 extern "C" {

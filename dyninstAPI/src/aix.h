@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: aix.h,v 1.9 1998/12/25 22:02:06 wylie Exp $
+
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
 #endif

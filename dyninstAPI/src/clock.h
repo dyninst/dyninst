@@ -39,19 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: clock.h,v 1.3 1998/12/25 22:02:08 wylie Exp $
 
 #ifndef CLOCK_HDR
 #define CLOCK_HDR
-
-/* 
- * $Log: clock.h,v $
- * Revision 1.2  1996/08/16 21:18:17  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1994/11/01 16:57:57  markc
- * Prototypes
- *
- */
 
 extern float getCyclesPerSecond();
 

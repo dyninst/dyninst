@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: osfDL.h,v 1.2 1998/12/25 22:02:15 wylie Exp $
+
 #if !defined(osf_dl_hdr)
 #define osf_dl_hdr
 

@@ -39,88 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: arch-sparc.h,v 1.22 1998/12/25 22:02:07 wylie Exp $
+
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef _ARCH_SPARC_H
 #define _ARCH_SPARC_H
-
-/*
- * $Log: arch-sparc.h,v $
- * Revision 1.21  1998/04/10 18:08:12  mcheyney
- * Changes to support instrumentation of optimizd code sequences
- * found on Solaris 2.6.
- * Support for:
- *  jmp, nop at end of fn w/ no stack frame - tail-call optimization
- *   detected + (hopefully) unwound.
- *  jmp, nop inside fn w/ no stack frame - possible TC optimization, marked
- *   as uninstrumentable to be safe.
- *
- * Revision 1.20  1997/12/04 18:49:36  mcheyney
- * Added functions to differentiate between 'true' call instructions
- * (CALL - Opcode 01), and 'jmpl' call instructions (show up under
- * gdb disass as call, but really jmpl instructions, opcode != 01)....
- *
- * Revision 1.19  1997/06/23 17:05:44  tamches
- * instPointType moved to another file
- *
- * Revision 1.18  1997/05/20 15:46:15  zhichen
- * Added WRYop3 & RDYop3 for correctly handle DIVop3
- *
- * Revision 1.17  1997/03/14 15:58:36  lzheng
- * Dealing with complier optimization related to the return value
- *
- * Revision 1.16  1997/02/21 20:13:12  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.15  1996/10/31 08:35:36  tamches
- * removed LOW and HIGH; added a few opcodes
- *
- * Revision 1.14  1996/10/18 23:51:21  mjrg
- * Added function to test for alignment
- *
- * Revision 1.13  1996/10/04 16:38:31  naim
- * Changes to use immediate operations on the sparc - naim
- *
- * Revision 1.12  1996/09/26 18:58:23  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.11  1996/09/05 16:17:00  lzheng
- * Move the defination of BREAK_POINT_INSN to the machine dependent file
- *
- * Revision 1.10  1996/08/20 19:10:02  lzheng
- * Implementation of moving multiple instructions sequence
- * Correcting a few opmask here and add some new.
- *
- * Revision 1.9  1996/08/16 21:18:07  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1996/04/29 22:08:44  mjrg
- * added some extra defines
- *
- * Revision 1.7  1995/12/11 15:06:41  naim
- * Implementing >, >=, < and <= operators - naim
- *
- * Revision 1.6  1995/07/11  20:57:23  jcargill
- * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
- *
- * Revision 1.5  1995/05/30  05:04:49  krisna
- * upgrade from solaris-2.3 to solaris-2.4.
- * architecture-os based include protection of header files.
- * removed architecture-os dependencies in generic sources.
- * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
- *
- * Revision 1.4  1994/11/02  10:59:12  markc
- * Replaced some of the hash-defs with inlines
- *
- * Revision 1.3  1994/09/22  01:31:33  markc
- * Added log message, duplicate include guards
- *
- */
-
 
 /*
  * Define sparc instruction information.

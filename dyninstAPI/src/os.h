@@ -39,58 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: os.h,v 1.18 1998/12/25 22:02:14 wylie Exp $
+
 #ifndef _OS_HDR
 #define _OS_HDR
 
 /*
- * This is an initial attempt at providing an os abstraction for the paradynd
- * I am doing this so I can compile the paradynd on solaris
+ * This is an initial attempt at providing an OS abstraction for paradynd
+ * I am doing this so I can compile paradynd on solaris
  *
- * This should enforce the abstract os operations
+ * This should enforce the abstract OS operations
  */ 
-
-/*
- * $Log: os.h,v $
- * Revision 1.17  1998/08/25 19:35:17  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.3  1998/02/04  01:06:48  buck
- * Import latest changes from Wisconsin into Maryland repository.
- *
- * Revision 1.16  1997/12/01 02:30:19  tung
- * For Linux/X86 port
- *
- * Revision 1.15  1997/04/29 23:16:07  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.14  1997/02/26 23:42:55  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.13  1997/02/21 20:13:41  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.12  1996/11/05 20:33:19  tamches
- * some OS:: methods have changed to process:: methods
- *
- * Revision 1.11  1996/10/31 08:51:40  tamches
- * removed osForwardSignal
- *
- * Revision 1.10  1996/10/18 23:54:07  mjrg
- * Solaris/X86 port
- *
- * Revision 1.9  1996/08/16 21:19:28  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1996/05/12 05:16:58  tamches
- * aix 4.1 commit
- *
- */
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "dyninstAPI/src/sunos.h"

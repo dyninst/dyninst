@@ -39,42 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: ptrace_emul.h,v 1.10 1998/12/25 22:02:16 wylie Exp $
+// ptrace_emul.h:  Header file for ptrace emulation stuff.
+
 #ifndef PTRACE_EMUL
 #define PTRACE_EMUL
-
-/* 
- * ptrace_emul.h:  Header file for ptrace emulation stuff.
- *
- * $Log: ptrace_emul.h,v $
- * Revision 1.9  1996/08/16 21:19:43  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1995/02/16 08:54:09  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.7  1995/02/16  08:34:41  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.6  1995/02/10  22:36:22  jcargill
- * Removed include of util kludges
- *
- * Revision 1.5  1994/11/02  11:15:58  markc
- * Put our "PTRACE" defines here.
- *
- * Revision 1.4  1994/10/13  07:24:59  krisna
- * solaris porting and updates
- *
- * Revision 1.3  1994/09/22  02:24:13  markc
- * changed types to agree with ptrace signature
- *
- */
 
 /*
  * Node-Ptrace request forwarding protocol.  We send ptrace requests

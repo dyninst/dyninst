@@ -39,51 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: arch.h,v $
- * Revision 1.10  1998/08/25 19:35:03  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.2  1998/02/04  01:06:12  buck
- * Import latest changes from Wisconsin into Maryland repository.
- *
- * Revision 1.9  1997/12/01 02:28:38  tung
- * For Linux/X86 Platform
- *
- * Revision 1.8  1997/02/26 23:42:47  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.7  1997/02/21 20:13:14  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.6  1996/10/18 23:54:05  mjrg
- * Solaris/X86 port
- *
- * Revision 1.5  1996/08/16 21:18:08  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/05/12 05:15:45  tamches
- * aix 4.1 commit
- *
- * Revision 1.3  1995/08/24 15:03:40  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- */
+// $Id: arch.h,v 1.11 1998/12/25 22:02:07 wylie Exp $
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "arch-sparc.h"
-#endif
-
-#if defined(hppa1_1_hp_hpux)
-#include "arch-hppa.h"
 #endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)

@@ -39,60 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: arch-power.h,v 1.12 1998/12/25 22:02:06 wylie Exp $
+
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
-
-/*
- * $Log: arch-power.h,v $
- * Revision 1.11  1998/09/15 04:15:56  buck
- * Commit of changes for Dyninst API version 1.2.  Includes support for
- * instrumentation at arbitrary points on AIX, and the addition of various
- * minor API calls.
- *
- * Revision 1.10  1997/03/29 01:56:12  sec
- * Added some defines for floating point register ops
- *
- * Revision 1.9  1997/02/21 20:13:11  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.8  1997/02/18 21:12:56  sec
- * Redefined most of this include file.  Alot of the representations for
- * instructions were in the form of PowerPC instructions, not Power2; I modified
- * it, cleaned it up, reduced some warnings, etc.  Some small bug fixes in what
- * instructions were used, etc.
- *
- * Revision 1.7  1997/01/27 19:40:34  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.6  1996/10/18 23:51:20  mjrg
- * Added function to test for alignment
- *
- * Revision 1.5  1996/10/09 20:43:36  naim
- * Implementation of emitImm procedure - naim
- *
- * Revision 1.4  1996/09/05 16:14:44  lzheng
- * Move the defination of BREAK_POINT_INSN to the machine dependent file
- *
- * Revision 1.3  1996/08/16 21:18:05  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1996/03/25 22:57:58  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.1  1995/08/24  15:03:38  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- *
- */
 
 #include "dyninstAPI/src/symtab.h"
 

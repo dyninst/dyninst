@@ -39,31 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: stats.h,v 1.5 1998/12/25 22:02:17 wylie Exp $
+
 #ifndef STATS_H
 #define STATS_H
-
-/*
- * $Log: stats.h,v $
- * Revision 1.4  1996/08/16 21:19:53  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1995/02/16 08:54:19  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.2  1995/02/16  08:34:52  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.1  1994/11/01  16:58:13  markc
- * Prototypes
- *
- */
 
 #include "util/h/Timer.h"
 
