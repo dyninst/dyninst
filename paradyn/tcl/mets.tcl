@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.15  1995/11/15 21:27:51  tamches
+# Revision 1.16  1995/11/21 15:16:45  naim
+# Fixing "CLEAR" option from the metrics selection dialog box - naim
+#
+# Revision 1.15  1995/11/15  21:27:51  tamches
 # Better remembering of which metrics were selected "last time", in order
 # to properly initialize the dialog box (a change in "developerMode" had
 # previously confused the dialog box).  New assoc array "selectedMetricNames"
@@ -140,11 +143,14 @@ proc endSelection {visiToken rdoToken cancelflag win} {
 } 
 
 proc clearMetSelects {} {
-    global metCount metmenuCB metSelected
+    global metCount metmenuCB metSelected metMenuCtr selectedMetricNames
+    global metList
     for {set i 0} {$i < $metCount} {incr i} {
-	set metmenuCB([expr $i]) 0
+      set selectedMetricNames([lindex $metList $i]) 0
+      set metmenuCB([expr $i]) 0
     }
     set metSelected 0
+    .metmenunew$metMenuCtr.bot.b0 configure -state disabled
 }
 
 #
