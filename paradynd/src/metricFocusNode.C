@@ -66,6 +66,14 @@
 #include "showerror.h"
 #include "costmetrics.h"
 #include "metric.h"
+#include "util/h/debugOstream.h"
+
+// The following vrbles were defined in process.C:
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
 
 extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
 
@@ -87,6 +95,11 @@ unsigned mdnHash(const metricDefinitionNode *&mdn) {
 //  return ((unsigned) mdn);
 }
 
+unsigned componentMdnPtrHash(metricDefinitionNode * const &ptr) {
+   // maybe assert that "ptr" isn't for an aggregate mi
+   return string::hash(ptr->getFullName());
+}
+
 
 dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
 dictionary_hash<string, metricDefinitionNode*> allMIComponents(string::hash);
@@ -96,7 +109,7 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 #define DELETED_MI 1
 #define MILLION 1000000.0
 
-bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
+bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) {
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++) {
     internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
@@ -119,16 +132,17 @@ bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
 }
 
 // for non-aggregate metrics
-metricDefinitionNode::metricDefinitionNode(process *p, string& met_name, 
-                                           vector< vector<string> >& foc,
-                                           string& cat_name, int agg_style)
+metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name, 
+				   const vector< vector<string> >& foc,
+				   const vector< vector<string> >& component_foc,
+                                   const string& component_flat_name, int agg_style)
 : aggregate_(false), 
   aggOp(agg_style), // CM5 metrics need aggOp to be set
-  inserted_(false), installed_(false), met_(met_name), focus_(foc), 
-  flat_name_(cat_name),
+  inserted_(false), installed_(false), met_(met_name),
+  focus_(foc), component_focus(component_foc),
+  flat_name_(component_flat_name),
   aggSample(0),
   cumulativeValue(0.0), samples(0),
-//  id_(-1), originalCost_(0.0), inform_(false), proc_(p)
   id_(-1), originalCost_(0.0), proc_(p)
 {
   mdl_inst_data md;
@@ -138,31 +152,16 @@ metricDefinitionNode::metricDefinitionNode(process *p, string& met_name,
   style_ = md.style;
 }
 
-//float metricDefinitionNode::getMetricValue()
-//{
-//    float total;
-//
-//    if (aggregate_) {
-//        total = 0.0;
-//        unsigned c_size = components.size();
-//        for (unsigned u=0; u<c_size; u++)
-//          total += components[u]->getMetricValue();
-//        return(0.0);
-//    }
-//    return (data[0]->getMetricValue());
-//}
-
 // for aggregate metrics
-metricDefinitionNode::metricDefinitionNode(string& metric_name,
-                                           vector< vector<string> >& foc,
-                                           string& cat_name, 
+metricDefinitionNode::metricDefinitionNode(const string& metric_name,
+                                           const vector< vector<string> >& foc,
+                                           const string& cat_name, 
                                            vector<metricDefinitionNode*>& parts,
 					   int agg_op)
 : aggregate_(true), aggOp(agg_op), inserted_(false),  installed_(false),
   met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
   aggSample(agg_op),
-//  id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
   id_(-1), originalCost_(0.0), proc_(NULL)
 {
   unsigned p_size = parts.size();
@@ -173,15 +172,20 @@ metricDefinitionNode::metricDefinitionNode(string& metric_name,
   }
 }
 
-float getProcessCount() {  return ((float) processVec.size()); }
-
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
 metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
+				       vector< vector<string> >& component_canon_focus,
                                        string& metric_name, string& flat_name,
                                        bool enable, bool& matched)
 {
   // called by createMetricInstance, below.
+  // return values:
+  //   a valid metricDefinitionNode* when successful
+  //   -1 --> enable was false
+  //   -2 --> not legal to instrument this focus
+  //   NULL --> a more serious error (probably metric-is-unknown)
+
   matched = false;
   metricDefinitionNode *mn = 0; 
 
@@ -192,13 +196,14 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
     if (theIMetric->name() == metric_name) {
       matched = true;
       if (!enable)
-	 return NULL;
+	 return (metricDefinitionNode*)-1;
 
       if (!theIMetric->legalToInst(canon_focus))
 	 // Paradyn will handle this case and report appropriate error msg
-         return NULL;
+         return (metricDefinitionNode*)-2;
 
-      mn = new metricDefinitionNode(NULL, metric_name, canon_focus, 
+      mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
+				    component_canon_focus,
                                     flat_name, theIMetric->aggregate());
       assert(mn);
 
@@ -211,11 +216,12 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
   for (unsigned i=0; i < costMetric::allCostMetrics.size(); i++){
      if(costMetric::allCostMetrics[i]->name() == metric_name){
 	  matched = true;
-	  if (!enable) return 0;
+	  if (!enable) return (metricDefinitionNode*)-1;
 	  costMetric *nc = costMetric::allCostMetrics[i];
-	  if (!nc->legalToInst(canon_focus)) return 0;
+	  if (!nc->legalToInst(canon_focus)) return (metricDefinitionNode*)-2;
 
 	  mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
+					component_canon_focus,
 					flat_name, nc->aggregate());
           assert(mn);
 
@@ -229,6 +235,68 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
   return NULL;
 }
 
+// the following should probably be made a public static member fn of class metric
+string metricAndCanonFocus2FlatName(const string &metricName,
+				    const vector< vector<string> > &canonFocus) {
+   string result = metricName;
+
+   for (unsigned hierarchy=0; hierarchy < canonFocus.size(); hierarchy++)
+      for (unsigned component=0; component < canonFocus[hierarchy].size();
+	   component++)
+	 result += canonFocus[hierarchy][component];
+
+   return result;
+}
+
+// the following should probably be made a public static member fn of class metric
+static bool focus2CanonicalFocus(const vector<unsigned> &focus,
+				 vector< vector<string> > &canonFocus,
+				 bool important) {
+   // takes in "focus", writes to "canonFocus".  Returns true iff successful.
+   // if "important" is false, don't print error msg on failure (called by guessCost();
+   // no mi is really being created)
+
+   vector< vector<string> > unCanonFocus;
+   if (!resource::foc_to_strings(unCanonFocus, focus, important)) { // writes to unCanonFocus
+      if (important)
+         cerr << "focus2CanonicalFocus failed since resource::foc_to_strings failed" << endl;
+      return false;
+   }
+
+   resource::make_canonical(unCanonFocus, canonFocus);
+
+   return true;
+}
+
+static void print_focus(debug_ostream &os, vector< vector<string> > &focus) {
+   for (unsigned a=0; a < focus.size(); a++) {
+      for (unsigned b=0; b < focus[a].size(); b++)
+	 os << '/' << focus[a][b];
+
+      if (a < focus.size()-1)
+	 os << ',';
+   }
+   os << endl;
+}
+
+metricDefinitionNode *createMetricInstance(string& metric_name, 
+                                           vector<u_int>& focus,
+                                           bool enable, // true if for real; false for guessCost()
+					   bool& internal)
+{
+    vector< vector<string> > canonicalFocus;
+    if (!focus2CanonicalFocus(focus, canonicalFocus, enable)) {
+       if (enable) // for real, so an error msg is appropriate
+	  cerr << "createMetricInstance failed because focus2CanonicalFocus failed" << endl;
+
+       return NULL;
+    }
+
+    string flat_name = metricAndCanonFocus2FlatName(metric_name, canonicalFocus);
+
+    // first see if it is already defined.
+    dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
+
 /*
  * See if we can find the requested metric instance.
  *   Currently this is only used to cache structs built for cost requests 
@@ -241,105 +309,283 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
  *
  */
 
-metricDefinitionNode *createMetricInstance(string& metric_name, 
-                                           vector<u_int>& focus,
-                                           bool enable, bool& internal)
-{
+    unsigned key;
     metricDefinitionNode *mi= NULL;
 
-    vector< vector<string> > string_foc;
-    if (!resource::foc_to_strings(string_foc, focus)) return NULL;
-    vector< vector<string> > canon_focus;
-    resource::make_canonical(string_foc, canon_focus);
-    string flat_name(metric_name);
-
-    unsigned cf_size = canon_focus.size();
-    unsigned u;
-    for (u=0; u<cf_size; u++) {
-      unsigned v_size = canon_focus[u].size();
-      for (unsigned v=0; v<v_size; v++) 
-        flat_name += canon_focus[u][v];
-    }
-
-    // printf("enabling %s\n",flat_name.string_of());
-
-    // first see if it is already defined.
-    dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
-
     // TODO -- a dictionary search here will be much faster
-    while (mdi.next(u, mi))
-      if (mi->getFullName() == flat_name)
+    while (mdi.next(key, mi))
+      if (mi->getFullName() == flat_name) {
+	metric_cerr << "createMetricInstance: mi with flat_name " << flat_name << " already exists! using it" << endl;
         return mi; // this metricDefinitionNode has already been defined
+      }
 
     if (mdl_can_do(metric_name)) {
-      mi = mdl_do(canon_focus, metric_name, flat_name, processVec);
       internal = false;
+
+      extern vector<process*> processVec;
+      mi = mdl_do(canonicalFocus, metric_name, flat_name, processVec, false);
+      if (mi == NULL) {
+	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
+	 metric_cerr << "metric name was " << metric_name << "; focus was ";
+	 print_focus(metric_cerr, canonicalFocus);
+      }
     } else {
       bool matched;
-      mi=doInternalMetric(canon_focus,metric_name,flat_name,enable,matched);
+      mi=doInternalMetric(canonicalFocus,
+			  canonicalFocus, // is this right for component_canon_focus???
+			  metric_name,flat_name,enable,matched);
+         // NULL on serious error; -1 if enable was false; -2 if illegal to instr with
+         // given focus [many internal metrics work only for whole program]
+
+      if (mi == (metricDefinitionNode*)-2) {
+	 metric_cerr << "createMetricInstance: internal metric " << metric_name << " isn't defined for focus: ";
+	 print_focus(metric_cerr, canonicalFocus);
+	 mi = NULL; // straighten up the return value
+      }
+      else if (mi == (metricDefinitionNode*)-1) {
+	 assert(!enable); // no error msg needed
+	 mi = NULL; // straighten up the return value
+      }
+      else if (mi == NULL) {
+	 // more serious error...do a printout
+         metric_cerr << "createMetricInstance failed since doInternalMetric failed" << endl;
+	 metric_cerr << "metric name was " << metric_name << "; focus was ";
+	 print_focus(metric_cerr, canonicalFocus);
+      }
+
       internal = true;
     }
-    return(mi);
+
+    return mi;
 }
 
 
 // propagate this metric instance to process p.
-// p is a process that started after the metric instance was created.
-void metricDefinitionNode::propagateMetricInstance(process *p) {
+// p is a process that started after the metric instance was created
+// note: don't call this routine for a process started via fork or exec, just
+// for processes started the "normal" way.
+// "this" is an aggregate mi, not a component one.
 
-  metricDefinitionNode *mi = NULL;
-  vector<process *> vp(1,p);
-  bool internal = false;
-
+void metricDefinitionNode::propagateToNewProcess(process *p) {
   unsigned comp_size = components.size();
 
   if (comp_size == 0)
-    return;
+    return; // if there are no components, shouldn't the mi be fried?
 
   for (unsigned u = 0; u < comp_size; u++) {
     if (components[u]->proc() == p) {
       // The metric is already enabled for this process. This case can 
       // happen when we are starting several processes at the same time.
+      // (explain...?)
       return;
     }
   }
 
+  bool internal = false;
+
+  metricDefinitionNode *mi = NULL;
+     // an aggregate (not component) mi, though we know that it'll contain just
+     // one component.  It's that one component that we're really interested in.
   if (mdl_can_do(met_)) {
       // Make the unique ID for this metric/focus visible in MDL.
       string vname = "$globalId";
       mdl_env::add(vname, false, MDL_T_INT);
       mdl_env::set(this->getMId(), vname);
 
-      mi = mdl_do(focus_, met_, flat_name_, vp);
+      vector<process *> vp(1,p);
+      mi = mdl_do(focus_, met_, flat_name_, vp, false);
   } else {
-    // internal metrics don't need to be propagated
+    // internal and cost metrics don't need to be propagated (um, is this correct?)
     mi = NULL;
   }
 
-  if (mi) {
+  if (mi) { // successfully created new mi
     assert(mi->components.size() == 1);
+    metricDefinitionNode *theNewComponent = mi->components[0];
 
-    components += mi->components[0];
-    mi->components[0]->aggregators[0] = this;
-    mi->components[0]->samples[0] = aggSample.newComponent();
+    components += theNewComponent;
+    theNewComponent->aggregators[0] = this;
+    theNewComponent->samples[0] = aggSample.newComponent();
     if (!internal) {
-      mi->components[0]->insertInstrumentation();
-      mi->components[0]->checkAndInstallInstrumentation();
+      theNewComponent->insertInstrumentation();
+      theNewComponent->checkAndInstallInstrumentation();
     }
 
     // update cost
-    float cost = mi->cost();
+    const float cost = mi->cost();
     if (cost > originalCost_) {
       currentPredictedCost += cost - originalCost_;
       originalCost_ = cost;
     }
 
-    mi->components.resize(0);
+    mi->components.resize(0); // protect the new component
     delete mi;
   }
 }
 
-// called when all components have been removed (because the processes have exited)
+metricDefinitionNode* metricDefinitionNode::handleExec() {
+   // called by handleExec(), below.  See that routine for documentation.
+   // "this" is a component mi.
+
+   // If this component mi can be (re-)enabled in the new (post-exec) process, then do
+   // so.  Else, remove the component mi from aggregators, etc.  Returns new component
+   // mi if successful, NULL otherwise.
+
+   assert(!aggregate_);
+
+   // How can we tell if the mi can be inserted into the "new" (post-exec) process?
+   // A component mi is basically a set of instReqNodes and dataReqNodes.  The latter
+   // don't restrict what can be inserted (is this right?); the instReqNodes hold the
+   // key -- we should look at the functions (instPoint's) where code (whose contents
+   // are in AstNode's) would be inserted.  Now clearly, the instPoint's must be
+   // checked -- if any one doesn't exist, then the instReqNode and hence the component
+   // mi doesn't belong in the post-exec process.  But what about the AstNode's?
+   // Should the code that gets inserted be subject to a similar test?  Probably, but
+   // we currently don't do it.
+
+   // BUT: Even if a process contains a function in both the pre-exec and post-exec
+   // stages, we must assume that the function is IN A DIFFERENT LOCATION IN
+   // THE ADDRESS SPACE.  Ick.  So the instPoint's can't be trusted and must
+   // be recalculated from scratch.  In that regard, this routine is similar to
+   // propagateToNewProcess(), which propagates aggregate mi's to a brand new
+   // process (but which doesn't work for processes started via fork or exec).
+   // The lesson learned is to (ick, ick, ick) call mdl_do() all over again.
+   // This gets really confusing when you consider that a component mi can belong
+   // to several aggregate mi's (e.g. if we represent cpu time for proc 100 then
+   // we can belong to cpu/whole and cpu/proc-100); for which aggregate mi should
+   // we run mdl_do?  Any will do, so we can pick arbitrarily (is this right?).
+
+   // QUESTION: What about internal or cost metrics???  They have aggregate and
+   //           component mi's just like normal metrics, right?  If that's so, then
+   //           they must be propagated too!   NOT YET IMPLEMENTED!!!
+
+   metricDefinitionNode *aggregateMI = this->aggregators[0];
+   metricDefinitionNode *resultCompMI = NULL; // so far...
+
+   const bool internal = !mdl_can_do(aggregateMI->met_);
+   if (internal)
+      return NULL; // NOT YET IMPLEMENTED
+
+   // try to propagate the mi
+   // note: the following code is mostly stolen from propagateToNewProcess(); blame
+   //       it for any bugs :)
+
+   // Make the unique ID for this metric/focus visible in MDL. (?)
+   string vname = "$globalId";
+   mdl_env::add(vname, false, MDL_T_INT);
+   mdl_env::set(aggregateMI->getMId(), vname);
+
+   vector<process*> vp(1, this->proc());
+   metricDefinitionNode *tempAggMI = mdl_do(aggregateMI->focus_,
+					    aggregateMI->met_,
+					    aggregateMI->flat_name_,
+					    vp,
+					    true // --> fry existing component MI
+					    );
+   if (tempAggMI == NULL)
+      return NULL; // failure
+
+   assert(tempAggMI->aggregate_);
+
+   // okay, it looks like we successfully created a new aggregate mi.
+   // Of course, we're just interested in the (single) component mi contained
+   // within it; it'll replace "this".
+
+   assert(tempAggMI->components.size() == 1);
+   resultCompMI = tempAggMI->components[0];
+
+   resultCompMI->aggregators.resize(0);
+   resultCompMI->samples.resize(0);
+
+   // For each aggregator, go back and find where "this" was a component mi.
+   // When found, replace the ptr to "this" with "theNewComponent".
+   unsigned num_aggregators = aggregators.size();
+   assert(num_aggregators > 0);
+   for (unsigned agglcv=0; agglcv < num_aggregators; agglcv++) {
+      metricDefinitionNode *aggMI = aggregators[agglcv];
+
+      bool found=false;
+      for (unsigned complcv=0; complcv < aggMI->components.size(); complcv++) {
+	 if (aggMI->components[complcv] == this) {
+	    aggMI->components[complcv] = resultCompMI;
+
+	    resultCompMI->aggregators += aggMI;
+	    resultCompMI->samples     += aggMI->aggSample.newComponent();
+	    
+	    aggMI->aggSample.removeComponent(this->samples[agglcv]);
+	    
+	    found=true;
+	    break;
+	 }
+      }
+      assert(found);
+   }
+
+   // Now let's actually insert the instrumentation:
+   if (!internal) {
+      resultCompMI->insertInstrumentation();
+      resultCompMI->checkAndInstallInstrumentation();
+   }
+
+   // And fry "tempAggMI", but make sure "resultCompMI" isn't fried when we do so
+   tempAggMI->components.resize(0); // protect resultCompMI
+   delete tempAggMI; // good riddance; you were an ugly hack to begin with
+
+   return resultCompMI;
+}
+
+void metricDefinitionNode::handleExec(process *proc) {
+   // a static member fn.
+   // handling exec is tricky.  At the time this routine is called, the "new" process
+   // has been bootstrapped and is ready for stuff to get inserted.  No mi's have yet
+   // been propagated, and the data structures (allMIs, allMIComponents, etc.) are still
+   // in their old, pre-exec state, so they show component mi's enabled for this
+   // process, even though they're not (at least not yet).  This routines brings things
+   // up-to-date.
+   //
+   // Algorithm: loop thru all component mi's for this process.  If it is possible to
+   // propagate it to the "new" (post-exec) process, then do so.  If not, fry the
+   // component mi.  An example where a component mi can no longer fit is an mi
+   // specific to, say, function foo(), which (thanks to the exec syscall) no longer
+   // exists in this process.  Note that the exec syscall changed the addr space enough
+   // so even if a given routine foo() is present in both the pre-exec and post-exec
+   // process, we must assume that it has MOVED TO A NEW LOCATION, thus making
+   // the component mi's instReqNode's instPoint out-of-date.  Ick.
+
+   vector<metricDefinitionNode*> miComponents = allMIComponents.values();
+   for (unsigned lcv=0; lcv < miComponents.size(); lcv++) {
+      metricDefinitionNode *componentMI = miComponents[lcv];
+      if (componentMI->proc() != proc)
+	 continue;
+
+      forkexec_cerr << "calling handleExec for component "
+	            << componentMI->flat_name_ << endl;
+
+      metricDefinitionNode *replaceWithComponentMI = componentMI->handleExec();
+
+      if (replaceWithComponentMI == NULL) {
+	 forkexec_cerr << "handleExec for component " << componentMI->flat_name_
+	               << " failed, so not propagating it" << endl;
+         componentMI->removeThisInstance(); // propagation failed; fry component mi
+      }
+      else {
+	 forkexec_cerr << "handleExec for component " << componentMI->flat_name_
+	               << " succeeded...it has been propagated" << endl;
+	 // new component mi has already been inserted in place of old component mi
+	 // in all of its aggregate's component lists.  So, not much left to do,
+	 // except to update allMIComponents.
+
+	 assert(replaceWithComponentMI->flat_name_ == componentMI->flat_name_);
+
+	 delete componentMI; // old component mi (dtor removes it from allMIComponents)
+	 assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
+	 allMIComponents[replaceWithComponentMI->flat_name_] = replaceWithComponentMI;
+      }
+   }
+}
+
+// called when all components have been removed (because the processes have exited
+// or exec'd) from "this".  "this" is an aggregate mi.
 void metricDefinitionNode::endOfDataCollection() {
   assert(components.size() == 0);
 
@@ -359,6 +605,7 @@ void metricDefinitionNode::endOfDataCollection() {
 }
 
 // remove a component from an aggregate.
+// "this" is an aggregate mi; "comp" is a component mi.
 void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp) {
   unsigned size = components.size();
   for (unsigned u = 0; u < size; u++) {
@@ -377,11 +624,20 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp) {
   assert(0);
 }
 
-// remove this instance from all aggregators it is a component of.
+// remove this component mi from all aggregators it is a component of.
+// if the aggregate mi no longer has any components then fry the mi aggregate mi.
+// called by removeFromMetricInstances, below, when a process exits (or exec's)
 void metricDefinitionNode::removeThisInstance() {
   assert(!aggregate_);
+
+  // first, remove from allMIComponents (this is new --- is it right?)
+  assert(allMIComponents.defines(flat_name_));
+  allMIComponents.undef(flat_name_);
+
+  assert(aggregators.size() == samples.size());
   unsigned aggr_size = aggregators.size();
   assert(aggr_size > 0);
+
   for (unsigned u = 0; u < aggr_size; u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
     aggregators[u]->removeFromAggregate(this); 
@@ -389,17 +645,25 @@ void metricDefinitionNode::removeThisInstance() {
 }
 
 
-// Called when a process exits to remove the component associated to proc 
-// from all metric instances
-// Remove the metric instances that don't have any components left
+// Called when a process exits, to remove the component associated to proc 
+// from all metric instances.  (If, after an exec, we never want to carry over
+// mi's from the pre-exec, then this routine will work there, too.  But we try to
+// carry over mi's whenever appropriate.)
+// Remove the aggregate metric instances that don't have any components left
 void removeFromMetricInstances(process *proc) {
+    // Loop through all of the _component_ mi's; for each with component process
+    // of "proc", remove the component mi from its aggregate mi.
+    // Note: imho, there should be a *per-process* vector of mi-components.
+
     vector<metricDefinitionNode *> MIs = allMIComponents.values();
     for (unsigned j = 0; j < MIs.size(); j++) {
       if (MIs[j]->proc() == proc)
 	MIs[j]->removeThisInstance();
     }
-    costMetric::removeProcessFromAll(proc);
+    costMetric::removeProcessFromAll(proc); // what about internal metrics?
 }
+
+/* *************************************************************************** */
 
 // obligatory definition of static member vrble:
 int metricDefinitionNode::counterId=0;
@@ -481,30 +745,106 @@ dataReqNode *metricDefinitionNode::addProcessTimer() {
    return result;
 };
 
-// called when a process forks. this is a metricDefinitionNode of the parent.
-// Duplicate it for the child
-metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
-    metricDefinitionNode *mi = new metricDefinitionNode(child, met_, focus_, flat_name_, aggOp);
+/* *************************************************************************** */
+
+// called when a process forks (by handleFork(), below). "this" is a (component)
+// mi in the parent process. Duplicate it for the child, with appropriate
+// changes (i.e. the pid of the component focus name differs), and return the newly
+// created child mi.  "map" maps all instInstance's of the parent to those copied into
+// the child.
+// 
+// Note how beautifully everything falls into place.  Consider the case of alarm
+// sampling with cpu/whole program.  Then comes the fork.  The parent process has
+// (0) a tTimer structure allocated in a specific location in the inferior heap,
+// (1) instrumentation @ main to call startTimer on that ptr, (2) instrumentation in
+// DYNINSTsampleValues() to call DYNINSTreportTimer on that ptr.
+// The child process of fork will have ALL of these things in the exact same locations,
+// which is correct.  We want the timer to be located in the same spot; we want
+// DYNINSTreportTimer to be called on the same pointer; and main() hasn't moved.
+//
+// So there's not much to do here.  We create a new component mi (with same flat name
+// as in the parent, except for a different pid), and call "forkProcess" for all
+// dataReqNodes and instReqNodes, none of which have to do anything titanic.
+
+metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
+			const dictionary_hash<instInstance*,instInstance*> &map) const {
+    // The "focus_" member vrble stays the same, because it was always for the
+    // metric as a whole, and not for some component.
+    //
+    // But two things must change, because they were component-specific (and the
+    // component has changed processes):
+    // (1) the flat name
+    // (2) the component focus (not to be confused with plain focus_)
+    //
+    // For example, instead of
+    // "/Code/foo.c/myfunc, /Process/100, ...", we should have
+    // "/Code/foo.c/myfunc, /Process/101, ...", because the pid of the child
+    // differs from that of the parent.
+
+    // The resource structure of a given process is found in the "rid"
+    // field of class process.
+    const resource *parentResource = child->getParent()->rid;
+    const string &parentPartName = parentResource->part_name();
+
+    const resource *childResource = child->rid;
+    const string &childPartName = childResource->part_name();
+
+    vector< vector<string> > newComponentFocus = this->component_focus;
+       // we'll change the process, but not the machine name.
+    bool foundProcess = false;
+
+    for (unsigned hier=0; hier < component_focus.size(); hier++) {
+       if (component_focus[hier][0] == "Process") {
+	  foundProcess = true;
+	  assert(component_focus[hier].size() == 2);
+	     // since a component focus is by definition specific to some process
+
+	  assert(component_focus[hier][1] == parentPartName);
+
+	  // change the process:
+	  newComponentFocus[hier][1] = childPartName;
+	  break;
+       }
+    }
+    assert(foundProcess);
+    
+    string newComponentFlatName = metricAndCanonFocus2FlatName(met_, newComponentFocus);
+
+    metricDefinitionNode *mi =
+        new metricDefinitionNode(child,
+			 met_, // metric name doesn't change
+			 focus_, // focus doesn't change (tho component focus will)
+			 newComponentFocus, // this is a change
+			 newComponentFlatName, // this is a change
+			 aggOp // no change
+			 );
     assert(mi);
-    allMIComponents[flat_name_] = mi;
 
+    forkexec_cerr << "metricDefinitionNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
+
+    assert(!allMIComponents.defines(newComponentFlatName));
+    allMIComponents[newComponentFlatName] = mi;
+
+    // Duplicate the dataReqNodes:
     for (unsigned u = 0; u < dataRequests.size(); u++) {
-       dataReqNode *newNode = dataRequests[u]->dup(child,
-						   metricDefinitionNode::counterId);
-         // calls sampledIntCounterReqNode::dup() or sampledTimerReqNode::dup()
+       // must add to midToMiMap[] before dup() to avoid some assert fails
+       const int newCounterId = metricDefinitionNode::counterId++;
+          // no relation to mi->getMId();
+       forkexec_cerr << "forked dataReqNode going into midToMiMap with id " << newCounterId << endl;
+       assert(!midToMiMap.defines(newCounterId));
+       midToMiMap[newCounterId] = mi;
+       
+       dataReqNode *newNode = dataRequests[u]->dup(child, mi, newCounterId, map);
+         // remember, dup() is a virtual fn, so the right dup() and hence the
+         // right fork-ctor is called.
        assert(newNode);
-
-       metricDefinitionNode::counterId++;
-
-       // add to midToMiMap:
-       unsigned mid = newNode->getSampleId();
-       midToMiMap[mid] = mi;
 
        mi->dataRequests += newNode;
     }
 
+    // Duplicate the instReqNodes:
     for (unsigned u = 0; u < instRequests.size(); u++) {
-      mi->instRequests += instReqNode::forkProcess(instRequests[u], child);
+      mi->instRequests += instReqNode::forkProcess(instRequests[u], map);
     }
 
     mi->inserted_ = true;
@@ -512,26 +852,120 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
     return mi;
 }
 
-void metricDefinitionNode::handleFork(const process *parent, process *child) {
-    vector<metricDefinitionNode *> MIs = allMIs.values();
-    for (unsigned u = 0; u < MIs.size(); u++) {
-      metricDefinitionNode *mi = MIs[u];
-      for (unsigned v = 0; v < mi->components.size(); v++) {
-	if (mi->components[v]->proc() == parent) {
-	  metricDefinitionNode *childMI = mi->components[v]->forkProcess(child);
-	  if (mi->focus_[resource::process].size()== 1) {
-	    mi->components += childMI;
-	    childMI->aggregators += mi;
-	    childMI->samples += mi->aggSample.newComponent();
-	  }
-	  else {
-	    // this metric is only being computed for selected processes.
-	    for (unsigned w = 0; w < childMI->dataRequests.size(); w++)
-		 midToMiMap.undef(childMI->dataRequests[w]->getSampleId());
-	  }
-	}
+bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> &map,
+				  bool unForkInstRequests,
+				  bool unForkDataRequests) {
+   // see below handleFork() for explanation of why this routine is needed.
+   // "this" is a component mi for the parent process; we need to remove copied
+   // instrumentation from the _child_ process.
+   // Returns true iff the instrumentation was removed in the child (would be false
+   // if it's not safe to remove the instrumentation in the child because it was
+   // active.)
+
+   // "map" maps instInstances from the parent process to instInstances in the child
+   // process.
+
+   // We loop thru the instReqNodes of the parent process, unforking each.
+   // In addition, we need to unfork the dataReqNodes, because the alarm-sampled
+   // ones instrument DYNINSTsampleValues.
+
+   bool result = true;
+
+   if (unForkInstRequests)
+      for (unsigned lcv=0; lcv < instRequests.size(); lcv++)
+         if (!instRequests[lcv].unFork(map))
+	    result = false; // failure
+
+   if (unForkDataRequests)
+      for (unsigned lcv=0; lcv < dataRequests.size(); lcv++)
+         if (!dataRequests[lcv]->unFork(map))
+	    result = false; // failure
+
+   return result;
+}
+
+
+// called by forkProcess of context.C, just after the fork-constructor was
+// called for the child process.
+void metricDefinitionNode::handleFork(const process *parent, process *child,
+			      dictionary_hash<instInstance*,instInstance*> &map) {
+   // "map" defines a mapping from all instInstance's of the parent process to
+   // the copied one in the child process.  Some of the child process's ones may
+   // get fried by this routine, as it detects that instrumentation has been copied
+   // (by the fork syscall, which we have no control over) which doesn't belong in
+   // the child process and therefore gets deleted manually.
+  
+   // Remember that a given component can be shared by multiple aggregator-mi's,
+   // so be careful about duplicating a component twice.  Since we loop through
+   // component mi's instead of aggregate mi's, it's no problem.  Note that it's
+   // possible that only a subset of a component-mi's aggregators should get the newly
+   // created child component mi.
+
+   vector<metricDefinitionNode *> allComponents = allMIComponents.values();
+   for (unsigned complcv=0; complcv < allComponents.size(); complcv++) {
+      metricDefinitionNode *comp = allComponents[complcv];
+
+      // duplicate the component (create a new one) if it belongs in the
+      // child process.  It belongs if any of its aggregate mi's should be
+      // propagated to the child process.  An aggregate mi should be propagated
+      // if it wasn't refined to some process.
+
+      bool shouldBePropagated = false; // so far
+      bool shouldBeUnforkedIfNotPropagated = false; // so far
+      assert(comp->aggregators.size() > 0);
+      for (unsigned agglcv=0; agglcv < comp->aggregators.size(); agglcv++) {
+	 metricDefinitionNode *aggMI = comp->aggregators[agglcv];
+
+	 if (aggMI->focus_[resource::process].size() == 1) {
+	    // wasn't specific to any process
+	    shouldBeUnforkedIfNotPropagated = false; // we'll definitely be using it
+	    shouldBePropagated = true;
+	    break;
+	 }
+	 else if (comp->proc() == parent)
+	    // was specific to parent process, so fork() copied it into the child,
+	    // unless it was an internal or cost metric, in which case there was nothing
+	    // for fork to copy.
+	    if (!internalMetric::isInternalMetric(aggMI->getMetName()) &&
+		!costMetric::isCostMetric(aggMI->getMetName()))
+	       shouldBeUnforkedIfNotPropagated = true;
+	 else
+	    // was specific to other process, so nothing is in the child for it yet
+	    ;
       }
-    }
+
+      if (!shouldBePropagated && shouldBeUnforkedIfNotPropagated) {
+	 // this component mi isn't gonna be propagated to the child process, but
+	 // the fork syscall left some residue in the child.  Delete that residue now.
+	 assert(comp->proc() == parent);
+	 comp->unFork(map, true, true); // also modifies 'map' to remove items
+      }
+
+      if (!shouldBePropagated)
+	 continue;
+
+      // Okay, it's time to propagate this component mi to the subset of its aggregate
+      // mi's which weren't refined to a specific process.  If we've gotten to this
+      // point, then there _is_ at least one such aggregate.
+      assert(shouldBePropagated);
+      metricDefinitionNode *newComp = comp->forkProcess(child, map);
+         // copies instr (well, fork() does this for us), allocs ctr/timer space,
+         // initializes.  Basically, copies dataReqNode's and instReqNode's.
+
+      bool foundAgg = false;
+      for (unsigned agglcv=0; agglcv < comp->aggregators.size(); agglcv++) {
+	 metricDefinitionNode *aggMI = comp->aggregators[agglcv];
+	 if (aggMI->focus_[resource::process].size() == 1) {
+	    // this aggregate mi wasn't specific to any process, so it gets the new
+	    // child component.
+	    aggMI->components += newComp;
+	    newComp->aggregators += aggMI;
+	    newComp->samples     += aggMI->aggSample.newComponent();
+	    foundAgg = true;
+	 }
+      }
+      assert(foundAgg);
+   }
 }
 
 bool metricDefinitionNode::anythingToManuallyTrigger() const {
@@ -587,10 +1021,14 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
        // calls mdl_do()
-    if (!mi) return(-1);
+    if (!mi) {
+       cerr << "startCollecting failed because createMetricInstance failed" << endl;
+       return(-1);
+    }
 
     mi->id_ = id;
 
+    assert(!allMIs.defines(mi->id_));
     allMIs[mi->id_] = mi;
 
     const float cost = mi->cost();
@@ -661,61 +1099,55 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     return(mi->id_);
 }
 
-float guessCost(string& metric_name, vector<u_int>& focus)
-{
-    float cost;
-    metricDefinitionNode *mi;
+float guessCost(string& metric_name, vector<u_int>& focus) {
+   // called by dynrpc.C (getPredictedDataCost())
     bool internal;
-    mi = createMetricInstance(metric_name, focus, false, internal);
-    if (!mi) return(0.0);
-    cost = mi->cost();
+    metricDefinitionNode *mi = createMetricInstance(metric_name, focus, false, internal);
+    if (!mi) {
+       //metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
+       return(0.0);
+    }
+
+    float cost = mi->cost();
     // delete the metric instance, if it is not being used 
     if (!allMIs.defines(mi->getMId()))
       delete mi;
+
     return(cost);
 }
 
 bool metricDefinitionNode::insertInstrumentation()
 {
     // returns true iff successful
-    bool needToCont = false;
+    if (inserted_)
+       return true;
 
-    if (inserted_) return(true);
-
-    /* check all proceses are in an ok state */
-#ifdef notdef
-    if (!isApplicationPaused()) {
-        pauseAllProcesses();
-        needToCont = true;
-    }
-#endif
     inserted_ = true;
+
     if (aggregate_) {
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
           if (!components[u]->insertInstrumentation())
 	     return false; // shouldn't we try to undo what's already put in?
     } else {
-      needToCont = proc_->status() == running;
+      bool needToCont = proc_->status() == running;
       bool res = proc_->pause();
       if (!res)
 	return false;
 
       // Loop thru "dataRequests", an array of (ptrs to) dataReqNode:
-      // (Here we allocate ctrs/timers in the inferior heap but don't
-      //  stick in any code)
+      // Here we allocate ctrs/timers in the inferior heap but don't
+      // stick in any code, except (if appropriate) that we'll instrument the
+      // application's alarm-handler when not shm sampling.
       unsigned size = dataRequests.size();
       for (unsigned u=0; u<size; u++) {
 	// the following allocs an object in inferior heap and arranges for
-        // it to be sampled, as appropriate.
+        // it to be alarm sampled, if appropriate.
         if (!dataRequests[u]->insertInstrumentation(proc_, this))
            return false; // shouldn't we try to undo what's already put in?
 
 	unsigned mid = dataRequests[u]->getSampleId();
-	if (midToMiMap.defines(mid)) {
-	   cerr << "insertInstrumentation warning: data node id " << mid << " already in use!!!" << endl;
-	}
-
+	assert(!midToMiMap.defines(mid));
 	midToMiMap[mid] = this;
       }
 
@@ -728,15 +1160,8 @@ bool metricDefinitionNode::insertInstrumentation()
 	  if (!instRequests[u1].insertInstrumentation(proc_, retInst))
 	     return false; // shouldn't we try to undo what's already put in?
 
-	  //cerr << "metricDefinitionNode::insertInstrumentation: retInst was set to " << (void *)retInst << endl;
-
-	  if (retInst) {
-	    //cerr << "adding a returnInst now!" << endl;
+	  if (retInst)
 	    returnInsts += retInst;
-	  }
-	  else {
-	    //cerr << "NOT adding a returnInst now!" << endl;
-	  }
       }
 
       if (needToCont)
@@ -747,8 +1172,6 @@ bool metricDefinitionNode::insertInstrumentation()
 }
 
 bool metricDefinitionNode::checkAndInstallInstrumentation() {
-
-    vector<Address> pc;
     bool needToCont = false;
 
     if (installed_) return(true);
@@ -766,8 +1189,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
             return false;
         }
 
-        //Frame frame(proc_);
-        pc = proc_->walkStack();
+	vector<Address> pc = proc_->walkStack();
 
 	// for(u_int i=0; i < pc.size(); i++){
 	//     printf("frame %d: pc = 0x%x\n",i,pc[i]);
@@ -821,14 +1243,11 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 
 float metricDefinitionNode::cost() const
 {
-    float ret;
-    float nc;
-
-    ret = 0.0;
+    float ret = 0.0;
     if (aggregate_) {
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++) {
-          nc = components[u]->cost();
+          float nc = components[u]->cost();
           if (nc > ret) ret = nc;
         }
     } else {
@@ -956,6 +1375,9 @@ metricDefinitionNode::~metricDefinitionNode()
 }
 
 
+// NOTE: This stuff (flush_batch_buffer() and batchSampleData()) belongs
+//       in perfStream.C; this is an inappropriate file.
+
 //////////////////////////////////////////////////////////////////////////////
 // Buffer the samples before we actually send it                            //
 //      Send it when the buffers are full                                   //
@@ -990,17 +1412,12 @@ void flush_batch_buffer() {
       copyBatchBuffer[i] = theBatchBuffer[i];
    }
 
-   //char myLogBuffer[120] ;
-   //sprintf(myLogBuffer, "in metric.C batch size about to send = %d\n", batch_buffer_next) ;
-   //logLine(myLogBuffer) ;
-
-   // Now let's do the actual igen call!
-
 #ifdef FREEDEBUG
 timeStamp t1,t2;
 t1=getCurrentTime(false);
 #endif
 
+   // Now let's do the actual igen call!
    tp->batchSampleDataCallbackFunc(0, copyBatchBuffer);
 
 #ifdef FREEDEBUG
@@ -1059,15 +1476,9 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
 void metricDefinitionNode::updateValue(time64 wallTime, 
                                        sampleValue value)
 {
-    // sampleInterval ret;
-    // extern timeStamp elapsedPauseTime;
+    timeStamp sampleTime = wallTime / 1000000.0;
+       // note: we can probably do integer division by million quicker
 
-    // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
-    // commented out elapsedPauseTime because we don't currently stop CM-5
-    // node processes. (brought it back jkh 11/9/93).
-//cerr << "welcome to mdn::updateValue; wallTime=" << wallTime << " value=" << value << "; this=" << (void*)this << endl;
-
-    timeStamp sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
     // TODO -- is this ok?
@@ -1090,9 +1501,6 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       cumulativeValue += value;
     } 
 
-      // char buffer[200];
-      // sprintf(buffer, "metricDefinitionNode::updateValue: value = %f aggOp = %d agg.size = %d valueList.size = %d\n", value,sample.aggOp,aggregators.size(),valueList.count());
-      // logLine(buffer);
     //
     // If style==EventCounter then value is changed. Otherwise, it keeps the
     // the current "value" (e.g. SampledFunction case). That's why it is not
@@ -1112,8 +1520,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 
 void metricDefinitionNode::updateAggregateComponent()
 {
-    sampleInterval ret;
-    ret = aggSample.aggregateValues();
+    // currently called (only) by the above routine
+    sampleInterval ret = aggSample.aggregateValues();
     if (ret.valid) {
         assert(ret.end > ret.start);
         assert(ret.start + 0.000001 >= (firstRecordTime/MILLION));
@@ -1121,6 +1529,9 @@ void metricDefinitionNode::updateAggregateComponent()
 	batchSampleData(id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
     }
+//    else {
+//        metric_cerr << "sorry, ret.valid false so not batching sample data" << endl;
+//    }
 }
 
 //
@@ -1134,6 +1545,7 @@ void metricDefinitionNode::updateAggregateComponent()
 #ifndef SHM_SAMPLING
 void processCost(process *proc, traceHeader *h, costUpdate *s)
 {
+    // we can probably do integer division by million quicker.
     timeStamp newSampleTime = (h->wall / 1000000.0);
     timeStamp newProcessTime = (h->process / 1000000.0);
 
@@ -1161,10 +1573,11 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 #endif
 
 #ifndef SHM_SAMPLING
-void processSample(traceHeader *h, traceSample *s)
+void processSample(int pid, traceHeader *h, traceSample *s)
 {
     // called from processTraceStream (perfStream.C) when a TR_SAMPLE record
     // has arrived from the appl.
+
     unsigned mid = s->id.id; // low-level counterId (see primitives.C)
 
     static long long firstWall = 0;
@@ -1177,15 +1590,11 @@ void processSample(traceHeader *h, traceSample *s)
 
     metricDefinitionNode *mi; // filled in by find() if found
     if (!midToMiMap.find(mid, mi)) { // low-level counterId to metricDefinitionNode
-
-#ifdef ndef
-       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
-	       s->id.id);
-       logLine(errorLine);
-#endif
-
+       metric_cerr << "TR_SAMPLE id " << s->id.id << " not for valid mi...discarding" << endl;
        return;
     }
+
+//    metric_cerr << "FROM pid " << pid << " got value " << s->value << " for id " << s->id.id << endl;
 
     //    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
     //  ((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
@@ -1206,27 +1615,52 @@ instReqNode::instReqNode(instPoint *iPoint,
     point = iPoint;
     when = iWhen;
     order = o;
-    instance = NULL;
+    instance = NULL; // set when insertInstrumentation() calls addInstFunc()
     ast = assignAst(iAst);
     manuallyTrigger = iManuallyTrigger;
     assert(point);
 }
 
-instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child) {
-    instReqNode ret = instReqNode(parent.point, parent.ast, parent.when,
-				  parent.order,
+instReqNode instReqNode::forkProcess(const instReqNode &parentNode,
+			     const dictionary_hash<instInstance*,instInstance*> &map) {
+    instReqNode ret = instReqNode(parentNode.point, parentNode.ast, parentNode.when,
+				  parentNode.order,
 				  false // don't manually trigger
 				  );
-    assert(child->instInstanceMapping.defines(parent.instance));
-    ret.instance = child->instInstanceMapping[parent.instance];
+
+    if (!map.find(parentNode.instance, ret.instance)) // writes to ret.instance
+       assert(false);
+
     return ret;
+}
+
+bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map) const {
+   // The fork syscall duplicates all trampolines from the parent into the child. For
+   // those mi's which we don't want to propagate to the child, this creates a
+   // problem.  We need to remove instrumentation code from the child.  This routine
+   // does that.
+   //
+   // "this" represents an instReqNode in the PARENT process.
+   // "map" maps all instInstance*'s of the parent process to instInstance*'s in the
+   // child process.  We modify "map" by setting a value to NULL.
+
+   instInstance *parentInstance = getInstance();
+   
+   instInstance *childInstance;
+   if (!map.find(parentInstance, childInstance)) // writes to childInstance
+      assert(false);
+
+   vector<unsigned> pointsToCheck; // is it right leaving this empty on a fork()???
+   deleteInst(childInstance, pointsToCheck);
+
+   map[parentInstance] = NULL; // since we've deleted...
+
+   return true; // success
 }
 
 bool instReqNode::insertInstrumentation(process *theProc,
 					returnInstance *&retInstance) {
-    // NEW: We may manually trigger the instrumentation, via a delayed inferiorRPC call
-    //      (delayed meaning that the inferiorRPC doesn't take place until the next
-    //      call to continueProc()).
+    // NEW: We may manually trigger the instrumentation, via a call to postRPCtoDo()
 
     // addInstFunc() is one of the key routines in all paradynd.
     // It installs a base tramp at the point (if needed), generates code
@@ -1235,7 +1669,6 @@ bool instReqNode::insertInstrumentation(process *theProc,
     instance = addInstFunc(theProc, point, ast, when, order,
 			   false, // false --> don't exclude cost
 			   retInstance);
-    //cerr << "instReqNode::insertInstrumentation: call to addInstFunc set retInstance to " << (void *)retInstance << endl;
 
     return (instance != NULL);
 }
@@ -1286,7 +1719,7 @@ bool instReqNode::triggerNow(process *theProc) {
 #ifndef SHM_SAMPLING
 sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId) :
                                                   dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
    initialValue = iValue;
 
    // The following fields are NULL until insertInstrumentation()
@@ -1295,31 +1728,34 @@ sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId) :
 }
 
 sampledIntCounterReqNode::sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
-						   process *childProc, int iCounterId) {
+						   process *childProc,
+						   metricDefinitionNode *,
+						   int iCounterId,
+						   const dictionary_hash<instInstance*,instInstance*> &map) {
    // a dup() routine (call after a fork())
    counterPtr = src.counterPtr; // assumes addr spaces have been dup()d.
 
-   // is this right? What if src.sampler is NULL?
-   assert(childProc->instInstanceMapping.defines(src.sampler));
-   sampler = childProc->instInstanceMapping[src.sampler];
+   if (!map.find(src.sampler, this->sampler)) // writes to this->sampler
+      assert(false);
 
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
  
    intCounter temp;
-   temp.id.id = this->sampleId;
+   temp.id.id = this->theSampleId;
    temp.value = initialValue;
    writeToInferiorHeap(childProc, temp);
 }
 
-dataReqNode *sampledIntCounterReqNode::dup(process *childProc,
-					   int iCounterId) const {
+dataReqNode *
+sampledIntCounterReqNode::dup(process *childProc,
+			      metricDefinitionNode *mi,
+			      int iCounterId,
+			      const dictionary_hash<instInstance*,instInstance*> &map
+			      ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledIntCounterReqNode *tmp;
-   tmp = new sampledIntCounterReqNode(*this, childProc, iCounterId);
+   return new sampledIntCounterReqNode(*this, childProc, mi, iCounterId, map);
       // fork ctor
-  
-   return tmp;
 }
 
 bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1332,7 +1768,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    // initialize the intCounter in the inferior heap
    intCounter temp;
-   temp.id.id = this->sampleId;
+   temp.id.id = this->theSampleId;
    temp.value = this->initialValue;
 
    writeToInferiorHeap(theProc, temp);
@@ -1374,6 +1810,23 @@ void sampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
    assert(counterPtr);
    theProc->writeDataSpace(counterPtr, sizeof(intCounter), &dataSrc);
 }
+
+bool sampledIntCounterReqNode::
+unFork(dictionary_hash<instInstance*,instInstance*> &map) {
+   instInstance *parentSamplerInstance = this->sampler;
+
+   instInstance *childSamplerInstance;
+   if (!map.find(parentSamplerInstance, childSamplerInstance))
+      assert(false);
+
+   vector<unsigned> pointsToCheck; // empty on purpose
+   deleteInst(childSamplerInstance, pointsToCheck);
+
+   map[parentSamplerInstance] = NULL;
+
+   return true;
+}
+				      
 #endif
 
 /* ************************************************************************* */
@@ -1382,7 +1835,7 @@ void sampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
 
 sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, int iCounterId) :
                                                   dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
    initialValue = iValue;
 
    // The following fields are NULL until insertInstrumentation()
@@ -1392,42 +1845,63 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, int iCounte
 
 sampledShmIntCounterReqNode::
 sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
-			    process *childProc, int iCounterId) {
+			    process *childProc, metricDefinitionNode *mi,
+			    int iCounterId) {
    // a dup() routine (call after a fork())
-   // WARNING: assumes that "childProc" (and in particular, its
-   //          fastInferiorHeap<> member vrbles) have been copied correctly
-   //          already.  In particular, childProc should have shared segs
-   //          _distinct_ from that of the parent!!!
+   // Assumes that "childProc" has been copied already (e.g., the shm seg was copied).
 
-   // setting the new value of inferiorCounterPtr is a little tricky.
-   // We use the following trick: the index is the same, so we just
-   // peek at the new base addr and do some pointer arith.  Note that
-   // the fastInferiorHeap class's fork ctor will have already copied the
-   // actual data...
+   // Note that the index w/in the inferior heap remains the same, so setting the
+   // new inferiorCounterPtr isn't too hard.  Actually, it's trivial, since other code
+   // ensures that the new shm segment is placed in exactly the same virtual mem location
+   // as the previous one.
+   //
+   // Note that the fastInferiorHeap class's fork ctor will have already copied the
+   // actual data; we need to fill in new meta-data (new houseKeeping entries).
 
    this->allocatedIndex = src.allocatedIndex;
 
-   const fastInferiorHeap<intCounterHK, intCounter> &theHeap =
+   this->theSampleId = iCounterId;  // this is different from the parent's value
+   this->initialValue = src.initialValue;
+
+   fastInferiorHeap<intCounterHK, intCounter> &theHeap =
                     childProc->getInferiorIntCounters();
 
+   // since the new shm seg is placed in exactly the same memory location as the old
+   // one, nothing here should change.
+   intCounter *oldInferiorCounterPtr = src.inferiorCounterPtr;
    inferiorCounterPtr = theHeap.index2InferiorAddr(allocatedIndex);
+   assert(inferiorCounterPtr == oldInferiorCounterPtr);
 
-   sampleId = iCounterId;
-   initialValue = src.initialValue;
+   // write to the raw item in the inferior heap:
+   intCounter *localCounterPtr = theHeap.index2LocalAddr(allocatedIndex);
+   const intCounter *localSrcCounterPtr = childProc->getParent()->getInferiorIntCounters().index2LocalAddr(allocatedIndex);
+   localCounterPtr->value = initialValue;
+   localCounterPtr->id.id = theSampleId;
+   localCounterPtr->theSpinner = localSrcCounterPtr->theSpinner;
+      // in case we're in the middle of an operation
 
-   // WARNING: DON'T WE NEED TO WRITE TO THE INFERIOR HEAP IN ORDER
-   // TO GIVE THE NEW RAW ITEM ITS NEW AND DIFFERENT COUNTERID?
+   // write HK for this intCounter:
+   // Note: we don't assert anything about mi->getMId(), because that id has no
+   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
+   // just don't ever care what mi->getMId() is.
+   assert(theSampleId >= 0);
+   assert(midToMiMap.defines(theSampleId));
+   assert(midToMiMap[theSampleId] == mi);
+   intCounterHK iHKValue(theSampleId, mi);
+      // the mi differs from the mi of the parent; theSampleId differs too.
+   theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
 }
 
-dataReqNode *sampledShmIntCounterReqNode::dup(process *childProc,
-					      int iCounterId) const {
+dataReqNode *
+sampledShmIntCounterReqNode::dup(process *childProc,
+				 metricDefinitionNode *mi,
+				 int iCounterId,
+				 const dictionary_hash<instInstance*,instInstance*> &
+				 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmIntCounterReqNode *tmp;
-   tmp = new sampledShmIntCounterReqNode(*this, childProc, iCounterId);
+   return new sampledShmIntCounterReqNode(*this, childProc, mi, iCounterId);
       // fork ctor
-
-   return tmp;
 }
 
 bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1438,10 +1912,10 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
 
    // initialize the intCounter in the inferior heap
    intCounter iValue;
-   iValue.id.id = this->sampleId;
+   iValue.id.id = this->theSampleId;
    iValue.value = this->initialValue; // what about initializing 'theSpinner'???
 
-   intCounterHK iHKValue(this->sampleId, iMi);
+   intCounterHK iHKValue(this->theSampleId, iMi);
 
    fastInferiorHeap<intCounterHK, intCounter> &theShmHeap =
           theProc->getInferiorIntCounters();
@@ -1482,7 +1956,7 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
 
 nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, int iCounterId) :
                                                   dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
    initialValue = iValue;
 
    // The following fields are NULL until insertInstrumentation()
@@ -1491,27 +1965,29 @@ nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, int iCounte
 
 nonSampledIntCounterReqNode::
 nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
-			    process *childProc, int iCounterId) {
+			    process *childProc, metricDefinitionNode *,
+			    int iCounterId) {
    // a dup() routine (call after a fork())
    counterPtr = src.counterPtr; // assumes addr spaces have been dup()d.
-
-   sampleId = iCounterId;
+   initialValue = src.initialValue;
+   theSampleId = iCounterId;
  
    intCounter temp;
-   temp.id.id = this->sampleId;
-   temp.value = initialValue;
+   temp.id.id = this->theSampleId;
+   temp.value = this->initialValue;
    writeToInferiorHeap(childProc, temp);
 }
 
-dataReqNode *nonSampledIntCounterReqNode::dup(process *childProc,
-					      int iCounterId) const {
+dataReqNode *
+nonSampledIntCounterReqNode::dup(process *childProc,
+				 metricDefinitionNode *mi,
+				 int iCounterId,
+				 const dictionary_hash<instInstance*,instInstance*> &
+				 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   nonSampledIntCounterReqNode *tmp;
-   tmp = new nonSampledIntCounterReqNode(*this, childProc, iCounterId);
+   return new nonSampledIntCounterReqNode(*this, childProc, mi, iCounterId);
       // fork ctor
-
-   return tmp;
 }
 
 bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1523,7 +1999,7 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    // initialize the intCounter in the inferior heap
    intCounter temp;
-   temp.id.id = this->sampleId;
+   temp.id.id = this->theSampleId;
    temp.value = this->initialValue;
 
    writeToInferiorHeap(theProc, temp);
@@ -1554,7 +2030,7 @@ void nonSampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
 #ifndef SHM_SAMPLING
 sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId) :
                                                  dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
    theTimerType = iType;
 
    // The following fields are NULL until insertInstrumentatoin():
@@ -1563,36 +2039,44 @@ sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId) :
 }
 
 sampledTimerReqNode::sampledTimerReqNode(const sampledTimerReqNode &src,
-					 process *childProc, int iCounterId) {
+					 process *childProc,
+					 metricDefinitionNode *,
+					 int iCounterId,
+					 const dictionary_hash<instInstance*,instInstance*> &map) {
    // a dup()-like routine; call after a fork()
    timerPtr = src.timerPtr; // assumes addr spaces have been dup()'d
 
-   // is this right? What if src.sampler is NULL?
-   assert(childProc->instInstanceMapping.defines(src.sampler));
-   sampler = childProc->instInstanceMapping[src.sampler];
+   if (!map.find(src.sampler, this->sampler)) // writes to this->sampler
+      assert(false);
+
    assert(sampler); // makes sense; timers are always sampled, whereas intCounters
                     // might be just non-sampled predicates.
    
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
    theTimerType = src.theTimerType;
 
    tTimer temp;
    P_memset(&temp, '\0', sizeof(tTimer)); /* is this needed? */
-   temp.id.id = this->sampleId;
+   temp.id.id = this->theSampleId;
    temp.type = this->theTimerType;
    temp.normalize = 1000000;
    writeToInferiorHeap(childProc, temp);
+
+   // WARNING: shouldn't we be resetting the raw value to count=0, start=0,
+   //          total = src.initialValue ???  On the other hand, it's not that
+   //          simple -- if the timer is active in the parent, then it'll be active
+   //          in the child.  So how about setting count to src.count, start=now,
+   //          total=0 ???
 }
 
-dataReqNode *sampledTimerReqNode::dup(process *childProc, int iCounterId) const {
+dataReqNode *
+sampledTimerReqNode::dup(process *childProc, metricDefinitionNode *mi,
+			 int iCounterId,
+			 const dictionary_hash<instInstance*,instInstance*> &map
+			 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledTimerReqNode *result = new sampledTimerReqNode(*this, childProc, iCounterId);
-      // fork ctor
-   if (result == NULL)
-      return NULL; // on failure, return w/o incrementing counterId
-
-   return result;
+   return new sampledTimerReqNode(*this, childProc, mi, iCounterId, map);
 }
 
 bool sampledTimerReqNode::insertInstrumentation(process *theProc,
@@ -1604,7 +2088,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    // Now let's initialize the newly allocated tTimer in the inferior heap:
    tTimer temp;
    P_memset(&temp, '\0', sizeof(tTimer));
-   temp.id.id = this->sampleId;
+   temp.id.id = this->theSampleId;
    temp.type = this->theTimerType;
    temp.normalize = 1000000;
    writeToInferiorHeap(theProc, temp);
@@ -1647,6 +2131,23 @@ void sampledTimerReqNode::writeToInferiorHeap(process *theProc,
    assert(timerPtr);
    theProc->writeDataSpace(timerPtr, sizeof(tTimer), &dataSrc);
 }
+
+bool sampledTimerReqNode::
+unFork(dictionary_hash<instInstance*,instInstance*> &map) {
+   instInstance *parentSamplerInstance = sampler;
+
+   instInstance *childSamplerInstance;
+   if (!map.find(parentSamplerInstance, childSamplerInstance))
+      assert(false);
+
+   vector<unsigned> pointsToCheck; // empty
+   deleteInst(childSamplerInstance, pointsToCheck);
+
+   map[parentSamplerInstance] = NULL; // since we've deleted...
+
+   return true;
+}
+				 
 #endif
 
 /* ****************************************************************** */
@@ -1654,7 +2155,7 @@ void sampledTimerReqNode::writeToInferiorHeap(process *theProc,
 #ifdef SHM_SAMPLING
 sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId) :
                                                  dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
 
    // The following fields are NULL until insertInstrumentation():
    allocatedIndex = UINT_MAX;
@@ -1663,46 +2164,79 @@ sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId) :
 
 sampledShmWallTimerReqNode::
 sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
-			   process *childProc, int iCounterId) {
-   // a dup()-like routine; call after a fork()
-   // WARNING: assumes that "childProc" (and in particular, its
-   //          fastInferiorHeap<> member vrbles) have been copied correctly
-   //          already.  In particular, childProc should have shared segs
-   //          _distinct_ from that of the parent!!!
+			   process *childProc,
+			   metricDefinitionNode *mi,
+			   int iCounterId) {
+   // a dup()-like routine; call after a fork().
+   // Assumes that the "childProc" has been duplicated already
 
-   // setting the new value of inferiorTimerPtr is a little tricky.
-   // We use the following trick: the index is the same, so we just
-   // peek at the new base addr and do some pointer arith.  Note that
-   // the fastInferiorHeap class's fork ctor will have already copied the
-   // actual data...
+   // Note that the index w/in the inferior heap remains the same, so setting the new
+   // inferiorTimerPtr isn't too hard.  Actually, it's trivial, since other code
+   // ensures that the new shm segment is placed in exactly the same virtual mem loc
+   // as the previous one.
+   //
+   // Note that the fastInferiorHeap class's fork ctor will have already copied the
+   // actual data; we need to fill in new meta-data (new houseKeeping entries).
 
-   this->allocatedIndex = src.allocatedIndex;
+   allocatedIndex = src.allocatedIndex;
+   theSampleId = iCounterId;
+   assert(theSampleId != src.theSampleId);
 
-   const fastInferiorHeap<wallTimerHK, tTimer> &theHeap =
+   fastInferiorHeap<wallTimerHK, tTimer> &theHeap =
                     childProc->getInferiorWallTimers();
 
+   // since the new shm seg is placed in exactly the same memory location as the old
+   // one, nothing here should change.
+   tTimer *oldInferiorTimerPtr = src.inferiorTimerPtr;
    inferiorTimerPtr = theHeap.index2InferiorAddr(allocatedIndex);
+   assert(inferiorTimerPtr == oldInferiorTimerPtr);
 
-   sampleId = iCounterId;
+   // Write new raw value in the inferior heap:
+   // we set localTimerPtr as follows: protector1 and procetor2 should be copied from
+   //    src. total should be reset to 0.  start should be set to now if active else 0.
+   //    counter should be copied from the source.
+   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK, BOTH THE
+   //       PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT THE CHILD IS
+   //       PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS NEW NEWS!
 
-   // WARNING: DON'T WE NEED TO WRITE TO THE INFERIOR HEAP IN ORDER
-   // TO GIVE THE NEW RAW ITEM ITS NEW AND DIFFERENT COUNTERID?
-//   tTimer temp;
-//   P_memset(&temp, '\0', sizeof(tTimer)); /* is this needed? */
-//   temp.id.id = this->sampleId;
-//   temp.type = this->theTimerType;
-//   temp.normalize = 1000000;
-//   writeToInferiorHeap(childProc, temp);
+   tTimer *localTimerPtr = theHeap.index2LocalAddr(allocatedIndex);
+   const tTimer *srcTimerPtr = childProc->getParent()->getInferiorWallTimers().index2LocalAddr(allocatedIndex);
+
+   localTimerPtr->total = 0;
+   localTimerPtr->counter = srcTimerPtr->counter;
+   localTimerPtr->id.id   = theSampleId;
+   localTimerPtr->protector1 = srcTimerPtr->protector1;
+   localTimerPtr->protector2 = srcTimerPtr->protector2;
+
+   if (localTimerPtr->counter == 0)
+      // inactive timer...this is the easy case to copy
+      localTimerPtr->start = 0; // undefined, really
+   else
+      // active timer...don't copy the start time from the source...make it 'now'
+      localTimerPtr->start = getCurrWallTime();
+
+   // write new HK for this tTimer:
+   // Note: we don't assert anything about mi->getMId(), because that id has no
+   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
+   // just don't ever care what mi->getMId() is.
+   assert(theSampleId >= 0);
+   assert(midToMiMap.defines(theSampleId));
+   assert(midToMiMap[theSampleId] == mi);
+   wallTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
+      // the mi should differ from the mi of the parent; theSampleId differs too.
+   theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
 }
 
-dataReqNode *sampledShmWallTimerReqNode::dup(process *childProc, int iCounterId) const {
+dataReqNode *
+sampledShmWallTimerReqNode::dup(process *childProc,
+				metricDefinitionNode *mi,
+				int iCounterId,
+				const dictionary_hash<instInstance*,instInstance*> &
+				) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmWallTimerReqNode *tmp;
-   tmp = new sampledShmWallTimerReqNode(*this, childProc, iCounterId);
+   return new sampledShmWallTimerReqNode(*this, childProc, mi, iCounterId);
       // fork constructor
-
-   return tmp;
 }
 
 bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
@@ -1714,14 +2248,9 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
    // initialize the tTimer in the inferior heap
    tTimer iValue;
    P_memset(&iValue, '\0', sizeof(tTimer));
-   iValue.id.id = this->sampleId;
+   iValue.id.id = this->theSampleId;
 
-#ifndef SHM_SAMPLING
-   iValue.type = wallTime;
-   iValue.normalize = 1000000;
-#endif
-
-   wallTimerHK iHKValue(this->sampleId, iMi, 0);
+   wallTimerHK iHKValue(this->theSampleId, iMi, 0);
 
    fastInferiorHeap<wallTimerHK, tTimer> &theShmHeap =
           theProc->getInferiorWallTimers();
@@ -1744,8 +2273,7 @@ void sampledShmWallTimerReqNode::disable(process *theProc,
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
-   fastInferiorHeap<wallTimerHK, tTimer> &theShmHeap =
-          theProc->getInferiorWallTimers();
+   fastInferiorHeap<wallTimerHK, tTimer> &theShmHeap = theProc->getInferiorWallTimers();
 
    // Remove from inferior heap; make sure we won't be sampled any more:
    vector<unsigned> trampsMaybeUsing;
@@ -1760,7 +2288,7 @@ void sampledShmWallTimerReqNode::disable(process *theProc,
 
 sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId) :
                                                  dataReqNode() {
-   sampleId = iCounterId;
+   theSampleId = iCounterId;
 
    // The following fields are NULL until insertInstrumentatoin():
    allocatedIndex = UINT_MAX;
@@ -1769,46 +2297,79 @@ sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId) :
 
 sampledShmProcTimerReqNode::
 sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
-			   process *childProc, int iCounterId) {
+			   process *childProc,
+			   metricDefinitionNode *mi,
+			   int iCounterId) {
    // a dup()-like routine; call after a fork()
-   // WARNING: assumes that "childProc" (and in particular, its
-   //          fastInferiorHeap<> member vrbles) have been copied correctly
-   //          already.  In particular, childProc should have shared segs
-   //          _distinct_ from that of the parent!!!
+   // Assumes that the "childProc" has been duplicated already
 
-   // setting the new value of inferiorTimerPtr is a little tricky.
-   // We use the following trick: the index is the same, so we just
-   // peek at the new base addr and do some pointer arith.  Note that
-   // the fastInferiorHeap class's fork ctor will have already copied the
-   // actual data...
+   // Note that the index w/in the inferior heap remains the same, so setting the new
+   // inferiorTimerPtr isn't too hard.  Actually, it's trivial, since other code
+   // ensures that the new shm segment is placed in exactly the same virtual mem loc
+   // as the previous one.
+   //
+   // Note that the fastInferiorHeap class's fork ctor will have already copied the
+   // actual data; we need to fill in new meta-data (new houseKeeping entries).
 
-   this->allocatedIndex = src.allocatedIndex;
+   allocatedIndex = src.allocatedIndex;
+   theSampleId = iCounterId;
+   assert(theSampleId != src.theSampleId);
 
-   const fastInferiorHeap<processTimerHK, tTimer> &theHeap =
+   fastInferiorHeap<processTimerHK, tTimer> &theHeap =
                     childProc->getInferiorProcessTimers();
 
+   // since the new shm seg is placed in exactly the same memory location as the old
+   // one, nothing here should change.
+   tTimer *oldInferiorTimerPtr = src.inferiorTimerPtr;
    inferiorTimerPtr = theHeap.index2InferiorAddr(allocatedIndex);
+   assert(inferiorTimerPtr == oldInferiorTimerPtr);
 
-   sampleId = iCounterId;
+   // Write new raw value:
+   // we set localTimerPtr as follows: protector1 and procetor2 should be copied from
+   //    src. total should be reset to 0.  start should be set to now if active else 0.
+   //    counter should be copied from the source.
+   // NOTE: SINCE WE COPY FROM THE SOURCE, IT'S IMPORTANT THAT ON A FORK, BOTH THE
+   //       PARENT AND CHILD ARE PAUSED UNTIL WE COPY THINGS OVER.  THAT THE CHILD IS
+   //       PAUSED IS NOTHING NEW; THAT THE PARENT SHOULD BE PAUSED IS NEW NEWS!
 
-   // WARNING: DON'T WE NEED TO WRITE TO THE INFERIOR HEAP IN ORDER
-   // TO GIVE THE NEW RAW ITEM ITS NEW AND DIFFERENT COUNTERID?
-//   tTimer temp;
-//   P_memset(&temp, '\0', sizeof(tTimer)); /* is this needed? */
-//   temp.id.id = this->sampleId;
-//   temp.type = this->theTimerType;
-//   temp.normalize = 1000000;
-//   writeToInferiorHeap(childProc, temp);
+   tTimer *localTimerPtr = theHeap.index2LocalAddr(allocatedIndex);
+   const tTimer *srcTimerPtr = childProc->getParent()->getInferiorProcessTimers().index2LocalAddr(allocatedIndex);
+
+   localTimerPtr->total = 0;
+   localTimerPtr->counter = srcTimerPtr->counter;
+   localTimerPtr->id.id   = theSampleId;
+   localTimerPtr->protector1 = srcTimerPtr->protector1;
+   localTimerPtr->protector2 = srcTimerPtr->protector2;
+
+   if (localTimerPtr->counter == 0)
+      // inactive timer...this is the easy case to copy
+      localTimerPtr->start = 0; // undefined, really
+   else
+      // active timer...don't copy the start time from the source...make it 'now'
+      localTimerPtr->start = childProc->getInferiorProcessCPUtime();
+
+   // Write new HK for this tTimer:
+   // Note: we don't assert anything about mi->getMId(), because that id has no
+   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
+   // just don't ever care what mi->getMId() is.
+   assert(theSampleId >= 0);
+   assert(midToMiMap.defines(theSampleId));
+   assert(midToMiMap[theSampleId] == mi);
+   processTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
+      // the mi differs from the mi of the parent; theSampleId differs too.
+   theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
 }
 
-dataReqNode *sampledShmProcTimerReqNode::dup(process *childProc, int iCounterId) const {
+dataReqNode *
+sampledShmProcTimerReqNode::dup(process *childProc,
+				metricDefinitionNode *mi,
+				int iCounterId,
+				const dictionary_hash<instInstance*,instInstance*> &
+				) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   sampledShmProcTimerReqNode *tmp;
-   tmp = new sampledShmProcTimerReqNode(*this, childProc, iCounterId);
+   return new sampledShmProcTimerReqNode(*this, childProc, mi, iCounterId);
       // fork constructor
-
-   return tmp;
 }
 
 bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
@@ -1820,14 +2381,9 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    // initialize the tTimer in the inferior heap
    tTimer iValue;
    P_memset(&iValue, '\0', sizeof(tTimer));
-   iValue.id.id = this->sampleId;
+   iValue.id.id = this->theSampleId;
 
-#ifndef SHM_SAMPLING
-   iValue.type = processTime;
-   iValue.normalize = 1000000;
-#endif
-
-   processTimerHK iHKValue(this->sampleId, iMi, 0);
+   processTimerHK iHKValue(this->theSampleId, iMi, 0);
 
    fastInferiorHeap<processTimerHK, tTimer> &theShmHeap =
           theProc->getInferiorProcessTimers();
