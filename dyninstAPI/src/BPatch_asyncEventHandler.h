@@ -114,6 +114,7 @@ class BPatch_eventMailbox {
     void *cb;
     void *arg1;
     void *arg2;
+    void *arg3;
   } mb_callback_t;
   pdvector<mb_callback_t> cbs;
 
@@ -127,6 +128,30 @@ class BPatch_eventMailbox {
                         BPatch_thread *t, unsigned long tid);
   bool registerCallback(BPatchDynamicCallSiteCallback _cb,
                         BPatch_point *p, BPatch_function *f);
+  bool executeOrRegisterCallback(BPatchErrorCallback _cb,
+                                 BPatchErrorLevel lvl,
+                                 int number, const char *params);
+  bool executeOrRegisterCallback(BPatchDynLibraryCallback _cb,
+                                 BPatch_thread * thr,
+                                 BPatch_module * mod,
+                                 bool load);
+  bool executeOrRegisterCallback(BPatchForkCallback _cb,
+                                 BPatch_asyncEventType t,
+                                 BPatch_thread * parent,
+                                 BPatch_thread * child);
+  bool executeOrRegisterCallback(BPatchExecCallback _cb,
+                                 BPatch_thread * proc);
+  bool executeOrRegisterCallback(BPatchExitCallback _cb,
+                                 BPatch_thread * proc,
+                                 BPatch_exitType exit_type);
+  bool executeOrRegisterCallback(BPatchSignalCallback _cb,
+                                 BPatch_thread * proc,
+                                 int signum);
+  bool executeOrRegisterCallback(BPatchOneTimeCodeCallback _cb,
+                                 BPatch_thread * proc,
+                                 void * user_data,
+                                 void * return_value);
+
 };
 
 #if defined (os_windows)

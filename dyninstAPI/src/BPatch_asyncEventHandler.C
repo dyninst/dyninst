@@ -73,6 +73,7 @@
 
 class BPatch_eventMailbox;
 extern BPatch_eventMailbox *event_mailbox;
+extern unsigned long primary_thread_id;
 
 //extern MUTEX_TYPE global_mutex; // see BPatch_eventLock.h
 //extern bool mutex_created = false;
@@ -118,7 +119,122 @@ bool BPatch_eventMailbox::executeUserCallbacks()
 
           break;
         }
+        case BPatch_errorEvent:
+        {
+          BPatchErrorCallback cb = (BPatchErrorCallback) cbs[i].cb;
+          BPatchErrorLevel lvl = (BPatchErrorLevel)((unsigned long)cbs[i].arg1);
+          int number = (unsigned long) cbs[i].arg2;
+          const char *params = (const char *) cbs[i].arg3;
+          if (!cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(lvl, number, &params);
 
+           //  params is allocated upon registration of this cb
+          if (params) delete [] params;
+          break;
+
+        }
+        case BPatch_dynLibraryEvent:
+        {
+          BPatchDynLibraryCallback cb = (BPatchDynLibraryCallback) cbs[i].cb;
+          BPatch_thread *thr = (BPatch_thread *) cbs[i].arg1;
+          BPatch_module *mod = (BPatch_module *) cbs[i].arg2;
+          bool load = (bool) cbs[i].arg3;
+          if (!thr || !mod || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(thr, mod,load);
+
+          break;
+
+        }
+        case BPatch_postForkEvent:
+          if (!cbs[i].arg2) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+            break;
+          }
+        case BPatch_preForkEvent:
+        {
+          BPatchForkCallback cb = (BPatchForkCallback) cbs[i].cb;
+          BPatch_thread *parent = (BPatch_thread *) cbs[i].arg1;
+          BPatch_thread *child = (BPatch_thread *) cbs[i].arg2;
+          if (!parent || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(parent, child);
+
+          break;
+
+        }
+        case BPatch_execEvent:
+        {
+          BPatchExecCallback cb = (BPatchExecCallback) cbs[i].cb;
+          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          if (!proc || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(proc);
+
+          break;
+
+        }
+
+        case BPatch_exitEvent:
+        {
+          BPatchExitCallback cb = (BPatchExitCallback) cbs[i].cb;
+          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          BPatch_exitType exit_type = (BPatch_exitType) ((unsigned long)cbs[i].arg2);
+          if (!proc || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(proc, exit_type);
+
+          break;
+
+        }
+        case BPatch_signalEvent:
+        {
+          BPatchSignalCallback cb = (BPatchSignalCallback) cbs[i].cb;
+          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          int signum = (unsigned long) cbs[i].arg2;
+          if (!proc || !signum || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(proc,signum);
+
+          break;
+
+        }
+        case BPatch_oneTimeCodeEvent:
+        {
+          BPatchOneTimeCodeCallback cb = (BPatchOneTimeCodeCallback) cbs[i].cb;
+          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          void *userData = cbs[i].arg2;
+          void *returnValue = cbs[i].arg3;
+          if (!proc || !userData || !returnValue || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(proc, userData, returnValue);
+
+          break;
+
+        }
         default:
           fprintf(stderr, "%s[%d]:  invalid callback record\n", __FILE__, __LINE__);
           err = true;
@@ -154,6 +270,148 @@ bool BPatch_eventMailbox::registerCallback(BPatchDynamicCallSiteCallback _cb,
     return true;
 }
 
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchErrorCallback _cb,
+                                                    BPatchErrorLevel lvl, 
+                                                    int number, 
+                                                    const char *params)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(lvl, number, &params);
+      return true;
+    }
+
+    char *buf = new char[strlen(params) + 1];
+    strcpy(buf, params);
+
+    mb_callback_t cb;
+    cb.type = BPatch_errorEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) lvl;
+    cb.arg2 = (void *) number;
+    cb.arg3 = (void *) buf;
+    cbs.push_back(cb);
+    return true;
+}
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchDynLibraryCallback _cb,
+                                                    BPatch_thread * thr,
+                                                    BPatch_module * mod,
+                                                    bool load)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(thr, mod,load);
+      return true;
+    }
+
+    mb_callback_t cb;
+    cb.type = BPatch_dynLibraryEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) thr;
+    cb.arg2 = (void *) mod;
+    cb.arg3 = (void *) load;
+    cbs.push_back(cb);
+    return true;
+}
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchForkCallback _cb,
+                                                    BPatch_asyncEventType t,
+                                                    BPatch_thread * parent,
+                                                    BPatch_thread * child)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(parent, child);
+      return true;
+    }
+
+    assert ( (t==BPatch_preForkEvent) || (t==BPatch_postForkEvent));
+    mb_callback_t cb;
+    cb.type = t;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) parent;
+    cb.arg2 = (void *) child;
+    cbs.push_back(cb);
+    return true;
+}
+
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExecCallback _cb,
+                                                    BPatch_thread * proc)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(proc);
+      return true;
+    }
+
+    mb_callback_t cb;
+    cb.type = BPatch_execEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) proc;
+    cbs.push_back(cb);
+    return true;
+}
+
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExitCallback _cb,
+                                                    BPatch_thread * proc,
+                                                    BPatch_exitType exit_type)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(proc, exit_type);
+      return true;
+    }
+
+    mb_callback_t cb;
+    cb.type = BPatch_exitEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) proc;
+    cb.arg2 = (void *) exit_type;
+    cbs.push_back(cb);
+    return true;
+}
+
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchSignalCallback _cb,
+                                                    BPatch_thread * proc,
+                                                    int signum)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(proc, signum);
+      return true;
+    }
+
+    mb_callback_t cb;
+    cb.type = BPatch_signalEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) proc;
+    cb.arg2 = (void *) signum;
+    cbs.push_back(cb);
+    return true;
+}
+
+bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchOneTimeCodeCallback _cb,
+                                                    BPatch_thread * proc,
+                                                    void * user_data,
+                                                    void * return_value)
+{
+    unsigned long tid = BPatch::bpatch->threadID();
+    if (tid == primary_thread_id) {
+      (_cb)(proc, user_data, return_value);
+      return true;
+    }
+    mb_callback_t cb;
+    cb.type = BPatch_oneTimeCodeEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) proc;
+    cb.arg2 = (void *) user_data;
+    cb.arg3 = (void *) return_value;
+    cbs.push_back(cb);
+    return true;
+}
+
+
+
+
 ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
    threadModule(NULL),
    dyninst_rt(NULL),
@@ -165,26 +423,11 @@ ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
   const char *tmp_libname = libName;
 
   BPatch_image *appImage = thr->getImage();
-  threadModule = appImage->findModule(libName);
+  threadModule = appImage->findModuleInt(libName);
   if (!threadModule) {
     // exact match not found, try substrings (so we can specify libpthread
     // when we want a match on either libpthread.so, or libpthread.so.0, .a, etc)
-    char buf[512];
-    BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
-    for (unsigned int i = 0; i < mods->size(); ++i) {
-      (*mods)[i]->getName(buf, 512);
-      if (strstr(buf, libName)) {
-        if (threadModule) {
-          char oldname[512];
-          threadModule->getName(oldname, 512);
-          fprintf(stderr, "%s[%d]:  WARN:  multiple matches found for %s\n",
-                  __FILE__, __LINE__, libName);
-          fprintf(stderr, "%s[%d]:  replacing module %s with %s\n", 
-                  __FILE__, __LINE__, oldname, buf);
-        }
-        threadModule = (*mods)[i];
-      }
-    }
+    threadModule = appImage->findModuleInt(libName, true /* substring match */);
   }
   if (!threadModule) {
     //fprintf(stderr, "%s[%d]:  Thread module %s not found, assuming single threaded\n",
@@ -597,6 +840,13 @@ void *BPatch_asyncEventHandler::registerDynamicCallCallback(BPatchDynamicCallSit
     return NULL;
   }
 
+  if (!isRunning) {
+    if (!createThread()) {
+      fprintf(stderr, "%s[%d]:  failed to create thread\n", __FILE__, __LINE__);
+      return false;
+    }
+  }
+
   dyncall_cb_record new_rec;
   new_rec.pt = pt;
   new_rec.cb = cb;
@@ -661,6 +911,12 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
                                                            BPatch_asyncEventType type,
                                                            BPatchThreadEventCallback cb)
 {
+  if (!isRunning) {
+    if (!createThread()) {
+      fprintf(stderr, "%s[%d]:  failed to create thread\n", __FILE__, __LINE__);
+      return false;
+    }
+  }
   ThreadLibrary *threadLib = NULL;
   pdvector<thread_event_cb_record> *event_cbs = getCBsForType(type);
   if (!event_cbs) return false;
@@ -1010,12 +1266,15 @@ bool BPatch_asyncEventHandler::initialize()
     return false;
   }
 
+#ifdef NOTDEF
   //  Finally, create the event handling thread
   if (!createThread()) {
     bperr("%s[%d]:  could not create event handling thread\n", 
           __FILE__, __LINE__);
     return false;
   }
+#endif
+  isRunning = false;
   //fprintf(stderr, "%s[%d]:  Created async thread\n", __FILE__ , __LINE__);
   return true;
 }
@@ -1056,6 +1315,7 @@ bool BPatch_asyncEventHandler::createThread()
     return false;
   }
   fprintf(stderr, "%s[%d]:  started thread\n", __FILE__, __LINE__);
+  isRunning = true;
   return true;
 #else  // Unixes
 
@@ -1357,10 +1617,12 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
   timeout.tv_sec = 20;
 #elif defined(arch_ia64)
   timeout.tv_sec = 1;
+#elif defined(os_linux)
+  timeout.tv_sec = 5;
 #else
   timeout.tv_sec = 5;
 #endif
-  timeout.tv_usec = 1;
+  timeout.tv_usec = 100;
 
   //  start off with a NULL event:
   ev.type = BPatch_nullEvent;

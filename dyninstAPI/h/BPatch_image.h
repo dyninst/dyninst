@@ -147,9 +147,12 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  BPatch_image::findModule
     //  
     //  Returns a module matching <name> if present in image, NULL if not found
-    API_EXPORT(Int, (name),
+    //  if <substring_match> is set, the first module that has <name> as a substring
+    //  of its name is returned (eg, to find "libpthread.so.1", search for "libpthread" 
+    //  with substring_match set to true)
+    API_EXPORT(Int, (name, substring_match),
 
-    BPatch_module *,findModule,(const char *name));
+    BPatch_module *,findModule,(const char *name, bool substring_match = false));
 
     //  BPatch_image::getGlobalVariables
     //  

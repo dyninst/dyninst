@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.69 2005/02/17 21:10:25 bernat Exp $
+// $Id: BPatch_image.C,v 1.70 2005/03/07 20:26:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -339,7 +339,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
  * Returns module with <name>, NULL if not found
  */
 
-BPatch_module *BPatch_image::findModuleInt(const char *name) 
+BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_match) 
 {
   if (!name) {
     bperr("%s[%d]:  findModule:  no module name provided\n",
@@ -354,24 +354,37 @@ BPatch_module *BPatch_image::findModuleInt(const char *name)
       BPatch_module *mod = (*modlist)[i];
       assert(mod);
       mod->getName(buf, 512); 
-      if (!strcmp(name, buf)) {
-	target = mod;
-	break;
-      }
-    }
-    return target;
-  }
-  else {
-    // No modlist yet. Don't call getModules since that's massive 
-    // overkill. 
-    pdmodule *pdmod = proc->findModule(pdstring(name));
-    if (!pdmod) return false;
+      if (substring_match) 
+        if (strstr(buf, name)) {
+          target = mod;
+          break;
+        }
+      else  //exact match required
+        if (!strcmp(name, buf)) {
+          target = mod;
+          break;
+        }
 
-    modlist = new BPatch_Vector<BPatch_module *>;
-    BPatch_module *bpmod = new BPatch_module(proc, pdmod, this);
-    modlist->push_back(bpmod);
-    return bpmod;
+    }
+    if (target) 
+      return target;
   }
+
+  //  Either:
+  // No modlist yet. Don't call getModules since that's massive 
+  // overkill. 
+  //  Or:
+  //  Modlist created, but only partially populated.  
+ 
+  pdmodule *pdmod = proc->findModule(pdstring(name),substring_match);
+  if (!pdmod) return false;
+
+  if (!modlist) 
+    modlist = new BPatch_Vector<BPatch_module *>;
+  BPatch_module *bpmod = new BPatch_module(proc, pdmod, this);
+  modlist->push_back(bpmod);
+
+  return bpmod;
 }
 
 /*
@@ -882,18 +895,23 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
 
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
-    for (unsigned int m = 0; m < mods->size(); m++) {
+    for (int m = mods->size() -1; m >= 0; m--) {
 	BPatch_module *module = (*mods)[m];
 	type = module->getModuleTypes()->findType(name);
-	if (type) return type;
+	if (type) {
+           return type;
+        }
     }
 
     // check the default base types
     type = BPatch::bpatch->stdTypes->findType(name);
-    if(type) return type;
+    if (type)  {
+      return type;
+    }
 
     // check the API types of last resort
-    return BPatch::bpatch->APITypes->findType(name);
+    type = BPatch::bpatch->APITypes->findType(name);
+    return type;
 
 }
 

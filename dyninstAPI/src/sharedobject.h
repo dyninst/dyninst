@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.49 2005/02/24 10:17:09 rchen Exp $
+// $Id: sharedobject.h,v 1.50 2005/03/07 20:26:45 jaw Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -91,7 +91,7 @@ public:
     bool  isMapped() { return(mapped); }
     const image  *getImage() const { return(objs_image); }
 
-    pdmodule *findModule(pdstring m_name);
+    pdmodule *findModule(pdstring m_name, bool substring_match = false);
 
     const pdvector<int_function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }

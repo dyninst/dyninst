@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2005/03/03 00:15:42 jodom Exp $
+# $Id: Makefile,v 1.7 2005/03/07 20:26:45 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ DEBUG_FLAG = -g
 
 include               ../../make.config
 
-CFLAGS	+= -Wa,-many
+CFLAGS	+= -Wa,-mppc
 #CFLAGS	+= -DDEBUG_PRINT_RT     # enable debug/trace messages from library
 #CFLAGS += -DUSE_PROF
 ASFLAGS += -I../..

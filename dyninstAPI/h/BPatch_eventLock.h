@@ -122,8 +122,8 @@ protected:
   BPatch_eventLock(); 
   virtual ~BPatch_eventLock();
 
-  unsigned long threadID() const;
 public:
+  unsigned long threadID() const;
 
   int _Lock(const char *__file__, unsigned int __line__) const; 
   int _Trylock(const char *__file__, unsigned int __line__) const; 

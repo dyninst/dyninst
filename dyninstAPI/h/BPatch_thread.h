@@ -71,7 +71,15 @@ typedef enum {
   BPatch_threadStartEvent,
   BPatch_threadStopEvent,
   BPatch_threadDestroyEvent,
-  BPatch_dynamicCallEvent
+  BPatch_dynamicCallEvent,
+  BPatch_errorEvent,
+  BPatch_dynLibraryEvent,
+  BPatch_preForkEvent,
+  BPatch_postForkEvent,
+  BPatch_execEvent,
+  BPatch_exitEvent,
+  BPatch_signalEvent,
+  BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.89 2005/02/28 01:47:22 jaw Exp $
+// $Id: BPatch.C,v 1.90 2005/03/07 20:26:44 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -55,6 +55,7 @@
 #include "BPatch_libInfo.h"
 #include "process.h"
 #include "BPatch_collections.h"
+#include "BPatch_thread.h"
 #include "BPatch_asyncEventHandler.h"
 #include "common/h/timing.h"
 
@@ -64,6 +65,7 @@
 
 extern bool dyninstAPI_init();
 extern void loadNativeDemangler();
+extern BPatch_eventMailbox *event_mailbox;
 
 BPatch *BPatch::bpatch = NULL;
 
@@ -312,7 +314,7 @@ BPatch::BPatch()
     loadNativeDemangler();
 
     eventHandler = new BPatch_asyncEventHandler();
-#if !defined (os_windows)  && !defined (arch_ia64) && !defined (os_osf) && !defined (os_irix)
+#if !defined (os_windows)  && !defined (arch_ia64) && !defined (os_osf) && !defined (os_irix) 
     if (!eventHandler->initialize()) {
       //  not much else we can do in the ctor, except complain (should we abort?)
       bperr("%s[%d]:  failed to initialize eventHandler, possibly fatal\n",
@@ -595,7 +597,8 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 	bpatch->lastError = number;
 
     if (bpatch->errorHandler != NULL) {
-	bpatch->errorHandler(severity, number, &str);
+        event_mailbox->executeOrRegisterCallback(bpatch->errorHandler, severity, number, str);
+	//bpatch->errorHandler(severity, number, &str);
     } else if ((severity == BPatchFatal) || (severity == BPatchSerious)){
 	fprintf(stdout, "DYNINST ERROR: %s\n", str);
 	fflush(stdout);
@@ -749,7 +752,9 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
 #endif
 
     if (postForkCallback) {
-        postForkCallback(parent, info->threadsByPid[childPid]);
+       //postForkCallback(parent, info->threadsByPid[childPid]);
+       event_mailbox->executeOrRegisterCallback(postForkCallback, BPatch_postForkEvent, 
+                                                parent, info->threadsByPid[childPid]);
     }
     // We don't want to touch the bpatch threads here, as they may have been
     // deleted in the callback
@@ -773,7 +778,8 @@ void BPatch::registerForkingThread(int forkingPid, process * /*proc*/)
     assert(forking);
 
     if (preForkCallback) {
-        preForkCallback(forking, NULL);
+       // preForkCallback(forking, NULL);
+       event_mailbox->executeOrRegisterCallback(preForkCallback, BPatch_preForkEvent, forking, NULL);
     }
 }
 
@@ -792,7 +798,8 @@ void BPatch::registerExec(BPatch_thread *thread)
     thread->image = new BPatch_image(thread);
 
     if (execCallback) {
-       execCallback(thread);
+       //execCallback(thread);
+       event_mailbox->executeOrRegisterCallback(execCallback, thread);
     }
 }
 
@@ -801,7 +808,8 @@ void BPatch::registerNormalExit(BPatch_thread *thread, int exitcode)
     thread->setExitCode(exitcode);
     thread->setExitedNormally();
     if (exitCallback) {
-        exitCallback(thread, ExitedNormally);
+        //exitCallback(thread, ExitedNormally);
+        event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedNormally);
     }
 }
 
@@ -809,7 +817,8 @@ void BPatch::registerSignalExit(BPatch_thread *thread, int signalnum)
 {
     thread->setExitedViaSignal(signalnum);
     if (exitCallback) {
-        exitCallback(thread, ExitedViaSignal);
+        //exitCallback(thread, ExitedViaSignal);
+        event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedViaSignal);
     }
 }
 

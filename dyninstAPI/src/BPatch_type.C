@@ -238,7 +238,9 @@ void BPatch_typeFunction::fixupUnknowns(BPatch_module *module) {
  */
 
 BPatch_typeRange::BPatch_typeRange(int _ID, int _size, const char *_low, const char *_hi, const char *_name)
-   : BPatch_rangedType(_name, _ID, BPatchSymTypeRange, _size, _low, _hi) {}
+   : BPatch_rangedType(_name, _ID, BPatchSymTypeRange, _size, _low, _hi) 
+{
+}
 
 bool BPatch_typeRange::isCompatible(const BPatch_type *otype) const {
    const BPatch_typeTypedef *otypedef = dynamic_cast<const BPatch_typeTypedef *>(otype);
@@ -523,11 +525,31 @@ BPatch_typeScalar::BPatch_typeScalar(unsigned int _size, const char *_name)
 }
 
 bool BPatch_typeScalar::isCompatible(const BPatch_type *otype) const {
+   bool ret = false;
    const BPatch_typeTypedef *otypedef = dynamic_cast<const BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL)  {
+      ret =  isCompatible(otypedef->getConstituentType());
+      return ret;
+   }
 
    const BPatch_typeScalar *oScalartype = dynamic_cast<const BPatch_typeScalar *>(otype);
    if (oScalartype == NULL) {
+      //  Check to see if we have a range type, which can be compatible.
+      const BPatch_typeRange *oRangeType = dynamic_cast<const BPatch_typeRange *>(otype);
+      if (oRangeType != NULL) {
+        if ( name == NULL || oRangeType->getName() == NULL)
+           return size == oRangeType->getSize();
+        else if (!strcmp(name, oRangeType->getName()))
+           return size == oRangeType->getSize();
+        else if (size == oRangeType->getSize()) {
+          int t1 = findIntrensicType(name);
+          int t2 = findIntrensicType(oRangeType->getName());
+          if (t1 & t2 & (t1 == t2)) {
+            return true;
+          }
+        }
+
+      }
       return false;
    }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.161 2005/03/01 23:07:57 bernat Exp $
+// $Id: linux.C,v 1.162 2005/03/07 20:26:44 jaw Exp $
 
 #include <fstream>
 
@@ -310,19 +310,21 @@ int decodeRTSignal(process *proc,
 bool checkForEventLinux(procevent *new_event, int wait_arg, 
                         bool block, int wait_options)
 {
+
    int result = 0, status = 0;
 
-   if (!block) {
-      wait_options |= WNOHANG;
-   }
+     //  wait (check) for process events
+     if (!block) {
+        wait_options |= WNOHANG;
+     }
 
-   result = waitpid( wait_arg, &status, wait_options );
-   if (result < 0 && errno == ECHILD) {
-      return false; /* nothing to wait for */
-   } else if (result < 0) {
-      perror("checkForEventLinux: waitpid failure");
-   } else if(result == 0)
-      return false;
+     result = waitpid( wait_arg, &status, wait_options );
+     if (result < 0 && errno == ECHILD) {
+        return false; /* nothing to wait for */
+     } else if (result < 0) {
+        perror("checkForEventLinux: waitpid failure");
+     } else if(result == 0)
+        return false;
 
    int pertinentPid = result;
 
@@ -384,7 +386,7 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            errno = 0;
            if (!decodeRTSignal(pertinentProc, why, what, info)) {
               if (ESRCH == errno) {
-                bperr("%s[%d]:  decodeRTSignal, errno = %d: %s\n", __FILE__, __LINE__,errno, strerror(errno));
+                fprintf(stderr,"%s[%d]:  decodeRTSignal, errno = %d: %s\n", __FILE__, __LINE__,errno, strerror(errno));
                 //why = procExitedViaSignal;
                 why = procExitedNormally;
               }
@@ -513,6 +515,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          int wait_time = timeout;
          if (timeout == -1) wait_time = 1; /*ms*/
 
+#ifdef NOTDEF
          struct timeval slp;
          if (wait_time > 1000) {
            slp.tv_sec = wait_time / 1000;
@@ -523,7 +526,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
            slp.tv_usec = wait_time /*ms*/ * 1000 /*us*/ ;
          }
          select(0,NULL,NULL,NULL, &slp);
-#ifdef NOTDEF
+#endif
          struct timespec slp, rem;
          if (wait_time > 1000) {
            slp.tv_sec = wait_time / 1000;
@@ -538,7 +541,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
            fprintf(stderr, "%s[%d]:  nanosleep: %d:%s\n", __FILE__, __LINE__,
                   errno, strerror(errno));
          }
-#endif
          //  can check remaining time to see if we have _really_ timed out
          //  (but do we really care?)
 

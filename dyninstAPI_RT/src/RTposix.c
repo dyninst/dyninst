@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.11 2005/02/25 07:04:48 jaw Exp $
+ * $Id: RTposix.c,v 1.12 2005/03/07 20:26:45 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -143,7 +143,7 @@ int DYNINSTasyncConnect(int pid)
   thelock.lock = 0; 
   needToDisconnect = 1;
 
-  atexit(exit_func);
+ // atexit(exit_func);
   return 1; /*true*/
 
 }

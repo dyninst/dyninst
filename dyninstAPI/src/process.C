@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.526 2005/03/02 19:44:48 bernat Exp $
+// $Id: process.C,v 1.527 2005/03/07 20:26:44 jaw Exp $
 
 #include <ctype.h>
 
@@ -203,6 +203,7 @@ pdvector<process*> processVec;
 pdstring process::programName;
 pdstring process::pdFlavor;
 
+extern BPatch_eventMailbox *event_mailbox;
 #ifndef BPATCH_LIBRARY
 extern pdstring osName;
 #endif
@@ -4084,7 +4085,9 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         // XXX - jkh Add the BPatch_funcs here
 
         if (BPatch::bpatch->dynLibraryCallback) {
-          BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
+          event_mailbox->executeOrRegisterCallback(BPatch::bpatch->dynLibraryCallback,
+                                                   thr, bpmod, true);
+          //BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
         }
       }
     }
@@ -4612,14 +4615,14 @@ bool process::deleteCodeRange(Address addr) {
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
-pdmodule *process::findModule(const pdstring &mod_name)
+pdmodule *process::findModule(const pdstring &mod_name, bool substring_match)
 {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
    //  is the library name)
    if(dynamiclinking && shared_objects){
       for(u_int j=0; j < shared_objects->size(); j++){
-         pdmodule *next = ((*shared_objects)[j])->findModule(mod_name);
+         pdmodule *next = ((*shared_objects)[j])->findModule(mod_name, substring_match);
          if(next) {
             return(next);
          }
@@ -4629,7 +4632,7 @@ pdmodule *process::findModule(const pdstring &mod_name)
    // check a.out for function symbol
    //  Note that symbols is data member of type image* (comment says
    //  "information related to the process"....
-   pdmodule *mret = symbols->findModule(mod_name);
+   pdmodule *mret = symbols->findModule(mod_name, substring_match);
    return mret;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.233 2005/03/07 05:10:02 lharris Exp $
+ // $Id: symtab.C,v 1.234 2005/03/07 20:26:45 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -557,19 +557,35 @@ bool image::findInternalByPrefix(const pdstring &prefix,
   //}
   return flag;
 }
-pdmodule *image::findModule(const pdstring &name)
+pdmodule *image::findModule(const pdstring &name, bool substring_match)
 {
   pdmodule *found = NULL;
   //cerr << "image::findModule " << name << " , " << find_if_excluded
   //     << " called" << endl;
 
-  if (modsByFileName.defines(name)) {
-    //cerr << " (image::findModule) found module in modsByFileName" << endl;
-    found = modsByFileName[name];
+  if (substring_match) {
+    //  if we want a substring, have to iterate over all module names
+    //  this is ok b/c there are not usually more than a handful or so
+    //
+    dictionary_hash_iter<pdstring, pdmodule *> mi(modsByFileName);
+    pdstring pds; pdmodule *mod;
+
+    while (mi.next(pds, mod)){
+      if (strstr(pds.c_str(), name.c_str())) {
+        found = mod;
+        break;
+      }
+    }
   }
-  else if (modsByFullName.defines(name)) {
-    //cerr << " (image::findModule) found module in modsByFullName" << endl;
-    found = modsByFullName[name];
+  else {
+    if (modsByFileName.defines(name)) {
+      //cerr << " (image::findModule) found module in modsByFileName" << endl;
+      found = modsByFileName[name];
+    }
+    else if (modsByFullName.defines(name)) {
+      //cerr << " (image::findModule) found module in modsByFullName" << endl;
+      found = modsByFullName[name];
+    }
   }
 
   //cerr << " (image::findModule) did not find module, returning NULL" << endl;

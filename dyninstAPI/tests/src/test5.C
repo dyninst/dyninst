@@ -810,6 +810,8 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
    if (!type7_0->isCompatible(type7_1)) {
       fprintf(stderr, "**Failed** test #7 (template)\n");
       fprintf(stderr,"    type7_0 reported as incompatibile with type7_1\n");
+      fprintf(stderr,"    '%s' reported as incompatibile with '%s'\n", type7_0->getName(), type7_1->getName());
+      fprintf(stderr,"    dataClasses: '%d'/ '%d', dataScalar = %d, dataUnknownType = %d\n", (int) type7_0->getDataClass(), (int)type7_1->getDataClass(), (int) BPatch_dataScalar, (int) BPatch_dataUnknownType);
       abort();
    }
 

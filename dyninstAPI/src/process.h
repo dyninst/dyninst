@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.313 2005/02/24 20:06:16 tlmiller Exp $
+/* $Id: process.h,v 1.314 2005/03/07 20:26:44 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -941,8 +941,10 @@ class process {
   // images for this module
   // if check_excluded is true it checks to see if the module is excluded
   // and if it is it returns 0.  If check_excluded is false it doesn't check
+  //  if substring_match is true, the first module whose name contains
+  //  the provided string is returned.
 
-  pdmodule *findModule(const pdstring &mod_name);
+  pdmodule *findModule(const pdstring &mod_name, bool substring_match = false);
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
   // baseAddr is set to the base address of the object containing the symbol

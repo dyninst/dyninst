@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.124 2005/02/28 01:47:22 jaw Exp $
+// $Id: BPatch_thread.C,v 1.125 2005/03/07 20:26:44 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -62,6 +62,7 @@
 #include "BPatch_thread.h"
 #include "LineInformation.h"
 
+extern BPatch_eventMailbox *event_mailbox;
 
 
 /*
@@ -332,7 +333,7 @@ BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
  */
 void BPatch_thread::BPatch_thread_dtor()
 {
-#if !defined (os_osf) && !defined (os_windows) && !defined (os_irix) && !defined (arch_ia64)
+#if !defined (os_osf) && !defined (os_windows) && !defined (os_irix) && !defined (arch_ia64) 
     if (  (!detached) )
      // if ( proc && !proc->hasExited()) {
         //fprintf(stderr, "%s[%d]:  before detachFromProcess\n", __FILE__, __LINE__);
@@ -1298,7 +1299,9 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 
     if (!info->isSynchronous()) {
 	if (BPatch::bpatch->oneTimeCodeCallback)
-	    BPatch::bpatch->oneTimeCodeCallback(theThread, info->getUserData(), returnValue);
+           event_mailbox->executeOrRegisterCallback(BPatch::bpatch->oneTimeCodeCallback, 
+                                                    theThread, info->getUserData(), returnValue);
+	    //BPatch::bpatch->oneTimeCodeCallback(theThread, info->getUserData(), returnValue);
 
 	delete info;
     }

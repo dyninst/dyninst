@@ -2201,13 +2201,11 @@ void readyTest21or22(BPatch_thread *appThread)
 	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
 	     exit(1);
 	}
-        fprintf(stderr, "%s[%d]:  loaded libA\n", __FILE__, __LINE__);
 	if (! appThread->loadLibrary(libB)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
 	     exit(1);
 	}
-        fprintf(stderr, "%s[%d]:  loaded libB\n", __FILE__, __LINE__);
     }
 #endif
 }

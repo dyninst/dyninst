@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.173 2005/02/24 23:21:07 lharris Exp $
+// $Id: symtab.h,v 1.174 2005/03/07 20:26:45 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -410,7 +410,7 @@ class image : public codeRange {
    void updateForFork(process *childProcess, const process *parentProcess);
 
    // find the named module  
-   pdmodule *findModule(const pdstring &name);
+   pdmodule *findModule(const pdstring &name, bool substring_match = false);
    pdmodule *findModule(int_function *func);
 
    // Note to self later: find is a const operation, [] isn't, for
