@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.25 1999/07/07 16:17:46 zhichen Exp $ */
+/* $Id: init-sunos.C,v 1.26 1999/07/07 17:39:49 zhichen Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -77,7 +77,7 @@ bool initOS() {
   }
 #if defined(MT_THREAD)
   //libthread _fork
-  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  AstNode* retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
   
