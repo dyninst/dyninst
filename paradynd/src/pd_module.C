@@ -88,7 +88,7 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
 }
 
 void printFunctionLoops(pd_Function * pdf, process * proc) {
-    fprintf( stderr, "Function %s contains", pdf->prettyName().c_str());
+    fprintf( stderr, "Function %s loops:\n", pdf->prettyName().c_str());
     bool valid;
     BPatch_flowGraph *fg = 
 	new BPatch_flowGraph(static_cast<function_base *>(pdf),
@@ -97,8 +97,8 @@ void printFunctionLoops(pd_Function * pdf, process * proc) {
 			     valid);
     if (valid) {
 	BPatch_Vector<BPatch_basicBlockLoop *> loops;
-	fg->getLoops(loops);
-	fg->printLoopSourceRanges(loops);
+	fg->getOuterLoops(loops);
+	fg->printLoops(loops);
     }
 }
 
