@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.5  1994/06/29 21:47:35  hollings
+# Revision 1.6  1994/08/01 20:26:30  karavan
+# changes to accommodate new dag design.
+#
+# Revision 1.5  1994/06/29  21:47:35  hollings
 # killed old background colors and switched to motif like greys.
 # cleaned up option specification to use options data base.
 #
@@ -48,40 +51,42 @@ proc SHGpause {butt} {
     }
 }
 
-proc shgFullName {whoCan} {
-    global shgExplainStr
-    set nodeID [lindex [$whoCan gettags current] 0]
-    if [string match n* $nodeID] {
-	uimpd shgShortExplain [string range $nodeID 1 end]
-    }  
+proc shgFullName {whoCan dagID} {
+    set nodeID [updateCurrentSelection $whoCan $dagID]
+    uimpd shgShortExplain $nodeID  
 }
 
 proc shgUpdateStatusLine {w newItem} {
     if {[winfo exists $w] == 1} {
-	$w insert end $newItem
-	$w yview -pickplace end
+	$w.status.txt insert end $newItem
+	$w.status.txt yview -pickplace end
+    } else {
+	puts "shgUpdateStatusLine::NO SUCH WINDOW - $w !!"
     }
 }
+    
+proc initSHG {dagID} {
 
-proc initSHG {} {
-
-    global SHGname PCsearchState shgExplainStr
+    global SHGname PCsearchState shgExplainStr currentSelection$dagID
 
     set PCsearchState 1
     set shgExplainStr ""
+    set csvar \$currentSelection$dagID
+    set currentSelection$dagID -1      
     set clrSHGQUITBUTTbg "#fb63e620d36b"
     set clrSHGSTEPBUTTbg "#fb63e620d36b"
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
     set clrSHGPAUSEBUTTbg "#fb63e620d36b"
-    toplevel $SHGname
- 
+    toplevel $SHGname -class "Paradyn.Shg"
+    
+    option add *Shg*background #fb63e620d36b
     wm minsize $SHGname 400 200
-    dag $SHGname.d01 
-    frame $SHGname.buttons
+    frame $SHGname.dag -class Dag 
+    frame $SHGname.buttons 
     button $SHGname.buttons.b1 -text "QUIT PC" \
-	    -command {destroy $SHGname}
+	    -command "uimpd closeDAG $dagID; destroy $SHGname"
     button $SHGname.buttons.b2 -text "REFINE" \
-	    -command {paradyn search true 1}
+	    -command "uimpd refineSHG $csvar"
     button $SHGname.buttons.b3 -text "AUTO SEARCH" \
 	    -command {paradyn search true -1}
     button $SHGname.buttons.b4 -text "PAUSE SEARCH" \
@@ -89,20 +94,29 @@ proc initSHG {} {
 
     frame $SHGname.topbar
     frame $SHGname.topbar.r
-    label $SHGname.topbar.r.title -text "The Performance Consultant" -fg black \
-	    -font "-Adobe-times-bold-r-normal--*-120*" \
-	    -relief raised -width 80
+    label $SHGname.topbar.r.title -text "The Performance Consultant" \
+	    -fg white \
+	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	    -relief raised -width 80 \
+	    -bg "#4cc6c43dc7ef"
   ## Performance Consultant Menu
-    frame $SHGname.topbar.r.menu -relief raised
+    frame $SHGname.topbar.r.menu -class TopMenu -relief raised \
+	    -borderwidth 2
     menubutton $SHGname.topbar.r.menu.b1 -text "Search Display" \
 	    -menu $SHGname.topbar.r.menu.b1.m -underline 7
     menubutton $SHGname.topbar.r.menu.b2 -text "Help" -underline 0
+    tk_menuBar $SHGname.topbar.r.menu $SHGname.topbar.r.menu.b1 \
+	    $SHGname.topbar.r.menu.b2
+    tk_bindForTraversal $SHGname.topbar.r.menu
     menu $SHGname.topbar.r.menu.b1.m 
     $SHGname.topbar.r.menu.b1.m add command -label "Show Only Active Nodes" \
 	    -underline 5
     $SHGname.topbar.r.menu.b1.m add command -label "Show All Nodes" \
-	    -state disabled -underline 5
-
+	     -underline 5 \
+	     -command "uimpd showAllNodes $dagID"
+    $SHGname.topbar.r.menu.b1.m add command -label "Hide Subgraph" \
+	    -underline 5 \
+	    -command "uimpd hideSubgraph $dagID currentSelection$dagID"
     mkLogo $SHGname.topbar.logo
     label $SHGname.explain -textvariable shgExplainStr -fg black \
 	    -relief raised -width 80
@@ -114,55 +128,23 @@ proc initSHG {} {
 	    "$SHGname.status.txt yview"
 
     pack $SHGname.topbar -side top -fill both
-    pack $SHGname.topbar.r.title -side top -fill both
-    pack $SHGname.topbar.r.menu.b2 $SHGname.topbar.r.menu.b1 -side right \
+    pack $SHGname.topbar.r.title -side top -fill both -expand 1
+    pack $SHGname.topbar.r.menu.b2  -side right \
 	    -padx 10
-    pack $SHGname.topbar.r.menu -side top -fill both
+    pack $SHGname.topbar.r.menu.b1 -side left -padx 10
+    pack $SHGname.topbar.r.menu -side top -fill both -expand 1
 
     pack $SHGname.topbar.r -side right -fill both
-    tk_menuBar $SHGname.topbar.r.menu $SHGname.topbar.r.menu.b1.m
-
     pack $SHGname.status.vs -side right -fill y
     pack $SHGname.status.txt -side left -fill both -expand yes
     pack $SHGname.explain $SHGname.status -side top -fill both
     
-    pack $SHGname.d01 -side top -expand 1 -fill both
+    pack $SHGname.dag -side top -expand 1 -fill both
     pack $SHGname.buttons -side bottom -expand 0 -fill x
     pack $SHGname.buttons.b2 $SHGname.buttons.b3 $SHGname.buttons.b4 \
 	    $SHGname.buttons.b1 -side left -expand yes -fill x
 
-
     wm title $SHGname "Perf. Consultant"
-    $SHGname.d01 bind all <2> {shgFullName $SHGname.d01._c_}
-
-  ## style 1: not tested 
-    $SHGname.d01 addNstyle 1 -bg DarkSalmon \
-	    -font "-Adobe-times-medium-r-normal--*-100*" \
-	    -text "black" -outline  "DarkSlateGrey" \
-	    -stipple "" -width 1
-
-  ## style 2: not active
-    $SHGname.d01 addNstyle 2 -bg #a41bab855fe1 \
-	    -font "-Adobe-times-medium-r-normal--*-80*" \
-	    -text "DarkSlateGrey" -outline DarkSlateGrey -stipple "" -width 1
-
-  ## style 3: active and true
-    $SHGname.d01 addNstyle 3 -bg  #4cc6c43dc7ef \
-	    -font "-Adobe-times-bold-r-normal--*-100*" \
-	    -text black  -outline "SlateGrey" -stipple "" -width 1
-
-  ## style 4: active and false
-    $SHGname.d01 addNstyle 4 -bg #8ba59f3b91f3 \
-	    -font "-Adobe-times-medium-r-normal--*-100*" \
-	    -text white -outline DarkSlateGrey -stipple "" -width 1
-
-# $SHGname.d01 addEstyle 1 -arrow none -fill #f91612aedde6 -width 2
-# $SHGname.d01 addEstyle 2 -arrow none -fill #ffff8ada2b02 -width 2
-
-$SHGname.d01 addEstyle 2 -arrow none -fill #beb839376947 -width 2
-
-$SHGname.d01 addEstyle 1 -arrow none -fill #c99e5f54dcab -width 2
-$SHGname.d01 addEstyle 3 -arrow none -fill black -width 2
 
 }
 

@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.14  1994/07/25 16:18:59  rbi
+# Revision 1.15  1994/08/01 20:26:33  karavan
+# changes to accommodate new dag design.
+#
+# Revision 1.14  1994/07/25  16:18:59  rbi
 # Scrollbars are even more comely than before.
 #
 # Revision 1.13  1994/07/21  17:47:44  rbi
@@ -101,7 +104,6 @@ proc drawToolBar {} {
 
     bind Entry <2> { %W insert insert [selection get] }
 
-#    wm geometry . 750x375
     wm minsize . 517 400
 
     frame .menub -relief raised -borderwidth 2
@@ -115,13 +117,13 @@ proc drawToolBar {} {
 
     frame .menub.left
     label .menub.left.title -text "Paradyn Main Control" \
-          -font *-New*Century*Schoolbook-Bold-R-*-18-* \
+          -font *-New*Century*Schoolbook-Bold-R-*-14-* \
           -relief raised -background #b3331e1b53c7 -foreground white
 
     frame .menub.left.men -class TopMenu -borderwidth 2 -relief raised
     menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
     menubutton .menub.left.men.b3 -text "Metrics"
-    menubutton .menub.left.men.b2 -text "Options"
+    menubutton .menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
     menubutton .menub.left.men.b5 -text "Start Visual" \
 	    -menu .menub.left.men.b5.m 
     menubutton .menub.left.men.b6 -text "Help" 
@@ -137,6 +139,8 @@ proc drawToolBar {} {
     menu .menub.left.men.b2.m 
     .menub.left.men.b2.m add command -label "Error History" \
 	    -command {showErrorHistory}
+    .menub.left.men.b2.m add command -label "Display Where Axis" \
+	    -command {uimpd showWhereAxis}
 
     set mb .menub.left.men
     tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
