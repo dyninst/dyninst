@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.113 2002/11/02 21:08:36 schendel Exp $
+// $Id: aix.C,v 1.114 2002/11/14 20:26:19 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -89,6 +89,9 @@
 #include <pmapi.h>
 #include "rtinst/h/rthwctr-aix.h"
 #endif
+
+const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
+
 
 /* Getprocs() should be defined in procinfo.h, but it's not */
 extern "C" {
@@ -383,151 +386,115 @@ void decodeInstr(unsigned instr_raw) {
   return;
 }      
 
-void *dyn_lwp::getRegisters() {
-  const u_int num_bytes = 32 * 4 // 32 general purpose integer registers
-                        + 32 * 8 // 32 floating point registers @ 8 bytes each
-                        + 9 * 4; // 9 special registers
-  // special registers are:
-  // IAR (instruction address register)
-  // MSR (machine state register)
-  // CR (condition register)
-  // LR (link register)
-  // CTR (count register)
-  // XER (fixed point exception)
-  // MQ (multiply quotient)
-  // TID
-  // FPSCR (fp status)
-  // FPINFO (fp info) [no, out of range of what ptrace can access (why?)]
-  // FPSCRX (fp sreg ext.) [no, out of range, too]
-  
-  void *buffer = (void *) new char[num_bytes];
-  assert(buffer);
-  
-  unsigned *bufferPtr = (unsigned *)buffer;
-
-  if (!lwp_) {
-    // First, the general-purpose integer registers:
+struct dyn_saved_regs *dyn_lwp::getRegisters() {
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
     
-    // Format of PT_READ_GPR ptrace call:
-    // -- pass the reg number (see <sys/reg.h>) as the 'addr' (3d param)
-    // -- last 2 params (4th and 5th) ignored
-    // -- returns the value, or -1 on error
-    //    but this leaves the question: what if the register really did contain -1; why
-    //    should that be an error?  So, we ignore what the man page says here, and
-    //    instead look at 'errno'
-    // Errors:
-    //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
-    
-    errno = 0;
-    for (unsigned i=0; i < 32; i++) {
-      unsigned value = P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)i, 0, 0);
-      if ((value == (unsigned) -1) && (errno)) {
-	perror("ptrace PT_READ_GPR");
-	cerr << "regnum was " << i << endl;
-	return NULL;
-      }
-      *bufferPtr++ = value;
+    if (!lwp_) {
+        // First, the general-purpose integer registers:
+        
+        // Format of PT_READ_GPR ptrace call:
+        // -- pass the reg number (see <sys/reg.h>) as the 'addr' (3d param)
+        // -- last 2 params (4th and 5th) ignored
+        // -- returns the value, or -1 on error
+        //    but this leaves the question: what if the register really did contain -1; why
+        //    should that be an error?  So, we ignore what the man page says here, and
+        //    instead look at 'errno'
+        // Errors:
+        //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
+        
+        errno = 0;
+        for (unsigned i=0; i < 32; i++) {
+            unsigned value = P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)i, 0, 0);
+            if ((value == (unsigned) -1) && (errno)) {
+                perror("ptrace PT_READ_GPR");
+                cerr << "regnum was " << i << endl;
+                return NULL;
+            }
+            regs->gprs[i] = value;
+        }
+        
+        // Next, the general purpose floating point registers.
+        
+        // Format of PT_READ_FPR ptrace call: (it differs greatly from PT_READ_GPR,
+        // probably because the FPR registers are 64 bits instead of 32)
+        // -- 3d param ('address') is the location where ptrace will store the reg's value.
+        // -- 4th param ('data') specifies the fp reg (see <sys/reg.h>)
+        // -- last param (5th) to ptrace ignored
+        // Errors: returns -1 on error
+        //    EIO --> 4th arg didn't specify a valid fp register (must be 256-287)
+        // Note: don't ask me why, but apparantly a return value of -1 doesn't seem
+        //       to properly indicate an error; check errno instead.
+        
+        for (unsigned i=0; i < 32; i++) {
+            double value;
+            assert(sizeof(double)==8); // make sure it's big enough!
+            
+            if (P_ptrace(PT_READ_FPR, proc_->getPid(), &value,
+                         FPR0 + i, // see <sys/reg.h>
+                         0) == -1) {
+                perror("ptrace PT_READ_FPR");
+                cerr << "regnum was " << FPR0 + i << "; FPR0=" << FPR0 << endl;
+                return NULL;
+            }
+            regs->fprs[i] = value;
+        }
+        
+        // Finally, the special registers.
+        // (See the notes on PT_READ_GPR above: pass reg # as 3d param, 4th & 5th ignored)
+        // (Only reg numbered 0-31 or 128-136 are valid)
+        // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
+        
+        errno = 0;
+        for (unsigned i=0; i < num_special_registers; i++) {
+            unsigned value = P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)special_register_codenums[i], 0, 0);
+            if ((value == (unsigned) -1) && errno) {
+                perror("ptrace PT_READ_GPR for a special register");
+                cerr << "regnum was " << special_register_codenums[i] << endl;
+                return NULL;
+            }
+            regs->sprs[i] = value;
+        }
     }
     
-    // Next, the general purpose floating point registers.
-    
-    // Format of PT_READ_FPR ptrace call: (it differs greatly from PT_READ_GPR,
-    // probably because the FPR registers are 64 bits instead of 32)
-    // -- 3d param ('address') is the location where ptrace will store the reg's value.
-    // -- 4th param ('data') specifies the fp reg (see <sys/reg.h>)
-    // -- last param (5th) to ptrace ignored
-    // Errors: returns -1 on error
-    //    EIO --> 4th arg didn't specify a valid fp register (must be 256-287)
-    // Note: don't ask me why, but apparantly a return value of -1 doesn't seem
-    //       to properly indicate an error; check errno instead.
-    
-    for (unsigned i=0; i < 32; i++) {
-      double value;
-      assert(sizeof(double)==8); // make sure it's big enough!
-      
-      if (P_ptrace(PT_READ_FPR, proc_->getPid(), &value,
-		   FPR0 + i, // see <sys/reg.h>
-		   0) == -1) {
-	perror("ptrace PT_READ_FPR");
-	cerr << "regnum was " << FPR0 + i << "; FPR0=" << FPR0 << endl;
-	return NULL;
-      }
-      
-      memcpy(bufferPtr, &value, sizeof(value));
-      
-      unsigned *oldBufferPtr = bufferPtr;
-      bufferPtr += 2; // 2 unsigned's --> 8 bytes
-      assert((char*)bufferPtr - (char*)oldBufferPtr == 8); // just for fun
-      
-      assert(2*sizeof(unsigned) == 8);
+    else {
+        cerr << "Trying based on lwp_, which is " << lwp_ << endl;
+        P_ptrace(PTT_READ_GPRS, lwp_, (void *)regs->gprs, 0, 0);
+        if (errno != 0) {
+            perror("ptrace PTT_READ_GPRS");
+            return NULL;
+        }
+        // Next, the general purpose floating point registers.
+        // Again, we read as a block. 
+        // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
+        
+        P_ptrace(PTT_READ_FPRS, lwp_, (void *)regs->fprs, 0, 0);
+        if (errno != 0) {
+            perror("ptrace PTT_READ_FPRS");
+            return NULL;
+        }
+        
+        // We get the SPRs in a special structure. We'll then copy to
+        // our buffer for later retrieval. We could save the lot, I suppose,
+        // but there's a _lot_ of extra space that is unused.
+        struct ptsprs spr_contents;
+        
+        P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0);
+        if (errno) {
+            perror("PTT_READ_SPRS");
+            return NULL;
+        }
+        // Now we save everything out. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+        regs->sprs[0] = spr_contents.pt_iar;
+        regs->sprs[1] = spr_contents.pt_msr;
+        regs->sprs[2] = spr_contents.pt_cr;
+        regs->sprs[3] = spr_contents.pt_lr;
+        regs->sprs[4] = spr_contents.pt_ctr;
+        regs->sprs[5] = spr_contents.pt_xer;
+        regs->sprs[6] = spr_contents.pt_mq;
+        regs->sprs[7] = spr_contents.pt_reserved_0; // Match for TID, whatever that is
+        regs->sprs[8] = spr_contents.pt_fpscr;
     }
-    
-    // Finally, the special registers.
-    // (See the notes on PT_READ_GPR above: pass reg # as 3d param, 4th & 5th ignored)
-    // (Only reg numbered 0-31 or 128-136 are valid)
-    const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
-    // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
-    const u_int num_special_registers = 9;
-    
-    errno = 0;
-    for (unsigned i=0; i < num_special_registers; i++) {
-      unsigned value = P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)special_register_codenums[i], 0, 0);
-      if ((value == (unsigned) -1) && errno) {
-	perror("ptrace PT_READ_GPR for a special register");
-	cerr << "regnum was " << special_register_codenums[i] << endl;
-	return NULL;
-      }
-      
-      *bufferPtr++ = value;
-    }
-    
-    assert((unsigned)bufferPtr - (unsigned)buffer == num_bytes);
-  }
-  else {
-    cerr << "Trying based on lwp_, which is " << lwp_ << endl;
-    P_ptrace(PTT_READ_GPRS, lwp_, (void *)bufferPtr, 0, 0);
-    if (errno != 0) {
-      perror("ptrace PTT_READ_GPRS");
-      return NULL;
-    }
-    bufferPtr += 32; // Number of GPRs
-    
-    // Next, the general purpose floating point registers.
-    // Again, we read as a block. 
-    // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-    
-    P_ptrace(PTT_READ_FPRS, lwp_, (void *)bufferPtr, 0, 0);
-    if (errno != 0) {
-      perror("ptrace PTT_READ_FPRS");
-      return NULL;
-    }
-    bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
-    
-    // We get the SPRs in a special structure. We'll then copy to
-    // our buffer for later retrieval. We could save the lot, I suppose,
-    // but there's a _lot_ of extra space that is unused.
-    struct ptsprs spr_contents;
-    
-    P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0);
-    if (errno) {
-      perror("PTT_READ_SPRS");
-      return NULL;
-    }
-    // Now we save everything out. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
-    *bufferPtr++ = spr_contents.pt_iar;
-    *bufferPtr++ = spr_contents.pt_msr;
-    *bufferPtr++ = spr_contents.pt_cr;
-    *bufferPtr++ = spr_contents.pt_lr;
-    *bufferPtr++ = spr_contents.pt_ctr;
-    *bufferPtr++ = spr_contents.pt_xer;
-    *bufferPtr++ = spr_contents.pt_mq;
-    *bufferPtr++ = spr_contents.pt_reserved_0; // Match for TID, whatever that is
-    *bufferPtr++ = spr_contents.pt_fpscr;
-    
-    assert((unsigned)bufferPtr - (unsigned)buffer == num_bytes);
-  }
-  // Whew, finally done.
-  return buffer;
+    return regs;
 }
 
 static bool executeDummyTrap(process *theProc) {
@@ -611,7 +578,7 @@ bool dyn_lwp::executingSystemCall()
   return false;
 }
 
-bool dyn_lwp::changePC(Address loc, const void *)
+bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
 {
   if (!lwp_) {
     if ( !P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0)) {
@@ -648,11 +615,9 @@ bool dyn_lwp::changePC(Address loc, const void *)
   return true;
 }
 
-bool dyn_lwp::restoreRegisters(void *buffer) {
-  if (!buffer) return true;
-  
-  unsigned *bufferPtr = (unsigned *)buffer;
-
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
+    if (!regs) return false;
+    
   if (!lwp_) {
     // First, the general-purpose registers:
     // Format for PT_WRITE_GPR:
@@ -664,10 +629,10 @@ bool dyn_lwp::restoreRegisters(void *buffer) {
     //    EIO: address must be 0-31 or 128-136
     
     for (unsigned i=0; i < 32; i++) {
-      if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)i, *bufferPtr++, 0) == -1) {
-	//perror("restoreRegisters PT_WRITE_GPR");
-	//return false;
-      }
+        if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)i, regs->gprs[i], 0) == -1) {
+            //perror("restoreRegisters PT_WRITE_GPR");
+            //return false;
+        }
     } 
     
     // Next, the floating-point registers:
@@ -681,69 +646,61 @@ bool dyn_lwp::restoreRegisters(void *buffer) {
     //    EIO: reg num must be 256-287
   
     for (unsigned i=FPR0; i <= FPR31; i++) {
-      if (P_ptrace(PT_WRITE_FPR, proc_->getPid(), (void *)bufferPtr, i, 0) == -1) {
-	perror("ptrace PT_WRITE_FPR");
-	cerr << "regnum was " << i << endl;
-	return false;
-      }
-    
-      const unsigned *oldBufferPtr = bufferPtr;
-      bufferPtr += 2; // 2 unsigned's == 8 bytes
-      assert((unsigned)bufferPtr - (unsigned)oldBufferPtr == 8); // just for fun
+        
+        if (P_ptrace(PT_WRITE_FPR, proc_->getPid(),
+                     (void *)&(regs->fprs[i-FPR0]), i, 0) == -1) {
+            perror("ptrace PT_WRITE_FPR");
+            cerr << "regnum was " << i << endl;
+            return false;
+        }
     } 
     
     // Finally, special registers:
-    // Remember, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
-    const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
-    // I'd like to add on FPINFO and FPSCRX, but their code nums in <sys/reg.h> (138, 148)
-    // make PT_WRITE_GPR give an EIO error...
-    const u_int num_special_registers = 9;
     
     for (unsigned i=0; i < num_special_registers; i++) {
-      if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)(special_register_codenums[i]), *bufferPtr++, 0) == -1) {
-	perror("ptrace PT_WRITE_GPR for a special register");
-	cerr << "regnum was " << special_register_codenums[i] << endl;
-	return false;
+      if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), 
+                   (void *)(special_register_codenums[i]), 
+                   regs->sprs[i], 0) == -1) {
+          perror("ptrace PT_WRITE_GPR for a special register");
+          cerr << "regnum was " << special_register_codenums[i] << endl;
+          return false;
       }
     }
   }
   else {
-    if (P_ptrace(PTT_WRITE_GPRS, lwp_, (void *)bufferPtr, 0, 0) == -1) {
-      perror("ptrace PTT_WRITE_GPRS");
-      return false;
-    }
-    bufferPtr += 32; // Number of GPRs
-    
-    // Next, the general purpose floating point registers.
-    // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-    if (P_ptrace(PTT_WRITE_FPRS, lwp_, (void *)bufferPtr, 0, 0) == -1) {
-      perror("ptrace PTT_WRITE_FPRS");
-      return false;
-    }
-    bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
-    
-    // We get the SPRs in a special structure. We'll then copy to
-    // our buffer for later retrieval. We could save the lot, I suppose,
-    // but there's a _lot_ of extra space that is unused.
-    struct ptsprs saved_sprs;
-    struct ptsprs current_sprs;
-    // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
-    ptrace(PTT_READ_SPRS, lwp_, (int *)&current_sprs, 0, 0);
-    
-    saved_sprs.pt_iar = *bufferPtr++;
-    saved_sprs.pt_msr = *bufferPtr++;
-    saved_sprs.pt_cr = *bufferPtr++;
-    saved_sprs.pt_lr = *bufferPtr++;
-    saved_sprs.pt_ctr = *bufferPtr++;
-    saved_sprs.pt_xer = *bufferPtr++;
-    saved_sprs.pt_mq = *bufferPtr++;
-    saved_sprs.pt_reserved_0 = *bufferPtr++;
-    saved_sprs.pt_fpscr = *bufferPtr++;
-
-    if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&saved_sprs, 0, 0) == -1) {
-      perror("PTT_WRITE_SPRS");
-      return false;
-    }
+      if (P_ptrace(PTT_WRITE_GPRS, lwp_, (void *)regs->gprs, 0, 0) == -1) {
+          perror("ptrace PTT_WRITE_GPRS");
+          return false;
+      }
+      // Next, the general purpose floating point registers.
+      // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
+      if (P_ptrace(PTT_WRITE_FPRS, lwp_, (void *)regs->fprs, 0, 0) == -1) {
+          perror("ptrace PTT_WRITE_FPRS");
+          return false;
+      }
+      
+      // We get the SPRs in a special structure. We'll then copy to
+      // our buffer for later retrieval. We could save the lot, I suppose,
+      // but there's a _lot_ of extra space that is unused.
+      struct ptsprs saved_sprs;
+      struct ptsprs current_sprs;
+      // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+      ptrace(PTT_READ_SPRS, lwp_, (int *)&current_sprs, 0, 0);
+      
+      saved_sprs.pt_iar = regs->sprs[0];
+      saved_sprs.pt_msr = regs->sprs[1];
+      saved_sprs.pt_cr = regs->sprs[2];
+      saved_sprs.pt_lr = regs->sprs[3];
+      saved_sprs.pt_ctr = regs->sprs[4];
+      saved_sprs.pt_xer = regs->sprs[5];
+      saved_sprs.pt_mq = regs->sprs[6];
+      saved_sprs.pt_reserved_0 = regs->sprs[7];
+      saved_sprs.pt_fpscr = regs->sprs[8];
+      
+      if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&saved_sprs, 0, 0) == -1) {
+          perror("PTT_WRITE_SPRS");
+          return false;
+      }
   }
   return true;
 }
@@ -929,6 +886,7 @@ bool process::attach() {
     delete lwp;
     return false;
   }
+  
   lwps[0] = lwp;
   // we only need to attach to a process that is not our direct children.
 #ifdef BPATCH_LIBRARY

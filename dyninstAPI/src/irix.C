@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.41 2002/10/31 00:01:07 bernat Exp $
+// $Id: irix.C,v 1.42 2002/11/14 20:26:20 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -234,41 +234,34 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf)
 }
 #endif
 
-void *dyn_lwp::getRegisters() 
+struct dyn_saved_regs *dyn_lwp::getRegisters() 
 {
-  gregset_t intRegs;
-  if (ioctl(fd_, PIOCGREG, &intRegs) == -1) {
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
+    
+  if (ioctl(fd_, PIOCGREG, &(regs->intRegs)) == -1) {
     perror("dyn_lwp::getRegisters(PIOCGREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return NULL;
   }
-  fpregset_t fpRegs;
-  if (ioctl(fd_, PIOCGFPREG, &fpRegs) == -1) {
+
+  if (ioctl(fd_, PIOCGFPREG, &(regs->fpRegs)) == -1) {
     perror("dyn_lwp::getRegisters(PIOCGFPREG)");
     assert(errno != EBUSY);  // procfs thinks the process is active
     assert(errno != EINVAL); // no floating-point hardware
     return NULL;
   }
   
-  char *buf = new char[sizeof(intRegs) + sizeof(fpRegs)];
-  assert(buf);
-  memcpy(buf, &intRegs, sizeof(intRegs));
-  memcpy(buf + sizeof(intRegs), &fpRegs, sizeof(fpRegs));
-  
-  return (void *)buf;
+  return regs;
 }
 
-bool dyn_lwp::restoreRegisters(void *_buf)
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
 {
-  char *buf = (char *)_buf;
-  gregset_t *intRegs = (gregset_t *)buf;
-  if (ioctl(fd_, PIOCSREG, intRegs) == -1) {
+  if (ioctl(fd_, PIOCSREG, &(regs->intRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters(PIOCSREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return false;
   }  
-  fpregset_t *fpRegs = (fpregset_t *)(buf + sizeof(gregset_t));
-  if (ioctl(fd_, PIOCSFPREG, fpRegs) == -1) {
+  if (ioctl(fd_, PIOCSFPREG, &(regs->fpRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters(PIOCSFPREG)");
     assert(errno != EBUSY);  // procfs thinks the process is active
     assert(errno != EINVAL); // no floating-point hardware
@@ -278,16 +271,15 @@ bool dyn_lwp::restoreRegisters(void *_buf)
   return true;
 }
 
-bool dyn_lwp::changePC(Address addr, const void *savedRegs)
+bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
 
   /* copy integer registers from register buffer */
   gregset_t intRegs;
 
-  if (savedRegs) {
+  if (regs) {
     // FUGGLY someone please fix this (as in Solaris)
-    gregset_t *savedIntRegs = (gregset_t *)const_cast<void*>(savedRegs); 
-    memcpy(&intRegs, savedIntRegs, sizeof(gregset_t));
+    memcpy(&intRegs, &(regs->intRegs), sizeof(gregset_t));
   }
   else {
     if (ioctl(fd_, PIOCGREG, &intRegs) == -1) {

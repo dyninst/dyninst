@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.4 2002/10/21 22:42:37 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.5 2002/11/14 20:26:18 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -80,13 +80,13 @@ class dyn_lwp
   dyn_lwp(const dyn_lwp &l);
   ~dyn_lwp();
 
-  // Returns an opaque data type used by changePC/restoreRegisters
-  void *getRegisters();
+  // Returns a struct used by changePC/restoreRegisters
+  struct dyn_saved_regs *getRegisters();
   // Sets register file to values retrieved by getRegisters
-  bool restoreRegisters(void *regs);			
+  bool restoreRegisters(struct dyn_saved_regs *regs);			
   // Changes PC to the given address. If regs is non-NULL,
   // sets register values as above (restoreRegisters), then changes PC
-  bool changePC(Address addr, const void *regs);
+  bool changePC(Address addr, struct dyn_saved_regs *regs);
 
   // Partially implemented: will return default iRPC result value
   // on many platforms, ignoring register argument

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.17 2002/10/08 22:50:09 bernat Exp $
+// $Id: procfs.C,v 1.18 2002/11/14 20:26:23 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -154,7 +154,7 @@ bool process::isRunning_() const {
 }
 
 
-bool dyn_lwp::restoreRegisters(void *buffer) 
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) 
 {
 #ifdef __alpha 
    prstatus info;
@@ -166,10 +166,7 @@ bool dyn_lwp::restoreRegisters(void *buffer)
    }
    errno = 0;
 #endif
-   gregset_t theIntRegs = *(gregset_t *)buffer;
-   fpregset_t theFpRegs = *(fpregset_t *)((char *)buffer + sizeof(theIntRegs));
-
-   if (ioctl(fd_, PIOCSREG, &theIntRegs) == -1) {
+   if (ioctl(fd_, PIOCSREG, &(regs->theIntRegs)) == -1) {
       logLine("dyn_lwp::restoreRegisters PIOCSREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -178,7 +175,7 @@ bool dyn_lwp::restoreRegisters(void *buffer)
       return false;
    }
 
-   if (ioctl(fd_, PIOCSFPREG, &theFpRegs) == -1) {
+   if (ioctl(fd_, PIOCSFPREG, &(regs->theFpRegs)) == -1) {
       logLine("dyn_lwp::restoreRegisters PIOCSFPREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -279,9 +276,10 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-void *dyn_lwp::getRegisters() {
-   gregset_t theIntRegs;
-   if (ioctl(fd_, PIOCGREG, &theIntRegs) == -1) {
+struct dyn_saved_regs *dyn_lwp::getRegisters() {
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
+    
+   if (ioctl(fd_, PIOCGREG, &(regs->theIntRegs)) == -1) {
       perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -291,8 +289,7 @@ void *dyn_lwp::getRegisters() {
       return NULL;
    }
 
-   fpregset_t theFpRegs;
-   if (ioctl(fd_, PIOCGFPREG, &theFpRegs) == -1) {
+   if (ioctl(fd_, PIOCGFPREG, &(regs->theFpRegs)) == -1) {
       perror("dyn_lwp::getRegisters PIOCGFPREG");
       if (errno == EBUSY)
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -303,22 +300,10 @@ void *dyn_lwp::getRegisters() {
 
       return NULL;
    }
-
-   const int numbytesPart1 = sizeof(gregset_t);
-   const int numbytesPart2 = sizeof(fpregset_t);
-   assert(numbytesPart1 % 4 == 0);
-   assert(numbytesPart2 % 4 == 0);
-
-   void *buffer = new char[numbytesPart1 + numbytesPart2];
-   assert(buffer);
-
-   memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
-   memcpy((char *)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
-
-   return buffer;
+   return regs;
 }
 
-bool dyn_lwp::changePC(Address addr, const void *savedRegs) 
+bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *savedRegs) 
 {
 #if 0
 #ifdef __alpha
@@ -335,17 +320,17 @@ bool dyn_lwp::changePC(Address addr, const void *savedRegs)
 
    gregset_t theIntRegs;
    if (!savedRegs) {
-     if (-1 == ioctl(fd_, PIOCGREG, &theIntRegs)) {
-       perror("dyn_lwp::changePC PIOCGREG");
-       if (errno == EBUSY) {
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-	 assert(false);
+       if (-1 == ioctl(fd_, PIOCGREG, &theIntRegs)) {
+           perror("dyn_lwp::changePC PIOCGREG");
+           if (errno == EBUSY) {
+               cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+               assert(false);
+           }
+           return false;
        }
-       return false;
-     }
    }
    else {
-     gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
+       memcpy(&theIntRegs, &(regs->theIntRegs), sizeof(gregset_t));
    }
 
    theIntRegs.regs[PC_REGNUM] = addr;

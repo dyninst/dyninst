@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.126 2002/10/29 22:56:15 bernat Exp $
+// $Id: solaris.C,v 1.127 2002/11/14 20:26:24 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2439,21 +2439,21 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 }
 #endif // SHM_SAMPLING
 
-void *dyn_lwp::getRegisters()
+struct dyn_saved_regs *dyn_lwp::getRegisters()
 {
   // Astonishingly, this routine can be shared between solaris/sparc and
   // solaris/x86.  All hail /proc!!!
   
   // assumes the process is stopped (/proc requires it)
   
-  prgregset_t theIntRegs;
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
 #ifdef PURE_BUILD
   // explicitly initialize "theIntRegs" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++) theIntRegs[r]=0;
+  for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++) regs->theIntRegs[r]=0;
 #endif
   
-  if (ioctl(fd_, PIOCGREG, &theIntRegs) == -1) {
+  if (ioctl(fd_, PIOCGREG, &(regs->theIntRegs)) == -1) {
     perror("dyn_lwp::getRegisters PIOCGREG");
     if (errno == EBUSY) {
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -2463,9 +2463,7 @@ void *dyn_lwp::getRegisters()
     return NULL;
   }
   
-  prfpregset_t theFpRegs;
-  
-  if (ioctl(fd_, PIOCGFPREG, &theFpRegs) == -1) {
+  if (ioctl(fd_, PIOCGFPREG, &(regs->theFpRegs)) == -1) {
     perror("dyn_lwp::getRegisters PIOCGFPREG");
     if (errno == EBUSY)
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -2477,18 +2475,8 @@ void *dyn_lwp::getRegisters()
     
     return NULL;
   }
-
-  const int numbytesPart1 = sizeof(prgregset_t);
-  const int numbytesPart2 = sizeof(prfpregset_t);
-  assert(numbytesPart1 % 4 == 0);
-  assert(numbytesPart2 % 4 == 0);
-  void *buffer = new char[numbytesPart1 + numbytesPart2];
-  assert(buffer);
   
-  memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
-  memcpy((char *)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
-  
-  return buffer;
+  return regs;
 }
 
 bool dyn_lwp::executingSystemCall()
@@ -2518,10 +2506,10 @@ bool dyn_lwp::executingSystemCall()
   return(false);
 }
 
-bool dyn_lwp::changePC(Address addr, const void *savedRegs)
+bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
   prgregset_t theIntRegs;
-  if (!savedRegs) {
+  if (!regs) {
     if (ioctl(fd_, PIOCGREG, &theIntRegs) == -1) {
       perror("dyn_lwp::changePC PIOCGREG");
       if (errno == EBUSY) {
@@ -2532,7 +2520,7 @@ bool dyn_lwp::changePC(Address addr, const void *savedRegs)
     }
   }    
   else {
-    memcpy(&theIntRegs, savedRegs, sizeof(theIntRegs));
+    memcpy(&theIntRegs, &(regs->theIntRegs), sizeof(theIntRegs));
   }
   
   theIntRegs[R_PC] = addr;
@@ -2580,18 +2568,12 @@ bool process::changeIntReg(int reg, Address val) {
 }
 #endif
 
-bool dyn_lwp::restoreRegisters(void *regs)
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
 {
   // The fact that this routine can be shared between solaris/sparc and
   // solaris/x86 is just really, really cool.  /proc rules!  
 
-  prgregset_t theIntRegs;
-  prfpregset_t theFpRegs;
-
-  memcpy(&theIntRegs, regs, sizeof(theIntRegs));
-  memcpy(&theFpRegs, ((char *)regs) + sizeof(theIntRegs), sizeof(theFpRegs));
-
-  if (ioctl(fd_, PIOCSREG, &theIntRegs) == -1) {
+  if (ioctl(fd_, PIOCSREG, &(regs->theIntRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters PIOCSREG failed");
     if (errno == EBUSY) {
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -2600,7 +2582,7 @@ bool dyn_lwp::restoreRegisters(void *regs)
     return false;
   }
   
-  if (ioctl(fd_, PIOCSFPREG, &theFpRegs) == -1) {
+  if (ioctl(fd_, PIOCSFPREG, &(regs->theFpRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters PIOCSFPREG failed");
     if (errno == EBUSY) {
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;

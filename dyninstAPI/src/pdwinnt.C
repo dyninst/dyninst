@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.66 2002/10/18 22:41:12 bernat Exp $
+// $Id: pdwinnt.C,v 1.67 2002/11/14 20:26:22 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2012,43 +2012,42 @@ Frame Frame::getCallerFrame(process *p) const
 #endif
 
 void *dyn_lwp::getRegisters() {
-  w32CONTEXT *cont = new w32CONTEXT; //ccw 27 july 2000 : 29 mar 2001
-  if (!cont)
-    return NULL;
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
+    
   // we must set ContextFlags to indicate the registers we want returned,
   // in this case, the control registers.
   // The values for ContextFlags are defined in winnt.h
-  cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
+  regs->cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), cont))
+  if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &(regs->cont)))
 #else
   handleT handle = get_fd();
-  if (!GetThreadContext((HANDLE)handle, cont))
+  if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
 #endif
     {
-      delete cont;
       return NULL;
     }
-  return (void *)cont;
+  return regs;
 }
 
-bool dyn_lwp::changePC(Address addr, const void *savedRegs) {
+bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
+{
   w32CONTEXT cont;//ccw 27 july 2000
   if (!savedRegs) {
-    cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
-    //	DebugBreak();
+      cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
+      //	DebugBreak();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont)) 
+      if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont)) 
 #else
-      if (!GetThreadContext((HANDLE)get_fd(), &cont))
+          if (!GetThreadContext((HANDLE)get_fd(), &cont))
 #endif
-	{
-	  printf("GetThreadContext failed\n");
-	  return false;
-	}
+          {
+              printf("GetThreadContext failed\n");
+              return false;
+          }
   }
   else {
-    cont = *(w32CONTEXT *)savedRegs; //ccw 27 july 2000 : 29 mar 2001
+      memcpy(&cont, &(regs->cont), sizeof(w32CONTEXT);
   }
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001 
   cont.Eip = addr;
@@ -2067,13 +2066,13 @@ bool dyn_lwp::changePC(Address addr, const void *savedRegs) {
   return true;
 }
 
-bool dyn_lwp::restoreRegisters(void *buffer) {
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
   if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(),
-						       (w32CONTEXT *)buffer))
+                                                       &(regs->cont)))
 #else
   if (!SetThreadContext((HANDLE)get_fd(), 
-			(w32CONTEXT *)buffer))
+                        &(regs->cont)))
 #endif
     {
       //printf("SetThreadContext failed\n");

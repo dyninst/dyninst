@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.7 2002/10/08 22:50:00 bernat Exp $
+// $Id: linux-x86.C,v 1.8 2002/11/14 20:26:21 bernat Exp $
 
 #include <fstream.h>
 
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_lwp.h"
 
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
@@ -72,6 +71,8 @@
 #include "common/h/timing.h"
 #include "paradynd/src/init.h"
 #endif
+
+#include "dyninstAPI/src/dyn_lwp.h"
 
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/addLibraryLinux.h"
@@ -111,29 +112,6 @@ const char libc_version_symname[] = "__libc_version";
 
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
-#endif
-
-#ifndef _SYS_USER_H
-struct user_regs_struct
-{
-  long ebx;
-  long ecx;
-  long edx;
-  long esi;
-  long edi;
-  long ebp;
-  long eax;
-  long xds;
-  long xes;
-  long xfs;
-  long xgs;
-  long orig_eax;
-  long eip;
-  long xcs;
-  long eflags;
-  long esp;
-  long xss;
-};
 #endif
 
 static int regmap[] = 
@@ -198,19 +176,19 @@ int register_addr (int regno )
 
 /* ********************************************************************** */
 
-void *dyn_lwp::getRegisters() {
+struct dyn_saved_regs *dyn_lwp::getRegisters() {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
-
-   char *buf = new char [ GENREGS_STRUCT_SIZE + FPREGS_STRUCT_SIZE ];
+    struct dyn_saved_regs *regs = new dyn_saved_regs();
+    
    int error;
    bool errorFlag = false;
-   error = P_ptrace( PTRACE_GETREGS, proc_->getPid(), 0, (int)(buf) );
+   error = P_ptrace( PTRACE_GETREGS, proc_->getPid(), 0, (int)&(regs->gprs) );
    if( error ) {
        perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
        errorFlag = true;
    } else {
-       error = P_ptrace( PTRACE_GETFPREGS, proc_->getPid(), 0, (int)(buf + GENREGS_STRUCT_SIZE) );
+       error = P_ptrace( PTRACE_GETFPREGS, proc_->getPid(), 0, (int)&(regs->fprs));
        if( error ) {
 	   perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
 	   errorFlag = true;
@@ -220,10 +198,10 @@ void *dyn_lwp::getRegisters() {
    if( errorFlag )
        return NULL;
    else
-       return (void*)buf;
+       return regs;
 }
 
-bool dyn_lwp::changePC(Address loc, const void */*ignored registers*/) {
+bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/) {
   Address regaddr = EIP * INTREGSIZE;
   if (0 != P_ptrace (PTRACE_POKEUSER, proc_->getPid(), regaddr, loc )) {
     perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
@@ -280,20 +258,19 @@ bool dyn_lwp::executingSystemCall()
   return true;
 }
 
-bool dyn_lwp::restoreRegisters(void *buffer) {
+bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
 
-   char *buf = (char*)buffer;
    bool retVal = true;
 
-   if( P_ptrace( PTRACE_SETREGS, proc_->getPid(), 0, (int)(buf) ) )
+   if( P_ptrace( PTRACE_SETREGS, proc_->getPid(), 0,(int)&(regs->gprs) ) )
      {
        perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
        retVal = false;
    }
 
-   if( P_ptrace( PTRACE_SETFPREGS, proc_->getPid(), 0, (int)(buf + GENREGS_STRUCT_SIZE) ) )
+   if( P_ptrace( PTRACE_SETFPREGS, proc_->getPid(), 0, (int)&(regs->fprs)))
    {
        perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
        retVal = false;
@@ -1000,8 +977,11 @@ bool process::dlopenPARADYNlib() {
   savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
-  user_regs_struct *regs = (user_regs_struct*)savedRegs;
-  user_regs_struct new_regs = *regs;
+  struct dyn_saved_regs new_regs;
+  memcpy(&new_regs, savedRegs, sizeof(struct dyn_saved_regs));
+
+  user_regs_struct *regs = (user_regs_struct*) &(savedRegs->gprs);
+  
   RegValue theEBP = regs->ebp;
 
   // Under Linux, at the entry point to main, ebp is 0
@@ -1034,15 +1014,17 @@ bool process::dlopenPARADYNlib() {
   }
   else
   {
-      new_regs.eip = codeBase;
+      user_regs_struct *reg_ptr = (user_regs_struct *)&(new_regs.gprs);
+      
+      reg_ptr->eip = codeBase;
 
       if( libc_21 ) {
-          new_regs.eax = dyninstlib_addr;
-          new_regs.edx = DLOPEN_MODE;
-          new_regs.ecx = codeBase;
+          reg_ptr->eax = dyninstlib_addr;
+          reg_ptr->edx = DLOPEN_MODE;
+          reg_ptr->ecx = codeBase;
       }
 
-      if( !getDefaultLWP()->restoreRegisters( (void*)(&new_regs) ) )
+      if( !getDefaultLWP()->restoreRegisters(&new_regs))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1241,10 +1223,12 @@ bool process::dlopenDYNINSTlib() {
   savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
-  user_regs_struct *regs = (user_regs_struct*)savedRegs;
-  user_regs_struct new_regs = *regs;
-  RegValue theEBP = regs->ebp;
+  struct dyn_saved_regs new_regs;
+  memcpy(&new_regs, savedRegs, sizeof(struct dyn_saved_regs));
 
+  user_regs_struct *regs = (user_regs_struct*) &(savedRegs->gprs);
+  
+  RegValue theEBP = regs->ebp;
   // Under Linux, at the entry point to main, ebp is 0
   // the first thing main usually does is to push ebp and
   // move esp -> ebp, so we'll do that, too
@@ -1275,15 +1259,17 @@ bool process::dlopenDYNINSTlib() {
   }
   else
   {
-      new_regs.eip = codeBase;
+      user_regs_struct *reg_ptr = (user_regs_struct *)&(new_regs.gprs);
+      
+      reg_ptr->eip = codeBase;
 
       if( libc_21 ) {
-          new_regs.eax = dyninstlib_addr;
-          new_regs.edx = DLOPEN_MODE;
-          new_regs.ecx = codeBase;
+          reg_ptr->eax = dyninstlib_addr;
+          reg_ptr->edx = DLOPEN_MODE;
+          reg_ptr->ecx = codeBase;
       }
 
-      if( !getDefaultLWP()->restoreRegisters( (void*)(&new_regs) ) )
+      if( !getDefaultLWP()->restoreRegisters(&new_regs) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
