@@ -16,9 +16,13 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.17  1994/08/17 01:09:03  markc
-/* VMAddNewVisualization now strdup's the strings passed to it.
+/* Revision 1.18  1994/08/17 01:44:55  markc
+/* Correction, recommitted incorrect file, this should be the correct one.
+/* Adds strdups to VMAddNewVisualization.
 /*
+ * Revision 1.17  1994/08/17  01:09:03  markc
+ * VMAddNewVisualization now strdup's the strings passed to it.
+ *
  * Revision 1.16  1994/08/16  16:35:53  markc
  * Removed uses of old string iterators.  Added new VMAddNewVisualization function to support config language.
  *
@@ -192,36 +196,36 @@ int VM::VMAddNewVisualization(char *name,
       return(VMERROR);
     }
 
-    temp->argc = argc;
-    temp->Id = id;
-    temp->name = strdup(name);
-    if (!temp->name) {
-      perror("malloc in VM::VMAddNewVisualization");
-      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-      return(VMERROR);
-    }
-    temp->argv = new char*[argv];
+    int ct;
+    temp->argv = new char*[argc+1];
     if (!temp->argv) {
       perror("malloc in VM::VMAddNewVisualization");
-      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-      return(VMERROR);
+      ERROR_MSG(18, "malloc in VM::VMAddNewVisualization");
+      return (VMERROR);
     }
-    int ct;
     temp->argv[argc] = 0;
-    for (ct=0; ct<argc; ct++) {
+    for (ct=0; ct<argc; ++ct) {
       if (!argv[ct]) {
 	perror("malloc in VM::VMAddNewVisualization");
-	ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-	return(VMERROR);
+	ERROR_MSG(18, "malloc in VM::VMAddNewVisualization");
+	return (VMERROR);
       }
-      temp->argv[ct] = argv[ct];
+      temp->argv[ct] = strdup(argv[ct]);
       if (!temp->argv[ct]) {
 	perror("malloc in VM::VMAddNewVisualization");
-	ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-	return(VMERROR);
+	ERROR_MSG(18, "malloc in VM::VMAddNewVisualization");
+	return (VMERROR);
       }
     }
-
+    
+    temp->argc = argc;
+    temp->name = strdup(name);
+    if (!name) {
+      perror("malloc in VM::VMAddNewVisualization");
+      ERROR_MSG(18, "malloc in VM::VMAddNewVisualization");
+      return (VMERROR);
+    }
+    temp->Id = id;
     visiList.add(temp,(void *)id);
   } else {
     // redefine an existing entry
