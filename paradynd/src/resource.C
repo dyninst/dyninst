@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.28  1997/06/23 17:04:36  tamches
+ * used dictionary find() to achieve some speedup
+ *
  * Revision 1.27  1997/04/29 23:17:44  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -135,12 +138,17 @@ resource *resource::newResource(resource *parent, const string& name, unsigned i
   string res_string = parent->full_name() + slashStr + name;
 
   // first check to see if the resource has already been defined 
-  if (allResources.defines(res_string))
-    return (allResources[res_string]);
+  resource *ret;
+  if (allResources.find(res_string, ret)) // writes to ret if found
+     return ret;
 
   string abs;
-  resource *ret = new resource(abs, name, 0.0, NULL, false, parent, type);
+
+  
+  //ret = new resource(abs, name, 0.0, NULL, false, parent, v_names, type);
+  ret = new resource(abs, name, 0.0, NULL, false, parent, type);
   assert(ret);
+
   allResources[res_string] = ret;
   res_dict[id] = ret;
   return(ret);
