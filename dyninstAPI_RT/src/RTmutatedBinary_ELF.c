@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.7 2004/03/12 19:37:40 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.8 2004/03/12 21:09:23 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -253,7 +253,7 @@ int checkMap(unsigned int addr){
 	int index=0;
 	
 	while(index < procMemMapSize){
-		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + procMemMap[index].pr_size) >= addr){
+		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) >= addr){
 			return 1;
 		}
 		index++;
