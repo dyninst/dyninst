@@ -10,6 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.24  1995/10/26 21:07:09  tamches
+ * corrected constructor for heapItem(), which had been mysteriously
+ * named heap() by mistake
+ *
  * Revision 1.23  1995/10/19 22:36:46  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
@@ -145,7 +149,7 @@ typedef enum { HEAPfree, HEAPallocated } heapStatus;
 
 class heapItem {
  public:
-  heap() {
+  heapItem() {
     addr =0; length = 0; status = HEAPfree;
   }
   Address addr;
