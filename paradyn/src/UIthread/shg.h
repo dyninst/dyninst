@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.25 2001/06/20 20:33:43 schendel Exp $ */
+/* $Id: shg.h,v 1.26 2002/08/02 21:00:32 pcroth Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -137,9 +137,13 @@ class shg {
    int lastItemUnderMouseX, lastItemUnderMouseY;
 
    // values of "tunable constants" saying which node types should be hidden:
-   bool hideTrueNodes, hideFalseNodes, hideUnknownNodes, hideNeverSeenNodes;
-   bool hideActiveNodes, hideInactiveNodes;
-   bool hideShadowNodes;
+   bool showTrueNodes;
+   bool showFalseNodes;
+   bool showUnknownNodes;
+   bool showNeverSeenNodes;
+   bool showActiveNodes;
+   bool showInactiveNodes;
+   bool showShadowNodes;
 
    void resizeScrollbars();
 
@@ -261,8 +265,8 @@ class shg {
        Tcl_Interp *interp, Tk_Window theTkWindow,
        const string &iHorizSBName, const string &iVertSBName,
        const string &iCurrItemLabelName,
-       bool iHideTrue, bool iHideFalse, bool iHideUnknown, bool iHideNever,
-       bool iHaveActive, bool iHideInactive, bool iHideShadow);
+       bool iShowTrue, bool iShowFalse, bool iShowUnknown, bool iShowNever,
+       bool iHaveActive, bool iShowInactive, bool iShowShadow);
   ~shg() {delete rootPtr;}
 
    int getPhaseId() const {return thePhaseId;}
@@ -311,9 +315,9 @@ class shg {
 
    enum changeType{ct_true, ct_false, ct_unknown, ct_never, ct_active, ct_inactive,
                    ct_shadow};
-   bool changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
-                          bool newHideNeverSeen, bool newHideActive,
-                          bool newHideInactive, bool newHideShadow,
+   bool changeHiddenNodes(bool newShowTrue, bool newShowFalse, bool newShowUnknown,
+                          bool newShowNeverSeen, bool newShowActive,
+                          bool newShowInactive, bool newShowShadow,
                           bool isCurrShg);
       // Returns true iff any changes.
    bool changeHiddenNodes(changeType, bool hide, bool isCurrShg);
@@ -329,7 +333,7 @@ class shg {
       // until a corresponding addEdge() call connects this new node to the rest
       // of the "graph".
    enum configNodeResult {noChanges, benignChanges, changesInvolvingJustExpandedness,
-			  changesInvolvingHideness};
+			  changesInvolvingHiddenness};
    configNodeResult configNode(unsigned id, bool active, shgRootNode::evaluationState,
 			       bool isCurrShg, bool rethinkIfNecessary);
       // Does not redraw, but may rethink layout and/or hide-ness.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.21 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: shgPhases.h,v 1.22 2002/08/02 21:00:32 pcroth Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -91,16 +91,16 @@ class shgPhases {
 		Tcl_Interp *interp, Tk_Window theTkWindow,
 		const string &horizSBName, const string &vertSBName,
 		const string &currItemLabelName,
-		bool hideTrueNodes, bool hideFalseNodes, bool hideUnknownNodes,
-		bool hideNeverSeenNodes, bool hideActiveNodes, bool hideInactiveNodes,
-		bool hideShadowNodes
+		bool showTrueNodes, bool showFalseNodes, bool showUnknownNodes,
+		bool showNeverSeenNodes, bool showActiveNodes, bool showInactiveNodes,
+		bool showShadowNodes
 		) : phaseName(iPhaseName) {
          shg *theNewShg = new shg(phaseId, interp, theTkWindow,
 				  horizSBName, vertSBName,
 				  currItemLabelName,
-				  hideTrueNodes, hideFalseNodes, hideUnknownNodes,
-				  hideNeverSeenNodes, hideActiveNodes,
-				  hideInactiveNodes, hideShadowNodes);
+				  showTrueNodes, showFalseNodes, showUnknownNodes,
+				  showNeverSeenNodes, showActiveNodes,
+				  showInactiveNodes, showShadowNodes);
          assert(theNewShg);
 
          this->theShg = theNewShg;
@@ -155,9 +155,13 @@ class shgPhases {
    int shgAltAnchorY;
 
    // values of "tunable constants" saying which node types should be hidden:
-   bool hideTrueNodes, hideFalseNodes, hideUnknownNodes, hideNeverSeenNodes;
-   bool hideActiveNodes, hideInactiveNodes;
-   bool hideShadowNodes;
+   bool showTrueNodes;
+   bool showFalseNodes;
+   bool showUnknownNodes;
+   bool showNeverSeenNodes;
+   bool showActiveNodes;
+   bool showInactiveNodes;
+   bool showShadowNodes;
 
    shg &getByID(int phaseID);
    shgStruct &getByIDLL(int phaseID);
@@ -221,11 +225,11 @@ class shgPhases {
    bool resumeCurrSearch();
       // returns true iff search successfully resumed
 
-   bool changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
-                          bool newHideNeverSeen, bool newHideActive,
-                          bool newHideInactive, bool newHideShadow);
+   bool changeHiddenNodes(bool newShowTrue, bool newShowFalse, bool newShowUnknown,
+                          bool newShowNeverSeen, bool newShowActive,
+                          bool newShowInactive, bool newShowShadow);
       // simply calls changeHiddenNodes() for every shg.  Returns true iff any changes.
-   bool changeHiddenNodes(shg::changeType ct, bool hide);
+   bool changeHiddenNodes(shg::changeType ct, bool show);
       // like above but just changes one characteristic.
 
    bool addNode(int phaseId, unsigned nodeId,

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.77 2002/07/25 19:22:36 willb Exp $
+/* $Id: UIpublic.C,v 1.78 2002/08/02 21:00:32 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -656,4 +656,161 @@ UIM::CloseTkConnection( void )
 #endif // defined(i386_unknown_nt4_0)
 }
 
+
+//
+// Tunable constant callbacks
+//
+void
+UIM::showWhereAxisTips(bool newValue)
+{
+	// TODO do we do this here, or do we pass it along yet again to another object
+	if(newValue)
+	{
+		myTclEval(interp, "whereAxisDrawTips");
+	}
+	else
+	{
+		myTclEval(interp, "whereAxisEraseTips");
+	}
+}
+
+
+void
+UIM::showSHGKey(bool newValue)
+{
+	if(newValue)
+	{
+		myTclEval(interp, "redrawKeyAndTipsAreas on nc");
+	}
+	else
+	{
+		myTclEval(interp, "redrawKeyAndTipsAreas off nc");
+	}
+}
+
+
+void
+UIM::showSHGTips(bool newValue)
+{
+	if(newValue)
+	{
+		myTclEval(interp, "redrawKeyAndTipsAreas nc on");
+	}
+	else
+	{
+		myTclEval(interp, "redrawKeyAndTipsAreas nc off");
+	}
+}
+
+
+// utility function for showing/hiding SHG nodes, used by
+// the following few SHG-related igen calls
+void
+tcShgShowGeneric(shg::changeType ct, bool show)
+{
+	extern shgPhases *theShgPhases;
+   if (theShgPhases == NULL)
+      // the shg window hasn't been opened yet...
+      // do nothing.  When "theShgPhases" is first created, it'll
+      // grab fresh values from the tunables
+      return;
+
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(ct, !show);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+
+   // ...and here is where we update the tk labels; hidden
+   // node types are now drawn with a shaded background color.
+}
+
+
+void
+UIM::showSHGTrueNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_true, show);
+}
+
+
+
+void
+UIM::showSHGFalseNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_false, show);
+}
+
+
+void
+UIM::showSHGUnknownNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_unknown, show);
+}
+
+
+void
+UIM::showSHGNeverExpandedNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_never, show);
+}
+
+
+
+void
+UIM::showSHGActiveNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_active, show);
+}
+
+
+
+void
+UIM::showSHGInactiveNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_inactive, show);
+}
+
+
+
+void
+UIM::showSHGShadowNodes(bool show)
+{
+	tcShgShowGeneric(shg::ct_shadow, show);
+}
+
+
+void
+UIM::setDeveloperMode(bool newValue)
+{
+	shgDevelModeChange(interp, newValue);
+}
+
+
+void
+UIM::showTclPrompt( bool show )
+{
+#if !defined(i386_unknown_nt4_0)
+    if( show )
+    {
+        // install our input handler
+        InstallStdinHandler();
+
+        // bind to stdin so that the thread library responds to input
+        // on the command line
+
+        //cout << "binding to stdin:" << endl;
+        msg_bind(fileno(stdin),
+            1, // we dequeue messages ourselves - we just want notificaton
+            NULL,
+            NULL,
+            &stdin_tid );
+   }
+   else
+   {
+      //cout << "deleting file handler:" << endl;
+      UninstallStdinHandler();
+   }
+#else
+    // TODO - handle this mechanism (or similar) under Windows NT
+#endif // !defined(i386_unknown_nt4_0)
+}
 

@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.41 2002/07/25 19:22:24 willb Exp $
+ * $Id: UI.I,v 1.42 2002/08/02 21:00:31 pcroth Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -141,4 +141,20 @@ $remote UIM {
 	// tell the UI thread to close its GUI connection
 	// used in cases when the front-end forks to spawn a new process
 	$async void CloseTkConnection();
+
+	// support for configuring Paradyn windows programmatically
+	// (e.g., in response to programmatic tunable constant changes)
+	$async void showWhereAxisTips( bool val );
+	$async void showSHGKey( bool val );
+	$async void showSHGTips( bool val );
+	$async void showSHGTrueNodes( bool val );
+	$async void showSHGFalseNodes( bool val );
+	$async void showSHGUnknownNodes( bool val );
+	$async void showSHGNeverExpandedNodes( bool val );
+	$async void showSHGActiveNodes( bool val );
+	$async void showSHGInactiveNodes( bool val );
+	$async void showSHGShadowNodes( bool val );
+	$async void setDeveloperMode( bool val );
+	$async void showTclPrompt( bool val );
 };
+

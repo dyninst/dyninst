@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.30 2002/05/13 19:53:27 mjbrim Exp $
+// $Id: shgPhases.C,v 1.31 2002/08/02 21:00:32 pcroth Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
@@ -80,16 +80,21 @@ shgPhases::shgPhases(const string &iMenuName,
 
 #ifdef PARADYN
    // grab initial values from the appropriate tunable constants
-   hideTrueNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgTrueNodes").getValue();
-   hideFalseNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgFalseNodes").getValue();
-   hideUnknownNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgUnknownNodes").getValue();
-   hideNeverSeenNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgNeverSeenNodes").getValue();
-   hideActiveNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgActiveNodes").getValue();
-   hideInactiveNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgInactiveNodes").getValue();
-   hideShadowNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgShadowNodes").getValue();
+   showTrueNodes = tunableConstantRegistry::findBoolTunableConstant("showShgTrueNodes").getValue();
+   showFalseNodes = tunableConstantRegistry::findBoolTunableConstant("showShgFalseNodes").getValue();
+   showUnknownNodes = tunableConstantRegistry::findBoolTunableConstant("showShgUnknownNodes").getValue();
+   showNeverSeenNodes = tunableConstantRegistry::findBoolTunableConstant("showShgNeverSeenNodes").getValue();
+   showActiveNodes = tunableConstantRegistry::findBoolTunableConstant("showShgActiveNodes").getValue();
+   showInactiveNodes = tunableConstantRegistry::findBoolTunableConstant("showShgInactiveNodes").getValue();
+   showShadowNodes = tunableConstantRegistry::findBoolTunableConstant("showShgShadowNodes").getValue();
 #else
-   hideTrueNodes = hideFalseNodes = hideUnknownNodes = hideNeverSeenNodes = false;
-   hideActiveNodes = hideInactiveNodes = hideShadowNodes = false;
+   showTrueNodes = false;
+   showFalseNodes = false;
+   showUnknownNodes = false;
+   showNeverSeenNodes = false;
+   showActiveNodes = false;
+   showInactiveNodes = false;
+   showShadowNodes = false;
 #endif
 }
 
@@ -403,9 +408,9 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
 		       interp, theTkWindow,
 		       horizSBName, vertSBName,
 		       currItemLabelName,
-		       hideTrueNodes, hideFalseNodes, hideUnknownNodes,
-		       hideNeverSeenNodes, hideActiveNodes, hideInactiveNodes,
-		       hideShadowNodes);
+		       showTrueNodes, showFalseNodes, showUnknownNodes,
+		       showNeverSeenNodes, showActiveNodes, showInactiveNodes,
+		       showShadowNodes);
 
    bool result = false; // so far, nothing has changed
 
@@ -515,14 +520,14 @@ bool shgPhases::resumeCurrSearch() {
    return true;
 }
 
-bool shgPhases::changeHiddenNodes(bool newHideTrue, bool newHideFalse,
-				  bool newHideUnknown, bool newHideNeverSeen,
-				  bool newHideActive, bool newHideInactive,
-				  bool newHideShadow) {
-   if (hideTrueNodes == newHideTrue && hideFalseNodes == newHideFalse &&
-       hideUnknownNodes == newHideUnknown && hideNeverSeenNodes == newHideNeverSeen &&
-       hideActiveNodes == newHideActive && hideInactiveNodes == newHideInactive &&
-       hideShadowNodes == newHideShadow)
+bool shgPhases::changeHiddenNodes(bool newShowTrue, bool newShowFalse,
+				  bool newShowUnknown, bool newShowNeverSeen,
+				  bool newShowActive, bool newShowInactive,
+				  bool newShowShadow) {
+   if (showTrueNodes == newShowTrue && showFalseNodes == newShowFalse &&
+       showUnknownNodes == newShowUnknown && showNeverSeenNodes == newShowNeverSeen &&
+       showActiveNodes == newShowActive && showInactiveNodes == newShowInactive &&
+       showShadowNodes == newShowShadow)
       return false; // nothing changed
 
    bool anyChanges = false; // so far
@@ -530,44 +535,44 @@ bool shgPhases::changeHiddenNodes(bool newHideTrue, bool newHideFalse,
       shgStruct &theShgStruct = theShgPhases[shgindex];
       shg *theShg = theShgStruct.theShg;
 
-      if (theShg->changeHiddenNodes(newHideTrue, newHideFalse, newHideUnknown,
-				    newHideNeverSeen, newHideActive, newHideInactive,
-				    newHideShadow,
+      if (theShg->changeHiddenNodes(newShowTrue, newShowFalse, newShowUnknown,
+				    newShowNeverSeen, newShowActive, newShowInactive,
+				    newShowShadow,
 				    shgindex == currShgPhaseIndex))
          anyChanges = true;
    }
 
    return anyChanges;
 }
-bool shgPhases::changeHiddenNodes(shg::changeType ct, bool hide) {
+bool shgPhases::changeHiddenNodes(shg::changeType ct, bool show) {
    switch (ct) {
       case shg::ct_true:
-         if (hideTrueNodes == hide) return false;
-	 hideTrueNodes = hide;
+         if (showTrueNodes == show) return false;
+	 showTrueNodes = show;
 	 break;
        case shg::ct_false:
-	 if (hideFalseNodes == hide) return false;
-	 hideFalseNodes = hide;
+	 if (showFalseNodes == show) return false;
+	 showFalseNodes = show;
 	 break;
        case shg::ct_unknown:
-	 if (hideUnknownNodes == hide) return false;
-	 hideUnknownNodes = hide;
+	 if (showUnknownNodes == show) return false;
+	 showUnknownNodes = show;
 	 break;
        case shg::ct_never:
-	 if (hideNeverSeenNodes == hide) return false;
-	 hideNeverSeenNodes = hide;
+	 if (showNeverSeenNodes == show) return false;
+	 showNeverSeenNodes = show;
 	 break;
        case shg::ct_active:
-	 if (hideActiveNodes == hide) return false;
-	 hideActiveNodes = hide;
+	 if (showActiveNodes == show) return false;
+	 showActiveNodes = show;
 	 break;
        case shg::ct_inactive:
-	 if (hideInactiveNodes == hide) return false;
-	 hideInactiveNodes = hide;
+	 if (showInactiveNodes == show) return false;
+	 showInactiveNodes = show;
 	 break;
        case shg::ct_shadow:
-	 if (hideShadowNodes == hide) return false;
-	 hideShadowNodes = hide;
+	 if (showShadowNodes == show) return false;
+	 showShadowNodes = show;
 	 break;
        default:
 	 assert(false);
@@ -577,7 +582,7 @@ bool shgPhases::changeHiddenNodes(shg::changeType ct, bool hide) {
    for (unsigned shgindex = 0; shgindex < theShgPhases.size(); shgindex++) {
       shgStruct &theShgStruct = theShgPhases[shgindex];
       shg *theShg = theShgStruct.theShg;
-      if (theShg->changeHiddenNodes(ct, hide, currShgPhaseIndex == shgindex))
+      if (theShg->changeHiddenNodes(ct, show, currShgPhaseIndex == shgindex))
 	 anyChanges = true;
    }
 

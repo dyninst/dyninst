@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.27 2002/07/25 19:22:33 willb Exp $ */
+/* $Id: UIglobals.h,v 1.28 2002/08/02 21:00:32 pcroth Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -80,6 +80,9 @@ extern int UIMMsgTokenID;
 // this tcl interpreter used for entire UI
 extern Tcl_Interp *interp;   
 
+// thread library id assigned to stdin when bound
+extern thread_t stdin_tid;
+
 // set for batch mode; clear for normal
 extern int UIM_BatchMode;    
 
@@ -94,5 +97,9 @@ extern vector<metric_focus_pair> uim_VisiSelections;
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, char **argv);
+
+void shgDevelModeChange( Tcl_Interp* interp, bool value );
+void InstallStdinHandler( void );
+void UninstallStdinHandler( void );
 
 #endif

@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.33 2002/05/13 19:53:26 mjbrim Exp $
+// $Id: shg.C,v 1.34 2002/08/02 21:00:32 pcroth Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -114,8 +114,8 @@ void shg::initializeStaticsIfNeeded() {
 shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	 const string &iHorizSBName, const string &iVertSBName,
 	 const string &iCurrItemLabelName,
-	 bool iHideTrue, bool iHideFalse, bool iHideUnknown, bool iHideNever,
-	 bool iHideActive, bool iHideInactive, bool iHideShadow) :
+	 bool iShowTrue, bool iShowFalse, bool iShowUnknown, bool iShowNever,
+	 bool iShowActive, bool iShowInactive, bool iShowShadow) :
 	    hash(&hashFunc),
             hash2(&hashFunc2),
 	    shadowNodeHash(&hashFuncShadow),
@@ -138,26 +138,26 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 
    lastItemUnderMouseX = lastItemUnderMouseY = -1;
 
-   hideTrueNodes = iHideTrue;
-   hideFalseNodes = iHideFalse;
-   hideUnknownNodes = iHideUnknown;
-   hideNeverSeenNodes = iHideNever;
-   hideActiveNodes = iHideActive;
-   hideInactiveNodes = iHideInactive;
-   hideShadowNodes = iHideShadow;
+   showTrueNodes = iShowTrue;
+   showFalseNodes = iShowFalse;
+   showUnknownNodes = iShowUnknown;
+   showNeverSeenNodes = iShowNever;
+   showActiveNodes = iShowActive;
+   showInactiveNodes = iShowInactive;
+   showShadowNodes = iShowShadow;
 }
 
 bool shg::state2hidden(shgRootNode::evaluationState es,
 		       bool active, bool shadow) const {
-   if (active && hideActiveNodes) return true;
-   if (!active && hideInactiveNodes) return true;
+   if (active && !showActiveNodes) return true;
+   if (!active && !showInactiveNodes) return true;
 
-   if (shadow && hideShadowNodes) return true;
+   if (shadow && !showShadowNodes) return true;
 
-   if (es==shgRootNode::es_true && hideTrueNodes) return true;
-   else if (es==shgRootNode::es_false && hideFalseNodes) return true;
-   else if (es==shgRootNode::es_unknown && hideUnknownNodes) return true;
-   else if (es==shgRootNode::es_never && hideNeverSeenNodes) return true;
+   if (es==shgRootNode::es_true && !showTrueNodes) return true;
+   else if (es==shgRootNode::es_false && !showFalseNodes) return true;
+   else if (es==shgRootNode::es_unknown && !showUnknownNodes) return true;
+   else if (es==shgRootNode::es_never && !showNeverSeenNodes) return true;
 
    return false;
 }
@@ -816,56 +816,56 @@ bool shg::changeHiddenNodesBase(bool isCurrShg) {
    return true;
 }
 
-bool shg::changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
-			    bool newHideNeverSeen, bool newHideActive,
-			    bool newHideInactive, bool newHideShadow,
+bool shg::changeHiddenNodes(bool newShowTrue, bool newShowFalse, bool newShowUnknown,
+			    bool newShowNeverSeen, bool newShowActive,
+			    bool newShowInactive, bool newShowShadow,
 			    bool isCurrShg) {
    // returns true iff any changes
-   if (hideTrueNodes == newHideTrue && hideFalseNodes == newHideFalse &&
-       hideUnknownNodes == newHideUnknown && hideNeverSeenNodes == newHideNeverSeen &&
-       hideActiveNodes == newHideActive && hideInactiveNodes == newHideInactive &&
-       hideShadowNodes == newHideShadow)
+   if (showTrueNodes == newShowTrue && showFalseNodes == newShowFalse &&
+       showUnknownNodes == newShowUnknown && showNeverSeenNodes == newShowNeverSeen &&
+       showActiveNodes == newShowActive && showInactiveNodes == newShowInactive &&
+       showShadowNodes == newShowShadow)
       return false; // nothing changed
 
-   hideTrueNodes = newHideTrue;
-   hideFalseNodes = newHideFalse;
-   hideUnknownNodes = newHideUnknown;
-   hideNeverSeenNodes = newHideNeverSeen;
-   hideActiveNodes = newHideActive;
-   hideInactiveNodes = newHideInactive;
-   hideShadowNodes = newHideShadow;
+   showTrueNodes = newShowTrue;
+   showFalseNodes = newShowFalse;
+   showUnknownNodes = newShowUnknown;
+   showNeverSeenNodes = newShowNeverSeen;
+   showActiveNodes = newShowActive;
+   showInactiveNodes = newShowInactive;
+   showShadowNodes = newShowShadow;
 
    return changeHiddenNodesBase(isCurrShg);
 }
-bool shg::changeHiddenNodes(shg::changeType ct, bool hide, bool isCurrShg) {
+bool shg::changeHiddenNodes(shg::changeType ct, bool show, bool isCurrShg) {
    switch (ct) {
       case shg::ct_true:
-         if (hideTrueNodes == hide) return false;
-	 hideTrueNodes = hide;
+         if (showTrueNodes == show) return false;
+	 showTrueNodes = show;
 	 break;
        case shg::ct_false:
-	 if (hideFalseNodes == hide) return false;
-	 hideFalseNodes = hide;
+	 if (showFalseNodes == show) return false;
+	 showFalseNodes = show;
 	 break;
        case shg::ct_unknown:
-	 if (hideUnknownNodes == hide) return false;
-	 hideUnknownNodes = hide;
+	 if (showUnknownNodes == show) return false;
+	 showUnknownNodes = show;
 	 break;
        case shg::ct_never:
-	 if (hideNeverSeenNodes == hide) return false;
-	 hideNeverSeenNodes = hide;
+	 if (showNeverSeenNodes == show) return false;
+	 showNeverSeenNodes = show;
 	 break;
        case shg::ct_active:
-	 if (hideActiveNodes == hide) return false;
-	 hideActiveNodes = hide;
+	 if (showActiveNodes == show) return false;
+	 showActiveNodes = show;
 	 break;
        case shg::ct_inactive:
-	 if (hideInactiveNodes == hide) return false;
-	 hideInactiveNodes = hide;
+	 if (showInactiveNodes == show) return false;
+	 showInactiveNodes = show;
 	 break;
        case shg::ct_shadow:
-	 if (hideShadowNodes == hide) return false;
-	 hideShadowNodes = hide;
+	 if (showShadowNodes == show) return false;
+	 showShadowNodes = show;
 	 break;
        default:
 	 assert(false);
@@ -954,7 +954,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
 				      bool rethinkIfNecessary) {
    // Does not redraw.  Possible return values:
    // noChanges, benignChanges (a node changed color but didn't expand/unexpand
-   // or hide/unhide), changesInvolvingJustExpandedness, changesInvolvingHideness.
+   // or hide/unhide), changesInvolvingJustExpandedness, changesInvolvingHiddenness.
 
    // Note that a true value of "rethinkIfNecessary" can only lead to a return
    // value of noChanges or benignChanges, because any "higher" changes would trigger
@@ -963,7 +963,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
    // In practice:
    // a return value indicating a change in just expandedness means that you should
    //    call rethink_entire_layout(isCurrShg)
-   // a return value indicating a change in Hideness means that you should
+   // a return value indicating a change in Hiddenness means that you should
    //    call rootPtr->updateAnything2Draw(consts)
    //    and  rethink_entire_layout(isCurrShg)
 
@@ -1020,7 +1020,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
    // (Is this right?)
 
    bool resultExpandednessChanged = false; // so far
-   bool resultHidenessChanged     = false; // so far
+   bool resultHiddennessChanged     = false; // so far
    bool rethink_layout = false; // so far...
 
    // Algorithm:
@@ -1047,7 +1047,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
             // probably a bit more than is needed...
       }
       else
-	 resultHidenessChanged=true;
+	 resultHiddennessChanged=true;
    }
 
    // Algorithm Step 2: Expansion/un-expansion due to change to/from es_true
@@ -1096,7 +1096,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
             // probably a bit more than is needed...
       }
       else
-	 resultHidenessChanged = true;
+	 resultHiddennessChanged = true;
    }
 
    if (rethink_layout) {
@@ -1109,10 +1109,10 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
       // ...which means there's nothing left for outside code to do but redraw:
       return benignChanges;
    }
-   else if (resultHidenessChanged)
+   else if (resultHiddennessChanged)
       // the biggest change; user must call rootPtr->updateAnything2Draw(consts) plus
       // rethink_entire_layout(isCurrShg)
-      return changesInvolvingHideness;
+      return changesInvolvingHiddenness;
    else if (resultExpandednessChanged)
       // user must call rethink_entire_layout(isCurrShg)
       return changesInvolvingJustExpandedness;
@@ -1170,7 +1170,7 @@ bool shg::inactivateAll(bool isCurrShg) {
 	 if (localResult != noChanges)
 	    anyChanges = true;
 
-	 if (localResult == changesInvolvingHideness) {
+	 if (localResult == changesInvolvingHiddenness) {
 	    needToRethinkHidden = true;
 	    needToRethinkLayout = true;
 	 }

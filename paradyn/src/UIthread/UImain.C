@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.100 2002/07/25 19:22:34 willb Exp $
+// $Id: UImain.C,v 1.101 2002/08/02 21:00:32 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -88,8 +88,6 @@ const Ident V_Tid(V_libpdthread,"Paradyn");
 //----------------------------------------------------------------------------
 static    void    ShowPrompt( bool continuation );
 static    void    StdinInputHandler( Tcl_Interp* interp );
-static    void    InstallStdinHandler( void );
-static    void    UninstallStdinHandler( void );
 
 
 //----------------------------------------------------------------------------
@@ -97,7 +95,7 @@ static    void    UninstallStdinHandler( void );
 //----------------------------------------------------------------------------
 static    Tcl_Obj* stdinCmdObj = NULL;
 static    bool stdinIsTTY = true;
-static    thread_t stdin_tid = THR_TID_UNSPEC;
+thread_t stdin_tid = THR_TID_UNSPEC;
 
 
 //----------------------------------------------------------------------------
@@ -305,102 +303,102 @@ void processPendingTkEventsNoBlock() {
       ;
 }
 
+
 #define UIMBUFFSIZE 256
 
 
-void tclPromptCallback( bool showTclPrompt )
+//
+// tunable constant callbacks
+//
+// These callbacks could execute in any thread (e.g., if the tunable
+// constant is set programmatically).  We have to ensure that Tcl interpreter
+// access occurs from the UI thread only, so we delegate handling that
+// requires Tcl access to the UI thread.
+//
+
+void
+tclPromptCallback( bool show )
 {
-#if !defined(i386_unknown_nt4_0)
+	uiMgr->showTclPrompt( show );
+}
+
+void
+whereAxisShowTipsCallback( bool newVal )
+{
+	// ask the UI thread to show or hide the where axis tips
+	uiMgr->showWhereAxisTips( newVal );
+}
+
+void
+shgShowKeyCallback( bool newVal )
+{
+	// ask the UI thread to show or hide the PC key
+	uiMgr->showSHGKey( newVal );
+}
+
+void
+shgShowTipsCallback( bool newVal )
+{
+	// ask the UI thread to show or hide the PC tips
+	uiMgr->showSHGTips( newVal );
+}
+
+void
+shgShowTrueCallback( bool show )
+{
+	uiMgr->showSHGTrueNodes( show );
+}
+
+void
+shgShowFalseCallback( bool show )
+{
+	uiMgr->showSHGFalseNodes( show );
+}
+
+void
+shgShowUnknownCallback( bool show )
+{
+	uiMgr->showSHGUnknownNodes( show );
+}
+
+void
+shgShowNeverCallback( bool show )
+{
+	uiMgr->showSHGNeverExpandedNodes( show );
+}
+
+void
+shgShowActiveCallback( bool show )
+{
+	uiMgr->showSHGActiveNodes( show );
+}
+
+void
+shgShowInactiveCallback( bool show )
+{
+	uiMgr->showSHGInactiveNodes( show );
+}
 
 
-    if( showTclPrompt )
-    {
-        // install our input handler
-        InstallStdinHandler();
+void
+shgShowShadowCallback( bool show )
+{
+	uiMgr->showSHGShadowNodes( show );
+}
 
-        // bind to stdin so that the thread library responds to input
-        // on the command line
 
-        //cout << "binding to stdin:" << endl;
-        msg_bind(fileno(stdin),
-            1, // we dequeue messages ourselves - we just want notificaton
-            NULL,
-            NULL,
-            &stdin_tid );
-   }
-   else
-   {
-      //cout << "deleting file handler:" << endl;
-      UninstallStdinHandler();
-   }
-#else
-    // TODO - handle this mechanism (or similar) under Windows NT
-#endif // !defined(i386_unknown_nt4_0)
+void
+develModeCallback( bool newVal )
+{
+	inDeveloperMode = newVal;
+
+	// the SHG needs to hear of changes in developer mode to resize
+	// its status line appropriately
+	uiMgr->setDeveloperMode( newVal );
 }
 
 
 
-
-extern shgPhases *theShgPhases;
-void tcShgHideGeneric(shg::changeType ct, bool hide) {
-   if (theShgPhases == NULL)
-      // the shg window hasn't been opened yet...
-      // do nothing.  When "theShgPhases" is first created, it'll
-      // grab fresh values from the tunables
-      return;
-
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(ct, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
-
-   // ...and here is where we update the tk labels; hidden
-   // node types are now drawn with a shaded background color.
-}
-
-void tcShgHideTrueCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_true, hide);
-}
-void tcShgHideFalseCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_false, hide);
-}
-void tcShgHideUnknownCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_unknown, hide);
-}
-void tcShgHideNeverCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_never, hide);
-}
-void tcShgHideActiveCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_active, hide);
-}
-void tcShgHideInactiveCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_inactive, hide);
-}
-void tcShgHideShadowCallback(bool hide) {
-   tcShgHideGeneric(shg::ct_shadow, hide);
-}
-
-void develModeCallback(bool newValue) {
-	inDeveloperMode = newValue;
-
-	// plus any other necessary action...
-	// The shg wants to hear of such changes, so it can resize its
-	// status line (w/in the shg window) appropriately
-	extern void shgDevelModeChange(Tcl_Interp *, bool);
-	shgDevelModeChange(interp, inDeveloperMode);
-}
-
-#if 0
-void tcEnableCallGraphCallback(bool enable){
-  if (enable)
-    myTclEval(interp, ".parent.menub.left.men.b1.m add command"
-                      " -label \"Call Graph\" -command {callGraphInitialize}");
-  else {
-    myTclEval(interp, ".parent.menub.left.men.b1.m delete \"Call Graph\"");
-    myTclEval(interp, "destroy .callGraph");
-  }
-}
-#endif
 
 void *UImain(void*) {
     thread_t mtid;
@@ -449,7 +447,7 @@ void *UImain(void*) {
         " on shortcuts for expanding, unexpanding, selecting, and scrolling."
         "  A setting of false saves screen real estate.",
         true, // default value
-        whereAxisDrawTipsCallback,
+        whereAxisShowTipsCallback,
         userConstant);
                           
     tunableBooleanConstantDeclarator tcShgShowKey("showShgKey",
@@ -457,7 +455,7 @@ void *UImain(void*) {
         " decoding the meaning of the several background colors, text colors,"
         " italics, etc.  A setting of false saves screen real estate.",
     true, // default value
-    shgDrawKeyCallback,
+    shgShowKeyCallback,
     userConstant);
 
     tunableBooleanConstantDeclarator tcShgShowTips("showShgTips",
@@ -465,7 +463,7 @@ void *UImain(void*) {
         " on shortcuts for expanding, unexpanding, selecting, and scrolling."
         "  A setting of false saves screen real estate.",
     true, // default value
-    shgDrawTipsCallback,
+    shgShowTipsCallback,
     userConstant);
 
     tunableBooleanConstantDeclarator tcHideTcl("tclPrompt",
@@ -475,68 +473,61 @@ void *UImain(void*) {
         tclPromptCallback,
         developerConstant);
 
-    tunableBooleanConstantDeclarator tcHideTrue("hideShgTrueNodes",
+    tunableBooleanConstantDeclarator tcShowTrue("showShgTrueNodes",
         "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all true nodes"
+        " a false setting of this tunable constant will hide all true nodes"
         " (background colored blue).",
-        false, // default value
-        tcShgHideTrueCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideFalse("hideShgFalseNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all false nodes"
-        " (background colored pink).",
-        false, // default value
-        tcShgHideFalseCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideUnknown("hideShgUnknownNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all nodes with"
-        " an unknown value (background colored green).",
-        false, // default value
-        tcShgHideUnknownCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideNever("hideShgNeverSeenNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all"
-        " never-before-seen nodes (background colored gray).",
-        false, // default value
-        tcShgHideNeverCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideActive("hideShgActiveNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all active nodes"
-        " (foreground text white).",
-        false, // default value
-        tcShgHideActiveCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideInactive("hideShgInactiveNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all inactive nodes"
-        " (foreground text black).",
-        false, // default value
-        tcShgHideInactiveCallback,
-        userConstant);
-
-    tunableBooleanConstantDeclarator tcHideShadow("hideShgShadowNodes",
-        "To save space in the Performance Consultant Search History Graph,"
-        " a true setting of this tunable constant will hide all true nodes.",
-        false, // default value
-        tcShgHideShadowCallback,
-        userConstant);
-
-#if 0
-    tunableBooleanConstantDeclarator tcEnableCallGraph("callGraphEnabled", 
-        "Allows use of Paradyn's Callgraph Display", 
         true, // default value
-        tcEnableCallGraphCallback,
-        developerConstant);
-#endif
+        shgShowTrueCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideFalse("showShgFalseNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all false nodes"
+        " (background colored pink).",
+        true, // default value
+        shgShowFalseCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideUnknown("showShgUnknownNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all nodes with"
+        " an unknown value (background colored green).",
+        true, // default value
+        shgShowUnknownCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideNever("showShgNeverSeenNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all"
+        " never-before-seen nodes (background colored gray).",
+        true, // default value
+        shgShowNeverCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideActive("showShgActiveNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all active nodes"
+        " (foreground text white).",
+        true, // default value
+        shgShowActiveCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideInactive("showShgInactiveNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all inactive nodes"
+        " (foreground text black).",
+        true, // default value
+        shgShowInactiveCallback,
+        userConstant);
+
+    tunableBooleanConstantDeclarator tcHideShadow("showShgShadowNodes",
+        "To save space in the Performance Consultant Search History Graph,"
+        " a false setting of this tunable constant will hide all true nodes.",
+        true, // default value
+        shgShowShadowCallback,
+        userConstant);
+
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
@@ -781,7 +772,6 @@ void *UImain(void*) {
 // InstallStdinHandler - install a channel handler for stdin to read
 // commands and execute them when a complete command is recognized
 //
-static
 void
 InstallStdinHandler( void )
 {
@@ -808,7 +798,6 @@ InstallStdinHandler( void )
 // UninstallStdinHandler - remove the channel handler for stdin
 // used on exit or in response to tclPrompt changing to false
 //
-static
 void
 UninstallStdinHandler( void )
 {
