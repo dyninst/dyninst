@@ -655,8 +655,9 @@ address_of_jump_to_emulation#:
 
 .global syscallPrefix#
 syscallPrefix#:
-	# This bundle will be replaced according to the generation-time
-	# value of ipsr.ri.
+	# We'll insert jumps into these bundles as appropriate for 
+	# the ipsr.ri known at construction time.
+	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
 	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
 
 .global prefixNotInSyscall#
