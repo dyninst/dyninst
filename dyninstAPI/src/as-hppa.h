@@ -120,5 +120,6 @@
 #define	RESTORE_POST           0xffffffc3 
 #define	SKIP_PRE_INSN          0xffffffd3 
 #define	SKIP_POST_INSN         0xffffffe3	
-
+#define UPDATE_COST_INSN       0xffffffd4
 #endif
+

@@ -44,6 +44,10 @@
 
 /*
  * $Log: as-power.h,v $
+ * Revision 1.4  1996/11/11 01:39:19  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.3  1996/10/04 15:01:02  naim
  * Changes in the base-trampoline to support arrays of counters and timers
  * (multithreaded case). On AIX registers are saved only when needed, so we
@@ -101,5 +105,6 @@
    this point */
 #define SKIP_PRE_INSN           0xd
 #define SKIP_POST_INSN          0xe
+#define UPDATE_COST_INSN        0xf
 
 #endif
