@@ -4,10 +4,13 @@
 // Basically, this file exists just to make where4tree.h that much shorter.
 
 /* $Log: rootNode.h,v $
-/* Revision 1.5  1996/02/15 23:09:03  tamches
-/* added getGCforListboxRay and getGCforNonListboxRay (to better support
-/* why vs. where refinement in shg)
+/* Revision 1.6  1996/03/08 00:21:05  tamches
+/* added anything2draw()
 /*
+ * Revision 1.5  1996/02/15 23:09:03  tamches
+ * added getGCforListboxRay and getGCforNonListboxRay (to better support
+ * why vs. where refinement in shg)
+ *
  * Revision 1.4  1995/10/17 20:56:44  tamches
  * Changed class name from "rootNode" to "whereAxisRootNode".
  * More versatile -- now holds pixWidthAsRoot and pixWidthAsListboxItem.
@@ -77,6 +80,9 @@ class whereAxisRootNode {
       pixWidthAsListboxItem = src.pixWidthAsListboxItem;
    }
   ~whereAxisRootNode() {}
+
+   bool anything2draw() const {return true;}
+      // where axis items are never hidden
 
    bool operator<(const whereAxisRootNode &other) {return name < other.name;}
    bool operator>(const whereAxisRootNode &other) {return name > other.name;}
