@@ -7,21 +7,22 @@ using the source distribution of the Dyninst API, you will need to make the
 API libraries before making the tests; see the README file in the
 core/dyninstAPI directory for how to do this.
 
-On all platforms except AIX, before you can run the test programs you will
-need to set up your environment to use the Dyninst API library, as described
-in the documentation and the README file in the directory above this one
+Before you can run the test programs you will need to set up your
+environment to use the Dyninst API library, as described in the
+documentation and the README file in the directory above this one
 (specifically, the DYNINSTAPI_RT_LIB environment variable should be set).
 
-To run the tests, type "test1," "test2," "test3," or "test4" in the
-subdirectory of this directory named after the platform you are using.  Each
-test program starts a mutatee process, test?.mutatee, the executable for
-which must be in the current directory.  For both programs, you should see a
-series of messages saying that each test was passed.
+To run the tests, type "test1," "test2," etc. in the subdirectory of this
+directory named after the platform you are using.  Each test program starts
+a mutatee process, the executable for which must be in the current
+directory.  For both programs, you should see a series of messages saying
+that each test was passed.
 
-The programs take two options:
-    -verbose	Print extra output.
-    -attach	Start the mutatee without using the library and then
-		attach to it.
+The programs take several options:
+    -verbose            Print extra output.
+    -attach             Start the mutatee without using the library and then
+                        attach to it.
+    -run <test numbers> Run only the specified test cases.
 
 The test2 program tests to see that various error conditions are caught
 and reported properly by the library, so it is normal for it to print some
