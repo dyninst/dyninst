@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.24 2001/06/12 15:43:29 hollings Exp $
+ * $Id: Object-elf.C,v 1.25 2001/08/23 14:43:14 schendel Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -131,7 +131,11 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
   Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
   Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, 
-  bool a_out) 
+  bool 
+#if defined(mips_sgi_irix6_4)
+  a_out  // variable not used on other platforms
+#endif
+  ) 
 {
   // ELF initialization
   if (elf_version(EV_CURRENT) == EV_NONE) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.100 2001/08/20 19:59:13 bernat Exp $
+// $Id: solaris.C,v 1.101 2001/08/23 14:43:26 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1365,7 +1365,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
 void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-			       inferiorHeapType type)
+			       inferiorHeapType /* type */)
 {
   if (near)
     {

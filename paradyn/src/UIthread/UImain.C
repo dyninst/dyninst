@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.96 2001/06/20 20:33:42 schendel Exp $
+// $Id: UImain.C,v 1.97 2001/08/23 14:43:51 schendel Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -638,7 +638,9 @@ void *UImain(void*) {
       msgSize = UIMBUFFSIZE;
       thread_t pollsender = THR_TID_UNSPEC;
       mtag = MSG_TAG_ANY;
-      int err = msg_poll (&pollsender, &mtag, 1); // 1-->make this a blocking poll
+
+      // returns an integer variable indicating any errors
+      msg_poll (&pollsender, &mtag, 1); // 1-->make this a blocking poll
                                             // i.e., not really a poll at all...
       // Why don't we do a blocking msg_recv() in all cases?  Because it soaks
       // up the pending message, throwing off the X file descriptor (tk wants to

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.89 2001/08/20 19:59:08 bernat Exp $
+ * $Id: inst-x86.C,v 1.90 2001/08/23 14:43:15 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -3299,7 +3299,8 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
   }
 
   // buffer of x86 instructions
-  oldCode = new instruction[insnVec.size()];
+  unsigned bufSize = insnVec.size();
+  oldCode = new instruction[bufSize];
 
   // if unable to allocate array, dump warn and return false.... 
   if (oldCode == NULL) {

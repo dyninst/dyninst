@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.7 2001/06/20 20:38:03 schendel Exp $
+// $Id: callGraphDisplay.C,v 1.8 2001/08/23 14:43:52 schendel Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -120,9 +120,9 @@ callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId,
   consts(in_interp, theTkWindow),
   theCallGraphConsts(in_interp, theTkWindow),
   hash(&callGraphDisplay::hashFunc),
-  executable_name(exe_name),
   horizSBName(iHorizSBName),
-  vertSBName(iVertSBName){
+  vertSBName(iVertSBName),
+  executable_name(exe_name) {
 
   initializeStaticsIfNeeded();
   const resourceHandle rootResHandle = rootId;
@@ -359,7 +359,7 @@ void callGraphDisplay::addItem(const string &newShortName,const string &newFullN
   where4tree<callGraphRootNode> *parentPtr = hash[parentUniqueId];
   assert(parentPtr != NULL);
 
-  int	child_index = parentPtr->getNumChildren();
+  //int	child_index = parentPtr->getNumChildren();
   parentPtr->addChild(newNode, false, // not explicitly expanded
 		       consts,
 		       rethinkGraphicsNow,
