@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.4  1994/04/06 22:39:57  markc
-/* Added code to provide local paradynd with a machine name via
-/* addExecutable.
+/* Revision 1.5  1994/04/13 01:33:04  markc
+/* Changed pointer to .tcl file.
 /*
+ * Revision 1.4  1994/04/06  22:39:57  markc
+ * Added code to provide local paradynd with a machine name via
+ * addExecutable.
+ *
  * Revision 1.3  1994/04/06  17:39:56  karavan
  * added call to tcl initialization script
  *
@@ -220,7 +223,7 @@ UImain(CLargStruct *clargs)
     controlCallback controlFuncs;
     dataCallback dataFunc;
     char *uimInitTclProcs = 
-      "/usr/home/paradyn/development/markc/core/paradyn/src/UIthread/uimProcs.tcl";
+      "/var/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
 
     printf ("starting mainUI\n");
 
