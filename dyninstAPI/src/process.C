@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.215 2000/03/20 22:56:15 chambrea Exp $
+// $Id: process.C,v 1.216 2000/03/20 23:13:55 chambrea Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -514,17 +514,20 @@ vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
 }
 
 
-// triggeredInStackFrame is used to determine whether instrumentation added at the
-//   specified instPoint/callWhen/callOrder would have been executed based on the
-//   supplied pc.
+// triggeredInStackFrame is used to determine whether instrumentation
+//   added at the specified instPoint/callWhen/callOrder would have been
+//   executed based on the supplied pc.
 //
-// If the pc is within instrumentation for the instPoint, the callWhen and callOrder
-//   must be examined.  triggeredInStackFrame will return true if the pc is located
-//   after the identified point of instrumentation.  If the pc is not in instrumentation
-//   for the supplied instPoint, and the instPoint is located at the function entry or if
-//   the instPoint is for preInsn at a function call and the pc is located at the return
-//   address of the callsite (indicating that the call is currently executing),
-//   triggeredInStackFrame will return true.
+// If the pc is within instrumentation for the instPoint, the callWhen
+//   and callOrder must be examined.  triggeredInStackFrame will return
+//   true if the pc is located after the identified point of
+//   instrumentation.
+//   
+// If the pc is not in instrumentation for the supplied instPoint, and
+//   the instPoint is located at the function entry or if the instPoint
+//   is for preInsn at a function call and the pc is located at the
+//   return address of the callsite (indicating that the call is
+//   currently executing), triggeredInStackFrame will return true.
 
 bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                                     Address pc, callWhen when, callOrder order)
@@ -553,7 +556,8 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
         if ( pd_debug_catchup )
         {
           cerr << "  Found pc in BaseTramp" << endl;
-          fprintf(stderr, "    baseTramp range is (%lx - %lx)\n", tempTramp->baseAddr,
+          fprintf(stderr, "    baseTramp range is (%lx - %lx)\n",
+                  tempTramp->baseAddr,
                   (tempTramp->baseAddr + tempTramp->size));
           fprintf(stderr, "    localPreReturnOffset is %lx\n",
                   tempTramp->baseAddr+tempTramp->localPreReturnOffset);
@@ -561,15 +565,15 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                   tempTramp->baseAddr+tempTramp->localPostReturnOffset);
         }
         
-      	if ( (when == callPreInsn && 
-  	    pc >= tempTramp->baseAddr+tempTramp->localPreReturnOffset) ||
-  	  (when == callPostInsn &&
-  	    pc >= tempTramp->baseAddr+tempTramp->localPostReturnOffset) )
-  	{
+        if ( (when == callPreInsn && 
+            pc >= tempTramp->baseAddr+tempTramp->localPreReturnOffset) ||
+          (when == callPostInsn &&
+            pc >= tempTramp->baseAddr+tempTramp->localPostReturnOffset) )
+        {
           if ( pd_debug_catchup )
             cerr << "  pc is after requested instrumentation point, returning true." << endl;
           retVal = true;
-  	}
+        }
         else
         {
           if ( pd_debug_catchup )
@@ -579,81 +583,81 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
       else //  pc is in a mini-tramp
       {
         instInstance* currInstance = findMiniTramps(currentIp);
-  	bool pcInTramp = false;
+        bool pcInTramp = false;
 
-  	while ( currInstance != NULL && !pcInTramp )
-  	{
+        while ( currInstance != NULL && !pcInTramp )
+        {
           if ( pd_debug_catchup )
           {
-	    fprintf(stderr, "  Checking for pc in mini-tramp (%lx - %lx)\n",
+            fprintf(stderr, "  Checking for pc in mini-tramp (%lx - %lx)\n",
                     currInstance->trampBase, currInstance->returnAddr);
           }
           
-  	  if ( pc >= currInstance->trampBase &&
-  	  	pc <= currInstance->returnAddr )
-  	  {
-	    // We have found the mini-tramp that is currently being executed
-  	    pcInTramp = true;
+          if ( pc >= currInstance->trampBase &&
+                pc <= currInstance->returnAddr )
+          {
+            // We have found the mini-tramp that is currently being executed
+            pcInTramp = true;
 
             if ( pd_debug_catchup )
-	    {
-	      cerr << "  Found pc in mini-tramp" << endl;
-	      cerr << "    Requested instrumentation is for ";
-	      switch(when) {
-	      	case callPreInsn:
-		  cerr << "PreInsn ";
-		  break;
-	      	case callPostInsn:
-		  cerr << "PostInsn ";
-		  break;
-	      }
-	      switch(order) {
-	      	case orderFirstAtPoint:
-		  cerr << "prepend ";
-		  break;
-	      	case orderLastAtPoint:
-		  cerr << "append ";
-		  break;
-	      }
-	      cerr << endl;
+            {
+              cerr << "  Found pc in mini-tramp" << endl;
+              cerr << "    Requested instrumentation is for ";
+              switch(when) {
+                case callPreInsn:
+                  cerr << "PreInsn ";
+                  break;
+                case callPostInsn:
+                  cerr << "PostInsn ";
+                  break;
+              }
+              switch(order) {
+                case orderFirstAtPoint:
+                  cerr << "prepend ";
+                  break;
+                case orderLastAtPoint:
+                  cerr << "append ";
+                  break;
+              }
+              cerr << endl;
 
-	      cerr << "    The pc is in ";
-	      switch(currInstance->when) {
-	      	case callPreInsn:
-		  cerr << "PreInsn ";
-		  break;
-	      	case callPostInsn:
-		  cerr << "PostInsn ";
-		  break;
-	      }
-	      cerr << "instrumentation." << endl;
+              cerr << "    The pc is in ";
+              switch(currInstance->when) {
+                case callPreInsn:
+                  cerr << "PreInsn ";
+                  break;
+                case callPostInsn:
+                  cerr << "PostInsn ";
+                  break;
+              }
+              cerr << "instrumentation." << endl;
             }
             
-	    // The request should be triggered if it is for:
-	    //   1)  pre-instruction instrumentation to prepend
-	    //   2)  pre-instruction instrumentation to append
+            // The request should be triggered if it is for:
+            //   1)  pre-instruction instrumentation to prepend
+            //   2)  pre-instruction instrumentation to append
             //         and the pc is in PostInsn instrumentation
-	    //   3)  post-instruction instrumentation to prepend
+            //   3)  post-instruction instrumentation to prepend
             //         and the pc is in PostInsn instrumentation
-	    if ( (when == callPreInsn && (order == orderFirstAtPoint || 
-	          (order == orderLastAtPoint &&
+            if ( (when == callPreInsn && (order == orderFirstAtPoint || 
+                  (order == orderLastAtPoint &&
                     currInstance->when == callPostInsn))) ||
                  (when == callPostInsn && order == orderFirstAtPoint &&
                     currInstance->when == callPostInsn) )
-	    {
+            {
               if ( pd_debug_catchup )
                 cerr << "  pc is after requested instrumentation point, returning true." << endl;
-  	      retVal = true;
-  	    }
+              retVal = true;
+            }
             else
             {
               if ( pd_debug_catchup )
                 cerr << "  pc is before requested instrumentation point, returning false." << endl;
             }
-  	  }
+          }
   
-  	  currInstance = currInstance->next;
-  	}
+          currInstance = currInstance->next;
+        }
       }
     } 
   }
