@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.5  1994/07/07 05:59:02  karavan
-/* updated version number (finally!)
+/* Revision 1.6  1994/07/08 04:04:15  karavan
+/* changed showError function to async
 /*
+# Revision 1.5  1994/07/07  05:59:02  karavan
+# updated version number (finally!)
+#
 # Revision 1.4  1994/07/07  05:57:42  karavan
 # added UIM error service function
 #
@@ -70,7 +73,7 @@ typedef (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 2;
+	$version 3;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -99,7 +102,7 @@ $remote UIM {
 	// message display with "error" visual characteristics
         //  and lookup in error database for explanation
 
-	int showError (int errCode, char *errString);
+	$async void showError (int errCode, char *errString);
 
 	// returns index of user's menu choice
         $async void chooseMenuItem (chooseMenuItemCBFunc cb, 
