@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.20  1994/11/02 04:15:00  newhall
-/* memory leak fixes
+/* Revision 1.21  1995/01/30 17:35:27  jcargill
+/* Updated igen-generated includes to new naming convention
 /*
+ * Revision 1.20  1994/11/02  04:15:00  newhall
+ * memory leak fixes
+ *
  * Revision 1.19  1994/10/13  15:39:17  newhall
  * QuitVisi added
  *
@@ -84,7 +87,7 @@
  * changed visi subdirectory structure
  *  */ 
 #include "visi/h/visualization.h"
-#include "visi.SRVR.h"
+#include "visi.xdr.SRVR.h"
 
 visi_DataGrid  dataGrid;
 int            LastBucketSent = -1;
