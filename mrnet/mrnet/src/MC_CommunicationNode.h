@@ -8,7 +8,9 @@ enum MC_ProtocolTags{MC_NEW_SUBTREE_PROT=200, MC_DEL_SUBTREE_PROT,
                      MC_RPT_SUBTREE_PROT,
                      MC_NEW_APPLICATION_PROT, MC_DEL_APPLICATION_PROT,
                      MC_NEW_STREAM_PROT, MC_DEL_STREAM_PROT,
-                     MC_DATA_PROT};
+                     MC_DATA_PROT,
+                     MC_GET_LEAF_INFO_PROT,
+                     MC_CONNECT_LEAVES_PROT};
 
 class MC_CommunicationNode: public MC_Error{
  protected:
