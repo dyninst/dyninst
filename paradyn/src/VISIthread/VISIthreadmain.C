@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.18  1994/08/01 17:28:57  markc
-/* Removed uses of getCurrent, setCurrent.  Replaced with list iterators.
+/* Revision 1.19  1994/08/02 17:12:19  newhall
+/* bug fix to StopMetricResource
 /*
+ * Revision 1.18  1994/08/01  17:28:57  markc
+ * Removed uses of getCurrent, setCurrent.  Replaced with list iterators.
+ *
  * Revision 1.17  1994/07/30  20:38:05  newhall
  * Added calls to visi interface routines Enabled and BulkDataTransfer
  * durring the processing of new metric choices
@@ -189,8 +192,6 @@ if((bucketNum % 100) == 0){
     temp.count = ptr->bufferSize;
     temp.data = ptr->buffer;
     ptr->visip->Data(temp);
-// TODO: check igen error value after call to see if socket has closed
-
     ptr->bufferSize = 0;
   }
 }
@@ -206,17 +207,7 @@ void VISIthreadDataCallback(performanceStream *ps,
 			    int total,
 			    int first){
 
- VISIthreadGlobals *ptr;
- int i;
-
-#ifdef DEBUG2
- printf("in VISIthreadDataCallback: first = %d total = %d\n",first,total);
-#endif
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
-    return;
-  }
+  int i;
 
   for(i=first; i < (first+total);i++){
     VISIthreadDataHandler(ps,mi,i,values[i-first]);
@@ -299,12 +290,17 @@ void VISIthreadFoldCallback(performanceStream *ps,
         temp.count = ptr->bufferSize;
         temp.data = ptr->buffer;
         ptr->visip->Data(temp);
+	/*
+	if(ptr->visip->err_state < 0){
+           PARADYN_DEBUG(("igen error: VISIthreadFoldCallback")); 
+	   return;
+	}
+	*/
         ptr->bufferSize = 0;
      }
      ptr->bucketWidth = width;
      // call visualization::Fold routine
      ptr->visip->Fold((double)width);
-
   }
 
 }
@@ -358,7 +354,6 @@ void VISIthreadchooseMetRes(char **metricNames,
     PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadchooseMetRes");
     return;
-    printf("error # :fatal or serious\n");
   }
 
   // temp. check for invalid reply, this will be handled by error msgs later
@@ -539,9 +534,9 @@ void VISIthreadchooseMetRes(char **metricNames,
     for(i=0;i<numEnabled;i++){
         howmany = ptr->dmp->getSampleValues(newEnabled[i],
 					    buckets,1000,0);
-        /*
+#ifdef DEBUG3
 	printf("howmany = %d after call to dmp->getSampleValues for metricInstance %d\n",howmany,(int)newEnabled[i]);
-	*/
+#endif
 
         // send visi all old data bucket values
 	if(howmany > 0){
@@ -655,7 +650,7 @@ void visualizationUser::StopMetricResource(int metricId,
 
   found = 0;
   for (walk = *ptr->mrlist; listItem=*walk; walk++) {
-    if ((listItem->met = (metric*) metricId) &&
+    if ((listItem->met == (metric*) metricId) &&
 	(listItem->focus->getCanonicalName() == (char*) resourceId)) {
       found = 1;
       break;
@@ -863,7 +858,7 @@ void visiUser::handle_error()
 
     case igen_encode_err:
     case igen_decode_err:
-         fprintf(stderr, "Could not (un)marshall parameters, pid=%d tid=%d\n",
+         fprintf(stderr, "VISIthread: Could not (un)marshall parameters, pid=%d tid=%d\n",
 		 getpid(),thr_self());
          ERROR_MSG(16,
 	  "IGEN ERROR igen_(d,en)code_err: Could not (un)marshall parameters");
@@ -871,14 +866,14 @@ void visiUser::handle_error()
          break;
 
     case igen_call_err:
-         fprintf(stderr, "can't do sync call here, pid = %d tid = %d\n",
+         fprintf(stderr, "VISIthread: can't do sync call here, pid = %d tid = %d\n",
 	         getpid(),thr_self());
          ERROR_MSG(16,"IGEN ERROR igen_call_err: can't do sync call here"); 
          ptr->quit = 1;
          break;
 
     case igen_request_err:
-         fprintf(stderr, "unknown message tag pid=%d tid = %d\n",
+         fprintf(stderr, "VISIthread: unknown message tag pid=%d tid = %d\n",
 	         getpid(),thr_self());
          ERROR_MSG(16,"IGEN ERROR igen_request_err: unknown message tag"); 
          ptr->quit = 1;
@@ -887,7 +882,7 @@ void visiUser::handle_error()
     case igen_send_err:
     case igen_read_err:
     default:
-         fprintf(stderr, "Error: err_state = %d tid = %d\n", 
+         fprintf(stderr, "VISIthread: Error: err_state = %d tid = %d\n", 
 		 err_state,thr_self());
          ERROR_MSG(16,"IGEN ERROR igen_(send,read)_err"); 
          ptr->quit = 1;
