@@ -95,3 +95,4 @@ template class  vector<point *>;
 template class  vector<instInstance *>;
 template class  vector<returnInstance *>;             //XXX
 template class  vector<relocatedFuncInfo *>; 
+template class  vector<relocationEntry>;
