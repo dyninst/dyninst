@@ -21,6 +21,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.37  1996/05/17 16:19:49  karavan
+ * commented out debug print
+ *
  * Revision 1.36  1996/05/08 07:35:23  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -277,6 +280,7 @@ void initPChypos()
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
       << endl;
 
+/*
   flag = PCWhyAxis->
     addHypothesis ("SyncRegionTooSmall", (const char *)NULL, "SyncRegionSize",
 		   "",
@@ -286,7 +290,7 @@ void initPChypos()
 		   lt, (void *)NULL, &plumList);
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
-
+*/
   plum = new string ("/SyncObject");
   stringList plumList2;
   plumList2 += plum;
