@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.450 2003/09/19 19:45:34 pcroth Exp $
+// $Id: process.C,v 1.451 2003/09/29 23:04:31 bernat Exp $
 
 #include <ctype.h>
 
@@ -2470,7 +2470,11 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 
 #if defined(rs6000_ibm_aix4_1)
     if(theProc->multithread_capable()) {
+#if !defined(AIX_PROC)
+        // Unneeded with aix's /proc -- we don't need to allocate
+        // base tramps within inferior RPCs
        aix_pre_allocate(theProc);
+#endif
     }
 #endif
 
