@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.37 2000/08/07 00:55:35 wylie Exp $
+// $Id: BPatch_thread.C,v 1.38 2001/02/02 21:16:46 gurari Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -721,7 +721,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
     // XXX We just pass false for the "noCost" parameter here - do we want
     // to make that an option?
     instInstance *instance; 
-    instPoint *ip = (instPoint*) point.point;
+    instPoint *&ip = (instPoint*&) point.point;
+
     if ((instance = addInstFunc(proc,
 			ip,
 			ast,
