@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.47 2005/01/21 23:44:47 bernat Exp $
+// $Id: sharedobject.h,v 1.48 2005/02/02 17:27:34 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -142,9 +142,8 @@ public:
     bool removeImage(){ return true;}
 
     int_function *findOnlyOneFunction(const pdstring &funcname);
-    int_function *findOnlyOneFunctionFromAll(const pdstring &funcname);
     pdvector<int_function *> *findFuncVectorByPretty(const pdstring &funcname);
-    int_function *findFuncByMangled(const pdstring &funcname);
+    pdvector<int_function *> *findFuncVectorByMangled(const pdstring &funcname);
  
     int_function *findFuncByAddress(const Address &address) {
         if (objs_image) {

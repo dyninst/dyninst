@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.26 2005/01/21 23:44:46 bernat Exp $
+// $Id: sharedobject.C,v 1.27 2005/02/02 17:27:33 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -170,16 +170,6 @@ int_function *shared_object::findOnlyOneFunction(const pdstring &funcname)
   return NULL;
 } 
 
-
-int_function *shared_object::findOnlyOneFunctionFromAll(const pdstring &funcname) 
-{
-  if (funcname.c_str() == 0) return NULL;
-  if(objs_image) {
-    return (objs_image->findOnlyOneFunctionFromAll(funcname));
-  }
-  return NULL;
-} 
-
 pdvector<int_function *> *shared_object::findFuncVectorByPretty(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
@@ -189,11 +179,11 @@ pdvector<int_function *> *shared_object::findFuncVectorByPretty(const pdstring &
   return NULL;
 } 
 
-int_function *shared_object::findFuncByMangled(const pdstring &funcname) 
+pdvector <int_function *> *shared_object::findFuncVectorByMangled(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
-    return (objs_image->findFuncByMangled(funcname));
+    return (objs_image->findFuncVectorByMangled(funcname));
   }
   return NULL;
 } 
