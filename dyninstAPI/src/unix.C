@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.80 2003/03/10 23:15:38 bernat Exp $
+// $Id: unix.C,v 1.81 2003/03/11 20:44:38 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -497,12 +497,10 @@ int forwardSigToProcess(process *proc,
     return 1;
 }
 
-
 int handleSigTrap(process *proc, procSignalInfo_t info) {
     // SIGTRAP is our workhorse. It's used to stop the process at a specific
     // address, notify the mutator/daemon of an event, and a few other things
     // as well.
-    
     signal_cerr << "welcome to SIGTRAP for pid " << proc->getPid()
                 << " status =" << proc->getStatusAsString() << endl;
     
@@ -581,7 +579,15 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
 /////////////////////////////////////////////
     // We may use traps to instrument points
     // and so we forward the signal to the process
+    // MT AIX is getting spurious trap instructions. I can't figure out where
+    // they are coming from (and they're not at all deterministic) so 
+    // we're ignoring them for now. 
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+    proc->continueProc();
+    return 1;
+#else
     return 0;
+#endif
 }
 
 #if !defined(BPATCH_LIBRARY)
@@ -670,7 +676,6 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 int handleSignal(process *proc, procSignalWhat_t what, 
                  procSignalInfo_t info) {
     int ret;
-
     switch(what) {
   case SIGTRAP:
       // Big one's up top. We use traps for most of our process control
@@ -706,7 +711,6 @@ int handleSignal(process *proc, procSignalWhat_t what,
         // Signal was not handled
         ret = forwardSigToProcess(proc, what, info);
     }
-    
     return ret;
 }
 
