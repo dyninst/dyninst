@@ -2,7 +2,12 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.61  1996/02/02 02:17:54  karavan
+ * Revision 1.62  1996/02/05 18:48:31  newhall
+ * Change DM routine StartPhase and the def. of newPhaseCallback to take two
+ * more parameters indicating whether the phase should be started with new
+ * visi and/or a new PC.  The new_visis option is not currently supported.
+ *
+ * Revision 1.61  1996/02/02  02:17:54  karavan
  * Changes for new performance consultant.
  *
  * Revision 1.60  1995/12/18 23:21:07  newhall
@@ -337,7 +342,9 @@ typedef void (*newPhaseCallback)(perfStreamHandle handle,
 				 phaseHandle phase,
 				 timeStamp begin, 
 				 timeStamp end, 
-				 float bucketwidth); 
+				 float bucketwidth,
+				 bool with_new_pc,
+				 bool with_visis); 
 
 struct controlCallback {
     metricInfoCallback 		mFunc;
@@ -352,7 +359,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 33;
+    $version 34;
 
     //
     // Start a paradyn daemon
@@ -733,8 +740,20 @@ $remote dataManager {
     //              a default value of -1.0 would be equivalent to now
     //  name: would be an optional user defined identifier for the phase
     //        each phase would still have a system defined unique id
+    //  with_new_pc: flag that indicates if new instance of PC should be
+    //		     started with this phase (DM just takes value of flag
+    //		     and passes it back on newPhaseCallbacks)
+    //  with_visis:  flag that indicates if new instance of curr. phase
+    //		     visis should be started with the new phase (this 
+    //		     option is not currently supported....the DM would
+    //		     have to keep curr. phase MI's enabled for the new
+    // 		     phase by setting collection flags for the MI's
+    //               and calling a VM routine to start new versions of
+    //		     all curr. phase visis with a pre-defined list of
+    //		     MI's for each one)
     //
-    $async void StartPhase(timeStamp start_Time, const char *name);
+    $async void StartPhase(timeStamp start_Time, const char *name,
+			   bool with_new_pc, bool with_visis);
 
 
     //
@@ -816,7 +835,9 @@ $remote dataManager {
 				     phaseHandle,       // unique id 
 				     timeStamp,         // start time 
 				     timeStamp,         // end time 
-				     float);            // bucketwidth
+				     float,            // bucketwidth
+				     bool,		// with_new_pc
+				     bool);		// with_visis
 
 
     // Called to inform the data manager that it is ok to parse the mdl files
