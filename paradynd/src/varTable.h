@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.3 2002/06/10 19:25:09 bernat Exp $
+// $Id: varTable.h,v 1.4 2002/08/12 04:22:10 schendel Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -63,7 +63,7 @@ class Frame;
 
 class baseVarTable { 
  public:
-  virtual ~baseVarTable() { };
+  virtual ~baseVarTable() { }
 
   virtual inst_var_index allocateVar() = 0;
     
@@ -85,6 +85,7 @@ class baseVarTable {
   virtual void deleteThread(unsigned thrPos) = 0;
   
   virtual unsigned getVarSize() = 0;
+  virtual void initializeVarsAfterFork() = 0;
 };
 
 template <class HK>
@@ -96,9 +97,14 @@ class varTable : public baseVarTable {
 
   inst_var_index getFreeIndex();
 
+  // --- disallow these -------------------
+  varTable(const varTable<HK> &parent)  : baseVarTable(parent),
+    varMgr(parent.varMgr) { }
+  varTable &operator=(const varTable &) { return *this; }
+  // --------------------------------------
  public:
   varTable(variableMgr &varMgr_) : varMgr(varMgr_) { }
-  varTable(varTable<HK> &parentVarTable);
+  varTable(const varTable<HK> &parent, variableMgr &vMgr);
   
   ~varTable();
   
@@ -121,7 +127,7 @@ class varTable : public baseVarTable {
   void deleteThread(unsigned thrPos);
 
   unsigned getVarSize() { return sizeof(HK::initValue); }
-
+  void initializeVarsAfterFork();
 };
 
 #endif
