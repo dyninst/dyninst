@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.62  1996/01/09 01:39:57  tamches
-/* added phaseId argument to paradyn shg getNodeInfo
+/* Revision 1.63  1996/02/02 01:01:32  karavan
+/* Changes to support the new PC/UI interface
 /*
+ * Revision 1.62  1996/01/09 01:39:57  tamches
+ * added phaseId argument to paradyn shg getNodeInfo
+ *
  * Revision 1.61  1996/01/09 01:03:36  tamches
  * extra error checking in "paradyn shg getNodeInfo"
  *
@@ -440,21 +443,6 @@ int ParadynPrintCmd (ClientData,
       printf ("metric %s, val = %f\n", 
 	       (char*)dataMgr->getMetricName(*met), val);
     }
-  } else if (argv[1][0] == 's') {     //print shg
-      perfConsult->printSHGList();
-  } else if (argv[1][0] == 'r') {     // print refine
-    int i;
-    searchHistoryNode *currentSHGNode;
-    SHNptr_Array currentRefinementList;
-	
-    currentSHGNode = perfConsult->getCurrentRefinement();
-    currentRefinementList = perfConsult-> getAllRefinements (currentSHGNode);
-
-    for (i=0; i < currentRefinementList.count; i++) {
-      currentSHGNode = currentRefinementList.data[i];
-      perfConsult->printSHGNode(currentSHGNode);
-      printf ("\n");
-    }
   } else {
     sprintf (interp->result, "Unknown option: paradyn print %s\n", argv[1]);
     return TCL_ERROR;
@@ -824,138 +812,6 @@ int ParadynSetCmd (ClientData,
   return TCL_OK;
 }
 
-// new argument: perfConsult calls now take phase-related arguments
-// paradyn search pause <put-searchType-here>
-// paradyn search <false|true> <put-searchType-here> <put-limit-here>
- 
-int ParadynSearchCmd (ClientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      char *argv[])
-{
-  int limit;
-
-  if (argc == 3 && !strcmp(argv[1], "pause")) {
-    // stop the search
-    if (!strcmp(argv[2], "current"))
-      perfConsult->pauseSearch(CurrentPhase);
-    else 
-      perfConsult->pauseSearch(GlobalPhase);
-    return TCL_OK;
-  } else if (argc == 4) {
-    if (Tcl_GetInt (interp, argv[3], &limit) == TCL_ERROR) 
-      return TCL_ERROR;
-  } else if (argc == 3) {
-    limit = -1;
-  } else {
-    printf("Usage: paradyn search <false|true> <global|current> <int>\n");
-    printf("       paradyn search pause <global|current>\n");
-    return TCL_ERROR;
-  }
-
-  if (dataMgr->applicationDefined() != true) {
-    sprintf (interp->result, "no program defined, can't search\n");
-    return TCL_ERROR;
-  } else {
-    perfConsult->search(true, limit, 0);
-    return TCL_OK;
-  }
-}
-
-
-int ParadynSHGCmd (ClientData,
-		   Tcl_Interp *interp,
-		   int argc,
-		   char *argv[])
-{
-  int node;
-
-  if (argc == 2 && !strcmp(argv[1], "get")) {
-    // return the current shg node (is such a thing obsolete? --ari)
-    node = perfConsult->getCurrentNodeId();
-    sprintf(interp->result, "%d", node);
-    return(TCL_OK);
-  } else if (argc == 2 && !strcmp(argv[1], "reset")) {
-    perfConsult->resetRefinement();
-    sprintf(interp->result, "1");
-    return(TCL_OK);
-  } else if (argc == 3 && 
-	     !strcmp(argv[1], "set") && 
-	     (node = atoi(argv[2]) > 0)) {
-    // set the current shg node (is such a thing obsolete? --ari)
-    sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
-    return TCL_OK;
-  } else if (argc == 3 && !strcmp(argv[1], "start")) {
-    if (!strcmp(argv[2], "global"))
-      perfConsult->newSearch(GlobalPhase);
-    else 
-      perfConsult->newSearch(CurrentPhase);
-    return TCL_OK;
-  } else if (argc == 4 && 0==strcmp(argv[1], "getNodeInfo")) {
-    int phaseId = atoi(argv[2]);
-    int node = atoi(argv[3]);
-    // make igen call to the PC now:
-    extern shgPhases *theShgPhases;
-    if (theShgPhases == NULL) {
-       cerr << "paradyn shg getNodeInfo failure...no phases exist yet" << endl;
-       return TCL_ERROR;
-    }
-
-    shg_node_info theNodeInfo;
-
-    if (!theShgPhases->existsById(phaseId)) {
-       cerr << "paradyn shg getNodeInfo failure...phase-id " << phaseId << " does not exist." << endl;
-       return TCL_ERROR;
-    }
-
-    bool success = perfConsult->getNodeInfo(phaseId, node, &theNodeInfo);
-    if (!success) {
-       cerr << "paradyn shg getNodeInfo failure...probably bad node id" << endl;
-       cerr << "the node id was: " << node << endl;
-       return TCL_ERROR;
-    }
-    // Now we need to break up the return value into a tcl "structure"
-    // The only thing I can think of is to use a tcl list as a tuple.
-    // We'll use Tcl_Merge towards this end.  This is ugly because
-    // Tcl_Merge declares that the result must be deallocated using free.
-    // It's also ugly because we have to go to the effort of converting
-    // everything to strings without leaking memory.  Blech.
-    char *strings[9];
-    strings[0] = theNodeInfo.why.string_of();
-    strings[1] = theNodeInfo.where.string_of();
-    strings[2] = theNodeInfo.currentConclusion ? "true" : "false";
-    char timeTrueFalseBuffer[80];
-    strings[3] = timeTrueFalseBuffer;
-    sprintf(timeTrueFalseBuffer, "%g", theNodeInfo.timeTrueFalse);
-    char currentValueBuffer[80];
-    strings[4] = currentValueBuffer;
-    sprintf(currentValueBuffer, "%g", theNodeInfo.currentValue);
-    char startTimeBuffer[80];
-    strings[5] = startTimeBuffer;
-    sprintf(startTimeBuffer, "%g", theNodeInfo.startTime);
-    char endTimeBuffer[80];
-    strings[6] = endTimeBuffer;
-    sprintf(endTimeBuffer, "%g", theNodeInfo.endTime);
-    char estimatedCostBuffer[80];
-    strings[7] = estimatedCostBuffer;
-    sprintf(estimatedCostBuffer, "%g", theNodeInfo.estimatedCost);
-    strings[8] = theNodeInfo.persistent ? "true" : "false";
-    
-    char *result = Tcl_Merge(9, strings);
-    strcpy(interp->result, result);
-    free(result); // yuck
-
-    return TCL_OK;    
-  } else {
-    cout << "Usage: paradyn shg set <int>" << endl;
-    cout << "       paradyn shg get" << endl;
-    cout << "       paradyn shg reset" << endl;
-    cout << "       paradyn shg start <current|global>" << endl;
-    cout << "       paradyn shg getNodeInfo <phase-id> <node-id>" << endl;
-    return TCL_ERROR;
-  }
-}
-
 extern abstractions *theAbstractions;
 int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
 			    int argc, char **argv) {
@@ -1181,8 +1037,6 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"resources", ParadynResourcesCmd},
   {"set", ParadynSetCmd},
   {"core", ParadynCoreCmd},
-  {"search", ParadynSearchCmd},
-  {"shg", ParadynSHGCmd},
   {"suppress", ParadynSuppressCmd},
   {"visi", ParadynVisiCmd},
   {"waSetAbstraction", ParadynWaSetAbstraction},

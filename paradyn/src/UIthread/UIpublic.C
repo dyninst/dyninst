@@ -3,7 +3,7 @@
  *              of Paradyn
  *
  */
-
+ 
 /*
  * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
  *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.38  1996/01/30 23:04:22  tamches
-/* removed include to obsolete file shgDisplay.h
+/* Revision 1.39  1996/02/02 01:01:28  karavan
+/* Changes to support the new PC/UI interface
 /*
+ * Revision 1.38  1996/01/30 23:04:22  tamches
+ * removed include to obsolete file shgDisplay.h
+ *
  * Revision 1.37  1996/01/23 06:56:42  tamches
  * uim_VisiSelections no longer a ptr
  * int2style reworked for 7 styles
@@ -402,7 +405,7 @@ void int2style(int styleid, bool &active, shgRootNode::evaluationState &theEvalS
 
 int 
 UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID, 
-		char *label, char *shgname, int flags)
+		const char *label, const char *shgname, int flags)
 {
    shg &theShg = theShgPhases->getByID(dagID);
 

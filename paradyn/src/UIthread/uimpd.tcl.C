@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.29  1996/02/01 01:39:23  tamches
-/* oops, fixed a minor vrble name misspelling
+/* Revision 1.30  1996/02/02 01:01:36  karavan
+/* Changes to support the new PC/UI interface
 /*
+ * Revision 1.29  1996/02/01 01:39:23  tamches
+ * oops, fixed a minor vrble name misspelling
+ *
  * Revision 1.28  1996/02/01 01:35:33  tamches
  * suppressed duplicate of "Whole Program" which was sometimes being generated
  *
@@ -380,32 +383,6 @@ int processVisiSelectionCmd(ClientData,
 //}
 
 /*
-  refineSHGCmd
-  binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to close display
-  arguments: global variable currentSelection$dagID
-*/
-//int refineSHGCmd (ClientData clientData, 
-//		  Tcl_Interp *interp, 
-//		  int argc, 
-//		  char *argv[])
-//{
-//  nodeIdType nodeID;
-//  nodeID = StrToNodeIdType(argv[1]);
-//
-////** note: need to change PC interface to nodeIdType
-//  perfConsult->setCurrentSHGnode ((int)nodeID);
-//  if (dataMgr->applicationDefined() != True) {
-//    sprintf (interp->result, "no program defined, can't search\n");
-//    return TCL_ERROR;
-//  } else {
-//    perfConsult->search(True, 1, 0);
-//    return TCL_OK;
-//  }
-//}
-
-
-/*
   hideSubgraphCmd
   binding set in tcl procedure initWHERE,
   looks up dag * for this display and calls function to close display
@@ -617,7 +594,6 @@ struct cmdTabEntry uimpd_Cmds[] = {
 //  {"closeDAG", closeDAGCmd}, 
 //  {"highlightNode", highlightNodeCmd},
 //  {"unhighlightNode", unhighlightNodeCmd},
-//  {"refineSHG", refineSHGCmd},
 //  {"hideSubgraph", hideSubgraphCmd},
 //  {"showAllNodes", showAllNodesCmd},
 //  {"addEStyle", addEStyleCmd},

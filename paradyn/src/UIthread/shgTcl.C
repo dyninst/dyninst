@@ -4,10 +4,13 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.4  1996/01/23 07:10:16  tamches
-/* fixed a UI bug noticed by Marcelo that could lead to an assertion
-/* failure when scrolling large amounts.
+/* Revision 1.5  1996/02/02 01:01:34  karavan
+/* Changes to support the new PC/UI interface
 /*
+ * Revision 1.4  1996/01/23 07:10:16  tamches
+ * fixed a UI bug noticed by Marcelo that could lead to an assertion
+ * failure when scrolling large amounts.
+ *
  * Revision 1.3  1996/01/09 01:07:43  tamches
  * added shgDevelModeChangeCallback
  *
@@ -408,7 +411,9 @@ int shgSearchCommand(ClientData, Tcl_Interp *, int, char **) {
 #ifdef PARADYN
    // the shg test program does not "really" do a search
    int curr_phase_id = theShgPhases->getCurrentId();
-   perfConsult->search(true, -1, curr_phase_id);
+   //** wow!  major kludge!! klk
+   perfConsult->newSearch(0);
+   perfConsult->activateSearch(curr_phase_id);
 #endif
 
    return TCL_OK;
@@ -452,7 +457,7 @@ int shgPauseCommand(ClientData, Tcl_Interp *, int, char **) {
 //#ifdef PARADYN
 //   // the shg test program does not "really" do a search
 //   int curr_phase_id = theShgPhases->getCurrentId();
-//   perfConsult->search(true, -1, curr_phase_id);
+//   perfConsult->search(curr_phase_id);
 //#endif
 //
 //   return TCL_OK;
