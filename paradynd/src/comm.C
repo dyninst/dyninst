@@ -121,6 +121,7 @@ void pdRPC::handle_error()
     case igen_read_err:
       // if paradyn quits either of these errors can occur, so don't dump core
     default:
+      frontendExited = true;
       sprintf(errorLine, "Error: err_state = %d\n", get_err_state());
       logLine(errorLine);
       dump_profile(this);
