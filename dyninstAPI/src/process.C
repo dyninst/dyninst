@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.182 1999/07/13 04:30:51 csserra Exp $
+// $Id: process.C,v 1.183 1999/07/13 17:17:34 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3221,7 +3221,7 @@ void process::handleExec() {
     this->findSignalHandler();
 
     // initInferiorHeap can only be called after symbols is set!
-#if !defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
     initInferiorHeap();
 #endif
 
@@ -4277,7 +4277,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-#if !defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
       if (!handleStartProcess()) {
 	// reads in shared libraries...can take a while
 	logLine("WARNING: handleStartProcess failed\n");
