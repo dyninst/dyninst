@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.4 1994/03/22 21:03:15 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.5 1994/03/31 02:00:35 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.4  1994/03/22 21:03:15  hollings
+ * Revision 1.5  1994/03/31 02:00:35  markc
+ * Changed to fork for paradyndPVM since client calls pvmendtask which writes
+ * to the address space.
+ *
+ * Revision 1.4  1994/03/22  21:03:15  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.3  1994/03/20  01:53:11  markc
@@ -201,7 +205,7 @@ process *allocateProcess(int pid, char *name)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(char *file, char *argv[])
+process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 {
     int pid;
     int r;
@@ -209,7 +213,6 @@ process *createProcess(char *file, char *argv[])
     process *ret;
     char name[20];
     int tracePipe[2];
-
 
     r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
     if (r) {
@@ -221,7 +224,12 @@ process *createProcess(char *file, char *argv[])
     //   corectly change failed in the parent process.
     //
     errno = 0;
+#ifdef PARADYND_PVM
+// must use fork, since pvmendtask will do some writing in the address space
+    pid = fork();
+#else
     pid = vfork();
+#endif
     if (pid > 0) {
 	if (errno) {
 	    printf("Unable to start %s: %s\n", file, sys_errlist[errno]);
@@ -240,9 +248,11 @@ process *createProcess(char *file, char *argv[])
 	ret->status = neonatal;
 	ret->traceLink = tracePipe[0];
 	close(tracePipe[1]);
-
 	return(ret);
     } else if (pid == 0) {
+#ifdef PARADYND_PVM
+	pvmendtask(); 
+#endif   
 	close(tracePipe[0]);
 	if (dup2(tracePipe[1], 3) != 3)
 	  {
@@ -256,11 +266,14 @@ process *createProcess(char *file, char *argv[])
 	/* indicate our desire to be trace */
 	errno = 0;
 	ptrace(0, 0, 0, 0);
-	if (errno != 0)
+	if (errno != 0) {
 	  perror("ptrace error\n");
+	  _exit(-1);
+	}
 #ifdef PARADYND_PVM
-	pvmendtask();
-#endif       
+ 	while (nenv-- > 0)
+		pvmputenv(envp[nenv]);
+#endif
 	execv(file, argv);
 	perror("exev");
 	_exit(-1);
