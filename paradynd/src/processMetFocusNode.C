@@ -484,8 +484,6 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    doCatchupInstrumentation();
 
    continueProcess();
-   fprintf(stderr, "Process continued\n");
-   
    return insert_success;
 }
 
@@ -521,13 +519,10 @@ void processMetFocusNode::doCatchupInstrumentation() {
    
    // Get them all cleared out
    proc_->launchRPCifAppropriate(false);
-   fprintf(stderr, "RPCs launched %d\n", proc_->getPid());
    while (proc_->existsRPCinProgress() ||
           proc_->isAnyIRPCwaitingForSyscall()) {
        checkProcStatus();
    }
-   fprintf(stderr, "RPCs completed! %d\n", proc_->getPid());
-   
 //assert(!proc_->existsRPCreadyToLaunch());
 }
 
