@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.34  1994/11/02 04:42:55  karavan
-/* cleanup for new handling of commandline arguments
+/* Revision 1.35  1994/11/03 02:44:58  krisna
+/* status lines are now added into paradyn.
 /*
+ * Revision 1.34  1994/11/02  04:42:55  karavan
+ * cleanup for new handling of commandline arguments
+ *
  * Revision 1.33  1994/11/01  22:39:27  karavan
  * changed debugging printf to call to PARADYN_DEBUG
  *
@@ -148,6 +151,8 @@
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"
+
+#include "Status.h"
 
 /*
  * Global variables used by tcl/tk UImain program:
@@ -458,7 +463,27 @@ UImain(void* vargs)
     retVal = 0;
     initMainWhereDisplay();
 
-/********************************
+    //
+    // initialize status lines library
+    // it is assumed that by this point, all the appropriate
+    // containing frames have been created and packed into place
+    //
+    // after this point onwards, any thread may make use of
+    // status lines.
+    // if any thread happens to create status_lines before here,
+    // it should be prepared for a core dump.
+    //
+    // --krishna
+    //
+    if (status_line::status_init(interp) != TCL_OK) {
+        fprintf(stderr, "status_line::status_init -> `%s'\n",
+            interp->result);
+    }
+
+    status_line ui_status("UIM status");
+    ui_status.message("WELCOME to Paradyn.  Interfaces ready");
+
+/*******************************
  *    Main Loop for UIM thread.  
  ********************************/
 
