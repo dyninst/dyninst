@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.13 1994/09/30 19:47:16 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.14 1994/10/04 21:40:12 jcargill Exp $";
 #endif
 
 /*
@@ -16,7 +16,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.13  1994/09/30 19:47:16  rbi
+ * Revision 1.14  1994/10/04 21:40:12  jcargill
+ * Removed requirement that functions have valid line-number information to
+ * be consider user functions.
+ *
+ * Revision 1.13  1994/09/30  19:47:16  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.12  1994/09/22  02:26:40  markc
@@ -379,7 +383,10 @@ image *parseImage(char *file, int offset)
 		(void) newResource(modResource, func, NULL, 
 		    (const char*) func->prettyName,0.0,FALSE);
 	    } else {
-		func->tag |= TAG_LIB_FUNC;
+		// Temporarily commented out by Jon.  The following line
+		// broke many programs and metrics, by causing user functions
+		// without line-number information to turn into library funcs.
+		// func->tag |= TAG_LIB_FUNC;
 	    }
 	}
     }
