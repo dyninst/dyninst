@@ -2,7 +2,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.26  1994/11/02 11:10:22  markc
+ * Revision 1.27  1994/11/06 09:58:20  newhall
+ * fix to support remote paradynd start, replaced logLine with fprintf
+ * to stdout (this is the handshaking signal sent to paradyn).  logLine
+ * requires an initialized "tp" variable, but it was NULL.
+ *
+ * Revision 1.26  1994/11/02  11:10:22  markc
  * Removed compiler warnings.
  *
  * Revision 1.25  1994/10/13  07:24:49  krisna
@@ -96,6 +101,7 @@
  *
  *
  */
+#include <iostream.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -170,7 +176,7 @@ void configStdIO(bool closeStdIn)
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int i;
     metricListRec *stuff;
@@ -192,6 +198,7 @@ main(int argc, char *argv[])
     tp = init_pvm_code(argv, pd_machine, pd_family, pd_type, 
 		       pd_known_socket, pd_flag);
 #else
+
     if (!pd_flag) {
 	int pid;
 
@@ -202,8 +209,10 @@ main(int argc, char *argv[])
 	    tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
 			    NULL, NULL, 0);
 	} else if (pid > 0) {
+           // Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	  sprintf(errorLine, "PARADYND %d\n", pid);
-	  logLine(errorLine);
+	  //logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+          fprintf(stdout, errorLine); // this works just fine...no need for logLine()
 	  fflush(stdout);
 	  _exit(-1);
 	} else {
