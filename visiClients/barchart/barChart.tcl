@@ -2,10 +2,17 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.8  1994/10/13 00:51:39  tamches
-#  Fixed deletion of resources.
-#  Implemented sorting of resources.
-#  Reorganized menus to be more standars-ish
+#  Revision 1.9  1994/10/14 10:28:49  tamches
+#  Swapped the x and y axes -- now resources print vertically and
+#  metrics print horizontally.  Can fit many, many more resources
+#  on screen at once with no label overlap.  Multiple metrics
+#  are now shown in the metrics axis.  Metric names are shown in
+#  a "key" in the lower-left.
+#
+# Revision 1.8  1994/10/13  00:51:39  tamches
+# Fixed deletion of resources.
+# Implemented sorting of resources.
+# Reorganized menus to be more standars-ish
 #
 # Revision 1.7  1994/10/11  22:04:18  tamches
 # Fixed bug whereupon a resize while paused would erase the bars
@@ -66,12 +73,8 @@
 
 # ######################################################
 # TO DO LIST:
-# 0) too much flickering on resize
-# 1) sort after delete or delete after sort doesn't work -- both axes
-# 2) swap axes
-# 3) multiple metrics: put a "key" on screen
-# 4) multiple metrics: make them show on y axis
-# 5) multiple metrics: allow deletion
+# 1) multiple metrics: allow deletion
+# 2) too much flickering on resize
 # ######################################################
 
 #  ################### Default options #################
@@ -96,8 +99,8 @@ if {[string match [tk colormodel .] color] == 1} {
 
 # ####################  Overall frame ###########################
 
-set metricsAxisWidth 0.75i
-set resourcesAxisHeight 0.65i
+set resourcesAxisWidth 1.4i
+set metricsAxisHeight 0.65i
 
 set W .bargrph
 frame $W -class Visi
@@ -147,7 +150,7 @@ pack  $Wmbar -side top -fill both -expand false
 
 menubutton $Wmbar.file -text File -menu $Wmbar.file.m
 menu $Wmbar.file.m
-$Wmbar.file.m add command -label "Close Bar chart" -command exit
+$Wmbar.file.m add command -label "Close Bar chart" -command GracefulClose
 
 # #################### Actions Menu ###################
 
@@ -197,88 +200,63 @@ pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
 tk_menuBar $Wmbar $Wmbar.file $Wmbar.actions \
    $Wmbar.view
 
-# ####################  Barchart Title ("Metric: xxxxxxxx") #################
+# ############  Scrollbar ##############
 
-label $W.titleLabel -text "(no barchart currently loaded)" \
-                    -font "-adobe-helvetica-bold-o-*-*-*-*-*-*-*-*-iso8859-1"
-pack  $W.titleLabel -side top -fill x -expand false
-   # expand is set to false; if the window is made taller, we don't want
-   # any of the extra space to go to the title (we want it to go to the
-   # bar graph main area in the middle)
+canvas $W.farLeft
+pack $W.farLeft -side left -expand false -fill y
+   # expand is set to false; if the window is made wider, don't change width
 
+#canvas $W.farLeft.sbRegion
+#pack $W.farLeft.sbRegion -side top -expand true -fill y
+#   # expand is set to true; if the window is made taller, we want the extra height
 
-# ####################  Barchart Resources Axis Title ("Resource(s)") ###############
+scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
+	-foreground gray -activeforeground gray -relief sunken \
+	-command processNewScrollPosition
+pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
+   # expand is set to true; if the window is made taller, we want
+   # extra height.
 
-label $W.resourcesAxisTitle -text "Resource(s)" \
-                    -font "-adobe-helvetica-bold-o-*-*-*-*-*-*-*-*-iso8859-1"
-pack  $W.resourcesAxisTitle -side bottom -fill x -expand false
-   # expand is set to false; if the window is made taller, we don't want
-   # extra height to go to us.
+canvas $W.farLeft.sbPadding -height $metricsAxisHeight -width 16 -relief flat
+pack $W.farLeft.sbPadding -side bottom -expand false -fill x
+   # expand is set to false; if the window is made taller, we don't
+   # want any of the extra height.
 
-# ###############  A sub-window to hold x-axis scrollbar & some padding ##########
+# #############  Resources Axis ###########3
 
-canvas $W.sbRegion -height 16
-   # on configure events, must update the -scrollregion
-pack $W.sbRegion -side bottom -expand false -fill x
-   # expand is set to false; if the window is made taller, we don't want
-   # any of the extra height; let the middle section have it.
-
-canvas $W.sbRegion.padding -width $metricsAxisWidth -height 16
-pack $W.sbRegion.padding -side left -expand false
-   # expand is set to false; if the window is made wider, we don't
-   # want any of the extra width.
-
-scrollbar $W.sbRegion.resourcesAxisScrollbar -orient horizontal -width 16 -foreground gray \
-                            -activeforeground gray -relief sunken \
-			    -command processNewScrollPosition
-pack $W.sbRegion.resourcesAxisScrollbar -side right -fill x -expand true
-   # expand is set to true; if the window is made wider, we want
-   # extra width.
-
-# #############  A sub-window to hold x-axis canvas & some padding #########
-
-canvas $W.bottom -height $resourcesAxisHeight
-pack   $W.bottom -side bottom -expand false -fill x
-   # expand is set to false; if the window is made taller, we don't want
-   # any of the extra height; let the middle section have it.
-
-canvas $W.bottom.padding -width $metricsAxisWidth -height $resourcesAxisHeight
-pack   $W.bottom.padding -side left -expand false
-   # expand is set to false; if the window is made wider, we don't
-   # want any of the extra width.
-   # We are the blank space at (0,0); we exist to keep the X and Y
-   # axis from getting any of this area, which would be difficult to manage.
-
-set WresourcesCanvas $W.bottom.resourcesAxisCanvas
-canvas $WresourcesCanvas -height $resourcesAxisHeight -relief groove \
-                             -xscrollcommand myXScroll \
-			     -scrollincrement 1
-pack   $WresourcesCanvas -side right -expand true -fill x
-   # expand is set to true; if the window is made wider, we want
-   # extra width.
-
-# ####################  Y Axis Canvas ##################################
-
-canvas $W.metricsAxisCanvas -width $metricsAxisWidth
-pack   $W.metricsAxisCanvas -side left -fill y -expand false
+canvas $W.left -width $resourcesAxisWidth
+pack   $W.left -side left -expand false -fill y
    # expand is set to false; if the window is made wider, we don't want
-   # extra width to go to the y axis
+   # any of the extra width
+
+canvas $W.left.metricsKey -height $metricsAxisHeight -width $resourcesAxisWidth\
+	-relief groove
+pack   $W.left.metricsKey -side bottom -expand false
+   # expand is set to false; if the window is made taller, we don't
+   # want any of the extra height
+
+set WresourcesCanvas $W.left.resourcesAxisCanvas
+canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
+                             -yscrollcommand myXScroll \
+			     -scrollincrement 1
+pack   $WresourcesCanvas -side top -expand true -fill y
+   # expand is set to true; if the window is made taller, we want the
+   # extra height.
+
+# ####################  Metrics Axis Canvas ##################################
+
+canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove
+pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
+   # expand is set to false; if the window is made wider, we don't want
+   # extra width to go to the metrics axis
 
 # ####################  Barchart Area ($W.body) #################
 
-canvas $W.body -height 3i -width 2.5i -relief groove
+canvas $W.body -height 2.5i -width 3.5i -relief groove
 #frame $W.body -height 3i -width 2.5i -relief groove
 pack  $W.body -side top -fill both -expand true
    # expand is set to true; if the window is made taller, we want the
-   # extra height to go to us (and our slave window $W.body.barCanvas)
-
-# ####################  Bar Canvas ##############################
-
-#frame  $W.body.barCanvas -relief groove -background red
-#pack   $W.body.barCanvas -side top -fill both -expand true
-
-#canvas $W.body.barCanvas -relief groove
-#pack   $W.body.barCanvas -side top -fill both -expand true
+   # extra height to go to us
 
 # ######### pack $W (and all its subwindows) into the main (top-level) window such that
 # ######### it basically consumes the entire window...
@@ -362,6 +340,8 @@ proc Initialize {} {
    global W
 
    global numMetrics
+   global numMetricsDrawn
+   global numMetricLabelsDrawn
    global metricNames
    global validMetrics
 
@@ -369,13 +349,17 @@ proc Initialize {} {
    global metricMinValues
    global metricMaxValues
 
+   global metricsLabelFont
+   global resourceNameFont
+   global prevLeftSectionWidth
+
    global numResources
    global resourceNames
    global indirectResources
 
-   global currResourceWidth
-   global minResourceWidth
-   global maxResourceWidth
+   global currResourceHeight
+   global minResourceHeight
+   global maxResourceHeight
 
    global DataFormat
 
@@ -399,6 +383,8 @@ proc Initialize {} {
 
    set numMetrics [Dg nummetrics]
    set numResources [Dg numresources]
+   set numMetricsDrawn 0
+   set numMetricLabelsDrawn 0
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set metricNames($metriclcv) [Dg metricname  $metriclcv]
@@ -413,15 +399,12 @@ proc Initialize {} {
       set indirectResources($resourcelcv) $resourcelcv
   }
 
-   set minResourceWidth 45
-   set maxResourceWidth 90
-   set currResourceWidth $maxResourceWidth
-      # as resources are added, we try to shrink the resource width down to a minimum of
-      # (minResourceWidth) rather than having to invoke the scrollbar.
-      # The question then becomes, if the window is made wider, should we
-      # tend "resourceWidth" back toward "maxResourceWidth", if it had been shrunk
-      # toward "minResourceWidth"?  Or once a resource is shrunk, should it never
-      # be enlarged?
+   set minResourceHeight 18
+   set maxResourceHeight 50
+   set currResourceHeight $maxResourceHeight
+      # as resources are added, we try to shrink the resource height down to a minimum of
+      # (minResourceHeight) rather than having to invoke the scrollbar.
+   set prevLeftSectionWidth 1
 
    # bar colors: (see /usr/lib/X11/rgb.txt)
    # purple is reserved for the where axis.
@@ -434,6 +417,12 @@ proc Initialize {} {
    set barColors(3) "chocolate"
    set barColors(4) "orange"
    set numBarColors 5
+
+#   set resourceNameFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
+#   set metricsLabelFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
+   set resourceNameFont *-Helvetica-*-r-*-12-*
+   set metricsLabelFont *-Helvetica-*-r-*-12-*
+
 
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
@@ -461,10 +450,9 @@ proc Initialize {} {
 # processEnterResource
 # processExitResource
 # rethinkResourceWidths
-# drawResourceAxis
+# drawResourcesAxis
 # processNewMetricMax
 # drawMetricAxis
-# drawTitle
 # myConfigureEventHandler
 # myExposeEventHandler
 # delResource
@@ -547,33 +535,78 @@ proc processExitResource {widgetName} {
    }
 }
 
-proc rethinkResourceWidths {screenWidth} {
+proc rethinkResourceHeights {screenHeight} {
    # When resources are added or deleted, this routine is called.
-   # Its sole purpose is to rethink the value of currResourceWidth,
+   # Its sole purpose is to rethink the value of currResourceHeight,
    # depending on the resources.
 
-   # algorithm: get current window width.  set resource width equal
-   # to window width / num resources.  If that would make the resource
-   # width too small, make the resource width currResourceWidth
-   global minResourceWidth
-   global maxResourceWidth
-   global currResourceWidth
+   # algorithm: get current window height.  set resource width equal
+   # to window height / num resources.  If that would make the resource
+   # height too small, make it minResourceHeight
+   global minResourceHeight
+   global maxResourceHeight
+   global currResourceHeight
    global numResources
    global WresourcesCanvas
 
-   set tentativeResourceWidth [expr $screenWidth / $numResources]
-   if {$tentativeResourceWidth < $minResourceWidth} {
-      set tentativeResourceWidth $minResourceWidth
-   } elseif {$tentativeResourceWidth > $maxResourceWidth} {
-      set tentativeResourceWidth $maxResourceWidth
+   set tentativeResourceHeight [expr $screenHeight / $numResources]
+   if {$tentativeResourceHeight < $minResourceHeight} {
+      set tentativeResourceHeight $minResourceHeight
+   } elseif {$tentativeResourceHeight > $maxResourceHeight} {
+      set tentativeResourceHeight $maxResourceHeight
    }
 
-   set currResourceWidth $tentativeResourceWidth
+   set currResourceHeight $tentativeResourceHeight
 
-   # puts stderr "Leaving rethinkResourceWidths; we have decided upon $currResourceWidth"
+   # puts stderr "Leaving rethinkResourceHeights; we have decided upon $currResourceHeight"
 }
 
-proc drawResourcesAxis {resourcesAxisWidth} {
+# Upon changes to the resources axis or the metrics key, call this routine to rethink
+# how wide the left portion of the screen (which is what holds these guys) should be.
+proc rethinkLeftSectionWidth {} {
+   global W
+   global WresourcesCanvas
+   global prevLeftSectionWidth
+   global numResourcesDrawn
+   global numMetricsDrawn
+
+   set maxWidthSoFar 20
+   set tickWidth 5
+
+   # loop through the resourcs on screen in sorted order
+   for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
+      set thisLabelWidth [getWindowWidth $WresourcesCanvas.message$rindex]
+      if {$thisLabelWidth > $maxWidthSoFar} {
+         set maxWidthSoFar $thisLabelWidth
+      }
+   }
+
+   # loop through the metrics key on screen in sorted order
+   for {set mindex 0} {$mindex < $numMetricsDrawn} {incr mindex} {
+      set thisLabelWidth [getWindowWidth $W.left.metricsKey.key$mindex]
+      if {$thisLabelWidth > $maxWidthSoFar} {
+         set maxWidthSoFar $thisLabelWidth
+      }
+   }
+
+   if {$maxWidthSoFar != $prevLeftSectionWidth} {
+      # resize the resourcse axis to consume just the right amount of width
+      # we use the "pack propagate" command to avoid resizing the entire window
+      # syntax: "pack progagate master flag"
+      pack propagate . false
+         set newWidth [expr 2 + $maxWidthSoFar + $tickWidth + 2]
+         $WresourcesCanvas configure -width $newWidth -relief groove
+         pack $WresourcesCanvas -side top -expand true -fill y
+            # expand is set to true; if the window is made taller, we want the
+            # extra height.
+         $W.left.metricsKey configure -width $newWidth
+      pack propagate . true
+   }
+
+   set prevLeftSectionWidth $maxWidthSoFar
+}
+
+proc drawResourcesAxis {theHeight} {
    # how it works: deletes all canvas items with the tag "resourcesAxisItemTag", including
    # the window items.  message widgets have to be deleted separately, notwithstanding
    # the fact that the canvas window items were deleted already.
@@ -585,8 +618,9 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    global Wmbar
    global WresourcesCanvas
 
-   global resourcesAxisHeight
-   global metricsAxisWidth
+   global resourceNameFont
+   global resourcesAxisWidth
+   global metricsAxisHeight
 
    global numResources
    global numResourcesDrawn
@@ -596,92 +630,78 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    global clickedOnResource
    global clickedOnResourceText
 
-   global minResourceWidth
-   global maxResourceWidth
-   global currResourceWidth
+   global minResourceHeight
+   global maxResourceHeight
+   global currResourceHeight
 
    global SortPrefs
 
-   # puts stderr "Welcome to drawResourcesAxis; numResources=$numResources"
-
-   set top 3
-   set tickHeight 5
-   set resourceNameFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
-
-   # ###### delete leftover stuff.  First the canvas items in 1 step, then the message widgets manually
-   #        (impossible to delete the message widgets in 1 step since they are not canvas items)
+   # delete leftover stuff (canvas widgets in 1 step, then message widgets manually)
    $WresourcesCanvas delete resourcesAxisItemTag
-
-   # loop through the message widgets in sorted order   
    for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
-      set actualResource $indirectResources($rindex)
-      if {[isResourceValid $actualResource]} {
-         destroy $WresourcesCanvas.message$rindex
-      }
+      destroy $WresourcesCanvas.message$rindex
    }
 
-   # next, several tick marks extending down a few pixels from the resources axis
-   # (one per resource), plus (while we're at it) the text of the given resources
-   # (centered at their respective tick marks)
+   set tickWidth 5
+   set right [expr [getWindowWidth $WresourcesCanvas] - 3]
+   set top 3
+   set bottom 3
+   set numResourcesDrawn 0
 
-   # yet to implement: STAGGERED TEXT
-   #         needed  : a way to detect when two message widgets have collided.
-   #                   doesn't sound too difficult... (use winfo -geometry for each widget)
-
-   set left 0
-   set right 0
    # loop through resources in sorted order
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
       set actualResource $indirectResources($rindex)
 
       if {[isResourceValid $actualResource]} {
-         set right [expr $left + $currResourceWidth - 1]
-         set middle [expr ($left + $right) / 2]
+         set bottom [expr $top + $currResourceHeight - 1]
+         set middle [expr ($top + $bottom) / 2]
    
-         # create a tick line
-         $WresourcesCanvas create line $middle $top $middle [expr $top+$tickHeight-1] -tag resourcesAxisItemTag
+         # create a tick line for this resource
+         $WresourcesCanvas create line [expr $right-$tickWidth] $middle $right $middle -tag resourcesAxisItemTag
    
          # create a message widget, bind some commands to it, and attach it to the
          # canvas via "create window"
 
          set theName $resourceNames($actualResource)
    
-         message $WresourcesCanvas.message$rindex -text $theName \
-		 -justify center -width $currResourceWidth \
+         label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
 		 -font $resourceNameFont
 
-         bind $WresourcesCanvas.message$rindex <Enter> \
+         bind $WresourcesCanvas.message$numResourcesDrawn <Enter> \
                              {processEnterResource %W}
-         bind $WresourcesCanvas.message$rindex <Leave> \
+         bind $WresourcesCanvas.message$numResourcesDrawn <Leave> \
                              {processExitResource %W}
-         bind $WresourcesCanvas.message$rindex <ButtonPress> \
+         bind $WresourcesCanvas.message$numResourcesDrawn <ButtonPress> \
 		             {selectResource %W}
 
-         $WresourcesCanvas create window $middle [expr $top+$tickHeight] \
-		 -anchor n -tag resourcesAxisItemTag \
-		 -window $WresourcesCanvas.message$rindex
-    
-         set left [expr $left + $currResourceWidth]
+         $WresourcesCanvas create window [expr $right-$tickWidth] $middle \
+		 -anchor e -tag resourcesAxisItemTag \
+		 -window $WresourcesCanvas.message$numResourcesDrawn
+
+         set top [expr $top + $currResourceHeight]
+         incr numResourcesDrawn    
       } else {
          #puts stderr "drawResourcesAxis: not drawing resource #$rindex because its valid flag is false"
       }
    }
 
    # the axis itself--a horizontal line
-   $WresourcesCanvas create line 0 $top $right $top -tag resourcesAxisItemTag
+   $WresourcesCanvas create line $right 0 $right $top -tag resourcesAxisItemTag
+
+   rethinkLeftSectionWidth
 
    # Update the scrollbar's scrollregion configuration:
    set regionList {0 0 0 0}
-   set regionList [lreplace $regionList 2 2 $right]
-   set regionList [lreplace $regionList 3 3 $resourcesAxisHeight]
+   set regionList [lreplace $regionList 2 2 $resourcesAxisWidth]
+   set regionList [lreplace $regionList 3 3 $bottom]
    $WresourcesCanvas configure -scrollregion $regionList
 
-   set screenWidth $resourcesAxisWidth
+   set screenHeight $theHeight
 
-   set oldconfig [$W.sbRegion.resourcesAxisScrollbar get]
-   set oldTotalWidth [lindex $oldconfig 0]
+   set oldconfig [$W.farLeft.resourcesAxisScrollbar get]
+   set oldTotalHeight [lindex $oldconfig 0]
 
-   if {$oldTotalWidth != $right} {
+   if {$oldTotalHeight != $bottom} {
       # puts stderr "drawResourcesAxis: detected major change in resources ($oldTotalWidth != $right), resetting"
       set firstUnit 0
    } else {
@@ -689,14 +709,8 @@ proc drawResourcesAxis {resourcesAxisWidth} {
       set firstUnit [lindex $oldconfig 2]
    }
 
-   set lastUnit [expr $firstUnit + $screenWidth - 1]
-   # puts stderr "setting sb: $right $screenWidth $firstUnit $lastUnit"   
-   $W.sbRegion.resourcesAxisScrollbar set $right $screenWidth $firstUnit $lastUnit
-                                  
-   # set the maximum width of the window to be $right + $metricsAxisWidth
-   # wm maxsize . [expr $right + inches2pixels($metricsAxisWidth)] [unlimited-y-size]
-
-   set numResourcesDrawn $numResources
+   set lastUnit [expr $firstUnit + $screenHeight - 1]
+   $W.farLeft.resourcesAxisScrollbar set $bottom $screenHeight $firstUnit $lastUnit
 }
 
 proc processNewMetricMax {mindex newmaxval} {
@@ -708,21 +722,22 @@ proc processNewMetricMax {mindex newmaxval} {
 
    set metricMaxValues($mindex) $newmaxval
 
-   drawMetricsAxis [getWindowHeight $W.metricsAxisCanvas]
+   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 }
 
-proc drawMetricsAxis {metricsAxisHeight} {
+proc drawMetricsAxis {metricsAxisWidth} {
    # the y axis changes to reflect the units of the current metric(s).
    # It is not necessary to call drawMetricsAxis if the window width is
    # resized; it IS necessary to call drawMetricsAxis if the window
-   # height is changed.
+   # width is changed.
    # It is not necessary to call drawMetricsAxis if resources are
    # added or removed; it IS necessary to call drawMetricsAxis if
    # metrics are added or removed.
 
    global W
    global numMetrics
-   global numLabelsDrawn
+   global numMetricsDrawn
+   global numMetricLabelsDrawn
 
    global metricNames
    global validMetrics
@@ -731,105 +746,138 @@ proc drawMetricsAxis {metricsAxisHeight} {
    global metricUnitTypes
    global metricMinValues
    global metricMaxValues
+   global metricsLabelFont
 
-   # puts stderr "welcome to drawMetricsAxis"
+   set keyWindow $W.left.metricsKey
 
    # first, delete all leftover canvas items (those with a metricsAxis tag to them)
    $W.metricsAxisCanvas delete metricsAxisTag
+   $keyWindow delete metricsAxisTag
 
    # we still have to delete the label widgets, which can't have tags...
-   set numlabels 3
-   for {set labelindex 0} {$labelindex < $numLabelsDrawn} {incr labelindex} {
+   for {set labelindex 0} {$labelindex < $numMetricLabelsDrawn} {incr labelindex} {
       destroy $W.metricsAxisCanvas.label$labelindex
    }
-
-   # canvas item: the axis itself (a vertical line)
-   set winHeight $metricsAxisHeight
-   set winWidth [getWindowWidth $W.metricsAxisCanvas]
-
-   set tickWidth 5
-   set left 5
-   set right [expr $winWidth - 5]
-   set tickLeft [expr $right-$tickWidth+1]
-   set top   5
-   set bottom [expr $winHeight - 5]
-   set labelRight [expr $tickLeft]
-   set labelWidth [expr $labelRight - $left + 1]
-   set height [expr $bottom - $top + 1]
-   set tickStep [expr ($height-1) / ($numlabels-1)]
-
-   set numericalStep [expr (1.0 * $metricMaxValues(0)-$metricMinValues(0)) / ($numlabels-1)]
-
-   # puts stderr "drawMetricsAxis: numericalStep is $numericalStep; metric-min is $metricMinValues(0); metric-max is $metricMaxValues(0)"
-   # flush stderr
-
-   $W.metricsAxisCanvas create line $right $top $right $bottom -tag metricsAxisTag
-
-   set labelFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
-   # draw tick marks, and while we're at it, their associated message widgets
-   for {set labelindex 0} {$labelindex < $numlabels} {incr labelindex} {
-      set currY [expr $bottom - round($labelindex*$tickStep)]
-
-      $W.metricsAxisCanvas create line $tickLeft $currY $right $currY -tag metricsAxisTag
-
-      set labelText [expr $metricMinValues(0) + $labelindex*$numericalStep]
-      message $W.metricsAxisCanvas.label$labelindex -text $labelText \
-              -justify right -width $labelWidth \
-	      -font $labelFont
-
-      $W.metricsAxisCanvas create window $labelRight $currY -anchor e \
-                        -tag metricsAxisItemTag \
-			-window $W.metricsAxisCanvas.label$labelindex
+   for {set metriclcv 0} {$metriclcv < $numMetricsDrawn} {incr metriclcv} {
+      destroy $keyWindow.key$metriclcv
    }
 
-   set numLabelsDrawn $numlabels
+   set numticks 3
+   set fixedLeft 5
+   set fixedRight [expr $metricsAxisWidth - 5]
+   set top 5
+   set tickHeight 5
+   set tickStepPix [expr ($fixedRight - $fixedLeft + 1) / ($numticks-1)]
+
+   set labelDrawnCount 0
+   set numMetricsDrawn 0
+
+   for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
+      # draw this axis, if it is a legitimate metric
+      if {$validMetrics($metriclcv)} {
+         set numericalStep [expr (1.0 * $metricMaxValues($metriclcv)-$metricMinValues($metriclcv)) / ($numticks-1)]
+
+         # draw horizontal line for this metric axis; color-coded for the metric in question
+         $W.metricsAxisCanvas create line $fixedLeft $top $fixedRight $top -tag metricsAxisTag \
+		 -fill [getMetricColor $metriclcv]
+
+         # draw tick marks and create labels for this metric axis
+         for {set ticklcv 0} {$ticklcv < $numticks} {incr ticklcv} {
+            set tickx [expr $fixedLeft + ($ticklcv * $tickStepPix)]
+            $W.metricsAxisCanvas create line $tickx $top $tickx [expr $top + $tickHeight] \
+		    -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+
+            set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
+
+	    if {$ticklcv==0} {
+               set theAnchor nw
+               set theJust left
+	    } elseif {$ticklcv==[expr $numticks-1]} {
+               set theAnchor ne
+               set theJust center
+	    } else {
+               set theAnchor n
+               set theJust right
+	    }
+
+            # we use message widgets instead of labels to get justification correct
+            message $W.metricsAxisCanvas.label$labelDrawnCount -text $labelText \
+		    -justify $theJust -font $metricsLabelFont -width [getWindowWidth $W.metricsAxisCanvas]
+            $W.metricsAxisCanvas create window $tickx [expr $top+$tickHeight] -anchor $theAnchor \
+		    -tag metricsAxisItemTag -window $W.metricsAxisCanvas.label$labelDrawnCount
+
+            incr labelDrawnCount
+         }
+
+         # draw an appropriate entry in the "key" (like the histogram has),
+         # to the left of the metrics axis
+         $keyWindow create line 5 $top [expr [getWindowWidth $keyWindow] - 5] $top \
+		 -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+         set theText $metricNames($metriclcv)
+         label $keyWindow.key$numMetricsDrawn -text $theText \
+		 -font $metricsLabelFont
+         $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] [expr $top + $tickHeight] \
+		 -tag metricsAxisTag -window $keyWindow.key$numMetricsDrawn \
+		 -anchor ne
+
+         # prepare for next metric down:
+         set top [expr $top + $tickHeight + 30]
+         incr numMetricsDrawn
+      }
+   }
+
+   set numMetricLabelsDrawn $labelDrawnCount
+
+   if {$numMetricLabelsDrawn==0} {
+      set newMetricsAxisHeight 5
+   } else {
+      set newMetricsAxisHeight $top
+   }
+
+   rethinkLeftSectionWidth
+
+   # resize the metrics axis to consume just the right amount of height
+   # we use the "pack progagate" command to avoid resizing the entire window
+   # syntax "pack progagate master flag"
+   pack propagate . false
+      $W.metricsAxisCanvas configure -height $newMetricsAxisHeight
+      pack $W.metricsAxisCanvas -side bottom -fill x -expand false
+         # expand is set to false; if the window is made wider, we don't want
+         # extra width to go to the metrics axis
+      $W.farLeft.sbPadding configure -height $newMetricsAxisHeight
+      $W.left.metricsKey   configure -height $newMetricsAxisHeight
+   pack propagate . true
 }
 
-proc drawTitle {} {
-   # the title changes to reflect the current metric(s)
-   # currently, only a single metric is supported
+proc getMetricColor {mindex} {
+   global barColors
+   global numBarColors
 
-   global W
-   global numMetrics
-
-   global metricNames
-   global validMetrics
-
-   global metricUnits
-
-   if {$numMetrics == 0} {
-      set newTitle "(no metrics currently defined)"
-   } else {
-      set newTitle "Metric: $metricNames(0) (Units: $metricUnits(0))"
-   }
-
-   $W.titleLabel configure -text $newTitle
+   set theindex [expr $mindex % $numBarColors]
+   return $barColors($theindex)
 }
 
 # myConfigureEventHandler - handle a resize of the bar sub-window
 proc myConfigureEventHandler {newWidth newHeight} {
    # rethink how wide the resources should be
-   rethinkResourceWidths $newWidth
+   rethinkResourceHeights $newHeight
 
    # Call drawResourcesAxis to rethink the scrollbar and to
    # rethink how many resources can fit on the screen, now that
    # we've changed the window size
-   drawResourcesAxis $newWidth
+   drawResourcesAxis $newHeight
 
    # We only need to redraw the metrics axis if the window height has changed
    # (and at the beginning of the program)
-   drawMetricsAxis $newHeight
+   drawMetricsAxis $newWidth
 
-   # Redraw the title (only needed if metrics changed)
-   drawTitle
-   
    # the following routines will clear the bar window (ouch! But no
    # choice since window size change can greatly affect bar layout
    # --- sometimes)
    # so resizeCallback has built-in hacks to simulate one new-data callback
 
-   resourcesAxisHasChanged $newWidth
-   metricsAxisHasChanged   $newHeight
+   resourcesAxisHasChanged $newHeight
+   metricsAxisHasChanged   $newWidth
 
    resizeCallback $newWidth $newHeight
 }
@@ -861,7 +909,7 @@ proc myExposeEventHandler {} {
 #   set validResources($numResources) [isResourceValid $numResources]
 #   incr numResources
 #
-#   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
+#   drawResourcesAxis [getWindowWidth $W.left.resourcesAxisCanvas]
 #}
 
 # delResource -- delete a resource, given the resource's true (not sorted)
@@ -870,6 +918,7 @@ proc myExposeEventHandler {} {
 proc delResource {delindex} {
    global numMetrics
    global numResources
+   global validResources
    global resourceNames
    global indirectResources
    global clickedOnResource
@@ -888,7 +937,7 @@ proc delResource {delindex} {
       return
    }
 
-   puts stderr "Welcome to delResource--delindex=$delindex"
+   # puts stderr "Welcome to delResource--delindex=$delindex"
 
    # we should be deleting the resource that was clicked on
    if {$clickedOnResourceText == $resourceNames($delindex)} {
@@ -908,11 +957,10 @@ proc delResource {delindex} {
    #       Valid bit of each metric-resource pair before
    #       using it in any way.
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
-      Dg stop $mindex $delindex
+      if {[isMetricValid $mindex]} {
+         Dg stop $mindex $delindex
+      }
    }
-
-   #puts stderr "Dg stop executed for resource #$delindex"
-   #flush stderr
 
    # note that this resource is now invalid
    if {[isResourceValid $delindex]} {
@@ -924,7 +972,7 @@ proc delResource {delindex} {
    #           since the visi won't lower that value; instead, it will only clear
    #           the appropriate valid bits
 
-   rethinkIndirectResources
+   rethinkIndirectResources true
 
    # simulate a resize to rethink bar, bar label, and resource axis layouts
    myConfigureEventHandler [getWindowWidth $W.body] [getWindowHeight $W.body]
@@ -1015,9 +1063,8 @@ proc addMetric {theName theUnits} {
 
    incr numMetrics
 
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   drawMetricsAxis [getWindowHeight $W.metricsAxisCanvas]
-   drawTitle
+   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
+   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 }
 
 proc delMetric {delIndex} {
@@ -1040,9 +1087,8 @@ proc delMetric {delIndex} {
 
    set numMetrics [expr $numMetrics - 1]
    
-   drawTitle
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   drawMetricsAxis [getWindowHeight $W.metricsAxisCanvas]
+   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
+   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 
    # don't we need to tell paradyn to stop sending us data on
    # this metric?
@@ -1059,7 +1105,7 @@ proc processNewScrollPosition {newTop} {
    }
 
    # if max <= visible then set newTop 0
-   set currSettings [$W.sbRegion.resourcesAxisScrollbar get]
+   set currSettings [$W.farLeft.resourcesAxisScrollbar get]
    set totalSize [lindex $currSettings 0]
    set visibleSize [lindex $currSettings 1]
 
@@ -1072,7 +1118,7 @@ proc processNewScrollPosition {newTop} {
    # update the x-axis canvas
    # will automatically generate a call to myXScroll, which then updates the
    # look of the scrollbar to reflect the new position...
-   $WresourcesCanvas xview $newTop
+   $WresourcesCanvas yview $newTop
 
    # call our C++ code to update the bars
    newScrollPosition $newTop
@@ -1085,7 +1131,7 @@ proc processNewScrollPosition {newTop} {
 proc myXScroll {totalSize visibleSize left right} {
    global W
 
-   $W.sbRegion.resourcesAxisScrollbar set $totalSize $visibleSize $left $right
+   $W.farLeft.resourcesAxisScrollbar set $totalSize $visibleSize $left $right
 }
 
 # ############################################################################
@@ -1164,17 +1210,16 @@ proc DgConfigCallback {} {
    }
 
    # rethink the sorting order
-   rethinkIndirectResources
+   rethinkIndirectResources true
 
    # rethink the layout of the axes
-   rethinkResourceWidths [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   drawMetricsAxis [getWindowHeight $W.metricsAxisCanvas]
-   drawTitle
+   rethinkResourceHeights [getWindowHeight $W.left.resourcesAxisCanvas]
+   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
+   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 
    # inform our C++ code that stuff has changed
-   resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   metricsAxisHasChanged   [getWindowHeight $W.metricsAxisCanvas]
+   resourcesAxisHasChanged [getWindowHeight $W.left.resourcesAxisCanvas]
+   metricsAxisHasChanged   [getWindowWidth $W.metricsAxisCanvas]
 }
 
 # #################  AddMetricDialog -- Ask paradyn for another metric #################
@@ -1195,13 +1240,13 @@ proc ProcessNewSortPrefs {} {
    global W
 
    # change the order...
-   rethinkIndirectResources
+   rethinkIndirectResources true
 
    # redraw the resources axis
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
+   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
 
    # redraw the bars (callback to our C++ code)
-   resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
+   resourcesAxisHasChanged [getWindowHeight $W.left.resourcesAxisCanvas]
 }
 
 proc sortCmd {x y} {
@@ -1211,7 +1256,7 @@ proc sortCmd {x y} {
    return [string compare $str1 $str2]
 }
 
-proc rethinkIndirectResources {} {
+proc rethinkIndirectResources {docallback} {
    # sorting order has changed; rethink indirectResources array
    global indirectResources
    global SortPrefs
@@ -1245,8 +1290,10 @@ proc rethinkIndirectResources {} {
 #      puts stderr $indirectResources($resourcelcv)
 #   }
 
-   # inform our C++ code of the changes...
-   rethinkIndirectResourcesCallback
+   if {$docallback} {
+      # inform our C++ code of the changes...
+      rethinkIndirectResourcesCallback
+   }
 }
 
 proc rethinkDataFormat {} {
@@ -1259,7 +1306,7 @@ proc rethinkDataFormat {} {
    global metricMaxValues
    global metricNames
 
-   # reset y-axis min & max values
+   # reset metrics-axis min & max values
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
@@ -1269,7 +1316,28 @@ proc rethinkDataFormat {} {
    dataFormatHasChanged
 
    # redraw the y axis
-   drawMetricsAxis [getWindowHeight $W.metricsAxisCanvas]
+   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+}
+
+proc GracefulClose {} {
+   # quit barchart
+
+   # release installed commands
+   rename launchBarChart ""
+
+   # the above command will render the callback routines harmless
+   # by virtue of setting barChartIsValid to false
+   # So, we can delete them at our leisure now...
+   
+   rename rethinkIndirectResourcesCallback ""
+   rename dataFormatHasChanged ""
+   rename newScrollPosition ""
+   rename metricsAxisHasChanged ""
+   rename resourcesAxisHasChanged ""
+   rename exposeCallback ""
+   rename resizeCallback ""
+
+   exit
 }
 
 # ######################################################################################
