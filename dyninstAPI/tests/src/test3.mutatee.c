@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.11 2000/06/20 21:45:32 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.12 2000/08/07 00:34:45 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -28,6 +28,11 @@ int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
 #endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char *Builder_id=COMPILER; /* defined on compile line */
 
 /* Mutatee for multi-process tests.
  */
@@ -56,6 +61,11 @@ void test1()
 int test2ret = (int)0xdeadbeef;
 
 volatile int dummy = 1;
+
+void call2_1(int arg1, int arg2)
+{
+     dprintf("call2_1() called with arg1=%d,arg2=%d\n", arg1, arg2);
+}
 
 int func2_1()
 {
@@ -93,7 +103,7 @@ int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
     unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i;
-    unsigned int testNum;
+    unsigned int testNum=0;
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
@@ -115,8 +125,10 @@ int main(int iargc, char *argv[])
         }
     }
 
-    dprintf("Mutatee %s running (%s).\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C");
+    if ((argc==1) || debugPrint)
+        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C", Builder_id);
+    if (argc==1) exit(0);
 
     switch (testNum) {
 	case 1:
@@ -126,6 +138,8 @@ int main(int iargc, char *argv[])
 	case 2:
 		test2();
 		break;
+
+        /* subtest 3 uses test1()! */
 
 	case 4:
 		test4();

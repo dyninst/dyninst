@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4b.mutatee.c,v 1.4 2000/06/20 21:45:58 wylie Exp $ */
+/* $Id: test4b.mutatee.c,v 1.5 2000/08/07 00:33:30 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -24,6 +24,11 @@ int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
 #endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char *Builder_id=COMPILER; /* defined on compile line */
 
 /* control debug printf statements */
 #define dprintf if (debugPrint) printf
@@ -102,13 +107,15 @@ int main(int argc, char *argv[])
             }
             i=j-1;
         } else {
-            fprintf(stderr, "Usage: %s [-verbose] [-run <num> ..]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-verbose] -run <num> ..\n", argv[0]);
             exit(-1);
         }
     }
 
-    dprintf("Mutatee %s running (%s).\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C");
+    if ((argc==1) || debugPrint)
+        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C", Builder_id);
+    if (argc==1) exit(0);
 
     if (runTest[3]) func3_1();
     if (runTest[4]) func4_1();

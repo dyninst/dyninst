@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.24 2000/07/13 18:00:24 zandy Exp $ */
+/* $Id: test2.mutatee.c,v 1.25 2000/08/07 00:35:57 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -29,6 +29,11 @@ int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
 #endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char *Builder_id=COMPILER; /* defined on compile line */
 
 #include "test2.h"
 
@@ -180,9 +185,9 @@ void func12_1()
 }
 
 #ifdef i386_unknown_nt4_0
-#define USAGE "Usage: test2.mutatee [-attach] [-verbose]"
+#define USAGE "Usage: test2.mutatee [-attach] [-verbose] -run <num> .."
 #else
-#define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose]"
+#define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose] -run <num> .."
 #endif
 
 int main(int iargc, char *argv[])
@@ -194,9 +199,7 @@ int main(int iargc, char *argv[])
 #endif
     int useAttach = FALSE;
  
-    for (j=1; j <= MAX_TEST; j++) {
-        runTest[j] = TRUE;
-    }
+    for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
@@ -214,12 +217,12 @@ int main(int iargc, char *argv[])
         } else if (!strcmp(argv[i], "-fork")) {
 	    doFork();
         } else if (!strcmp(argv[i], "-run")) {
-            for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
                 if (argv[j] && isdigit(*argv[j]) && (testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
-                        runTest[testId] = 1;
+                        dprintf("selecting test %d\n", testId);
+                        runTest[testId] = TRUE;
                     } else {
                         printf("invalid test %d requested\n", testId);
                         exit(-1);
@@ -237,8 +240,10 @@ int main(int iargc, char *argv[])
         }
     }
 
-    dprintf("Mutatee %s running (%s).\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C");
+    if ((argc==1) || debugPrint)
+        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C", Builder_id);
+    if (argc==1) exit(0);
 
     /* see if we should wait for the attach */
     if (useAttach) {

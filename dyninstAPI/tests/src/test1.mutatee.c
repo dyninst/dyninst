@@ -1,6 +1,7 @@
+
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.55 2000/08/01 22:37:07 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.56 2000/08/07 00:40:00 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -26,6 +27,11 @@ int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
 #endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char Builder_id[]=COMPILER; /* defined on compile line */
 
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0) || \
@@ -57,8 +63,6 @@ int debugPrint = 0;
 
 #define TRUE	1
 #define FALSE	0
-
-int runAllTests = TRUE;
 
 #define MAX_C_TEST 32
 #ifdef __cplusplus
@@ -2463,11 +2467,11 @@ void exception_test::func_cpp()
 }
 
 #ifdef rs6000_ibm_aix4_1
-// xlC's static libC has strangely undefined symbols, so just fake them ...
+/* xlC's static libC has strangely undefined symbols, so just fake them ... */
 int SOMClassClassData;
 int SOMObjectClassData;
 #else
-// xlC also doesn't like these, so just skip them ...
+/* xlC also doesn't like these, so just skip them ... */
 template class sample_template <int>;
 template class sample_template <double>;
 #endif
@@ -2626,9 +2630,9 @@ void dummy_force_got_entries()
 #endif
 
 #ifdef i386_unknown_nt4_0
-#define USAGE "Usage: test1 [-attach] [-verbose]"
+#define USAGE "Usage: test1.mutatee [-attach] [-verbose] -run <num> .."
 #else
-#define USAGE "Usage: test1 [-attach <fd>] [-verbose]"
+#define USAGE "Usage: test1.mutatee [-attach <fd>] [-verbose] -run <num> .."
 #endif
 
 int main(int iargc, char *argv[])
@@ -2642,18 +2646,13 @@ int main(int iargc, char *argv[])
 #endif
  
     for (j=0; j <= MAX_TEST; j++) {
-	if (j <= MAX_C_TEST) {
-	   passedTest[j] = FALSE;
-           if (!useAttach) runTest[j] = TRUE;
-	} else {
+        runTest[j] = FALSE;
 #ifndef __cplusplus
-	         passedTest[j] = TRUE;
-		 runTest[j] = FALSE;
-#else
-	         passedTest[j] = FALSE;
-		 if (!useAttach) runTest[j] = TRUE;
+	if (j > MAX_C_TEST)
+           passedTest[j] = TRUE;
+	else
 #endif
-        }
+	   passedTest[j] = FALSE;
     }
 
     for (i=1; i < argc; i++) {
@@ -2668,13 +2667,19 @@ int main(int iargc, char *argv[])
 	    }
 	    pfd = atoi(argv[i]);
 #endif
+        } else if (!strcmp(argv[i], "-runall")) {
+            dprintf("selecting all tests\n");
+#ifndef __cplusplus
+            for (j=1; j <= MAX_C_TEST; j++) runTest[j] = TRUE;
+#else
+            for (j=1; j <= MAX_TEST; j++) runTest[j] = TRUE;
+#endif
         } else if (!strcmp(argv[i], "-run")) {
-            runAllTests = FALSE;
-            for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
                 if ((testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
+                        dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
 #ifndef __cplusplus
                     } else if (testId > MAX_C_TEST) {
@@ -2696,8 +2701,10 @@ int main(int iargc, char *argv[])
         }
     }
 
-    dprintf("Mutatee %s running (%s).\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C");
+    if ((argc==1) || debugPrint)
+        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C", Builder_id);
+    if (argc==1) exit(0);
 
     if (useAttach) {
 #ifndef i386_unknown_nt4_0
@@ -2744,11 +2751,10 @@ int main(int iargc, char *argv[])
     if (runTest[29]) func29_1();
     if (runTest[30]) func30_1();
 
-    if( runTest[ 31 ] ) func31_1();
-    if( runTest[ 32 ] ) func32_1();
+    if (runTest[31]) func31_1();
+    if (runTest[32]) func32_1();
 
 #ifdef __cplusplus
-   
     if (runTest[33]) test33.func_cpp();
     if (runTest[34]) test34.func_cpp();
     if (runTest[35]) test35.func_cpp();
@@ -2761,7 +2767,6 @@ int main(int iargc, char *argv[])
     if (runTest[42]) test42.func_cpp();
     if (runTest[43]) test43.func_cpp();
     if (runTest[44]) test44.func_cpp();
-
 #endif
 
     /* See how we did running the tests. */
@@ -2770,11 +2775,7 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-        if (runAllTests) {
-            printf("All tests passed\n");
-        } else {
-            printf("All requested tests passed\n");
-        }
+        printf("All tests passed\n");
     } else {
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
