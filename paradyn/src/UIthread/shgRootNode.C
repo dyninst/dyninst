@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.6  1996/08/16 21:07:18  tamches
-/* updated copyright for release 1.1
+/* Revision 1.7  1997/09/24 19:24:37  tamches
+/* XFontStruct --> Tk_Font; other changes for tcl 8.0
 /*
+ * Revision 1.6  1996/08/16 21:07:18  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.5  1996/03/08 00:22:50  tamches
  * added support for hidden nodes
  * added operator=
@@ -92,21 +95,23 @@ void shgRootNode::initialize(unsigned iId,
 
    shadowNode = iShadow;
 
-   XFontStruct *rootItemFontStruct = shg::getRootItemFontStruct(shadowNode);
+   Tk_Font rootItemFontStruct = shg::getRootItemFontStruct(shadowNode);
 
    pixWidthAsRoot = borderPix + horizPad // static members
-                  + XTextWidth(rootItemFontStruct,
-			       label.string_of(), label.length()) +
+                  + Tk_TextWidth(rootItemFontStruct,
+                                 label.string_of(), label.length()) +
                   + horizPad + borderPix;
 
+   Tk_FontMetrics rootItemFontMetrics;
+   Tk_GetFontMetrics(rootItemFontStruct, &rootItemFontMetrics);
    pixHeightAsRoot = borderPix + vertPad +
-                     rootItemFontStruct->ascent +
-                     rootItemFontStruct->descent +
+                     rootItemFontMetrics.ascent +
+                     rootItemFontMetrics.descent +
                      vertPad + borderPix;
 
-   XFontStruct *listboxItemFontStruct = shg::getListboxItemFontStruct(shadowNode);
-   pixWidthAsListboxItem = XTextWidth(listboxItemFontStruct,
-				      label.string_of(), label.length());
+   Tk_Font listboxItemFontStruct = shg::getListboxItemFontStruct(shadowNode);
+   pixWidthAsListboxItem = Tk_TextWidth(listboxItemFontStruct,
+                                       label.string_of(), label.length());
 }
 
 shgRootNode::shgRootNode(unsigned iId,
@@ -202,9 +207,12 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 		      highlighted ? highlightedRelief : normalRelief);
 
    // Third, draw the text
+   Tk_FontMetrics rootItemFontMetrics; // filled in
+   Tk_GetFontMetrics(shg::getRootItemFontStruct(shadowNode), &rootItemFontMetrics);
+   
    const int textLeft = boxLeft + borderPix + horizPad;
    const int textBaseLine = root_topy + borderPix + vertPad +
-                            shg::getRootItemFontStruct(shadowNode)->ascent - 1;
+                            rootItemFontMetrics.ascent - 1;
 
    XDrawString(Tk_Display(theTkWindow), theDrawable,
 	       shg::getRootItemTextGC(active, shadowNode),
@@ -297,7 +305,8 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
    XDrawString(Tk_Display(theTkWindow), theDrawable,
 	       shg::getListboxItemGC(active, shadowNode),
 	       textLeft, // boxLeft + tc.listboxHorizPadBeforeText
-	       textBaseline, // boxTop + tc.listboxVertPadAboveItem + tc.listboxFontStruct->ascent - 1,
+	       textBaseline, // boxTop + tc.listboxVertPadAboveItem +
+                             // tc.listboxFontStruct->ascent - 1,
 	       label.string_of(), label.length());
 }
 
