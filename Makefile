@@ -1,13 +1,14 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.67 2004/07/28 07:24:45 jaw Exp $
+# $Id: Makefile,v 1.68 2005/03/07 21:19:52 legendre Exp $
 #
 
+TO_CORE = .
+# Include additional local definitions (if available)
+include ./make.config.local
 # Include the make configuration specification (site configuration options)
 include ./make.config
-# Include additional local (re-)definitions (if available)
--include ./make.config.local
 
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
@@ -71,7 +72,7 @@ all: ready world
 # target can be passed down to the lower-level Makefiles by listing it
 # as a target here:
 
-clean install depend distclean:
+clean depend distclean:
 	+@for subsystem in $(fullSystem); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 		$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
@@ -79,6 +80,15 @@ clean install depend distclean:
 		true;						\
 	    fi							\
 	done
+
+install:	ready world
+	+@for subsystem in $(fullSystem); do 			\
+		if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+			$(MAKE) -C $$subsystem/$(PLATFORM) install;		\
+		else						\
+			true;						\
+	   fi							\
+	done	
 
 # Check that the main installation directories, etc., are ready for a build,
 # creating them if they don't already exist!
