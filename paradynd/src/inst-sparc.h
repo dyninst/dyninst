@@ -7,7 +7,10 @@
  * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
  *
  * $Log: inst-sparc.h,v $
- * Revision 1.1  1994/01/27 20:31:23  hollings
+ * Revision 1.2  1994/07/26 19:57:28  hollings
+ * moved instruction definitions to seperate header file.
+ *
+ * Revision 1.1  1994/01/27  20:31:23  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.2  1993/06/22  19:00:01  hollings
@@ -52,3 +55,4 @@
 
 /* branch to first global post insn mini-tramp */
 #define GLOBAL_POST_BRANCH	0xc
+
