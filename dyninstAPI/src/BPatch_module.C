@@ -434,6 +434,7 @@ void BPatch_module::parseTypes()
     BPatch_typeCommon *commonBlock = NULL;
     BPatch_variableExpr *commonBlockVar;
     pdstring* currentSourceFile = NULL;
+    bool inCommonBlock = false;
 
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -554,6 +555,7 @@ void BPatch_module::parseTypes()
 	  if (sym->n_sclass == C_BCOMM) {
 	      char *commonBlockName;
 
+              inCommonBlock = true;
 	      commonBlockName = nmPtr;
 
 	      // find the variable for the common block
@@ -575,6 +577,10 @@ void BPatch_module::parseTypes()
 		  commonBlock->beginCommonBlock();
 	      }
 	  } else if (sym->n_sclass == C_ECOMM) {
+             inCommonBlock = false;
+             if (commonBlock == NULL)
+                continue;
+
 	      // copy this set of fields
 	    BPatch_Vector<BPatch_function *> bpmv;
    	    if (NULL == findFunction(funcName, bpmv) || !bpmv.size()) {
@@ -624,6 +630,13 @@ void BPatch_module::parseTypes()
 	  } else if (sym->n_sclass == C_ESTAT) {
 	      staticBlockBaseAddr = 0;
 	  }
+
+          // There's a possibility that we were parsing a common block that
+          // was never instantiated (meaning there's type info, but no
+          // variable info
+
+          if (inCommonBlock && commonBlock == NULL)
+             continue;
 
 	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
 	      parseStabString(this, 0, nmPtr, 
