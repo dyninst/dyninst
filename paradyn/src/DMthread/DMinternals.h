@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.34  1995/02/16 08:13:34  markc
+ * Revision 1.35  1995/02/26 02:14:01  newhall
+ * added some of the phase interface support
+ *
+ * Revision 1.34  1995/02/16  08:13:34  markc
  * Changed Boolean to bool
  * Changed igen-xdr interfaces to use strings and vectors rather then igen-arrays
  * and char *'s
@@ -129,10 +132,12 @@
 #ifndef dminternals_H
 #define dminternals_H
 #include "util/h/list.h"
+#include "util/h/sys.h"
 #include "util/h/hist.h"
+#include "dataManager.thread.h"
 #include "util/h/aggregateSample.h"
 #include "DMresource.h"
-#include "dataManager.thread.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include <string.h>
 #include "util/h/machineType.h"
 #include "../UIthread/Status.h"
@@ -150,7 +155,7 @@ class daemonEntry {
 public:
   daemonEntry () : flavor(0) { }
   daemonEntry (const char *m, const char *c, const char *n, const char *l, const char *d, int f)
-    : command(c), name(n), login(l), dir(0), machine(m), flavor(f) { }
+    : machine(m), command(c), name(n), login(l), dir(0), flavor(f) { }
   ~daemonEntry() { }
   bool setAll(const string m, const string c, const string n,
 	      const string l, const string d, int f);
@@ -163,11 +168,11 @@ public:
   int getFlavor() { return flavor;}
 
 private:
+  string machine;
   string command;
   string name;
   string login;
   string dir;
-  string machine;
   int flavor;
 };
 
@@ -353,6 +358,7 @@ class performanceStream {
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);
+	void callPhaseFunc(phaseInfo *phase);
     private:
 	applicationContext      *appl;
 	dataType                type;

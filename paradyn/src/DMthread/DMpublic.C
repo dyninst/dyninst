@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.37  1995/02/16 19:10:44  markc
+ * Revision 1.38  1995/02/26 02:14:07  newhall
+ * added some of the phase interface support
+ *
+ * Revision 1.37  1995/02/16  19:10:44  markc
  * Removed start slash from comments
  *
  * Revision 1.36  1995/02/16  08:16:42  markc
@@ -136,11 +139,18 @@ extern "C" {
 #include <malloc.h>
 }
 
+#include <assert.h>
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
+#include "util/h/sys.h"
 #include "DMinternals.h"
-#include <assert.h>
+#include "DMphase.h"
+
+// TEMPORARY until new version of igen
+extern void DMstartPhase(timeStamp, string*);
+extern void DMaddPhaseNotify(performanceStream *);
+extern void DMremovePhaseNotify(performanceStream *);
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
@@ -243,6 +253,7 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
     td = getRequestingThread();
     ps = new performanceStream(ap, dt, dc, cc, td);
     ap->streams.add(ps);
+    DMaddPhaseNotify(ps);
 
     return(ps);
 }
@@ -253,6 +264,7 @@ int dataManager::destroyPerformanceStream(applicationContext *ap,
     performanceStream *temp;
 
     if(temp = ap->streams.find(ps)){
+      DMremovePhaseNotify(ps);
       ok = ap->streams.remove(ps);
     }
     return(ok);
@@ -376,6 +388,15 @@ void dataManager::coreProcess(applicationContext *app, int pid)
     app->coreProcess(pid);
 }
 
+void dataManager::StartPhase(timeStamp start_Time, string *name)
+{
+    DMstartPhase(start_Time,name);
+}
+
+
+
+
+
 //
 // Now for the upcalls.  We provide code that get called in the thread that
 //   requested the call back.
@@ -425,6 +446,12 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 			     int first)
 {
     (func)(ps, mi, buckets, count, first);
+}
+
+void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
+				   performanceStream *ps,
+				   phaseInfo *phase) {
+    (cb)(ps,phase);
 }
 
 T_dyninstRPC::metricInfo *dataManager::getMetricInfo(metric *met) {

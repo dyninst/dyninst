@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.59  1995/02/16 19:10:41  markc
+ * Revision 1.60  1995/02/26 02:14:03  newhall
+ * added some of the phase interface support
+ *
+ * Revision 1.59  1995/02/16  19:10:41  markc
  * Removed start slash from comments
  *
  * Revision 1.58  1995/02/16  08:15:53  markc
@@ -221,6 +224,8 @@ double   quiet_nan(int unused);
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"
+#include "util/h/Vector.h"
+#include "DMphase.h"
 
 tunableBooleanConstant printSampleArrival(false, NULL, developerConstant,
     "printSampleArrival", 
@@ -231,6 +236,11 @@ static dataManager *dm;
 stringPool metric::names;
 HTable<metric *> metric::allMetrics;
 List<paradynDaemon*> paradynDaemon::allDaemons;
+
+// TEMPORARY
+vector<performanceStream *> phase_notify_list;
+vector<phaseInfo *> dm_phases; 
+
 
 void newSampleRate(float rate);
 
@@ -248,6 +258,7 @@ metricInstance *performanceStream::enableDataCollection(resourceList *rl,
 
     name = rl->getCanonicalName();
     mi = m->enabledCombos.find(name);
+    printf("%s enabled\n",(char *)name);
     if (mi) {
         mi->count++;
 	mi->users.add(this);
@@ -327,6 +338,14 @@ void performanceStream::callStateFunc(appState state)
     if (controlFunc.sFunc) {
 	dm->setTid(threadId);
 	dm->changeState(controlFunc.sFunc, this, state);
+    }
+}
+
+void performanceStream::callPhaseFunc(phaseInfo *phase)
+{
+    if (controlFunc.pFunc) {
+	dm->setTid(threadId);
+	dm->newPhaseInfo(controlFunc.pFunc,this,phase);
     }
 }
 
@@ -749,6 +768,66 @@ DMnewParadynd (int sockfd, dataManager *dm)
   assert (dm->appContext);
   assert (dm->appContext->addDaemon(new_fd));
 }
+
+
+// TEMPORARY until new version of igen
+void DMstartPhase(timeStamp start_Time, string *name){
+
+    // update the histogram data structs assoc with each MI
+    // return a start time for the phase
+
+    // create a new phaseInfo object and add it to the list of phases
+    phaseHandle handle = (phaseHandle)phaseInfo::numPhases;
+
+    string *n;
+    if (name){
+	n = new string(name->string_of());
+    }
+    else {
+	char s[20];
+        n = new string(sprintf(s,"%s%d","phase_",handle));
+    }
+
+    phaseInfo *p = NULL;
+    timeStamp bin_width = (Histogram::bucketSize);
+    timeStamp start_time = bin_width*(Histogram::lastGlobalBin);
+    p = new phaseInfo(start_time,
+		      (timeStamp)-1.0,
+            	      bin_width,
+            	      handle,
+            	      n);
+    
+    dm_phases+=p;
+
+    // invoke newPhaseCallback for all perf. streams
+    performanceStream *ps;
+    for(unsigned i = 0; i < phase_notify_list.size() ; i++){
+        ps = phase_notify_list[i]; 
+	ps->callPhaseFunc(p);
+    }
+    p = 0;
+
+}
+
+void DMaddPhaseNotify(performanceStream *p){
+
+   phase_notify_list +=p; 
+   p = 0;
+
+}
+
+void DMremovePhaseNotify(performanceStream *p){
+   unsigned size = phase_notify_list.size();
+   for(unsigned i = 0; i < size; i++){
+      if( phase_notify_list[i] == p){
+	  phase_notify_list[i] = phase_notify_list[size-1];
+          phase_notify_list.resize(size-1); 
+	  return;
+      }
+   }
+}
+
+
 
 //
 // Main loop for the dataManager thread.
