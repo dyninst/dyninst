@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.24 2002/08/12 04:21:39 schendel Exp $
+// $Id: costmetrics.C,v 1.25 2002/10/15 17:11:36 schendel Exp $
 
 #include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
@@ -48,9 +48,10 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/focus.h"
+#include "paradynd/src/processMgr.h"
+#include "paradynd/src/pd_process.h"
 
 vector<costMetric*> costMetric::allCostMetrics;
-extern vector<process*> processVec;
 extern pdDebug_ostream sampleVal_cerr;
 
 costMetric::costMetric(const string n, aggregateOp a, const string units,
@@ -60,15 +61,17 @@ costMetric::costMetric(const string n, aggregateOp a, const string units,
   agg_(a), units_(units), pred(preds), developermode_(developerMode), 
   unitstype_(unitstype)
 {
-   for(unsigned i2 = 0; i2 < processVec.size(); i2++){
-       if((processVec[i2])->status_ != exited){
-           components += processVec[i2];
-           //aggComponent *s = new aggComponent;
-           aggComponent *s = aggregator.newComponent();
-           parts += s;
-           lastProcessTime += timeStamp::ts1970(); 
-           cumulative_values += pdSample(0);
-       }
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *p = *itr++;
+      if(p->status() != exited) {
+	 components += p->get_dyn_process();
+	 //aggComponent *s = new aggComponent;
+	 aggComponent *s = aggregator.newComponent();
+	 parts += s;
+	 lastProcessTime += timeStamp::ts1970(); 
+	 cumulative_values += pdSample(0);
+      }
    }
 }
 
@@ -89,16 +92,19 @@ costMetric *costMetric::newCostMetric(const string n, aggregateOp a,
 
 bool costMetric::legalToInst(const Focus& focus) {
 
-    if (!processVec.size()) {
+    if(! getProcMgr().size()) {
         // we don't enable metrics if there are no process to run
 	return false;
     }
 
     bool all_exited = true;
-    for(u_int i=0; i < processVec.size(); i++){
-	if((processVec[i])->status_ != exited){
-	    all_exited = false;
-    } }
+    processMgr::procIter itr = getProcMgr().begin();
+    while(itr != getProcMgr().end()) {
+       if((*itr)->status() != exited) {
+	  all_exited = false;
+       }
+       itr++;
+    }
     if(all_exited) return false;
 
     // Is the /Machine part of the focus allowed?

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.135 2002/09/17 20:08:11 bernat Exp $
+// $Id: perfStream.C,v 1.136 2002/10/15 17:12:02 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -74,6 +74,8 @@ extern "C" {
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "pdutil/h/airtStreambuf.h"
+#include "paradynd/src/processMgr.h"
+#include "paradynd/src/pd_process.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -189,9 +191,6 @@ ostream statusStream(&logLineStreamBuf);
 // buffering routine to flush (to paradyn); otherwise, it would flush
 // only when the buffer was full, hurting response time.
 extern bool BURST_HAS_COMPLETED;
-
-extern vector<process*> processVec;
-extern process* findProcess(int); // should become a static method of class process
 
 // trace data streams
 extern bool TRACE_BURST_HAS_COMPLETED;
@@ -330,10 +329,10 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_EXEC_FAILED:
-		{ int pid = *(int *)recordData;
-		  process *p = findProcess(pid);
-		  p->inExec = false;
-		  p->execFilePath = string("");
+	        { int pid = *(int *)recordData;
+	          pd_process *p = getProcMgr().find_pd_process(pid);
+		  p->get_dyn_process()->inExec = false;
+		  p->get_dyn_process()->execFilePath = string("");
 		}
 		break;
 
@@ -486,8 +485,9 @@ void doDeferredInstrumentation() {
 void doDeferredRPCs() {
    // Any RPCs waiting to be performed?  If so, and if it's safe to
    // perform one, then launch one.
-   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
-      process *proc = processVec[lcv];
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *proc = *itr++;
       if (proc == NULL) continue; // proc must've died and has itself cleaned up
       if (proc->status() == exited) continue;
       if (proc->status() == neonatal) continue; // not sure if this is appropriate
@@ -545,8 +545,9 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
    // sample while an inferiorRPC is pending for that process, or for
    // a non-running process.
 
-   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
-      process *theProc = processVec[lcv];
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *theProc = *itr++;
       if (theProc == NULL)
 	 continue; // proc died & had its structures cleaned up
 
@@ -554,7 +555,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
       // that haven't been bootstrapped yet (i.e. haven't called DYNINSTinit yet),
       // or processes that are in the middle of an inferiorRPC (we like for
       // inferiorRPCs to finish up quickly).
-      if (theProc->status_ != running) {
+      if (theProc->status() != running) {
 	 //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
 	 continue;
       }
@@ -724,15 +725,17 @@ void controllerMainLoop(bool check_buffer_first)
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);
       width = 0;
-      unsigned p_size = processVec.size();
-      for (unsigned u=0; u<p_size; u++) {
-	 if (processVec[u] == NULL)
+
+      processMgr::procIter itr = getProcMgr().begin();
+      while(itr != getProcMgr().end()) {
+	 pd_process *curProc = *itr++;
+	 if(curProc == NULL)
 	    continue;
 	 
-	 if (processVec[u]->traceLink >= 0)
-	    FD_SET(processVec[u]->traceLink, &readSet);
-	 if (processVec[u]->traceLink > width)
-	    width = processVec[u]->traceLink;
+	 if(curProc->getTraceLink() >= 0)
+	    FD_SET(curProc->getTraceLink(), &readSet);
+	 if(curProc->getTraceLink() > width)
+	    width = curProc->getTraceLink();
       }
       
       // add traceSocket_fd, which accept()'s new connections (from processes
@@ -800,22 +803,24 @@ void controllerMainLoop(bool check_buffer_first)
 	    
 	    processNewTSConnection(traceSocket_fd); // context.C
 	 }
-	 unsigned p_size = processVec.size();
-	 for (unsigned u=0; u<p_size; u++) {
-	    if (processVec[u] == NULL)
+
+	 processMgr::procIter itr = getProcMgr().begin();
+	 while(itr != getProcMgr().end()) {
+	    pd_process *curProc = *itr++;
+	    if(curProc == NULL)
 	       continue; // process structure has been deallocated
 	    
-	    if (processVec[u] && processVec[u]->traceLink >= 0 && 
-		FD_ISSET(processVec[u]->traceLink, &readSet)) {
-	       processTraceStream(processVec[u]);	       
+	    if(curProc && curProc->getTraceLink() >= 0 && 
+	       FD_ISSET(curProc->getTraceLink(), &readSet)) {
+	       processTraceStream(curProc->get_dyn_process());	       
 	       /* in the meantime, the process may have died, setting
-		  processVec[u] to NULL */
+		  curProc to NULL */
 	       
 	       /* clear it in case another process is sharing it */
-	       if (processVec[u] &&
-		   processVec[u]->traceLink >= 0)
+	       if (curProc && curProc->getTraceLink() >= 0) {
 		  // may have been set to -1
-		  FD_CLR(processVec[u]->traceLink, &readSet);
+		  FD_CLR(curProc->getTraceLink(), &readSet);
+	       }
 	    }
 	 }
 #if !defined(i386_unknown_nt4_0)
@@ -840,12 +845,14 @@ void controllerMainLoop(bool check_buffer_first)
 #endif // !defined(i386_unknown_nt4_0)
 	 
 	 bool delayIGENrequests=false;
-	 for (unsigned u1=0; u1<p_size; u1++) {
-	    if (processVec[u1] == NULL)
+	 processMgr::procIter itrB = getProcMgr().begin();
+	 while(itrB != getProcMgr().end()) {
+	    pd_process *curProc = *itrB++;
+	    if(curProc == NULL)
 	       continue; // process structure has been deallocated
 	    
-	    if ((processVec[u1]->isInSyscall() || processVec[u1]->thrInSyscall()) &&
-		processVec[u1]->status() == running) {
+	    if((curProc->isInSyscall() || curProc->thrInSyscall()) &&
+	       curProc->status() == running) {
 	       delayIGENrequests=true;
 	       break;
 	    }

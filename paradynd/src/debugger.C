@@ -41,6 +41,12 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.20  2002/10/15 17:11:38  schendel
+ * create Paradyn specific pd_process and pd_thread classes  - - - - - - - -
+ * changed to use paradyn specific pd_process class instead of (now dyninst)
+ *   process class;
+ * created processMgr to manage all pd_processes in place of processVec;
+ *
  * Revision 1.19  1999/08/30 16:02:29  zhichen
  * Fixed bugs introduced to thread-aware daemon
  *
@@ -96,7 +102,8 @@
 //
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/processMgr.h"
 #include "rtinst/h/rtinst.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -107,20 +114,18 @@
 #include "dyninstAPI/src/showerror.h"
 
 
-process *defaultProcess=NULL;
-
-extern process *findProcess(int); // should become a static method of class process
+pd_process *defaultProcess=NULL;
 
 void changeDefaultProcess(int pid)
 {
-    process *def = findProcess(pid);
-    if (!def) {
-	sprintf(errorLine, "Unable to find process %d\n", pid);
-	logLine(errorLine);
-	showErrorCallback(58, (const char *) errorLine);
-    } else {
-        defaultProcess = def;
-    }
+   pd_process *def = getProcMgr().find_pd_process(pid);
+   if (!def) {
+      sprintf(errorLine, "Unable to find process %d\n", pid);
+      logLine(errorLine);
+      showErrorCallback(58, (const char *) errorLine);
+   } else {
+      defaultProcess = def;
+   }
 }
 
 //// TODO what does this do
@@ -128,8 +133,8 @@ void changeDefaultProcess(int pid)
 //{
 //    int basePid;
 //
-//    if (processVec.size()) {
-//      basePid = processVec[0]->getPid();
+//    if(getProcMgr().size()) {
+//      basePid = (*getProcMgr().begin())->getPid();
 //    } else {
 //	sprintf(errorLine, "Internal error: no process defines to take thread of\n");
 //	logLine(errorLine);
