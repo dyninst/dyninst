@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.72 2005/02/24 20:06:13 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.73 2005/03/22 05:56:35 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -578,7 +578,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 void emitASload( BPatch_addrSpec_NP as, Register dest, char * ibuf, Address & base, bool /*noCost*/ ) {
 	/* Convert an addrSpec into a value in the destination register. */
 	// /* DEBUG */ fprintf( stderr, "emitASload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
-	emitRegisterToRegisterCopy( as.getReg( 0 ), dest, ibuf, base, NULL );
+	emitLoadPreviousStackFrameRegister( as.getReg( 0 ), dest, ibuf, base, 0, 0 );
 	} /* end emitASload() */
 
 /* Required by process.C */
