@@ -445,7 +445,7 @@ pd_Function *image::findFunction(const Address &addr)
      return NULL;
 }
   
-pd_Function *image::findFunctionIn(const Address &addr,const process *p) 
+pd_Function *image::findFunctionIn(const Address &addr,const process *p) const 
 {
   pd_Function *pdf;
 
@@ -1242,10 +1242,10 @@ bool image::defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags
   // TODO - skip the underscore
   // todo - Why is this "_" be treated special and caused many problems.
   //        Ahh, Ahh, AAAhhhhhhhhhhhhhhhhhhhhh!   
-#if !(defined(sparc_sun_solaris2_4)) 
-  if (*str == '_') 
-    str++;
-#endif
+//#if !(defined(sparc_sun_solaris2_4)) 
+//  if (*str == '_') 
+//    str++;
+//#endif
 
   unsigned dictTags = findTags(str);
   return (newFunc(use, str, sym.addr(), sym.size(), tags | dictTags, retFunc));
@@ -1278,10 +1278,10 @@ bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
   const char *str = (sym.name()).string_of();
 
   // TODO - skip the underscore
-#if !(defined(sparc_sun_solaris2_4)) 
-  if (*str == '_') 
-    str++;
-#endif
+//#if !(defined(sparc_sun_solaris2_4)) 
+//  if (*str == '_') 
+//    str++;
+//#endif
   unsigned tags = findTags(str);
 
   if (TAG_LIB_FUNC & tags)

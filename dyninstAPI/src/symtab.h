@@ -394,7 +394,7 @@ public:
   pd_Function *findOneFunction(const string &name);
   pd_Function *findOneFunctionFromAll(const string &name);
 
-  pd_Function *findFunctionIn(const Address &addr,const process *p);
+  pd_Function *findFunctionIn(const Address &addr,const process *p) const;
 
   // report modules to paradyn
   void defineModules();
