@@ -111,7 +111,11 @@ extern int shmctl(int, int, struct shmid_ds *);
 
 void
 DYNINSTbreakPoint(void) {
+    int sample ;
     kill(getpid(), SIGSTOP);
+    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0,
+			DYNINSTgetWalltime(), DYNINSTgetCPUtime());
+
 }
 
 
@@ -551,17 +555,21 @@ DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_siz
     stache_blk_size = blk_size ;
     align_va = stache_blk_align(va) ;    /* Do I need to align them?*/
 
-	printf("DYNINSTreportNewMem is called...\n") ;
-        memset(&newRes, '\0', sizeof(newRes));
-        sprintf(newRes.name, "%s", data_structure);
-        newRes.va = (int)align_va ;
-        newRes.memSize = memory_size ;
-        newRes.blkSize = blk_size ;
-        DYNINSTgenerateTraceRecord(0, TR_NEW_MEMORY, 
+#ifdef COSTTEST
+    time64 startT,endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+    memset(&newRes, '\0', sizeof(newRes));
+    sprintf(newRes.name, "%s", data_structure);
+    newRes.va = (int)align_va ;
+    newRes.memSize = memory_size ;
+    newRes.blkSize = blk_size ;
+    DYNINSTgenerateTraceRecord(0, TR_NEW_MEMORY, 
 				sizeof(struct _traceMemory), 
                                 &newRes, 1, 0.0, 0.0);
 }
 
+/*Change into DYNINSTfallIn in the future*/
 int 
 fallIn(int addr, int lower, int upper)
 {
