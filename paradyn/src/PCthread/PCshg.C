@@ -20,6 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.31  1996/02/09 05:31:40  karavan
+ * changes to support multiple per-phase searches
+ *
+ * added true full name for search nodes.
+ *
  * Revision 1.30  1996/02/08 19:52:50  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -40,8 +45,6 @@
 #include "PCshg.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
-
-unsigned searchHistoryNode::nextID = 0;
 
 //
 // default explanation functions
@@ -73,21 +76,22 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     refineType axis,
 				     bool persist,
 				     searchHistoryGraph *mama,
-				     const char *shortName):
+				     const char *shortName,
+				     unsigned newID):
 why(why), where(whereowhere), 
 persistent(persist), exp(NULL), active(false), truthValue(tunknown), 
-axis(axis), expanded(false),  
+axis(axis), nodeID(newID), expanded(false),  
 mamaGraph (mama), sname(shortName)
 {
-  nodeID = nextID++;
-  if (axis == refineWhyAxis)
-    name = why->getName();
-  else {
-    // **update this
-    name = where;
-  }
+  // full name of node (both why and where)
+  name = why->getName();
+  name += "::";
+  name += dataMgr->getFocusNameFromHandle(where);
+
+  // short label for node display
   if (sname == NULL)
     sname = why->getName();
+
   if (parent != NULL)
     parents += parent;
   virtualNode = why->isVirtual();
@@ -436,26 +440,45 @@ searchHistoryNode::getInfo (shg_node_info *theInfo)
 // searchHistoryGraphs never die.
 
 searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase, 
-				       unsigned phaseToken):
-				       NodeIndex(searchHistoryGraph::uhash),
-				       NodesByFocus(searchHistoryGraph::uhash),
-				       srch(searchPhase), 
-				       guiToken(phaseToken) 
+				       unsigned phaseToken)
+:
+ NodeIndex(searchHistoryGraph::uhash),
+ NodesByFocus(searchHistoryGraph::uhash),
+ srch(searchPhase), 
+ guiToken(phaseToken),
+ nextID(0)
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
 				topLevelHypothesis,
 				topLevelFocus, refineWhyAxis,
-				true, this, "TopLevelHypothesis");
+				true, this, "TopLevelHypothesis", nextID);
   root->setExpanded();
   Nodes += root;
-  NodeIndex[0] = root;
+  NodeIndex[nextID] = root;
+  nextID++;
 }
 
 void
 searchHistoryGraph::setSearchUpdateNeeded()
 {
   srch->setRunQUpdateNeeded();
+}
+
+//
+// Any cleanup associated with search termination.
+//
+void 
+searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
+{
+  // right now search only terminates if phase ends, so just
+  // update Search Display Status Area (eventually this will be printed 
+  // some better way, but this will have to do...)
+  string status = string("\nSearch for Phase ") 
+    + string(performanceConsultant::DMcurrentPhaseToken)
+      + string (" ended due to end of phase at time ")
+	+ string (searchEndTime) + string (".\n");
+  uiMgr->updateStatusDisplay(guiToken, status.string_of());
 }
 
 searchHistoryNode* 
@@ -487,7 +510,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
     NodesByFocus[whereowhere] = foclist;
   }
   newkid = new searchHistoryNode(parent, why, whereowhere, axis, 
-				 persist, this, shortName);
+				 persist, this, shortName, nextID++);
   *foclist += newkid;
   newkid->addToDisplay(parent->getNodeId(), (char *)NULL, false);
   newkid->setupExperiment();

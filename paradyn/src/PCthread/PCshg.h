@@ -20,6 +20,11 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.15  1996/02/09 05:31:43  karavan
+ * changes to support multiple per-phase searches
+ *
+ * added true full name for search nodes.
+ *
  * Revision 1.14  1996/02/02 02:07:35  karavan
  * A baby Performance Consultant is born!
  *
@@ -57,7 +62,7 @@ public:
   searchHistoryNode(searchHistoryNode *parent, hypothesis *why, 
 		    focus where, refineType axis, 
 		    bool persist, searchHistoryGraph *mama, 
-		    const char *shortName);
+		    const char *shortName, unsigned newID);
   float getEstimatedCost(); 
   bool print (int parent, FILE *fp);
   bool getActive();
@@ -90,7 +95,6 @@ private:
   string name;
   refineType axis;
   unsigned nodeID; // used for display and for unique priority key
-  static unsigned nextID;
   bool expanded;   // has this node ever been expanded in the past??
   int numTrueParents;
   int numTrueChildren;
@@ -114,6 +118,7 @@ class searchHistoryGraph {
 			      const char *shortName);
   searchHistoryNode *const getNode (unsigned nodeId);
   void setSearchUpdateNeeded ();
+  void finalizeSearch(timeStamp searchEndTime);
  private:
   vector<searchHistoryNode*> Nodes;
   static unsigned uhash (unsigned& val) {return (unsigned) (val % 20);} 
@@ -121,7 +126,8 @@ class searchHistoryGraph {
   dictionary_hash<focus, vector<searchHistoryNode*>*> NodesByFocus;
   searchHistoryNode *root;
   PCsearch *srch;
-  int guiToken;
+  int guiToken;      // use in UI calls to select correct search display  
+  unsigned nextID;   // used to create unique ids for the nodes
 };
   
 #endif
