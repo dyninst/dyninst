@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.118 2003/10/28 18:57:37 schendel Exp $
+// $Id: linux.C,v 1.119 2003/11/24 17:37:52 schendel Exp $
 
 #include <fstream>
 
@@ -170,7 +170,13 @@ int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
 /* ********************************************************************** */
 
 void printStackWalk( process *p ) {
-  Frame theFrame = p->getRepresentativeLWP()->getActiveFrame();
+  dyn_lwp *lwp_to_use = NULL;
+  if(process::IndependentLwpControl() && p->getRepresentativeLWP() ==NULL)
+     lwp_to_use = p->getInitialThread()->get_lwp();
+  else
+     lwp_to_use = p->getRepresentativeLWP();
+
+  Frame theFrame = lwp_to_use->getActiveFrame();
   while (true) {
     // do we have a match?
     const Address framePC = theFrame.getPC();
@@ -308,11 +314,18 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
    // We can fake results here as well: translate a stop in fork
    // to a (SYSEXIT,fork) pair. Don't do that yet.
    pertinantProc = process::findProcess(pertinantPid);
+
    if(pertinantProc) {
       // Processes' state is saved in preSignalStatus()
       pertinantProc->savePreSignalStatus();
       // Got a signal, process is stopped.
-      dyn_lwp *pertLWP = pertinantProc->getRepresentativeLWP();
+      dyn_lwp *pertLWP = NULL;
+      if(process::IndependentLwpControl() &&
+         pertinantProc->getRepresentativeLWP() == NULL) {
+         pertLWP = pertinantProc->getInitialThread()->get_lwp();
+      } else
+         pertLWP = pertinantProc->getRepresentativeLWP();
+
       pertinantProc->set_status(stopped, pertLWP);
       if(pertinantLWP != NULL)
          (*pertinantLWP) = pertLWP;
@@ -675,7 +688,7 @@ bool dyn_lwp::waitUntilStopped() {
       //total_loop_count++;
    }
 
-   if(proc_->getRepresentativeLWP() == this) {
+   if(proc_->getInitialThread()->get_lwp() == this) {
       return waitUntilStoppedGeneral(this, 0);
    } else {
       return waitUntilStoppedGeneral(this, __WCLONE);
@@ -1436,8 +1449,28 @@ void process::inferiorMallocAlign(unsigned &size)
 
 
 bool dyn_lwp::realLWP_attach_() {
-   assert( false && "threads not yet supported on Linux");
-   return false;
+   char procName[128];
+   sprintf(procName, "/proc/%d/mem", get_lwp_id());
+   fd_ = P_open(procName, O_RDWR, 0);
+   if (fd_ < 0) {
+      cerr << "  failed to open file " << procName << ", ret false\n";
+      return false;
+   }
+
+   attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+   if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
+   {
+      perror( "process::attach - PTRACE_ATTACH" );
+      return false;
+   }
+   
+   if (0 > waitpid(get_lwp_id(), NULL, __WCLONE)) {
+      perror("process::attach - waitpid");
+      exit(1);
+   }
+
+   continueLWP();
+   return true;
 }
 
 bool dyn_lwp::representativeLWP_attach_() {
@@ -1445,7 +1478,10 @@ bool dyn_lwp::representativeLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
    fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ < 0) return false;
+   if (fd_ < 0) {
+      cerr << "  failed to open file " << procName << ", ret false\n";
+      return false;
+   }
    
    bool running = false;
    if( proc_->wasCreatedViaAttach() )
