@@ -7,14 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.20 1994/09/30 19:46:58 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.22 1994/11/02 11:02:34 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.20  1994/09/30 19:46:58  rbi
+ * Revision 1.22  1994/11/02 11:02:34  markc
+ * Replaced old-style iterators and string-handles.
+ *
+ * Revision 1.21  1994/10/13  07:24:32  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.20  1994/09/30  19:46:58  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.19  1994/09/22  01:48:30  markc
@@ -128,17 +134,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/param.h>
-#include <sys/ptrace.h>
-#include <sys/signal.h>
-#include <sys/wait.h>
-}
+#include "util/h/kludges.h"
 
 #include "symtab.h"
 #include "process.h"
@@ -151,232 +147,154 @@ extern "C" {
 #include "ast.h"
 #include "util.h"
 #include "metric.h"
+#include "perfStream.h"
+#include "os.h"
 
 #define MILLION 1000000
 
-// <sts/ptrace.h> should really define this. 
-extern "C" {
-
-int ptrace(enum ptracereq request, 
-		      int pid, 
-		      char *addr, 
-		      int data, 
-		      char *addr2);
-}
-
 /*
- * find out if we have an application defined.
+ * find out if we have an application defined
  */
-Boolean applicationDefined()
+bool applicationDefined()
 {
-    if (processList.count()) {
-	return(True);
+    if (processMap.size()) {
+	return(true);
     } else {
-	return(False);
+	return(false);
     }
 }
-
-// NOTE - the tagArg integer (1 for pvm and 2 for cm5) is the parameter
-//        number starting with 0.  
-#ifdef PARADYND_PVM
-// PVM stuff
-// pvm puts the tag in the second position pvm_recv(tid, TAG)
-static AstNode tagArg(Param, (void *) 1);
-
-instMaping initialRequests[] = {
-  { "pvm_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-  { "pvm_recv", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-  { "main", "DYNINSTalarmExpire", FUNC_EXIT },
-  { "main", "DYNINSTinit", FUNC_ENTRY },
-  { "exit", "DYNINSTalarmExpire", FUNC_ENTRY },
-  { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
-  { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
-  { NULL, NULL, 0, NULL },
-};
-
-#else
-// cm5 stuff
-static AstNode tagArg(Param, (void *) 1);
-
-instMaping initialRequests[] = {
-    { "cmmd_debug", "DYNINSTnodeCreate", FUNC_ENTRY },
-    { "CMRT_init", "DYNINSTnodeCreate", FUNC_ENTRY },
-    { "cmmd_debug", "DYNINSTparallelInit", FUNC_EXIT },
-    { "CMRT_init", "DYNINSTparallelInit", FUNC_ENTRY },
-    { "cmmd_debug", "DYNINSTbreakPoint", FUNC_EXIT },
-    { "CMRT_init", "DYNINSTbreakPoint", FUNC_ENTRY },
-    { "main", "DYNINSTalarmExpire", FUNC_EXIT },
-#ifdef notdef
-    { "fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS },
-#endif
-    { "exit", "DYNINSTalarmExpire", FUNC_ENTRY },
-    { "exit", "DYNINSTprintCost", FUNC_ENTRY },
-    { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
-    { "main", "DYNINSTinit", FUNC_ENTRY },
-    { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
-    { "CMMD_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_receive", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_receive_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_send_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_send_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMD_receive_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { NULL, NULL, 0, NULL },
-};
-#endif
 
 void forkProcess(traceHeader *hr, traceFork *fr)
 {
-    int val;
-    process *ret;
+    process *ret=NULL;
     char name[80];
     process *parent;
-    executableRec *newExec;
 
-    parent = findProcess(fr->ppid);
-    assert(parent);
+    if (!processMap.defines(fr->ppid))
+      abort();
+    parent = processMap[fr->ppid];
 
     /* attach to the process */
-    val = ptrace(PTRACE_ATTACH, fr->pid, 0, 0, 0);
-    if (val != 0) {
-        perror("nptrace");
-        return;
+    if (!osAttach(fr->pid)) {
+      logLine("Error in forkProcess ptrace\n");
+      return;
     }
 
-    sprintf(name, "%s[%d]", (char*) parent->symbols->name, fr->pid);
+    ostrstream os(name, 80, ios::out);
+    os << parent->symbols->name << "[" << fr->pid << "]" << ends;
     ret = allocateProcess(fr->pid, name);
-    ret->symbols = parseImage((char*)parent->symbols->file, 0);
+
+    ret->symbols = parseImage(parent->symbols->file);
     ret->traceLink = parent->traceLink;
     ret->ioLink = parent->ioLink;
     ret->parent = parent;
 
-    copyInferriorHeap(parent, ret);
+    copyInferiorHeap(parent, ret);
     // installDefaultInst(ret, initialRequests);
-
-    newExec = new executableRec;
-    newExec->name = name;
-    newExec->type = selfTermination;
-    newExec->state = neonatal;
-    newExec->proc = ret;
 }
 
+// TODO mdc
 int addProcess(int argc, char *argv[], int nenv, char *envp[])
 {
-    int i;
-    executableRec *newExec;
+    process *proc = createProcess(strdup(argv[0]), argc, argv, nenv, envp);
 
-    newExec = new executableRec;
-
-    newExec->argc = argc;
-    newExec->argv = (char **) calloc(argc+1, sizeof(char *));
-    for (i=0; i < argc; i++) {
-	newExec->argv[i] = strdup(argv[i]);
-    }
-
-    newExec->name = strdup(argv[0]);
-    newExec->type = selfTermination;
-    newExec->state = neonatal;
-    
-    newExec->proc = createProcess(newExec->argv[0], newExec->argv, nenv, envp);
-    if (newExec->proc) {
-	return(newExec->proc->pid);
-    } else {
-	free(newExec);
-	return(-1);
-    }
+    if (proc)
+      return(proc->pid);
+    else
+      return(-1);
 }
 
-Boolean detachProcess(int pid, Boolean paused)
+bool detachProcess(int pid, bool paused)
 {
-    List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-	if ((*curr)->pid == pid) {
-	    PCptrace(PTRACE_DETACH, *curr, (void*) 1, SIGCONT, NULL);
-	    if (paused) {
-		(void) kill((*curr)->pid, SIGSTOP);
-		sprintf(errorLine, "detaching process %d leaving it paused\n", 
-		    (*curr)->pid);
-		logLine(errorLine);
-	    }
-	}
+  if (processMap.defines(pid)) {
+    process *proc = processMap[pid];
+    PCptrace(PTRACE_DETACH, proc, (char*) 1, SIGCONT, NULL);
+    if (paused) {
+      osStop(pid);
+      sprintf(errorLine, "detaching process %d leaving it paused\n", 
+	      proc->pid);
+      logLine(errorLine);
     }
-    return(False);
+  }
+  return(false);
 }
 
-Boolean addDataSource(char *name, char *machine,
+bool addDataSource(char *name, char *machine,
     char *login, char *command, int argc, char *argv[])
 {
     abort();
-    return(False);
+    return(false);
 }
 
-Boolean startApplication()
+bool startApplication()
 {
     continueAllProcesses();
-    return(False);
+    return(false);
 }
 
 timeStamp endPause = 0.0;
 timeStamp startPause = 0.0;
-Boolean applicationPaused = FALSE;
-extern Boolean firstSampleReceived;
+bool applicationPaused = false;
 
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
 timeStamp elapsedPauseTime = 0.0;
 
-Boolean markApplicationPaused()
+bool markApplicationPaused()
 {
 
-    if (applicationPaused) return(False);
-    applicationPaused = True;
+    if (applicationPaused) return(false);
+    applicationPaused = true;
 
     // get the time when we paused it.
 
-    startPause = getCurrentTime(FALSE);
+    startPause = getCurrentTime(false);
     // sprintf(errorLine, "paused at %f\n", startPause);
     // logLine(errorLine);
     
-    return(True);
+    return(true);
 }
 
-Boolean isApplicationPaused()
+bool isApplicationPaused()
 {
     return(applicationPaused);
 }
 
-Boolean continueAllProcesses()
+bool continueAllProcesses()
 {
-    List<process *> curr;
 
-    for (curr = processList; *curr; curr++) {
-	continueProcess(*curr);
+    dictionary_hash_iter<int, process*> pi(processMap);
+    int i; process *proc;
+    while (pi.next(i, proc)) {
+      continueProcess(proc);
     }
 
-    if (!applicationPaused) return(False);
-    applicationPaused = False;
+    if (!applicationPaused) return(false);
+    applicationPaused = false;
 
-    endPause = getCurrentTime(FALSE);
+    endPause = getCurrentTime(false);
     if (!firstSampleReceived) {
-	return(False);
+	return(false);
     }
 
     elapsedPauseTime += (endPause - startPause);
     // sprintf(errorLine, "continued at %f\n", endPause);
     // logLine(errorLine);
 
-    return(False);
+    return(false);
 }
 
-Boolean pauseAllProcesses()
+bool pauseAllProcesses()
 {
-    Boolean changed;
-    List<process *> curr;
+    bool changed;
+    dictionary_hash_iter<int, process*> pi(processMap);
+    int i; process *proc;
 
     changed = markApplicationPaused();
-    for (curr = processList; *curr; curr++) {
-	pauseProcess(*curr);
-    }
+
+    while (pi.next(i, proc))
+      pauseProcess(proc);
+    
     return(changed);
 }
 
