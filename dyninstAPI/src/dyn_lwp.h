@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.12 2003/03/10 23:15:32 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.13 2003/03/12 01:50:01 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -64,8 +64,7 @@
 // note: handleT is normally unsigned on unix platforms, void * for 
 // NT (as needed) defined in os.h
 
-class process;
-
+#include "dyninstAPI/src/process.h"
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
@@ -91,7 +90,6 @@ class dyn_lwp
   dyn_lwp(unsigned lwp, handleT fd, process *proc);
 
   dyn_lwp(const dyn_lwp &l);
-  ~dyn_lwp();
 
   // Returns a struct used by changePC/restoreRegisters
   struct dyn_saved_regs *getRegisters();
@@ -142,6 +140,8 @@ class dyn_lwp
 
   // Walk the stack of the given LWP
   bool walkStack(pdvector<Frame> &stackWalk);
+  bool markRunningIRPC();
+  void markDoneRunningIRPC();
 
   // This should be ifdef SOL_PROC or similar
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
@@ -161,13 +161,22 @@ class dyn_lwp
 #endif  
   
   // Access methods
-  unsigned get_lwp() const { return lwp_; };
+  unsigned get_lwp_id() const { return lwp_id_; };
   handleT get_fd() const { return fd_;  };
 
-  handleT ctl_fd() const { return ctl_fd_; };
-  handleT status_fd() const { return status_fd_; };
-  handleT usage_fd() const { return usage_fd_; };
-  
+  bool fd_opened() const    { return are_fd_opened; }
+  handleT ctl_fd() const { 
+     assert(fd_opened());
+     return ctl_fd_;
+  };
+  handleT status_fd() const {
+     assert(fd_opened());
+     return status_fd_;
+  };
+  handleT usage_fd() const {
+     assert(fd_opened());
+     return usage_fd_;
+  };
   
   // Open and close (if necessary) the file descriptor/handle. Used
   // by /proc-based platforms. Moved outside the constructor for
@@ -184,9 +193,13 @@ class dyn_lwp
 #endif
   
  private:
-
+  friend void process::deleteLWP(dyn_lwp *);
+  ~dyn_lwp();       // we only want process::deleteLWP to do this
+  bool openFD_();   // os specific
+  void closeFD_();  // os specific
+  
   process *proc_;
-  const unsigned lwp_;
+  const unsigned lwp_id_;
   handleT fd_;
 
   // "new" /proc model: multiple files instead of ioctls.
@@ -217,8 +230,13 @@ class dyn_lwp
 
   // Pointer to the syscall trap data structure
   syscallTrap *trappedSyscall_;
-  
-  
+
+  // When we run an inferior RPC we cache the stackwalk of the
+  // process and return that if anyone asks for a stack walk
+  pdvector<Frame> cachedStackWalk;
+  bool isRunningIRPC;
+
+  bool are_fd_opened;  
 };
 
 #endif
