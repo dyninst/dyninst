@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -43,6 +44,9 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
+ * Revision 1.24  1996/10/31 08:48:12  tamches
+ * removed forkNodeProcess
+ *
  * Revision 1.23  1996/08/16 21:18:57  tamches
  * updated copyright for release 1.1
  *
@@ -182,13 +186,6 @@ void initPrimitiveCost()
 int flushPtrace() {
     return(0);
 }
-
-void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr) {
-  // should get this call - mdc
-  // this would be called due to a cm5 application
-  abort();
-}
-
 
 /*
  * Define the various classes of library functions to inst. 
