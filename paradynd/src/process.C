@@ -62,6 +62,44 @@ int pvmendtask();
 #include "perfStream.h"
 #include "dynamiclinking.h"
 #include "paradynd/src/mdld.h"
+#include "util/h/debugOstream.h"
+
+#ifdef ATTACH_DETACH_DEBUG
+debug_ostream attach_cerr(cerr, true);
+#else
+debug_ostream attach_cerr(cerr, false);
+#endif
+
+#ifdef INFERIOR_RPC_DEBUG
+debug_ostream inferiorrpc_cerr(cerr, true);
+#else
+debug_ostream inferiorrpc_cerr(cerr, false);
+#endif
+
+#ifdef SHM_SAMPLING_DEBUG
+debug_ostream shmsample_cerr(cerr, true);
+#else
+debug_ostream shmsample_cerr(cerr, false);
+#endif
+
+#ifdef FORK_EXEC_DEBUG
+debug_ostream forkexec_cerr(cerr, true);
+#else
+debug_ostream forkexec_cerr(cerr, false);
+#endif
+
+#ifdef METRIC_DEBUG
+debug_ostream metric_cerr(cerr, true);
+#else
+debug_ostream metric_cerr(cerr, false);
+#endif
+
+#ifdef SIGNAL_DEBUG
+debug_ostream signal_cerr(cerr, true);
+#else
+debug_ostream signal_cerr(cerr, false);
+#endif
+
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
@@ -72,6 +110,14 @@ unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
+
+process *findProcess(int pid) { // make a public static member fn of class process
+  unsigned size=processVec.size();
+  for (unsigned u=0; u<size; u++)
+    if (processVec[u] && processVec[u]->getPid() == pid)
+      return processVec[u];
+  return NULL;
+}
 
 #ifdef SHM_SAMPLING
 static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
@@ -534,11 +580,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       logLine(errorLine);
 #endif
 
-#if !defined(sparc_tmc_cmost7_3)
       inferiorFreeDefered(proc, hp, true);
       inferiorFreeCompact(hp);
       secondChance=true;
-#endif
     }
 
     if (secondChance && !findFreeIndex(hp,size,&foundIndex)) {
@@ -603,12 +647,6 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     }
     assert(np);
 
-#ifndef sparc_tmc_cmost7_3
-    //
-    // Note: This code will be executed on every platform except for the CM-5.
-    // We are not going to delete instrumentation on the CM-5 for the time
-    // being - naim 03/26/96
-    //
     disabledItem newItem(pointer, which, pointsToCheck);
 
 #ifdef FREEDEBUG
@@ -668,7 +706,6 @@ t3=t1;
 #endif
 
     }
-#endif
 }
 
 process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
@@ -678,27 +715,26 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 ) :
              baseMap(ipHash), 
-             instInstanceMapping(instInstanceHash),
-	     pid(iPid), // needed in fastInferiorHeap ctors below
+	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
-	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
 	     inferiorIntCounters((intCounter*)inferiorHeapMgr.getSubHeapInParadynd(0),
 				 this, iShmHeapStats[0].maxNumElems),
 	     inferiorWallTimers ((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(1),
 				 this, iShmHeapStats[1].maxNumElems),
 	     inferiorProcessTimers((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(2),
-				   this, iShmHeapStats[2].maxNumElems),
+				   this, iShmHeapStats[2].maxNumElems)
 #endif
-                     firstRecordTime(0)
 {
+    // this is the 'normal' ctor, when a proc is started fresh as opposed
+    // to via a fork().  (What about when a process is started via exec()?)
 
     hasBootstrapped = false;
 
-    // this is the 'normal' ctor, when a proc is started fresh as opposed
-    // to via a fork().
     symbols = iImage;
 
     status_ = neonatal;
+    continueAfterNextStop_ = false;
 
     struct utsname un;
     P_uname(&un);
@@ -706,7 +742,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
-				iImage->name(),
+				iImage->name(), // process name
 				0.0, // creation time
 				buffer, // unique name (?)
 				MDL_T_STRING // mdl type (?)
@@ -728,7 +764,6 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     currentPC_ = 0;
     hasNewPC = false;
     
-    inhandlestart = false;
     dynamiclinking = false;
     dyn = new dynamic_linking;
     shared_objects = 0;
@@ -739,7 +774,6 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     waiting_for_resources = false;
     signal_handler = 0;
     execed_ = false;
-    mysteryTrap_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -769,7 +803,148 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    ioLink = iIoLink;
 
    // attach to the child process (machine-specific implementation)
-   attach();
+   attach(); // error check?
+}
+
+process::process(int iPid
+#ifdef SHM_SAMPLING
+		 , key_t theShmKey,
+		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+#endif
+		 ) :
+		 baseMap(ipHash),
+		 pid(iPid)
+#ifdef SHM_SAMPLING
+	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+	     inferiorIntCounters((intCounter*)inferiorHeapMgr.getSubHeapInParadynd(0),
+				 this, iShmHeapStats[0].maxNumElems),
+	     inferiorWallTimers ((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(1),
+				 this, iShmHeapStats[1].maxNumElems),
+	     inferiorProcessTimers((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(2),
+				   this, iShmHeapStats[2].maxNumElems)
+#endif
+{
+   // this is the "attach" ctor.  New with release 1.2
+
+   hasBootstrapped = false;
+
+   symbols = NULL; // NOT YET IMPLEMENTED!!!!  NEEDS TO BE DONE
+
+   status_ = neonatal;
+   continueAfterNextStop_ = false;
+
+    struct utsname un;
+    P_uname(&un);
+    string buffer = string(pid) + string("_") + string(un.nodename);
+    rid = resource::newResource(processResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				symbols->name(),
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING // mdl type (?)
+				);
+
+    parent = NULL;
+    bufStart = 0;
+    bufEnd = 0;
+    inExec = false;
+
+    cumObsCost = 0;
+    lastObsCostLow = 0;
+
+    proc_fd = -1;
+
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    currentPC_ = 0;
+    hasNewPC = false;
+    
+    dynamiclinking = false;
+    dyn = new dynamic_linking;
+    shared_objects = 0;
+    all_functions = 0;
+    all_modules = 0;
+    some_modules = 0;
+    some_functions = 0;
+    waiting_for_resources = false;
+    signal_handler = 0;
+    execed_ = false;
+
+   initInferiorHeap(false);
+   splitHeaps = false;
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+	// XXXX - move this to a machine dependant place.
+
+	// create a seperate text heap.
+	initInferiorHeap(true);
+	splitHeaps = true;
+#endif
+
+   traceLink = -1; // NOT YET IMPLEMENTED!!!!!! NEEDS TO BE DONE.   
+   ioLink = -1; // (ARGUABLY) NOT YET IMPLEMENTED...MAYBE WHEN WE ATTACH WE DON'T WANT TO
+                // REDIRECT STDIO SO WE CAN LEAVE IT AT -1.
+
+   // Now the actual attach...the moment we've all been waiting for
+
+   attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
+
+   // The following should set up the signals that we want to get forwarded to paradynd.
+   // Does it?
+   if (!attach()) {
+      showErrorCallback(26, ""); // unable-to-attach
+      return;
+   }
+
+   // Does attach() have the side effect of pausing the program?
+   // If not, we should probably explicitly pause it now.
+   pause();
+
+   // Does attach() send a SIGTRAP, a la the initial SIGTRAP sent at the
+   // end of exec?  It seems that on some platforms it does; on others
+   // it doesn't.  Ick.  On solaris, I don't think it sends a SIGTRAP.
+
+   // NOT YET IMPLEMENTED: this->findDynamicLinkingInfo() needs to be
+   // implemented specially for attach.  Here is as good a place as any
+   // to do it...
+
+   reachedFirstBreak = true;
+
+   // Now force DYNINSTinit() to be called, via an inferiorRPC
+   // (kinda cool!)
+
+   buffer = string("PID=") + string(getPid()) + ", running DYNINSTinit()...";
+   statusLine(buffer.string_of());
+
+   vector<AstNode*> the_args(2);
+#ifdef SHM_SAMPLING
+   the_args[0] = new AstNode(AstNode::Constant,
+			     (void*)(this->getShmKeyUsed()));
+   const unsigned shmHeapTotalNumBytes = this->getShmHeapTotalNumBytes();
+   the_args[1] = new AstNode(AstNode::Constant,
+			     (void*)shmHeapTotalNumBytes);
+#else
+   // 2 dummy args when not shm sampling -- just make sure they're not both -1
+   the_args[0] = new AstNode(AstNode::Constant, (void*)0);
+   the_args[1] = new AstNode(AstNode::Constant, (void*)0);
+#endif
+
+   AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
+   for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);
+
+   postRPCtoDo(the_ast,
+	       true, // true --> don't try to update cost yet
+	       NULL, // no callback routine needed
+	       NULL // user data
+	       );
+      // the rpc will be launched with a call to launchRPCifAppropriate()
+      // in the main loop (perfStream.C).
+      // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
+      // where we left off in the processing of the forwarded SIGSTOP signal.
+      // In other words, there's lots more work to do, but since we can't do it until
+      // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.  This is no
+      // different from the way 
 }
 
 // This is the "fork" constructor:
@@ -779,12 +954,12 @@ process::process(const process &parentProc, int iPid
 		 void *applShmSegPtr,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-		 , bool childHasInstrumentation
+		 , bool // childHasInstrumentation...obsoleted by completeTheFork()
 		 ) :
-                     baseMap(ipHash), 
-                     instInstanceMapping(instInstanceHash),
+                     baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
 #ifdef SHM_SAMPLING
-		     inferiorHeapMgr(applShmSegPtr, theShmKey, iShmHeapStats, iPid),
+		     ,inferiorHeapMgr(parentProc.inferiorHeapMgr, applShmSegPtr,
+				      theShmKey, iShmHeapStats, iPid),
 		     inferiorIntCounters(parentProc.inferiorIntCounters,
 					 this,
 					 inferiorHeapMgr.getSubHeapInParadynd(0),
@@ -796,22 +971,24 @@ process::process(const process &parentProc, int iPid
 		     inferiorProcessTimers(parentProc.inferiorProcessTimers,
 					   this,
 					   inferiorHeapMgr.getSubHeapInParadynd(2),
-					   inferiorHeapMgr.getSubHeapInApplic(2)),
+					   inferiorHeapMgr.getSubHeapInApplic(2))
 #endif
-                     firstRecordTime(0)
 {
-    hasBootstrapped = true;
-
     // This is the "fork" ctor
 
-    symbols = parentProc.symbols;
+    hasBootstrapped = false;
+       // The child of fork ("this") has yet to run DYNINSTinit.
 
-    /* initialize the traceLink to zero. The child process will get a 
-       connection later.  (But when does ioLink get set???) */
+    symbols = parentProc.symbols; // shouldn't a reference count also be bumped?
+
+    /* initialize the traceLink to zero. The child process will soon get a 
+       connection that sets traceLink.  (But when does ioLink get set???) */
     traceLink = -1;
     ioLink = -1;
 
-    status_ = neonatal;
+    status_ = neonatal; // is neonatal right?
+    continueAfterNextStop_ = false;
+
     pid = iPid; 
 
     struct utsname un;
@@ -830,17 +1007,12 @@ process::process(const process &parentProc, int iPid
     bufStart = 0;
     bufEnd = 0;
 
-    reachedFirstBreak = false; // process won't be paused until this is set
+    reachedFirstBreak = true; // initial TRAP has (long since) been reached
 
     splitHeaps = parentProc.splitHeaps;
-    if (childHasInstrumentation) {
-      heaps[0] = inferiorHeap(parentProc.heaps[0]);
-      heaps[1] = inferiorHeap(parentProc.heaps[1]);
-    } else {
-      initInferiorHeap(false);
-      if (splitHeaps)
-	initInferiorHeap(true);
-    }
+
+    heaps[0] = inferiorHeap(parentProc.heaps[0]);
+    heaps[1] = inferiorHeap(parentProc.heaps[1]);
 
     inExec = false;
 
@@ -854,7 +1026,6 @@ process::process(const process &parentProc, int iPid
     currentPC_ = 0;
     hasNewPC = false;
 
-    inhandlestart = false;
     dynamiclinking = parentProc.dynamiclinking;
     dyn = new dynamic_linking;
     *dyn = *parentProc.dyn;
@@ -901,7 +1072,6 @@ process::process(const process &parentProc, int iPid
     waiting_for_resources = false;
     signal_handler = parentProc.signal_handler;
     execed_ = false;
-    mysteryTrap_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -909,13 +1079,17 @@ process::process(const process &parentProc, int iPid
 #endif
 #endif
 
+   if (!attach()) {     // moved from ::forkProcess
+      showErrorCallback(69, "Error in fork: cannot attach to child process");
+   }
+
+   status_ = stopped;
+      // would neonatal be more appropriate?  Nah, we've reached the first trap
 }
 
 #ifdef SHM_SAMPLING
 void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
-#ifdef SHM_SAMPLING_DEBUG
-cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
-#endif
+   shmsample_cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
 
    inferiorHeapMgr.registerInferiorAttachedAt(inferiorAttachedAtPtr);
    inferiorIntCounters.setBaseAddrInApplic((intCounter*)
@@ -933,31 +1107,28 @@ cerr << "process pid " << getPid() << ": welcome to register with inferiorAttach
  */
 process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "")
 {
-    int r;
-    unsigned i, j, k;
-    int tracePipe[2];
-    string inputFile, outputFile;
-    string file = File;
-
     // prepend the directory (if any) to the file, unless the filename
     // starts with a /
+    string file = File;
     if (!file.prefixed_by("/") && dir.length() > 0)
       file = dir + "/" + file;
 
     // check for I/O redirection in arg list.
-    for (i=0; i<argv.size(); i++) {
+    string inputFile;
+    for (unsigned i=0; i<argv.size(); i++) {
       if (argv[i] == "<") {
 	inputFile = argv[i+1];
-	for (j=i+2, k=i; j<argv.size(); j++, k++)
+	for (unsigned j=i+2, k=i; j<argv.size(); j++, k++)
 	  argv[k] = argv[j];
 	argv.resize(argv.size()-2);
       }
     }
     // TODO -- this assumes no more than 1 of each "<", ">"
-    for (i=0; i<argv.size(); i++) {
+    string outputFile;
+    for (unsigned i=0; i<argv.size(); i++) {
       if (argv[i] == ">") {
 	outputFile = argv[i+1];
-	for (j=i+2, k=i; j<argv.size(); j++, k++)
+	for (unsigned j=i+2, k=i; j<argv.size(); j++, k++)
 	  argv[k] = argv[j];
 	argv.resize(argv.size()-2);
       }
@@ -966,7 +1137,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     // Strange, but using socketpair here doesn't seem to work OK on SunOS.
     // Pipe works fine.
     // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
-    r = P_pipe(tracePipe);
+    int tracePipe[2];
+    int r = P_pipe(tracePipe);
     if (r) {
 	// P_perror("socketpair");
         string msg = string("Unable to create trace pipe for program '") + File +
@@ -988,12 +1160,6 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	showErrorCallback(68, msg);
 	return(NULL);
     }
-
-//#ifdef SHM_SAMPLING
-//    // Do this _before_ the fork so both the parent and child get the updated
-//    // value of ::childShmKeyToUse
-//    ::childShmKeyToUse = pickShmSegKey();
-//#endif
 
     //
     // WARNING This code assumes that vfork is used, and a failed exec will
@@ -1032,6 +1198,11 @@ tp->resourceBatchMode(true);
 
 	image *img = image::parseImage(file);
 	if (!img) {
+	    // For better error reporting, two failure return values would be useful
+	    // One for simple error like because-file-not-because
+	    // Another for serious errors like found-but-parsing-failed (internal error;
+	    //    please report to paradyn@cs.wisc.edu)
+
 	    string msg = string("Unable to parse image: ") + file;
 	    showErrorCallback(68, msg.string_of());
 	    // destroy child process
@@ -1070,12 +1241,15 @@ tp->resourceBatchMode(true);
 	   // change this to a ctor that takes in more args
 
 	assert(ret);
+
 	processVec += ret;
 	activeProcesses++;
+
 	if (!costMetric::addProcessToAll(ret))
 	   assert(false);
+
         // find the signal handler function
-	ret->findSignalHandler();
+	ret->findSignalHandler(); // should this be in the ctor?
 
 	close(tracePipe[1]);
 	close(ioPipe[1]);
@@ -1109,16 +1283,16 @@ tp->resourceBatchMode(true);
 
 	// handle stdio.
 
-	// The child doesn't care to read anything from the ioPipe; it only writes
-        // to it.  Hence we close ioPipe[0], the read end.  Then we call dup2() twice
-        // to assign our (the child's) stdout and stderr to the write end of the pipe.
+        // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
+        // call dup2() twice to assign our stdout and stderr to the write end of the
+	// pipe.
 	close(ioPipe[0]);
 	dup2(ioPipe[1], 1);
            // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
-           // in use, dup2 will first close it then reopen it with the characteristics)
-	   // of ioPipe[1].
+           // in use, dup2 will first close it then reopen it with the characteristics
+	   // of ioPipe[1].)
            // In short, stdout gets redirected towards the write end of the pipe.
-           // The read end of the pipe is read by the parent (paradynd), not us.
+           // The read end of the pipe is read by the parent (paradynd), not by us.
 
 	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
 
@@ -1132,8 +1306,8 @@ tp->resourceBatchMode(true);
         // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
         // do it here, since the upcoming execve() would undo our work [execve keeps
         // fd's but resets higher-level stdio information, which is recreated before
-        // execution of main()]  So when do we do it?  At the program's main(), via
-        // rtinst's DYNINSTinit (RTposix.c et al.)
+        // execution of main()]  So when do we do it?  In rtinst's DYNINSTinit
+        // (RTposix.c et al.)
 
 	// setup stderr for rest of exec try.
 	FILE *childError = P_fdopen(2, "w");
@@ -1202,7 +1376,7 @@ tp->resourceBatchMode(true);
 	//
 	char paradynInfo[1024];
 	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-	for (i=0; i < process::arg_list.size(); i++) {
+	for (unsigned i=0; i < process::arg_list.size(); i++) {
 	    const char *str;
 
 	    str = P_strdup(process::arg_list[i].string_of());
@@ -1250,6 +1424,60 @@ tp->resourceBatchMode(true);
 	showErrorCallback(71, (const char *) errorLine);
 	return(NULL);
     }
+}
+
+bool attachProcess(int pid) {
+   // implementation of dynRPC::attach() (the igen call)
+   // This is meant to be "the other way" to start a process (competes
+   // with createProcess).
+
+   attach_cerr << "welcome to attachProcess for pid " << pid << endl;
+
+   // QUESTION: When we attach to a process, do we want to redirect its stdout/stderr
+   //           (like we do when we fork off a new process the 'usual' way)?
+   //           My first guess would be no.  -ari
+   //           But although we may ignore the ioPipe, we still need the tracePipe
+   //           for DYNINSTgenerateTraceRecord, etc...  how to set this up????
+
+   // When we attach to a process, we don't fork...so this routine is much simpler
+   // than its "competitor", createProcess() (above).
+
+   // TODO: What about AIX establishBaseAddrs???  Do that now?
+
+#ifdef SHM_SAMPLING
+	vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+	theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+	theShmHeapStats[0].maxNumElems  = numIntCounters;
+
+	theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+	theShmHeapStats[1].maxNumElems  = numWallTimers;
+
+	theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+	theShmHeapStats[2].maxNumElems  = numProcTimers;
+#endif
+
+   // NOTE: the actual attach happens in the process "attach" constructor:
+   process *theProc = new process(pid
+#ifdef SHM_SAMPLING
+				  ,7000, // shm seg key to try first
+				  theShmHeapStats
+#endif				  
+				  );
+   assert(theProc);
+
+   processVec += theProc;
+   activeProcesses++;
+
+   if (!costMetric::addProcessToAll(theProc))
+      assert(false);
+
+   // find the signal handler function
+   theProc->findSignalHandler(); // should this be in the ctor?
+
+   // TODO: We need to set the env var PARADYND_TRACE_SOCKET, for when and if the
+   // attached process forks.      
+
+   return false; // not yet implemented.
 }
 
 
@@ -1324,10 +1552,9 @@ bool process::doMajorShmSample(unsigned long long theWallTime) {
 
    const unsigned long long theProcTime = getInferiorProcessCPUtime();
 
-   // Now do the observed cost.
-   // WARNING: shouldn't we be using a mutex?!
+   // Now sample the observed cost.
    unsigned *costAddr = this->getObsCostLowAddrInParadyndSpace();
-   const unsigned theCost = *costAddr;
+   const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
 
    this->processCost(theCost, theWallTime, theProcTime);
 
@@ -1335,6 +1562,8 @@ bool process::doMajorShmSample(unsigned long long theWallTime) {
 }
 
 bool process::doMinorShmSample() {
+   // Returns true if the minor sample has successfully completed all outstanding
+   // samplings.
    bool result = true; // so far...
 
    if (!inferiorIntCounters.doMinorSample())
@@ -1382,6 +1611,8 @@ void handleProcessExit(process *proc, int exitStatus) {
     disableAllInternalMetrics();
 
   proc->detach(false);
+     // after this, the process will continue to run (presumably, just to complete
+     // an exit())
 
 #ifdef PARADYND_PVM
   if (pvm_running) {
@@ -1412,12 +1643,13 @@ void handleProcessExit(process *proc, int exitStatus) {
    the time of the fork, but a copy of the original text segment of the parent,
    without any instrumentation.
 */
-process *process::forkProcess(const process *theParent, pid_t childPid
+process *process::forkProcess(const process *theParent, pid_t childPid,
+		      dictionary_hash<instInstance*,instInstance*> &map // gets filled in
 #ifdef SHM_SAMPLING
 			      ,key_t theKey,
 			      void *applAttachedPtr
 #endif
-			      , bool childHasInstrumentation
+			      , bool // childHasInstr -- obsoleted by completeTheFork()
 			      ) {
 #ifdef SHM_SAMPLING
     vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
@@ -1431,38 +1663,42 @@ process *process::forkProcess(const process *theParent, pid_t childPid
     theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
 
+    forkexec_cerr << "paradynd welcome to process::forkProcess; parent pid=" << theParent->getPid() << "; calling fork ctor now" << endl;
+
+    // Call the "fork" ctor:
     process *ret = new process(*theParent, childPid
 #ifdef SHM_SAMPLING
 			       , theKey,
 			       applAttachedPtr,
 			       theShmHeapStats
 #endif
-			       , childHasInstrumentation
+			       , true // childHasInstr -- obsoleted by completeTheFork()
 			       );
-
-       // change this to a "fork" ctor that takes in more args
     assert(ret);
+
+    forkexec_cerr << "paradynd fork ctor has completed ok...child pid is " << ret->getPid() << endl;
+
     processVec += ret;
     activeProcesses++;
 
     if (!costMetric::addProcessToAll(ret))
        assert(false);
 
-    /* attach to child */
-    if (!ret->attach()) {
-      showErrorCallback(69, "Error in forkprocess: cannot attach to child process");
-      return 0;
-    }
+    // We used to do a ret->attach() here...it was moved to the fork ctor, so it's
+    // been done already.
 
-    if (childHasInstrumentation) {
-      /* all instrumentation on the parent is active on the child */
-      /* TODO: what about instrumentation inserted near the fork time??? */
-      ret->baseMap = theParent->baseMap;
+    /* all instrumentation on the parent is active on the child */
+    /* TODO: what about instrumentation inserted near the fork time??? */
+    ret->baseMap = theParent->baseMap;
 
-      /* copy all instrumentation instances of the parent to the child */
-      /* this will update instMapping */
-      copyInstInstances(theParent, ret, ret->instInstanceMapping);
-    }
+    // the following writes to "map", s.t. for each instInstance in the parent
+    // process, we have a map to the corresponding one in the child process.
+    // that's all this routine does -- it doesn't actually touch
+    // any instrumentation (because it doesn't need to -- fork() syscall copied
+    // all of the actual instrumentation [but what about AIX and its weird load
+    // behavior?])
+    copyInstInstances(theParent, ret, map);
+         // doesn't copy anything; just writes to "map"
 
     return ret;
 }
@@ -1682,14 +1918,14 @@ bool process::pause() {
   else {
     // The only remaining combination is: status==running but haven't yet
     // reached first break.  We never want to pause before reaching the
-    // first break.
+    // first break (trap, actually).  But should we be returning true or false in this
+    // case?
   }
 
   return true;
 }
 
 //
-//  handler for a trace record of type TR_START
 //  this routines inserts initial instrumentation into the PLT
 //  so that function calls to dynamically linked objects that invoke
 //  the dynamic linker are caught 
@@ -2027,6 +2263,27 @@ vector<module *> *process::getIncludedModules(){
     return some_modules;
 }
       
+// getBaseAddress: sets baseAddress to the base address of the 
+// image corresponding to which.  It returns true  if image is mapped
+// in processes address space, otherwise it returns 0
+bool process::getBaseAddress(const image *which,u_int &baseAddress){
+
+  if((u_int)(symbols) == (u_int)(which)){
+      baseAddress = 0; 
+      return true;
+  }
+  else if (shared_objects) {  
+      // find shared object corr. to this image and compute correct address
+      for(u_int i=0; i <  shared_objects->size(); i++){ 
+	  if(((*shared_objects)[i])->isMapped()){
+            if(((*shared_objects)[i])->getImageId() == (u_int)which) { 
+	      baseAddress = ((*shared_objects)[i])->getBaseAddress();
+	      return true;
+	  } }
+      }
+  }
+  return false;
+}
 
 // findSignalHandler: if signal_handler is 0, then it checks all images
 // associtated with this process for the signal handler function.
@@ -2052,6 +2309,9 @@ bool process::continueProc() {
 
   if (status_ != stopped && status_ != neonatal) {
     showErrorCallback(38, "Internal paradynd error in process::continueProc");
+#ifdef FORK_EXEC_DEBUG
+    assert(false);
+#endif
     return false;
   }
 
@@ -2067,7 +2327,7 @@ bool process::continueProc() {
 
 bool process::detach(const bool paused) {
   if (paused) {
-    logLine("detach: pause not implemented\n");
+    logLine("detach: pause not implemented\n"); // why not? --ari
   }
   bool res = detach_();
   if (!res) {
@@ -2077,16 +2337,31 @@ bool process::detach(const bool paused) {
   return true;
 }
 
-/* process::handleExec: called when a process exec.
-   Parse the new image and disable metric instances on the old image.
+/* process::handleExec: called when a process successfully exec's.
+   Parse the new image, disable metric instances on the old image, create a
+   new (and blank) shm segment.  The process hasn't yet bootstrapped, so we
+   mustn't try to enable anything...
 */
 void process::handleExec() {
+    // NOTE: for shm sampling, the shm segment has been removed, so we
+    //       mustn't try to disable any dataReqNodes in the standard way...
+
+   // since the exec syscall has run, we're not ready to enable any m/f pairs or
+   // sample anything.
+   // So we set hasBootstrapped to false until we run DYNINSTinit again.
+   hasBootstrapped = false;
 
     // all instrumentation that was inserted in this process is gone.
     // set exited here so that the disables won't try to write to process
     status_ = exited; 
    
-    removeFromMetricInstances(this);
+     // can't use removeFromMetricInstances, because in truth we actually want to
+     // try and carry over as much stuff as appropriate to the post-exec process.
+     // (an inappropriate, un-carry-overable mi would be something specific to the
+     // code hierarchy of the pre-exec process, which doesn't exist in the space of
+     // the new process).  We can't carry over anything yet, however, since the proc
+     // hasn't yet bootstrapped.
+//    removeFromMetricInstances(this);
 
     // Clean up state from old exec: all dynamic linking stuff, all lists 
     // of functions and modules from old executable
@@ -2094,7 +2369,7 @@ void process::handleExec() {
     // can't delete dynamic linking stuff here, because parent process
     // could still have pointers
     dynamiclinking = false;
-    dyn = 0;
+    dyn = 0; // AHEM.  LEAKED MEMORY!
     dyn = new dynamic_linking;
     if(shared_objects){
         for(u_int i=0; i< shared_objects->size(); i++){
@@ -2128,6 +2403,11 @@ void process::handleExec() {
 
     image *img = image::parseImage(execFilePath);
     if (!img) {
+       // For better error reporting, two failure return values would be useful
+       // One for simple error like because-file-not-found
+       // Another for serious errors like found-but-parsing-failed (internal error;
+       //    please report to paradyn@cs.wisc.edu)
+
        string msg = string("Unable to parse image: ") + execFilePath;
        showErrorCallback(68, msg.string_of());
        P_kill(pid, 9);
@@ -2138,7 +2418,7 @@ void process::handleExec() {
     // than one process...images and instPoints can not be deleted...TODO
     // add some sort of reference count to these classes so that they can
     // be deleted
-    symbols = img;
+    symbols = img; // AHEM!  LEAKED MEMORY!!!
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
@@ -2151,10 +2431,30 @@ void process::handleExec() {
 
     /* update process status */
     reachedFirstBreak = false;
-    hasBootstrapped = false;
-    status_ = stopped;
-    execed_ = true;
-    mysteryTrap_ = false;
+       // we haven't yet seen initial SIGTRAP for this proc (is this right?)
+
+    status_ = stopped; // was 'exited'
+
+   // TODO: We should remove (code) items from the where axis, if the exec'd process
+   // was the only one who had them.
+
+   // the exec'd process has the same fd's as the pre-exec, so we don't need
+   // to re-initialize traceLink or ioLink (is this right???)
+
+   // we don't need to re-attach after an exec (is this right???)
+ 
+#ifdef SHM_SAMPLING
+   inferiorHeapMgr.handleExec();
+      // reuses the shm seg (paradynd's already attached to it); resets applic-attached-
+      // at to NULL.  Quite similar to the (non-fork) ctor, really.
+
+   inferiorIntCounters.handleExec();
+   inferiorWallTimers.handleExec();
+   inferiorProcessTimers.handleExec();
+#endif
+
+   inExec = false;
+   execed_ = true;
 }
 
 /* 
@@ -2222,7 +2522,7 @@ bool process::existsRPCinProgress() const {
 }
 
 bool process::launchRPCifAppropriate(bool wasRunning) {
-   // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
+   // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0 AND
    // if currRunningRPCs.size()==0 (the latter for safety)
 
    if (!currRunningRPCs.empty())
@@ -2237,8 +2537,6 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
 
    if (status_ == exited)
       return false;
-         // I honestly don't know what the hell to do in this case, but we sure
-         // can't expect the process to be able to execute any more code!
 
    if (status_ == neonatal)
       // not sure if this should be some kind of error...is the inferior ready
@@ -2269,8 +2567,8 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       // result is allocated via new[]; we'll delete[] it later.
       // return value of NULL indicates total failure.
       // return value of (void *)-1 indicates that the state of the machine isn't quite
-      //    ready for an inferiorRPC, and that we should try again 'later'.  In particular,
-      //    we must handle the (void *)-1 case very gracefully (i.e., leave
+      //    ready for an inferiorRPC, and that we should try again 'later'.  In
+      //    particular, we must handle the (void *)-1 case very gracefully (i.e., leave
       //    the vrble 'RPCsWaitingToStart' untouched).
 
    if (theSavedRegs == (void *)-1) {
@@ -2394,7 +2692,6 @@ unsigned process::createRPCtempTramp(AstNode *action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
 
    unsigned char insnBuffer[4096];
-   memset(insnBuffer, 0x00, sizeof(insnBuffer)); // aids debugging
 
    initTramps(); // initializes "regSpace", but only the 1st time it gets called...
    extern registerSpace *regSpace;
@@ -2460,7 +2757,7 @@ bool process::handleTrapIfDueToRPC() {
       // it's unsafe to have > 1 RPCs going on at a time within a single process
 
    // Okay, time to do a stack trace.
-   // If we determine that the PC of a level of the back trace
+   // If we determine that the PC of any level of the back trace
    // falls within the bounds of [currRunningRPCs[0]'s address range],
    // then we assume success.  Note that we could probably narrow
    // it down to an EXACT address, to increase resistence to spurious
@@ -2513,100 +2810,197 @@ bool process::handleTrapIfDueToRPC() {
    return true;
 }
 
-bool process::tryToReadAndProcessBootstrapInfo() {
-   // returns true iff we are now processing the bootstrap info.
-   // if false is returned, there must be no side effects.
+bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
+   const string vrbleName = "DYNINST_bootstrap_info";
 
-   if (hasBootstrapped){
-      // cerr << "hasBootstrapped is true\n";
-      return false;
-   }
-
-   string vrbleName = "DYNINST_bootstrap_info";
-   
    internalSym *sym = findInternalSymbol(vrbleName, true);
    assert(sym);
 
    Address symAddr = sym->getAddr();
 
-   // Read the structure; if pid 0 then not yet written!
-   DYNINST_bootstrapStruct bs_record;
-   if (!readDataSpace((const void*)symAddr, sizeof(bs_record), &bs_record, true)) {
-      cerr << "tryToReadAndProcessBootstrapInfo failed because readDataSpace failed" << endl;
+   if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
+      cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;
       return false;
    }
 
-   if (bs_record.pid == 0)
+   return true;
+}
+
+bool process::handleStopDueToExecEntry() {
+   // returns true iff we are processing a stop due to the entry point of exec
+   // The exec hasn't yet occurred.
+
+   assert(status_ == stopped);
+
+   DYNINST_bootstrapStruct bs_record;
+   if (!extractBootstrapStruct(&bs_record))
+      assert(false);
+
+   if (bs_record.event != 3)
       return false;
+
+   assert(getPid() == bs_record.pid);
+
+   // for now, we just set aside the following information, to be used after the
+   // exec actually happens (we'll get a SIGTRAP for that).
+   assert(!inExec);
+   inExec = true;
+   execFilePath = string(bs_record.path);
+
+   // the process was stopped...let's continue it so we can process the exec...
+   assert(status_ == stopped);
+   if (!continueProc())
+      assert(false);
+
+   // should we set status_ to neonatal now?  Nah, probably having the inExec flag
+   // set is good enough...
+
+   // shouldn't we be setting reachedFirstBreak to false???
+
+   return true;
+}
+
+bool process::procStopFromDYNINSTinit() {
+   // returns true iff we are now processing the bootstrap info filled in
+   // by the end of DYNINSTinit.  Note that there are 3 cases:
+   // 1) the normal case     (detect by bs_record.event==1 && execed_ == false)
+   // 2) called after a fork (detect by bs_record.event==2)
+   // 3) called after an exec (detect by bs_record.event==1 and execed_ == true)
+   //
+   // The exec case is tricky: we must loop thru all component mi's of this process
+   // and decide now whether or not to carry them over to the new process.
+
+   // if false is returned, there must be no side effects.
+
+   assert(status_ == stopped);
+
+   if (hasBootstrapped)
+      return false;
+
+   DYNINST_bootstrapStruct bs_record;
+   if (!extractBootstrapStruct(&bs_record))
+      assert(false);
+
+   // Read the structure; if event 0 then it's undefined! (not yet written)
+   if (bs_record.event == 0)
+      return false;
+
+   forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
 
    string str=string("PID=") + string(bs_record.pid) + ", receiving bootstrap info...";
    statusLine(str.string_of());
 
-   process *checkProc = findProcess(bs_record.pid);
-   assert(checkProc);
-   assert(checkProc == this); // just to be sure
+   assert(bs_record.event == 1 || bs_record.event == 2);
+   const bool calledFromFork = (bs_record.event == 2);
+   const bool calledFromExec = (bs_record.event == 1 && execed_);
+
+   assert(getPid() == bs_record.pid);
 
 #ifdef SHM_SAMPLING
-   registerInferiorAttachedSegs(bs_record.applicAttachedAt);
+   if (!calledFromFork)
+      registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr);
 #endif
-   getObservedCostAddr();
 
-   str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
-   statusLine(str.string_of());
+   if (!calledFromFork)
+      getObservedCostAddr();
 
-   if (!handleStartProcess(this))
-      logLine("warning: handleStartProcess failed\n");
+   // handleStartProcess gets shared objects, so no need to do it again after a fork.
+   // (question: do we need to do this after an exec???)
+   if (!calledFromFork) {
+      str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
+      statusLine(str.string_of());
 
-// NEW: we decrement the batch mode here; the matching bump-up occurs in createProcess()
-tp->resourceBatchMode(false);
+      if (!handleStartProcess(this))
+         logLine("warning: handleStartProcess failed\n");
 
+      // we decrement the batch mode here; it matches the bump-up in createProcess()
+      tp->resourceBatchMode(false);
 
-   str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
-   statusLine(str.string_of());
+      str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
+      statusLine(str.string_of());
 
-   extern vector<instMapping*> initialRequests; // init.C
-   installDefaultInst(this, initialRequests);
+      extern vector<instMapping*> initialRequests; // init.C
+      installDefaultInst(this, initialRequests);
+         // 2d arg prob not needed (global var).  Make the fn a method of this class.
 
-   str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
-   statusLine(str.string_of());
+      str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
+      statusLine(str.string_of());
 
-   // propagate any metric that is already enabled to the new process.
-   vector<metricDefinitionNode *> MIs = allMIs.values();
-   for (unsigned j = 0; j < MIs.size(); j++) {
-      MIs[j]->propagateMetricInstance(this);
+      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
+
+      if (!calledFromExec) {
+         // propagate any metric that is already enabled to the new process.
+         // For a forked process, this isn't needed because handleFork() has its own
+         // special propagation algorithm (it propagates every aggregate mi having the
+	 // parent as a component, except for aggregate mi's whose focus is specifically
+	 // refined to the parent).
+	 vector<metricDefinitionNode *> MIs = allMIs.values();
+	 for (unsigned j = 0; j < MIs.size(); j++) {
+	    MIs[j]->propagateToNewProcess(this);
+	    // change to a process:: method which takes in the metricDefinitionNode
+	 }
+      }
+      else {
+         // exec propagates in its own, special way that differs from a new process.
+	 // (propagate all mi's that make sense in the new process)
+	 metricDefinitionNode::handleExec(this);
+      }
+
+      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
    }
 
-// The following is already done in createProcess, so it doesn't need to be
-// here, right?
-//   costMetric::addProcessToAll(this);
-
-   hasBootstrapped = true;
+   hasBootstrapped = true; // now, shm sampling may safely take place.
 
    str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
    statusLine(str.string_of());
 
+   time64 currWallTime = calledFromExec ? 0 : getCurrWallTime();
+   if (!calledFromExec) {
+      // The following must be done before any samples are sent to
+      // paradyn; otherwise, prepare for an assert fail.
+
+      if (!::firstRecordTime)
+	 ::firstRecordTime = currWallTime;
+   }
+
+   assert(status_ == stopped);
+
+   // Beware of race condition when we make an igen call to paradyn -- anytime an igen
+   // msg is sent, we can receive and process an igen msg (is this right???), so we
+   // could conceivably receive and process a tp->continueProgram() (which paradyn
+   // usually sends as soon as it receives a newProgramCallbackFunc()), all occuring
+   // before the remainder of this fn is executed.
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
-			      machineResource->part_name());
-      // in paradyn, this will call paradynDaemon::addRunningProgram()
+			      machineResource->part_name(),
+			      calledFromExec);
+         // in paradyn, this will call paradynDaemon::addRunningProgram().
+         // If the state of the application as a whole is 'running' then paradyn will
+         // soon issue an igen call that'll continue this process.
+         // QUESTION: If the DYNINSTinit() was due to an exec() syscall, then should
+         //           this call be made?  Probably not, since the pid doesn't change and
+         //           so in a sense no new process was created.
 
-   // The following call must be done before any samples are sent to
-   // paradyn; otherwise, prepare for an assert fail.
+   if (!calledFromExec)
+      tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
 
-   const time64 currWallTime = getCurrWallTime();
-
-   if (!firstRecordTime) {
-      //cerr << "process.C setting firstRecordTime to " << currWallTime << endl;
-      firstRecordTime = currWallTime; // firstRecordTime may soon be obsolete; for now, it's used in metric.C and maybe perfStream.C
-   }
-   if (!::firstRecordTime) {
-      //cerr << "process.C setting ::firstRecordTime to " << currWallTime << endl;
-     ::firstRecordTime = currWallTime;
-   }
-
-   tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
-	       
    str=string("PID=") + string(bs_record.pid) + ", ready.";
    statusLine(str.string_of());
+
+   assert(status_ == stopped);
+
+   if (calledFromFork) {
+      // the parent proc has been waiting patiently at the start of DYNINSTfork
+      // (i.e. the fork syscall executed but that's it).  We can continue it now.
+      process *parentProcess = findProcess(bs_record.ppid);
+      if (parentProcess) {
+         if (parentProcess->status() == stopped) {
+	    if (!parentProcess->continueProc())
+	       assert(false);
+	 }
+	 else
+	    parentProcess->continueAfterNextStop();
+      }
+   }
 
    return true;
 }
@@ -2624,4 +3018,63 @@ void process::getObservedCostAddr() {
 #else
     costAddr_ = (int)getObsCostLowAddrInApplicSpace();
 #endif
+}
+
+bool process::checkStatus() {
+  if (status_ == exited) {
+    sprintf(errorLine, "attempt to ptrace exited process %d\n", pid);
+    logLine(errorLine);
+    return(false);
+  } else
+    return true;
+}
+
+bool process::dumpCore(const string fileOut) {
+  bool res = dumpCore_(fileOut);
+  if (!res) {
+    return false;
+  }
+  return true;
+}
+
+
+/*
+ * The process was stopped by a signal. Update its status and notify Paradyn.
+ */
+void process::Stopped() {
+  if (status_ != stopped) {
+    status_ = stopped;
+    tp->processStatus(pid, procPaused);
+
+    if (continueAfterNextStop_) {
+       continueAfterNextStop_ = false;
+       if (!continueProc())
+          assert(false);
+    }
+  }
+}
+
+/*
+ *  The process has exited. Update its status and notify Paradyn.
+ */
+void process::Exited() {
+  if (status_ != exited) {
+    status_ = exited;
+    tp->processStatus(pid, procExited);
+  }
+}
+
+string process::getStatusAsString() const {
+   // useful for debugging
+   if (status_ == neonatal)
+      return "neonatal";
+   if (status_ == stopped)
+      return "stopped";
+   if (status_ == running)
+      return "running";
+   if (status_ == exited)
+      return "exited";
+
+   assert(false);
+   return "???";
 }
