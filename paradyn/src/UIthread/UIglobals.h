@@ -1,7 +1,11 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.16  1995/06/02 20:50:34  newhall
-/* made code compatable with new DM interface
+/* Revision 1.17  1995/07/24 21:29:43  tamches
+/* removed or commented out resourceDisplayObj, baseWhere, and
+/* uim_knownAbstractions, which are all things related to the old where axis.
 /*
+ * Revision 1.16  1995/06/02  20:50:34  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.15  1995/02/16  08:20:46  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages
@@ -90,48 +94,6 @@ typedef unsigned abstractHandle;
 
 class dag;
 
-class resourceDisplayObj {
- public:
-  int getStatus () {return status;}
-  char *getParentWindow () {return parentwin;}
-  int getToken () {return token;}
-  int getSize () {return numdags;}
-  dag *getTopDag() {return topdag;}
-  resourceDisplayObj (int baseflag, int &success);
-  resourceDisplayObj (int baseflag, int &success, const char *pwin);
-  resourceDisplayObj copy (char *pwin);
-  void addResource (resourceHandle newres, resourceHandle parent, 
-		    char *name, char *abs);
-  dag *addAbstraction (char *abs);
-  int cycle (char *abs);
-  void print ();
-  friend void resourceAddedCB (perfStreamHandle handle , 
-			       resourceHandle parent, 
-			       resourceHandle newResource, 
-			       const char *rname,
-			       const char *aname);
-  friend int switchRDOdagCmd (ClientData clientData, Tcl_Interp *interp, 
-                int argc, char *argv[]);
-  friend int processVisiSelectionCmd(ClientData clientData, Tcl_Interp *interp, 
-			    int argc, char *argv[]);
-  friend int clearResourceSelectionCmd (ClientData clientData, 
-                      Tcl_Interp *interp, int argc, char *argv[]);
-  friend void UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-		      vector<metric_focus_pair> *pairList);
-
- private: 
-  int token;
-  dag *topdag;
-  int numdags;
-  char parentwin[15];
-  int status;
-  int base;
-  static List<resourceDisplayObj *> allRDOs;
-  List<dag *> dags;
-  static int rdoCount;
-  char tbuf[300];
-};
-
 struct cmdTabEntry 
 {
   const char *cmdname;
@@ -182,6 +144,9 @@ extern Tcl_Interp *interp;
 // set for batch mode; clear for normal
 extern int UIM_BatchMode;    
 
+#include "Status.h"
+extern status_line *ui_status;
+
 // value of highest valid error index
 extern int uim_maxError;     
 
@@ -190,8 +155,8 @@ extern dag *ActiveDags[MAXNUMACTIVEDAGS];
 
 // where axes display
 extern resourceHandle   uim_rootRes;
-extern dag *baseWhere;  /*** get rid of this from uimpd, UImain,UIpublic */
-extern List<stringHandle> uim_knownAbstractions;
+//extern dag *baseWhere;  /*** get rid of this from uimpd, UImain,UIpublic */
+//extern List<stringHandle> uim_knownAbstractions;
 
 // metric-resource selection 
 extern int uim_ResourceSelectionStatus;
