@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:10:07  jcargill
+# Revision 1.2  1995/01/31 15:16:56  jcargill
+# Fixed minor glitch: CC++ instead of CXX
+#
+# Revision 1.1  1995/01/30  18:10:07  jcargill
 # Major build system reorganization
 #
 #
@@ -74,5 +77,5 @@ SYSLIBS	     += -ltk -ltcl -lX11 -lm -lresolv -lfl
 all:	$(TARGET) metTester
 
 metTester: metParser.o metTester.o metScanner.o metTemplates.o metClass.o
-	$(CC++) $(LIBDIR) -o metTester metTemplates.o metParser.o metTester.o \
+	$(CXX) $(LIBDIR) -o metTester metTemplates.o metParser.o metTester.o \
 	metScanner.o metClass.o -lfl
