@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.100 2001/03/08 23:00:49 bernat Exp $
+ * $Id: inst-power.C,v 1.101 2001/03/09 15:58:52 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -2291,19 +2291,15 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	unsigned int top_half = ((constValue & 0xffff0000) >> 16);
 	unsigned int bottom_half = (constValue & 0x0000ffff);
 	assert (constValue == ((top_half << 16) + bottom_half));
-	if (top_half) { // need to use two instructions
-	    // really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
-	    genImmInsn(insn, CAUop, dest, 0, top_half);
-	    insn++;
-
-	    // ori dest,dest,LOW(src1)
-	    genImmInsn(insn, ORILop, dest, dest, bottom_half);
-	    base += 2 * sizeof(instruction);
-	} else {
-	    // really add regd,0,imm
-	    genImmInsn(insn, CALop, dest, 0, constValue);
-	    base += sizeof(instruction);
-	}
+	// really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
+	// This used to optimize for cases where there was no top half,
+	// but it was causing strange bugs. Hrm...
+	genImmInsn(insn, CAUop, dest, 0, top_half);
+	insn++;
+	base += sizeof(instruction);
+	// ori dest,dest,LOW(src1)
+	genImmInsn(insn, ORILop, dest, dest, bottom_half);
+	base += sizeof(instruction);
     } else if (op ==  loadOp) {
 	int high;
 
