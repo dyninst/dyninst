@@ -1,7 +1,28 @@
-/* $Log: datagrid.h,v $
-/* Revision 1.5  1994/04/13 21:22:51  newhall
-/* *** empty log message ***
+#ifndef _datagrid_h
+#define _datagrid_h
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/* $Log: datagrid.h,v $
+/* Revision 1.6  1994/05/11 17:11:03  newhall
+/* changed data values from double to float
+/*
+ * Revision 1.5  1994/04/13  21:22:51  newhall
+ * *** empty log message ***
+ *
  * Revision 1.4  1994/03/26  04:17:44  newhall
  * change all floats to double
  *
@@ -16,13 +37,14 @@
  * Revision 1.1  1994/03/14  20:27:26  newhall
  * changed visi subdirectory structure
  *  */ 
-#ifndef _datagrid_h
-#define _datagrid_h
+/////////////////////////////////
+//  Data Grid Class definitions
+/////////////////////////////////
+
 #include <string.h>
 #include  <math.h>
 #include <values.h>
-#include "error.h" 
-#include "visi.h"
+#include "visiTypes.h"
 
 #define SUM	0
 #define AVE     1
@@ -55,48 +77,60 @@ class Resource{
 };
 
 
+///////////////////////////////////////////////
+// visi_GridCellHisto:  A grid cell element 
+// (histogram) is an instance of this class
+////////////////////////////////////////////
 class visi_GridCellHisto {
   private:
      int   valid;
      int   size;
      int   lastBucketFilled;  // bucket number of last data value added   
-     double *value;
+     sampleType *value;
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
-     visi_GridCellHisto(){value = NULL; valid = 0; size = 0; userdata = NULL; lastBucketFilled = -1;}
+     visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
+			  userdata = NULL; lastBucketFilled = -1;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
      int    LastBucketFilled(){return(lastBucketFilled);}
-     double  *Value(){ return(value);}
-     double  Value(int i) { 
+     sampleType  *Value(){ return(value);}
+
+     sampleType  Value(int i) { 
 	    if((i < 0) || (i > size)){
 	     return(ERROR);
             }
 	    return(value[i]);
      }
+
      int    Size(){return(size);}
      int    Valid(){return(valid);}
-     void   Invalidate(){delete[] value; value = NULL; size = 0; valid = 0; lastBucketFilled = -1;}
+     void   Invalidate(){delete[] value; value = NULL; size = 0; 
+			 valid = 0; lastBucketFilled = -1;}
+
      void   Fold(int method){
        int i,j;
        if(valid){
-         for(i=0,j=0;(i< (size/2)) && (j< (size-1)); i++,j+=2){
+         for(i=0,j=0;(i< (lastBucketFilled+1)/2) // new bucket counter
+	     && (j< (lastBucketFilled+1)); // old bucket counter
+	     i++,j+=2){
 	   if((value[j] != ERROR) && (value[j+1] != ERROR))
              value[i] = value[j] + value[j+1];
            else
 	     value[i] = ERROR;
-	   if((method == AVE) && (value[i] != ERROR))
+	   if((value[i] != ERROR))
 	     value[i] = value[i]/2; 
 	 }
-	 for(i=(size/2); i < size; i++){
+	 for(i=(lastBucketFilled+1)/2; i < size; i++){
            value[i] = ERROR;
 	 }
-	 lastBucketFilled = (size/2)-1;
+	 lastBucketFilled = ((lastBucketFilled+1)/2)-1;
        }
      }
-     double  AggregateValue(int method){
+
+     sampleType  AggregateValue(int method){
 	int i,num;
-	double sum;
+	sampleType sum;
         if(value != NULL){
            for(sum=0.0,num=i=0; i< size; i++){
 	     if(value[i] != ERROR){
@@ -119,12 +153,15 @@ class visi_GridCellHisto {
 	  return(ERROR_AGGREGATE);
 	}
      }
-     int    AddValue(double x,int i,int numElements){
+
+     int    AddValue(sampleType x,
+		     int i,
+		     int numElements){
        /* if this is the first value create a histo cell array */
        int j;
        if (!valid){
 	 if(value == NULL)
-	   value = new double[numElements];
+	   value = new sampleType[numElements];
 	 size = numElements;
 	 valid = 1;
 	 for(j=0;j<size;j++){
@@ -139,9 +176,10 @@ class visi_GridCellHisto {
        return(OK);
      }
 
-     double  operator[](int i){
+     sampleType  operator[](int i){
        if((i >= size) || (i < 0)){
-	 visi_ErrorHandler(ERROR_SUBSCRIPT,"error in [] operator in histogridcell");
+	 visi_ErrorHandler(ERROR_SUBSCRIPT,
+			   "error in [] operator in histogridcell");
 	 return(ERROR);
        }
        return(value[i]);
@@ -157,42 +195,55 @@ class  visi_GridHistoArray {
       visi_GridHistoArray(){values = NULL; size = 0;}
       visi_GridHistoArray(int);
       ~visi_GridHistoArray();
+
       int LastBucketFilled(int resource){
          if((resource < 0) || (resource >= size))
 	   return(ERROR_SUBSCRIPT);
          else
 	   return(values[resource].LastBucketFilled());
       }
-      int    AddValue(double x,int resource,int bucketNum,int numBuckets){
-	if((resource < 0) || (resource >= size))
+
+      int AddValue(sampleType x,
+	           int resource,
+	           int bucketNum,
+	           int numBuckets){
+
+	 if((resource < 0) || (resource >= size))
 	   return(ERROR_SUBSCRIPT);
-	return(values[resource].AddValue(x,bucketNum,numBuckets));
+	 return(values[resource].AddValue(x,bucketNum,numBuckets));
       }
+
       visi_GridCellHisto *Value(){return(values);}
       int    Valid(int);
       int    Invalidate(int);
       int    AddNewResources(int,int);
+
       void   Fold(int method){
         int i;
 	for(i=0; i< size; i++)
 	  values[i].Fold(method);
       } 
-      double  AggregateValue(int i,int method){
+
+      sampleType  AggregateValue(int i,
+			     int method){
 	if((i>=0)&&(i<size))
 	  return(values[i].AggregateValue(method));
         else
 	  return(ERROR);
       }
+
       visi_GridCellHisto&   operator[](int i){
         if ((i>= 0) && (i < size)){
 	  return(values[i]);
 	}
 	else{
-	  visi_ErrorHandler(ERROR_SUBSCRIPT,"error in [] operator GridHistoArray");
+	  visi_ErrorHandler(ERROR_SUBSCRIPT,
+			    "error in [] operator GridHistoArray");
 	  return(values[0]);
 	}
       }
 };
+
 
 class visi_DataGrid {
  protected:
@@ -201,52 +252,66 @@ class visi_DataGrid {
      int         numMetrics;
      int         numResources;
      int         numBins;
-     double      binWidth;
+     timeType    binWidth;
      visi_GridHistoArray  *data_values;
   public:
-     visi_DataGrid(){metrics=NULL; resources=NULL; numMetrics=numResources=0;
-		     data_values=NULL; numBins= 0; binWidth=0.0;}
-     visi_DataGrid(int,int,Metric *,Resource *,int,double);
-     visi_DataGrid(int,int,metricType *,resourceType *,int,double);
+     visi_DataGrid(){
+	 metrics=NULL; 
+	 resources=NULL; 
+	 numMetrics=numResources=0;
+	 data_values=NULL; 
+	 numBins= 0; 
+	 binWidth=0.0;
+     }
+
+     visi_DataGrid(int,int,Metric *,Resource *,int,timeType);
+     visi_DataGrid(int,int,visi_metricType *,visi_resourceType *,int,timeType);
      virtual ~visi_DataGrid();
      char      *MetricName(int i);
      char      *MetricUnits(int i);
      char      *ResourceName(int j);
-     char      *MetricList();
-     char      *ObjectList();
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);
      int        NumResources(){return(numResources);}
      int        MetricId(int); // returns metric Id
      int        ResourceId(int); // returns Resource Id
      int        NumBins(){return(numBins);}
-     double     BinWidth(){return(binWidth);}
+     timeType   BinWidth(){return(binWidth);}
      int        Valid(int,int);
      int        Invalidate(int,int);
-     double      AggregateValue(int i,int j){
+
+     sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].AggregateValue(j,metrics[i].Aggregate())); 
        else
 	 return(ERROR);
      }
-     void  Fold(double width){
+
+     void  Fold(timeType width){
        int i;
        for(i=0; i < numMetrics; i++)
 	 data_values[i].Fold(metrics[i].Aggregate());
        binWidth = width;
      }
-     int  AddValue(int metric, int resource, int bucket,double value){
+
+     int AddValue(int metric, 
+	          int resource, 
+		  int bucket,
+		  sampleType value){
 	if((metric < 0) || (metric >= numMetrics))
-	  return(ERROR_SUBSCRIPT);
+	   return(ERROR_SUBSCRIPT);
 	return(data_values[metric].AddValue(value,resource,bucket,numBins));
      }
+
      visi_GridHistoArray&  operator[](int i){
-       if((i < 0) || (i >= numMetrics)){
-	 visi_ErrorHandler(ERROR_SUBSCRIPT,"error in [] operator DATAGRID");
-	 return(data_values[0]);
-       }
-       return(data_values[i]);
+        if((i < 0) || (i >= numMetrics)){
+ 	   visi_ErrorHandler(ERROR_SUBSCRIPT,
+			   "error in [] operator DATAGRID");
+ 	   return(data_values[0]);
+        }
+        return(data_values[i]);
      }
+
      int LastBucketFilled(int metric,int resource){
         if((metric < 0) || (metric >= numMetrics))
 	  return(ERROR_SUBSCRIPT);

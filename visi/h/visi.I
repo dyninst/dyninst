@@ -1,7 +1,27 @@
-/* $Log: visi.I,v $
-/* Revision 1.2  1994/04/13 21:23:09  newhall
-/* *** empty log message ***
+
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/* $Log: visi.I,v $
+/* Revision 1.3  1994/05/11 17:11:07  newhall
+/* changed data values from double to float
+/*
+# Revision 1.2  1994/04/13  21:23:09  newhall
+# *** empty log message ***
+#
 # Revision 1.1  1994/03/29  02:42:13  newhall
 # exported services of the visualization process
 #
@@ -29,7 +49,7 @@ $remote typedef struct{
   int 	metricId;
   int 	resourceId;
   int 	bucketNum;
-  double data;
+  float data;
 }dataValue;
 
 
@@ -39,10 +59,20 @@ $remote visualization {
   $async void Data($array dataValue data);
   $async void Fold(double newBucketWidth);
   $async void InvalidMR(int m,int r);
-  $async void AddMetricsResources($array metricType,$array resourceType,double,int);
-  $async void NewMetricsResources($array metricType,$array resourceType);
-  $async void Phase(double begin,double end,String name);
-  $upcall $async void GetMetricResource(String metric,String resource,int type);
-  $upcall $async void StopMetricResource(int metricId,int resourceId);
-  $upcall $async void PhaseName(double begin,double end,String name);
+  $async void AddMetricsResources($array metricType,
+				$array resourceType,
+				double,int);
+  $async void NewMetricsResources($array metricType,
+				$array resourceType);
+  $async void Phase(double begin,
+		    double end,
+		    String name);
+  $upcall $async void GetMetricResource(String metric,
+					String resource,
+					int type);
+  $upcall $async void StopMetricResource(int metricId,
+					 int resourceId);
+  $upcall $async void PhaseName(double begin,
+				double end,
+				String name);
 };
