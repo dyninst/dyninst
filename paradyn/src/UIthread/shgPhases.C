@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.17  1996/04/16 18:37:36  karavan
-/* fine-tunification of UI-PC batching code, plus addification of some
-/* Ari-like verbification commentification.
+/* Revision 1.18  1996/04/24 21:58:07  tamches
+/* We now do a yview -pickplace end on the "status window" area when changing
+/* phases.
 /*
+ * Revision 1.17  1996/04/16 18:37:36  karavan
+ * fine-tunification of UI-PC batching code, plus addification of some
+ * Ari-like verbification commentification.
+ *
  * Revision 1.16  1996/04/13 04:39:42  karavan
  * better implementation of batching for edge requests
  *
@@ -227,9 +231,13 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
    // Update the message text:
    commandStr = msgTextWindowName + " delete 1.0 end";
+      // this says 'delete from char 0 of line 1' (tk decrees that line 1 is the first line)
    myTclEval(interp, commandStr);
 
    commandStr = msgTextWindowName + " insert end \"" + theNewShgStruct.msgText + "\"";
+   myTclEval(interp, commandStr);
+
+   commandStr = msgTextWindowName + " yview -pickplace end";
    myTclEval(interp, commandStr);
 
    // We must resize, since newly displayed shg had been set aside (is this right?)
