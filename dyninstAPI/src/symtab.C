@@ -16,6 +16,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.40  1996/04/26 20:01:44  lzheng
+ * Some minor changes in the constructor of pdFunction(for hpux only)
+ * in order to prvent paradyn from dying for special instruction sequences.
+ *
  * Revision 1.39  1996/04/08 22:27:13  lzheng
  * Added some HP-specific structures and member functions, needed
  * for treating the call site, entry point, and exit points differently
@@ -1100,7 +1104,7 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
   Address entryAdr = adr; 
   Address retAdr;
 
-  funcEntry_ = new instPoint(this, instr, owner, adr, true, functionEntry);
+  funcEntry_ = new instPoint(this, instr, owner, adr, true, err, functionEntry);
   assert(funcEntry_);
   entryPoint = instr;
 
@@ -1109,9 +1113,7 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     instr.raw = owner->get_instruction(adr);  
 
     if (isReturnInsn(owner, adr, done)) {
-       funcReturns += new instPoint(this, instr, owner, adr, false,functionExit);
        retAdr = adr;
-       assert(funcReturns[funcReturns.size()-1]);
        exitPoint = instr; 
        notRet = FALSE;
      }
@@ -1120,6 +1122,9 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     adr += 4;
   }
 
+  if (((retAdr-entryAdr)>>2)<=3) {
+      return;
+  }
   adr = entryAdr;
   if (szOfLr) lr = new loadr[szOfLr];
 
@@ -1133,7 +1138,9 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
       lr[index].adr = adr;
       index++;
     } if (isReturnInsn(owner, adr, done)) {
-       return;
+      funcReturns += new instPoint(this, instr, owner, adr, false, err ,functionExit);	
+      assert(funcReturns[funcReturns.size()-1]);
+      return;
     } else if (isCallInsnTest(instr, adr, entryAdr, retAdr)) {
        adr = newCallPoint(adr, instr, owner, err, callSite);
     }
