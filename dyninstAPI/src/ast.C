@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.61 1999/03/19 18:07:16 csserra Exp $
+// $Id: ast.C,v 1.62 1999/05/03 20:01:19 zandy Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -312,6 +312,7 @@ AstNode &AstNode::operator=(const AstNode &src) {
 
    if (type == callNode) {
       callee = src.callee; // defined only for call nodes
+      calleefunc = src.calleefunc;
       for (unsigned i=0;i<src.operands.size();i++) 
         operands += assignAst(src.operands[i]);
    }
@@ -387,6 +388,7 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     kept_register = Null_Register;
     type = callNode;
     callee = func;
+    calleefunc = NULL;
     loperand = roperand = eoperand = NULL;
     if (l) operands += assignAst(l);
     if (r) operands += assignAst(r);
@@ -407,6 +409,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
     type = callNode;
     loperand = roperand = eoperand = NULL;
     callee = func;
+    calleefunc = NULL;
     if (l) operands += assignAst(l);
     bptype = NULL;
     doTypeCheck = true;
@@ -427,9 +430,54 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    loperand = roperand = eoperand = NULL;
    type = callNode;
    callee = func;
+   calleefunc = NULL;
    bptype = NULL;
    doTypeCheck = true;
 }
+
+
+AstNode::AstNode(function_base *func, vector<AstNode *> &ast_args) {
+#if defined(ASTDEBUG)
+   ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
+   referenceCount = 1;
+   useCount = 0;
+   kept_register = Null_Register;
+   for (unsigned i=0;i<ast_args.size();i++) 
+     if (ast_args[i]) operands += assignAst(ast_args[i]);
+   loperand = roperand = eoperand = NULL;
+   type = callNode;
+   callee = func->prettyName();
+   calleefunc = func;
+   bptype = NULL;
+   doTypeCheck = true;
+}
+
+
+// This is used to create a node for FunctionJump (function call with
+// no linkage)
+AstNode::AstNode(function_base *func) {
+#if defined(ASTDEBUG)
+   ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
+   referenceCount = 1;
+   useCount = 0;
+   kept_register = Null_Register;
+   loperand = roperand = eoperand = NULL;
+   type = opCodeNode;
+   op = funcJumpOp;
+   callee = func->prettyName();
+   calleefunc = func;
+   bptype = NULL;
+   doTypeCheck = true;
+}
+
 
 AstNode::AstNode(operandType ot, void *arg) {
 #if defined(ASTDEBUG)
@@ -564,6 +612,7 @@ AstNode::AstNode(AstNode *src) {
 
    if (type == callNode) {
       callee = src->callee;     // defined only for call nodes
+      calleefunc = src->calleefunc;
       for (unsigned i=0;i<src->operands.size();i++) {
         if (src->operands[i]) operands += assignAst(src->operands[i]);
       }
@@ -991,6 +1040,8 @@ Address AstNode::generateCode_phase2(process *proc,
 #endif
 	    return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif
+	} else if (op == funcJumpOp) {
+	     emitFuncJump(funcJumpOp, insn, base, calleefunc, proc);
 	} else {
 	    AstNode *left = assignAst(loperand);
 	    AstNode *right = assignAst(roperand);
@@ -1174,7 +1225,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} 
     } else if (type == callNode) {
-	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost);
+	 dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost,
+			     calleefunc);
         if (useCount>0) {
           kept_register=dest;
           rs->keep_register(dest);
@@ -1539,6 +1591,8 @@ BPatch_type *AstNode::checkType()
 		ret = BPatch::bpatch->type_Untyped;
 	    } else if (op == noOp) {
 		ret = BPatch::bpatch->type_Untyped;
+	    } else if (op == funcJumpOp) {
+		ret = BPatch::bpatch->type_Untyped;
 	    } else {
 		if (lType != NULL && rType != NULL) {
 		    if (!lType->isCompatible(*rType)) {
@@ -1602,13 +1656,27 @@ bool AstNode::findFuncInAst(string func) {
   return false ;
 } 
 
+// The following two functions are broken because some callNodes have
+// a function_base* member (`calleefunc') that is not replaced by
+// these functions.  For such Callnodes, the corresponding
+// function_base* for func2 must be provided.  Neither of these
+// functions is called these days.
+
 // Looks for function func1 in ast and replaces it with function func2
-void AstNode::replaceFuncInAst(string func1, string func2)
+void AstNode::replaceFuncInAst(function_base *func1, function_base *func2)
 {
   if (type == callNode) {
-    if (callee == func1) {
-      callee = func2;
-    }
+       if (calleefunc) {
+	    if (calleefunc == func1) {
+		 callee = func2->prettyName();
+		 calleefunc = func2;
+	    }
+       } else if (callee == func1->prettyName()) {
+	    // Not all call nodes are initialized with function_bases.
+	    // Preserve that, continue to deal in names only.
+	    if (callee == func1->prettyName())
+		 callee = func2->prettyName();
+       }
   }
   if (loperand) loperand->replaceFuncInAst(func1,func2);
   if (roperand) roperand->replaceFuncInAst(func1,func2);
@@ -1616,18 +1684,29 @@ void AstNode::replaceFuncInAst(string func1, string func2)
     operands[i]->replaceFuncInAst(func1, func2) ;
 } 
 
-void AstNode::replaceFuncInAst(string func1, string func2, vector<AstNode *> &more_args, int index)
+void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
+			       vector<AstNode *> &more_args, int index)
 {
   unsigned i ;
   /*
   cerr << "AstNode::replaceFuncInAst(" 
-       << func1.string_of() << "' "
-       << func2.string_of() << ", ..."
+       << func1->prettyName().string_of() << "' "
+       << func2->prettyName().string_of() << ", ..."
        << index << ")" << endl ;
   */
   if (type == callNode) {
-      if (callee == func1 || callee == func2) {
-	  callee = func2 ;
+      bool replargs = false;
+      if (calleefunc) {
+	   if (calleefunc == func1 || calleefunc == func2) {
+		replargs = true;
+		calleefunc = func2;
+		callee = func2->prettyName();
+	   }
+      } else if (callee == func1->prettyName() || callee == func2->prettyName()) {
+	   replargs = true;
+	   callee = func2->prettyName();
+      }
+      if (replargs) {
 	  unsigned int j = 0 ;
 	  for (i=index; i< operands.size() && j <more_args.size(); i++){
 	    removeAst(operands[i]) ;

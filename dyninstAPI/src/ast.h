@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.33 1998/12/25 23:18:48 wylie Exp $
+// $Id: ast.h,v 1.34 1999/05/03 20:01:21 zandy Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -56,6 +56,7 @@
 
 class process;
 class instPoint;
+class function_base;
 
 class BPatch_type;
 
@@ -92,6 +93,7 @@ typedef enum { plusOp,
 	       storeIndirOp,
 	       saveRegOp,
 	       updateCostOp,
+	       funcJumpOp,        // Jump to function without linkage
 	       branchOp} opCode;
 
 class registerSlot {
@@ -146,6 +148,8 @@ class AstNode {
         AstNode(operandType ot, AstNode *l);
 	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
         AstNode(const string &func, vector<AstNode *> &ast_args);
+        AstNode(function_base *func, vector<AstNode *> &ast_args);
+	AstNode(function_base *func); // FuncJump (for replaceFunction)
 
         AstNode(AstNode *src);
         AstNode &operator=(const AstNode &src);
@@ -174,8 +178,8 @@ class AstNode {
                                           // the counter.
         void printRC(void);
 	bool findFuncInAst(string func) ;
-	void replaceFuncInAst(string func1, string func2);
-	void replaceFuncInAst(string func1, string func2, vector<AstNode *> &ast_args, int index=0);
+	void replaceFuncInAst(function_base *func1, function_base *func2);
+	void replaceFuncInAst(function_base *func1, function_base *func2, vector<AstNode *> &ast_args, int index=0);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	bool astFlag;  
@@ -191,6 +195,7 @@ class AstNode {
 	nodeType type;
 	opCode op;		    // only for opCode nodes
 	string callee;		    // only for call nodes
+	function_base *calleefunc;  // only for call nodes
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
@@ -233,6 +238,8 @@ AstNode *createTimer(const string &func, void *,
 #endif
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
-		      process *proc, bool noCost);
+		      process *proc, bool noCost, const function_base *funcbase);
+void emitFuncJump(opCode op, char *i, Address &base,
+		  const function_base *func, process *proc);
 
 #endif /* AST_HDR */
