@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.14 2003/02/28 22:13:48 bernat Exp $
+// $Id: test6.C,v 1.15 2003/03/08 01:23:49 bernat Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -1078,8 +1078,10 @@ void mutatorMAIN(char *pathname)
   if (runTest[8]) mutatorTest8(bpthr, bpimg);
 
   dprintf("starting program execution.\n");
-  while(!bpthr->isTerminated()) 
-      bpthr->continueExecution();
+  bpthr->continueExecution();
+  // Wait for process to terminate
+  while(!bpthr->isTerminated());
+  
   //bpthr->detach(false);
 
   unsigned int testsFailed = 0;
