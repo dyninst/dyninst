@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.6  1994/03/20 01:53:09  markc
+ * Revision 1.7  1994/03/31 01:57:27  markc
+ * Added support for pauseProcess, continueProcess.  Added pvm interface code.
+ *
+ * Revision 1.6  1994/03/20  01:53:09  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -50,6 +53,7 @@ extern void initLibraryFunctions();
 #ifdef PARADYND_PVM
 static dynRPC *init_pvm_code(char *argv[], char *machine, int family,
 			     int type, int well_known_socket, int flag);
+static char machine_name[80];
 #endif     
 
 main(int argc, char *argv[])
@@ -195,18 +199,64 @@ Boolean dynRPC::detachProgram(int program,Boolean pause)
 }
 
 //
-// Continue program.  We really should make this work on a single pid.
+// Continue all processes
+//
+void dynRPC::continueApplication()
+{
+    struct List<process *> curr;
+
+    for (curr = processList; *curr; curr++) {
+        continueProcess(*curr);
+    }
+}
+
+//
+// Continue a process
 //
 void dynRPC::continueProgram(int program)
 {
-    continueApplication();
+    struct List<process *> curr;
+
+    for (curr = processList; *curr; curr++) {
+	if ((*curr)->pid == pid) break;
+    }
+    if (*curr)
+        continueProcess(*curr);
+    else
+	printf("Can't continue PID %d\n", program);
 }
+
 //
-// We really should make this work on a single pid.
+//  Stop all processes 
+//
+Boolean dynRPC::pauseApplication()
+{
+    struct List<process *> curr;
+
+    for (curr = processList; *curr; curr++) {
+        pauseProcess(*curr);
+    }
+    flushPtrace();
+    return TRUE;
+}
+
+//
+//  Stop a single process
 //
 Boolean dynRPC::pauseProgram(int program)
 {
-    return(pauseApplication());
+    struct List<process *> curr;
+
+    for (curr = processList; *curr; curr++) {
+        if ((*curr)->pid == program) break;
+    }
+    if (!(*curr)) {
+	printf("Can't pause PID %d\n", program);
+	return FALSE;
+    }
+    pauseProcess(*curr);
+    flushPtrace();
+    return TRUE;
 }
 
 Boolean dynRPC::startProgram(int program)
@@ -253,6 +303,20 @@ init_pvm_code(char *argv[], char *machine, int family,
     }
 
     return temp;
+}
+
+int
+PDYND_report_to_paradyn (int pid, int argc, char **argv)
+{
+    String_Array sa;
+
+    sa.count = argc;
+    sa.data = argv;
+    assert(!gethostname(machine_name, 99));
+
+    assert(tp);
+    tp->newProgramCallbackFunc(pid, argc, sa, machine_name);
+    return 0;
 }
 #endif
 
