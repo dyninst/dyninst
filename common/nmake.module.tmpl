@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: nmake.module.tmpl,v $
+# Revision 1.2  1997/06/16 22:09:39  mjrg
+# added Object.C
+#
 # Revision 1.1  1997/05/23 22:58:54  mjrg
 # Windows NT port
 #
@@ -64,7 +67,7 @@ OBJS         = $(OBJS) String.obj ByteArray.obj DictionaryLite.obj \
  		stringPool.obj hist.obj timing.obj  Timer.obj \
 		makenan.obj pathName.obj \
 		PriorityQueue.obj odometer.obj CircularBuffer.obj \
-		vectorSet.obj debugOstream.obj
+		vectorSet.obj debugOstream.obj Object.obj
 
 all: $(TARGET)
 
