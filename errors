@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.13  1994/07/08 21:14:07  jcargill
+# Revision 1.14  1994/07/08 21:19:18  jcargill
+# created error #12
+#
+# Revision 1.13  1994/07/08  21:14:07  jcargill
 # created error #11
 #
 # Revision 1.12  1994/07/08  03:02:56  karavan
@@ -161,4 +164,12 @@ Call to malloc failed within a data manager function.
 %S fatal
 %X
 bogus test error message
+%Y
+
+%N 12
+%E anothertest
+%A ui
+%S information
+%X
+testing
 %Y
