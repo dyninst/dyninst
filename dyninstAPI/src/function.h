@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.6 2005/02/24 10:15:49 rchen Exp $
+// $Id: function.h,v 1.7 2005/03/01 23:07:48 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -62,6 +62,7 @@ class process;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class BPatch_basicBlock;
+class BPatch_basicBlockLoop;
 
 class instPoint;
 
@@ -215,11 +216,11 @@ class int_function : public codeRange {
                                 process *proc,
                                 unsigned &size_change);
 
-   int findAlterations(const image *owner, process *proc, 
-                       instruction *&oldCode,
-                       LocalAlterationSet &normalized_alteration_set,
-                       Address &mutator, Address &mutatee);
-
+   int calculateAlterations(const image *owner, process *proc, 
+			    instruction *&oldCode,
+			    LocalAlterationSet &normalized_alteration_set,
+			    Address &mutator, Address &mutatee);
+   
    int relocatedSizeChange(const image *owner, process *proc);
 
    bool loadCode(const image *owner, process *proc, instruction *&oldCode, 
@@ -250,6 +251,9 @@ class int_function : public codeRange {
                                 instruction loadedCode[],
                                 unsigned  numberOfInstructions, int codeSize);
 
+   bool PA_expandLoopBlocks(LocalAlterationSet *temp_alteration_set,
+			    process *proc);
+
    bool discoverAlterations(LocalAlterationSet *temp_alteration_set, 
                             LocalAlterationSet &normalized_alteration_set,
                             Address baseAddress, Address firstAddress, 
@@ -258,13 +262,16 @@ class int_function : public codeRange {
    bool applyAlterations(LocalAlterationSet &normalized_alteration_set,
                          Address mutator, Address mutatee, Address newAdr, 
                          instruction originalCode[], 
-                         unsigned originalCodeSize, instruction newCode[]);
+                         unsigned originalCodeSize, instruction newCode[],
+			 relocatedFuncInfo *reloc);
 
    bool updateAlterations(LocalAlterationSet *temp_alteration_set,
                           LocalAlterationSet &normalized_alteration_set,
                           instruction *oldCode, 
                           Address baseAddress, Address firstAddress,
                           int &totalSizeChange);
+
+   void markNeededLoopRelocations(BPatch_basicBlockLoop *loop);
 
    bool relocateFunction(process *proc, instPoint *&location);
 
@@ -304,6 +311,8 @@ class int_function : public codeRange {
    const pdvector<instPoint *> &funcArbitraryPoints(const process *p) const;
    const pdvector<instPoint *> &funcCalls(const process *p);
    bool hasBeenRelocated(const process *p) const;
+   const relocatedFuncInfo *getRelocRecord(const process *p) const;
+   Address mapOrigToRelocOffset(Address origOffset, const process *p) const;
 
    void setNumInstructions(unsigned num) { numInstructions = num; }
    unsigned getNumInstructions() { return numInstructions; }
@@ -480,6 +489,12 @@ class int_function : public codeRange {
    bool canBeRelocated_;           // True if nothing prevents us from
    // relocating function
 
+   pdvector<BPatch_basicBlock *> blocksNeedingReloc;
+
+   // FIXME: this is process-specific!
+   // Works for now, since we assume 1) relocation happens only once per
+   // function and 2) relocation between processes will be identical.
+   // b0rked, but hey.
    unsigned char *relocatedCode;  // points to copy of rewritten function    
    unsigned char *originalCode;   // points to copy of original function
 
@@ -487,7 +502,8 @@ class int_function : public codeRange {
 
    unsigned numInstructions;      // num instructions in original func
    instruction *instructions;     // instructions that correspond to the 
-   // original function 
+                                  // original function 
+   instruction *relocatedInstructions;
 
 
    // Hacky way around parsing things -- we can stick things known to be 

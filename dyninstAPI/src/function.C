@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.8 2005/02/24 10:15:47 rchen Exp $
+// $Id: function.C,v 1.9 2005/03/01 23:07:47 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
 #include "func-reloc.h"
 #include "process.h"
 #include "instPoint.h"
+#include "BPatch_basicBlockLoop.h"
 
 pdstring int_function::emptyString("");
 
@@ -171,6 +172,7 @@ int_function::getCFG(process * proc)
 
   if (!flowGraph) { 
        bool valid;
+       // TODO: make the flowgraph process-dependent
        flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
        assert (valid);
   }
@@ -182,8 +184,70 @@ int_function::getLoopTree(process * proc)
 {
    assert(parsed_);
    BPatch_flowGraph *fg = getCFG(proc);
-   return fg ? fg->getLoopTree() : NULL;
+   if (!fg) return NULL;
+#if !defined(BPATCH_LIBRARY)
+
+#if defined(os_linux) && defined(arch_x86)
+   BPatch_Vector<BPatch_loop *> outerLoops;
+   fg->getOuterLoops(outerLoops);
+
+   for (unsigned i = 0; i < outerLoops.size(); i++) {
+     markNeededLoopRelocations(outerLoops[i]);
+   }
+#endif
+#endif /* Paradyn only */
+
+   return fg->getLoopTree();
 }
+
+#if defined(cap_relocation)
+void 
+int_function::markNeededLoopRelocations(BPatch_basicBlockLoop *loop) {
+  // Avoid unnecessary work
+  if (needs_relocation_) return;
+
+  // First, loop entry
+  BPatch_Vector<BPatch_edge *> head_edges;
+  loop->getLoopHead()->getIncomingEdges(head_edges);
+
+  for (unsigned i = 0; i < head_edges.size(); i++) {
+    if (!loop->hasBlock(head_edges[i]->source)) {
+      if (head_edges[i]->source->size() < 5) { // FIXME
+	// Better: label _which_ block would need buffing
+	markAsNeedingRelocation(true);
+	blocksNeedingReloc.push_back(head_edges[i]->source);
+      }
+    }
+  }
+  // Avoid unnecessary work
+  if (needs_relocation_) return;
+  
+  BPatch_Vector<BPatch_basicBlock *>blocks;
+  loop->getLoopBasicBlocks(blocks);
+  for (unsigned j = 0; j < blocks.size(); j++) {
+    BPatch_Vector<BPatch_edge *> edges;
+    blocks[j]->getOutgoingEdges(edges);
+    
+    for (unsigned k = 0; k < edges.size(); k++) {
+      if (!loop->hasBlock(edges[k]->target)) {
+	if (edges[k]->target->size() < 5) {
+	  markAsNeedingRelocation(true);
+	  blocksNeedingReloc.push_back(edges[k]->target);
+	}
+      }
+    }
+  }
+  
+  // Avoid unnecessary work
+  if (needs_relocation_) return;
+
+  BPatch_Vector<BPatch_loop *> childLoops;
+  loop->getOuterLoops(childLoops);
+  for (unsigned l = 0; l < childLoops.size(); l++)
+    markNeededLoopRelocations(childLoops[l]);
+
+}
+#endif
 
 bool int_function::isInstrumentableByFunctionName()
 {
@@ -232,6 +296,7 @@ Address int_function::getAddress(const process *p) const{
     } }
   return get_address();
 }
+
 
 // This method returns the address at which this function resides
 // in the process P, even if it is dynamic, even if it has been
@@ -330,6 +395,36 @@ bool int_function::hasBeenRelocated(const process *p) const{
     }
   }
   return false;
+}
+
+
+const relocatedFuncInfo *int_function::getRelocRecord(const process *p) const {
+  assert(parsed_);
+
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++) {
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return relocatedByProcess[i];
+    }
+  }
+  return NULL;
+}
+
+
+Address int_function::mapOrigToRelocOffset(Address origOffset,
+					   const process *p) const {
+  assert(parsed_);
+#if defined(cap_relocation)
+  if(p && needs_relocation_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++) {
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i]->alteration_set.getShift(origOffset) + origOffset);
+    }
+  }
+#endif
+  return origOffset;
 }
 
 
