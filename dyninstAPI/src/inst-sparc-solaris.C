@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.160 2005/03/02 19:58:03 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.161 2005/03/15 20:02:30 mirg Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2713,12 +2713,12 @@ bool int_function::checkInstPoints(const image *owner) {
 
    // if there is a retl instruction and we don't think this is a leaf
    // function then this is a way messed up function...well, at least we
-   // we can't deal with this...the only example I can find is _cerror
-   // and _cerror64 in libc.so.1
+   // we can't deal with this. Lots of examples in libthread.so, which seem to
+   // be assembly wrappers for some libc functions (e.g., creat)
    if(retl_inst && !noStackFrame && !restore_inst){ 
-     cerr << "WARN : function " << prettyName().c_str()
-          << " retl instruction in non-leaf function, can't instrument"
-	  << endl;
+      //cerr << "WARN : function " << prettyName().c_str()
+      //     << " retl instruction in non-leaf function, can't instrument"
+      //      << endl;
       return false;
    }
 
