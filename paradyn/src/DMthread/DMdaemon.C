@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.149 2005/02/15 17:44:01 legendre Exp $
+ * $Id: DMdaemon.C,v 1.150 2005/02/21 22:28:52 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2860,7 +2860,9 @@ void paradynDaemon::setInitialActualValueFE(int mid, double initActVal) {
 
   metricInstance *mi = NULL;
   bool found = metricInstance::allMetricInstances.find(mid, mi);
-  assert(found);
+  if (!found)
+    return; //We may have deleted the metric, while call was still in the pipe
+
   assert(mi);
 
   // ---------------------------------------------------------------

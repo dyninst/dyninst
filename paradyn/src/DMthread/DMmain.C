@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.163 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMmain.C,v 1.164 2005/02/21 22:28:53 legendre Exp $
 
 #include <assert.h>
 extern "C" {
@@ -144,7 +144,7 @@ extern void histFoldCallBack(const timeLength *_width, void *callbackData);
 
 #if !defined(os_windows)
 void StartTermWin( bool useGUI );
-//void mpichUnlinkWrappers( void );
+void mpichUnlinkWrappers( void );
 #endif // !defined(os_windows)
 
 //upcall from paradynd to notify the datamanager that the static
@@ -875,12 +875,12 @@ DMmain( void* varg )
   // cleanup
   //
 #if !defined(i386_unknown_nt4_0)
-  //mpichUnlinkWrappers();
+  mpichUnlinkWrappers();
 
   if( twUser != NULL )
-    {
-      twUser->shutdown();
-    }
+  {
+    twUser->shutdown();
+  }
 #endif // !defined(i386_unknown_nt4_0)
 
   return NULL;
