@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTlinux.c,v 1.10 2000/03/23 01:25:20 wylie Exp $ */
+/* $Id: RTlinux.c,v 1.11 2000/04/25 21:33:27 schendel Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -285,7 +285,7 @@ DYNINSTgetCPUtime(void) {
 	time64 now=0, tmp_cpuPrevious=cpuPrevious;
 	FILE *tmp;
 	static int realMul = 0;
-	double realHZ;
+	static int realHZ;
 	double uptimeReal;
 	int uptimeJiffies;
 	struct tms tm;
@@ -293,18 +293,25 @@ DYNINSTgetCPUtime(void) {
 	// Determine the number of jiffies/sec by checking the clock idle time in
 	// /proc/uptime against the jiffies idle time in /proc/stat
 	if( realMul == 0 ) {
-		tmp = fopen( "/proc/uptime", "r" );
-		assert( tmp );
-		assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
-		fclose( tmp );
-		tmp = fopen( "/proc/stat", "r" );
-		assert( tmp );
-		assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
-		fclose( tmp );
-		realHZ = (double)uptimeJiffies / uptimeReal;
-		realMul = (int)( 1000000.0L / realHZ + 0.5 );
+	  tmp = fopen( "/proc/uptime", "r" );
+	  assert( tmp );
+	  assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
+	  fclose( tmp );
+	  tmp = fopen( "/proc/stat", "r" );
+	  assert( tmp );
+	  assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+	  if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
+	    // on SMP boxes, the first line is cumulative jiffies, the second 
+	    // line is jiffies for cpu0 - on uniprocessors, this fscanf will 
+	    // fail as there is only a single cpu line
+	    assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
+	  }
+
+	  fclose( tmp );
+	  realHZ = (int) ((double)uptimeJiffies/uptimeReal + 0.5);
+	  realMul = (int)( 1000000.0L / realHZ + 0.5 );
 #ifdef notdef
-		fprintf( stderr, "Determined usec/jiffy as %d\n", realMul );
+	  fprintf( stderr, "Determined usec/jiffy as %d\n", realMul );
 #endif
 	}
 
