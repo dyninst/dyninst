@@ -1,0 +1,14 @@
+#
+# $Log: README,v $
+# Revision 1.1  1994/06/01 17:27:40  rbi
+# Initial documentation
+#
+#
+
+This directory contains the source code for tcl visis.  
+
+tabVis.tcl -- Tabular display of paradyn data.  tabVis displays 
+             performance data for all requested resources and metrics.  
+             Users may control the behavior and appearance of the table 
+             with menu selections. 
+             

@@ -1,0 +1,21 @@
+#
+# $Log: README,v $
+# Revision 1.1  1994/06/01 17:25:34  rbi
+# Initial documentation
+#
+#
+
+This directory contains the source code for tclVisi, a tcl interface
+to the visi library.  The visi library is a C++ interface to paradyn
+data (see ../../visi).  
+
+To use tclVisi, a programmer writes a tcl application and makes calls
+to DataGrid (or Dg) procedures.  The Dg procedures allow a tcl
+application to get information about metrics, resources, and data
+values.
+
+Subdirectories:
+  src -- source code for tclVisi
+  tcl -- code for tcl applications
+  ${PLATFORM} -- platform specific binaries and makefiles
+
