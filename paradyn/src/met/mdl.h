@@ -264,9 +264,9 @@ class functionName {
 class mdl_var {
 public:
 
-  mdl_var(bool is_remote=false);
+  inline mdl_var(bool is_remote=false);
   mdl_var(const string &, bool is_remote);
-  ~mdl_var();
+  inline ~mdl_var();
   void destroy();
 
   void dump();

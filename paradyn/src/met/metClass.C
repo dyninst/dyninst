@@ -43,6 +43,9 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
+ * Revision 1.8  1997/10/10 00:22:23  tamches
+ * removed some warnings
+ *
  * Revision 1.7  1996/08/16 21:12:19  tamches
  * updated copyright for release 1.1
  *
@@ -321,8 +324,8 @@ bool processMet::addProcess(processMet *pm)
   return true;
 }
 
-visiMet::visiMet(string &nm, string &u, string &h, string &e, string &c, 
-		int &f,int &l) 
+visiMet::visiMet(string &nm, string &u, string &h, string &e, string &, // c
+                 int &,int &) // f, l
   : name_(nm), user_(u), host_(h), execDir_(e) { }
 
 void visiMet::dumpAll()
