@@ -1,0 +1,1025 @@
+/*
+ * Copyright (c) 1996-1999 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+// $Id: Object-nt.C,v 1.1 1999/06/17 18:35:27 pcroth Exp $
+#include <iostream.h>
+#include <iomanip.h>
+#include <limits.h>
+
+#include "util/h/Object.h"
+#include "util/h/Object-nt.h"
+
+#include "util/h/String.h"
+#include "util/h/Vector.h"
+#include "util/h/CodeView.h"
+
+
+//---------------------------------------------------------------------------
+// structures used only in this file
+//---------------------------------------------------------------------------
+struct PDModInfo
+{
+    string          name;       // name of Paradyn module
+    unsigned int    offText;    // offset of module's code in text segment
+    unsigned int    cbText;     // size of module's code in text segment
+
+    PDModInfo( void )
+      : name( "" ),
+        offText( 0 ),
+        cbText( 0 )
+    {}
+
+    PDModInfo( string modName, unsigned int offset, unsigned int cb )
+      : name( modName ),
+        offText( offset ),
+        cbText( cb )
+    {}
+
+    PDModInfo& operator=( const PDModInfo& mi )
+    {
+        if( &mi != this )
+        {
+            name = mi.name;
+            offText = mi.offText;
+            cbText = mi.cbText;
+        }
+        return *this;
+    }
+};
+
+struct ModInfo
+{
+	const CodeView::Module*	pCVMod;     // CodeView information
+    unsigned int pdModIdx;              // index of Paradyn module
+                                        // this module is associated with
+                                        // in the pdMods array
+
+	ModInfo( const CodeView::Module* pCVModule = NULL,
+             unsigned int pdModIndex = 0 )
+	  : pCVMod( pCVModule ),
+		pdModIdx( pdModIndex )
+    {}
+
+    ModInfo& operator=( const ModInfo& mi )
+    {
+        if( &mi != this )
+        {
+            pCVMod = mi.pCVMod;
+            pdModIdx = mi.pdModIdx;
+        }
+        return *this;
+    }
+};
+
+
+//---------------------------------------------------------------------------
+// prototypes of functions used in this file
+//---------------------------------------------------------------------------
+int	mod_offset_compare( const void* x, const void* y );
+static  string  FindModuleByOffset( unsigned int offset,
+                                    const vector<PDModInfo>& pdMods );
+
+
+
+
+//---------------------------------------------------------------------------
+// Object method implementation
+//---------------------------------------------------------------------------
+
+
+Object::~Object( void )
+{
+	if( pDebugInfo != NULL )
+	{
+		UnmapDebugInformation( pDebugInfo );
+		pDebugInfo = NULL;
+	}
+}
+
+
+
+void
+Object::ParseDebugInfo( void )
+{
+	IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
+	
+	// access the module's debug information
+	pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.string_of(), NULL, 0);
+	if( pDebugInfo != NULL )
+	{
+		// ensure that the base address is valid
+		if( baseAddr == NULL )
+		{
+			// use the image base address from the disk image
+			// (this should only happen for EXEs; we should have
+			// the in-core base address of DLLs.)
+			// 
+			// TODO: we should be able to use the in-core address
+			// for EXEs as well
+			baseAddr = pDebugInfo->ImageBase;
+		}
+		assert( baseAddr != NULL );
+
+		// determine the location of the relevant sections
+		ParseSectionMap( pDebugInfo );
+
+		//
+		// parse the symbols, if available
+		// (note that we prefer CodeView over COFF)
+		//
+		if( pDebugInfo->CodeViewSymbols != NULL )
+		{
+			// we have CodeView debug information
+			ParseCodeViewSymbols( pDebugInfo );
+		}
+		else if( pDebugInfo->CoffSymbols != NULL )
+		{
+			// we have COFF debug information
+			ParseCOFFSymbols( pDebugInfo );
+		}
+		else
+		{
+            // TODO - what to do when there's no debug information?
+		}
+	}
+	else
+	{
+		// indicate the failure to access the debug information
+        log_perror(err_func_, "MapDebugInformation");
+	}
+}
+
+
+void
+Object::ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo )
+{
+	DWORD i;
+
+	// currently we care only about the .text and .data segments
+	for( i = 0; i < pDebugInfo->NumberOfSections; i++ )
+	{
+		IMAGE_SECTION_HEADER& section = pDebugInfo->Sections[i];
+
+		if( strncmp( (const char*)section.Name, ".text", 5 ) == 0 )
+		{
+			// note that section numbers are one-based
+			textSectionId = i + 1;
+
+			code_ptr_	= (Word*)(((char*)pDebugInfo->MappedBase) +
+                            section.PointerToRawData);
+			code_off_	= baseAddr + section.VirtualAddress;
+			code_len_	= section.Misc.VirtualSize / sizeof(Word);
+		}
+		else if( strncmp( (const char*)section.Name, ".data", 5 ) == 0 )
+		{
+			// note that section numbers are one-based
+			dataSectionId = i + 1;
+
+			data_ptr_	= (Word*)(((char*)pDebugInfo->MappedBase) +
+                            section.PointerToRawData);
+			data_off_	= baseAddr + section.VirtualAddress;
+			data_len_	= section.Misc.VirtualSize / sizeof(Word);
+		}
+	}
+}
+
+
+void
+Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
+{
+	CodeView cv( (const char*)pDebugInfo->CodeViewSymbols, textSectionId );
+
+	if( cv.Parse() )
+	{
+		bool isDll = (pDebugInfo->Characteristics & IMAGE_FILE_DLL);
+		dictionary_hash<string, unsigned int> libDict( string::hash, 19 );
+		vector<Symbol> allSymbols;
+		vector<ModInfo> cvMods;         // CodeView's notion of modules
+        vector<PDModInfo> pdMods;       // Paradyn's notion of modules
+		unsigned int midx;
+		unsigned int i;
+
+		//
+		// build a module map of the .text section
+		// by creating a list of CodeView modules that contribute to 
+		// the .text section, sorted by offset
+		// 
+		// note that the CodeView modules vector uses one-based indexing
+		//
+		const vector<CodeView::Module>& modules = cv.GetModules();
+		for( midx = 1; midx < modules.size(); midx++ )
+		{
+			const CodeView::Module& mod = modules[midx];
+
+			//
+			// determine the Paradyn module that this
+			// module will be associated with...
+			//
+
+			// ...first determine the library that contains
+            // this module, if any...
+			string libName;
+			if( mod.GetLibraryIndex() != 0 )
+			{
+				libName = cv.GetLibraries()[mod.GetLibraryIndex()];
+			}
+
+			// ...next figure out the Paradyn module with which to associate
+            // this CodeView module...
+            unsigned int pdModIdx = UINT_MAX;
+			if( !isDll && (mod.GetLibraryIndex() != 0) )
+			{
+				// associate symbol with static library
+
+				// handle the case where this is the first time we've
+				// seen this library
+				if( !libDict.defines( libName ) )
+				{
+					// add a Paradyn module for the library
+                    // offset and size will be patched later
+                    pdMods += PDModInfo( libName, 0, 0 );
+                    pdModIdx = pdMods.size() - 1;
+
+					// keep track of where we added the library,
+					// so we can patch the location of the library's code later
+					libDict[libName] = pdModIdx;
+				}
+                else
+                {
+                    // look up the index we saved earlier
+                    pdModIdx = libDict[libName];
+                }
+			}
+			else if( !isDll )
+			{
+                // add a Paradyn module for the module's source file
+
+				DWORD offset;	// offset of code in text section
+				DWORD cb;		// size of code in text section
+
+
+				// find a source code name to associate with this module
+				if( mod.GetTextBounds( offset, cb ) )
+				{
+                    pdMods += PDModInfo( mod.GetSourceName(), offset, cb );
+                    pdModIdx = pdMods.size() - 1;
+				}
+				else
+				{
+					// the module doesn't contribute to the .text section
+                    // TODO - so do we care about this module?  should
+                    // we be keeping track of contributions
+                    // to the data section?
+				}
+			}
+			else
+			{
+                // module is part of a DLL, so we 
+                // associate any symbols directly with the DLL
+                pdMods += PDModInfo( pDebugInfo->ImageFileName, 0,
+                                        code_len_ * sizeof(Word) );
+                pdModIdx = pdMods.size() - 1;
+			}
+
+			// add the module info to our vector for later sorting
+			// (but only if it contributes code to the .text section)
+            DWORD offText;
+            DWORD cbText;
+			if( mod.GetTextBounds( offText, cbText ) && (cbText > 0) )
+			{
+                assert( pdModIdx != UINT_MAX );
+				cvMods += ModInfo( &mod, pdModIdx );
+			}
+		}
+
+		// sort list of modules by offset to give us our CodeView module map
+		cvMods.sort( mod_offset_compare );
+
+#ifdef _DEBUG
+        // dump the CodeView module map
+        cout << "CodeView module .text map:\n";
+        for( midx = 0; midx < cvMods.size(); midx++ )
+        {
+            DWORD offText = 0;
+            DWORD cbText = 0;
+            string name = cvMods[midx].pCVMod->GetName();
+            cvMods[midx].pCVMod->GetTextBounds( offText, cbText );
+
+            cout << hex
+                << "0x" << setw( 8 ) << setfill( '0' ) << offText
+                << "-0x" << setw( 8 ) << setfill( '0' ) << offText + cbText - 1
+                << " (" << setw( 8 ) << setfill( '0' ) << cbText << ")\t"
+                << name
+                << dec
+                << endl;
+        }
+#endif // _DEBUG
+
+        // compute bounds for Paradyn modules
+        for( midx = 0; midx < cvMods.size(); midx++ )
+        {
+            PDModInfo& pdMod = pdMods[cvMods[midx].pdModIdx];
+            DWORD offTextCV = 0;
+            DWORD cbTextCV = 0;
+
+            // determine the bounds of the CodeView text
+            cvMods[midx].pCVMod->GetTextBounds( offTextCV, cbTextCV );
+
+            if( cbTextCV > 0 )
+            {
+                // expand the PD module to cover the CV module's bounds
+                if( pdMod.cbText == 0 )
+                {
+                    // this is the first CodeView module we've seen
+                    // for this Paradyn module
+                    pdMod.offText = offTextCV;
+                    pdMod.cbText = cbTextCV;
+                }
+                else
+                {
+                    // we have to handle the (potential) expansion of
+                    // the existing bounds
+                    if( offTextCV < pdMod.offText )
+                    {
+                        DWORD oldOffset = pdMod.offText;
+
+                        // reset the base and extend the bound
+                        pdMod.offText = offTextCV;
+                        pdMod.cbText += (oldOffset - offTextCV);
+                    }
+
+                    if((offTextCV + cbTextCV) > (pdMod.offText + pdMod.cbText))
+                    {
+                        // extend the bound
+                        pdMod.cbText += 
+                            ((offTextCV + cbTextCV) -
+                                (pdMod.offText + pdMod.cbText));
+                    }
+                }
+            }
+        }
+
+#ifdef _DEBUG
+        // dump the Paradyn module map
+        cout << "Paradyn module .text map:\n";
+        for( midx = 0; midx < pdMods.size(); midx++ )
+        {
+            DWORD offText = pdMods[midx].offText;
+            DWORD cbText = pdMods[midx].cbText;
+            string name = pdMods[midx].name;
+
+            cout << hex
+                << "0x" << setw( 8 ) << setfill( '0' ) << offText
+                << "-0x" << setw( 8 ) << setfill( '0' ) << offText + cbText - 1
+                << " (" << setw( 8 ) << setfill( '0' ) << cbText << ")\t"
+                << name
+                << dec
+                << endl;
+        }
+#endif // _DEBUG
+
+        // add entries for our Paradyn modules
+        for( midx = 0; midx < pdMods.size(); midx++ )
+        {
+		    allSymbols += Symbol( pdMods[midx].name,
+			    "",
+			    Symbol::PDST_MODULE,
+			    Symbol::SL_GLOBAL,
+			    code_off_ + pdMods[midx].offText,
+			    false,
+			    pdMods[midx].cbText );
+        }
+
+
+		//
+		// now that we have a module map of the .text segment,
+		// consider the symbols defined by each module
+		//
+		for( midx = 0; midx < cvMods.size(); midx++ )
+		{
+			const CodeView::Module& mod = *(cvMods[midx].pCVMod);
+            PDModInfo& pdMod = pdMods[cvMods[midx].pdModIdx];
+                        
+			// add symbols for each global function defined in the module
+            {
+			    const vector<CodeView::SymRecordProc*>& gprocs =
+                    mod.GetSymbols().GetGlobalFunctions();
+			    for( i = 0; i < gprocs.size(); i++ )
+			    {
+				    const CodeView::SymRecordProc* proc = gprocs[i];
+
+				    // build a symbol from the proc information
+				    LPString lpsName( proc->name );
+				    string strName = (string)lpsName;
+
+				    Address addr = code_off_ + proc->offset;
+
+				    allSymbols += ( Symbol( strName,
+					    pdMod.name,
+					    Symbol::PDST_FUNCTION,
+					    Symbol::SL_GLOBAL,
+					    addr,
+					    false,
+					    proc->procLength ));
+			    }
+            }
+
+			// add symbols for each local function defined in the module
+            {
+			    const vector<CodeView::SymRecordProc*>& lprocs =
+                       mod.GetSymbols().GetLocalFunctions();
+			    for( i = 0; i < lprocs.size(); i++ )
+			    {
+				    const CodeView::SymRecordProc* proc = lprocs[i];
+				    LPString lpsName( proc->name );
+				    string strName = (string)lpsName;
+
+				    Address addr = code_off_ + proc->offset;
+
+				    allSymbols += ( Symbol( strName,
+					    pdMod.name,
+					    Symbol::PDST_FUNCTION,
+					    Symbol::SL_LOCAL,
+					    addr,
+					    false,
+					    proc->procLength ));
+			    }
+            }
+
+			// handle thunks
+            {
+			    const vector<CodeView::SymRecordThunk*>& thunks =
+                    mod.GetSymbols().GetThunks();
+			    for( i = 0; i < thunks.size(); i++ )
+			    {
+				    const CodeView::SymRecordThunk* thunk = thunks[i];
+				    LPString lpsName( thunk->name );
+				    string strName = (string)lpsName;
+
+				    Address addr = code_off_ + thunk->offset;
+
+				    allSymbols += ( Symbol( strName,
+					    pdMod.name,
+					    Symbol::PDST_FUNCTION,
+					    Symbol::SL_GLOBAL,
+					    addr,
+					    false,
+					    thunk->thunkLength ) );
+			    }
+            }
+
+			// add symbols for each global variable defined in the module
+            {
+			    const vector<CodeView::SymRecordData*>& gvars =
+                    mod.GetSymbols().GetGlobalVariables();
+			    for( i = 0; i < gvars.size(); i++ )
+			    {
+				    const CodeView::SymRecordData* pVar = gvars[i];
+				    LPString lpsName( pVar->name );
+				    string strName = (string)lpsName;
+
+				    Address addr = data_off_ + pVar->offset;
+
+				    allSymbols += ( Symbol( strName,
+					    pdMod.name,
+					    Symbol::PDST_OBJECT,
+					    Symbol::SL_GLOBAL,
+					    addr,
+					    false,
+					    0 ));               // will be patched later (?)
+			    }
+            }
+
+            {
+			    const vector<CodeView::SymRecordData*>& lvars =
+                    mod.GetSymbols().GetGlobalVariables();
+			    for( i = 0; i < lvars.size(); i++ )
+			    {
+				    const CodeView::SymRecordData* pVar = lvars[i];
+				    LPString lpsName( pVar->name );
+				    string strName = (string)lpsName;
+
+				    Address addr = data_off_ + pVar->offset;
+
+				    allSymbols += ( Symbol( strName,
+					    pdMod.name,
+					    Symbol::PDST_OBJECT,
+					    Symbol::SL_LOCAL,
+					    addr,
+					    false,
+					    0 ));               // will be patched later (?)
+			    }
+            }
+		}
+
+        // once we've handled the symbols that the CodeView object
+        // could discover and associate with a module, we've
+        // got to do something with symbols that were not explicitly
+        // associated with a module in the CodeView information
+
+        // Unfortunately, VC++/DF produce S_PUB32 symbols
+        // for functions in some cases.  (For example,
+        // when building a Digital Fortran program, the
+        // software produces an executable with symbols
+        // from the Fortran runtime libraries as S_PUB32
+        // records.)  We do our best to try to determine
+        // whether the symbol is a function, and if so,
+        // how large it is, which module it belongs to, etc.
+		const vector<CodeView::SymRecordData*>& pubs =
+                                                cv.GetSymbols().GetPublics();
+		for( i = 0; i < pubs.size(); i++ )
+		{
+			const CodeView::SymRecordData* sym = pubs[i];
+
+			LPString lpsName( sym->name );
+			string strName = (string)lpsName;
+
+            // we now have to try to determine the type of the
+            // symbol.  Since we're only given a type and a location,
+            // (and the type might not even be valid) we assume
+            // that any public symbol in the code section is
+            // a function and we try to determine which module it
+            // belongs to based on the module map we constructed earlier
+            if( sym->segment == textSectionId )
+            {
+			    Address addr = code_off_ + sym->offset;
+
+                // save the symbol
+			    allSymbols += Symbol( strName,
+				    FindModuleByOffset( sym->offset, pdMods ),
+				    Symbol::PDST_FUNCTION,
+				    Symbol::SL_GLOBAL,
+				    addr,
+				    false,
+				    0 );              // will be patched later
+            }
+            else if( sym->segment == dataSectionId )
+            {
+			    Address addr = data_off_ + sym->offset;
+
+			    allSymbols += Symbol( strName,
+				    FindModuleByOffset( sym->offset, pdMods ),
+				    Symbol::PDST_OBJECT,
+				    Symbol::SL_GLOBAL,
+				    addr,
+				    false,
+				    0 );              // will be patched later
+            }
+            else
+            {
+                // TODO - the symbol is not in the text or data
+                // sections - do we care about it?
+            }
+		}
+		
+        // now we sort all of our symbols by offset
+        // so that we can patch up any outstanding sizes
+        allSymbols.sort( symbol_compare );
+        for( i = 0; i < allSymbols.size(); i++ )
+        {
+            Symbol& sym = allSymbols[i];
+
+            if( (sym.name() != "") && (sym.size() == 0) &&
+                ((sym.type() == Symbol::PDST_FUNCTION) ||
+                 (sym.type() == Symbol::PDST_OBJECT)))
+            {
+                // patch the symbol's size
+                // we consider the symbol's size to be
+                // the distance to the next symbol
+                // (sometimes this causes us to overestimate)
+                unsigned int cb;
+
+                if( (i == (allSymbols.size() - 1)) ||
+                    (allSymbols[i+1].type() != sym.type()) )
+                {
+                    // size is the remainder of the current section
+                    if( sym.type() == Symbol::PDST_FUNCTION )
+                    {
+                        // size is remainder of the .text section
+                        cb = (code_off_ + code_len_*sizeof(Word)) - sym.addr();
+                    }
+                    else
+                    {
+                        // size is remainder of the .data section
+                        cb = (data_off_ + data_len_*sizeof(Word)) - sym.addr();
+                    }
+                }
+                else
+                {
+                    // size is just the delta between symbols
+                    cb = allSymbols[i+1].addr() - sym.addr();
+                }
+                sym.change_size( cb );
+            }
+        }
+
+		// our symbols are finally ready to enter into
+        // the main symbol dictionary
+		for( i = 0; i < allSymbols.size(); i++ )
+		{
+			if(allSymbols[i].name() != "")
+			{
+				symbols_[allSymbols[i].name()] = allSymbols[i];
+			}
+		}
+	}
+	else
+	{
+        // TODO - how to indicate the failure to parse symbols?
+	}
+}
+
+
+
+
+
+void
+Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
+{
+	IMAGE_COFF_SYMBOLS_HEADER* pHdr = pDebugInfo->CoffSymbols;
+    vector<Symbol>	allSymbols;
+	bool gcc_compiled = false;
+	bool isDll = (pDebugInfo->Characteristics & IMAGE_FILE_DLL);
+	DWORD u, v;
+
+	
+	// find the location of the symbol records and string table
+	IMAGE_SYMBOL* syms = (IMAGE_SYMBOL*)(((char*)pHdr) +
+                            pHdr->LvaToFirstSymbol);
+	char* stringTable = ((char*)syms) +
+                            pHdr->NumberOfSymbols * sizeof( IMAGE_SYMBOL );
+
+
+	// for DLLs, we ignore filename information and associate 
+	// symbols with a module representing the DLL
+	if( isDll )
+	{
+		allSymbols += Symbol( pDebugInfo->ImageFileName,
+								"",
+								Symbol::PDST_MODULE,
+								Symbol::SL_GLOBAL,
+								code_off_,
+								false );
+	}
+
+
+	// parse the COFF records
+	for( v = 0; v < pDebugInfo->CoffSymbols->NumberOfSymbols; v++ )
+	{
+		string name = FindName( stringTable, syms[v] );
+		Address sym_addr = NULL;
+
+
+		//
+		// handle the various types of COFF records...
+		//
+
+		if( name.prefixed_by("_$$$") || name.prefixed_by("$$$") )
+		{
+			// the record represents a branch target (?)
+			// skip it
+			v += syms[v].NumberOfAuxSymbols;
+		}
+		else if( syms[v].StorageClass == IMAGE_SYM_CLASS_FILE )
+		{
+			// the record is a file record
+			//
+			// note that for DLLs, we associate symbols directly with
+			// the DLL and ignore any filename information we find
+			if( !isDll )
+			{
+				// extract the name of the source file
+				name = (char*)(&syms[v+1]);
+
+				// skip auxiliary records containing the filename
+				v += (strlen(name.string_of()) / sizeof(IMAGE_SYMBOL)) + 1;
+
+				// find a .text record following the file name
+				// if there is one, it contains the starting address for
+				// this file's text
+				// (note - there may not be one!  If not, we detect this by
+				// finding the next .file record or running off the end of
+				// the symbol information)
+				DWORD tidx = v + 1;
+				while( (tidx < pDebugInfo->CoffSymbols->NumberOfSymbols) &&
+						((syms[tidx].N.Name.Short == 0) ||
+						 ((strncmp( (const char*)(&syms[tidx].N.ShortName),
+                                    ".text", 5 ) != 0) &&
+						  (syms[tidx].StorageClass == IMAGE_SYM_CLASS_FILE))))
+				{
+					// advance to next record
+					tidx++;
+				}
+				if( (tidx < pDebugInfo->CoffSymbols->NumberOfSymbols) &&
+					(syms[tidx].N.Name.Short != 0) &&
+					(strncmp( (const char*)(&syms[tidx].N.ShortName),
+                                ".text", 5 ) == 0) )
+				{
+					// this is text record for the recently-seen .file record -
+					// extract the starting address for symbols from this file
+					sym_addr = baseAddr + syms[tidx].Value;
+				}
+				else
+				{
+					// there is not a .text record for the recently-seen .file
+					// TODO: is there any way we can
+                    // determine the needed information in this case?
+					sym_addr = 0;
+				}
+			
+				// make note of the symbol
+				allSymbols += Symbol(name,
+										"",
+										Symbol::PDST_MODULE,
+										Symbol::SL_GLOBAL,
+										sym_addr,
+										false);
+			}
+		}
+		else if( syms[v].StorageClass == IMAGE_SYM_CLASS_LABEL )
+		{
+			// the record is a label
+
+			// check whether the label indicates that the
+			// module was compiled by gcc
+			if( (name == "gcc2_compiled.") || (name == "___gnu_compiled_c") )
+			{
+				gcc_compiled = true;
+			}
+		}
+		else if(( (syms[v].StorageClass != IMAGE_SYM_CLASS_TYPE_DEFINITION)
+					&& ISFCN(syms[v].Type))
+				|| (gcc_compiled &&
+					(name == "__exit" || name == "_exit" || name == "exit")))
+		{
+			// the record represents a "type" (including functions)
+			
+			// the test for gcc and the exit variants is a kludge
+			// to work around our difficulties in parsing the CygWin32 DLL
+			sym_addr = (gcc_compiled ?
+                        syms[v].Value :
+                        baseAddr + syms[v].Value);
+
+			if( syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL )
+			{
+				allSymbols += Symbol(name,
+                                    "DEFAULT_MODULE",
+                                    Symbol::PDST_FUNCTION,
+				                    Symbol::SL_GLOBAL,
+                                    sym_addr,
+                                    false);
+			}
+			else
+			{
+				allSymbols += Symbol(name,
+                                    "DEFAULT_MODULE",
+                                    Symbol::PDST_FUNCTION,
+			                    	Symbol::SL_LOCAL,
+                                    sym_addr,
+                                    false);
+			}
+
+			// skip any auxiliary records with the function
+			v += syms[v].NumberOfAuxSymbols;
+		}
+		else if( syms[v].SectionNumber > 0 )
+		{
+			// the record represents a variable (?)
+
+			// determine the address to associate with the symbol
+			sym_addr = (gcc_compiled ?
+                        syms[v].Value :
+                        baseAddr + syms[v].Value );
+
+			if( name != ".text" )
+			{
+				if (syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL)
+				{
+					allSymbols += Symbol(name,
+                                        "DEFAULT_MODULE",
+                                        Symbol::PDST_OBJECT,
+										Symbol::SL_GLOBAL,
+										sym_addr,
+                                        false);
+				}
+				else
+				{
+					allSymbols += Symbol(name,
+                                        "DEFAULT_MODULE",
+                                        Symbol::PDST_OBJECT,
+										Symbol::SL_LOCAL,
+										sym_addr,
+                                        false);
+				}
+			}
+			else
+			{
+				// we processed the .text record when we saw
+				// its corresponding .file record - skip it
+			}
+
+			// skip any auxiliary records
+			v += syms[v].NumberOfAuxSymbols;
+		}
+		else
+		{
+			// the record is of a type that we don't care about
+			// skip it and all of its auxiliary records
+			v += syms[v].NumberOfAuxSymbols;
+		}
+
+
+	}
+
+	//
+	// now that we've seen all the symbols,
+	// we need to post-process them into something usable
+	//
+
+	// add an extra symbol to mark the end of the text segment
+	allSymbols += Symbol("",
+					"DEFAULT_MODULE",
+					Symbol::PDST_OBJECT,
+					Symbol::SL_GLOBAL, 
+					code_off_ + code_len_ * sizeof(Word),
+					false);
+
+    // Sort the symbols on address to find the function boundaries
+    allSymbols.sort(symbol_compare);
+
+	// find the function boundaries
+	for( u = 0; u < allSymbols.size(); u++ )
+	{
+		unsigned int size = 0;
+		if( allSymbols[u].type() == Symbol::PDST_FUNCTION )
+		{
+			// find the function boundary
+			v = u+1;
+			while(v < allSymbols.size())
+			{
+				// The .ef below is a special symbol that gcc puts in to
+				// mark the end of a function.
+				if(allSymbols[v].addr() != allSymbols[u].addr() &&
+					(allSymbols[v].type() == Symbol::PDST_FUNCTION ||
+					allSymbols[v].name() == ".ef"))
+				{
+					break;
+				}
+				v++;
+			}
+			if(v < allSymbols.size())
+			{
+				size = (unsigned)allSymbols[v].addr() 
+						- (unsigned)allSymbols[u].addr();
+			}
+			else
+			{
+				size = (unsigned)(code_off_ + code_len_*sizeof(Word))
+						 - (unsigned)allSymbols[u].addr();
+			}
+		}
+
+		// save the information about this symbol
+		if(allSymbols[u].name() != "")
+		{
+			symbols_[allSymbols[u].name()] =
+				Symbol(allSymbols[u].name(), 
+					isDll ? allSymbols[u].module() : "DEFAULT_MODULE", 
+					allSymbols[u].type(), allSymbols[u].linkage(),
+					allSymbols[u].addr(), allSymbols[u].kludge(),
+					size);
+		}
+	}
+}
+
+
+
+
+string
+Object::FindName( const char* stringTable, const IMAGE_SYMBOL& sym )
+{
+	string name;
+
+	if (sym.N.Name.Short != 0) {
+		char sname[9];
+		strncpy(sname, (char *)(&sym.N.ShortName), 8);
+		sname[8] = 0;
+		name = sname;
+	} else {
+		name = stringTable + sym.N.Name.Long;
+	}
+
+	return name;
+}
+
+
+// compare function for vector sort of
+// CodeView modules
+int
+mod_offset_compare( const void* x, const void* y )
+{
+	const ModInfo* px = (const ModInfo*)x;
+	const ModInfo* py = (const ModInfo*)y;
+	assert( (px != NULL) && (px->pCVMod != NULL) );
+	assert( (py != NULL) && (py->pCVMod != NULL) );
+
+	// access the offset for each module
+	DWORD offTextx = 0;
+	DWORD cbTextx = 0;
+	DWORD offTexty = 0;
+	DWORD cbTexty = 0;
+	px->pCVMod->GetTextBounds( offTextx, cbTextx );
+	py->pCVMod->GetTextBounds( offTexty, cbTexty );
+
+	int ret = 0;
+	if( offTextx > offTexty )
+	{
+		ret = 1;
+	}
+	else if( offTextx < offTexty )
+	{
+		ret = -1;
+	}
+	else
+	{
+		// the offsets are equal - try our next comparison criteria
+		if( (cbTextx != 0) && (cbTexty == 0) )
+		{
+			ret = 1;
+		}
+		else if( (cbTextx == 0) && (cbTexty != 0) )
+		{
+			ret = -1;
+		}
+	}
+	
+	return ret;
+}
+
+
+
+
+// FindModuleByOffset
+// Determines the Paradyn module name
+// based on the given offset into the .text section
+static
+string
+FindModuleByOffset( unsigned int offset, const vector<PDModInfo>& pdMods )
+{
+    string retval = "";
+    unsigned int i;
+
+    // we do simple linear search on Paradyn modules
+    for( i = 0; i < pdMods.size(); i++ )
+    {
+        const PDModInfo& pdMod = pdMods[i];
+
+        if( (offset >= pdMod.offText) &&
+            (offset < pdMod.offText + pdMod.cbText) )
+        {
+            retval = pdMod.name;
+            break;
+        }
+    }
+
+    return retval;
+}
+

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.8 1999/06/08 21:06:17 csserra Exp $
+# $Id: nmake.module.tmpl,v 1.9 1999/06/17 18:35:41 pcroth Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -12,6 +12,7 @@ SRCS	     = $(SRCS) \
 		../src/aggregateSample.C \
 		../src/ByteArray.C \
 		../src/CircularBuffer.C \
+		../src/CodeView.C \
 		../src/debugOstream.C \
 		../src/Dictionary.C \
 		../src/hist.C \
@@ -19,6 +20,7 @@ SRCS	     = $(SRCS) \
 		../src/lprintf.C \
 		../src/makenan.C \
 		../src/Object.C \
+		../src/Object-nt.C \
 		../src/odometer.C \
 		../src/pathName.C \
 		../src/PriorityQueue.C \
@@ -34,6 +36,7 @@ OBJS         = $(OBJS) \
 		aggregateSample.obj \
 		ByteArray.obj \
 		CircularBuffer.obj \
+		CodeView.obj \
 		debugOstream.obj \
 		Dictionary.obj \
 		hist.obj \
@@ -41,6 +44,7 @@ OBJS         = $(OBJS) \
 		lprintf.obj \
 		makenan.obj \
 		Object.obj \
+		Object-nt.obj \
 		odometer.obj \
 		pathName.obj \
 		PriorityQueue.obj \
