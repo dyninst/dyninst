@@ -16,19 +16,24 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.60  1996/05/06 04:35:14  karavan
-/* Bug fix for asynchronous predicted cost changes.
+/* Revision 1.61  1996/05/08 07:35:15  karavan
+/* Changed enable data calls to be fully asynchronous within the performance consultant.
 /*
-/* added new function find() to template classes dictionary_hash and
-/* dictionary_lite.
+/* some changes to cost handling, with additional limit on number of outstanding enable requests.
 /*
-/* changed filteredDataServer::DataFilters to dictionary_lite
-/*
-/* changed normalized hypotheses to use activeProcesses:cf rather than
-/* activeProcesses:tlf
-/*
-/* code cleanup
-/*
+ * Revision 1.60  1996/05/06 04:35:14  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.59  1996/05/02 19:46:39  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -211,8 +216,19 @@ void PCfold(perfStreamHandle,
 void PCpredData(u_int tok, float f){
   costServer::newPredictedCostData(tok, f);			 
 }
-void PCenableDataCallback(vector<metricInstInfo> *,  u_int){
-    cout << "PCenableDataCallback: THIS SHOULD NEVER EXECUTE" << endl;
+void PCenableDataCallback(vector<metricInstInfo> *bunchostuff,  u_int phaseID)
+{
+#ifdef PCDEBUG  
+  cout << "PCenableDataCallback: phase" << phaseID << " ";
+#endif
+  filteredDataServer *rawInput = NULL;
+  if (phaseID == GlobalPhase)
+    rawInput = performanceConsultant::globalRawDataServer;
+  else if (phaseID == performanceConsultant::currentPhase)
+    rawInput = performanceConsultant::currentRawDataServer;
+  if (rawInput)
+    rawInput-> newDataEnabled(bunchostuff);
+  delete bunchostuff;
 }
 
 //
@@ -281,7 +297,7 @@ void PCphase (perfStreamHandle,
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
     cout << "NEWPH: " << phase << ":" << name << " started at:" << begin 
-	<< " width: " << bucketwidth << endl;
+	<< endl;
   }
 #endif
   // Guard here against case that no search has ever been initialized, 

@@ -20,6 +20,11 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.C,v $
+ * Revision 1.5  1996/05/08 07:35:01  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.4  1996/05/06 04:34:57  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -97,6 +102,17 @@ dataProvider::sendValue(PCmetDataID which, sampleValue newval, timeStamp begin,
   }
 }
 
+void 
+dataProvider::sendEnableReply (unsigned token1, unsigned token2, unsigned token3,
+			       bool successful)
+{
+  unsigned size = allConsumers.size();
+  for (unsigned i = 0; i < size; i++) {
+    if (allConsumers[i] != NULL)
+      (allConsumers[i])->enableReply (token1, token2, token3, successful);
+  }
+}
+  
 void 
 dataProvider::addConsumer(dataSubscriber *consumer) 
 {  

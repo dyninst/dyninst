@@ -20,6 +20,11 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.26  1996/05/08 07:35:34  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.25  1996/05/06 04:35:29  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -164,7 +169,7 @@ public:
   void expand();
   bool alreadyExpanded() {return expanded;}
   bool setupExperiment();
-  bool startExperiment(); 
+  void startExperiment(); 
   void stopExperiment();
   unsigned getNodeId() {return nodeID;}
   void getInfo (shg_node_info *theInfo);
@@ -172,6 +177,7 @@ public:
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
   void estimatedCostNotification(); 
+  void enableReply (bool);
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);

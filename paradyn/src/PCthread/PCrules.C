@@ -21,6 +21,11 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.36  1996/05/08 07:35:23  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.35  1996/05/06 04:35:23  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -218,7 +223,7 @@ void initPCmetrics()
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs3[0].mname = "smooth_obs_cost";
+  specs3[0].mname = "observed_cost";
   specs3[0].whichFocus = tlf;
   specs3[0].ft = nonfiltering;
   specs3[1].mname = "number_of_cpus";

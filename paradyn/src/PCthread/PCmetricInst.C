@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.11  1996/05/08 07:35:17  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.10  1996/05/06 04:35:16  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -158,7 +163,7 @@ PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f,
 			    filteredDataServer *db, bool *err):
 foc(f), met(pcMet), currentValue(0.0), costEstimate(0.0), 
 numCostEstimates(0), startTime(-1), endTime(0.0),
-totalTime (0.0), AllDataReady(0), DataStatus(0), AllCurrentValues(NULL), 
+totalTime (0.0), AllDataReady(0), EnableStatus(0), DataStatus(0), AllCurrentValues(NULL), 
 TimesAligned(0), active(false), costFlag(*err), db(db)
 {
   assert (pcMet);
@@ -194,7 +199,7 @@ TimesAligned(0), active(false), costFlag(*err), db(db)
     newRec.portID = j+pauseOffset;
     AllData += newRec;
   }
-
+//** future feature
 //  if (pcMet->setup != NULL)
 //    pcMet->setup(foc);
 }
@@ -207,53 +212,65 @@ PCmetricInst::getEstimatedCost()
     costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
   }
 }
+void 
+PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
+				bool successful)
+{
+  if (EnableStatus == AllDataReady)
+    // this is a duplicate; drop it on the floor
+    return;
 
-bool
+  if (successful) {
+    for (unsigned i = 0; i < AllData.size(); i++) {
+      if ((AllData[i].met == (metricHandle)token1) && 
+	  (AllData[i].foc == (focus)token2)) {
+	setEnableReady(i);
+	AllData[i].mih = (metricInstanceHandle)token3;
+	break;
+      }
+    }
+    if (EnableStatus == AllDataReady) {
+      sendEnableReply (0, 0, 0, true);
+      active = true;
+    }
+  } else {
+    // ** need to cancel other subscriptions!
+    sendEnableReply (0, 0, 0, false);
+  }
+}
+
+void
 PCmetricInst::activate()
 {
-  if (active)
-    return true;
+  if (active) return;
 
   inPort *curr;
-  bool err = costFlag;
   unsigned nextPortId = 0;
   AllDataReady = 0;
-  int newnumPorts = numInPorts;
-  int i, j;
-  for (i = 0, j = 0; i < numInPorts; i++) {
-    curr = &(AllData[j]);
-    curr->mih = db->addSubscription (this, curr->met, curr->foc, 
-				     curr->ft, &err); 
-    if (err) {
-      for (int m = 0; m < j; m++) {
-	db->endSubscription (this, AllData[m].mih);
-      }
-      return false;
-      // ** this must change when metrics using eg "all children" 
-      // ** are implemented, to simply eliminate the single unsubscribable
-      // ** met-focus pair
-      // delete curr;
-      // for (int k = j+1; k < newnumPorts; k++) {
-      // AllData[k-1] = AllData[k];
-      // }
-      // --newnumPorts;
-      // AllData.resize(newnumPorts); 
-    } else {
-      j++;
-      AllDataReady = (AllDataReady << 1) | 1;
-      curr->portID = nextPortId++;
-    }
+  // important!!! AllDataReady must be complete before we enter the 
+  // second for loop.  Why?  it may be tested as part of call to 
+  // db->addSubscription.
+  for (int j = 0; j < numInPorts; j++) {
+    AllDataReady = (AllDataReady << 1) | 1;
   }
-  numInPorts = newnumPorts;
-  if (newnumPorts == 0)
-    return false;
+  for (int i = 0; i < numInPorts; i++) {
+    curr = &(AllData[i]);
+    curr->portID = nextPortId++;
+    db->addSubscription (this, curr->met, curr->foc, curr->ft, 
+				    costFlag); 
+    // ** this must change when metrics using eg "all children" 
+    // ** are implemented, to simply eliminate the single unsubscribable
+    // ** met-focus pair
+    //if (newnumPorts == 0) {
+    //sendEnableReply (0, 0, 0, false);
+    //return; }
+  }
   if (AllCurrentValues != NULL) 
     delete AllCurrentValues;
   AllCurrentValues = new sampleValue[numInPorts];
-  for (int k = 0; k < numInPorts; k++)
+  for (int k = 0; k < numInPorts; k++) {
     AllCurrentValues[k] = 0.0;
-  active = true;
-  return true;
+  }
 }
 
 void
@@ -284,6 +301,19 @@ PCmetricInst::clearDataReady (int portnum)
 }
 
 void
+PCmetricInst::setEnableReady (int portnum)
+{
+  unsigned mask = 1 << portnum;
+  EnableStatus = EnableStatus | mask;
+}
+void 
+PCmetricInst::clearEnableReady (int portnum)
+{
+  unsigned mask = 1 << portnum;
+  EnableStatus = EnableStatus ^ mask;
+}
+
+void
 PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal, 
 		       timeStamp start, timeStamp end, sampleValue)
 {
@@ -307,6 +337,9 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
       found = true;
       break;
     }
+  if (!found) {
+    bool notfound = true;
+  }
   assert (found);
 
   // update data ready
@@ -453,37 +486,7 @@ PCmetricInstServer::~PCmetricInstServer ()
   delete datasource;
 }
 
-/*
-PCmetInstHandle 
-PCmetricInstServer::addPersistentMI (PCmetric *pcm,
-				     focus f,
-				     bool *errFlag)
-{
-  PCmetricInst *newsub = NULL;
-  // PCmetric instance may already exist
-  
-  PCMRec *curr, newkid;
-  unsigned sz = AllData.size();
-  for (unsigned i = 0; i < sz; i++) {
-    curr = &(AllData[i]);
-    if ((curr->f == f) && (curr->pcm == pcm)) {
-      newsub = curr->pcmi;
-      break;
-    }
-  }
-  if (newsub == NULL) {
-    newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-
-    newkid.pcm = pcm;
-    newkid.f = f;
-    newkid.pcmi = newsub;
-    AllData += curr;
-  }
-  return (PCmetInstHandle) newsub;
-}
-*/
-
-PCmetInstHandle 
+PCmetInstHandle
 PCmetricInstServer::addSubscription(dataSubscriber *sub,
 				    PCmetric *pcm,
 				    focus f,
@@ -501,10 +504,7 @@ PCmetricInstServer::addSubscription(dataSubscriber *sub,
   }
   if (newsub == NULL) {
     newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-    PCMRec tmpRec;
-    tmpRec.pcm = pcm;
-    tmpRec.f = f;
-    tmpRec.pcmi = newsub;
+    PCMRec tmpRec (pcm, f, newsub);
     AllData += tmpRec;
   }
   newsub->addConsumer(sub);

@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.8  1996/05/08 07:35:19  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.7  1996/05/06 04:35:18  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -100,16 +105,19 @@
 typedef circularBuffer<Interval, PCdataQSize> dataQ;
 typedef PCmetricInst* PCmetInstHandle;
 class experiment;
+class PCmetricInst;
 
-typedef struct {
+class inPort {
+  friend class PCmetricInst;
+  friend ostream& operator <<(ostream &os, PCmetricInst &pcm);
+private:
   unsigned portID;
   metricInstanceHandle mih;
   metricHandle met;
   focus foc;
   filterType ft;
   dataQ indataQ;
-} inPortStruct;
-typedef struct inPortStruct inPort;
+};
 
 class PCmetricInst;
 
@@ -128,11 +136,9 @@ public:
   // result via a call to updateEstimatedCost() 
   void getEstimatedCost();
 
-  // returns false if no dm data was subscribed; true otherwise.
-  // at the current time, we simply try to subscribe to all data, and 
-  // return if any succeed.  
-  // ** separate essential from nonessential metrics and t/f based on that.
-  bool activate();
+  // at the current time, we simply try to subscribe to all data
+  // future work: separate essential from nonessential metrics and t/f based on that.
+  void activate();
 
   // end subscriptions to all filtered data for this PCmetricInst, 
   // but we don't kill it entirely, so we can always reactivate it by 
@@ -149,12 +155,16 @@ public:
       if (numCostEstimates == numInPorts)
 	sendUpdatedEstimatedCost(costDiff);
     }
+  void enableReply (unsigned token1, unsigned token2, unsigned token3,
+		    bool successful);
   void addSubscription(dataSubscriber *sub) 
     { addConsumer(sub); }
 private:
   bool alignTimes();
   void setDataReady(int portNum);
   void clearDataReady (int portNum);
+  void setEnableReady(int portNum);
+  void clearEnableReady(int portNum);
 
   focus foc;
   PCmetric *met;
@@ -166,6 +176,7 @@ private:
   timeStamp totalTime;    // sum of time over which value is collected
                           //  (may not be contiguous)
   unsigned AllDataReady;  // compare this with DataStatus mask for all data in
+  unsigned EnableStatus; // compare with AllDataReady to see when all ports enabled 
   unsigned DataStatus;    // updated by data arriving on each port
   int numInPorts;       // how many IN ports?
   vector<inPort> AllData;
@@ -178,12 +189,17 @@ private:
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm);
 
-struct PCMRec {
+class PCMRec {
+  friend class PCmetricInstServer;
+public:
+  PCMRec(): pcm(NULL), f(0), pcmi(NULL){;}
+  PCMRec (PCMRec &from) : pcm(from.pcm), f(from.f), pcmi(from.pcmi){;}
+private:
+  PCMRec (PCmetric *pp, focus ff, PCmetricInst *ii) : pcm(pp), f(ff), pcmi(ii) {;} 
   PCmetric *pcm;
   focus f;
   PCmetricInst *pcmi;
 };
-typedef struct PCMRec PCMRec;
 
 class PCmetricInstServer {
  public:
@@ -197,9 +213,6 @@ class PCmetricInstServer {
 
   void endSubscription(dataSubscriber *sub, PCmetInstHandle id);
   // data
-  PCmetInstHandle addPersistentMI (PCmetric *pcm,
-				   focus f,
-				   bool *errFlag);
   void unsubscribeAllRawData()
     { datasource->unsubscribeAllData(); }
   void resubscribeAllRawData()

@@ -20,6 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.45  1996/05/08 07:35:32  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.44  1996/05/02 19:46:52  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -221,21 +226,32 @@ searchHistoryNode::setupExperiment()
   return  (! ((exp == NULL) || errFlag));
 }
 
-bool 
+void
 searchHistoryNode::startExperiment()
 {
   assert (exp);
-  if (active) return false;
-  // check here for true path to root; parent status may have changed
-  // while this node was waiting on the Ready Queue
-  if (numTrueParents < 1) return false;
-  if (exp->start()) {
+  if (!active && (numTrueParents >= 1)) 
+    // check here for true path to root; parent status may have changed
+    // while this node was waiting on the Ready Queue
+    exp->start();
+}
+
+void 
+searchHistoryNode::enableReply (bool successful)
+{
+  if (successful) {
     changeActive(true);
     PCsearch::incrNumActiveExperiments();
-    return true;
+#ifdef PCDEBUG
+    cout << "experiment started for node: " << nodeID << endl;
+#endif
   } else {
-    return false;
+#ifdef PCDEBUG
+    cout << "unable to start experiment for node: " << nodeID << endl;
+#endif
   }
+  PCsearch::clearPendingCost(getEstimatedCost());
+  PCsearch::decrNumPendingSearches();
 }
 
 void 
@@ -578,6 +594,10 @@ searchHistoryNode::getInfo (shg_node_info *theInfo)
 void 
 searchHistoryNode::estimatedCostNotification() 
 {
+#ifdef PCDEBUG
+  cout << "Cost Received for Node " << name << endl;
+  cout << " in phase " << mamaGraph->guiToken << endl;
+#endif
   if (!active) {
     //** this will be replaced with more rational priority calculation
     if (axis == refineWhyAxis)
@@ -711,17 +731,7 @@ searchHistoryGraph::initPersistentNodes()
 		       &nodeAdded);
     nodeptr->addNodeToDisplay();
     nodeptr->addEdgeToDisplay(root->getNodeId(), (char *)NULL);
-
-    // note: at this point no experiment has been started for this search.
-    // addNode puts these on the ready queue, but the ready queue is only 
-    // checked when new data arrives from the data manager, so its a chicken
-    // and egg deal.  We go ahead and start the experiments here; when these
-    // nodes are removed from the queue, there will be an extra call to start
-    // them which will have no effect.  We reset numActiveExperiments to 
-    // 0, when they come off the ready queue numActiveExperiments will be 
-    // bumped back up.
-
-    nodeptr->startExperiment();
   }
   delete topmost;
 }
+

@@ -20,6 +20,11 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.8  1996/05/08 07:35:27  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.7  1996/04/30 06:26:44  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -120,7 +125,9 @@ public:
   static int getNumActiveExperiments() {return numActiveExperiments;}
   static void incrNumActiveExperiments() {numActiveExperiments++;}
   static void decrNumActiveExperiments() {numActiveExperiments--;}
+  static void decrNumPendingSearches() {PendingSearches--;}
   static void initCostTracker();
+  static void clearPendingCost(float val) { PendingCost -= val; }
 private:
   schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search
@@ -131,6 +138,8 @@ private:
   static unsigned PCactiveCurrentPhase;
   static int numActiveExperiments;
   static costModule *costTracker;
+  static float PendingCost;
+  static int PendingSearches;
   static PriorityQueue<SearchQKey, searchHistoryNode*> GlobalSearchQueue;
   static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
   static bool CurrentSearchPaused;
@@ -152,6 +161,7 @@ class costModule : public dataSubscriber
 	PCsearch::expandSearch(newVal);
     }
   void updateEstimatedCost(float) {;}
+  void enableReply(unsigned, unsigned, unsigned, bool) {;}
   PCmetInstHandle costFilter;
 };
 

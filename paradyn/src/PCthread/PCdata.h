@@ -20,6 +20,11 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.h,v $
+ * Revision 1.2  1996/05/08 07:35:05  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.1  1996/02/02 02:07:21  karavan
  * A baby Performance Consultant is born!
  *
@@ -49,6 +54,7 @@ class dataSubscriber {
   virtual void newData(PCmetDataID, sampleValue, timeStamp, timeStamp, 
 		       sampleValue) = 0; 
   virtual void updateEstimatedCost(float) = 0;
+  virtual void enableReply (unsigned, unsigned, unsigned, bool) = 0;
 };
 
 class dataProvider {
@@ -60,6 +66,7 @@ public:
   // returns remaining number of subscribers after deletion
   int rmConsumer(dataSubscriber*);
   void sendValue(PCmetDataID, sampleValue, timeStamp, timeStamp, sampleValue);
+  void sendEnableReply (unsigned, unsigned, unsigned, bool);
 protected:
   void sendUpdatedEstimatedCost(float costDiff);
   vector<dataSubscriber*> allConsumers;

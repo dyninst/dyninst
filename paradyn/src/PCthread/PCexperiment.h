@@ -20,6 +20,11 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.4  1996/05/08 07:35:09  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.3  1996/05/02 19:46:31  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -97,8 +102,10 @@ class experiment : public dataSubscriber
   float getEstimatedCost() {return estimatedCost;}
   //
   // this call invoked by PCmetricInst to notify experiment of new 
-  // value  
+  // values  
   void newData(PCmetDataID, float, double, double, float);
+  void enableReply (unsigned token1, unsigned token2, unsigned token3,
+		    bool successful);
   //
   // return cost value either in response to initialization async request
   // or when a resource update has resulted in a change to the specific 

@@ -21,6 +21,11 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.37  1996/05/08 07:35:21  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.36  1996/05/06 04:35:20  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -135,7 +140,7 @@ void
 performanceConsultant::endSearch(unsigned)
 {
 #ifdef PCDEBUG
-  cout << "end search requested for phaseID = " << phaseID << endl;
+  cout << "end search requested" << endl;
 #endif
 }
 

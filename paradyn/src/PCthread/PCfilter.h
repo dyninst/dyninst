@@ -21,6 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.7  1996/05/08 07:35:13  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.6  1996/05/06 04:35:10  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -117,9 +122,10 @@ typedef resourceListHandle focus;
 class filter : public dataProvider
 {
   friend ostream& operator <<(ostream &os, filter& f);
+  friend class filteredDataServer;
  public:
   filter(filteredDataServer *keeper,  
-	 metricInstanceHandle mih, metricHandle met, focus focs,
+	 metricHandle met, focus focs,
 	 bool costFlag);
   ~filter() { ; }  
   // all processing for a fresh hunk of raw data
@@ -172,9 +178,9 @@ class avgFilter : public filter
 {
 public:
   avgFilter(filteredDataServer *keeper,  
-	    metricInstanceHandle mih, metricHandle met, focus focs,
+	    metricHandle met, focus focs,
 	    bool costFlag):
-	      filter(keeper, mih, met, focs, costFlag) {;}
+	      filter(keeper, met, focs, costFlag) {;}
   ~avgFilter(){;}
   // all processing for a fresh hunk of raw data
   void newData(sampleValue newVal, timeStamp start, timeStamp end);
@@ -188,20 +194,12 @@ class valFilter : public filter
 {
 public:
   valFilter(filteredDataServer *keeper,  
-	 metricInstanceHandle mih, metricHandle met, focus focs,
+	 metricHandle met, focus focs,
 	 bool costFlag):
-	   filter(keeper, mih, met, focs, costFlag) {;}
+	   filter(keeper, met, focs, costFlag) {;}
   ~valFilter() {;}
   // all processing for a fresh hunk of raw data
   void newData(sampleValue newVal, timeStamp start, timeStamp end);
-};
-
-class filterIndex;
-class mfpair {
-  friend class filterIndex;
- private:
-  metricInstanceHandle m;
-  filter *f;
 };
 
 //**
@@ -212,6 +210,18 @@ class ff {
 private:
   focus f;
   fdsDataID mih;
+};
+
+class fmf {
+  friend class filteredDataServer;
+public:
+  fmf (const fmf &from): f(from.f), mh(from.mh), fil(from.fil) {;}
+  fmf (): f(0), mh(0), fil(NULL){;}
+  fmf (metricHandle met, focus foc, filter *f) : f(foc), mh(met), fil(f) {;}
+private:
+  focus f;
+  metricHandle mh;
+  filter *fil;
 };
 
 // contains variable number of filters; maintains subscribers to each
@@ -225,20 +235,28 @@ public:
   filteredDataServer(unsigned phID);
   ~filteredDataServer();
   // interface to subscribers (provider role)
-  fdsDataID addSubscription(fdsSubscriber sub,
+  void addSubscription(fdsSubscriber sub,
 			    metricHandle mh,
 			    focus f,
 			    filterType ft,
-			    bool *errFlag);
+			    bool costFlag);
   void endSubscription(fdsSubscriber sub, fdsDataID subID);
   void unsubscribeAllData();
   void resubscribeAllData();
+  void makeEnableDataRequest (metricHandle met, focus foc);
+
   // interface to raw data source (consumer role)
   void newBinSize(timeStamp newSize);
   void newData(metricInstanceHandle mih, sampleValue value, int bin);
+  void newDataEnabled(vector<metricInstInfo>* newlyEnabled);
   // 
   timeStamp getCurrentBinSize () {return currentBinSize;}
+  unsigned getPCphaseID () {
+    if (phType == CurrentPhase) return dmPhaseID+1;
+    else return 0;
+  }
  private:
+  void printPendings(); 
   static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
   // size of dm histogram bucket; used to convert data bin number into interval
   timeStamp currentBinSize;  
@@ -253,6 +271,7 @@ public:
   dictionary_lite<fdsDataID, filter*>DataFilters;
   vector<ff> miIndex [NumMetrics];
   vector<filter*> AllDataFilters;
+  vector<fmf> Pendings;
 };
 
 #endif

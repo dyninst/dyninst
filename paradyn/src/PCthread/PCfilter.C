@@ -21,10 +21,12 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.20  1996/05/06 17:12:40  newhall
- * changed arguments to EnableDataRequest2, commented out debug output
+ * Revision 1.21  1996/05/08 07:35:11  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
- * Revision 1.19  1996/05/06  04:35:07  karavan
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
+ * Revision 1.19  1996/05/06 04:35:07  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
  * added new function find() to template classes dictionary_hash and
@@ -168,11 +170,11 @@ ostream& operator <<(ostream &os, filter& f)
 }
 
 filter::filter(filteredDataServer *keeper, 
-	       metricInstanceHandle mih, metricHandle met, focus focs, 
+	       metricHandle met, focus focs, 
 	       bool cf) 
 : intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
-  workingInterval(0), mi(mih), metric(met), foc (focs), 
+  workingInterval(0), mi(0), metric(met), foc (focs), 
   costFlag(cf), server(keeper)
 {
   ;
@@ -449,101 +451,20 @@ filteredDataServer::newBinSize (timeStamp bs)
     intervalSize = bs;
 }
 
-metricInstanceHandle *DMenableDataRequestAsync (perfStreamHandle ps_handle,
-					       u_int request_Id,
-					       metricHandle met,
-					       focus foc,
-					       phaseType type,
-					       u_int phaseId,
-					       u_int persistent_data,
-					       u_int persistent_collection)
-{
-  vector<metricRLType> *request = new vector<metricRLType>;
-  metricRLType request_entry(met, foc);
-  *request += request_entry;
-  assert(request->size() == 1);
-  metricInstanceHandle *curr = NULL;
-
-  // make async request to enable data
-  dataMgr->enableDataRequest2(ps_handle, request, request_Id,
-			      type, phaseId, persistent_data,
-			      persistent_collection,0);
-  
-  // KLUDGE wait for DM's async response
-  bool ready=false;
-  vector<metricInstInfo> *response= 0;
-  // wait for response from DM
-  while(!ready){
-    T_dataManager::msg_buf buffer; 
-    T_dataManager::message_tags waitTag;
-    tag_t tag = T_dataManager::enableDataCallback_REQ;
-    int from = msg_poll(&tag, true);
-    assert(from != THR_ERR);
-    if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-      waitTag = dataMgr->waitLoop(true,
-				  (T_dataManager::message_tags)tag,&buffer);
-      if(waitTag == T_dataManager::enableDataCallback_REQ){
-	ready = true;
-	response = buffer.enableDataCallback_call.response;
-	buffer.enableDataCallback_call.response = 0;
-      }
-      else {
-	cout << "error PC wait data enable resp:tag invalid" << endl;
-	assert(0);
-      }
-    }
-    else{
-      cout << "error PC wait data enable resp:tag invalid" << endl;
-      assert(0);
-    }
-  } // while(!ready)
-
-  // if this MI was successfully enabled
-  if(response && response->size() && (*response)[0].successfully_enabled) {
-    curr = new metricInstanceHandle;
-    *curr = (*response)[0].mi_id; 
-  }
-  delete response;
-  response = 0;
-  // cout << "enable REPLY for m=" << met << " f=" << foc << endl;
-  return curr;
-}
-
 //
 // restart PC after PC-pause (not application-level pause)
 //
 void
 filteredDataServer::resubscribeAllData() 
 {
-  metricInstanceHandle *curr;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-
-#ifdef MYPCDEBUG
-      double t1,t2;
-      t1=TESTgetTime(); 
-#endif
-
-      curr = DMenableDataRequestAsync (performanceConsultant::pstream, 0, 
-				       AllDataFilters[i]->getMetric(),
-				       AllDataFilters[i]->getFocus(), 
-				       phType, dmPhaseID, 1, 0);
-#ifdef MYPCDEBUG
-      // -------------------------- PCDEBUG ------------------
-      t2=TESTgetTime();
-      enableTotTime += t2-t1;
-      enableCounter++;
-      if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
-      if (performanceConsultant::collectInstrTimings) {
-        if ((t2-t1) > 1.0) 
-	  printf("=-=-=-=> PCfilter 1, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime); 
-      }
-      // -------------------------- PCDEBUG ------------------
-#endif
-      delete curr;
+      makeEnableDataRequest (AllDataFilters[i]->getMetric(),
+			     AllDataFilters[i]->getFocus());
     }
   }
 }
+
 
 //
 // stop all data flow to PC for a PC-pause
@@ -553,21 +474,8 @@ filteredDataServer::unsubscribeAllData()
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-#ifdef MYPCDEBUG
-      double t1,t2;
-      t1=TESTgetTime(); 
-#endif
       dataMgr->disableDataCollection(performanceConsultant::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
-#ifdef MYPCDEBUG
-      // -------------------------- PCDEBUG ------------------
-      t2=TESTgetTime();
-      if (performanceConsultant::collectInstrTimings) {
-        if ((t2-t1) > 1.0) 
-	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
-      }
-      // -------------------------- PCDEBUG ------------------
-#endif
     }
   }
 }
@@ -583,24 +491,101 @@ filteredDataServer::~filteredDataServer ()
   }
 }
 
-fdsDataID
+void
+filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
+{
+  //** cache focus name here??
+  filter *curr = NULL;
+  metricInstInfo *miicurr;
+  for (unsigned i = 0; i < newlyEnabled->size(); i++) {
+    miicurr = &((*newlyEnabled)[i]);
+#ifdef PCDEBUG
+    cout << "enable REPLY for m=" << miicurr->m_id << " f=" << miicurr->r_id << endl;
+#endif
+    bool beenEnabled = DataFilters.find(miicurr->mi_id, curr);
+    if (beenEnabled) {
+      // ** clear out Pendings record??
+      assert(curr);
+      curr->sendEnableReply(miicurr->mi_id, miicurr->r_id, miicurr->mi_id, 
+			    miicurr->successfully_enabled);
+    } else {
+      // first time this met/foc pair enabled by the PC
+      for (unsigned j = 0; j < Pendings.size(); j++) {
+	if ((Pendings[j].mh == miicurr->m_id) && (Pendings[j].f == miicurr->r_id)
+	    && Pendings[j].fil) {
+	  curr = Pendings[j].fil;
+	  // clear out this record for reuse
+	  Pendings[j].fil = NULL;
+	  Pendings[j].mh = 0;
+	  Pendings[j].f = 0;
+	  if (miicurr->successfully_enabled) {
+	    curr->mi = miicurr->mi_id;
+	    AllDataFilters += curr;
+	    DataFilters[(fdsDataID) curr->mi] = curr;
+	    ff tempff;
+	    tempff.f = curr->foc;
+	    tempff.mih = curr->mi;
+	    miIndex[curr->metric] += tempff;
+	    curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
+	  } else { 
+	    // enable failed and it has never succeeded; trash this filter
+	    curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 0, false);
+	    delete curr;
+	  }
+	  break;
+	}
+      }  // for j < Pendings.size()
+    }
+  }
+}
+	
+void 
+filteredDataServer::makeEnableDataRequest (metricHandle met,
+					   focus foc)
+{
+  vector<metricRLType> *request = new vector<metricRLType>;
+  metricRLType request_entry(met, foc);
+  *request += request_entry;
+  assert(request->size() == 1);
+  
+  // make async request to enable data
+  unsigned myPhaseID = getPCphaseID();
+  dataMgr->enableDataRequest2(performanceConsultant::pstream, request, myPhaseID,
+			      phType, dmPhaseID, 1, 0, 0);
+}
+
+void
+filteredDataServer::printPendings() 
+{
+  cout << "Pending Enables:" << endl;
+  cout << "=============== " << endl;
+  for (unsigned k = 0; k < Pendings.size(); k++) {
+    if (Pendings[k].fil) {
+      cout << " mh:" << Pendings[k].mh << " f:" << Pendings[k].f << endl;
+      if (Pendings[k].fil == NULL)
+	cout << " fil = NULL" << endl;
+      else 
+	cout << " fill non-NULL" << endl;
+    }
+  }
+}
+
+
+void
 filteredDataServer::addSubscription(fdsSubscriber sub,
 				    metricHandle mh,
 				    focus f,
 				    filterType ft,
-				    bool *flag)
+				    bool flag)
 {
   filter *subfilter;
   fdsDataID index;
-  metricInstanceHandle *curr;
-#ifdef MYPCDEBUG
-  double t1,t2;
-  t1=TESTgetTime(); 
-#endif
-
   bool found = false;
+  bool roomAtTheInn = false;
   unsigned sz = (miIndex[mh]).size();
-  for (unsigned i = 0; i < sz; i++)
+
+  // is there already a filter for this met/focus pair?
+  for (unsigned i = 0; i < sz; i++) {
     if ((miIndex[mh])[i].f == f) {
       index = (miIndex[mh])[i].mih;
       found = DataFilters.find(index, subfilter);
@@ -608,55 +593,56 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
       if (flag) subfilter->setcostFlag();
       break;
     }
-  if (!found) {
-    curr = DMenableDataRequestAsync (performanceConsultant::pstream, 0, 
-				     mh, f, phType, dmPhaseID, 1, 0);
-#ifdef MYPCDEBUG
-  t2=TESTgetTime();
-  enableTotTime += t2-t1;
-  enableCounter++;
-  if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
-#endif
-
-    if (curr == NULL) {
-      // unable to collect this data
-      *flag = true;
-      return 0;
-    }
-    index = *curr;
-    delete curr;
-    if (ft == nonfiltering)
-      subfilter = new valFilter (this, index, mh, f, *flag);
-    else
-      subfilter = new avgFilter (this, index, mh, f, *flag);
-    AllDataFilters += subfilter;
-    DataFilters[(fdsDataID) index] = subfilter;
-    ff tempff;
-    tempff.f = f;
-    tempff.mih = index;
-    miIndex[mh] += tempff;
   }
+  if (found) {
+    // add subscriber to filter, which already exists
+    //** check if active!!!
+    subfilter->addConsumer (sub);
+    subfilter->sendEnableReply(mh, f, index, true); 
+    return;
+  } 
 
-  // add subscriber
-  subfilter->addConsumer (sub);
+  // is there already a pending request for this filter?
+  //**
+#ifdef PCDEBUG
+  printPendings();
+#endif
+  for (unsigned k = 0; k < Pendings.size(); k++) {
+    if ((Pendings[k].mh == mh) && (Pendings[k].f == f) && Pendings[k].fil) {
+      subfilter = Pendings[k].fil;
+      subfilter->addConsumer(sub);
+      return;
+    }
+  }
+ 
+  // construct filter for this met focus pair
+  if (ft == nonfiltering)
+    subfilter = new valFilter (this, mh, f, flag);
+  else
+    subfilter = new avgFilter (this, mh, f, flag);
+  subfilter->addConsumer(sub);
+
+  // record the dm enable request
+  fmf newPending (mh, f, subfilter);
+  for (unsigned j = 0; j < Pendings.size(); j++) {
+    if (Pendings[j].fil == NULL) {
+      Pendings[j] = newPending;
+      roomAtTheInn = true;
+      break;
+    }
+  }
+  if (!roomAtTheInn) {
+    Pendings += newPending;
+  }
+  makeEnableDataRequest (mh, f);
 #ifdef PCDEBUG
   // ---------------------  debug printing ----------------------------
   if (performanceConsultant::printDataCollection) {
-    cout << "FDS: " << sub << " subscribed to " << index << " met=" 
-      << dataMgr->getMetricNameFromMI(index) << " methandle=" << mh << endl
-	<< "foc=" << dataMgr->getFocusNameFromMI(index) << endl;
+    cout << "FDS: " << sub << " subscribed to " << index << " met= " 
+      << " methandle=" << mh << endl
+	<< "foc= " << "fochandle=" << f << endl;
   }
 #endif
-
-#ifdef MYPCDEBUG
-  if (performanceConsultant::collectInstrTimings) {
-    if ((t2-t1) > 1.0) 
-      printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(index),dataMgr->getFocusNameFromMI(index)); 
-  }
-  // ---------------------  debug printing  ----------------------------
-#endif
-  *flag = false;
-  return index;
 }
 
 // all filters live until end of Search, although no subscribers may remain
@@ -673,17 +659,8 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   if (!fndflag) return;
   subsLeft = curr->rmConsumer(sub);
   if (subsLeft == 0) {
-#ifdef MYPCDEBUG
-    double t1,t2;
-    t1=TESTgetTime();
-#endif
     dataMgr->clearPersistentData(subID);
     dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
-#ifdef MYPCDEBUG
-    t2=TESTgetTime();
-    if ((t2-t1) > 1.0) 
-      printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
-#endif
   }
 #ifdef PCDEBUG
   // debug printing
@@ -700,7 +677,7 @@ filteredDataServer::newData (metricInstanceHandle mih,
 			     int bucketNumber)
 {
   filter *curr;
-  bool fndflag = DataFilters.find((fdsDataID)mih, curr);
+  bool fndflag = DataFilters.find(mih, curr);
   if (fndflag) {
     // convert data to start and end based on bin
     timeStamp start = currentBinSize * bucketNumber;

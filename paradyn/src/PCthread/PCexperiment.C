@@ -20,6 +20,11 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.9  1996/05/08 07:35:07  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.8  1996/05/06 04:35:04  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -289,22 +294,11 @@ experiment::~experiment()
 bool
 experiment::start()
 {
+  if (status) return true;
   assert(pcmih);
-  if (status)
-    return true;
-  if (pcmih->activate()) {
-    status = true;
-#ifdef PCDEBUG
-    // debug printing
-    if (performanceConsultant::printDataTrace) {
-      cout << "EXP started:" << endl;
-      cout << *pcmih << endl;
-    }
-#endif
-    return true;
-  } else {
-    return false;
-  }
+  pcmih->activate();
+  //** need to distinguish here if PCmetricInst already running!!
+  return false;
 }
 
 void
@@ -315,6 +309,16 @@ experiment::halt ()
   status = false;
 }
 
-
-
+void 
+experiment::enableReply (unsigned, unsigned, unsigned, bool successful)
+{
+#ifdef PCDEBUG
+    // debug printing
+  if (successful && performanceConsultant::printDataTrace) {
+    cout << "EXP started:" << endl;
+    cout << *pcmih << endl;
+  }
+#endif
+  papaNode->enableReply(successful);
+}
 

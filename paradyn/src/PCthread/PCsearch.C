@@ -20,6 +20,11 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.14  1996/05/08 07:35:26  karavan
+ * Changed enable data calls to be fully asynchronous within the performance consultant.
+ *
+ * some changes to cost handling, with additional limit on number of outstanding enable requests.
+ *
  * Revision 1.13  1996/05/06 04:35:27  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
@@ -144,10 +149,14 @@ int PCsearch::numActiveExperiments = 0;
 bool PCsearch::GlobalSearchPaused = false;
 bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
-
+float PCsearch::PendingCost = 0.0;
+int PCsearch::PendingSearches = 0;
 //** this is currently being studied!!
 const float costFudge = 0.2;
 
+//** 
+const int MaxPendingSearches = 20;
+const int MaxActiveExperiments = 40;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
@@ -155,21 +164,19 @@ const float costFudge = 0.2;
 void 
 PCsearch::expandSearch (sampleValue estimatedCost)
 {
-#ifdef MYPCDEBUG
-  double t1,t2;
-  static double totTime=0.0,worstTime=0.0;
-  static int TESTcounter=0;
-  t1=TESTgetTime();
-#endif
   bool costLimitReached = false;
   searchHistoryNode *curr;
+  float newCost = 0.0;
+
 #ifdef PCDEBUG
   cout << "total observed cost: " << estimatedCost << endl;
   cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
+  cout << "numActiveExperiments: " << numActiveExperiments << endl;
 #endif
 
   // alternate between two queues for fairness
-  while (!costLimitReached) {
+  while (!costLimitReached && (PendingSearches < MaxPendingSearches) &&
+	 (numActiveExperiments < MaxActiveExperiments)) {
     // switch queues for fairness, if possible; never use q if empty or that 
     // search is paused
     if (q == &CurrentSearchQueue) {
@@ -188,28 +195,17 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 	  break;
     }
     curr = q->peek_first_data();
-    float newCost = curr->getEstimatedCost();
-    if ((estimatedCost + newCost) > (1-costFudge)*performanceConsultant::predictedCostLimit) {
+    newCost += curr->getEstimatedCost();
+    if ((estimatedCost + newCost + PendingCost) > 
+	(1-costFudge)*performanceConsultant::predictedCostLimit) {
       costLimitReached = true;
     } else {
-      if (curr->startExperiment()) {
-	estimatedCost += newCost;
-      } else {
-#ifdef PCDEBUG
-	cout << "unable to start experiment for node: " 
-	  << curr->getNodeId() << endl;
-#endif
-      }
+      curr->startExperiment(); 
+      PendingSearches++;
       q->delete_first();
-    } 
+    }
   }
-#ifdef MYPCDEBUG
-  t2=TESTgetTime();
-  totTime += t2-t1;
-  TESTcounter++;
-  if ((t2-t1) > worstTime) worstTime = t2-t1;
-  if ((t2-t1) > 1.0) printf("*****+++++***** expandSearch took %5.2f seconds, avg=%5.2f, worst=%5.2f\n",t2-t1,totTime/TESTcounter,worstTime);
-#endif
+  PendingCost += newCost;
 }
 
 PCsearch::PCsearch(unsigned phaseID, phaseType phase_type)
