@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.64  1995/11/08 06:24:15  tamches
-/* removed some warnings
+/* Revision 1.65  1995/11/09 17:11:35  tamches
+/* deleted some obsolete stuff which had been commented out (e.g. uim_rootRes).
+/* added UIMBUFFSIZE (moved from UIglobals.h)
 /*
+ * Revision 1.64  1995/11/08 06:24:15  tamches
+ * removed some warnings
+ *
  * Revision 1.63  1995/11/08 05:10:03  tamches
  * removed reference to obsolete file dag.h
  *
@@ -295,8 +299,6 @@ extern int tty;			/* Non-zero means standard input is a
 				 * terminal-like device.  Zero means it's
 				 * a file. */
 
-//resourceHandle            uim_rootRes;
-int                       uim_eid;
 List<metricInstInfo *> uim_enabled;
 perfStreamHandle          uim_ps_handle;
 UIM                       *uim_server;
@@ -315,19 +317,14 @@ status_line *app_status=NULL;
  * Declarations for various library procedures and variables 
  */
 
-//extern "C" {
-//  int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
-//        Tcl_Interp *interp, int argc, char **argv));
-//}
-
 extern int UimpdCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[]);
+		    Tcl_Interp *interp, 
+		    int argc, 
+		    char *argv[]);
 extern int ParadynCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[]);
+		      Tcl_Interp *interp, 
+		      int argc, 
+		      char *argv[]);
 extern void resourceAddedCB (perfStreamHandle handle, 
 		      resourceHandle parent, 
 		      resourceHandle newResource, 
@@ -437,10 +434,13 @@ void processPendingTkEventsNoBlock() {
       ;
 }
 
+#define UIMBUFFSIZE 256
+
 void *UImain(void*) {
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
+
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
@@ -477,12 +477,17 @@ void *UImain(void*) {
         fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exitting\n");
         exit(-1);
     }
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/whereAxis.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/tclTunable.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/applic.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/errorList.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/focusUtils.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mets.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/startVisi.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/status.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/tclTunable.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/uimProcs.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/whereAxis.tcl"));
 
 
    /* display the paradyn main menu tool bar */
@@ -529,11 +534,6 @@ void *UImain(void*) {
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
     // subscribe to DM new resource notification service
-//    resourceHandle *rhptr = dataMgr->getRootResource();
-//    if (rhptr == (resourceHandle *)NULL)
-//       panic("dataMgr->getRootResource() failed");
-
-//    uim_rootRes = *rhptr;
     controlFuncs.rFunc = resourceAddedCB;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
@@ -547,13 +547,12 @@ void *UImain(void*) {
     
     // New Where Axis: --ari
     installWhereAxisCommands(interp);
-    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize"))
-       tclpanic(interp, "Could not whereAxisInitialize");
+    myTclEval(interp, "whereAxisInitialize");
+//    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize"))
+//       tclpanic(interp, "Could not whereAxisInitialize");
 
     // New Search History Graph: --ari
     installShgCommands(interp);
-//    if (TCL_ERROR == Tcl_Eval(interp, "shgInitialize"))
-//       tclpanic(interp, "Could not shgInitialize");
 
     //
     // initialize status lines library
