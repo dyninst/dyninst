@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.113 2003/02/04 22:42:43 pcroth Exp $
+// $Id: main.C,v 1.114 2003/02/10 22:01:40 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -748,6 +748,12 @@ main( int argc, char* argv[] )
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
    sighupInit();
 #endif
+
+   // Set up the trace socket. This is needed before we try
+   // to attach to a process
+   extern void setupTraceSocket();
+   setupTraceSocket();
+
    if (!paradyn_init()) 
    {
       abort();
@@ -823,10 +829,6 @@ StartOrAttach( void )
          startByCreateAttach = true;
       }
    
-   // Set up the trace socket. This is needed before we try
-   // to attach to a process
-   extern void setupTraceSocket();
-   setupTraceSocket();
    if (startByAttach) {
        pd_process *p = pd_attachProcess("", pd_attpid);
        
