@@ -10,7 +10,10 @@
  *   CMMP_send_noblock
  *
  * $Log: RTtags.c,v $
- * Revision 1.2  1994/06/27 21:30:22  rbi
+ * Revision 1.3  1994/07/14 23:36:07  hollings
+ * added extra arg to generateTrace.
+ *
+ * Revision 1.2  1994/06/27  21:30:22  rbi
  * Parameter change
  *
  * Revision 1.1  1994/02/02  00:46:13  hollings
@@ -69,7 +72,7 @@ void DYNINSTreportNewTags()
 	sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
 	strcpy(newRes.abstraction, "BASE");
 	DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
-	    sizeof(struct _newresource), &newRes);
+	    sizeof(struct _newresource), &newRes, 1);
     }
     lastTagCount = DYNINSTtagCount;
 }
