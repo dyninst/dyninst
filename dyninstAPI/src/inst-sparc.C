@@ -19,13 +19,16 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.29 1995/10/19 22:30:54 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.30 1995/11/29 18:43:42 krisna Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.30  1995/11/29 18:43:42  krisna
+ * deleted orphan code
+ *
  * Revision 1.29  1995/10/19 22:30:54  mjrg
  * Fixed code generation for constants in the range 1024 to 4096.
  *
@@ -1079,39 +1082,6 @@ int getInsnCost(opCode op)
 		break;
 	}
     }
-}
-
-
-
-/************************************************************************
- * void restore_original_instructions(process* p, instPoint* ip)
-************************************************************************/
-
-void
-restore_original_instructions(process* p, instPoint* ip) {
-    unsigned addr = ip->addr;
-
-    // TODO cast
-    p->writeTextWord((caddr_t)addr, ip->originalInstruction.raw);
-    // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->originalInstruction.raw, 0);
-
-    addr += sizeof(instruction);
-
-    if (ip->isDelayed) {
-      // TODO cast
-      p->writeTextWord((caddr_t)addr, ip->delaySlotInsn.raw);
-      // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->delaySlotInsn.raw, 0);
-      addr += sizeof(instruction);
-    }
-
-    if (ip->callAggregate) {
-      // TODO cast
-      p->writeTextWord((caddr_t)addr, ip->aggregateInsn.raw);
-      // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->aggregateInsn.raw, 0);
-      addr += sizeof(instruction);
-    }
-
-    return;
 }
 
 bool isReturnInsn(const instruction instr)

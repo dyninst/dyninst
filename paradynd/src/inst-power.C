@@ -6,6 +6,9 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
+ * Revision 1.3  1995/11/29 18:43:41  krisna
+ * deleted orphan code
+ *
  * Revision 1.2  1995/09/26 20:34:40  naim
  * Minor fix: change all msg char[100] by string msg everywhere, since this can
  * cause serious troubles. Adding some error messages too.
@@ -849,24 +852,6 @@ int getInsnCost(opCode op)
 {
     // XXXX - todo add cost model
     return 0;
-}
-
-
-
-/************************************************************************
- * void restore_original_instructions(process* p, instPoint* ip)
-************************************************************************/
-
-void
-restore_original_instructions(process* p, instPoint* ip) {
-    unsigned addr = ip->addr;
-
-    // TODO cast
-    p->writeTextWord((caddr_t)addr, ip->originalInstruction.raw);
-
-    addr += sizeof(instruction);
-
-    return;
 }
 
 //
