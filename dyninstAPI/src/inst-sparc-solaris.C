@@ -1544,7 +1544,8 @@ bool pd_Function::findInstPoints(const image *owner) {
 	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 		       || nexti.rest.op3 == RESTOREop3)) {
 	       isTrap = true;
-	       //cerr << " tail call optimization pattern detected, returning findInstPoints" << endl;
+	       // ALERT ALERT
+	       //cerr << " tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
 	       return findInstPoints(owner, getAddress(0), 0);
 	   }
        }   
@@ -1630,8 +1631,10 @@ bool pd_Function::findInstPoints(const image *owner) {
        if (nexti.rest.op == 2 
 	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 	      || nexti.rest.op3 == RESTOREop3)) {
+	 // ALERT ALERT
 	 //fprintf(stderr, "#### Tail-call optimization in function %s, addr %x\n",
 	 //	prettyName().string_of(), adr);
+	 //cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
@@ -1966,7 +1969,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				vector<instruction> &callInstrs,
 				relocatedFuncInfo *reloc_info) {
 
-   int i;
+   int i, orig_call_insn;
    if (size() == 0) {
      return false;
    }
@@ -2081,6 +2084,40 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //                                    st  [ %fp + 0x44 ], %i0
 	    //         			          retl
             //                                    nop
+	    //  ********    OR    ********
+	    //   before:          --->             after
+	    // ---------------------------------------------------
+	    //   call  PC_REL_ADDR                want : move ABS_ADD,
+	    //                                     convert PC_REL_ADDR to ABS_ADDR
+	    //                                     sethi ADDR', %g1
+	    //                                     or %g1, ADDR'', g1
+	    //                                     where ADDR' is high-22 bits of 
+	    //                                     ABS_ADDR, and ADDR'' is low 10 
+	    //                                     bits
+	    //   restore                          restore    
+	    //                                    st  %i0, [ %fp + 0x44 ]
+	    //                                    mov %o7 %i0
+	    //                                    call %g1 
+	    //                                    nop
+	    //                                    mov %i0,%o7
+	    //                                    st  [ %fp + 0x44 ], %i0
+	    //         			          retl
+            //                                    nop
+	    //  ********    OR    ********
+	    //   before:          --->             after
+	    // ---------------------------------------------------
+	    //   call  PC_REL_ADDR                 ADDR' = PC_REL_ADDR - diff
+	    //                                     between instruction addresses
+	    //                                     (orig call and new call).... 
+	    //   restore                          restore    
+	    //                                    st  %i0, [ %fp + 0x44 ]
+	    //                                    mov %o7 %i0
+	    //                                    call PC_REL_ADDR' 
+	    //                                    nop
+	    //                                    mov %i0,%o7
+	    //                                    st  [ %fp + 0x44 ], %i0
+	    //         			          retl
+            //                                    nop
 	 //    Note : Assuming that %g1 is safe to use, since g1 is scratch
 	 //     register that is defined to be volatile across procedure
 	 //     calls.
@@ -2102,22 +2139,74 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //    ( If you could give an counter-example, please
 	    //      let me know.                         --ling )
 
-	    // added extra mv *, g1
-	    // translation : mv inst %1 %2 is syn. inst. implemented as
-	    //  orI %1, 0, %2  
-	    genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
- 
+
+	    bool true_call = isTrueCallInsn(instr);
+	    bool jmpl_call = isJmplCallInsn(instr);
+	    
+	    if (true_call) {
+	        //cerr << "tail-call opt undo : found CALL call pattern for sym " << \
+		  prettyName().string_of() << endl;
+	    } else {
+	        //cerr << "tail-call opt undo : found JMPL call pattern for sym" << \
+		  prettyName().string_of() << endl;
+	    }
+
+	    if (!true_call && !jmpl_call) {
+	        cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing...." << endl;
+	        return FALSE;
+	    }
+
+	    // if the call instruction was a call to a register, stick in extra
+	    //  initial mov as above....
+	    if (jmpl_call) {
+	        // added extra mv *, g1
+	        // translation : mv inst %1 %2 is synthetic inst. implemented as
+	        //  orI %1, 0, %2  
+	        genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
+	    } else {
+	        orig_call_insn = i;
+	    }
+
 	    genSimpleInsn(&newInstr[i++], RESTOREop3, 0, 0, 0);
 	    generateStore(&newInstr[i++], 24, REG_FP, 0x44);
 	    genImmInsn(&newInstr[i++], ORop3, 15, 0, 24); 
 
-	    // note: changed here.
-	    // origional was : 
-            //  replicate origional jump instruction from target code.
-	    //  newInstr[i++].raw = owner->get_instruction(adr);
-	    // new is :
-	    //  generate <call %g1>
-	    generateJmplInsn(&newInstr[i++], 1, 0, 15);
+	    // if origional call instruction was call to a register, that
+	    //  register should have been pushed into g0, so generate a call
+	    //  to %g0.
+	    if (jmpl_call) { 
+	        // note: changed here.
+	        // origional was : 
+                //  replicate origional jump instruction from target code.
+	        //  newInstr[i++].raw = owner->get_instruction(adr);
+	        // new is :
+	        //  generate <call %g1>
+	        generateJmplInsn(&newInstr[i++], 1, 0, 15);
+	    } else {
+	        // if the origional call was a call to an ADDRESS, then want
+	        //  to copy the origional call.  There is, however, a potential
+	        //  caveat:  The sparc- CALL instruction is apparently PC
+	        //  relative (even though disassemblers like that in gdb will
+	        //  show a call to an absolute address.
+	        //  As such, want to change the call target to account for 
+	        //  the difference is PCs.
+
+	        newInstr[i].raw = owner->get_instruction(adr);
+	        relocateInstruction(&newInstr[i], \
+		        adr+baseAddress,
+		        newAdr + (i - orig_call_insn) * 4, proc);
+		//cerr << "adr+baseAddress = " << adr+baseAddress << " (i - orig_call_insn) = " << (i - orig_call_insn) << " newAdr = " << newAdr << endl;
+		i++;
+
+	        // newInstr[i].raw = owner->get_instruction(adr);
+		// WRONG!!!!
+		//  let old.a be address of orig instr
+		//  want to branch to old.a (absolute).
+		//  what this is relative needs to take into account
+		//  the location of this new code.
+		//  newInstr[i].call.disp30 -= (i - orig_call_insn);
+		// i++;
+	    }
 
 	    generateNOOP(&newInstr[i++]);
 	    genImmInsn(&newInstr[i++], ORop3, 24, 0, 15);
