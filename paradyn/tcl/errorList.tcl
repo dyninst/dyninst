@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.59 2003/05/23 07:28:04 pcroth Exp $
+# $Id: errorList.tcl,v 1.60 2003/05/23 14:50:20 pcroth Exp $
 
 #
 # Error message format:
@@ -1139,13 +1139,13 @@ this platform.}
 }
 
 set pdError(128) {
-{Deferred instrumentation}
+{Deferred Instrumentation}
 {paradyn}
 {information}
-{Instrumentation for one or more of the requested metric/focus pairs\
-was deferred because it is unsafe to insert it at this time.  Paradyn\
-will insert the instrumentation for this metric/focus pair as soon as\
-it detects it is safe to do so.}
+{Instrumentation for the above metric/focus pair(s) was deferred because\
+an application process is executing code in the neighborhood of\
+an instrumentation point.  Paradyn will insert the instrumentation as\
+soon as it is able.}
 }
 
 

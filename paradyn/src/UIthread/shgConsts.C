@@ -41,7 +41,7 @@
 
 // shgConsts.C
 
-/* $Id: shgConsts.C,v 1.9 2003/05/23 07:27:57 pcroth Exp $ */
+/* $Id: shgConsts.C,v 1.10 2003/05/23 14:50:19 pcroth Exp $ */
 
 #include "shgConsts.h"
 
@@ -52,7 +52,7 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    assert(inactiveTextColor);
    activeTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("ivory"));
    assert(activeTextColor);
-   deferredTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("orange"));
+   deferredTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("blue"));
    assert(deferredTextColor);
 
    // Root Item FontStruct's:

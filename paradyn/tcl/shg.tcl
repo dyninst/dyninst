@@ -1,4 +1,4 @@
-# $Id: shg.tcl,v 1.19 2000/08/11 16:32:48 pcroth Exp $
+# $Id: shg.tcl,v 1.20 2003/05/23 14:50:20 pcroth Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -84,14 +84,16 @@ proc shgDrawKey {} {
    pack  $rightLabels -side right -fill both -expand true
 
    label $leftLabels.key0 -relief groove \
-	   -text "Never Evaluated" -anchor c \
-	   -font { Helvetica 12 } \
-	   -background grey
+	   -text "Deferred" -anchor c \
+	   -font { Helvetica 12 bold } \
+       -foreground blue \
+	   -background #60c0a0
+           # a nice green...
    pack   $leftLabels.key0 -side top -fill x -expand false
 
    label $leftLabels.key1 -relief groove \
 	   -text "Unknown" -anchor c \
-	   -font { Helvetica 12 } \
+	   -font { Helvetica 12 bold } \
 	   -background #60c0a0
            # a nice green...
    pack   $leftLabels.key1 -side top -fill x -expand false
@@ -99,13 +101,13 @@ proc shgDrawKey {} {
 
    label $leftLabels.key2 -relief groove \
 	   -text "True" -anchor c \
-	   -font { Helvetica 12 } \
+	   -font { Helvetica 12 bold } \
 	   -background #6495ED
    pack   $leftLabels.key2 -side top -fill x -expand false
 
    label $leftLabels.key3 -relief groove \
 	   -text "False" -anchor c \
-	   -font { Helvetica 12 } \
+	   -font { Helvetica 12 bold } \
 	   -background pink
 #	   -background "#cc85d5c2777d" 
                 # yuck --ari
