@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.69 2000/03/23 01:33:55 wylie Exp $ */
+/* $Id: PCmain.C,v 1.70 2000/07/19 21:36:30 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -288,6 +288,9 @@ void* PCmain(void* varg)
     // even though there is a kludge in the PC to receive the msg before the
     // callback routine is called (PCenableDataCallback will never execute).  
     controlHandlers.eFunc  = PCenableDataCallback;
+    // don't ask for a signal to flush our data
+    controlHandlers.flFunc= 0;
+
     dataHandlers.sample = PCnewDataCallback;
     // the performance stream is used to identify this thread to the 
     // data manager
