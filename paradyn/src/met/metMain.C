@@ -10,7 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.10  1994/11/03 02:46:47  krisna
+ * Revision 1.11  1994/12/21 05:50:15  tamches
+ * Used the new tunableConstant::findTunableConstant() instead of
+ * manually tinkering with tunable constant internal vrbles, which
+ * is no longer allowed.
+ *
+ * Revision 1.10  1994/11/03  02:46:47  krisna
  * removed bare prototype for gethostname
  *
  * Revision 1.9  1994/10/10  02:52:51  newhall
@@ -261,7 +266,7 @@ int metDoProcess()
 
 void set_tunable (tunableMet *the_ts)
 {
-  void *sp=0;
+//  void *sp=0;
   tunableConstant *curr;
   tunableFloatConstant *fConst;
   tunableBooleanConstant *bConst;
@@ -270,8 +275,10 @@ void set_tunable (tunableMet *the_ts)
   if (!tunableConstant::allConstants)
     return;
 
-  sp = tunableConstant::pool->find(the_ts->name);
-  if (sp && (curr = tunableConstant::allConstants->find(sp))) {
+//  sp = tunableConstant::pool->find(the_ts->name);
+//  if (sp && (curr = tunableConstant::allConstants->find(sp))) {
+  curr = tunableConstant::findTunableConstant(the_ts->name);
+  if (curr) {
     if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
       fConst = (tunableFloatConstant*) curr;
       if (!fConst->setValue(the_ts->Fvalue)) {
