@@ -1,0 +1,65 @@
+# Never include this file directly!
+#   Always include ./Makefile.inc and make sure it is appropriately
+#   set to include the proper platform specific file.
+# CUSTOMIZING CONFIGURATION
+#
+@SET_MAKE@
+SHELL = @SHELL@
+
+#############################
+#### INSTALL DIRECTORIES ####
+#############################
+
+PLATFORM           = @host@
+MRNET_VERSION      = @MRNET_VERSION@
+BINDIR             = $(MRNET_ROOT)/bin/$(PLATFORM)
+LIBDIR             = $(MRNET_ROOT)/lib/$(PLATFORM)
+OBJDIR             = $(MRNET_ROOT)/obj/$(PLATFORM)
+
+###############################
+#### COMPILERS AND OPTIONS ####
+###############################
+CC               = @CC@
+C_OPT_FLAGS      = @C_OPT_FLAGS@
+C_NOOPT_FLAGS    = @C_NOOPT_FLAGS@
+CFLAGS           = @CFLAGS@
+
+CXX              = @CXX@
+CXX_OPT_FLAGS    = @CXX_OPT_FLAGS@
+CXX_NOOPT_FLAGS  = @CXX_NOOPT_FLAGS@
+CXXFLAGS         = @CXXFLAGS@
+
+C_LINKER     = @CC@
+CXX_LINKER   = @CXX@
+LDFLAGS      = @LDFLAGS@
+
+##############################
+### LIBS, DIRS AND DEFINES ###
+##############################
+
+LIBS         = @LIBS@
+#EFENCE = -lefence
+#EFENCE = /scratch/darnold/local/lib/libefence.a
+
+ARCHCFLAGS      = -D$(MRNET_OS) \
+                  -DMRNET_ROOT=\"$(MRNET_ROOT)\" \
+                  -DMRNET_ARCH=\"$(MRNET_ARCH)\" \
+		  -DMPI_DIR=\"$(MPI_DIR)\"
+
+##########################
+### AUXILIARY PROGRAMS ###
+##########################
+FLEX         = @FLEX@
+BISON        = @BISON@
+AR           = @AR@
+ARFLAGS      = @ARFLAGS@
+RANLIB       = @RANLIB@
+RUSAGE       = @RUSAGE@
+
+#================#
+# Program Output #
+#================#
+#### 	DEBUG      : For really verbose debugging information
+#### 	VIEW       : For smooth information during the execution
+#### 	NO_OUTPUT  : no output
+OUTPUT_LEVEL = @OUTPUT_LEVEL@

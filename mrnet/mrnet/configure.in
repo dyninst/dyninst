@@ -1,0 +1,161 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(src/MC_Network.C)
+
+AC_CONFIG_AUX_DIR(conf)
+
+dnl === COMPILERS AND FLAGS ===
+dnl hacks to allow user to define CC, CFLAGS, etc without using env vars
+dnl I don't like it -- suggestions?
+
+dnl *** C Compiler and Options ***
+AC_ARG_WITH(cc,
+            [
+===Begin MRNET Compile Options:
+  --with-cc                      Specify C compiler],
+            [CC="${withval}";], [AC_PROG_CC])
+
+AC_ARG_WITH(cnooptflags,
+            [  --with-cnooptflags             Set non-optimization compiler flags
+                                  - (ONLY USE WITH --with-cc)
+                                  - CFLAGS = C_OPT_FLAGS+C_NOOPT_FLAGS],
+            [C_NOOPT_FLAGS="${withval}";])
+
+AC_ARG_WITH(coptflags,
+            [  --with-coptflags               Set optimization compiler flags
+                                  - (ONLY USE WITH --with-cc)
+                                  - CFLAGS = C_OPT_FLAGS+C_NOOPT_FLAGS],
+            [C_OPT_FLAGS="${withval}";])
+
+AC_ARG_WITH(cxx,
+            [  --with-cxx                     Specify C++ compiler],
+            [CXX="${withval}";], [AC_PROG_CXX])
+
+AC_ARG_WITH(cxxnooptflags,
+            [  --with-cxxnooptflags           Set non-optimization compiler flags
+                                  - (ONLY USE WITH --with-cxx)
+                                  - CXXFLAGS = CXX_OPT_FLAGS+CXX_NOOPT_FLAGS],
+            [CXX_NOOPT_FLAGS="${withval}";])
+
+AC_ARG_WITH(cxxoptflags,
+            [  --with-cxxoptflags             Set optimization compiler flags
+                                  - (ONLY USE WITH --with-cxx)
+                                  - CXXFLAGS = CXX_OPT_FLAGS+CXX_NOOPT_FLAGS],
+            [CXX_OPT_FLAGS="${withval}";])
+
+AC_ARG_WITH(ldflags,
+            [  --with-ldflags                 Set loader flags],
+            [LDFLAGS="${withval}";])
+
+dnl === SETTING MRNET CONFIGURATION DEFAULTS ===
+
+dnl MRNET_ARCH is host returned by config.guess with
+dnl all `-` and `.` characters replaced by `_` so that a
+dnl -D MRNET_ARCH can be passed to the compiler
+dnl without it complaining
+
+AC_CANONICAL_HOST
+changequote(<<, >>)dnl
+MRNET_ARCH=`echo $host | sed 's/[-|.]/_/g'`
+MRNET_OS=`echo $host_os | sed 's/[-0-9].*//'`
+MRNET_ROOT=`pwd`
+MRNET_VERSION="`cat VERSION`"
+changequote([, ])dnl
+
+AC_SUBST(MRNET_ARCH)
+AC_SUBST(MRNET_OS)
+AC_SUBST(MRNET_ROOT)
+AC_SUBST(MRNET_VERSION)
+
+case "$MRNET_ARCH" in
+  *aix*)
+    LIBS="-lm -lc"
+    ;;
+  *solaris*)
+    LIBS="-lrpcsvc -lsocket -lnsl -lm "
+    ;;
+  *sunos*)
+    LIBS="-lrpcsvc -lsocket -lnsl -lm "
+    ;;
+  *irix*)
+    LIBS="-lm -lc"
+    ;;
+  *)
+    LIBS="-lm"
+    ;;
+esac
+
+AC_SUBST(LIBS)
+AC_SUBST(CLINKER)
+AC_SUBST(CXX_LINKER)
+AC_SUBST(LDFLAGS)
+
+if test "$CFLAGS" = ""; then
+  CFLAGS="$C_NOOPT_FLAGS $C_OPT_FLAGS"
+fi
+
+if test "$CXXFLAGS" = ""; then
+  CXXFLAGS="$CXX_NOOPT_FLAGS $CXX_OPT_FLAGS"
+fi
+
+AC_MSG_CHECKING(whether the C compiler works ($CC $CFLAGS).)
+AC_TRY_COMPILE(
+  [#include <stdio.h>],
+  [int x;],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_ERROR(no)])
+
+AC_LANG_CPLUSPLUS
+AC_MSG_CHECKING(whether the C++ compiler works ($CXX $CXXFLAGS).)
+AC_TRY_COMPILE(
+  [#include <stdio.h>],
+  [int x;],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_ERROR(no)])
+AC_LANG_C
+
+AC_SUBST(C_OPT_FLAGS)
+AC_SUBST(C_NOOPT_FLAGS)
+
+ARFLAGS="cr"
+AC_SUBST(ARFLAGS)
+
+AC_LANG_C
+
+dnl Checks for programs.
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+AC_PATH_PROG(AR, ar)
+AC_SUBST(AR)
+AC_PATH_PROG(JAVAC, javac)
+AC_SUBST(JAVAC)
+AC_PATH_PROG(FLEX, flex)
+AC_SUBST(FLEX)
+AC_PATH_PROG(BISON, bison)
+AC_SUBST(BISON)
+AC_PATH_PROG(SHELL, sh)
+AC_SUBST(SHELL)
+
+AC_ARG_WITH(outputlevel,
+            [  --with-outputlevel             output level (debug,view,none)],
+            [if test "${withval}" = "debug" ; then
+               OUTPUT_LEVEL="-DDEBUG";
+             elif test "${withval}" = "none" ; then
+               OUTPUT_LEVEL="-DNONE";
+             else
+               OUTPUT_LEVEL="-DVIEW";
+             fi],
+            [OUTPUT_LEVEL="-DVIEW"])
+AC_SUBST(OUTPUT_LEVEL)
+
+AC_CONFIG_HEADER(src/config.h)
+AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(char)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(float)
+AC_CHECK_SIZEOF(double)
+
+AC_OUTPUT(conf/Makefile.$MRNET_ARCH.inc:conf/Makefile.generic-arch.in \
+          conf/Makefile.inc Makefile:conf/Makefile.in)

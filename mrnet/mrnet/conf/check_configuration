@@ -1,0 +1,42 @@
+#!/bin/sh
+
+host=`conf/config.guess`
+platform=`echo $host | sed 's/[-|.]/_/g'`
+string=`ls -1 conf/Makefile.*.inc`
+result=`echo $string | sed 's/conf\/Makefile.//g' | sed 's/.inc//g'`
+
+found=0
+for i in $result ; do
+  if [ `echo $platform | fgrep $i` ] ; then
+    os=$i
+    found=1;
+    break;
+  fi
+done
+
+if [ $found -eq 0 ] ; then
+  echo 
+  echo "  Error: Run ./configure for this platform: \"$platform\""
+  echo "  before attempting to do a make. If you have previously"
+  echo "  configured for another architecture, do"
+  echo 
+  echo "    UNIX> make configclean"
+  echo "    UNIX> ./configure"
+  echo 
+  exit 1;
+else
+  a=`fgrep include conf/Makefile.inc | grep $os`
+  if test -z "$a" ; then
+  echo
+  echo "  Error: ./conf/Makefile.inc incorrectly points to Makefile.arch.inc"
+  echo "  from a different architecture -- should be \"Makefile.$os.inc.\""
+  echo "  To correct, please run"
+  echo 
+  echo "    UNIX> make configclean"
+  echo "    UNIX> ./configure"
+  echo 
+  exit 1;
+  fi
+fi
+
+exit 0;

@@ -1,0 +1,220 @@
+#####################
+# General Definitions
+#####################
+
+include conf/Makefile.inc
+VPATH	= $(MRNET_ROOT)/src:$(MRNET_ROOT)/tests
+
+CC  = gcc
+CXX = g++
+CFLAGS =   $(DEFS) $(OPTFLAGS) $(INCDIR) $(WARNFLAGS)
+CXXFLAGS = $(DEFS) $(OPTFLAGS) $(INCDIR) $(WARNFLAGS)
+DEPENDFLAGS = -MM
+
+LIBS = -lfl -lpthread
+
+#SILENCE_WARNINGS=true
+ifndef SILENCE_WARNINGS
+WARNFLAGS = -Wall \
+            -Wtraditional          \
+            -Wpointer-arith        \
+            -Wcast-qual            \
+            -Wstrict-prototypes    \
+            -Wmissing-prototypes   \
+            -Wmissing-declarations \
+            -Woverloaded-virtual   \
+            -Winline               \
+            -Wno-deprecated        \
+            -Wwrite-strings        \
+            -Wconversion           \
+            -Wno-non-template-friend
+#           -Wshadow               \
+#           -Wredundant-decls      \
+#           -pedantic              \
+
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+WARNFLAGS       += -Wno-unknown-pragmas
+else   # STL on Solaris with cast-align generates a warning with much output
+WARNFLAGS       += -Wcast-align
+endif
+endif # SILENCE_WARNINGS
+
+DEFS = -Di386_unknown_linux2_4 -Di386_unknown_linux2_0 $(DEBUGFLAGS) $(OPTFLAGS)
+DEBUGFLAGS = -DDEBUG -g
+#OPTFLAGS = -O2
+
+#############################
+# System Specific Definitions
+#############################
+TARGETS = $(LIBMC) $(COMM_NODE) $(TESTS)
+INCDIR = -I$(MRNET_ROOT)/..
+LIBMC    =$(LIBDIR)/libmcnetwork.a
+COMM_NODE=$(BINDIR)/comm_node 
+TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE
+#TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE $(BINDIR)/xdr_test $(BINDIR)/pdr_test
+
+
+###################################
+# Object and Executable Definitions
+###################################
+MC_OBJS = $(LIBMC_OBJS) $(COMMNODE_OBJS)
+
+LIBMC_SRCS = \
+             $(MRNET_ROOT)/src/MC_EndPointImpl.C \
+             $(MRNET_ROOT)/src/MC_CommunicatorImpl.C \
+             $(MRNET_ROOT)/src/MC_StreamImpl.C \
+             $(MRNET_ROOT)/src/MC_NetworkImpl.C \
+             $(MRNET_ROOT)/src/MC_Network.C \
+             $(MRNET_ROOT)/src/MC_StreamManager.C \
+             $(MRNET_ROOT)/src/MC_Filter.C \
+             $(MRNET_ROOT)/src/MC_Message.C \
+             $(MRNET_ROOT)/src/MC_Errors.C \
+             $(MRNET_ROOT)/src/MC_NetworkGraph.C \
+             $(MRNET_ROOT)/src/MC_CommunicationNode.C \
+             $(MRNET_ROOT)/src/utils.C \
+             $(MRNET_ROOT)/src/pdr.c \
+             $(MRNET_ROOT)/src/pdr_mem.c \
+             $(MRNET_ROOT)/src/pdr_sizeof.c \
+             $(MRNET_ROOT)/src/byte_order.c \
+             $(MRNET_ROOT)/src/scanner.c \
+             $(MRNET_ROOT)/src/parser.tab.c
+
+LIBMC_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMC_SRCS)))))
+ 
+COMMNODE_SRCS = $(MRNET_ROOT)/src/MC_CommunicationNodeMain.C
+COMMNODE_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(COMMNODE_SRCS)))))
+
+PDR_SRCS = $(MRNET_ROOT)/src/pdr.c \
+            $(MRNET_ROOT)/src/pdr_mem.c \
+            $(MRNET_ROOT)/src/pdr_sizeof.c \
+            $(MRNET_ROOT)/src/byte_order.c
+PDR_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(PDR_SRCS)))))
+
+ALL_SRCS = $(LIBMC_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
+DEPS	= $(addprefix $(OBJDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir $(ALL_SRCS)))))
+
+all: DIRS $(TARGETS)
+
+rebuild: DIRS
+	make $(TARGETS) "FRC=force_rebuild"
+
+force_rebuild:
+
+DIRS: $(OBJDIR) $(LIBDIR) $(BINDIR)
+	for dir in $(OBJDIR) $(LIBDIR) $(BINDIR); do \
+          if [ ! -d $$dir ] ; then \
+	    echo Making directory $$dir ... ; \
+            { mkdir -p $$dir && [ -w $$dir ]; } || \
+            { echo "$$dir not a writable directory" >&2; exit 1;} \
+          fi \
+        done
+
+$(BINDIR)/comm_node: $(COMMNODE_OBJS) $(LIBMC)
+	echo Linking $@ ...
+	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMC) $(LIBS)
+
+$(LIBMC): $(LIBMC_OBJS)
+	echo "Archiving $@ ... (Adding $?)"
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+$(BINDIR)/test1_FE: $(LIBMC)
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ tests/test1_FE.C $(LIBMC) $(LIBS)
+
+$(BINDIR)/test1_BE: $(LIBMC)
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ tests/test1_BE.C $(LIBMC) $(LIBS)
+
+$(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
+
+$(BINDIR)/xdr_test: tests/xdr_test.c
+	echo "Linking $@ ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
+
+$(MRNET_ROOT)/src/scanner.c: scanner.l $(MRNET_ROOT)/src/parser.tab.c $(FRC)
+	echo Building $@ ...
+	$(RM)  $@; $(FLEX) -t $< > $@ 
+
+$(MRNET_ROOT)/src/parser.tab.c: parser.y $(FRC)
+	echo Building $@ ...
+	$(BISON) -d -o $@ $<
+
+parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
+        src/MC_Network.o
+	echo Building $@
+	$(CXX) $(CXXFLAGS) -o $@ src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS)
+
+#################################
+# Defining Cleaning rules
+#################################
+clean:
+	echo Cleaning Multicast Network specific files ...
+	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/*
+	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
+
+CLEAN:
+	echo Cleaning all platforms ...
+	$(RM) -r bin/*/* lib/*/* obj/*/*
+	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
+
+dist-clean: CLEAN
+	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
+
+files = mrnet/*/*.[C,h,c,y,l] \
+        mrnet/src/config.h.in \
+        mrnet/configure \
+        mrnet/configure.in \
+        mrnet/conf/Makefile.generic-arch.in \
+        mrnet/conf/Makefile.in \
+        mrnet/conf/Makefile.inc.in \
+        mrnet/conf/aclocal.m4 \
+        mrnet/conf/install-sh \
+        mrnet/conf/config.guess \
+        mrnet/conf/config.sub \
+        mrnet/conf/check_configuration \
+        mrnet/conf/check-up \
+        mrnet/conf/clean-up \
+        mrnet/conf/keystash
+
+BACKUPDIR = /p/paradyn/development/darnold/mrnet-backups
+tar:
+	echo "Tarring $(files) =>  mrnet.`date +"%d_%b_%H-%M"`.tgz ..."
+	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
+
+files2 = Makefile src/*.[C,h]
+edit:
+	echo Editing $(files2) ...
+	xemacs $(files2) &
+
+#################################
+# Defining Default Build rules
+#################################
+.SILENT:
+.SUFFIXES:
+.SUFFIXES: .c .C .o .d
+
+$(OBJDIR)/%.o: %.c $(FRC)
+	echo Compiling $@ ...
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/%.o: %.C $(FRC)
+	echo Compiling $@ ...
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/%.d: %.c $(FRC)
+	echo Building Depends File $@ ...
+	set -e; $(CXX) -MM $(CXXFLAGS) $< \
+		| sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+		[ -s $@ ] || rm -f $@
+
+$(OBJDIR)/%.d: %.C $(FRC)
+	echo Building Depends File $@ ...
+	set -e; $(CXX) -MM $(CXXFLAGS) $< \
+		| sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+		[ -s $@ ] || rm -f $@
+
+
+-include $(DEPS)

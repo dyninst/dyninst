@@ -1,0 +1,5 @@
+MRNET_ROOT      = @MRNET_ROOT@
+MRNET_ARCH      = @MRNET_ARCH@
+MRNET_OS        = @MRNET_OS@
+
+include $(MRNET_ROOT)/conf/Makefile.@MRNET_ARCH@.inc
