@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.4 2002/04/09 18:05:03 mjbrim Exp $
+// $Id: templates2.C,v 1.5 2002/04/17 21:18:14 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -102,6 +102,7 @@ template class vectorSet<process::inferiorRPCinProgress>;
 
 template class vector<genericHK::trampRange>;
 template class vector<states>;
+template class vector<sampling_states>;
 
 template class vector< intCounterHK>;
 
