@@ -3,9 +3,14 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.19  1995/09/08 19:51:16  krisna
-/* stupid way to avoid the for-scope problem
+/* Revision 1.20  1995/10/05 04:35:06  karavan
+/* changes to support search display changes including igen interfaces and
+/* paradyn search and paradyn shg commands.
+/* removed obsolete and commented code.
 /*
+ * Revision 1.19  1995/09/08  19:51:16  krisna
+ * stupid way to avoid the for-scope problem
+ *
  * Revision 1.18  1995/08/01 02:18:33  newhall
  * changes to support phase interface
  *
@@ -78,12 +83,8 @@ extern "C" {
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
-#include "dag.h"
-
+#include "shgDisplay.h"
 #include "abstractions.h"
-
-extern int getDagToken ();
-extern int initWhereAxis (dag *wheredag, stringHandle abs); 
 
 void printMFPlist (vector<metric_focus_pair> *list) 
 {
@@ -186,57 +187,6 @@ void printResSelectList (vector<numlist> *v, char *name)
   cout << endl;
 }
 
-//#ifdef n_def
-///* parseSelections
-// * takes a list with one resourceHandle vector per resource hierarchy; result 
-// * is the cross product list of valid focii, represented as vectors of 
-// * nodeID vectors; each element on resulting list can be converted into 
-// * one focus.
-// */
-//vector<numlist> *
-//parseSelections (vector<numlist> *bytree) {
-//
-//  vector<numlist> *result2;
-//
-//  int totsize = 1;
-//  for (int m = 0; m < bytree->size(); m++) {
-//    totsize = totsize * (*bytree)[m].size();
-//  }
-//  result2 = new vector<numlist> (totsize);
-//  int y;
-//  int mul = 1;
-//
-//
-//  for (int v = 0; v < bytree->size(); v++) {
-//    vector<unsigned> *tmp = &(*bytree)[v];
-//
-//    for (int z = 0; z < tmp->size(); z++) {
-//      y = z * mul;
-//      while (y < totsize) {
-//	int u = y;
-//	while ((u < totsize) && (u < (y + mul))) {
-//	  (*result2)[u] += (*tmp)[z];
-//	  u++;
-//	}
-//	y = y + (mul * tmp->size());
-//      }
-//    }
-//
-//    mul = mul * 2;
-//  }
-//  /*
-//  for(unsigned i = 0; i < result2->size(); i++){
-//      printf("focus %d:\n",i);
-//      for(unsigned j = 0; j < (*result2)[i].size(); j++){
-//	  printf("     part %d:%d\n",j,(*result2)[i][j]);
-//      }
-//  }
-//  */
-//  return result2;
-//}
-//#endif
-
-
 /* parseSelections
  * takes a list with one resourceHandle vector per resource hierarchy; result 
  * is the cross product list of valid focii, represented as vectors of 
@@ -281,10 +231,6 @@ parseSelections (vector<numlist> &bytree) {
   return presult;
 }
 
-//vector< vector<resourceHandle> > ariParseSelections(vector< vector<resourceHandle> > &theHierarchySelections) {
-//}
-
-
 
 /* arguments:
        0: "processVisiSelection"
@@ -296,45 +242,6 @@ int processVisiSelectionCmd(ClientData clientData,
 			    int argc, 
 			    char *argv[])
 {
-  // get rdo ptr from token
-//  int rdoToken = atoi(argv[1]);
-//  dag *currDag;
-//  resourceDisplayObj *currRDO;
-//
-//#if UIM_DEBUG
-//  printf ("processVisiSelection::rdoToken: %d\n", rdoToken);
-//#endif
-//  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
-//#if UIM_DEBUG
-//  printf ("processVisiSelection::lookuptoken: %d\n", currRDO->getToken());
-//#endif
-//
-//  // get currently displayed dag
-//  currDag = currRDO->getTopDag();
-//#if UIM_DEBUG
-//  printf ("processVisiSelection::lookupDag: %s\n", currDag->getCanvasName());
-//#endif
-//  // parse resource selections
-
-   //cout << "Welcome to processVisiSelectionCmd" << endl;
-
-//    vector<numlist> *allsels = currDag->listAllHighlightedNodes ();
-//      // vector[numHierarchies] of numlist, where numlist is an arbitrary-sized
-//      // vector of resourceHandle.
-
-//#if UIM_DEBUG
-//  cout << allsels->size() << endl;
-//  for (int i = 0; i < allsels->size(); i++) {
-//    cout << "resHierarchy " << i << " Selections: ";
-//    vector<nodeIdType> tmp = (*allsels)[i];
-//    for (int j = 0; j < tmp.size(); j++) {
-//      cout << " " << tmp[j];
-//    }
-//    cout << endl;
-//  }
-//  cout << endl;
-//#endif
-
    extern abstractions<resourceHandle> *theAbstractions;
    vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections();
 
@@ -347,7 +254,6 @@ int processVisiSelectionCmd(ClientData clientData,
    }
 #endif
 
-//  vector<numlist> *retList = parseSelections (*allsels);
   vector<numlist> *retList = parseSelections (theHierarchySelections);
 
 #if UIM_DEBUG
@@ -394,10 +300,8 @@ int closeDAGCmd (ClientData clientData,
 		   char *argv[])
 {
   int dagID;
-  dag *currDag;
   dagID = atoi(argv[1]);
-  currDag = ActiveDags[dagID];
-  currDag->destroyDisplay();
+  dag::ActiveDags[dagID]->destroyDisplay();
 #if UIM_DEBUG
   printf ("dag %d destroyed\n", dagID);
 #endif
@@ -414,12 +318,10 @@ int addEStyleCmd (ClientData clientData,
 		   int argc, 
 		   char *argv[])
 {
-  int dagID;
-  dag *currDag;
-  dagID = atoi(argv[1]);
-  currDag = ActiveDags[dagID];
+  int dagID = atoi(argv[1]);
 
-  currDag->AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
+  dag::ActiveDags[dagID]->
+    AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
 		     argv[4], argv[5][0], atof(argv[6]));
   return TCL_OK;
 }
@@ -435,14 +337,12 @@ int addNStyleCmd (ClientData clientData,
 		   int argc, 
 		   char *argv[])
 {
-  int dagID;
-  dag *currDag;
-  dagID = atoi(argv[1]);
+  int dagID = atoi(argv[1]);
 #if UIM_DEBUG
   printf ("adding style for dagtoken = %d\n", dagID);
 #endif
-  currDag = ActiveDags[dagID];
-  currDag->AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
+  dag::ActiveDags[dagID]->
+    AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
 		     argv[5], argv[6], argv[7][0], atof(argv[8]));
   return TCL_OK;
 }
@@ -467,7 +367,7 @@ int refineSHGCmd (ClientData clientData,
     sprintf (interp->result, "no program defined, can't search\n");
     return TCL_ERROR;
   } else {
-    perfConsult->search(True, 1);
+    perfConsult->search(True, 1, 0);
     return TCL_OK;
   }
 }
@@ -488,7 +388,6 @@ int hideSubgraphCmd (ClientData clientData,
   int dagID;
   nodeIdType nodeID;
   char *currNode;
-  dag *currDag;
   currNode = Tcl_GetVar (interp, argv[2], TCL_GLOBAL_ONLY);
   if (currNode == NULL)
     return TCL_ERROR;
@@ -500,8 +399,7 @@ int hideSubgraphCmd (ClientData clientData,
   }
 */
   dagID = atoi(argv[1]);
-  currDag = ActiveDags[dagID];
-  currDag->addDisplayOption (SUBTRACT, nodeID);
+  dag::ActiveDags[dagID]->addDisplayOption (SUBTRACT, nodeID);
   return TCL_OK;
 }
 
@@ -517,11 +415,8 @@ int showAllNodesCmd (ClientData clientData,
 		     int argc, 
 		     char *argv[])
 {
-  int dagID;
-  dag *currDag;
-  dagID = atoi(argv[1]);
-  currDag = ActiveDags[dagID];
-  currDag->clearAllDisplayOptions ();
+  int dagID = atoi(argv[1]);
+  dag::ActiveDags[dagID]->clearAllDisplayOptions ();
   return TCL_OK;
 }
 
@@ -531,26 +426,29 @@ int showAllNodesCmd (ClientData clientData,
   looks up and displays full pathname for node.
   arguments: 0 - cmd name
              1 - nodeID
+	     2 - shgID
 */  
 int shgShortExplainCmd (ClientData clientData, 
                 Tcl_Interp *interp, 
                 int argc, 
                 char *argv[])
 {
-  Tcl_HashEntry *entry;
-  Tk_Uid nodeID;
   char *nodeExplain;
+  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+  nodeIdType shgID = StrToNodeIdType(argv[2]);
 
   // get string for this nodeID
-  nodeID = Tk_GetUid (argv[1]);
-  if (!(entry = Tcl_FindHashEntry (&shgNamesTbl, nodeID))) {
-    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
-    return TCL_ERROR;
-  }
-  nodeExplain = (char *) Tcl_GetHashValue(entry);
+  if (shgDisplay::AllSearchDisplays.defines(shgID)) {
+    shgDisplay *curr = shgDisplay::AllSearchDisplays[nodeID];
+    if ((curr->AllNodeFullNames).defines(nodeID)){
+      nodeExplain = (curr->AllNodeFullNames[nodeID])->string_of();
+
     // change variable linked to display window; display window will be 
     //  updated automatically
-  Tcl_SetVar (interp, "shgExplainStr", nodeExplain, TCL_GLOBAL_ONLY);
+      Tcl_SetVar (interp, "shgExplainStr", (char *)nodeExplain, 
+		  TCL_GLOBAL_ONLY);
+    }
+  }
   return TCL_OK;
 }
 
@@ -568,23 +466,18 @@ int highlightNodeCmd (ClientData clientData,
 		      int argc, 
 		      char *argv[])
 {
-  int dagID;
-  nodeIdType nodeID;
-  dag *currDag;
-
   // get string for this nodeID
-  nodeID = StrToNodeIdType(argv[1]);
-  dagID = atoi (argv[2]);
+  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+  int dagID = atoi (argv[2]);
 
-  currDag = ActiveDags[dagID];
   if (argc > 3) {
-    if (currDag->constrHighlightNode (nodeID)) 
+    if (dag::ActiveDags[dagID]->constrHighlightNode (nodeID)) 
       return TCL_OK;    
     else
       return TCL_ERROR;
   }
     
-  if (currDag->highlightNode (nodeID)) 
+  if (dag::ActiveDags[dagID]->highlightNode (nodeID)) 
     return TCL_OK;    
   else {
     return TCL_ERROR;
@@ -604,47 +497,17 @@ int unhighlightNodeCmd (ClientData clientData,
 		      int argc, 
 		      char *argv[])
 {
-  int dagID;
-  nodeIdType nodeID;
-  dag *currDag;
-
   // get string for this nodeID
-  nodeID = StrToNodeIdType(argv[1]);
-  dagID = atoi (argv[2]);
+  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+  int dagID = atoi (argv[2]);
 
-  currDag = ActiveDags[dagID];
-  if (currDag->unhighlightNode (nodeID)) 
+  if (dag::ActiveDags[dagID]->unhighlightNode (nodeID)) 
     return TCL_OK;    
   else {
     return TCL_ERROR;
   }
 }
 
-//int clearResourceSelectionCmd (ClientData clientData, 
-//                      Tcl_Interp *interp, 
-//                      int argc, 
-//                      char *argv[])
-//{
-//  int dagID;
-//  dag *currDag;
-//
-//  if (!strcmp (argv[1], "rdo")) {
-//    // need to get dag from rdo
-//    int rdoID;
-//    resourceDisplayObj *rdo;
-//    rdoID = atoi (argv[2]);
-//    rdo = resourceDisplayObj::allRDOs.find((void *)rdoID);
-//    currDag = rdo->getTopDag();
-//  } else {
-//    // get dag ptr from token
-//    dagID = atoi (argv[2]);
-//    currDag = ActiveDags[dagID];
-//  }
-//  currDag->clearAllHighlighting();
-//  currDag->highlightAllRootNodes();
-//  return TCL_OK;
-//}
-  
 /* 
    drawStartVisiMenuCmd
    gets list of currently available visualizations from visi manager
@@ -678,7 +541,7 @@ int drawStartVisiMenuCmd (ClientData clientData,
   Tcl_DStringInit(&numlist);
   
   for (i = 0; i < count; i++) {
-    Tcl_DStringAppendElement(&namelist, ((*via)[i]).name.string_of());
+    Tcl_DStringAppendElement(&namelist, (char *)((*via)[i]).name.string_of());
     sprintf (num, "%d", ((*via)[i]).visiTypeId);
     Tcl_DStringAppendElement(&numlist, num);
   }
@@ -699,23 +562,6 @@ int drawStartVisiMenuCmd (ClientData clientData,
   return TCL_OK;
 }
 
-
-/*
- * argv[1] = rdoToken
- * argv[2] = abstraction
- */
-//int switchRDOdagCmd (ClientData clientData, 
-//                Tcl_Interp *interp, 
-//                int argc, 
-//                char *argv[])
-//{
-//  int rdoToken;
-//  resourceDisplayObj *trdo;
-//  rdoToken = atoi(argv[1]);
-//  trdo = resourceDisplayObj::allRDOs.find((void *)rdoToken);
-//  trdo->cycle(argv[2]);
-//  return TCL_OK;
-//}
 
 /*
  * argv[1] = error number
@@ -745,8 +591,6 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"addEStyle", addEStyleCmd},
   {"addNStyle", addNStyleCmd},
   {"processVisiSelection", processVisiSelectionCmd},
-//  {"clearResourceSelection", clearResourceSelectionCmd},
-//  {"switchRDOdag", switchRDOdagCmd},
   {"tclTunable", TclTunableCommand},
   {"showError", showErrorCmd},
   { NULL, NULL}
