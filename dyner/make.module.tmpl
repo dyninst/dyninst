@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.7 2000/03/23 00:37:52 altinel Exp $
+# $Id: make.module.tmpl,v 1.8 2000/04/01 01:06:11 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -27,7 +27,7 @@ ifndef USES_LIBDYNINST_SO
 LIBS         += -lpdutil
 endif
 
-ifeq ($(PLATFORM),rs6000-ibm-aix4.1)
+ifeq (aix,$(findstring aix,$(PLATFORM)))
 TEST_CC = $(CC)
 else
 TEST_CC = $(CXX)
