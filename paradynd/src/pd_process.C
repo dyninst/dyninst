@@ -386,7 +386,6 @@ void pd_process::paradynPreExecDispatch(process *p, void *data, char *arg0) {
 }
 
 void pd_process::paradynPostExecDispatch(process *p, void *data) {
-    fprintf(stderr, "postExecDispatch called\n");
     ((pd_process *)data)->postExecHandler(p);
 }
 
@@ -463,7 +462,6 @@ bool pd_process::loadParadynLib() {
     removeAst(loadLibAstArgs[0]);
 
     // We've built a call to loadLibrary, now run it via inferior RPC
-    cerr << "Loading PARADYN library" << endl;
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::paradynLibLoadCallback,
                 (void *)this, // User data
@@ -476,7 +474,6 @@ bool pd_process::loadParadynLib() {
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
     while (!reachedLibState(paradynRTState, libLoaded)) {
-        cerr << "Launching RPC" << endl;
         launchRPCs(false);
         
         decodeAndHandleProcessEvent(true);
@@ -508,7 +505,6 @@ void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
                                         void *data, void * /*ret*/)
 {
     // Paradyn library has been loaded (via inferior RPC).
-    cerr << "Callback made for paradyn lib" << endl;
     pd_process *pd_p = (pd_process *)data;
     pd_p->setParadynLibLoaded();
 }
