@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.7  1994/09/20 18:18:33  hollings
+ * Revision 1.8  1994/09/22 02:27:18  markc
+ * Gave type names to typedefs
+ *
+ * Revision 1.7  1994/09/20  18:18:33  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.6  1994/08/08  20:13:48  hollings
@@ -48,25 +51,24 @@
 #include "util.h"
 #include "internalMetrics.h"
 
-typedef List<int>;
-typedef List<void *>;
-typedef List<processRec *>;
-typedef List<dataReqNode *>;
-typedef List<instReqNode *>;
-typedef List<metricDefinitionNode *>;
-typedef List<internalMetric *>;
-typedef List<tunableConstant *>;
+typedef List<int> d1;
+typedef List<void *> d2;
+typedef List<process *> d3;
+typedef List<dataReqNode *> d4;
+typedef List<instReqNode *> d5;
+typedef List<metricDefinitionNode *> d6;
+typedef List<internalMetric *> d7;
+typedef List<libraryFunc*> d7a;
 
-typedef HTable<metricDefinitionNode *>;
-typedef HTable<_metricRec *>;
-typedef HTable<resourceRec *>;
-typedef HTable<_resourceListRec *>;
+typedef HTable<metricDefinitionNode *> d8;
+typedef HTable<metric*> d9;
+typedef HTable<resource*> d10;
+typedef HTable<resourceListRec*> d11;
+typedef HTable<point*> d12;
 
-typedef HTable<pointRec *>;
+typedef List<heapItem *> d13;
+typedef HTable<heapItem *> d14;
 
-typedef List<heapRec *>;
-typedef HTable<heapRec *>;
+typedef StringList<int> d15;
 
-typedef StringList<int>;
-
-typedef List<function *>;
+typedef List<pdFunction *> d16;
