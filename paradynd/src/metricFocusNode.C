@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.172 2000/05/11 04:52:28 zandy Exp $
+// $Id: metricFocusNode.C,v 1.173 2000/05/22 15:11:43 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -834,11 +834,9 @@ void metricDefinitionNode::removeThisInstance() {
 
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
-#if defined(MT_THREAD)
-    aggregators[u]->removeFromAggregate(this,true); //why was 0
-#else
-    aggregators[u]->removeFromAggregate(this, 0); 
-#endif
+  }
+  while(aggregators.size()) {
+    aggregators[0]->removeFromAggregate(this,true); //why was 0
   }
 }
 

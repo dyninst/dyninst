@@ -261,9 +261,10 @@ void visualization::Data(vector<T_visi::dataValue> data){
   }}}
 
   //call user registered callback routine assoc. w/event DATAVALUES
-  if((min > visi_LastBucketSent) //if new datagrid cross-section has been filled
-     && (min != max)
-     && (visi_eventCallbacks[DATAVALUES]!=NULL)){ //theres a callback routine 
+  if(/*(min > visi_LastBucketSent) //if new datagrid cross-section has been filled
+     && (min != max) 
+     && */ 
+     (visi_eventCallbacks[DATAVALUES]!=NULL)){ //theres a callback routine 
        visi_LastBucketSent = min;
        visi_eventCallbacks[DATAVALUES](visi_LastBucketSent);
   }
