@@ -849,12 +849,10 @@ bool establishBaseAddrs(int pid, int &status)
 
     // check that the program was loaded at the correct address.
 
-    /* The following comment and usleep statement are taken from gdb 4.14
-	in the file rs6000-nat.c - jkh 6/13/95 */
-    /* According to my humble theory, AIX has some timing problems and
-     when the user stack grows, kernel doesn't update stack info in time
-     and ptrace calls step on user stack. That is why we sleep here a little,
-     and give kernel to update its internals. */
+    /* It seems that AIX has some timing problems and
+     when the user stack grows, the kernel doesn't update the stack info in time
+     and ptrace calls step on user stack. This is the reason why call sleep 
+     here, giving the kernel some time to update its internals. */
     usleep (36000);
 
     // wait for the TRAP point.
