@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.141 2003/10/24 21:25:53 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.142 2004/01/15 20:40:12 eli Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3223,8 +3223,7 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
 //    Assumes that function inst points are : 1 entry, multiple call site, and
 //     multiple exit points, and that all should be translated into inst
 //     points in relocated function (in reloc_info).  This probably shld get 
-//     changed if Trash-A-Dyn/Dyninst moves to a model of instrumenting arbitrary
-//     points in function....
+//     changed if instrumenting arbitrary points in function....
 //    When this function finishes, inst points in reloc info should have their
 //     NEW (relocated) address, including changes made by alterations applied
 //     to function.
