@@ -199,9 +199,9 @@ Address getPC( int pid ) {
 
 bool process::handleTrapAtEntryPointOfMain() {
 	/* Try to find main(). */
-	function_base * f_main = NULL;
+	int_function * f_main = NULL;
 
-	pdvector<pd_Function *> * pdfv = NULL;
+	pdvector<int_function *> * pdfv = NULL;
 	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
 		return false;
   		}
@@ -210,7 +210,7 @@ bool process::handleTrapAtEntryPointOfMain() {
 		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
 		}
 	
-	f_main = (function_base *)(* pdfv)[0];
+	f_main = (* pdfv)[0];
 	assert( f_main );
 
 	/* Replace the original code. */
@@ -223,9 +223,9 @@ bool process::handleTrapAtEntryPointOfMain() {
 
 bool process::insertTrapAtEntryPointOfMain() {
 	/* Try to find main(). */
-	function_base * f_main = NULL;
+	int_function * f_main = NULL;
 
-	pdvector<pd_Function *> * pdfv = NULL;
+	pdvector<int_function *> * pdfv = NULL;
 	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
 		return false;
   		}
@@ -234,7 +234,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
 		}
 	
-	f_main = (function_base *)(* pdfv)[0];
+	f_main = (* pdfv)[0];
 	assert( f_main );
 	
 	/* Save the original code and replace it with a trap bundle. */
@@ -768,7 +768,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
 	} /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
-bool process::hasBeenBound( const relocationEntry entry, pd_Function * & target_pdf, Address base_addr ) {
+bool process::hasBeenBound( const relocationEntry entry, int_function * & target_pdf, Address base_addr ) {
 	/* A PLT entry always looks up a function descriptor in the FD table in the .IA_64.pltoff section; if
 	   the function hasn't been bound yet, that FD's function pointer will point to another PLT entry.
 	   (Which will jump to the first, special PLT entry that calls the linker.) 
@@ -789,6 +789,6 @@ bool process::hasBeenBound( const relocationEntry entry, pd_Function * & target_
 	/* Do the look up.  We're skipping a potential optimization here (checking to see if
  	   functionAddress is in the PLT first) for simplicitly. */
 	target_pdf = this->findFuncByAddr( functionAddress );
-	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): found pd_Function at %p\n", target_pdf );
+	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): found int_function at %p\n", target_pdf );
 	return ( target_pdf != NULL );
 	} /* end hasBeenBound() */
