@@ -19,15 +19,8 @@
 
 
 /************************************************************************
- * kludges.h: the name says it all. stop compiler warnings.
+ * RTgeneric.c: generic timer functions for POSIX systems
 ************************************************************************/
-
-
-
-
-
-#if !defined(_rtinst_src_kludges_h_)
-#define _rtinst_src_kludges_h_
 
 
 
@@ -37,89 +30,79 @@
  * header files.
 ************************************************************************/
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/times.h>
+
+#include "kludges.h"
+#include "rtinst/h/rtinst.h"
 
 
 
 
 
 /************************************************************************
- * common definitions and declarations.
+ * symbolic constants.
 ************************************************************************/
 
-typedef void (*Sa_Handler)();
+static const double MILLION = 1000000.0;
 
 
 
 
 
 /************************************************************************
- * architecture-os definitions and declarations.
+ * void DYNINSTos_init(void)
+ *
+ * null initialization for generic operating system.
 ************************************************************************/
 
-#if defined(i386_unknown_bsd)
-
-#endif /* defined(i386_unknown_bsd) */
-
-
-
-#if defined(hppa1_1_hp_hpux)
-
-#endif /* defined(hppa1_1_hp_hpux) */
-
-
-
-#if defined(mips_dec_ultrix4_3)
-
-#endif /* defined(mips_dec_ultrix4_3) */
-
-
-
-#if defined(sparc_sun_solaris2_3)
-
-#endif /* defined(sparc_sun_solaris2_3) */
-
-
-
-#if defined(sparc_sun_sunos4_1_3)
-
-extern int    gettimeofday(struct timeval *, struct timezone *);
-extern int    fclose(FILE *);
-extern int    fflush(FILE *);
-extern int    fprintf(FILE *, const char *, ...);
-extern int    printf(const char *, ...);
-extern int    setitimer(int, struct itimerval *, struct itimerval *);
-extern int    sigpause(int);
-extern size_t fread(void *, size_t, size_t, FILE *);
-extern size_t fwrite(void *, size_t, size_t, FILE *);
-
-#endif /* defined(sparc_sun_sunos4_1_3) */
+void
+DYNINSTos_init(void) {
+}
 
 
 
 
 
 /************************************************************************
- * for c-compilers without proper include files.
+ * time64 DYNINSTgetCPUtime(void)
+ *
+ * get the total CPU time used for "an" LWP of the monitored process.
+ * this functions needs to be rewritten if a per-thread CPU time is
+ * required.  time for a specific LWP can be obtained via the "/proc"
+ * filesystem.
+ * return value is in usec units.
 ************************************************************************/
 
-#if !defined(__cplusplus)
-
-extern int  fflush(FILE *);
-extern int  fprintf(FILE *, const char *, ...);
-extern int  printf(const char *, ...);
-extern int  vsprintf(char *, const char *, va_list);
-
-extern void perror(const char *);
-
-
-#endif /* !defined(__cplusplus) */
+time64
+DYNINSTgetCPUtime(void) {
+    struct tms t;
+    if (times(&t) == -1) {
+        perror("times");
+        abort();
+    }
+    return (time64) ((t.tms_utime+t.tms_stime)*MILLION/HZ);
+}
 
 
 
 
 
-#endif /* !defined(_rtinst_src_kludges_h_) */
+/************************************************************************
+ * time64 DYNINSTgetWalltime(void)
+ *
+ * get the total walltime used by the monitored process.
+ * return value is in usec units.
+************************************************************************/
+
+time64
+DYNINSTgetWalltime(void) {
+    struct timeval tv;
+    if (gettimeofday(&tv, 0) == -1) {
+        perror("gettimeofday");
+        abort();
+    }
+    return (time64) (tv.tv_sec*MILLION + tv.tv_usec);
+}

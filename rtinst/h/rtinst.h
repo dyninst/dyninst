@@ -70,38 +70,7 @@ struct tTimerRec {
 };
 
 typedef int (*filterFunc)(void *cdata, parameters *params);
-
-/*
- * standard inst. functions.
- *
- */
-
-/*
- * return the current CPU time in usec.
- */
-time64 DYNINSTgetCPUtime();
-time64 DYNINSTgetWallTime();
-
-void DYNINSTflushTrace();
-
-/*
- * start a timer.
- */
-void DYNINSTstartTimer(tTimer *timer);
-
-void DYNINSTstopTimer(tTimer *timer);
-
 typedef int traceStream;
-/*
- * timestamp and write the passed trace type, and event data to the passed
- *   trace stream.
- *
- */
-void DYNINSTgenerateTraceRecord(traceStream destination, 
-				short type, 
-				short length, 
-    			        void *eventData,
-				int flush);
 
 /*
  * Define the size of the per process data area.
