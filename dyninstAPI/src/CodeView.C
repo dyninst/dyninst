@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.9 2001/06/15 20:47:49 hollings Exp $
+// $Id: CodeView.C,v 1.10 2001/08/29 23:25:27 hollings Exp $
 
 #include <assert.h>
 
@@ -962,7 +962,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			if (memberType == NULL)
 				memberType = mod->moduleTypes->findType("void");
 
-			mainType->addField(fname, BPatch_method, memberType, 0, 0);
+			mainType->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 
 			// printf("Field %d is LF_ONEMETHOD %s\n", i, fname);
 
@@ -974,7 +974,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 						(int)((LFMethod *)ptr)->name[0]);
 			fname[(int)((LFMethod *)ptr)->name[0]] = '\0';
 			memberType = mod->moduleTypes->findType("void");
-			mainType->addField(fname, BPatch_method, memberType, 0, 0);
+			mainType->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 			ptr = (unsigned char *)((LFMethod *)ptr)->name + 
 						(int)((LFMethod *)ptr)->name[0] + 1;
 
@@ -1134,9 +1134,9 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		typeName[(int)className[0]] = '\0';
 				
 		if (trec->leaf == LF_CLASS)
-			newType = new BPatch_type(typeName, -1, BPatch_class, classLen);
+			newType = new BPatch_type(typeName, -1, BPatch_dataTypeClass, classLen);
 		else
-			newType = new BPatch_type(typeName, -1, BPatch_structure,
+			newType = new BPatch_type(typeName, -1, BPatch_dataStructure,
 									classLen);
 		// printf("Name of the structure %s\n", typeName);
 		FindFields(mod, newType, ((LFClass *)trec)->count, 

@@ -75,16 +75,16 @@ typedef enum BPatch_sourceType {
 class BPATCH_DLL_EXPORT BPatch_sourceObj {
   public:
       BPatch_sourceType getSrcType() { return _srcType; }
-      virtual BPatch_Vector<BPatch_sourceObj *> *getSourceObj() = 0;
+      virtual bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &) = 0;
+      virtual bool getVariables(BPatch_Vector<BPatch_variableExpr *> &) = 0;
       virtual BPatch_sourceObj *getObjParent() = 0;
 
       BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *name);
       BPatch_language getLanguage() { return _srcLanguage; }
       BPatch_type *getType(char *name);
-      BPatch_Vector<BPatch_variableExpr *> *getVariables();
       BPatch_Vector<char *> *getLoadedFileNames();
-      char *programName(char *buf, unsigned int len);
-      int programNameLen();
+      char *getName(char *buf, unsigned int len);
+      int getNameLen();
 
   protected:
       enum BPatch_sourceType _srcType;

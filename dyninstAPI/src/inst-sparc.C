@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.104 2001/08/20 19:59:07 bernat Exp $
+// $Id: inst-sparc.C,v 1.105 2001/08/29 23:25:28 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1434,6 +1434,7 @@ void emitFuncJump(opCode op,
 #ifdef BPATCH_LIBRARY
 
 #include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
 
 #include <sys/systeminfo.h>
 

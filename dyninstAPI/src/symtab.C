@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.127 2001/08/23 14:43:29 schendel Exp $
+// $Id: symtab.C,v 1.128 2001/08/29 23:25:28 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1343,7 +1343,10 @@ image::image(fileDescriptor *desc, bool &err)
   statusLine(msg.string_of());
   
   // short file name
-  name_ = extract_pathname_tail(desc->file());
+  // XXX  still need full name for later parsing steps
+  //   jkh - 7/11/01
+  // name_ = extract_pathname_tail(desc->file());
+  name_ = desc->file();
   err = false;
   
   // use the *DUMMY_MODULE* until a module is defined

@@ -52,16 +52,39 @@ class BPatch_function;
 
 
 /*
+ * Provide these definitions for backwards compatability.
+ *
+ */
+#define BPatch_entry BPatch_locEntry
+#define BPatch_exit BPatch_locExit
+#define BPatch_subroutine BPatch_locSubroutine
+#define BPatch_longJump	BPatch_locLongJump
+#define BPatch_allLocations BPatch_locAllLocations
+#define BPatch_instruction BPatch_locInstruction
+
+/*
  * Used with BPatch_function::findPoint to specify which of the possible
  * instrumentation points within a procedure should be returned.
  */
 typedef enum {
-    BPatch_entry,
-    BPatch_exit,
-    BPatch_subroutine,
-    BPatch_longJump,
-    BPatch_allLocations,
-    BPatch_instruction
+    BPatch_locEntry,
+    BPatch_locExit,
+    BPatch_locSubroutine,
+    BPatch_locLongJump,
+    BPatch_locAllLocations,
+    BPatch_locInstruction,
+    BPatch_locSourceBlockEntry,		// not yet used
+    BPatch_locSourceBlockExit,		// not yet used
+    BPatch_locSourceLoopEntry,		// not yet used
+    BPatch_locSourceLoopExit,		// not yet used
+    BPatch_locBasicBlockEntry,		// not yet used
+    BPatch_locBasicBlockExit,		// not yet used
+    BPatch_locSourceLoop,		// not yet used
+    BPatch_locBasicBlockLoopEntry,	// not yet used
+    BPatch_locBasicBlockLoopExit,	// not yet used
+    BPatch_locVarInitStart,		// not yet used
+    BPatch_locVarInitEnd,		// not yet used
+    BPatch_locStatement,		// not yet used
 } BPatch_procedureLocation;
 
 
@@ -85,6 +108,15 @@ public:
     const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
+
+#ifdef IBM_BPATCH_COMPAT
+    void *getPointAddress() { getAddress(); }
+
+    int	getPointLine() { return -1; }
+
+    BPatch_function     *getContainingFunction() { return const_cast<BPatch_function*>(getFunction()); };
+#endif
+
     int             getDisplacedInstructions(int maxSize, void *insns);
 
     bool	usesTrap_NP();

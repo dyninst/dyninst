@@ -44,6 +44,7 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include <string.h>
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
@@ -65,39 +66,55 @@ typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
  * BPatchSymTypeTag        - C++ type name and tag combination
  */
 
-typedef enum {BPatch_scalar, 
-	      BPatch_enumerated,
-	      BPatch_class,
-	      BPatch_structure, 
-	      BPatch_union, 
-	      BPatch_array, 
-	      BPatch_pointer, 
-	      BPatch_referance, 
-	      BPatch_func,
-	      BPatch_typeAttrib,
-	      BPatch_built_inType,
-	      BPatch_reference,
-	      BPatch_unknownType,
+typedef enum {BPatch_dataScalar, 
+	      BPatch_dataEnumerated,
+	      BPatch_dataTypeClass,
+	      BPatch_dataStructure, 
+	      BPatch_dataUnion, 
+	      BPatch_dataArray, 
+	      BPatch_dataPointer, 
+	      BPatch_dataReferance, 
+	      BPatch_dataFunction,
+	      BPatch_dataTypeAttrib,
+	      BPatch_dataBuilt_inType,
+	      BPatch_dataReference,
+	      BPatch_dataUnknownType,
 	      BPatchSymTypeRange,
-	      BPatch_method,
-	      BPatch_common} BPatch_dataClass;
+	      BPatch_dataMethod,
+	      BPatch_dataCommon,
+	      BPatch_dataPrimitive,
+	      BPatch_dataTypeNumber,
+} BPatch_dataClass;
+
+
+#define BPatch_scalar	BPatch_dataScalar
+#define BPatch_enumerated	BPatch_dataEnumerated
+#define BPatch_typeClass	BPatch_dataTypeClass
+#define BPatch_structure	BPatch_dataStructure 
+#define BPatch_union	BPatch_dataUnion 
+#define BPatch_array	BPatch_dataArray 
+#define BPatch_pointer	BPatch_dataPointer 
+#define BPatch_reference	BPatch_dataReferance 
+#define BPatch_typeAttrib	BPatch_dataTypeAttrib
+#define BPatch_built_inType  	BPatch_dataBuilt_inType
+#define BPatch_unknownType	BPatch_dataUnknownType
 
 /*
  * Type Descriptors:
  * BPatchSymTypeReference - type reference- gnu sun-(empty)
- * BPatch_array - array type- gnu sun-'a'
- * BPatch_enumerated - enumerated type- gnu sun-'e'
- * BPatch_class - Class type
- * BPatch_func - function type- gnu sun-'f'
+ * BPatch_dataArray - array type- gnu sun-'a'
+ * BPatch_dataEnumerated - enumerated type- gnu sun-'e'
+ * BPatch_dataTypeClass - Class type
+ * BPatch_dataFunction - function type- gnu sun-'f'
  * BPatchSymTypeRange - range type- gnu sun-'r'
- * BPatch_structure - structure type- gnu sun-'s'
- * BPatch_union - union specification- gnu sun-'u'
- * BPatch_pointer - pointer type- gnu sun-'*'
- * BPatch_referance - referance type- gnu sun-'*'
- * BPatch_typeAttrib - type attribute (C++)- gnu sun- '@'
- * BPatch_built_inType - built-in type -- gdb doc ->negative type number
- * BPatch_reference - C++ reference to another type- gnu sun- '&'
- * BPatch_method - C++ class method
+ * BPatch_dataStructure - structure type- gnu sun-'s'
+ * BPatch_dataUnion - union specification- gnu sun-'u'
+ * BPatch_dataPointer - pointer type- gnu sun-'*'
+ * BPatch_dataReferance - referance type- gnu sun-'*'
+ * BPatch_dataTypeAttrib - type attribute (C++)- gnu sun- '@'
+ * BPatch_dataBuilt_inType - built-in type -- gdb doc ->negative type number
+ * BPatch_dataReference - C++ reference to another type- gnu sun- '&'
+ * BPatch_dataMethod - C++ class method
  */
 
 typedef enum {BPatch_private, BPatch_protected, BPatch_public,
@@ -131,7 +148,7 @@ class BPATCH_DLL_EXPORT BPatch_field {
   int          value;
 
   /* For structs and unions */
-  BPatch_type *type;
+  BPatch_type *_type;
   int         offset;
   int         size;
 
@@ -155,7 +172,8 @@ public:
   
 			      
   const char *getName() { return fieldname; } 
-  BPatch_type *getType() { return type; }
+  BPatch_type *getType() { return _type; }
+
   int getValue() { return value;}
   BPatch_visibility getVisibility() { return vis; }
   BPatch_dataClass getTypeDesc() { return typeDes; }
@@ -269,6 +287,12 @@ public:
 
   int getSize() const { return size; };
   const char *getName() { return name; }
+
+#ifdef IBM_BPATCH_COMPAT
+  const char *getName(char *buffer, int max) { return strncpy(buffer, name, max); }
+  BPatch_dataClass type() { return type_; }
+#endif
+
   const char *getLow() { return low; }
   const char *getHigh() { return hi; }
   BPatch_type *getConstituentType() { return ptr; }

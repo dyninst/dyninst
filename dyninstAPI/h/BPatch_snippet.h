@@ -72,13 +72,22 @@ typedef enum {
     BPatch_times,
     BPatch_mod,
     BPatch_ref,
-    BPatch_seq
+    BPatch_seq,
+    BPatch_bit_and,		// not supported yet
+    BPatch_bit_or,		// not supported yet
+    BPatch_bit_xor,		// not supported yet
+    BPatch_left_shift,		// not supported yet
+    BPatch_right_shift,		// not supported yet
 } BPatch_binOp;
+
+// for backwards compatability
+#define BPatch_addr BPatch_address
 
 typedef enum {
     BPatch_negate,
-    BPatch_addr,
-    BPatch_deref
+    BPatch_address,
+    BPatch_deref,
+    BPatch_bit_compl,		// not supported yet
 } BPatch_unOp;
 
 class BPATCH_DLL_EXPORT BPatch_snippet {
@@ -112,6 +121,10 @@ public:
 
 class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 public:
+#ifdef IBM_BPATCH_COMPAT
+    BPatch_constExpr(long long value);
+    BPatch_constExpr(float value);
+#endif
     BPatch_constExpr(int value);
 #ifdef BPATCH_NOT_YET
     BPatch_constExpr(float value);
@@ -186,8 +199,14 @@ public:
 
     char *getName() { return name; }
     void *getBaseAddr() const { return address; }
+
+#ifdef IBM_BPATCH_COMPAT
+    const char *getName(char *buffer, int max) { return strncpy(buffer, name, max); }
+    long long int getAddress() const { return (long long int) address; }
+#endif
+
     unsigned int getSize() const { return size; }
-    const BPatch_type *getType();
+    BPatch_type *getType();
     void setType(BPatch_type *);
     void setSize(int sz) {  size = sz; }
     BPatch_Vector<BPatch_variableExpr *> *getComponents();

@@ -145,6 +145,7 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 					    void *returnValue);
 
     void		*oneTimeCodeInternal(const BPatch_snippet &expr);
+
 protected:
     // for creating a process
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL, int stdin_fd = 0,
@@ -223,6 +224,11 @@ public:
     //to an address
     bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			char* fileName,int length);
+
+#ifdef IBM_BPATCH_COMPAT
+    bool isThreaded() { return false; }
+#endif
+
 };
 
 #endif /* BPatch_thread_h_ */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.37 2001/08/01 15:39:54 chadd Exp $
+// $Id: BPatch.C,v 1.38 2001/08/29 23:25:26 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -115,12 +115,15 @@ BPatch::BPatch()
      * Initialize hash table of standard types.
      */
     stdTypes = new BPatch_typeCollection;
-    stdTypes->addType(new BPatch_type("int",-1, BPatch_scalar, sizeof(int)));
-    stdTypes->addType(new BPatch_type("char *",-3, BPatch_scalar, sizeof(char*)));
-    BPatch_type *voidType = new BPatch_type("void",-11, BPatch_scalar, 0);
+    stdTypes->addType(new BPatch_type("int",-1, BPatch_dataScalar, sizeof(int)));
+    stdTypes->addType(new BPatch_type("char *",-3, BPatch_dataScalar, sizeof(char*)));
+    BPatch_type *voidType = new BPatch_type("void",-11, BPatch_dataScalar, 0);
     stdTypes->addType(voidType);
-    stdTypes->addType(new BPatch_type("void *",-4, BPatch_pointer, voidType));
-    stdTypes->addType(new BPatch_type("float",-12, BPatch_scalar, sizeof(float)));
+    stdTypes->addType(new BPatch_type("void *",-4, BPatch_dataPointer, voidType));
+    stdTypes->addType(new BPatch_type("float",-12, BPatch_dataScalar, sizeof(float)));
+#if !defined(i386_unknown_nt4_0)
+    stdTypes->addType(new BPatch_type("long long",-31, BPatch_dataScalar, sizeof(long long int)));
+#endif
 
     /*
      * Initialize hash table of API types.
@@ -137,121 +140,121 @@ BPatch::BPatch()
     // NOTE: integral type  mean twos-complement
     // -1  int, 32 bit signed integral type
     // in stab document, size specified in bits, system size is in bytes
-    builtInTypes->addBuiltInType(new BPatch_type("int",-1, BPatch_built_inType,
+    builtInTypes->addBuiltInType(new BPatch_type("int",-1, BPatch_dataBuilt_inType,
 						 4));
     // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
     builtInTypes->addBuiltInType(new BPatch_type("char",-2,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -3  short, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("short",-3,
-						 BPatch_built_inType, 2));
+						 BPatch_dataBuilt_inType, 2));
     // -4  long, 32/64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("long",-4,
-						 BPatch_built_inType, 
+						 BPatch_dataBuilt_inType, 
 						 sizeof(long)));
     // -5  unsigned char, 8 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned char",-5,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -6  signed char, 8 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("signed char",-6,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -7  unsigned short, 16 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned short",-7,
-						 BPatch_built_inType, 2));
+						 BPatch_dataBuilt_inType, 2));
     // -8  unsigned int, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned int",-8,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -9  unsigned, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned",-9,
-						 BPatch_built_inType,4));
+						 BPatch_dataBuilt_inType,4));
     // -10 unsigned long, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned long",-10,
-						 BPatch_built_inType, 
+						 BPatch_dataBuilt_inType, 
 						 sizeof(unsigned long)));
     // -11 void, type indicating the lack of a value
     //  XXX-size may not be correct jdd 4/22/99
     builtInTypes->addBuiltInType(new BPatch_type("void",-11,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 0));
     // -12 float, IEEE single precision
     builtInTypes->addBuiltInType(new BPatch_type("float",-12,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(float)));
     // -13 double, IEEE double precision
     builtInTypes->addBuiltInType(new BPatch_type("double",-13,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(double)));
     // -14 long double, IEEE double precision, size may increase in future
     builtInTypes->addBuiltInType(new BPatch_type("long double",-14,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(long double)));
     // -15 integer, 32 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer",-15,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
     //     have unspecified meaning
     builtInTypes->addBuiltInType(new BPatch_type("boolean",-16,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -17 short real, IEEE single precision
     //  XXX-size may not be correct jdd 4/22/99
     builtInTypes->addBuiltInType(new BPatch_type("short real",-17,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(float)));
     // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99 
     builtInTypes->addBuiltInType(new BPatch_type("real",-18,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(double)));
     // -19 stringptr XXX- size of void * -- jdd 4/22/99
     builtInTypes->addBuiltInType(new BPatch_type("stringptr",-19,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 sizeof(void *)));
     // -20 character, 8 bit unsigned character type
     builtInTypes->addBuiltInType(new BPatch_type("character",-20,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*1",-21,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*2",-22,
-						 BPatch_built_inType, 2));
+						 BPatch_dataBuilt_inType, 2));
     // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*4",-23,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical",-24,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -25 complex, consists of 2 IEEE single-precision floating point values
     builtInTypes->addBuiltInType(new BPatch_type("complex",-25,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 (sizeof(float)*2)));
     // -26 complex, consists of 2 IEEE double-precision floating point values
     builtInTypes->addBuiltInType(new BPatch_type("complex",-26,
-						 BPatch_built_inType,
+						 BPatch_dataBuilt_inType,
 						 (sizeof(double)*2)));
     // -27 integer*1, 8 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*1",-27,
-						 BPatch_built_inType, 1));
+						 BPatch_dataBuilt_inType, 1));
     // -28 integer*2, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*2",-28,
-						 BPatch_built_inType, 2));
+						 BPatch_dataBuilt_inType, 2));
     // -29 integer*4, 32 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*4",-29,
-						 BPatch_built_inType, 4));
+						 BPatch_dataBuilt_inType, 4));
     // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
     builtInTypes->addBuiltInType(new BPatch_type("wchar",-30,
-						 BPatch_built_inType, 2));
+						 BPatch_dataBuilt_inType, 2));
     // -31 long long, 64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("long long",-31,
-						 BPatch_built_inType, 8));
+						 BPatch_dataBuilt_inType, 8));
     // -32 unsigned long long, 64 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned long long", -32,
-						 BPatch_built_inType, 8));
+						 BPatch_dataBuilt_inType, 8));
     // -33 logical*8, 64 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("logical*8",-33,
-						 BPatch_built_inType, 8));
+						 BPatch_dataBuilt_inType, 8));
     // -34 integer*8, 64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*8",-34,
-						 BPatch_built_inType, 8));
+						 BPatch_dataBuilt_inType, 8));
 
     // default callbacks are null
     postForkCallback = NULL;
@@ -466,12 +469,15 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
   
-        // don't log BPatchWarning or BPatchInfo messages as "errors"
+    // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
 	bpatch->lastError = number;
 
     if (bpatch->errorHandler != NULL) {
 	bpatch->errorHandler(severity, number, &str);
+    } else {
+	fprintf(stdout, "DYNINST ERROR: %s\n", str);
+	fflush(stdout);
     }
 }
 
@@ -916,14 +922,14 @@ BPatch_type * BPatch::createEnum( const char * name,
       return NULL;
     }
 
-    BPatch_type * newType = new BPatch_type( name, BPatch_enumerated );
+    BPatch_type * newType = new BPatch_type( name, BPatch_dataEnumerated );
     if (!newType) return NULL;
     
     APITypes->addType(newType);
 
     // ADD components to type
     for (int i=0; i < elementNames.size(); i++) {
-        newType->addField(elementNames[i], BPatch_scalar, elementIds[i]);
+        newType->addField(elementNames[i], BPatch_dataScalar, elementIds[i]);
     }
 
     return(newType);
@@ -942,7 +948,7 @@ BPatch_type * BPatch::createEnum( const char * name,
 BPatch_type * BPatch::createEnum( const char * name, 
 				  BPatch_Vector<char *> elementNames)
 {
-    BPatch_type * newType = new BPatch_type( name, BPatch_enumerated );
+    BPatch_type * newType = new BPatch_type( name, BPatch_dataEnumerated );
 
     if (!newType) return NULL;
     
@@ -950,7 +956,7 @@ BPatch_type * BPatch::createEnum( const char * name,
 
     // ADD components to type
     for (int i=0; i < elementNames.size(); i++) {
-        newType->addField(elementNames[i], BPatch_scalar, i);
+        newType->addField(elementNames[i], BPatch_dataScalar, i);
     }
 
     return(newType);
@@ -985,7 +991,7 @@ BPatch_type * BPatch::createStruct( const char * name,
         size += size;
     }
   
-    BPatch_type *newType = new BPatch_type(name, BPatch_structure, size);
+    BPatch_type *newType = new BPatch_type(name, BPatch_dataStructure, size);
     if (!newType) return NULL;
     
     APITypes->addType(newType);
@@ -1033,7 +1039,7 @@ BPatch_type * BPatch::createUnion( const char * name,
 	if(size < newsize) size = newsize;
     }
   
-    BPatch_type * newType = new BPatch_type(name, BPatch_union, size);
+    BPatch_type * newType = new BPatch_type(name, BPatch_dataUnion, size);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
@@ -1066,7 +1072,7 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
     if (!ptr) {
         return NULL;
     } else {
-        newType = new BPatch_type(name, BPatch_array , ptr, low, hi);
+        newType = new BPatch_type(name, BPatch_dataArray , ptr, low, hi);
         if (!newType) return NULL;
     }
 
@@ -1108,7 +1114,7 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
 
 BPatch_type * BPatch::createScalar( const char * name, int size)
 {
-    BPatch_type * newType = new BPatch_type(name, BPatch_scalar, size);
+    BPatch_type * newType = new BPatch_type(name, BPatch_dataScalar, size);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
@@ -1135,3 +1141,28 @@ BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
   
     return newType;
 }
+
+#ifdef IBM_BPATCH_COMPAT
+
+/*
+ * Register a function to call when an RPC (i.e. oneshot) is done.
+ *
+ * dyninst version is a callback that is defined for BPatch_thread
+ *
+ */
+BPatchThreadEventCallback BPatch::registerRPCTerminationCallback(BPatchThreadEventCallback func)
+{
+    BPatchThreadEventCallback ret;
+
+    ret = RPCdoneCallback;
+    RPCdoneCallback = func;
+
+    return ret;
+}
+
+void setLogging_NP(BPatchLoggingCallback, int)
+{
+    return;
+}
+
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.13 2001/06/12 15:43:28 hollings Exp $
+// $Id: BPatch_function.C,v 1.14 2001/08/29 23:25:27 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -117,9 +117,13 @@ BPatch_function::~BPatch_function()
  *    This is not currently supported.
  *
  */
-BPatch_Vector<BPatch_sourceObj *> *BPatch_function::getSourceObj()
+bool BPatch_function::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &children)
 {
-    return NULL;
+    // init and empty vector
+    BPatch_Vector<BPatch_sourceObj *> dummy;
+
+    children = dummy;
+    return false;
 }
 
 /*
@@ -152,12 +156,23 @@ char *BPatch_function::getName(char *s, int len)
     return s;
 }
 
-void BPatch_function::getSymTabName(char*& s)
+/*
+ * BPatch_function::getMangledName
+ *
+ * Copies the mangled name of the function into a buffer, up to a given maximum
+ * length.  Returns a pointer to the beginning of the buffer that was
+ * passed in.
+ *
+ * s            The buffer into which the name will be copied.
+ * len          The size of the buffer.
+ */
+char *BPatch_function::getMangledName(char *s, int len)
 {
-	assert(func);
-	string name = func->symTabName();
-	s = new char[name.length()+1];
-	strcpy(s,name.string_of());
+    assert(func);
+    string name = func->symTabName();
+    strncpy(s, name.string_of(), len);
+
+    return s;
 }
 
 /*
@@ -372,8 +387,8 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 //
 // Return the module name, first and last line numbers of the function.
 //
-bool BPatch_function::getLineAndFile(unsigned short &start,
-				     unsigned short &end,
+bool BPatch_function::getLineAndFile(unsigned int &start,
+				     unsigned int &end,
                                      char *fileName, unsigned &length)
 {
     start = end = 0;
@@ -463,3 +478,53 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
 	return ret;
     }
 }
+
+bool BPatch_function::getVariables(BPatch_Vector<BPatch_variableExpr *> &vect)
+{
+    	return false;
+}
+
+char *BPatch_function::getModuleName(char *name, int maxLen) {
+    return getModule()->getName(name, maxLen);
+}
+
+#ifdef IBM_BPATCH_COMPAT
+
+bool BPatch_function::getLineNumbers(unsigned int &start, unsigned int &end) {
+    unsigned int length = 0;
+    return getLineAndFile(start, end, NULL, length);
+}
+
+void *BPatch_function::getAddress() { return getBaseAddr(); }
+    
+bool BPatch_function::getAddressRange(void * &start, void * &end) {
+	start = getBaseAddr();
+	unsigned long temp = (unsigned long) start;
+	end = (void *) (temp + getSize());
+
+	return true;
+}
+
+BPatch_type *BPatch_function::returnType() { return retType; }
+
+void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect) 
+{
+    BPatch_Vector<BPatch_point *> *v1 = findPoint(BPatch_allLocations);
+    if (v1) {
+	for (int i=0; i < v1->size(); i++) {
+	    vect.push_back((*v1)[i]);
+	}
+    }
+}
+
+int	BPatch_function::getMangledNameLen() { return 1024; }
+
+void BPatch_function::getExcPoints(BPatch_Vector<BPatch_point*> &points) {
+    abort();
+    return;
+};
+
+// return a function that can be passed as a paramter
+BPatch_variableExpr *BPatch_function::getFunctionRef() { abort(); return NULL; }
+
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.8 2001/06/12 15:43:27 hollings Exp $
+// $Id: BPatch_Vector.h,v 1.9 2001/08/29 23:25:24 hollings Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -52,12 +52,16 @@
 #ifdef USE_STL_VECTOR
 #include <stl.h>
 
-#define BPatch_Vector   vector
+#define BPatch_Vector	vector
 
 #else
 #ifdef external_templates
 #pragma interface
 #endif /* external_templates */
+
+#ifndef BPATCH_LIBRARY
+#define vector	BPatch_Vector
+#endif
 
 template<class T>
 class BPATCH_DLL_EXPORT BPatch_Vector {
@@ -74,7 +78,7 @@ public:
 
     BPatch_Vector<T>& operator=(const BPatch_Vector<T> &);
 
-    int		size() const { return len; }
+    unsigned int size() const { return len; }
     void	push_back(const T& x);
     void	push_front(const T& x);
 

@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: dummy.C,v 1.5 2001/06/12 15:43:29 hollings Exp $
+ * $Id: dummy.C,v 1.6 2001/08/29 23:25:27 hollings Exp $
  *
  * Miscellaneous functions and globals that are defined in paradynd modules
  * which aren't being included in the library.
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 int traceSocket = 0;
 int traceSocket_fd = 0;
@@ -60,10 +61,9 @@ extern "C" {
 void __uninitialized_copy_aux__H2ZPCt6vector2ZUiZt9allocator1ZUiZPt6vector2ZUiZt9allocator1ZUi_X01X01X11G12__false_type_X11() { abort(); }
 void __uninitialized_copy_aux__H2ZPC7FERNodeZP7FERNode_X01X01X11G12__false_type_X11() { abort(); }
 
-void fill_n__H3ZPP11pd_FunctionZUlZP11pd_Function_X01X11RCX21_X01() {abort(); }
+void fill_n__H3ZPP11pd_FunctionZUlZP11pd_Function_X01X11RCX21_X01() {}
 void fill_n__H3ZPP11pd_FunctionZUiZP11pd_Function_X01X11RCX21_X01() { }
 
-void fill_n__H3ZPP7AstNodeZUlZP7AstNode_X01X11RCX21_X01() {abort(); }
 void fill_n__H3ZPP7AstNodeZUiZP7AstNode_X01X11RCX21_X01() { }
 
 void fill_n__H3ZPP19BPatch_variableExprZUiZP19BPatch_variableExpr_X01X11RCX21_X01() {abort(); }
@@ -72,5 +72,17 @@ void fill__H2ZPP19BPatch_variableExprZP19BPatch_variableExpr_X01X01RCX11_v() {ab
 void fill__H2ZPP19BPatch_variableExprZP19BPatch_variableExpr_X01T0RCX11_v() { abort(); }
 
 void fill_n__H3ZPP8pdmoduleZUiZP8pdmodule_X01X11RCX21_X01() { }
+
+#ifdef notdef
+void __uninitialized_copy_aux__H2ZPC6stringZP6string_X01X01X11G12__false_type_X11() { 
+    printf("call fill of string\n");
+}
+#endif
+
+void __uninitialized_copy_aux__H2ZPCt6vector2ZUlZt9allocator1ZUlZPt6vector2ZUlZt9allocator1ZUl_X01X01X11G12__false_type_X11() {}
+
+void fill_n__H3ZPP8pdmoduleZUlZP8pdmodule_X01X11RCX21_X01() {}
+
+void fill_n__H3ZPP19BPatch_variableExprZUlZP19BPatch_variableExpr_X01X11RCX21_X01() {}
 
 }

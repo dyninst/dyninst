@@ -78,14 +78,16 @@ public:
 
     virtual ~BPatch_module();
 
-    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
+    bool getSourceObj(BPatch_Vector<BPatch_sourceObj *>&);
     BPatch_sourceObj *getObjParent();
+    bool getVariables(BPatch_Vector<BPatch_variableExpr *> &);
 
     BPatch_typeCollection *moduleTypes;
 
 // End functions for internal use only
   
     char *getName(char *buffer, int length);
+    char *getFullName(char *buffer, int length);
 
     BPatch_Vector<BPatch_function *> *getProcedures();
 
@@ -102,8 +104,28 @@ public:
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);
 
+#ifdef IBM_BPATCH_COMPAT
+    bool getLineNumbers(unsigned int &start, unsigned int &end);
+    char *getUniqueString(char *buffer, int length);
+
+    char *sharedLibraryName(char *buffer, int length) { getFullName(buffer, length); }
+    char *getSharedLibName(char *buffer, int length) { getFullName(buffer, length); }
+    int getSharedLibType();
+    int getBindingType();
+#endif
+
 private:
 
 };
+
+#ifdef IBM_BPATCH_COMPAT
+#define	BPatch_sharedPublic	1
+#define BPatch_sharedPrivate	2
+#define BPatch_nonShared	3
+
+#define BPatch_static		1
+#define BPatch_dynamic		2
+
+#endif
 
 #endif /* _BPatch_module_h_ */

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2001/08/28 19:39:39 schendel Exp $
+# $Id: Makefile,v 1.17 2001/08/29 23:25:30 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -58,6 +58,7 @@ COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
 COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
 COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
+LDFLAGS += -lbsd
 
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \

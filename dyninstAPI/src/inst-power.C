@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.111 2001/08/20 19:59:06 bernat Exp $
+ * $Id: inst-power.C,v 1.112 2001/08/29 23:25:27 hollings Exp $
  */
 
 #include "common/h/headers.h"
@@ -343,9 +343,9 @@ Address pd_Function::newCallPoint(const Address adr, const instruction instr,
 
 void initDefaultPointFrequencyTable()
 {
+#ifdef notdef
     funcFrequencyTable[EXIT_NAME] = 1;
 
-#ifdef notdef
     FILE *fp;
     float value;
     char name[512];
@@ -1933,6 +1933,13 @@ Register emitFuncCall(opCode /* ocode */,
   // Generate the code for all function parameters, and keep a list
   // of what registers they're in.
   for (unsigned u = 0; u < operands.size(); u++) {
+    if (operands[u]->getSize() == 8) {
+        Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
+	srcs.push_back(dummyReg);
+	instruction *insn = (instruction *) ((void*)&iPtr[base]);
+	genImmInsn(insn, CALop, dummyReg, 0, 0);
+	base += sizeof(instruction);
+    }
     srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false));
   }
   
@@ -2292,7 +2299,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
-	      char *baseInsn, Address &base, bool /*noCost*/, int /* size */)
+	      char *baseInsn, Address &base, bool /*noCost*/, int size)
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.30 2001/07/05 16:53:21 tikir Exp $
+// $Id: BPatch_snippet.C,v 1.31 2001/08/29 23:25:27 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -134,7 +134,7 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
 	       "array reference has not type information");
 	return NULL;
     }
-    if (arrayType->getDataClass() != BPatch_array) {
+    if (arrayType->getDataClass() != BPatch_dataArray) {
 	BPatch_reportError(BPatchSerious, 109,
 	       "array reference to non-array type");
 	return NULL;
@@ -283,7 +283,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
       case BPatch_deref: {
 	ast = new AstNode(AstNode::DataIndir, lOperand.ast);
 	BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
-	if (!type || (type->getDataClass() != BPatch_pointer)) {
+	if (!type || (type->getDataClass() != BPatch_dataPointer)) {
 	    ast->setType(BPatch::bpatch->stdTypes->findType("int"));
 	} else {
 	    ast->setType(type->getConstituentType());
@@ -412,6 +412,39 @@ BPatch_constExpr::BPatch_constExpr(const void *value)
     ast->setType(type);
 }
 
+
+#ifdef IBM_BPATCH_COMPAT
+//
+// this is long long only in size, it will fail if a true long long
+//    with high bits is passed.
+
+BPatch_constExpr::BPatch_constExpr(long long value)
+{
+    assert(value < 0x00000000ffffffff);
+
+    ast = new AstNode(AstNode::Constant, (void *)(value & 0x00000000ffffffff));
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long long");
+    printf("size of const expr type long long is %d\n", type->getSize());
+
+    assert(type != NULL);
+
+    ast->setType(type);
+    printf("generating long long constant\n");
+    fflush(stdout);
+}
+
+
+BPatch_constExpr::BPatch_constExpr(float value)
+{
+	// XXX fix me, puting value into int register.
+	int ivalue = (int) value;
+	BPatch_constExpr((int) ivalue);
+}
+#endif
 
 /*
  * BPatch_funcCallExpr::BPatch_funcCallExpr
@@ -634,9 +667,9 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
  *    Return the variable's type
  *
 */
-const BPatch_type *BPatch_variableExpr::getType()
+BPatch_type *BPatch_variableExpr::getType()
 {
-    return (ast->getType());
+    return (const_cast<BPatch_type *>(ast->getType()));
 }
 
 /*
@@ -790,7 +823,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
     type = const_cast<BPatch_type *>(getType());
-    if ((type->getDataClass() != BPatch_structure) && (type->getDataClass() != BPatch_union)) {
+    if ((type->getDataClass() != BPatch_dataStructure) && (type->getDataClass() != BPatch_dataUnion)) {
 	return NULL;
     }
 
@@ -812,7 +845,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 	AstNode *fieldExpr = new AstNode(AstNode::DataIndir, addrExpr);
 
 	newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-	    proc, fieldExpr, const_cast<BPatch_type *>(field->type));
+	    proc, fieldExpr, const_cast<BPatch_type *>(field->_type));
 	retList->push_back(newVar);
     }
 

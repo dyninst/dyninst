@@ -2244,7 +2244,7 @@ bool printSrcObj(BPatch_sourceObj *p, int level)
     int i;
     bool ret = true;
 
-    BPatch_Vector<BPatch_sourceObj *> *curr;
+    BPatch_Vector<BPatch_sourceObj *> curr;
 
     if (!p) return(true);
 
@@ -2265,14 +2265,13 @@ bool printSrcObj(BPatch_sourceObj *p, int level)
 	    printf("<unknown type>");
     }
 
-    curr = p->getSourceObj();
-    if (!curr) {
+    if (!p->getSourceObj(curr)) {
 	// eveything down to functions should have something
 	return((level == 2) ? true : false);
     }
 
-    for (i=0; i < curr->size(); i++) {
-	p = (*curr)[i];
+    for (i=0; i < curr.size(); i++) {
+	p = curr[i];
 	ret = printSrcObj(p, level+1) && ret;
     }
 

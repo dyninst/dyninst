@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.46 2001/08/01 15:39:55 chadd Exp $
+// $Id: ast.h,v 1.47 2001/08/29 23:25:27 hollings Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -185,6 +185,7 @@ class AstNode {
         int referenceCount;     // Reference count for freeing memory
         int useCount;           // Reference count for generating code
         void setUseCount(void); // Set values for useCount
+        int getSize() { return size; };
         void cleanUseCount(void);
         bool checkUseCount(registerSpace*, bool&);
         void printUseCount(void);
@@ -247,12 +248,6 @@ class AstNode {
 	AstNode *eoperand;
 
     public:
-
-	//ccw 18 jan 2001 : 28 mar 2001
-	//this is used by inst-mips.C emitFuncCall to determine
-	//how much stack space to allocate before calling the function
-	int getSize() { return size; }
-
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
 #ifdef BPATCH_LIBRARY

@@ -489,8 +489,8 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	BPatch_image* bpImage = bpFunction->mod->img;
 
-	char* functionName = NULL;
-	bpFunction->getSymTabName(functionName);
+	char functionName[1024];
+	bpFunction->getMangledName(functionName, sizeof(functionName));
 	string fName(functionName);
 	delete[] functionName;
 	int i;

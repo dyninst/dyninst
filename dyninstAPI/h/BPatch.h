@@ -74,6 +74,28 @@ typedef void (*BPatchExecCallback)(BPatch_thread *proc);
 
 typedef void (*BPatchExitCallback)(BPatch_thread *proc, int code);
 
+typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
+
+
+#ifdef IBM_BPATCH_COMPAT
+typedef void *BPatch_Address;
+typedef void (*BPatchLoggingCallback)(char *msg, int);
+extern void setLogging_NP(BPatchLoggingCallback func, int);
+
+typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, void *arg1, void *arg2);
+
+#define BP_OK			0
+#define BP_Pending		1
+#define BP_Delayed		2
+#define BP_child		3
+#define BP_state		4
+#define BP_pthdbBadContext	5
+#define BP_lastCode		6
+
+extern int eCodes[BP_lastCode];
+
+#endif
+
 class BPATCH_DLL_EXPORT BPatch {
     friend class BPatch_thread;
     friend class process;
@@ -132,6 +154,17 @@ public:
     void clearError() { lastError = 0; }
     int	getLastError() { return lastError; }
     // End of functions that are for internal use only
+
+#ifdef IBM_BPATCH_COMPAT
+    int	getLastErrorCode() { return lastError; }
+
+    BPatchThreadEventCallback registerDetachDoneCallback(BPatchThreadEventCallback) { return NULL; }
+    BPatchThreadEventCallback registerSnippetRemovedCallback(BPatchThreadEventCallback) { return NULL; }
+    BPatchSignalCallback registerSignalCallback(BPatchSignalCallback func, int sigNum) { return NULL; }
+
+    BPatchThreadEventCallback registerRPCTerminationCallback(BPatchThreadEventCallback);
+    BPatchThreadEventCallback		RPCdoneCallback;
+#endif
 
     BPatch();
     ~BPatch();

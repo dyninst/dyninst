@@ -147,7 +147,7 @@ nullType(false), cblocks(NULL)
   //typeCol = NULL;
   size = _size;
 
-  if( _type == BPatch_scalar) {
+  if( _type == BPatch_dataScalar) {
     // Check that void type == void type
     if( _ID == _size ){
 
@@ -190,7 +190,7 @@ nullType(false), cblocks(NULL)
 {
     
   ID = _ID;
-  if(_type == BPatch_scalar){  // could be a typedef for something
+  if(_type == BPatch_dataScalar){  // could be a typedef for something
     if( _name)
       name = strdup(_name);
     else
@@ -330,7 +330,7 @@ nullType(false), cblocks(NULL)
       name = NULL;
     hi = NULL;
     low = NULL;
-    type_ = BPatch_scalar;
+    type_ = BPatch_dataScalar;
     ptr = _ptr;
   }
 }
@@ -459,7 +459,7 @@ nullType(false), cblocks(NULL)
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
 
-  type_ = BPatch_pointer;
+  type_ = BPatch_dataPointer;
   size = size_;
   
   if( _name)
@@ -598,7 +598,7 @@ nullType(false)
       name = NULL;
     hi = NULL;
     low = NULL;
-    type_ = BPatch_scalar;
+    type_ = BPatch_dataScalar;
     ptr = _ptr;
   }
 }
@@ -724,14 +724,14 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       }
   }
 
-  if ((type_ == BPatch_unknownType) || (otype->type_ == BPatch_unknownType)) {
+  if ((type_ == BPatch_dataUnknownType) || (otype->type_ == BPatch_dataUnknownType)) {
       BPatch_reportError(BPatchWarning, 112,
 		       "One or more unknown BPatch_types");
       return true;
   }
 
   switch(type_){
-  case BPatch_scalar:
+  case BPatch_dataScalar:
       if (!strcmp(name,otype->name) && (size == otype->size)) {
 	  return true;
       } else {
@@ -747,31 +747,31 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
           return true;
       break;
 
-  case BPatch_reference:
+  case BPatch_dataReference:
       if (!(strcmp(name,otype->name)) && (size == otype->size))
           return true;
       break;
 
-  case BPatch_built_inType:
+  case BPatch_dataBuilt_inType:
       if (!(strcmp(name,otype->name))&&(size == otype->size))
           return true;
       break;
 
-  case BPatch_unknownType:
+  case BPatch_dataUnknownType:
       // should be caught above
       assert(0);
       break;
 
-  case BPatch_typeAttrib:
+  case BPatch_dataTypeAttrib:
     if (!(strcmp(name,otype->name))&&(size == otype->size))
         return true;
     break;
 
-  case BPatch_pointer:
+  case BPatch_dataPointer:
     {
       BPatch_type *pType1, *pType2;
 
-      if (otype->type_ != BPatch_pointer) {
+      if (otype->type_ != BPatch_dataPointer) {
 	  BPatch_reportError(BPatchWarning, 112, 
 	      "Pointer and non-Pointer are not type compatible");
 	  return false;
@@ -788,7 +788,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
     }
     break;
 
-  case BPatch_func:
+  case BPatch_dataFunction:
     if (!(strcmp(name,otype->name))&&(ID == otype->ID)) {
 	  return true;
     } else {
@@ -798,11 +798,11 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
     }
     break;
 
-  case BPatch_array:
+  case BPatch_dataArray:
     {
       BPatch_type * arType1, * arType2;
       
-      if (otype->type_ != BPatch_array) {
+      if (otype->type_ != BPatch_dataArray) {
 	  BPatch_reportError(BPatchWarning, 112, 
 	      "Array and non-array are not type compatible");
 	  return false;
@@ -829,7 +829,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
     }
     break;
 
-  case BPatch_enumerated:
+  case BPatch_dataEnumerated:
     {
       if( !strcmp( name, otype->name) && (ID == otype->ID))
 	return true;
@@ -856,8 +856,8 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
     }
     break;
 
-  case BPatch_structure:
-  case BPatch_union:
+  case BPatch_dataStructure:
+  case BPatch_dataUnion:
     {
       if (!strcmp( name, otype->name) && (ID == otype->ID))
 	  return true;
@@ -951,11 +951,11 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
   BPatch_field * newField;
 
   // API defined structs/union's size are defined on the fly.
-  if (this->type_ == BPatch_structure)
+  if (this->type_ == BPatch_dataStructure)
       this->size += _nsize;
-  else if ( this->type_ == BPatch_union) {
+  else if ( this->type_ == BPatch_dataUnion) {
       if( _nsize > size) size = _nsize;
-  } else if (type_ == BPatch_common) {
+  } else if (type_ == BPatch_dataCommon) {
       if (size < _offset + _nsize) size = _offset + _nsize; 
   } assert ( this->size > 0 );
 
@@ -1002,7 +1002,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
   value = evalue;
   fieldname = strdup(fName);
 
-  type = NULL;
+  _type = NULL;
   offset = size = 0;
   vis = BPatch_visUnknown;
   // printf("adding field %s\n", fName);
@@ -1023,7 +1023,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
   value = evalue;
   fieldname = strdup(fName);
 
-  type = NULL;
+  _type = NULL;
   offset = size = 0;
   vis = _vis;
   // printf("adding field %s\n", fName);
@@ -1042,7 +1042,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
 {
   
   typeDes = _typeDes;
-  type = suType;
+  _type = suType;
   offset = suOffset;
   fieldname = strdup(fName);
   size = suSize;
@@ -1064,7 +1064,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
 {
   
   typeDes = _typeDes;
-  type = suType;
+  _type = suType;
   offset = suOffset;
   fieldname = strdup(fName);
   size = suSize;

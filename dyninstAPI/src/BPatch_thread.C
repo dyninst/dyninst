@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.42 2001/08/01 15:39:54 chadd Exp $
+// $Id: BPatch_thread.C,v 1.43 2001/08/29 23:25:27 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1009,6 +1009,13 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
     assert(theThread != NULL);
 
     theThread->oneTimeCodeCallback(userData, returnValue);
+
+#ifdef IBM_BPATCH_COMPAT
+    if (BPatch::bpatch->RPCdoneCallback) {
+	printf("invoking IBM thread callback function\n");
+	BPatch::bpatch->RPCdoneCallback(theThread, userData, returnValue);
+    }
+#endif
 }
 
 

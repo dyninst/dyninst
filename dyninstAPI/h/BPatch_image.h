@@ -64,12 +64,16 @@ public:
     BPatch_image();
     virtual ~BPatch_image();
 
-    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
-    BPatch_sourceObj *getObjParent();
-
     bool                 ModuleListExist();
     void                 addModuleIfExist(BPatch_module *bpmod);
+
+    BPatch_variableExpr	*createVarExprByName(BPatch_module *mod, const char *name);
+
 // End functions for internal use only
+
+    bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
+    BPatch_sourceObj *getObjParent();
+    bool getVariables(BPatch_Vector<BPatch_variableExpr *> &);
   
     BPatch_Vector<BPatch_function *> *getProcedures();
     BPatch_Vector<BPatch_module *> *getModules();
@@ -93,6 +97,13 @@ public:
     bool getLineToAddr(const char* fileName,unsigned short lineNo,
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);
+#ifdef IBM_BPATCH_COMPAT
+    char *programName(char *name, unsigned int len);
+    char *getProgramName(char *name, unsigned int len);
+    int  lpType();
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs);
+#endif
+
 private:
     BPatch_Vector<BPatch_module *> *modlist;
     AddrToVarExprHash *AddrToVarExpr;

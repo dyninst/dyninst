@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.262 2001/08/23 14:43:22 schendel Exp $
+// $Id: process.C,v 1.263 2001/08/29 23:25:28 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2308,7 +2308,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 
 
 extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
-		    vector<string>envp, string inputFile, string outputFile,
+		    vector<string> envp, string inputFile, string outputFile,
 		    int &traceLink, 
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle,
@@ -2605,7 +2605,10 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
         to load it again (in fact, we will probably hang if we try to
         load it again).  This is checked in the call to
         handleStartProcess */
-     theProc->dlopenDYNINSTlib();
+     if (!theProc->dlopenDYNINSTlib()) {
+	return false;
+     }
+
      // this will set isLoadingDyninstLib to true - naim
      if (!theProc->continueProc()) {
        logLine("WARNING: continueProc failed\n");
@@ -5379,6 +5382,7 @@ bool process::handleDoneSAFEinferiorRPC(void) {
 
             // step 4) invoke user callback, if any
             if (theStruct.callbackFunc) {
+	       printf("about to invoke RPC callback\n");
                theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
             }
             currRunningRPCs.removeByIndex(k);

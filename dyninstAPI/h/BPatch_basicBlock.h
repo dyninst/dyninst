@@ -24,7 +24,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
 private:
 	/** the flow graph that contains this basic block */
-	BPatch_flowGraph* flowGraph;
+	BPatch_flowGraph *flowGraph;
 
 	/** the ID of the block.It is unique in the CFG.
           * starts at 0 and goes up to (number of basic blocks - 1)

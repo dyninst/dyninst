@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.26 2001/08/20 19:59:04 bernat Exp $
+// $Id: BPatch_image.C,v 1.27 2001/08/29 23:25:27 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -113,9 +113,15 @@ BPatch_image::~BPatch_image()
  * getSourceObj - Return the children (modules)
  *
  */
-BPatch_Vector<BPatch_sourceObj *> *BPatch_image::getSourceObj()
+bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
-    return (BPatch_Vector<BPatch_sourceObj *> *) getModules();
+    BPatch_Vector<BPatch_module *> *temp =  getModules();
+    if (temp) {
+       vect = * (BPatch_Vector<BPatch_sourceObj *> *) temp;
+       return (true);
+    } else {
+	return (false);
+    }
 }
 
 /* 
@@ -156,6 +162,26 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 }
 
 
+BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const char *name)
+{
+    Symbol syminfo;
+    BPatch_type *type;
+    
+    type = mod->moduleTypes->globalVarsByName[name];
+    assert(type);
+    if (!proc->getSymbolInfo(name, syminfo)) {
+	printf("unable to find variable %s\n", name);
+    }
+    BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
+    if (!var) {
+	var = new BPatch_variableExpr((char *) name, proc, 
+	    (void *)syminfo.addr(), (const BPatch_type *) type);
+	AddrToVarExpr->hash[syminfo.addr()] = var;
+    }
+    return var;
+}
+
+
 /*
  * BPatch_image::getProcedures
  *
@@ -180,19 +206,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	vector<string> keys = module->moduleTypes->globalVarsByName.keys();
 	int limit = keys.size();
 	for (int j = 0; j < limit; j++) {
-	    Symbol syminfo;
 	    string name = keys[j];
-	    type = module->moduleTypes->globalVarsByName[name];
-	    assert(type);
-	    if (!proc->getSymbolInfo(name, syminfo)) {
-		printf("unable to find variable %s\n", name.string_of());
-	    }
-	    var = AddrToVarExpr->hash[syminfo.addr()];
-	    if (!var) {
-		var = new BPatch_variableExpr((char *) name.string_of(), proc, 
-		    (void *)syminfo.addr(), (const BPatch_type *) type);
-		AddrToVarExpr->hash[syminfo.addr()] = var;
-	    }
+	    var = createVarExprByName(module, name.string_of());
 	    varlist->push_back(var);
 	}
     }
@@ -200,6 +215,20 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 
     return varlist;
 }
+
+bool BPatch_image::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
+{
+    BPatch_Vector<BPatch_variableExpr *> *temp = BPatch_image::getGlobalVariables();
+
+    if (temp) {
+	vars = *temp;
+	return true;
+    } else {
+	vars = BPatch_Vector<BPatch_variableExpr *>();
+	return false;
+    }
+}
+
 
 /*
  * BPatch_image::getModules
@@ -606,3 +635,30 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 
 	return true;
 }
+
+#ifdef IBM_BPATCH_COMPAT
+char *BPatch_image::programName(char *name, unsigned int len) { 
+    return getProgramName(name, len); 
+}
+
+char *BPatch_image::getProgramName(char *name, unsigned int len) {
+    strcpy(name, "<unknown>");
+    return name;
+}
+
+int  BPatch_image::lpType() 
+{
+    return 0;
+};
+
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs)
+{
+    BPatch_function *temp = findFunction(name);
+
+    funcs = BPatch_Vector<BPatch_function*>();
+    if (temp) {
+	funcs.push_back(temp);
+    }
+}
+#endif
+

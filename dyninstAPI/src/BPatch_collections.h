@@ -71,6 +71,7 @@ public:
 
 class BPatch_typeCollection {
     friend class BPatch_image;
+    friend class BPatch_module;
 
     dictionary_hash<string, BPatch_type *> typesByName;
     dictionary_hash<string, BPatch_type *> globalVarsByName;

@@ -486,7 +486,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		      }
 		  }
 		  if (!found) {
-		      commonBlock->addField(name, BPatch_scalar, BPtype,
+		      commonBlock->addField(name, BPatch_dataScalar, BPtype,
 			  framePtr, BPtype->getSize());
 		  }
 	      } else {
@@ -649,7 +649,7 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes, char *name,
 {
     char *temp;
     BPatch_type *newType;
-    BPatch_dataClass typdescr = BPatch_pointer;
+    BPatch_dataClass typdescr = BPatch_dataPointer;
     cnt++; /* skip 'x'*/
 
     if ((stabstr[cnt] == 's') || 	// struct 
@@ -761,7 +761,7 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
 
     if (ptrType) {
 	// Create new type - field in a struct or union
-	newType = new BPatch_type(name, ID, BPatch_array, ptrType,
+	newType = new BPatch_type(name, ID, BPatch_dataArray, ptrType,
 				 lowbound, hibound);
 	if (newType) {
 	    // Add to Collection
@@ -968,7 +968,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
 			 int ID, char *stabstr, int &cnt)
 {
     // format @s(size in bits); negative type number;
-    BPatch_dataClass typdescr = BPatch_typeAttrib;
+    BPatch_dataClass typdescr = BPatch_dataTypeAttrib;
 
     assert(stabstr[cnt] == '@');
     cnt++; /* skip the @ */
@@ -1023,7 +1023,7 @@ static char *parseRefType(BPatch_module *mod, char *name,
     BPatch_type *ptrType = mod->moduleTypes->findType(refID);
     if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
     
-    BPatch_type *newType = new BPatch_type(name, ID, BPatch_pointer, ptrType);
+    BPatch_type *newType = new BPatch_type(name, ID, BPatch_dataPointer, ptrType);
     // Add to typeCollection
     if(newType) {
 	mod->moduleTypes->addType(newType);
@@ -1073,7 +1073,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 		//Find base class
 		BPatch_type *baseCl = mod->moduleTypes->findType(baseID);
-		if (!baseCl || (baseCl->getDataClass() != BPatch_structure) ) 
+		if (!baseCl || (baseCl->getDataClass() != BPatch_dataStructure) ) 
 			continue;
 
 		//Get field descriptions of the base type
@@ -1094,7 +1094,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
      }
 
      while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	typedescr = BPatch_scalar;
+	typedescr = BPatch_dataScalar;
 
 	if (stabstr[cnt] == '~') {
 		//End of virtual class
@@ -1115,7 +1115,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 	if ((stabstr[cnt]) == ':') {
 	  //Method definition
-	  typedescr = BPatch_method;
+	  typedescr = BPatch_dataMethod;
 	  cnt++;
 	}
 
@@ -1148,7 +1148,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 		beg_offset = 0;
 		size = 0;
-		if (typedescr == BPatch_method) {
+		if (typedescr == BPatch_dataMethod) {
 			while(1) {
 				//Mangling of arguments
 				while(stabstr[cnt] != ';') cnt++;
@@ -1295,7 +1295,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
     // fprintf(stderr, "parsing %s\n", stabstr);
     if (isSymId(stabstr[0])) {
-	typdescr = BPatch_scalar;
+	typdescr = BPatch_dataScalar;
 	type = parseSymDesc(stabstr, cnt);
 	 	    
 	if (ID == type) {
@@ -1334,7 +1334,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	    break;
 	     
 	  case '*':
-	    typdescr = BPatch_pointer;
+	    typdescr = BPatch_dataPointer;
 	    /* pointer to another type */
 	    cnt++;
 	    ptrID = parseTypeUse(mod, stabstr, cnt, NULL);
@@ -1343,7 +1343,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	    ptrType = mod->moduleTypes->findType(ptrID);
 	    if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-	    newType = new BPatch_type(NULL, ID, BPatch_pointer, ptrType);
+	    newType = new BPatch_type(NULL, ID, BPatch_dataPointer, ptrType);
 	    // Add to typeCollection
 	    if(newType) mod->moduleTypes->addType(newType);
 	    if(!newType) {
@@ -1361,7 +1361,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
 	  case 'f':
 	        /* function type */
-		typdescr = BPatch_func;
+		typdescr = BPatch_dataFunction;
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
@@ -1380,7 +1380,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 		    int size = parseSymDesc(stabstr, cnt);
 
 		    ptrType = mod->moduleTypes->findType(baseType);
-		    newType = new BPatch_type(name, ID, BPatch_array, ptrType,
+		    newType = new BPatch_type(name, ID, BPatch_dataArray, ptrType,
 			1, size);
 		    mod->moduleTypes->addType(newType);
 		}
@@ -1395,7 +1395,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
 		int bytes = parseSymDesc(stabstr, cnt);
 
-		newType = new BPatch_type(name, ID, BPatch_built_inType, bytes);
+		newType = new BPatch_type(name, ID, BPatch_dataBuilt_inType, bytes);
 		mod->moduleTypes->addType(newType);
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
@@ -1405,7 +1405,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
 	  case 'b': {
 		// builtin type b  - signed char-flag width; offset; nbits
-		typdescr = BPatch_built_inType;
+		typdescr = BPatch_dataBuilt_inType;
 		int limit = strlen(&stabstr[cnt]);
 
 		// skip to width
@@ -1424,7 +1424,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 		
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 
-		newType = new BPatch_type(name, ID, BPatch_built_inType, 
+		newType = new BPatch_type(name, ID, BPatch_dataBuilt_inType, 
 		    nbits/8);
 		//Add to Collection
 		mod->moduleTypes->addType(newType);
@@ -1438,7 +1438,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	    break;
 
 	case 'e':		// Enumerated type
-	    typdescr = BPatch_enumerated;
+	    typdescr = BPatch_dataEnumerated;
 	    cnt++; 	/* skip the 'e' */
 
 	    // Create new Enum type
@@ -1454,7 +1454,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
-		newType->addField(compsymdesc, BPatch_scalar, value);
+		newType->addField(compsymdesc, BPatch_dataScalar, value);
 		  
 		free(temp);
 		free(compsymdesc);
@@ -1486,9 +1486,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	case 'u':	// union
 	    /* Type descriptor */
 	    if (stabstr[cnt] == 's') {
-	        typdescr = BPatch_structure;
+	        typdescr = BPatch_dataStructure;
 	    } else {
-	        typdescr = BPatch_union;
+	        typdescr = BPatch_dataUnion;
 	    }
 
 	    cnt++;		// skip to size

@@ -65,9 +65,16 @@ char * current_func_name = NULL;
  * Return the contained source objects (e.g. functions).
  *
  */
-BPatch_Vector<BPatch_sourceObj *> *BPatch_module::getSourceObj()
+bool BPatch_module::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
-    return  (BPatch_Vector<BPatch_sourceObj *> *) getProcedures();
+    BPatch_Vector<BPatch_function *> *temp;
+    temp = getProcedures();
+    if (temp) {
+       vect = *(BPatch_Vector<BPatch_sourceObj *> *) temp;
+       return true;
+    } else {
+       return false;
+    }
 }
 
 /*
@@ -85,6 +92,16 @@ BPatch_sourceObj *BPatch_module::getObjParent()
 char *BPatch_module::getName(char *buffer, int length)
 {
     string str = mod->fileName();
+
+    strncpy(buffer, str.string_of(), length);
+
+    return buffer;
+}
+
+
+char *BPatch_module::getFullName(char *buffer, int length)
+{
+    string str = mod->fullName();
 
     strncpy(buffer, str.string_of(), length);
 
@@ -507,13 +524,13 @@ void BPatch_module::parseTypes()
 	      } else {
 		  commonBlock = 
 		      const_cast<BPatch_type *> (commonBlockVar->getType());
-		  if (commonBlock->getDataClass() != BPatch_common) {
+		  if (commonBlock->getDataClass() != BPatch_dataCommon) {
 		      // its still the null type, create a new one for it
 		      commonBlock = new BPatch_type(commonBlockName, false);
 		      commonBlockVar->setType(commonBlock);
 		      moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
 
-		      commonBlock->setDataClass(BPatch_common);
+		      commonBlock->setDataClass(BPatch_dataCommon);
 		  }
 		  // reset field list
 		  commonBlock->beginCommonBlock();
@@ -762,13 +779,13 @@ void BPatch_module::parseTypes()
 		printf("unable to find variable %s\n", commonBlockName);
 	    } else {
 		commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
-		if (commonBlock->getDataClass() != BPatch_common) {
+		if (commonBlock->getDataClass() != BPatch_dataCommon) {
 		    // its still the null type, create a new one for it
 		    commonBlock = new BPatch_type(commonBlockName, false);
 		    commonBlockVar->setType(commonBlock);
 		    moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
 
-		    commonBlock->setDataClass(BPatch_common);
+		    commonBlock->setDataClass(BPatch_dataCommon);
 		}
 		// reset field list
 		commonBlock->beginCommonBlock();
@@ -1020,3 +1037,47 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 	delete[] elements;
 	return true;
 }
+
+
+bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
+{
+    BPatch_variableExpr *var;
+    vector<string> keys = moduleTypes->globalVarsByName.keys();
+    int limit = keys.size();
+    for (int j = 0; j < limit; j++) {
+	string name = keys[j];
+	var = img->createVarExprByName(this, name.string_of());
+	vars.push_back(var);
+    }
+    if (limit) 
+	return true;
+    else
+	return false;
+}
+
+#ifdef IBM_BPATCH_COMPAT
+
+bool BPatch_module::getLineNumbers(unsigned int &start, unsigned int &end)
+{
+    start = 0;
+    end = 0;
+}
+
+char *BPatch_module::getUniqueString(char *buffer, int length)
+{
+    getName(buffer, length);
+    return buffer;
+}
+
+int BPatch_module::getSharedLibType()	
+{
+    return 0;
+}
+
+int BPatch_module::getBindingType()
+{
+    return 0;
+}
+
+#endif
+

@@ -67,7 +67,6 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     BPatch_flowGraph* cfg;
 
     void         *getBaseAddrRelative();
-    void 	 getSymTabName(char*&);
 
 public:
     virtual	~BPatch_function();
@@ -77,11 +76,11 @@ public:
     process *getProc() { return proc; }
 
 // No longer inline but defined in .C file
-    BPatch_function(process *_proc, function_base *_func, BPatch_module *);
+    BPatch_function(process *_proc, function_base *_func, BPatch_module *mod = NULL);
     BPatch_function(process *_proc, function_base *_func,
 		    BPatch_type * _retType, BPatch_module *);
 
-    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
+    bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
     BPatch_sourceObj *getObjParent();
     BPatch_localVarCollection * localVariables;
     BPatch_localVarCollection * funcParameters;
@@ -90,6 +89,7 @@ public:
     
 // For users of the library:
     char	 *getName(char *s, int len);
+    char	 *getMangledName(char *s, int len);
     void	 *getBaseAddr();
     unsigned int getSize();
     BPatch_type * getReturnType(){ return retType; }
@@ -112,10 +112,35 @@ public:
 			bool exactMatch = true);
 
     // method to return file name, and first and last lines of the func
-    bool getLineAndFile(unsigned short &start, 
-			unsigned short &end, 
+    bool getLineAndFile(unsigned int &start, 
+			unsigned int &end, 
 			char *name,
 			unsigned &length);
+
+    // is this defined, what variables should be returned??
+    bool getVariables(BPatch_Vector<BPatch_variableExpr *> &vect);
+
+    char *getModuleName(char *name, int maxLen);
+
+#ifdef IBM_BPATCH_COMPAT
+    bool getLineNumbers(unsigned int &start, unsigned int &end);
+
+    void *getAddress();
+    
+    bool getAddressRange(void * &start, void * &end);
+
+    BPatch_type *returnType();
+
+    void getIncPoints(BPatch_Vector<BPatch_point *> &vect);
+
+
+    int	getMangledNameLen();
+
+    void getExcPoints(BPatch_Vector<BPatch_point*> &points);
+
+    // return a function that can be passed as a paramter
+    BPatch_variableExpr *getFunctionRef();
+#endif
 		
 
 //method to create the control flow graph for the function
