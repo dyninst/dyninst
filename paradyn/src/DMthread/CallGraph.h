@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.6 2000/07/28 17:21:41 pcroth Exp $
+// $Id: CallGraph.h,v 1.7 2000/08/17 19:41:37 pcroth Exp $
 
 /**********************************************************
  *
@@ -223,7 +223,7 @@ class CallGraph {
     //Returns true if resource child is a descendent of resource
     //parent in the call graph.
     bool isDescendent(resource *child, const resource *parent, 
-		      dictionary_hash <resource *, int> have_visited);
+		      dictionary_hash <resource *, int>& have_visited);
 };
 
 
