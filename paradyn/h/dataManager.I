@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.44  1995/08/11 21:50:03  newhall
+ * Revision 1.45  1995/08/12 22:26:47  newhall
+ * added DM_sequential_init() & DM_post_thread_create_init() members
+ * moved struct init_struct from paradyn.h to dataManager.I
+ *
+ * Revision 1.44  1995/08/11  21:50:03  newhall
  * removed kludge()
  *
  * Revision 1.43  1995/08/08  03:10:35  newhall
@@ -277,10 +281,19 @@ struct controlCallback {
 
 typedef struct controlCallback controlCallback;
 
+// Structure used to pass initial arguments to data manager
+struct init_struct{
+  int tid;
+  char *met_file;
+}; 
+
+typedef struct init_struct init_struct;
+
+
 
 $remote dataManager {
     $base 2000;
-    $version 22;
+    $version 23;
 
     //
     // Start a paradyn daemon
@@ -701,6 +714,8 @@ $remote dataManager {
     $signore
     static int socket;
     static int sock_fd;
+    static int DM_sequential_init(init_struct*);
+    static int DM_post_thread_create_init(int);
     static dataManager *dm;  // need this so can call setTid which is
 			     // not a static function, otherwise could
 			     // just define all DM functions as static
