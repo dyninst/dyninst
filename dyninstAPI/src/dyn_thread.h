@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.8 2003/02/28 22:13:40 bernat Exp $
+// $Id: dyn_thread.h,v 1.9 2003/03/12 01:50:03 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -60,8 +60,7 @@ class dyn_thread {
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-    pending_tramp_addr( ADDR_NULL ),
-    irpcState_(irpcNotValid)
+    pending_tramp_addr( ADDR_NULL )
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -75,8 +74,7 @@ class dyn_thread {
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-    pending_tramp_addr( ADDR_NULL ),
-    irpcState_(irpcNotValid)
+    pending_tramp_addr( ADDR_NULL )
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -95,7 +93,6 @@ class dyn_thread {
      rid = src->rid;
      proc = parent;
      pending_tramp_addr = ADDR_NULL;
-     irpcState_ = irpcNotValid;
   }
 
   ~dyn_thread() {
@@ -136,37 +133,6 @@ class dyn_thread {
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
 
-  // Add an iRPC to the list of work to do
-  void postIRPC(inferiorRPCtoDo todo);
-  // Returns true iff
-  // 1) There is an inferior RPC to run
-  // 2) We're not currently running an inferior RPC
-  // 3) We're not waiting for a syscall trap
-  bool readyIRPC() const;
-  // Returns true iff
-  // 1) An RPC is running, or
-  // 2) We're waiting for a trap to be reached
-  bool isRunningIRPC() const;
-  // Returns true if we're waiting for a trap
-  bool isWaitingForTrap() const;
-  // Launch an iRPC.
-  irpcLaunchState_t launchThreadIRPC(bool wasRunning);
-  // After a syscall completes, launch an RPC. Special case
-  // of launchThreadIRPC
-  irpcLaunchState_t launchPendingIRPC();
-  
-  
-  // Clear/query whether we're waiting for a trap (for signal handling)
-  bool isIRPCwaitingForSyscall() { return irpcState_ == irpcWaitingForTrap; }
-
-  // Handle completing IRPCs
-  Address getIRPCRetValAddr();
-  bool handleRetValIRPC();
-  Address getIRPCFinishedAddr();
-  bool handleCompletedIRPC();
-
-  irpcState_t getLastIRPCState() { return irpcState_; }
-  
   ///
  private:
   int ppid;
@@ -183,15 +149,6 @@ class dyn_thread {
   Address pending_tramp_addr;	// address of pending instrumentation
   // currently used on NT only
 
-  // For multithread
-  vectorSet<inferiorRPCtoDo> thrRPCsWaitingToStart;
-  inferiorRPCinProgress thrCurrRunningRPC;
-  irpcState_t irpcState_;
-  bool wasRunningBeforeSyscall_;
-  // When we run an inferior RPC we cache the stackwalk of the
-  // process and return that if anyone asks for a stack walk
-  pdvector<Frame> cachedStackWalk;
-  
 };
 
 #endif
