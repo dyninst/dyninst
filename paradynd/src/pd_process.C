@@ -1419,6 +1419,9 @@ bool process::triggeredInStackFrame(Frame &frame,
         range = findCodeRangeByAddress(frame.getPC());
         frame.setRange(range);
     }
+
+    // Can't figure it out if we don't know where we are
+    if (!range) return false;
     
 /*
     fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s)\n", 
