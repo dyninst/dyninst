@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,7 +43,9 @@
 
 // $Id: linuxMT.C,v
 
+#include "dyn_thread.h"
 
+/* FIXME: placeholder.  Also, this should be platform-specific. */
 Frame dyn_thread::getActiveFrameMT() {
-   return Frame();
-}
+	return Frame();
+	}
