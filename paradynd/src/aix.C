@@ -109,8 +109,8 @@ unsigned AIX_DATA_OFFSET_HACK;
 class ptraceKludge {
 public:
   static bool haltProcess(process *p);
-  static bool deliverPtrace(process *p, int req, char *addr,
-			    int data, char *addr2);
+  static bool deliverPtrace(process *p, int req, void *addr,
+			    int data, void *addr2);
   static void continueProcess(process *p, const bool halted);
 };
 
@@ -139,11 +139,11 @@ bool process::getActiveFrame(int *fp, int *pc)
     int dummy;
 
     errno = 0;
-    sp = ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
+    sp = P_ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return false;
 
     errno = 0;
-    *pc = ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
+    *pc = P_ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return false;
 
     // now we need to read the first frame from memory.
@@ -187,7 +187,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
         if (currentFP == firstFrame) {
             // use the value stored in the link register instead.
             errno = 0;
-            *rtn = ptrace(PT_READ_GPR, pid, (int *)LR, 0, 0); // aix 4.1 likes int *
+            *rtn = P_ptrace(PT_READ_GPR, pid, (int *)LR, 0, 0); // aix 4.1 likes int *
             if (errno != 0) return false;
         }
         return true;
@@ -196,8 +196,369 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     }
 }
 
-bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
-				 int data, char *addr2) {
+void *process::getRegisters() {
+   // assumes the process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   const int num_bytes = 32 * 4 // 32 general purpose integer registers
+                       + 32 * 8 // 32 floating point registers @ 8 bytes each
+		       + 9 * 4; // 9 special registers
+   // special registers are:
+   // IAR (instruction address register)
+   // MSR (machine state register)
+   // CR (condition register)
+   // LR (link register)
+   // CTR (count register)
+   // XER (fixed point exception)
+   // MQ (multiply quotient)
+   // TID
+   // FPSCR (fp status)
+   // FPINFO (fp info) [no, out of range]
+   // FPSCRX (fp sreg ext.) [no, out of range]
+   
+   void *buffer = new char[num_bytes];
+   assert(buffer);
+
+   unsigned *bufferPtr = (unsigned *)buffer;
+
+   // First, the general-purpose integer registers:
+
+   // Format of PT_READ_GPR ptrace call:
+   // -- pass the reg number (see <sys/reg.h>) as the 'addr' (3d param)
+   // -- last 2 params (4th and 5th) ignored
+   // -- returns the value, or -1 on error
+   //    but this leaves the question: what if the register really did contain -1; why
+   //    should that be an error?  So, we ignore what the man page says here, and
+   //    instead look at 'errno'
+   // Errors:
+   //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
+
+   for (unsigned i=0; i < 32; i++) {
+      errno = 0;
+      unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)i, 0, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_READ_GPR");
+	 cerr << "regnum was " << i << endl;
+	 return NULL;
+      }
+
+      *bufferPtr++ = value;
+   }
+
+   // Next, the general purpose floating point registers.
+
+   // Format of PT_READ_FPR ptrace call: (it differs greatly from PT_READ_GPR,
+   // probably because the FPR registers are 64 bits instead of 32)
+   // -- 3d param ('address') is the location where ptrace will store the reg's value.
+   // -- 4th param ('data') specifies the fp reg (see <sys/reg.h>)
+   // -- last param (5th) to ptrace ignored
+   // Errors: returns -1 on error
+   //    EIO --> 4th arg didn't specify a valid fp register (must be 256-287)
+   // Note: don't ask me why, but apparantly a return value of -1 doesn't seem
+   //       to properly indicate an error; check errno instead.
+
+   for (unsigned i=0; i < 32; i++) {
+      double value;
+      assert(sizeof(double)==8); // make sure it's big enough!
+
+      errno = 0;
+      P_ptrace(PT_READ_FPR, pid, &value,
+	       FPR0 + i, // see <sys/reg.h>
+	       0);
+      if (errno != 0) {
+	 perror("ptrace PT_READ_FPR");
+	 cerr << "regnum was " << FPR0 + i << "; FPR0=" << FPR0 << endl;
+	 return NULL;
+      }
+
+      memcpy(bufferPtr, &value, sizeof(value));
+
+      unsigned *oldBufferPtr = bufferPtr;
+      bufferPtr += 2; // 2 unsigned's --> 8 bytes
+      assert((unsigned)bufferPtr == (unsigned)oldBufferPtr + 8); // just for fun
+
+      assert(2*sizeof(unsigned) == 8);
+   }
+
+   // Finally, the special registers.
+   // (See the notes on PT_READ_GPR above: pass reg # as 3d param, 4th & 5th ignored)
+   // (Only reg numbered 0-31 or 128-136 are valid)
+   const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
+      // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
+   const int num_special_registers = 9;
+
+   for (unsigned i=0; i < num_special_registers; i++) {
+      errno = 0;
+      unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)special_register_codenums[i], 0, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_READ_GPR for a special register");
+	 cerr << "regnum was " << special_register_codenums[i] << endl;
+	 return NULL;
+      }
+
+      *bufferPtr++ = value;
+   }
+
+   assert((unsigned)bufferPtr - (unsigned)buffer == num_bytes);
+
+   // Whew, finally done.
+   return buffer;
+}
+
+static bool executeDummyTrap(process *theProc) {
+   assert(theProc->status_ == stopped);
+   
+   unsigned tempTramp = inferiorMalloc(theProc, 8, textHeap);
+   assert(tempTramp);
+
+   unsigned theInsns[2];
+   theInsns[0] = BREAK_POINT_INSN;
+   theInsns[1] = 0; // illegal insn, just to make sure we never exec past the trap
+   if (!theProc->writeTextSpace((void *)tempTramp, sizeof(theInsns), &theInsns)) {
+      cerr << "executeDummyTrap failed because writeTextSpace failed" << endl;
+      return false;
+   }
+
+   // Okay, the temp tramp has been set up.  Let's set the PC there
+   errno = 0;
+   unsigned oldpc = P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0);
+   assert(errno == 0);
+
+   errno = 0;
+   P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, tempTramp, 0);
+   assert(errno == 0);
+
+   if (P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0) != tempTramp) {
+      cerr << "executeDummyTrap failed because PT_READ_GPR of IAR register failed" << endl;
+      return false;
+   }
+
+   // We bypass continueProc() because continueProc() changes theProc->status_, which
+   // we don't want to do here
+   errno = 0;
+   ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
+      // what if there are any pending signals?  Do we lose the chance to forward
+      // them now?
+   assert(errno == 0);
+
+while (true) {
+   int status, pid;
+   do {
+//      cerr << "doing a wait" << endl; cerr.flush();
+      pid = waitpid(theProc->getPid(), &status, WUNTRACED);
+      if (pid == 0)
+	 cerr << "waitpid returned special case of 0 (?)" << endl;
+      else if (pid == -1) {
+	 if (errno == ECHILD)
+	    // the child has died
+	    assert(false);
+	 else
+	    perror("executeDummyTrap waitpid()");
+      }
+      else {
+//	 cerr << "waitpid result was " << pid << endl;
+//	 if (pid == theProc->getPid())
+//	    cerr << "which was the pid, as expected" << endl;
+      }
+
+//      cerr << "did a wait" << endl; cerr.flush();
+   } while (pid != theProc->getPid());
+
+   if (WIFEXITED(status))
+      // the child died
+      assert(false);
+
+   assert(WIFSTOPPED(status));
+
+   int sig = WSTOPSIG(status);
+   if (sig == SIGTRAP) {
+      cerr << "executeDummyTrap: got SIGTRAP, as expected!" << endl;
+      break;
+   }
+   else {
+      // handle an 'ordinary' signal, e.g. SIGALRM
+      cerr << "executeDummyTrap: got unexpected signal " << sig << "...handling" << endl;
+      extern int handleSigChild(int, int);
+      (void)handleSigChild(pid, status);
+   }
+}
+
+   // Restore the old PC register value
+   errno = 0;
+   P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, oldpc, 0);
+   assert(errno == 0);
+
+   // delete the temp tramp now (not yet implemented)
+
+//   cerr << "leaving executeDummyTrap now" << endl;
+//   cerr.flush();
+
+   return true;
+}
+
+bool process::changePC(unsigned loc, void *) {
+   // compare to write_pc() of gdb (findvar.c)
+   // 2d arg (saved regs) of this routine isn't needed for aix, since it
+   // has the option to write just 1 register with a ptrace call.
+
+   // Format of PT_WRITE_GPR call:
+   // 3d param ('address'): the register to modify
+   // 4th param ('data'): the value to store
+   // 5th param ignored
+   // Returns -1 on failure; else, returns the 'data' parameter
+   // Errors:
+   //    EIO: 3d param not a valid register; must be 0-31 or 128-136
+
+   cerr << "welcome to changePC with loc=" << (void *)loc << endl;
+
+// gdb hack: execute 1 dummy insn
+   cerr << "changePC: about to exec dummy trap" << endl;
+   if (!executeDummyTrap(this)) {
+      cerr << "changePC failed because executeDummyTrap failed" << endl;
+      return false;
+   }
+
+   errno = 0;
+   P_ptrace(PT_WRITE_GPR, pid, (void *)IAR, loc, 0);
+   if (errno) {
+      perror("changePC (PT_WRITE_GPR) failed");
+      return false;
+   }
+
+   // Double-check that the change was made by reading the IAR register
+   errno = 0;
+   if (P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0) != loc) {
+      cerr << "changePC failed because couldn't re-read IAR register" << endl;
+      return false;
+   }
+   assert(errno == 0);
+
+   return true;
+}
+
+bool process::restoreRegisters(void *buffer) {
+   // assumes process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
+   // in order to let the kernel do housekeeping necessary to avoid corruption of
+   // the user stack (rs6000-nat.c).  Should we worry about that?
+   // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
+   // instruction somewhere in the inferior, save the PC, write the PC to
+   // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
+   // restore the PC, free up the breakpoint.  But again, why is this needed?
+
+   const unsigned *bufferPtr = (const unsigned *)buffer;
+
+   // First, the general-purpose registers:
+   // Format for PT_WRITE_GPR:
+   // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
+   // 4th param ('data'): specifies value to store
+   // 5th param ignored.
+   // Returns 3d param on success else -1 on error.
+   // Errors:
+   //    EIO: address must be 0-31 or 128-136
+
+   for (unsigned i=GPR0; i <= GPR31; i++) {
+      errno = 0;
+      P_ptrace(PT_WRITE_GPR, pid, (void *)i, *bufferPtr++, 0);
+      if (errno) {
+	 perror("ptrace PT_WRITE_GPR");
+	 cerr << "regnum was " << i << endl;
+	 return false;
+      }
+   } 
+
+   // Next, the floating-point registers:
+   // Format of PT_WRITE_FPR: (it differs from PT_WRITE_GPR, probably because
+   // FP registers are 8 bytes instead of 4)
+   // 3d param ('address'): address of the value to store
+   // 4th param ('data'): reg num (256-287)
+   // 5th param ignored
+   // returns -1 on error
+   // Errors:
+   //    EIO: reg num must be 256-287
+
+   for (unsigned i=FPR0; i <= FPR31; i++) {
+      errno = 0;
+      P_ptrace(PT_WRITE_FPR, pid, (const void *)bufferPtr, i, 0);
+         // don't ask me why args 3,4 are reversed from the PT_WRITE_GPR case.,
+         // or why param 4 is a ptr to data instead of just data.
+      if (errno != 0) {
+	 perror("ptrace PT_WRITE_FPR");
+	 cerr << "regnum was " << i << endl;
+	 return false;
+      }
+
+      const unsigned *oldBufferPtr = bufferPtr;
+      bufferPtr += 2; // 2 unsigned's == 8 bytes
+      assert((unsigned)bufferPtr - (unsigned)oldBufferPtr == 8); // just for fun
+   } 
+
+   // Finally, special registers:
+   // Remeber, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
+   const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
+      // I'd like to add on FPINFO and FPSCRX, but their code nums in <sys/reg.h> (138, 148)
+      // make PT_WRITE_GPR give an EIO error...
+   const int num_special_registers = 9;
+
+   for (unsigned i=0; i < num_special_registers; i++) {
+      errno = 0;
+      P_ptrace(PT_WRITE_GPR, pid, (void *)(special_register_codenums[i]), *bufferPtr++, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_WRITE_GPR for a special register");
+	 cerr << "regnum was " << special_register_codenums[i] << endl;
+	 return false;
+      }
+   }
+
+   return true; // success
+}
+
+bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
+   // TODO: write me!
+   instruction *insn = (instruction *)insnPtr;
+   unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+//   extern void generateBreakPoint(instruction &);
+//   generateBreakPoint(insn[baseInstruc++]);
+
+//   extern void generateIllegalInsn(instruction &);
+//   generateIllegalInsn(insn[baseInstruc++]); 
+
+   // Convert back:
+   baseBytes = baseInstruc * sizeof(instruction);
+
+   return true;
+}
+
+bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+				     unsigned &firstPossibBreakOffset,
+				     unsigned &lastPossibBreakOffset) {
+   // The sequence we want is: (restore), trap, illegal,
+   // where (restore) undoes anything done in emitInferiorRPCheader(), above.
+
+   instruction *insn = (instruction *)insnPtr;
+   unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   // Trap instruction (breakpoint):
+   extern void generateBreakPoint(instruction &);
+   generateBreakPoint(insn[baseInstruc]);
+   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+   baseInstruc++;
+
+   // And just to make sure that we don't continue, we put an illegal
+   // insn here:
+   extern void generateIllegalInsn(instruction &);
+   generateIllegalInsn(insn[baseInstruc++]);
+
+   baseBytes = baseInstruc * sizeof(instruction); // convert back
+
+   return true;
+}
+
+bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
+				 int data, void *addr2) {
   bool halted;
   bool ret;
   
@@ -274,16 +635,29 @@ bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   return false;
 }
 
-bool OS::osForwardSignal (pid_t pid, int stat) {
+//bool OS::osForwardSignal (pid_t pid, int stat) {
+//#if defined(PTRACE_ATTACH_DETACH)
+//  if (stat != 0) {
+//      ptrace(PT_DETACH, pid, (int*)1, stat, 0); // aix 4.1 likes int *
+//      return (true);
+//  } else {
+//      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1); // aix 4.1 likes int *
+//  }
+//#else
+//  return (ptrace(PT_CONTINUE, pid, (int*)1, stat, NULL) != -1);
+//#endif
+//}
+
+bool process::continueWithForwardSignal(int sig) {
 #if defined(PTRACE_ATTACH_DETACH)
-  if (stat != 0) {
-      ptrace(PT_DETACH, pid, (int*)1, stat, 0); // aix 4.1 likes int *
+  if (sig != 0) {
+      ptrace(PT_DETACH, pid, (int*)1, stat, 0);
       return (true);
   } else {
-      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1); // aix 4.1 likes int *
+      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1);
   }
 #else
-  return (ptrace(PT_CONTINUE, pid, (int*)1, stat, NULL) != -1);
+  return (ptrace(PT_CONTINUE, pid, (int*)1, sig, NULL) != -1);
 #endif
 }
 
@@ -374,21 +748,25 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_I, inTraced, data, NULL));
 }
 
-bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += amount; ptraceOps++;
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
 }
 
-bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())
     return false;
+
   ptraceOps++; ptraceBytes += amount;
+
+//  cerr << "process::writeDataSpace_ writing " << amount << " bytes at loc " << inTraced << endl;
+
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
 }
 
-bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceBytes += amount;
@@ -524,7 +902,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     }
 
     baseAddr = info[0].ldinfo_textorg + aout.text_start;
-    sprintf(errorLine, "seeking to %d as the offset of the text segment \n",
+    sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
 	aout.text_start);
     logLine(errorLine);
     sprintf(errorLine, "Code offset = %d\n", baseAddr);
