@@ -1,4 +1,4 @@
-# $Id: tclTunable.tcl,v 1.19 1999/07/13 17:16:54 pcroth Exp $
+# $Id: tclTunable.tcl,v 1.20 2000/03/23 01:29:47 wylie Exp $
 
 # To do list:
 # 1) if user deletes tunable descriptions window (using window mgr), then
@@ -951,8 +951,9 @@ proc drawTunableDescriptions {} {
       if {$developerTunableOnly==0 && $DeveloperModeFlag==0} continue
 
       draw1TunableDescription $theName $theDescription \
-        [expr ($developerTunableOnly==0 || \
-              ($theName=="developerMode" && $DeveloperModeFlag==1))]
+                  [expr ($developerTunableOnly==0 || \
+	          ([ string compare $theName "developerMode" ] == 0 && \
+                  $DeveloperModeFlag==1))]
    }      
 
    # Next, draw float descriptions
