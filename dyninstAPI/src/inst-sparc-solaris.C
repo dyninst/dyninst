@@ -493,9 +493,9 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 		// relocate only the call otherInsn and delaySlot instrn
 		// then do a save and restore around the relocated call to
 		// save the value of the o7 register from the call to base tramp
-		*temp = location->otherInstruction;
-		fromAddr += sizeof(instruction);
- 	        if (isInsnType(*temp, CALLmask, CALLmatch)) {
+ 	        if (isInsnType(location->otherInstruction,CALLmask,CALLmatch)) {
+		  *temp = location->otherInstruction;
+		  fromAddr += sizeof(instruction);
  		  Address offset = fromAddr + (temp->call.disp30 << 2);
  		  if ((offset > (location->func->getAddress(0)+baseAddress)) && 
  		    (offset < ((location->func->getAddress(0)+ baseAddress)+
