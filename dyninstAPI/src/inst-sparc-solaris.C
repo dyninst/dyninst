@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: inst-sparc-solaris.C,v 1.41 1998/08/16 23:50:08 wylie Exp $
+
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "util/h/debugOstream.h"
@@ -1524,7 +1526,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     return (isCallInsn(instr) && 
-           (nexti.rest.op == 2 \
+           (nexti.rest.op == 2
 	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 		       || nexti.rest.op3 == RESTOREop3)));
 }
@@ -1547,7 +1549,7 @@ static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     func is pointer to function class object describing function
      instructions come from....
  */
-static inline bool JmpNopTC(instruction instr, instruction nexti, \
+static inline bool JmpNopTC(instruction instr, instruction nexti,
 			    Address addr, pd_Function *func) {
 
     if (!isInsnType(instr, JMPLmask, JMPLmatch)) {
@@ -1733,8 +1735,8 @@ bool pd_Function::findInstPoints(const image *owner) {
        if(instr.call.op == CALLop) { 
            Address call_target = adr + (instr.call.disp30 << 2);
            if(call_target == adr){ 
-	        cerr << "WARN : function " << prettyName().string_of() << \
-		  " has call to same location as call, NOT instrumenting" \
+	        cerr << "WARN : function " << prettyName().string_of()
+		  << " has call to same location as call, NOT instrumenting"
 		  << endl;
 	        return false;
 	   }
@@ -1830,7 +1832,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 #ifndef BPATCH_LIBRARY /* XXX Users of libdyninstAPI might not agree. */
     // The function is too small to be worthing instrumenting.
     if (size() <= 12){
-        //cerr << "WARN : function " << prettyName().string_of() \
+        //cerr << "WARN : function " << prettyName().string_of()
         //	     << " too small (size <= 12), can't instrument" << endl;
 	return false;
     }
@@ -1838,7 +1840,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 
     // No function return! return false;
     if (sizeof(funcReturns) == 0) {
-        //cerr << "WARN : function " << prettyName().string_of() \
+        //cerr << "WARN : function " << prettyName().string_of()
         //	     << " no return point found, can't instrument" << endl;
 	return false;
     }
@@ -1864,7 +1866,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	    if ((target > funcEntry_->addr)&&
 		(target < (funcEntry_->addr + funcEntry_->size))) {
 		if (adr > (funcEntry_->addr+funcEntry_->size)){
-		    //cerr << "WARN : function " << prettyName().string_of() \
+		    //cerr << "WARN : function " << prettyName().string_of()
 		    //	 << " has branch target inside fn entry point, can't instrument" << endl;
 		    return false;
 	    } }
@@ -1874,8 +1876,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
 		    if ((adr < funcReturns[i]->addr)||
 			(adr > (funcReturns[i]->addr + funcReturns[i]->size))){
-		        //cerr << "WARN : function " << prettyName().string_of() \
-		        //  << " has branch target inside fn return point, " \
+		        //cerr << "WARN : function " << prettyName().string_of()
+		        //  << " has branch target inside fn return point, "
 		        //  << "can't instrument" << endl;
 		        return false;
 		} }
@@ -1888,8 +1890,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
     // we can't deal with this...the only example I can find is _cerror
     // and _cerror64 in libc.so.1
     if(retl_inst && !noStackFrame){ 
-        //cerr << "WARN : function " << prettyName().string_of() \
-        //     << " retl instruction in non-leaf function, can't instrument" \
+        //cerr << "WARN : function " << prettyName().string_of()
+        //     << " retl instruction in non-leaf function, can't instrument"
         //      << endl;
 	return false;
     }
@@ -1903,8 +1905,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
 	    if(funcReturns[i]->addr < prev_exit) {
-	        //cerr << "WARN : function " << prettyName().string_of() \
-	        //     << " overlapping instrumentation points, can't instrument" \
+	        //cerr << "WARN : function " << prettyName().string_of()
+	        //     << " overlapping instrumentation points, can't instrument"
 	        //     << endl;
 		return false;
 	    } 
@@ -2128,8 +2130,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
    bool call_restore_tc, jmp_nop_tc, err;
 
    if (size() == 0) {
-       cerr << "WARN : attempting to relocate function " \
-       	    << prettyName().string_of() << " with size 0, unable to instrument" \
+       cerr << "WARN : attempting to relocate function "
+       	    << prettyName().string_of() << " with size 0, unable to instrument"
             <<  endl;
        return false;
    }
@@ -2138,10 +2140,10 @@ bool pd_Function::findNewInstPoints(const image *owner,
    // Note : newInstr defined as static array 1024 long in inst-sparc.h
    //  for some reason. (why static????)????
    if (size() + size_change > NEW_INSTR_ARRAY_LEN) {
-       cerr << "WARN : attempting to relocate function " \
-       	    << prettyName().string_of() << " with size " \
+       cerr << "WARN : attempting to relocate function "
+       	    << prettyName().string_of() << " with size "
 	    << " > NEW_INSTR_ARRAY_LEN, unable to instrument";
-       cerr << " size = " << size() << " , size_change = " \
+       cerr << " size = " << size() << " , size_change = "
 	    << size_change << endl;
        return FALSE;
    }
@@ -2152,8 +2154,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
    instruction instr;
    instr.raw = owner->get_instruction(adr);
    if (!IS_VALID_INSN(instr)) {
-       cerr << "WARN : attempting to relocate function "\
-	    << prettyName().string_of() << " first instruction could not " \
+       cerr << "WARN : attempting to relocate function "
+	    << prettyName().string_of() << " first instruction could not "
 	    << " be correctly parsed, unable to instrument" << endl;
        return false;
    }
@@ -2255,13 +2257,13 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	   disp = newInstr[i].branch.disp22;
 	   //  by how many instructions is code between the src and 
            //   destination expanded....
-	   extra_offset = fer->GetShift(adr - start_adr + \
-		 disp * sizeof(instruction)) - \
+	   extra_offset = fer->GetShift(adr - start_adr +
+		 disp * sizeof(instruction)) -
 	         fer->GetShift(adr - start_adr);
 	   
 	   //if (extra_offset != 0) {
-	   //    cerr << "WARNING : function " << prettyName().string_of() \
-	   //	  << " using addition FER offset of " << extra_offset \
+	   //    cerr << "WARNING : function " << prettyName().string_of()
+	   //	  << " using addition FER offset of " << extra_offset
 	   //	  << " at instruction " << adr - start_adr << endl;
 	   //}
 
@@ -2273,7 +2275,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
        }
 
      } 
-     else if ((call_restore_tc = CallRestoreTC(instr, nexti)) \
+     else if ((call_restore_tc = CallRestoreTC(instr, nexti))
 	      || (jmp_nop_tc = JmpNopTC(instr, nexti, adr, this))) {
         // First, check for tail-call optimization: a call where the instruction 
         // in the delay slot write to register %o7(15), usually just moving
@@ -2418,8 +2420,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	        //  generate <call %g1>
 	        generateJmplInsn(&newInstr[i], 1, 0, 15);
 
-		newCallPoint(newAdr += 8 *sizeof(instruction), newInstr[i], owner, \
-			     err, callsId, adr, \
+		newCallPoint(newAdr += 8 *sizeof(instruction), newInstr[i], owner,
+			     err, callsId, adr,
 			     reloc_info, location);
 		i++;
 
@@ -2438,8 +2440,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	            //  generate <call %g1>
 	            generateJmplInsn(&newInstr[i], 1, 0, 15);
 		    
-		    newCallPoint(newAdr += 7 *sizeof(instruction), newInstr[i], \
-			     owner, err, callsId, adr, \
+		    newCallPoint(newAdr += 7 *sizeof(instruction), newInstr[i],
+			     owner, err, callsId, adr,
 			     reloc_info, location);
 
 		    i++;
@@ -2462,7 +2464,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	            newInstr[i].raw = owner->get_instruction(adr);
 	            relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
-		        newAdr, \
+		        newAdr,
 			proc);
 		    
 		    // mark the call instruction as a call site....
@@ -2472,8 +2474,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 		    //   newCallPoint? - CHECK
 		    //  location looks ok as long as compared with funcReturns[id?}
 		    //   ? - CHECK
-		    newCallPoint(newAdr, \
-                    		 newInstr[i], owner, err, callsId, adr, \
+		    newCallPoint(newAdr,
+                    		 newInstr[i], owner, err, callsId, adr,
                     		 reloc_info, location); 
 
 		    i++;
@@ -2577,12 +2579,12 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //  occurs in function between origional call location and 
 	    //  target, and patch call targets appropriately....
             instruction new_inst;
-	    extra_offset = fer->GetShift((i + disp) * sizeof(instruction)) - \
+	    extra_offset = fer->GetShift((i + disp) * sizeof(instruction)) -
 	      fer->GetShift(i * sizeof(instruction));
 	    
 	    //if (extra_offset != 0) {
-	    //    cerr << "WARNING : function " << prettyName().string_of() \
-	    //	    << " using addition FER offset of " << extra_offset \
+	    //    cerr << "WARNING : function " << prettyName().string_of()
+	    //	    << " using addition FER offset of " << extra_offset
 	    //	    << " at instruction " << i * 4 << endl;
 	    //}
 
@@ -2690,8 +2692,8 @@ of doing this, we just check the
 //   when a function is relocated in the following cases:
 //   1. when unwinding tail-call optimizations (call, restore sequence).
 //   2. when the 2nd instruction in the function is a call instruction.
-bool pd_Function::calcRelocationExpansions(const image *owner, \
- FunctionExpansionRecord *fer, int *size_change) {
+bool pd_Function::calcRelocationExpansions(const image *owner,
+        FunctionExpansionRecord *fer, int *size_change) {
 
 
     int i, total_shift = 0;
@@ -2724,13 +2726,13 @@ bool pd_Function::calcRelocationExpansions(const image *owner, \
 	        //  This current manner in which this is unwound results in 17 instructions
 	        //  where the origional had 2 (call + restore)....
 	        if (isJmplCallInsn(instr)) {
-		    fer->AddExpansion(i*sizeof(instruction) + 8, \
+		    fer->AddExpansion(i*sizeof(instruction) + 8,
 				      15 * sizeof(instruction));
 		    total_shift += 15 * sizeof(instruction);
 	        } else if (isTrueCallInsn(instr)) {
 		    // call ADDR results in 16 instructions where origional code
 		    //  had 2 (net increase of 14 instructions).... 
-	 	    fer->AddExpansion(i*sizeof(instruction) + 8, \
+	 	    fer->AddExpansion(i*sizeof(instruction) + 8,
 				      14 * sizeof(instruction));
 		    total_shift += 14 * sizeof(instruction);
 	        } else {
