@@ -1,7 +1,12 @@
 
 /*
  * $Log: metParse.h,v $
- * Revision 1.6  1995/11/08 06:23:16  tamches
+ * Revision 1.7  1995/11/21 15:15:36  naim
+ * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
+ * can specify all elements in any order). Additionally, the option "fold"
+ * has been removed - naim
+ *
+ * Revision 1.6  1995/11/08  06:23:16  tamches
  * removed some warnings
  *
  * Revision 1.5  1995/05/18 10:58:32  markc
@@ -37,6 +42,162 @@
 #define SET_DIR 6
 #define SET_DAEMON 7
 #define SET_FORCE 8
+
+typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
+	      SET_MFLAVOR, SET_MODE, SET_CONSTRAINT, SET_TEMPS,
+	      SET_BASE} setType;
+
+typedef struct metricFld {
+  setType spec;
+  string name;
+  string units;
+  unsigned agg;
+  unsigned style;
+  vector<string> *flavor;
+  bool mode;
+  T_dyninstRPC::mdl_constraint *constraint;
+  string temps;
+  unsigned base_type;
+  vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v;
+} metricFld;
+
+class metricDef {
+public:
+  void setName(string name) {name_ = name; name_flag = true;}
+  void setUnits(string units) {units_ = units; units_flag = true;}
+  void setAgg(unsigned agg) {agg_ = agg; agg_flag = true;}
+  void setStyle(unsigned style) {style_ = style; style_flag = true;}
+  void setFlavor(vector<string> *flavor) {flavor_ = flavor; 
+					  flavor_flag = true;}
+  void setMode(bool mode) {mode_ = mode; mode_flag = true;}
+  void setUnittype(bool unittype) {unittype_ = unittype; unittype_flag = true;}
+  void setConstraintList(T_dyninstRPC::mdl_constraint *constraint)  
+  {
+    (*constraint_list_) += constraint;
+    constraint_list_flag = true;
+  }
+  void setTemps(string temps) 
+  {
+    (*temps_) += temps; 
+    temps_flag = true;
+  }
+  void setBaseType(unsigned base_type) {base_type_ = base_type; 
+					base_type_flag = true;}
+  void setBaseMstmtV(vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v) 
+		     {base_m_stmt_v_ = base_m_stmt_v;
+		      base_m_stmt_v_flag = true;}
+  void setField(metricFld &f) {
+    switch(f.spec) {
+      case SET_MNAME:
+	this->setName(f.name);
+	break;
+      case SET_UNITS:
+	this->setUnits(f.units);
+	break;
+      case SET_AGG:
+	this->setAgg(f.agg);
+	break;
+      case SET_STYLE:
+	this->setStyle(f.style);
+	break;
+      case SET_MFLAVOR:
+	this->setFlavor(f.flavor);
+	break;
+      case SET_MODE:
+	this->setMode(f.mode);
+	break;
+      case SET_CONSTRAINT:
+	this->setConstraintList(f.constraint);
+	break;
+      case SET_TEMPS:
+	this->setTemps(f.temps);
+	break;
+      case SET_BASE:
+	this->setBaseType(f.base_type);
+	this->setBaseMstmtV(f.base_m_stmt_v);
+	break;
+    }
+  }
+  string missingFields() {
+    string msg("MDL error - missing fields from your metric declaration: ");
+    if (!base_type_flag || !base_m_stmt_v_flag) msg += string("base ");
+    if (!units_flag) msg += string("units ");
+    if (!name_flag) msg += string("name ");
+    if (!style_flag) msg += string("style ");
+    if (!agg_flag) msg += string("agg ");
+    if (!flavor_flag) msg += string("flavor ");
+    return(msg);
+  }
+  int addNewMetricDef(string ident) {
+    bool ok=true;
+    if (!base_m_stmt_v_flag ||
+	!base_type_flag ||
+        !units_flag ||
+	!name_flag ||
+	!style_flag ||
+	!agg_flag ||
+	!flavor_flag) 
+    {
+      ok=false;
+    }
+    if (ok)
+      return(mdl_data::new_metric(ident,
+	     			  name_,
+				  units_,
+				  agg_,
+				  style_,
+				  base_type_,
+				  base_m_stmt_v_,
+				  flavor_,
+				  constraint_list_,
+				  temps_,
+				  mode_,
+				  unittype_));
+    else
+      return(false);
+  }
+  metricDef() : mode_(false),
+		unittype_(true),
+		base_m_stmt_v_flag(false),
+		base_type_flag(false), 
+		temps_flag(false), 
+		constraint_list_flag(false), 
+		mode_flag(false), 
+		unittype_flag(false),
+		flavor_flag(false), 
+		style_flag(false), 
+		agg_flag(false),
+		units_flag(false), 
+		name_flag(false) 
+  {
+    constraint_list_ = new vector<T_dyninstRPC::mdl_constraint*>;
+    temps_ = new vector<string>;
+  }
+  ~metricDef() {}
+private:
+  string name_;
+  string units_;
+  unsigned agg_;
+  unsigned style_;
+  vector<string> *flavor_;
+  bool mode_;
+  bool unittype_;
+  vector<T_dyninstRPC::mdl_constraint*> *constraint_list_;
+  vector<string> *temps_;
+  unsigned base_type_; 
+  vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v_;
+  bool base_m_stmt_v_flag;
+  bool base_type_flag;
+  bool temps_flag;
+  bool constraint_list_flag;
+  bool mode_flag;
+  bool unittype_flag;
+  bool flavor_flag;
+  bool style_flag;
+  bool agg_flag;
+  bool units_flag;
+  bool name_flag;
+};
 
 typedef struct mdl_base {
   vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
@@ -112,8 +273,9 @@ struct parseStack {
   vector<T_dyninstRPC::mdl_expr*> *m_expr_v;
   mdl_base base;
   T_dyninstRPC::mdl_constraint *constraint;
-  vector<T_dyninstRPC::mdl_constraint*> *v_cons;
   T_dyninstRPC::mdl_icode *i_code;
+  metricFld mfld;
+  metricDef *mde;
 };
 
 extern FILE *yyin;

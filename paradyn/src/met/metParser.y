@@ -3,7 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.11  1995/11/17 17:22:13  newhall
+ * Revision 1.12  1995/11/21 15:15:37  naim
+ * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
+ * can specify all elements in any order). Additionally, the option "fold"
+ * has been removed - naim
+ *
+ * Revision 1.11  1995/11/17  17:22:13  newhall
  * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
  *
  * Revision 1.10  1995/11/13  14:53:28  naim
@@ -76,7 +81,7 @@ extern unsigned hacked_cons_type;
 
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tCOLON tDOLLAR
-%token tMETRIC tUNS tBASE tNAME tUNITS tFOLD tBASE tIS tFUNCTION_CALL
+%token tMETRIC tUNS tBASE tNAME tUNITS tBASE tIS tFUNCTION_CALL
 %token tCOUNTER tAGG tAVG tSUM tMIN tMAX tDOT tW_TIME tP_TIME
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
 %token tTYPE tAT tIN tLSQUARE tRSQUARE tBEFORE tAFTER
@@ -263,11 +268,6 @@ daemonItem:  tCOMMAND tLITERAL tSEMI
 met_name: tNAME tLITERAL tSEMI { $$.sp = $2.sp; };
 
 met_units: tUNITS tIDENT tSEMI { $$.sp = $2.sp; };
-
-fold_val: tAVG { $$.u = MDL_FOLD_AVG;}
-       | tSUM { $$.u = MDL_FOLD_SUM;};
-
-met_fold: tFOLD fold_val tSEMI { $$.u = $2.u;};
 
 agg_val: tAVG { $$.u = MDL_AGG_AVG; }
       | tSUM { $$.u = MDL_AGG_SUM; }
@@ -476,20 +476,17 @@ flavor_list: tIDENT {
            | flavor_list tCOMMA tIDENT {
                        $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; };
 
-met_flavor: tFLAVOR tASSIGN tLBLOCK flavor_list tRBLOCK tSEMI { $$.vs = $4.vs; };
+met_flavor: tFLAVOR tASSIGN tLBLOCK flavor_list tRBLOCK tSEMI {$$.vs = $4.vs;};
 
 mode_val: tDEVELOPER { $$.b = true; }
 	| tNORMAL { $$.b = false; }; 
 
-met_mode: 		       { $$.b = false; };	
-	| tMODE mode_val tSEMI { $$.b = $2.b; };
-
+met_mode: tMODE mode_val tSEMI { $$.b = $2.b; };
 
 unittype_val: tNORMALIZE { $$.b = true; }
 	| tUNNORMALIZE { $$.b = false; };
 
-met_unittype:		{ $$.b = true; };
-	| tUNITTYPE unittype_val tSEMI {$$.b = $2.b;};
+met_unittype: tUNITTYPE unittype_val tSEMI {$$.b = $2.b;};	
 
 met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.type = MDL_T_COUNTER;
@@ -506,37 +503,54 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.m_stmt_v = $5.m_stmt_v; 
 };
 
-constraint_list:      {
-  $$.v_cons = new vector<T_dyninstRPC::mdl_constraint*>;
+constraint_list: tCONSTRAINT tIDENT tSEMI {
+		 T_dyninstRPC::mdl_constraint *c =
+					      mdl_data::new_constraint(*$2.sp,
+						            NULL, NULL, false,
+							    MDL_T_COUNTER);
+	         delete $2.sp;
+		 $$.mfld.constraint = c; }
 
-} | constraint_list tCONSTRAINT tIDENT tSEMI {
-  $$.v_cons = $1.v_cons;
- T_dyninstRPC::mdl_constraint *c =  mdl_data::new_constraint(*$3.sp,
-							     NULL, NULL, false,
-							     MDL_T_COUNTER);
-  delete $3.sp;
-  (*$$.v_cons) += c;
+	       | int_constraint_definition {
+	         $$.mfld.constraint = $1.constraint; };
 
-} | constraint_list int_constraint_definition {
-  $$.v_cons = $1.v_cons;
-  (*$$.v_cons) += $2.constraint;
-};
+met_temps: tCOUNTER tIDENT tSEMI { $$.sp = $2.sp; };
 
-met_temps:                                 { $$.vs = new vector<string>; }
-         | met_temps tCOUNTER tIDENT tSEMI { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp;};
+metric_struct: tLBLOCK metric_list tRBLOCK {$$.mde = $2.mde;};
 
-metric_definition: tMETRIC tIDENT tLBLOCK met_name met_units met_fold met_agg met_style met_flavor met_mode met_unittype constraint_list met_temps met_base tRBLOCK {
-  if (!mdl_data::new_metric(*$2.sp, *$4.sp, *$5.sp, $6.u, $7.u, $8.u, 
-			    $14.base.type, $14.base.m_stmt_v,
-			    $9.vs, $12.v_cons, $13.vs, $10.b, $11.b)) {
-    char msg[100];
-    sprintf(msg, "Error defining %s\n", $2.sp->string_of());
-    yyerror(msg);
-    exit(-1);
+metric_list: {$$.mde = new metricDef();}
+	   | metric_list metric_elem_list { $$.mde = $1.mde;
+				            $$.mde->setField($2.mfld);};
+
+metric_elem_list: met_name {$$.mfld.name = *$1.sp; $$.mfld.spec = SET_MNAME;
+                            delete $1.sp;}
+                | met_units {$$.mfld.units = *$1.sp; $$.mfld.spec = SET_UNITS;
+			     delete $1.sp;}
+                | met_agg {$$.mfld.agg = $1.u; $$.mfld.spec = SET_AGG;}
+                | met_style {$$.mfld.style = $1.u; $$.mfld.spec = SET_STYLE;}
+                | met_flavor {$$.mfld.flavor = $1.vs;
+                              $$.mfld.spec = SET_MFLAVOR;}
+                | met_mode {$$.mfld.mode = $1.b; $$.mfld.spec = SET_MODE;}
+                | constraint_list {$$.mfld.constraint = $1.mfld.constraint;
+                                   $$.mfld.spec = SET_CONSTRAINT;}
+                | met_temps {$$.mfld.temps = *$1.sp;
+                             $$.mfld.spec = SET_TEMPS;}
+                | met_base {$$.mfld.base_type = $1.base.type;
+                            $$.mfld.base_m_stmt_v = $1.base.m_stmt_v;
+                            $$.mfld.spec = SET_BASE;}
+		| met_unittype { $$.b = $1.b; };
+
+metric_definition: tMETRIC tIDENT metric_struct {
+  if (!($3.mde->addNewMetricDef(*$2.sp)))
+  {
+    string msg;
+    msg = string("Error defining ") + (*$2.sp);
+    yyerror(msg.string_of());
+    msg = $3.mde->missingFields();
+    yyerror(msg.string_of());
   }
   delete $2.sp;
-  delete $4.sp;
-  delete $5.sp;
+  delete $3.mde;
 };
 
 match_path:                        {$$.vs = new vector<string>; }

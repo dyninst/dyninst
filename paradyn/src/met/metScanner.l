@@ -1,7 +1,12 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.7  1995/11/17 17:22:16  newhall
+ * Revision 1.8  1995/11/21 15:15:39  naim
+ * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
+ * can specify all elements in any order). Additionally, the option "fold"
+ * has been removed - naim
+ *
+ * Revision 1.7  1995/11/17  17:22:16  newhall
  * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
  *
  * Revision 1.6  1995/11/13  14:54:06  naim
@@ -149,7 +154,6 @@ i
 "unitsType"	{ return(tUNITTYPE);}
 "normalized"	{ return(tNORMALIZE);}
 "unnormalized"	{ return(tUNNORMALIZE);}
-"foldOperator"	{ return(tFOLD);}
 "base"		{ return(tBASE);}
 "is"		{ return(tIS);}
 "append"	{ return(tAPPEND);}

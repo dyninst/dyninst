@@ -165,14 +165,6 @@ inline string op_to_string(unsigned op) {
   }
 }
 
-inline string fold_to_string(unsigned f) {
-  switch (f) {
-  case MDL_FOLD_AVG: return ("avg");
-  case MDL_FOLD_SUM: return ("sum");
-  default: return ("error");
-  }
-}
-
 inline string agg_to_string(unsigned f) {
   switch (f) {
   case MDL_AGG_AVG: return ("avg");

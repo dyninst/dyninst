@@ -3,7 +3,12 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.9  1995/11/17 17:24:26  newhall
+ * Revision 1.10  1995/11/21 15:14:27  naim
+ * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
+ * can specify all elements in any order). Additionally, the option "fold"
+ * has been removed - naim
+ *
+ * Revision 1.9  1995/11/17  17:24:26  newhall
  * support for MDL "unitsType" option, added normalized member to metric class
  *
  * Revision 1.8  1995/11/13  14:52:55  naim
@@ -136,17 +141,17 @@ private:
 };
 
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
-				    unsigned fold,
-				    unsigned agg, unsigned sty, u_int type,
+				    u_int agg, u_int sty, u_int type,
 				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
 				    vector<string> *flav,
 				    vector<T_dyninstRPC::mdl_constraint*> *cons,
 				    vector<string> *temp_counters,
 				    bool developerMode,
 				    bool normalized)
-: id_(id), name_(name), units_(units), fold_op_(fold), agg_op_(agg), 
-  style_(sty), developerMode_(developerMode), normalized_(normalized),
-  type_(type), stmts_(mv), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters) { }
+: id_(id), name_(name), units_(units), agg_op_(agg), 
+  style_(sty), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters),
+  developerMode_(developerMode), normalized_(normalized) {}
+
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
 T_dyninstRPC::mdl_metric::~mdl_metric() {
@@ -168,7 +173,7 @@ T_dyninstRPC::mdl_metric::~mdl_metric() {
 }
 
 bool mdl_data::new_metric(string id, string name, string units,
-			  unsigned fold, unsigned agg, unsigned sty, u_int type,
+			  u_int agg, u_int sty, u_int type,
 			  vector<T_dyninstRPC::mdl_stmt*> *mv,
 			  vector<string> *flav,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
@@ -176,7 +181,7 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  bool developerMode,
 			  bool normalized) {
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
-							     units, fold, agg,
+							     units, agg,
 							     sty, type, mv,
 							     flav, cons,
 							     temp_counters,
@@ -1217,7 +1222,7 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
     // I don't want to attempt to define this using the current mdl
     string obs_cost = "observed_cost";
     assert(mdl_data::new_metric("observedCost", obs_cost, "# CPUS",
-				aggMax, aggMax, EventCounter, 0,
+				aggMax, EventCounter, 0,
  			        NULL, NULL, NULL, NULL, true, true));
   }
 
