@@ -2,8 +2,13 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.16  1995/02/26 02:01:45  newhall
-#  added callback functions for new visiLib phase info.
+#  Revision 1.17  1995/04/01 01:34:21  tamches
+#  Metric axis lines now 2 pix wide, not 1.  Metric key items now more
+#  color-coordinated (i.e., now, not just the axis lines are drawn in the
+#  bar's color).
+#
+# Revision 1.16  1995/02/26  02:01:45  newhall
+# added callback functions for new visiLib phase info.
 #
 # Revision 1.15  1994/11/11  06:46:34  tamches
 # more configure event handlers for other subwindows has helped fix
@@ -401,7 +406,7 @@ proc Initialize {} {
    global resourceNames
 
    global currResourceHeight
-   global minResourceHeight maxResourceHeight maxIndividualColorHeight
+   global minResourceHeight maxResourceHeight maxIndividualColorHeight minIndividualColorHeight
 
    global DataFormat
 
@@ -446,6 +451,7 @@ proc Initialize {} {
    set minResourceHeight 20
    set maxResourceHeight 50
    set maxIndividualColorHeight 25
+   set minIndividualColorHeight 0
    set currResourceHeight $maxResourceHeight
       # as resources are added, we try to shrink the resource height down to a minimum of
       # (minResourceHeight) rather than having to invoke the scrollbar.
@@ -463,8 +469,10 @@ proc Initialize {} {
    set barColors(4) "orange"
    set numBarColors 5
 
-   set resourceNameFont *-Helvetica-*-r-*-12-*
-   set metricsLabelFont *-Helvetica-*-r-*-12-*
+  set resourceNameFont *-Helvetica-*-r-*-12-*
+  set metricsLabelFont *-Helvetica-*-r-*-12-*
+#   set resourceNameFont "7x13bold"
+#   set metricsLabelFont "7x13bold"
 
 
    # launch our C++ barchart code
@@ -817,14 +825,16 @@ proc drawMetricsAxis {metricsAxisWidth} {
       # draw horiz line for this metric; color-coded for the metric
       $W.metricsAxisCanvas create line $fixedLeft $top $fixedRight $top \
                  -tag metricsAxisTag \
-                 -fill [getMetricColor $metriclcv]
+                 -fill [getMetricColor $metriclcv] \
+		 -width 2
 
       # draw tick marks and create labels for this metric axis
       for {set ticklcv 0} {$ticklcv < $numticks} {incr ticklcv} {
          set tickx [expr $fixedLeft + ($ticklcv * $tickStepPix)]
          $W.metricsAxisCanvas create line $tickx $top $tickx \
                     [expr $top + $tickHeight] \
-                    -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+                    -tag metricsAxisTag -fill [getMetricColor $metriclcv] \
+		    -width 2
 
          set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
 
@@ -853,10 +863,12 @@ proc drawMetricsAxis {metricsAxisWidth} {
 
       # Draw "key" entry
       $keyWindow create line 5 $top [expr [getWindowWidth $keyWindow] - 5] \
-              $top -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+              $top -tag metricsAxisTag -fill [getMetricColor $metriclcv] \
+	      -width 2
       set theText $metricNames($metriclcv)
       label $keyWindow.key$numMetricsDrawn -text $theText \
-              -font $metricsLabelFont
+              -font $metricsLabelFont \
+	      -foreground [getMetricColor $metriclcv]
       $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] \
               [expr $top + $tickHeight] -tag metricsAxisTag \
               -window $keyWindow.key$numMetricsDrawn -anchor ne
