@@ -43,6 +43,7 @@
 
 #include <ctype.h>
 #include "util/h/pathName.h"
+#include "util/h/headers.h"  // P_strrchr()
 
 #if defined(i386_unknown_nt4_0)
 
@@ -248,4 +249,19 @@ bool executableFromArgv0AndPathAndCwd(string &result,
    }
 
    return false;
+}
+
+
+#if defined(i386_unknown_nt4_0)
+#define PATH_SEP ('\\')
+#else
+#define PATH_SEP ('/')
+#endif
+
+string extract_pathname_tail(const string &path)
+{
+  const char *path_str = path.string_of();
+  const char *path_sep = P_strrchr(path_str, PATH_SEP);
+  string ret = (path_sep) ? (path_sep + 1) : (path_str);
+  return ret;
 }

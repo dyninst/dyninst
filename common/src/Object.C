@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.4 1998/12/25 21:33:06 wylie Exp $
+// $Id: Object.C,v 1.5 1999/06/08 03:36:20 csserra Exp $
 
 #include "util/h/Object.h"
 #include "util/h/Dictionary.h"
@@ -48,7 +48,11 @@
 int symbol_compare(const void *x, const void *y) {
     const Symbol *s1 = (const Symbol *)x;
     const Symbol *s2 = (const Symbol *)y;
-    return (s1->addr() - s2->addr());
+    Address s1_addr = s1->addr();
+    Address s2_addr = s2->addr();
+    if (s1_addr > s2_addr) return 1;
+    if (s1_addr < s2_addr) return -1;
+    return 0;
 }
 
 ostream & relocationEntry::operator<< (ostream &s) const {

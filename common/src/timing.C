@@ -39,17 +39,21 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/* $Id: */
+
 
 #include "util/h/Timer.h"
+
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
 #elif defined(i386_unknown_nt4_0)
 #define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
 #elif defined(mips_sgi_irix6_4)
-#define NOPS_4  ; ; ; 
+#define NOPS_4  __asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop")
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
+
 #define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
 
 double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
@@ -127,3 +131,11 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
 
   return max_speed;
 }
+
+int cyclesPerSecond_default(unsigned long long &cps)
+{
+  double raw = timing_loop(1, 100000) * 100000.0;
+  cps = (unsigned long long)raw;
+  return 0; // never fails
+}
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf32.C,v 1.8 1999/03/19 00:10:05 csserra Exp $
+// $Id: Object-elf32.C,v 1.9 1999/06/08 03:36:19 csserra Exp $
 
 /**********************************************
  *
@@ -53,9 +53,10 @@
 #include "util/h/String.h"
 #include "util/h/Symbol.h"
 #include "util/h/Dictionary.h"
+#include "util/h/pathName.h"     // extract_pathname_tail()
 #include <stdio.h>
 
-#if defined(mips_sgi_irix6_4)
+#if defined(USES_DWARF_DEBUG)
 #include <dwarf.h>
 #include <libdwarf.h>
 #endif
@@ -127,7 +128,7 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
         || (ehdrp->e_shoff == 0)
         || (ehdrp->e_phnum == 0)
         || (ehdrp->e_shnum == 0)) {
-        log_elferror(err_func_, "2: loading eheader");
+        log_elferror(err_func_, "loading eheader");
         return false;
     }
 
@@ -434,16 +435,15 @@ void Object::load_object() {
 	//  or (paramater) <global_symbols> accoriding to linkage.... 
 	insert_symbols_static(allsymbols, global_symbols);
 
-	// TODO: logic to decide between .stab/DWARF?
 	// try to resolve the module names of global symbols
         // (populate the dictionary "symbols_")
-#if defined(mips_sgi_irix6_4)
-	// ...using .debug_info section (DWARF debugging format)
-	fix_global_symbol_modules_static_dwarf(global_symbols, elfp);
-#else
-	// ...using .stab section ("stabs" format)
-	fix_global_symbol_modules_static_stab(global_symbols, stabscnp, stabstrscnp);
-#endif
+	bool found = false;
+	// STABS format (.stab section)
+	if (!found) found = fix_global_symbol_modules_static_stab(
+                              global_symbols, stabscnp, stabstrscnp);
+	// DWARF format (.debug_info section)
+	if (!found) found = fix_global_symbol_modules_static_dwarf(
+		              global_symbols, elfp);
 	// remaining globals are not associated with a module 
 	fix_global_symbol_unknowns_static(global_symbols);
 
@@ -537,27 +537,10 @@ Object::load_shared_object() {
         Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
         unsigned    nsyms  = symdatap->d_size / sizeof(Elf32_Sym);
         const char* strs   = (const char *) strdatap->d_buf;
-        string      module = "DEFAULT_MODULE";
+	// short module name
+        string      module = extract_pathname_tail(file_);
         string      name   = "DEFAULT_NAME";
 
-	// for shared objects add a module that is the file name
-  	// and add all the global symbols as functions 
-        const char *libname = file_.string_of();
-	// find short name
-	const char *last = 0;
-	for(u_int i=0; i < file_.length();i++) {
-	    if(libname[i] == '/'){
-	        last = (const char *)(&(libname[i]));
-                // log_elferror(err_func_, P_strdup(last));
-            }
-	}
-	if(last){
-	    module = (const char *)(last +1);  
-	}
-	else{
-	    module = string("DEFAULT_MODULE");  
-	}
-	
 	// temporary vector of symbols
         vector<Symbol> allsymbols;
 	
@@ -614,20 +597,20 @@ cleanup2: {
 *    of shared library module.  As per original (spaghetti) code
 *    scattered in old load_object && load_shared_object, the symbol
 *    reference with the same name as the shared library itself
-*    s stuffed directly in1to (data member) symbols_ .... 
+*    is stuffed directly into (data member) symbols_ .... 
 *
 **************************************************************/
 void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
-      unsigned nsyms, const char *strs, bool /*shared_library*/,
-      string module) {
+			   unsigned nsyms, const char *strs, 
+			   bool /*shared*/, string module) {
     // local vars....
     //  name of symbol, and name of module under which to register function,
     //  respectively.... 
-    string name, module_name_used;
+    string name;
     unsigned i1;
 
     Symbol::SymbolType type;
-    Symbol::SymbolLinkage linkage;
+    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
     int binding;
 
     //cerr << "PARSING SYMBOLS FOR MODULE " << module << endl;
@@ -643,9 +626,6 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
             type = Symbol::PDST_UNKNOWN;
 	    // resolve symbol type....
             switch (ELF32_ST_TYPE(syms[i1].st_info)) {
-	    case STT_SECTION: // debug
-	      //if (name == "__dso_displacement") {
-	      break;
 	    case STT_FILE: {
 	        //cerr << "    name matches module name" << endl;
 		//cerr << "  ELF32_ST_TYPE = STT_FILE";
@@ -828,16 +808,15 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
  *   - "A Consumer Libary Interface to DWARF"
  *
  ********************************************************/
-#if defined(mips_sgi_irix6_4)
-#include <dwarf.h>
-#include <libdwarf.h>
-void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
+#if defined(USES_DWARF_DEBUG)
+void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 {
-  fprintf(stderr, "DWARF error: %s\n", dwarf_errmsg(error));
+  void (*errFunc)(const char *) = (void (*)(const char *))userData;
+  log_printf(errFunc, "DWARF error: %s", dwarf_errmsg(error));
 }
-void Object::fix_global_symbol_modules_static_dwarf(
-        dictionary_hash<string, Symbol> &global_symbols,
-	Elf *elfp)
+bool Object::fix_global_symbol_modules_static_dwarf(
+       dictionary_hash<string, Symbol> &global_symbols,
+       Elf *elfp)
 {
   Dwarf_Die die, die2;
   Dwarf_Half tag, tag2;
@@ -847,70 +826,80 @@ void Object::fix_global_symbol_modules_static_dwarf(
   Dwarf_Attribute attr;
   Dwarf_Debug dbg;
 
-  dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, NULL, &dbg, NULL);
-  {
-    while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
-	   == DW_DLV_OK) 
-      {
-	// scan each "compile unit" (CU)
-	for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
-	     ret == DW_DLV_OK;
-	     ret = dwarf_siblingof(dbg, die, &die, NULL)) 
-	  {	    
-	    // sanity check
-	    dwarf_tag(die, &tag, NULL);
-	    assert(tag == DW_TAG_compile_unit); 
+  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, &err_func_, &dbg, NULL);
+  if (ret != DW_DLV_OK) return false;
 
-	    // module name
-	    dwarf_diename(die, &name, NULL);
-	    string module = name;
-	    
-	    // scan each "debugging information entry" (DIE) in this CU
-	    for (ret2 = dwarf_child(die, &die2, NULL);
-		 ret2 == DW_DLV_OK;
-		 ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
-	      {
-		dwarf_tag(die2, &tag2, NULL);
-		switch (tag2) {
-		case DW_TAG_subprogram:
-		case DW_TAG_inlined_subroutine:
-		case DW_TAG_entry_point:
-		  // function symbol tags
-		case DW_TAG_variable:
-		case DW_TAG_constant:
-		  // variable symbol tags
-		  {
-		    // get symbol name
-		    dwarf_diename(die2, &name2, NULL);
-		    // use "linkage name" if present (matches symbol table)
-		    if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
-			== DW_DLV_OK) 
-		      {
-			ret2 = dwarf_formstring(attr, &name2, NULL);
-			assert(ret2 == DW_DLV_OK);
-		      }
-		    
-		    // lookup in global_symbols
-		    string SymName = name2;
-		    if (!(global_symbols.defines(SymName))) break;
-		    
-		    // symbol with module info
-		    Symbol sym = global_symbols[SymName];
-		    symbols_[SymName] = Symbol(sym.name(), module, sym.type(), 
-					       sym.linkage(), sym.addr(),
-					       sym.kludge(), sym.size());
-		  } break;
-		default:
-		  /* ignore other entries */
-		  break;
-		}			
-	      }
-	  }
-      }
-  }
+  while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
+	 == DW_DLV_OK) 
+    {
+      // scan each "compile unit" (CU)
+      for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
+	   ret == DW_DLV_OK;
+	   ret = dwarf_siblingof(dbg, die, &die, NULL)) 
+	{	    
+	  // sanity check
+	  dwarf_tag(die, &tag, NULL);
+	  assert(tag == DW_TAG_compile_unit); 
+	  
+	  // module name
+	  dwarf_diename(die, &name, NULL);
+	  string module = name;
+	  string module2 = extract_pathname_tail(module);
+	  // TODO: short or long module name?
+
+	  // scan each "debugging information entry" (DIE) in this CU
+	  for (ret2 = dwarf_child(die, &die2, NULL);
+	       ret2 == DW_DLV_OK;
+	       ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
+	    {
+	      dwarf_tag(die2, &tag2, NULL);
+	      switch (tag2) {
+	      case DW_TAG_subprogram:
+	      case DW_TAG_inlined_subroutine:
+	      case DW_TAG_entry_point:
+		// function symbol tags
+	      case DW_TAG_variable:
+	      case DW_TAG_constant:
+		// variable symbol tags
+		{
+		  // get symbol name
+		  dwarf_diename(die2, &name2, NULL);
+		  // use "linkage name" if present (matches symbol table)
+		  if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
+		      == DW_DLV_OK) 
+		    {
+		      ret2 = dwarf_formstring(attr, &name2, NULL);
+		      assert(ret2 == DW_DLV_OK);
+		    }
+		  
+		  // lookup in global_symbols
+		  string SymName = name2;
+		  if (!(global_symbols.defines(SymName))) break;
+		  
+		  // symbol with module info
+		  Symbol &sym = global_symbols[SymName];
+		  symbols_[SymName] = Symbol(sym.name(), module, sym.type(), 
+					     sym.linkage(), sym.addr(),
+					     sym.kludge(), sym.size());
+		} break;
+	      default:
+		/* ignore other entries */
+		break;
+	      }			
+	    }
+	}
+    }
   dwarf_finish(dbg, NULL);  
+
+  return true;
 }
-#endif /* mips_sig_irix6_4 */
+#else
+// dummy definition for non-DWARF platforms
+bool Object::fix_global_symbol_modules_static_dwarf(
+       dictionary_hash<string, Symbol> & /*global_symbols*/,
+       Elf * /*elfp*/)
+{ return false; }
+#endif // USES_DWARF_DEBUG
 
 /********************************************************
  *
@@ -918,7 +907,7 @@ void Object::fix_global_symbol_modules_static_dwarf(
  *  read the .stab section to find the module of global symbols
  *
  ********************************************************/
-void Object::fix_global_symbol_modules_static_stab(
+bool Object::fix_global_symbol_modules_static_stab(
         dictionary_hash<string, Symbol> &global_symbols,
 	Elf_Scn* stabscnp, Elf_Scn* stabstrscnp) {
     // Read the stab section to find the module of global symbols.
@@ -927,18 +916,14 @@ void Object::fix_global_symbol_modules_static_stab(
     // All the symbols in between those two symbols belong to the module.
     Elf_Data* stabdatap = elf_getdata(stabscnp, 0);
     Elf_Data* stabstrdatap = elf_getdata(stabstrscnp, 0);
-    struct stab_entry *stabsyms = 0;
-    unsigned stab_nsyms;
-    const char *stabstrs = 0;
-    string module;
-
-    if (stabdatap && stabstrdatap) {
-        stabsyms = (struct stab_entry *) stabdatap->d_buf;
-	stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
-	stabstrs = (const char *) stabstrdatap->d_buf;
+    if (!stabdatap || !stabstrdatap) {
+      return false;
     }
-    else 
-	stab_nsyms = 0;
+
+    struct stab_entry *stabsyms = (struct stab_entry *) stabdatap->d_buf;
+    unsigned stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
+    const char *stabstrs = (const char *) stabstrdatap->d_buf;
+    string module = "DEFAULT_MODULE";
 
     // the stabstr contains one string table for each module.
     // stabstr_offset gives the offset from the begining of stabstr of the
@@ -948,13 +933,7 @@ void Object::fix_global_symbol_modules_static_stab(
     unsigned stabstr_nextoffset = 0;
 
     bool is_fortran = false;  // is the current module fortran code?
-    /* we must know if we are reading a fortran module because fortran
-       symbol names are different in the .stab and .symtab sections.
-       A symbol that appears as 'foo' in the .stab section, appears
-       as 'foo_' in .symtab.
-     */
-    module = "";
-  
+  fprintf(stderr, ">>> start parsing .stab\n");
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
@@ -966,18 +945,21 @@ void Object::fix_global_symbol_modules_static_stab(
 	    // We use this value to compute the offset of the next string table.
 	    stabstr_nextoffset = stabstr_offset + stabsyms[i].val;
 	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
+	    //fprintf(stderr, "@@@ stab module 1 \"%s\"\n", module.string_of());
 	    break;
 
 	case N_ENDM: /* end of object file */
 	    is_fortran = false;
-	    module = "";
+	    module = "DEFAULT_MODULE";
+	    //fprintf(stderr, "@@@ stab module 2 \"%s\"\n", module.string_of());
 	    break;
 
 	case N_SO: /* compilation source or file name */
-	    if (stabsyms[i].desc == N_SO_FORTRAN)
+  	    if (stabsyms[i].desc == N_SO_FORTRAN)
 	      is_fortran = true;
 
 	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
+	    //fprintf(stderr, "@@@ stab module 3 \"%s\"\n", module.string_of());
 	    break;
 
         case N_ENTRY: /* fortran alternate subroutine entry point */
@@ -1017,7 +999,6 @@ void Object::fix_global_symbol_modules_static_stab(
 	        }
 
                 if (!res) break;
-//              assert(res); // All globals in .stab should be defined in .symtab
 
 	        Symbol sym = global_symbols[SymName];
 	        symbols_[SymName] = Symbol(sym.name(), module,
@@ -1032,6 +1013,7 @@ void Object::fix_global_symbol_modules_static_stab(
 	    break;
 	}
     }
+    return true;
 }
 
 
@@ -1116,7 +1098,6 @@ void Object::insert_symbols_shared(vector<Symbol> allsymbols) {
 void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
         char *ptr, Address txtaddr, Address bssaddr) {
     unsigned i0;
-  
     for (i0 = 0; i0 < ehdrp-> e_phnum;i0++) {
 	if ((phdrp[i0].p_vaddr <= txtaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
