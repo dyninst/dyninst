@@ -46,6 +46,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.32  1997/10/28 20:34:30  tamches
+ * dictionary_lite --> dictionary_hash to take advantage of the new
+ * and improved dictionary_hash class
+ *
  * Revision 1.31  1997/03/29 02:03:48  sec
  * Adding some debugging stuff.
  *
@@ -395,10 +399,10 @@ filteredDataServer::filteredDataServer(unsigned phID)
   }
   // adjusted minGranularity, or binsize, whichever's bigger
   intervalSize = binFactor;
-  miIndex = new (dictionary_lite<focus, filter*>*) 
+  miIndex = new (dictionary_hash<focus, filter*>*) 
     [performanceConsultant::numMetrics];
   for (unsigned j = 0; j < performanceConsultant::numMetrics; j++)
-    miIndex[j] = new dictionary_lite<focus, filter*> 
+    miIndex[j] = new dictionary_hash<focus, filter*> 
       (filteredDataServer::fdid_hash);
 }
 
@@ -571,7 +575,7 @@ filter *
 filteredDataServer::findFilter(metricHandle mh, focus f)
 {
   filter *fil;
-  dictionary_lite<focus, filter*> *curr = miIndex[mh];
+  dictionary_hash<focus, filter*> *curr = miIndex[mh];
   bool fndflag = curr->find(f, fil);
   if (!fndflag) return (filter *)NULL;
   return fil;

@@ -46,6 +46,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.12  1997/10/28 20:34:29  tamches
+ * dictionary_lite --> dictionary_hash to take advantage of the new
+ * and improved dictionary_hash class
+ *
  * Revision 1.11  1996/08/16 21:03:27  tamches
  * updated copyright for release 1.1
  *
@@ -309,10 +313,12 @@ public:
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
+
   // DataFilters  contain all filters which are now successfully enabled.  
-  dictionary_lite<fdsDataID, filter*>DataFilters;
+  dictionary_hash<fdsDataID, filter*>DataFilters;
+
   // miIndex and AllDataFilters contain every filter ever created for this server
-  dictionary_lite<focus, filter*> **miIndex;
+  dictionary_hash<focus, filter*> **miIndex;
   vector<filter*> AllDataFilters;
 };
 
