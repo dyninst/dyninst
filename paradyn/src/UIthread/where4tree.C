@@ -2,9 +2,13 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.13  1996/03/08 00:23:49  tamches
-/* major update -- added support for hidden nodes
+/* Revision 1.14  1996/04/01 22:32:46  tamches
+/* use visibility X events to simulate GraphicsExpose, thus fixing bug
+/* which appeared when scrolling a partially obscured listbox
 /*
+ * Revision 1.13  1996/03/08 00:23:49  tamches
+ * major update -- added support for hidden nodes
+ *
  * Revision 1.12  1996/02/15 23:14:12  tamches
  * added a level of indirection to obtain type-specific GCs for the various
  * kind of arcs drawn in the tree.
@@ -207,17 +211,18 @@ bool where4tree<NODEDATA>::scroll_listbox(const where4TreeConstants &tc,
    // returns true iff any changes made.  Redraws.
    const int actualDeltaY = scroll_listbox(tc, deltaYpix);
    if (actualDeltaY == 0)
-      return 0;
+      return false;
 
    const int listboxDataLeft = listboxLeft + tc.listboxBorderPix +
                                tc.listboxScrollBarWidth;
    const int listboxDataTop  = listboxTop + tc.listboxBorderPix;
 
-   // Under certain conditions, we must resort to one whole draw_listbox()
-   // instead of scrolling and doing a partial draw_listbox().  These conditions
-   // are (1) the entire 'visible' listbox isn't entirely visible on the screen
-   // [i.e a piece of it is scrolled off the screen], or (2) the scroll amount is
-   // so high that the XCopyArea() would simply result in a nop due to clipping.
+   // Under certain conditions, we must resort to one whole draw_listbox() instead
+   // of scrolling and doing a partial draw_listbox().  These conditions are:
+   // (1) the entire 'visible' listbox isn't entirely visible on the screen
+   //     [i.e a piece of it is scrolled off the screen], or
+   // (2) the scroll amount is so high that the XCopyArea() would simply result
+   //     in a nop due to clipping.
    const int absDeltaY = (actualDeltaY >= 0) ? actualDeltaY : -actualDeltaY;
    assert(absDeltaY >= 0);
 
@@ -240,6 +245,12 @@ bool where4tree<NODEDATA>::scroll_listbox(const where4TreeConstants &tc,
    else if ((listboxTop + listboxActualPixHeight - 1) > Tk_Height(tc.theTkWindow) - 1)
       // case (1)
       redraw_all = true;
+   else if (tc.obscured)
+      // a cheap hack to get around the fact that I can't get tk to recognize
+      // GraphicsExpose events; here, we conservatively assume that any time the
+      // window is obscured even a little, we're gonna have to redraw the whole listbox
+      // due to a graphics-expose.
+      redraw_all = true;
 
    if (redraw_all) {
       draw_listbox(tc.theTkWindow, tc, Tk_WindowId(tc.theTkWindow),
@@ -251,27 +262,38 @@ bool where4tree<NODEDATA>::scroll_listbox(const where4TreeConstants &tc,
 
    const int listboxActualDataPixWidth = listboxPixWidth - 2*tc.listboxBorderPix -
                                          tc.listboxScrollBarWidth;
-   XRectangle clipRect = {listboxDataLeft, listboxDataTop,
-			  listboxActualDataPixWidth, listboxActualDataPixHeight};
 
-   XSetClipRectangles(tc.display, tc.erasingGC,
-		      0, 0,
-		      &clipRect, 1, YXBanded);
-
-   XCopyArea(tc.display,
-             Tk_WindowId(tc.theTkWindow), // source drawable
-	     Tk_WindowId(tc.theTkWindow), // dest drawable
-	     tc.erasingGC, // not many fields of this GC are used; this should do fine
-	     listboxDataLeft, // source leftx
-	     listboxDataTop,  // source topy
-	     listboxActualDataPixWidth,  // width of area to copy
-	     listboxActualDataPixHeight, // height of area to copy
-	     listboxDataLeft,              // dest leftx
-	     listboxDataTop - actualDeltaY // dest topy
-	     );
-
-   // undo the clipping change:
-   XSetClipMask(tc.display, tc.erasingGC, None);
+   // This code is new.  By differentiating up from down scrolling,
+   // we can do a cheaper XCopyArea instead of an expensive XCopyArea plus
+   // a clip and an un-clip.
+   if (actualDeltaY < 0) {
+      // the up arrow was pressed; we scroll stuff downwards
+      XCopyArea(tc.display,
+		Tk_WindowId(tc.theTkWindow), // src drawable
+		Tk_WindowId(tc.theTkWindow), // dest drawable
+		tc.listboxCopyAreaGC,
+		listboxDataLeft, // src left
+		listboxDataTop,  // src top
+		listboxActualDataPixWidth, // width of stuff to copy
+		listboxActualDataPixHeight + actualDeltaY, // height of stuff to copy
+		listboxDataLeft, // dest left
+		listboxDataTop - actualDeltaY
+		);
+   }
+   else {
+      // the down arrow was pressed; we scroll stuff upwards
+      XCopyArea(tc.display,
+		Tk_WindowId(tc.theTkWindow), // src drawable
+		Tk_WindowId(tc.theTkWindow), // dest drawable
+		tc.listboxCopyAreaGC,
+		listboxDataLeft, // src left
+		listboxDataTop + actualDeltaY, // src top (note: will be below the data top)
+		listboxActualDataPixWidth, // width of stuff to copy
+		listboxActualDataPixHeight - actualDeltaY, // height of stuff to copy
+		listboxDataLeft, // dest left
+		listboxDataTop // dest top
+		);
+   }
 
    int redrawLbStart; // data y pixel coord relative to top
    if (actualDeltaY < 0)
