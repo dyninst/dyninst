@@ -11,6 +11,7 @@
 
 #include "util/h/list.h"
 #include "util/h/hist.h"
+#include "util/h/aggregation.h"
 
 //
 // What gets returned when a newValue is called in sampleInfo;
@@ -27,18 +28,20 @@ class sampleInfo {
     struct sampleInterval newValue(List<sampleInfo *> peers, 
 				   timeStamp wallTime, 
 				   sampleValue value);
-    sampleInfo() {
+    sampleInfo( aggregation aOp = Sum) {
         firstSampleReceived = FALSE;
 	value = 0.0;
 	lastSampleStart = 0.0;
 	lastSampleEnd = 0.0;
 	lastSample = 0.0;
+	aggOp = aOp;
     }
     Boolean firstSampleReceived;        // has first sample been recorded
     sampleValue value;                  // cumlative value
     timeStamp   lastSampleStart;        // start time for last sample
     timeStamp   lastSampleEnd;          // end time for last sample
     sampleValue lastSample;             // what was the last sample increment
+    aggregation aggOp;
 };
 
 #endif
