@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.69 2005/02/03 23:45:49 bernat Exp $
+ * $Id: inst-ia64.C,v 1.70 2005/02/09 03:27:44 jaw Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -3942,7 +3942,7 @@ instPoint::instPoint( Address encodedAddress, int_function * pdfn, IA64_instruct
 
 /* The IA-64 instrumentation code always displaces a single three-instruction bundle.
    We'll return the machine code, since that's easier and the type of insns isn't specificed. */ 
-int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
+int BPatch_point::getDisplacedInstructionsInt( int maxSize, void * insns ) {
 	/* If there's not enough room, don't do anything. */
 	if( ((unsigned)maxSize) < sizeof( ia64_bundle_t ) ) { return 0; }
 

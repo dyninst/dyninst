@@ -96,7 +96,7 @@ BPatch_edge::getType()
 #endif
 
 
-BPatch_edge::BPatch_edge(BPatch_basicBlock *s, 
+void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s, 
                          BPatch_basicBlock *t, 
                          BPatch_flowGraph *fg,
                          const unsigned char *rp)
@@ -121,13 +121,13 @@ BPatch_edge::BPatch_edge(BPatch_basicBlock *s,
 }
 
  
-BPatch_edge::~BPatch_edge()
+void BPatch_edge::BPatch_edge_dtor()
 {
     fprintf(stderr,"~BPatch_edge\n");
 }
 
 
-void BPatch_edge::dump()
+void BPatch_edge::dumpInt()
 {
     pdstring ts = edge_type_string(type);
 
@@ -154,7 +154,7 @@ void BPatch_edge::dump()
 
 
 // Only edges created by conditional jumps need edge trampolines
-bool BPatch_edge::needsEdgeTramp()
+bool BPatch_edge::needsEdgeTrampInt()
 {
     return type == CondJumpNottaken || type == CondJumpTaken;
 }

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.71 2005/01/19 17:40:49 bernat Exp $
+# $Id: make.module.tmpl,v 1.72 2005/02/09 03:27:51 jaw Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -60,6 +60,8 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../../dyninstAPI/src/BPatch_edge.C \
 		../../dyninstAPI/src/BPatch_loopTreeNode.C \
 		../../dyninstAPI/src/BPatch_flowGraph.C \
+		../../dyninstAPI/src/BPatch_asyncEventHandler.C \
+		../../dyninstAPI/src/BPatch_eventLock.C \
 		../../dyninstAPI/src/Object.C \
 		../../dyninstAPI/src/MemoryAccess.C \
 		../../dyninstAPI/src/BPatch_instruction.C \
@@ -119,7 +121,7 @@ IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 IGEN_ISRCS    = dyninstRPC.I
 PREREQUISITES = $(IGEN_GEN_SRCS)
 
-LIBS		+= -lpdutil
+LIBS		+= -lpdutil -lpthread
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.117 2005/02/03 16:23:04 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.118 2005/02/09 03:27:44 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -57,6 +57,7 @@
 #include "codeRange.h"
 #include "func-reloc.h"
 
+#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "LineInformation.h"
@@ -90,11 +91,21 @@ public:
 };
 
 /*
+ * BPatch_thread::getImage
+ *
+ * Return the BPatch_image this object.
+ */
+BPatch_image *BPatch_thread::getImageInt()
+{
+    return image;
+}
+
+/*
  * BPatch_thread::getPid
  *
  * Return the process ID of the thread associated with this object.
  */
-int BPatch_thread::getPid()
+int BPatch_thread::getPidInt()
 {
     return proc->getPid();
 }
@@ -317,8 +328,18 @@ BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
  *
  * Destructor for BPatch_thread.  Detaches from the running thread.
  */
-BPatch_thread::~BPatch_thread()
+void BPatch_thread::BPatch_thread_dtor()
 {
+#if !defined (os_osf) && !defined (os_windows) && !defined (os_irix) && !defined (arch_ia64)
+    if (  (!detached) )
+      if ( proc && !proc->hasExited()) {
+        fprintf(stderr, "%s[%d]:  before detachFromProcess\n", __FILE__, __LINE__);
+        if (!BPatch::bpatch->eventHandler->detachFromProcess(this)) {
+          bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
+               __FILE__, __LINE__, getPid());
+      }
+    }
+#endif
     if (image) delete image;
 
     // XXX Make sure that anything else that needs to be deallocated
@@ -345,7 +366,7 @@ BPatch_thread::~BPatch_thread()
  *
  * Puts the thread into the stopped state.
  */
-bool BPatch_thread::stopExecution()
+bool BPatch_thread::stopExecutionInt()
 {
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
@@ -368,7 +389,7 @@ bool BPatch_thread::stopExecution()
  *
  * Puts the thread into the running state.
  */
-bool BPatch_thread::continueExecution()
+bool BPatch_thread::continueExecutionInt()
 {
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
@@ -386,7 +407,7 @@ bool BPatch_thread::continueExecution()
  *
  * Kill the thread.
  */
-bool BPatch_thread::terminateExecution()
+bool BPatch_thread::terminateExecutionInt()
 {
     if (!proc || !proc->terminateProc())
 	return false;
@@ -406,7 +427,7 @@ bool BPatch_thread::terminateExecution()
  * stop is detected, in order to indicate that the stop has been reported to
  * the user.
  */
-bool BPatch_thread::isStopped()
+bool BPatch_thread::isStoppedInt()
 {
     // Check for status changes.
     assert(BPatch::bpatch);
@@ -435,7 +456,7 @@ bool BPatch_thread::statusIsStopped()
  *
  * Returns the number of the signal which caused the thread to stop.
  */
-int BPatch_thread::stopSignal()
+int BPatch_thread::stopSignalInt()
 {
     if (proc->status() != neonatal && proc->status() != stopped)
 	return -1;
@@ -453,7 +474,7 @@ int BPatch_thread::stopSignal()
  * if the program terminated, in order to indicate that the termination has
  * been reported to the user.
  */
-bool BPatch_thread::isTerminated()
+bool BPatch_thread::isTerminatedInt()
 {
     // First see if we've already terminated to avoid 
     // checking process status too often.
@@ -496,7 +517,7 @@ bool BPatch_thread::statusIsTerminated()
  * or ExitedViaSignal.
  *
  */
-BPatch_exitType BPatch_thread::terminationStatus() {
+BPatch_exitType BPatch_thread::terminationStatusInt() {
    if(exitedNormally)
       return ExitedNormally;
    else if(exitedViaSignal)
@@ -508,6 +529,28 @@ BPatch_exitType BPatch_thread::terminationStatus() {
 }
 
 /*
+ * BPatch_thread::getExitCode
+ *
+ * Returns exit code of applications
+ *
+ */
+int BPatch_thread::getExitCodeInt() 
+{
+  return exitCode;
+}
+
+/*
+ * BPatch_thread::getExitSignal
+ *
+ * Returns signal number that caused application to exit.
+ *
+ */
+int BPatch_thread::getExitSignalInt()
+{
+  return lastSignal;
+}
+
+/*
  * BPatch_thread::detach
  *
  * Detach from the thread represented by this object.
@@ -515,13 +558,28 @@ BPatch_exitType BPatch_thread::terminationStatus() {
  * cont		True if the thread should be continued as the result of the
  * 		detach, false if it should not.
  */
-bool BPatch_thread::detach(bool cont)
+bool BPatch_thread::detachInt(bool cont)
 {
     // CHANGED: API_detach to detach
+    if (!BPatch::bpatch->eventHandler->detachFromProcess(this)) {
+      bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
+           __FILE__, __LINE__, getPid());
+    }
+
     detached = proc->detachProcess(cont);
     return detached;
 }
 
+/*
+ * BPatch_thread::isDetacedh
+ *
+ * Returns whether dyninstAPI is detached from this mutatee
+ *
+ */
+bool BPatch_thread::isDetachedInt()
+{
+  return detached;
+}
 
 /*
  * BPatch_thread::dumpCore
@@ -534,7 +592,7 @@ bool BPatch_thread::detach(bool cont)
  *		dumping core.  True indicates that it should, false that is
  *		should not.
  */
-bool BPatch_thread::dumpCore(const char *file, bool terminate)
+bool BPatch_thread::dumpCoreInt(const char *file, bool terminate)
 {
     bool was_stopped;
     bool had_unreportedStop = unreportedStop;
@@ -563,7 +621,7 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  *
  *
  */
-char* BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
+char* BPatch_thread::dumpPatchedImageInt(const char* file){ //ccw 28 oct 2001
 
 #if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(rs6000_ibm_aix4_1)
 	return NULL;
@@ -594,7 +652,7 @@ char* BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
  *
  * file		The name of the file to which the image should be written.
  */
-bool BPatch_thread::dumpImage(const char *file)
+bool BPatch_thread::dumpImageInt(const char *file)
 {
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     return false;
@@ -629,7 +687,7 @@ bool BPatch_thread::dumpImage(const char *file)
  * 	A pointer to a BPatch_variableExpr representing the memory.
  *
  */
-BPatch_variableExpr *BPatch_thread::malloc(int n)
+BPatch_variableExpr *BPatch_thread::mallocInt(int n)
 {
     assert(BPatch::bpatch != NULL);
 
@@ -659,7 +717,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
  *     inferiorMalloc, calls exit rather than returning an error, so this
  *     is not currently possible.
  */
-BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
+BPatch_variableExpr *BPatch_thread::mallocByType(const BPatch_type &type)
 {
     void *mem = (void *)proc->inferiorMalloc(type.getSize(), dataHeap);
 
@@ -676,9 +734,10 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
  *
  * ptr		A BPatch_variableExpr representing the memory to free.
  */
-void BPatch_thread::free(const BPatch_variableExpr &ptr)
+bool BPatch_thread::freeInt(BPatch_variableExpr &ptr)
 {
     proc->inferiorFree((Address)ptr.getBaseAddr());
+    return true;
 }
 
 
@@ -696,8 +755,8 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
  *             or NULL if the variable argument hasn't been malloced
  *             in a parent process.
  */
-BPatch_variableExpr *BPatch_thread::getInheritedVariable(
-                                          const BPatch_variableExpr &parentVar)
+BPatch_variableExpr *BPatch_thread::getInheritedVariableInt(
+                                          BPatch_variableExpr &parentVar)
 {
   if(! isInferiorAllocated(proc, (Address)parentVar.getBaseAddr())) {
     // isn't defined in this process so must not have been defined in a
@@ -727,7 +786,7 @@ BPatch_variableExpr *BPatch_thread::getInheritedVariable(
  * Returns:       The corresponding BPatchSnippetHandle from the child thread.
  *
  */
-BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
+BPatchSnippetHandle *BPatch_thread::getInheritedSnippetInt(
 			 	          BPatchSnippetHandle &parentSnippet)
 {
   // a BPatchSnippetHandle has an miniTrampHandle for each point that
@@ -760,7 +819,7 @@ BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
-BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
+BPatchSnippetHandle *BPatch_thread::insertSnippetInt(const BPatch_snippet &expr,
                                                   BPatch_point &point,
                                                   BPatch_snippetOrder order)
 {
@@ -787,7 +846,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
-BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
+BPatchSnippetHandle *BPatch_thread::insertSnippetWhen(const BPatch_snippet &expr,
                                                   BPatch_point &point,
                                                   BPatch_callWhen when,
                                                   BPatch_snippetOrder order)
@@ -886,7 +945,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 #if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
 
 	bool isMain=false;
-	const BPatch_function *tmpFunc = point.getFunction();
+	BPatch_function *tmpFunc = const_cast<BPatch_function *>(point.getFunction());
 
 	char tmpFuncName[1024];
 
@@ -945,7 +1004,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
  * expr		The snippet to insert.
  * points	The list of points at which to insert it.
  */
-BPatchSnippetHandle *BPatch_thread::insertSnippet(
+BPatchSnippetHandle *BPatch_thread::insertSnippetAtPointsWhen(
 				    const BPatch_snippet &expr,
 				    const BPatch_Vector<BPatch_point *> &points,
 				    BPatch_callWhen when,
@@ -982,7 +1041,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
  * expr		The snippet to insert.
  * points	The list of points at which to insert it.
  */
-BPatchSnippetHandle *BPatch_thread::insertSnippet(
+BPatchSnippetHandle *BPatch_thread::insertSnippetAtPoints(
 				    const BPatch_snippet &expr,
 				    const BPatch_Vector<BPatch_point *> &points,
 				    BPatch_snippetOrder order)
@@ -1025,7 +1084,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
  * handle	The handle returned by insertSnippet when the instance to
  *		deleted was created.
  */
-bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
+bool BPatch_thread::deleteSnippetInt(BPatchSnippetHandle *handle)
 {
     
     if (handle->proc == proc) {
@@ -1050,11 +1109,11 @@ bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
  * activate	If set to true, execution of snippets is enabled.  If false,
  *		execution is disabled.
  */
-void BPatch_thread::setMutationsActive(bool activate)
+bool BPatch_thread::setMutationsActiveInt(bool activate)
 {
     // If not activating or deactivating, just return.
     if ((activate && mutationsActive) || (!activate && !mutationsActive))
-       return;
+       return true;
 
 #if 0
     // The old implementation
@@ -1084,6 +1143,7 @@ void BPatch_thread::setMutationsActive(bool activate)
 
     mutationsActive = activate;
 #endif
+    return true;
 }
 
 
@@ -1096,7 +1156,7 @@ void BPatch_thread::setMutationsActive(bool activate)
  * point	The call site that is to be changed.
  * newFunc	The function that the call site will now call.
  */
-bool BPatch_thread::replaceFunctionCall(BPatch_point &point,
+bool BPatch_thread::replaceFunctionCallInt(BPatch_point &point,
 					BPatch_function &newFunc)
 {
     // Can't make changes to code when mutations are not active.
@@ -1117,7 +1177,7 @@ bool BPatch_thread::replaceFunctionCall(BPatch_point &point,
  * 
  * point	The call site that is to be NOOPed out.
  */
-bool BPatch_thread::removeFunctionCall(BPatch_point &point)
+bool BPatch_thread::removeFunctionCallInt(BPatch_point &point)
 {
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
@@ -1138,7 +1198,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
  * oldFunc	The function to replace
  * newFunc      The replacement function
  */
-bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
+bool BPatch_thread::replaceFunctionInt(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
@@ -1182,6 +1242,17 @@ bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
 #endif
 }
 
+/*
+ * BPatch_thread::oneTimeCode
+ *
+ * execute argument <expr> once.
+ *
+*/
+
+void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr)
+{
+  return oneTimeCodeInternal(expr, NULL, true);
+}
 
 /*
  * BPatch_thread::oneTimeCodeCallbackDispatch
@@ -1290,6 +1361,15 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
     }
 }
 
+//  BPatch_thread::oneTimeCodeAsync
+//
+//  Have the specified code be executed by the mutatee once.  Dont wait until done.
+bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
+                                        void *userData)
+{
+  oneTimeCodeInternal(expr, userData, false);
+  return true;
+}
 
 /*
  * BPatch_thread::loadLibrary
@@ -1298,7 +1378,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
  *
  * libname	The name of the library to load.
  */
-bool BPatch_thread::loadLibrary(const char *libname, bool reload)
+bool BPatch_thread::loadLibraryInt(const char *libname, bool reload)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
@@ -1366,7 +1446,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
   * size of the buffer available. The name of the file will be null
   * terminated by the program.
   */
-bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
+bool BPatch_thread::getLineAndFileInt(unsigned long addr,unsigned short& lineNo,
 		    		   char* fileName,int size)
 {
 	// /* DEBUG */ bperr( "Looking for addr 0x%lx.\n", addr );
@@ -1450,7 +1530,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
  *
  * addr		The address to use for the lookup.
  */
-BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
+BPatch_function *BPatch_thread::findFunctionByAddrInt(void *addr)
 {
     int_function *func;
 
@@ -1474,7 +1554,7 @@ BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
 	this function sets a flag in process that 
 	forces the collection of data for saveworld. //ccw 23 jan 2002
 */
-void BPatch_thread::enableDumpPatchedImage(){
+void BPatch_thread::enableDumpPatchedImageInt(){
 	proc->collectSaveWorldData=true;
 }
 
@@ -1486,7 +1566,7 @@ void BPatch_thread::enableDumpPatchedImage(){
  *
  * stack	The vector to fill with the stack trace information.
  */
-void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
+bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 {
     pdvector<pdvector<Frame> > stackWalks;
 
@@ -1557,8 +1637,57 @@ void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
             }
         }
     }
+    return true;
 }
 
+bool BPatch_thread::registerThreadEventCallbackInt(BPatch_asyncEventType type,
+                                                   BPatchThreadEventCallback cb)
+{
+  BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+  return handler->registerThreadEventCallback(this, type, cb);
+}
+
+bool BPatch_thread::removeThreadEventCallbackInt(BPatch_asyncEventType type,
+                                                 BPatchThreadEventCallback cb)
+{
+  BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+  return handler->removeThreadEventCallback(this, type, cb);
+}
+
+bool BPatch_thread::registerThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
+                                                           BPatch_function *cb)
+{
+  BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+  return handler->registerThreadEventCallback(this, type, cb);
+}
+
+bool BPatch_thread::removeThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
+                                                         BPatch_function *cb)
+{
+  BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+  return handler->removeThreadEventCallback(this, type, cb);
+}
+
+
+#ifdef IBM_BPATCH_COMPAT
+bool BPatch_thread::isThreaded()
+{
+  return false;
+}
+
+bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadaddr)
+{
+  //  in IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
+  // which is in turn a wrapper for creating a new ibmBpatchElf32Reader(name, addr)
+  //
+  bperr( "%s[%d]: inside addSharedObject(%s, %lu), which is not properly implemented\n"
+          "using loadLibrary(char* = %s)\n",
+          __FILE__, __LINE__, name, loadaddr, name);
+
+  return loadLibrary(name);
+}
+
+#endif
 
 
 /***************************************************************************
@@ -1585,25 +1714,11 @@ void BPatchSnippetHandle::add(miniTrampHandle *pointInstance)
  * Destructor for BPatchSnippetHandle.  Delete the snippet instance(s)
  * associated with the BPatchSnippetHandle.
  */
-BPatchSnippetHandle::~BPatchSnippetHandle()
+void BPatchSnippetHandle::BPatchSnippetHandle_dtor()
 {
     // don't delete inst instances since they are might have been copied
 }
 
-#ifdef IBM_BPATCH_COMPAT
-bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadaddr)
-{
-  //  in IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
-  // which is in turn a wrapper for creating a new ibmBpatchElf32Reader(name, addr)
-  //
-  bperr( "%s[%d]: inside addSharedObject(%s, %lu), which is not properly implemented\n"
-	  "using loadLibrary(char* = %s)\n",
-	  __FILE__, __LINE__, name, loadaddr, name);
-
-  return loadLibrary(name);
-}
-
-#endif
 
 /***************************************************************************
  * BPatch_frame
@@ -1616,11 +1731,20 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
  * function, BPatch_frameSignal for the stack frame created when a signal is
  * delivered, or BPatch_frameTrampoline for a stack frame for a trampoline.
  */
-BPatch_frameType BPatch_frame::getFrameType()
+BPatch_frameType BPatch_frame::getFrameTypeInt()
 {
 	if( isSignalFrame ) { return BPatch_frameSignal; }
 	else if( isTrampoline ) { return BPatch_frameTrampoline; }
 	else { return BPatch_frameNormal; } 
+}
+
+void *BPatch_frame::getPCInt() 
+{
+  return pc;
+}
+void *BPatch_frame::getFPInt()
+{
+  return fp;
 }
 
 /*
@@ -1629,7 +1753,7 @@ BPatch_frameType BPatch_frame::getFrameType()
  * Returns the function associated with the stack frame, or NULL if there is
  * none.
  */
-BPatch_function *BPatch_frame::findFunction()
+BPatch_function *BPatch_frame::findFunctionInt()
 {
     return thread->findFunctionByAddr(getPC());
 }

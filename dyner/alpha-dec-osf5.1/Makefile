@@ -12,6 +12,8 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
+CXXFLAGS += -pthread
+CFLAGS += -pthread
 #CXXFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 #CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 

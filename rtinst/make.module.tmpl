@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.21 2003/07/31 19:01:15 schendel Exp $
+# $Id: make.module.tmpl,v 1.22 2005/02/09 03:27:51 jaw Exp $
 #
 
 ifndef TARGET
@@ -33,11 +33,11 @@ endif
 #all: $(TARGET) $(TARGET2) 
 all: $(TARGET3_SO) $(TARGET2)
 
-OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
-		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
-		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
-		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
-		$(IGEN_GEN_SRCS:%.C=%.o)
+#OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+#		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
+#		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+#		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
+#		$(IGEN_GEN_SRCS:%.C=%.o)
 
 #
 # override standard install rule; provide a default DEST if not already set

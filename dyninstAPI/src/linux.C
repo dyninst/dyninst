@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.151 2005/01/21 23:44:41 bernat Exp $
+// $Id: linux.C,v 1.152 2005/02/09 03:27:47 jaw Exp $
 
 #include <fstream>
 
@@ -491,10 +491,14 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          // particularly noticable when traps are hit at instrumentation
          // points (seems to occur frequently in test1).
          // *** important for performance ***
-         struct timeval timeout;
-         timeout.tv_sec = 0;
-         timeout.tv_usec = 1;
-         select(0, NULL, NULL, NULL, &timeout);
+         //struct timeval timeout;
+         //timeout.tv_sec = 0;
+         //timeout.tv_usec = 1;
+         //select(0, NULL, NULL, NULL, &timeout);
+         struct timespec slp, rem;
+         slp.tv_sec = 0;
+         slp.tv_nsec = 1000;
+         nanosleep(&slp, &rem);
       }
    }
 

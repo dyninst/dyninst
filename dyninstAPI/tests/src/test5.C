@@ -61,6 +61,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #ifdef i386_unknown_nt4_0
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winbase.h>
 #else

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2004/10/19 08:37:45 jaw Exp $
+# $Id: Makefile,v 1.9 2005/02/09 03:27:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -93,7 +93,7 @@ $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
 else
 $(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
-	$(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2)
+	$(MUTATEE_SRC) $(MUTATEE_OBJS) $(MUTLIBS) -o $(TARGET2)
 endif
 
 

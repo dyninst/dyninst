@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.56 2005/01/19 17:40:48 bernat Exp $
+# $Id: make.module.tmpl,v 1.57 2005/02/09 03:27:42 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -29,6 +29,8 @@ TFLAGS		+= -fno-squangle
 endif
 
 TARGET		= libdyninstAPI.a
+
+LDFLAGS += -lpthread
 
 ifdef USES_LIBDYNINST_SO
 TARGET3_SO	= libdyninstAPI.so
@@ -100,6 +102,8 @@ SRCS	     +=	../src/BPatch.C \
 		../src/sharedobject.C \
 		../src/LineInformation.C \
 		../src/BPatch_instruction.C \
+		../src/BPatch_asyncEventHandler.C \
+		../src/BPatch_eventLock.C \
 		../../common/src/Dictionary.C \
 		../../common/src/Ident.C \
 		../../common/src/String.C \

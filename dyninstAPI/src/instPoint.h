@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.14 2005/02/02 17:27:28 bernat Exp $
+// $Id: instPoint.h,v 1.15 2005/02/09 03:27:47 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -142,7 +142,7 @@ class instPointBase {
    void setCallee(int_function * to) { callee_ = to;  }
 
 
-   const BPatch_point* getBPatch_point() const { return bppoint; }
+   BPatch_point* getBPatch_point() const { return bppoint; }
    void setBPatch_point(const BPatch_point *p) { 
       bppoint = const_cast<BPatch_point *>(p);
    }

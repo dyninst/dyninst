@@ -43,6 +43,11 @@
  * RTaix.c: mutatee-side library function specific to AIX
 ************************************************************************/
 
+#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
+/* everything should be under this flag except for the assembly code
+   that handles the runtime spinlocks  -- this is imported into the
+   test suite for direct testing */
+
 #include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -88,3 +93,21 @@ int DYNINSTloadLibrary(char *libname)
     return 1;
 }
 
+#endif /* EXPORT_SPINLOCKS_AS_HEADER */
+
+void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+{
+
+ asm (
+         "  .Loop:\n"
+         " lwarx        4,0,3    # &lock in R3, reserves addr in R3 for future atomic store\n"
+         "                       # R4 <- *R3         \n"
+         " cmpwi        4,1      # if lock set, spin.\n"
+         " beq-         .Loop                        \n"
+         " lil          5,1      # R5 <- 1 (indicate mutex is locked)  \n"
+         " stwcx.       5,0,3    # atomic store R5 in memory given by R3 (&lock)\n"
+         " bne-         .Loop    # atomic store failed, try again   \n"
+         " isync                 # memory barrier, ensures lock obtained before cont\n"
+     );
+
+}

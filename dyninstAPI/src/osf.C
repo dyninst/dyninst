@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.70 2005/01/21 23:44:42 bernat Exp $
+// $Id: osf.C,v 1.71 2005/02/09 03:27:47 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -559,7 +559,8 @@ Frame Frame::getCallerFrame(process *p) const
               //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
           } else {
               ret.fp_ = 0;
-              sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+              sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
+                                  __FILE__, __LINE__, ret.pc_);
               logLine(errorLine);
           }
           
@@ -581,7 +582,8 @@ Frame Frame::getCallerFrame(process *p) const
               ret.fp_ = fp_ + currFunc->frame_size;  
               //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
           } else {
-              sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+              sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
+                                  __FILE__, __LINE__, ret.pc_);
               logLine(errorLine);
               ret.fp_ = 0;
           }
@@ -665,7 +667,7 @@ bool process::dumpImage()
   int total;
   int length;
   Address baseAddr;
-    extern int errno;
+    //extern int errno;
     const int COPY_BUF_SIZE = 4*4096;
     char buffer[COPY_BUF_SIZE];
     struct filehdr hdr;

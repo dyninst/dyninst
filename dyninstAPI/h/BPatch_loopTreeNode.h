@@ -44,6 +44,7 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "BPatch_eventLock.h"
 
 class BPatch_basicBlockLoop;
 class int_function;
@@ -53,36 +54,60 @@ class int_function;
  *  @see BPatch_basicBlockLoop
  *  @see BPatch_flowGraph
  */
-class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_loopTreeNode
+
+class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
     friend class BPatch_flowGraph;
 
  public:
-    /** Create a loop tree node for BPatch_basicBlockLoop with name n */
-    BPatch_loopTreeNode(BPatch_basicBlockLoop *l, const char *n);
-
-    ~BPatch_loopTreeNode();
-
-    /** A loop node contains a single BPatch_basicBlockLoop instance */
+    // A loop node contains a single BPatch_basicBlockLoop instance
     BPatch_basicBlockLoop *loop;
 
-    /** The BPatch_loopTreeNode instances nested within this loop. */
+    // The BPatch_loopTreeNode instances nested within this loop.
     BPatch_Vector<BPatch_loopTreeNode *> children;
-
-    /** Return the name of this loop. */
-    const char *name();
 
     // A vector of functions called within the body of this loop (and
     // not the body of sub loops). 
     BPatch_Vector<int_function *> callees;
 
-    // Return the function name of the ith callee. 
-    const char *getCalleeName(unsigned int i);
-    
-    // Return the number of callees contained in this loop's body. 
-    unsigned int numCallees();
+    //  BPatch_loopTreeNode::BPatch_loopTreeNode
+    //  Create a loop tree node for BPatch_basicBlockLoop with name n 
+    API_EXPORT_CTOR(Ctor, (l,n),
 
-    // find loop by hierarchical name
-    BPatch_basicBlockLoop *findLoop(const char *name);
+    BPatch_loopTreeNode,(BPatch_basicBlockLoop *l, const char *n));
+
+    //  BPatch_loopTreeNode::~BPatch_loopTreeNode
+    //  Destructor
+    API_EXPORT_DTOR(_dtor, (),
+
+    ~,BPatch_loopTreeNode,());
+
+    //  BPatch_loopTreeNode::name
+    //  Return the name of this loop. 
+    API_EXPORT(Int, (),
+
+    const char *,name,()); 
+
+    //  BPatch_loopTreeNode::getCalleeName
+    //  Return the function name of the ith callee. 
+    API_EXPORT(Int, (i),
+
+    const char *,getCalleeName,(unsigned int i));
+
+    //  BPatch_loopTreeNode::numCalleexs
+    //  Return the number of callees contained in this loop's body. 
+    API_EXPORT(Int, (),
+
+    unsigned int,numCallees,());
+
+    //  BPatch_loopTreeNode::findLoop
+    //  find loop by hierarchical name
+    API_EXPORT(Int, (name),
+
+    BPatch_basicBlockLoop *,findLoop,(const char *name));
 
  private:
 

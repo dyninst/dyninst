@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.111 2004/10/19 08:37:45 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.112 2005/02/09 03:27:48 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2659,7 +2659,7 @@ void func40_1(void)
 #endif
    
 #if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)\
-    && !defined(mips_sgi_irix6_4)
+    && !defined(mips_sgi_irix6_4) && !defined(os_windows)
     
     passedTest [40 ] = TRUE;  /* lets be optimistic  -- ha! */
 

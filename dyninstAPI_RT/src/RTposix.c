@@ -40,13 +40,23 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.9 2004/03/23 01:12:16 eli Exp $
+ * $Id: RTposix.c,v 1.10 2005/02/09 03:27:50 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
 #include <assert.h>
+#include <errno.h>
+#include <memory.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -67,3 +77,98 @@ void DYNINSTbreakPoint(void)
      kill(getpid(), SIGSTOP);
 #endif
 }
+
+/************************************************************************
+ * void DYNINSTasyncConnect(int pid)
+ *
+ * Connect to mutator's async handler thread. <pid> is pid of mutator
+************************************************************************/
+
+int async_socket = -1;
+dyninst_spinlock thelock;
+extern void DYNINSTlock_spinlock(dyninst_spinlock *);
+extern void DYNINSTunlock_spinlock(dyninst_spinlock *);
+int DYNINSTwriteEvent(void *ev, int sz);
+
+int DYNINSTasyncConnect(int pid)
+{
+  
+  int sock_fd;
+  int err = 0;
+  struct sockaddr_un sadr;
+  BPatch_asyncEventRecord ev;
+
+  char path[100];
+  sprintf(path, "%s/dyninstAsync.%d", P_tmpdir, pid); /* P_tmpdir in <stdio.h> */
+
+  sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+  if (sock_fd < 0) {
+    perror("DYNINSTasyncConnect() socket()");
+    abort();
+  }
+
+  sadr.sun_family = PF_UNIX;
+  strcpy(sadr.sun_path, path);
+  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
+    perror("DYNINSTasyncConnect() connect()");
+    abort();
+  }
+
+  /* maybe need to do fcntl to set nonblocking writes on this fd */
+
+  async_socket = sock_fd;
+
+  /* after connecting, we need to send along our pid */
+  ev.type = BPatch_newConnectionEvent;
+  ev.pid = getpid();
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
+    return 0;
+  }
+  /* initialize spinlock */
+  
+  thelock.lock = 0; 
+
+  return 1; /*true*/
+
+}
+
+int DYNINSTasyncDisconnect()
+{
+  return close (async_socket);
+}
+
+int DYNINSTwriteEvent(void *ev, int sz)
+{
+  int res;
+
+try_again:
+  res = write(async_socket, ev, sz); 
+  if (-1 == res) {
+    if (errno == EINTR || errno == EAGAIN) 
+       goto try_again;
+    else {
+       perror("write");
+       return -1;
+    }
+  }
+  if (res != sz) {
+    /*  maybe we need logic to handle partial writes? */
+    fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %d\n",
+            __FILE__, __LINE__, res, sz);
+    return -1;
+  }
+  return 0;
+}
+
+void LockCommsMutex()
+{
+  DYNINSTlock_spinlock(&thelock);
+}
+void UnlockCommsMutex()
+{
+  DYNINSTunlock_spinlock(&thelock);
+}
+

@@ -40,9 +40,15 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.17 2004/03/23 01:12:16 eli Exp $
+ * $Id: RTsolaris.c,v 1.18 2005/02/09 03:27:50 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
+
+#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
+/* everything should be under this flag except for the assembly code
+   that handles the runtime spinlocks  -- this is imported into the
+   test suite for direct testing */
+
 
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -332,3 +338,98 @@ int setmemwrite()
     close(pfd);
     return 0;
 }
+#endif /* EXPORT SPINLOCKS */
+void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+{
+
+#if (os_solaris == 9)
+  /*  This might only work for solaris 2.9 since it uses cas. */
+  /*  The command -Av9 needs to be sent to the solaris assembler */
+  /*  also works with -Av8plus, and analagous solaris cc command option */
+#if defined __GNUC__
+ asm (
+     " 1:                       \n"
+     " mov      1, %%g2         \n" /* l0 <- 1 */
+     " mov      0, %%g0         \n" /* g0 <- 0 */
+     " cas      [%0],%%g0,%%g2  \n" /* if (lock == g0) lock = %l0, atomic compare/swap */
+     " brz,pn   %%g2,out        \n" /* if (l0 == 0) after the swap, it worked, goto done */
+
+     " 2:                       \n" /* if not, spin until lock is not set anymore */
+     " ld       [%0], %%g2      \n" /* l0 <- mut->lock */
+     " brnz,pt  %%g2,2b         \n" /* if (lock != 0) spin*/
+     " b,a      1b              \n" /* else try to obtain lock again (goto 1) */
+
+     " out:                     \n" /* last step, memory barrier */
+     " membar   #LoadLoad | #LoadStore | #StoreLoad | #StoreStore\n"
+     : :  "r" (mut) :  "g0", "g2", "memory");
+#else
+ asm (
+     " 1:                       \n"
+     " mov      1, %l2          \n" /* l0 <- 1 */
+     " mov      0, %l0          \n" /* g0 <- 0 */
+     " cas      [%i0],%l0,%l2   \n" /* if (lock == g0) lock = %l0, atomic compare/swap */
+     " cmp      %l2,0           \n" /* */
+     " be       out             \n"  /* else, got lock, done*/
+
+     " 2:                       \n" /* if not, spin until lock is not set anymore */
+     " ld       [%i0], %l2      \n" /* l0 <- mut->lock */
+     " cmp      %l2,0           \n" /* */
+     " bne      2b              \n"  /* else, got lock, done*/
+     " b,a      1b              \n" /* else try to obtain lock again (goto 1) */
+
+     " out:                     \n" /* last step, memory barrier */
+     " membar   #LoadLoad | #LoadStore | #StoreLoad | #StoreStore\n"
+     );
+
+#endif
+
+#else /* solaris 8 */
+
+#if defined __GNUC__
+
+ asm (
+     " 1:                       \n"
+     " ldstub   [%0],%%g3       \n" /* get old lock value, store lock val of all ones */
+     " cmp      %%g3,0          \n" /* if (old lock != 0), someone has lock, spin*/
+     " be       out             \n"  /* else, got lock, done*/
+     " nop                      \n"
+
+     " 2:                       \n"  /* if not, spin until lock is not set anymore */
+     " ld       [%0], %%g3      \n" /* l0 <- mut->lock */
+     " cmp      %%g3,0          \n"  /* if (old lock != 0), someone has lock, spin*/
+
+     " bne      2b              \n" /* if (lock != 0) spin*/
+     " nop                      \n"
+     " b,a      1b              \n"  /* else try to obtain lock again (goto 1) */
+     " nop                      \n"
+
+     " out:                     \n" /* last step, memory barrier */
+     : : "r" (mut) : "g3", "memory");
+
+#else /* sun cc */
+
+ asm (
+     " 1:                       \n"
+     " ldstub   [%i0],%g3       \n" /* get old lock value, store lock val of all ones */
+     " cmp      %g3,0           \n" /* if (old lock != 0), someone has lock, spin*/
+     " be       out             \n"  /* else, got lock, done*/
+     " nop                      \n"
+
+     " 2:                       \n"  /* if not, spin until lock is not set anymore */
+     " ld       [%i0], %g3      \n" /* l0 <- mut->lock */
+     " cmp      %g3,0           \n"  /* if (old lock != 0), someone has lock, spin*/
+
+     " bne      2b              \n" /* if (lock != 0) spin*/
+     " nop                      \n"
+     " b,a      1b              \n"  /* else try to obtain lock again (goto 1) */
+     " nop                      \n"
+
+     " out:                     \n" /* last step, memory barrier */
+     );
+
+#endif /* gnuc vs suncc switch */
+
+#endif /* solaris 8-9 switch */
+
+}
+

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2005/01/24 21:44:43 bernat Exp $
+# $Id: Makefile,v 1.6 2005/02/09 03:27:43 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,10 @@ endif
 
 include ../../make.config 
 
-CXXFLAGS += -O0
+CXXFLAGS += -O0 -std=c89
+CFLAGS += -pthread -std=c89
+TFLAGS += -pthread -std=c89
+CXXFLAGS += -pthread
 
 # Now make any necessary architecture specific changes to variables:
 

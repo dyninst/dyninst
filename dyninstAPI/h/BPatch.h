@@ -47,6 +47,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
+#include "BPatch_eventLock.h"
 
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000
 #include "remoteDevice.h"
@@ -55,6 +56,8 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
+class int_function;
+class BPatch_asyncEventHandler;
 
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -115,9 +118,14 @@ typedef struct {
   unsigned int insnGenerated;
 } BPatch_stats;
 
-class BPATCH_DLL_EXPORT BPatch {
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch
+class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class process;
+    friend class int_function;
 
     BPatch_libInfo	*info;
 
@@ -153,6 +161,8 @@ class BPATCH_DLL_EXPORT BPatch {
 
     BPatch_stats stats;
     void updateStats();
+
+
 public:
     static BPatch		 *bpatch;
 
@@ -161,21 +171,15 @@ public:
     BPatch_typeCollection        *APITypes; //API/User defined types
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
+    BPatch_asyncEventHandler     *eventHandler;
+
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000
-	remoteDevice *rDevice;	//the ctor sets up the connection here and
+    remoteDevice *rDevice;	//the ctor sets up the connection here and
 				//gets the tramptemplate from the CE device.
 #endif
 
- 
-    bool isTypeChecked() { return typeCheckOn; }
-    bool parseDebugInfo() { return debugParseOn; }
-    bool baseTrampDeletion() { return baseTrampDeletionOn; }
-    bool isTrampRecursive() { return trampRecursiveOn; }
-    bool hasForcedRelocation_NP() { return forceRelocation_NP; }
-    bool autoRelocationOn() { return autoRelocation_NP; }
-    bool delayedParsingOn() { return delayedParsing_;}
-
     // The following are only to be called by the library:
+    //  These functions are not locked.
     void registerProvisionalThread(int pid);
     void registerForkedThread(int parentPid, int childPid, process *proc);
     void registerForkingThread(int forkingPid, process *proc);
@@ -191,94 +195,276 @@ public:
     static void reportError(BPatchErrorLevel severity, int number, const char *str);
 
     void clearError() { lastError = 0; }
-    int	getLastError() { return lastError; }
+    int getLastError() { return lastError; }
     // End of functions that are for internal use only
 
-#ifdef IBM_BPATCH_COMPAT
-    int	getLastErrorCode() { return lastError; }
-
-    BPatchThreadEventCallback registerDetachDoneCallback(BPatchThreadEventCallback) { return NULL; }
-    BPatchThreadEventCallback registerSnippetRemovedCallback(BPatchThreadEventCallback) { return NULL; }
-    
-    BPatchExitCallback registerSignalCallback(BPatchThreadEventCallback func, int sigNum) {return NULL;}
-    BPatchExitCallback registerExitCallback(BPatchThreadEventCallback func);
-
-    BPatchThreadEventCallback registerRPCTerminationCallback(BPatchThreadEventCallback);
-    BPatchThreadEventCallback		RPCdoneCallback;
-#endif
+    public:
 
     BPatch();
-    ~BPatch();
+
+    //  BPatch::~BPatch
+    //  destructor
+    API_EXPORT_DTOR(_dtor, (),
+
+    ~,BPatch,());
 
     static const char *getEnglishErrorString(int number);
     static void formatErrorString(char *dst, int size,
 				  const char *fmt, const char **params);
-    BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
-    BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback function);
-    BPatchForkCallback registerPostForkCallback(BPatchForkCallback func);
-    BPatchForkCallback registerPreForkCallback(BPatchForkCallback func);
-    BPatchExecCallback registerExecCallback(BPatchExecCallback func);
-    BPatchExitCallback registerExitCallback(BPatchExitCallback func);
-    BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func);
 
-    BPatch_Vector<BPatch_thread*> *getThreads();
+    // BPatch::isTypeChecked:
+    // returns whether type checking is on.
+    API_EXPORT(Int, (),
 
-    void setDebugParsing(bool x) { debugParseOn = x; }
-    void setBaseTrampDeletion(bool x) { baseTrampDeletionOn = x; }
-    void setTypeChecking(bool x) { typeCheckOn = x; }
-    void setTrampRecursive(bool x) { trampRecursiveOn = x; }
-    void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
-    void setAutoRelocation_NP(bool x) { autoRelocation_NP = x; }
-    void setDelayedParsing(bool x) { delayedParsing_ = x; }
+    bool,isTypeChecked,());
 
-    BPatch_thread *createProcess(const char *path, const char *argv[], 
-	const char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
-    BPatch_thread *attachProcess(const char *path, int pid);
+    // BPatch::parseDebugInfo:
+    // returns whether debugging information is set to be parsed
+    API_EXPORT(Int, (),
 
+    bool,parseDebugInfo,());
+
+    // BPatch::baseTrampDeletion:
+    // returns whether base trampolines are set to be deleted
+    API_EXPORT(Int, (),
+
+    bool,baseTrampDeletion,());
+
+    // BPatch::isTrampRecursive:
+    // returns whether trampolines are set to handle recursive instrumentation
+    API_EXPORT(Int, (),
+
+    bool,isTrampRecursive,());
+
+    // BPatch::hasForcedRelocation_NP:
+    // returns whether all instrumented functions will be relocated
+    API_EXPORT(Int, (),
+
+    bool,hasForcedRelocation_NP,());
+
+    // BPatch::autoRelocationsOn:
+    // returns whether functions will be relocated when appropriate
+    API_EXPORT(Int, (),
+
+    bool,autoRelocationOn,());
+
+    // BPatch::delayedParsingOn:
+    // returns whether inst info is parsed a priori, or on demand
+    API_EXPORT(Int, (),
+
+    bool,delayedParsingOn,());
+
+
+    //  User-specified callback functions...
+
+    //  BPatch::registerErrorCallback:
+    //  Register error handling/reporting callback
+    API_EXPORT(Int, (function),
+
+    BPatchErrorCallback, registerErrorCallback,(BPatchErrorCallback function));
+
+    //  BPatch::registerDynLibraryCallback:
+    //  Register callback for new library events (eg. load)
+    API_EXPORT(Int, (func),
+
+    BPatchDynLibraryCallback, registerDynLibraryCallback,(BPatchDynLibraryCallback func));
+
+    //  BPatch::registerPostForkCallback:
+    //  Register callback to handle mutatee fork events (before fork)
+    API_EXPORT(Int, (func),
+
+    BPatchForkCallback, registerPostForkCallback,(BPatchForkCallback func));
+
+    //  BPatch::registerPreForkCallback:
+    //  Register callback to handle mutatee fork events (before fork)
+    API_EXPORT(Int, (func),
+
+    BPatchForkCallback, registerPreForkCallback,(BPatchForkCallback func));
+
+    //  BPatch::registerExecCallback:
+    //  Register callback to handle mutatee exec events 
+    API_EXPORT(Int, (func),
+
+    BPatchExecCallback, registerExecCallback,(BPatchExecCallback func));
+
+    //  BPatch::registerExitCallback:
+    //  Register callback to handle mutatee exit events 
+    API_EXPORT(Int, (func),
+
+    BPatchExitCallback, registerExitCallback,(BPatchExitCallback func));
+
+    //  BPatch::registerOneTimeCodeCallback:
+    //  Register callback to run at completion of oneTimeCode 
+    API_EXPORT(Int, (func),
+
+    BPatchOneTimeCodeCallback, registerOneTimeCodeCallback,(BPatchOneTimeCodeCallback func));
+
+    //  BPatch::getThreads:
+    //  Get a vector of all threads in mutatee process
+    API_EXPORT(Int, (),
+
+    BPatch_Vector<BPatch_thread*> *,getThreads,());
+
+    //
+    //  General BPatch parameter settings:
+    //
+    
+    //  BPatch::setDebugParsing:
+    //  Turn on/off parsing of debug section(s)
+    API_EXPORT_V(Int, (x),
+
+    void,setDebugParsing,(bool x));
+
+    //  BPatch::setBaseTrampDeletion:
+    //  Turn on/off deletion of base tramp
+    API_EXPORT_V(Int, (x),
+
+    void,setBaseTrampDeletion,(bool x));
+
+    //  BPatch::setTypeChecking:
+    //  Turn on/off type checking
+    API_EXPORT_V(Int, (x),
+
+    void,setTypeChecking,(bool x));
+
+    //  BPatch::setTrampRecursive:
+    //  Turn on/off recursive trampolines
+    API_EXPORT_V(Int, (x),
+
+    void,setTrampRecursive,(bool x));
+
+    //  BPatch::setForcedRelocation_NP:
+    //  Turn on/off forced relocation of instrumted functions
+    API_EXPORT_V(Int, (x),
+
+    void,setForcedRelocation_NP,(bool x));
+
+    //  BPatch::setAutoRelocation_NP:
+    //  Turn on/off function relocations, performed when necessary
+    API_EXPORT_V(Int, (x),
+
+    void,setAutoRelocation_NP,(bool x));
+
+    //  BPatch::setDelayedParsing:
+    //  Turn on/off delayed parsing
+    API_EXPORT_V(Int, (x),
+
+    void,setDelayedParsing,(bool x));
+
+
+    // BPatch::createProcess:
+    // Create a new mutatee process
+    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
+
+    BPatch_thread *,createProcess,(const char *path,
+                                   const char *argv[],
+                                   const char *envp[] = NULL,
+                                   int stdin_fd=0,
+                                   int stdout_fd=1,
+                                   int stderr_fd=2));
+
+    // BPatch::attachProcess:
+    // Attach to mutatee process
+    API_EXPORT(Int, (path, pid),
+
+    BPatch_thread *,attachProcess,(const char *path, int pid));
+
+    // BPatch::createEnum:
     // Create Enum types. 
-    BPatch_type * createEnum(const char * name, 
-	BPatch_Vector<char *> elementNames,
-	BPatch_Vector<int> elementIds);
-    
-    // API selects elemetIds
-    BPatch_type * createEnum(const char * name, 
-	BPatch_Vector<char *> elementNames);
+    API_EXPORT(Int, (name, elementNames, elementIds),
 
+    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> elementNames,
+                              BPatch_Vector<int> elementIds));
+
+    // BPatch::createEnum:
+    // API selects elementIds
+    API_EXPORT(AutoId, (name, elementNames),
+
+    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> elementNames));
+
+    // BPatch::createStruct:
     // Create Struct types. 
-    BPatch_type * createStruct( const char * name,
-				BPatch_Vector<char *> fieldNames,
-				BPatch_Vector<BPatch_type *> fieldTypes);
+    API_EXPORT(Int, (name, fieldNames, fieldTypes),
 
+    BPatch_type *,createStruct,(const char * name, BPatch_Vector<char *> fieldNames,
+                                BPatch_Vector<BPatch_type *> fieldTypes));
+
+    // BPatch::createUnion:
     // Create Union types. 
-    BPatch_type * createUnion( const char * name, 
-				BPatch_Vector<char *> fieldNames,
-				BPatch_Vector<BPatch_type *> fieldTypes);
- 
+    API_EXPORT(Int, (name, fieldNames, fieldTypes),
+
+    BPatch_type *,createUnion,(const char * name, BPatch_Vector<char *> fieldNames,
+                               BPatch_Vector<BPatch_type *> fieldTypes));
+
+    // BPatch::createArray:
     // Creates BPatch_array type or symtyperanges ( scalars with upper and
-   //lower bound).
-    BPatch_type * createArray( const char * name, BPatch_type * ptr,
-			       unsigned int low, unsigned int hi );
+    //lower bound).
+    API_EXPORT(Int, (name, ptr, low, hi),
 
+    BPatch_type *,createArray,(const char * name, BPatch_type * ptr,
+                               unsigned int low, unsigned int hi));
+
+    // BPatch::createPointer:
     // Creates BPatch_pointer types	 
-    BPatch_type * createPointer( const char * name, BPatch_type * ptr,
-				 int size = sizeof(void *));
+    API_EXPORT(Int, (name, ptr, size),
 
+    BPatch_type *,createPointer,(const char * name, BPatch_type * ptr,
+                                 int size = sizeof(void *)));
+
+    // BPatch::createScalar:
     // Creates BPatch_scalar types
-    BPatch_type * createScalar( const char * name, int size );
+    API_EXPORT(Int, (name, size),
+
+    BPatch_type *,createScalar,(const char * name, int size));
     
+    // BPatch::createTypedef:
     // Creates typedefs.
-    BPatch_type * createTypedef( const char * name, BPatch_type * ptr );
+    API_EXPORT(Int, (name, ptr),
+
+    BPatch_type *,createTypedef,(const char * name, BPatch_type * ptr));
 	 
-    bool 	pollForStatusChange();
+    //  Polling/waiting functions 
+    API_EXPORT(Int, (),
+
+    bool,pollForStatusChange,());
+
+    public:
+    //  Since these two functions block, they do not obtain locks
+    //
     bool 	waitForStatusChange();
+    bool        waitUntilStopped(BPatch_thread *appThread);
 
-    bool waitUntilStopped(BPatch_thread *appThread);
+    //  BPatch::getBPatchStatistics:
+    //  Get Instrumentation statistics
+    API_EXPORT(Int, (),
 
-    BPatch_stats &getBPatchStatistics() {
-      updateStats();
-      return stats;
-    } 
+    BPatch_stats &,getBPatchStatistics,());
+
+#ifdef IBM_BPATCH_COMPAT
+    BPatchThreadEventCallback           RPCdoneCallback;
+
+    API_EXPORT(Int, (),
+    int,getLastErrorCode,());
+
+    API_EXPORT(Int, (cb),
+    BPatchThreadEventCallback,registerDetachDoneCallback,(BPatchThreadEventCallback cb)); 
+
+    API_EXPORT(Int, (cb),
+    BPatchThreadEventCallback,registerSnippetRemovedCallback,(BPatchThreadEventCallback cb));
+
+    API_EXPORT(Int, (func, sigNum),
+    BPatchExitCallback,registerSignalCallback,(BPatchThreadEventCallback func, int sigNum)); 
+
+    API_EXPORT(Int, (func),
+    BPatchExitCallback,registerExitCallback,(BPatchThreadEventCallback func));
+
+    API_EXPORT(Int, (cb),
+    BPatchThreadEventCallback,registerRPCTerminationCallback,(BPatchThreadEventCallback cb));
+
+#endif
+
 };
+
 
 #if defined(IBM_BPATCH_COMPAT) && (defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)) 
 #include <sys/ldr.h>

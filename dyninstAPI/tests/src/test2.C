@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.58 2004/05/26 21:29:21 legendre Exp $
+// $Id: test2.C,v 1.59 2005/02/09 03:27:48 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -899,6 +899,8 @@ main(unsigned int argc, char *argv[])
     ret = mutatorMAIN(mutateeName);
     if (!ret || gotError) {
 	printf("*ERROR*: unable to create handle for executable\n");
+        fprintf(stderr, "%s[%d]: ret = %p, gotError = %d\n", 
+                __FILE__, __LINE__, ret, gotError);
         exit(-1);
     }
 

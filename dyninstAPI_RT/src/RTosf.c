@@ -42,6 +42,11 @@
 /************************************************************************
  * RTosf.c: mutatee-side library function specific to OSF
 ************************************************************************/
+#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
+/* everything should be under this flag except for the assembly code
+   that handles the runtime spinlocks  -- this is imported into the
+   test suite for direct testing */
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -81,4 +86,32 @@ int DYNINSTloadLibrary(char *libname)
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+}
+#endif /* EXPORT SPINLOCKS */
+void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+{
+
+ asm (
+         "  ldq         $3, 16($15)  # R3 <- mut\n"
+
+         "  1:                       # Loop 1: try to get and store lock\n"
+         "  ldl_l       $4, 0($3)    # R4 <- mut->lock, (locked operation)\n"
+         "  blbs        $4, 2f       # if lock bit set, spin in loop 2\n"
+         "  bne         $4, 1b       # R4 != 0, someone else has lock, spin.\n"
+         "  addl        $4, 1, $4    # R4 == 0, add 1 ( 1 = mutex locked)\n"
+         "  stl_c       $4, 0($3)    # R4 -> mut->lock\n"
+         "  beq         $4, 2f       # if R4 == 0, store failed, lock contention, spin\n"
+         "                           # in Loop2 until lock is released\n"
+         "  br          3f           # have lock, jump to end. \n"
+
+         "  2:                       # Loop 2: spin until lock bit unset\n"
+         "  ldl         $4, 0($3)    # R4 <- mut->lock\n"
+         "  blbs        $4, 2b       # if lock bit set, spin in loop 2\n"
+         "  br          1b           # if lock bit unset, start over in Loop\n"
+
+         "  3:          mb           # memory barrier, and we're done\n"
+     );
+
+
+
 }

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.20 2005/01/21 23:45:06 bernat Exp $
+# $Id: Makefile,v 1.21 2005/02/09 03:27:43 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -43,7 +43,7 @@ MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
 
 CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
-TFLAGS		+= $(MYFLAGS)
+TFLAGS		+= $(MYFLAGS) 
 
 SYSLIBS		= -ldl
 

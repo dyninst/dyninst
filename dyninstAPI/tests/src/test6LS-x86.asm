@@ -1,4 +1,4 @@
-; $Id: test6LS-x86.asm,v 1.4 2002/09/23 21:47:12 gaburici Exp $
+; $Id: test6LS-x86.asm,v 1.5 2005/02/09 03:27:49 jaw Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
@@ -20,7 +20,30 @@
     int 0x80       ; call linux kernel
 %endmacro
 ; assuming nt==win32
-%elifidn PLATFORM,i386-unknown-nt4.0
+%elifidn PLATFORM,i386-unknown-nt4.0 
+
+; WARNING! Extremely nasty hack: defines all symbols prefixed with _ for win32 linkage
+%macro global_function 1
+    %define %1 _%1
+    global %1
+%endmacro
+%macro global_data 2
+    %define %1 _%1
+    global %1
+%endmacro
+
+%macro saymsg 1
+;write our message to console
+;call a function that takes all arguments in registers
+;so all those pushes won't get instrumented
+;this generates the same EA sequence as linux
+;write our message to stdout
+    mov edx,msg_%1
+    mov ecx,len_%1
+    call cputs ; our function
+%endmacro
+
+%elifidn PLATFORM,i386-unknown-winXP
 
 ; WARNING! Extremely nasty hack: defines all symbols prefixed with _ for win32 linkage
 %macro global_function 1
@@ -67,6 +90,10 @@ segment .data align=16          ; note: all aligns below are relative to this!!!
 %ifidn PLATFORM,i386-unknown-nt4.0
     written dd 0 ; NT needs to write the number of characters it printed
 %endif
+%ifidn PLATFORM,i386-unknown-winXP
+    written dd 0 ; NT needs to write the number of characters it printed
+%endif
+
 
     msg_mmx     db      "Testing MMX instructions...",0xa
     len_mmx     equ     $ - msg_mmx
@@ -108,6 +135,26 @@ cputs:
 	call	_WriteConsoleA@20
 	ret
 %endif
+%ifidn PLATFORM,i386-unknown-winXP
+
+extern  _GetStdHandle@4
+extern  _WriteConsoleA@20
+
+cputs:
+        ; eax = GetStdHandle(stdout=-11)
+        push    dword -11
+        call    _GetStdHandle@4
+
+        ; WriteConsole(eax, edx, ecx, written, 0)
+        push    dword 0
+        push    dword written
+        push    ecx
+        push    edx
+        push    eax
+        call    _WriteConsoleA@20
+        ret
+%endif
+
 
 loadsnstores:
 ; IA32 System V ABI - ebp, ebx, edi, esi, esp "belong" to caller

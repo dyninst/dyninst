@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.26 2004/10/19 01:23:41 pack Exp $
+# $Id: make.library.tmpl,v 1.27 2005/02/09 03:27:42 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -19,13 +19,15 @@ $(VOUCHER):
 
 VPATH		+= ../src
 
-OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+ifndef NO_STD_OBJS
+OBJS +=		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
+endif
 
 XLC_DEPFILES =  $(filter %.u, $(patsubst %.u, %.o, $(filter %.u,$(notdir $(SRCS)))))
 

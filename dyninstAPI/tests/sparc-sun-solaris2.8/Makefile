@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.28 2004/03/05 16:51:11 bernat Exp $
+# $Id: Makefile,v 1.29 2005/02/09 03:27:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,7 +38,7 @@ NATIVE_DEBUG_FLAG = -g -xs
 #CFLAGS += -gstabs -DUSES_DYNAMIC_INF_HEAP
 
 # FIXME: This is a bad place for the debug flag...
-SYSLIBS += $(DEBUG_FLAG) -lelf -lstdc++
+SYSLIBS += $(DEBUG_FLAG) -lelf -lstdc++ -lsocket
 
 MUTATEE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG)
 

@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.2 2004/03/05 16:51:07 bernat Exp $
+# $Id: Makefile,v 1.3 2005/02/09 03:27:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -13,7 +13,7 @@ NO_OPT_FLAG=true
 # in the paradyn tree.
 
 !include ../../../nmake.config
-DEFCFLAGS = $(DEFCFLAGS) -MD # ccw 12 july 2001
+DEFCFLAGS = $(DEFCFLAGS) -DBPATCH_LIBRARY -MD # ccw 12 july 2001
 LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.12 2004/04/28 20:20:48 rchen Exp $
+# $Id: nmake.module.tmpl,v 1.13 2005/02/09 03:27:49 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -14,6 +14,7 @@ RELEASE_NUM	= 4.1
 TARGET	      = libdyninstAPI_RT.dll
 !endif
 
+CFLAGS = $(CFLAGS) -MD
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 

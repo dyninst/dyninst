@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.188 2005/02/02 17:27:24 bernat Exp $
+ * $Id: inst-x86.C,v 1.189 2005/02/09 03:27:46 jaw Exp $
  */
 #include <iomanip>
 
@@ -5011,7 +5011,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
  * insns        A pointer to a buffer in which to return the instructions.
  */
 
-int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 {
     if (!point->hasInsnAtPoint()) return 0;
 

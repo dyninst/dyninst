@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.163 2005/02/02 17:27:23 bernat Exp $
+// $Id: inst-sparc.C,v 1.164 2005/02/09 03:27:46 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2185,7 +2185,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
  * maxSize      The maximum number of bytes of instructions to return.
  * insns        A pointer to a buffer in which to return the instructions.
  */
-int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 {
     int count = 0;
     instruction copyOut[10];	// I think 7 is the max - jkh 8/3/00

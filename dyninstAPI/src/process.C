@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.519 2005/02/02 17:27:31 bernat Exp $
+// $Id: process.C,v 1.520 2005/02/09 03:27:47 jaw Exp $
 
 #include <ctype.h>
 
@@ -62,6 +62,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+#include "dyninstAPI/src/BPatch_asyncEventHandler.h"
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
 #include "common/h/Time.h"
@@ -2451,6 +2452,10 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
 #endif
 
+#if defined (arch_ia64)
+//    BPatch::bpatch->eventHandler->stop();
+#endif
+
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
                         traceLink, pid, tid, procHandle_temp, thrHandle_temp,
                         stdin_fd, stdout_fd, stderr_fd)) {
@@ -2459,6 +2464,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         // will return true. 
         return NULL;
     }
+
+
 #ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
     // BPatch_thread object).
@@ -2570,6 +2577,9 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     if(process::IndependentLwpControl())
        theProc->independentLwpControlInit();
 
+#if defined (arch_ia64)
+//    BPatch::bpatch->eventHandler->resume();
+#endif
     return theProc;    
 }
 
@@ -2718,6 +2728,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
+
     // Wait for the process to get to an initialized (dlopen exists)
     // state
     while (!reachedBootstrapState(initialized)) {

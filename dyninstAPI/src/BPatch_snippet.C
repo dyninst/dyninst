@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.62 2004/09/21 05:33:44 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.63 2005/02/09 03:27:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -70,7 +70,7 @@ int BPatch_snippet::PDSEP_astMinCost()
  *
  * Copy constructor for BPatch_snippet.
  */
-BPatch_snippet::BPatch_snippet(const BPatch_snippet &src)
+void BPatch_snippet::BPatch_snippetInt(const BPatch_snippet &src)
 {
     ast = assignAst(src.ast);
 }
@@ -82,7 +82,7 @@ BPatch_snippet::BPatch_snippet(const BPatch_snippet &src)
  * Assignment operator for BPatch_snippet.  Needed to ensure that the
  * reference counts for the asts contained in the snippets is correct.
  */
-BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
+BPatch_snippet &BPatch_snippet::operator_equals(const BPatch_snippet &src)
 {
     // Check for x = x
     if (&src == this)
@@ -104,7 +104,7 @@ BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
  *
  * Returns the estimated cost of executing the snippet, in seconds.
  */
-float BPatch_snippet::getCost()
+float BPatch_snippet::getCostInt()
 {
   // Currently represents the maximum possible cost of the snippet.  For
   // instance, for the statement "if(cond) <stmtA> ..."  the cost of <stmtA>
@@ -115,6 +115,10 @@ float BPatch_snippet::getCost()
   float retCost = static_cast<float>(costv.getD(timeUnit::sec()));
   return retCost;
 }
+bool BPatch_snippet::is_trivialInt()
+{
+  return (ast == NULL);
+}
 
 
 /*
@@ -123,7 +127,7 @@ float BPatch_snippet::getCost()
  * Destructor for BPatch_snippet.  Deallocates memory allocated by the
  * snippet.  Well, decrements a reference count.
  */
-BPatch_snippet::~BPatch_snippet()
+void BPatch_snippet::BPatch_snippet_dtor()
 {
    //  if (ast != NULL)
     //     removeAst(ast);
@@ -164,10 +168,9 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     BPatch_type *indexType = const_cast<BPatch_type *>(rOperand.ast->getType());
     if (!indexType) {
         char err_buf[512];
-        sprintf(err_buf, "%s[%d]:  %s %s\n",
-             "Warning:  cannot ascertain type of index parameter is of integral type, "
-             "This is not a failure... but be warned that type-checking has failed. ", 
-              __FILE__, __LINE__);
+        sprintf(err_buf, "%s[%d]:  %s %s\n", __FILE__, __LINE__,
+             "Warning:  cannot ascertain type of index parameter is of integral type, ",
+             "This is not a failure... but be warned that type-checking has failed. "); 
         BPatch_reportError(BPatchWarning, 109, err_buf);
       
     }
@@ -276,7 +279,7 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
  * lOperand     The left operand for the operation.
  * rOperand     The right operand.
  */
-BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
+void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
         const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
     assert(BPatch::bpatch != NULL);
@@ -368,7 +371,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
  * op           The desired operation.
  * lOperand     The left operand for the operation.
  */
-BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op, 
+void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op, 
     const BPatch_snippet &lOperand)
 {
     assert(BPatch::bpatch != NULL);
@@ -424,9 +427,9 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
  * lOperand     The left operand.
  * rOperand     The right operand.
  */
-BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
-                                 const BPatch_snippet &lOperand,
-                                 const BPatch_snippet &rOperand)
+void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
+                                         const BPatch_snippet &lOperand,
+                                         const BPatch_snippet &rOperand)
 {
     opCode astOp;
     switch(op) {
@@ -472,7 +475,7 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
  *
  * value        The desired value.
  */
-BPatch_constExpr::BPatch_constExpr(int value)
+void BPatch_constExpr::BPatch_constExprInt(int value)
 {
     ast = new AstNode(AstNode::Constant, (void *)value);
 
@@ -494,7 +497,7 @@ BPatch_constExpr::BPatch_constExpr(int value)
  *
  * value        The desired constant string.
  */
-BPatch_constExpr::BPatch_constExpr(const char *value)
+void BPatch_constExpr::BPatch_constExprCharStar(const char *value)
 {
     ast = new AstNode(AstNode::ConstantString, (void*)const_cast<char*>(value));
 
@@ -515,7 +518,7 @@ BPatch_constExpr::BPatch_constExpr(const char *value)
  *
  * value        The desired constant pointer.
  */
-BPatch_constExpr::BPatch_constExpr(const void *value)
+void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
 {
     ast = new AstNode(AstNode::Constant, (void*)const_cast<void*>(value));
 
@@ -530,7 +533,7 @@ BPatch_constExpr::BPatch_constExpr(const void *value)
 
 
 #ifdef IBM_BPATCH_COMPAT
-char *BPatch_variableExpr::getName(char *buffer, int max)
+char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
 {
   if (max > strlen(name)) {
     strcpy (buffer, name);
@@ -540,13 +543,19 @@ char *BPatch_variableExpr::getName(char *buffer, int max)
   }
   return NULL;
 }
+void *BPatch_variableExpr::getAddressInt()
+{
+  //  for AIX this may be broken, in the case where the mutator is 32b
+  //  and the mutatee is 64b. 
+  return address;
+}
 
 //
 // this is long long only in size, it will fail if a true long long
 //    with high bits is passed.
 
 #if defined(ia64_unknown_linux2_4)
-BPatch_constExpr::BPatch_constExpr(long value)
+void BPatch_constExpr::BPatch_constExprLong(long value)
 {
     ast = new AstNode(AstNode::Constant, (void *)(value));
     assert(BPatch::bpatch != NULL);
@@ -566,7 +575,7 @@ BPatch_constExpr::BPatch_constExpr(long value)
 }
 #else
 
-BPatch_constExpr::BPatch_constExpr(long long value)
+void BPatch_constExpr::BPatch_constExprLongLong(long long value)
 {
     assert(value < 0x00000000ffffffff);
 
@@ -586,7 +595,7 @@ BPatch_constExpr::BPatch_constExpr(long long value)
 }
 #endif
 
-BPatch_constExpr::BPatch_constExpr(float value)
+void BPatch_constExpr::BPatch_constExprFloat(float value)
 {
 	// XXX fix me, puting value into int register.
 	int ivalue = (int) value;
@@ -608,7 +617,7 @@ BPatch_constExpr::BPatch_constExpr(float value)
  *        temporary -- avoid using it.
  */
 
-BPatch_regExpr::BPatch_regExpr(const unsigned int value)
+void BPatch_regExpr::BPatch_regExprInt(unsigned int value)
 {
     ast = new AstNode(AstNode::DataReg, (void*)value);
 
@@ -629,7 +638,7 @@ BPatch_regExpr::BPatch_regExpr(const unsigned int value)
  * func         Identifies the function to call.
  * args         A vector of the arguments to be passed to the function.
  */
-BPatch_funcCallExpr::BPatch_funcCallExpr(
+void BPatch_funcCallExpr::BPatch_funcCallExprInt(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
 {
@@ -660,7 +669,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 #if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) 
 
 	process *proc = func.getProc();
-	if( proc->collectSaveWorldData && func.isSharedLib()){
+	if( proc->collectSaveWorldData && ((BPatch_function &)func).isSharedLib()){
 		//we are calling a function in a shared lib
 		//mark that shared lib as dirtyCalled()
 		char filename[4096];
@@ -692,7 +701,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
  * linkage.
  *
  * func Identifies the function to jump to.  */
-BPatch_funcJumpExpr::BPatch_funcJumpExpr(
+void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined( ia64_unknown_linux2_4 )
@@ -714,8 +723,8 @@ BPatch_funcJumpExpr::BPatch_funcJumpExpr(
  * conditional          The conditional.
  * tClause              A snippet to execute if the conditional is true.
  */
-BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
-                             const BPatch_snippet &tClause)
+void BPatch_ifExpr::BPatch_ifExprInt(const BPatch_boolExpr &conditional,
+                                     const BPatch_snippet &tClause)
 {
     ast = new AstNode(ifOp, conditional.ast, tClause.ast);
 
@@ -733,9 +742,9 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  * conditional          The conditional.
  * tClause              A snippet to execute if the conditional is true.
  */
-BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
-                             const BPatch_snippet &tClause,
-                             const BPatch_snippet &fClause)
+void BPatch_ifExpr::BPatch_ifExprWithElse(const BPatch_boolExpr &conditional,
+                                          const BPatch_snippet &tClause,
+                                          const BPatch_snippet &fClause)
 {
     ast = new AstNode(ifOp, conditional.ast, tClause.ast, fClause.ast);
 
@@ -749,7 +758,7 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  *
  * Construct a null snippet that can be used as a placeholder.
  */
-BPatch_nullExpr::BPatch_nullExpr()
+void BPatch_nullExpr::BPatch_nullExprInt()
 {
     ast = new AstNode;
 
@@ -767,7 +776,7 @@ BPatch_nullExpr::BPatch_nullExpr()
  * n    The position of the parameter (0 is the first parameter, 1 the second,
  *      and so on).
  */
-BPatch_paramExpr::BPatch_paramExpr(int n)
+void BPatch_paramExpr::BPatch_paramExprInt(int n)
 {
     ast = new AstNode(AstNode::Param, (void *)n);
 
@@ -783,7 +792,7 @@ BPatch_paramExpr::BPatch_paramExpr(int n)
  * the snippet is inserted.
  *
  */
-BPatch_retExpr::BPatch_retExpr()
+void BPatch_retExpr::BPatch_retExprInt()
 {
     ast = new AstNode(AstNode::ReturnVal, (void *)0);
 
@@ -798,7 +807,7 @@ BPatch_retExpr::BPatch_retExpr()
  *
  * items        The snippets that are to make up the sequence.
  */
-BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
+void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &items)
 {
     if (items.size() == 0) {
         // XXX do something to indicate an error
@@ -829,12 +838,17 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  * in_address	The address of the variable in the inferior's address space.
  * type		The type of the variable.
  */
-BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-					 BPatch_thread *in_process,
-					 void *in_address,
-					 const BPatch_type *type) :
-    name(in_name), appThread(in_process), address(in_address), scope(NULL), isLocal(false)
+void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
+					    BPatch_thread *in_process,
+					    void *in_address,
+					    const BPatch_type *type) 
 {
+    name = in_name;
+    appThread = in_process;
+    address = in_address;
+    scope = NULL;
+    isLocal = false;
+
     ast = new AstNode(AstNode::DataAddr, address);
 
     assert(BPatch::bpatch != NULL);
@@ -889,6 +903,10 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
     size = type->getSize();
 }
 
+unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
+{
+  return size;
+}
 
 /*
  * BPatch_variableExpr::getType
@@ -896,26 +914,42 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
  *    Return the variable's type
  *
 */
-BPatch_type *BPatch_variableExpr::getType()
+const BPatch_type *BPatch_variableExpr::getTypeInt()
 {
-    return (const_cast<BPatch_type *>(ast->getType()));
+    //return (const_cast<BPatch_type *>(ast->getType()));
+    return ast->getType();
 }
-const BPatch_type *BPatch_variableExpr::getType() const
+#ifdef NOTDEF
+const BPatch_type *BPatch_variableExpr::getTypeConst() CONST_EXPORT
 {
     return ast->getType();
 }
+#endif
 
 /*
  * BPatch_variableExpr::setType
  *
- *    Return the variable's type
+ *    Set the variable's type
  *
 */
-void BPatch_variableExpr::setType(BPatch_type *newType)
+bool BPatch_variableExpr::setTypeInt(BPatch_type *newType)
 {
     size = newType->getSize();
     ast->setType(newType);
+    return true;
 }
+/*
+ * BPatch_variableExpr::seSize
+ *
+ *    Set the variable's size
+ *
+*/
+bool BPatch_variableExpr::setSizeInt(int sz)
+{
+    size = sz;
+    return true;
+}
+
 
 /*
  * BPatch_variableExpr::BPatch_variableExpr
@@ -1008,7 +1042,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_thread *in_process,
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-bool BPatch_variableExpr::readValue(void *dst)
+bool BPatch_variableExpr::readValueInt(void *dst)
 {
   if (isLocal) {
     char msg[2048];
@@ -1036,7 +1070,7 @@ bool BPatch_variableExpr::readValue(void *dst)
  *              variable.  It is assumed to be the same size as the variable.
  * len          Number of bytes to read.
  */
-bool BPatch_variableExpr::readValue(void *dst, int len)
+bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
 {
   if (isLocal) {
     char msg[2048];
@@ -1060,7 +1094,7 @@ bool BPatch_variableExpr::readValue(void *dst, int len)
  *
  * returns false if the type info isn't available (i.e. we don't know the size)
  */
-bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
+bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
 {
   if (isLocal) {
     char msg[2048];
@@ -1092,7 +1126,7 @@ bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-bool BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
+bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool saveWorld)
 {
   if (isLocal) {
     char msg[2048];
@@ -1110,17 +1144,26 @@ bool BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
     return true;
 }
 
+char *BPatch_variableExpr::getNameInt()
+{
+  return name;
+}
+
+void *BPatch_variableExpr::getBaseAddrInt()
+{
+  return address;
+}
 /*
  * getComponents() - return variable expressions for all of the fields
  *     in the passed structure/union.
  */
-BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
+BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
 {
     const BPatch_fieldListInterface *type;
     const BPatch_Vector<BPatch_field *> *fields;
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
-    type = dynamic_cast<BPatch_fieldListInterface *>(getType());
+    type = dynamic_cast<const BPatch_fieldListInterface *>(getType());
     if (type == NULL) {
 	return NULL;
     }
@@ -1163,7 +1206,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
  * Construct a snippet representing a breakpoint.
  *
  */
-BPatch_breakPointExpr::BPatch_breakPointExpr()
+void BPatch_breakPointExpr::BPatch_breakPointExprInt()
 {
     pdvector<AstNode *> null_args;
 
@@ -1181,7 +1224,7 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  *
  * Construct a snippet representing an effective address.
  */
-BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
+void BPatch_effectiveAddressExpr::BPatch_effectiveAddressExprInt(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
@@ -1199,7 +1242,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
  *
  * Construct a snippet representing the number of bytes accessed.
  */
-BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
+void BPatch_bytesAccessedExpr::BPatch_bytesAccessedExprInt(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
@@ -1212,7 +1255,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 };
 
 
-BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause)
+void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatch_snippet &tClause)
 {
   ast = new AstNode(ifMCOp, tClause.ast);
   

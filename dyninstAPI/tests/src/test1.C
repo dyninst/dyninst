@@ -62,7 +62,9 @@
 #include <assert.h>
 #include <stdarg.h>
 #ifdef i386_unknown_nt4_0
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <winsock2.h>
 #include <winbase.h>
 #else
 #include <unistd.h>
@@ -81,7 +83,7 @@ using namespace std;
 // #include <vector.h>
 
 int debugPrint = 0; // internal "mutator" tracing
-int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
+int errorPrint = 1; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false; // force relocation of functions
 bool delayedParse = false;
@@ -134,8 +136,9 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         if (errorPrint) {
             if (level == BPatchInfo)
               { if (errorPrint > 1) printf("%s\n", params[0]); }
-            else
+            else {
                 printf("%s", params[0]);
+            }
         }
     } else {
         // reporting of actual errors
@@ -2253,7 +2256,8 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     BPatch_Vector<BPatch_function *> bpmv;
     if (NULL == modA->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-      fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameA);
+      fprintf(stderr, "  %s[%d]: Mutator couldn't find a function in %s\n", 
+                         __FILE__, __LINE__, libNameA);
       exit(1);
     }
     BPatch_function *funcA = bpmv[0];
@@ -2261,7 +2265,8 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     bpmv.clear();
     if (NULL == modB->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-      fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameB);
+      fprintf(stderr, "  %s[%d]: Mutator couldn't find a function in %s\n", 
+                          __FILE__, __LINE__, libNameB);
       exit(1);
     } 
     BPatch_function *funcB = bpmv[0];
@@ -4595,6 +4600,12 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     
     appImage->findFunction("call38_1", funcs0);
 
+    if (!funcs0.size()) {
+        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+        fprintf(stderr,"    cannot find function call38_1.\n");
+        return;
+    }
+
     BPatch_function *func = funcs0[0];
 
     BPatch_flowGraph *cfg = func->getCFG();
@@ -4602,10 +4613,22 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     // check that funcs are inserted in the proper places in the loop hierarchy
     BPatch_loopTreeNode *root = cfg->getLoopTree();
 
+    if (!root->children.size()) {
+        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+        fprintf(stderr,"    no kids.\n");
+        return;
+    }
+
     BPatch_loopTreeNode *firstForLoop  = root->children[0];
 
     // determine which node is the while loop and which is the second
     // for loop, this is platform dependent
+
+    if (firstForLoop->children.size() < 2) {
+        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
+        fprintf(stderr,"    not enough kids.\n");
+        return;
+    }
 
     BPatch_loopTreeNode *secondForLoop = firstForLoop->children[0];
     BPatch_loopTreeNode *whileLoop     = firstForLoop->children[1];
@@ -4838,7 +4861,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
 #if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4) \
-    && !defined(mips_sgi_irix6_4)
+    && !defined(mips_sgi_irix6_4) && !defined(os_windows)
 
    if (mutateeFortran) return;
    // xlc does not produce the intended dynamic call points for this example

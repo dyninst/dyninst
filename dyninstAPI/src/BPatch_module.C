@@ -108,7 +108,7 @@ BPatch_sourceObj *BPatch_module::getObjParent()
 }
 
 /* XXX temporary */
-char *BPatch_module::getName(char *buffer, int length)
+char *BPatch_module::getNameInt(char *buffer, int length)
 {
     pdstring str = mod->fileName();
 
@@ -117,14 +117,14 @@ char *BPatch_module::getName(char *buffer, int length)
     return buffer;
 }
 
-const char *BPatch_module::libraryName()
+const char *BPatch_module::libraryNameInt()
 {
    if (isSharedLib())      
       return mod->fullName().c_str();
    return NULL;
 }
 
-char *BPatch_module::getFullName(char *buffer, int length)
+char *BPatch_module::getFullNameInt(char *buffer, int length)
 {
     pdstring str = mod->fullName();
 
@@ -243,7 +243,8 @@ BPatch_module::~BPatch_module()
  * Returns a list of all procedures in the module upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures(bool incUninstrumentable)
+BPatch_Vector<BPatch_function *> *
+BPatch_module::getProceduresInt(bool incUninstrumentable)
 {
     if (BPfuncs) return BPfuncs;
     
@@ -275,7 +276,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures(bool incUninstrum
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> & funcs,
+BPatch_module::findFunctionInt(const char *name, BPatch_Vector<BPatch_function *> & funcs,
 			    bool notify_on_failure, bool regex_case_sensitive,
 			    bool incUninstrumentable)
 {
@@ -289,7 +290,8 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
       || !pdfuncs.size()) {
     if( notify_on_failure ) {
       pdstring msg = pdstring("Module: Unable to find function: ") + pdstring(name);
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      //BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      BPatch_reportError(BPatchSerious, 0, msg.c_str());
       }
     return NULL;
   } 
@@ -317,7 +319,7 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *> &funcs,
+BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_function *> &funcs,
 				     bool notify_on_failure, 
 				     bool incUninstrumentable)
 {
@@ -344,7 +346,7 @@ BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *
   return &funcs;
 }
 
-BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
+BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_name,
 						       bool incUninstrumentable)
 {
   BPatch_function *bpfunc = NULL;
@@ -364,9 +366,10 @@ BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
   return bpfunc;
 }
 
-void BPatch_module::dumpMangled(char * prefix)
+bool BPatch_module::dumpMangledInt(char * prefix)
 {
   mod->dumpMangled(prefix);
+  return true;
 }
 
 extern char *parseStabString(BPatch_module *, int linenum, char *str, 
@@ -1072,7 +1075,7 @@ void BPatch_module::parseTypes()
 #endif
 
 
-bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
+bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
  
   BPatch_variableExpr *var;
@@ -1101,7 +1104,7 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
   * greater line. It uses the name of the module as a source file name
   * 
   */
-bool BPatch_module::getLineToAddr(unsigned short lineNo,
+bool BPatch_module::getLineToAddrInt(unsigned short lineNo,
 				  BPatch_Vector<unsigned long>& buffer,
 		                  bool exactMatch)
 
@@ -1138,15 +1141,20 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 }
 
 
-LineInformation* BPatch_module::getLineInformation(){
+LineInformation* BPatch_module::getLineInformationInt(){
    return this->mod->getLineInformation(this->proc);
 }
 
-bool BPatch_module::isSharedLib() const {
+bool BPatch_module::isSharedLibInt() {
   return mod->isShared();
 }
 
-size_t BPatch_module::getAddressWidth()
+bool BPatch_module::isNativeCompilerInt()
+{
+  return nativeCompiler;
+}
+
+size_t BPatch_module::getAddressWidthInt()
 {
   return mod->exec()->getObject().getAddressWidth();
 }
@@ -1158,25 +1166,29 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
 
 #ifdef IBM_BPATCH_COMPAT
 
-bool BPatch_module::getLineNumbers(unsigned int &start, unsigned int &end)
+bool BPatch_module::getLineNumbersInt(unsigned int &start, unsigned int &end)
 {
     start = 0;
     end = 0;
     return true;
 }
 
-char *BPatch_module::getUniqueString(char *buffer, int length)
+bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
+{
+  return false;
+}
+char *BPatch_module::getUniqueStringInt(char *buffer, int length)
 {
     getName(buffer, length);
     return buffer;
 }
 
-int BPatch_module::getSharedLibType()	
+int BPatch_module::getSharedLibTypeInt()	
 {
     return 0;
 }
 
-int BPatch_module::getBindingType()
+int BPatch_module::getBindingTypeInt()
 {
     return 0;
 }

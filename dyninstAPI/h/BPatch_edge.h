@@ -42,7 +42,8 @@
 #ifndef _BPatch_edge_h_
 #define _BPatch_edge_h_
 
-#include "BPatch_dll.h"
+#include <BPatch_dll.h>
+#include <BPatch_eventLock.h>
 
 class BPatch_flowGraph;
 class BPatch_basicBlock;
@@ -55,22 +56,50 @@ typedef enum {
 } BPatch_edgeType;
 
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_edge
+
 /** An edge between two blocks
  */
-class BPATCH_DLL_EXPORT BPatch_edge {
+class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
 
  public:
 
-    BPatch_edge(BPatch_basicBlock *, BPatch_basicBlock *, 
-                BPatch_flowGraph *, const unsigned char *);
+    // BPatch_edge::BPatch_edge
+    //
+    // constructor
+    API_EXPORT_CTOR(Int, (s,t,fg,rp),
 
-    ~BPatch_edge();
+    BPatch_edge,(BPatch_basicBlock *s, BPatch_basicBlock *t, 
+                 BPatch_flowGraph *fg, const unsigned char *rp));
 
-    bool needsEdgeTramp();
-    void dump();
+    // BPatch_edge::~BPatch_edge
+    //
+    // destructor
+    API_EXPORT_DTOR(_dtor, (),
+
+    ~,BPatch_edge,());
+
+    // BPatch_edge::needsEdgeTramp
+    //
+    // Only edges created by conditional jumps need edge trampolines
+    API_EXPORT(Int, (),
+
+    bool,needsEdgeTramp,());
+    
+    // BPatch_edge::dump
+    //
+    // print internal data
+    API_EXPORT_V(Int, (),
+
+    void,dump,());
 
     BPatch_edgeType type;
+
     BPatch_basicBlock *source;
+
     BPatch_basicBlock *target;
 
     BPatch_flowGraph *flowGraph;

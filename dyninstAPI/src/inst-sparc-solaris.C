@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.155 2005/02/02 17:27:22 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.156 2005/02/09 03:27:46 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2345,7 +2345,7 @@ bool int_function::findInstPoints(const image *owner) {
       goto set_uninstrumentable;
     
 #ifdef BPATCH_LIBRARY
-   if (BPatch::bpatch->hasForcedRelocation_NP()) {
+   if (BPatch::bpatch->hasForcedRelocation_NPInt()) {
       if (canBeRelocated_ == true) {
          needs_relocation_ = true;
       }

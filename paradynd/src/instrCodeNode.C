@@ -261,7 +261,7 @@ void instrCodeNode::cleanup_drn() {
 // A debug function for prepareCatchupInstr
 void prepareCatchupInstr_debug(instReqNode &iRN)
 {
-  const BPatch_function *instPoint_fn = iRN.Point()->getFunction();
+  BPatch_function *instPoint_fn = const_cast<BPatch_function *>(iRN.Point()->getFunction());
      
   if (instPoint_fn) {
     char buf[2048];
@@ -318,7 +318,7 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
 
       if (pd_debug_catchup) {     
          char buf[2048];
-         const BPatch_function *bpf = curInstReq->Point()->getFunction();
+         BPatch_function *bpf = const_cast<BPatch_function *>(curInstReq->Point()->getFunction());
          if (! bpf) {
            sprintf(buf, "<bad function> in instReq");
          }

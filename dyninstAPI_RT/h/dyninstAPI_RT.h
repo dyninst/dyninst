@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.19 2004/05/12 18:07:34 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.20 2005/02/09 03:27:49 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -123,8 +123,41 @@ extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
                                 /* Yes, this is crude, but this is plain C */
 #endif
 
-#endif /* !defined(__ASSEMBLER__) */
+typedef struct {
+  int lock;
+} dyninst_spinlock;
+
 
 #define ERROR_STRING_LENGTH 256
+typedef enum {
+  BPatch_nullEvent,
+  BPatch_newConnectionEvent,
+  BPatch_internalShutDownEvent,
+  BPatch_threadCreateEvent,
+  BPatch_threadStartEvent,
+  BPatch_threadStopEvent,
+  BPatch_threadDestroyEvent,
+  BPatch_dynamicCallEvent
+} BPatch_asyncEventType;
+
+
+typedef struct {
+  unsigned int pid;
+  BPatch_asyncEventType type;
+  unsigned int event_fd;
+} BPatch_asyncEventRecord;
+
+
+typedef struct {
+  void *call_site_addr;
+  void *call_target;
+} BPatch_dynamicCallRecord;
+
+typedef struct {
+  long unsigned int tid;
+  void *start_func_addr;
+} BPatch_threadEventRecord;
+
+#endif /* !defined(__ASSEMBLER__) */
 
 #endif /* _DYNINSTAPI_RT_H */

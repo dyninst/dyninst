@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2005/02/07 16:58:24 gquinn Exp $
+# $Id: Makefile,v 1.4 2005/02/09 03:27:43 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,13 +8,13 @@
 # in the paradyn tree.
 
 include ../../nmake.config 
-DEFCFLAGS = $(DEFCFLAGS) -MD # ccw 12 july 2001
+DEFCFLAGS = $(DEFCFLAGS) -D_WINDOWS  -MD # ccw 12 july 2001
 
 # Now make any necessary architecture specific changes to variables:
 
 # we require an uncommon link
 LD		= link
-LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI  /NODEFAULTLIB:libc.lib # ccw 20 june 2001
+LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI   /NODEFAULTLIB:libc.lib # ccw 20 june 2001
 
 
 SRCS =		../src/pdwinnt.C \
@@ -35,6 +35,7 @@ OBJS = 		pdwinnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
 		arch-x86.obj \
+		syscall-nt.obj \
 		func-reloc.obj \
 		LocalAlteration.obj \
 		LocalAlteration-x86.obj \
@@ -48,9 +49,9 @@ OBJS = 		pdwinnt.obj \
 #		MapSymbols.obj 
 # ccw 13 july 2001
 
-LIBS		= dbghelp.lib advapi32.lib psapi.lib
+LIBS		= dbghelp.lib advapi32.lib psapi.lib ws2_32.lib
 
-CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -DBPATCH_DLL_BUILD
+CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -DBPATCH_DLL_BUILD 
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

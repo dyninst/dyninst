@@ -44,12 +44,14 @@
 #define DMGL_PARAMS   (1 << 0) 
 #define DMGL_ANSI     (1 << 1) 
 #define DMGL_VERBOSE  (1 << 3) 
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
+#include "util.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "BPatch_typePrivate.h"
 #include "showerror.h"
-#include "util.h"
 #include "Object.h" // For looking up compiler type
 
 extern char *current_func_name;

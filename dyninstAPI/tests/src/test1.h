@@ -68,4 +68,7 @@
 #define TEST_PTR	TEST_PTR_32BIT
 #endif
 
+#if defined(os_windows)
+#endif
+
 #endif /* _test1_h_ */

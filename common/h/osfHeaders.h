@@ -39,14 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.12 2004/12/09 05:00:32 rchen Exp $
+// $Id: osfHeaders.h,v 1.13 2005/02/09 03:27:42 jaw Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
 #if defined(__cplusplus)
 extern "C" {
 #endif /* defined(__cplusplus) */
-
+//#ifndef _XOPEN_SOURCE
+//#define _XOPEN_SOURCE 500
+//#else
+//#undef _XOPEN_SOURCE
+//#define _XOPEN_SOURCE 500
+//#endif
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -43,6 +43,7 @@
 #define SHOWERROR_H
 
 #include "common/h/String.h"
+#include "common/h/Pair.h"
 
 extern void showErrorCallback(int num, pdstring msg);
 

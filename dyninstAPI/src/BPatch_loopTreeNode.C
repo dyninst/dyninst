@@ -41,15 +41,15 @@
 
 #define BPATCH_FILE
 
+#include "util.h"
 #include "BPatch_loopTreeNode.h"
 #include "BPatch_basicBlockLoop.h"
-#include "util.h"
 #include "symtab.h"
 
 class BPatch_basicBlockLoop;
 
-BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l, 
-					 const char *n) {
+void BPatch_loopTreeNode::BPatch_loopTreeNodeCtor(BPatch_basicBlockLoop *l, 
+					     const char *n) {
     loop = l;
     hierarchicalName = NULL;
     if (n != NULL) {
@@ -60,7 +60,7 @@ BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l,
  
 
 const char * 
-BPatch_loopTreeNode::getCalleeName(unsigned int i) 
+BPatch_loopTreeNode::getCalleeNameInt(unsigned int i) 
 {
     assert(i < callees.size());
     assert(callees[i] != NULL);
@@ -68,19 +68,19 @@ BPatch_loopTreeNode::getCalleeName(unsigned int i)
 }
 
 const char * 
-BPatch_loopTreeNode::name()
+BPatch_loopTreeNode::nameInt()
 {
     assert(loop != NULL);
     return (const char *)hierarchicalName; 
 }
 
 unsigned int
-BPatch_loopTreeNode::numCallees() { 
+BPatch_loopTreeNode::numCalleesInt() { 
     return callees.size(); 
 }
 
 
-BPatch_loopTreeNode::~BPatch_loopTreeNode() {
+void BPatch_loopTreeNode::BPatch_loopTreeNode_dtor() {
     delete loop;
 
     for (unsigned i = 0; i < children.size(); i++)
@@ -92,7 +92,7 @@ BPatch_loopTreeNode::~BPatch_loopTreeNode() {
 
 
 BPatch_basicBlockLoop *
-BPatch_loopTreeNode::findLoop(const char *name) 
+BPatch_loopTreeNode::findLoopInt(const char *name) 
 { 
     if (loop) {
         if (0==strcmp(name,hierarchicalName)) 

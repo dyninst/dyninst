@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.16 2004/03/05 16:51:06 bernat Exp $
+# $Id: Makefile,v 1.17 2005/02/09 03:27:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -34,7 +34,7 @@ NATIVE_CXX = VC++
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CC)")
 COMPILER="Microsoft_(R)_32-bit_C/C++_Optimizing_Compiler_Version_12.00.8168_for_80x86"
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -DCOMPILER=\"$(COMPILER)\"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -DCOMPILER=\"$(COMPILER)\" -MD
 LDFLAGS = -nologo -debug -pdb:none
 #LDFLAGS = -nologo -debug 
 !ifdef MUTATEE_ASM
@@ -56,7 +56,7 @@ $(TARGET2): ../src/$(TARGET2:_VC.exe=.c) $(MUTATEE_SRC)
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CXX)")
 COMPILER="Microsoft_(R)_32-bit_C/C++_Optimizing_Compiler_Version_12.00.8168_for_80x86"
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -GX -DCOMPILER=\"$(COMPILER)\"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -GX -DCOMPILER=\"$(COMPILER)\" -MD
 LDFLAGS = -nologo -debug -pdb:none
 #LDFLAGS = -nologo -debug 
 $(TARGET2): ../src/$(TARGET2:_VC++.exe=.c)

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2004/03/06 14:19:11 bernat Exp $
+# $Id: Makefile,v 1.4 2005/02/09 03:27:50 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,13 +29,13 @@ CC		= $(NATIVE_CC)
 LD		= $(NATIVE_CC)
 # OVERRIDE CFLAGS (we need to strip -O2)
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
-CFLAGS          += -Kpic -D_NATIVESO_
-LDFLAGS         += -ldl -lelf -dy -G -z text -z initarray=libdyninstAPI_RT_init
+CFLAGS          += -Kpic -D_NATIVESO_  -xarch=v8plus 
+LDFLAGS         += -ldl -lelf -lsocket -dy -G -z text -z initarray=libdyninstAPI_RT_init
 else
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          += -fpic
-LDFLAGS		= -ldl -lelf -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
+LDFLAGS		= -ldl -lelf -lsocket -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
 #ccw 19 nov 2001
 endif
 

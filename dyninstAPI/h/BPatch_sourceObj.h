@@ -98,13 +98,13 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
       virtual bool getVariables(BPatch_Vector<BPatch_variableExpr *> &) = 0;
       virtual BPatch_sourceObj *getObjParent() = 0;
 
-      BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *name);
+      //BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *name);
       BPatch_language getLanguage() { return _srcLanguage; }
       const char *getLanguageStr() {return strLanguage(_srcLanguage);}
-      BPatch_type *getType(char *name);
-      BPatch_Vector<char *> *getLoadedFileNames();
+      //BPatch_type *getType(char *name);
+      //BPatch_Vector<char *> *getLoadedFileNames();
       //char *getName(char *buf, unsigned int len);
-      int getNameLen();
+      //int getNameLen();
 
 #ifdef IBM_BPATCH_COMPAT
  virtual bool getAddressRange(void*& _startAddress, void*& _endAddress) {return false;}

@@ -5078,7 +5078,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
  * maxSize      The maximum number of bytes of instructions to return.
  * insns        A pointer to a buffer in which to return the instructions.
  */
-int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
+int BPatch_point::getDisplacedInstructionsInt(int maxSize, void *insns)
 {
     if (maxSize >= sizeof(instruction))
         memcpy(insns, &point->origInsn_.raw, sizeof(instruction));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.82 2005/02/02 17:27:18 bernat Exp $
+// $Id: inst-alpha.C,v 1.83 2005/02/09 03:27:44 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -2280,7 +2280,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 
-int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
+int BPatch_point::getDisplacedInstructionsInt(int maxSize, void *insns)
 {
     if (static_cast<unsigned>(maxSize) >= sizeof(instruction))
         memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));

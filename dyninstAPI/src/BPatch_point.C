@@ -44,6 +44,9 @@
 #include <memory.h>
 #endif
 
+#if defined(os_windows)
+#include "common/h/ntHeaders.h"
+#endif
 #define BPATCH_FILE
 
 #include "BPatch_point.h"
@@ -51,6 +54,7 @@
 #include "BPatch_type.h"
 #include "BPatch_image.h"
 #include "BPatch_collections.h"
+#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "process.h"
 #include "symtab.h"
@@ -63,8 +67,7 @@
 BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
 	     BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
   // Note: MIPSPro compiler complains about redefinition of default argument
-  proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma),
-  dynamicMonitoringCall(NULL)
+  proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma)
 {
   point->bppoint = this;
   if (_pointType == BPatch_subroutine)
@@ -74,13 +77,35 @@ BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_p
 }
 
 /*
+ * BPatch_point::getPointType
+ *
+ * Returns type of BPatch_point
+ */
+
+const BPatch_procedureLocation BPatch_point::getPointTypeInt() 
+{ 
+   return pointType; 
+}
+
+/*
+ * BPatch_point::getFunction
+ *
+ * Returns function to which this BPatch_point belongs
+ */
+
+const BPatch_function *BPatch_point::getFunctionInt()
+{
+   return func;
+}
+
+/*
  * BPatch_point::getCalledFunction
  *
  * For a BPatch_point representing a call site, returns a pointer to a
  * BPatch_function that represents the function being called.  If the point
  * isn't a call site, returns NULL.
  */
-BPatch_function *BPatch_point::getCalledFunction()
+BPatch_function *BPatch_point::getCalledFunctionInt()
 {
    BPatch_function *ret;
    
@@ -102,7 +127,13 @@ BPatch_function *BPatch_point::getCalledFunction()
    return ret;
 }
 
-const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
+const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
+{
+  return memacc;
+}
+
+const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
+{
     pdvector<miniTrampHandle *> mt_buf;
 
     trampTemplate *baseTramp = proc->baseMap[point];
@@ -133,7 +164,9 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
     return snippetVec;
 }
 
-const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(BPatch_callWhen when) {
+const BPatch_Vector<BPatchSnippetHandle *> 
+BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when) 
+{
     pdvector<miniTrampHandle *> mt_buf;
 
     trampTemplate *baseTramp = proc->baseMap[point];
@@ -169,7 +202,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(BPat
  *
  * Returns the original address of the first instruction at this point.
  */
-void *BPatch_point::getAddress()
+void *BPatch_point::getAddressInt()
 {
     return (void *)point->absPointAddr(proc);
 }
@@ -182,7 +215,7 @@ void *BPatch_point::getAddress()
  * than a jump to the base tramp, false otherwise.  On platforms that do not
  * use traps (everything other than x86), it always returns false;
  */
-bool BPatch_point::usesTrap_NP()
+bool BPatch_point::usesTrap_NPInt()
 {
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     assert(point);
@@ -200,7 +233,7 @@ bool BPatch_point::usesTrap_NP()
  * Returns true if this point is a dynamic call site.
  *
  */
-bool BPatch_point::isDynamic()
+bool BPatch_point::isDynamicInt()
 {
 #if !defined(ia64_unknown_linux2_4)
 
@@ -230,58 +263,107 @@ bool BPatch_point::isDynamic()
  *
  */
 
-bool BPatch_point::monitorCalls( BPatch_function * user_cb ) {
-	if( !isDynamic() ) {
-		fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", __FILE__, __LINE__ );
-		return false;
-		}
-	if( dynamicMonitoringCall ) {
-		/* For simplicity, disallow multiple callbacks. */
-    	fprintf( stderr, "%s[%d]:  call site already being monitored", __FILE__, __LINE__ );
-	    return false;
-		}
-	
-	/* The callback takes two arguments: the first is the (address of the) callee,
-	   the second the (address of the) callsite. */
-	pdvector<AstNode *> args;
-	if( (!proc->getDynamicCallSiteArgs( point,args )) || (args.size() != 2) ) {
-		fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site\n",  __FILE__, __LINE__);
-		return false;
-		}
+void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
 
-	// construct function call and insert
-	int_function * fb = user_cb->func;
+  if ( !isDynamic() ) {
+    fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", 
+            __FILE__, __LINE__ );
+    return NULL;
+  }
 
-	// Monitoring function
-	AstNode * func = new AstNode( fb, args );
-	miniTrampHandle * mtHandle = NULL;
-	addInstFunc(	proc, mtHandle, point, func, callPreInsn,
+  // The callback takes two arguments: the first is the (address of the) callee,
+  // the second the (address of the) callsite. 
+
+  pdvector<AstNode *> args;
+  if ( (!proc->getDynamicCallSiteArgs( point,args )) || (args.size() != 2) ) {
+     fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site\n",  
+             __FILE__, __LINE__);
+     return NULL;
+  }
+
+  // construct function call and insert
+  int_function * fb = user_cb->func;
+
+  // Monitoring function
+  AstNode * func = new AstNode( fb, args );
+  miniTrampHandle * mtHandle = NULL;
+  addInstFunc(	proc, mtHandle, point, func, callPreInsn,
 					orderLastAtPoint,
-					true,						/* noCost flag   */
-					false,						/* trampRecursiveDesired flag */
-					true );						/* allowTrap */
-	dynamicMonitoringCall = mtHandle;
+					true,	/* noCost flag   */
+					false,	/* trampRecursiveDesired flag */
+					true );	/* allowTrap */
 
-	if( ! dynamicMonitoringCall ) {
-		fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n", __FILE__, __LINE__ );
-		return false;
-		}
+  if ( ! mtHandle ) {
+     fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",
+               __FILE__, __LINE__ );
+     return NULL;
+  }
 
-	return true;
-	} /* end monitorCalls() */
+  dynamicMonitoringCalls.push_back(mtHandle);
 
-bool BPatch_point::stopMonitoring()
+  //  Return pointer to handle as unique id, user does not need to know its a
+  //  miniTrampHandle.
+
+  return (void*) mtHandle;
+} /* end monitorCalls() */
+
+bool BPatch_point::stopMonitoringInt(void * handle)
 {
-  if (!dynamicMonitoringCall) {
+  miniTrampHandle *target = NULL, *mtHandle = (miniTrampHandle *) handle;
+
+  for (unsigned int i = 0 ; i < dynamicMonitoringCalls.size(); ++i) {
+    if (!target) {
+      // haven't found it yet -- keep looking
+      if (dynamicMonitoringCalls[i] == mtHandle) {
+        target = dynamicMonitoringCalls[i];
+      } 
+    }
+    if (target) {
+      //  target is found, shift everthing after it one to the left.
+      //  (this removes target from the array)
+      if ( (i+1) < dynamicMonitoringCalls.size()) {
+        dynamicMonitoringCalls[i] = dynamicMonitoringCalls[i+1];
+      }
+      else {
+        // last element, resize vector (length - 1)
+        dynamicMonitoringCalls.resize(dynamicMonitoringCalls.size()-1);
+      }
+    }    
+  }
+
+  if (!target) {
     bperr("%s[%d]:  call site not currently monitored", __FILE__, __LINE__);
     return false;
   }
-  bool ret;
-  ret = deleteInst(proc, dynamicMonitoringCall);
-  dynamicMonitoringCall = NULL;
 
-#ifdef NOTDEF // PDSEP
-  ret = proc->bpatch_thread->deleteSnippet(dynamicMonitoringCall);
-#endif
+  bool ret;
+  ret = deleteInst(proc, target);
+
   return ret;
+}
+
+//  BPatch_point::registerDynamicCallCallback
+//
+//  Specifies a user-supplied function to be called when a dynamic call is
+//  executed.
+//
+//  Returns a handle (useful for de-registering callback), NULL if error
+
+void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback cb)
+{
+  BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
+  return eventHandler->registerDynamicCallCallback(cb, this);
+}
+
+//  BPatch_point::removeDynamicCallCallback
+//
+//  Argument is (void *) handle to previously specified callback function to be
+//  de-listed.
+//
+//  Returns true upon success, false if handle is not currently represented
+
+bool BPatch_point::removeDynamicCallCallbackInt(void *handle)
+{
+  BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
+  return eventHandler->removeDynamicCallCallback(handle);
 }

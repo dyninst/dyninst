@@ -40,9 +40,14 @@
  */
 
 /************************************************************************
- * $Id: RTirix.c,v 1.9 2004/03/23 01:12:16 eli Exp $
+ * $Id: RTirix.c,v 1.10 2005/02/09 03:27:50 jaw Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
+
+#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
+/* everything should be under this flag except for the assembly code
+   that handles the runtime spinlocks  -- this is imported into the
+   test suite for direct testing */
 
 #include <stdio.h>
 #include <errno.h>
@@ -65,7 +70,7 @@
  *   void  *DYNINSTos_malloc(size_t, void *, void *): heap allocation
  *   int    DYNINSTos_free(void *): heap deallocation
  ************************************************************************/
-
+#ifndef GNU_TO_ASS
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
 }
@@ -92,3 +97,33 @@ int DYNINSTloadLibrary(char *libname)
     return 1;
   }
 }
+#endif
+#endif /* EXPORT SPINLOCK */
+
+#if defined(GNU_TO_ASS)
+void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+{
+
+  /*  SGI's cc compiler does not support inline assembly, so we have gnu
+    create a .s file, and then use the SGI assembler. */
+
+ asm (
+     /*" .set     noreorder       #\n" */
+     " lw       $2, 16($fp)     # R2 <- mut \n"
+
+     " 1:                       #\n"
+     " ll       $3, 0($2)       # R3 <- mut->lock\n"
+     " bnez     $3, 1b          # if (lock != 0) spin\n"
+     " li       $3, 1           # R3 <- 1 (indicate lock set)\n"
+     " sc       $3, 0($2)       # attempt to store lock\n"
+     /*" nop; nop; nop; nop; nop; nop; nop; nop; \n" */
+     /*" nop; nop; nop; nop; nop; nop; nop; nop; \n" */
+     /*" nop; nop; nop; nop; nop; nop; nop; nop; \n" */
+     /*" nop; nop; nop; nop; nop; nop; nop; nop; \n" */
+     " beqz     $3, 1b          # store failed, spin again\n"
+     " sync                     # sync memory ops after lock\n"
+     /*" .set     reorder         #\n" */
+     );
+
+}
+#endif

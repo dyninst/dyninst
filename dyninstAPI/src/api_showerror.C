@@ -39,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.14 2004/06/22 15:18:10 pcroth Exp $
+// $Id: api_showerror.C,v 1.15 2005/02/09 03:27:44 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
+#include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/showerror.h"
 

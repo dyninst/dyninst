@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.16 2005/01/18 18:34:23 bernat Exp $
+// $Id: test7.C,v 1.17 2005/02/09 03:27:49 jaw Exp $
 //
 
 #include <stdio.h>
@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #ifdef i386_unknown_nt4_0
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winbase.h>
 #else

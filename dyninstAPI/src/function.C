@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.4 2005/02/03 23:45:27 bernat Exp $
+// $Id: function.C,v 1.5 2005/02/09 03:27:44 jaw Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -96,7 +96,7 @@ int_function::int_function(const pdstring &symbol,
   symTabName_.push_back(symbol);
   blockList = new pdvector<BPatch_basicBlock *>;
 #ifdef BPATCH_LIBRARY
-  if (BPatch::bpatch->hasForcedRelocation_NP()) 
+  if (BPatch::bpatch->hasForcedRelocation_NPInt()) 
     {
       needs_relocation_ = true;
     }

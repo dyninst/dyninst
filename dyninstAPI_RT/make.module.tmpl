@@ -2,7 +2,7 @@
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
-# $Id: make.module.tmpl,v 1.16 2004/04/28 20:20:42 rchen Exp $
+# $Id: make.module.tmpl,v 1.17 2005/02/09 03:27:49 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -18,6 +18,7 @@ MODCFLAGS     = $(CFLAGS)
 
 SRCS         += ../src/RTcommon.c
 
+
 ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
@@ -25,8 +26,8 @@ endif
 TARGET3_SO=libdyninstAPI_RT.so.1
 all: $(TARGET3_SO)
 
-OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
-		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
-		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
-		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
-		$(IGEN_GEN_SRCS:%.C=%.o)
+#OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+#		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
+#		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+#		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
+#		$(IGEN_GEN_SRCS:%.C=%.o)

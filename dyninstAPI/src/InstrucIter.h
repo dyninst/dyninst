@@ -155,7 +155,7 @@ public:
 #endif
     }
         
-   InstrucIter( const BPatch_basicBlock* bpBasicBlock) :
+   InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
        addressProc( bpBasicBlock->flowGraph->getProcess()),
        addressImage( bpBasicBlock->flowGraph->getModule()->exec()),
        baseAddress( bpBasicBlock->startAddress ),

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.10 2005/01/18 18:34:24 bernat Exp $ */
+/* $Id: test4a.mutatee.c,v 1.11 2005/02/09 03:27:49 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -50,6 +50,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
@@ -175,6 +176,7 @@ void func3_1(int argc, char *argv[])
 
     globalVariable3_1 = 3000001;
     dprintf("Starting \"%s\"\n", newArgv[0]);
+    errno = 0;
     execvp(newArgv[0], newArgv);
     perror("execvp");
 }

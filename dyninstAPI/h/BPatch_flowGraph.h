@@ -47,16 +47,16 @@
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
+#include "BPatch_eventLock.h"
 #include "BPatch_edge.h"
 #include "BPatch_loopTreeNode.h"
 
-class int_function;
+class int_function; // this should go away
 class process;
+class pdstring;
 class pdmodule;
 
-
 typedef BPatch_basicBlockLoop BPatch_loop;
-
 
 /** class which represents the control flow graph of a function
   * in a executable code. 
@@ -64,66 +64,96 @@ typedef BPatch_basicBlockLoop BPatch_loop;
   * @see BPatch_basicBlock
   * @see BPatch_basicBlockLoop
   */
-class BPATCH_DLL_EXPORT BPatch_flowGraph {
-  friend class BPatch_basicBlock;
-  friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_flowGraph
 
-public:
+class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
+  friend class BPatch_basicBlock;
+  friend class BPatch_function;
+  friend class int_function; // This is illegal here... keeps us from having to
+                            // have a public constructor...  PDSEP
+  friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
+  friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
+                                     BPatch_Vector<BPatch_basicBlockLoop *> &loops,
+                                     pdstring level);
  
   BPatch_flowGraph (int_function *func, 
 		    process *proc, 
 		    pdmodule *mod, 
 		    bool &valid); 
 
-  ~BPatch_flowGraph();
+public:
 
+  //  The following functions will disappear when paradyn uses dyninst
+  //  DO NOT USE
   const int_function *getFunction() const { return func; }
   process *getProcess() const { return proc; }
   const pdmodule *getModule() const { return mod; }
+  //  End of deprecated function
+
+  //  Functions for use by Dyninst users
+
+  API_EXPORT_DTOR(_dtor, (),
+  ~,BPatch_flowGraph,());
 
   /** returns the set of all basic blocks in the CFG */
-  void getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>&);
+  API_EXPORT(Int, (blocks),
+  bool,getAllBasicBlocks,(BPatch_Set<BPatch_basicBlock*> &blocks)); 
   
   /** returns the vector of entry basic blocks to CFG */
-  void getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>&);
+  API_EXPORT(Int, (blocks),
+  bool,getEntryBasicBlock,(BPatch_Vector<BPatch_basicBlock*> &blocks));
   
   /** returns the vector of exit basic blocks to CFG */
-  void getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>&);
+  API_EXPORT(Int, (blocks),
+  bool,getExitBasicBlock,(BPatch_Vector<BPatch_basicBlock*> &blocks));
   
   /** returns the vector of loops in CFG */
-  void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);
+  API_EXPORT(Int, (loops),
+  bool,getLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
 
   /** returns a vector of outer loops in the CFG */
-  void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);
+  API_EXPORT(Int, (loops),
+  bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
   
   /** creates the source line blocks of all blocks in CFG.
    * without calling this method line info is not available
    */
-  void createSourceBlocks();
+  API_EXPORT(Int, (),
+  bool,createSourceBlocks,());
   
   /** fills the dominator and immediate-dom information of basic blocks.
    * without calling this method dominator info is not available
    */
-  void fillDominatorInfo();
+  API_EXPORT_V(Int, (),
+  void,fillDominatorInfo,());
 
   /** same as above, but for postdominator/immediate-postdom info 
    */
-  void fillPostDominatorInfo();
+  API_EXPORT_V(Int, (),
+  void,fillPostDominatorInfo,());
 
   /** return root of loop hierarchy  */
-  BPatch_loopTreeNode *getLoopTree();
+  API_EXPORT(Int, (),
+  BPatch_loopTreeNode *,getLoopTree,());
 
   // for debugging, print loops with line numbers to stderr
-  void printLoops();
+  API_EXPORT_V(Int, (),
+  void,printLoops,());
 
-  BPatch_basicBlockLoop *findLoop(const char *name);
+  API_EXPORT(Int, (name),
+  BPatch_basicBlockLoop *,findLoop,(const char *name));
 
-  BPatch_point *createInstPointAtEdge(BPatch_edge *edge);
+  API_EXPORT(Int, (edge),
+  BPatch_point *,createInstPointAtEdge,(BPatch_edge *edge));
 
   /** find instrumentation points specified by loc, add to points*/
-  BPatch_Vector<BPatch_point*> *
-      findLoopInstPoints(const BPatch_procedureLocation loc, 
-                         BPatch_basicBlockLoop *loop);
+  API_EXPORT(Int, (loc, loop),
+  BPatch_Vector<BPatch_point*> *,
+      findLoopInstPoints,(CONST_EXPORT BPatch_procedureLocation loc, 
+                          BPatch_basicBlockLoop *loop));
 
  private:
 

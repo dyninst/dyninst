@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.51 2005/01/21 23:43:54 bernat Exp $
+// $Id: BPatch_function.C,v 1.52 2005/02/09 03:27:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -49,6 +49,7 @@
 #include "instPoint.h"
 
 #include "BPatch.h"
+#include "BPatch_function.h"
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
@@ -153,7 +154,7 @@ BPatch_sourceObj *BPatch_function::getObjParent()
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getName(char *s, int len) const
+char *BPatch_function::getNameInt(char *s, int len)
 {
     assert(func);
     pdstring name = func->prettyName();
@@ -163,7 +164,7 @@ char *BPatch_function::getName(char *s, int len) const
 }
 
 #ifdef IBM_BPATCH_COMPAT
-const char *BPatch_function::getName()
+const char *BPatch_function::getNameBuffer()
 {
   char n[1024];
   getName(n, 1023)[1023]='\0';
@@ -180,7 +181,7 @@ const char *BPatch_function::getName()
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getMangledName(char *s, int len) const
+char *BPatch_function::getMangledNameInt(char *s, int len)
 {
   assert(func);
   pdstring mangledname = func->symTabName();
@@ -193,7 +194,7 @@ char *BPatch_function::getMangledName(char *s, int len) const
  *
  * Returns the starting address of the function.
  */
-void *BPatch_function::getBaseAddr() const
+void *BPatch_function::getBaseAddrInt()
 {
      return (void *)func->getEffectiveAddress(proc);
 }
@@ -215,10 +216,40 @@ void *BPatch_function::getBaseAddrRelative() const
  *
  * Returns the size of the function in bytes.
  */
-unsigned int BPatch_function::getSize() const
+unsigned int BPatch_function::getSizeInt() 
 {
   return func->get_size();
 }
+
+/*
+ * BPatch_function::getReturnType
+ *
+ * Returns the return type of the function.
+ */
+BPatch_type *BPatch_function::getReturnTypeInt()
+{
+  return retType;
+}
+
+/*
+ * BPatch_function::getModule
+ *
+ * Returns the BPatch_module to which this function belongs.
+ */
+BPatch_module *BPatch_function::getModuleInt()
+{
+  return mod;
+}
+
+//  BPatch_function::getParams
+//  Returns a vector of BPatch_localVar, representing this function's parameters
+
+BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
+{
+  return &params;
+}
+
+
 
 
 /*
@@ -238,7 +269,7 @@ unsigned int BPatch_function::getSize() const
  *                                     long jump calls.
  *                BPatch_allLocations  All of the points described above.
  */
-BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
+BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         const BPatch_procedureLocation loc)
 {
     // function does not exist!
@@ -464,7 +495,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
  * ops          The points within the procedure to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
-BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
+BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
         const BPatch_Set<BPatch_opCode>& ops)
 {
   // function does not exist!
@@ -497,12 +528,12 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
 }
 
 /*
- * BPatch_function::findLocalVar()
+ * BPatch_function::findLocalVarInt()
  *
  * This function searchs for a local variable in the BPatch_function's
  * local variable collection.
  */
-BPatch_localVar * BPatch_function::findLocalVar(const char * name)
+BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
 
   BPatch_localVar * var = localVariables->findLocalVar(name);
@@ -516,7 +547,7 @@ BPatch_localVar * BPatch_function::findLocalVar(const char * name)
  * This function searchs for a function parameter in the BPatch_function's
  * parameter collection.
  */
-BPatch_localVar * BPatch_function::findLocalParam(const char * name)
+BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 {
 
   BPatch_localVar * var = funcParameters->findLocalVar(name);
@@ -530,7 +561,7 @@ BPatch_localVar * BPatch_function::findLocalParam(const char * name)
   * false. If exact match is not set then the line which is the next
   * greater or equal will be used.
   */
-bool BPatch_function::getLineToAddr(unsigned short lineNo,
+bool BPatch_function::getLineToAddrInt(unsigned short lineNo,
                    BPatch_Vector<unsigned long>& buffer,
                    bool exactMatch)
 {
@@ -570,7 +601,7 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 //
 // Return the module name, first and last line numbers of the function.
 //
-bool BPatch_function::getLineAndFile(unsigned int &start,
+bool BPatch_function::getLineAndFileInt(unsigned int &start,
 				     unsigned int &end,
                                      char *fileName, unsigned &length)
 {
@@ -614,18 +645,18 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
     return true;
 }
 
-BPatch_flowGraph* BPatch_function::getCFG()
+BPatch_flowGraph* BPatch_function::getCFGInt()
 {
     return func->getCFG(getProc());
 }
 
 
-BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() 
+BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt() 
 {
       return localVariables->getAllVars(); 
 }
 
-BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *name)
+BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const char *name)
 {
     BPatch_Vector<BPatch_variableExpr *> *ret;
     BPatch_localVar *lv = findLocalVar(name);
@@ -659,26 +690,26 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
     }
 }
 
-bool BPatch_function::getVariables(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
+bool BPatch_function::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
 {
     	return false;
 }
 
-char *BPatch_function::getModuleName(char *name, int maxLen) {
+char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
     return getModule()->getName(name, maxLen);
 }
 
 #ifdef IBM_BPATCH_COMPAT
 
-bool BPatch_function::getLineNumbers(unsigned int &start, unsigned int &end) {
+bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
   char name[256];
   unsigned int length = 255;
   return getLineAndFile(start, end, name, length);
 }
 
-void *BPatch_function::getAddress() { return getBaseAddr(); }
+void *BPatch_function::getAddressInt() { return getBaseAddr(); }
     
-bool BPatch_function::getAddressRange(void * &start, void * &end) {
+bool BPatch_function::getAddressRangeInt(void * &start, void * &end) {
 	start = getBaseAddr();
 	unsigned long temp = (unsigned long) start;
 	end = (void *) (temp + getSize());
@@ -687,8 +718,7 @@ bool BPatch_function::getAddressRange(void * &start, void * &end) {
 }
 
 //BPatch_type *BPatch_function::returnType() { return retType; }
-
-void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect) 
+void BPatch_function::getIncPointsInt(BPatch_Vector<BPatch_point *> &vect) 
 {
     BPatch_Vector<BPatch_point *> *v1 = findPoint(BPatch_allLocations);
     if (v1) {
@@ -698,16 +728,16 @@ void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
     }
 }
 
-int	BPatch_function::getMangledNameLen() { return 1024; }
+int	BPatch_function::getMangledNameLenInt() { return 1024; }
 
-void BPatch_function::getExcPoints(BPatch_Vector<BPatch_point*> &points) {
+void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
   points.clear();
   abort();
   return;
 };
 
 // return a function that can be passed as a paramter
-BPatch_variableExpr *BPatch_function::getFunctionRef() { abort(); return NULL; }
+BPatch_variableExpr *BPatch_function::getFunctionRefInt() { abort(); return NULL; }
 
 #endif
 
@@ -716,14 +746,14 @@ BPatch_variableExpr *BPatch_function::getFunctionRef() { abort(); return NULL; }
  *
  * Returns true if the function is instrumentable, false otherwise.
  */
-bool BPatch_function::isInstrumentable()
+bool BPatch_function::isInstrumentableInt()
 {
      return ((int_function *)func)->isInstrumentable();
 }
 
 // Return TRUE if the function resides in a shared lib, FALSE otherwise
 
-bool BPatch_function::isSharedLib() const {
+bool BPatch_function::isSharedLibInt(){
   return mod->isSharedLib();
 } 
 

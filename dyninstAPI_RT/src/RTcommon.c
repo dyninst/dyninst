@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.38 2004/05/12 18:07:35 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.39 2005/02/09 03:27:50 jaw Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -332,4 +332,119 @@ void DYNINST_instExitEntry(void *arg1) {
     DYNINST_instSyscallArg1 = NULL;
 }
 
+void DYNINSTunlock_spinlock(dyninst_spinlock *mut)
+{
+  mut->lock = 0;
+}
+
+extern int DYNINSTwriteEvent(void *ev, int sz); // posix or windows
+extern void LockCommsMutex();
+extern void UnlockCommsMutex();
+unsigned long int getThreadID() {return 0;}
+
+/* DYNINSTasyncDynFuncCall */
+/* Used to report addresses of functions called at dynamic call sites */
        
+int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
+{
+  int err = 0;
+  BPatch_asyncEventRecord ev;
+  BPatch_dynamicCallRecord call_ev;
+
+  LockCommsMutex();
+
+  ev.type = BPatch_dynamicCallEvent;
+  ev.pid = getpid();
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+  call_ev.call_site_addr = call_addr;
+  call_ev.call_target = call_target;
+  err = DYNINSTwriteEvent((void *) &call_ev, sizeof(BPatch_dynamicCallRecord));
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+ done:
+  UnlockCommsMutex();
+  return err;
+}
+
+int DYNINSTreportThreadEvent(BPatch_asyncEventType t, long unsigned int tid)
+{
+  int err = 0;
+  BPatch_asyncEventRecord ev;
+  BPatch_threadEventRecord thread_ev;
+  ev.type = t;
+  ev.pid = getpid();
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+  thread_ev.start_func_addr = NULL;
+  thread_ev.tid = tid;
+  err = DYNINSTwriteEvent((void *) &thread_ev, sizeof(BPatch_threadEventRecord));
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+
+ done:
+  return err;
+}
+
+int DYNINSTasyncThreadCreate()
+{
+  long unsigned int tid;
+  int ret = -1;
+  LockCommsMutex();
+  tid = getThreadID();
+  ret = DYNINSTreportThreadEvent(BPatch_threadCreateEvent, tid);
+
+  UnlockCommsMutex();
+  return ret;
+}
+int DYNINSTasyncThreadDestroy()
+{
+  long unsigned int tid;
+  int ret = -1;
+  LockCommsMutex();
+  tid = getThreadID();
+  ret = DYNINSTreportThreadEvent(BPatch_threadDestroyEvent, tid);
+  UnlockCommsMutex();
+  return ret;
+}
+int DYNINSTasyncThreadStart()
+{
+  long unsigned int tid;
+  int ret = -1;
+  LockCommsMutex();
+  tid = getThreadID();
+  ret = DYNINSTreportThreadEvent(BPatch_threadStartEvent, tid);
+  UnlockCommsMutex();
+  return ret;
+}
+int DYNINSTasyncThreadStop()
+{
+  long unsigned int tid;
+  int ret = -1;
+  LockCommsMutex();
+  tid = getThreadID();
+  ret = DYNINSTreportThreadEvent(BPatch_threadStopEvent, tid);
+  UnlockCommsMutex();
+  return ret;
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.39 2005/01/21 23:44:54 bernat Exp $
+// $Id: templates2.C,v 1.40 2005/02/09 03:27:47 jaw Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -185,6 +185,17 @@ template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::ent
 /* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
 template class pdvector< pdpair< pdstring, int_function *> >;
 template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
+
+#include "BPatch_asyncEventHandler.h"
+/* From class BPatch_asyncEventHandler */
+template class pdvector<process_record>;
+template class pdvector<BPatchSnippetHandle *>;
+template class pdvector<BPatch_function *>;
+template class pdvector<BPatchThreadEventCallback>;
+template class pdvector<BPatch_asyncEventRecord>;
+template class pdvector<dyncall_cb_record>;
+template class pdvector<thread_event_cb_record>;
+template class pdvector<dyncall_cb_record *>;
 
 #if defined( arch_ia64 )
 #include <list>

@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.3 2004/07/28 07:24:46 jaw Exp $
+# $Id: Makefile,v 1.4 2005/02/09 03:27:48 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,6 +15,8 @@ USES_MUTATEE_LIBS = true
 MUTATEE_LIBS = -ldl
 MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
 MUTATEE_TEST9_LIBS = -L. -lInstMe 
+
+MUTATOR_TEST12_EXTRA_FLAGS = -Wa,-xarch=v8plus
 # -lInstMe
 
 # VG(12/02/01): Using stabs for dbx because gdb 5.0 cannot continue a
@@ -38,7 +40,7 @@ NATIVE_DEBUG_FLAG = -g -xs
 #CFLAGS += -gstabs -DUSES_DYNAMIC_INF_HEAP
 
 # FIXME: This is a bad place for the debug flag...
-SYSLIBS += $(DEBUG_FLAG) -lelf -lstdc++
+SYSLIBS += $(DEBUG_FLAG) -lelf -lstdc++ -lsocket -lrt
 
 MUTATEE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG)
 

@@ -132,7 +132,7 @@ extern BPatch_point *createInstructionEdgeInstPoint(process* proc,
 extern void createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
 
 
-BPatch_point *BPatch_flowGraph::createInstPointAtEdge(BPatch_edge *edge)
+BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
 {
     int_function *pfunc = (int_function *)func;
 
@@ -188,7 +188,7 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
 }
 
 BPatch_Vector<BPatch_point*> *
-BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc, 
+BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc, 
                                      BPatch_loop *loop)
 {
     /*
@@ -387,7 +387,7 @@ void BPatch_flowGraph::assignAnExitBlockIfNoneExists(){
 	delete[] depthMinimums;
 }
 
-BPatch_flowGraph::~BPatch_flowGraph()
+void BPatch_flowGraph::BPatch_flowGraph_dtor()
 {
     unsigned int i;
 
@@ -415,8 +415,8 @@ BPatch_flowGraph::~BPatch_flowGraph()
    delete loopRoot;
 }
 
-void
-BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb)
+bool
+BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb)
 {
    BPatch_basicBlock** belements =
       new BPatch_basicBlock* [allBlocks.size()];
@@ -427,14 +427,15 @@ BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb)
       abb += belements[i];
    
    delete[] belements;
+   return true;
 }
 
 // this is the method that returns the set of entry points
 // basic blocks, to the control flow graph. Actually, there must be
 // only one entry point to each control flow graph but the definition
 // given API specifications say there might be more.
-void
-BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb) 
+bool
+BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb) 
 {
    BPatch_basicBlock** belements = new BPatch_basicBlock* [entryBlock.size()];
    
@@ -444,14 +445,15 @@ BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb)
       ebb.push_back(belements[i]);
    
    delete[] belements;
+   return true;
 }
 
 // this method returns the set of basic blocks that are the
 // exit basic blocks from the control flow graph. That is those
 // are the basic blocks that contains the instruction for
 // returning from the function
-void 
-BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
+bool 
+BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
    BPatch_basicBlock** belements = new BPatch_basicBlock* [exitBlock.size()];
    
@@ -461,6 +463,7 @@ BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
       nbb.push_back(belements[i]);
    
    delete[] belements;
+   return true;
 }
 
 
@@ -553,21 +556,24 @@ BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
 	}
 
     delete[] lelements;
+    return;
 }
 
 
 // get all the loops in this flow graph
-void 
-BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_loop*>& lbb)
+bool 
+BPatch_flowGraph::getLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
     getLoopsByNestingLevel(lbb, false);
+    return true;
 }
 
 // get the outermost loops in this flow graph
-void 
-BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_loop*>& lbb)
+bool 
+BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
     getLoopsByNestingLevel(lbb, true);
+    return true;
 }
 
 
@@ -939,8 +945,8 @@ bool BPatch_flowGraph::createBasicBlocks()
 // by calling createBasicBlocks. It computes the source block for each
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
-void
-BPatch_flowGraph::createSourceBlocks() 
+bool
+BPatch_flowGraph::createSourceBlocksInt() 
 {
     unsigned int i;
     unsigned int j;
@@ -949,7 +955,7 @@ BPatch_flowGraph::createSourceBlocks()
    bool lineInformationAnalyzed = false;
   
    if (isSourceBlockInfoReady)
-      return;
+      return true;
    
    isSourceBlockInfoReady = true;
    
@@ -1052,8 +1058,9 @@ BPatch_flowGraph::createSourceBlocks()
    if (!lineInformationAnalyzed) {
       cerr << "WARNING : Line information is missing >> Function : " ;
       cerr << fName  << "\n";
-      return;
+      return false;
    }
+   return true;
 }
 
 
@@ -1304,7 +1311,7 @@ public:
 //Before calling this method all the dominator information
 //is going to give incorrect results. So first this function must
 //be called to process dominator related fields and methods.
-void BPatch_flowGraph::fillDominatorInfo(){
+void BPatch_flowGraph::fillDominatorInfoInt(){
 
   unsigned int i;
   BPatch_basicBlock* bb, *tempb;
@@ -1369,7 +1376,7 @@ void BPatch_flowGraph::fillDominatorInfo(){
   delete[] elements;
 }
  
-void BPatch_flowGraph::fillPostDominatorInfo(){
+void BPatch_flowGraph::fillPostDominatorInfoInt(){
    
   unsigned int i;
   BPatch_basicBlock* bb, *tempb;
@@ -1915,7 +1922,7 @@ BPatch_flowGraph::insertCalleeIntoLoopHierarchy(int_function *callee,
 
 
 BPatch_loopTreeNode *
-BPatch_flowGraph::getLoopTree() 
+BPatch_flowGraph::getLoopTreeInt() 
 { 
     if (loopRoot == NULL) 
 	createLoopHierarchy();
@@ -1924,7 +1931,7 @@ BPatch_flowGraph::getLoopTree()
 
 
 BPatch_loop *
-BPatch_flowGraph::findLoop(const char *name) 
+BPatch_flowGraph::findLoopInt(const char *name) 
 { 
     return getLoopTree()->findLoop(name);
 }
@@ -1947,7 +1954,7 @@ BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n) {
 
 
 void 
-BPatch_flowGraph::printLoops()
+BPatch_flowGraph::printLoopsInt()
 {    
     dfsPrintLoops(getLoopTree());
 }

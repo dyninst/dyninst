@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.85 2005/02/02 17:27:12 bernat Exp $
+// $Id: BPatch.C,v 1.86 2005/02/09 03:27:43 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 
 #define BPATCH_FILE
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
 #include "signalhandler.h"
 #include "stats.h"
 #include "BPatch.h"
@@ -53,6 +55,7 @@
 #include "BPatch_libInfo.h"
 #include "process.h"
 #include "BPatch_collections.h"
+#include "BPatch_asyncEventHandler.h"
 #include "common/h/timing.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
@@ -307,6 +310,14 @@ BPatch::BPatch()
 
     loadNativeDemangler();
 
+    eventHandler = new BPatch_asyncEventHandler();
+#if !defined (os_windows)  && !defined (arch_ia64) && !defined (os_osf) && !defined (os_irix)
+    if (!eventHandler->initialize()) {
+      //  not much else we can do in the ctor, except complain (should we abort?)
+      bperr("%s[%d]:  failed to initialize eventHandler, possibly fatal\n",
+            __FILE__, __LINE__);
+    }
+#endif
 }
 
 
@@ -315,7 +326,7 @@ BPatch::BPatch()
  *
  * Destructor for BPatch.  Free allocated memory.
  */
-BPatch::~BPatch()
+void BPatch::BPatch_dtor()
 {
     delete info;
 
@@ -327,9 +338,68 @@ BPatch::~BPatch()
     bpatch = NULL;
 }
 
+bool BPatch::isTypeCheckedInt()
+{
+  return typeCheckOn;
+}
+void BPatch::setTypeCheckingInt(bool x)
+{
+  typeCheckOn = x;
+}
+bool BPatch::parseDebugInfoInt()
+{
+  return debugParseOn;
+}
+bool BPatch::delayedParsingOnInt()
+{
+  return delayedParsing_;
+}
+void BPatch::setDebugParsingInt(bool x)
+{
+  debugParseOn = x;
+}
+bool BPatch::baseTrampDeletionInt()
+{
+  return baseTrampDeletionOn;
+}
+void BPatch::setBaseTrampDeletionInt(bool x)
+{
+  baseTrampDeletionOn = x;
+}
+bool BPatch::isTrampRecursiveInt()
+{
+  return trampRecursiveOn;
+}
+void BPatch::setTrampRecursiveInt(bool x)
+{
+  trampRecursiveOn = x;
+}
+bool BPatch::hasForcedRelocation_NPInt()
+{
+  return forceRelocation_NP;
+}
+void BPatch::setForcedRelocation_NPInt(bool x)
+{
+  forceRelocation_NP = x;
+}
+bool BPatch::autoRelocationOnInt()
+{
+  return autoRelocation_NP;
+}
+void BPatch::setAutoRelocation_NPInt(bool x)
+{
+  autoRelocation_NP = x;
+}
+void BPatch::setDelayedParsingInt(bool x)
+{
+  delayedParsing_ = x;
+}
+
+
+
 
 /*
- * BPatch::registerErrorCallback
+ * BPatch::registerErrorCallbackInt
  *
  * Registers a function that is to be called by the library when an error
  * occurs or when there is status to report.  Returns the address of the
@@ -337,7 +407,7 @@ BPatch::~BPatch()
  *
  * function	The function to be called.
  */
-BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
+BPatchErrorCallback BPatch::registerErrorCallbackInt(BPatchErrorCallback function)
 {
     BPatchErrorCallback ret;
 
@@ -356,7 +426,7 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
+BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0) 
   reportError(BPatchWarning, 0,
@@ -380,7 +450,7 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
+BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0)
     reportError(BPatchWarning, 0,
@@ -404,7 +474,7 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
  *
  * func	The function to be called.
  */
-BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
+BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
 {
 
 #if defined(i386_unknown_nt4_0) 
@@ -429,7 +499,7 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
  *
  * func	The function to be called.
  */
-BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
+BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
 {
     BPatchExitCallback ret;
 
@@ -447,7 +517,7 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
  *
  * func	The function to be called.
  */
-BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
+BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCodeCallback func)
 {
     BPatchOneTimeCodeCallback ret;
 
@@ -458,7 +528,7 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeC
 }
 
 #ifdef IBM_BPATCH_COMPAT
-BPatchExitCallback BPatch::registerExitCallback(BPatchThreadEventCallback func)
+BPatchExitCallback BPatch::registerExitCallbackInt(BPatchThreadEventCallback func)
 {
 
     BPatchExitCallback ret;
@@ -481,7 +551,7 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchThreadEventCallback func)
  * function	The function to be called.
  */
 BPatchDynLibraryCallback
-BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
+BPatch::registerDynLibraryCallbackInt(BPatchDynLibraryCallback function)
 {
     BPatchDynLibraryCallback ret;
 
@@ -618,7 +688,7 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
  * or Windows NT spawn system calls.  The caller is responsible for deleting
  * the vector when it is no longer needed.
  */
-BPatch_Vector<BPatch_thread *> *BPatch::getThreads()
+BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
 {
     BPatch_Vector<BPatch_thread *> *result = new BPatch_Vector<BPatch_thread *>;
 
@@ -668,6 +738,12 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
 
     assert(parent);
     info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
+
+#if !defined (os_osf) && !defined(os_windows) && !defined(os_irix)  && !defined (arch_ia64)
+    if (!eventHandler->connectToProcess(info->threadsByPid[childPid])) {
+      bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+    }
+#endif
 
     if (postForkCallback) {
         postForkCallback(parent, info->threadsByPid[childPid]);
@@ -768,7 +844,7 @@ void BPatch::unRegisterThread(int pid)
 
 
 /*
- * BPatch::createProcess
+ * BPatch::createProcessInt
  *
  * Create a process and return a BPatch_thread representing it.
  * Returns NULL upon failure.
@@ -784,7 +860,7 @@ void BPatch::unRegisterThread(int pid)
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_thread *BPatch::createProcess(const char *path, const char *argv[], const char *envp[],
+BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], const char *envp[],
                                      int stdin_fd, int stdout_fd, int stderr_fd)
 {
     clearError();
@@ -800,6 +876,14 @@ BPatch_thread *BPatch::createProcess(const char *path, const char *argv[], const
         reportError(BPatchFatal, 68, "create process failed bootstrap");
 	return NULL;
     }
+#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix) && !defined(arch_ia64)
+    if (!eventHandler->connectToProcess(ret)) {
+      bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      return NULL;
+    }
+#endif
+
     ret->proc->collectSaveWorldData = false;
     //ccw 23 jan 2002 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
@@ -817,7 +901,7 @@ BPatch_thread *BPatch::createProcess(const char *path, const char *argv[], const
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_thread *BPatch::attachProcess(const char *path, int pid)
+BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
 {
     clearError();
 
@@ -835,6 +919,12 @@ BPatch_thread *BPatch::attachProcess(const char *path, int pid)
 	delete ret;
 	return NULL;
     }
+#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix) && !defined (arch_ia64)
+    if (!eventHandler->connectToProcess(ret)) {
+      bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      return NULL;
+    }
+#endif
     ret->proc->collectSaveWorldData = false;
     //ccw 31 jan 2003 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
@@ -984,7 +1074,7 @@ bool BPatch::havePendingEvent()
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool BPatch::pollForStatusChange()
+bool BPatch::pollForStatusChangeInt()
 {
     if (havePendingEvent())
 	return true;
@@ -1022,9 +1112,9 @@ bool BPatch::waitForStatusChange()
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name, 
-				  BPatch_Vector<char *> elementNames,
-				  BPatch_Vector<int> elementIds)
+BPatch_type * BPatch::createEnumInt( const char * name, 
+				     BPatch_Vector<char *> elementNames,
+				     BPatch_Vector<int> elementIds)
 {
 
     if (elementNames.size() != elementIds.size()) {
@@ -1054,8 +1144,8 @@ BPatch_type * BPatch::createEnum( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name, 
-				  BPatch_Vector<char *> elementNames)
+BPatch_type * BPatch::createEnumAutoId( const char * name, 
+				        BPatch_Vector<char *> elementNames)
 {
     BPatch_fieldListType * newType = new BPatch_typeEnum(name);
 
@@ -1081,9 +1171,9 @@ BPatch_type * BPatch::createEnum( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createStruct( const char * name,
-				    BPatch_Vector<char *> fieldNames,
-				    BPatch_Vector<BPatch_type *> fieldTypes)
+BPatch_type * BPatch::createStructInt( const char * name,
+				       BPatch_Vector<char *> fieldNames,
+				       BPatch_Vector<BPatch_type *> fieldTypes)
 {
     unsigned int i;
     int offset, size;
@@ -1129,9 +1219,9 @@ BPatch_type * BPatch::createStruct( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createUnion( const char * name, 
-				   BPatch_Vector<char *> fieldNames,
-				   BPatch_Vector<BPatch_type *> fieldTypes)
+BPatch_type * BPatch::createUnionInt( const char * name, 
+				      BPatch_Vector<char *> fieldNames,
+				      BPatch_Vector<BPatch_type *> fieldTypes)
 {
     unsigned int i;
     int offset, size, newsize;
@@ -1172,8 +1262,8 @@ BPatch_type * BPatch::createUnion( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
-				   unsigned int low, unsigned int hi)
+BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
+				      unsigned int low, unsigned int hi)
 {
 
     BPatch_type * newType;
@@ -1199,8 +1289,8 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
-				    int size)
+BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
+				       int size)
 {
 
     BPatch_type * newType = new BPatch_typePointer(ptr, name);
@@ -1221,7 +1311,7 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
  * collection.
  */
 
-BPatch_type * BPatch::createScalar( const char * name, int size)
+BPatch_type * BPatch::createScalarInt( const char * name, int size)
 {
     BPatch_type * newType = new BPatch_typeScalar(size, name);
     if (!newType) return NULL;
@@ -1240,7 +1330,7 @@ BPatch_type * BPatch::createScalar( const char * name, int size)
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
+BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
 {
     BPatch_type * newType = new BPatch_typeTypedef(ptr, name);
 
@@ -1292,7 +1382,7 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
  * dyninst version is a callback that is defined for BPatch_thread
  *
  */
-BPatchThreadEventCallback BPatch::registerRPCTerminationCallback(BPatchThreadEventCallback func)
+BPatchThreadEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchThreadEventCallback func)
 {
     BPatchThreadEventCallback ret;
 
@@ -1307,6 +1397,18 @@ void setLogging_NP(BPatchLoggingCallback, int)
     return;
 }
 
+int BPatch::getLastErrorCodeInt()
+{
+  return lastError;
+}
+BPatchThreadEventCallback BPatch::registerDetachDoneCallbackInt(BPatchThreadEventCallback)
+{
+  return NULL;
+}
+BPatchThreadEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchThreadEventCallback)
+{
+  return NULL
+}
 #endif
 
 /*
@@ -1331,6 +1433,11 @@ void BPatch::launchDeferredOneTimeCode()
     }
 }
 
+BPatch_stats &BPatch::getBPatchStatisticsInt()
+{
+  updateStats();
+  return stats;
+}
 //  updateStats() -- an internal function called before returning
 //  statistics buffer to caller of BPatch_getStatistics(),
 //  -- just copies global variable statistics counters into 

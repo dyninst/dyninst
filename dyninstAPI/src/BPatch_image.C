@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.67 2005/02/02 17:27:14 bernat Exp $
+// $Id: BPatch_image.C,v 1.68 2005/02/09 03:27:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -115,12 +115,21 @@ BPatch_image::~BPatch_image()
 
     delete AddrToVarExpr;
 }
+/*
+ * getThr - Return the BPatch_thread
+ *
+ */
+
+BPatch_thread *BPatch_image::getThrInt()
+{
+  return appThread;
+}
 
 /* 
  * getSourceObj - Return the children (modules)
  *
  */
-bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
+bool BPatch_image::getSourceObjInt(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
     BPatch_Vector<BPatch_module *> *temp = getModules();
     if (temp) {
@@ -135,7 +144,7 @@ bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
  * getObjParent - Return the parent (this is the top level so its null)
  *
  */
-BPatch_sourceObj *BPatch_image::getObjParent()
+BPatch_sourceObj *BPatch_image::getObjParentInt()
 {
     return NULL;
 }
@@ -146,7 +155,7 @@ BPatch_sourceObj *BPatch_image::getObjParent()
  * Returns a list of all procedures in the image upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures(bool incUninstrumentable)
+BPatch_Vector<BPatch_function *> *BPatch_image::getProceduresInt(bool incUninstrumentable)
 {
     BPatch_Vector<BPatch_function *> *proclist =
 	new BPatch_Vector<BPatch_function *>;
@@ -195,7 +204,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
  * Returns a list of all procedures in the image upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
+BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 {
     BPatch_variableExpr *var;
     BPatch_Vector<BPatch_variableExpr *> *varlist =
@@ -223,7 +232,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
     return varlist;
 }
 
-bool BPatch_image::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
+bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
     BPatch_Vector<BPatch_variableExpr *> *temp = BPatch_image::getGlobalVariables();
 
@@ -243,7 +252,7 @@ bool BPatch_image::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
  * Returns a list of all procedures in the image upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
+BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   if( modlist ) { return modlist; }
   
   modlist = new BPatch_Vector< BPatch_module *>;
@@ -298,6 +307,34 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 
 
 /*
+ * BPatch_image::findModule
+ *
+ * Returns module with <name>, NULL if not found
+ */
+
+BPatch_module *BPatch_image::findModuleInt(const char *name) 
+{
+  if (!name) {
+    bperr("%s[%d]:  findModule:  no module name provided\n",
+         __FILE__, __LINE__);
+    return NULL;
+  }
+  BPatch_Vector<BPatch_module *> *modlist = getModulesInt();
+  BPatch_module *target = NULL;
+  char buf[128];
+  for (unsigned int i = 0; i < modlist->size(); ++i) {
+    BPatch_module *mod = (*modlist)[i];
+    assert(mod);
+    mod->getName(buf, 128); 
+    if (!strcmp(name, buf)) {
+      target = mod;
+      break;
+    }
+  }
+  return target;
+}
+
+/*
  * BPatch_image::createInstPointAtAddr
  *
  * Returns a pointer to a BPatch_point object representing an
@@ -308,7 +345,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
  *
  * address	The address that the instrumenation point should refer to.
  */
-BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
+BPatch_point *BPatch_image::createInstPointAtAddrInt(void *address)
 {
 	return createInstPointAtAddr(address,NULL);
 }
@@ -328,7 +365,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
  *
  * address	The address that the instrumenation point should refer to.
  */
-BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
+BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
                                                   BPatch_point** alternative,
                                                   BPatch_function* bpf)
 {
@@ -507,7 +544,7 @@ void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat,
  */
 
 
-BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(
 	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
 	bool regex_case_sensitive,
 	bool incUninstrumentable)
@@ -594,7 +631,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 #ifdef IBM_BPATCH_COMPAT
 //  a wrapper for IBM compatibility.  The function vector is assumed to be
 //  allocated before calling.
-BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionPtr(
         const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
         bool regex_case_sensitive, bool incUninstrumentable)
 {
@@ -640,7 +677,7 @@ void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_functi
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs, 
+BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs, 
 			   BPatchFunctionNameSieve bpsieve,
 			   void *user_data, int showError, 
 			   bool incUninstrumentable)
@@ -680,7 +717,7 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
  * First look for the name with an `_' prepended to it, and if that is not
  *   found try the original name.
  */
-BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError)
+BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
     pdstring full_name = pdstring("_") + pdstring(name);
 
@@ -736,7 +773,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
 //	scp	- a BPatch_point that defines the scope of the current search
 //	name	- name of the variable to find.
 //
-BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
+BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
 						const char *name)
 {
     // Get the function to search for it's local variables.
@@ -796,7 +833,7 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
  *
  * name		The name of type to look up.
  */
-BPatch_type *BPatch_image::findType(const char *name)
+BPatch_type *BPatch_image::findTypeInt(const char *name)
 {
     BPatch_type *type;
 
@@ -859,7 +896,7 @@ bool BPatch_image::ModuleListExist(){
 //is not valid or if the exact match is not found it retuns false.
 //If exact match is not asked then the line number is taken to be the
 //first one greater or equal to the given one.
-bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
+bool BPatch_image::getLineToAddrInt(const char* fileName,unsigned short lineNo,
 				 BPatch_Vector<unsigned long>& buffer,
 				 bool exactMatch)
 {
@@ -904,7 +941,7 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 }
 
 
-char *BPatch_image::getProgramName(char *name, unsigned int len) 
+char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
   const char *imname =  proc->getImage()->name().c_str();
   if (NULL == imname) imname = "<unnamed image>";
@@ -914,7 +951,7 @@ char *BPatch_image::getProgramName(char *name, unsigned int len)
 }
 
   
-char *BPatch_image::getProgramFileName(char *name, unsigned int len)
+char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
 {
   const char *imname =  proc->getImage()->file().c_str();
   if (NULL == imname) imname = "<unnamed image file>";
@@ -924,13 +961,13 @@ char *BPatch_image::getProgramFileName(char *name, unsigned int len)
 }
 
 #ifdef IBM_BPATCH_COMPAT
-char *BPatch_image::programName(char *name, unsigned int len) {
+char *BPatch_image::programNameInt(char *name, unsigned int len) {
     return getProgramName(name, len);
 }
 
 
 
-int  BPatch_image::lpType() 
+int  BPatch_image::lpTypeInt() 
 {
     return 0;
 };

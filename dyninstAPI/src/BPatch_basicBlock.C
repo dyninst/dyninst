@@ -43,6 +43,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include "util.h"
 #include "common/h/Types.h"
 
 #include "BPatch_flowGraph.h"
@@ -57,6 +58,41 @@ extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& 
 					       process *proc,
 					       BPatch_function *bpf);
 
+
+#if defined (arch_ia64)
+BPatch_Set< BPatch_basicBlock * > *BPatch_basicBlock::getDataFlowInInt() CONST_EXPORT
+{
+  return dataFlowIn;
+}
+BPatch_Set< BPatch_basicBlock * > * BPatch_basicBlock::getDataFlowOutInt() CONST_EXPORT
+{
+  return dataFlowOut;
+}
+void BPatch_basicBlock::setDataFlowInInt(BPatch_Set< BPatch_basicBlock * > *dfi)
+{
+  dataFlowIn = dfi;
+}
+void BPatch_basicBlock::setDataFlowOutInt(BPatch_Set< BPatch_basicBlock * > *dfo)
+{
+  dataFlowOut = dfo;
+}
+BPatch_basicBlock * BPatch_basicBlock::getDataFlowGenInt() CONST_EXPORT
+{
+   return dataFlowGen;
+}
+void BPatch_basicBlock::setDataFlowGenInt(BPatch_basicBlock *dfg)
+{
+  dataFlowGen = dfg;
+}
+BPatch_basicBlock *BPatch_basicBlock::getDataFlowKillInt() CONST_EXPORT
+{
+  return dataFlowKill;
+}
+void BPatch_basicBlock::setDataFlowKillInt(BPatch_basicBlock *dfk)
+{
+  dataFlowKill = dfk;
+}
+#endif
 
 //constructor that creates the empty sets for 
 //class fields.
@@ -97,35 +133,38 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 
 
 //destructor of the class BPatch_basicBlock
-BPatch_basicBlock::~BPatch_basicBlock(){
+void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 	if (immediatePostDominates)
 		delete immediatePostDominates;
 	if (immediateDominates)
 		delete immediateDominates;
 	if (sourceBlocks)
-		delete sourceBlocks;
+		delete sourceBlocks;	
+	return;
 }
 
 //returns the predecessors of the basic block in aset 
-void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
+void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
 	BPatch_basicBlock** elements = new BPatch_basicBlock*[sources.size()];
 	sources.elements(elements);
 	for(unsigned i=0;i<sources.size();i++)
 		srcs.push_back(elements[i]);
 	delete[] elements;
+	return;
 }
 
 //returns the successors of the basic block in a set 
-void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
+void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
 	BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
 	targets.elements(elements);
 	for(unsigned  i=0;i<targets.size();i++)
 		tgrts.push_back(elements[i]);
 	delete[] elements;
+	return;
 }
 
 //returns the dominates of the basic block in a set 
-void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
+void BPatch_basicBlock::getImmediateDominatesInt(BPatch_Vector<BPatch_basicBlock*>& imds){
 	flowGraph->fillDominatorInfo();
 
 	if(!immediateDominates)
@@ -136,10 +175,11 @@ void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&
 	for(unsigned i=0;i<immediateDominates->size();i++)
 		imds.push_back(elements[i]);
 	delete[] elements;
+	return;
 }
 
 
-void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
+void BPatch_basicBlock::getImmediatePostDominatesInt(BPatch_Vector<BPatch_basicBlock*>& imds){
 	flowGraph->fillPostDominatorInfo();
 
 	if(!immediatePostDominates)
@@ -150,11 +190,12 @@ void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBloc
 	for(unsigned i=0;i<immediatePostDominates->size();i++)
 		imds.push_back(elements[i]);
 	delete[] elements;
+	return;
 }
 
 //returns the dominates of the basic block in a set 
 void
-BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
+BPatch_basicBlock::getAllDominatesInt(BPatch_Set<BPatch_basicBlock*>& buffer){
 	flowGraph->fillDominatorInfo();
 
 	buffer += (BPatch_basicBlock*)this;
@@ -166,10 +207,11 @@ BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 			elements[i]->getAllDominates(buffer);
 		delete[] elements;
 	}
+	return;
 }
 
 void
-BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
+BPatch_basicBlock::getAllPostDominatesInt(BPatch_Set<BPatch_basicBlock*>& buffer){
 	flowGraph->fillPostDominatorInfo();
 
 	buffer += (BPatch_basicBlock*)this;
@@ -181,23 +223,24 @@ BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 			elements[i]->getAllPostDominates(buffer);
 		delete[] elements;
 	}
+	return;
 }
 
 //returns the immediate dominator of the basic block
-BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
+BPatch_basicBlock* BPatch_basicBlock::getImmediateDominatorInt(){
 	flowGraph->fillDominatorInfo();
 
 	return immediateDominator;
 }
 
-BPatch_basicBlock* BPatch_basicBlock::getImmediatePostDominator(){
+BPatch_basicBlock* BPatch_basicBlock::getImmediatePostDominatorInt(){
 	flowGraph->fillPostDominatorInfo();
 
 	return immediatePostDominator;
 }
 
 //returns whether this basic block dominates the argument
-bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
+bool BPatch_basicBlock::dominatesInt(BPatch_basicBlock* bb){
 	if(!bb)
 		return false;
 
@@ -219,7 +262,7 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 	return done;
 }
 
-bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
+bool BPatch_basicBlock::postdominatesInt(BPatch_basicBlock* bb){
 	if(!bb)
 		return false;
 
@@ -243,37 +286,63 @@ bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
 
 //returns the source block corresponding to the basic block
 //which is created looking at the machine code.
-void
-BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
+bool
+BPatch_basicBlock::getSourceBlocksInt(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
 {
     if(!sourceBlocks)
         flowGraph->createSourceBlocks();
     
     if(!sourceBlocks)
-        return;
+        return false;
     
     for(unsigned int i=0;i<sourceBlocks->size();i++)
         sBlocks.push_back((*sourceBlocks)[i]);
+
+    return true;
 }
+
+//returns the block number of the basic block
+int BPatch_basicBlock::getBlockNumberInt(){
+	return blockNumber;
+}
+
+//set whether this is an entry block
+bool BPatch_basicBlock::setEntryBlockInt(bool b){
+  return isEntryBasicBlock = b;
+}
+
+//set whether this is an exit block
+bool BPatch_basicBlock::setExitBlockInt(bool b){
+  return isExitBasicBlock = b;
+}
+//get whether this is an entry block
+bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
+  return isEntryBasicBlock;
+}
+//get whether this is an exit block
+bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
+  return isExitBasicBlock;
+}
+
+
 
 //sets the block number of the basic block
 void BPatch_basicBlock::setBlockNumber(int bno){
-	blockNumber = bno;
+  blockNumber = bno;
 }
 
 // returns the range of addresses of the code for the basic block
-bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
-                                        void*& _lastInsnAddress)
+bool BPatch_basicBlock::getAddressRangeInt(void*& _startAddress,
+                                           void*& _lastInsnAddress)
 {
 	_startAddress = (void *)getStartAddress();
 	_lastInsnAddress =(void *)(getStartAddress()-startAddress+lastInsnAddress);
-
-	return true;
+        return true;
 }
 
 #ifdef IBM_BPATCH_COMPAT
-bool BPatch_basicBlock::getLineNumbers(unsigned int &_startLine,
-                                       unsigned int  &_endLine)
+bool BPatch_basicBlock::getLineNumbersInt(unsigned int &_startLine,
+                                          unsigned int  &_endLine)
 {
   BPatch_Vector<BPatch_sourceBlock *> sbvec;
   getSourceBlocks(sbvec);
@@ -362,7 +431,7 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  * ops          The points within the basic block to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
-BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPatch_opCode>& ops) {
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) {
 
   // function is generally uninstrumentable (with current technology)
   if (flowGraph->getFunction()->funcEntry(flowGraph->getProcess()) == NULL)
@@ -386,7 +455,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPat
  *
  */
 
-BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructions(void) {
+BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
 
   if (!instructions) {
 
@@ -403,7 +472,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructions(void) {
   return instructions;
 }
 
-unsigned long BPatch_basicBlock::getStartAddress() const
+unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
     Address imgBaseAddr = 0;   
 #if defined(i386_unknown_linux2_0) ||\
@@ -423,7 +492,7 @@ unsigned long BPatch_basicBlock::getStartAddress() const
      return startAddress + imgBaseAddr;
 }
 
-unsigned long BPatch_basicBlock::getLastInsnAddress() const
+unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT 
 {
     Address imgBaseAddr = 0;   
 #if defined(i386_unknown_linux2_0) ||\
@@ -443,7 +512,7 @@ unsigned long BPatch_basicBlock::getLastInsnAddress() const
      return lastInsnAddress + imgBaseAddr;
 }
 
-unsigned BPatch_basicBlock::size() const
+unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 {
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
@@ -460,14 +529,55 @@ unsigned BPatch_basicBlock::size() const
 
 }
 
-unsigned long BPatch_basicBlock::getRelStart() const
+unsigned long BPatch_basicBlock::getRelStartInt() CONST_EXPORT
 {
     return startAddress;
 }
 
-unsigned long BPatch_basicBlock::getRelEnd() const
+unsigned long BPatch_basicBlock::getRelEndInt() CONST_EXPORT 
 {
     return endAddr;
+}
+
+unsigned long BPatch_basicBlock::getRelLastInt() CONST_EXPORT
+{
+    return lastInsnAddress;
+}
+
+unsigned long BPatch_basicBlock::setRelStartInt(unsigned long sAddr)
+{
+    return startAddress = sAddr; 
+}
+
+
+unsigned long BPatch_basicBlock::setRelLastInt(unsigned long eAddr)
+{
+    return lastInsnAddress = eAddr;
+}
+
+unsigned long BPatch_basicBlock::setRelEndInt(unsigned long eAddr)
+{
+    return endAddr = eAddr;
+}
+
+bool BPatch_basicBlock::addSourceInt(BPatch_basicBlock *b) 
+{
+  sources += b; return true;
+}
+
+bool BPatch_basicBlock::addTargetInt(BPatch_basicBlock *b)
+{
+  targets += b; return true;
+}
+
+bool BPatch_basicBlock::removeSourceInt(BPatch_basicBlock *b)
+{
+  sources.remove(b); return true;
+}
+
+bool BPatch_basicBlock::removeTargetInt(BPatch_basicBlock *b)
+{
+  targets.remove(b); return true;
 }
 
 void BPatch_basicBlock::dump() 
@@ -475,13 +585,7 @@ void BPatch_basicBlock::dump()
     fprintf(stderr,"(b %u 0x%x 0x%x)\n",blockNumber,startAddress,endAddr);
 }
 
-
-unsigned long BPatch_basicBlock::getRelLast() const
-{
-    return lastInsnAddress;
-}
-
-void BPatch_basicBlock::getIncomingEdges(BPatch_Vector<BPatch_edge*>& inc)
+void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
 {
     BPatch_edge **elements = new BPatch_edge*[incomingEdges.size()];
     incomingEdges.elements(elements);
@@ -490,7 +594,7 @@ void BPatch_basicBlock::getIncomingEdges(BPatch_Vector<BPatch_edge*>& inc)
     delete[] elements;
 }
         
-void BPatch_basicBlock::getOutgoingEdges(BPatch_Vector<BPatch_edge*>& out)
+void BPatch_basicBlock::getOutgoingEdgesInt(BPatch_Vector<BPatch_edge*>& out)
 {
     BPatch_edge **elements = new BPatch_edge*[outgoingEdges.size()];
     outgoingEdges.elements(elements);

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2004/03/05 16:51:13 bernat Exp $
+# $Id: Makefile,v 1.3 2005/02/09 03:27:49 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,7 +8,7 @@
 
 include               ../../make.config
 
-CFLAGS	+= 
+CFLAGS	+= -pthread
 #CFLAGS += -DUSE_PROF
 
 SRCS         += ../src/RTposix.c \

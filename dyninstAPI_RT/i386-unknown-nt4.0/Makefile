@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2003/03/28 23:29:58 pcroth Exp $
+# $Id: Makefile,v 1.13 2005/02/09 03:27:49 jaw Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ include ../../nmake.config
 
 LD		= link
 #LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000 
-LDFLAGS		= -DLL -debug -PDB:NONE -base:0x60000000 
+LDFLAGS		= -DLL -debug -PDB:NONE -base:0x60000000 /NODEFAULTLIB:libc.lib
 
 SRCS		= $(SRCS) ../src/RTwinnt.c
 
@@ -47,7 +47,7 @@ include ../../nmake.library.tmpl
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
-		-out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS)
+		-out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) ws2_32.lib
 
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o

@@ -40,9 +40,14 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.24 2004/03/23 01:12:16 eli Exp $
+ * $Id: RTlinux.c,v 1.25 2005/02/09 03:27:50 jaw Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
+
+#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
+/* everything should be under this flag except for the assembly code
+   that handles the runtime spinlocks  -- this is imported into the
+   test suite for direct testing */
 
 #include <signal.h>
 #include <assert.h>
@@ -334,4 +339,49 @@ int DYNINSTloadLibrary(char *libname)
     return 0;
     }
   */
+}
+#endif /* EXPORT SPINLOCKS */
+
+void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+{
+#if defined (arch_x86)
+  /*  same assembly as for x86 windows, just different format for asm stmt */
+  /*  so if you change one, make the same changes in the other, please */
+
+ asm (
+         "  .Loop: \n"
+         "  movl        8(%ebp), %ecx  # &mut in ecx \n"
+         "  movl        $0, %eax       # 0 (unlocked) in eax\n"
+         "  movl        $1, %edx       # 1 (locked) in edx \n"
+         "  lock  \n"
+         "  cmpxchgl    %edx, (%ecx)   # try to atomically store edx (1 = locked) \n"
+         "                             # only if we are unlocked (ecx == eax) \n"
+         "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
+     );
+
+#elif defined (arch_ia64)
+
+ asm (
+         "  1:                                      \n"
+         "  ld4                 r31=[%0]            \n" /* r31 <- lock value*/
+         " ;;                                       \n"
+         "  cmp.ne              p15,p0=r31,r0       \n" /* test lock set */
+         "  (p15) br.cond.sptk  1b                  \n" /* yes:  spin */
+         " ;;                                       \n" /* no: try to obtain lock */
+         "  mov                 r31=1               \n" /* r31 <- 1, desired lock val */
+         "  mov                 ar.ccv=0            \n" /* set value to compare to */
+         "                                          \n" /* unlocked lock ( = 0) */
+         " ;;                                       \n"
+         "  cmpxchg4.acq        r31=[%0],r31,ar.ccv \n" /* if (lock == ar.ccv) lock = r31 */
+         " ;;                                       \n"
+         "  cmp.ne              p15,p0=r31,r0       \n" /* test r31 to see if xchg worked */
+         "  (p15) br.cond.sptk  1b                  \n" /* if r31 != 0, lock failed, spin*/
+         " ;;                                       \n"
+         "  end:                                    \n" /* else, we got the lock, done */
+ ::"r"(mut):"ar.ccv", "p15", "p0", "r31","memory");
+
+
+#else
+#error
+#endif
 }
