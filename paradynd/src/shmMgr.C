@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.11 2002/08/12 04:21:59 schendel Exp $
+/* $Id: shmMgr.C,v 1.12 2002/08/21 19:42:09 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -79,7 +79,7 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
 
 shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
 	       pid_t inferiorPid) :
-  keyUsed(theShmKey), shmSize(par.shmSize)
+   keyUsed(theShmKey), shmSize(par.shmSize), num_allocated(par.num_allocated)
 {  
   if(applShmSegPtr != reinterpret_cast<void*>(par.baseAddrInApplic)) {
     cerr << "Serious error in fastInferiorHeapMgr fork-constructor. It "
@@ -107,9 +107,6 @@ shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr,
   freespace = shmSize;
   highWaterMark = baseAddrInDaemon;
 
-  // we're going to remalloc the prealloc objects, so remove their
-  // contribution from num_allocated
-  num_allocated = par.num_allocated - par.prealloc.size();
   for(unsigned i=0; i<par.prealloc.size(); i++) {
     shmMgrPreallocInternal *new_prealloc = 
        new shmMgrPreallocInternal(*par.prealloc[i], *this);
