@@ -1,7 +1,11 @@
 /* $Log: datagrid.C,v $
-/* Revision 1.3  1994/03/17 05:19:59  newhall
-/* changed bucket width and time value's type to double
+/* Revision 1.4  1994/03/26 04:19:46  newhall
+/* changed all floats to double
+/* fix problem with null string returned for first resource name
 /*
+ * Revision 1.3  1994/03/17  05:19:59  newhall
+ * changed bucket width and time value's type to double
+ *
  * Revision 1.2  1994/03/14  20:28:44  newhall
  * changed visi subdirectory structure
  *  */ 
@@ -44,7 +48,7 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
  int i;
     
  if(numElements > 0){  
-   value = new float[numElements];
+   value = new double[numElements];
    for(i = 0; i < numElements; i++)
      value[i] = ERROR;
    valid      = 1;
@@ -201,7 +205,7 @@ char *visi_DataGrid::MetricUnits(int i){
  */
 char     *visi_DataGrid::ResourceName(int j){
 
-  if((j < numResources) && (j>0))
+  if((j < numResources) && (j>=0))
     return(resources[j].Name());
   return(NULL);
 }

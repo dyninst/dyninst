@@ -1,13 +1,17 @@
 /* $Log: visualization.C,v $
-/* Revision 1.3  1994/03/17 05:23:09  newhall
-/* changed eventCallbacks type, and the constraints on triggering the
-/* callback routine associated with the DATAVALUES event
+/* Revision 1.4  1994/03/26 04:19:49  newhall
+/* changed all floats to double
+/* fix problem with null string returned for first resource name
 /*
+ * Revision 1.3  1994/03/17  05:23:09  newhall
+ * changed eventCallbacks type, and the constraints on triggering the
+ * callback routine associated with the DATAVALUES event
+ *
  * Revision 1.2  1994/03/14  20:28:55  newhall
  * changed visi subdirectory structure
  *  */ 
 #include "visi/h/visualization.h"
-//#define DEBUG
+/* #define DEBUG */
 
 visi_DataGrid  dataGrid;
 visi_MRList    metricList;
@@ -195,10 +199,14 @@ if(eventCallbacks[INVALIDMETRICSRESOURCES] !=  NULL){
 }
 
 void visualization::AddMetricsResources(metricType_Array metrics,resourceType_Array resources,double bucketWidth,int nobuckets){
-int ok;
+  int ok;
+#ifdef DEBUG
+  int i;
+#endif
 
   if(!initDone)
     VisiInit();
+
   // construct new dataGrid
   if(!dataGrid.NumMetrics()){
     //construct metric, resource lists
