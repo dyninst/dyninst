@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.9  1996/02/07 19:16:30  tamches
+# removed shgHack
+#
 # Revision 1.8  1996/02/02 18:57:22  tamches
 # added key & tips areas
 # cleaner search/resume button code
@@ -221,8 +224,6 @@ proc shgClickOnPause {} {
 # ####################################################################
 
 proc shgInitialize {iDeveloperMode} {
-   global shgHack
-   
    if {[winfo exists .shg]} {
 #      puts stderr "(shg window already exists; not creating)"
       wm deiconify .shg
@@ -375,10 +376,4 @@ proc shgInitialize {iDeveloperMode} {
 #   bind .shg.nontop.main.all <Control-Double-Button-1> {shgCtrlDoubleClickHook %x %y}
    bind .shg.nontop.main.all <Alt-Motion> {shgAltPressHook %x %y}
    bind .shg.nontop.main.all <Motion> {shgAltReleaseHook}
-
-   if {$shgHack} {
-#      puts stderr "shgHack"
-      #paradyn shg start global
-      #shgDefineGlobalPhaseCommand
-   }
 }
