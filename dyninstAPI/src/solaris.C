@@ -133,7 +133,14 @@ bool OS::osStop(pid_t) { assert(0); }
 
 bool OS::osDumpCore(pid_t, const string) { return false; }
 
-bool OS::osForwardSignal (pid_t, int) { assert(0); }
+bool process::continueWithForwardSignal(int) {
+   if (-1 == ioctl(proc_fd, PIOCRUN, NULL)) {
+      perror("could not forward signal in PIOCRUN");
+      return false;
+   }
+
+   return true;
+}
 
 bool OS::osDumpImage(const string &, pid_t , const Address) { return false; }
 
@@ -232,7 +239,7 @@ int process::waitProcs(int *status) {
 
 /*
    Open the /proc file correspoding to process pid, 
-   set the signals to be caught to be only SIGSTOP,
+   set the signals to be caught to be only SIGSTOP and SIGTRAP,
    and set the kill-on-last-close and inherit-on-fork flags.
 */
 bool process::attach() {
@@ -245,13 +252,20 @@ bool process::attach() {
     return false;
   }
 
-  /* we don't catch any child signals, except SIGSTOP */
+  /* we don't catch any child signals, except SIGSTOP (and, on sparc, SIGTRAP;
+     on x86, SIGILL, to implement inferiorRPC) */
   sigset_t sigs;
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
+
 #ifndef i386_unknown_solaris2_5
   praddset(&sigs, SIGTRAP);
 #endif
+
+#ifdef i386_unknown_solaris2_5
+  praddset(&sigs, SIGILL);
+#endif
+
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     close(fd);
@@ -283,7 +297,8 @@ bool process::continueProc_() {
   prstatus_t stat;
 
   // a process that receives a stop signal stops twice. We need to run the process
-  // and wait for the second stop.
+  // and wait for the second stop. (The first run simply absorbs the stop signal;
+  // the second one does the actual continue.)
   if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
       && (stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)
@@ -333,21 +348,26 @@ bool process::dumpCore_(const string) {
 }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
+//  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
   return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
+//  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
-bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
+
+//  cerr << "process::writeDataSpace_ pid " << getPid() << " writing " << amount << " bytes at loc " << inTraced << endl;
+
   if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced)
     return false;
   return (write(proc_fd, inSelf, amount) == amount);
 }
 
-bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced) {
     printf("error in lseek \n");
@@ -518,6 +538,132 @@ if ( (addrs.rtn!=0) && (!isValidAddress(this,(Address) addrs.rtn)) ) {
 }
 
 #endif
+
+#ifdef SHM_SAMPLING
+unsigned long long process::getInferiorProcessCPUtime() const {
+   // returns user+sys time from the u or proc area of the inferior process, which in
+   // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
+   // to obtain it (solaris).  It must not stop the inferior process in order
+   // to obtain the result, nor can it assue that the inferior has been stopped.
+
+   // Currently, we use the PIOCSTATUS /proc ioctl
+   // Other /proc ioctls that should work too: PIOCPSINFO, PIOCUSAGE,
+   // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
+   // and u areas, respectively.
+
+   prstatus_t theStatus;
+   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) == -1) {
+      perror("could not read the CPU time of inferior process");
+      // what to do here?
+      return 0;
+   }
+   
+   unsigned long long result = theStatus.pr_utime.tv_sec;
+   result += theStatus.pr_stime.tv_sec;
+   result *= 1000000; // secs to usecs
+  
+   result += theStatus.pr_utime.tv_nsec / 1000; // nanosec to usec
+   result += theStatus.pr_stime.tv_nsec / 1000;
+
+   return result;
+}
+#endif
+
+void *process::getRegisters() {
+   // Astonishingly, this routine can be shared between solaris/sparc and
+   // solaris/x86.  All hail /proc!!!
+
+   // assumes the process is stopped (/proc requires it)
+   assert(status_ == stopped);
+
+   prgregset_t theIntRegs;
+   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
+      perror("process::getRegisters PIOCGREG");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+
+      return NULL;
+   }
+
+   prfpregset_t theFpRegs;
+   if (ioctl(proc_fd, PIOCGFPREG, &theFpRegs) == -1) {
+      perror("process::getRegisters PIOCGFPREG");
+      if (errno == EBUSY)
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+      else if (errno == EINVAL)
+	 // what to do in this case?  Probably shouldn't even do a print, right?
+	 // And it certainly shouldn't be an error, right?
+	 // But I wonder if any sparcs out there really don't have floating point.
+	 cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
+
+      return NULL;
+   }
+
+   const int numbytesPart1 = sizeof(prgregset_t);
+   const int numbytesPart2 = sizeof(prfpregset_t);
+   assert(numbytesPart1 % 4 == 0);
+   assert(numbytesPart2 % 4 == 0);
+
+   void *buffer = new char[numbytesPart1 + numbytesPart2];
+   assert(buffer);
+
+   memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
+   memcpy((char *)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
+
+   return buffer;
+}
+
+bool process::changePC(unsigned addr, void *savedRegs) {
+   assert(status_ == stopped);
+
+   prgregset_t theIntRegs = *(prgregset_t *)savedRegs; // makes a copy, on purpose
+
+   theIntRegs[R_PC] = addr; // EIP register
+#ifdef R_nPC  // true for sparc, not for x86
+   theIntRegs[R_nPC] = addr + 4;
+#endif
+
+   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
+      perror("process::changePC PIOCSREG failed");
+      if (errno == EBUSY)
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool process::restoreRegisters(void *buffer) {
+   // The fact that this routine can be shared between solaris/sparc and
+   // solaris/x86 is just really, really cool.  /proc rules!
+
+   assert(status_ == stopped); // /proc requires it
+
+   prgregset_t theIntRegs = *(prgregset_t *)buffer;
+   prfpregset_t theFpRegs = *(prfpregset_t *)((char *)buffer + sizeof(theIntRegs));
+
+   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
+      perror("process::restoreRegisters PIOCSREG failed");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return false;
+   }
+
+   if (ioctl(proc_fd, PIOCSFPREG, &theFpRegs) == -1) {
+      perror("process::restoreRegisters PIOCSFPREG failed");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+         assert(false);
+      }
+      return false;
+   }
+
+   return true;
+}
 
 #ifdef i386_unknown_solaris2_5
 
