@@ -1,4 +1,13 @@
-#include <stdlib.h>
+
+/* 
+ * $Log: ast.C,v $
+ * Revision 1.7  1994/09/22 01:33:59  markc
+ * Cast args for printf
+ * changed calloc to new
+ * getOpString now returns const char*
+ * createPrimitiveCall takes const char*
+ *
+ */
 
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -14,8 +23,7 @@ registerSpace::registerSpace(int count, int *possibles) {
     int i;
 
     numRegisters = count;
-    registers = (registerSlot *) 
-	calloc(numRegisters, sizeof(registerSlot));
+    registers = new registerSlot[numRegisters];
     for (i=0; i < count; i++) {
 	registers[i].number = possibles[i];
 	registers[i].inUse = False;
@@ -65,7 +73,6 @@ int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
     // used to estimate cost.
     static AstNode *preambleTemplate = new AstNode(trampPreamble, 
 	new AstNode(Constant, (void *) 0), NULL);
-    
     
     cycles = preambleTemplate->cost() + cost() + trailer->cost();
 
@@ -160,7 +167,7 @@ reg AstNode::generateCode(process *proc,
 	// find func addr.
 	addr = findInternalAddress(proc->symbols, callee, False);
 	if (!addr) {
-	    function *func;
+	    pdFunction *func;
 	    func = findFunction(proc->symbols, callee);
 	    if (!func) {
 		sprintf(errorLine, "unable to find addr of %s\n", callee);
@@ -189,7 +196,7 @@ reg AstNode::generateCode(process *proc,
     return(dest);
 }
 
-char *getOpString(opCode op)
+const char *getOpString(opCode op)
 {
     switch (op) {
 	case plusOp: return("+");
@@ -278,7 +285,7 @@ void AstNode::print()
 	    sprintf(errorLine, "@%d", (int) dValue->getInferriorPtr());
 	    logLine(errorLine);
 	} else if (oType == Param) {
-	    sprintf(errorLine, "param[%d]", oValue);
+	    sprintf(errorLine, "param[%d]", (int) oValue);
 	    logLine(errorLine);
 	}
     } else if (type == opCodeNode) {
@@ -300,7 +307,7 @@ void AstNode::print()
     }
 }
 
-AstNode *createPrimitiveCall(char *func, dataReqNode *dataPtr, int param2)
+AstNode *createPrimitiveCall(const char *func, dataReqNode *dataPtr, int param2)
 {
     return(new AstNode(func, new AstNode(DataValue, (void *) dataPtr), 
 			     new AstNode(Constant, (void *) param2)));
