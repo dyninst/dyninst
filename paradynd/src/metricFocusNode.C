@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.15 1994/05/31 18:14:18 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.16 1994/05/31 19:16:17 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.15  1994/05/31 18:14:18  markc
+ * Revision 1.16  1994/05/31 19:16:17  markc
+ * Commented out assert test for elapsed.
+ *
+ * Revision 1.15  1994/05/31  18:14:18  markc
  * Modified check for covered less than rather than not equal.  This is a short
  * term fix.
  *
@@ -870,6 +873,7 @@ void computePauseTimeMetric()
 	if (applicationPaused) {
 	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
 	}
+	/* assert(elapsed >= 0.0); */
 	reportedPauseTime += elapsed;
 	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
     }
