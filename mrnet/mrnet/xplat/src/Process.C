@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process.C,v 1.3 2004/07/19 18:42:15 pcroth Exp $
+// $Id: Process.C,v 1.4 2004/08/12 19:26:45 darnold Exp $
 #include <assert.h>
 #include "xplat/Process.h"
 
@@ -20,7 +20,7 @@ Process::CreateRemote( const std::string& host,
     assert( !NetUtils::IsLocalHost( host ) );
 
     // determine the remote shell program to use
-    std::string rshCmd = "rsh";
+    std::string rshCmd = "ssh";
     const char* varval = getenv( "XPLAT_RSHCOMMAND" );
     if( varval != NULL )
     {
