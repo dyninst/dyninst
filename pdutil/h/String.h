@@ -35,6 +35,10 @@ public:
     string  operator+ (const string &) const;
 
     bool operator== (const string &) const;
+    bool operator== (const char *ptr) const {
+       // we have this routine as a time-saver
+       return STREQ(ptr, str_);
+    }
     bool operator!= (const string &) const;
     bool operator<  (const string &s) const {return STRLT(str_, s.str_);}
     bool operator<= (const string &) const;
