@@ -3,9 +3,12 @@
 // Process Critical Path data from the various paradyn daemons.
 //
 /* $Log: DMcritPath.C,v $
-/* Revision 1.4  1996/02/02 18:27:06  newhall
-/* fixed compile error
+/* Revision 1.5  1996/05/08 15:55:41  hollings
+/* Commented out a debugging printf
 /*
+ * Revision 1.4  1996/02/02  18:27:06  newhall
+ * fixed compile error
+ *
  * Revision 1.3  1996/02/01  19:51:58  hollings
  * Fixing Critical Path to work.
  *
@@ -75,7 +78,7 @@ void paradynDaemon::cpDataCallbackFunc(int,
 	mi->addInterval(conn->lastTime, timeStamp, share, FALSE);
 	conn->lastTime = timeStamp;
 	conn->total = total;
-	printf("paradyn got CP message for %d <%f,%f>\n", context, share, total);
+	// printf("paradyn got CP message for %d <%f,%f>\n", context, share, total);
         // }
     }
 }

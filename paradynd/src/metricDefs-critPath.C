@@ -4,7 +4,10 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
- * Revision 1.1  1995/08/24 15:04:23  hollings
+ * Revision 1.2  1996/05/08 15:55:10  hollings
+ * Commented out a debugging printf
+ *
+ * Revision 1.1  1995/08/24  15:04:23  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -71,9 +74,9 @@ void processCP(process *proc, traceHeader *hdr, cpSample *sample)
 	    sample->length/MILLION, sample->share/MILLION);
 
 	*item = *sample;
-	fprintf(stderr, "Got CP Sample for %d (%f,%f) at %f\n", sample->id,
-	    sample->share/1000000.0, sample->length/1000000.0,
-	    hdr->wall/MILLION);
+	// fprintf(stderr, "Got CP Sample for %d (%f,%f) at %f\n", sample->id,
+	    // sample->share/1000000.0, sample->length/1000000.0,
+	    // hdr->wall/MILLION);
     }
 }
 
