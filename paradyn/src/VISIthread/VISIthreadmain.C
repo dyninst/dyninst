@@ -22,11 +22,14 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.66  1996/04/04 21:54:24  newhall
-/* changes to enable routines so that they only enable mi_limit metric/focus
-/* pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
-/* to limit the size of the buffer used to send data values to the visi
+/* Revision 1.67  1996/04/19 21:25:10  newhall
+/* replaced call to msg_poll with msg_poll_preference
 /*
+ * Revision 1.66  1996/04/04  21:54:24  newhall
+ * changes to enable routines so that they only enable mi_limit metric/focus
+ * pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
+ * to limit the size of the buffer used to send data values to the visi
+ *
  * Revision 1.65  1996/03/14  14:22:23  naim
  * Batching enable data requests for better performance - naim
  *
@@ -702,6 +705,7 @@ void GetPacketSize(unsigned nSize,unsigned &pSize,unsigned &lPacket,
   }
 }
 
+static u_int VISIenablenum = 0;
 //
 // try to enable all pairs, returns true if no error
 //
@@ -735,6 +739,34 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
 
         partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
 	                 metResParts,ptr->args->phase_type,0,0);
+
+#ifdef ndef
+/****************** Code to test persistence flags **********/ 
+        switch (VISIenablenum % 4){ 
+            case 0:
+		cout << "ENABLING 0 0" << endl;
+		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                metResParts,ptr->args->phase_type,0,0);
+                break;
+            case 1:
+		cout << "ENABLING 1 0" << endl;
+		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                metResParts,ptr->args->phase_type,1,0);
+                break;
+            case 2:
+		cout << "ENABLING 0 1" << endl;
+		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                metResParts,ptr->args->phase_type,0,1);
+                break;
+            case 3:
+		cout << "ENABLING 1 1" << endl;
+		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                metResParts,ptr->args->phase_type,1,1);
+                break;
+        }
+	VISIenablenum++;
+/************************************************************/
+#endif
   
         for (unsigned int k=0;k<(*partPair).size();k++) 
           (*newPair)[k+current] = (*partPair)[k];
@@ -1117,6 +1149,7 @@ void *VISIthreadmain(void *vargs){
   globals->currPhaseHandle = -1;
 
   globals->start_up = 1;
+  globals->fd_first = 0;
 
   // globals->buffer is left a 0-sized array
   globals->buffer_next_insert_index = 0;
@@ -1192,7 +1225,10 @@ void *VISIthreadmain(void *vargs){
 	}
       }
       thread_t tag = MSG_TAG_ANY;
-      int from = msg_poll(&tag, 1);
+      // int from = msg_poll(&tag, 1);
+      int from  = msg_poll_preference(&tag, 1,globals->fd_first);
+      globals->fd_first = !globals->fd_first;
+
       if (globals->ump->isValidTag((T_UI::message_tags)tag)) {
 	if (globals->ump->waitLoop(true, (T_UI::message_tags)tag) ==
 	    T_UI::error) {

@@ -16,9 +16,12 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.19  1996/01/05 20:00:58  newhall
-/* removed warnings
+/* Revision 1.20  1996/04/19 21:25:02  newhall
+/* replaced call to msg_poll with msg_poll_preference
 /*
+ * Revision 1.19  1996/01/05 20:00:58  newhall
+ * removed warnings
+ *
  * Revision 1.18  1995/12/03  21:32:57  newhall
  * changes to support new sampleDataCallbackFunc
  *
@@ -125,6 +128,7 @@ struct VISIGlobalsStruct {
   visi_thread_args* args;
   int start_up;
   int currPhaseHandle;
+  unsigned fd_first;
   vector<metricInstInfo *> mrlist;
 
 };
