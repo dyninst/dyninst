@@ -840,6 +840,7 @@ process::process(const process &parentProc, int iPid
     hasNewPC = false;
 
     inhandlestart = false;
+/*
     dynamiclinking = false;
     dyn = new dynamic_linking;
     shared_objects = 0;
@@ -847,6 +848,46 @@ process::process(const process &parentProc, int iPid
     all_modules = 0;
     some_modules = 0;
     some_functions = 0;
+*/
+    dynamiclinking = parentProc.dynamiclinking;
+    dyn = new dynamic_linking;
+    *dyn = *parentProc.dyn;
+
+    shared_objects = 0;
+    if (parentProc.shared_objects) {
+      shared_objects = new vector<shared_object*>;
+      for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++)
+	*shared_objects += (*parentProc.shared_objects)[u1];
+    }
+
+    all_functions = 0;
+    if (parentProc.all_functions) {
+      all_functions = new vector<pdFunction *>;
+      for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
+	*all_functions += (*parentProc.all_functions)[u2];
+    }
+
+    all_modules = 0;
+    if (parentProc.all_modules) {
+      all_modules = new vector<module *>;
+      for (unsigned u3 = 0; u3 < parentProc.all_modules->size(); u3++)
+	*all_modules += (*parentProc.all_modules)[u3];
+    }
+
+    some_modules = 0;
+    if (parentProc.some_modules) {
+      some_modules = new vector<module *>;
+      for (unsigned u4 = 0; u4 < parentProc.some_modules->size(); u4++)
+	*some_modules += (*parentProc.some_modules)[u4];
+    }
+    
+    some_functions = 0;
+    if (parentProc.some_functions) {
+      some_functions = new vector<pdFunction *>;
+      for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
+	*some_functions += (*parentProc.some_functions)[u5];
+    }
+
     waiting_for_resources = false;
     signal_handler = 0;
 
@@ -1140,8 +1181,9 @@ tp->resourceBatchMode(true);
 	}
 #ifdef PARADYND_PVM
 	if (pvm_running && envp.size())
-	  for (int ep=envp.size()-1; ep>=0; ep--)
-	    pvmputenv((char *)envp[ep].string_of());
+	  for (int ep=envp.size()-1; ep>=0; ep--) {
+	    pvmputenv(envp[ep].string_of());
+	  }
 #endif
         // hand off info about how to start a paradynd to the application.
 	//   used to catch rexec calls, and poe events.
@@ -1972,9 +2014,10 @@ void process::handleExec() {
     delete dyn;
     dyn = new dynamic_linking;
     if(shared_objects){
-       for(u_int i=0; i< shared_objects->size(); i++){
-	   delete (*shared_objects)[i];
-       }
+// can't delete these for now, or we get a core dump.
+//       for(u_int i=0; i< shared_objects->size(); i++){
+//	   delete (*shared_objects)[i];
+//       }
        delete shared_objects;
        shared_objects = 0;
     }
@@ -2009,6 +2052,7 @@ void process::handleExec() {
 
     /* update process status */
     reachedFirstBreak = false;
+    hasBootstrapped = false;
     status_ = stopped;
 }
 
@@ -2035,7 +2079,7 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     u_int i=0;
     bool found = false;
     while(!done){
-	process *p = (instWList[i])->which_proc;
+	//process *p = (instWList[i])->which_proc;
         if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
 	    (instWList[i])->cleanUp(this,pc);
 	    u_int last = instWList.size()-1;
@@ -2328,8 +2372,8 @@ bool process::handleTrapIfDueToRPC() {
 
       // do we have a match?
       const int framePC = theFrame.getPC();
-      if (framePC >= currRunningRPCs[0].firstPossibleBreakAddr &&
-	  framePC <= currRunningRPCs[0].lastPossibleBreakAddr) {
+      if ((unsigned)framePC >= currRunningRPCs[0].firstPossibleBreakAddr &&
+	  (unsigned)framePC <= currRunningRPCs[0].lastPossibleBreakAddr) {
 	 // we've got a match!
 	 break;
       }

@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.14  1996/12/11 17:02:48  mjrg
+ * fixed problems with handling of fork and exec
+ *
  * Revision 1.13  1996/11/14 14:27:00  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -98,6 +101,7 @@
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
+static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 
 bool initOS() {
 
@@ -110,11 +114,16 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   initialRequests += new instMapping("fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, tidArg);
+				     FUNC_EXIT|FUNC_ARG, retVal);
+  initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
+				     FUNC_EXIT|FUNC_ARG, retVal);
 
   initialRequests += new instMapping("execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
+  initialRequests += new instMapping("_execve", "DYNINSTexec",
+				     FUNC_ENTRY|FUNC_ARG, tidArg);
+  initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
 
 #ifndef SHM_SAMPLING
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",

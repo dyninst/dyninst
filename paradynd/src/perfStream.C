@@ -370,21 +370,29 @@ int handleSigChild(int pid, int status)
                     }
 		}
 
-		if (curr->inExec) {
-		   // the process has executed a succesful exec, and is now
-		   // stopped at the exit of the exec call.
-		   cerr << "SIGTRAP: processing the handleExec case!" << endl;
-		   curr->handleExec();
-		   curr->inExec = false;
-		   curr->reachedFirstBreak = false;
-		   break;
-		}
-
 		if (curr->handleTrapIfDueToRPC()) {
 		   //logLine("processed RPC response in SIGTRAP\n");
 		   break;
 		}
 		    
+		if (curr->inExec) {
+		   // the process has executed a succesful exec, and is now
+		   // stopped at the exit of the exec call.
+		   cerr << "SIGTRAP: processing the handleExec case!" << endl;
+		   // call handleExec to clean our internal data structures
+		   // handleExec does not insert instrumentation in the new image
+		   curr->handleExec();
+		   curr->inExec = false;
+		   // need to start resourceBatchMode here because we will call
+		   //  tryToReadAndProcessBootstrapInfo which
+		   // calls tp->resourceBatchMode(false)
+		   tp->resourceBatchMode(true);
+		   // set reachedFirstBreak to false here, so we execute
+		   // the code below, and insert the initial instrumentation
+		   // in the new image.
+		   curr->reachedFirstBreak = false;
+		}
+
                 // Now we expect that the TRAP is due to the fact that a TRAP
                 // is always generated when a ptraced process starts up.
                 // But we must query 'reachedFirstBreak' because on machines where
