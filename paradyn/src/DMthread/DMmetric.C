@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMmetric.C,v 1.28 1998/03/04 19:56:10 wylie Exp $
+
 extern "C" {
 #include <malloc.h>
 #include <stdio.h>
@@ -50,7 +52,7 @@ extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, bool);
 
 // trace data streams
-extern void traceDataCallBack(void*, int, void*);
+extern void traceDataCallBack(const void*, int, void*);
 
 metric::metric(T_dyninstRPC::metricInfo i){
 

@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMpublic.C,v 1.102 1998/03/04 19:56:15 wylie Exp $
+
 extern "C" {
 #include <malloc.h>
 }
@@ -140,7 +142,7 @@ void histFoldCallBack(timeStamp width, void *, bool globalFlag)
 }
 
 // trace data streams
-void traceDataCallBack(void *data,
+void traceDataCallBack(const void *data,
                        int length,
                        void *arg)
 {
@@ -577,7 +579,7 @@ void dataManager::getMemoryBounds(perfStreamHandle,
                 unsigned res_size = res->size() ;
                 resourceHandle handle ;
 
-                int min = 0 ; int max = 0 ; int yes = 0 ;
+                unsigned int min = 0 ; unsigned int max = 0 ; int yes = 0 ;
                 for(unsigned i=0; i<res_size; i++)
                 {
                         handle = (*res)[i] ;
@@ -597,7 +599,7 @@ void dataManager::getMemoryBounds(perfStreamHandle,
                                                 blk++ ;
                                                 yes = 1 ;
                                                 Memory += "Memory" ;
-                                                int addr = atoi(blk) ;
+                                                unsigned int addr = atoi(blk) ;
                                                 if(min==0 || addr < min) min = addr ;
                                                 if(addr > max)           max = addr ;
                                                 p = NULL ;

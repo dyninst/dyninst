@@ -39,7 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMperfstream.C,v 1.25 1998/03/04 19:56:12 wylie Exp $
+
 #include <assert.h>
+#include <limits.h>     // UINT_MAX
 extern "C" {
 double   quiet_nan();
 #include <malloc.h>
@@ -178,7 +181,7 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 // it is full
 //
 void performanceStream::callTraceFunc(metricInstanceHandle mi,
-                                      void *data,
+                                      const void *data,
                                       int length)
 {
     if (dataFunc.trace) {
@@ -543,7 +546,7 @@ void performanceStream::predictedDataCostCallback(u_int requestId,
 						  u_int clientID){
 
     bool found = false; 
-    u_int which;
+    u_int which = UINT_MAX;
     for(u_int i=0; i < pred_Cost_buff.size(); i++){
         if((pred_Cost_buff[i])->requestId == requestId){
 	    found = true;
@@ -551,6 +554,7 @@ void performanceStream::predictedDataCostCallback(u_int requestId,
 	    break;
     } }
     if(found){
+        assert(which < pred_Cost_buff.size());
         predCostType *value = pred_Cost_buff[which]; 
 	assert(value->howmany);
 	if(cost > value->max) value->max = cost;

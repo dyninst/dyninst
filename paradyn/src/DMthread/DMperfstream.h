@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMperfstream.h,v 1.17 1998/03/04 19:56:13 wylie Exp $
+
 #ifndef dmperfstream_H
 #define dmperfstream_H
 
@@ -126,8 +128,7 @@ class performanceStream {
 	static bool addPredCostRequest(perfStreamHandle,u_int&,
 				       metricHandle,resourceListHandle,u_int);
         // trace data streams
-        void callTraceFunc(metricInstanceHandle,
-                            void *, int);
+        void callTraceFunc(metricInstanceHandle, const void *, int);
         void flushTraceBuffer(); 
         static void addTraceUser(perfStreamHandle psh);
         static void removeTraceUser(perfStreamHandle psh);

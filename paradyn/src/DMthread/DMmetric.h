@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMmetric.h,v 1.29 1998/03/04 19:56:11 wylie Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -58,7 +59,7 @@
 #include "paradyn/src/TCthread/tunableConst.h"
 
 // trace data streams
-typedef void (*dataCallBack2)(void *data,
+typedef void (*dataCallBack2)(const void *data,
                              int length,
                              void *userData);
 
@@ -154,7 +155,7 @@ class metricInstance {
     friend void DMdisableRoutine(perfStreamHandle,perfStreamHandle,
 				metricInstanceHandle, phaseType);
     // trace data streams
-    friend void traceDataCallBack(void *data, int length, void *arg);
+    friend void traceDataCallBack(const void *data, int length, void *arg);
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
@@ -196,7 +197,7 @@ class metricInstance {
 	}
         
         // trace data streams
-        void sendTraceData(void *data, int length) {
+        void sendTraceData(const void *data, int length) {
             if(traceFunc)
                 (traceFunc)(data,length,this);
         }

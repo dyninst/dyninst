@@ -42,67 +42,9 @@
 /*
  * UIpublic.C : exported services of the User Interface Manager thread 
  *              of Paradyn
- *
  */
  
-/* $Log: UIpublic.C,v $
-/* Revision 1.64  1997/10/28 20:35:31  tamches
-/* dictionary_lite --> dictionary_hash
-/*
- * Revision 1.63  1997/10/10 00:21:13  tamches
- * removed a warning
- *
- * Revision 1.62  1997/06/02 19:41:57  karavan
- * added new call registerValidVisis.  This single call from Visi Manager to
- * UI thread at startup registers all valid visis as specified in a config
- * file, and replaces use of synchronous VM->VMAvailableVisis().
- *
- * Revision 1.61  1997/05/02 04:43:49  karavan
- * added new functionality to support "SAVE" feature.
- *
- * added support to use standard tcl autoload feature for development use.
- *
- * Revision 1.60  1996/11/26 16:06:54  naim
- * Fixing asserts - naim
- *
- * Revision 1.59  1996/10/31 08:19:16  tamches
- * UIM::enablePauseOrRun()
- *
- * Revision 1.58  1996/08/16 21:06:48  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.57  1996/05/07 18:05:56  newhall
- * added threadExiting routine
- *
- * Revision 1.56  1996/05/01  20:54:20  tamches
- * added DAGinactivateEntireSearch
- *
- * Revision 1.55  1996/05/01 14:07:54  naim
- * Multiples changes in UI to make call to requestNodeInfoCallback async.
- * (UI<->PC) - naim
- *
- * Revision 1.54  1996/04/19  18:28:17  naim
- * Adding a procedure that will be called when we want to add a new process,
- * as it is done using the "paradyn process" command - naim
- *
- * Revision 1.53  1996/04/18  20:46:35  tamches
- * new DAGaddBatchOfEdges to correspond with PCthread/PCshg.C changes
- *
- * Revision 1.52  1996/04/16 18:37:27  karavan
- * fine-tunification of UI-PC batching code, plus addification of some
- * Ari-like verbification commentification.
- *
- * Revision 1.51  1996/04/13 04:39:39  karavan
- * better implementation of batching for edge requests
- *
- * Revision 1.50  1996/04/09 19:25:07  karavan
- * added batch mode to cut down on shg redraw time.
- *
- * Revision 1.49  1996/04/07 21:17:12  karavan
- * changed new phase notification handling; instead of being notified by the
- * data manager, the UI is notified by the performance consultant.  This prevents
- * a race condition.
- *
+/* $Id: UIpublic.C,v 1.65 1998/03/04 19:56:28 wylie Exp $
  */
 
 #include <stdio.h>
