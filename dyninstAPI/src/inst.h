@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.65 2002/05/10 18:37:00 schendel Exp $
+// $Id: inst.h,v 1.66 2002/06/10 19:24:54 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -71,7 +71,7 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-extern void deleteInst(instInstance *old, const vector<Address> &pointsToCheck);
+extern void deleteInst(instInstance *old);
 extern vector<Address> getAllTrampsAtPoint(instInstance *);
 
 class AstNode;

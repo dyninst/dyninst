@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.35 2002/04/18 19:39:45 bernat Exp $
+// $Id: instP.h,v 1.36 2002/06/10 19:24:55 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -94,14 +94,28 @@ class trampTemplate {
 
 extern trampTemplate baseTemplate;
 
+// Callback func for deletion of a minitramp
+typedef void (*instInstanceFreeCallback)(void *, instInstance *);
+
 class instInstance {
  public:
      instInstance() {
        proc = NULL; location = NULL; trampBase=0;
        returnAddr = 0; baseInstance = NULL; next = NULL;
        prev = NULL; nextAtPoint = NULL; prevAtPoint = NULL; cost=0;
-
+       callback = NULL; callbackData = NULL;
      }
+     
+     ~instInstance() {
+       if (callback)
+	 (*callback)(callbackData, this);
+     }
+
+     void registerCallback(instInstanceFreeCallback cb, void *data) {
+       callback = cb;
+       callbackData = data;
+     };
+
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
      callOrder order;           /* orderFirstAtPoint, orderLastAtPoint */
@@ -114,6 +128,11 @@ class instInstance {
      instInstance *nextAtPoint; /* next in same addr space at point */
      instInstance *prevAtPoint; /* next in same addr space at point */
      int cost;			/* cost in cycles of this inst req. */
+     
+     // Material to check when deleting this instInstance
+     instInstanceFreeCallback callback; /* Callback to be made when
+					   instance is deleted */
+     void *callbackData;                /* Associated data */
 };
 
 // class returnInstance: describes how to jmp to the base tramp

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.95 2002/05/28 14:36:07 bernat Exp $
+// $Id: inst.C,v 1.96 2002/06/10 19:24:53 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -386,7 +386,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     near_ = ret->baseInstance->baseAddr;
 #endif
     bool err = false;
-    ret->trampBase = inferiorMalloc(proc, count, htype, near_, &err);
+    ret->trampBase = proc->inferiorMalloc(count, htype, near_, &err);
 
     //fprintf(stderr, "Got %d bytes at 0x%x\n", count, ret->trampBase);
 
@@ -701,6 +701,11 @@ vector<Address> getAllTrampsAtPoint(instInstance *instance)
         pointsToCheck.push_back(start->baseInstance->baseAddr); 
         pointsToCheck.push_back(start->trampBase);
         // All mini-tramps at this point
+	// abernat, 22MAY02 Isn't this a bit overzealous?
+	// At this point we've nuked the jumps, so we should
+	// be safe just checking whether any PC is within
+	// the range occupied by the minitramp in question,
+	// not the entire list.
         for (next = start->next; next; next = next->next) {
 	  if ((next->location == instance->location) && 
 	      (next->proc == instance->proc) &&
@@ -723,15 +728,22 @@ vector<Address> getAllTrampsAtPoint(instInstance *instance)
  *    Also we need to patch the return from the right one to go to the left
  *    one.
  *
+ * New logic: this routine gaps the minitramp out of the execution
+ * sequence, but leaves deletion for later. There is a routine in 
+ * the process object which maintains a list of elements to be deleted,
+ * and the associated data to ensure that deletion is safe. I've
+ * added a callback function to the instInstance class which is 
+ * called when deletion actually takes place. This allows recordkeeping
+ * for any data which may rely on the minitramp (i.e. Paradyn variables)
+ *
  */
-void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
+void deleteInst(instInstance *old)
 {
     point *thePoint;
     instInstance *lag;
     instInstance *left;
     instInstance *right;
     instInstance *othersAtPoint;
-
     if (!old) {
       // logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
       return;
@@ -782,8 +794,7 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
 		generateBranch(old->proc, left->returnAddr, toAddr);
 #endif
 	    }
-	} else {
-	    /* old is first one make code call right tramp */
+	} else {	    /* old is first one make code call right tramp */
 	    int fromAddr;
 	    fromAddr = getBaseBranchAddr(old->proc, right);
 #if defined(rs6000_ibm_aix4_1)
@@ -794,55 +805,48 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
 	}
     }
 
-    vector< vector<Address> > tmp;
-    tmp.push_back((vector<Address>) pointsToCheck);
-
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, "
-	    "pointer=0x%lx\n",old->proc->pid,old->trampBase);
-    logLine(errorLine);
-#endif
-    inferiorFree(old->proc, old->trampBase, tmp);
   }
 
-    /* remove old from atPoint linked list */
-    if (right) right->prevAtPoint = left;
-    if (left) left->nextAtPoint = right;
-
-    /* remove from doubly linked list for all insts */
-    if (old->prev) {
-	lag = old->prev;
-	lag->next = old->next;
-	if (old->next) old->next->prev = lag;
-    } else {
-	thePoint->inst = old->next;
-	if (old->next) old->next->prev = NULL;
-    }
-    int trampCost = 0-old->cost;
-    old->baseInstance->updateTrampCost(old->proc, trampCost);
-
+  /* remove old from atPoint linked list */
+  if (right) right->prevAtPoint = left;
+  if (left) left->nextAtPoint = right;
+  
+  /* remove from doubly linked list for all insts */
+  if (old->prev) {
+    lag = old->prev;
+    lag->next = old->next;
+    if (old->next) old->next->prev = lag;
+  } else {
+    thePoint->inst = old->next;
+    if (old->next) old->next->prev = NULL;
+  }
+  int trampCost = 0-(old->cost);
+  old->baseInstance->updateTrampCost(old->proc, trampCost);
+  
 #ifdef BPATCH_LIBRARY
-
-    // If the thePoint->inst value is NULL then there is no more
-    // instrumenttation instances left for this point.
-
-    if(BPatch::bpatch->baseTrampDeletion() &&
-       !thePoint->inst)
+  
+  // If the thePoint->inst value is NULL then there is no more
+  // instrumentation instances left for this point.
+  
+  if(BPatch::bpatch->baseTrampDeletion() &&
+     !thePoint->inst)
     {
-	extern bool deleteBaseTramp(process*,instPoint*,instInstance*);
-	if(deleteBaseTramp(old->proc,old->location,old)){
-		activePoints.undef((const instPoint*)(old->location));
-                old->proc->baseMap.undef((const instPoint*)(old->location));
-                //delete[] old->baseInstance->trampTemp;
-                delete old->baseInstance;
-        }
+      extern bool deleteBaseTramp(process*,instPoint*,instInstance*);
+      if(deleteBaseTramp(old->proc,old->location,old)){
+	activePoints.undef((const instPoint*)(old->location));
+	old->proc->baseMap.undef((const instPoint*)(old->location));
+	//delete[] old->baseInstance->trampTemp;
+	delete old->baseInstance;
+      }
     }
-
-#endif
-
-    delete old;
-
-    //free(old);
+  
+#endif  
+  // At this point the to-be-deleted minitramp is gapped out
+  // of the sequence of minis. Place it on the list to be deleted.
+  
+  old->proc->deleteInstInstance(old);
+  // DON'T delete the instInstance. When it is deleted, the callback
+  // is made... which should only happen when the memory is freed.
 }
 
 //
