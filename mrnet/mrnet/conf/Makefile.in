@@ -83,7 +83,7 @@ endif #Forte (Sun) compiler warnings
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
-LIBXPLAT    = -L$(SRCDIR)/xplat -Lxplat -lxplat
+LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
 INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I$(MRNET_ROOT)
