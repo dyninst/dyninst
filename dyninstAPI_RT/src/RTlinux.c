@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.16 2002/07/22 20:20:52 rchen Exp $
+ * $Id: RTlinux.c,v 1.17 2002/07/23 15:28:06 rchen Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -108,7 +108,7 @@ static void DYNINSTillHandler(int sig, struct sigcontext uap)
      unsigned char* eip;
 
      saved_errno = errno;
-     eip = (char*)uap.sc_ip; /* PC at which process will continue when
+     eip = (char*)uap.eip; /* PC at which process will continue when
                               this handler returns */
 
      /* Don't proceed unless we got here because ud2 (0f 0b) was
@@ -255,7 +255,7 @@ static unsigned lookup(unsigned key) {
 }
 
 void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
-    unsigned pc = uap.sc_ip;
+    unsigned pc = uap.eip;
     unsigned nextpc;
 
     /* If we're in the process of running an inferior RPC, we'll
@@ -315,7 +315,7 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
     if (nextpc) {
       RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
                DYNINSTtotalTraps, pc, nextpc);
-      uap.sc_ip = nextpc;
+      uap.eip = nextpc;
     } else {
       if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
         if (DYNINSTactTrapApp.sa_sigaction != NULL) {
