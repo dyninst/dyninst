@@ -1,4 +1,4 @@
-# $Id: whereAxis.tcl,v 1.13 2001/04/25 18:41:39 wxd Exp $
+# $Id: whereAxis.tcl,v 1.14 2001/10/31 19:33:02 willb Exp $
 
 # ##################################################################
 
@@ -27,10 +27,7 @@ proc whereAxisInitialize {} {
    menubutton .whereAxis.top.mbar.nav -text Navigate -menu .whereAxis.top.mbar.nav.m
    menu .whereAxis.top.mbar.nav.m -selectcolor #6495ED
    
-   menubutton .whereAxis.top.mbar.abs -text Abstraction -menu .whereAxis.top.mbar.abs.m
-   menu .whereAxis.top.mbar.abs.m -selectcolor #6495ED
-   
-   pack .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
+   pack .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav  -side left -padx 4
    
    # -----------------------------------------------------------
    
