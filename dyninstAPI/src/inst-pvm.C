@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.3  1994/03/26 20:50:45  jcargill
+ * Revision 1.4  1994/03/31 01:49:34  markc
+ * Duplicated changes in inst-sunos.C.
+ *
+ * Revision 1.3  1994/03/26  20:50:45  jcargill
  * Changed the pause/continue code.  Now it really stops, instead of
  * spin looping.
  *
@@ -14,7 +17,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.3 1994/03/26 20:50:45 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.4 1994/03/31 01:49:34 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,20 +54,7 @@ libraryList libraryFunctions;
 process *nodePseudoProcess;
 resource machineResource;
 
-static AstNode tagArg(Param, (void *) 1);
-
 #define NS_TO_SEC       1000000000.0
-StringList<int> primitiveCosts;
-
-instMaping defaultInst[] = {
-    { "main", "DYNINSTinit", FUNC_ENTRY },
-    { "main", "DYNINSTsampleValues", FUNC_EXIT },
-    { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
-    { "pvm_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "pvm_recv", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
-    { NULL, NULL, 0},
-};
 
 void addLibFunc(libraryList *list, char *name, int arg)
 {
@@ -74,19 +64,26 @@ void addLibFunc(libraryList *list, char *name, int arg)
 
 char *getProcessStatus(process *proc)
 {
-  // TODO changed from old
-    switch (proc->status) {
+   char ret[80];
+
+   switch (proc->status) {
 	case running:
-	    return("running");
+	    sprintf(ret, "%d running", proc->pid);
+	    break;
 	case neonatal:
-	    return("neonatal");
+	    sprintf(ret, "%d neonatal", proc->pid);
+	    break;
 	case stopped:
-	    return("stopped");
+	    sprintf(ret, "%d stopped", proc->pid);
+	    break;
 	case exited:
-	    return("exited");
+	    sprintf(ret, "%d exited", proc->pid);
+	    break;
 	default:
-	    return("UNKNOWN State");
-   }
+	    sprintf(ret, "%d UNKNOWN State", proc->pid);
+	    break;
+    }
+    return(ret);
 }
 
 
@@ -98,15 +95,9 @@ float getPrimitiveCost(char *name)
 {
     float ret;
 
-    ret = primitiveCosts.find(name)/NS_TO_SEC;
-    if (ret == 0.0) {
-    printf("no cost value for primitive %s, using 10 usec\n", name);
-    ret = 10000/NS_TO_SEC;
-    }
     ret = 0.0;
     return(ret);
 }
-
 
 int flushPtrace()
 {
@@ -239,24 +230,6 @@ int findNodeOffset(char *file, int offset)
 {
   assert (offset == 0);
   return (0);
-}
-
-process *createGlobalPseudoProcess(process *sampleNodeProc)
-{
-    return(NULL);
-}
-
-
-void initPrimitiveCost()
-{
-    /* based on measured values for the CM-5. */
-    /* Need to add code here to collect values for other machines */
-    primitiveCosts.add(728, (void *) "DYNINSTincrementCounter");
-    primitiveCosts.add(728, (void *) "DYNINSTdecrementCounter");
-    primitiveCosts.add(1159, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(1939, (void *) "DYNINSTstopWallTimer");
-    primitiveCosts.add(1296, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(2365, (void *) "DYNINSTstopProcessTimer");
 }
 
 /*
