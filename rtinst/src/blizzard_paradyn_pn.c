@@ -5,7 +5,6 @@
 
 #include "protocol.h"
 #include "model.h"
-#include "align.h"
 
 
 
@@ -110,7 +109,7 @@ void RecurringBlizzardAlarm(int interval, void (*handler)())
 
     time_block.NumberOfExpires = 0;
     if (interval  > 100)                /* why? because guard_interval = 100                       */
-    	interval /= 100000;             /* was originaly 2000, The asynchronousness (50000 worked) */
+    	interval /= 10000;             /* was originaly 2000, The asynchronousness (50000 worked) */
 					/* guard_interval = 100, however it seems that it is round */
 					/* to 10000us by the system                                */
     time_block.ticks = interval;
@@ -134,8 +133,6 @@ void PrintAlarmInfo()
 		lastAlarmExpires = DYNINSTtotalAlaramExpires;
 	}
 }
-
-
 /*
 	SIGNAL STUFF
 */
@@ -155,3 +152,4 @@ int blizzard_identify()
 {
 	return (CMNA_self_address);
 }
+/*===========================================*/

@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.21  1995/10/27 01:04:40  zhichen
+ * Revision 1.22  1995/12/10 16:35:52  zhichen
+ * Minor clean up
+ *
+ * Revision 1.21  1995/10/27  01:04:40  zhichen
  * Added some comments to DYNINSTsampleValues.
  * Added some prototypes
  *
@@ -121,6 +124,9 @@ float DYNINSTcyclesToUsec;
 time64 DYNINSTtotalSampleTime;
 
 void DYNINSTreportCounter(intCounter *counter)
+/*
+ * also total ; i will chage to asynchronous samping anyway.
+ */
 {
     traceSample sample;
 
