@@ -64,24 +64,13 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 
-#if defined(hppa1_1_hp_hpux)
+#ifndef hppa1_1_hp_hpux
+#error This file should be compiled for HP only
+#endif
 
 #include <sys/pstat.h>
 #include <sys/unistd.h>
 #define _PROTOTYPES
-#else
-extern int getrusage (int, struct rusage *);
-#endif
-
-
-
-
-/************************************************************************
- * symbolic constants.
-************************************************************************/
-
-static const double MILLION = 1000000.0;
-
 
 
 
@@ -214,7 +203,3 @@ DYNINSTstopWallTimer_hpux(tTimer* timer) {
 
     DYNINSTstopWallTimer(timer);
 }
-
-
-
-
