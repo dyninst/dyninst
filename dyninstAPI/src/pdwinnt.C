@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.68 2002/11/18 17:29:26 bernat Exp $
+// $Id: pdwinnt.C,v 1.69 2002/11/19 20:04:45 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2033,7 +2033,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
   w32CONTEXT cont;//ccw 27 july 2000
-  if (!savedRegs) {
+  if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
       //	DebugBreak();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
@@ -2047,7 +2047,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
           }
   }
   else {
-      memcpy(&cont, &(regs->cont), sizeof(w32CONTEXT);
+      memcpy(&cont, &(regs->cont), sizeof(w32CONTEXT));
   }
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001 
   cont.Eip = addr;
