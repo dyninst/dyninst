@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.96 2004/02/12 20:46:56 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.97 2004/03/02 22:45:57 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -308,42 +308,21 @@ BPatch_thread::~BPatch_thread()
     //     gets taken care of.
     if (!proc) return;
 
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->unRegisterThread(getPid());
+
+    // We detach before we delete the process object 
+
     if (!detached) {
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-    	if (createdViaAttach && !statusIsTerminated())
-    	    proc->API_detach(true);
+    	if (createdViaAttach)
+    	    proc->detachProcess(true);
 	else
 #endif
 	    terminateExecution();
     }
 
-    assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->unRegisterThread(getPid());
-
-    // Remove the process from our list of processes
-    unsigned i;
-    for (i = 0; i < processVec.size(); i++) {
-	if (processVec[i] == proc) {
-	    break;
-	}
-    }
-    assert(i < processVec.size());
-    while (i < processVec.size()-1) {
-	processVec[i] = processVec[i+1];
-	i++;
-    }
-    processVec.resize(processVec.size()-1);
-
-    // XXX I think there are some other things we need to deallocate -- check
-    // on that.
-
-    // XXX We'd like to delete the process object here, but if we do that then
-    // we get problems (specifically, the library gets confused in some way so
-    // that it won't be able to run another mutatee process).  Anyway, the
-    // process class has no destructor right now, so whether we delete proc or
-    // not we're leaking megabytes of memory.  So, for now, we just leave it
-    // around.
-    // delete proc;
+    //delete proc;
 }
 
 
@@ -525,7 +504,8 @@ BPatch_exitType BPatch_thread::terminationStatus() {
  */
 void BPatch_thread::detach(bool cont)
 {
-    proc->API_detach(cont);
+    // CHANGED: API_detach to detach
+    proc->detachProcess(cont);
 
     detached = true;
 }
