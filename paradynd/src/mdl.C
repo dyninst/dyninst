@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.98 2001/10/12 20:47:13 schendel Exp $
+// $Id: mdl.C,v 1.99 2001/11/01 17:22:20 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -74,8 +74,6 @@ static process *global_proc = NULL;
 static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
-
-extern dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap;
 
 // static members of mdl_env
 vector<unsigned> mdl_env::frames;
@@ -677,6 +675,9 @@ bool checkInMIComponents(string flat_name, metricDefinitionNode **comp, bool rep
 
 extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
 
+extern void recordDRN2MDN_Mapping(dataReqNode *drnode, 
+				  metricDefinitionNode *mdn);
+
 #if !defined(MT_THREAD)
 // this prim should always be a new primitive mdn just constructed
 // that is, not used by any component mdn yet, and not added to
@@ -729,14 +730,7 @@ void initDataRequests(metricDefinitionNode *prim,
   dataReqNode *the_node = create_data_object(type, prim, computingCost);
   assert(the_node);
 
-  unsigned mid = the_node->getSampleId();
-  //cerr << "mapping data id: " << mid << " to prim metric: " << prim << "\n";
-  if (midToMiMap.defines(mid)) {
-    assert(midToMiMap[mid] == prim);
-  }
-  else {
-    midToMiMap[mid] = prim;
-  }
+  recordDRN2MDN_Mapping(the_node, prim);
 
   // we've pushed it earlier
   mdl_env::set(the_node, id);
@@ -756,6 +750,8 @@ void initDataRequests(metricDefinitionNode *prim,
 #endif
       // we've pushed them earlier too
       mdl_env::set(temp_node, (*temp_ctr)[tc]);
+
+      recordDRN2MDN_Mapping(temp_node, prim);
     }
   }
 }
@@ -1126,7 +1122,8 @@ metricDefinitionNode *allocateConstraintData(
   }
   
   dataReqNode *drn = mn->addSampledIntCounter(thr,0,computingCost,true);
-  
+  recordDRN2MDN_Mapping(drn, mn);  
+
   // this flag will construct a predicate for the metric -- have to return it
   // flag = drn;
   assert(drn);
@@ -1152,13 +1149,7 @@ metricDefinitionNode *allocateMetricData(metricDefinitionNode* mn,
   dataReqNode *the_node = create_data_object(type, mn, computingCost, thr);
   assert(the_node);
   
-  unsigned mid = the_node->getSampleId();
-  if (midToMiMap.defines(mid)) {
-    assert(midToMiMap[mid] == mn);
-  }
-  else {
-    midToMiMap[mid] = mn;
-  }
+  recordDRN2MDN_Mapping(the_node, mn);
 
   // Create the temporary counters 
   if (temp_ctr) {
@@ -1167,6 +1158,7 @@ metricDefinitionNode *allocateMetricData(metricDefinitionNode* mn,
       dataReqNode *temp_node = mn->addSampledIntCounter(thr, 0, computingCost,
                                                                          true);
       assert(temp_node);
+      recordDRN2MDN_Mapping(temp_node, mn);
     }
   }
   
@@ -1237,13 +1229,7 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
   dataReqNode *the_node = create_data_object(type, mn, computingCost, thr);
   assert(the_node);
 
-  unsigned mid = the_node->getSampleId();
-  if (midToMiMap.defines(mid)) {
-    assert(midToMiMap[mid] == mn);
-  }
-  else {
-    midToMiMap[mid] = mn;
-  }
+  recordDRN2MDN_Mapping(the_node, mn);
 
   mdl_env::set(the_node, id);
   
@@ -1254,6 +1240,7 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
       dataReqNode *temp_node=mn->addSampledIntCounter(thr, 0, computingCost,
                                                                        true);
       assert(temp_node);
+      recordDRN2MDN_Mapping(temp_node, mn);
       mdl_env::set(temp_node, (*temp_ctr)[tc]);
     }
   }
@@ -2883,9 +2870,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
-#if defined(MT_THREAD)
-    if (mn->installed()) midToMiMap[drn->getSampleId()] = mn ; 
-#endif
+    recordDRN2MDN_Mapping(drn, mn);
     mdl_env::set(drn, id_);
   }
 
