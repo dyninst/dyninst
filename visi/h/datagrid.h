@@ -1,7 +1,11 @@
 /* $Log: datagrid.h,v $
-/* Revision 1.1  1994/03/14 20:27:26  newhall
-/* changed visi subdirectory structure
-/*  */ 
+/* Revision 1.2  1994/03/15 02:03:19  newhall
+/* added public member "userdata" to class visi_GridCellHisto
+/* to allow visi writer to add info to grid cells
+/*
+ * Revision 1.1  1994/03/14  20:27:26  newhall
+ * changed visi subdirectory structure
+ *  */ 
 #ifndef _datagrid_h
 #define _datagrid_h
 #include <string.h>
@@ -47,7 +51,8 @@ class visi_GridCellHisto {
      int   valid;
      int   size;
   public: 
-     visi_GridCellHisto(){value = NULL; valid = 0; size = 0;}
+     void *userdata;  // to allow visi writer to add info to grid cells
+     visi_GridCellHisto(){value = NULL; valid = 0; size = 0; userdata = NULL;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
      float  *Value(){ return(value);}
@@ -175,13 +180,13 @@ class visi_DataGrid {
      int         numMetrics;
      int         numResources;
      int         numBins;
-     float       binWidth;
+     double      binWidth;
      visi_GridHistoArray  *data_values;
   public:
      visi_DataGrid(){metrics=NULL; resources=NULL; numMetrics=numResources=0;
 		     data_values=NULL; numBins= 0; binWidth=0.0;}
-     visi_DataGrid(int,int,Metric *,Resource *,int,float);
-     visi_DataGrid(int,int,metricType *,resourceType *,int,float);
+     visi_DataGrid(int,int,Metric *,Resource *,int,double);
+     visi_DataGrid(int,int,metricType *,resourceType *,int,double);
      virtual ~visi_DataGrid();
      char      *MetricName(int i);
      char      *MetricUnits(int i);
@@ -194,7 +199,7 @@ class visi_DataGrid {
      int        MetricId(int); // returns metric Id
      int        ResourceId(int); // returns Resource Id
      int        NumBins(){return(numBins);}
-     float      BinWidth(){return(binWidth);}
+     double     BinWidth(){return(binWidth);}
      int        Valid(int,int);
      int        Invalidate(int,int);
      float      AggregateValue(int i,int j){
@@ -203,7 +208,7 @@ class visi_DataGrid {
        else
 	 return(ERROR);
      }
-     void  Fold(float width){
+     void  Fold(double width){
        int i;
        for(i=0; i < numMetrics; i++)
 	 data_values[i].Fold(metrics[i].Aggregate());
