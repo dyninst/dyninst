@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.2 1994/01/26 06:50:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.3 1994/02/04 00:40:54 jcargill Exp $";
 #endif
 
 #include <stdio.h>
@@ -28,10 +28,12 @@ extern stringPool pool;
 int yylook();
 int yyback(int*,int);
 
+#ifdef notdef
 #ifdef FLEX_SCANNER
 /* flex defines this as a macro (bad flex!). */
 #undef yywrap;
 extern int yywrap();
+#endif
 #endif
 
 extern void yyerror(char *);
