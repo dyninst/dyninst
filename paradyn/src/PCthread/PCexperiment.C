@@ -40,122 +40,8 @@
  */
 
 /*
- * experiment.C
- * 
  * The experiment class methods.
- * 
- * $Log: PCexperiment.C,v $
- * Revision 1.15  1996/08/16 21:03:22  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.14  1996/07/24 20:10:39  karavan
- * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
- * now zero'd at phase boundary.
- *
- * Revision 1.13  1996/07/23 20:27:59  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.12  1996/07/22 18:55:38  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.11  1996/05/15 04:35:07  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.10  1996/05/11 01:57:58  karavan
- * fixed bug in PendingCost calculation.
- *
- * Revision 1.9  1996/05/08 07:35:07  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.8  1996/05/06 04:35:04  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.7  1996/05/02 19:46:29  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.6  1996/04/30 06:26:46  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.5  1996/04/07 21:29:31  karavan
- * split up search ready queue into two, one global one current, and moved to
- * round robin queue removal.
- *
- * eliminated startSearch(), combined functionality into activateSearch().  All
- * search requests are for a specific phase id.
- *
- * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
- * changes internal to PC to track phaseID, to avoid enable requests being handled
- * for incorrect current phase.
- *
- * added update of display when phase ends, so all nodes changed to inactive display
- * style.
- *
- * Revision 1.4  1996/02/22 20:02:20  karavan
- * fixed bug introduced by bug fix.
- *
- * Revision 1.3  1996/02/22 18:29:24  karavan
- * changed min time to conclusion to 10 (temporary)
- *
- * changed debug print calls from dataMgr->getFocusName to
- * dataMgr->getFocusNameFromHandle
- *
- * Revision 1.2  1996/02/08 19:52:39  karavan
- * changed performance consultant's use of tunable constants:  added 3 new
- * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
- * are used for all hypotheses for the respective categories.  Also added
- * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
- * specific, rather than categorical, thresholds.
- *
- * Moved all TC initialization to PCconstants.C.
- *
- * Switched over to callbacks for TC value updates.
- *
- * Revision 1.1  1996/02/02 02:06:32  karavan
- * A baby Performance Consultant is born!
- *
+ * $Id: PCexperiment.C,v 1.16 1998/04/28 22:22:00 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -223,8 +109,10 @@ experiment::newData(PCmetDataID, float val, double start, double end,
   if (timeNormalizer > 1.0)
     timeNormalizer = 0.99999;
 
-  // update currentValue
-  currentValue = val - (thresh * timeNormalizer * hysConstant);
+  // update currentValue and adjustedValue
+  currentValue = val;
+  adjustedValue = val - (thresh * timeNormalizer * hysConstant);
+
   endTime = end;
   if (startTime < 0)    // this is first value
     startTime = start;
@@ -232,9 +120,9 @@ experiment::newData(PCmetDataID, float val, double start, double end,
   // evaluate result
   bool newGuess;
   if (why->compOp == gt)
-    newGuess = currentValue > 0;
+    newGuess = adjustedValue > 0;
   else
-    newGuess = currentValue < 0;
+    newGuess = adjustedValue < 0;
 
 #ifdef PCDEBUG
   // debug printing
@@ -251,7 +139,8 @@ experiment::newData(PCmetDataID, float val, double start, double end,
 	<< (thresh*timeNormalizer * hysConstant)
 	<< " evals to " << newGuess << endl; 
     } else {
-      cout << val << " <? " << (thresh*timeNormalizer * hysConstant)
+      cout << "             " << val << " <? " 
+        << (thresh*timeNormalizer * hysConstant)
 	<< " evals to " << newGuess << endl; 
     }
   } // end debug print
@@ -314,8 +203,8 @@ experiment::experiment(hypothesis *whyowhy, focus whereowhere,
 why(whyowhy), where(whereowhere), persistent(persist), mamaSearch(srch),
 papaNode(papa),  estimatedCost(0.0), status(false), 
 currentConclusion(tunknown), currentGuess(tunknown), timeTrueFalse(0), 
-currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false),
-lastThreshold(0.0)
+currentValue(0.0), adjustedValue(0.0), startTime(-1), endTime(0),
+minObservationFlag(false), lastThreshold(0.0)
 
 {
   PCmetricInstServer *db = mamaSearch->getDatabase();
