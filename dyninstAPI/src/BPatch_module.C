@@ -193,7 +193,7 @@ void BPatch_module::parseTypes()
 
   //Using the Object to get the pointers to the .stab and .stabstr
   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr->getStabInfo((void **) &stabptr, stab_nsyms, 
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
 	(void **) &stabstr_nextoffset);
 
   // Building the BPatch_Vector<BPatch_function *> for use later when playing
