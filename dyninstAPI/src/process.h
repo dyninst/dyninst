@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.217 2002/09/11 15:05:20 chadd Exp $
+/* $Id: process.h,v 1.218 2002/09/17 20:08:07 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -105,7 +105,7 @@
 #include "dyninstAPI/src/dynamiclinking.h"
 
 #if !defined(MAX_NUMBER_OF_THREADS) 
-#define MAX_NUMBER_OF_THREADS 8
+#define MAX_NUMBER_OF_THREADS 256
 #endif
 
 #ifdef SHM_SAMPLING
@@ -564,6 +564,7 @@ class process {
      // receiving the TRAP signifying completion of the RPC.
 
   bool isInSyscall() { return inSyscall_; }
+  bool thrInSyscall();
   void setInSyscall() { inSyscall_ = true; }
   void clearInSyscall() { inSyscall_ = false; }
 
@@ -917,10 +918,6 @@ void saveWorldData(Address address, int size, const void* src);
   // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, Address &baseBytes, bool isFunclet);
 
-#if defined(MT_THREAD)
-  Address generateMTRPCCode(void *, Address &base, unsigned tid, unsigned pos);
-#endif
-
   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
                               bool stopForResult,
@@ -1105,7 +1102,14 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool is_multithreaded() {
 #if defined(MT_THREAD)
-    return true;
+    // If we haven't loaded the paradyn lib yet we can't handle
+    // multiple threads -- i.e. treat as non-multithreaded
+    if (paradynLibAlreadyLoaded()) {
+      return true;
+    }
+    else {
+      return false;
+    }
 #else
     return false;
 #endif
