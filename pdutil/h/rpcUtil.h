@@ -4,7 +4,11 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.25  1994/11/01 16:07:33  markc
+ * Revision 1.26  1994/11/11 06:59:09  markc
+ * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
+ * support remote executition for paradyndPVM.
+ *
+ * Revision 1.25  1994/11/01  16:07:33  markc
  * Added Object classes that provide os independent symbol tables.
  * Added stl-like container classes with iterators.
  *
@@ -162,11 +166,12 @@ extern int RPCprocessCreate(int &pid, const char *hostName, const char *userName
 extern char **RPC_make_arg_list (int family, int type, 
 				 int port, 
 				 int flag,
+				 int firstPVM,
 				 char *machienName = (char*) 0);
 
 extern int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
-		   int &type, int &well_known_socket, int &flag);
+		   int &type, int &well_known_socket, int &flag, int &firstPVM);
 extern int RPC_getConnect (int fd);
 
 extern char **RPCgetArg(int &argc, const char *input);
