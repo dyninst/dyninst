@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.5  1994/03/08 17:39:34  hollings
+ * Revision 1.6  1994/03/20 01:49:49  markc
+ * Gave process structure a buffer to allow multiple writers.  Added support
+ * to register name of paradyn daemon.  Changed addProcess to return type int.
+ *
+ * Revision 1.5  1994/03/08  17:39:34  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.4  1994/02/24  04:36:32  markc
@@ -37,6 +41,9 @@ extern "C" {
 #include "dataManager.CLNT.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
+
+// the argument list passed to paradynds
+char **paradynDaemon::args = 0;
 
 applicationContext *dataManager::createApplicationContext(errorHandler foo)
 {
@@ -77,6 +84,21 @@ Boolean dataManager::continueApplication(applicationContext *app)
 Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
 {
    return(app->detachApplication(pause));
+}
+
+// 
+// Informs that instance of the name of the paradynd for execs
+//
+void dataManager::sendParadyndName (String the_name)
+{
+   assert(the_name);
+   paradynd_name = strdup(the_name);
+
+  // setup arg list to pass
+  // to prevent memory leaks this list could be freed by the destructor
+  // this list is null terminated
+  assert (paradynDaemon::args =
+	  RPC_make_arg_list (the_name, AF_INET, SOCK_STREAM, socket, 1));
 }
 
 performanceStream *dataManager::createPerformanceStream(applicationContext *ap,

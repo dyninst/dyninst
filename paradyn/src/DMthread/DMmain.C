@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.7  1994/03/08 17:39:33  hollings
+ * Revision 1.8  1994/03/20 01:49:48  markc
+ * Gave process structure a buffer to allow multiple writers.  Added support
+ * to register name of paradyn daemon.  Changed addProcess to return type int.
+ *
+ * Revision 1.7  1994/03/08  17:39:33  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.6  1994/02/25  20:58:11  markc
@@ -47,7 +51,6 @@ stringPool metric::names;
 HTable<metric *> metric::allMetrics;
 HTable<metricInstance*> component::allComponents;
 List<paradynDaemon*> paradynDaemon::allDaemons;
-char **paradynDaemon::args = 0;
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
@@ -148,9 +151,42 @@ void dynRPCUser::resourceInfoCallback(int program,
 //
 // used when a new program gets forked.
 //
-void dynRPCUser::newProgramCallbackFunc(int program)
+void dynRPCUser::newProgramCallbackFunc(int pid,
+					int argc, 
+					String_Array argvString,
+					String machine_name)
 {
-    abort();
+     char **argv;
+     paradynDaemon *daemon;
+     List<paradynDaemon*> curr;
+     int i;
+
+	// there better be a paradynd running on this machine!
+    for (curr=paradynDaemon::allDaemons, daemon = NULL; *curr; curr++) {
+	if (!strcmp((*curr)->machine, machine_name))
+	    daemon = *curr;
+    }
+    // for now, abort if there is no paradynd, this should not happen
+    if (!daemon) {
+	printf("process started on %s, can't find paradynd there\n",
+		machine_name);
+	exit(-1);
+    }
+   argv = (char **) malloc (argvString.count);
+   if (!argv) {
+	printf(" cannot malloc memory in newProgramCallbackFunc\n");
+	exit(-1);
+   }
+   for (i=0; i<argvString.count; ++i) {
+	argv[i] = strdup(argvString.data[i]);
+	if (!argv[i]) {
+		printf(" cannot malloc memory in newProgramCallbackFunc\n");
+		exit(-1);
+	}
+   }
+      
+   assert (dm->appContext);
+   assert (!dm->appContext->addRunningProgram(pid, argc, argv, daemon));
 }
 
 void dynRPCUser::newMetricCallback(metricInfo info)
@@ -216,12 +252,10 @@ DMsetupSocket (int *sockfd, int *known_sock)
   // setup "well known" socket for pvm paradynd's to connect to
   assert ((*known_sock =
 	   RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
-  
-  // setup arg list to pass
-  // to prevent memory leaks this list could be freed by the destructor
-  // this list is null terminated
-  assert (paradynDaemon::args =
-	  RPC_make_arg_list ("paradyndPVM", AF_INET, SOCK_STREAM, *known_sock, 1));
+
+  // this info is needed to create argument list for other paradynds
+  dm->socket = *known_sock;
+  dm->sock_fd = *sockfd;
 
   // bind fd for this thread
   msg_bind (*sockfd, TRUE);
@@ -256,16 +290,13 @@ void *DMmain(int arg)
     thr_name("Data Manager");
     printf("mm running\n");
 
-    // supports argv passed to paradynDaemon
-    DMsetupSocket (&sockfd, &known_sock);
-
     dm = new dataManager(arg);
     // this will be set on addExecutable
     dm->appContext = 0;
 
+    // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
-    // hash define around this code to avoid compiling in, except for PVM
-
+    DMsetupSocket (&sockfd, &known_sock);
 
     while (1) {
 	tag = MSG_TAG_ANY;

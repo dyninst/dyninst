@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.5  1994/03/08 17:39:32  hollings
+ * Revision 1.6  1994/03/20 01:49:47  markc
+ * Gave process structure a buffer to allow multiple writers.  Added support
+ * to register name of paradyn daemon.  Changed addProcess to return type int.
+ *
+ * Revision 1.5  1994/03/08  17:39:32  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.4  1994/02/24  04:36:30  markc
@@ -95,6 +99,10 @@ class applicationContext {
                       char *name,
                       int argc,
                       char **argv);
+	addRunningProgram(int pid,
+			  int argc,
+			  char **argv, 
+			  paradynDaemon *daemon);	
 	Boolean applicationDefined();
 	Boolean startApplication();
   	Boolean pauseApplication();	

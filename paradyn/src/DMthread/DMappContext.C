@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.9  1994/03/08 17:39:31  hollings
+ * Revision 1.10  1994/03/20 01:49:46  markc
+ * Gave process structure a buffer to allow multiple writers.  Added support
+ * to register name of paradyn daemon.  Changed addProcess to return type int.
+ *
+ * Revision 1.9  1994/03/08  17:39:31  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.8  1994/03/01  21:24:50  hollings
@@ -62,6 +66,21 @@ String_Array convertResourceList(resourceList *rl)
     ret.data = rl->convertToStringList();
     return(ret);
 }
+
+// called when a program is started external to paradyn and
+// must inform paradyn that it exists
+int applicationContext::addRunningProgram (int pid,
+					   int argc,
+					   char **argv,
+					   paradynDaemon *daemon)
+{
+	executable *exec;
+
+	exec = new executable (pid, argc, argv, daemon);
+	programs.add(exec);
+	return 0;
+}
+
 
 //
 // add a new paradyn daemon
@@ -125,6 +144,8 @@ int applicationContext::addExecutable(char  *machine,
     programToRun.count = argc;
     programToRun.data = argv;
     pid = daemon->addExecutable(argc, programToRun);
+    // TODO 
+    fprintf (stderr, "PID is %d\n", pid);
     exec = new executable(pid, argc, argv, daemon);
     programs.add(exec);
 
