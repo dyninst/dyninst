@@ -200,65 +200,106 @@ void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
 }
 
 
+
 void
 aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
                   MC_DataElement ***out_elems, unsigned int *out_count)
 {
-    std::map<unsigned int, unsigned int> classes;
+    std::map<unsigned int, std::vector<unsigned int> > classes;
 
+    // find equivalence classes across our input 
     for( unsigned int i = 0; i < in_count; i++ )
     {
-        unsigned int* sums = (unsigned int*)(in_elems[i][0].val.p);
-        unsigned int* reps = (unsigned int*)(in_elems[i][1].val.p);
+        unsigned int* vals = (unsigned int*)(in_elems[i][0].val.p);
+        unsigned int* memcnts = (unsigned int*)(in_elems[i][1].val.p);
+        unsigned int* mems = (unsigned int*)(in_elems[i][2].val.p);
 
         assert( in_elems[i][0].array_len == in_elems[i][1].array_len );
+        unsigned int curClassMemIdx = 0;
         for( unsigned int j = 0; j < in_elems[i][0].array_len; j++ )
         {
-            fprintf( stderr, "\tclass %d: val = %u, rep = %u\n",
+            mc_printf( MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
                 j,
-                sums[j],
-                reps[j] );
+                vals[j],
+                memcnts[j] );
 
-            // update the representative for the current value's class
-            classes[sums[j]] = reps[j];
+            // update the members for the current class
+            for( unsigned int k = 0; k < memcnts[j]; k++ )
+            {
+                mc_printf( MCFL, stderr, "%d ", mems[curClassMemIdx+k] );
+                classes[vals[j]].push_back( mems[curClassMemIdx+k] );
+            }
+            mc_printf( MCFL, stderr, "\n" );
+            curClassMemIdx += memcnts[j];
         }
     }
 
-    // extract arrays with the values and with the reps
+    // build data structures for the output 
     unsigned int* values = new unsigned int[classes.size()];
-    unsigned int* reps = new unsigned int[classes.size()];
-    unsigned int i = 0;
-    for( std::map<unsigned int, unsigned int>::iterator iter = classes.begin();
+    unsigned int* memcnts = new unsigned int[classes.size()];
+    unsigned int nMems = 0;
+    unsigned int curIdx = 0;
+    for( std::map<unsigned int, std::vector<unsigned int> >::iterator iter =
+                classes.begin();
             iter != classes.end();
             iter++ )
     {
-        values[i] = iter->first;
-        reps[i] = iter->second;
-        i++;
+        values[curIdx] = iter->first;
+        memcnts[curIdx] = (iter->second).size();
+        nMems += memcnts[curIdx];
+        curIdx++;
+    }
+    unsigned int* mems = new unsigned int[nMems];
+    unsigned int curMemIdx = 0;
+    unsigned int curClassIdx = 0;
+    for( std::map<unsigned int, std::vector<unsigned int> >::iterator iter =
+                classes.begin();
+            iter != classes.end();
+            iter++ )
+    {
+        for( unsigned int j = 0; j < memcnts[curClassIdx]; j++ )
+        {
+            mems[curMemIdx] = (iter->second)[j];
+            curMemIdx++;
+        }
+        curClassIdx++;
     }
 
     // dump the output classes
     *out_count = 1;
     (*out_elems) = new MC_DataElement*[1];
-    (*out_elems)[0] = new MC_DataElement[2];
+    (*out_elems)[0] = new MC_DataElement[3];
 
     // values
     (*out_elems)[0][0].type = UINT32_ARRAY_T;
     (*out_elems)[0][0].array_len = classes.size();
     (*out_elems)[0][0].val.p = values;
 
-    // representatives
+    // member counts
     (*out_elems)[0][1].type = UINT32_ARRAY_T;
     (*out_elems)[0][1].array_len = classes.size();
-    (*out_elems)[0][1].val.p = reps;
+    (*out_elems)[0][1].val.p = memcnts;
 
-    fprintf( stderr, "aggrIntEqClass: returning\n" );
+    // members
+    (*out_elems)[0][2].type = UINT32_ARRAY_T;
+    (*out_elems)[0][2].array_len = nMems;
+    (*out_elems)[0][2].val.p = mems;
+
+    mc_printf( MCFL, stderr, "aggrIntEqClass: returning\n" );
+    unsigned int curMem = 0;
     for( unsigned int i = 0; i < classes.size(); i++ )
     {
-        fprintf( stderr, "\tclass %d: val = %u, rep = %u\n",
+        mc_printf( MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
             i,
             ((unsigned int*)((*out_elems)[0][0].val.p))[i],
             ((unsigned int*)((*out_elems)[0][1].val.p))[i] );
+        for( unsigned int j = 0; j < ((unsigned int*)((*out_elems)[0][1].val.p))[i]; j++ )
+        {
+            mc_printf( MCFL, stderr, "%d ", 
+                ((unsigned int*)((*out_elems)[0][2].val.p))[curMem] );
+            curMem++;
+        }
+        mc_printf( MCFL, stderr, "\n" );
     }
 }
 
