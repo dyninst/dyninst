@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.11 1999/05/29 23:50:49 wylie Exp $
+# $Id: make.module.tmpl,v 1.12 1999/06/03 14:24:42 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -25,7 +25,8 @@ ifdef USES_LIBDYNINST_SO
 TARGET3_SO	= libdyninstAPI.so
 LD		= g++
 LDFLAGS		= -shared
-LDFLAGS		+= -dy -G -z text 
+LDFLAGS		+= -dy -G
+#LDFLAGS	+= -dy -G -z text 
 LDFLAGS         += $(LIBDIR)
 CFLAGS		+= -fPIC
 CXXFLAGS	+= -fPIC
