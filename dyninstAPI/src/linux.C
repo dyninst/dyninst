@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.164 2005/03/16 20:53:20 bernat Exp $
+// $Id: linux.C,v 1.165 2005/03/16 22:59:42 bernat Exp $
 
 #include <fstream>
 
@@ -1861,6 +1861,13 @@ bool process::readAuxvInfo()
 
   close(fd);
 
+  // FC3 hackage. If we didn't find the vsyscall page, guess
+  if (text_start == 0x0 && dso_start == 0x0) {
+    cerr << "Warning: couldn't find vsyscall page, assuming addr of 0xffffe000" << endl;
+    text_start = 0xffffe400;
+    dso_start = 0xffffe000;
+  }
+  
   assert(text_start != 0x0 && dso_start != 0x0);
   if (page_size == 0x0) page_size = getpagesize();
   
