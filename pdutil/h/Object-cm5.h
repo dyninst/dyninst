@@ -157,7 +157,7 @@ Object::load_object() {
                 ((syms[i].n_type & N_EXT)
                     ? Symbol::SL_GLOBAL
                     : Symbol::SL_LOCAL);
-            Symbol::SymbolType type = Symbol::ST_UNKNOWN;
+            Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
 	    bool st_kludge = false;
 
             switch (sstab) {
@@ -168,12 +168,12 @@ Object::load_object() {
             case N_FN:
             case N_SO:
                 module = string(&strs[syms[i].n_un.n_strx]);
-                type   = Symbol::ST_MODULE;
+                type   = Symbol::PDST_MODULE;
                 break;
 
             case N_BSS:
             case N_DATA:
-                type = Symbol::ST_OBJECT;
+                type = Symbol::PDST_OBJECT;
                 break;
 
             case N_TEXT:
@@ -181,12 +181,12 @@ Object::load_object() {
 		// symbol tables as N_TEXT when debugging info is not
 		// in the symbol table
 		int len = strlen(&strs[syms[i].n_un.n_strx]);
-		type = Symbol::ST_OBJECT;
+		type = Symbol::PDST_OBJECT;
 		if ((len > 2) &&
 		    ((&strs[syms[i].n_un.n_strx])[len-2] == '.') &&
 		    (linkage == Symbol::SL_LOCAL) &&
 		    (!(0x3 & syms[i].n_value))) {
-		  type = Symbol::ST_MODULE;
+		  type = Symbol::PDST_MODULE;
 		  st_kludge = true;
 		  break;
 		} else if (linkage != Symbol::SL_GLOBAL) {
@@ -201,7 +201,7 @@ Object::load_object() {
 
             case N_FNAME:
             case N_FUN:
-                type = Symbol::ST_FUNCTION;
+                type = Symbol::PDST_FUNCTION;
                 break;
 
             case N_SLINE:

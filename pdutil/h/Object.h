@@ -197,10 +197,15 @@ AObject::data_len() const {
 
 #undef HAVE_SPECIFIC_OBJECT
 
-#if defined(sparc_sun_solaris2_3)
+#if defined(hppa1_1_hp_hpux)
+#include <util/h/Object-hpux.h>
+#define HAVE_SPECIFIC_OBJECT
+#endif /* defined(hppa1_1_hp_hpux) */
+
+#if defined(sparc_sun_solaris2_4)
 #include <util/h/Object-elf32.h>
 #define HAVE_SPECIFIC_OBJECT
-#endif /* defined(sparc_sun_solaris2_3) */
+#endif /* defined(sparc_sun_solaris2_4) */
 
 #if defined(sparc_sun_sunos4_1_3)
 #include <util/h/Object-bsd.h>

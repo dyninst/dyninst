@@ -31,10 +31,10 @@
 class Symbol {
 public:
     enum SymbolType {
-        ST_UNKNOWN,
-        ST_FUNCTION,
-        ST_OBJECT,
-        ST_MODULE
+        PDST_UNKNOWN,
+        PDST_FUNCTION,
+        PDST_OBJECT,
+        PDST_MODULE
     };
 
     enum SymbolLinkage {
@@ -96,14 +96,14 @@ private:
 inline
 Symbol::Symbol()
     : name_("*bad-symbol*"), module_("*bad-module*"),
-    type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
+    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
 }
 
 inline
 Symbol::Symbol(unsigned dummy)
     : name_("*bad-symbol*"), module_("*bad-module*"),
-    type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
+    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
 }
 

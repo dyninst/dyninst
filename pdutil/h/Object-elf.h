@@ -245,19 +245,19 @@ Object::load_object() {
                 : Symbol::SL_GLOBAL);
 
             bool st_kludge = false;
-            Symbol::SymbolType type = Symbol::ST_UNKNOWN;
+            Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
             switch (ELF32_ST_TYPE(syms[i].st_info)) {
             case STT_FILE:
                 module = string(&strs[syms[i].st_name]);
-                type   = Symbol::ST_MODULE;
+                type   = Symbol::PDST_MODULE;
                 break;
 
             case STT_OBJECT:
-                type = Symbol::ST_OBJECT;
+                type = Symbol::PDST_OBJECT;
                 break;
 
             case STT_FUNC:
-                type = Symbol::ST_FUNCTION;
+                type = Symbol::PDST_FUNCTION;
                 break;
 
             default:
