@@ -1,37 +1,5 @@
+# $Id: uimProcs.tcl,v 1.19 1998/03/03 23:20:08 wylie Exp $
 # utilities for UIM tcl functions
-# $Log: uimProcs.tcl,v $
-# Revision 1.18  1997/06/03 15:33:31  karavan
-# small cleanup to handle new button size
-#
-# Revision 1.17  1996/08/05 07:34:15  tamches
-# update for tcl 7.5
-#
-# Revision 1.16  1996/05/06 16:41:47  naim
-# Adding window to confirm whether the user wants to exit paradyn - naim
-#
-# Revision 1.15  1996/04/15  16:18:41  naim
-# Changing from global to local grab - naim
-#
-# Revision 1.14  1996/04/05  21:04:27  naim
-# Chaging the way grabs are done to try to make sure they don't fail - naim
-#
-# Revision 1.13  1996/02/21  22:35:58  tamches
-# created mkDialogWindowTitle
-# revamped showError to eliminate duplicates (when empty-string 2d
-# arg is passed) while generally displaying multiple errors in the
-# same window
-#
-# Revision 1.12  1995/12/28 21:52:17  tamches
-# error dialog box now puts its information in a scrollable, resizable
-# text widget instead of a non-scrollable, non-resizable message widget
-#
-# Revision 1.11  1995/12/21 22:17:48  naim
-# Changing "Paradyn Error #" by "Paradyn Message #", since not every message
-# is an error message - naim
-#
-# Revision 1.10  1995/11/29  00:23:12  tamches
-# removed mkLogo; removed references to PdBitmapDir; added call
-# to makeLogo
 #
 
 proc mkEntry {w {pack {top expand fillx}} args} {
@@ -98,7 +66,7 @@ proc mkDialogWindowTitle {w theTitle} {
     wm iconname $w $theTitle
     label $w.la -text $theTitle \
 	    -foreground white -anchor c \
-	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	    -font { Times 13 bold } \
 	    -relief raised \
 	    -background red \
 	    -width 40
@@ -106,6 +74,61 @@ proc mkDialogWindowTitle {w theTitle} {
     catch {grab $w}
     focus $w
     return $w
+}
+
+# (re-)set the release identifier in the main window title banner
+
+proc setTitleVersion {release_id} {
+    set w .parent.menub.left.top.title.versionFrame.version 
+    $w configure -text "$release_id"
+}
+
+# present a dialog with Paradyn information
+# (based on explError dialog)
+
+proc showMsg {infoCode infoStr} {
+    global pdError
+    set w .infoDisp$infoCode
+
+    #lookup infoCode, get explanation
+    set ehead [lindex $pdError($infoCode) 0]
+    set etext [lindex $pdError($infoCode) 3]
+
+    mkDialogWindowTitle $w "Paradyn Information"
+    grab release $w                     ;# don't want this dialog to hold focus
+    $w configure -bg orange
+    $w.la configure -bg orange
+    frame $w.out 
+    pack $w.out -padx 5 -pady 5 -expand true -fill both
+
+    # title
+    ## **** don't forget to use class for this font!!!!
+    label $w.out.top -text "Paradyn Information \#$infoCode: $ehead" \
+        -fg orange -font { Times 13 bold }
+    pack $w.out.top -pady 5 -padx 5
+
+    frame $w.out.explain
+    pack $w.out.explain -expand yes -fill both -padx 2
+
+    scrollbar $w.out.explain.msgsb -orient vertical \
+            -command "$w.out.explain.msg yview" \
+   	    -background lightgray -activebackground lightgray
+    pack $w.out.explain.msgsb -side right -fill y -expand false
+
+    # explanation text 
+    # message $w.out.explain -width 300 -text $etext -relief groove
+    text $w.out.explain.msg -wrap word -width 65 -height 6 \
+   	    -yscrollcommand "$w.out.explain.msgsb set"
+    if {$infoStr != ""} {
+        $w.out.explain.msg insert end $infoStr
+        $w.out.explain.msg insert end "\n"
+    }
+    $w.out.explain.msg insert end $etext
+    pack $w.out.explain.msg -expand true -fill both
+
+    # single button option
+    button $w.out.b0 -text "OK" -command "destroy $w" -width 10 
+    pack $w.out.b0 -pady 5
 }
 
 proc explError {errorCode} {
@@ -118,33 +141,44 @@ proc explError {errorCode} {
     mkDialogWindowTitle $w "Paradyn Error Explanation"
     $w configure -bg red
     frame $w.out 
-    pack $w.out -padx 5 -pady 5
+    pack $w.out -padx 5 -pady 5 -expand true -fill both
 
     # title
-## **** don't forget to use class for this font!!!!
-    label $w.out.top -text "Paradyn Message \#\ $errorCode Explanation" -fg red \
-	-font "-Adobe-times-bold-r-normal--*-120*"    
+    ## **** don't forget to use class for this font!!!!
+    label $w.out.top -text "Paradyn Message \#\ $errorCode Explanation" \
+        -fg red -font { Times 13 bold }
     pack $w.out.top -pady 5 -padx 5
 
-    # explanation text
-    message $w.out.explain -width 300 -text $etext -relief groove
-    pack $w.out.explain -pady 5 -padx 5
+    frame $w.out.explain
+    pack $w.out.explain -expand yes -fill both -padx 2
+
+    scrollbar $w.out.explain.msgsb -orient vertical \
+            -command "$w.out.explain.msg yview" \
+   	    -background lightgray -activebackground lightgray
+    pack $w.out.explain.msgsb -side right -fill y -expand false
+
+    # explanation text 
+    # message $w.out.explain -width 300 -text $etext -relief groove
+    text $w.out.explain.msg -wrap word -width 50 -height 4 \
+   	    -yscrollcommand "$w.out.explain.msgsb set"
+    $w.out.explain.msg insert end $etext
+    pack $w.out.explain.msg -expand true -fill both
 
     # single button option
-    button $w.out.b0 -text "OK" -command "destroy $w" \
-	    -width 10 
+    button $w.out.b0 -text "OK" -command "destroy $w" -width 10 
     pack $w.out.b0 -pady 5
 }
 
 proc showErrorHistory {} {
     global pdErrorHistory
+    frame .errorHist
     set w .errorHist
     mkDialogWindow $w
     label $w.title -text "Paradyn Error History"
     frame $w.list
     listbox $w.list.hlist -relief groove 
-    scrollbar $w.list.s -orient vert -command "$w.hlist yview"
-    $w.hlist configure -yscrollcommand "$w.list.s set" 
+    scrollbar $w.list.s -orient vert -command "$w.list.hlist yview"
+    $w.list.hlist configure -yscrollcommand "$w.list.s set" 
     pack $w.title -side top
     pack $w.list.hlist $w.list.s -side left 
     pack $w.list -side top
@@ -188,6 +222,11 @@ proc showError {errorCode errorStr} {
 	set etype serious
     } else {
 	set etype [lindex $errRec 2]
+        if {$etype == "information"} {
+            # Consider informational messages separately from errors
+            showMsg $errorCode $errorStr
+            return
+        }
 	if {$errorStr == ""} {
 	    # No error string was passed in to this routine, so use
             # the default one located in the database.
@@ -233,9 +272,9 @@ proc showError {errorCode errorStr} {
        $w.out.buttons.1 configure -command "destroy $w"
        pack $w.out.buttons -fill both -padx 5 -expand false
 
-       $theText tag configure categoryTag -font "*-Helvetica-*-r-*-12-*"
-       $theText tag configure errorPrefixTag -foreground red -font \
-	       "-*-times-bold-r-normal--*-120*"
+       $theText tag configure categoryTag -font { Helvetica 12 }
+       $theText tag configure errorPrefixTag -foreground red \
+                -font { Times 13 bold }
     } else {
        #puts stderr "window already up"
        #flush stderr
@@ -257,7 +296,7 @@ proc showError {errorCode errorStr} {
 
     button $w.explain$numErrorsShown -text "Explain..." \
 	    -command "explError $errorCode" \
-	    -font "*-Helvetica-*-r-*-12-*" \
+	    -font { Helvetica 12 } \
 	    -relief groove
     $theText window create end -padx 5 -pady 5 -window $w.explain$numErrorsShown
     $theText insert end "\n"
