@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.79 2000/06/14 23:05:24 wylie Exp $
+// $Id: ast.C,v 1.80 2000/08/07 00:56:23 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -744,12 +744,22 @@ void AstNode::updateOperandsRC(bool flag)
 }
 
 //
-// This procedure should be use every time we assign an AstNode pointer,
+// This procedure should be used every time we assign an AstNode pointer,
 // because it increments the reference counter.
 //
 AstNode *assignAst(AstNode *src) {
+#if defined(ASTDEBUG)
+  sprintf(errorLine,"assignAst(0x%08X): ", src);
+  logLine(errorLine);
+#endif
   if (src) {
     src->referenceCount++;
+#if defined(ASTDEBUG)
+    sprintf(errorLine,"referenceCount -> %d\n", src->referenceCount);
+    logLine(errorLine);
+  } else {
+    logLine("NULL\n");
+#endif
   }
   return(src);
 }
@@ -759,13 +769,34 @@ AstNode *assignAst(AstNode *src) {
 // AstNode destructor.
 //
 void removeAst(AstNode *&ast) {
+#if defined(ASTDEBUG)
+  sprintf(errorLine,"removeAst(0x%08X): ", ast);
+  logLine(errorLine);
+#endif
   if (ast) {
+#if defined(ASTDEBUG)
+    sprintf(errorLine,"referenceCount=%d ", ast->referenceCount);
+    logLine(errorLine);
+#endif
     assert(ast->referenceCount>0);
     ast->referenceCount--;
     if (ast->referenceCount==0) {
+#if defined(ASTDEBUG)
+      logLine("deleting...");
+#endif
       delete ast;
       ast=NULL;
-    } 
+#if defined(ASTDEBUG)
+      logLine("deleted\n");
+    } else {
+      sprintf(errorLine,"-> %d\n", ast->referenceCount);
+      logLine(errorLine);
+#endif
+    }
+  } else {
+#if defined(ASTDEBUG)
+    logLine("non-existant!");
+#endif
   }
 }
 
