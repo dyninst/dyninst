@@ -48,30 +48,70 @@
 class pd_process;
 class process;
 
-
 class processMgr {
    pdvector<pd_process *> procBuf;
    
  public:
-   typedef pdvector<pd_process*>::iterator procIter;
+   class procIter {
+      int index;
+      pdvector<pd_process *> *procVector;
+    public:
+      procIter(unsigned index_, processMgr *procMgr) :
+         index(index_), procVector(&procMgr->procBuf) 
+      { }
+      procIter(const procIter &iter) {
+         index = iter.index;
+         procVector = iter.procVector;
+      }
+      pd_process *operator*() {
+         return (*procVector)[index];
+      }
+      procIter operator++(int) {
+         procIter result = *this;
+         index++;
+         return result;
+      }
+      procIter operator++() { // prefix
+         index++;
+         return *this;
+      }
+      procIter operator--(int) {
+         procIter result = *this;
+         index--;
+         return result;
+      }
+      procIter operator--() { // prefix
+         index--;
+         return *this;
+      }
+      bool operator==(const procIter &p) {
+         return (index == p.index);
+      }
+      bool operator!=(const procIter &p) {
+         return (index != p.index);
+      }
+      int getIndex() { return index; }
+   };
+   friend class procIter;
 
    void addProcess(pd_process *pd_proc) {
       assert(pd_proc != NULL);
       procBuf.push_back(pd_proc);
    }
 
-   procIter begin() { return procBuf.begin(); }
-   procIter end() { return procBuf.end(); }
+   procIter begin() { return procIter(0, this); }
+   procIter end() { return procIter(procBuf.size(), this); }
    unsigned size() { return procBuf.size(); }
+
 
    void removeProcess(pd_process *p) {
       for(unsigned i=0; i<procBuf.size(); i++) {
-	 if(procBuf[i] == p) {
-	    procBuf[i] = NULL;
-	 }
+         if(procBuf[i] == p) {
+            procBuf[i] = NULL;
+         }
       }
    }
-
+   
    pd_process *find_pd_process(process *dyn_proc);
    pd_process *find_pd_process(int pid);
 
