@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.57 2001/06/04 18:42:21 bernat Exp $
+// $Id: unix.C,v 1.58 2001/10/24 17:32:49 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -75,29 +75,6 @@ extern "C" {
 int pvmputenv (const char *);
 int pvmendtask();
 #endif
-}
-
-/*
- * Utility functions. Move into aix.C eventually
- */
-int seeIfRTLinked(string filename)
-{
-  // On AIX, no matter what else, the text space will be in there.
-  // If the text space name changes, update this.
-  bool returnval = false;
-  int file_desc;
-  file_desc = open(filename.string_of(), O_RDONLY);
-  if (file_desc != -1)
-    {
-      Object *exec_file = new Object(filename.string_of(), pd_log_perror);
-      Symbol placeholder;
-      // The right thing to do here is have a partial-match get_symbol
-      // method, and search for DYNINSTstaticHeap
-      returnval =  exec_file->get_symbol(string("DYNINSTstaticHeap_4M_textHeap_1"), placeholder); 
-      delete exec_file;
-    }
-  close(file_desc);
-  return returnval;
 }
 
 /*****************************************************************************
@@ -448,8 +425,9 @@ int handleSigChild(int pid, int status)
 #endif
        return -1;
     }
-
-    if (curr->status_ == exited) return -1;
+    
+    // Normal case, actually.
+    if (curr->status_ == exited) return 0;
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
