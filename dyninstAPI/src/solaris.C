@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.67 1999/05/19 21:23:35 zhichen Exp $
+// $Id: solaris.C,v 1.68 1999/05/20 15:54:56 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -976,6 +976,7 @@ bool process::terminateProc_()
 }
 #endif
 
+#if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
 void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
 {
@@ -985,10 +986,12 @@ void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
   if (lo < lowest_addr) lo = lowest_addr;
 }
 
+// ALERT: could be specific to SPARC
 void inferiorMallocAlign(unsigned &size)
 {
   size = (size + 0x1f) & ~0x1f ;
 }
+#endif
 
 /*
    pause a process that is running
