@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 
 namespace MRN
 {

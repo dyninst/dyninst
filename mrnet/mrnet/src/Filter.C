@@ -5,11 +5,11 @@
 
 #include <vector>
 
+#include "mrnet/MRNet.h"
 #include "mrnet/src/Filter.h"
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/h/MRNet.h"
 #include "xplat/SharedObject.h"
 
 

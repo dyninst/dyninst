@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/tests/timer.h"
 #include "mrnet/tests/microbench.h"
 

@@ -7,7 +7,7 @@
 #define eventimpl_h 1
 
 #include <string>
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/src/utils.h"
 
 namespace MRN

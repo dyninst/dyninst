@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/tests/microbench.h"
 
 using namespace MRN;

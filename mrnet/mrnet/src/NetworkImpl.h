@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 
+#include "mrnet/MRNet.h"
 
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/Message.h"
@@ -16,7 +17,6 @@
 #include "mrnet/src/BackEndNode.h"
 #include "mrnet/src/FrontEndNode.h"
 
-#include "mrnet/h/MRNet.h"
 
 namespace MRN
 {

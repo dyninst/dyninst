@@ -74,7 +74,7 @@ int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list ) const
         return -1;
     }
     mrn_printf(3, MCFL, stderr, "new packet() succeeded. Calling frontend.send()\n");
-    int status = network->send(packet);
+    int status = network->network->send(packet);
     return status;
 }
 

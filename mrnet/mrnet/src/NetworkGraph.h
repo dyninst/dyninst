@@ -8,11 +8,9 @@
 
 #include <vector>
 #include <map>
-
 #include <string>
 
-
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/Errors.h"
 

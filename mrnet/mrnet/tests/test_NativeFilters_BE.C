@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/src/Types.h"
 #include "mrnet/src/DataElement.h"
 #include "mrnet/tests/test_NativeFilters.h"

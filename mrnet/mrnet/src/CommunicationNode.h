@@ -7,8 +7,8 @@
 #define __communicationnode_h 1
 
 #include <string>
+#include "mrnet/MRNet.h"
 #include "mrnet/src/Errors.h"
-#include "mrnet/h/MRNet.h"
 
 namespace MRN
 {

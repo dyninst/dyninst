@@ -7,7 +7,7 @@
 #define endpointimpl_h 1
 
 #include <string>
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 
 namespace MRN
 {

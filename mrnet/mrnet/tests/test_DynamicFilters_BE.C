@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/tests/test_DynamicFilters.h"
 
 using namespace MRN;

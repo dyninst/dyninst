@@ -12,6 +12,7 @@
 
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"
+#include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 
@@ -424,7 +425,7 @@ get_packet_from_stream_label:
                 continue;
             }
 
-            cur_packet = cur_stream->get_IncomingPacket();
+            cur_packet = cur_stream->stream->get_IncomingPacket();
             if( cur_packet != *Packet::NullPacket ){
                 mrn_printf( 3, MCFL, stderr,
                             "Found a packet on stream[%d] %p ...\n",

@@ -4,8 +4,8 @@
  **********************************************************************/
 
 #include <iostream>
-#include "mrnet/h/MRNetC.h"
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
+#include "mrnet/MRNetC.h"
 #include "mrnet/src/StreamImpl.h"
 #include <assert.h>
 

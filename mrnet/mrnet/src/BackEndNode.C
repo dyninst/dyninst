@@ -116,13 +116,13 @@ int BackEndNode::proc_DataFromUpStream(Packet& packet)
     stream = network->get_Stream( packet.get_StreamId() );
 
     if( stream ){
-        stream->add_IncomingPacket(packet);
+        stream->stream->add_IncomingPacket(packet);
     }
     else{
         mrn_printf(3, MCFL, stderr, "DCA BE::proc_datafromupstream() creating new stream ...\n");
         stream = network->new_Stream( packet.get_StreamId() );
         mrn_printf(3, MCFL, stderr, "DCA BE::proc_datafromupstream() created stream %p\n", stream);
-        stream->add_IncomingPacket(packet);
+        stream->stream->add_IncomingPacket(packet);
     }
     mrn_printf(3, MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
     return 0;

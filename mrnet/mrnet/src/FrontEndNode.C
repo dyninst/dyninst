@@ -49,7 +49,7 @@ int FrontEndNode::proc_DataFromDownStream( Packet& packet )
             if( stream ) {
                 mrn_printf( 3, MCFL, stderr, "Put packet in stream %d\n",
                             cur_packet.get_StreamId(  ) );
-                stream->add_IncomingPacket( cur_packet );
+                stream->stream->add_IncomingPacket( cur_packet );
             }
             else {
                 mrn_printf( 1, MCFL, stderr, "Packet from unknown stream %d\n",

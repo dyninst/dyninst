@@ -8,10 +8,9 @@
 
 #include <list>
 #include <vector>
-
 #include <map>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
 #include "mrnet/src/Message.h"
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/FrontEndNode.h"

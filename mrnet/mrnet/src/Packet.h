@@ -12,6 +12,7 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/refCounter.h"
+#include "mrnet/src/DataElement.h"
 
 namespace MRN
 {

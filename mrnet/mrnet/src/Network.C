@@ -3,9 +3,6 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-#include "mrnet/src/Types.h"
-
-
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -15,7 +12,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "mrnet/h/MRNet.h"
+#include "mrnet/MRNet.h"
+#include "mrnet/src/Types.h"
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 #include "mrnet/src/NetworkImpl.h"
@@ -96,11 +94,6 @@ void Network::error_str( const char *s )
     network->perror( s );
 }
 
-int Network::send(Packet & packet )
-{
-    assert( network );
-    return network->send( packet );
-}
 
 int Network::recv(bool blocking)
 {
@@ -266,18 +259,6 @@ Stream::Stream( Network *network, int stream_id, int *backends,
                               ds_filter_id, sync_id, us_filter_id ) )
 {
     mrn_printf(3, MCFL, stderr, "DCA Stream::Stream() has stream %p has streamimp %p\n", this, stream);
-}
-
-void Stream::add_IncomingPacket( Packet& packet )
-{
-    assert(stream);
-    stream->add_IncomingPacket( packet );
-}
-
-Packet Stream::get_IncomingPacket()
-{
-    assert(stream);
-    return stream->get_IncomingPacket( );
 }
 
 int Stream::unpack( void *buf, char const *fmt_str, ... )
