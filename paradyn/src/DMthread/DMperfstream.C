@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.27 2000/07/18 17:10:42 schendel Exp $
+// $Id: DMperfstream.C,v 1.28 2000/07/19 21:34:43 schendel Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -139,7 +139,8 @@ void performanceStream::flushBuffer(){
 void performanceStream::signalToFlush() {
     sampleVal_cerr << "performanceStream::signalToFlush\n";
     dataManager::dm->setTid(threadId);
-    dataManager::dm->forceFlush(controlFunc.flFunc);
+    if(controlFunc.flFunc != NULL)
+      dataManager::dm->forceFlush(controlFunc.flFunc);
 }
 
 //
