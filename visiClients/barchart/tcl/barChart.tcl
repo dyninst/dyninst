@@ -2,11 +2,14 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.3  1994/10/04 19:00:23  tamches
-#  implemented resourceWidth algorithm: try to make resources the maximum
-#  pixel width, but if they don't all fit in the window, shrink (down
-#  to a fixed minimum).  Reapply algorithm when: window resizes, resources
-#  are added/deleted.
+#  Revision 1.4  1994/10/04 22:10:56  tamches
+#  more color fixing (moved codes from barChart.C to here)
+#
+# Revision 1.3  1994/10/04  19:00:23  tamches
+# implemented resourceWidth algorithm: try to make resources the maximum
+# pixel width, but if they don't all fit in the window, shrink (down
+# to a fixed minimum).  Reapply algorithm when: window resizes, resources
+# are added/deleted.
 #
 # Revision 1.2  1994/10/01  02:22:25  tamches
 # Fixed some bugs related to scrolling; now, the user can't accidentally
@@ -97,7 +100,7 @@ pack $W.top.left -side left -fill both -expand true
 
 label $W.top.logo -relief raised \
                   -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                  -foreground DarkOliveGreen
+                  -foreground #b3331e1b53c7
 
 pack $W.top.logo -side right -expand false
    # we set expand to false; if the window is made wider, we
@@ -106,7 +109,7 @@ pack $W.top.logo -side right -expand false
 
 # #################### Title bar #################
 
-label $W.top.left.titlebar  -text "BarChart Visualization" -foreground white -background DarkOliveGreen
+label $W.top.left.titlebar  -text "BarChart Visualization" -foreground white -background lightslategray
 pack $W.top.left.titlebar -side top -fill both -expand true
    # expand is set to true, not because we want more space if the window
    # is made taller (which won't happen, since the expand flag of our
@@ -315,6 +318,8 @@ proc Initialize {} {
    global numResourcesDrawn
 
    global SortPrefs
+   global barColors
+   global numBarColors
 
    set SortPrefs NoParticular
    
@@ -348,13 +353,25 @@ proc Initialize {} {
       # toward "minResourceWidth"?  Or once a resource is shrunk, should it never
       # be enlarged?
 
+   # bar colors: (see /usr/lib/X11/rgb.txt)
+   # purple is reserved for the where axis.
+   # red should not be next to green; they look equal to colorblind
+   # use greyscales if b&w monitor
+#   set barColors(0) "tomato"
+   set barColors(0) "cornflower blue"
+   set barColors(1) "medium sea green"
+   set barColors(2) "hotpink"
+   set barColors(3) "chocolate"
+   set barColors(4) "orange"
+   set numBarColors 5
+
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
    launchBarChart $W.body doublebuffer noflicker $numMetrics $numResources 0
 
    # trap window resize and window expose events --- for the subwindow
    # containing the bars only, however.  Note that using
-   # $W.body.barCanvas instead of "." avoids LOTS of unneeded
+   # $W.body instead of "." avoids LOTS of unneeded
    # configuration callbacks.  In particular, when a window is just
    # moved, it won't create a callback (yea!)  This means we
    # can treat a configuration event as a true resize.
@@ -666,7 +683,7 @@ proc drawYaxis {} {
    set height [expr $bottom - $top + 1]
    set tickStep [expr ($height-1) / ($numlabels-1)]
 
-   set numericalStep [expr ($metricMaxValues(0)-$metricMinValues(0)) / ($numlabels-1)]
+   set numericalStep [expr (1.0 * $metricMaxValues(0)-$metricMinValues(0)) / ($numlabels-1)]
 
    puts stderr "drawYaxis: numericalStep is $numericalStep; metric-min is $metricMinValues(0); metric-max is $metricMaxValues(0)"
    flush stderr
