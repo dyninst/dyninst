@@ -5,6 +5,14 @@
 
 #include "mrnet/src/utils.h"
 #include "mrnet/src/Types.h"
+
+#include "xplat/NetUtils.h"
+#include "xplat/PathUtils.h"
+#include "xplat/SocketUtils.h"
+#include "xplat/Error.h"
+
+#include "mrnet/MRNet.h"
+
 #include "src/config.h"
 #include <sys/types.h>
 #include <stdio.h>
@@ -27,12 +35,7 @@
 #include <sys/sockio.h>         //only for solaris
 #endif // defined(solaris)
 
-#include "xplat/NetUtils.h"
-#include "xplat/PathUtils.h"
-#include "xplat/SocketUtils.h"
-#include "xplat/Error.h"
 
-#include "mrnet/MRNet.h"
 
 
 namespace MRN
@@ -43,6 +46,7 @@ Port LocalPort=0;
 
 XPlat::TLSKey tsd_key;
 
+bool tsd_initialized=false;
 
 int connectHost( int *sock_in, const std::string & hostname, Port port )
 {
@@ -336,6 +340,8 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
     std::string ip_address;
     if( getNetworkAddr( ip_address, in_hostname ) == -1 ) {
         //cannot get network address
+        mrn_printf( 1, MCFL, stderr, "IP Address not found for \"%s\"\n",
+                    in_hostname.c_str() );
         return -1;
     }
 
@@ -368,8 +374,9 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
     }
     network_name = hp->h_name;
 
+    //network name must be "localhost" or fully qualified "dotted" name
     int idx = network_name.find( '.' );
-    if( idx == -1 ) {
+    if( !((network_name == "localhost") || (idx != -1)) ){
         //no "." found in network_name
         mrn_printf( 1, MCFL, stderr,
                     "networkname is not fully qualified (%s);"
@@ -441,14 +448,17 @@ int mrn_printf( int level, const char *file, int line, FILE * fp,
     if( file ) {
         // get thread name
         const char *thread_name = NULL;
-        tsd_t *tsd = ( tsd_t * )tsd_key.Get();
-        if( tsd != NULL ) {
-            thread_name = tsd->thread_name;
-        }
 
+        if( tsd_initialized == true ){
+            tsd_t *tsd = ( tsd_t * )tsd_key.Get();
+            if( tsd != NULL ) {
+                thread_name = tsd->thread_name;
+            }
+        }
+            
         fprintf( fp, "%s:%s:%d: ",
-                 ( thread_name !=
-                   NULL ) ? thread_name : "<noname (tsd NULL)>",
+                 ( thread_name != NULL ) ?
+                 thread_name : "<unknown thread>",
                  XPlat::PathUtils::GetFilename( file ).c_str(),
                  line );
     }

@@ -32,6 +32,7 @@ namespace MRN
 
 extern std::string LocalHostName;
 extern Port LocalPort;
+extern bool tsd_initialized;
 
 int connectHost( int *sock_in,
                  const std::string & hostname, Port port );
