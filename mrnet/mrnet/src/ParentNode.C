@@ -4,7 +4,7 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 
 /*====================================================*/
 /*  ParentNode CLASS METHOD DEFINITIONS            */

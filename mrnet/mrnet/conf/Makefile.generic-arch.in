@@ -12,9 +12,9 @@ SHELL = @SHELL@
 
 PLATFORM           = @host@
 MRNET_VERSION      = @MRNET_VERSION@
-BINDIR             = $(MRNET_ROOT)/bin/$(PLATFORM)
-LIBDIR             = $(MRNET_ROOT)/lib/$(PLATFORM)
-OBJDIR             = $(MRNET_ROOT)/obj/$(PLATFORM)
+BINDIR             = ./bin/$(PLATFORM)
+LIBDIR             = ./lib/$(PLATFORM)
+OBJDIR             = ./obj/$(PLATFORM)
 
 ###############################
 #### COMPILERS AND OPTIONS ####

@@ -3,7 +3,7 @@
 
 #include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 
 /*====================================================*/
 /*  RemoteNode CLASS METHOD DEFINITIONS            */

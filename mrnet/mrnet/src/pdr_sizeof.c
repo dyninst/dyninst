@@ -5,7 +5,7 @@
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/pdr_mem.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 
 static bool_t _putchar(PDR *pdrs, char *)
 {

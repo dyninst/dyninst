@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "mrnet/h/MR_Network.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/BackEndNode.h"
 #include "mrnet/src/StreamImpl.h"

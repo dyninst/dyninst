@@ -1,5 +1,5 @@
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>

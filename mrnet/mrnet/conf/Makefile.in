@@ -1,17 +1,21 @@
+
+SRCDIR  = @srcdir@
+PREFIX  = @prefix@
+
 #####################
 # General Definitions
 #####################
 
-include conf/Makefile.inc
-VPATH	= $(MRNET_ROOT)/src:$(MRNET_ROOT)/tests
+include ./conf/Makefile.inc
+VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests
 
-#CC  = gcc
-#CXX = g++
-CFLAGS +=   $(INCDIR) $(WARNFLAGS)
-CXXFLAGS += $(INCDIR) $(WARNFLAGS)
+CC  = @CC@
+CXX = @CXX@
+CFLAGS      += $(INCDIR) $(WARNFLAGS)
+CXXFLAGS    += $(INCDIR) $(WARNFLAGS)
 
-MAKEDEPENDS = $(MRNET_ROOT)/conf/makedepends.sh
-DEPENDDIR = $(MRNET_ROOT)/depends
+MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
+DEPENDDIR = ./depends
 #DEPENDFLAGS = -MM
 
 GCC_VER := $(shell $(CXX) --version 2> /dev/null )
@@ -22,20 +26,20 @@ endif
 ifdef GNU_COMPILER
 ifndef SILENCE_WARNINGS
 WARNFLAGS = -Wall \
-            -Wtraditional          \
-            -Wpointer-arith        \
-            -Wcast-qual            \
-            -Wstrict-prototypes    \
-            -Wmissing-prototypes   \
-            -Wmissing-declarations \
-            -Woverloaded-virtual   \
-            -Winline               \
-            -Wno-deprecated        \
-            -Wwrite-strings        \
-            -Wconversion           \
-            -Wshadow               \
-            -Wredundant-decls      \
-            -Wno-non-template-friend
+	        -Wtraditional          \
+	        -Wpointer-arith        \
+	        -Wcast-qual            \
+	        -Wstrict-prototypes    \
+	        -Wmissing-prototypes   \
+	        -Wmissing-declarations \
+	        -Woverloaded-virtual   \
+	        -Winline               \
+	        -Wno-deprecated        \
+	        -Wwrite-strings        \
+	        -Wconversion           \
+	        -Wshadow               \
+	        -Wredundant-decls      \
+	        -Wno-non-template-friend
 endif # SILENCE_WARNINGS
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
@@ -49,12 +53,12 @@ endif  #GNU_COMPILER
 # System Specific Definitions
 #############################
 TARGETS = $(LIBMC) $(COMMNODE) $(TESTS)
-INCDIR = -I$(MRNET_ROOT)/..
+INCDIR = -I$(SRCDIR)/.. -I. -I$(OBJDIR)
 LIBMC    =$(LIBDIR)/libmrnet.a
 COMMNODE=$(BINDIR)/mrnet_commnode 
 TESTS   = $(BINDIR)/test_basic_FE \
-          $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
-          $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
+	      $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
+	      $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
 
 
 ###################################
@@ -63,41 +67,41 @@ TESTS   = $(BINDIR)/test_basic_FE \
 MC_OBJS = $(LIBMC_OBJS) $(COMMNODE_OBJS)
 
 LIBMC_SRCS = \
-             $(MRNET_ROOT)/src/EndPointImpl.C \
-             $(MRNET_ROOT)/src/CommunicatorImpl.C \
-             $(MRNET_ROOT)/src/StreamImpl.C \
-             $(MRNET_ROOT)/src/NetworkImpl.C \
-             $(MRNET_ROOT)/src/Network.C \
-             $(MRNET_ROOT)/src/StreamManager.C \
-             $(MRNET_ROOT)/src/Filter.C \
-             $(MRNET_ROOT)/src/Message.C \
-             $(MRNET_ROOT)/src/Errors.C \
-             $(MRNET_ROOT)/src/NetworkGraph.C \
-             $(MRNET_ROOT)/src/CommunicationNode.C \
-             $(MRNET_ROOT)/src/RemoteNode.C \
-             $(MRNET_ROOT)/src/ParentNode.C \
-             $(MRNET_ROOT)/src/FrontEndNode.C \
-             $(MRNET_ROOT)/src/ChildNode.C \
-             $(MRNET_ROOT)/src/BackEndNode.C \
-             $(MRNET_ROOT)/src/InternalNode.C \
-             $(MRNET_ROOT)/src/utils.C \
-             $(MRNET_ROOT)/src/pthread_sync.C \
-             $(MRNET_ROOT)/src/pdr.c \
-             $(MRNET_ROOT)/src/pdr_mem.c \
-             $(MRNET_ROOT)/src/pdr_sizeof.c \
-             $(MRNET_ROOT)/src/byte_order.c \
-             $(MRNET_ROOT)/src/scanner.c \
-             $(MRNET_ROOT)/src/parser.tab.c
+	         $(SRCDIR)/src/EndPointImpl.C \
+	         $(SRCDIR)/src/CommunicatorImpl.C \
+	         $(SRCDIR)/src/StreamImpl.C \
+	         $(SRCDIR)/src/NetworkImpl.C \
+	         $(SRCDIR)/src/Network.C \
+	         $(SRCDIR)/src/StreamManager.C \
+	         $(SRCDIR)/src/Filter.C \
+	         $(SRCDIR)/src/Message.C \
+	         $(SRCDIR)/src/Errors.C \
+	         $(SRCDIR)/src/NetworkGraph.C \
+	         $(SRCDIR)/src/CommunicationNode.C \
+	         $(SRCDIR)/src/RemoteNode.C \
+	         $(SRCDIR)/src/ParentNode.C \
+	         $(SRCDIR)/src/FrontEndNode.C \
+	         $(SRCDIR)/src/ChildNode.C \
+	         $(SRCDIR)/src/BackEndNode.C \
+	         $(SRCDIR)/src/InternalNode.C \
+	         $(SRCDIR)/src/utils.C \
+	         $(SRCDIR)/src/pthread_sync.C \
+	         $(SRCDIR)/src/pdr.c \
+	         $(SRCDIR)/src/pdr_mem.c \
+	         $(SRCDIR)/src/pdr_sizeof.c \
+	         $(SRCDIR)/src/byte_order.c \
+	         $(OBJDIR)/scanner.C \
+	         $(OBJDIR)/parser.tab.C
 
 LIBMC_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMC_SRCS)))))
  
-COMMNODE_SRCS = $(MRNET_ROOT)/src/CommunicationNodeMain.C
+COMMNODE_SRCS = $(SRCDIR)/src/CommunicationNodeMain.C
 COMMNODE_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(COMMNODE_SRCS)))))
 
-PDR_SRCS = $(MRNET_ROOT)/src/pdr.c \
-            $(MRNET_ROOT)/src/pdr_mem.c \
-            $(MRNET_ROOT)/src/pdr_sizeof.c \
-            $(MRNET_ROOT)/src/byte_order.c
+PDR_SRCS = $(SRCDIR)/src/pdr.c \
+	        $(SRCDIR)/src/pdr_mem.c \
+	        $(SRCDIR)/src/pdr_sizeof.c \
+	        $(SRCDIR)/src/byte_order.c
 PDR_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(PDR_SRCS)))))
 
 ALL_SRCS = $(LIBMC_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
@@ -115,9 +119,9 @@ DIRS: $(OBJDIR) $(LIBDIR) $(BINDIR)
 $(OBJDIR) $(LIBDIR) $(BINDIR):
 	if [ ! -d $@ ] ; then \
 	    echo Making directory $@ ... ; \
-        { mkdir -p $@ && [ -w $@ ]; } || \
-        { echo "$@ not a writable directory" >&2; exit 1;} \
-    fi 
+	    { mkdir -p $@ && [ -w $@ ]; } || \
+	    { echo "$@ not a writable directory" >&2; exit 1;} \
+	fi 
 
 $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMC)
 	echo Linking `basename $@` ...
@@ -152,9 +156,9 @@ $(BINDIR)/microbench_BE: $(LIBMC) $(OBJDIR)/microbench_BE.o
 	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_BE.o $(LIBMC) $(LIBS)
 
-$(BINDIR)/config_generator: $(MRNET_ROOT)/tests/config_generator.C
+$(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
 	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(MRNET_ROOT)/tests/config_generator.C
+	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
 	echo "Linking `basename $@` ..."
@@ -164,52 +168,53 @@ $(BINDIR)/xdr_test: tests/xdr_test.c
 	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
 
-$(MRNET_ROOT)/src/scanner.c: scanner.l $(MRNET_ROOT)/src/parser.tab.c $(FRC)
+$(OBJDIR)/scanner.C: $(SRCDIR)/src/scanner.l $(OBJDIR)/parser.tab.C $(FRC)
 	echo Building `basename $@` ...
 	$(RM)  $@; $(FLEX) -Pmrn -t $< > $@ 
 
-$(MRNET_ROOT)/src/parser.tab.c: parser.y $(FRC)
+$(OBJDIR)/parser.tab.C $(OBJDIR)/parser.tab.h: $(SRCDIR)/src/parser.y $(FRC)
 	echo Building `basename $@` ...
 	$(BISON) -p mrn -d -o $@ $<
+	mv $(OBJDIR)/parser.tab.H $(OBJDIR)/parser.tab.h
 
-parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
-        src/Network.o
+parser: $(OBJDIR)/scanner.C $(OBJDIR)/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS) \
+	    src/Network.o
 	echo Building `basename $@`
-	$(CXX) $(CXXFLAGS) -o $@ src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/scanner.C $(OBJDIR)/src/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS)
 
 #################################
 # Defining Cleaning rules
 #################################
 clean:
 	echo Cleaning $(PLATFORM) platform ...
-	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/* $(MRNET_ROOT)/src/parser.tab.* \
-          $(MRNET_ROOT)/src/scanner.c
+	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/* $(OBJDIR)/parser.tab.* \
+	      $(OBJDIR)/scanner.C
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 CLEAN:
 	echo Cleaning all platforms ...
-	$(RM) -r bin lib obj $(MRNET_ROOT)/src/parser.tab.* \
-          $(MRNET_ROOT)/src/scanner.c
+	$(RM) -r $(DEPENDDIR)
+	$(RM) -r $(OBJDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)/parser.tab.* $(OBJDIR)/scanner.C
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 distclean: CLEAN
 	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
 
 files = mrnet/*/*.[C,h,c,y,l] \
-        mrnet/src/config.h.in \
-        mrnet/configure \
-        mrnet/configure.in \
-        mrnet/conf/Makefile.generic-arch.in \
-        mrnet/conf/Makefile.in \
-        mrnet/conf/Makefile.inc.in \
-        mrnet/conf/aclocal.m4 \
-        mrnet/conf/install-sh \
-        mrnet/conf/config.guess \
-        mrnet/conf/config.sub \
-        mrnet/conf/check_configuration \
-        mrnet/conf/check-up \
-        mrnet/conf/clean-up \
-        mrnet/conf/keystash
+	    mrnet/src/config.h.in \
+	    mrnet/configure \
+	    mrnet/configure.in \
+	    mrnet/conf/Makefile.generic-arch.in \
+	    mrnet/conf/Makefile.in \
+	    mrnet/conf/Makefile.inc.in \
+	    mrnet/conf/aclocal.m4 \
+	    mrnet/conf/install-sh \
+	    mrnet/conf/config.guess \
+	    mrnet/conf/config.sub \
+	    mrnet/conf/check_configuration \
+	    mrnet/conf/check-up \
+	    mrnet/conf/clean-up \
+	    mrnet/conf/keystash
 
 BACKUPDIR = /p/paradyn/development/darnold/mrnet-backups
 tar:
@@ -217,25 +222,25 @@ tar:
 	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
 
 files2 = conf/Makefile.in  \
-         $(MRNET_ROOT)/src/CommunicatorImpl.C \
-         $(MRNET_ROOT)/src/CommunicatorImpl.h \
-         $(MRNET_ROOT)/src/StreamImpl.C \
-         $(MRNET_ROOT)/src/StreamImpl.h \
-         $(MRNET_ROOT)/src/NetworkImpl.C \
-         $(MRNET_ROOT)/src/NetworkImpl.h \
-         $(MRNET_ROOT)/src/Network.C \
-         $(MRNET_ROOT)/h/Network.h \
-         $(MRNET_ROOT)/src/StreamManager.C \
-         $(MRNET_ROOT)/src/StreamManager.h \
-         $(MRNET_ROOT)/src/Filter.C \
-         $(MRNET_ROOT)/src/Filter.h \
-         $(MRNET_ROOT)/src/Message.C \
-         $(MRNET_ROOT)/src/Message.h \
-         $(MRNET_ROOT)/src/NetworkGraph.C \
-         $(MRNET_ROOT)/src/NetworkGraph.h \
-         $(MRNET_ROOT)/src/CommunicationNode.C \
-         $(MRNET_ROOT)/src/CommunicationNode.h \
-         $(MRNET_ROOT)/src/CommunicationNodeMain.C
+	     $(SRCDIR)/src/CommunicatorImpl.C \
+	     $(SRCDIR)/src/CommunicatorImpl.h \
+	     $(SRCDIR)/src/StreamImpl.C \
+	     $(SRCDIR)/src/StreamImpl.h \
+	     $(SRCDIR)/src/NetworkImpl.C \
+	     $(SRCDIR)/src/NetworkImpl.h \
+	     $(SRCDIR)/src/Network.C \
+	     $(SRCDIR)/h/Network.h \
+	     $(SRCDIR)/src/StreamManager.C \
+	     $(SRCDIR)/src/StreamManager.h \
+	     $(SRCDIR)/src/Filter.C \
+	     $(SRCDIR)/src/Filter.h \
+	     $(SRCDIR)/src/Message.C \
+	     $(SRCDIR)/src/Message.h \
+	     $(SRCDIR)/src/NetworkGraph.C \
+	     $(SRCDIR)/src/NetworkGraph.h \
+	     $(SRCDIR)/src/CommunicationNode.C \
+	     $(SRCDIR)/src/CommunicationNode.h \
+	     $(SRCDIR)/src/CommunicationNodeMain.C
 
 edit:
 	echo Editing $(files2) ...
@@ -250,11 +255,12 @@ edit:
 
 $(OBJDIR)/%.o: %.c $(FRC)
 	echo Compiling `basename $@` ...
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) -x c++ $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.C $(FRC)
 	echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
 
 #$(OBJDIR)/%.d: %.c $(FRC)
 #echo Building Depends File `basename $@` ...

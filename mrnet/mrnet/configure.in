@@ -70,7 +70,7 @@ MRNET_OSVER=`echo $host_os | sed 's/[-|.]/_/g'`
 #MRNET_OS=$host_os
 #echo $MRNET_OS $MRNET_OSVER
 MRNET_ROOT=`pwd`
-MRNET_VERSION="`cat VERSION`"
+MRNET_VERSION="`cat $(srcdir)/VERSION`"
 changequote([, ])dnl
 
 AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode")
@@ -170,6 +170,11 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
+
+AS_MKDIR_P([obj])
+AS_MKDIR_P([lib])
+AS_MKDIR_P([bin])
+AS_MKDIR_P([depends])
 
 AC_OUTPUT(conf/Makefile.$MRNET_ARCH.inc:conf/Makefile.generic-arch.in \
           conf/Makefile.inc Makefile:conf/Makefile.in)

@@ -7,7 +7,7 @@ ARROW    "=>"
 %{
 #include <string.h>
 #include "mrnet/src/NetworkGraph.h"
-#include "mrnet/src/parser.tab.h"
+#include "parser.tab.h"
 int linenum=1;
 %}
 %option noyywrap

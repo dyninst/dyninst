@@ -1,7 +1,7 @@
 #include "mrnet/src/byte_order.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/pdr_mem.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 
 static struct pdr_ops pdrmem_ops = {
   pdrmem_putchar,
