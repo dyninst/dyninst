@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.13  1994/09/25 01:57:45  newhall
-/* added visi_DataGrid method functions ResourceIndex, MetricIndex
+/* Revision 1.14  1994/11/02 04:14:35  newhall
+/* memory leak fixes
 /*
+ * Revision 1.13  1994/09/25  01:57:45  newhall
+ * added visi_DataGrid method functions ResourceIndex, MetricIndex
+ *
  * Revision 1.12  1994/08/11  02:49:35  newhall
  * removed deleted member to gridcell
  *
@@ -82,7 +85,7 @@ class Metric{
   public:
      Metric(){units = NULL; name = NULL; Id = NOVALUE; aggregate=SUM;}
      Metric(char* ,char*,int,int); 
-     ~Metric(){delete[] units;delete[] name;} 
+     ~Metric(); 
      char       *Units(){return(units);}
      char       *Name(){return(name);}
      int         Identifier(){return(Id);}
@@ -96,7 +99,7 @@ class Resource{
    public:
      Resource(){name = NULL; Id = -1;}
      Resource(char*,int);
-     ~Resource(){ delete[] name;} 
+     ~Resource();
      char     *Name(){return(name);}
      int       Identifier(){return(Id);}
 };
@@ -129,7 +132,7 @@ class visi_GridCellHisto {
 			  userdata = NULL; lastBucketFilled = -1; 
 			  firstValidBucket = -1; enabled = 0;}
      visi_GridCellHisto(int);
-     ~visi_GridCellHisto(){delete[] value; valid = 0; enabled = 0; size = 0;}
+     ~visi_GridCellHisto();
      int    LastBucketFilled(){return(lastBucketFilled);}
      sampleType  *Value(){ return(value);}
 
@@ -290,7 +293,7 @@ class visi_GridCellHisto {
 
 
 ////////////////////////////////////////
-// visi_GridCellHisto: 
+// visi_GridHistoArray: 
 ////////////////////////////////////////
 class  visi_GridHistoArray {
    private:
@@ -387,7 +390,7 @@ class visi_DataGrid {
 
      visi_DataGrid(int,int,Metric *,Resource *,int,timeType);
      visi_DataGrid(int,int,visi_metricType *,visi_resourceType *,int,timeType);
-     virtual ~visi_DataGrid();
+     virtual   ~visi_DataGrid();
      char      *MetricName(int i);
      char      *MetricUnits(int i);
      char      *ResourceName(int j);

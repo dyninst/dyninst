@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.19  1994/10/13 15:39:17  newhall
-/* QuitVisi added
+/* Revision 1.20  1994/11/02 04:15:00  newhall
+/* memory leak fixes
 /*
+ * Revision 1.19  1994/10/13  15:39:17  newhall
+ * QuitVisi added
+ *
  * Revision 1.18  1994/09/30  21:00:51  newhall
  * use datagrid method functions MetricId and ResourceId
  *
@@ -146,7 +149,9 @@ int StartVisi(int argc,
 // Visualizations should call this routine before exiting 
 ///////////////////////////////////////////////////////////
 void QuitVisi(){
+
     delete vp;
+
 }
 
 
@@ -470,6 +475,15 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
      dataGrid[dataGrid.MetricIndex(newElements.data[k].met.Id)][dataGrid.ResourceIndex(newElements.data[k].res.Id)].SetEnabled();
   }
  
+  for(i=0; i < numRes; i++){
+     if(res[i].name) free(res[i].name);
+  }
+  for(i=0; i < numMet; i++){
+     if(mets[i].units) free(mets[i].units);
+     if(mets[i].name) free(mets[i].name);
+  }
+  free(mets);
+  free(res);
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
   if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
      ok = eventCallbacks[ADDMETRICSRESOURCES](0);

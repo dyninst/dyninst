@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.12  1994/08/11 02:52:09  newhall
-/* removed calls to grid cell Deleted member functions
+/* Revision 1.13  1994/11/02 04:14:57  newhall
+/* memory leak fixes
 /*
+ * Revision 1.12  1994/08/11  02:52:09  newhall
+ * removed calls to grid cell Deleted member functions
+ *
  * Revision 1.11  1994/07/30  03:25:35  newhall
  * added enabled member to gridcell to indicate that the metric associated
  * w/ this cell has been enabled and data will arrive for it eventually
@@ -93,6 +96,17 @@ Metric::Metric(char *metricUnits,
     aggregate = SUM;
 }
 
+//
+//  Metric destructor
+//
+Metric::~Metric(){
+  if(name) delete[] name; 
+  name = 0;
+  if(units) delete[] units; 
+  units = 0;
+  Id = NOVALUE;
+}
+
 ///////////////////////////////////////////
 //
 //  Resource constructor
@@ -115,6 +129,15 @@ Resource::Resource(char *resourceName,
   }
 }
 
+//
+//  Resource destructor
+//
+Resource::~Resource(){
+
+  if(name) delete[] name;
+  name = 0;
+  Id = -1;
+}
 
 ///////////////////////////////////////////
 //
@@ -134,6 +157,18 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
  size       = numElements;
  lastBucketFilled = -1;
  firstValidBucket = -1;
+}
+
+//
+// destructor for class visi_GridCellHisto
+//
+visi_GridCellHisto::~visi_GridCellHisto(){
+
+  if(value) delete[] value;
+  value = 0;
+  valid = 0;
+  enabled = 0;
+  size = 0;
 }
 
 ///////////////////////////////////////////
@@ -192,7 +227,7 @@ int visi_GridHistoArray::Invalidate(int i){
 //
 int visi_GridHistoArray::AddNewResources(int howmany){
 
-visi_GridCellHisto *temp;
+visi_GridCellHisto *temp = 0;
 
   if(howmany > 0){
     temp = values;
@@ -211,6 +246,7 @@ visi_GridCellHisto *temp;
     size += howmany;
     
   }
+  delete[] temp;
   return(OK);
 
 }
@@ -416,10 +452,10 @@ int i,ok;
   resources = new Resource[numResources + howmany];
 
   for(i = 0; i < numResources; i++){
-    resources[i].Resource(temp[i].Name(),temp[i].Identifier());
+      resources[i].Resource(temp[i].Name(),temp[i].Identifier());
   }
   for(i = numResources; i < (numResources + howmany); i++){
-    resources[i].Resource(rlist[i-numResources].name,
+      resources[i].Resource(rlist[i-numResources].name,
 			  rlist[i-numResources].Id);
   }
 
@@ -427,9 +463,15 @@ int i,ok;
 
   // add space to data grid for new resources
   for(i = 0; i < numMetrics; i++){
-     if((ok = data_values[i].AddNewResources(howmany)) != OK)
-       return(ok); 
+      if((ok = data_values[i].AddNewResources(howmany)) != OK){
+          delete[] temp;
+          temp = 0;
+          return(ok); 
+      }
   }
+
+  delete[] temp;
+  temp = 0;
   return(OK);
 }
 
