@@ -87,20 +87,6 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
    tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
 }
 
-void printFunctionLoops(pd_Function * pdf, process * proc) {
-    fprintf( stderr, "Function %s loops:\n", pdf->prettyName().c_str());
-    bool valid;
-    BPatch_flowGraph *fg = 
-	new BPatch_flowGraph(static_cast<function_base *>(pdf),
-			     proc, 
-			     pdf->file(), 
-			     valid);
-    if (valid) {
-	BPatch_Vector<BPatch_basicBlockLoop *> loops;
-	fg->getOuterLoops(loops);
-	fg->printLoops(loops);
-    }
-}
 
 // Called across all modules (in a given image) to define the call
 //  graph relationship between functions.
@@ -117,7 +103,7 @@ void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
       pd_Function *pdf = (*mod_funcs)[f];
 
-      if (printLoops) printFunctionLoops(pdf, proc);
+      if (printLoops) pdf->printLoops(proc);
     
       callees_as_strings.resize(0);
     
