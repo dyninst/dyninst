@@ -41,8 +41,10 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.58 2000/04/12 19:55:47 pcroth Exp $
+ * $Id: inst-x86.C,v 1.59 2000/05/01 17:33:42 mihai Exp $
  */
+
+#include <iomanip.h>
 
 #include <limits.h>
 #include "util/h/headers.h"
@@ -118,8 +120,41 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (-NUM_VIRTUAL_REGISTERS*4-4)
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
+class NonRecursiveTrampTemplate : public trampTemplate
+{
 
+public:
+
+  int guardOnPre_beginOffset;
+  int guardOnPre_endOffset;
+
+  int guardOffPre_beginOffset;
+  int guardOffPre_endOffset;
+
+  int guardOnPost_beginOffset;
+  int guardOnPost_endOffset;
+
+  int guardOffPost_beginOffset;
+  int guardOffPost_endOffset;
+
+};
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm,
+		   unsigned char * & insn );
+void emitMovImmToMem( Address maddr, int imm,
+		      unsigned char * & insn );
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
    checkInstructions: check that there are no known jumps to the instructions
@@ -982,6 +1017,107 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
   }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+#if defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_nt4_0)
+int guard_code_before_pre_instr_size  = 19; /* size in bytes */
+int guard_code_after_pre_instr_size   = 10; /* size in bytes */
+int guard_code_before_post_instr_size = 19; /* size in bytes */
+int guard_code_after_post_instr_size  = 10; /* size in bytes */
+#else
+int guard_code_before_pre_instr_size  = 0; /* size in bytes */
+int guard_code_after_pre_instr_size   = 0; /* size in bytes */
+int guard_code_before_post_instr_size = 0; /* size in bytes */
+int guard_code_after_post_instr_size  = 0; /* size in bytes */
+#endif
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+unsigned int get_guard_code_size() /* total size in bytes of the four
+				      guard code fragments*/
+{
+  return
+    guard_code_before_pre_instr_size +
+    guard_code_after_pre_instr_size +
+    guard_code_before_post_instr_size +
+    guard_code_after_post_instr_size;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitJccR8( int condition_code,
+		char jump_offset,
+		unsigned char * & instruction )
+{
+  *instruction++ = condition_code;
+  *instruction++ = jump_offset;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+#if defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_nt4_0)
+void generate_guard_code( unsigned char * buffer,
+			  const NonRecursiveTrampTemplate & base_template,
+			  Address /* base_address */,
+			  Address guard_flag_address )
+{
+  unsigned char * instruction;
+
+  /* guard-on code before pre instr */
+  /* Code generated:
+   * --------------
+   * cmpl   $0x0, (guard flag address)
+   * je     <after guard-off code>
+   * movl   $0x0, (guard flag address)
+   */
+  instruction = buffer + base_template.guardOnPre_beginOffset;
+  /*            CMP_                       (memory address)__  0 */
+  emitOpRMImm8( 0x83, 0x07, Null_Register, guard_flag_address, 0, instruction );
+  emitJccR8( JE_R8, buffer + base_template.guardOffPre_endOffset - ( instruction + 2 ), instruction );
+  emitMovImmToMem( guard_flag_address, 0, instruction );
+
+  /* guard-off code after pre instr */
+  /* Code generated:
+   * --------------
+   * movl   $0x1, (guard flag address)
+   */
+  instruction = buffer + base_template.guardOffPre_beginOffset;
+  emitMovImmToMem( guard_flag_address, 1, instruction );
+
+  /* guard-on code before post instr */
+  instruction = buffer + base_template.guardOnPost_beginOffset;
+  emitOpRMImm8( 0x83, 0x07, Null_Register, guard_flag_address, 0x00, instruction );
+  emitJccR8( JE_R8, buffer + base_template.guardOffPost_endOffset - ( instruction + 2 ), instruction );
+  emitMovImmToMem( guard_flag_address, 0, instruction );
+
+  /* guard-off code after post instr */
+  instruction = buffer + base_template.guardOffPost_beginOffset;
+  emitMovImmToMem( guard_flag_address, 1, instruction );
+}
+#else
+void generate_guard_code( unsigned char * /* buffer */,
+			  const NonRecursiveTrampTemplate & /* base_template */,
+			  Address /* base_address */,
+			  Address /* guard_flag_address */ )
+{
+}
+#endif
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * Install a base tramp, relocating the instructions at location
@@ -990,9 +1126,14 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
  *
  */
 
-trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool noCost) 
+trampTemplate *installBaseTramp( const instPoint *location,
+				 process *proc,
+				 bool noCost,
+				 bool trampRecursiveDesired = true
+				 ) 
 {
    bool aflag;
+
 /*
    The base tramp:
    addr   instruction             cost
@@ -1034,11 +1175,28 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
    cost of pre and post instrumentation is (1+1+1+5+9+1+1+15+5+3) = 42
    cost of rest of tramp is (1+3+1+1)
 
+   [mihai Wed Apr 12 00:22:03 CDT 2000]
+     Additionally, if a guarded template is generated
+     (i.e. trampRecursiveDesired = false), four more code fragments are inserted:
+     - code to turn the guard on (19 bytes): between a+15 and a+16, and
+                                             between b+15 and b+16
+     - code to turn the guard off (10 bytes): between a+21 and a+26, and
+                                              between b+21 and b+26
+     A total of 58 bytes are added to the base tramp.
 */
 
   unsigned u;
-  trampTemplate *ret = new trampTemplate;
+  trampTemplate *ret = 0;
+  if( trampRecursiveDesired )
+    {
+      ret = new trampTemplate;
+    }
+  else
+    {
+      ret = new NonRecursiveTrampTemplate;
+    }
   ret->trampTemp = 0;
+
   unsigned jccTarget = 0; // used when the instruction at the point is a cond. jump
   unsigned auxJumpOffset = 0;
 
@@ -1053,6 +1211,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
 #else
   unsigned trampSize = 73;
 #endif
+
+  if( ! trampRecursiveDesired )
+    {
+      trampSize += get_guard_code_size();
+    }
 
   for (u = 0; u < location->insnsBefore(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
@@ -1086,6 +1249,8 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
 
   ret->size = trampSize;
   Address baseAddr = inferiorMalloc(proc, trampSize, textHeap);
+  // cout << "installBaseTramp(): trampoline base address = 0x"
+  //      << setw( 8 ) << setfill( '0' ) << hex << baseAddr << dec << endl;
   ret->baseAddr = baseAddr;
 
   unsigned char *code = new unsigned char[2*trampSize];
@@ -1173,6 +1338,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
   insn += base;
 #endif
 
+  if( ! trampRecursiveDesired )
+    {
+      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      temp_ret->guardOnPre_beginOffset = insn - code;
+      for( int i = 0; i < guard_code_before_pre_instr_size; i++ )
+	emitSimpleInsn( 0x90, insn );
+      temp_ret->guardOnPre_endOffset = insn - code;
+    }
+
   // global pre branch
   ret->globalPreOffset = insn-code;
   emitJump(0, insn);
@@ -1182,6 +1356,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
   emitJump(0, insn);
 
   ret->localPreReturnOffset = insn-code;
+
+  if( ! trampRecursiveDesired )
+    {
+      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      temp_ret->guardOffPre_beginOffset = insn - code;
+      for( int i = 0; i < guard_code_after_pre_instr_size; i++ )
+	emitSimpleInsn( 0x90, insn );
+      temp_ret->guardOffPre_endOffset = insn - code;
+    }
 
   // restore registers
   emitSimpleInsn(POPFD, insn);     // popfd
@@ -1256,6 +1439,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
   insn += base;
 #endif
 
+  if( ! trampRecursiveDesired )
+    {
+      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      temp_ret->guardOnPost_beginOffset = insn - code;
+      for( int i = 0; i < guard_code_before_post_instr_size; i++ )
+	emitSimpleInsn( 0x90, insn );
+      temp_ret->guardOnPost_endOffset = insn - code;
+    }
+
   // global post branch
   ret->globalPostOffset = insn-code; 
   emitJump(0, insn);
@@ -1265,6 +1457,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
   emitJump(0, insn);
 
   ret->localPostReturnOffset = insn-code;
+
+  if( ! trampRecursiveDesired )
+    {
+      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      temp_ret->guardOffPost_beginOffset = insn - code;
+      for( int i = 0; i < guard_code_after_post_instr_size; i++ )
+	emitSimpleInsn( 0x90, insn );
+      temp_ret->guardOffPost_endOffset = insn - code;
+    }
 
   // restore registers
   emitSimpleInsn(POPFD, insn);     // popfd
@@ -1309,6 +1510,28 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool n
     ip = code + auxJumpOffset;
     emitJump(ret->returnInsOffset - (auxJumpOffset+JUMP_SZ), ip);
   }
+
+  if( ! trampRecursiveDesired )
+    {
+      /* prepare guard flag memory, if needed */
+      Address guardFlagAddress = proc->getTrampGuardFlagAddr();
+      if( guardFlagAddress == 0 )
+	{
+	  int initial_value = 1;
+
+	  guardFlagAddress = inferiorMalloc( proc, sizeof( int ), dataHeap );
+	  // cout << "installBaseTramp(): flag address = 0x"
+	  //      << setw( 8 ) << setfill( '0' ) << hex << guardFlagAddress << dec << endl;
+
+	  /* Initialize the new value */
+	  proc->writeDataSpace( ( void * )guardFlagAddress, sizeof( int ), & initial_value );
+
+	  proc->setTrampGuardFlagAddr( guardFlagAddress );
+	}
+
+      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      generate_guard_code( code, * temp_ret, baseAddr, guardFlagAddress );
+    }
   
   // put the tramp in the application space
   proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
@@ -1353,7 +1576,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     retInstance = NULL;
 
     if (!proc->baseMap.defines(location)) {
-	ret = installBaseTramp(location, proc, noCost);
+	ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
 	proc->baseMap[location] = ret;
 	// generate branch from instrumentation point to base tramp
 	Address imageBaseAddr;

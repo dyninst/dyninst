@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.7 2000/04/07 15:08:31 pcroth Exp $
+// $Id: arch-x86.C,v 1.8 2000/05/01 17:33:42 mihai Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1060,7 +1060,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
   unsigned ModRMbyte;
   unsigned RM=0;
   unsigned REG;
-  unsigned SIBbyte;
+  unsigned SIBbyte = 0;
   bool hasSIB;
   //Initialize default values to an appropriately devilish number 
   base_reg = 666;
@@ -1108,7 +1108,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	return REGISTER_DIRECT;
       }
       else if (Mod == 2){
-	displacement = *((unsigned int *)ptr);
+	displacement = *( ( const unsigned int * ) ptr );
 	ptr+= wordSzB;
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
@@ -1120,7 +1120,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	}
       }
       else if(Mod == 1){//call with 8-bit signed displacement
-	displacement = *(char*)ptr;
+	displacement = *( const char * )ptr;
 	ptr+= byteSzB;
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
@@ -1135,7 +1135,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
 	  if(base_reg == 5){
-	    displacement = *((unsigned int *)ptr);
+	    displacement = *( ( const unsigned int * )ptr );
 	    ptr+= wordSzB;
 	  }
 	  else 
@@ -1143,7 +1143,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	  return SIB;
 	}
 	else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
-	  displacement = *((unsigned int *)ptr);
+	  displacement = *( ( const unsigned int * ) ptr );
 	  ptr+= wordSzB;
 	  return DISPLACED;
 	}
