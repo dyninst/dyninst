@@ -92,7 +92,7 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
     mc_printf(MCFL, stderr, "Checking stream[%d] for packets ...", cur_stream_idx);
     if( cur_stream->IncomingPacketBuffer.size() != 0 ){
       _fprintf((stderr, "found %d packets\n",
-                cur_stream->IncomingPacketBuffer.size()));
+                (int)cur_stream->IncomingPacketBuffer.size()));
 
       std::list<MC_Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
 

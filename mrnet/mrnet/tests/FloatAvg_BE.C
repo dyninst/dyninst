@@ -10,7 +10,7 @@ int main(int argc, char **argv){
   MC_Stream * stream;
   char * buf=NULL;
   int tag, num_trials;
-  float *send_vals;
+  float *send_vals=0;
 
   if( MC_Network::init_Backend(argv[argc-5], argv[argc-4],
                                argv[argc-3], argv[argc-2], argv[argc-1]) == -1){

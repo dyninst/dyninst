@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     if( hosts.size() < num_nodes ){
         fprintf(stderr, "not enough nodes in %s: %d of %d\n",
-                machine_file, hosts.size(), num_nodes);
+                machine_file, (int)hosts.size(), num_nodes);
         exit(-1);
     }
     

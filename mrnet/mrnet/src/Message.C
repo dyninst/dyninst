@@ -202,7 +202,7 @@ int MC_Message::send(int sock_fd)
     packet_sizes[i] = curPacket->get_BufferLen();
 
     total_bytes += iov[i].iov_len;
-    _fprintf((stderr, "%d, ", iov[i].iov_len));
+    _fprintf((stderr, "%d, ", (int)iov[i].iov_len));
   }
   _fprintf((stderr, "]\n"));
   
@@ -290,7 +290,7 @@ int MC_Message::send(int sock_fd)
             for(i=0; i<iovlen; i++){
               mc_printf(MCFL, stderr, "vector[%d].size = %d\n",
                     i, currIov[i].iov_len);
-              fprintf(stderr, "vector[%d].size = %d\n", i, currIov[i].iov_len);
+              fprintf(stderr, "vector[%d].size = %d\n", i, (int)currIov[i].iov_len);
             }
             _perror("writev()");
             return -1;
@@ -414,10 +414,9 @@ MC_Packet::MC_Packet(unsigned int _buf_len, char * _buf)
 MC_Packet::MC_Packet(int _tag,
                      unsigned short _sid,
                      MC_DataElement *_data_elements, const char * _fmt_str)
-  : tag(_tag),
-    stream_id(_sid),
-    fmt_str(strdup(_fmt_str)),
-    src(strdup("<agg>"))
+  : stream_id(_sid), tag(_tag),
+    src(strdup("<agg>")),
+    fmt_str(strdup(_fmt_str))
 {
   char *cur_fmt, * fmt = strdup(_fmt_str), *buf_ptr;
   int i=0;
@@ -493,7 +492,7 @@ int MC_Packet::ExtractVaList(const char * fmt, va_list arg_list){
 bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
   char *cur_fmt, * fmt, *buf_ptr;
   unsigned int i;
-  bool_t retval;
+  bool_t retval=0;
   MC_DataElement * cur_elem;
 
   mc_printf(MCFL, stderr, "In pdr_packet. op: %d\n", pdrs->p_op);

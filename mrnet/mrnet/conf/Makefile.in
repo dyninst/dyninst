@@ -5,15 +5,18 @@
 include conf/Makefile.inc
 VPATH	= $(MRNET_ROOT)/src:$(MRNET_ROOT)/tests
 
-CC  = gcc
-CXX = g++
-CFLAGS =   $(DEFS) $(OPTFLAGS) $(INCDIR) $(WARNFLAGS) -gstabs
-CXXFLAGS = $(DEFS) $(OPTFLAGS) $(INCDIR) $(WARNFLAGS) -gstabs
+#CC  = gcc
+#CXX = g++
+CFLAGS +=   $(INCDIR) $(WARNFLAGS)
+CXXFLAGS += $(INCDIR) $(WARNFLAGS)
 DEPENDFLAGS = -MM
 
-LIBS = -lfl -lpthread
+GCC_VER := $(shell $(CXX) --version 2> /dev/null )
+ifeq (GCC,$(findstring GCC,$(GCC_VER)))
+GNU_COMPILER = true
+endif
 
-#SILENCE_WARNINGS=true
+ifdef GNU_COMPILER
 ifndef SILENCE_WARNINGS
 WARNFLAGS = -Wall \
             -Wtraditional          \
@@ -29,19 +32,15 @@ WARNFLAGS = -Wall \
             -Wconversion           \
             -Wshadow               \
             -Wredundant-decls      \
-            -Wno-non-template-friend \
-#            -pedantic              \
-
+            -Wno-non-template-friend
+endif # SILENCE_WARNINGS
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
 else   # STL on Solaris with cast-align generates a warning with much output
 WARNFLAGS       += -Wcast-align
-endif
-endif # SILENCE_WARNINGS
+endif  #End GNU/Solaris
+endif  #GNU_COMPILER
 
-DEFS = -Di386_unknown_linux2_4 -Di386_unknown_linux2_0 $(DEBUGFLAGS) $(OPTFLAGS)
-DEBUGFLAGS = -DDEBUG -g
-#OPTFLAGS = -O2
 
 #############################
 # System Specific Definitions
@@ -111,70 +110,70 @@ rebuild: DIRS
 force_rebuild:
 
 DIRS: $(OBJDIR) $(LIBDIR) $(BINDIR)
-	for dir in $(OBJDIR) $(LIBDIR) $(BINDIR); do \
-          if [ ! -d $$dir ] ; then \
-	    echo Making directory $$dir ... ; \
-            { mkdir -p $$dir && [ -w $$dir ]; } || \
-            { echo "$$dir not a writable directory" >&2; exit 1;} \
-          fi \
-        done
+
+$(OBJDIR) $(LIBDIR) $(BINDIR):
+	if [ ! -d $@ ] ; then \
+	    echo Making directory $@ ... ; \
+        { mkdir -p $@ && [ -w $@ ]; } || \
+        { echo "$@ not a writable directory" >&2; exit 1;} \
+    fi 
 
 $(BINDIR)/comm_node: $(COMMNODE_OBJS) $(LIBMC)
-	echo Linking $@ ...
+	echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMC) $(LIBS)
 
 $(LIBMC): $(LIBMC_OBJS)
-	echo "Archiving $@ ... (Adding $?)"
+	echo Archiving `basename $@` ...
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
 $(BINDIR)/test1_FE: $(LIBMC) $(OBJDIR)/test1_FE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test1_FE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/test1_BE: $(LIBMC) $(OBJDIR)/test1_BE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test1_BE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/FloatAvg_FE: $(LIBMC) $(OBJDIR)/FloatAvg_FE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_FE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/FloatAvg_BE: $(LIBMC) $(OBJDIR)/FloatAvg_BE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_BE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/microbench_FE: $(LIBMC) $(OBJDIR)/microbench_FE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_FE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/microbench_BE: $(LIBMC) $(OBJDIR)/microbench_BE.o
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_BE.o $(LIBMC) $(LIBS)
 
 $(BINDIR)/config_generator: $(MRNET_ROOT)/tests/config_generator.C
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(MRNET_ROOT)/tests/config_generator.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
 
 $(BINDIR)/xdr_test: tests/xdr_test.c
-	echo "Linking $@ ..."
+	echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
 
 $(MRNET_ROOT)/src/scanner.c: scanner.l $(MRNET_ROOT)/src/parser.tab.c $(FRC)
-	echo Building $@ ...
+	echo Building `basename $@` ...
 	$(RM)  $@; $(FLEX) -Pmrn -t $< > $@ 
 
 $(MRNET_ROOT)/src/parser.tab.c: parser.y $(FRC)
-	echo Building $@ ...
+	echo Building `basename $@` ...
 	$(BISON) -p mrn -d -o $@ $<
 
 parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
         src/Network.o
-	echo Building $@
+	echo Building `basename $@`
 	$(CXX) $(CXXFLAGS) -o $@ src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS)
 
 #################################
@@ -249,20 +248,20 @@ edit:
 .SUFFIXES: .c .C .o .d
 
 $(OBJDIR)/%.o: %.c $(FRC)
-	echo Compiling $@ ...
+	echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.C $(FRC)
-	echo Compiling $@ ...
+	echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.d: %.c $(FRC)
-	echo Building Depends File $@ ...
+	echo Building Depends File `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
 		[ -s $@ ] || rm -f $@
 
 $(OBJDIR)/%.d: %.C $(FRC)
-	echo Building Depends File $@ ...
+	echo Building Depends File `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
 		[ -s $@ ] || rm -f $@
 
