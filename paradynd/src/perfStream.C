@@ -772,7 +772,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    }
 
             bool delayIGENrequests=false;
-	    for (unsigned u1=0; u1<p_size; u++) {
+	    for (unsigned u1=0; u1<p_size; u1++) {
 	      if (processVec[u1] == NULL)
 	        continue; // process structure has been deallocated
  
