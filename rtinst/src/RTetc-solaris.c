@@ -39,21 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-
-
-
-
 /************************************************************************
  * RTsolaris.c: clock access functions for solaris-2.
 ************************************************************************/
 
-
-
-
-
-/************************************************************************
- * header files.
-************************************************************************/
 #include <signal.h>
 #include <sys/ucontext.h>
 #include <sys/time.h>
@@ -61,6 +50,7 @@
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
 #include <fcntl.h> /* O_RDONLY */
+#include <unistd.h> /* getpid() */
 
 #include "rtinst/h/rtinst.h"
 
@@ -130,14 +120,15 @@ DYNINSTos_init(void) {
 
 
 static unsigned long long div1000(unsigned long long in) {
-   /* Divides by 1000 without integer division, which is slow.
-    * We want to do only shifts, adds, and subtracts.
+   /* Divides by 1000 without an integer division instruction or library call, both of
+    * which are slow.
+    * We do only shifts, adds, and subtracts.
     *
     * We divide by 1000 in this way:
     * multiply by 1/1000, or multiply by (1/1000)*2^30 and then right-shift by 30.
     * So what is 1/1000 * 2^30?
     * It is 1,073,742.   (actually this is rounded)
-    * So we can multiply by 1,073,742 and then right-shift by 30.
+    * So we can multiply by 1,073,742 and then right-shift by 30 (neat, eh?)
     *
     * Now for multiplying by 1,073,742...
     * 1,073,742 = (1,048,576 + 16384 + 8192 + 512 + 64 + 8 + 4 + 2)
@@ -147,15 +138,51 @@ static unsigned long long div1000(unsigned long long in) {
     *
     */
 
-   unsigned long long temp = in << 20;
-   temp += in << 14;
-   temp += in << 13;
-   temp += in << 9;
-   temp += in << 6;
-   temp += in << 4;
-   temp -= in >> 2;
+   unsigned long long temp = in << 20; // multiply by 1,048,576
+      // beware of overflow; left shift by 20 is quite a lot.
+      // If you know that the input fits in 32 bits (4 billion) then
+      // no problem.  But if it's much bigger then start worrying...
 
-   return (temp >> 30);
+   temp += in << 14; // 16384
+   temp += in << 13; // 8192
+   temp += in << 9;  // 512
+   temp += in << 6;  // 64
+   temp += in << 4;  // 16
+   temp -= in >> 2;  // 2
+
+   return (temp >> 30); // divide by 2^30
+}
+
+static unsigned long long divMillion(unsigned long long in) {
+   /* Divides by 1,000,000 without an integer division instruction or library call,
+    * both of which are slow.
+    * We do only shifts, adds, and subtracts.
+    *
+    * We divide by 1,000,000 in this way:
+    * multiply by 1/1,000,000, or multiply by (1/1,000,000)*2^30 and then right-shift
+    * by 30.  So what is 1/1,000,000 * 2^30?
+    * It is 1,074.   (actually this is rounded)
+    * So we can multiply by 1,074 and then right-shift by 30 (neat, eh?)
+    *
+    * Now for multiplying by 1,074
+    * 1,074 = (1024 + 32 + 16 + 2)
+    * for a total of 4 shifts and 4 add/subs, or 8 operations.
+    *
+    * Note: compare with div1000 -- it's cheaper to divide by a million than
+    *       by a thousand (!)
+    *
+    */
+
+   unsigned long long temp = in << 10; // multiply by 1024
+      // beware of overflow...if the input arg uses more than 52 bits
+      // than start worrying about whether (in << 10) plus the smaller additions
+      // we're gonna do next will fit in 64...
+
+   temp += in << 5; // 32
+   temp += in << 4; // 16
+   temp += in << 1; // 2
+
+   return (temp >> 30); // divide by 2^30
 }
 
 static unsigned long long mulMillion(unsigned long long in) {
@@ -188,15 +215,35 @@ static unsigned long long mulMillion(unsigned long long in) {
 static int firstTime = 1; /* boolean */
 static int procfd = -1;
 
+void DYNINSTgetCPUtimeInitialize(void) {
+   /* This stuff is done just once */
+   char str[20];
+
+   sprintf(str, "/proc/%d", (int)getpid());
+   procfd = open(str, O_RDONLY);
+   if (procfd < 0) {
+      fprintf(stderr, "open of /proc failed in DYNINSTgetCPUtimeInitialize\n");
+      perror("open");
+      abort();
+   }
+}
+
 time64
 DYNINSTgetCPUtime(void) {
   static time64 previous=0;
 
   while (1) {
 /* gethrvtime()/1000 doesn't work right any more with shm sampling because it
- * returns values that are out of sync with /proc's PIOCUSAGE.  getrusage()
- * does seem to work okay, but we'd like to not use getrusage() because it's
- * obsolete in solaris and slower; so we use PIOCUSAGE...
+ * returns values that are out of sync with /proc's PIOCUSAGE, so when a fudge
+ * factor needs to be added by paradynd's shm sampling of an active timer,
+ * things don't work.  getrusage() does seem to work okay, but we'd like to not use
+ * getrusage() because it's obsolete in solaris and slower; so we use /proc PIOCUSAGE...
+ *
+ * This is too bad; we'd prefer the (presumably fast) gethrvtime().  But, again,
+ * it simply won't work with shm sampling.  If you are thinking of changing things
+ * back to gethrvtime(), please check with me first. --ari
+ *
+ * Some day........in an ideal world, we'll use the %TICK register......
  */
 
 /*     time64 now = (time64)gethrvtime()/(time64)1000; */
@@ -205,17 +252,7 @@ DYNINSTgetCPUtime(void) {
      time64 now;
 
      if (firstTime) {
-        /* This stuff is done just once */
-        char str[20];
-
-	sprintf(str, "/proc/%d", getpid());
-	procfd = open(str, O_RDONLY);
-	if (procfd < 0) {
-	   fprintf(stderr, "open of /proc failed in get-cpu-time\n");
-	   perror("open");
-	   abort();
-	}
-	
+        DYNINSTgetCPUtimeInitialize();
 	firstTime = 0;
      }
 
@@ -263,7 +300,10 @@ DYNINSTgetWalltime(void) {
         perror("gettimeofday");
         abort();
     }
-    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+
+    now = mulMillion(tv.tv_sec) + tv.tv_usec;
+//    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+
     if (now < previous) continue;
     previous = now;
     return(now);
