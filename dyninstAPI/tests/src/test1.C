@@ -4462,8 +4462,7 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	// was an inst point created?
 	if (p == NULL) {
 	    fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-	    fprintf(stderr,"   Unable to create inst point at loop %s.\n",
-		    loops[i]->name());
+	    fprintf(stderr,"   Unable to create inst point.\n");
 	}
 	else {
 	    // insert a call to the function which increments the global
@@ -4473,8 +4472,7 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	    // did we insert the snippet?
 	    if (han == NULL) {
 		fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-		fprintf(stderr,"   Unable to insert snippet at loop %s.\n", 
-			loops[i]->name());
+		fprintf(stderr,"   Unable to insert snippet at loop.\n");
 	    }
 	}
 
