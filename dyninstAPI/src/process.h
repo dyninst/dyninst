@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.273 2003/10/21 17:22:25 bernat Exp $
+/* $Id: process.h,v 1.274 2003/10/22 16:00:56 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -58,7 +58,6 @@
 #include "rtinst/h/rtinst.h"
 #endif
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/util.h"
 #include "common/h/String.h"
 #include "common/h/vectorSet.h"
 #include "common/h/Dictionary.h"
@@ -121,7 +120,6 @@ class BPatch_thread;
 class BPatch_function;
 #endif
 
-typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 }
         inferiorHeapType;
@@ -129,6 +127,11 @@ typedef pdvector<Address> addrVecType;
 typedef enum { unstarted, begun, initialized, loadingRT, loadedRT, bootstrapped } bootstrapState_t;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
+
+typedef struct sym_data {
+  pdstring name;
+  bool must_find;
+} sym_data;
 
 class heapItem {
  public:
@@ -382,6 +385,10 @@ class process {
 #endif
 
   processState status() const { return status_;}
+  // If no lwp is passed for which lwp the status change occured on,
+  // then it's considered to have occurred on all of the lwps.
+  void set_status(processState st, dyn_lwp *whichLWP=NULL);
+
   Address previousSignalAddr() const { return previousSignalAddr_; }
   void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
   void savePreSignalStatus() { status_before_signal_ = status_; }
@@ -556,6 +563,15 @@ class process {
   bool readTextSpace(const void *inTracedProcess, u_int amount,
                      const void *inSelf);
 
+  static bool IndependentLwpControl() {
+#if defined(i386_unknown_linux2_0)
+     return true;
+#else
+     return false;
+#endif
+  }
+  void independentLwpControlInit();
+
   bool continueProc();
   
   bool terminateProc() { return terminateProc_(); }
@@ -613,7 +629,6 @@ class process {
   //removed for output redirection
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
   procSignalWhat_t exitCode_;                /* termination status code */
-  processState status_;         /* running, stopped, etc. */
   processState status_before_signal_; /* Store the previous proc state */
 
   Address previousSignalAddr_;
@@ -688,7 +703,8 @@ class process {
   
   // Trampoline guard location -- actually an addr in the runtime library.
   Address trampGuardAddr_;
-                                               
+
+  processState status_;         /* running, stopped, etc. */
   
   //
   //  PRIVATE MEMBER FUNCTIONS
@@ -988,26 +1004,32 @@ class process {
   dyn_thread *getThread(unsigned tid);
   dyn_lwp *getLWP(unsigned lwp_id);
 
-  // This lwp which is associated with the process has different attributes
-  // on different systems.  On AIX and Solaris multithreaded, this lwp is a
-  // representative lwp which controls the whole process.  A wait on this
-  // will watch for a signal received on any thread in the process.  On
-  // linux, this lwp is the initial lwp created.  Ptrace's and waits on this
-  // lwp generally are not applicable to the process as a whole.  For
-  // single-threaded applications, the process lwp controls the process.
-  dyn_lwp *getProcessLWP() const;
+  // return NULL if not found
+  dyn_lwp *lookupLWP(unsigned lwp_id);
 
-  void overrideProcessLWP(dyn_lwp *lwp);
-  dyn_lwp *saved_process_lwp;
-  void restoreProcessLWP();
-  
-  dyn_lwp *createProcessLWP() {
-     return createLWP(0);
+  // This is an lwp which controls the entire process.  This lwp is a
+  // fictional lwp in the sense that it isn't associated with a specific lwp
+  // in the system.  For both single-threaded and multi-threaded processes,
+  // this lwp represents the process as a whole (ie. all of the individual
+  // lwps combined).  This lwp will be NULL if no such lwp exists which is
+  // the case for multi-threaded linux processes.
+  dyn_lwp *getRepresentativeLWP() const {
+     return representativeLWP;
   }
 
-  dyn_lwp *createLWP(unsigned lwp_id);
+  void overrideRepresentativeLWP(dyn_lwp *lwp);
+  dyn_lwp *saved_process_lwp;
+  void restoreRepresentativeLWP();
+  
+  dyn_thread *createInitialThread();
+  dyn_lwp *createRepresentativeLWP();
+
+  // fictional lwps aren't saved in the real_lwps vector
+  dyn_lwp *createFictionalLWP(unsigned lwp_id);
+  dyn_lwp *createRealLWP(unsigned lwp_id, int lwp_index);
 
   void deleteLWP(dyn_lwp *lwp_to_delete);
+
 
 #if defined(alpha_dec_osf4_0)
   int waitforRPC(int *status,bool block = false);
@@ -1166,10 +1188,11 @@ private:
   bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
   //#endif
 
+  void clearProcessEvents();
+
 #if defined(i386_unknown_nt4_0)
   public:
 #endif
-  bool pause_();
   bool continueProc_();
 #if defined(i386_unknown_nt4_0)
   private:
@@ -1178,12 +1201,13 @@ private:
   bool terminateProc_();
   bool dumpCore_(const pdstring coreFile);
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
-  bool detach_();
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
-  bool stop_(); // formerly OS::osStop
+
+  dyn_lwp *get_stopped_lwp();
+  dyn_lwp *stop_an_lwp();
 
   // stops a process
-  bool loopUntilStopped();
+  bool waitUntilStopped();
 
   // returns true iff ok to do a ptrace; false (and prints a warning) if not
   bool checkStatus();
@@ -1191,7 +1215,14 @@ private:
   // Prolly shouldn't be public... but then we need a stack of 
   // access methods. 
  public:
-  dictionary_hash<unsigned, dyn_lwp *> lwps;
+  // This is an lwp which controls the entire process.  This lwp is a
+  // fictional lwp in the sense that it isn't associated with a specific lwp
+  // in the system.  For both single-threaded and multi-threaded processes,
+  // this lwp represents the process as a whole (ie. all of the individual
+  // lwps combined).  This lwp will be NULL if no such lwp exists which is
+  // the case for multi-threaded linux processes.
+  dyn_lwp *representativeLWP;
+  dictionary_hash<unsigned, dyn_lwp *> real_lwps;
 
   pdvector<dyn_thread *> threads;   /* threads belonging to this process */
 
@@ -1345,6 +1376,10 @@ process *ll_attachProcess(const pdstring &progpath, int pid);
 bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
 
 bool isInferiorAllocated(process *p, Address block);
+
+#if !defined(i386_unknown_linux2_0)
+inline void process::independentLwpControlInit() { }
+#endif
 
 extern pdvector<process *> processVec;
 
