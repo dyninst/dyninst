@@ -48,7 +48,7 @@
 # actually a custom pdgraph Tk widget.
 #
 #---------------------------------------------------------------------------
-# $Id: histVisi.tcl,v 1.1 1999/10/05 22:09:10 pcroth Exp $
+# $Id: histVisi.tcl,v 1.2 1999/11/10 15:11:59 pcroth Exp $
 #---------------------------------------------------------------------------
 
 
@@ -65,6 +65,7 @@ proc dbg_niy {} {
 namespace eval RTHist {
 
     variable is_kept_on_paradyn_exit 0
+    variable histFont "Helvetica 9"
 
 
     #
@@ -72,7 +73,7 @@ namespace eval RTHist {
     #
     proc init {} \
     {
-        option add *PDMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
+        option add *PDMenu*font "{New Century Schoolbook} 12 bold roman"
 
         # set up main window
         wm title . "Histogram"
@@ -88,6 +89,7 @@ namespace eval RTHist {
     #
     proc init_content { wname } {
 
+        
         # our frame - this appears to the outside world as our widget
         frame $wname
 
@@ -113,14 +115,14 @@ namespace eval RTHist {
         # set up our "Pan" and "Zoom" labels by the scroll bars
         frame $wname.labf
         pack $wname.labf -side bottom -fill x
-        label $wname.labf.panlab -text Pan
+        label $wname.labf.panlab -text Pan -font $::RTHist::histFont
         pack $wname.labf.panlab -fill x
 
-        label $wname.zoomlab -text "Z\no\no\nm"
+        label $wname.zoomlab -text "Z\no\no\nm" -font $::RTHist::histFont
         pack $wname.zoomlab -side right -fill y
 
         # set up our pdgraph widget in the remainder of the area
-        pdgraph $wname.graph -relief sunken -borderwidth 2
+        pdgraph $wname.graph -relief sunken -borderwidth 2 -font $::RTHist::histFont
         pack $wname.graph -side top -fill both -expand true
 
         pack $wname -fill both -expand true
@@ -194,7 +196,7 @@ namespace eval RTHist {
         # title bar
         label .header.title -text "Histogram Visualization" \
             -fg white -bg DarkSlateBlue -relief raised \
-            -font *-New*Century*Schoolbook-Bold-R-*-14-*
+            -font "{New Century Schoolbook} 12 bold roman"
         pack .header.title -side top -fill both -expand true
 
         # menu bar

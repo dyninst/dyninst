@@ -49,7 +49,7 @@
 # canvas widget.
 #
 #---------------------------------------------------------------------------
-# $Id: pdgraph.tcl,v 1.1 1999/10/05 22:09:10 pcroth Exp $
+# $Id: pdgraph.tcl,v 1.2 1999/11/10 15:11:59 pcroth Exp $
 #---------------------------------------------------------------------------
 
 
@@ -83,6 +83,7 @@ namespace eval PDGraph {
     #------------------------------------------------------------------------
     namespace eval Legend {
 
+        variable legendFont
 
         #
         # init - initialize the legend widget
@@ -91,6 +92,11 @@ namespace eval PDGraph {
 
             # bind a handler for mouse clicks outside of any item
             bind $legendName <ButtonPress> {::PDGraph::Legend::handle_click %W}
+        }
+
+        proc init_font { wname } {
+            
+            set ::PDGraph::Legend::legendFont [$wname cget -font]
         }
 
 
@@ -103,7 +109,7 @@ namespace eval PDGraph {
 
             # build a label for metric description
             set labName $legendName.label$curveId
-            label $labName -text $metricName
+            label $labName -text $metricName -font $::PDGraph::Legend::legendFont
 
             # bind routines to respond to mouse behavior over the label
             bind $labName <Enter> {::PDGraph::Legend::handle_enter_item %W}
