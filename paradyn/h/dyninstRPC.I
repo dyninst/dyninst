@@ -70,13 +70,12 @@ $remote dynRPC {
     //   startTimeStamp - starting time of the interval covered by this sample.
     //   endTimeStamp - ending time of the interval covered by this sample.
     //   value - the value of this sample
-    //    
     //
-    $upcall $async void sampleDataCallbackFunc(int program, 
-					   int mi,
-					   double startTimeStamp, 
-					   double endTimeStamp, 
-					   double value);
+   $upcall $async void sampleDataCallbackFunc(int program, 
+				   int mi,
+				   double startTimeStamp, 
+				   double endTimeStamp, 
+				   double value);
 
     //
     // Handler that gets called when a new resource is defined.
@@ -134,4 +133,9 @@ $remote dynRPC {
     //
     String getStatus(int pid);
     void coreProcess(int pid);
+
+    //
+    // For paradynd's that may get started, but not by paradyn
+    // This allows them to report system information
+    $virtual $upcall void reportSelf(String machine, String program, int pid);
 };

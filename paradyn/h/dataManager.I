@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.3  1994/02/03 23:26:50  hollings
+ * Revision 1.4  1994/02/24 04:34:14  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ *
+ * Revision 1.3  1994/02/03  23:26:50  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.2  1994/02/01  18:47:33  hollings
@@ -325,6 +329,7 @@ $remote dataManager {
 				    timeStamp startTimeStamp, 
 				    timeStamp endTimeStamp, 
 				    sampleValue value);
+    $smember applicationContext *appContext;
 };
 
 #endif
