@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.87 2005/03/13 23:44:18 legendre Exp $
+// $Id: init.C,v 1.88 2005/03/22 22:48:37 legendre Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -470,24 +470,24 @@ void instMPI() {
 
   pdvector<BPatch_snippet*> argList(2);
   initialRequestsPARADYN += new pdinstMapping("MPI_Win_create", "DYNINSTrecordWindow",
-              FUNC_EXIT|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
+              FUNC_EXIT|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
               &mpiWinCreateArg, false);
   initialRequestsPARADYN += new pdinstMapping("MPI_Win_free", "DYNINSTretireWindow",
-              FUNC_ENTRY|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
               &mpiWinFreeArg, false);
   argList[0] = &mpiWinNameWinArg;
   argList[1] = &mpiWinNameNameArg;
   initialRequestsPARADYN += new pdinstMapping("MPI_Win_set_name", "DYNINSTnameWindow",
-              FUNC_ENTRY|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
               argList, false);
 
   argList[0] = &mpiCommNameCommArg;
   argList[1] = &mpiCommNameNameArg;
   initialRequestsPARADYN += new pdinstMapping("MPI_Comm_set_name", "DYNINSTnameGroup",
-              FUNC_ENTRY|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
               argList, false);
   initialRequestsPARADYN += new pdinstMapping("MPI_Comm_free", "DYNINSTretireGroupTag",
-              FUNC_ENTRY|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
               &mpiCommFreeArg, false);
 
   argList[0] = &mpiNormTagArg;
