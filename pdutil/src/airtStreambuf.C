@@ -28,15 +28,18 @@ int airtStreambuf::sync() {
 }
 
 int airtStreambuf::overflow(int ch) {
-  airt_cerr << "Start - overflow: " << ch << "\n";
-  streamsize n = pptr() - pbase(); 
+  streamsize n = pptr() - pbase();   // <next free char> - <start of put-buf>
+  airt_cerr << "Start - overflow: " << ch << ", streamsize = " << n << "\n";
   bool passnl = false;
-  if(sgetc() == '\n') {
-    airt_cerr << "  == nl\n";
-    sputbackc('\0');
-    passnl = true;
+  if(n>0) {
+     if(sgetc() == '\n') {
+	airt_cerr << "  == nl\n";
+	sputbackc('\0');
+	passnl = true;
+     }
+     sync();
   }
-  if(n>0) sync();
+
   if(ch != EOF) {
     char tempstr[5];
     tempstr[0] = ch;
