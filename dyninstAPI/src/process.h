@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.275 2003/10/24 21:25:54 jaw Exp $
+/* $Id: process.h,v 1.276 2003/10/28 18:57:35 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -564,7 +564,7 @@ class process {
                      const void *inSelf);
 
   static bool IndependentLwpControl() {
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
      return true;
 #else
      return false;
@@ -1384,7 +1384,7 @@ bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
 
 bool isInferiorAllocated(process *p, Address block);
 
-#if !defined(i386_unknown_linux2_0)
+#if !defined(i386_unknown_linux2_0) && !defined(ia64_unknown_linux2_4)
 inline void process::independentLwpControlInit() { }
 #endif
 

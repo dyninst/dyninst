@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.20 2003/10/22 16:00:44 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.21 2003/10/28 18:57:34 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -164,14 +164,14 @@ class dyn_lwp
   bool continueLWP();
   bool continueLWP_();
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   bool deliverPtrace(int req, Address addr, Address data);
   int deliverPtraceReturn(int req, Address addr, Address data);
 #elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
   bool deliverPtrace(int request, void *addr, int data, void *addr2);
 #endif
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   bool isRunning() const;
   bool isStopPending() const;
 #endif
