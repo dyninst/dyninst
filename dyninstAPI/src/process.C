@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.413 2003/04/17 20:55:54 jaw Exp $
+// $Id: process.C,v 1.414 2003/04/20 01:00:09 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1652,9 +1652,9 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // Fun (not) case: there's no space for the RPC to execute.
   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
   // Avoid this with a static bool.
-  static bool inInferiorMallocDynamic = false;
-
-  if (inInferiorMallocDynamic) return;
+  if (inInferiorMallocDynamic) {
+     return;
+  }
   inInferiorMallocDynamic = true;
 #endif
 
@@ -1678,7 +1678,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 
   /* set lowmem to ensure there is space for inferior malloc */
   getRpcMgr()->postRPCtoDo(code, true, // noCost
-                           &inferiorMallocCallback, &ret, -1, // No metric ID
+                           &inferiorMallocCallback, &ret, 
                            true, // But use reserved memory
                            NULL, NULL); // process-wide
   bool wasRunning = (status() == running);
@@ -2049,7 +2049,8 @@ process::process(int iPid, image *iImage, int iTraceLink
     
     nextTrapIsFork = false;
     nextTrapIsExec = false;
-  
+
+    LWPstoppedFromForkExit = 0;  
 
     wasRunningWhenAttached_ = false;
     bootstrapState = unstarted;
@@ -2257,6 +2258,8 @@ process::process(int iPid, image *iSymbols,
     status_ = neonatal;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
+
+    LWPstoppedFromForkExit = 0;
 
     inInferiorMallocDynamic = false;
     
@@ -2497,6 +2500,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    symbols = parentProc.symbols->clone();
    symbols->updateForFork(this, &parentProc);
    mainFunction = parentProc.mainFunction;
+
+   LWPstoppedFromForkExit = 0;
 
    traceLink = iTrace_fd;
    bufStart = 0;
@@ -3232,7 +3237,6 @@ bool process::iRPCDyninstInit() {
                              true, // Don't update cost
                              process::DYNINSTinitCompletionCallback,
                              NULL, // No user data
-                             -1, // Not a metric definition
                              true, // Use reserved memory
                              NULL, NULL);// No particular thread or LWP
     
@@ -6731,11 +6735,22 @@ void process::init_shared_memory(process *parentProc) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("PARADYN_init_child_after_fork", ast_args);
 
-   unsigned rpc_id = getRpcMgr()->postRPCtoDo(ast, false, 
-                                              call_PARADYN_init_child_after_fork, this,
-                                              -1, true, NULL, NULL);
+   // Use the lwp that is actually stopped at the fork exit if can. Seems to
+   // get around restoreRegister - device busy problem.
+   const int UNSET_LWP_STOPPED_FROM_EXIT_VAL = 0;
+   int lwp_stopped_from_exit = parentProc->getLWPStoppedFromForkExit();
+   dyn_lwp *lwp_to_use;
+   if(lwp_stopped_from_exit == UNSET_LWP_STOPPED_FROM_EXIT_VAL)
+      lwp_to_use = getDefaultLWP();
+   else
+      lwp_to_use = getLWP(lwp_stopped_from_exit);
+
+   unsigned rpc_id =
+      getRpcMgr()->postRPCtoDo(ast, false, call_PARADYN_init_child_after_fork,
+                               this, true, NULL, lwp_to_use);
    
    bool wasRunning = false;  // child should be paused after fork
+
    do {
        getRpcMgr()->launchRPCs(wasRunning);
        if(hasExited()) return;
