@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.25  1996/05/15 04:42:02  karavan
+ * oops! removed debugging print!
+ *
  * Revision 1.24  1996/05/15 04:35:11  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -562,7 +565,9 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
       }  // for j < Pendings.size()
     }
   }
+#ifdef PCDEBUG
   printPendings();
+#endif
 }
 	
 void 
