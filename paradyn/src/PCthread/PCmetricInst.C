@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.C,v 1.21 2001/06/20 20:33:40 schendel Exp $
+// $Id: PCmetricInst.C,v 1.22 2001/12/12 17:28:50 gurari Exp $
 // The PCmetricInst class and the PCmetricInstServer methods.
 
 /*
@@ -287,7 +287,7 @@ PCmetricInst::clearEnableReady (int portnum)
 
 void
 PCmetricInst::newData (metricInstanceHandle whichData, pdRate newVal, 
-		       relTimeStamp start, relTimeStamp end, pdRate)
+		       relTimeStamp start, relTimeStamp end)
 {
   // don't use data until all ports successfully enabled
   if (EnableStatus != AllDataReady) return;
@@ -352,11 +352,9 @@ PCmetricInst::newData (metricInstanceHandle whichData, pdRate newVal,
     TimesAligned = 0;
     endTime = end;
     pdRate newguy;
-    pdRate pauseNorm(pdRate::Zero());
     int numPs = numInPorts;
     pdRate *allvalues = AllCurrentValues;
     if (met->InstWithPause) {
-      pauseNorm = AllCurrentValues[0];
       allvalues++;
       numPs--;
     }
@@ -371,7 +369,7 @@ PCmetricInst::newData (metricInstanceHandle whichData, pdRate newVal,
     timeStamp t1,t2;
     t1 = getCurrentTime();
 #endif
-    sendValue (0, newguy, start, end, pauseNorm);
+    sendValue (0, newguy, start, end);
 #ifdef MYPCDEBUG
     t2 = getCurrentTime();
     if ((t2 - t1) > timeLength::sec())

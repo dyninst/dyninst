@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.38 2001/08/23 14:43:47 schendel Exp $    
+ * $Id: PCfilter.C,v 1.39 2001/12/12 17:28:50 gurari Exp $    
  */
 
 #include "PCfilter.h"
@@ -209,8 +209,7 @@ avgFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
     t3 = getCurrentTime();
 #endif
     pdRate curRate(workingValue, workingInterval);
-    sendValue(mi, curRate, partialIntervalStartTime, nextSendTime, 
-	      pdRate::Zero());
+    sendValue(mi, curRate, partialIntervalStartTime, nextSendTime);
 #ifdef MYPCDEBUG
     t4 = getCurrentTime();
 #endif
@@ -307,8 +306,7 @@ valFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
     workingValue += newVal * pieceOfInterval;
     workingInterval += pieceOfInterval;
     pdRate curValue(workingValue, workingInterval);
-    sendValue(mi, curValue, partialIntervalStartTime, nextSendTime, 
-	      pdRate::Zero());
+    sendValue(mi, curValue, partialIntervalStartTime, nextSendTime);
 #ifdef PCDEBUG
     // debug printing
     if (performanceConsultant::printDataTrace) {
@@ -389,22 +387,9 @@ filteredDataServer::newBinSize (timeLength bs)
     intervalSize = bs;
 }
 
-//
-// restart PC after PC-pause (not application-level pause)
-//
-void
-filteredDataServer::resubscribeAllData() 
-{
-  for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-    if (AllDataFilters[i]->pausable()) {
-      makeEnableDataRequest (AllDataFilters[i]->getMetric(),
-			     AllDataFilters[i]->getFocus());
-    }
-  }
-}
 
 //
-// stop all data flow to PC for a PC-pause
+// stop all data flow to PC
 //
 void
 filteredDataServer::unsubscribeAllData() 

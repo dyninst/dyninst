@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.16 2001/06/20 20:33:40 schendel Exp $
+// $Id: PCmetricInst.h,v 1.17 2001/12/12 17:28:50 gurari Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -100,7 +100,7 @@ public:
 
   // these are called by filtered data source and cost server -- subscriber role
   void newData(PCmetDataID whichData, pdRate newVal, 
-	       relTimeStamp start, relTimeStamp end, pdRate);
+	       relTimeStamp start, relTimeStamp end);
   void updateEstimatedCost(float costDiff);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);
@@ -160,11 +160,6 @@ class PCmetricInstServer {
   PCmetInstHandle createPcmi(PCmetric *pcm,
 			     focus f,
 			     bool *errFlag);
-  // data
-  void unsubscribeAllRawData()
-    { datasource->unsubscribeAllData(); }
-  void resubscribeAllRawData()
-    { datasource->resubscribeAllData(); }
  private:
   vector<PCMRec> AllData;
   filteredDataServer *datasource;

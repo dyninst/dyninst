@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.20 2001/06/20 20:33:41 schendel Exp $
+ * $Id: PCsearch.h,v 1.21 2001/12/12 17:28:50 gurari Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -157,7 +157,7 @@ ostream& operator <<(ostream &os, PCsearch& srch);
 class costModule : public dataSubscriber 
 {
  public:
-  void newData (PCmetDataID, pdRate newVal, relTimeStamp, relTimeStamp, pdRate)
+  void newData (PCmetDataID, pdRate newVal, relTimeStamp, relTimeStamp)
     {
 	newVal = (newVal - pdRate(1))/newVal;
 	if (newVal < pdRate(performanceConsultant::predictedCostLimit))

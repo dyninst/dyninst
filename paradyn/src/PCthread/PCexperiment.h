@@ -41,7 +41,7 @@
 
 /*
  * experiment class
- * $Id: PCexperiment.h,v 1.10 2001/06/20 20:33:40 schendel Exp $
+ * $Id: PCexperiment.h,v 1.11 2001/12/12 17:28:50 gurari Exp $
  */
 
 #ifndef PCEXPER_H
@@ -95,7 +95,7 @@ class experiment : public dataSubscriber
   //
   // this call invoked by PCmetricInst to notify experiment of new 
   // values  
-  void newData(PCmetDataID, pdRate, relTimeStamp, relTimeStamp, pdRate);
+  void newData(PCmetDataID, pdRate, relTimeStamp, relTimeStamp);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);
   //

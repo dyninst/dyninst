@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.16 2001/08/23 14:43:48 schendel Exp $
+ * $Id: PCfilter.h,v 1.17 2001/12/12 17:28:50 gurari Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -200,7 +200,6 @@ public:
   // cancel pending enable request for this met/foc pair
   void cancelSubRequest (fdsSubscriber sub, metricHandle met, focus foc);
   void unsubscribeAllData();
-  void resubscribeAllData();
 
   // interface to raw data source (consumer role)
   void newBinSize(timeLength newSize);

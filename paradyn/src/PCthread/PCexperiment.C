@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.19 2001/12/11 22:21:46 gurari Exp $
+ * $Id: PCexperiment.C,v 1.20 2001/12/12 17:28:50 gurari Exp $
  */
 
 #include "PCintern.h"
@@ -87,45 +87,23 @@ experiment::updateEstimatedCost(float costDiff)
 
 void 
 experiment::newData(PCmetDataID, pdRate val, relTimeStamp start, 
-		    relTimeStamp end, pdRate pauseTime)
+		    relTimeStamp end)
 {
-
-  // ignore values less than 0 
-  // (we sometimes see these bogus values after pausing the PC.
-  if (val.getValue() < 0) {
-    return;
-  }
-
   pdRate thresh;
   if (performanceConsultant::useIndividualThresholds)
     thresh = why->getThreshold (why->indivThresholdNm.string_of(), where);
   else
     thresh = why->getThreshold (why->groupThresholdNm.string_of(), where);
-    
-  // adjust for pause time: 
-  // when we compare the pcmetric to the threshold, we need to normalize 
-  // e.g., comparing io time to threshold we want io time only for the 
-  // time the application was active.  the actual dm metric will have 0's
-  // for all pause time (well for everything except of course the pause_time
-  // metric itself!!) so the average value for the metric will not be the 
-  // rate we need.  We normalize by comparing the pcmetric to the threshold
-  // multiplied by percent of time active.
-
-  pdRate timeNormalizer = pdRate(1.0) - pauseTime;
-  // I'm not sure why pauseTime would ever be negative or greater than 1,
-  // but I picked up this correction from the previous pc code.
-  if (timeNormalizer < pdRate::Zero())
-    timeNormalizer.assign(0.00001);
-  if (timeNormalizer > pdRate(1.0))
-    timeNormalizer.assign(0.99999);
+   
 
   // update currentValue and adjustedValue
   currentValue = val;
-  adjustedValue = val - (thresh * timeNormalizer * hysConstant);
+  adjustedValue = val - (thresh * hysConstant);
 
   endTime = end;
   if (startTime < relTimeStamp::Zero())    // this is first value
     startTime = start;
+
 
   // If the pc is currently paused, don't evaluate the data recieved
   if (mamaSearch->paused()) {
