@@ -78,15 +78,24 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
   refCount = 0;
 }
 
+instrDataNode::instrDataNode(const instrDataNode &par, process *childProc) :
+  proc(childProc), varType(par.varType), varIndex(par.varIndex),
+  thrNodeClientSet(par.thrNodeClientSet), 
+  dontInsertData_(par.dontInsertData_), 
+  refCount(0) // has 0 references since it's a new data node
+{
+}
 
 // the disable method should be called before this destructor
 instrDataNode::~instrDataNode() {
   // Should call deletion method of the variable mgr
+  //cerr << "~instrDataNode, " << this << ", pid: " << proc->getPid() 
+  //     << ", type: " << varType 
+  //     << ", index: " << varIndex << "\n";
   if(! dontInsertData_) {
     variableMgr &varMgr = proc->getVariableMgr();
     varMgr.free(varType, varIndex);
   }
-
 }
 
 // obligatory definition of static member vrble:
@@ -139,6 +148,7 @@ void instrDataNode::prepareForSampling(unsigned thrPos,
 }
 
 void instrDataNode::stopSampling(unsigned thrPos) {
+  assert(dontInsertData_ == false);
   thrNodeClientSet = false;
   variableMgr &varMgr = proc->getVariableMgr();
   varMgr.markVarAsNotSampled(varType, varIndex, thrPos);
@@ -160,6 +170,8 @@ void instrDataNode::incRefCount()
 
 void instrDataNode::decRefCount()
 {
+  //cerr << "decRefCount, dataNode: " << this << ", refCount = " << refCount 
+  //    << "\n";
   refCount--;
   if (refCount == 0)
     delete this;
