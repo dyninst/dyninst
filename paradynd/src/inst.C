@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.8 1994/08/17 18:13:31 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.9 1994/09/22 02:00:02 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.8  1994/08/17 18:13:31  markc
+ * Revision 1.9  1994/09/22 02:00:02  markc
+ * Changed *allocs to news
+ * cast stringHandles for printing
+ * cast args to PCptrace
+ *
+ * Revision 1.8  1994/08/17  18:13:31  markc
  * Changed variable names in installDefaultInst to quiet compiler warnings.
  * Added reachedFirstBreak check to avoid stopping processes that have yet
  * to reach their initial SIGSTOP.
@@ -93,6 +98,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -100,6 +106,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/signal.h>
 #include <sys/param.h>
 #include <errno.h>
+}
 
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -149,14 +156,14 @@ void clearBaseBranch(process *proc, instInstance *inst)
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static char insn[65536];
 
-static HTable<pointRec*> activePoints;
+static HTable<point*> activePoints;
 
 instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     callWhen when, callOrder order)
 {
     int count;
     int fromAddr;
-    pointRec *point;
+    point *thePoint;
     instInstance *ret;
     instInstance *lastAtPoint;
     instInstance *firstAtPoint;
@@ -170,19 +177,19 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     firstAtPoint = NULL;
     lastAtPoint = NULL;
 
-    point = activePoints.find(location);
-    if (!point) {
-	point = (pointRec *) calloc(1, sizeof(pointRec));
-	activePoints.add(point, location);
+    thePoint = activePoints.find(location);
+    if (!thePoint) {
+        thePoint = new point;
+	activePoints.add(thePoint, location);
     }
-    for (ret= point->inst; ret; ret = ret->next) {
+    for (ret= thePoint->inst; ret; ret = ret->next) {
 	if ((ret->proc == proc) && (ret->when == when)) {
 	    if (!ret->nextAtPoint) lastAtPoint = ret;
 	    if (!ret->prevAtPoint) firstAtPoint = ret;
 	}
     }
 
-    ret = (instInstance*) xcalloc(1, sizeof(instInstance));
+    ret = new instInstance;
     ret->proc = proc;
 
     /* make sure the base tramp has been installed for this point */
@@ -203,10 +210,10 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     ret->when = when;
     ret->location = location;
 
-    ret->next = point->inst;
+    ret->next = thePoint->inst;
     ret->prev = NULL;
-    if (point->inst) point->inst->prev = ret;
-    point->inst = ret;
+    if (thePoint->inst) thePoint->inst->prev = ret;
+    thePoint->inst = ret;
 
     /* first inst. at this point so install the tramp */
     fromAddr = (int) ret->baseAddr;
@@ -267,7 +274,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
  */
 void deleteInst(instInstance *old)
 {
-    pointRec *point;
+    point *thePoint;
     instInstance *lag;
     instInstance *left;
     instInstance *right;
@@ -277,10 +284,10 @@ void deleteInst(instInstance *old)
     othersAtPoint = NULL;
     left = right = NULL;
 
-    point = activePoints.find(old->location);
-    assert(point);
+    thePoint = activePoints.find(old->location);
+    assert(thePoint);
 
-    for (lag= point->inst; lag; lag = lag->next) {
+    for (lag= thePoint->inst; lag; lag = lag->next) {
 	if ((lag->location == old->location) && 
 	    (lag->proc == old->proc) &&
 	    (lag->when == old->when)) {
@@ -331,7 +338,7 @@ void deleteInst(instInstance *old)
 	lag->next = old->next;
 	if (old->next) old->next->prev = lag;
     } else {
-	point->inst = old->next;
+	thePoint->inst = old->next;
 	if (old->next) old->next->prev = NULL;
     }
     free(old);
@@ -342,7 +349,7 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
 {
     int i;
     AstNode *ast;
-    function *func;
+    pdFunction *func;
     instMaping *item;
 
     for (item = initialReqs; item->func; item++) {
@@ -368,7 +375,7 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
 	}
 	if (item->where & FUNC_CALL) {
 	    if (!func->callCount) {
-		sprintf(errorLine, "no function calls in procedure %s\n", func->prettyName);
+		sprintf(errorLine, "no function calls in procedure %s\n", (char*)func->prettyName);
 		logLine(errorLine);
 	    } else {
 		for (i = 0; i < func->callCount; i++) {
@@ -384,7 +391,7 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
 void pauseProcess(process *proc)
 {
     if (proc->status == running && proc->reachedFirstBreak) {
-	(void) PCptrace(PTRACE_INTERRUPT, proc, (int*)1, 0, 0);
+	(void) PCptrace(PTRACE_INTERRUPT, proc, (void*)1, 0, 0);
         proc->status = stopped;
     }
 }
@@ -392,14 +399,14 @@ void pauseProcess(process *proc)
 void continueProcess(process *proc)
 {
     if (proc->status == stopped) {
-	(void) PCptrace(PTRACE_CONT, proc, (int*)1, 0, 0);
+	(void) PCptrace(PTRACE_CONT, proc, (void*)1, 0, 0);
         proc->status = running;
     }
 }
 
 void dumpCore(process *proc)
 {
-    (void) PCptrace(PTRACE_DUMPCORE, proc, "core.out", 0, 0);
+    (void) PCptrace(PTRACE_DUMPCORE, proc, (void*) "core.out", 0, 0);
 }
 
 /*
