@@ -2,6 +2,10 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
+ * Revision 1.13  1996/03/12 20:38:49  mjrg
+ * New version of aggregateSample to support adding and removing components
+ * dynamically.
+ *
  * Revision 1.12  1996/02/09 22:15:28  mjrg
  * fixed aggregation to handle first samples and addition of new components
  *
@@ -37,45 +41,27 @@
  *
  */
 #include <assert.h>
+#include <math.h>
 
 #include "util/h/aggregateSample.h"
 
-struct sampleInterval sampleInfo::startTime(timeStamp startTime_) {
-  struct sampleInterval ret;
-
+void sampleInfo::startTime(timeStamp time) {
+  assert(numAggregators > 0);
   firstSampleReceived = true;
-  lastSampleStart = startTime_;
+  lastSampleStart = time;
   // The remaining fields should be zero.
   // It is important that the value of lastSampleEnd is zero, otherwise the
   // aggregation code in newValue will not work.
-
-  ret.valid = false;
-  return ret;
-}
-
-struct sampleInterval sampleInfo::firstValue(timeStamp startTime, timeStamp endTime,
-					     sampleValue value_) {
-  struct sampleInterval ret;
-
-  firstSampleReceived = true;
-  lastSampleStart = startTime;
-  lastSampleEnd = endTime;
-  lastSample = value_;
-  value = value_;
-  
-  ret.valid = true;
-  ret.start = lastSampleStart;
-  ret.end =lastSampleEnd;
-  ret.value = lastSample;
-  return ret;
 }
 
 struct sampleInterval sampleInfo::newValue(timeStamp sampleTime, 
-						     sampleValue newVal)
+					   sampleValue newVal, 
+					   unsigned weight_)
 {
     struct sampleInterval ret;
 
     assert(firstSampleReceived);
+    assert(sampleTime > lastSampleEnd);
     // use the first sample to define a baseline in time and value.
     //if (!firstSampleReceived) {
     //	firstSampleReceived = true;
@@ -87,91 +73,162 @@ struct sampleInterval sampleInfo::newValue(timeStamp sampleTime,
     //	return(ret);
     //}
 
-    ret.valid = true;
-    ret.start = lastSampleEnd;
-    ret.end = sampleTime;
-    ret.value = newVal;
+    //ret.valid = true;
+    //ret.start = lastSampleEnd;
+    //ret.end = sampleTime;
+    //ret.value = newVal;
 
     // used when it's a component of an aggregate.
     lastSample += newVal;
     lastSampleEnd = sampleTime;
+    weight = weight_;
 
-    return(ret);
+    ret.valid = false;
+    return ret;
 }
 
-#ifdef notdef
-struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
-					   timeStamp sampleTime, 
-					   sampleValue newVal)
-{
-    double fract;
-    sampleInfo *curr;
-    List<sampleInfo*> cp;
-    sampleValue component;
-    timeStamp earlyestTime;
+
+struct sampleInterval aggregateSample::aggregateValues() {
     struct sampleInterval ret;
-    sampleValue aggregateVal;
-    int len=0;
+    timeStamp earlyestTime = HUGE_VAL;
+    ret.valid = false;
 
-    assert((aggOp == aggSum) || (aggOp == aggAvg) ||
-	   (aggOp == aggMin) || (aggOp == aggMax));
+    if (newParts.size()) {
+      // The new components do not need to have the same start time.
+      // We must wait until we have samples from all components, and then
+      // we need to find the first and second min start time for the new components
+      // and if first min == lastSampleEnd, we can aggregate from first to second.
+      // But we don't want to generate lots of very small samples in the case we have
+      // a large number of components, so we round the start times that are close
+      // enough to the min start time.
 
-    if (parts.count() <= 1) {
-       // not an aggregate.
-       return(newValue(sampleTime, newVal));
-    } else {
-	earlyestTime = (*parts)->lastSampleEnd;
-	for (cp=parts; (curr = *cp); cp++) {
-	    len++;
-	    if (curr->lastSampleEnd < earlyestTime) {
-		earlyestTime = curr->lastSampleEnd;
-	    }
+      timeStamp newStart = HUGE_VAL;
+      timeStamp secondStart = HUGE_VAL;
+      for (unsigned u = 0; u < newParts.size(); u++) {
+	if ((!newParts[u]->firstValueReceived())) {
+	  return ret;
 	}
+	if (newParts[u]->lastSampleStart < lastSampleEnd + 0.01) {
+	  // round lastSampleStart to avoid generating very small aggregate
+	  // samples. I'm using 0.01 as an arbitrary value. We should
+	  // do some measurements to find a good value -- mjrg
+	  newParts[u]->lastSampleStart = lastSampleEnd;
+	}
+	if (newParts[u]->lastSampleStart < newStart) {
+	  newStart = newParts[u]->lastSampleStart;
+	}
+      }
 
+      assert (newStart >= lastSampleEnd);
 
-	if (earlyestTime > lastSampleEnd + 0.0001) {
-	    /* eat the first one to get a good interval basis */
-	    if (!firstSampleReceived) {
-		firstSampleReceived = true;
-		ret.valid = false;
-		lastSampleEnd = earlyestTime;
+      if (parts.size() == 0)
+	lastSampleEnd = newStart;
 
-               // this gives all of the samples the same initial starting
-	       // time
-	       // It is very important for them to have the same time
-	       // if this is not done, fract that is calculated below
-	       // will fail the assertions
-	       // You may want to zero the lastSample values here too
+      if (newStart > lastSampleEnd) {
+	// new parts can't be aggregated yet
+	earlyestTime = newStart;
+      }
+      else { // newStart == lastSampleEnd
+	// find the new parts that are ready to be aggregated and move them to parts.
+	vector<sampleInfo *> temp;
+	vector<bool> rtemp;
+	for (unsigned u = 0; u < newParts.size(); u++) {
+	  if (newParts[u]->lastSampleStart == newStart) {
+	    parts += newParts[u];
+	    removedParts += removedNewParts[u];
+	  }
+          else {
+	    if (newParts[u]->lastSampleStart < secondStart)
+	      secondStart = newParts[u]->lastSampleStart;
+	    temp += newParts[u];
+	    rtemp += removedNewParts[u];
+	  }
+	}
+	if (temp.size()) {
+	  newParts = temp;
+	  removedNewParts = rtemp;
+	  earlyestTime = secondStart;
+	}
+	else {
+	  newParts.resize(0);
+	  removedNewParts.resize(0);
+	}
+      }
+    }
 
-		for (cp=parts; (curr=*cp); cp++) 
-		    curr->lastSampleStart = earlyestTime;
+    bool partsToRemove = false;
 
-		return(ret);
-	    }
+    for (unsigned u = 0; u < parts.size(); u++) {
+      if (removedParts[u]) {
+	if (parts[u]->lastSampleEnd == parts[u]->lastSampleStart) {
+	  partsToRemove = true;
+	  continue;
+	}
+	if (parts[u]->lastSampleEnd < lastSampleEnd + 0.01) {
+	   // round to avoid very small intervals;
+	   parts[u]->lastSampleEnd = lastSampleEnd + 0.01;
+	 }
+      }
+      if (parts[u]->lastSampleEnd < earlyestTime)
+	earlyestTime = parts[u]->lastSampleEnd;
+    }
 
-	    aggregateVal = 0.0;
+    if (partsToRemove) {
+      vector<sampleInfo *> temp;
+      vector<bool> rtemp;
+      for (unsigned u = 0; u < parts.size(); u++) {
+	if (!(removedParts[u] && parts[u]->lastSampleEnd == parts[u]->lastSampleStart)) {
+	  temp += parts[u];
+	  rtemp += removedParts[u];
+	}
+	else {
+	  --(parts[u]->numAggregators);
+	  if (parts[u]->numAggregators == 0) {
+	    delete parts[u];
+	  }
+	}
+      }
+      parts = temp;
+      removedParts = rtemp;
+      if (parts.size() == 0)
+	return ret;
+    }
+
+    sampleValue aggregateVal;
+    unsigned total_weight;
+
+    if (earlyestTime > lastSampleEnd + 0.001) {
+    // we can aggregate up to earlyest time.
+
+            aggregateVal = 0.0;
+            timeStamp fract;
+            timeStamp component;
 
 	    int first = 1;
+	    total_weight = 0;
 
-	    for (cp=parts; (curr=*cp); cp++) {
-		// assert(earlyestTime >= curr->lastSampleStart);
+	    for (unsigned u = 0; u < parts.size(); u++) {
+		// assert(earlyestTime >= parts[u]->lastSampleStart);
 
 		fract = (earlyestTime - lastSampleEnd)/
-		    (curr->lastSampleEnd - curr->lastSampleStart);
-		component = (curr->lastSample) * fract;
+		    (parts[u]->lastSampleEnd - parts[u]->lastSampleStart);
+		component = (parts[u]->lastSample) * fract;
 
 		assert(fract > 0.0);
 		assert(fract <= 1.0);
 		assert(component >= -0.01);
 
-		curr->lastSample -= component;
+		parts[u]->lastSample -= component;
 
 		// each list entry comes from a separate reporter
 		switch (aggOp)
 		  {
 		  case aggSum:
-		  case aggAvg:
 		    aggregateVal += component;
+		    break;
+		  case aggAvg:
+		    aggregateVal += parts[u]->weight*component;
+		    total_weight += parts[u]->weight;
 		    break;
 		  case aggMin:
 		    if (first) {
@@ -187,392 +244,12 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 		  }
 
 		/* move forward our time of our earliest sample */
-		curr->lastSampleStart = earlyestTime;
+		parts[u]->lastSampleStart = earlyestTime;
+
 	      }
 
-	    // len is the number of samples on the list
 	    if (aggOp == aggAvg)
-	      aggregateVal /= len;
-
-	    ret.valid = true;
-	    ret.start = lastSampleEnd;
-	    ret.end = earlyestTime;
-	    ret.value = aggregateVal;
-	    assert(ret.value >= 0.0);
-
-	    lastSampleStart = lastSampleEnd;
-	    lastSampleEnd = earlyestTime;
-	} else {
-	    ret.valid = false;
-	}
-    }
-    return(ret);
-}
-#endif
-
-struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> parts,
-					   timeStamp sampleTime, 
-					   sampleValue newVal)
-{
-    struct sampleInterval ret;
-    assert((aggOp == aggSum) || (aggOp == aggAvg) ||
-	   (aggOp == aggMin) || (aggOp == aggMax));
-
-    if (!parts.size()) {
-       // not an aggregate.
-       return(newValue(sampleTime, newVal));
-    } else {
-	timeStamp earlyestTime = parts[0]->lastSampleEnd;
-	for(unsigned i=0; i < parts.size(); i++){
-	    if(parts[i]->lastSampleEnd < earlyestTime){
-		earlyestTime = parts[i]->lastSampleEnd;
-	    }
-	}
-
-	if (earlyestTime > lastSampleEnd + 0.0001) {
-	    /* eat the first one to get a good interval basis */
-	    if (!firstSampleReceived) {
-	        // The start times for the components are probably not
-	        // aligned. To simplify things, we find the latest start time
-	        // for any component, and pick this as the start time for
-	        // the aggregation. The samples of each component are truncated 
-	        // to the new start time.
-	        // 
-
-		// find the latest start time
-		timeStamp latestStartTime = parts[0]->lastSampleStart;
-		for (unsigned j = 0; j < parts.size(); j++) {
-		  if (parts[j]->lastSampleStart > latestStartTime)
-		    latestStartTime = parts[j]->lastSampleStart;
-		}
-
-		if (latestStartTime >= earlyestTime) {
-		  // We are not ready to do the aggregation yet.
-		  // firstSampleReceived is still false
-		  ret.valid = false;
-		  return(ret);
-		}
-
-		// We are ready to aggregate from latestStartTime to earlyestTime.
-		firstSampleReceived = true;
-		lastSampleEnd = latestStartTime;
-		nparts = parts.size();
-
-		// latestStartTime is the initial start time for the aggregation.
-		// Truncate lastSample of all components accordingly.
-		for (unsigned j = 0; j < parts.size(); j++) {
-		    timeStamp diff = parts[j]->lastSampleEnd - latestStartTime;
-		    if (diff > 0) {
-		      parts[j]->lastSample *= ( diff / 
-				 (parts[j]->lastSampleEnd - parts[j]->lastSampleStart));
-		      parts[j]->lastSampleStart = latestStartTime;
-		    }
-		    else {
-		      parts[j]->lastSampleStart = parts[j]->lastSampleEnd;
-		      parts[j]->lastSample = 0;
-		    }
-		}
-	    }
-
-
-	    if (parts.size() < nparts) {
-	      // one part was deleted.
-	      nparts = parts.size();
-	    }
-	    else if (parts.size() > nparts) {
-
-	      // number of parts has changed
-	      // to simplify things, we make the first samples of the new parts 
-	      // have the same initial time.
-
-	      // we can find which are the samples for the new parts by checking 
-	      // the value of lastSampleStart for each part. The new ones have
-	      // lastSampleStart >= this->lastSampleEnd.
-
-	      // find the initial time for the new samples
-	      timeStamp newInitialTime = lastSampleEnd;
-	      for (unsigned j = 0; j < parts.size(); j++) {
-		if (parts[j]->lastSampleStart > newInitialTime) {
-		  newInitialTime = parts[j]->lastSampleStart;
-		}
-	      }
-
-	      // make all new samples have the same initial time newInitialTime
-	      for (unsigned j = 0; j < parts.size(); j++) {
-		if (parts[j]->lastSampleStart > lastSampleEnd) {
-		  // this is a new component
-		  timeStamp diff = parts[j]->lastSampleEnd - newInitialTime;
-		  if (diff > 0) {
-		    parts[j]->lastSample *= ( diff / 
-				  (parts[j]->lastSampleEnd - parts[j]->lastSampleStart));
-		    parts[j]->lastSampleStart = newInitialTime;
-		  }
-		  else {
-		    parts[j]->lastSampleStart = parts[j]->lastSampleEnd;
-		    parts[j]->lastSample = 0;
-		  }
-		}
-	      }
-
-	      // Check if we can return a valid sample now.
-	      if (earlyestTime < newInitialTime) {
-		// The new samples are not part of the aggregation yet.
-		// We still have to handle the special case of new samples,
-		// so we don't set nparts here, so next time we still execute
-		// this code.
-	      } else if (newInitialTime > lastSampleEnd) {
-		// We must aggregate the old parts until newInitialTime.
-		// New samples still are not part of the aggregation, so
-		// we don't set nparts here either.
-		earlyestTime = newInitialTime;
-	      } else {
-		// New sample are part of the aggregation.
-		nparts = parts.size();
-	      }
-	    }
-
-	    sampleValue aggregateVal = 0.0;
-
-	    int first = 1;
-	    unsigned nSamples = 0; // number of samples being aggregated
-
-	    for (unsigned i2=0; i2< parts.size(); i2++) {
-	      
-	      // We must check if this part should be aggregated, since we may have
-	      // samples for new parts that aren't ready to aggregate yet.
-	      if (parts[i2]->lastSampleStart < earlyestTime) {
-
-		++nSamples;
-
-		// assert(earlyestTime >= parts[i2]->lastSampleStart);
-
-		double fract = (earlyestTime - lastSampleEnd)/
-		 (parts[i2]->lastSampleEnd - parts[i2]->lastSampleStart);
-		sampleValue component_val = (parts[i2]->lastSample) * fract;
-
-		assert(fract > 0.0);
-		assert(fract <= 1.0);
-		assert(component_val >= -0.01);
-
-		parts[i2]->lastSample -= component_val;
-
-		// each list entry comes from a separate reporter
-		switch (aggOp)
-		  {
-		  case aggSum:
-		  case aggAvg:
-		    aggregateVal += component_val;
-		    break;
-		  case aggMin:
-		    if (first) {
-		      aggregateVal = component_val;
-		      first = 0;
-		    } else if (component_val < aggregateVal)
-		      aggregateVal = component_val;
-		    break;
-		  case aggMax:
-		    if (component_val > aggregateVal)
-		      aggregateVal = component_val;
-		    break;
-		  }
-
-		/* move forward our time of our earliest sample */
-		parts[i2]->lastSampleStart = earlyestTime;
-	      }
-	    }
-
-	    // nSamples is the number of samples being aggregated
-	    if (aggOp == aggAvg)
-	      aggregateVal /= nSamples;
-
-	    ret.valid = true;
-	    ret.start = lastSampleEnd;
-	    ret.end = earlyestTime;
-	    ret.value = aggregateVal;
-	    assert(ret.value >= 0.0);
-
-	    lastSampleStart = lastSampleEnd;
-	    lastSampleEnd = earlyestTime;
-	} else {
-	    ret.valid = false;
-	}
-    }
-    return(ret);
-}
-
-struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> &parts,
-			                   vector<unsigned> &weight_of_part,
-					   timeStamp sampleTime, 
-					   sampleValue newVal)
-{
-    struct sampleInterval ret;
-    assert((aggOp == aggSum) || (aggOp == aggAvg) ||
-	   (aggOp == aggMin) || (aggOp == aggMax));
-
-    if (!parts.size()) {
-       // not an aggregate.
-       return(newValue(sampleTime, newVal));
-    } else {
-	assert(parts.size() == weight_of_part.size());
-	timeStamp earlyestTime = parts[0]->lastSampleEnd;
-	for(unsigned i=0; i < parts.size(); i++){
-	    if(parts[i]->lastSampleEnd < earlyestTime){
-		earlyestTime = parts[i]->lastSampleEnd;
-	    }
-	}
-
-	if (earlyestTime > lastSampleEnd + 0.0001) {
-	    /* eat the first one to get a good interval basis */
-	    if (!firstSampleReceived) {
-	        // The start times for the components are probably not
-	        // aligned. To simplify things, we find the latest start time
-	        // for any component, and pick this as the start time for
-	        // the aggregation. The samples of each component are truncated 
-	        // to the new start time.
-	        // 
-
-		// find the latest start time
-		timeStamp latestStartTime = parts[0]->lastSampleStart;
-		for (unsigned j = 0; j < parts.size(); j++) {
-		  if (parts[j]->lastSampleStart > latestStartTime)
-		    latestStartTime = parts[j]->lastSampleStart;
-		}
-
-		if (latestStartTime >= earlyestTime) {
-		  // We are not ready to do the aggregation yet.
-		  // firstSampleReceived is still false
-		  ret.valid = false;
-		  return(ret);
-		}
-
-		// We are ready to aggregate from latestStartTime to earlyestTime.
-		firstSampleReceived = true;
-		lastSampleEnd = latestStartTime;
-		nparts = parts.size();
-
-		// latestStartTime is the initial start time for the aggregation.
-		// Truncate lastSample of all components accordingly.
-		for (unsigned j = 0; j < parts.size(); j++) {
-		    timeStamp diff = parts[j]->lastSampleEnd - latestStartTime;
-		    if (diff > 0) {
-		      parts[j]->lastSample *= ( diff / 
-				 (parts[j]->lastSampleEnd - parts[j]->lastSampleStart));
-		      parts[j]->lastSampleStart = latestStartTime;
-		    }
-		    else {
-		      parts[j]->lastSampleStart = parts[j]->lastSampleEnd;
-		      parts[j]->lastSample = 0;
-		    }
-		}
-	    }
-
-	    if (parts.size() > nparts) {
-
-	      // number of parts has changed
-	      // to simplify things, we make the first samples of the new parts 
-	      // have the same initial time.
-
-	      // we can find which are the samples for the new parts by checking 
-	      // the value of lastSampleStart for each part. The new ones have
-	      // lastSampleStart >= this->lastSampleEnd.
-
-	      // find the initial time for the new samples
-	      timeStamp newInitialTime = lastSampleEnd;
-	      for (unsigned j = 0; j < parts.size(); j++) {
-		if (parts[j]->lastSampleStart > newInitialTime) {
-		  newInitialTime = parts[j]->lastSampleStart;
-		}
-	      }
-
-	      // make all new samples have the same initial time newInitialTime
-	      for (unsigned j = 0; j < parts.size(); j++) {
-		if (parts[j]->lastSampleStart > lastSampleEnd) {
-		  // this is a new component
-		  timeStamp diff = parts[j]->lastSampleEnd - newInitialTime;
-		  if (diff > 0) {
-		    parts[j]->lastSample *= ( diff / 
-				  (parts[j]->lastSampleEnd - parts[j]->lastSampleStart));
-		    parts[j]->lastSampleStart = newInitialTime;
-		  }
-		  else {
-		    parts[j]->lastSampleStart = parts[j]->lastSampleEnd;
-		    parts[j]->lastSample = 0;
-		  }
-		}
-	      }
-
-	      // Check if we can return a valid sample now.
-	      if (earlyestTime < newInitialTime) {
-		// The new samples are not part of the aggregation yet.
-		// We still have to handle the special case of new samples,
-		// so we don't set nparts here, so next time we still execute
-		// this code.
-	      } else if (newInitialTime > lastSampleEnd) {
-		// We must aggregate the old parts until newInitialTime.
-		// New samples still are not part of the aggregation, so
-		// we don't set nparts here either.
-		earlyestTime = newInitialTime;
-	      } else {
-		// New sample are part of the aggregation.
-		nparts = parts.size();
-	      }
-	    }
-
-	    sampleValue aggregateVal = 0.0;
-
-	    int first = 1;
-
-	    unsigned total_weight = 0;
-	    for (unsigned i2=0; i2< parts.size(); i2++) {
-	      
-	      // We must check if this part should be aggregated, since we may have
-	      // samples for new parts that aren't ready to aggregate yet.
-	      if (parts[i2]->lastSampleStart < earlyestTime) {
-
-		// assert(earlyestTime >= parts[i2]->lastSampleStart);
-
-		double fract = (earlyestTime - lastSampleEnd)/
-		 (parts[i2]->lastSampleEnd - parts[i2]->lastSampleStart);
-		sampleValue component_val = (parts[i2]->lastSample) * fract;
-
-		assert(fract > 0.0);
-		assert(fract <= 1.0);
-		assert(component_val >= -0.01);
-
-		parts[i2]->lastSample -= component_val;
-
-		// each list entry comes from a separate reporter
-		switch (aggOp)
-		  {
-		  case aggSum:
-		    aggregateVal += component_val;
-		    break;	
-		  case aggAvg:
-		    aggregateVal += (weight_of_part[i2]*component_val);
-		    total_weight += weight_of_part[i2];
-		    break;
-		  case aggMin:
-		    if (first) {
-		      aggregateVal = component_val;
-		      first = 0;
-		    } else if (component_val < aggregateVal)
-		      aggregateVal = component_val;
-		    break;
-		  case aggMax:
-		    if (component_val > aggregateVal)
-		      aggregateVal = component_val;
-		    break;
-		  }
-
-		/* move forward our time of our earliest sample */
-		parts[i2]->lastSampleStart = earlyestTime;
-	      }
-	    }
-
-	    // total_weight is the weighted count of the samples on the list  
-	    if (aggOp == aggAvg){
 	      aggregateVal /= total_weight;
-            }
 
 	    ret.valid = true;
 	    ret.start = lastSampleEnd;
@@ -582,9 +259,8 @@ struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> &parts,
 
 	    lastSampleStart = lastSampleEnd;
 	    lastSampleEnd = earlyestTime;
-	} else {
-	    ret.valid = false;
-	}
-    }
-    return(ret);
+
+	  }
+
+    return ret;
 }

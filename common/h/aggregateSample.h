@@ -23,58 +23,147 @@ struct sampleInterval {
     sampleValue	value;
 };
 
+// class sampleInfo: define a class for sample values. This class should be used
+// with class aggregatesample. sampleInfo objects are allocated and deallocated
+// by class aggregateSample.
+// Objects are allocated by aggregateSample::newSampleInfo.
+// All sampleInfo object must be a component of at least one aggregateSample, 
+// and they can of more many aggregateSamples.
+
 class sampleInfo {
+  friend class aggregateSample;
+
   public:
  
     bool firstValueReceived() { return firstSampleReceived; }
 
-    struct sampleInterval startTime(timeStamp startTime_);
+    void startTime(timeStamp startTime_);
 
-    struct sampleInterval firstValue(timeStamp startTime, timeStamp endTime, 
-                                     sampleValue value);
+    struct sampleInterval newValue(timeStamp wallTime, sampleValue value, 
+                                   unsigned weight_ = 1);
 
-    struct sampleInterval newValue(timeStamp wallTime, sampleValue value);
+    timeStamp lastSampleTime() { return lastSampleEnd; }
 
-    //struct sampleInterval newValue(List<sampleInfo *> peers, 
-    //				   timeStamp wallTime, 
-    //				   sampleValue value);
-    struct sampleInterval newValue(vector<sampleInfo *> peers, 
-				   timeStamp wallTime, 
-				   sampleValue value);
-    struct sampleInterval newValue(vector<sampleInfo *> &parts, 
-				   vector<unsigned> &weight_of_part,
-				   timeStamp wallTime, 
-				   sampleValue value);
-    sampleInfo( int aOp = aggSum) {
-        firstSampleReceived = false;
-	value = 0.0;
-	lastSampleStart = 0.0;
-	lastSampleEnd = 0.0;
-	lastSample = 0.0;
-	aggOp = aOp;
-        nparts = 0;
-    }
-    sampleInfo &operator=(const sampleInfo &src) {
-       firstSampleReceived = src.firstSampleReceived;
-       value = src.value;
-       lastSampleStart = src.lastSampleStart;
-       lastSampleEnd = src.lastSampleEnd;
-       lastSample = src.lastSample;
-       aggOp = src.aggOp;
-       nparts = src.nparts;
-       return *this;
-    }
-    bool firstSampleReceived;        // has first sample been recorded
-    sampleValue value;                  // cumlative value
-    timeStamp   lastSampleStart;        // start time for last sample
-    timeStamp   lastSampleEnd;          // end time for last sample
-    sampleValue lastSample;             // what was the last sample increment
-    int aggOp;
+    // constructor and destructor are private. 
+    // They should only be used by class aggregateSample.
 
 private:
 
-    unsigned nparts;                    // number of parts for an aggregate value
+    sampleInfo() {
+        firstSampleReceived = false;
+	lastSampleStart = 0.0;
+	lastSampleEnd = 0.0;
+	lastSample = 0.0;
+	weight = 1;
+        numAggregators = 0;
+    }
 
+    ~sampleInfo() {};
+
+    sampleInfo &operator=(const sampleInfo &src) {
+       firstSampleReceived = src.firstSampleReceived;
+       lastSampleStart = src.lastSampleStart;
+       lastSampleEnd = src.lastSampleEnd;
+       lastSample = src.lastSample;
+       weight = src.weight;
+       numAggregators = src.numAggregators;
+       return *this;
+    }
+
+    bool firstSampleReceived;        // has first sample been recorded
+    timeStamp   lastSampleStart;        // start time for last sample
+    timeStamp   lastSampleEnd;          // end time for last sample
+    sampleValue lastSample;             // what was the last sample increment
+    unsigned numAggregators;            // number of aggregateSample this is a part of
+    unsigned weight;                    // weight of this sample
+};
+
+
+// aggregateSample: aggregate values for samples. aggregate samples can have
+// one or more components. Components can be added or removed at any time.
+
+class aggregateSample {
+
+public:
+  
+  aggregateSample(int aggregateOp) {
+    assert(aggregateOp == aggSum || aggregateOp == aggAvg || aggregateOp == aggMin
+	   || aggregateOp == aggMax);
+    aggOp = aggregateOp;
+    lastSampleStart = 0.0;
+    lastSampleEnd = 0.0;
+  }
+
+  ~aggregateSample() {
+    unsigned u;
+    for (u = 0; u < newParts.size(); u++)
+      if (--newParts[u]->numAggregators == 0)
+        delete newParts[u];
+    for (u = 0; u < parts.size(); u++)
+      if (--parts[u]->numAggregators == 0)
+        delete parts[u];
+  }
+
+  sampleInfo *newComponent() {
+    sampleInfo *comp = new sampleInfo();
+    addComponent(comp);
+    return comp;
+  }
+
+  void addComponent(sampleInfo *comp) {
+    newParts += comp;
+    removedNewParts += false;
+    comp->numAggregators++;
+  }
+
+  // remove a component. The sampleInfo object will be deallocated once
+  // its value has been aggregated.
+  void removeComponent(sampleInfo *comp) {
+    for (unsigned u = 0; u < parts.size(); u++) {
+      if (parts[u] == comp) {
+        removedParts[u] = true;
+        return;
+      }
+    }
+    for (unsigned u = 0; u < newParts.size(); u++) {
+      if (newParts[u] == comp) {
+        removedNewParts[u] = true;
+        newParts[u] = newParts[newParts.size()-1];
+        newParts.resize(newParts.size()-1);
+        return;
+      }
+    }
+    assert(0);
+  }
+
+  // aggregate the values for all components.
+  struct sampleInterval aggregateValues();
+
+  // return the number of components included in the last valid aggregate value.
+  inline unsigned numComponents() {
+    return parts.size();
+  }
+
+  timeStamp currentTime() { return lastSampleEnd; }
+
+private:
+
+  int aggOp;                        // the aggregate operator (sum, avg, min, max)
+  timeStamp lastSampleStart;        // start time of last sample
+  timeStamp lastSampleEnd;          // end time of last sample
+  vector<sampleInfo *> parts;       // the parts that are being aggregated.
+                                    // For all u, 
+                                    //    parts[u]->lastSampleStart == lastSampleEnd
+  vector<bool> removedParts;        // true if parts[u] has been removed.
+                                    // Once parts[u]->lastSampleStart ==
+                                    //                 parts[u]->lastSampleEnd
+                                    // parts[u] will be deleted.
+  vector<sampleInfo *> newParts;    // new parts that have been added to the 
+                                    // aggregation, but cannot be aggregated yet
+                                    // because their start time is not aligned with
+                                    // lastSampleEnd.
+  vector<bool> removedNewParts;     // new parts that have been removed.
 };
 
 #endif
+
