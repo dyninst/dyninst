@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.4  1994/03/01 21:25:09  hollings
+ * Revision 1.5  1994/04/11 23:19:28  hollings
+ * Changed default hyst. to 15%.
+ *
+ * Revision 1.4  1994/03/01  21:25:09  hollings
  * added tunable constants.
  *
  * Revision 1.3  1994/02/24  04:36:47  markc
@@ -58,7 +61,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.4 1994/03/01 21:25:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.5 1994/04/11 23:19:28 hollings Exp $";
 #endif
 
 
@@ -74,7 +77,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCglobals.h"
 #include "performanceConsultant.SRVR.h"
 
-tunableConstant hysteresisRange(0.0, 0.0, 1.0, NULL, "hysteresisRange",
+tunableConstant hysteresisRange(0.15, 0.0, 1.0, NULL, "hysteresisRange",
   "Fraction above and bellow threshold that a test should use.");
 
 extern Boolean textMode;
