@@ -3,13 +3,18 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.8  1994/10/11 22:05:11  tamches
-/* Fixed resize bug whereupon a resize while paused would blank out the
-/* bars until continue was pressed.
+/* Revision 1.9  1994/10/13 00:49:57  tamches
+/* Implemented sorting of resources.
+/* Fixed deleting of resources.
+/* Rearranged menus to be more standards-ish
 /*
-/* Better support for deleted resources via variables
-/* validMetrics and validResources
-/*
+ * Revision 1.8  1994/10/11  22:05:11  tamches
+ * Fixed resize bug whereupon a resize while paused would blank out the
+ * bars until continue was pressed.
+ *
+ * Better support for deleted resources via variables
+ * validMetrics and validResources
+ *
  * Revision 1.7  1994/10/10  23:08:37  tamches
  * preliminary changes on the way to swapping the x and y axes
  *
@@ -90,12 +95,11 @@ BarChart::BarChart(char *tkWindowName,
 		   const bool initFlushFlag) :
             metricColors(initNumMetrics),
             prevBarHeights(initNumMetrics, initNumResources),
-            barXoffsets(initNumMetrics, initNumResources),
-            barWidths  (initNumMetrics, initNumResources),
 	    barHeights (initNumMetrics, initNumResources),
 	    barValues  (initNumMetrics, initNumResources),
 	    validMetrics(initNumMetrics),
 	    validResources(initNumResources),
+	    indirectResources(initNumResources),
             metricCurrMaxVals(initNumMetrics),
 	    flushFlag (initFlushFlag)
              {
@@ -306,14 +310,13 @@ void BarChart::RethinkMetricsAndResources() {
    numMetrics   = dataGrid.NumMetrics();
    numResources = dataGrid.NumResources();
 
-   barXoffsets.reallocate(numMetrics, numResources);
-   barWidths  .reallocate(numMetrics, numResources);
-   barHeights .reallocate(numMetrics, numResources);
+   barHeights    .reallocate(numMetrics, numResources);
    prevBarHeights.reallocate(numMetrics, numResources);
-   barValues  .reallocate(numMetrics, numResources);
+   barValues     .reallocate(numMetrics, numResources);
    metricCurrMaxVals.reallocate(numMetrics);
 
    rethinkValidMetricsAndResources(); // reallocate and rethink validMetrics, validResources
+   rethinkIndirectResources(); // reallocate and rethink indirectResources, used for sorting
 
    // rethink bar values from dataGrid
    for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
@@ -439,7 +442,7 @@ void BarChart::setMetricNewMax(int metricindex, double newmaxval) {
 }
 
 void BarChart::RethinkBarLayouts() {
-   // Assuming a complete resize (but not an added or deleted metric
+   // Assuming a complete resize or a change in sorting order (but not an added or deleted metric
    // or resource or even new data values), fill in barXoffsets, barWidths, etc.
 
    // does not touch metricCurrMaxVals or barValues
@@ -451,24 +454,10 @@ void BarChart::RethinkBarLayouts() {
    if (NULL == fullResourceWidthStr)
       panic("BarChart::RethinkBarLayouts() -- could not read 'currResourceWidth' from tcl");
 
-   int totalResourceWidth = atoi(fullResourceWidthStr);
-   int fullResourceWidth = (totalResourceWidth * 90) / 100;
-
-   int resourceBorderWidth = (totalResourceWidth - fullResourceWidth) / 2;
-   int individualResourceWidth = (numMetrics == 0) ? 0 : fullResourceWidth / numMetrics;
-
-   int left = borderPix + resourceBorderWidth; // position for the first bar...
-   for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
-      if (!validResources[resourcelcv]) continue;
-
-      for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-         barXoffsets[metriclcv][resourcelcv] = left + metriclcv * individualResourceWidth;
-         barWidths  [metriclcv][resourcelcv] = individualResourceWidth;
-         barHeights [metriclcv][resourcelcv] = 0; // all bars start off flat
-      }
-
-      left += totalResourceWidth;
-   }
+   totalResourceWidth = atoi(fullResourceWidthStr);
+   fullResourceWidth = (totalResourceWidth * 90) / 100;
+   resourceBorderWidth = (totalResourceWidth - fullResourceWidth) / 2;
+   individualResourceWidth = (numValidMetrics == 0) ? 0 : fullResourceWidth / numValidMetrics;
 
    RethinkBarHeights();
 }
@@ -478,227 +467,25 @@ void BarChart::RethinkBarHeights() {
    // that equals the fraction of the bar's current value to its
    // metric max y value.
 
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      if (!validMetrics[metriclcv]) continue;
+   // move from left to right on the screen, in sorted order
+   // (but store changes in original order)
+   for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+      const int actualResource = indirectResources[resourcelcv];
+      if (!validResources[actualResource]) continue;
 
-      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
-         if (!validResources[resourcelcv]) continue;
+      for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+         const int actualMetric = metriclcv;
+         if (!validMetrics[actualMetric]) continue;
 
-         register double theHeight = barValues[metriclcv][resourcelcv] /
-	                             metricCurrMaxVals[metriclcv];
+         register double theHeight = barValues[actualMetric][actualResource] /
+	                             metricCurrMaxVals[actualMetric];
          theHeight *= this->height; // scale by window height (excluding border pixels)
-         barHeights[metriclcv][resourcelcv] = (int)theHeight;
+         barHeights[actualMetric][actualResource] = (int)theHeight;
       }
    }
 
    if (HaveSeenFirstGoodWid)
       lowLevelDrawBars();
-}
-
-bool BarChart::currentlyInstalledLowLevelDrawBars=false;
-
-void BarChart::lowLevelDrawBars() {
-   // perhaps we should check to see if the barchart program has
-   // been shut down before attempting to do anything?  Nah,
-   // just be sure to call Tk_CancelIdleCall() on lowestLevelDrawBars()
-   // in the destructor.
-
-   isMapped = Tk_IsMapped(theWindow);
-   if (!isMapped)
-      return;
-
-   if (!HaveSeenFirstGoodWid)
-      return;
-
-   if (!currentlyInstalledLowLevelDrawBars) {
-      currentlyInstalledLowLevelDrawBars = true;
-
-      Tk_DoWhenIdle(lowestLevelDrawBars, NULL);
-   }
-}
-
-void BarChart::lowestLevelDrawBarsDoubleBuffer() {
-   unsigned long bgPixel = greyColor->pixel;
-
-   // note that the double-buffer pixmap DOES include space for border
-   // pixels, even though we don't make use of such pixels.  This was
-   // done because keeping the offscreen pixmap the same size as the
-   // window simplifies the drawing; e.g. barXoffsets[] already have
-   // borderPix added in to each element and it would be clumsy to
-   // compensate.
-
-   // Our XCopyArea() (when done drawing) is rigged (check the args) to
-   // not copy the border pixel area...
-
-   // clear the offscreen buffer.  XClearArea() works only on windows, so fill a rectangle
-   // with the background color.
-   XSetForeground(display, myGC, bgPixel);
-   XSetBackground(display, myGC, bgPixel);
-   XFillRectangle(display, doubleBufferPixmap,
-		  myGC,
-		  borderPix, // x-offset, relative to drawable
-		  borderPix, // y-offset, relative to drawable
-		  width,     // does not include border pixels
-		  height     // does not include border pixels
-		  );
-
-   if (flushFlag)
-      XSync(display, False);
-
-   // do the drawing onto offscreen pixmap
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      if (!validMetrics[metriclcv]) continue;
-
-      XSetForeground(display, myGC, metricColors[metriclcv]->pixel);
-   
-      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
-         if (!validResources[resourcelcv]) continue;
-
-         XFillRectangle(display,
-			doubleBufferPixmap,
-			myGC,
-			currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
-			height - barHeights[metriclcv][resourcelcv] - borderPix, // top-y
-			barWidths[metriclcv][resourcelcv], // width
-			barHeights[metriclcv][resourcelcv] // height
-		       );
-      }
-   }
-
-   if (flushFlag)
-      XSync(display, False);
-
-   // copy offscreen pixmap onto screen
-   // cout << '{'; cout.flush();
-   
-   XCopyArea(display,
-	     doubleBufferPixmap, // source
-	     wid,                // dest
-	     myGC,
-	     borderPix, borderPix, // source x, y (note how we exclude the border)
-	     width, height, // these vrbles are preset to exclude the borders
-	     borderPix, borderPix // dest x, y (note how we exclude the border)
-	    );
-   // cout << '}'; cout.flush();
-
-   if (flushFlag)
-      XSync(display, False);
-}
-
-void BarChart::lowestLevelDrawBarsNoFlicker() {
-  // be smart about what gets drawn verses what gets erased; if a bar is lower than
-  // last time, erase the appropriate chunk on top; if a bar is higher than
-  // last time, draw the approrpriate chunk on top.
-  
-  unsigned long bgPixel = greyColor->pixel;
-
-  for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-     if (!validMetrics[metriclcv]) continue;
-
-     unsigned long fgPixel = metricColors[metriclcv]->pixel;
-
-     for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
-        if (!validResources[resourcelcv]) continue;
-
-        int newHeight = barHeights    [metriclcv][resourcelcv];
-	int oldHeight = prevBarHeights[metriclcv][resourcelcv];
- 
-	if (newHeight > oldHeight) {
-	   // the bar is higher than last time; draw the appropriate chunk on top
-	   XSetForeground(display, myGC, fgPixel);
-	   XSetBackground(display, myGC, bgPixel);
-
-	   XFillRectangle(display, wid, myGC,
-			  currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
-			  height - newHeight - borderPix, // top-y
-			  barWidths[metriclcv][resourcelcv], // width
-			  newHeight - oldHeight // height
-			 );
-        }
-	else if (newHeight < oldHeight) {
-	   // the bar is lower than last time; erase appropriate chunk on top
-	   XSetForeground(display, myGC, bgPixel);
-	   XSetBackground(display, myGC, fgPixel);
-
-	   XFillRectangle(display, wid, myGC,
-			  currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
-			  height - oldHeight - borderPix, // top-y
-			  barWidths[metriclcv][resourcelcv], // width
-			  oldHeight - newHeight // height
-			  );
-	}
-        else
-	    ; // no need to redraw bar at the same height as before
-
-        // and finally...
-        prevBarHeights[metriclcv][resourcelcv] = newHeight;
-     }
-  }
-
-  if (flushFlag)
-     XSync(display, False);
-}
-
-void BarChart::lowestLevelDrawBarsFlicker() {
-   ClearScreen(); // clear window, leaving border pixels alone
-   if (flushFlag)
-      XSync(display, False);
-
-   unsigned long bgPixel = greyColor->pixel;
-
-   // do the drawing onto offscreen pixmap
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      if (!validMetrics[metriclcv]) continue;
-
-      XSetForeground(display, myGC, metricColors[metriclcv]->pixel);
-      XSetBackground(display, myGC, bgPixel);
-   
-      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
-         if (!validResources[resourcelcv]) continue;
-
-         XFillRectangle(display, wid,
-			myGC,
-			currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
-			height - barHeights[metriclcv][resourcelcv] - borderPix, // top-y
-			barWidths[metriclcv][resourcelcv], // width
-			barHeights[metriclcv][resourcelcv] // height
-		       );
-   
-      }
-   }
-
-   if (flushFlag)
-      XSync(display, False);
-}
-
-void BarChart::lowestLevelDrawBars(ClientData ignore) {
-   // cout << '['; cout.flush();
-
-   // NOTE: a --static-- member function --> no "this" exists!!
-
-   if (!theBarChart->HaveSeenFirstGoodWid) {
-      cout << "BarChart::lowestLevelDrawBars -- haven't yet mapped? (ignoring)" << endl;
-      return;
-   }
-
-   switch (theBarChart->drawMode) {
-      case DoubleBuffer:
-         theBarChart->lowestLevelDrawBarsDoubleBuffer();
-         break;
-      case NoFlicker:
-         theBarChart->lowestLevelDrawBarsNoFlicker();
-         break;
-      case Flicker:
-         theBarChart->lowestLevelDrawBarsFlicker();
-         break;
-      default: assert(0);
-   }
-
-   currentlyInstalledLowLevelDrawBars = false; // now, new requests will be handled
-      // It seems wrong to delay this line until the bottom of the
-      // routine; it could cause new data to be ignored
-
-   // cout << ']'; cout.flush();
 }
 
 void BarChart::processNewScrollPosition(int newPos) {
@@ -766,4 +553,259 @@ void BarChart::rethinkValidMetricsAndResources() {
             validMetrics[metriclcv] = true;
             validResources[resourcelcv] = true;
 	 }
+
+   numValidMetrics=0;
+   for (metriclcv=0; metriclcv<numMetrics; metriclcv++)
+      if (validMetrics[metriclcv])
+         numValidMetrics++;
+
+   numValidResources=0;
+   for (resourcelcv=0; resourcelcv<numResources; resourcelcv++)
+      if (validResources[resourcelcv])
+         numValidResources++;
 }
+
+void BarChart::rethinkIndirectResources() {
+   // The sorting order has changed; re-read from tcl variables
+   indirectResources.reallocate(numResources);
+
+   for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+      char buffer[20];
+      sprintf(buffer, "%d", resourcelcv);
+
+      char *string = Tcl_GetVar2(MainInterp, "indirectResources", buffer, TCL_GLOBAL_ONLY);
+      if (string == NULL)
+         panic("BarChart::rethinkIndirectResources -- could not read indirectResources() from tcl");
+
+      const int indirectNum = atoi(string);
+      if (indirectNum<0 || indirectNum>=numResources)
+         panic("BarChart::rethinkIndirectResources -- bad indirect value");
+
+      indirectResources[resourcelcv] = indirectNum;
+   }
+
+   //cout << "Leaving BarChart::rethinkIndirectResources() with {";
+   //for (resourcelcv=0; resourcelcv<numResources; resourcelcv++)
+   //   cout << ' ' << indirectResources[resourcelcv];
+   //cout << "}" << endl;
+}
+
+bool BarChart::currentlyInstalledLowLevelDrawBars=false;
+
+void BarChart::lowLevelDrawBars() {
+   // perhaps we should check to see if the barchart program has
+   // been shut down before attempting to do anything?  Nah,
+   // just be sure to call Tk_CancelIdleCall() on lowestLevelDrawBars()
+   // in the destructor.
+
+   isMapped = Tk_IsMapped(theWindow);
+   if (!isMapped)
+      return;
+
+   if (!HaveSeenFirstGoodWid)
+      return;
+
+   if (!currentlyInstalledLowLevelDrawBars) {
+      currentlyInstalledLowLevelDrawBars = true;
+
+      Tk_DoWhenIdle(lowestLevelDrawBars, NULL);
+   }
+}
+
+void BarChart::lowestLevelDrawBarsDoubleBuffer() {
+   unsigned long bgPixel = greyColor->pixel;
+
+   // note that the double-buffer pixmap DOES include space for border
+   // pixels, even though we don't make use of such pixels.  This was
+   // done because keeping the offscreen pixmap the same size as the
+   // window simplifies the drawing; e.g. barXoffsets[] already have
+   // borderPix added in to each element and it would be clumsy to
+   // compensate.
+
+   // Our XCopyArea() (when done drawing) is rigged (check the args) to
+   // not copy the border pixel area...
+
+   // clear the offscreen buffer.  XClearArea() works only on windows, so fill a rectangle
+   // with the background color.
+   XSetForeground(display, myGC, bgPixel);
+   XSetBackground(display, myGC, bgPixel);
+   XFillRectangle(display, doubleBufferPixmap,
+		  myGC,
+		  borderPix, // x-offset, relative to drawable
+		  borderPix, // y-offset, relative to drawable
+		  width,     // does not include border pixels
+		  height     // does not include border pixels
+		  );
+
+   // do the drawing onto offscreen pixmap
+
+   // loop through the resources in sorted order
+
+   int resourceBoundary = borderPix + currScrollOffset;
+   const int top = height + borderPix;
+   
+   for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+      const int actualResource = indirectResources[resourcelcv];
+      assert(actualResource>=0);
+      assert(actualResource<numResources);
+      if (!validResources[actualResource]) continue;
+
+      int left = resourceBoundary + resourceBorderWidth;
+      
+      for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+         const int actualMetric = metriclcv; // allow for sorting metrics in the future
+         assert(actualMetric>=0);
+         assert(actualMetric<numMetrics);
+         if (!validMetrics[actualMetric]) continue;
+
+         XSetForeground(display, myGC, metricColors[actualMetric]->pixel);
+   
+         const int thisBarHeight = barHeights[actualMetric][actualResource];
+         XFillRectangle(display,
+			doubleBufferPixmap,
+			myGC,
+		        left, // left
+			top - thisBarHeight, // top-y
+                        individualResourceWidth, // width
+			thisBarHeight // height
+			);
+
+         left += individualResourceWidth;
+      }
+
+      resourceBoundary += totalResourceWidth;
+   }
+
+   // copy offscreen pixmap onto screen
+   // cout << '{'; cout.flush();
+   
+   XCopyArea(display,
+	     doubleBufferPixmap, // source
+	     wid,                // dest
+	     myGC,
+	     borderPix, borderPix, // source x, y (note how we exclude the border)
+	     width, height, // these vrbles are preset to exclude the borders
+	     borderPix, borderPix // dest x, y (note how we exclude the border)
+	    );
+//   cout << '}'; cout.flush();
+}
+
+void BarChart::lowestLevelDrawBars(ClientData ignore) {
+   // cout << '['; cout.flush();
+
+   // NOTE: a --static-- member function --> no "this" exists!!
+
+   if (!theBarChart->HaveSeenFirstGoodWid) {
+      cout << "BarChart::lowestLevelDrawBars -- haven't yet mapped? (ignoring)" << endl;
+      return;
+   }
+
+   switch (theBarChart->drawMode) {
+      case DoubleBuffer:
+         theBarChart->lowestLevelDrawBarsDoubleBuffer();
+         break;
+//      case NoFlicker:
+//         theBarChart->lowestLevelDrawBarsNoFlicker();
+//         break;
+//      case Flicker:
+//         theBarChart->lowestLevelDrawBarsFlicker();
+//         break;
+      default: assert(false);
+   }
+
+   currentlyInstalledLowLevelDrawBars = false; // now, new requests will be handled
+      // It seems wrong to delay this line until the bottom of the
+      // routine; it could cause new data to be ignored
+
+   // cout << ']'; cout.flush();
+}
+
+/* ******************************************************************************** */
+/* ****************************** Ancient History ********************************* */
+/* ******************************************************************************** */
+
+//void BarChart::lowestLevelDrawBarsFlicker() {
+//   ClearScreen(); // clear window, leaving border pixels alone
+//   if (flushFlag)
+//      XSync(display, False);
+//
+//   unsigned long bgPixel = greyColor->pixel;
+//
+//   // do the drawing onto offscreen pixmap
+//   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+//      if (!validMetrics[metriclcv]) continue;
+//
+//      XSetForeground(display, myGC, metricColors[metriclcv]->pixel);
+//      XSetBackground(display, myGC, bgPixel);
+//   
+//      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+//         if (!validResources[resourcelcv]) continue;
+//
+//         XFillRectangle(display, wid,
+//			myGC,
+//			currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
+//			height - barHeights[metriclcv][resourcelcv] - borderPix, // top-y
+//			barWidths[metriclcv][resourcelcv], // width
+//			barHeights[metriclcv][resourcelcv] // height
+//		       );
+//   
+//      }
+//   }
+//
+//   if (flushFlag)
+//      XSync(display, False);
+//}
+//
+//void BarChart::lowestLevelDrawBarsNoFlicker() {
+//  // be smart about what gets drawn verses what gets erased; if a bar is lower than
+//  // last time, erase the appropriate chunk on top; if a bar is higher than
+//  // last time, draw the approrpriate chunk on top.
+//  
+//  unsigned long bgPixel = greyColor->pixel;
+//
+//  for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+//     if (!validMetrics[metriclcv]) continue;
+//
+//     unsigned long fgPixel = metricColors[metriclcv]->pixel;
+//
+//     for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+//        if (!validResources[resourcelcv]) continue;
+//
+//        int newHeight = barHeights    [metriclcv][resourcelcv];
+//	int oldHeight = prevBarHeights[metriclcv][resourcelcv];
+// 
+//	if (newHeight > oldHeight) {
+//	   // the bar is higher than last time; draw the appropriate chunk on top
+//	   XSetForeground(display, myGC, fgPixel);
+//	   XSetBackground(display, myGC, bgPixel);
+//
+//	   XFillRectangle(display, wid, myGC,
+//			  currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
+//			  height - newHeight - borderPix, // top-y
+//			  barWidths[metriclcv][resourcelcv], // width
+//			  newHeight - oldHeight // height
+//			 );
+//        }
+//	else if (newHeight < oldHeight) {
+//	   // the bar is lower than last time; erase appropriate chunk on top
+//	   XSetForeground(display, myGC, bgPixel);
+//	   XSetBackground(display, myGC, fgPixel);
+//
+//	   XFillRectangle(display, wid, myGC,
+//			  currScrollOffset + barXoffsets[metriclcv][resourcelcv], // left-x
+//			  height - oldHeight - borderPix, // top-y
+//			  barWidths[metriclcv][resourcelcv], // width
+//			  oldHeight - newHeight // height
+//			  );
+//	}
+//        else
+//	    ; // no need to redraw bar at the same height as before
+//
+//        // and finally...
+//        prevBarHeights[metriclcv][resourcelcv] = newHeight;
+//     }
+//  }
+//
+//  if (flushFlag)
+//     XSync(display, False);
+//}
