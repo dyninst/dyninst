@@ -1,7 +1,10 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.2  1995/09/26 20:17:36  naim
+ * Revision 1.3  1995/12/20 16:38:46  naim
+ * Minor changes in status_line messages - naim
+ *
+ * Revision 1.2  1995/09/26  20:17:36  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.1  1995/08/24  15:03:37  hollings
@@ -662,8 +665,8 @@ bool establishBaseAddrs(int pid, int &status)
 
     ptr = info;
     if (ptr->ldinfo_next) {
-	statusLine("ERROR: program not staticlly linked");
-	logLine("ERROR: program not staticlly linked");
+	statusLine("ERROR: program not statically linked");
+	logLine("ERROR: program not statically linked");
 	showErrorCallback(46, "Program not statically linked");
 	return false;
     }
