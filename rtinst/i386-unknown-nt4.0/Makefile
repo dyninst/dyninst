@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 1998/07/23 16:13:33 wylie Exp $
+# $Id: Makefile,v 1.8 1999/03/03 20:15:26 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -42,7 +42,7 @@ include ../../nmake.library.tmpl
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
-	    -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) wsock32.lib winmm.lib
+	    -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) ws2_32.lib winmm.lib
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o
 #	@$(RM) $(TARGET2)
