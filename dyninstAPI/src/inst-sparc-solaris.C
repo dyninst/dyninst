@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.45 1998/12/25 23:18:47 wylie Exp $
+// $Id: inst-sparc-solaris.C,v 1.46 1999/03/04 19:40:41 paradyn Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1293,7 +1293,7 @@ Register emitFuncCall(opCode op,
 
         // return value is the register with the return value from the function.
         // This needs to be %o0 since it is back in the caller's scope.
-        return(REG_O(8));
+        return(REG_O(0));
 }
  
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
