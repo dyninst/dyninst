@@ -1,6 +1,11 @@
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.1  1994/02/02 00:38:21  hollings
+ * Revision 1.2  1994/05/18 00:48:57  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.1  1994/02/02  00:38:21  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.5  1993/08/05  18:58:43  hollings
@@ -26,13 +31,13 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.1 1994/02/02 00:38:21 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.2 1994/05/18 00:48:57 hollings Exp $";
 #endif
 
 #include <assert.h> 
 #include <stdio.h>
-#include <float.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "dataManager.h"
 #include "PCwhen.h"
@@ -78,7 +83,7 @@ void timeInterval::print(int level, char *str)
 		(*curr)->print(level+1);
 	    }
 	}
-    } else if (end == FLT_MAX) {
+    } else if (end == infinity()) {
 	sprintf(str, "entire exeuction");
     } else {
 	sprintf(str, "%5.2f to %5.2f", start, end);

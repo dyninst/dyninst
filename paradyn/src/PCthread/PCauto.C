@@ -2,7 +2,12 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.5  1994/05/02 20:38:08  hollings
+ * Revision 1.6  1994/05/18 00:48:50  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.5  1994/05/02  20:38:08  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.4  1994/04/27  22:54:59  hollings
@@ -156,6 +161,7 @@ void autoChangeRefineList()
     // float newCost;
     float totalCost = 0.0;
     searchHistoryNode *curr;
+    extern Boolean PCsearchPaused;
     extern tunableConstant sufficientTime;
 
     if (printNodes) printf("TRYING: ");
@@ -182,6 +188,7 @@ void autoChangeRefineList()
 
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
+	PCsearchPaused = TRUE;
 
 	return;
     }

@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.6  1994/05/02 20:38:11  hollings
+ * Revision 1.7  1994/05/18 00:48:54  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.6  1994/05/02  20:38:11  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.5  1994/04/12  15:32:47  hollings
@@ -60,12 +65,13 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.6 1994/05/02 20:38:11 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.7 1994/05/18 00:48:54 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 
 #include "util/h/tunableConst.h"
 #include "PCmetric.h"
@@ -77,12 +83,12 @@ tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
   "How long to wait (in seconds) before we can concule a hypothesis is false.");
 
 int PCsearchPaused;
-// int totalHistograms;
 timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
 stringPool PCmetricStrings;
 int samplesSinceLastChange;
-timeStamp lastTestChageTime;
+timeStamp PCearlyestSample;
+timeStamp PClastTestChangeTime;
 Boolean explainationFlag = FALSE;
 
 //
@@ -171,12 +177,8 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
 
     val = findDatum(f);
     if (!val) {
-	// printf("*** could not find metric %s for focus: ", name);
-	// f->print();
-	// printf("\n");
-	// abort();
-	// This situation happens when on item that is requested to be enabled
-	// is not avaiable but other tests that are or toogether are.
+	// This situation happens when an item that is requested to be enabled
+	// is not avaiable but other tests that are requested toogether are.
 	return(0.0);
     }
 
@@ -193,8 +195,7 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
     val->lastUsed = end;
 
     if (fetchPrint == TRUE) {
-	printf("getting value for %s from %f to %f\n", name, 
-	    start, end);
+	printf("getting value for %s from %f to %f\n", name, start, end);
     }
 
     ret = val->sample;
@@ -230,7 +231,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
     datum *val;
     extern void printCurrentFocus();
 
-    lastTestChageTime = PCcurrentTime;
+    PClastTestChangeTime = PCcurrentTime;
 
     // find the current sample for the given focus.
     val = findDatum(f);
@@ -255,12 +256,11 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	val->refCount++;
 	if (!val->enabled) {
 	    val->samplesSinceEnable = 0;
-	    val->enableTime = PCcurrentTime;
+	    val->lastSampleTime = 0.0;
 	    val->used = TRUE;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList, met);
 	    if (val->mi) {
 		// only the data that really exhists gets enabled.
-		// val->hist->enable();
 		miToDatumMap.add(val, val->mi);
 		val->enabled = TRUE;
 	    }
@@ -277,7 +277,6 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 
 	    if (val->mi) {
 		dataMgr->disableDataCollection(pcStream, val->mi);
-		// val->hist->disable();
 		val->totalUsed += val->lastUsed - val->enableTime;
 	    }
 	}
@@ -406,22 +405,46 @@ int globalMinSampleCount()
     return(min);
 }
 
+//
+// find the min samples seen for any active datum.
+//
+// 
+timeStamp globalMinSampleTime()
+{
+    datum *d;
+    datumList curr;
+    timeStamp min;
+
+    min = infinity();
+    for (curr = miToDatumMap; d = *curr; curr++) {
+	if ((d->enabled) && (d->samplesSinceEnable < min)) {
+	    min = d->lastSampleTime;
+	}
+    }
+    return(min);
+}
+
 void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 {
-    Boolean changed;
-    extern Boolean doScan();
-    extern Boolean verifyPreviousRefinements();
-
     sample += value;
     samplesSinceEnable++;
     if (samplesSinceEnable == 1) {
 	// consider the sample enabled only from the time we get the first
-	//   sample.  This removes inst latency, and the fact currenTime is
+	//   sample.  This removes inst latency, and the fact currentTime is
 	//   trailing edge of the time wavefront.
 	enableTime = start;
     }
+    lastSampleTime = end;
 
     samplesSinceLastChange = globalMinSampleCount();
+    PCearlyestSample = globalMinSampleTime();
+}
+
+void PCevaluateWorld()
+{
+    Boolean changed;
+    extern Boolean doScan();
+    extern Boolean verifyPreviousRefinements();
 
     //
     // see that we are actively searching before trying to eval tests!
@@ -433,20 +456,16 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
     //
     // wait minObservationTime between calls to eval.
     //
-    if (end > PCcurrentTime + minObservationTime.getValue()) {
-	PCcurrentTime = end;
-
-	if (PCcurrentTime < lastTestChageTime + minObservationTime.getValue()) 
-	    return;
-
+    if (PCcurrentTime >= PClastTestChangeTime + minObservationTime.getValue()) {
 	/* try to evaluate a test */
 	changed = doScan();
 	if (PCautoRefinementLimit != 0) {
 	    if (changed) {
 		autoTestRefinements();
-	    } else if (PCcurrentTime > timeLimit) {
+	    } else if (PCearlyestSample > timeLimit) {
 		// we have waited sufficient observation time move on.
-		printf("autorefinement timelimit reached at %f\n", PCcurrentTime);
+		printf("autorefinement timelimit reached at %f\n", 
+		    PCcurrentTime);
 		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
 		autoTimeLimitExpired();
 	    }

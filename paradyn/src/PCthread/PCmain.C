@@ -1,8 +1,13 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.11  1994/05/12 23:34:06  hollings
-/* made path to paradyn.h relative.
+/* Revision 1.12  1994/05/18 00:48:53  hollings
+/* Major changes in the notion of time to wait for a hypothesis.  We now wait
+/* until the earlyestLastSample for a metrics used by a hypothesis is at
+/* least sufficient observation time after the change was made.
 /*
+ * Revision 1.11  1994/05/12  23:34:06  hollings
+ * made path to paradyn.h relative.
+ *
  * Revision 1.10  1994/05/10  03:57:43  hollings
  * Changed data upcall to return array of buckets.
  *
@@ -32,12 +37,13 @@
 
 performanceStream *pcStream;
 extern void initResources();
+extern void PCevaluateWorld();
 extern thread_t MAINtid;
 int SHGid;             // id needed for Search History Graph uim dag calls
 static float PCbucketWidth;
 
 void PCfold(performanceStream *ps,
-	    float newWidth)
+	    timeStamp newWidth)
 {
     PCbucketWidth = newWidth;
 }
@@ -63,6 +69,14 @@ void PCnewData(performanceStream *ps,
     assert(dp);
     start = PCbucketWidth * first;
     end = PCbucketWidth * (first + count);
+
+    // see if we should check for new state change.
+    //  we wait until time moves, otherwise we evaluate hypotheses too often.
+    if (end > PCcurrentTime) {
+	PCcurrentTime = end;
+	PCevaluateWorld();
+    }
+
     dp->newSample(start, end, total);
 }
 

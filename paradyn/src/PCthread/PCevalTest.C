@@ -1,6 +1,11 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.12  1994/05/17 01:13:22  hollings
+ * Revision 1.13  1994/05/18 00:48:52  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.12  1994/05/17  01:13:22  hollings
  * Removed PCcurrentTime = 0.0 from search.
  *
  * Revision 1.11  1994/05/02  20:38:09  hollings
@@ -83,7 +88,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.12 1994/05/17 01:13:22 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.13 1994/05/18 00:48:52 hollings Exp $";
 #endif
 
 
@@ -626,8 +631,10 @@ Boolean verifyPreviousRefinements()
 
 void performanceConsultant::search(Boolean stopOnChange, int limit)
 {
+    extern timeStamp PClastTestChangeTime;
     extern void autoSelectRefinements();
 
+    PClastTestChangeTime = PCcurrentTime;
     if (!dataMgr->applicationDefined(context)) {
 	printf("must specify application to run first\n");
 	return;

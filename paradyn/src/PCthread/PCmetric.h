@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.4  1994/05/02 20:38:12  hollings
+ * Revision 1.5  1994/05/18 00:48:55  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.4  1994/05/02  20:38:12  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.3  1994/04/12  15:32:48  hollings
@@ -88,6 +93,7 @@ class datum {
 	timeStamp	totalUsed;		// total time enable previous.
 
 	timeStamp	enableTime;		// this time enabled.
+	timeStamp	lastSampleTime;		// this time enabled.
 	timeStamp	lastUsed;		// this time enabled.
 	int		samplesSinceEnable;	// this time enabled.
 

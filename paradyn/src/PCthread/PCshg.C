@@ -1,6 +1,11 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.4  1994/05/12 23:34:08  hollings
+ * Revision 1.5  1994/05/18 00:48:56  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
+ * Revision 1.4  1994/05/12  23:34:08  hollings
  * made path to paradyn.h relative.
  *
  * Revision 1.3  1994/05/09  20:58:04  hollings
@@ -50,12 +55,12 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.4 1994/05/12 23:34:08 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.5 1994/05/18 00:48:56 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <float.h>
+#include <math.h>
 
 #include "PCshg.h"
 #include "PCglobals.h"
@@ -268,7 +273,7 @@ void shgInit()
 
     // init default interval.
     whenAxis.start = 0;
-    whenAxis.end = FLT_MAX;
+    whenAxis.end = infinity();
 
     currentInterval = &whenAxis;
 
