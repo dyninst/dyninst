@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.11  1994/07/07 17:28:00  newhall
-/* fixed compile warnings
+/* Revision 1.12  1994/07/12 17:03:50  newhall
+/* added error handling
 /*
+ * Revision 1.11  1994/07/07  17:28:00  newhall
+ * fixed compile warnings
+ *
  * Revision 1.10  1994/07/07  03:27:00  markc
  * Removed reading of configuration file, which is now supported by the
  * configuration language.
@@ -67,8 +70,7 @@ List<VMvisis *> visiList;
 extern void VISIthreadmain(visi_thread_args *args);
 
 #define ERROR_MSG(s1, s2) \
-   perror(s1); \
-   uiMgr->showError(1,s1); \
+   uiMgr->showError(s1,s2); \
    printf(s2);
 
 VM_activeVisiInfo_Array VM::VMActiveVisis(){
@@ -81,25 +83,21 @@ VM_activeVisiInfo_Array VM::VMActiveVisis(){
   if((temp.data  = 
       (VM_activeVisiInfo *) malloc(sizeof(VM_activeVisiInfo)*temp.count))
       == NULL){
-    // uiMgr->showError("malloc in VMActiveVisis");
-    printf("error # : serious malloc in VMActiveVisis\n");
+    ERROR_MSG(18,"malloc in VMActiveVisis");
   }
 
   activeVisis.setCurrent();
   for(i=0; i < temp.count; i++){
      if((tempdata = activeVisis.getCurrent()) == 0){
        PARADYN_DEBUG(("Error in getCurrent() in VMActiveVisis")); 
-      //  uiMgr->showError("getCurrent in VMActiveVisis");
-       printf("error # : serious??? getCurrent in VMActiveVisis\n");
+       ERROR_MSG(20,"Error in getCurrent() in VMActiveVisis");
      } 
      if(tempdata != 0){
        temp.data[i].visiNum = tempdata->visiThreadId;
        temp.data[i].visiTypeId = tempdata->visiTypeId;
        if(tempdata->name != NULL){
          if((temp.data[i].name = strdup(tempdata->name)) == NULL){
-           perror("strdup in VM::VMActiveVisis");
-           // uiMgr->showError("strdup in VM::VMActiveVisis");
-           printf("error # : not so serious??? strdup in VM::VMActiveVisis\n");
+	   ERROR_MSG(19,"strdup in VM::ActiveVisis");
 	   tempdata->name = NULL;
          }
        }
@@ -124,27 +122,19 @@ VM_visiInfo_Array VM::VMAvailableVisis(){
   temp.count = visiList.count();
   if((temp.data  = (VM_visiInfo *)malloc(sizeof(VM_visiInfo)*temp.count))
        == NULL){ 
-    perror("malloc in VMAvailableVisis");
-    // uiMgr->showError("malloc in VMAvailableVisis");
-    printf("error # : serious\n");
-    ERROR_MSG("malloc in VMAvailableVisis", "error#: serious\n");
+    ERROR_MSG(18, "malloc in VMAvailableVisis");
   }
   visiList.setCurrent();
   for(i=0; i < temp.count; i++){
     if((temp2 = visiList.getCurrent()) == 0){
        PARADYN_DEBUG(("Error in getCurrent() in VMAvailableVisis"));
-       // uiMgr->showError("getCurrent in VMAvailableVisis");
-       printf("error # : serious???\n");
-       ERROR_MSG("Error in getCurrent() in VMAvailableVisis",
-		 "error#: serious\n");
+       ERROR_MSG(20,"Error in getCurrent() in VMAvailableVisis");
     }
     else{
       temp.data[i].visiTypeId = temp2->Id;
       if(temp2->name != NULL){
         if((temp.data[i].name = strdup(temp2->name)) == NULL){
-          perror("strdup in VM::VMAvailableVisis");
-         //  uiMgr->showError("strdup in VM::VMAvailableVisis");
-	  ERROR_MSG("strdup in VM::AvailableVisis", "error#: not serious\n");
+	  ERROR_MSG(19,"strdup in VM::AvailableVisis");
 	  temp.data[i].name = NULL;
         }
       }
@@ -172,15 +162,11 @@ int id;
   // create new VMvisis list element and add to visiList
   if((temp = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
     perror("malloc in VM::VMAddNewVisualization");
-    // uiMgr->showError("malloc in VM::VMAddNewVisualization");
-    printf("error # : serious???\n");
-    ERROR_MSG("malloc in VM::VMAddNewVisualization", "error#: serious\n");
+    ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
     return(VMERROR_MALLOC);
   }
   if((temp->argv = (char **)malloc(sizeof(char *)*argc)) == NULL){
-    perror("malloc in VM::VMAddNewVisualization");
-    // uiMgr->showError("malloc in VM::VMAddNewVisualization");
-    ERROR_MSG("malloc in VM::VMAddNewVisualization", "error#: serious\n");
+    ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
     return(VMERROR_MALLOC);
   }
 
@@ -188,17 +174,12 @@ int id;
   temp->argv[argc] = (char *) 0;
   for(i=0;i<argc;i++){
     if((temp->argv[i] = strdup(argv[i])) == NULL){
-      perror("strdup in VM::VMAddNewVisualization");
-      // uiMgr->showError("strdup in VM::VMAddNewVisualization");
-      ERROR_MSG("strdup in VM::VMAddNewVisualization", "error#: serious\n");
+      ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
       return(VMERROR_MALLOC);
     }
   }
   if((temp->name = strdup(name)) == NULL){
-    perror("strdup in VM::VMAddNewVisualization");
-    // uiMgr->showError("strdup in VM::VMAddNewVisualization");
-    printf("error # : serious???\n");
-    ERROR_MSG("strdup in VM::VMAddNewVisualization", "error#: serious\n");
+    ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
     return(VMERROR_MALLOC);
   }
   temp->argc = argc;
@@ -220,8 +201,7 @@ VMvisis *visitemp;
   // get visi process command line to pass to visithread thr_create 
   if((visitemp = visiList.find((void *)visiTypeId))==NULL){
     PARADYN_DEBUG(("in VM::VMCreateVisi"));
-    // uiMgr->showError("fine in  VM::VMCreateVisi");
-    printf("error # : serious???\n");
+    ERROR_MSG(20,"Error in find() in VM::VMCreateVisi");
     return(VMERROR_VISINOTFOUND);
   }
 
@@ -236,9 +216,7 @@ VMvisis *visitemp;
 
   // create a new visipointer
   if((temp2 = (VMactiveVisi  *)malloc(sizeof(VMactiveVisi))) == NULL){
-    perror("malloc in VM::VMAddNewVisualization");
-    // uiMgr->showError("malloc in VM::VMCreateVisi");
-    printf("error # : serious???\n");
+    ERROR_MSG(18,"malloc in VM::VMCreateVisi");
     return(VMERROR_MALLOC);
   }
 
@@ -249,8 +227,7 @@ VMvisis *visitemp;
    if((visitemp != 0) && (visitemp->name != NULL))
      if((temp2->name = strdup(visitemp->name)) == NULL){
        PARADYN_DEBUG(("strdup in VM::VMCreateVisi"));
-       // uiMgr->showError("strdup in VM::VMCreateVisi");
-       printf("error # : serious???\n");
+       ERROR_MSG(19,"strdup in VM::VMCreateVisi");
        temp2->name = NULL;
      }
    else 
@@ -277,8 +254,7 @@ VMactiveVisi *temp;
      // remove entry from active visi table 
      if((activeVisis.remove((void *)visiThreadId)) == FALSE){
        PARADYN_DEBUG(("remove in VM::VMDestroyVisi"));
-       /* uiMgr->showError("remove in VM::VMDestroyVisi"); */
-       printf("error # : serious???\n");
+       ERROR_MSG(20,"remove in VM::VMDestroyVisi");
      }
      else{
        // call destructor for visip 
@@ -295,8 +271,7 @@ void VM::VMVisiDied(int visiThreadId){
   // remove visiId element from active list
   if(!(activeVisis.remove(&visiThreadId))){
     PARADYN_DEBUG(("remove in VM::VMVisiDied"));
-    // uiMgr->showError("remove in VM::VMVisiDied");
-    printf("error # : serious???\n");
+    ERROR_MSG(20,"remove in VM::VMVisiDied");
   }
   currNumActiveVisis--;
 
@@ -331,9 +306,7 @@ void *VMmain(int arg){
   // create key for VISIthread local storage
   if (thr_keycreate(&visiThrd_key, myfree) != THR_OKAY) {
      PARADYN_DEBUG(("visiThrd_key in VM::VMmain"));
-     // uiMgr->showError("visiThrd_key in VM::VMmain");
-     printf("error # : serious\n");
-     thr_perror("visiThrd_key");
+     ERROR_MSG(20,"visiThrd_key in VM::VMmain");
      return (void *)0;
   }
 
