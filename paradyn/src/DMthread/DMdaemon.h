@@ -103,16 +103,16 @@ public:
   bool setAll(const string &m, const string &c, const string &n,
 	      const string &l, const string &d, const string &f);
   void print();
-  const char *getCommand() { return command.string_of();}
-  const char *getName() { return name.string_of();}
-  const char *getLogin() { return login.string_of();}
-  const char *getDir() { return dir.string_of();}
-  const char *getMachine() { return machine.string_of();}
-  const char *getFlavor() { return flavor.string_of();}
-  const string &getNameString() { return name;}
-  const string &getMachineString() { return machine;}
-  const string &getCommandString() { return command;}
-  const string &getFlavorString() { return flavor;}
+  const char *getCommand() const { return command.string_of();}
+  const char *getName() const { return name.string_of();}
+  const char *getLogin() const { return login.string_of();}
+  const char *getDir() const { return dir.string_of();}
+  const char *getMachine() const { return machine.string_of();}
+  const char *getFlavor() const { return flavor.string_of();}
+  const string &getNameString() const { return name;}
+  const string &getMachineString() const { return machine;}
+  const string &getCommandString() const { return command;}
+  const string &getFlavorString() const { return flavor;}
 
 private:
   string machine;
@@ -245,11 +245,14 @@ class paradynDaemon: public dynRPCUser {
 
         static bool applicationDefined(){return(programs.size() != 0);}
 	static vector<string> *getAvailableDaemons();
+        static paradynDaemon  *machineName2Daemon(const string &theMachName);
+           // returns the paradynDaemon w/ this machine name, NULL if not found.
+
 	static void getPredictedDataCostCall(perfStreamHandle,metricHandle,
 				      resourceListHandle,resourceList*,metric*,
 				      u_int);
 	static float currentSmoothObsCost();
-        string getDaemonMachineName() {return machine;};
+        const string &getDaemonMachineName() const {return machine;}
 
     private:
         bool   dead;	// has there been an error on the link.
