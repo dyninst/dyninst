@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.6 2000/10/17 17:42:34 schendel Exp $
+// $Id: init-linux.C,v 1.7 2000/11/20 23:15:25 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -52,6 +52,7 @@
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 #include "paradynd/src/timeMgr.h"
+#include "rtinst/h/RThwtimer-x86.h"
 
 bool initOS() {
   AstNode *tagArg;
@@ -156,7 +157,25 @@ bool initOS() {
   return true;
 };
 
+bool dm_isTSCAvail() {
+  return isTSCAvail() == 1;
+}
+
+rawTime64 dm_getTSC() {
+  return getTSC();
+}
+
 void initWallTimeMgrPlt() {
+  if(dm_isTSCAvail()) {
+    timeStamp curTime = getCurrentTime();  // general util one
+    timeLength hrtimeLength(dm_getTSC(), getCyclesPerSecond());
+    timeStamp beghrtime = curTime - hrtimeLength;
+    timeBase hrtimeBase(beghrtime);
+    getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_ONE, &dm_isTSCAvail,
+				  getCyclesPerSecond(), hrtimeBase,
+				  &dm_getTSC, "DYNINSTgetWalltime_hw");
+  }
+
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				timeUnit::us(), timeBase::b1970(), 
 				&getRawTime1970, "DYNINSTgetWalltime_sw");

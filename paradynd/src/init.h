@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.28 2000/10/17 17:42:35 schendel Exp $
+// $Id: init.h,v 1.29 2000/11/20 23:15:26 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -79,6 +79,7 @@ inline wallTimeMgr_t &getWallTimeMgr() {
 bool yesFunc();
 // ---------------------------------------------------------------------
 
+bool bShowTimerInfo();
 
 
 extern internalMetric *activeProcs;

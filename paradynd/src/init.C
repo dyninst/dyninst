@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.56 2000/10/17 17:42:34 schendel Exp $
+// $Id: init.C,v 1.57 2000/11/20 23:15:26 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -51,9 +51,13 @@
 #include "paradynd/src/resource.h"
 #include "paradynd/src/comm.h"
 #include "common/h/timing.h"
+#include "pdutil/h/pdDebugOstream.h"
+#include "paradynd/src/perfStream.h"
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
+
+extern pdDebug_ostream sampleVal_cerr;
 
 internalMetric *activeProcs = NULL;
 internalMetric *bucket_width = NULL;
@@ -427,11 +431,44 @@ wallTimeMgr_t *wallTimeMgr = NULL; //time querying function, member of no class
 // (ie. the level is always available), eg. gettimeofday
 bool yesFunc() { return true; }
 
+bool bForceSoftwareLevelWallTimer() {
+  char *evar;
+  evar = getenv("SOFTWARE_LEVEL_WALL_TIMER");
+  if( evar  )
+    return true;
+  else
+    return false;
+}
+
+bool bShowTimerInfo() {
+  char *evar;
+  evar = getenv("SHOW_TIMER_INFO");
+  if( evar  )
+    return true;
+  else
+    return false;
+}
+
 void initWallTimeMgr() {
   if(wallTimeMgr != NULL) delete wallTimeMgr;
   wallTimeMgr = new wallTimeMgr_t();
   initWallTimeMgrPlt();
-  wallTimeMgr->determineBestLevels();
+
+  if(bForceSoftwareLevelWallTimer()) {
+    wallTimeMgr_t::mech_t *tm = 
+      wallTimeMgr->getMechLevel(wallTimeMgr_t::LEVEL_TWO);
+    wallTimeMgr->installMechLevel(wallTimeMgr_t::LEVEL_BEST, tm);
+    sampleVal_cerr << "Forcing to software level wall timer\n";
+  } else {
+    wallTimeMgr->determineBestLevels();
+  }
+  wallTimeMgr_t::timeMechLevel ml = wallTimeMgr->getBestLevel();
+  sampleVal_cerr << "Chosen wall timer level: " << int(ml)+1 << "  "
+		 << *wallTimeMgr->getMechLevel(ml) << "\n\n";
+  if(bShowTimerInfo()) {
+    cerr << "Chosen wall timer level: " << int(ml)+1 << "  "
+	 << *wallTimeMgr->getMechLevel(ml) << "\n\n";
+  }
 }
 
 timeStamp getWallTime(wallTimeMgr_t::timeMechLevel l) {
