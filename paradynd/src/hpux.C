@@ -196,24 +196,29 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
 
     pdFunction *func;
     int pc = *rtn;
-    if (uppermost) {
-	unwind = findUnwindEntry(symbols, pc);
-	if (unwind) {
-	    if (unwind->Total_frame_size == 0) {
-		if (ptraceKludge::deliverPtrace(this, PT_RUREGS, (char *)8, 
-						0, buf)) {
-		    buf[3] &= ~0x3;
-		    *rtn = *(int *)&buf[0];
+
+    //XXX: leaf routine might not necessarily the uppermost routine?
+    //if (uppermost) {
+    unwind = findUnwindEntry(symbols, pc);
+    if (unwind) {
+	if (unwind->Total_frame_size == 0) {
+	    if (!uppermost) return false;
+
+	    if (ptraceKludge::deliverPtrace(this, PT_RUREGS, (char *)8, 
+					    0, buf)) {
+		buf[3] &= ~0x3;
+		*rtn = *(int *)&buf[0];
 #ifdef DEBUG_STACK
-		    sprintf(errorLine, "before leaf: PC = %x.\n", *rtn);
-		    logLine(errorLine);
+		sprintf(errorLine, "before leaf: PC = %x.\n", *rtn);
+		logLine(errorLine);
 #endif		    
-		    return readOK;
-		}    
-	    }
-	} else
-	    return false;
+		return readOK;
+	    }    
+	}
     }
+    //else
+    //	    return false;
+    //}
 
     if (readDataSpace((caddr_t) (currentFP-20),
 		      sizeof(int)*6, buf, true)) {
