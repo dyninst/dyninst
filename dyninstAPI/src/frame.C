@@ -39,11 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.1 2005/02/17 21:10:17 bernat Exp $
+// $Id: frame.C,v 1.2 2005/02/21 21:36:22 tlmiller Exp $
 
 #include <stdio.h>
 #include <iostream>
 #include <ostream>
+#include <iomanip>
+#include <ios>
 #include "process.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
@@ -106,45 +108,38 @@ bool Frame::isLastFrame() const
    return false;
 }
 
-ostream& operator<<(ostream&s, Frame &f) {
-   codeRange *range = f.getRange();
-   fprintf(stderr, "PC: 0x%lx", f.getPC());
-   if (range) {
-     int_function *func_ptr = range->is_function();
-     trampTemplate *basetramp_ptr = range->is_basetramp();
-     miniTrampHandle *minitramp_ptr = range->is_minitramp();
-     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
-     
-     if (func_ptr)
-       fprintf(stderr, "(%s)", func_ptr->prettyName().c_str());
-     if (basetramp_ptr)
-       fprintf(stderr, "(BT from %s)", basetramp_ptr->location->pointFunc()->prettyName().c_str());
-     if (minitramp_ptr)
-       fprintf(stderr, "(MT from %s)", minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str());
-     if (reloc_ptr)
-       fprintf(stderr, "(%s [RELOCATED])", reloc_ptr->func()->prettyName().c_str());
-   }
-   fprintf(stderr, "FP: 0x%lx, PID: %d",
-	   f.getPC(), f.getPID());
-
-    if (f.getThread())
-        fprintf(stderr, ", TID: %d",
-                f.getThread()->get_tid());
-    if (f.getLWP())
-        fprintf(stderr, ", LWP: %d",
-                f.getLWP()->get_lwp_id());
-    fprintf(stderr,"\n");
-    
-    /*
-    s << ios::hex << "PC: " << f.pc_ << " FP: " << f.fp_
-      << ios::dec << " PID: " << f.pid_;
-  if (f.thread_)
-    s << " TID: " << f.thread_->get_tid();
-  if (f.lwp_)
-    s << " LWP: " << f.lwp_->get_lwp_id();
-    */  
-
-  return s;
-}
-
+ostream & operator << ( ostream & s, Frame & f ) {
+	codeRange * range = f.getRange();
+	s << "PC: " << ostream::hex << f.getPC() << " ";
+	if( range ) {
+		int_function * func_ptr = range->is_function();
+		trampTemplate * basetramp_ptr = range->is_basetramp();
+		miniTrampHandle * minitramp_ptr = range->is_minitramp();
+		relocatedFuncInfo * reloc_ptr = range->is_relocated_func();
+		
+		if( func_ptr ) {
+			s << "(" << func_ptr->prettyName().c_str() << ") ";
+			}
+		if( basetramp_ptr ) {
+			s << "(basetramp from '" << basetramp_ptr->location->pointFunc()->prettyName().c_str() << "' ";
+			}
+		if( minitramp_ptr ) {
+			s << "(minitramp from '" << minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str() << "' ";
+			}
+		if( reloc_ptr ) {
+			s << "(" << reloc_ptr->func()->prettyName().c_str() << " [RELOCATED]) ";
+			}
+		}
+   
+	s << "FP: " << f.getPC() << " PID: " << f.getPID() << " "; 
+	if( f.getThread() ) {
+   		s << "TID: " << f.getThread()->get_tid() << " ";
+   		}
+   	if( f.getLWP() ) {
+   		s << "LWP: " << f.getLWP()->get_lwp_id() << " ";
+   		}
+	s << endl;
+	
+	return s;
+	}
 

@@ -60,6 +60,9 @@
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>			// DLOPEN_MODE
 
+/* For proces::instrSideEffects() */
+#include "instPoint.h"
+#include "trampTemplate.h"
 
 extern unsigned enable_pd_inferior_rpc_debug;
 
@@ -122,29 +125,27 @@ bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
 
+bool process::instrSideEffect( Frame & frame, instPoint * inst ) {
+	int_function * instFunc = inst->pointFunc();
+	if( ! instFunc ) {
+		return false;
+		}
 
-bool process::instrSideEffect( Frame &frame, instPoint * inst)
-{
-  int_function *instFunc = inst->pointFunc();
-  if (!instFunc) return false;
+	codeRange * range = frame.getRange();
+	if( range->is_function() != instFunc ) {
+		return true;
+		}
 
-  codeRange *range = frame.getRange();
-  if (range->is_function() != instFunc) {
-    return true;
-  }
-
-  if (inst->getPointType() == callSite) {
-    /* FIXME!!!! */
-    fprintf(stderr, "IA64 doesn't adjust call sites yet\n");
-    Address insnAfterPoint = inst->absPointAddr(this) + 5;
-    // Callsite = 5 bytes.
-    if (frame.getPC() == insnAfterPoint) {
-      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
-    }
-  }
-
-  return true;
-}
+	if( inst->getPointType() == callSite ) {
+		/* Go to the next bundle and mask off the slot number, if any. */
+		Address returnFromCall = ( ((inst->absPointAddr( this ) + 0x10) >> 2) << 2 );
+		if( frame.getPC() == returnFromCall ) {
+			frame.setPC( baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset );
+			}
+		}
+		
+	return true;
+	} /* end process::instrSideEffect() */
 
 void printRegs( void * /* save */ ) {
 	assert( 0 );
@@ -591,7 +592,6 @@ bool process::loadDYNINSTlib() {
 
 	/* Let them know we're working on it. */
 	setBootstrapState( loadingRT );
-
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
@@ -611,6 +611,24 @@ bool process::loadDYNINSTlibCleanup() {
 
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
+
+bool Frame::setPC( Address addr ) {
+	/* setPC() should only be called on a frame from a stackwalk.
+	   If it isn't, we can duplicate the code below in getCallerFrame()
+	   in order to create the necessary unwindCursor. */
+	assert( unwindCursor_ != NULL );
+
+	/* Update the PC in the remote process. */
+	int status = unw_set_reg( (unw_cursor_t *)unwindCursor_, UNW_IA64_IP, addr );
+	if( status != 0 ) {
+		fprintf( stderr, "Unable to set frame's PC: libunwind error %d\n", status );
+		return false;
+		}
+		
+	/* Remember that we've done so. */
+	pc_ = addr;
+	return true;
+	} /* end Frame::setPC() */
 
 #include <miniTrampHandle.h>
 #include <trampTemplate.h>	
@@ -687,11 +705,6 @@ Frame Frame::getCallerFrame() {
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
-
-
-bool Frame::setPC(Address newpc) {
-  return true;
-}
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     syscallTrap *trappedSyscall = NULL;
