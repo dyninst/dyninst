@@ -2038,8 +2038,8 @@ bool process::addASharedObject(shared_object &new_obj){
            if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
 	      new_obj.changeIncludeFuncs(false); 
            }
-	   if(lib_name) delete lib_name;
-	   if(obj_name) delete obj_name;
+	   if(lib_name) free(lib_name);
+	   if(obj_name) free(obj_name);
         }
     }
 #endif
