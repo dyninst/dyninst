@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.3  1994/04/06 17:39:56  karavan
-/* added call to tcl initialization script
+/* Revision 1.4  1994/04/06 22:39:57  markc
+/* Added code to provide local paradynd with a machine name via
+/* addExecutable.
 /*
+ * Revision 1.3  1994/04/06  17:39:56  karavan
+ * added call to tcl initialization script
+ *
  * Revision 1.2  1994/04/05  23:49:21  rbi
  * Fixed a bunch of tcl related stuff.
  *
@@ -216,7 +220,7 @@ UImain(CLargStruct *clargs)
     controlCallback controlFuncs;
     dataCallback dataFunc;
     char *uimInitTclProcs = 
-      "/usr/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
+      "/usr/home/paradyn/development/markc/core/paradyn/src/UIthread/uimProcs.tcl";
 
     printf ("starting mainUI\n");
 
@@ -397,7 +401,11 @@ UImain(CLargStruct *clargs)
     printf ("**defaultStream created\n");    
    dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
     printf ("**resource creation notification enabled\n");
-    dataMgr->addExecutable(context, NULL, NULL, uiargv[1], uiargc-2, &uiargv[2]);
+
+    // Give the local paradynd a name
+    char machine_name[50];
+    assert(!gethostname(machine_name, 49));
+    dataMgr->addExecutable(context, machine_name, NULL, uiargv[1], uiargc-2, &uiargv[2]);
     printf ("executable %s added\n", uiargv[1]);
 
 /********************************
