@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.2  1994/10/09 01:29:13  karavan
+ * Revision 1.3  1994/10/25 17:56:11  karavan
+ * added resource Display Objects for multiple abstractions to UIthread code
+ *
+ * Revision 1.2  1994/10/09  01:29:13  karavan
  * added UIM templates connected with change to new UIM/visiThread metric-res
  * selection interface.
  *
@@ -73,14 +76,17 @@ typedef List<timeInterval *> p13;
  * UIthread stuff
  */
 #include "paradyn/src/VMthread/metrespair.h"
+#include "../src/UIthread/UIglobals.h"
 class resourceList;
 class pRec;
-class resHierarchy;
 
 typedef HTable<pRec *> h1; 
-typedef List<resHierarchy *> h2;
+typedef List<resourceDisplayObj *> h2;
 typedef List<resourceList *> h3;
 typedef List<metrespair *> h4;
+typedef List<tokenRec *> h5;
+typedef List<stringHandle> h6;
+typedef List<dag *> h7;
 
 /* ************************************
  * VMthread stuff
