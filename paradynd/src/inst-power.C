@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.6  1995/12/19 01:04:48  hollings
+ * Revision 1.7  1995/12/19 01:18:43  hollings
+ * Fixed a couple of ADDISop that should be ADDIop's.
+ *
+ * Revision 1.6  1995/12/19  01:04:48  hollings
  * Moved the implementation of registerSpace::readOnlyRegister to processor
  *   specific files (since it is).
  * Fixed a bug in Power relOps cases.
@@ -125,7 +128,7 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
     insn++;
 
     // li rd, 1
-    genImmInsn(insn, ADDISop, rd, 0, 1);
+    genImmInsn(insn, ADDIop, rd, 0, 1);
     insn++;
 
     // b??,a +2
@@ -138,7 +141,7 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
     insn++;
 
     // clr rd
-    genImmInsn(insn, ADDISop, rd, 0, 0);
+    genImmInsn(insn, ADDIop, rd, 0, 0);
     base += 4 * sizeof(instruction);
 }
 
@@ -666,11 +669,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	}
 
 	// clr r5
-	genImmInsn(insn, ADDISop, 5, 0, 0); insn++;
+	genImmInsn(insn, ADDIop, 5, 0, 0); insn++;
 	base += sizeof(instruction);
 
 	// clr r6
-	genImmInsn(insn, ADDISop, 6, 0, 0); insn++;
+	genImmInsn(insn, ADDIop, 6, 0, 0); insn++;
 	base += sizeof(instruction);
 
 	// 
