@@ -1,3 +1,5 @@
+# $Id: test6LS-power.s,v 1.4 2002/03/15 16:11:45 gaburici Exp $
+
 .file "test6LS-power.s"
 .machine "any"
 

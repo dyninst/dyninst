@@ -1,3 +1,5 @@
+/* $Id: test6.mutatee.c,v 1.8 2002/03/15 16:11:45 gaburici Exp $ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
