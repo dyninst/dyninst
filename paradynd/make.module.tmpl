@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.54 2003/06/17 17:54:52 pcroth Exp $
+# $Id: make.module.tmpl,v 1.55 2003/06/18 20:31:58 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -64,6 +64,8 @@ SRCS	     += ../src/association.C \
 		../src/papiMgr.C \
 		../src/processMgr.C \
 		../src/pd_process.C \
+		../src/pd_image.C \
+		../src/pd_module.C \
 		../src/threadMgr.C \
 		../src/pd_thread.C
                  

@@ -49,6 +49,7 @@
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/perfStream.h"
+#include "paradynd/src/pd_image.h"
 
 // Set in main.C
 extern int termWin_port;
@@ -163,7 +164,7 @@ void pd_process::init() {
     buffer += string(", posting call graph information");
     statusLine(buffer.c_str());
     
-    dyninst_process->FillInCallGraphStatic();
+    FillInCallGraphStatic();
     if (resource::num_outstanding_creates)
         dyninst_process->setWaitingForResources();
     
@@ -184,6 +185,8 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
 {
     dyninst_process = createProcess(argv0, argv, envp, dir, 
                                     stdin_fd, stdout_fd, stderr_fd);
+
+    img = new pd_image(dyninst_process->getImage(), this);
     
     if (!dyninst_process) {
         // Ummm.... 
@@ -216,6 +219,8 @@ pd_process::pd_process(const string &progpath, int pid)
     
     dyninst_process = attachProcess(progpath, pid);
     
+    img = new pd_image(dyninst_process->getImage(), this);
+
     if (!dyninst_process) {
         // Ummm.... 
         return;
@@ -232,6 +237,8 @@ pd_process::pd_process(const string &progpath, int pid)
         assert(0 && "Need to do cleanup");
 }
 
+extern void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
+
 
 // fork constructor
 pd_process::pd_process(const pd_process &parent, process *childDynProc) :
@@ -243,6 +250,8 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
+   img = new pd_image(dyninst_process->getImage(), this);
+
    setLibState(paradynRTState, libReady);
    for(unsigned i=0; i<childDynProc->threads.size(); i++) {
       pd_thread *pd_thr = new pd_thread(childDynProc->threads[i], this);
@@ -268,7 +277,7 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
       resource *modRes = foundMod->getResource();
       string start_func_str = thr->get_start_func()->prettyName();
       string res_string = modRes->full_name() + "/" + start_func_str;
-      CallGraphSetEntryFuncCallback(getImage()->file(), res_string, 
+      CallGraphSetEntryFuncCallback(getImage()->get_file(), res_string, 
                                     thr->get_tid());
    }
 
@@ -1033,7 +1042,7 @@ timeLength pd_process::units2timeLength(int64_t rawunits) {
 void pd_process::verifyTimerLevels() {
    int hintBestCpuTimerLevel, hintBestWallTimerLevel;
    bool err = false;
-   int appAddrWidth = getImage()->getObject().getAddressWidth();
+   int appAddrWidth = getImage()->getAddressWidth();
    Address addr =
       dyninst_process->findInternalAddress("hintBestCpuTimerLevel", true, err);
    assert(err==false);
@@ -1103,8 +1112,7 @@ Address pd_process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
    //logStream << "address of var " << helperFPtr << " = " << hex 
    //    << transferAddrVar <<"\n";
 
-   int appAddrWidth =
-      dyninst_process->getImage()->getObject().getAddressWidth();
+   int appAddrWidth = getImage()->getAddressWidth();
 
    Address transferAddr = 0;
    assert(err==false);
@@ -1164,6 +1172,137 @@ void pd_process::writeTimerLevels() {
    writeTimerFuncAddr("PARADYNgetWalltime", rtTimerStr);
    //logStream << "Setting wall time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
+}
+
+
+//
+// Fill in the statically determinable components of the call
+//  graph for process.  "statically determinable" refers to
+//  the problem that some call destinations cannot be determined
+//  statically, but rather instrumentation must be inserted to
+//  determine the actual target (which may change depending on when 
+//  the call is executed).  For example conmsider the assembly code 
+//  fragment:
+//   ....
+//   call <random>  // puts random number (in some range) in g1
+//   nop
+//   call %g1
+//   nop
+//   ....
+//  Code where the call target cannot be statically determined has
+//   been observed w/ pointers to functions, switch statements, and 
+//   some heavily optimized SPARC code.
+//  Parameters:
+//   Called just after an image is parsed and added to process
+//   (image can represent either a.out or shared object).  
+//   img - pointer to image just parsed and added.
+//   shared_object - boolean inidcating whether img refers to an
+//   a.out or shared object.
+//
+//  NOTE : Paradynd keeps 1 copy of each image, even when that image
+//   appears in multiple processes (e.g. when that image represents
+//   a shared object).  However, for keeping track of call graphs,
+//   we want to keep a SEPERATE call graph for every process - this
+//   includes the images which may be shared by multiple processes.
+//   The reason for this is that when adding dynamically determined
+//   call destinations, we want them to apply ONLY to the process
+//   in which they are observed, NOT to other processes which may share
+//   e.g. the same shared library. 
+
+extern void CallGraphAddProgramCallback(string name);
+extern void CallGraphFillDone(string exe_name);
+
+void pd_process::FillInCallGraphStatic()
+{
+  // specify entry point (location in code hierarchy to begin call 
+  //  graph searches) for call graph.  Currently, begin searches at
+  //  "main" - note that main is usually NOT the actual entry point
+  //  there is usually a function which does env specific initialization
+  //  and sets up exit handling (at least w/ gcc on solaris).  However,
+  //  this function is typically in an excluded module.  Anyway, setting
+  //  main as the entry point should usually work fairly well, except
+  //  that call graph PC searches will NOT catch time spent in the
+  //  environment specific setup of _start.
+
+  pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
+  assert(entry_pdf);
+  
+  CallGraphAddProgramCallback(img->get_file());
+
+  int thr = 0;
+  // MT: forward the ID of the first thread.
+  if(thr_mgr.size()) {
+     threadMgr::thrIter begThrIter = beginThr();
+     pd_thread *begThr = *(begThrIter);
+     thr = begThr->get_tid();
+  }
+#if defined(MT_THREAD)
+  // Temporary hack -- ordering problem
+  thr = 1;
+  
+#endif
+  CallGraphSetEntryFuncCallback(img->get_file(), 
+                                entry_pdf->ResourceFullName(), thr);
+    
+  // build call graph for executable
+  img->FillInCallGraphStatic(this);
+  // build call graph for module containing entry point
+  // ("main" is not always defined in the executable)
+  image *main_img = entry_pdf->file()->exec();
+  pd_image *pd_main_img = pd_image::get_pd_image(main_img);
+  if (pd_main_img != img) 
+     pd_main_img->FillInCallGraphStatic(this);
+
+  // TODO: build call graph for all shared objects?
+  CallGraphFillDone(img->get_file());
+}
+
+void pd_process::MonitorDynamicCallSites(string function_name) {
+   resource *r, *p;
+   pdmodule *mod;
+   r = resource::findResource(function_name);
+   assert(r);
+   p = r->parent();
+   assert(p);
+   mod = img->get_dyn_image()->findModule(p->name());
+   if(!mod) {
+      //Must be the weird case where main() isn't in the executable
+      pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
+      assert(entry_pdf);
+      image *main_img = entry_pdf->file()->exec();
+      assert(main_img);
+      mod = main_img->findModule(p->name());
+   }
+   assert(mod);
+  
+   function_base *func, *temp;
+   pdvector<function_base *> fbv;
+   if (NULL == mod->findFunction(r->name(), &fbv) || !fbv.size()) {
+      fprintf(stderr, "%s[%d]: Cannot find %s, currently fatal\n", __FILE__,
+              __LINE__, r->name().c_str());
+      abort();
+   }
+   if (fbv.size() > 1) {
+      fprintf(stderr, "%s[%d]: Warning, found %d %s()\n", __FILE__, __LINE__,
+              fbv.size(), r->name().c_str());
+   }
+   func = fbv[0];
+
+   //Should I just be using a resource::handle here instead of going through
+   //all of this crap to find a pointer to the function???
+   string exe_name = getImage()->get_file();
+   pdvector<instPoint*> callPoints;
+   callPoints = func->funcCalls(get_dyn_process());
+  
+   for(unsigned i = 0; i < callPoints.size(); i++) {
+      if(!findCallee(*(callPoints[i]), temp)) {
+         if(!get_dyn_process()->MonitorCallSite(callPoints[i])) {
+            fprintf(stderr, 
+              "ERROR in daemon, unable to monitorCallSite for function :%s\n",
+                    function_name.c_str());
+         }
+      }
+   }
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.431 2003/06/17 20:27:33 schendel Exp $
+// $Id: process.C,v 1.432 2003/06/18 20:31:50 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6191,132 +6191,6 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 }
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
-//
-// Fill in the statically determinable components of the call
-//  graph for process.  "statically determinable" refers to
-//  the problem that some call destinations cannot be determined
-//  statically, but rather instrumentation must be inserted to
-//  determine the actual target (which may change depending on when 
-//  the call is executed).  For example conmsider the assembly code 
-//  fragment:
-//   ....
-//   call <random>  // puts random number (in some range) in g1
-//   nop
-//   call %g1
-//   nop
-//   ....
-//  Code where the call target cannot be statically determined has
-//   been observed w/ pointers to functions, switch statements, and 
-//   some heavily optimized SPARC code.
-//  Parameters:
-//   Called just after an image is parsed and added to process
-//   (image can represent either a.out or shared object).  
-//   img - pointer to image just parsed and added.
-//   shared_object - boolean inidcating whether img refers to an
-//   a.out or shared object.
-//
-//  NOTE : Paradynd keeps 1 copy of each image, even when that image
-//   appears in multiple processes (e.g. when that image represents
-//   a shared object).  However, for keeping track of call graphs,
-//   we want to keep a SEPERATE call graph for every process - this
-//   includes the images which may be shared by multiple processes.
-//   The reason for this is that when adding dynamically determined
-//   call destinations, we want them to apply ONLY to the process
-//   in which they are observed, NOT to other processes which may share
-//   e.g. the same shared library. 
-#ifndef BPATCH_LIBRARY
-void process::FillInCallGraphStatic()
-{
-  // specify entry point (location in code hierarchy to begin call 
-  //  graph searches) for call graph.  Currently, begin searches at
-  //  "main" - note that main is usually NOT the actual entry point
-  //  there is usually a function which does env specific initialization
-  //  and sets up exit handling (at least w/ gcc on solaris).  However,
-  //  this function is typically in an excluded module.  Anyway, setting
-  //  main as the entry point should usually work fairly well, except
-  //  that call graph PC searches will NOT catch time spent in the
-  //  environment specific setup of _start.
-
-  pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
-  assert(entry_pdf);
-  
-  CallGraphAddProgramCallback(symbols->file());
-
-  int thr = 0;
-  // MT: forward the ID of the first thread.
-  if (threads.size()) {
-      thr = threads[0]->get_tid();
-  }
-#if defined(MT_THREAD)
-  // Temporary hack -- ordering problem
-  thr = 1;
-  
-#endif
-  CallGraphSetEntryFuncCallback(symbols->file(), 
-                                entry_pdf->ResourceFullName(), thr);
-    
-  // build call graph for executable
-  symbols->FillInCallGraphStatic(this);
-  // build call graph for module containing entry point
-  // ("main" is not always defined in the executable)
-  image *main_img = entry_pdf->file()->exec();
-  if (main_img != symbols) 
-    main_img->FillInCallGraphStatic(this);
-
-  // TODO: build call graph for all shared objects?
-  CallGraphFillDone(symbols->file());
-
-}
-
-void process::MonitorDynamicCallSites(string function_name){
-  resource *r, *p;
-  pdmodule *mod;
-  r = resource::findResource(function_name);
-  assert(r);
-  p = r->parent();
-  assert(p);
-  mod = symbols->findModule(p->name());
-  if(!mod){
-    //Must be the weird case where main() isn't in the executable
-    pd_Function *entry_pdf = (pd_Function *)findOnlyOneFunction("main");
-    assert(entry_pdf);
-    image *main_img = entry_pdf->file()->exec();
-    assert(main_img);
-    mod = main_img->findModule(p->name());
-  }
-  assert(mod);
-  
-  function_base *func, *temp;
-  pdvector<function_base *> fbv;
-  if (NULL == mod->findFunction(r->name(), &fbv) || !fbv.size()) {
-    fprintf(stderr, "%s[%d]: Cannot find %s, currently fatal\n", __FILE__, __LINE__,
-	    r->name().c_str());
-    abort();
-  }
-  if (fbv.size() > 1) {
-    fprintf(stderr, "%s[%d]: Warning, found %d %s()\n", __FILE__, __LINE__, fbv.size(),
-	    r->name().c_str());
-  }
-  func = fbv[0];
-
-  //Should I just be using a resource::handle here instead of going through
-  //all of this crap to find a pointer to the function???
-  string exe_name = getImage()->file();
-  pdvector<instPoint*> callPoints;
-  callPoints = func->funcCalls(this);
-  
-  unsigned i;
-  for(i = 0; i < callPoints.size(); i++){
-    if(!findCallee(*(callPoints[i]),temp)){
-      if(!MonitorCallSite(callPoints[i])){
-        fprintf(stderr, 
-             "ERROR in daemon, unable to monitorCallSite for function :%s\n",
-             function_name.c_str());
-      }
-    }
-  }
-}
-#endif
 
 #ifdef BPATCH_LIBRARY
 BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,

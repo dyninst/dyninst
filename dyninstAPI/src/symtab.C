@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.169 2003/06/16 19:51:53 pcroth Exp $
+// $Id: symtab.C,v 1.170 2003/06/18 20:31:56 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -964,37 +964,6 @@ void image::defineModules() {
 #endif
 }
 
-#ifndef BPATCH_LIBRARY
-void image::FillInCallGraphStatic(process *proc)
-{
-  unsigned i;
-  string pds;
-  pdmodule *mod;
-  dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
-  string buffer;
-
-  // define call graph relations for all non-excluded modules.
-  while (mi.next(pds, mod)){
-    buffer = "building call graph module: " +
-      mod->fileName();
-    statusLine(buffer.c_str());
-    mod->FillInCallGraphStatic(proc);
-  }
-  // also define call graph relations for all excluded modules.
-  //  Call graph gets information about both included and excluded 
-  //  modules and functions, and allows the DM and PC to decide whether
-  //  to look at a given function based on whether the function is 
-  //  included or excluded....
-  for(i=0;i<excludedMods.size();i++) {
-    mod = excludedMods[i];
-    buffer = "building call graph module: " +
-      mod->fileName();
-    statusLine(buffer.c_str());
-    mod->FillInCallGraphStatic(proc);
-  }
-}
-#endif
-
 //  Comments on what this does would be nice....
 //  Appears to run over a pdmodule, after all code in it has been processed
 //   and parsed into functions, and define a resource for the module + a 
@@ -1073,122 +1042,6 @@ void pdmodule::define() {
   resource::send_now();
 #endif
 }
-
-// Why is this in symtab.C?
-#ifndef BPATCH_LIBRARY
-// send message to data manager to specify the entry function for the
-//  call graph corresponding to a given image.  r should hold the 
-//  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
-void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid)
-{
-    tp->CallGraphSetEntryFuncCallback(exe_name, r, tid);
-}
-
-void CallGraphAddProgramCallback(string name){
-  tp->CallGraphAddProgramCallback(name);
-}
-
-//send message to the data manager, notifying it that all of the statically
-//determinable functions have been registered with the call graph. The
-//data manager will then be able to create the call graph.
-void CallGraphFillDone(string exe_name)
-{
-  tp->CallGraphFillDone(exe_name);
-}
-
-//send message to the data manager in order to register a function 
-//in the call graph.
-void AddCallGraphNodeCallback(string exe_name, string r)
-{
-    tp->AddCallGraphNodeCallback(exe_name, r);
-}
-
-//send a message to the data manager in order register a the function
-//calls made by a function (whose name is stored in r).
-void AddCallGraphStaticChildrenCallback(string exe_name, string r,
-					const pdvector<string> children) 
-{
-   tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
-}
-
-// Called across all modules (in a given image) to define the call
-//  graph relationship between functions.
-// Must be called AFTER all functions in all modules (in image) are
-//  registered as resource (e.g. w/ pdmodule::define())....
-void pdmodule::FillInCallGraphStatic(process *proc) {
-  pd_Function *pdf, *callee;
-  pdvector <pd_Function *>callees;
-  resource *r , *callee_as_resource;
-  string callee_full_name;
-  pdvector <string>callees_as_strings;
-  pdvector <instPoint*> callPoints; 
-  unsigned f, g,i, f_size = funcs.size();
-  
-  string resource_full_name;
-  
-  // for each INSTRUMENTABLE function in the module (including excluded 
-  //  functions, but NOT uninstrumentable ones)....
-  
-  for (f=0;f<f_size;f++) {
-    pdf = funcs[f];
-    
-    callees_as_strings.resize(0);
-    
-    // Translate from function name to resource *.
-    // Note that this probably is NOT the correct translation, as 
-    //  function names are not necessarily unique, but the paradyn
-    //  code assumes that they are in several places (e.g. 
-    //  resource::findResource)....
-    resource_full_name = pdf->ResourceFullName();
-    r = resource::findResource(resource_full_name);
-    // functions registered under pretty name....
-    assert(r != NULL);
-    
-    // get list of statically determined call destinations from pdf,
-    //  using the process info to help fill in calls througb PLT
-    //  entries....
-    pdf->getStaticCallees(proc, callees); 
-    
-    // and convert them into a list of resources....
-    for (g=0;g<callees.size();g++) {
-      callee = callees[g];
-      assert(callee);
-      
-      //if the funcResource is not set, then the function must be
-      //uninstrumentable, so we don't want to notify the front end
-      //of its existence
-      if(callee->FuncResourceSet()){
-	callee_full_name = callee->ResourceFullName();
-	
-	// if callee->funcResource has been set, then it should have 
-	//  been registered as a resource.... 
-	callee_as_resource = resource::findResource(callee_full_name);
-	assert(callee_as_resource);
-	callees_as_strings += callee_full_name;
-	}
-      
-    }//end for
-    
-    // register that callee_resources holds list of resource*s 
-    //  describing children of resource r....
-    string exe_name = proc->getImage()->file();
-    AddCallGraphNodeCallback(exe_name, resource_full_name);
-
-    AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
-				       callees_as_strings);
-
-    //Locate the dynamic call sites within the function, and notify 
-    //the front end as to their existence
-    callPoints = pdf->funcCalls(proc);
-    for(i = 0; i < callPoints.size(); i++){
-      if(proc->isDynamicCallSite(callPoints[i])){
-	tp->CallGraphAddDynamicCallSiteCallback(exe_name, resource_full_name);
-	break;
-      }
-    }
-  }
-}
-#endif // ndef BPATCH_LIBRARY
 
 #ifndef BPATCH_LIBRARY
 // as per getAllFunctions, but filters out those excluded with 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.260 2003/06/17 20:27:34 schendel Exp $
+/* $Id: process.h,v 1.261 2003/06/18 20:31:55 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -599,8 +599,6 @@ void saveWorldData(Address address, int size, const void* src);
   bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
 #ifndef BPATCH_LIBRARY
-  void FillInCallGraphStatic();
-  void MonitorDynamicCallSites(string function_name);
   bool MonitorCallSite(instPoint *callSite);
   bool isDynamicCallSite(instPoint *callSite); 
 #endif

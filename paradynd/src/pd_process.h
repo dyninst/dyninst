@@ -51,6 +51,8 @@
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
 
+class pd_image;
+
 // Someday this class will inherit from BPatch_thread instead of
 // having a process* member
 
@@ -60,6 +62,8 @@ class pd_process {
    threadMgr thr_mgr;
 
    variableMgr *theVariableMgr;
+
+   pd_image *img;
 
  public:
    // Paradyn daemon arguments, etc.
@@ -105,6 +109,9 @@ class pd_process {
       return *theVariableMgr;
    }
    void handleExit(int exitStatus);
+
+   void FillInCallGraphStatic();
+   void MonitorDynamicCallSites(string function_name);
 
   // ==== Cpu time related functions and members =======================
 
@@ -219,10 +226,6 @@ class pd_process {
       return dyninst_process->writeDataSpace(inTracedProcess, amount, inSelf);
    }
 
-   void MonitorDynamicCallSites(string function_name) {
-      dyninst_process->MonitorDynamicCallSites(function_name);
-   }
-
    bool isBootstrappedYet() const {
       return dyninst_process->isBootstrappedYet();
    }
@@ -291,8 +294,8 @@ class pd_process {
       return dyninst_process->getSymbolInfo(n, info, baseAddr);
    }
 
-   image *getImage() const {
-      return dyninst_process->getImage();
+   pd_image *getImage() const {
+      return img;
    }
 
    bool findCallee(instPoint &instr, function_base *&target) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.99 2003/06/17 20:27:40 schendel Exp $ */
+/* $Id: context.C,v 1.100 2003/06/18 20:32:01 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -61,6 +61,7 @@
 #include "paradynd/src/init.h"
 #include "processMgr.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "paradynd/src/pd_image.h"
 
 
 // The following were defined in process.C
@@ -127,6 +128,8 @@ bool applicationDefined()
 
 #if defined(MT_THREAD)
 
+extern void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
+
 void createThread(traceThread *fr) {
    assert(fr);
 
@@ -184,7 +187,10 @@ void createThread(traceThread *fr) {
    string start_func_str = thr->get_start_func()->prettyName();
    string res_string = modRes->full_name() + "/" + start_func_str;
 
-   CallGraphSetEntryFuncCallback(proc->getImage()->file(), res_string, thr->get_tid());
+   pd_image *im = proc->getImage();
+   string fl = im->get_file();
+   
+   CallGraphSetEntryFuncCallback(fl, res_string, thr->get_tid());
 }
 
 //

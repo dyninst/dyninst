@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.144 2003/06/17 17:54:53 pcroth Exp $
+// $Id: mdl.C,v 1.145 2003/06/18 20:32:02 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2226,7 +2226,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               
               /*
-                image *img = proc->getImage();
+                pd_image *img = proc->getImage();
                 pdvector<pdmodule *> mods = img->getExcludedModules();
                 for(unsigned i=0; i<mods.size(); i++) {
                 cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()

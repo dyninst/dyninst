@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.128 2003/04/26 04:09:09 igor Exp $
+// $Id: symtab.h,v 1.129 2003/06/18 20:31:57 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -700,13 +700,9 @@ public:
   void define();    // defines module to paradyn
 
   void updateForFork(process *childProcess, const process *parentProcess);
-#ifndef BPATCH_LIBRARY
-  void FillInCallGraphStatic(process *proc);
-      // fill in statically determined part of caller-callee relationship
-      //  for paradyn....
-#endif
 
   pdvector<function_base *> *getFunctions() { return (pdvector<function_base *>*)&funcs;} 
+  pdvector<pd_Function *> *getPD_Functions() { return &funcs; } 
 #ifndef BPATCH_LIBRARY
   pdvector<function_base *> *getIncludedFunctions();
 #endif
@@ -928,11 +924,6 @@ public:
   //overloaded functions in paradyn)
   void addTypedPrettyName(pd_Function *func, const char *typedName);
 	
-#ifndef BPATCH_LIBRARY
- // report statically determinable caller-callee relationship to paradyn....
-  void FillInCallGraphStatic(process *proc);
-#endif
-
   bool symbolExists(const string &); /* Does the symbol exist in the image? */
   void postProcess(const string);          /* Load .pif file */
 
@@ -1168,13 +1159,6 @@ public:
   int refCount;
 };
 
-
-#ifndef BPATCH_LIBRARY
-// forward declarations....
-void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
-void CallGraphFillDone(string exe_name);
-void CallGraphAddProgramCallback(string exe_name);
-#endif
 /*
  * a definition of a library function that we may wish to identify.  This is
  *   how we describe it to the symbol table parser, not how it appears in
