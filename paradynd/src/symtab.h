@@ -46,6 +46,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.26  1996/08/20 19:01:00  lzheng
+ * Implementation of moving multiple instructions sequence
+ * Added a few variable. (need to change them to private member later)
+ *
  * Revision 1.25  1996/08/16 21:20:01  tamches
  * updated copyright for release 1.1
  *
@@ -138,7 +142,7 @@ class lineTable;
 // test if the passed instruction is a return instruction.
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 
-
+//Todo: move this class to machine dependent file?
 class pdFunction {
  public:
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
@@ -150,14 +154,15 @@ class pdFunction {
 
     void checkCallPoints();
     bool defineInstPoint();
-    Address newCallPoint(const Address adr, const instruction code, const 
-                         image *owner, bool &err);
+    Address newCallPoint(Address adr, const instruction code, 
+			 const image *owner, bool &err);
     string symTabName() const { return symTabName_;}
     string prettyName() const { return prettyName_;}
     const module *file() const { return file_;}
     Address addr() const { return addr_;}
     unsigned size() const {return size_;}
     instPoint *funcEntry() const { return funcEntry_;}
+    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
     vector<instPoint*> funcReturns;	/* return point(s). */
     vector<instPoint*> calls;		/* pointer to the calls */
     inline void tagAsLib() { tag_ |= TAG_LIB_FUNC;}
@@ -170,6 +175,19 @@ class pdFunction {
     instruction exitPoint;
     vector<instPoint*> lr;
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
+    // ToDo : change those variables to the private.
+    bool leaf;
+    bool isTrap;  
+    bool relocation;
+    bool notInstalled;
+    bool checkInstPoints(const image *owner);
+    bool findInstPoints(const image *owner, Address adr, process *proc);
+    bool relocateFunction(process *proc, instPoint *location);
+    Address newCallPoint(Address &adr, const instruction code, const 
+                         image *owner, bool &err, int &id, Address &addr);
+    Address newAddr;
+#endif
 
   private:
     unsigned tag_;
@@ -178,7 +196,7 @@ class pdFunction {
     int line_;			/* first line of function */
     module *file_;		/* pointer to file that defines func. */
     Address addr_;		/* address of the start of the func */
-    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
+    /*instPoint *funcEntry_;	 place to instrument entry (often not addr) */
 
     unsigned size_;             /* the function size, in bytes, used to
 				   define the function boundaries. This may not
@@ -339,6 +357,8 @@ public:
   bool findFunction(const string &name, vector<pdFunction*> &flist);
   pdFunction *findFunction(const Address &addr);
   pdFunction *findOneFunction(const string &name);
+
+  pdFunction *findFunctionIn(const Address &addr);
 
   // report modules to paradyn
   void defineModules();
