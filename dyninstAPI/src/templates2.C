@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.25 2003/07/15 22:44:47 schendel Exp $
+// $Id: templates2.C,v 1.26 2003/07/29 00:32:46 eli Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -193,14 +193,10 @@ template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
 template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
 template class pdvector<dictionary_hash <const instPoint *, installed_miniTramps_list*>::entry>;
 
-#if defined(BPATCH_LIBRARY)
-
 class BPatch_basicBlock;
 
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
 template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
-
-#endif
 
 #ifndef BPATCH_LIBRARY
 class defInst;
