@@ -177,6 +177,7 @@ private:
     unsigned tag_;
 };
 
+
 class pd_Function : public function_base {
  public:
     pd_Function(const string &symbol, const string &pretty, pdmodule *f, 
@@ -582,17 +583,20 @@ public:
   vector<pd_Function*> instrumentableFunctions;
 
   dictionary_hash <string, pd_Function*> notInstruFunctions;
-  // The functions that we are not going to instrument
+  // The functions that can't be instrumented
 
   //
   // Hash Tables of Functions....
   //
-  // functions by address for all modules.  Only contains instrumented
+  // functions by address for all modules.  Only contains instrumentable
   //  funtions.
   dictionary_hash <Address, pd_Function*> funcsByAddr;
   dictionary_hash <string, vector<pd_Function*>*> funcsByPretty;
   // note, a prettyName is not unique, it may map to a function appearing
-  // in several modules.  Also only contains instrumented functions....
+  // in several modules.  Also only contains instrumentable functions....
+  dictionary_hash <string, vector<pd_Function*>*> funcsByMangled;
+  // Hash table holding functions by mangled name.
+  // Should contain same functions as funcsByPretty....
 
 
   //

@@ -230,6 +230,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 			      const Address addr, bool excluded) {
     vector<pd_Function*> *funcsByPrettyEntry;
+    vector<pd_Function*> *funcsByMangledEntry;
 
     // any functions whose instrumentation info could be determined 
     //  get added to instrumentableFunctions, and mod->funcs.
@@ -250,6 +251,15 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
         // will appear in a different module
         assert(funcsByPrettyEntry);
         (*funcsByPrettyEntry) += func;
+
+	if (!funcsByMangled.find(func->symTabName(), funcsByMangledEntry)) {
+            funcsByMangledEntry = new vector<pd_Function*>;
+            funcsByMangled[func->symTabName()] = funcsByMangledEntry;
+	}
+	// several functions may have the same demangled name, and each one
+        // will appear in a different module
+        assert(funcsByMangledEntry);
+        (*funcsByMangledEntry) += func;
     }
 }
 
@@ -482,41 +492,31 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
 // should exist -- should I assert that the vector size <= 1 ?
 // mcheyney - should return NULL when function being searched for 
 //  is excluded!!!!
+// Checks for function in pretty name hash first, then in
+//  mangled name hash to better handle many (mangled name) to one 
+//  (pretty name) mapping in C++ function names....
 pd_Function *image::findOneFunction(const string &name)
 {
-  string demangName;
-  pd_Function *ret;
+  vector<pd_Function*> *a;
 
   //cerr << "image::findOneFunction " << name << " called" << endl;
-
   if (funcsByPretty.defines(name)) {
-    vector<pd_Function*> *a = funcsByPretty[name];
-    assert(a);
-    if (!a->size())
-      ret = NULL;
-    else
-      ret = ((*a)[0]);
-  } else if (buildDemangledName(name, demangName)) {
-    if (funcsByPretty.defines(demangName)) {
-      vector<pd_Function*> *a = funcsByPretty[demangName];
-      assert(a);
-      if (!a->size())
-	ret = NULL;
-      else
-	ret = ((*a)[0]);
-    } else
-      ret = NULL;
-  } else
-    ret = NULL;
-
-  //cerr << "(image::findOneFunction " << name << " ) about to return";
-  //if (ret == NULL) {
-  //    cerr << " NULL" << endl;
-  //} else {
-  //    cerr << " non-NULL" << endl;
-  //}
-
-  return ret;
+    a = funcsByPretty[name];
+  } else if (funcsByMangled.defines(name)) {
+    a = funcsByMangled[name];
+  } else {
+    //cerr << " returning NULL" << endl;
+    return NULL;
+  }
+  assert(a);
+  if (!a->size()) {
+    //cerr << " returning NULL" << endl;
+    return NULL;
+  }
+  //cerr << " returning a pd_Function : " << endl;
+  //cerr << "  prettyName : " << ((*a)[0])->prettyName() << endl;
+  //cerr << "  symTabName : " << ((*a)[0])->symTabName() << endl;
+  return ((*a)[0]);
 }
 
 // This function supposely is only used to find function that
@@ -545,6 +545,8 @@ pd_Function *image::findOneFunctionFromAll(const string &name) {
     return NULL;
 }
 
+// Only looks for function by pretty name.
+//  Should it also look by mangled name??
 bool image::findFunction(const string &name, vector<pd_Function*> &retList,
         bool find_if_excluded) {
 
@@ -885,20 +887,6 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
     //print_func_vector_by_pretty_name(string("  "),(vector<function_base *>*) &some_funcs);
     return (vector<function_base *>*)&some_funcs;
 }
-
-#ifdef NOT_DEFINED
-// get all functions in module which are not "excluded" (e.g.
-//  with mdl "exclude" command.  
-// Assed to provide support for mdl "exclude" on functions in
-//  statically linked objects.
-//  mcheyney 970727
-const vector<pd_Function *> &image::getIncludedFunctions() {
-    //cerr << "image::getIncludedFunctions() called, about to return includedFunctions = " << endl;
-    //print_func_vector_by_pretty_name(string("  "),
-    //        (vector<function_base*>*)&includedFunctions);
-    return includedFunctions;
-}
-#endif
 
 const vector<pd_Function*> &image::getAllFunctions() {
     //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
@@ -1432,6 +1420,7 @@ image::image(const string &fileName, bool &err)
     notInstruFunctions(string::hash),
     funcsByAddr(addrHash4),
     funcsByPretty(string::hash),
+    funcsByMangled(string::hash),
     file_(fileName),
     linkedFile(fileName, pd_log_perror),
     iSymsMap(string::hash),
@@ -1459,6 +1448,7 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     notInstruFunctions(string::hash),
     funcsByAddr(addrHash4),
     funcsByPretty(string::hash),
+    funcsByMangled(string::hash),
     file_(fileName),
     linkedFile(fileName, baseAddr,pd_log_perror),
     iSymsMap(string::hash),
