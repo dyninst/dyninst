@@ -1313,7 +1313,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     // Go through every item in the batch buffer we've just received and
     // process it.
     for (unsigned index =0; index < theBatchBuffer.size(); index++) {
-	T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
+	const T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
 
 	unsigned mid          = entry.mid ;
 	double startTimeStamp = entry.startTimeStamp ;
@@ -1390,9 +1390,12 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   // update the sampleInfo value associated with 
 	   // the daemon that sent the value 
 	   //
-	   if (!part->sample->firstValueReceived())
+       
+           assert(part->sample);
+	   if (!part->sample->firstValueReceived()) {
               //part->sample->startTime(startTimeStamp);
-	     part->sample->firstTimeAndValue(startTimeStamp, 0);
+              part->sample->firstTimeAndValue(startTimeStamp, (float)0.0);
+           }
 
 	   part->sample->newValue(endTimeStamp, (float)value, weight);
 	}
