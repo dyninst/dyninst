@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.56  1995/10/05 04:36:23  karavan
-/* getDagToken() obsoleted.
+/* Revision 1.57  1995/10/09 18:16:00  naim
+/* Minor fix to path variable "temp". I had changed it by mistake! - naim
 /*
+ * Revision 1.56  1995/10/05  04:36:23  karavan
+ * getDagToken() obsoleted.
+ *
  * Revision 1.55  1995/09/26  20:25:25  naim
  * Minor warning fixes and other minor fixes related to error messages
  *
@@ -428,7 +431,7 @@ UImain(void* vargs)
           printf ("can't set auto_path: %s\n", interp->result);
     }
     if (temp == 0) {
-	temp = "/p/paradyn/development/naim/core/paradyn/tcl";
+	temp = "/p/paradyn/core/paradyn/tcl";
     }
     Tcl_SetVar (interp, "PdBitmapDir", temp, 0); // YUCK --ari
 
