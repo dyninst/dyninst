@@ -7,7 +7,7 @@
 #include <windows.h>
 #endif /* !defined(i386_unknown_nt4_0) */
 
-#include "../../h/thread.h"
+#include "thread.h"
 
 #define MILLION 1000000.0
 #define NCREATES 16
