@@ -1,6 +1,8 @@
 
 
-all:
+all: docs
+
+docs:
 #	nroff -man libutil.1 > libutil.0
 #	nroff -man libutilPVM.1 > libutilPVM.0
 

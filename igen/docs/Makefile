@@ -1,6 +1,8 @@
 
 
-all:
+all: docs
+
+docs:
 #	nroff -man igen.1 > igen.0
 
 install-man:

@@ -34,9 +34,9 @@ all clean install:
 # This rules passes down the documentation-related stuff to
 # lower-level Makefiles in the individual "docs" directories.
 
-man install-man:
+docs install-man:
 	+for subsystem in $(subsystems); do 			\
-	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+	    if [ -f $$subsystem/docs/Makefile ]; then	\
 	       $(MAKE) -C $$subsystem/docs $@;			\
 	    else						\
 		true;						\
@@ -62,5 +62,5 @@ world:
 	done
 	$(MAKE) all
 	$(MAKE) install
-	$(MAKE) man
+	$(MAKE) docs
 	$(MAKE) install-man
