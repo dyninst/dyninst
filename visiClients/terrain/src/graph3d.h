@@ -15,14 +15,15 @@
 /*
  * graph3d.h - header file for graph3d.c
  *
- * $Id: graph3d.h,v 1.6 1998/03/30 01:22:28 wylie Exp $
+ * $Id: graph3d.h,v 1.7 1999/10/19 05:18:47 nick Exp $
  */
 
 
 #ifndef GRAPH3D_H
 #define GRAPH3D_H
 
-extern char *strcpy(),*strncpy(),*strcat();
+/* extern char *strcpy(),*strncpy(),*strcat();*/
+#include <string.h>
 
 extern void changeXFormat(int);
 extern int do_3dplot();

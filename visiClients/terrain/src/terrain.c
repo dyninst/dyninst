@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.13 1999/03/13 15:24:37 pcroth Exp $
+ * $Id: terrain.c,v 1.14 1999/10/19 05:18:47 nick Exp $
  */
 
 #include <stdio.h>
@@ -41,6 +41,7 @@ extern /*"C"*/ const char V_libvisi[];
 #include "form.h"
 #include "command.h"
 #include "misc.h"
+#include "setshow.h"
 #include "util/h/pdsocket.h" 
 #include "visi/h/visualization.h" 
 
@@ -75,7 +76,7 @@ int cur_lt;			/* What kind of line we are using */
 
 float xscale, yscale;		/* GNUPlot rescale the plot to fit the */
 				/* window before actually drawing      */
-enum JUSTIFY { LEFT, CENTRE, RIGHT } jmode; /* How texts are drawn */
+enum JUSTIFY jmode;		/* How texts are drawn */
 
 RValues rv;
 
@@ -643,8 +644,10 @@ int main(int argc, char *argv[])
  ******************* modified section starts *********************************/
  
    int fd;
-
    int i;
+
+   outfile = stdout; /* non-static initialization */
+
    for (i=1; i<argc; i++)
      {
        if (strcmp(argv[i],"-V")==0)

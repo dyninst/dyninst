@@ -33,7 +33,7 @@
  *
  * setshow.c - option settings for GNUPlot.
  *
- * $Id: setshow.c,v 1.4 1998/03/30 01:22:33 wylie Exp $
+ * $Id: setshow.c,v 1.5 1999/10/19 05:18:47 nick Exp $
  */
 
 #include <stdio.h>
@@ -78,7 +78,8 @@ float			key_x, key_y, key_z;	/* user specified position for key */
 BOOLEAN			log_x		= FALSE,
 			log_y		= FALSE,
 			log_z		= FALSE;
-FILE*			outfile		= stdout;
+FILE*			outfile; /* = stdout; - Non-static, moved to main 
+			          * - Nick */
 char			outstr[MAX_ID_LEN+1] = "STDOUT";
 BOOLEAN			polar		= FALSE;
 BOOLEAN			parametric	= TRUE;

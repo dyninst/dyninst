@@ -33,7 +33,7 @@
  *
  * setshow.h - oheader file of setshow.c
  *
- * $Id: setshow.h,v 1.4 1998/03/30 01:22:34 wylie Exp $
+ * $Id: setshow.h,v 1.5 1999/10/19 05:18:47 nick Exp $
  */
 
 /*
@@ -42,6 +42,8 @@
 
 #ifndef SETSHOW_H
 #define SETSHOW_H
+
+#include "plot.h"
 
 extern BOOLEAN			autoscale_t;
 extern BOOLEAN			autoscale_u;
