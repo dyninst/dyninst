@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.30 2003/01/29 23:01:22 jodom Exp $
+// $Id: BPatch_function.C,v 1.31 2003/03/14 19:02:33 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -475,8 +475,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
  * This function adds a function parameter to the BPatch_function parameter
  * vector.
  */
-void BPatch_function::addParam(char * _name, BPatch_type *_type, int _linenum,
-			       int _frameOffset, int _sc)
+void BPatch_function::addParam(const char * _name, BPatch_type *_type,
+			       int _linenum, int _frameOffset, int _sc)
 {
   BPatch_localVar * param = new BPatch_localVar(_name, _type, _linenum,
 						_frameOffset, _sc);

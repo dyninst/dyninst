@@ -110,7 +110,7 @@ public:
 
     BPatch_type * getReturnType(){ return retType; }
     BPatch_module *getModule()	{ return mod; }
-    void addParam(char * _name, BPatch_type *_type, int _linenum,
+    void addParam(const char * _name, BPatch_type *_type, int _linenum,
 		  int _frameOffset, int _sc = 5 /* scAbs */ );
     
     BPatch_Vector<BPatch_localVar *> *getParams() { 
