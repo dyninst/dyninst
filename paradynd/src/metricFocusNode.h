@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.92 2002/05/10 18:36:39 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.93 2002/05/14 19:00:30 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -103,11 +103,9 @@ public:
 
   virtual void print() { };
 
-  timeLength originalCost() const { return originalCost_; }
-
   // propagate this aggregate mi to a newly started process p (not for
   // processes started via fork or exec, just for those started "normally")
-  void propagateToNewProcess(process *p);  
+  static void handleNewProcess(process *p);
 
   metricFocusNode *forkProcess(process *child,
                                     const dictionary_hash<instInstance*,instInstance*> &map) const;
@@ -145,49 +143,8 @@ protected:
   // Since we don't define these, make sure they're not used:
   metricFocusNode &operator=(const metricFocusNode &src);
   metricFocusNode(const metricFocusNode &src);
-
- protected:
-
-  timeLength originalCost_;
- 
 };
 
-
-class defInst {
- public:
-  defInst(int id, pd_Function *func, unsigned attempts);
-
-  int id() { return id_; }
-  pd_Function *func() { return func_; }
-  unsigned numAttempts() { return attempts_; }
-  void failedAttempt() { if (attempts_ > 0) attempts_--; }
-  
- private:
-  int id_;
-  pd_Function *func_;
-  unsigned attempts_;
-};
-
-//class defInst {
-// public:
-//  defInst(unsigned, vector<T_dyninstRPC::focusStruct>&, vector<string>&,
-//	  vector<u_int>&, u_int&, u_int&);
-
-//  unsigned index() { return index_; }
-//  vector<T_dyninstRPC::focusStruct> focus() { return focus_; }
-//  vector<string>& metric() { return metric_; }
-//  vector<u_int>& ids() { return ids_; }
-//  u_int did() { return did_; }
-//  u_int rid() { return rid_; }
-
-// private:
-//  unsigned index_;
-//  vector<T_dyninstRPC::focusStruct> focus_; 
-//  vector<string> metric_;
-//  vector<u_int> ids_; 
-//  u_int did_;
-//  u_int rid_;
-//};
 
 #if defined(MT_THREAD)
 extern dictionary_hash<string, metricFocusNode*> allMIinstalled;
