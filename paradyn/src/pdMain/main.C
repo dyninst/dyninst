@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.53 2000/03/23 01:35:31 wylie Exp $
+// $Id: main.C,v 1.54 2000/04/20 22:42:24 mirg Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -72,6 +72,8 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
+
+extern bool mpichUnlinkWrappers();
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -365,6 +367,8 @@ main (int argc, char **argv)
 // wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
+
+  mpichUnlinkWrappers();
 
   Tcl_DeleteInterp(interp);
 
