@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2002/03/16 04:05:27 tlmiller Exp $
+# $Id: Makefile,v 1.4 2002/03/16 04:07:05 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,9 +12,10 @@ NO_IMPLICIT_TEMPLATES = true
 
 # -O2 or higher breaks Object-elf in interesting ways.
 # (Assembler segfaults.)
-# (02/27/2002, Todd L Miller; gcc 2.96 (RH 7.1) and gcc 3.0.3 (RH 7.2))
+# (02/27/2002, Todd L Miller; gcc 2.96 and gcc 3.0.3 (RH 7.1))
 # -O or higher breaks parseStab.c and symtab.C
 # (Assembler complains about an unwind directive.)
+# (03/15/2002, Todd L Miller; gcc 3.0.3 (RH 7.1))
 NO_OPT_FLAG = true
 OPT_FLAG =
 
