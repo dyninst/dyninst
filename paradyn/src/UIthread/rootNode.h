@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.11 2003/03/06 18:50:23 willb Exp $ */
+/* $Id: rootNode.h,v 1.12 2003/03/10 18:55:41 pcroth Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -60,8 +60,6 @@
 #include "common/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
-
-#include <unistd.h>
 
 // This class is intended to be used as the template type of where4tree<>
 // for the where axis.  For the search history graph, try some other type.
