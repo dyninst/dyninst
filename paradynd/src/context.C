@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.44  1996/10/31 08:37:54  tamches
+ * the shm-sampling commit
+ *
  * Revision 1.43  1996/09/26 18:58:25  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -65,32 +68,6 @@
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
  * Removed a debugging printf for multiple function returns.
- *
- * Revision 1.37  1996/02/13  06:17:20  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.36  1996/01/29  22:09:19  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.35  1995/12/18 14:59:17  naim
- * Minor change to status line messages - naim
- *
- * Revision 1.34  1995/11/22  00:02:17  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.33  1995/10/19  22:36:35  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
  *
  */
 
@@ -134,21 +111,17 @@ void forkProcess(traceFork *fr)
     }
 
     // timeStamp forkTime = getCurrentTime(false);
+#ifdef SHM_SAMPLING
+    ret = process::forkProcess(parent, fr->pid,
+			       fr->the_shmSegBaseKey,
+			       fr->appl_shmSegIntCounterPtr,
+			       fr->appl_shmSegWallTimerPtr,
+			       fr->appl_shmSegProcTimerPtr);
+#else
     ret = process::forkProcess(parent, fr->pid);
+#endif
 
     //fprintf(stderr, "Fork process took %f secs\n", getCurrentTime(false)-forkTime);
-}
-
-void startProcess(traceStart *sr)
-{
-    process *proc = findProcess(sr->value);
-    if (!proc) {
-      logLine("Error in startProcess: could not find process\n");
-      return;
-    }
-    if(!process::handleStartProcess(proc)){
-      logLine("Error in startProcess: handleStartProcess returned false\n");
-    }
 }
 
 int addProcess(vector<string> &argv, vector<string> &envp, string dir)
@@ -156,7 +129,7 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir)
     process *proc = createProcess(argv[0], argv, envp, dir);
 
     if (proc) {
-      return(proc->pid);
+      return(proc->getPid());
     }
     else
       return(-1);
@@ -240,4 +213,3 @@ bool pauseAllProcesses()
       statusLine("application paused");
     return(changed);
 }
-
