@@ -40,10 +40,11 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.34 1999/09/10 14:29:16 nash Exp $
+// $Id: hist.C,v 1.35 1999/10/19 05:11:11 nick Exp $
 
 #include "util/h/headers.h"
 #include "util/h/hist.h"
+#include <math.h>
 
 /* number of intervals at which we switch to regular histograms */
 #define MAX_INTERVALS	15
