@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.153 2003/10/22 17:57:03 pcroth Exp $
+// $Id: mdl.C,v 1.154 2003/11/24 17:38:38 schendel Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -319,8 +319,35 @@ private:
  * Simple: return base + (POS * size). ST: POS==0, so return base
  */
  
-AstNode *getTimerAddress(void *base, unsigned struct_size,
-                         bool for_multithreaded)
+AstNode *getTimerAddressSlow(void *base, unsigned struct_size,
+                             bool for_multithreaded)
+{
+   if(! for_multithreaded)
+      return new AstNode(AstNode::DataPtr, base);
+
+   // Return base + struct_size*POS. Problem is, POS is unknown
+   // until we are running the instrumentation
+
+   pdvector<AstNode *> ast_args;
+   AstNode *get_thr    = new AstNode("pthread_self", ast_args);
+   AstNode *get_index  = new AstNode("DYNINSTthreadIndexSLOW", get_thr);
+   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
+   
+   AstNode *offset     = new AstNode(timesOp, get_index, increment);
+   AstNode *var        = new AstNode(plusOp, var_base, offset);
+
+   //removeAst(pos);
+   removeAst(get_thr);
+   removeAst(get_index);
+   removeAst(increment);
+   removeAst(var_base);
+   removeAst(offset);
+   return var;
+}
+
+AstNode *getTimerAddressFast(void *base, unsigned struct_size,
+                             bool for_multithreaded)
 {
    if(! for_multithreaded)
       return new AstNode(AstNode::DataPtr, base);
@@ -329,17 +356,31 @@ AstNode *getTimerAddress(void *base, unsigned struct_size,
    // until we are running the instrumentation
    
    AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+
    AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
    AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
    
    AstNode *offset     = new AstNode(timesOp, pos, increment);
+
    AstNode *var        = new AstNode(plusOp, var_base, offset);
 
    removeAst(pos);
+
+
    removeAst(increment);
    removeAst(var_base);
    removeAst(offset);
    return var;
+}
+
+AstNode *getTimerAddress(void *base, unsigned struct_size,
+                         bool for_multithreaded)
+{
+#if defined(i386_unknown_linux2_0)
+   return getTimerAddressSlow(base, struct_size, for_multithreaded);
+#else
+   return getTimerAddressFast(base, struct_size, for_multithreaded);
+#endif
 }
 
 AstNode *createTimer(const pdstring &func, void *dataPtr, 
@@ -1875,6 +1916,8 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    start_funcs.push_back("_pthread_body");
 #elif defined(sparc_sun_solaris2_4)
    start_funcs.push_back("_thread_start");
+#elif defined(i386_unknown_linux2_0)
+   start_funcs.push_back("start_thread");
 #endif
 
    if (proc->multithread_ready()) {
