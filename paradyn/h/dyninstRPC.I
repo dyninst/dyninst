@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.105 2003/02/04 22:42:42 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.106 2003/05/21 18:19:46 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -399,6 +399,40 @@ $remote struct resourceInfoCallbackStruct {
    u_int type;
 };
 
+
+$remote struct indivInstResponse
+{
+    u_int mi_id;
+    int return_id;
+    string emsg;
+
+$ignore
+    indivInstResponse( u_int mid = 0, int rid = 0, string msg = "" )
+      : mi_id( mid ),
+        return_id( rid ),
+        emsg( msg )
+    { }
+$ignore
+};
+
+
+$remote struct instResponse
+{
+    u_int request_id;
+    u_int daemon_id;
+    pdvector<indivInstResponse> rinfo;
+
+$ignore
+    instResponse( u_int reqId = 0, u_int did = 0 )
+      : request_id( reqId ),
+      daemon_id( did )
+    { }
+$ignore
+};
+
+
+
+
 /*
  * Create a paradynd process.
  *
@@ -411,7 +445,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 59;
+    $version 60;
 
     //
     // Define a program to run. 
@@ -634,16 +668,21 @@ $remote dynRPC {
    //
    // synchronous enable call, for propogating metrics
    //
-   int enableDataCollection2(pdvector<u_int> focus, string metric, int id);
+   // Note: we'd like to just send back a single instResponse, but
+   // currently igen does not support sending back dynamically allocated
+   // structs as such.
+   instResponse enableDataCollection2(pdvector<u_int> focus,
+                                        string metric,
+                                        int id,
+                                        u_int daemon_id );
 
    //
    // Upcall to tell paradyn that all daemons are ready after a metric 
    // enable request
    //
-   $upcall $async void enableDataCallback(u_int daemon_id, 
-                                          pdvector<int> return_id,
-                                          pdvector<u_int> mi_ids,
-					  u_int request_id);
+   $upcall $async void enableDataCallback( instResponse resp );
+					                      
+
    //
    // Upcall to tell paradyn that all daemons are ready after computing 
    // the value for predicted data cost

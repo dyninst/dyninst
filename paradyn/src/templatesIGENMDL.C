@@ -93,6 +93,7 @@ template class pdvector< pdvector<dyn_thread *> >;
 template class pdvector<const instrDataNode *>;
 template class pdvector<mdl_var>;
 template class pdvector<mdl_focus_element>;
+template class pdvector<mdl_env::Frame>;
 
 template class pdvector<mdl_type_desc>;
 template class pdvector< pdvector< mdl_type_desc > >;

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.126 2003/05/07 16:18:48 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.127 2003/05/21 18:19:46 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -160,6 +160,20 @@ void DM_enableType::updateAny(pdvector<metricInstance *> &completed_mis,
 	   }
    } }
 }
+
+
+void
+DM_enableType::setErrorString( metricInstanceHandle mh, string msg )
+{
+    for( unsigned int i = 0; i < request->size(); i++)
+    {
+        if( mh == ((*request)[i]->getHandle()) )
+        {
+            emsgs[i] = msg;
+        }
+    }
+}
+
 
 const string daemonEntry::getRemoteShellString() const {
    if(remote_shell.length() > 0) {
@@ -2336,15 +2350,18 @@ void paradynDaemon::propagateMetrics() {
       bool aflag = rl->convertToIDList(vs);
       assert(aflag);
 
-      int id = enableDataCollection2(vs, (const char *) m->getName(), mi->id);
+      T_dyninstRPC::instResponse resp = enableDataCollection2(vs,
+                                                    (const char *) m->getName(),
+                                                    mi->id, this->id );
 
-      if (id > 0 && !did_error_occur()) {
-	 component *comp = new component(this, id, mi);
-	 if (!mi->addComponent(comp)) {
-	    cout << "internal error in paradynDaemon::addRunningProgram" << endl;
-	    abort();
-	 }
-      }
+      if( (resp.rinfo[0].return_id > 0) && !did_error_occur() ) {
+        component *comp = new component(this, resp.rinfo[0].return_id, mi);
+        if (!mi->addComponent(comp)) {
+	        cout << "internal error in paradynDaemon::addRunningProgram" 
+                << endl;
+	        abort();
+	    }
+        }
     }
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.57 2003/02/21 20:06:12 bernat Exp $
+// $Id: DMdaemon.h,v 1.58 2003/05/21 18:19:51 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -88,6 +88,7 @@ class DM_enableType{
             for(unsigned j=0; j<request->size(); j++) {
                (*requests_received).push_back(0);
             }
+            emsgs.resize( request->size() );
     }
     DM_enableType(){ ps_handle = 0; pt_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
 		request_id = 0; client_id = 0; request = 0; done = 0; 
@@ -109,6 +110,9 @@ class DM_enableType{
     void updateAny(pdvector<metricInstance *> &completed_mis,
 		   pdvector<bool> successful);
 
+    void setErrorString( metricInstanceHandle mh, string msg );
+    const pdvector<string>& getErrorStrings( void ) const   { return emsgs; }
+
  private:
     perfStreamHandle ps_handle;  // client thread
     perfStreamHandle pt_handle;  // client thread for traces
@@ -125,6 +129,7 @@ class DM_enableType{
     u_int persistent_collection;
     u_int phase_persistent_data;
     u_int not_all_done;
+    pdvector<string> emsgs;      // error messages
 };
 
 

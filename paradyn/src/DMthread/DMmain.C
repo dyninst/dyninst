@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.148 2003/04/17 19:41:12 pcroth Exp $
+// $Id: DMmain.C,v 1.149 2003/05/21 18:19:51 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -455,6 +455,7 @@ void DMenableResponse(DM_enableType &enable, pdvector<bool> &successful)
 	    (*response)[i].r_id = mis[i]->getFocusHandle();
 	    (*response)[i].metric_name = mis[i]->getMetricName();
 	    (*response)[i].focus_name = mis[i]->getFocusName();
+	    (*response)[i].emsg = enable.getErrorStrings()[i];
 	}
 
 //        if(mis[i]) {
@@ -491,17 +492,14 @@ void DMenableResponse(DM_enableType &enable, pdvector<bool> &successful)
 // and enable for an MI is successful if its done entry is true and if its
 // MI* is not 0
 //
-void dynRPCUser::enableDataCallback(u_int daemon_id, 
-				    pdvector<int> return_id,
-				    pdvector<u_int> mi_ids,
-				    u_int request_id)
+void dynRPCUser::enableDataCallback( T_dyninstRPC::instResponse resp )
 {
    // find element in outstanding_enables corr. to request_id
    u_int which =0;
    DM_enableType *request_entry = 0;
 
    for(u_int i=0; i < paradynDaemon::outstanding_enables.size(); i++){
-      if((paradynDaemon::outstanding_enables[i])->request_id == request_id){
+      if((paradynDaemon::outstanding_enables[i])->request_id == resp.request_id){
          which = i;
          request_entry = paradynDaemon::outstanding_enables[i];
          break;
@@ -513,24 +511,28 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
       // between the enable request and response, so ignore the response
       return;
    }
-   assert(daemon_id < paradynDaemon::allDaemons.size());
-   paradynDaemon *pd = paradynDaemon::allDaemons[daemon_id];
+   assert(resp.daemon_id < paradynDaemon::allDaemons.size());
+   paradynDaemon *pd = paradynDaemon::allDaemons[resp.daemon_id];
    
    // for each mi in request update mi's components with new daemon if
    // it was successfully enabled
-   assert(mi_ids.size() == return_id.size());
-   for(u_int j=0; j< return_id.size(); j++){
-      metricInstanceHandle mh =  mi_ids[j];     
+   for(u_int j=0; j< resp.rinfo.size(); j++){
+      metricInstanceHandle mh =  resp.rinfo[j].mi_id;
 
-      if(return_id[j] != -1) {
+      if( resp.rinfo[j].return_id != -1 )
+      {
          metricInstance *mi = request_entry->findMI(mh);
          assert(mi);
-         component *comp = new component(pd,return_id[j], mi);  
+         component *comp = new component(pd, resp.rinfo[j].return_id, mi);  
          bool aflag;
          aflag=(mi->addComponent(comp));
          assert(aflag);
          // if at least one daemon could enable, update done and enabled
          request_entry->setDone(mh);
+      }
+      else
+      {
+        request_entry->setErrorString( mh, resp.rinfo[j].emsg );
       }
       request_entry->daemonRequestReceived(mh);
    }
