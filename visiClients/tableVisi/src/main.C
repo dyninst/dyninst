@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.7  1995/12/22 22:37:25  tamches
+ * highlight background color is new
+ *
  * Revision 1.6  1995/12/20 18:37:16  newhall
  * matherr.h does not need to be included by visis
  *
@@ -141,6 +144,7 @@ int main(int argc, char **argv) {
 				"maroon3", // focus color
 				"black", // cell color
 				"gray", // background color
+				"lightGray", // highlight background color
 				3 // initial # sig figs
 				);
    assert(theTableVisi);
