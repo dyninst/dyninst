@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.69 2003/02/04 14:59:54 bernat Exp $
+ * $Id: RTinst.c,v 1.70 2003/02/21 20:06:32 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -458,10 +458,6 @@ void PARADYNinit(int paradyndPid,
     int calledFromAttach = (creationMethod == 1);
     MAX_NUMBER_OF_THREADS = numThreads;
     
-    fprintf(stderr, "PARADYNinit(%d, %d, %d, %d, %d, 0x%x)\n",
-            paradyndPid, creationMethod, numThreads,
-            theKey, shmSegSize, offsetToSharedData);
-    
 #ifdef SHM_SAMPLING_DEBUG
     char thehostname[80];
     extern int gethostname(char*,int);
@@ -499,7 +495,6 @@ void PARADYNinit(int paradyndPid,
       DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
                                                    &DYNINST_shmSegShmId);      
       shmBase = (Address) DYNINST_shmSegAttachedPtr;
-      fprintf(stderr, "RT lib attached at 0x%x\n", (int) shmBase);
       /* Yay, pointer arithmetic */
       RTsharedInShm = (RTsharedData_t *)
          (shmBase + offsetToSharedData);
@@ -749,10 +744,9 @@ void libparadynRT_init(void) __attribute__ ((constructor));
 // Unix platforms
 int PARADYNinitCalledOnce=0;
 void libparadynRT_init() {
-    fprintf(stderr, "libparadynRT_init: %d\n", PARADYNinitCalledOnce);
+    
     if(PARADYNinitCalledOnce) return;
     else {
-        fprintf(stderr, "Calling paradynINIT\n");
 		if(libparadynRT_init_localparadynPid != -1 &&
            libparadynRT_init_localcreationMethod != -1 &&
            libparadynRT_init_localtheKey != -1 &&

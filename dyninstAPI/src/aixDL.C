@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.32 2003/02/19 00:15:41 bernat Exp $
+// $Id: aixDL.C,v 1.33 2003/02/21 20:05:54 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -72,7 +72,6 @@ extern void generateBreakPoint(instruction &);
    of them */
 pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 {
-    cerr << "AIX:getSharedObjects" << endl;
   // First things first, get a list of all loader info structures.
   int pid;
   int ret;
