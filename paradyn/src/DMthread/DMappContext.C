@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.50  1995/02/16 19:10:39  markc
+ * Revision 1.51  1995/02/27 18:41:26  tamches
+ * Minor changes to reflect the new TCthread; tunable const header file
+ * has moved and call syntax has changed.
+ *
+ * Revision 1.50  1995/02/16  19:10:39  markc
  * Removed start slash from comments
  *
  * Revision 1.49  1995/02/16  08:11:16  markc
@@ -200,12 +204,8 @@ double   quiet_nan(int unused);
 #include "dataManager.thread.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "../UIthread/Status.h"
-
-tunableBooleanConstant printChangeCollection(false, NULL, developerConstant,
-    "printChangeCollection", 
-    "Print the name of metric/focus when enabled or disabled");
 
 List<performanceStream*> applicationContext::streams;
 
@@ -789,6 +789,10 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     //
     mi = new metricInstance(rl, m);
     foundOne = false;
+
+    // get a fresh copy of the TC "printChangeCollection"
+    tunableBooleanConstant printChangeCollection = tunableConstantRegistry::findBoolTunableConstant("printChangeCollection");
+
     for (curr = daemons; daemon = *curr; curr++) {
 	id = daemon->enableDataCollection(vs, (const char*) m->getName());
 	if (printChangeCollection.getValue()) {
@@ -834,6 +838,9 @@ void applicationContext::disableDataCollection(metricInstance *mi)
 
     m = mi->met;
     name = mi->focus->getCanonicalName();
+
+    // get a fresh copy of the TC "printChangeCollection"
+    tunableBooleanConstant printChangeCollection = tunableConstantRegistry::findBoolTunableConstant("printChangeCollection");
 
     if (printChangeCollection.getValue()) {
 	cout << "DI: " << m->getName() << ((char *) name) << "\n";
