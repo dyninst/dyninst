@@ -3,7 +3,11 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.4  1994/06/12 22:33:59  karavan
+# Revision 1.5  1994/06/29 21:47:35  hollings
+# killed old background colors and switched to motif like greys.
+# cleaned up option specification to use options data base.
+#
+# Revision 1.4  1994/06/12  22:33:59  karavan
 # added status display to Perf Consultant screen
 #
 # Revision 1.3  1994/05/07  23:25:21  karavan
@@ -61,7 +65,7 @@ proc shgUpdateStatusLine {w newItem} {
 
 proc initSHG {} {
 
-    global SHGname PCsearchState shgExplainStr PdMainBgColor
+    global SHGname PCsearchState shgExplainStr
 
     set PCsearchState 1
     set shgExplainStr ""
@@ -73,27 +77,26 @@ proc initSHG {} {
  
     wm minsize $SHGname 400 200
     dag $SHGname.d01 
-    frame $SHGname.buttons -bg  "#fb63e620d36b"
-    button $SHGname.buttons.b1 -text "QUIT PC" -bg $clrSHGQUITBUTTbg \
+    frame $SHGname.buttons
+    button $SHGname.buttons.b1 -text "QUIT PC" \
 	    -command {destroy $SHGname}
-    button $SHGname.buttons.b2 -text "REFINE" -bg $clrSHGSTEPBUTTbg \
+    button $SHGname.buttons.b2 -text "REFINE" \
 	    -command {paradyn search true 1}
-    button $SHGname.buttons.b3 -text "AUTO SEARCH" -bg $clrSHGAUTOBUTTbg \
+    button $SHGname.buttons.b3 -text "AUTO SEARCH" \
 	    -command {paradyn search true -1}
-    button $SHGname.buttons.b4 -text "PAUSE SEARCH" -bg $clrSHGPAUSEBUTTbg \
+    button $SHGname.buttons.b4 -text "PAUSE SEARCH" \
 	    -command {SHGpause $SHGname.buttons.b4}   
 
-    frame $SHGname.topbar -bg "#fb63e620d36b"
-    frame $SHGname.topbar.r -bg "#fb63e620d36b"
+    frame $SHGname.topbar
+    frame $SHGname.topbar.r
     label $SHGname.topbar.r.title -text "The Performance Consultant" -fg black \
 	    -font "-Adobe-times-bold-r-normal--*-120*" \
-	    -bg "#fb63e620d36b" -relief raised -width 80
+	    -relief raised -width 80
   ## Performance Consultant Menu
-    frame $SHGname.topbar.r.menu -bg "#fb63e620d36b" -relief raised
+    frame $SHGname.topbar.r.menu -relief raised
     menubutton $SHGname.topbar.r.menu.b1 -text "Search Display" \
-	    -menu $SHGname.topbar.r.menu.b1.m -bg $PdMainBgColor -underline 7
-    menubutton $SHGname.topbar.r.menu.b2 -text "Help" -bg $PdMainBgColor \
-	    -underline 0
+	    -menu $SHGname.topbar.r.menu.b1.m -underline 7
+    menubutton $SHGname.topbar.r.menu.b2 -text "Help" -underline 0
     menu $SHGname.topbar.r.menu.b1.m 
     $SHGname.topbar.r.menu.b1.m add command -label "Show Only Active Nodes" \
 	    -underline 5
@@ -102,11 +105,11 @@ proc initSHG {} {
 
     mkLogo $SHGname.topbar.logo
     label $SHGname.explain -textvariable shgExplainStr -fg black \
-	    -bg "#fb63e620d36b" -relief raised -width 80
+	    -relief raised -width 80
 
-    frame $SHGname.status -relief raised
-    text $SHGname.status.txt -height 8 -relief raised -yscrollcommand \
-	    "$SHGname.status.vs set"
+    frame $SHGname.status
+    text $SHGname.status.txt -borderwidth 2 -height 6 -relief sunken \
+	    -yscrollcommand "$SHGname.status.vs set"
     scrollbar $SHGname.status.vs -relief sunken -command \
 	    "$SHGname.status.txt yview"
 
@@ -129,7 +132,7 @@ proc initSHG {} {
 	    $SHGname.buttons.b1 -side left -expand yes -fill x
 
 
-    wm title $SHGname "Performance Consultant"
+    wm title $SHGname "Perf. Consultant"
     $SHGname.d01 bind all <2> {shgFullName $SHGname.d01._c_}
 
   ## style 1: not tested 

@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.7  1994/06/12 22:32:44  karavan
+# Revision 1.8  1994/06/29 21:47:38  hollings
+# killed old background colors and switched to motif like greys.
+# cleaned up option specification to use options data base.
+#
+# Revision 1.7  1994/06/12  22:32:44  karavan
 # implemented button update by status change callback.
 #
 # Revision 1.6  1994/05/30  19:22:26  hollings
@@ -54,26 +58,35 @@ proc changeApplicState {newVal} {
 
 proc drawToolBar {} {
 
-    global PdMainBgColor PdBitmapDir
-    set PdMainBgColor "#fb63e620d36b"
-    
+    global PdBitmapDir
+
+    option add *background grey
+    option add *Frame*bg red
+    option add *Scrollbar*background DimGray
+
+    option add *Scrollbar*foreground grey
+    option add *activeBackground LightGrey
+    option add *Scrollbar*activeBackground DimGray
+
+    # . seems to be created before the options data base gets loaded.
+    . config -bg grey
+
     wm geometry . =750x750
-    frame .menub -relief raised -bg $PdMainBgColor
-#    label .menub.logobox -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
-#	    -background $PdMainBgColor
-    frame .where -height 100 
-    frame .main -height 400 -width 400 -bg $PdMainBgColor
-    frame .buttons -bg $PdMainBgColor
+
+    frame .menub -relief raised 
+    frame .where -height 100
+    frame .main -height 400 -width 400
+    frame .buttons 
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
 	    {EXIT "destroy ."}}
     .buttons.2 configure -state disabled
 
-    menubutton .menub.b1 -text "Setup" -menu .menub.b1.m -bg $PdMainBgColor
-    menubutton .menub.b3 -text "Metrics" -bg $PdMainBgColor
+    menubutton .menub.b1 -text "Setup" -menu .menub.b1.m 
+    menubutton .menub.b3 -text "Metrics" 
     menubutton .menub.b5 -text "Start Visual" \
-	    -menu .menub.b5.m -bg $PdMainBgColor
-    menubutton .menub.b6 -text "Help" -bg $PdMainBgColor
+	    -menu .menub.b5.m 
+    menubutton .menub.b6 -text "Help" 
     menu .menub.b5.m -postcommand \
 	    {uimpd drawStartVisiMenu .menub.b5.m}
     menu .menub.b1.m 
@@ -90,8 +103,9 @@ proc drawToolBar {} {
     pack .buttons -side bottom -fill x
     pack .where -side bottom -fill x
     pack .menub .main  -side top -fill x
-#    pack .menub.logobox -side left -padx 5
-mkLogo .menub.logobox
+
+    mkLogo .menub.logobox
+
     pack .menub.b6 .menub.b3 .menub.b5 \
 	    .menub.b1 -side right -padx 10
 

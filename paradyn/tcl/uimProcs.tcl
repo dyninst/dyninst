@@ -1,6 +1,10 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.3  1994/06/13 16:53:06  karavan
+# Revision 1.4  1994/06/29 21:47:39  hollings
+# killed old background colors and switched to motif like greys.
+# cleaned up option specification to use options data base.
+#
+# Revision 1.3  1994/06/13  16:53:06  karavan
 # added mkLogo procedure
 #
 # Revision 1.2  1994/05/23  01:55:46  karavan
@@ -31,10 +35,10 @@ proc mkMessage {w {text ""} {pack {top fillx}} args} {
 # display paradyn logo in a raised box.  If no pack argument supplied, 
 #  defaults to left.
 proc mkLogo {w {pack left}} {
-    global PdMainBgColor PdBitmapDir
+    global PdBitmapDir
 
     eval label $w -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
-	    -background $PdMainBgColor -relief raised
+	    -relief raised
     pack append [winfo parent $w] $w $pack
     return $w
 }

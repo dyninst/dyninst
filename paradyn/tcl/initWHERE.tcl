@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.3  1994/06/12 22:35:29  karavan
+# Revision 1.4  1994/06/29 21:47:37  hollings
+# killed old background colors and switched to motif like greys.
+# cleaned up option specification to use options data base.
+#
+# Revision 1.3  1994/06/12  22:35:29  karavan
 # changed default font for WHERE axis nodes
 #
 # Revision 1.2  1994/05/26  21:23:11  karavan
@@ -30,34 +34,27 @@
 
 proc initWHERE {wwindow} {
 
-global WHEREname PdMainBgColor
-set WHEREname $wwindow
+    global WHEREname
+    set WHEREname $wwindow
 
-dag $WHEREname.d01 
-frame $WHEREname.buttons -bg  "#fb63e620d36b"
-#button $WHEREname.buttons.b1 -text "QUIT WHERE" -bg $PdMainBgColor \
-#	-command {destroy $WHEREname}
-label $WHEREname.title -text "Where Axis" -fg black \
+    dag $WHEREname.d01 
+    frame $WHEREname.buttons
+    label $WHEREname.title -text "Where Axis" -fg black \
 	-font "-Adobe-times-bold-r-normal--*-120*" \
-	-bg $PdMainBgColor -relief raised
-#label $WHEREname.explain -text " " -fg black \
-#	-bg $PdMainBgColor -relief raised -width 60
+	-relief raised
 
-pack $WHEREname.title \
+    pack $WHEREname.title \
 	-side top -fill both
-pack $WHEREname.d01 -side top -expand 1 -fill both
-#pack $WHEREname.buttons -side bottom -expand 0 -fill x
-#pack $WHEREname.buttons.b1 -side left -expand yes -fill x
+    pack $WHEREname.d01 -side top -expand 1 -fill both
 
 
-#$WHEREname.d01 bind all <2> {shgFullName $WHEREname.d01._c_}
 
-# style 1: WHERE axis node 
-$WHEREname.d01 addNstyle 1 -bg #c99e5f54dcab \
+    # style 1: WHERE axis node 
+    $WHEREname.d01 addNstyle 1 -bg #c99e5f54dcab \
 		-font "-Adobe-times-bold-r-normal--*-80*" \
 		-text black  \
 		-stipple "" -width 1
 
-$WHEREname.d01 addEstyle 1 -arrow none -fill #c99e5f54dcab -width 2
+    $WHEREname.d01 addEstyle 1 -arrow none -fill #c99e5f54dcab -width 2
 }
 
