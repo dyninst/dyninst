@@ -49,6 +49,7 @@
 #include "paradynd/src/costmetrics.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/focus.h"
+#include "paradynd/src/init.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 extern pdRPC *tp;
@@ -60,9 +61,9 @@ machineMetFocusNode::machineMetFocusNode(int metricID,
      const string& metric_name, const Focus &foc,
      vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
    : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
-     id_(metricID), aggOp(agg_op), aggInfoInitialized(false),
+     id_(metricID), aggOp(agg_op),
      _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
-     enable(enable_)
+     enable(enable_), is_internal_metric(false)
 {
   allMachNodes[metricID] = this;
 
@@ -138,34 +139,6 @@ void machineMetFocusNode::endOfDataCollection() {
   tp->endOfDataCollection(id_);
 }
 
-//
-// Added to allow metrics affecting a function F to be triggered when
-//  a program is executing (in a stack frame) under F:
-// The basic idea here is similar to Ari's(?) hack to start "whole 
-//  program" metrics requested while the program is executing 
-//  (see T_dyninstRPC::mdl_instr_stmt::apply in mdl.C).  However,
-//  in this case, the manuallyTrigger flag is set based on the 
-//  program stack (the call sequence implied by the sequence of PCs
-//  in the program stack), and the types of the set of inst points 
-//  which the metricFocusNode corresponds to, as opposed to
-//  a hacked interpretation of the original MDL statement syntax.
-// The basic algorithm is as follows:
-//  1. Construct function call sequence leading to the current 
-//     stack frame (yields vector of pf_Function hopefully equivalent
-//     to yield of "backtrace" functionality in gdb.
-//  2. Look at each instReqNode in *this (call it node n):
-//     Does n correspond to a function currently on the stack?
-//       No -> don't manually trigger n's instrumentation.
-//       Yes ->
-//         
-
-void machineMetFocusNode::doCatchupInstrumentation() {
-  for(unsigned i=0; i<procNodes.size(); i++) {
-    procNodes[i]->doCatchupInstrumentation();
-  }
-}
-
-
 void machineMetFocusNode::initializeForSampling(timeStamp startTime, 
 						pdSample initValue)
 {
@@ -179,37 +152,13 @@ void machineMetFocusNode::initializeForSampling(timeStamp startTime,
 void machineMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					     pdSample initValue)
 {
-  if(hasAggInfoBeenInitialized())
-    return;
-
-  //cerr << "machineMF::initAggInfo, startT: " << startTime << "\n";
-  // Initialize aggComponents between MACH <-> PROC nodes
-  for(unsigned k=0; k<aggregator.numComponents(); k++) {
-    aggComponent *curAggInfo = aggregator.getComponent(k);
-    //cerr << "  initializing aggComponent: " << (void*)curAggInfo << "\n";
-    curAggInfo->setInitialStartTime(startTime);
-    curAggInfo->setInitialActualValue(initValue);
-  }
-
+  //cerr << "machNode (" << (void*)this << ") initAggInfo\n";
   for(unsigned i=0; i<procNodes.size(); i++) {
-    // some processMetFocusNodes might be shared and thus already initialized
-    // don't reinitialize these
-    // eg. already exist:  MACH-WHOLEPROG -> PROC1, PROC2, PROC3
-    //     new request:    MACH-PROC1     -> PROC1
-    // in the case above, PROC1 already exists and it's aggInfo is already
-    // initialized
-    if(! procNodes[i]->hasAggInfoBeenInitialized()) {
-      //cerr << "  procNode: " << (void*)procNodes[i] 
-      //   << " has not been initialized, initializing\n";
-      procNodes[i]->initAggInfoObjects(startTime, initValue);
-    } else {
-      //cerr << "  procNode: " << (void*)procNodes[i] 
-      //   << " has already been initialized\n";
-    }
+    procNodes[i]->initAggInfoObjects(startTime, initValue);
   }
 
-  aggInfoInitialized = true;
-  machStartTime = startTime;
+  if(! machStartTime.isInitialized())
+    machStartTime = startTime;
 }
 
 
@@ -222,138 +171,17 @@ void machineMetFocusNode::updateAllAggInterval(timeLength width) {
   }
 }
 
-vector<defInst*> instrToDo;
-
-// returns false if the latest attempt to insert failed
-void handleDeferredInstr(machineMetFocusNode *machnode, pd_Function *func)
-{
-  // Check if we have already created the defInst object for 
-  // instrumenting the function later 
-  bool previouslyDeferred = false;
-  // number of functions for which instrumentation was deferred
-  int numDeferred = instrToDo.size();
-  
-  for (int i=0; i < numDeferred; i++) {
-    //    cerr << "handling deferred " << i+1 << " of " << numDeferred 
-    //	 << ", id: " << instrToDo[i]->id() << "\n";
-    if (instrToDo[i]->id() == machnode->getMetricID()) {
-      previouslyDeferred = true;
-      instrToDo[i]->failedAttempt();
-      
-      if (instrToDo[i]->numAttempts() == 0) {
-	instrToDo[i]->func()->setRelocatable(false);
-      }
-      
-      // latest attempt to insert instrumentation failed.
-      break;
-    }
-  }
-  
-  // Create defInst object so instrumentation can be inserted later.
-  // number of attempts at relocation is 1000
-  if (!previouslyDeferred) {
-    assert(func != NULL);
-    defInst *di = new defInst(machnode->getMetricID(), func, 1000);
-	instrToDo.push_back(di);
-  }
-      
-  // Don't delete the metricFocusNode because we want to
-  // reuse it later. 
-}
-
-void machineMetFocusNode::pauseProcesses() {
-  assert(currentlyPausedProcs.size() == 0);
-  for (unsigned u=0; u<procNodes.size(); u++) {
-    process *p = procNodes[u]->proc();
-
-    if (p->status() == running) {
-#ifdef DETACH_ON_THE_FLY
-      if (p->reattachAndPause())
-#else
-      if (p->pause())
-#endif
-	currentlyPausedProcs += p;
-    }
-  }
-}
-
-void machineMetFocusNode::continueProcesses() {
-   for (unsigned u=0; u<currentlyPausedProcs.size(); u++) {
-#ifdef DETACH_ON_THE_FLY
-      currentlyPausedProcs[u]->detachAndContinue();
-#else
-      currentlyPausedProcs[u]->continueProc();
-#endif
-   }
-   currentlyPausedProcs.resize(0);
-}
-
 bool machineMetFocusNode::insertInstrumentation() {
-   pd_Function *func = NULL;
-   bool inserted = loadInstrIntoApp(&func);
-   
-   // Instrumentation insertion may have failed. We should handle this case
-   // better than an assert. Currently we handle the case where (on x86) we
-   // couldn't insert the instrumentation due to relocation failure (deferred
-   // instrumentation). If it's deferred, come back later.
-  
-   if(inserted == false) {
-      // instrumentation was deferred
-      if (hasDeferredInstr()) {
-	handleDeferredInstr(this, func);
-	return false;
-      } // end deferred handling
-      // Instrumentation failed for an unknown reason. Very bad case.
-      else {
-	delete this;
-	return false;
+   bool all_inserted = true;
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      // processMetFocusNode::insertInstrumentation pauses and continues
+      // it's process when needed
+      if(! procNodes[i]->insertInstrumentation()) {
+	 all_inserted = false;
       }
    }
-
-   insertJumpsToTramps();
-
-   // Now that the timers and counters have been allocated on the heap, and
-   // the instrumentation added, we can manually execute instrumentation we
-   // may have processed at function entry points and pre-instruction call
-   // sites which have already executed.
-   doCatchupInstrumentation();
-   return true;
+   return all_inserted;
 }
-
-bool machineMetFocusNode::loadInstrIntoApp(pd_Function **func) {
-  // returns true iff successful
-  if (instrLoaded()) {
-    return true;
-  }
-  
-  bool aCompFailedToInsert = false;
-  for (unsigned i=0; i<procNodes.size(); i++) {
-    if (! procNodes[i]->loadInstrIntoApp(func)) {
-      aCompFailedToInsert = true;
-      break;
-    }
-  }
-  if(aCompFailedToInsert) {
-    //cerr << "machNode::load, failed insertion, returning false\n";
-    return false;
-  }
-  return true;
-}
-
-bool machineMetFocusNode::instrLoaded() {
-  if(procNodes.size() == 0)  return false;
-
-  bool allCompInserted = true;
-  for(unsigned i=0; i<procNodes.size(); i++) {
-    bool result = procNodes[i]->instrLoaded();
-    if(result == false) {
-      allCompInserted = false; 
-      break;
-    }
-  }
-  return allCompInserted;
-}
-
 
 void machineMetFocusNode::prepareForSampling() {
   for(unsigned i=0; i<procNodes.size(); i++) {
@@ -361,51 +189,13 @@ void machineMetFocusNode::prepareForSampling() {
   }
 }
 
-bool machineMetFocusNode::baseTrampsHookedUp() {
-  if(procNodes.size() == 0)  return false;
-
-  bool hookedUp = true;
-  for(unsigned i=0; i<procNodes.size(); i++) {
-    if(procNodes[i]->baseTrampsHookedUp() == false) {
-      hookedUp = false;
-      break;
-    }
-  }
-  return hookedUp;
-}
-
-
-bool machineMetFocusNode::insertJumpsToTramps() {
-   // Patch up the application to make it jump to the base trampoline(s) of
-   // this metric.  (The base trampoline and mini-tramps have already been
-   // installed in the inferior heap).  We must first check to see if it's
-   // safe to install by doing a stack walk, and determining if anything on
-   // it overlaps with any of our desired jumps to base tramps.  The key
-   // variable is "returnsInsts", which was created for us when the base
-   // tramp(s) were created.  Essentially, it contains the details of how
-   // we'll jump to the base tramp (where in the code to patch, how many
-   // instructions, the instructions themselves).  Note that it seems this
-   // routine is misnamed: it's not instrumentation that needs to be
-   // installed (the base & mini tramps are already in place); it's just the
-   // last step that is still needed: the jump to the base tramp.  If one or
-   // more can't be added, then a TRAP insn is inserted in the closest common
-   // safe return point along the stack walk, and some structures are
-   // appended to the process' "wait list", which is then checked when a TRAP
-   // signal arrives.  At that time, the jump to the base tramp is finally
-   // done.  WARNING: It seems to me that such code isn't thread-safe...just
-   // because one thread hits the TRAP, there may still be other threads that
-   // are unsafe.  It seems to me that we should be doing this check again
-   // when a TRAP arrives...but for each thread (right now, there's no stack
-   // walk for other threads).  --ari
-   if(baseTrampsHookedUp()) {
-     return true;
-   }
-
+bool machineMetFocusNode::instrInserted() {
    bool allInserted = true;
    for(unsigned i=0; i<procNodes.size(); i++) {
-      bool result = procNodes[i]->insertJumpsToTramps();
-      if(result == false)
-	allInserted = false;
+      if(! procNodes[i]->instrInserted()) {
+	 allInserted = false;
+	 break;
+      }
    }
    return allInserted;
 }
@@ -504,3 +294,45 @@ void machineMetFocusNode::addPart(processMetFocusNode* procNode)
   aggComponent *childAggInfo = aggregator.newComponent();
   procNode->recordAsParent(this, childAggInfo);
 }
+
+void machineMetFocusNode::propagateToNewProcess(process *newProcess) {
+  // see if this metric-focus needs to be adjusted for this new process
+  if(isInternalMetric()) {
+    return;
+  }
+
+  const Focus &node_focus = getFocus();
+  string this_machine = getNetworkName();
+
+  // do the propagation if the focus is all_machines or it is this machine
+  // specifically with no other process defined (a process defined in the
+  // focus wouldn't be the same process as the new process, since it wouldn't
+  // have been around to be selected)
+  if(! (node_focus.allMachines() || 
+	(node_focus.get_machine() == this_machine && 
+	                                 !node_focus.process_defined())))  
+  {
+    return;
+  }
+
+  processMetFocusNode *procNode = 
+    makeProcessMetFocusNode(node_focus, getMetName(), newProcess, false, 
+			    isEnabled());
+  if(procNode==NULL)
+    return;
+
+  addPart(procNode);
+
+  addCurrentPredictedCost(procNode->cost());
+
+  if(! procNode->insertInstrumentation()) {
+    return;  // possibly deferred
+  }
+
+  // There may be other procNodes in machNode with deferred instrumentation.
+  // If this is the case, then the machNode will be marked as !instrInserted.
+  if(instrInserted())
+     procNode->initializeForSampling(getWallTime(), pdSample::Zero());
+}
+
+

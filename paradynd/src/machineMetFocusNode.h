@@ -58,18 +58,12 @@ class machineMetFocusNode : public metricFocusNode {
   aggregateOp aggOp;
   timeStamp machStartTime;    // the time that this metric-focus started
                               // need this in updateWithDeltaValue()
-  bool aggInfoInitialized;
   bool _sentInitialActualValue;        //  true when initial actual value has
                                        //  been sent to the front-end
   const string met_;		       // what type of metric
   const Focus focus_;
-  vector<process *> currentlyPausedProcs;
   bool enable;
-
-  bool loadInstrIntoApp(pd_Function **func);
-  bool hasAggInfoBeenInitialized() { return aggInfoInitialized; }
-  void doCatchupInstrumentation();
-  bool insertJumpsToTramps();
+  bool is_internal_metric;
 
   static dictionary_hash<unsigned, machineMetFocusNode*> allMachNodes;
 
@@ -100,19 +94,16 @@ class machineMetFocusNode : public metricFocusNode {
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
   void sendInitialActualValue(pdSample s);
   bool sentInitialActualValue() {  return _sentInitialActualValue; }
-  bool procsPaused() { return currentlyPausedProcs.size() > 0; }
   bool isEnabled() { return enable; }
-  void pauseProcesses();
   void deleteProcNode(processMetFocusNode *procNode);
   bool insertInstrumentation();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
-  void continueProcesses();
   bool hasDeferredInstr();
-  bool instrLoaded();
-  bool baseTrampsHookedUp();
-  bool instrInserted() { return (instrLoaded() & baseTrampsHookedUp()); }
+  bool instrInserted();
   void addPart(processMetFocusNode* thrNode);
   void print();
+  void markAsInternalMetric() { is_internal_metric = true; }
+  bool isInternalMetric() { return is_internal_metric; }
   int getMetricID() const { return id_; }
   timeLength cost() const;
   void endOfDataCollection();
@@ -121,6 +112,7 @@ class machineMetFocusNode : public metricFocusNode {
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
   void tryAggregation();
+  void propagateToNewProcess(process *newProcess);
 };
 
 
