@@ -57,6 +57,17 @@ union assemble_w_w1_w2 {
     w_w1_w2_bits w_w1_w2;
 };
 
+struct w_w1_bits {
+    unsigned ignore : 20;
+    unsigned w      : 1;	
+    unsigned w1     : 11;
+};
+
+union assemble_w_w1 {
+    int       raw;   
+    w_w1_bits w_w1; 
+};
+
 struct branch_instruction {
     unsigned op          : 6;
     unsigned r2_p_b_t    : 5;
@@ -119,11 +130,6 @@ union instruction {
     long_immediate          li;
     computation_instruction ci;
     generic_instruction     gi;
-};
-
-struct loadr{
-   instruction loadReturn;
-   Address adr;
 };
 
 
@@ -228,7 +234,8 @@ isCallInsn(const instruction& insn) {
 }
 
 
-inline int w_to_offset(unsigned w, unsigned w1, unsigned w2) {
+inline int 
+w_w1_w2_to_offset(unsigned w, unsigned w1, unsigned w2) {
     assemble_w_w1_w2 x;
     x.raw = (w == 0) ? (0) : (~0); // sign extend the offset
 
@@ -240,37 +247,15 @@ inline int w_to_offset(unsigned w, unsigned w1, unsigned w2) {
     return ((x.raw << 2)+8);
 }
 
+inline int 
+w_w1_to_offset(unsigned w, unsigned w1) {
+    assemble_w_w1 x;
+    x.raw = (w == 0) ? (0) : (~0);
 
-static inline bool
-isCallInsnTest(const instruction& insn, Address adr, Address enter, Address ret) {
-    if (isInsnType(insn, CALLmask, CALLmatch)) {
-       unsigned target;
-       target = adr + w_to_offset(insn.bi.w,
-                        insn.bi.r1_im5_w1_x,
-                        insn.bi.w1_w2);
-
-       if ((((int)(target-enter)) * ((int)(target-ret))) > 0) { 
-          return true;
-       } else 
-          return false;
-    }
-
-    return false;
+    x.w_w1.w = w;
+    x.w_w1.w1 = ((w1&0x01)<<10) | ((w1&0x07fe)>>1);
+    return ((x.raw << 2)+8);
 }
-
-//TODO -- is this possible?
-//isInsnType(insn, CALLImask, CALLImatch)) &&
-//(insn.bi.r2_p_b_t != 0)) {
-// target gr0 is a jump, and thus jump tables should
-// be correctly handled
-
-static inline bool
-IS_BRANCH_INSN(const instruction& insn) {
-  return ((isInsnType(insn, GATEmask, GATEmatch))
-          || (isInsnType(insn, CALLmask, CALLmatch))
-          || (isInsnType(insn, BLEmask, BLEmatch))
-          || (isInsnType(insn, BEmask, BEmatch)));
-} 	
 
 
 static inline bool
@@ -294,6 +279,67 @@ IS_CONDITIONAL_BRANCH(const instruction& insn) {
     }
     return false;
 }
+
+
+// Test to see if this is a branch instruction which the target address
+// is within the same function. 
+static inline bool
+isBranchInsnTest(const instruction& insn, Address adr, Address enter, Address ret) {
+    unsigned target;
+    if (isInsnType(insn, CALLmask, CALLmatch)) {
+       target = adr + w_w1_w2_to_offset(insn.bi.w,
+                        insn.bi.r1_im5_w1_x,
+                        insn.bi.w1_w2);
+       
+       if ((((int)(target-enter)) * ((int)(target-ret))) < 0) { 
+	   return true;
+       } else 
+	   return false;
+    } else if (IS_CONDITIONAL_BRANCH(insn)) {
+	target = adr + w_w1_to_offset(insn.bi.w, insn.bi.w1_w2);
+	if ((((int)(target-enter)) * ((int)(target-ret))) < 0) { 
+	    return true;
+	} else
+	    return false;
+    }
+
+    return false;
+}
+
+// Test to see if this is a branch instruction which jump outside the 
+// the function.
+static inline bool
+isCallInsnTest(const instruction& insn, Address adr, Address enter, Address ret) {
+    if (isInsnType(insn, CALLmask, CALLmatch)) {
+       unsigned target;
+       target = adr + w_w1_w2_to_offset(insn.bi.w,
+                        insn.bi.r1_im5_w1_x,
+                        insn.bi.w1_w2);
+
+       if ((((int)(target-enter)) * ((int)(target-ret))) > 0) { 
+          return true;
+       } else 
+          return false;
+    }
+
+    return false;
+}
+
+//TODO -- is this possible?           --------to do 
+//isInsnType(insn, CALLImask, CALLImatch)) &&
+//(insn.bi.r2_p_b_t != 0)) {
+// target gr0 is a jump, and thus jump tables should
+// be correctly handled
+
+static inline bool
+IS_BRANCH_INSN(const instruction& insn) {
+  return ((isInsnType(insn, GATEmask, GATEmatch))
+          || (isInsnType(insn, CALLmask, CALLmatch))
+          || (isInsnType(insn, BLEmask, BLEmatch))
+          || (isInsnType(insn, BEmask, BEmatch)));
+} 	
+
+
 
 static inline bool
 IS_DELAYED_INST(const instruction& insn) {
@@ -334,6 +380,7 @@ IS_VALID_INSN(const instruction& insn) {
     }
     return true;
 }
+
 
 #endif /* !defined(_arch_hppa_h_) */
 
