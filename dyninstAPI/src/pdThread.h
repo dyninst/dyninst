@@ -52,7 +52,7 @@ class pdThread {
     // We are also assuming that the position in the paradynd super table
     // for this thread is initially 0, until it gets updated with the record
     // sent in DYNINSTinit - naim 4/15/97
-    pdThread(process *pproc) : tid(0), pos(0), pd_pos(0), rid(NULL) 
+    pdThread(process *pproc) : tid(0), pos(0), pd_pos(0), rid(NULL)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -64,6 +64,12 @@ class pdThread {
       tid = tid_;
       pos = pos_;
       rid = rid_;
+    }
+    Thread(process *pproc, int tid_, handleT handle_) : tid(tid_), pos(0), rid(NULL), handle(handle_)
+    {
+      assert(pproc);
+      proc = pproc;
+      ppid = pproc->getPid();
     }
     pdThread(process *parent, pdThread *src) {
       assert(src && parent);
@@ -83,6 +89,7 @@ class pdThread {
     int get_ppid() { return(ppid); }
     resource *get_rid() { return(rid); }
     process *get_proc() { return(proc); }
+    handleT get_handle() { return(handle); }
   private:
     int tid;
     int ppid;
@@ -90,6 +97,7 @@ class pdThread {
     unsigned pd_pos;
     resource *rid;
     process *proc;
+    handleT handle; // the thread handle (/proc file descriptor or NT handle)
 };
 
 #endif
