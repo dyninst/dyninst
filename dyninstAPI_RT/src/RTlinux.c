@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.12 2000/08/18 20:11:34 zandy Exp $
+ * $Id: RTlinux.c,v 1.13 2000/12/04 21:30:29 zandy Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -134,7 +134,6 @@ static void DYNINSTillHandler(int sig, struct sigcontext uap)
 	  fprintf(stderr, "Invalid process id for daemon or mutator\n");
 	  assert(0);
      }
-/*     fprintf(stderr, "ZANDY RTINST: Process %d about to send SIG33 to daemon\n", getpid()); */
      if (0 > kill(daemon_or_dyninst_pid(), 33)) {
 	  perror("RTinst kill");
 	  assert(0);
