@@ -43,6 +43,12 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.23  1997/03/29 02:07:03  sec
+ * Added parsing commands to understand the wildcard * path in the matchPath
+ * In addition added parsing commands to understand the new constraint
+ * field, $constraint[0], etc. which is converted to $constraint0, $constraint1,
+ * etc. and then translated in mdl.C to the value.
+ *
  * Revision 1.22  1996/10/08 21:52:17  mjrg
  * changed the evaluation of resource lists
  * removed warnings
@@ -438,13 +444,7 @@ instr_rands: instr_rands tCOMMA instr_rand {
   (*($$.pars)) += $1.rand;
 };
 
-instr_rand: tIDENT                       {
-                                           if (*$1.sp == "$constraint") {
-					     $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, string("$constraint"));
-					   } else {
-					     $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER, *$1.sp);
-					   }
-					 }
+instr_rand: tIDENT                       { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER, *$1.sp); }
           | tAMPERSAND tIDENT            { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER_PTR, *$2.sp); }
           | tUNS                         { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, $1.u); }
           | tARG tLSQUARE tUNS tRSQUARE  { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_ARG, $3.u); }
@@ -461,6 +461,11 @@ instr_rand: tIDENT                       {
 	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp, *$3.pars); }
           | tIDENT tLPAREN tRPAREN {
                                            $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp); }
+          | tIDENT tLSQUARE tUNS tRSQUARE {
+	      if (*$1.sp == "$constraint") {
+                $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, string("$constraint") + string($3.u));
+              }
+            };
 
 
 instr_req: tSET_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
@@ -534,6 +539,15 @@ metric_expr: variable fields {
           $$.m_expr = new T_dyninstRPC::mdl_v_expr($2.u, $1.m_expr, $3.m_expr);
 } | tIDENT tLSQUARE tUNS tRSQUARE {
           $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, $3.u); delete $1.sp;
+} | tIDENT tLSQUARE tUNS tRSQUARE fields {
+	if (*$1.sp == "$constraint") {
+	   $$.m_expr = new T_dyninstRPC::mdl_v_expr(string("$constraint") + string($3.u), *$5.vs);
+	   delete $5.vs;
+	   delete $1.sp;
+	} else {
+	   yyerror("Syntax error");
+           exit(-1);
+        }
 } | tLPAREN metric_expr tRPAREN {
           $$.m_expr = $2.m_expr;
 }; 
@@ -650,10 +664,13 @@ metric_definition: tMETRIC tIDENT metric_struct {
 };
 
 match_path:                        {$$.vs = new vector<string>; }
-          | match_path tDIV tIDENT { 
+          | match_path tDIV tIDENT {
 	                $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp;
 			///hack_cons_type($$.vs); 
-		      };
+		      }
+          | match_path tDIV tMULT {
+		        $$.vs = $1.vs; (*$$.vs) += "*";
+                      };
 
 def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI {
   T_dyninstRPC::mdl_constraint *c = mdl_data::new_constraint(*$2.sp, $3.vs, NULL, false,
