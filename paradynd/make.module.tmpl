@@ -62,6 +62,10 @@ LIBS	     +=	-lpvm3
 
 endif
 
+ifdef HPUX
+SRCS	     += ../src/templatesHP.C
+endif
+
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 		dyninstRPC.xdr.C
 
