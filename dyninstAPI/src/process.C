@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.513 2005/01/18 00:51:54 eli Exp $
+// $Id: process.C,v 1.514 2005/01/18 18:34:14 bernat Exp $
 
 #include <ctype.h>
 
@@ -231,16 +231,30 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
 ostream& operator<<(ostream&s, const Frame &f) {
    pd_Function *pcfunc = NULL;
    const char *funcname = "";
+   codeRange *range = NULL;
    if(f.thread_) {
       process *proc = f.thread_->get_proc();
-      if(proc)
-         pcfunc = proc->findFuncByAddr(f.pc_);
-      if(pcfunc)
-         funcname = pcfunc->prettyName().c_str();
+      range = proc->findCodeRangeByAddress(f.pc_);
    }
+   fprintf(stderr, "PC: 0x%lx", f.pc_);
+   if (range) {
+     pd_Function *func_ptr = range->is_pd_Function();
+     trampTemplate *basetramp_ptr = range->is_basetramp();
+     miniTrampHandle *minitramp_ptr = range->is_minitramp();
+     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+     
+     if (func_ptr)
+       fprintf(stderr, "(%s)", func_ptr->prettyName().c_str());
+     if (basetramp_ptr)
+       fprintf(stderr, "(BT from %s)", basetramp_ptr->location->pointFunc()->prettyName().c_str());
+     if (minitramp_ptr)
+       fprintf(stderr, "(MT from %s)", minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str());
+     if (reloc_ptr)
+       fprintf(stderr, "(%s [RELOCATED])", reloc_ptr->func()->prettyName().c_str());
+   }
+   fprintf(stderr, "FP: 0x%lx, PID: %d",
+	   f.fp_, f.pid_);
 
-    fprintf(stderr, "PC: 0x%lx (%s), FP: 0x%lx, PID: %d",
-            f.pc_, funcname, f.fp_, f.pid_);
     if (f.thread_)
         fprintf(stderr, ", TID: %d",
                 f.thread_->get_tid());
@@ -1605,6 +1619,10 @@ void process::deleteProcess() {
     // A lot of the behavior here is keyed off the current process status....
     // if it is exited we'll delete things without performing any operations
     // on the process. Otherwise we'll attempt to reverse behavior we've made.
+
+  // We may call this function multiple times... once when the process exits,
+  // once when we delete the process object.
+  if (status() == deleted) return;
     
     // If this assert fires check whether we're setting the status vrble correctly
     // before calling this function
@@ -1651,14 +1669,23 @@ void process::deleteProcess() {
     if (shared_objects) {
         for (unsigned shared_objects_iter = 0;
              shared_objects_iter < (*shared_objects).size();
-             shared_objects_iter++)
-            delete (*shared_objects)[shared_objects_iter];
+             shared_objects_iter++) {
+	  delete (*shared_objects)[shared_objects_iter];
+	}
         // Note: we don't remove the shared objects from the codeRange address
         // mapping, as we clear it later.
         delete shared_objects;
         shared_objects = NULL;
+	runtime_lib = NULL;
     }
-    runtime_lib = NULL;
+
+    // "Delete" the symbols pointer -- refcounting is handled in the image
+    // class
+    if (symbols) {
+      symbols->cleanProcessSpecific(this);
+      image::removeImage(symbols);
+      symbols = NULL;
+    }
     
     // Clear the codeRange address mapping
     if (codeRangesByAddr_) {
@@ -1701,6 +1728,7 @@ void process::deleteProcess() {
 
    // TODO: thread and lwp cleanup when we exec.
 
+   set_status(deleted);
 }
 
 //
@@ -1708,8 +1736,8 @@ void process::deleteProcess() {
 //
 process::~process()
 {
+ 
     // We require explicit detaching if the process still exists.
-
     assert(!isAttached());
     
     // Most of the deletion is encapsulated in deleteProcess
@@ -2127,6 +2155,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
 #endif
 {
+
     costAddr_ = parentProc.costAddr_;
     
    // This is the "fork" ctor
@@ -2141,6 +2170,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    needToContinueAfterDYNINSTinit = true;
 
    symbols = parentProc.symbols->clone();
+   // Iterates through to function level
    symbols->updateForFork(this, &parentProc);
    mainFunction = parentProc.mainFunction;
 
@@ -2171,8 +2201,29 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
        }
    }
 
-   codeRangesByAddr_ = new codeRangeTree(*(parentProc.codeRangesByAddr_));
+   // We don't want to do this... we want to duplicate the behavior
+   // that created the original tree. As a result, shared objects
+   // will still be shared, but non-shared ones will be correctly
+   // duplicated.
+   //codeRangesByAddr_ = new codeRangeTree(*(parentProc.codeRangesByAddr_));
+   codeRangesByAddr_ = new codeRangeTree;
+   // Add the a.out
+   addCodeRange(symbols->codeOffset(), symbols);
+   // And all shared libs
 
+   // make copy of parent's shared_objects vector
+   shared_objects = NULL;
+   if (parentProc.shared_objects) {
+     shared_objects = new pdvector<shared_object*>;
+     for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
+       (*shared_objects).push_back(
+				   new shared_object(*(*parentProc.shared_objects)[u1], this));
+     }
+   }
+   for (unsigned i = 0; i < shared_objects->size(); i++) 
+     addCodeRange((*shared_objects)[i]->getBaseAddress() +
+		  (*shared_objects)[i]->getImage()->codeOffset(),
+		  (*shared_objects)[i]);
 
    // Copy over the system call notifications and reinitialize (if necessary)
    tracedSyscalls_ = new syscallNotification(parentProc.tracedSyscalls_, this);
@@ -2211,17 +2262,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    dynamiclinking = parentProc.dynamiclinking;
    dyn = new dynamic_linking(this, parentProc.dyn);
    runtime_lib = parentProc.runtime_lib;
-
-   shared_objects = 0;
-
-   // make copy of parent's shared_objects vector
-   if (parentProc.shared_objects) {
-      shared_objects = new pdvector<shared_object*>;
-      for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
-         (*shared_objects).push_back(
-                                     new shared_object(*(*parentProc.shared_objects)[u1]));
-      }
-   }
 
    all_functions = 0;
    if (parentProc.all_functions) {
@@ -3349,13 +3389,30 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
 
 bool process::terminateProc() {
    if(status() == exited) {
-      return false;
+     // "Sure, we terminated it... really!"
+     return true;
    }
-   bool retVal = terminateProc_();
+   terminateProcStatus_t retVal = terminateProc_();
 
-   // handle the kill signal on the process, which will dispatch exit callback
-   getSH()->checkForAndHandleProcessEvents(true);
-   return retVal;
+   switch (retVal) {
+   case terminateSucceeded:
+     // handle the kill signal on the process, which will dispatch exit callback
+     getSH()->checkForAndHandleProcessEvents(true);
+     return true;
+     break;
+   case alreadyTerminated:
+     // don't try to consume a signal (since we can't), 
+     // just set process status to exited
+     set_status(exited);
+     return true;
+     break;
+   case terminateFailed:
+     return false;
+     break;
+
+   }
+   assert (0 && "Can't be reached");
+   return false;
 }
 
 /*
@@ -3875,6 +3932,10 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     new_obj->addImage(img);
     img->defineModules(this);
 
+#if 0
+    // NO LONGER REQUIRED -- fixed the problem by removing relocation
+    // records when we exec (or delete the process) -- bernat, 13JAN05
+
     ///ccw 20 apr 2004 : test4 linux bug hack
 
     // what is going on here? If you relocate a function in a shared
@@ -3900,6 +3961,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
                         (*allFuncs)[funcIndex]->unrelocatedByProcess(this);
                 }
         }
+#endif
 
     // TODO: check for "is_elf64" consistency (Object)
 
@@ -4995,7 +5057,6 @@ void process::triggerNormalExitCallback(int exitCode) {
    if (status() == exited) {
       return;
    }
-
    BPatch::bpatch->registerNormalExit(bpatch_thread, exitCode);
    
    // And continue the process so that it exits normally
@@ -5007,7 +5068,6 @@ void process::triggerSignalExitCallback(int signalnum) {
    if (status() == exited) {
       return;
    }
-
    BPatch::bpatch->registerSignalExit(bpatch_thread, signalnum);
 }
 
@@ -5023,7 +5083,10 @@ void process::handleProcessExit() {
    // Set exited first, so detach doesn't try impossible things
    set_status(exited);
    detach(false);
-   deleteProcess();
+
+   // 7JAN05: used to call delete here. Moved to process destructor.
+   //deleteProcess();
+
   // Perhaps these lines can be un-commented out in the future, but since
   // cleanUpAndExit() does the same thing, and it always gets called
   // (when paradynd detects that paradyn died), it's not really necessary
@@ -5078,6 +5141,7 @@ void process::handleExecEntry(char *arg0) {
         cerr << "Failed to read exec argument!" << endl;
     else
         execPathArg = temp;
+    cerr << "Exec path arg is " << execPathArg << endl;
 }
 
 /* process::handleExecExit: called when a process successfully exec's.
@@ -5099,6 +5163,8 @@ void process::handleExecExit() {
    deleteProcess();
 
    ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
+   // For all intents and purposes: a new id.
+
    dyn = new dynamic_linking(this);
 
    codeRangesByAddr_ = new codeRangeTree;
@@ -5109,14 +5175,12 @@ void process::handleExecExit() {
 #if defined(rs6000_ibm_aix4_1) && defined(AIX_PROC)
    getRepresentativeLWP()->reopen_fds();
 #endif
-
+   cerr << "exec file path is.... " << execFilePath << endl;
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
                                                 status,
                                                 false);
    if (!desc) return;
 
-   // Clear out any previous version of this path
-   image::removeImage(desc);
    image *img = image::parseImage(desc);
    
    if (!img) {
@@ -5134,13 +5198,10 @@ void process::handleExecExit() {
 
    img->defineModules(this);
 
-    // delete proc->symbols ???  No, the image can be shared by more
-    // than one process...images and instPoints can not be deleted...
-   if (!symbols->destroy())
-       image::removeImage(symbols);
-   
-   symbols = img;
-   addCodeRange(symbols->codeOffset(), symbols);
+   // symbols should be set to NULL in deleteProcess, above...
+   assert(symbols == NULL);
+    symbols = img;
+    addCodeRange(symbols->codeOffset(), symbols);
 
    // see if new image contains the signal handler function
    this->findSignalHandler();
@@ -5276,7 +5337,6 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
         }
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
          function_base *func = matchingFuncs[funcIter];
-         
          if (!func) {
             continue;  // probably should have a flag telling us whether errors
          }
@@ -5362,7 +5422,8 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 bool process::isAttached() const {
     if (status_ == exited ||
         status_ == detached ||
-        status_ == execing)
+        status_ == execing ||
+	status_ == deleted)
         return false;
     else
         return true;
@@ -5376,7 +5437,8 @@ bool process::isStopped() const {
 }
 
 bool process::hasExited() const {
-    return (status_ == exited);
+    return (status_ == exited ||
+	    status_ == deleted);
 }
 
 bool process::dumpCore(const pdstring fileOut) {

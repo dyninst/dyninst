@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.307 2005/01/11 22:46:36 legendre Exp $
+/* $Id: process.h,v 1.308 2005/01/18 18:34:15 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -131,6 +131,7 @@ typedef enum { textHeap=0x01,
         inferiorHeapType;
 typedef pdvector<Address> addrVecType;
 typedef enum { unstarted, begun, initialized, loadingRT, loadedRT, bootstrapped } bootstrapState_t;
+typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
@@ -319,7 +320,7 @@ class process {
  friend class dyn_thread;
  friend class dyn_lwp;
  friend Address loadDyninstDll(process *, char Buffer[]);
- 
+
   //  
   //  PUBLIC MEMBERS FUNCTIONS
   //  
@@ -1191,7 +1192,8 @@ private:
 
   bool continueProc_(int sig);
   
-  bool terminateProc_();
+  // terminateProcStatus_t is defined at the top of this file.
+  terminateProcStatus_t terminateProc_();
   bool dumpCore_(const pdstring coreFile);
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
 
@@ -1369,7 +1371,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 		 unw_addr_space * unwindAddressSpace;
 		 void * unwindProcessArg;
 #endif
- 
+
 };
 
 
