@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.10  1994/07/07 22:40:31  newhall
-/* fixed compile warnings
+/* Revision 1.11  1994/07/20 22:41:11  rbi
+/* Small arguments fix to make identification of wildcards easier.
 /*
+ * Revision 1.10  1994/07/07  22:40:31  newhall
+ * fixed compile warnings
+ *
  * Revision 1.9  1994/06/16  18:24:53  newhall
  * fix to visualization::Data
  *
@@ -105,7 +108,7 @@ int StartVisi(int argc,
   if(argc >= 3)
    vp->GetMetricResource(argv[1],argv[2],0);
   else
-   vp->GetMetricResource(" "," ",0);
+   vp->GetMetricResource(NULL,NULL,0);
   return(OK);
 
 }
