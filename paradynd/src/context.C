@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.108 2003/10/22 17:57:03 pcroth Exp $ */
+/* $Id: context.C,v 1.109 2003/12/18 17:15:41 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -130,7 +130,6 @@ extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid
 
 void createThread(traceThread *fr) {
    assert(fr);
-
    process *dyn_proc = process::findProcess(fr->ppid);
 
    if(fr->tid == 0) {
@@ -193,7 +192,7 @@ void createThread(traceThread *fr) {
 
    pd_image *im = proc->getImage();
    pdstring fl = im->get_file();
-   
+
    CallGraphSetEntryFuncCallback(fl, res_string, thr->get_tid());
 }
 
@@ -227,6 +226,7 @@ void updateThreadId(traceThread *fr) {
       // updating main thread
       dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p);
    }
+
    rid = resource::newResource(pdproc->get_rid(),
                                 (void *)thr,
                                 nullString,
@@ -237,6 +237,10 @@ void updateThreadId(traceThread *fr) {
                                 MDL_T_STRING, 
                                 true);
    pdthr->update_rid(rid);
+   pd_image *im = pdproc->getImage();
+   pdstring fl = im->get_file();
+   pd_Function *entry_pdf = (pd_Function *)thr->get_start_func();
+   CallGraphSetEntryFuncCallback(fl, entry_pdf->ResourceFullName(), fr->tid);
    //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;
 }
