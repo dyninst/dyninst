@@ -780,10 +780,10 @@ void processMetFocusNode::addThread(pdThread *thr)
   //dataNode->setInstalled(true);
 
   // Create the timer, counter for this thread
-  extern dataReqNode *create_data_object(unsigned, instrThrDataNode *,
-					 pdThread *, dataInstHandle *);
-  dataInstHandle handle;
-  create_data_object(type_thr, dataNode, thr, &handle);
+  //extern dataReqNode *createThrInstVar(instrThrDataNode *dataNode, 
+  //			       unsigned mdl_data_type,
+  //			       inst_var_index varIndex, pdThread *thr);
+  //create_data_object(type_thr, dataNode, thr, &handle);
 
   // Create the temporary counters - are these useful
   for (unsigned tc=0; tc<temp_ctr_thr.size(); tc++) {
@@ -791,8 +791,7 @@ void processMetFocusNode::addThread(pdThread *thr)
     // we are *not* going to sample it, because it is just a temporary
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
-    dataInstHandle handle;
-    dataNode->createTemporaryCounter(thr, 0, &handle);
+    //dataNode->createTemporaryCounter(thr, 0, &handle);
   }
 
   //if(! thrNode->hasAggInfoBeenInitialized())
