@@ -3,7 +3,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.6  1995/02/16 09:07:04  markc
+ * Revision 1.7  1995/10/27 00:59:50  zhichen
+ * fixed prototype for DYNINSTnodeCreate
+ *
+ * Revision 1.6  1995/02/16  09:07:04  markc
  * Made Boolean type RT_Boolean to prevent picking up a different boolean
  * definition.
  *
@@ -68,9 +71,8 @@
  * Generate a fork record for each node in the partition.
  *
  */
-DYNINSTnodeCreate()
+void DYNINSTnodeCreate()
 {
-    int i;
     int sid = 0;
     traceFork forkRec;
     extern int CMNA_partition_size;
@@ -88,7 +90,7 @@ DYNINSTnodeCreate()
 
 void DYNINSTparallelInit()
 {
-    printf("DYNINSTparallelInit called on the CP\n");
-/*     initTraceLibCP(CONTROLLER_FD); */
+    /* printf("DYNINSTparallelInit called on the CP\n"); */
+/* 	initTraceLibCP(CONTROLLER_FD); */
 }
 
