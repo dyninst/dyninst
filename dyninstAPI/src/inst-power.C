@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.218 2005/03/21 23:19:57 jodom Exp $
+ * $Id: inst-power.C,v 1.219 2005/04/05 16:41:43 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -553,7 +553,11 @@ Register conservativeDeadRegList[] = { };
 // The registers that aren't preserved by called functions are considered live.
 Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
 
+#if defined(__XLC__) || defined(__xlC__)
+Register *floatingDeadRegList;
+#else
 Register floatingDeadRegList[] = { };
+#endif
 
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 
@@ -3872,6 +3876,8 @@ bool registerSpace::clobberFPRegister(Register reg)
       }	
     }
   }
+  assert(0 && "Unreachable");
+  return false;
 }
 
 bool registerSpace::beenSaved(Register reg)
@@ -3902,6 +3908,8 @@ bool registerSpace::beenSavedFP(Register reg)
 	return false;
     }
   }
+  assert(0 && "Unreachable");
+  return false;
 }
 
 

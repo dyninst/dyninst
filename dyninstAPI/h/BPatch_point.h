@@ -127,7 +127,7 @@ typedef enum eBPatch_opCode {
    that here) */
 
 class BPatch_point;
-#ifdef __XLC__
+#if defined( __XLC__ ) || defined(__xlC__)
 BPatch_point* createInstructionInstPoint(process*proc,void*address,
                                                     BPatch_point** alternative,
                                                     BPatch_function* bpf = NULL);
@@ -153,7 +153,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_flowGraph; // Access to setLoop
     friend class process;
     friend class BPatch_edge;
-#if !defined (__XLC__)
+#if !defined (__XLC__) && !defined(__xlC__)
     friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
 						    BPatch_point** alternative,
 					    BPatch_function* bpf = NULL);

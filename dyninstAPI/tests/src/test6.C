@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.28 2005/02/24 10:17:59 rchen Exp $
+// $Id: test6.C,v 1.29 2005/04/05 16:41:43 jodom Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -436,7 +436,7 @@ const unsigned int naxses = 73;
 
 BPatch_memoryAccess* loadList[nloads];
 BPatch_memoryAccess* storeList[nstores];
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
 BPatch_memoryAccess* *prefeList;
 #else
 BPatch_memoryAccess* prefeList[nprefes];

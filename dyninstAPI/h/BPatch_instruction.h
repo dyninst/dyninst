@@ -56,7 +56,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
   static const unsigned int nmaxacc_NP = 2;
-#elif defined (__XLC__)
+#elif defined (__XLC__) || defined(__xlC__)
 #define nmaxacc_NP 1
 #else
   static const unsigned int nmaxacc_NP = 1;

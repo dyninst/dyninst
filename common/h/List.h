@@ -489,7 +489,7 @@ template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data)
     return((Type) 0);
 }
 
-#if defined (__XLC__)
+#if defined (__XLC__) || defined(__xlC__)
 #define LIST_C_IS_HEADER
 #include "../src/List.C"
 #endif

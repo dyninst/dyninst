@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.23 2005/02/24 10:14:47 rchen Exp $
+// $Id: timing.C,v 1.24 2005/04/05 16:41:42 jodom Exp $
 
 #include "common/h/Timer.h"
 #include "common/h/timing.h"
@@ -47,7 +47,12 @@
 
 
 #if defined(rs6000_ibm_aix4_1)
+#if defined(__XLC__) || defined(__xlC__)
+#pragma mc_func nops_4_inline {"60000000" "60000000" "60000000" "60000000"}
+#define NOPS_4  nops_4_inline()
+#else
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
+#endif
 
 #elif defined(i386_unknown_nt4_0) \
    || defined(mips_unknown_ce2_11) //ccw 1 aug 2000 : 29 mar 2001
