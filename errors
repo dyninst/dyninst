@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.12  1994/07/08 03:02:56  karavan
+# Revision 1.13  1994/07/08 21:14:07  jcargill
+# created error #11
+#
+# Revision 1.12  1994/07/08  03:02:56  karavan
 # created error #10
 #
 # Revision 1.11  1994/07/08  02:52:55  karavan
@@ -150,4 +153,12 @@ Attempt to call malloc returned an error within a data manager function.
 %S fatal
 %X
 Call to malloc failed within a data manager function.
+%Y
+
+%N 11
+%E testerror
+%A paradynd
+%S fatal
+%X
+bogus test error message
 %Y
