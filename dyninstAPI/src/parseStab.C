@@ -81,6 +81,7 @@ static char *getIdentifier(char *stabstr, int &cnt);
 //		  <ident>::T<typeUse>			|
 //		  <ident>:t<typeUse>			|
 //		  <ident>:T<typeUse>			|
+//		  <ident>:v<typeUse>			|
 //		  <ident>:V<symDesc>
 //
 // <paramList> = | <typeUse>;<paramList> 
@@ -221,9 +222,21 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      fp = mod->findFunction( name );
 	      if (!fp) {
-		  showInfoCallback(string("missing local function ") + 
-		      string(name));
-	      } else {
+		  // for FORTRAN look with trailing _
+		  char tempName[strlen(name)+2];
+		  sprintf(tempName, "%s_", name);
+
+		  // this leaks tempName XXXX 
+		  current_func_name = strdup(tempName);
+
+		  fp = mod->findFunction(tempName);
+		  if (!fp) {
+		      showInfoCallback(string("missing local function ") + 
+			  string(name));
+		  }
+	      }
+
+	      if (fp) {
 		  // set return type.
 		  fp->setReturnType(ptrType);
 	      }
@@ -252,6 +265,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	  case 'R':	// function parameter passed in a register (AIX style)
 	  case 'P':	// function parameter passed in a register (GNU/Solaris)
+	  case 'v':	// Fortran Local Variable
           case 'p': {	// Function Parameter
 	      cnt++; /* skip the 'p' */
 
@@ -1221,7 +1235,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 		newType = new BPatch_type(name, ID, BPatch_built_inType, bytes);
 		mod->moduleTypes->addType(newType);
 
-		cnt++;	// skip the final ';'
+		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
 		break;
 	  }

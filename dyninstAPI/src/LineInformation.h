@@ -8,6 +8,26 @@
 #include "common/h/String.h"
 #include "BPatch_Set.h"
 
+typedef struct tuple {
+	unsigned short lineNo;
+	Address codeAddress;
+	unsigned short linePtr;
+	unsigned short addrPtr;
+
+	tuple(unsigned short l,Address a): lineNo(l),codeAddress(a) {}
+
+} tuple;
+
+typedef struct FunctionInfo {
+	bool validInfo;
+	tuple* startLinePtr;
+	tuple* endLinePtr;
+	tuple* startAddrPtr;
+	tuple* endAddrPtr;
+
+	FunctionInfo() : validInfo(false) {}
+} FunctionInfo;
+
 //the following class declarations keep the line information for modules.
 
 /** this class contains array of tuples for mapping from line number to address
@@ -26,29 +46,9 @@ class FileLineInformation{
 	  * or vice versa
 	  */
 public:
-	typedef struct tuple {
-		unsigned short lineNo;
-		Address codeAddress;
-		unsigned short linePtr;
-		unsigned short addrPtr;
-	
-		tuple(unsigned short l,Address a): lineNo(l),codeAddress(a) {}
-
-	} tuple;
-
 private:
 	/** structure to keep the line information for each function in the module
 	  */
-	typedef struct FunctionInfo {
-		bool validInfo;
-		tuple* startLinePtr;
-		tuple* endLinePtr;
-		tuple* startAddrPtr;
-		tuple* endAddrPtr;
-
-		FunctionInfo() : validInfo(false) {}
-	} FunctionInfo;
-
 
 	/** name of the source file this class represents */
 	string sourceFileName;
@@ -72,6 +72,8 @@ public:
 	  * @param fileName name of the source file this object is created */
 	FileLineInformation(string fileName);
 
+
+	string getFileName() { return sourceFileName; }
 
 	/** destructor */
 	~FileLineInformation();

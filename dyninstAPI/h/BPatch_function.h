@@ -102,10 +102,17 @@ public:
     BPatch_localVar * findLocalVar( const char * name);
     BPatch_localVar * findLocalParam(const char * name);
 
-//method to retrieve addresses corresponding a line in the function
+    //method to retrieve addresses corresponding a line in the function
     bool getLineToAddr (unsigned short lineNo,
 			BPatch_Vector<unsigned long>& buffer,
 			bool exactMatch = true);
+
+    // method to return file name, and first and last lines of the func
+    bool getLineAndFile(unsigned short &start, 
+			unsigned short &end, 
+			char *name,
+			unsigned &length);
+		
 
 //method to create the control flow graph for the function
     BPatch_flowGraph* getCFG();

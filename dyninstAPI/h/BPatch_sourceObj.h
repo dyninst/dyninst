@@ -81,7 +81,6 @@ class BPatch_sourceObj {
       BPatch_language getLanguage();
       BPatch_type *getType(char *name);
       BPatch_Vector<BPatch_variableExpr *> *getVariables();
-      bool getLineNumbers(int &start, int &end);
       BPatch_Vector<char *> *getLoadedFileNames();
       char *programName(char *buf, unsigned int len);
       int programNameLen();

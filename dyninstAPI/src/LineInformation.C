@@ -3,7 +3,6 @@
 #include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/src/util.h"
 
-typedef FileLineInformation::tuple tuple;
 
 //this function implements binary search and returns the found element.
 //besides the found element it returns the next bigger line numbered one
@@ -119,8 +118,7 @@ FileLineInformation::~FileLineInformation(){
 }
 
 //returns the function info structure
-FileLineInformation::FunctionInfo* 
-FileLineInformation::findFunctionInfo(string functionName){
+FunctionInfo *FileLineInformation::findFunctionInfo(string functionName){
 	for(int i=0;i<functionCount;i++)
 		if(functionName == *functionNameList[i])
 			return lineInformationList[i];
@@ -522,8 +520,7 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 		os << hex << linfo.lineToAddr[j]->codeAddress << "\n";
 	}
 	for(int i=0;i<linfo.functionCount;i++){
-		FileLineInformation::FunctionInfo* funcinfo = 
-				linfo.lineInformationList[i];
+		FunctionInfo* funcinfo = linfo.lineInformationList[i];
 		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
 		if(!funcinfo->validInfo)
 			continue;

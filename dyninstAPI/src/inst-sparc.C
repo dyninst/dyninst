@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.94 2000/08/04 19:49:49 hollings Exp $
+// $Id: inst-sparc.C,v 1.95 2000/08/17 20:45:03 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1756,7 +1756,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 	}
     }
 
-    if (count * sizeof(instruction) > maxSize) {
+    if (count * sizeof(instruction) > (unsigned) maxSize) {
 	return -1;
     } else {
 	memcpy(insns, copyOut, count * sizeof(instruction));

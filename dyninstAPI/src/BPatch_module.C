@@ -615,8 +615,16 @@ void BPatch_module::parseTypes()
 
 		currentFunctionBase = 0;
 		Symbol info;
-		proc->getSymbolInfo(*currentFunctionName,info,
-				    currentFunctionBase);
+		if (!proc->getSymbolInfo(*currentFunctionName,info,
+				    currentFunctionBase)) {
+		   string fortranName = *currentFunctionName + string("_");
+		   if (proc->getSymbolInfo(fortranName,info,
+						       currentFunctionBase)) {
+		       delete currentFunctionName;
+		       currentFunctionName = new string(fortranName);
+		   }
+		}
+
 		currentFunctionBase += info.addr();
 
 		delete[] tmp;		

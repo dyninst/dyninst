@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.6 2000/07/12 17:55:57 buck Exp $
+// $Id: BPatch_function.C,v 1.7 2000/08/17 20:45:02 hollings Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -68,7 +68,7 @@ extern double cyclesPerSecond;
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	BPatch_module *_mod) :
-	proc(_proc), mod(_mod), func(_func),cfg(NULL)
+	proc(_proc), mod(_mod), cfg(NULL), func(_func)
 {
 
   // there should be at most one BPatch_func for each function_base per process
@@ -91,7 +91,7 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	proc(_proc), mod(_mod), func(_func),cfg(NULL)
+	proc(_proc), mod(_mod), cfg(NULL), func(_func)
 {
   _srcType = BPatch_sourceFunction;
   localVariables = new BPatch_localVarCollection;
@@ -224,7 +224,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &Rpoints = func->funcExits(proc);
           const vector<instPoint *> &Cpoints = func->funcCalls(proc);
-          BPatch_point *the_point;
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
@@ -361,6 +360,54 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 	
 	return true;
 }
+
+//
+// Return the module name, first and last line numbers of the function.
+//
+bool BPatch_function::getLineAndFile(unsigned short &start,
+				     unsigned short &end,
+                                     char *fileName, unsigned &length)
+{
+    start = end = 0;
+
+    //get the line info object and check whether it is available
+    LineInformation* lineInformation = mod->lineInformation;
+
+    if (!lineInformation) {
+        logLine("BPatch_function::getLineToAddr : Line info is not available");
+	return false;
+    }
+
+    //get the object which contains the function being asked
+    FileLineInformation* fLineInformation = 
+	lineInformation->getFunctionLineInformation(func->prettyName());
+
+    if (!fLineInformation) {
+	logLine("BPatch_function::getLineToAddr: Line info is not available");
+	return false;
+    }
+
+    //retrieve the addresses
+    FunctionInfo *funcLineInfo;
+
+    funcLineInfo = fLineInformation->findFunctionInfo(func->prettyName());
+
+    if (!funcLineInfo) return false;
+
+    if (funcLineInfo->startLinePtr)
+	start = funcLineInfo->startLinePtr->lineNo;
+
+    if (funcLineInfo->endLinePtr)
+	end = funcLineInfo->endLinePtr->lineNo;
+
+    strncpy(fileName, fLineInformation->getFileName().string_of(), length);
+    if (strlen(fLineInformation->getFileName().string_of()) < length) {
+	length = strlen(fLineInformation->getFileName().string_of());
+    }
+
+    return true;
+}
+
 
 
 BPatch_flowGraph* BPatch_function::getCFG(){
