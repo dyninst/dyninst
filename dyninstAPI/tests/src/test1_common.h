@@ -81,10 +81,14 @@
      & globalVariable29_1,
      & globalVariable31_1, globalVariable31_2, globalVariable31_3,
      & globalVariable31_4, globalVariable32_1, globalVariable32_2,
-     & globalVariable32_3, globalVariable32_4
+     & globalVariable32_3, globalVariable32_4,
+     & globalVariable36_1, globalVariable36_2, globalVariable36_3,
+     & globalVariable36_4, globalVariable36_5, globalVariable36_6,
+     & globalVariable36_7, globalVariable36_8, globalVariable36_9,
+     & globalVariable36_10
 
-	LOGICAL passedTest (36)
-	LOGICAL runTest (36)
+	LOGICAL passedTest (37)
+	LOGICAL runTest (37)
 
 	DOUBLE PRECISION globalVariable20_2
 
@@ -136,6 +140,10 @@
      & globalVariable27_8, globalVariable29_1, globalVariable31_1,
      & globalVariable31_2, globalVariable31_3, globalVariable31_4,
      & globalVariable32_1, globalVariable32_2, globalVariable32_3,
-     & globalVariable32_4, passedTest, runTest
-
+     & globalVariable32_4, 
+     & globalVariable36_1, globalVariable36_2, globalVariable36_3,
+     & globalVariable36_4, globalVariable36_5, globalVariable36_6,
+     & globalVariable36_7, globalVariable36_8, globalVariable36_9,
+     & globalVariable36_10,
+     & passedTest, runTest
 

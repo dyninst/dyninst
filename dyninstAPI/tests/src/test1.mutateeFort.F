@@ -188,6 +188,17 @@
 	globalVariable32_2 = 0
 	globalVariable32_3 = 0
 	globalVariable32_4 = 0
+
+	globalVariable36_1 = 0
+	globalVariable36_2 = 0
+	globalVariable36_3 = 0
+	globalVariable36_4 = 0
+	globalVariable36_5 = 0
+	globalVariable36_6 = 0
+	globalVariable36_7 = 0
+	globalVariable36_8 = 0
+	globalVariable36_9 = 0
+	globalVariable36_10 = 0
 	END
 
 !------------------------------------------------------------------------------
@@ -1834,7 +1845,7 @@
 
 	INTEGER FUNCTION func33_3 (x)
 	INTEGER x
-	INTRINSIC IEOR, IAND, IOR
+C	INTRINSIC IEOR, IAND, IOR
 
 	if (x .eq. 1) then
 		print *, '1'
@@ -1922,3 +1933,134 @@
 	print *, '       - not implemented on this platform'
 #endif
 	END
+
+!------------------------------------------------------------------------------
+
+	INTEGER FUNCTION call36_1(y1, y2, y3, y4, y5, y6, y7, y8, y9, y10)
+#include "test1_common.h"
+	INTEGER y1, y2, y3, y4, y5, y6, y7, y8, y9, y10
+	call36_1 = y1 + y2 + y3 + y4 + y5 + y6 + y7 + y8 + y9 + y10
+	END FUNCTION call36_1
+
+
+	SUBROUTINE func36_1
+#include "test1_common.h"
+	INTEGER failure, result
+	INTEGER call36_1
+	globalVariable36_1 = 0
+	globalVariable36_2 = 0
+	globalVariable36_3 = 0
+	globalVariable36_4 = 0
+	globalVariable36_5 = 0
+	globalVariable36_6 = 0
+	globalVariable36_7 = 0
+	globalVariable36_8 = 0
+	globalVariable36_9 = 0
+	globalVariable36_10 = 0
+
+!  ==================================================
+
+!  This was subtest was skipped for Fortran because
+!  findVariable(globalVariable36_x) fails when called by the mutator.
+!  Every other subtest that does a findVariable on some variable in
+!  this Fortran mutatee is skipped, so this must be an unimplemented
+!  feature on Fortran.  As soon as this is implemented, this test
+!  should be able to be activated.
+
+!	passedTest (36) = .true.
+!	print *, 'Skipped test #36 (callsite parameter referencing)'
+!	print *, '       - not implemented for Fortran'
+!	RETURN
+!  ==================================================
+
+	result = call36_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	failure = 0
+
+	if (result .ne. 55) then
+		print *, '  for test 36, expecting a value of 55 from call36_1, '
+		print *, 'got: ', result
+		failure = 1
+	endif
+
+	if (globalVariable36_1 .ne. 1) then
+		print *, '  for test 36, expecting arg1 value of 1, got '
+		print *, globalVariable36_1
+		failure = 1
+	endif
+
+	if (globalVariable36_2 .ne. 2) then
+		print *, '  for test 36, expecting arg2 value of 2, got '
+		print *, globalVariable36_2
+		failure = 1
+	endif
+
+	if (globalVariable36_3 .ne. 3) then
+		print *, '  for test 36, expecting arg3 value of 3, got '
+		print *, globalVariable36_3
+		failure = 1
+	endif
+
+	if (globalVariable36_4 .ne. 4) then
+		print *, '  for test 36, expecting arg4 value of 4, got '
+		print *, globalVariable36_4
+		failure = 1
+	endif
+
+	if (globalVariable36_5 .ne. 5) then
+		print *, '  for test 36, expecting arg5 value of 5, got '
+		print *, globalVariable36_5
+		failure = 1
+	endif
+
+	if (globalVariable36_6 .ne. 6) then
+		print *, '  for test 36, expecting arg6 value of 6, got '
+		print *, globalVariable36_6
+		failure = 1
+	endif
+
+	if (globalVariable36_7 .ne. 7) then
+		print *, '  for test 36, expecting arg7 value of 7, got '
+		print *, globalVariable36_7
+		failure = 1
+	endif
+
+	if (globalVariable36_8 .ne. 8) then
+		print *, '  for test 36, expecting arg8 value of 8, got '
+		print *, globalVariable36_8
+		failure = 8
+	endif
+
+
+	if (globalVariable36_9 .ne. 9) then
+		print *, '  for test 36, expecting arg9 value of 9, got ', 
+     &		globalVariable36_9
+#if	defined(sparc_sun_solaris2_4)
+		print *, '  not an error since it needs to be implemented ',
+     & 		'for sparc-sol'
+#else
+		failure = 1
+#endif
+	endif
+
+	if (globalVariable36_10 .ne. 10) then
+		print *, '  for test 36, expecting arg10 value of 10, got ', 
+     &		globalVariable36_9
+#if	defined(sparc_sun_solaris2_4)
+		print *, '  not an error since it needs to be implemented ',
+     & 		'for sparc-sol'
+#else
+		failure = 1
+#endif
+	endif
+
+	if (failure .eq. 0) then
+		passedTest (36) = .true.
+		print *, 'Passed test #36 (callsite parameter referencing)'
+	else
+		passedTest (36) = .false.
+		print *, '**Failed** test #36 (callsite parameter referencing)'
+	endif
+
+	END
+
+!------------------------------------------------------------------------------

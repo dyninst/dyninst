@@ -4102,6 +4102,18 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 #endif   
 }    
 
+BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
+{
+   if (mutateeFortran) {
+       // Fortran is call by reference
+       BPatch_arithExpr *derefExpr = new BPatch_arithExpr(BPatch_deref, *(new BPatch_paramExpr(paramId)));
+       assert(derefExpr);
+       return new BPatch_arithExpr(BPatch_assign, *expr, *derefExpr);
+   } else {
+       return new BPatch_arithExpr(BPatch_assign, *expr, *(new BPatch_paramExpr(paramId)));
+   }
+}
+
 //
 // Start Test Case #36 - (callsite parameter referencing)
 //
@@ -4145,19 +4157,18 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
       exit(1);
    }
 
-	BPatch_variableExpr *expr36_1 =appImage->findVariable("globalVariable36_1");
-	BPatch_variableExpr *expr36_2 =appImage->findVariable("globalVariable36_2");
-	BPatch_variableExpr *expr36_3 =appImage->findVariable("globalVariable36_3");
-	BPatch_variableExpr *expr36_4 =appImage->findVariable("globalVariable36_4");
-	BPatch_variableExpr *expr36_5 =appImage->findVariable("globalVariable36_5");
-	BPatch_variableExpr *expr36_6 =appImage->findVariable("globalVariable36_6");
-	BPatch_variableExpr *expr36_7 =appImage->findVariable("globalVariable36_7");
-	BPatch_variableExpr *expr36_8 =appImage->findVariable("globalVariable36_8");
-	BPatch_variableExpr *expr36_9 =appImage->findVariable("globalVariable36_9");
-	BPatch_variableExpr *expr36_10 =
-      appImage->findVariable("globalVariable36_10");
-
-	if (expr36_1 == NULL || expr36_2 == NULL || expr36_3 == NULL ||
+   BPatch_variableExpr *expr36_1 =findVariable(appImage, "globalVariable36_1", all_points36_1);
+   BPatch_variableExpr *expr36_2 =findVariable(appImage, "globalVariable36_2", all_points36_1);
+   BPatch_variableExpr *expr36_3 =findVariable(appImage, "globalVariable36_3", all_points36_1);
+   BPatch_variableExpr *expr36_4 =findVariable(appImage, "globalVariable36_4", all_points36_1);
+   BPatch_variableExpr *expr36_5 =findVariable(appImage, "globalVariable36_5", all_points36_1);
+   BPatch_variableExpr *expr36_6 =findVariable(appImage, "globalVariable36_6", all_points36_1);
+   BPatch_variableExpr *expr36_7 =findVariable(appImage, "globalVariable36_7", all_points36_1);
+   BPatch_variableExpr *expr36_8 =findVariable(appImage, "globalVariable36_8", all_points36_1);
+   BPatch_variableExpr *expr36_9 =findVariable(appImage, "globalVariable36_9", all_points36_1);
+   BPatch_variableExpr *expr36_10 = findVariable(appImage, "globalVariable36_10", all_points36_1);
+   
+   if (expr36_1 == NULL || expr36_2 == NULL || expr36_3 == NULL ||
        expr36_4 == NULL || expr36_5 == NULL || expr36_6 == NULL ||
        expr36_7 == NULL || expr36_8 == NULL || expr36_9 == NULL ||
        expr36_10 == NULL)
@@ -4169,27 +4180,25 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 	}
 
    BPatch_Vector<BPatch_snippet *> snippet_seq;
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_1,
-                                              *(new BPatch_paramExpr(0))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_2,
-                                              *(new BPatch_paramExpr(1))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_3,
-                                              *(new BPatch_paramExpr(2))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_4,
-                                              *(new BPatch_paramExpr(3))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_5,
-                                              *(new BPatch_paramExpr(4))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_6,
-                                              *(new BPatch_paramExpr(5))));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_1, 0));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_2, 1));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_3, 2));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_4, 3));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_5, 4));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_6, 5));
 #if !defined(alpha_dec_osf4_0)   /* alpha doesn't handle more than 6 */
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_7,
-                                              *(new BPatch_paramExpr(6))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_8,
-                                              *(new BPatch_paramExpr(7))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_9,
-                                              *(new BPatch_paramExpr(8))));
-   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_10,
-                                              *(new BPatch_paramExpr(9))));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_7, 6));
+   snippet_seq.push_back(makeTest36paramExpr(expr36_8, 7));
+
+   // Solaris Fortran skips 9th paramter
+#if defined(sparc_sun_solaris2_4)
+   if (!mutateeFortran)
+#endif
+       snippet_seq.push_back(makeTest36paramExpr(expr36_9, 8));
+
+#if !defined(sparc_sun_solaris2_4)
+   snippet_seq.push_back(makeTest36paramExpr(expr36_10, 9));
+#endif
 #endif
    BPatch_sequence seqExpr(snippet_seq);
 
