@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.6 2003/06/16 21:52:42 hollings Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.7 2003/06/20 20:35:12 hollings Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -179,6 +179,16 @@ int mutateeF77 = 0;
 #endif
 
 int globalVariable29_1;
+int globalVariable36_1;
+int globalVariable36_2;
+int globalVariable36_3;
+int globalVariable36_4;
+int globalVariable36_5;
+int globalVariable36_6;
+int globalVariable36_7;
+int globalVariable36_8;
+int globalVariable36_9;
+int globalVariable36_10;
 
 void runTests()
 {
@@ -258,3 +268,18 @@ void runTests()
     for (i=1; i <= MAX_TEST; i++)
 	if (globals.passedTest_ [i-1]) passedTest [i] = TRUE;
 }
+
+void xlf90_41_hack()
+{
+    globals.globalVariable36_1_ = globalVariable36_1;
+    globals.globalVariable36_2_ = globalVariable36_2;
+    globals.globalVariable36_3_ = globalVariable36_3;
+    globals.globalVariable36_4_ = globalVariable36_4;
+    globals.globalVariable36_5_ = globalVariable36_5;
+    globals.globalVariable36_6_ = globalVariable36_6;
+    globals.globalVariable36_7_ = globalVariable36_7;
+    globals.globalVariable36_8_ = globalVariable36_8;
+    globals.globalVariable36_9_ = globalVariable36_9;
+    globals.globalVariable36_10_ = globalVariable36_10;
+}
+

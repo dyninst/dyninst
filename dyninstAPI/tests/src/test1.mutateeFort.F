@@ -1982,6 +1982,10 @@ C	INTRINSIC IEOR, IAND, IOR
 		failure = 1
 	endif
 
+#if	defined(rs6000_ibm_aix4_1) && !defined(AIX5)
+	call xlf90_41_hack()
+#endif
+
 	if (globalVariable36_1 .ne. 1) then
 		print *, '  for test 36, expecting arg1 value of 1, got '
 		print *, globalVariable36_1
