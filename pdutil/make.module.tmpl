@@ -4,7 +4,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.6  1995/04/06 22:19:28  jcargill
+# Revision 1.7  1995/07/16 03:28:31  tamches
+# Split string class into a .h and .C component; strings can now
+# automatically convert numerical representations.
+#
+# Revision 1.6  1995/04/06  22:19:28  jcargill
 # Moved setting of INSTANTIATE_TEMPLATES down into arch-specific Makefiles,
 # since it must be set before make.config is read.
 #
@@ -28,14 +32,15 @@
 TARGET	      = libpdutil.a
 TARGET2	      = libpdutilPVM.a
 
-SRCS	     += ../src/lprintf.C \
+SRCS	     += ../src/String.C \
+		../src/lprintf.C \
 		../src/rpcUtil.C \
 		../src/aggregateSample.C \
 		../src/stringPool.C \
 		../src/hist.C \
 		../src/timing.C 
 
-OBJS         += lprintf.o rpcUtil.o aggregateSample.o \
+OBJS         += String.o lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o
 
 SRCS2	     += rpcUtilPVM.C
