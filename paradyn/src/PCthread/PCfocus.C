@@ -45,6 +45,9 @@
  * Initializing focus info needed by PC from DM's resource hierarchies.
  * 
  * $Log: PCfocus.C,v $
+ * Revision 1.4  1997/03/29 02:04:18  sec
+ * Changed /MsgTag to /Message in MDL/paradyn.rc
+ *
  * Revision 1.3  1996/08/16 21:03:28  tamches
  * updated copyright for release 1.1
  *
@@ -71,7 +74,7 @@ resourceHandle Machines;
 resourceHandle Locks;
 resourceHandle Barriers;
 resourceHandle Semaphores;
-resourceHandle MsgTags;
+resourceHandle Messages;
 
 // focus formed from topmost node of each resource hierarchy
 focus topLevelFocus;
@@ -135,9 +138,9 @@ void initResources()
     delete h;
   }
 
-  h = dataMgr->findResource ("/MsgTag");
+  h = dataMgr->findResource ("/Message");
   if (h != NULL) {
-    MsgTags = *h;
+    Messages = *h;
     delete h;
   }
 
