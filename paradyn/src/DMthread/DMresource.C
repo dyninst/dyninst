@@ -7,6 +7,10 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
+ * Revision 1.36  1996/05/02 16:19:01  tamches
+ * added getMachineNameReferredTo
+ * cleaned up class decls by making appropriate member fns const
+ *
  * Revision 1.35  1996/04/30 18:53:59  newhall
  * changes to make enabling and disabling data asynchronous
  *
@@ -28,124 +32,11 @@
  * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
  * Added 2 new DM interface routines: getResourceName, getResourceLabelName
  *
- * Revision 1.30  1995/09/18  18:22:14  newhall
- * changes to avoid for-scope problem
- *
- * Revision 1.29  1995/09/05  16:24:18  newhall
- * added DM interface routines for PC, added resourceList method functions
- *
- * Revision 1.28  1995/08/20  03:51:36  newhall
- * *** empty log message ***
- *
- * Revision 1.27  1995/08/20 03:37:15  newhall
- * changed parameters to DM_sequential_init
- * added persistent data and persistent collection flags
- *
- * Revision 1.26  1995/08/08  03:10:08  newhall
- * bug fix to DMresourceListNameCompare
- * changed newPerfData and sampleDataCallbackFunc definitions
- *
- * Revision 1.25  1995/08/01  02:11:20  newhall
- * complete implementation of phase interface:
- *   - additions and changes to DM interface functions
- *   - changes to DM classes to support data collection at current or
- *     global phase granularity
- * added alphabetical ordering to foci name creation
- *
- * Revision 1.23  1995/07/15 03:34:53  karavan
- * fixed "paradyn suppress searchChildren" command by checking for parent's
- * suppress value in resource constructor.
- *
- * Revision 1.22  1995/06/02  20:48:28  newhall
- * * removed all pointers to datamanager class objects from datamanager
- *    interface functions and from client threads, objects are now
- *    refered to by handles or by passing copies of DM internal data
- * * removed applicationContext class from datamanager
- * * replaced List and HTable container classes with STL containers
- * * removed global variables from datamanager
- * * remove redundant lists of class objects from datamanager
- * * some reorginization and clean-up of data manager classes
- * * removed all stringPools and stringHandles
- * * KLUDGE: there are PC friend members of DM classes that should be
- *    removed when the PC is re-written
- *
- * Revision 1.20  1995/03/02  04:23:21  krisna
- * warning and bug fixes.
- *
- * Revision 1.19  1995/02/16  08:17:30  markc
- * Changed Boolean to bool
- * Added function to convert char* lists to vector<string>
- *
- * Revision 1.18  1995/01/26  17:58:24  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.17  1994/11/07  08:24:40  jcargill
- * Added ability to suppress search on children of a resource, rather than
- * the resource itself.
- *
- * Revision 1.16  1994/11/04  08:46:00  jcargill
- * Made suppressSearch flag be inherited from parent resource.  Solves the
- * problem of having to wait for processes to be defined to suppress them.
- *
- * Revision 1.15  1994/09/30  21:17:44  newhall
- * changed convertToStringList method function return value from
- * stringHandle * to char**
- *
- * Revision 1.14  1994/09/30  19:17:51  rbi
- * Abstraction interface change.
- *
- * Revision 1.13  1994/09/22  00:57:16  markc
- * Entered stringHandles into stringPool rather than assigning from const char *
- * Added casts to remove compiler warnings
- *
- * Revision 1.12  1994/08/05  16:04:00  hollings
- * more consistant use of stringHandle vs. char *.
- *
- * Revision 1.11  1994/07/28  22:31:09  krisna
- * include <rpc/types.h>
- * stringCompare to match qsort prototype
- * proper prorotypes for starting DMmain
- *
- * Revision 1.10  1994/07/26  20:03:06  hollings
- * added suppressSearch.
- *
- * Revision 1.9  1994/07/14  23:45:31  hollings
- * Changed printf of resource to be TCL list like.
- *
- * Revision 1.8  1994/06/27  21:23:31  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.7  1994/06/17  00:11:55  hollings
- * Fixed off by one error in string canonical string name code.
- *
- * Revision 1.6  1994/06/14  15:25:03  markc
- * Added new call (sameRoot) to the resource class.  This call is used to
- * determine if two resources have the same parent but are not in an
- * ancestor-descendant relationship.  Such a relationship implies a conflict
- * in the two foci.
- *
- * Revision 1.5  1994/06/02  16:08:17  hollings
- * fixed duplicate naming problem for printResources.
- *
- * Revision 1.4  1994/05/31  19:11:34  hollings
- * Changes to permit direct access to resources and resourceLists.
- *
- * Revision 1.3  1994/04/18  22:28:33  hollings
- * Changes to create a canonical form of a resource list.
- *
- * Revision 1.2  1994/02/03  23:26:59  hollings
- * Changes to work with g++ version 2.5.2.
- *
- * Revision 1.1  1994/02/02  00:42:35  hollings
- * Changes to the Data manager to reflect the file naming convention and
- * to support the integration of the Performance Consultant.
- *
- *
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "dataManager.thread.h"
 #include "DMresource.h"
@@ -196,6 +87,9 @@ resource::resource(resourceHandle p_handle,
 }
 
 resource *resource::handle_to_resource(resourceHandle r_handle) {
+     // Note: It would be better if this routine returns a reference, and
+     // just asserts if the r_handle is bad.  Why?  Because it seems like
+     // noone is checking for a NULL return value anyway!
      if (r_handle < resources.size()) {
          return(resources[r_handle]);    
      }
@@ -210,7 +104,7 @@ vector<resourceHandle> *resource::getChildren(){
     return(temp);
 }
 
-resourceHandle *resource::findChild(const char *nm){
+resourceHandle *resource::findChild(const char *nm) const {
     string temp = nm;
     for(unsigned i=0; i < children.size(); i++){
         if((resources[children[i]])->match(temp)){
@@ -229,14 +123,14 @@ void resource::print()
     printf("%s ", name.string_of());
 }
 
-bool resource::string_to_handle(string res,resourceHandle *h){
+bool resource::string_to_handle(const string &res, resourceHandle *h) {
     if(allResources.defines(res)){
        resource *temp = allResources[res];
        *h = temp->getHandle();
        return(TRUE);
     }
     else
-    return(FALSE);
+       return(FALSE);
 }
 
 /*
@@ -244,24 +138,44 @@ bool resource::string_to_handle(string res,resourceHandle *h){
  *
  */
 
-bool resource::isDescendent(resourceHandle child_handle)
-{
-    resourceHandle root_handle = rootResource->getHandle();
-    resourceHandle this_handle = getHandle();
-    if (this_handle == child_handle) 
-        return FALSE;
-    if (this_handle == root_handle) 
-	    return TRUE;
-    while (child_handle != root_handle) {
-        if (child_handle == this_handle) {
-	    return TRUE;
-	} else {
-	    child_handle = handle_to_resource(child_handle)->getParent();
-	}
-    }
-    return FALSE;
+bool resource::isDescendent(resourceHandle child_handle) const {
+   resourceHandle root_handle = rootResource->getHandle();
+   resourceHandle this_handle = getHandle();
+   if (this_handle == child_handle) 
+       return FALSE;
+   if (this_handle == root_handle) 
+       return TRUE;
+   while (child_handle != root_handle) {
+       if (child_handle == this_handle) {
+	  return TRUE;
+       } else {
+	  child_handle = handle_to_resource(child_handle)->getParent();
+       }
+   }
+   return FALSE;
 }
 
+// Convenience function:
+bool resource::isDescendantOf(const resource &other) const {
+   // NOTE: Should merge with the above routine...
+
+   resourceHandle myHandle = getHandle();
+   resourceHandle root_handle = rootResource->getHandle();
+
+   if (myHandle == root_handle)
+      // the root node is the descendant of noone.
+      return false;
+
+   // Keep moving "myHandle" upwards, until it reaches the root
+   // It we see "other.getHandle()" along the way, then we return true.
+   do {
+      myHandle = handle_to_resource(myHandle)->getParent();
+      if (myHandle == other.getHandle())
+	 return true;
+   } while (myHandle != root_handle);
+
+   return false;
+}
 
 
 /*
@@ -270,9 +184,8 @@ bool resource::isDescendent(resourceHandle child_handle)
  * the test for a common base checks the node below the
  * common root.
  */
-bool resource::sameRoot(resourceHandle other)
-{
-  resource *myBase=0, *otherBase=0, *temp;
+bool resource::sameRoot(resourceHandle other) const {
+  const resource *myBase=0, *otherBase=0, *temp;
 
   temp = this;
   resourceHandle root = rootResource->getHandle(); 
@@ -309,8 +222,7 @@ const char *resource::getFullName(resourceHandle h){
     return 0;
 }
 
-resource *resource::string_to_resource(string res){
-
+resource *resource::string_to_resource(const string &res) {
     if(allResources.defines(res)){
         return(allResources[res]);
     }
@@ -559,8 +471,156 @@ const char *resourceList::getName(resourceListHandle rh){
     return(NULL);
 }
 
-vector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
 
+bool resourceList::getMachineNameReferredTo(string &machName) const {
+   // If this focus is specific to some machine, then fill in "machName" and return
+   // true.  Else, leave "machName" alone and return false.
+   // What does it mean for a focus to be specific to a machine?
+   // For one, if the focus is a descendant of a machine, then it's obvious.
+   // If the focus is a descendant of a process, then we can probably find a specific
+   // machine to which it's referring, too.
+   // NOTE: If this routine gets confused or isn't sure whether the resource is
+   // specific to a machine, it returns false.
+   
+   // Step 1: Obtain the resources for /Machine and /Process
+   // Since these are expensive operations (the string constructor is called,
+   // which in turn calls new[]), we only do them once.
+   static resource *machine_resource_ptr = NULL; // NULL --> not yet defined
+   static resource *process_resource_ptr = NULL; // NULL --> not yet defined
+
+   if (machine_resource_ptr == NULL) {
+      machine_resource_ptr = resource::string_to_resource("/Machine");
+      if (machine_resource_ptr == NULL) {
+         cout << "getMachineNameReferredTo(): couldn't find /Machine" << endl;
+         return false;
+      }
+   }
+
+   if (process_resource_ptr == NULL) {
+      process_resource_ptr = resource::string_to_resource("/Process");
+      if (process_resource_ptr == NULL) {
+	 cout << "getMachineNameReferredTo(): couldn't find /Process" << endl;
+	 return false;
+      }
+   }
+
+   assert(machine_resource_ptr);
+   assert(process_resource_ptr);
+   const resource &machineResource = *machine_resource_ptr;
+   const resource &processResource = *process_resource_ptr;
+
+   for (unsigned hierarchy=0; hierarchy < elements.size(); hierarchy++) {
+      const resource *the_resource_ptr = elements[hierarchy];
+      const resource &theResource = *the_resource_ptr;
+
+      // Is "theResource" a descendant of "/Machine"?
+      if (theResource.isDescendantOf(machineResource)) {
+         // bingo.  Now check out the resource's components.  The machine name
+         // should be in the 2d component, and the first component should be "Machine".
+	 // (For example, the resource "/Machine/goat" has 2 components)
+	 const vector<string> &components = theResource.getParts();
+
+         // The following line is not fast; calls string's constructor which calls
+	 // malloc.  But it's really just an assert, so we could get rid of it for
+	 // speed.
+         if (components[0] != "Machine") {
+            // I am confused; I expected "Machine"
+	    cout << "getMachineNameReferredTo: expected Machine; found "
+                 << components[0] << endl;
+	    return false;
+         }
+	 if (components.size() < 2) {
+            // I am confused; I expected something below "Machine"
+	    cout << "getMachineNameReferredTo: nothing below 'Machine'" << endl;
+	    return false;
+	 }
+	 if (components.size() > 2) {
+            // currently, there is only one level below "Machine"
+	    // Maybe in the future we can have stuff like "/Machine/cluster1/goat"
+	    // But for now this acts as a nice assert (in that if the following error
+            // msg is ever seen, then we need to rethink how we extract the machine
+	    // name)
+	    cout << "getMachineNameReferredTo: too much below 'Machine'" << endl;
+	    return false;
+	 }
+
+	 // success!
+	 machName = components[1];
+	 return true;
+      }
+      else if (theResource.isDescendantOf(processResource)) {
+         // bingo.  Now check out the resource's components.
+         // For example, if the resource is "/Process/bubba.pd{9984_goat}"
+         // then we extract the machine name from the 2d component.
+	 const vector<string> &components = theResource.getParts();
+
+         // The following line is not fast; calls string's constructor which calls
+	 // malloc.  But it's really just an assert, so we could get rid of it for
+	 // speed.
+	 if (components[0] != "Process") {
+	    // I am confused; I expected "Process"
+	    cout << "getMachineNameReferredTo: expected Process; found "
+	         << components[0] << endl;
+	    return false;
+	 }
+	 if (components.size() < 2) {
+            // I am confused; I expected something below "Process"
+	    cout << "getMachineNameReferredTo: nothing below 'Process'" << endl;
+	    return false;
+	 }
+	 if (components.size() > 2) {
+            // currently, there is only one level below "Process"
+	    // Maybe in the future we can have stuff like "/Process/cluster2/process1"
+	    // But for now this acts as a nice assert (in that if the error msg is ever
+	    // seen then we know that we need to rethink how we extract machine names
+	    // from processes).
+	    cout << "getMachineNameReferredTo: too much below 'Process'" << endl;
+	    return false;
+	 }
+
+	 // Now all that's left to do is to extract the machine name, given the process.
+	 // Currently, processes are of the form:
+	 // <procname>{<pid>_<machname>}
+	 // I would use one sscanf except for the well-known problems that it has
+	 // (it can overflow buffers).  So, we parse manually.
+	 const char *ptr = components[1].string_of();
+	 const char *ptr1 = strchr(ptr, '{');
+	 if (ptr1 == NULL) {
+	    cout << "getMachineNameReferredTo: expected { in the proc name" << endl;
+	    return false;
+	 }
+	 const char *ptr2 = strchr(ptr1, '_');
+	 if (ptr2 == NULL) {
+	    cout << "getMachineNameReferredTo: expected _ in the proc name" << endl;
+	    return false;
+	 }
+	 ptr2++;
+	 if (strlen(ptr2) < 2) {
+            // expected at least 1 char for machine name, plus 1 char for closing '}'
+	    cout << "getMachineNameReferredTo: blank machine name?" << endl;
+	    return false;
+	 }
+
+	 // The last character should be '}'; overwrite it with a '\0'.
+	 // Unfortunately, we cannot write to the string without messing
+	 // up the resource.  So, we play with a _copy_ of the string.
+	 if (ptr2[strlen(ptr2)-1] != '}') {
+	    cout << "getMachineNameReferredTo: expected }" << endl;
+	    return false;
+	 }
+
+	 // We're basically done.  Return the string pointed to by ptr2
+         // _except_ the last character, which is '}' (so we use the string constructor
+	 // which copies only part of a char*)
+	 machName = string(ptr2, strlen(ptr2)-1); // not a fast operation; calls malloc
+	 return true;
+      }
+   }
+
+   return false;
+}
+
+vector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
     resourceList *focus = getFocus(h);
     if(focus){
         vector<resourceHandle> *handles = new vector<resourceHandle>;
@@ -571,7 +631,6 @@ vector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
 	return(handles);
     }
     return(NULL);
-
 }
 
 const resourceListHandle *resourceList::find(const string &name){
@@ -610,12 +669,10 @@ resourceList *resourceList::findRL(const char *name){
     return NULL;
 }
 
-void printAllResources()
-{
+void printAllResources() {
     for(unsigned i=0; i < resource::resources.size(); i++){
-	printf("{");
+        cout << "{";
         (resource::resources[i])->print();
-	printf("}");
-        printf("\n");
+	cout << "}" << endl;
     }
 }
