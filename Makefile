@@ -10,7 +10,7 @@
 #
 # Subsystems is the list of all other pieces which should be built.
 #
-buildfirst	= igen
+buildfirst	= igen util thread
 subsystems	= igen bininst util rtinst thread paradyn paradynd paradyndSIM
 
 
@@ -64,3 +64,4 @@ world:
 	$(MAKE) install
 	$(MAKE) docs
 	$(MAKE) install-man
+	chmod 644 /var/home/paradyn/man/man?/*
