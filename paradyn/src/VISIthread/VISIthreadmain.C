@@ -765,6 +765,7 @@ void *VISIthreadmain(void *vargs){
   callbacks.fFunc = VISIthreadFoldCallback;
   callbacks.pFunc = VISIthreadPhaseCallback;
   callbacks.sFunc = 0;
+  callbacks.bFunc = 0;
   callbacks.cFunc = 0;
   callbacks.eFunc = VISIthreadEnableCallback;
 
