@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.91 2003/03/17 03:05:41 schendel Exp $
+// $Id: linux.C,v 1.92 2003/03/17 21:16:46 bernat Exp $
 
 #include <fstream.h>
 
@@ -247,6 +247,8 @@ int decodeRTSignal(process *proc,
     // from the runtime library. Check the RT lib's
     // status variable and return it.
     // These should be made constants
+    if (!proc) return 0;
+
     string status_str = string("DYNINST_instSyscallState");
     string arg_str = string("DYNINST_instSyscallArg1");
 

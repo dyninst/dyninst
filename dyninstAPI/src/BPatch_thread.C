@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.78 2003/03/14 23:18:21 bernat Exp $
+// $Id: BPatch_thread.C,v 1.79 2003/03/17 21:16:46 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -262,11 +262,6 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
 	BPatch::bpatch->getThreadEventOnly(false);
 	proc->launchRPCs(false);
     }
-
-#if defined(alpha_dec_osf4_0) 
-    // need to perform this after dyninst Heap is present and happy 
-    proc->getDyn()->setMappingHooks(proc); 
-#endif 
 
     insertVForkInst(this);
 }
@@ -545,18 +540,18 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
     bool had_unreportedStop = unreportedStop;
     if (isStopped()) was_stopped = true;
     else was_stopped = false;
-
+    
     stopExecution();
 
     bool ret = proc->dumpCore(file);
     if (ret && terminate) {
-	terminateExecution();
+        terminateExecution();
     } else if (was_stopped) {
     	unreportedStop = had_unreportedStop;
     } else {
-	continueExecution();
+        continueExecution();
     }
-
+    
     return ret;
 }
 
@@ -1289,7 +1284,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     if (dlopen_func == NULL) return false;
 
     BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
-
+    
     if (!oneTimeCodeInternal(call_dlopen, NULL, true)) {
       // dlopen FAILED
       // find the (global var) error string in the RT Lib and send it to the

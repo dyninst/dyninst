@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.15 2003/03/17 03:05:44 schendel Exp $
+// $Id: sol_proc.C,v 1.16 2003/03/17 21:16:46 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -202,6 +202,7 @@ bool dyn_lwp::isRunning() const {
 bool dyn_lwp::clearSignal() {
     long command[2];
     //fprintf(stderr, "Clearing signal from process\n");
+    
     command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("clearSignal: PCRUN");
@@ -226,7 +227,6 @@ bool dyn_lwp::continueLWP() {
 
   // Check the current status
   if (!get_status(&status)) {
-      cerr << "Failed to get process status in continueLWP" << endl;
       return false;
   }
   
@@ -237,13 +237,14 @@ bool dyn_lwp::continueLWP() {
   // The process will re-stop (since we re-run with PRSTOP). At
   // this point we continue it.
   if ((status.pr_flags & PR_STOPPED)
-      && (status.pr_why == PR_SIGNALLED)
-      && (status.pr_what == SIGSTOP || 
+      && (status.pr_why == PR_SIGNALLED)) {
+      if (status.pr_what == SIGSTOP || 
           status.pr_what == SIGINT ||
-          status.pr_what == SIGTRAP)) {
-      clearSignal();
+          status.pr_what == SIGTRAP) {
+          clearSignal();
+      }
   }
-
+  
   command[0] = PCRUN; command[1] = PRCSIG;
 
   pc = (Address)(GETREG_PC(status.pr_reg));
@@ -285,6 +286,7 @@ bool dyn_lwp::continueLWP() {
       }
 
       long command[2];
+      
       command[0] = PCRUN;
       command[1] = 0; // No arguments to PCRUN
       if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
@@ -386,6 +388,7 @@ bool dyn_lwp::abortSyscall()
     memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
     
     long command[2];
+    
     command[0] = PCRUN;
     command[1] = PRSABORT;
     
@@ -473,7 +476,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters()
 {
     lwpstatus_t status;
     if (!get_status(&status)) return NULL;
-    
+
     struct dyn_saved_regs *regs = new dyn_saved_regs();
     // Process must be stopped for register data to be correct.
 
@@ -496,11 +499,12 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
     char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
     *regbufptr = PCSREG; regbufptr++;
     memcpy(regbufptr, &(regs->theIntRegs), sizeof(prgregset_t));
-
-    if (write(ctl_fd(), regbuf, regbufsize) != regbufsize) {
+    int writesize;
+    writesize = write(ctl_fd(), regbuf, regbufsize);
+    if (writesize != regbufsize) {
+        fprintf(stderr, "Only wrote %d bytes to fd %d, expecting %d\n",
+                writesize, ctl_fd(), regbufsize);
         perror("restoreRegisters GPR write");
-        sleep(10);
-        
         return false;
     }
     
@@ -560,10 +564,12 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
     // nPC will be overwritten by the PC write
     GETREG_nPC(local->theIntRegs) = addr + sizeof(instruction);
     GETREG_PC(local->theIntRegs) = addr;
-
     
-    restoreRegisters(local);
+    if (!restoreRegisters(local))
+        return false;
+    
     delete local;
+
     return true;
 }
 
@@ -687,8 +693,8 @@ bool process::installSyscallTracing()
     long command[2];
     command[0] = PCSET;
 
-    long flags = PR_BPTADJ | PR_FORK | PR_ASYNC | PR_RLC | PR_MSACCT;
-
+    long flags = PR_BPTADJ | PR_FORK | PR_MSACCT;
+    // PR_ASYNC removed, PR_RLC removed
     command[1] = flags;
 
     if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
@@ -741,7 +747,7 @@ bool process::installSyscallTracing()
 
 /*
    Open the /proc file correspoding to process pid, 
-   set the signals to be caught to be only SIGSTOP and SIGTRAP,
+   set the signals to be caught,
    and set the kill-on-last-close and inherit-on-fork flags.
 */
 extern string pd_flavor ;
@@ -780,10 +786,13 @@ bool process::attach_() {
     status_fd_ = P_open(temp, O_RDONLY, 0);
     if (status_fd_ < 0) perror("Opening status fd");
     
-    // step 2) /proc PIOCSTRACE: define which signals should be forwarded to daemon
-    //   These are (1) SIGSTOP and (2) either SIGTRAP (sparc) or SIGILL (x86), to
-    //   implement inferiorRPC completion detection.
-    
+    // step 2) /proc PIOCSTRACE: define which signals should be
+    // forwarded to daemon These are (1) SIGSTOP and (2) either
+    // SIGTRAP (sparc) or SIGILL (x86), to implement inferiorRPC
+    // completion detection.
+    // Also detect SIGCONT so that we know if a user has restarted
+    // an application.
+  
     proc_sigset_t sigs;
     
     premptyset(&sigs);
@@ -794,6 +803,9 @@ bool process::attach_() {
 #else
     praddset(&sigs, SIGILL);
 #endif    
+    
+    praddset(&sigs, SIGCONT);
+    
     int bufsize = sizeof(long) + sizeof(proc_sigset_t); char buf[bufsize]; 
     long *bufptr = (long *) buf;
     *bufptr = PCSTRACE; bufptr++;
@@ -814,6 +826,7 @@ bool process::isRunning_() const {
 }
 
 bool process::continueProc_() {
+    
   ptraceOps++; ptraceOtherOps++;
   return getDefaultLWP()->continueLWP();
 #if 0
@@ -890,6 +903,12 @@ bool process::pause_() {
    close the file descriptor for the file associated with a process
 */
 bool process::detach_() {
+    // First we want to clear any signal which might be pending
+    // for the process. Otherwise, when we detach the process has
+    // a signal sent that it may have no clue about
+    // But we can't do that here -- all FDs associated with the process
+    // are closed.
+
    close(procHandle_);
    close(as_fd_);
    close(ps_fd_);

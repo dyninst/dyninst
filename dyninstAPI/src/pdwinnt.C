@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.82 2003/03/13 00:47:55 buck Exp $
+// $Id: pdwinnt.C,v 1.83 2003/03/17 21:16:46 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -752,7 +752,9 @@ DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
 
 // Process creation
 DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
+    
     if (proc) {
+        
         dyn_lwp *l = proc->getDefaultLWP();
         if (!l) {
             // It's possible we never created the default LWP
@@ -1023,9 +1025,11 @@ process *decodeProcessEvent(int pid,
       what = info.u.Exception.ExceptionRecord.ExceptionCode;
       break;
   case CREATE_THREAD_DEBUG_EVENT:
+      
       why = procThreadCreate;
       break;
   case CREATE_PROCESS_DEBUG_EVENT:
+      
       why = procProcessCreate;
       break;
   case EXIT_THREAD_DEBUG_EVENT:
@@ -1078,6 +1082,12 @@ dyn_lwp *process::createLWP(unsigned lwp_id, int index, handleT fd) {
    return lwp;
 }
 
+bool process::installSyscallTracing()
+{
+    return true;
+}
+
+
 bool process::attach_() {
   if (createdViaAttach) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
@@ -1117,13 +1127,15 @@ bool process::attach_() {
 /* continue a process that is stopped */
 bool process::continueProc_() {
   for (unsigned u = 0; u < threads.size(); u++) {
-      unsigned count;
-      
+      unsigned count = 0;
+      if (threads->get_lwp()) {
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-      count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+          count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
-      count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+          count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
+      }
+      
       if (count == 0xFFFFFFFF) {
           printSysError(GetLastError());
           return false;
@@ -1151,12 +1163,15 @@ bool process::terminateProc_()
 */
 bool process::pause_() {
     for (unsigned u = 0; u < threads.size(); u++) {
-        unsigned count ;
+        unsigned count = 0;
+        if (threads[u]->get_lwp()) {
+            
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-        count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
-#else
-        count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+            count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+#else            
+            count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
+        }
         if (count == 0xFFFFFFFF) {
             // printf("pause_: %d\n", threads[u]->get_tid());
             // printSysError(GetLastError());
