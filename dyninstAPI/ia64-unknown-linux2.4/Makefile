@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2004/03/03 17:04:53 bernat Exp $
+# $Id: Makefile,v 1.13 2004/03/05 16:50:49 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,6 +21,7 @@ include ../../make.config
 SRCS =	../src/linux.C \
 		../src/linux-ia64.C \
 		../src/linuxDL.C \
+		../src/dynamiclinking.C \
 		../src/linuxMT.C \
 		../src/inst-linux.C \
 		../src/inst-ia64.C \

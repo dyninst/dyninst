@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/07/31 19:01:05 schendel Exp $
+# $Id: Makefile,v 1.3 2004/03/05 16:50:59 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,6 +29,7 @@ VPATH        += ../../rtinst/h:../../rtinst/src
 
 SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/linuxDL.C \
+		../../dyninstAPI/src/dynamiclinking.C \
 		../src/init-linux.C \
 		../../dyninstAPI/src/inst-linux.C \
 		../../dyninstAPI/src/inst-ia64.C \

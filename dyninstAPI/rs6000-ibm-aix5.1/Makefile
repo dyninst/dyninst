@@ -31,6 +31,7 @@ endif
 SRCS =		../src/aix.C \
 		../src/aixMT.C \
 		../src/aixDL.C \
+		../src/dynamiclinking.C \
 		../src/sol_proc.C \
 		../src/inst-power.C \
 		../src/inst-aix.C \

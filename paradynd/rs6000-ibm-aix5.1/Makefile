@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2004/03/02 22:45:53 bernat Exp $
+# $Id: Makefile,v 1.10 2004/03/05 16:51:01 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,6 +30,7 @@ SRCS =		../../dyninstAPI/src/aix.C \
 		../../dyninstAPI/src/sol_proc.C \
 		../../dyninstAPI/src/aixMT.C \
 		../../dyninstAPI/src/aixDL.C \
+		../../dyninstAPI/src/dynamiclinking.C \
 		../../paradynd/src/init-aix.C \
 		../../paradynd/src/proc-aix.C \
 		../../dyninstAPI/src/inst-power.C \

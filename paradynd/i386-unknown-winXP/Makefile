@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/10/30 00:52:48 rchen Exp $
+# $Id: Makefile,v 1.2 2004/03/05 16:50:58 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,7 +27,9 @@ SRCS =		../src/pdwinnt.C \
 		../src/arch-x86.C \
 		../src/arch-ia32.C \
 		../../rtinst/src/RThwtimer-winnt.c \
-		../../dyninstAPI/src/InstrucIter-x86.C
+		../../dyninstAPI/src/InstrucIter-x86.C \
+		../../dyninstAPI/src/pdwinntDL.C \
+		../../dyninstAPI/src/dynamiclinking.C
 
 OBJS = 		pdwinnt.obj \
 		Object-nt.obj \
@@ -42,7 +44,9 @@ OBJS = 		pdwinnt.obj \
 		arch-x86.obj \
 		arch-ia32.obj \
 		RThwtimer-winnt.obj \
-		InstrucIter-x86.obj
+		InstrucIter-x86.obj \
+		pdwinntDL.obj \
+		dynamiclinking.obj
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -MT
 
