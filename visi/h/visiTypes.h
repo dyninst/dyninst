@@ -16,9 +16,12 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.3  1994/07/28 22:23:19  krisna
-/* changed definition of ERROR to use NaN(X)
+/* Revision 1.4  1994/07/30 03:26:56  newhall
+/* added new msgTag type ENABLED
 /*
+ * Revision 1.3  1994/07/28  22:23:19  krisna
+ * changed definition of ERROR to use NaN(X)
+ *
  * Revision 1.2  1994/05/23  20:55:19  newhall
  * To visi_GridCellHisto class: added deleted flag, SumValue
  * method function, and fixed AggregateValue method function
@@ -51,9 +54,12 @@ static double visi_nan = 0;
 
 //
 // event types associated with events from Paradyn to a visualization
+// DATAVALUES:  a new set of data has arrived in the datagrid
+// INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
+// ADDMETRICSRESOURCES:  new metric
 //
 typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
-	      NEWMETRICSRESOURCES,PHASENAME,FOLD} msgTag;
+	      NEWMETRICSRESOURCES,PHASENAME,ENABLED,FOLD} msgTag;
 
 
 typedef float sampleType;
