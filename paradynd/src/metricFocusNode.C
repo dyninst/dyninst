@@ -287,9 +287,10 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 					   bool& internal)
 {
     vector< vector<string> > canonicalFocus;
-    if (!focus2CanonicalFocus(focus, canonicalFocus, enable)) {
-       if (enable) // for real, so an error msg is appropriate
-	  cerr << "createMetricInstance failed because focus2CanonicalFocus failed" << endl;
+    // we make third parameter false to avoid printing warning messages in
+    // focus2CanonicalFocus ("enable" was here previously) - naim
+    if (!focus2CanonicalFocus(focus, canonicalFocus, false)) {
+       //if (enable) cerr << "createMetricInstance failed because focus2CanonicalFocus failed" << endl;
        return NULL;
     }
 
