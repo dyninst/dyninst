@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.29 2001/06/20 20:33:38 schendel Exp $
+// $Id: DMperfstream.C,v 1.30 2001/08/23 14:43:44 schendel Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -180,8 +180,8 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 		 assert(my_buffer);
 	    }
 	    (*my_buffer)[next_buffer_loc].mi = mi; 
-	    (*my_buffer)[next_buffer_loc].bucketNum = i; 
-	    (*my_buffer)[next_buffer_loc].value = buckets[i-first]; 
+	    (*my_buffer)[next_buffer_loc].bucketNum = i;
+	    (*my_buffer)[next_buffer_loc].value  = buckets[i-first];
 	    (*my_buffer)[next_buffer_loc].type = type; 
 	    next_buffer_loc++;
 	    if(next_buffer_loc >= my_buffer_size) {
@@ -254,6 +254,22 @@ void performanceStream::callFoldFunc(timeLength width, phaseType phase_type)
     }
 }
 
+void performanceStream::callInitialActualValueFunc(metricHandle mi,
+						   pdSample initActVal,
+						   phaseType phase_type)
+{
+    if (controlFunc.avFunc) {
+        // we're creating this width variable in the heap so that when passed
+        // to a different thread it can be read (as opposed to a variable on
+        // the stack)
+        pdSample *heapInitActVal = new pdSample;
+        // width_heap is deleted by a callee of histFold()
+        *heapInitActVal = initActVal;
+	dataManager::dm->setTid(threadId);
+	dataManager::dm->setInitialActualValue(controlFunc.avFunc, handle, 
+					       mi, heapInitActVal, phase_type);
+    }
+}
 
 void performanceStream::callStateFunc(appState state)
 {

@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.22 2001/06/20 20:33:38 schendel Exp $
+// $Id: DMperfstream.h,v 1.23 2001/08/23 14:43:45 schendel Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
 
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
-#include "pdutil/h/aggregateSample.h"
 #include <string.h>
 #include "paradyn/src/UIthread/Status.h"
 #include <stdlib.h>
@@ -98,12 +97,14 @@ class performanceStream {
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 
 	~performanceStream();
-	void callSampleFunc(metricInstanceHandle,
-			    pdSample *, int, int, phaseType);
+	void callSampleFunc(metricInstanceHandle mi, pdSample *buckets,
+			    int count, int first, phaseType type);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeLength width, phaseType phase_type);
+	void callInitialActualValueFunc(metricHandle mi, pdSample initActVal,
+					phaseType phase_type);
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
 	void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);

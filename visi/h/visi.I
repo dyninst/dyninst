@@ -14,7 +14,7 @@
  *
  */
 
-/* $Id: visi.I,v 1.18 1998/04/01 01:28:17 wylie Exp $ */ 
+/* $Id: visi.I,v 1.19 2001/08/23 14:44:45 schendel Exp $ */ 
 
 
 $remote struct metricType {
@@ -70,6 +70,10 @@ $remote visualization {
 
   // a fold event from paradyn
   $async void Fold(double newBucketWidth);
+
+  // a fold event from paradyn
+  $async void setInitialActualValue(u_int metricId, u_int resourceId,
+				    double initActVal);
 
   //
   // A metric/focus pair has become invalid (from Paradyn)
