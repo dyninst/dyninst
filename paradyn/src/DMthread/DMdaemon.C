@@ -40,8 +40,10 @@
  */
 
 /*
- *  method functions for paradynDaemon and daemonEntry classes
+ * $Id: DMdaemon.C,v 1.78 1998/03/04 19:53:04 wylie Exp $
+ * method functions for paradynDaemon and daemonEntry classes
  */
+
 #include <assert.h>
 extern "C" {
 double   quiet_nan();
@@ -304,7 +306,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
         }
     }
   
-    // find a matching entry in the dicitionary, and start it
+    // find a matching entry in the dictionary, and start it
     daemonEntry *def = findEntry(machine, name);
     if (!def) {
 	if (name.length()) {
@@ -318,7 +320,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     }
 
     string m = machine; 
-    // fill in machine name if emtpy
+    // fill in machine name if empty
     if (!m.string_of()) {
         m = default_host;
     }
@@ -527,8 +529,9 @@ static int startBlzApp(const string &machine,
         string localhost ;                     // "-m"   gethostname
         int  port = dataManager::dm->socket ;  // "-p"   dataManager::sock_fd
 
-        char temp[256], *p ;
-        gethostname(temp, 32);
+        char temp[256], *p;
+        string hostname = getHostName();
+        strcpy (temp, hostname.string_of());
         if((p = strchr(temp, '.'))) *p = '\0' ;
         localhost += temp ;
 
@@ -1368,7 +1371,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
       command = loc;
     }
   
-    status = new status_line(machine.string_of());
+    status = new status_line(machine.string_of(), status_line::PROCESS);
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons+=pd;
     id = paradynDaemon::allDaemons.size()-1;
@@ -1616,7 +1619,7 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
   } else {
     machine = m.string_of();
     command = p.string_of();
-    status = new status_line(machine.string_of());
+    status = new status_line(machine.string_of(), status_line::PROCESS);
 
     if(flavor == "pvm") {
       name = "pvmd";

@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: Status.C,v 1.6 1998/03/04 19:53:18 wylie Exp $
+
 #include "Status.h"
 
 /************************************************************************
@@ -46,21 +48,23 @@
 ************************************************************************/
 
 unsigned    status_line::n_lines_ = 0;
+unsigned    status_line::n_procs_ = 0;
 Tcl_Interp* status_line::interp_  = 0;
 
 /************************************************************************
  * implementations of member functions
 ************************************************************************/
 
-status_line::status_line(const char* title)
-    : id_(n_lines_++) {
+status_line::status_line(const char* title, const LineType type)
+    : type_(type) {
+    if (type_==PROCESS) id_=n_procs_++; else id_=n_lines_++;
     create(title);
 }
 
 status_line::~status_line() {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_destroy %u", id_);
+    (void) sprintf(buf, "status_destroy %c %u", type_, id_);
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::~status_line: command `%s' -> `%s'\n",
@@ -73,8 +77,8 @@ void
 status_line::message(const char* msg) {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_message %u {%-*.*s}",
-        id_, (int) MESG_LENGTH, (int) MESG_LENGTH, msg);
+    (void) sprintf(buf, "status_message %c %u {%-*.*s}",
+        type_, id_, (int) MESG_LENGTH, (int) MESG_LENGTH, msg);
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::message: command `%s' -> `%s'\n",
@@ -93,7 +97,7 @@ void
 status_line::state(State st) {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_state %u %u", id_, (st != NORMAL));
+    (void) sprintf(buf, "status_state %c %u %u", type_, id_, (st != NORMAL));
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::state: command `%s' -> `%s'\n",
@@ -111,8 +115,8 @@ void
 status_line::create(const char* title) {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_create %u {%-*.*s}",
-        id_, (int) TITLE_LENGTH, (int) TITLE_LENGTH, title);
+    (void) sprintf(buf, "status_create %c %u {%-*.*s}",
+        type_, id_, (int) TITLE_LENGTH, (int) TITLE_LENGTH, title);
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::create: command `%s' -> `%s'\n",

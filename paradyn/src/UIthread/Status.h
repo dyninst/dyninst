@@ -41,6 +41,7 @@
 
 /************************************************************************
  * Status.h: tcl/tk text-widget based status lines.
+ * $Id: Status.h,v 1.10 1998/03/04 19:53:19 wylie Exp $
 ************************************************************************/
 
 
@@ -66,13 +67,18 @@ static const unsigned MESG_LENGTH    = 200;
 
 class status_line {
 public:
-     status_line (const char *);
-    ~status_line ();
+    enum LineType {
+        GENERAL='g',
+        PROCESS='p'
+    };
 
     enum State {
         NORMAL,
         URGENT
     };
+
+     status_line (const char *, const LineType=GENERAL);
+    ~status_line ();
 
     void            message (const char *);
     status_line& operator<< (const char *);
@@ -83,9 +89,11 @@ public:
 private:
     void             create (const char *);
 
+    LineType type_;
     unsigned id_;
 
     static unsigned    n_lines_;
+    static unsigned    n_procs_;
     static Tcl_Interp* interp_;
 
     status_line            (const status_line &); // explicitly private
