@@ -67,6 +67,34 @@ string machineHierarchy::getName() const {
    return name;
 }
 
+int machineHierarchy::getPid() const {
+  int pid = -1;
+  if(process.length() > 2) { // of format executable{pid}
+    const char *beg = process.c_str();
+    const char *lparen;
+    for(lparen = beg; *lparen!='{' && *lparen!=0; lparen++) ;
+    char tempBuf[20];
+    char *ts = tempBuf;
+    for(const char *p = lparen + 1; isdigit(*p); p++)
+      *ts = *p;
+    pid = atoi(tempBuf);
+  }
+  return pid;
+}
+
+void machineHierarchy::setPid(int pid) {
+  if(process.length() > 2) { // of format executable{pid}
+    const char *beg = process.c_str();
+    char execName[200];  // th
+    char *ts = execName;
+    for(const char *p = beg; *p!='{' && *p!=0; p++, ts++)
+      *ts = *p;
+    *ts = 0;
+    string new_process = string(execName) + "{" + string(pid) + "}";
+    process = new_process;
+  }
+}
+
 int machineHierarchy::getThreadID() const {
    int thr_id = -1;
 
@@ -414,5 +442,11 @@ vector< vector<string> > Focus::tokenized() const {
 
 ostream& operator<<(ostream &s, const Focus &f) {
   return s << f.getName();
+}
+
+Focus adjustFocusForPid(const Focus &foc, int pid) {
+  Focus tempFocus = foc;
+  tempFocus.setPid(pid);
+  return tempFocus;  // object copy
 }
 

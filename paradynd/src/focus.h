@@ -65,6 +65,8 @@ class machineHierarchy : public Hierarchy {
   string thread;
  public:
   machineHierarchy(const vector<string> &setupInfo);
+  int getPid() const;
+  void setPid(int pid);
   int getThreadID() const;
   string getName() const;
   bool allMachines() const { 
@@ -217,6 +219,8 @@ class Focus {
   string get_machine() const { return machineInfo->get_machine(); }
   string get_process() const { return machineInfo->get_process(); }
   string get_thread()  const { return machineInfo->get_thread();  }
+  int getPid() const    { return machineInfo->getPid(); }
+  void setPid(int pid)  { machineInfo->setPid(pid); }
   int getThreadID() const    { return machineInfo->getThreadID(); }
   bool machine_defined() const { return machineInfo->machine_defined(); }
   bool process_defined() const { return machineInfo->process_defined(); }
@@ -248,6 +252,9 @@ class Focus {
 class ostream;
 
 ostream& operator<<(ostream &s, const Focus &f);
+
+// returns a focus, the same as the given focus, only with the given pid
+Focus adjustFocusForPid(const Focus &foc, int pid);
 
 
 #endif
