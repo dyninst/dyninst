@@ -29,6 +29,7 @@ int main(int argc, char **argv)
     int i, status;
     std::list <Packet *> packet_list;
 
+    //set_OutputLevel(5);
     if(argc != 4){
         fprintf(stderr, "Usage: %s port phostname pport\n",
                 argv[0]);
@@ -71,7 +72,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "XPlat::TLSKey::Set(): %s\n", strerror(status)); 
         exit(-1);
     }
-    tsd_initialized = true;
 
     comm_node = new InternalNode(hostname, port,
                                 parent_hostname, parent_port );

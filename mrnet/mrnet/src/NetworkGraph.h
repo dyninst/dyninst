@@ -162,8 +162,8 @@ inline std::string SerialGraph::get_ByteArray()
 
 inline void SerialGraph::print()
 {
-    mrn_printf(2, MCFL, stderr, "Serial Graph (%d nodes) = %s.\n", num_nodes,
-               byte_array.c_str());
+    mrn_dbg(2, mrn_printf(FLF, stderr, "Serial Graph (%d nodes) = %s.\n",
+						  num_nodes, byte_array.c_str()));
 }
 
 inline unsigned int SerialGraph::get_NumNodes()

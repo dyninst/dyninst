@@ -483,17 +483,17 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
 	assert( array_len0 == array_len1 );
 	unsigned int curClassMemIdx = 0;
 	for( unsigned int j = 0; j < array_len0; j++ ) {
-	    mrn_printf( 3, MCFL, stderr,
+	    mrn_dbg( 3, mrn_printf(FLF, stderr,
 			"\tclass %d: val = %u, nMems = %u, mems = ", j,
-			vals[j], memcnts[j] );
+			vals[j], memcnts[j] ));
 
 	    // update the members for the current class
 	    for( unsigned int k = 0; k < memcnts[j]; k++ ) {
-	        mrn_printf( 3, MCFL, stderr, "%d ",
-			    mems[curClassMemIdx + k] );
+	        mrn_dbg( 3, mrn_printf(FLF, stderr, "%d ",
+			    mems[curClassMemIdx + k] ));
 		classes[vals[j]].push_back( mems[curClassMemIdx + k] );
 	    }
-	    mrn_printf( 3, MCFL, stderr, "\n" );
+	    mrn_dbg( 3, mrn_printf(FLF, stderr, "\n" ));
 	    curClassMemIdx += memcnts[j];
 	}
     }
@@ -532,22 +532,22 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
 		       mems, nMems );
     packets_out.push_back( new_packet );
 
-    mrn_printf( 3, MCFL, stderr, "tfilter_IntEqClass: returning\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "tfilter_IntEqClass: returning\n" ));
     unsigned int curMem = 0;
     for( i = 0; i < classes.size(  ); i++ ) {
-        mrn_printf( 3, MCFL, stderr,
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
 		    "\tclass %d: val = %u, nMems = %u, mems = ", i,
 		    ( ( unsigned int * )( packets_out[0][0]->val.p) )[i],
-		    ( ( unsigned int * )( packets_out[0][1]->val.p) )[i] );
+		    ( ( unsigned int * )( packets_out[0][1]->val.p) )[i] ));
 	for( unsigned int j = 0;
 	     j < ( ( unsigned int * )( packets_out[0][1]->val.p ) )[i];
 	     j++ ) {
-	    mrn_printf( 3, MCFL, stderr, "%d ",
+	    mrn_dbg( 3, mrn_printf(FLF, stderr, "%d ",
 			( ( unsigned int * )( packets_out[0][2]->val.
-					      p ) )[curMem] );
+					      p ) )[curMem] ));
 	    curMem++;
 	}
-	mrn_printf( 3, MCFL, stderr, "\n" );
+	mrn_dbg( 3, mrn_printf(FLF, stderr, "\n" ));
     }
 }
 
@@ -562,16 +562,16 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
 {
     std::map < RemoteNode *, std::list < Packet >*>*PacketListByNode;
     
-    mrn_printf( 3, MCFL, stderr, "In sync_WaitForAll()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In sync_WaitForAll()\n" ));
     if( *local_storage == NULL ) {
         PacketListByNode =
             new std::map < RemoteNode *, std::list < Packet >*>;
         *local_storage = PacketListByNode;
 
         std::list < RemoteNode * >::const_iterator iter;
-        mrn_printf( 3, MCFL, stderr,
+        mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "Creating Map of %d downstream_nodes\n",
-                    downstream_nodes.size(  ) );
+                    downstream_nodes.size(  ) ));
         for( iter = downstream_nodes.begin(  );
              iter != downstream_nodes.end(  ); iter++ ) {
             ( *PacketListByNode )[( *iter )] = new std::list < Packet >;
@@ -584,8 +584,8 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
     }
 
     //place all incoming packets in appropriate list
-    mrn_printf( 3, MCFL, stderr, "Placing %d incoming packets\n",
-                packets_in.size(  ) );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Placing %d incoming packets\n",
+                packets_in.size(  ) ));
     for( unsigned int i=0; i<packets_in.size(); i++ ){
         ( ( *PacketListByNode )[ packets_in[i].get_InletNode() ] )->
             push_back(  packets_in[i] );
@@ -593,28 +593,28 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
     packets_in.clear(  );
 
     //check to see if all lists have at least one packet, "a wave"
-    mrn_printf( 3, MCFL, stderr,
-                "Checking if all downstream_nodes are ready ..." );
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
+                "Checking if all downstream_nodes are ready ..." ));
     std::map < RemoteNode *, std::list < Packet >*>::iterator iter2;
     for( iter2 = PacketListByNode->begin(  );
          iter2 != PacketListByNode->end(  ); iter2++ ) {
         if( ( ( *iter2 ).second )->size(  ) == 0 ) {
             //all lists not ready!
-            mrn_printf( 3, 0, 0, stderr, "no!\n" );
+            mrn_dbg( 3, mrn_printf(0,0,0, stderr, "no!\n" ));
             return;
         }
     }
-    mrn_printf( 3, 0, 0, stderr, "yes!\n" );
+    mrn_dbg( 3, mrn_printf(0,0,0, stderr, "yes!\n" ));
 
-    mrn_printf( 3, MCFL, stderr, "Placing outgoing packets\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Placing outgoing packets\n" ));
     //if we get here, all lists ready. push front of all lists onto "packets_out"
     for( iter2 = PacketListByNode->begin(  );
          iter2 != PacketListByNode->end(  ); iter2++ ) {
         packets_out.push_back( ( ( *iter2 ).second )->front(  ) );
         ( ( *iter2 ).second )->pop_front(  );
     }
-    mrn_printf( 3, MCFL, stderr, "Returning %d outgoing packets\n",
-                packets_out.size(  ) );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Returning %d outgoing packets\n",
+                packets_out.size(  ) ));
 }
 
 void sfilter_TimeOut( std::vector < Packet >&,

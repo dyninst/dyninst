@@ -47,8 +47,8 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
 
     so_handle = XPlat::SharedObject::Load( so_file );
     if( so_handle == NULL ) {
-        mrn_printf( 1, MCFL, stderr, "XPlat::SharedObject::Load(\"%s\"): %s\n",
-                 so_file, XPlat::SharedObject::GetErrorString() );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "XPlat::SharedObject::Load(\"%s\"): %s\n",
+                 so_file, XPlat::SharedObject::GetErrorString() ));
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::Load(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );
@@ -60,8 +60,8 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
 
     func_ptr = so_handle->GetSymbol( func );
     if( func_ptr == NULL ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "XPlat::SharedObject::GetSymbol() failed.\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "XPlat::SharedObject::GetSymbol() failed.\n" ));
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );
@@ -74,8 +74,8 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
 
     fmt_str = ( const char * )so_handle->GetSymbol( func_fmt_str.c_str() );
     if( fmt_str == NULL ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "XPlat::SharedObject::GetSymbol() failed.\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "XPlat::SharedObject::GetSymbol() failed.\n" ));
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );
@@ -109,13 +109,13 @@ TransFilter::~TransFilter(  )
 int TransFilter::push_packets( std::vector < Packet >&packets_in,
                                std::vector < Packet >&packets_out )
 {
-    mrn_printf( 3, MCFL, stderr, "In aggr.push_packets()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "In aggr.push_packets()\n" ));
     
     if( trans_filter == NULL ) {  //do nothing
         packets_out = packets_in;
         packets_in.clear(  );
-        mrn_printf( 3, MCFL, stderr, "NULL FILTER: returning %d packets\n",
-                    packets_out.size(  ) );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "NULL FILTER: returning %d packets\n",
+                    packets_out.size(  ) ));
         return 0;
     }
 
@@ -123,9 +123,9 @@ int TransFilter::push_packets( std::vector < Packet >&packets_in,
     trans_filter( packets_in, packets_out, &local_storage );
     packets_in.clear(  );
     
-    mrn_printf( 3, MCFL, stderr, "trans_filter() returned %u packets\n",
-                packets_out.size() );
-    mrn_printf( 3, MCFL, stderr, "Leaving aggr.push_packets()\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "trans_filter() returned %u packets\n",
+                packets_out.size() ));
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving aggr.push_packets()\n" ));
     return 0;
 }
 
@@ -151,15 +151,15 @@ SyncFilter::~SyncFilter(  )
 int SyncFilter::push_packets( std::vector < Packet >&packets_in,
                               std::vector < Packet >&packets_out )
 {
-    mrn_printf( 3, MCFL, stderr,
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "In sync.push_packets(). Pushing %d packets\n",
-                packets_in.size(  ) );
+                packets_in.size(  ) ));
 
     if( sync_filter == NULL ) {  //do nothing
         packets_out = packets_in;
         packets_in.clear(  );
-        mrn_printf( 3, MCFL, stderr, "NULL FILTER: returning %d packets\n",
-                    packets_out.size(  ) );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "NULL FILTER: returning %d packets\n",
+                    packets_out.size(  ) ));
         return 0;
     }
 
@@ -167,9 +167,9 @@ int SyncFilter::push_packets( std::vector < Packet >&packets_in,
     //TODO: put exception block to catch user error
     sync_filter( packets_in, packets_out, downstream_nodes, &local_storage );
     fsync.Unlock(  );
-    mrn_printf( 3, MCFL, stderr,
+    mrn_dbg( 3, mrn_printf(FLF, stderr,
                     "Leaving sync.push_packets(). Returning %d packets\n",
-                packets_out.size(  ) );
+                packets_out.size(  ) ));
     return 0;
 }
 
