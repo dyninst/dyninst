@@ -1,8 +1,12 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.17  1994/04/01 20:05:27  hollings
-Removed kill of rsh process (not needed and it causes a race condition).
+Revision 1.18  1994/04/06 22:46:12  markc
+Fixed bug in XDRrpc constructor that clobbered the fd value.  Added feature
+to RPC_readReady to do blocking select.
 
+ * Revision 1.17  1994/04/01  20:05:27  hollings
+ * Removed kill of rsh process (not needed and it causes a race condition).
+ *
  * Revision 1.16  1994/04/01  04:59:13  markc
  * Put in support to encode NULL ptrs to strings in xdr_String.
  *
@@ -24,7 +28,50 @@ Removed kill of rsh process (not needed and it causes a race condition).
 
 #include <signal.h>
 #include <sys/wait.h>
+
+/* prevents malloc from being redefined */
+#ifdef MIPS
+#define MALLOC_DEFINED_AS_VOID
+#endif
+
 #include "util/h/rpcUtil.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <memory.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/file.h>
+
+extern "C" {
+#include <rpc/types.h>
+#include <rpc/xdr.h>
+}
+
+// functions that g++-fixincludes missed
+#ifdef MIPS
+extern "C" {
+void bzero (char*, int);
+int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
+char *strdup (char*);
+int gethostname(char*, int);
+int socket(int, int, int);
+int bind(int s, struct sockaddr *, int);
+int getsockname(int, struct sockaddr*, int *);
+int listen(int, int);
+int connect(int s, struct sockaddr*, int);
+int socketpair(int, int, int, int sv[2]);
+int vfork();
+int accept(int, struct sockaddr *addr, int *); 
+}
+#endif
+
 
 #define RSH_COMMAND	"rsh"
 
@@ -114,13 +161,20 @@ int
 RPC_readReady (int fd, int timeout)
 {
   fd_set readfds;
-  struct timeval tvptr;
+  struct timeval tvptr, *the_tv;
 
   tvptr.tv_sec = timeout; tvptr.tv_usec = 0;
   if (fd < 0) return -1;
   FD_ZERO(&readfds);
   FD_SET (fd, &readfds);
-  if (select (fd+1, &readfds, NULL, NULL, &tvptr) == -1)
+
+  // -1 timeout = blocking select
+  if (timeout == -1)
+     the_tv = 0;
+  else
+     the_tv = &tvptr;
+ 
+  if (select (fd+1, &readfds, NULL, NULL, the_tv) == -1)
     {
       // if (errno == EBADF)
 	return -1;
@@ -252,8 +306,6 @@ XDRrpc::XDRrpc(int family,
 	       int nblock)
      // socket, connect using machine
 {
-  int fd = 0;
-
   struct sockaddr_in serv_addr;
   struct hostent *hostptr = 0;
   struct in_addr *inadr = 0;
