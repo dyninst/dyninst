@@ -58,9 +58,12 @@ class pd_thread {
 
    dyn_thread *get_dyn_thread() { return dyninst_thread; }
 
-   unsigned get_tid() { return dyninst_thread->get_tid(); }
+   unsigned get_tid() const { return dyninst_thread->get_tid(); }
    unsigned get_pos() const { return dyninst_thread->get_pos(); }
    function_base* get_start_func() { return dyninst_thread->get_start_func(); }
+   bool walkStack(vector<Frame> &stackWalk) {
+      return dyninst_thread->walkStack(stackWalk);
+   }
 };
 
 
