@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.32  1995/11/22 00:02:26  mjrg
+ * Revision 1.33  1995/11/28 15:56:59  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
+ * Revision 1.32  1995/11/22  00:02:26  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
  * Removed -f and -t arguments to paradyn
@@ -553,8 +556,8 @@ bool image::symbolExists(const string symname)
 void image::postProcess(const string pifname)
 {
   FILE *Fil;
-  string fname;
-  char errorstr[5000], key[5000];
+  string fname, errorstr;
+  char key[5000];
   char tmp1[5000], abstraction[500];
   resource *parent;
 
@@ -571,10 +574,9 @@ void image::postProcess(const string pifname)
   Fil = P_fopen(fname.string_of(), "r");
 
   if (Fil == NULL) {
-    sprintf(errorstr, 
-	    "Tried to open PIF file %s, but could not (continuing)\n", 
-	    fname.string_of());
-    logLine(errorstr);
+    errorstr = string("Tried to open PIF file ") + fname;
+    errorstr += string(", but could not (continuing)\n");
+    logLine(P_strdup(errorstr.string_of()));
     showErrorCallback(35, errorstr); 
     return;
   }
@@ -601,9 +603,9 @@ void image::postProcess(const string pifname)
       } while (parent != NULL);
       break;
     default:
-      sprintf(errorstr, 
-	      "Ignoring bad line key (%s) in file %s\n", key, fname.string_of());
-      logLine(errorstr);
+      errorstr = string("Ignoring bad line key (") + fname;
+      errorstr += string(") in file %s\n");
+      logLine(P_strdup(errorstr.string_of()));
       fgets(tmp1, 5000, Fil);
       break;
     }
