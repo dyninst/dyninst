@@ -21,9 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.34  1995/11/28 15:50:02  naim
-/* Minor fix. Changing char[number] by string - naim
+/* Revision 1.35  1996/01/09 00:46:52  tamches
+/* added phaseID argument in call to "new shg"; removed it from call to
+/* theShgPhases->add
 /*
+ * Revision 1.34  1995/11/28 15:50:02  naim
+ * Minor fix. Changing char[number] by string - naim
+ *
  * Revision 1.33  1995/11/21  15:17:50  naim
  * Using string instead of char[300] in showError routine - naim
  *
@@ -329,14 +333,15 @@ UIM::initSHG(const char *phaseName, int phaseID)
 {
    assert(theShgPhases);
 
-   shg *theNewShg = new shg(interp,
+   shg *theNewShg = new shg(phaseID, interp,
 			    theShgPhases->getTkWindow(), // _not_ the main window!
 			    theShgPhases->getHorizSBName(),
 			    theShgPhases->getVertSBName(),
 			    theShgPhases->getCurrItemLabelName());
    assert(theNewShg);
 
-   theShgPhases->add(theNewShg, phaseID, phaseName);
+   //theShgPhases->add(theNewShg, phaseID, phaseName);
+   theShgPhases->add(theNewShg, phaseName);
 
    assert(theShgPhases->existsCurrent());
    theShgPhases->getCurrent().resize(theShgPhases->getCurrentId()==phaseID);
