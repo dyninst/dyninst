@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.42 2004/01/19 21:53:55 schendel Exp $
+// $Id: sol_proc.C,v 1.43 2004/02/07 18:34:22 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -217,6 +217,19 @@ bool dyn_lwp::clearSignal() {
     return true;
 }
 
+// Continues the LWP without clearing signal
+bool continueWithSignal(int fd) {
+    long buf[2];
+    buf[0] = PCRUN;
+    buf[1] = 0;
+    cerr << "   calling continueWithSignal\n";
+    if (write(fd, buf, 2*sizeof(long)) != 2*sizeof(long)) {
+        perror("Write: PCRUN with signal");
+        return false;
+    }
+    else return true;
+}
+
 // Get the process running again. May do one or more of the following:
 // 1) Continue twice to clear a signal
 // 2) Restart an aborted system call
@@ -233,6 +246,12 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   if ((0==status.pr_flags & PR_STOPPED) && (0==status.pr_flags & PR_ISTOP)) {
       return false;
   }
+
+
+  if(signalToContinueWith != dyn_lwp::NoSignal) {
+     return continueWithSignal(signalToContinueWith);
+  }
+
   // If the lwp is stopped on a signal we blip it (technical term).
   // The process will re-stop (since we re-run with PRSTOP). At
   // this point we continue it.
@@ -246,10 +265,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   }
   
   command[0] = PCRUN;
-  if(signalToContinueWith == dyn_lwp::NoSignal)
-     command[1] = PRCSIG;  // clear the signal
-  else
-     command[1] = 0;  // don't clear the signal
+  command[1] = PRCSIG;  // clear the signal
 
   pc = (Address)(GETREG_PC(status.pr_reg));
 
@@ -276,8 +292,9 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
       // because we don't want its PC; we want the PC of the system
       // call trap, which was saved in `syscallreg'.
 
-      if (!restoreRegisters(syscallreg_)) return false;
+      if (!restoreRegisters(*syscallreg_)) return false;
       delete syscallreg_;
+      syscallreg_ = NULL;
 
       // We are done -- the process is in the kernel for the system
       // call, with the right registers values.  Make the process
@@ -335,9 +352,9 @@ bool dyn_lwp::abortSyscall()
     // 1. Save the syscall number, registers, and blocked signals
     stoppedSyscall_ = status.pr_syscall;
     // Copy registers as is getRegisters
-    syscallreg_ = new dyn_saved_regs();
+    syscallreg_ = new dyn_saved_regs;
 
-    syscallreg_ = getRegisters();
+    getRegisters(syscallreg_);
 /*
     memcpy(&(syscallreg_->theIntRegs), &(status.pr_reg), sizeof(prgregset_t));
     memcpy(&(syscallreg_->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
@@ -363,7 +380,7 @@ bool dyn_lwp::abortSyscall()
     // Note: On x86/Linux this should probably be 2 bytes, because Linux
     // uses "int" to trap, not lcall.
     
-    syscallreg_->theIntRegs[PC_REG] -= 7;
+    syscallreg_.theIntRegs[PC_REG] -= 7;
 #endif
     
     // 2. Abort the system call
@@ -476,24 +493,24 @@ bool dyn_lwp::stop_() {
 // Get the active frame (PC, FP/SP)
 Frame dyn_lwp::getActiveFrame()
 {
-  dyn_saved_regs *regs = getRegisters();
-  if (!regs) return Frame();
+   struct dyn_saved_regs regs;
+   bool status = getRegisters(&regs);
+   if(status == false)
+      return Frame();
   
-  Frame newFrame = Frame(GETREG_PC(regs->theIntRegs),
-                         GETREG_FP(regs->theIntRegs), 
-                         proc_->getPid(), NULL, this, true);
+   Frame newFrame = Frame(GETREG_PC(regs.theIntRegs),
+                          GETREG_FP(regs.theIntRegs), 
+                          proc_->getPid(), NULL, this, true);
 
-  delete regs;
-  return newFrame;
+   return newFrame;
 }
 
 // Get the registers of the stopped thread and return them.
-struct dyn_saved_regs *dyn_lwp::getRegisters()
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
 {
     lwpstatus_t status;
-    if (!get_status(&status)) return NULL;
+    if (!get_status(&status)) return false;
 
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
     // Process must be stopped for register data to be correct.
 
     assert((status.pr_flags & PR_STOPPED) || (status.pr_flags & PR_ISTOP)
@@ -503,7 +520,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters()
     memcpy(&(regs->theIntRegs), &(status.pr_reg), sizeof(prgregset_t));
     memcpy(&(regs->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
 
-    return regs;
+    return true;
 }
 
 #if !defined(BPATCH_LIBRARY)
@@ -655,7 +672,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 
 
 // Restore registers saved as above.
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 {
     lwpstatus_t status;
     get_status(&status);
@@ -665,7 +682,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
     int regbufsize = sizeof(long) + sizeof(prgregset_t);
     char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
     *regbufptr = PCSREG; regbufptr++;
-    memcpy(regbufptr, &(regs->theIntRegs), sizeof(prgregset_t));
+    memcpy(regbufptr, &(regs.theIntRegs), sizeof(prgregset_t));
     int writesize;
     writesize = write(ctl_fd(), regbuf, regbufsize);
     
@@ -676,7 +693,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
     int fpbufsize = sizeof(long) + sizeof(prfpregset_t);
     char fpbuf[fpbufsize]; long *fpbufptr = (long *)fpbuf;
     *fpbufptr = PCSFPREG; fpbufptr++;
-    memcpy(fpbufptr, &(regs->theFpRegs), sizeof(prfpregset_t));
+    memcpy(fpbufptr, &(regs.theFpRegs), sizeof(prfpregset_t));
     
     if (write(ctl_fd(), fpbuf, fpbufsize) != fpbufsize) {
         perror("restoreRegisters FPR write");
@@ -729,31 +746,27 @@ bool dyn_lwp::executingSystemCall()
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
     // Don't change the contents of regs if given
-    dyn_saved_regs *local;
+    dyn_saved_regs local;
     
     if (!regs) {
-        local = getRegisters();    
-    }
-    else {
-        local = new dyn_saved_regs();
-        memcpy(local, regs, sizeof(struct dyn_saved_regs));
+        getRegisters(&local);
+    } else {
+        memcpy(&local, regs, sizeof(struct dyn_saved_regs));
     }
 
     // Compatibility: we don't use PCSVADDR on Solaris because AIX doesn't 
     // support it
     // nPC MUST be set before PC! On platforms that don't have it,
     // nPC will be overwritten by the PC write
-    GETREG_nPC(local->theIntRegs) = addr + sizeof(instruction);
-    GETREG_PC(local->theIntRegs) = addr;
+    GETREG_nPC(local.theIntRegs) = addr + sizeof(instruction);
+    GETREG_PC(local.theIntRegs) = addr;
 
     if (!restoreRegisters(local))
         return false;
     
-    dyn_saved_regs *check;
-    check = getRegisters();
-    assert(GETREG_PC(local->theIntRegs) == GETREG_PC(check->theIntRegs));
-    delete check;
-    delete local;
+    dyn_saved_regs check;
+    getRegisters(&check);
+    assert(GETREG_PC(local.theIntRegs) == GETREG_PC(check.theIntRegs));
 
     return true;
 }
@@ -818,10 +831,9 @@ bool dyn_lwp::get_status(lwpstatus_t *status) const
 Address dyn_lwp::readRegister(Register reg)
 {
     Address result;
-
-    dyn_saved_regs *regs = getRegisters();
-    result = GETREG_GPR(regs->theIntRegs,reg);
-    delete regs;
+    dyn_saved_regs regs;
+    getRegisters(&regs);
+    result = GETREG_GPR(regs.theIntRegs, reg);
     return result;
 }
 
@@ -1709,13 +1721,13 @@ bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
    if(matching_event == NULL) {
       procevent *new_event = new procevent;
       new_event->proc = curProc;
-      new_event->lwps.push_back(lwp);
+      new_event->lwp  = lwp;
       new_event->why  = why;
       new_event->what = what;
       new_event->info = info;
       (*events).push_back(new_event);
    } else {
-      matching_event->lwps.push_back(lwp);
+      matching_event->lwp = lwp;
    }
    
    return true;
@@ -1753,6 +1765,7 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
    lwpstatus_t procstatus;
    if(! curProc->getRepresentativeLWP()->get_status(&procstatus))
       return;
+   int lwp_to_use = procstatus.pr_lwpid;
 
    // copied from old code, must not care about events that don't stop proc
    if(! (procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) )
@@ -1769,6 +1782,8 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
       added_an_event = updateEventsWithLwpStatus(curProc, replwp, events);
    else {
       while (lwp_iter.next(index, cur_lwp)) {
+         if(cur_lwp->get_lwp_id() != lwp_to_use)
+            continue;
          if(updateEventsWithLwpStatus(curProc, cur_lwp, events))
             added_an_event = true;
       }
@@ -1796,11 +1811,11 @@ void specialHandlingOfEvents(const pdvector<procevent *> &events) {
       }
 #endif
 
-      if(cur_event->lwps.size()) {
+      if(cur_event->lwp != NULL) {
          // not necessary now that have lwp info in the event info
          if(cur_event->why == procSyscallExit && cur_event->what == 2) {
             cur_proc->setLWPStoppedFromForkExit(
-                                        cur_event->lwps[0]->get_lwp_id());
+                                        cur_event->lwp->get_lwp_id());
          }
       }
 
