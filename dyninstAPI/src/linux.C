@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.32 2000/05/12 20:54:21 zandy Exp $
+// $Id: linux.C,v 1.33 2000/05/14 19:02:28 zandy Exp $
 
 #include <fstream.h>
 
@@ -664,6 +664,7 @@ int process::detach()
      this->juststopped = false;
      this->needsDetach = false;
      this->status_ = running;
+     this->use_sigill_pc = 0;
      ret = 1;
 out:
 #if 0
@@ -1350,6 +1351,10 @@ bool process::continueProc_() {
 		  else*/
 		  perror("continueProc_()");
   }
+
+#ifdef DETACH_ON_THE_FLY
+  this->use_sigill_pc = 0;
+#endif  
 
   return ret != -1;
 }
