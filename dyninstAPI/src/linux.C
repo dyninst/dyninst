@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.129 2004/03/12 23:18:05 legendre Exp $
+// $Id: linux.C,v 1.130 2004/03/13 17:42:09 legendre Exp $
 
 #include <fstream>
 
@@ -1497,6 +1497,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    return true;
 }
 
+#if defined(arch_x86)
 //These constants are not defined in all versions of elf.h
 #ifndef AT_NULL
 #define AT_NULL 0
@@ -1554,5 +1555,19 @@ bool process::readAuxvInfo()
 
   return true;
 }
+#endif
 
 void loadNativeDemangler() {}
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1734,6 +1734,8 @@ void BPatch_module::parseDwarfTypes() {
 	} /* end parseDwarfTypes() */
 
 
+#if defined(os_linux) && defined(arch_x86)
+
 typedef struct dwarfEHFrame_t
 {
    Elf *elf;
@@ -1765,7 +1767,6 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
 {
    dwarfEHFrame_t *eh_frame = NULL;
    int iresult;
-   bool bresult;
    Dwarf_Error err = 0;
 
    eh_frame = (dwarfEHFrame_t *) calloc(1, sizeof(dwarfEHFrame_t));
@@ -2017,3 +2018,5 @@ static void patchVSyscallImage(char *mem_image, size_t image_size)
       eh_offset += *size;
    }
 }
+
+#endif
