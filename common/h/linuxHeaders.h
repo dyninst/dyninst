@@ -237,15 +237,16 @@ extern "C" char *cplus_demangle(char *, int);
    size: specifies the size of the buffer, prototype
    return 0 for success and non-zero for failure
 */
+extern void dedemangle( const char * demangled, char * dedemangled );
 inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
 			    bool /* nativeCompiler */) {
    char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
       return 1;
    
-   strcpy(prototype, demangled_sym);
-   free(demangled_sym);
-   return 0;
+  dedemangle( demangled_sym, prototype );
+  free(demangled_sym);
+  return 0;
 }
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}

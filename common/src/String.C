@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.20 2002/08/24 20:40:10 schendel Exp $
+// $Id: String.C,v 1.21 2003/04/18 22:36:16 tlmiller Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -49,6 +49,67 @@
 #endif
 
 #include "common/h/String.h"
+
+/* This doesn't actually belong here. */
+void dedemangle( const char * demangled, char * result ) {
+	/* Lifted from Jeffrey Odom.  Code reformatted so
+	   I could figure out how to eliminate compiler warnings.
+	   Adjusted to handle spaces inside templates intelligently.
+	   We cut off everything after the first l-paren, so we don't
+	   need to worry about the space after the parameters but
+	   before the 'const'. */
+	const char * resultBegins = NULL;
+	char * resultEnds = NULL;
+
+	if (	demangled[0] == '(' &&
+		strstr( demangled, "::" ) != NULL) {
+		/* Local variable.  Strip off the opening ( :: ). */
+		resultBegins = strrchr( demangled, ')' ) + 3;
+
+		/* End it at the right-most space, if any. */
+		resultEnds = strrchr( resultBegins, ' ' );
+		if( resultEnds != NULL ) { * resultEnds = '\0'; }
+		// fprintf( stderr, "demangled variable '%s' to '%s'\n", demangled, resultBegins );
+		}
+	else if ( (resultEnds = strrchr( demangled, '(' )) != NULL ) {
+		/* Function prototype; end at the last left parenthesis. */ 
+		// fprintf( stderr, "Demangling fn '%s'...\n", demangled );
+		* resultEnds = '\0';
+
+		/* Strip off return types, if any.  Be careful not to
+		   pull off [template?/]class/namespace information.
+	
+		   The only space that matters is the one that's _not_
+		   inside a template, so skip the templates and cut at the
+		   first space.  We can ignore 'operator[<[<]|>[>]]' because
+		   we'll stop before we reach it. */
+
+		resultBegins = demangled;
+		int stack = 0; bool inTemplate = false;
+		for( unsigned int offset = 0; offset < strlen( resultBegins ); offset++ ) {
+			if( resultBegins[offset] == '<' ) {
+				stack++;
+				inTemplate = true;
+				}
+			if( resultBegins[offset] == '>' ) {
+				stack--;
+				if( stack == 0 ) { inTemplate = false; }
+				}
+			if( !inTemplate && resultBegins[offset] == ' ' ) {
+				resultBegins = &(resultBegins[offset]);
+				break;
+				} 
+			} /* end template elimination loop */
+
+		// fprintf( stderr, "Demangled fn '%s'?\n", resultBegins );
+		} /* end if a function prototype */
+	else {
+		/* Assume demangle OK. */
+		resultBegins = demangled;
+		}
+
+	strcpy( result, resultBegins );
+} /* end dedemangle */
 
 // Declare static member vrbles:
 string *string::nilptr = NULL;
@@ -153,8 +214,8 @@ string_ll::string_ll(double d) {
    key_ = 0; // lazy key define
 }
 
-string_ll::~string_ll() {
-    delete [] str_; str_ = 0;
+string_ll::~string_ll() { 
+    /* delete [] str_; */ str_ = 0;
 }
 
 string_ll&

@@ -247,59 +247,43 @@ extern "C" char *cplus_demangle(char *, int);
    native: target was compiled using Sun compiler
    return 0 for success and non-zero for failure
 */
+extern void dedemangle( const char * demangled, char * dedemangled );
 inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size, 
 			    bool nativeCompiler) {
   char *demangled_sym;
-#if defined(__GNUC__)
-  if (!nativeCompiler || P_native_demangle == NULL) {
-   demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
-   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-     return 1;
-   else {
-     strcpy(prototype, demangled_sym);
-     free(demangled_sym);
-     return 0;
-   }
-  }
-#endif
 
-  // Since the Sun demangler gives prototypes, we need to strip that away
+#if defined( __GNUC__ )
+
+  /* If the native demangler exists, try to demangled with it.
+     Otherwise, use the GNU demangler. */
+  if( ! nativeCompiler || P_native_demangle == NULL ) {
+    /* If we've been compiled with GNU and we're
+       demangling a GNU name, use cplus_demangle(). */
+    demangled_sym = cplus_demangle( const_cast<char *>( symbol ), 0 );
+    if( demangled_sym == NULL || strlen( demangled_sym ) >= size ) {
+      return 1;
+    } /* end if the GNU demangling failed. */
+  } /* end if there's no native demangler */
+  else {
+    /* Use the native demangler. */
+    demangled_sym = (char *)malloc( size * sizeof(char) );
+    if( (*P_native_demangle)(symbol, demangled_sym, size) ) {
+      return 1;
+    } /* end if native demangling failed. */
+  } /* end if we're using the native demangler. */
+
+#else 
+
+  /* We were compiled with the native compiler, so use its demangler. */
   demangled_sym = (char *) malloc(size * sizeof(char));
-#if defined(__GNUC__)
-  if ((*P_native_demangle)(symbol, demangled_sym, size))
-#else
-  if (cplus_demangle(symbol, demangled_sym, size))
-#endif
+  if (cplus_demangle(symbol, demangled_sym, size)) {
   {
     free(demangled_sym);
-    return 1;
-  }
+  } /* end if the native demangling failed */
 
-  char *sym_begin, *ptr;
-  if (demangled_sym[0] == '(' &&
-      strstr(demangled_sym, "::") != NULL) {
-    // Local variable
-    sym_begin = strrchr(demangled_sym, ')') + 3;
-    if ((ptr = strrchr(sym_begin, ' ')) != NULL)
-      *ptr = '\0';
-  } else if ((ptr = strchr(demangled_sym, '(')) != NULL) { 
-    // Function prototype
-    *ptr = '\0';
-    if ((ptr = strrchr(demangled_sym, '*')) == NULL &&
-	(ptr = strrchr(demangled_sym, ' ')) == NULL)
-      // Correctly demangled
-      sym_begin = demangled_sym;
-    else
-      sym_begin = ptr+1;
-  } else
-    // Correctly demangled
-    sym_begin = demangled_sym;
+#endif
 
-  if (strlen(sym_begin) >= size) {
-    free(demangled_sym);
-    return 1;
-  }
-  strcpy(prototype, sym_begin);
+  dedemangle( demangled_sym, prototype );
   free(demangled_sym);
   return 0;
 }
