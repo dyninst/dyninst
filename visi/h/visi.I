@@ -14,7 +14,7 @@
  *
  */
 
-/* $Id: visi.I,v 1.19 2001/08/23 14:44:45 schendel Exp $ */ 
+/* $Id: visi.I,v 1.20 2002/04/09 18:06:47 mjbrim Exp $ */ 
 
 
 $remote struct metricType {
@@ -81,6 +81,11 @@ $remote visualization {
   // r: resourceId of invalid metric-focus combination
   //
   $async void InvalidMR(u_int m,u_int r);
+
+  // Disable a metric/focus pair: doesn't fry existing data in the visilib
+  // (unlike InvalidMR()), but does prevent future data from being added to it.
+  // Folding will still be allowed on the curve.
+  $async void disableMR(u_int m, u_int r);
 
   //
   // A new set of metrics and resources from Paradyn

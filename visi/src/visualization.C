@@ -104,7 +104,6 @@ visi_callback( void )
 	return ret;
 }
 
-	
 ///////////////////////////////////////////////////////////
 // paradyn initialization routine connects to parent socket,
 // and registers the visualization::mainLoop routine as 
@@ -240,8 +239,8 @@ void visi_StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void visi_DefinePhase(char *name, unsigned withPerfConsult,
-		      unsigned withVisis) {
+void visi_DefinePhase(char *name, u_int withPerfConsult,
+		      u_int withVisis) {
   if(!visi_initDone)
     visi_Init();
   if(withPerfConsult){
@@ -275,7 +274,7 @@ void visualization::Data(vector<T_visi::dataValue> data){
   int noResources = visi_dataGrid.NumResources();
 
   // get metric and resource index into visi_dataGrid and add value if found
-  for(unsigned i=0; i < data.size(); i++){
+  for(u_int i=0; i < data.size(); i++){
       int metric = visi_dataGrid.MetricIndex(data[i].metricId);
       int j = visi_dataGrid.ResourceIndex(data[i].resourceId);
       if((j >= 0) && (metric >= 0)){
@@ -288,9 +287,8 @@ void visualization::Data(vector<T_visi::dataValue> data){
 		         data[i].data);
   }} 
 
-  int min;
   int max = visi_dataGrid.NumBins()+1;
-  min = max;
+  int min = max;
   for(int i2=0; i2 < noMetrics; i2++){
       for(int k=0; k < noResources; k++){
           if(visi_dataGrid.Valid(i2,k)){
@@ -323,7 +321,7 @@ void visualization::TraceData(vector<T_visi::traceDataValue> traceData){
   // int noResources = visi_dataGrid.NumResources();    // unused
 
   // get metric and resource index into visi_dataGrid and add value if found
-  for(unsigned i=0; i < traceData.size(); i++){
+  for(u_int i=0; i < traceData.size(); i++){
     if (traceData[i].traceDataRecord.length()) {
       int metric = visi_dataGrid.MetricIndex(traceData[i].metricId);
       int j = visi_dataGrid.ResourceIndex(traceData[i].resourceId);
@@ -424,6 +422,32 @@ int ok;
 }
 
 ///////////////////////////////////////////////////////////
+// Visi interface routine.  Receives notification of an
+// disabled metric/resource pair.  Clears the enabled flag
+// for the datagrid cell associated with the metricId m 
+// and resourceId r.
+///////////////////////////////////////////////////////////
+void visualization::disableMR(u_int m, u_int r){
+
+int i,j;
+  if(!visi_initDone)
+    visi_Init();
+
+  // search for indices associated with metricId m and
+  // resourceId r
+  bool error = false;
+  for(i=0; (i<visi_dataGrid.NumMetrics()) &&(m != visi_dataGrid.MetricId(i,error)); i++){
+      if(error) return;
+  } 
+
+  for(j=0;(j<visi_dataGrid.NumResources())&&(r!= visi_dataGrid.ResourceId(j,error));j++){
+      if(error) return;
+  }
+
+  visi_dataGrid[i][j].ClearEnabled();
+}
+
+///////////////////////////////////////////////////////////
 // Visi interface routine.  Receives a list of metrics and
 // resources to add to the datagrid.
 ///////////////////////////////////////////////////////////
@@ -454,7 +478,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     if((mets= new visi_metricType [newElements.size()]) == NULL){
         return;
     }				   
-    for(unsigned i = 0; i < newElements.size(); i++){
+    for(u_int i = 0; i < newElements.size(); i++){
         ok = 0;
 	for(int j=0; (j < numMet) && (!ok);j++){
 	   if(newElements[i].met.Id == mets[j].Id)
@@ -513,7 +537,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     // create list of new resources and add them to resource list
     res= new visi_resourceType [newElements.size()];
     numRes = 0;
-    for(unsigned i=0; i < newElements.size(); i++){
+    for(u_int i=0; i < newElements.size(); i++){
       if(!visi_dataGrid.ResourceInGrid(newElements[i].res.Id)){
           ok = 0;
           for(int k=0; (k < numRes) && !ok; k++){
@@ -536,7 +560,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     // create list of new metrics and add them to metricsList
     mets = new visi_metricType [newElements.size()];
     numMet = 0;
-    for(unsigned i2=0; i2 < newElements.size(); i2++){
+    for(u_int i2=0; i2 < newElements.size(); i2++){
       if(!visi_dataGrid.MetricInGrid(newElements[i2].met.Id)){
 
           ok = 0;
@@ -573,7 +597,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
   }
 
   // set enabled for every element of newElements list 
-  for(unsigned r = 0; r < newElements.size(); r++){
+  for(u_int r = 0; r < newElements.size(); r++){
      visi_dataGrid[visi_dataGrid.MetricIndex(newElements[r].met.Id)][visi_dataGrid.ResourceIndex(newElements[r].res.Id)].SetEnabled();
   }
  
@@ -626,7 +650,7 @@ int noResources = visi_dataGrid.NumResources();
     if(!found) return;
 
     // add new data values to datagrid
-    for(unsigned i2 = 0; i2 < values.size(); i2++){
+    for(u_int i2 = 0; i2 < values.size(); i2++){
        if(!isnan(values[i2])){
            visi_dataGrid.AddValue(met, res, i2, values[i2]);
        }
@@ -707,7 +731,7 @@ void visualization::PhaseData(vector<T_visi::phase_info> phases){
     visi_Init();
 
   // add an new phase object to the visi_dataGrid's vector of phases
-   for (unsigned i=0; i < phases.size(); i++){ 
+   for (u_int i=0; i < phases.size(); i++){ 
      visi_dataGrid.AddNewPhase(phases[i].handle,
                 (visi_timeType)phases[i].start,
 		(visi_timeType)phases[i].end,
@@ -795,7 +819,7 @@ int visi_NumResources(){
 //
 //  returns the number of phases currently defined in the system
 //
-unsigned visi_NumPhases(){
+u_int visi_NumPhases(){
     return visi_dataGrid.NumPhases();
 }
 
@@ -826,7 +850,7 @@ int visi_GetMyPhaseHandle(){
 // returns the handle of the phase for which this visi is defined or
 // -1 on error
 //
-int visi_GetPhaseHandle(unsigned phase_num){
+int visi_GetPhaseHandle(u_int phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -838,7 +862,7 @@ int visi_GetPhaseHandle(unsigned phase_num){
 //
 // returns phase name for the ith phase, or returns 0 on error
 //
-const char *visi_GetPhaseName(unsigned phase_num){
+const char *visi_GetPhaseName(u_int phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -850,7 +874,7 @@ const char *visi_GetPhaseName(unsigned phase_num){
 //
 // returns phase start time for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseStartTime(unsigned phase_num){
+visi_timeType visi_GetPhaseStartTime(u_int phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -862,7 +886,7 @@ visi_timeType visi_GetPhaseStartTime(unsigned phase_num){
 //
 // returns phase end time for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseEndTime(unsigned phase_num){
+visi_timeType visi_GetPhaseEndTime(u_int phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
@@ -874,7 +898,7 @@ visi_timeType visi_GetPhaseEndTime(unsigned phase_num){
 //
 // returns phase bucket width for the ith phase, or returns -1.0 on error
 //
-visi_timeType visi_GetPhaseBucketWidth(unsigned phase_num){
+visi_timeType visi_GetPhaseBucketWidth(u_int phase_num){
 
     const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
