@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.77 2003/03/12 01:49:49 schendel Exp $
+// $Id: BPatch_thread.C,v 1.78 2003/03/14 23:18:21 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -95,8 +95,11 @@ int BPatch_thread::getPid()
 }
 
 
+/* Not sure if this is necessary... */
+
 static void insertVForkInst(BPatch_thread *thread)
 {
+    return;
 
     BPatch_image *appImage = thread->getImage();
     if (!appImage) return;
