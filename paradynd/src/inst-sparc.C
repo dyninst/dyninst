@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.45  1996/09/12 15:53:23  naim
+ * Minor fix to my previous commit - naim
+ *
  * Revision 1.44  1996/09/12 15:08:21  naim
  * This commit move all saves and restores from the mini-tramps to the base
  * tramp. It also add jumps to skip instrumentation in the base-tramp when
@@ -978,13 +981,6 @@ void installBaseTramp(unsigned baseAddr,
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-            if ((temp->raw == LOCAL_PRE_BRANCH) ||
-                (temp->raw == LOCAL_POST_BRANCH)) {
-                temp -= NUM_INSN_MT_PREAMBLE;
-                unsigned numIns=0;
-                generateMTpreamble((char *)temp, numIns, proc);
-                temp += NUM_INSN_MT_PREAMBLE;
-            }
 	    /* fill with no-op */
 	    generateNOOP(temp);
 	}
@@ -1077,13 +1073,6 @@ void installBaseTrampSpecial(unsigned baseAddr,
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-            if ((temp->raw == LOCAL_PRE_BRANCH) ||
-                (temp->raw == LOCAL_POST_BRANCH)) {
-                temp -= NUM_INSN_MT_PREAMBLE;
-                unsigned numIns=0;
-                generateMTpreamble((char *)temp, numIns, proc);
-		temp += NUM_INSN_MT_PREAMBLE;
-            }
             /* fill with no-op */
             generateNOOP(temp);
         }
