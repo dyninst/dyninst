@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.131 2003/09/05 16:27:39 schendel Exp $
+// $Id: ast.C,v 1.132 2003/09/09 20:45:46 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -476,6 +476,8 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 }
 
 
+#if !defined(BPATCH_LIBRARY)
+
 AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
@@ -497,6 +499,7 @@ AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
    doTypeCheck = true;
 }
 
+#endif
 
 // This is used to create a node for FunctionJump (function call with
 // no linkage)
@@ -677,6 +680,8 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
    doTypeCheck = true;
 };
 
+#if !defined(BPATCH_LIBRARY)
+
 AstNode::AstNode(AstNode *src) {
 #if defined(ASTDEBUG)
    ASTcounter();
@@ -717,6 +722,8 @@ AstNode::AstNode(AstNode *src) {
    bptype = src->bptype;
    doTypeCheck = src->doTypeCheck;
 }
+
+#endif
 
 #if defined(ASTDEBUG)
 #define AST_PRINT
@@ -2086,85 +2093,7 @@ BPatch_type *AstNode::checkType()
     return ret;
 }
 
-bool AstNode::findFuncInAst(pdstring func) {
-  if (type == callNode && callee == func) 
-      return true ;
-
-  if (loperand && loperand->findFuncInAst(func))
-      return true ;
-
-  if (roperand && roperand->findFuncInAst(func))
-      return true ;
-
-  for (unsigned i=0; i<operands.size(); i++)
-    if (operands[i]->findFuncInAst(func))
-      return true ;
-
-  return false ;
-} 
-
-// The following two functions are broken because some callNodes have
-// a function_base* member (`calleefunc') that is not replaced by
-// these functions.  For such Callnodes, the corresponding
-// function_base* for func2 must be provided.  Neither of these
-// functions is called these days.
-
-// Looks for function func1 in ast and replaces it with function func2
-void AstNode::replaceFuncInAst(function_base *func1, function_base *func2)
-{
-  if (type == callNode) {
-       if (calleefunc) {
-	    if (calleefunc == func1) {
-		 callee = func2->prettyName();
-		 calleefunc = func2;
-	    }
-       } else if (callee == func1->prettyName()) {
-	    // Not all call nodes are initialized with function_bases.
-	    // Preserve that, continue to deal in names only.
-	    if (callee == func1->prettyName())
-		 callee = func2->prettyName();
-       }
-  }
-  if (loperand) loperand->replaceFuncInAst(func1,func2);
-  if (roperand) roperand->replaceFuncInAst(func1,func2);
-  for (unsigned i=0; i<operands.size(); i++)
-    operands[i]->replaceFuncInAst(func1, func2) ;
-} 
-
-void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
-			       pdvector<AstNode *> &more_args, int index)
-{
-  unsigned i ;
-  if (type == callNode) {
-      bool replargs = false;
-      if (calleefunc) {
-	   if (calleefunc == func1 || calleefunc == func2) {
-		replargs = true;
-		calleefunc = func2;
-		callee = func2->prettyName();
-	   }
-      } else if (callee == func1->prettyName() || callee == func2->prettyName()) {
-	   replargs = true;
-	   callee = func2->prettyName();
-      }
-      if (replargs) {
-	  unsigned int j = 0 ;
-	  for (i=index; i< operands.size() && j <more_args.size(); i++){
-	    removeAst(operands[i]) ;
-	    operands[i] = assignAst(more_args[j++]) ;
-	  }
-	  while (j<more_args.size()) {
-	    operands.push_back(assignAst(more_args[j++]));
-	  }
-      }
-  }
-  if (loperand) loperand->replaceFuncInAst(func1, func2, more_args, index) ;
-  if (roperand) roperand->replaceFuncInAst(func1, func2, more_args, index) ;
-  for (i=0; i<operands.size(); i++)
-    operands[i]->replaceFuncInAst(func1, func2, more_args, index) ;
-}
-
-
+#ifndef BPATCH_LIBRARY
 // This is not the most efficient way to traverse a DAG
 bool AstNode::accessesParam(void)
 {
@@ -2187,6 +2116,7 @@ bool AstNode::accessesParam(void)
 
   return ret;
 }
+#endif
 
 // Record the register to share as well as the path that lead
 // to its computation
