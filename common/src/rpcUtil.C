@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.53  1997/05/30 16:29:26  hseom
+ * fixed some memory-related bug
+ *
  * Revision 1.52  1997/05/23 22:59:18  mjrg
  * Windows NT port
  *
@@ -796,14 +799,14 @@ bool_t xdr_byteArray_pd(XDR *xdrs, byteArray *bArray)
        unsigned int max_len = length;
        temp = new char[length];
        if (!P_xdr_byteArray (xdrs, &temp, &act_len, max_len)) {
-          delete temp;
+          delete [] temp;
           return FALSE;
        } else if (act_len != length) {
-          delete temp;
+          delete [] temp;
           return FALSE;
        } else {
           *bArray = byteArray(temp,act_len);
-          delete temp;
+          delete [] temp;
           return TRUE;
        }
      }
