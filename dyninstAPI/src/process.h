@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.145 2000/08/01 02:32:17 hollings Exp $
+/* $Id: process.h,v 1.146 2000/08/08 15:41:42 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1126,17 +1126,13 @@ class process {
   void processCost(unsigned obsCostLow,
                    time64 wallTime, time64 processTime);
 
-
-#ifdef sparc_sun_sunos4_1_3
-   static user *tryToMapChildUarea(int pid);
-#endif
-
+   bool extractBootstrapStruct(PARADYN_bootstrapStruct *);
 #endif /* shm_sampling */
 
+   bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    bool isBootstrappedYet() const {
       return hasBootstrapped;
    }
-   bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    int procStopFromDYNINSTinit();
       // returns 0 if not processed, 1 for the usual processed case (process is
       // now paused), or 2 for the processed-but-still-running-inferiorRPC case

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.230 2000/07/28 17:21:16 pcroth Exp $
+// $Id: process.C,v 1.231 2000/08/08 15:41:41 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2168,7 +2168,9 @@ extern bool forkNewProcess(string file, string dir, vector<string> argv,
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "", int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
+process *createProcess(const string File, vector<string> argv, 
+                        vector<string> envp, const string dir = "", 
+                        int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
     // prepend the directory (if any) to the file, unless the filename
     // starts with a /
@@ -2214,7 +2216,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
 		   traceLink, ioLink, pid, tid, procHandle, thrHandle,
 		   stdin_fd, stdout_fd, stderr_fd)) {
-      // forkNewProcess is resposible for displaying error messages
+      // forkNewProcess is responsible for displaying error messages
       return NULL;
     }
 
@@ -2244,10 +2246,10 @@ tp->resourceBatchMode(true);
 
         image *img = image::parseImage(file);
         if (!img) {
-            // For better error reporting, two failure return values would be useful
-            // One for simple error like because-file-not-because
-            // Another for serious errors like found-but-parsing-failed (internal error;
-            //    please report to paradyn@cs.wisc.edu)
+            // For better error reporting, two failure return values would be
+            // useful.  One for simple error like because-file-not-because.
+            // Another for serious errors like found-but-parsing-failed 
+            //    (internal error; please report to paradyn@cs.wisc.edu)
 
             string msg = string("Unable to parse image: ") + file;
             showErrorCallback(68, msg.string_of());
@@ -3932,7 +3934,7 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
 }
 
 // findSignalHandler: if signal_handler is 0, then it checks all images
-// associtated with this process for the signal handler function.
+// associated with this process for the signal handler function.
 // Otherwise, the signal handler function has already been found
 void process::findSignalHandler(){
 
@@ -3947,6 +3949,9 @@ void process::findSignalHandler(){
                 signal_handler = 
                       ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER,false);
         } }
+        signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
+        if (!signal_handler) signal_cerr << " NOT";
+        signal_cerr << " found." << endl;
     }
 }
 
@@ -5224,10 +5229,11 @@ bool process::handleTrapIfDueToRPC() {
 
 void process::installBootstrapInst() {
    // instrument main to call DYNINSTinit().  Don't use the shm seg for any
-   // temp tramp space, since we can't assume that it's been intialized yet.
+   // temp tramp space, since we can't assume that it's been initialized yet.
    // We build an ast saying: "call DYNINSTinit() with args
    // key_base, nbytes, paradynd_pid"
 
+   attach_cerr << "process::installBootstrapInst()" << endl;
 #ifdef BPATCH_LIBRARY
    vector<AstNode *> the_args(2);
 
@@ -5263,7 +5269,8 @@ void process::installBootstrapInst() {
    the_args[2] = new AstNode(AstNode::Constant, (void *)0);
 #else
    //  for IRIX MPI, we want to appear to be attaching 
-   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") && traceConnectInfo > 0 )
+   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") 
+                                   && traceConnectInfo > 0 )
        traceConnectInfo *= -1;
 
    the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
@@ -5285,7 +5292,7 @@ void process::installBootstrapInst() {
                );   
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
-           attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
+       attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
     } else {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;
@@ -5300,31 +5307,23 @@ void process::installBootstrapInst() {
       // need to perform this after dyninst Heap is present and happy
       dyn->setMappingHooks(this);
 #endif
+    attach_cerr << "process::installBootstrapInst() complete" << endl;
 }
 
 void process::installInstrRequests(const vector<instMapping*> &requests) {
+   metric_cerr << "process::installInstrRequests*" << requests.size() << endl;
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       instMapping *req = requests[lcv];
 
       function_base *func = findOneFunction(req->func);
       if (!func)
-         continue;  // probably should have a flag telling us whether errors should
-                    // be silently handled or not
+         continue;  // probably should have a flag telling us whether errors
+                    // should be silently handled or not
       metric_cerr << "Found " << req->func << endl;
 
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
         ast = new AstNode(req->inst, req->args);
-
-        // Why does the below removeAst cause a seg fault in some cases?
-        // My consistent error seems to have something to do with recursive
-        //  removeAst calls for an invalid roperand.  This may be related
-        //  to paradynd handling multiple processes with IRIX MPI.
-
-#ifndef BPATCH_LIBRARY
-        if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
-#endif
-            for (unsigned i=0; i<req->args.size(); i++) removeAst(req->args[i]) ;
       } else {
         AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
         ast = new AstNode(req->inst, tmp);
@@ -5360,9 +5359,10 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
    }
 }
 
-bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
+#ifdef SHM_SAMPLING
+bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 {
-  const string vrbleName = "DYNINST_bootstrap_info";
+  const string vrbleName = "PARADYN_bootstrap_info";
   internalSym sym;
   bool flag = findInternalSymbol(vrbleName, true, sym);
   assert(flag);
@@ -5374,7 +5374,6 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
     return false;
   }
 
-#ifdef SHM_SAMPLING
   // address-in-memory: re-read pointer field with proper alignment
   // (see rtinst/h/trace.h)
   assert(sizeof(int64_t) == 8); // sanity check
@@ -5384,7 +5383,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   int32_t ptr_size;
   internalSym sym2;
   bool ret2;
-  ret2 = findInternalSymbol("DYNINST_attachPtrSize", true, sym2);
+  ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
   if (!ret2) return false;
   ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), &ptr_size, true);
   if (!ret2) return false;
@@ -5403,8 +5402,24 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
     bs_record->appl_attachedAtPtr.ptr = val_p;
     fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
   }
-#endif /* SHM_SAMPLING */
   
+  return true;
+}
+#endif /* SHM_SAMPLING */
+
+bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
+{
+  const string vrbleName = "DYNINST_bootstrap_info";
+  internalSym sym;
+  bool flag = findInternalSymbol(vrbleName, true, sym);
+  assert(flag);
+  Address symAddr = sym.getAddr();
+
+  // bulk read of bootstrap structure
+  if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
+    cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;
+    return false;
+  }
   return true;
 }
 
@@ -5538,8 +5553,12 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       assert(createdViaAttach);
 
 #ifdef SHM_SAMPLING
+   PARADYN_bootstrapStruct bs_struct;
+   if (!extractBootstrapStruct(&bs_struct))
+      assert(false);
+
    if (!calledFromFork)
-      registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
+      registerInferiorAttachedSegs(bs_struct.appl_attachedAtPtr.ptr);
 #endif
 
    if (!calledFromFork)
@@ -5565,7 +5584,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
 
       str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
-      //statusLine(str.string_of());
+      statusLine(str.string_of());
 
       extern vector<instMapping*> initialRequests; // init.C
       installInstrRequests(initialRequests);
