@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.51 2004/03/31 20:37:19 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.52 2004/04/26 21:09:20 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2875,15 +2875,36 @@ void emitFuncJump(opCode op, char *buf, Address &base, const function_base *call
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
 					 char * ibuf, Address & base, bool noCost,
-					 const instPoint * /* location */, bool for_multithreaded) {
+					 const instPoint *location, bool for_multithreaded) {
 	/* FIXME: handle noCost */
 	switch( op ) {
 		case getParamOp: {
 			/* src1 is the (incoming) parameter we want. */
 			if( src1 >= 8 ) {
-				assert( 0 );
+				/* emitR is only called from within generateTramp, which sets the global
+				   variable regSpace to the correct value.  Use it with reckless abandon. */
+
+				int spReg = regSpace->getRegSlot( 0 )->number - NUM_PRESERVED + 33;
+				int memStackOffset = (src1 - 8 + 2) * 8;
+				ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+				IA64_bundle bundle = IA64_bundle( MstopMIstop,
+												  generateShortImmediateAdd(dest, memStackOffset, spReg),
+												  generateRegisterLoad(dest, dest),
+												  IA64_instruction(NOP_M) );
+				*rawBundlePointer = bundle.getMachineCode();
+				base += 16;
+				return dest;
+
 				} else {
-				emitRegisterToRegisterCopy( 32 + src1, dest, ibuf, base, NULL );
+				/* Due to register renaming, the requested parameter location depends
+				   on the instPoint. */
+
+				int regStackOffset = 0;
+				if (location->getPointType() == callSite)
+					regStackOffset = regSpace->originalLocals;
+
+				emitRegisterToRegisterCopy( 32 + regStackOffset + src1, dest, ibuf, base, NULL );
 				return dest;
 				} /* end if it's a parameter in a register. */
 			} break;
