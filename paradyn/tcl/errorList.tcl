@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.44 2000/03/12 22:38:02 wylie Exp $
+# $Id: errorList.tcl,v 1.45 2000/03/23 01:30:05 wylie Exp $
 
 #
 # Error message format:
@@ -876,9 +876,9 @@ running programs and provides facilities for helping to automatically\
 find performance problems in parallel programs. Paradyn operates on\
 executable (a.out or .exe) files by dynamically inserting measurement\
 code while the program is running. Paradyn can measure programs running\
-on Solaris (SPARC and x86), SunOS, AIX, and SP2, or heterogeneous\
-combinations of these systems. Paradyn can also handle PVM on these\
-platforms and MPL, MPI, and PVM under POE on the SP2.
+on Solaris (SPARC and x86), Linux (x86), Irix (MIPS), WindowsNT (x86),\
+AIX (Power2) and SP2, or heterogeneous combinations of these systems.\
+Paradyn can also handle MPI and PVM on these platforms.
 
 For further information go to our Web pages at:
         http://www.cs.wisc.edu/~paradyn/
@@ -893,7 +893,7 @@ set pdError(105) {
 {Paradyn License Information}
 {paradyn}
 {information}
-{Copyright (c) 1996-1998 Barton P. Miller (University of Wisconsin-Madison)
+{Copyright (c) 1996-2000 Barton P. Miller (University of Wisconsin-Madison)
 
 We provide the Paradyn Parallel Performance Tools (below described as\
 "Paradyn") on an AS IS basis, and do not warrant its validity or\
@@ -933,10 +933,11 @@ set pdError(106) {
 {Paradyn Release Information}
 {paradyn}
 {information}
-{This Paradyn release includes support for MPI under POE on the SP2,\
-shared objects (dynamic linking) on Solaris and Windows/NT\
-(entirely removing the need to relink programs on NT), and many\
-user interface, robustness and efficiency improvements. 
+{This Paradyn release includes support for new platforms (Linux and Irix),\
+MPI on Irix, dynamic library linking and shared-memory sampling,\
+and many user interface, robustness and efficiency improvements. 
+
+Full release details are included in the Paradyn User's Guide.
 
 Paradyn Parallel Performance Tools binary (executable) and source releases\
 are available via ftp from:
@@ -979,7 +980,7 @@ set pdError(110) {
 }
 
 set pdError(111) {
-{Search type may not be changed after starting performance consultant.} 
+{Search type may not be changed after starting Performance Consultant.} 
 {pc}
 {warning}
 {No additional information available.}
