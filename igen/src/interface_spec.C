@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -280,12 +280,13 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
     if (!td->is_in_library() && !td->is_stl()) {
       td->gen_class(Options::ml->bundler_prefix(), out_h);
       if (Options::ml->address_space() == message_layer::AS_many) {
-	td->gen_bundler_sig(true, Options::type_prefix(), 
-			    Options::ml->bundler_prefix(), out_h);
-	td->gen_bundler_body(Options::ml->bundler_prefix(), Options::type_prefix(),
-			     out_c);
-	td->gen_bundler_ptr(Options::type_prefix(), Options::ml->bundler_prefix(),
-			    out_c, out_h);
+
+		string b_pfx = Options::ml->bundler_prefix();
+		string t_pfx = Options::type_prefix();
+
+	td->gen_bundler_sig(true, t_pfx, b_pfx, out_h);
+	td->gen_bundler_body(b_pfx, t_pfx, out_c);
+	td->gen_bundler_ptr(t_pfx, b_pfx, out_c, out_h);
 
       }
     }
