@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.121 2003/04/02 07:12:26 jaw Exp $
+// $Id: symtab.h,v 1.122 2003/04/10 19:39:48 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -66,6 +66,8 @@ extern "C" {
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/resource.h"
+
+#define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 #endif
 
 #include "common/h/Types.h"
