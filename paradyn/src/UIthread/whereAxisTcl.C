@@ -4,9 +4,13 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.5  1995/09/20 01:30:36  tamches
-/* File size reduced by using some utilities in the new tkTools.C file
+/* Revision 1.6  1995/10/17 22:22:44  tamches
+/* abstractions is no longer a templated type.
+/* Other minor changes corresponding to new where axis commits.
 /*
+ * Revision 1.5  1995/09/20 01:30:36  tamches
+ * File size reduced by using some utilities in the new tkTools.C file
+ *
  * Revision 1.4  1995/08/04  19:19:25  tamches
  * Commented out some cout statements that are for debugging only.
  *
@@ -39,7 +43,7 @@
 #include "whereAxisTcl.h"
 
 // Here is the main where axis global variable:
-abstractions<resourceHandle> *theAbstractions;
+abstractions *theAbstractions;
 
 extern bool haveSeenFirstGoodWhereAxisWid; // test.C
 extern bool tryFirstGoodWhereAxisWid(Tcl_Interp *, Tk_Window); // test.C
@@ -73,16 +77,12 @@ void initiateWhereAxisRedraw(Tcl_Interp *, bool doubleBuffer) {
 }
 
 int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
-				   int argc, char **argv) {
+				   int, char **) {
    if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
       return TCL_ERROR;
 
-   assert(argc == 3);
-   const int newWidth  = atoi(argv[1]);
-   const int newHeight = atoi(argv[2]);
-
    if (theAbstractions->existsCurrent()) {
-      theAbstractions->getCurrent().resize(newWidth, newHeight);
+      theAbstractions->getCurrent().resize(true); // true --> we are curr abstraction
       initiateWhereAxisRedraw(interp, true); // true-->use double-buffering
    }
 
@@ -113,8 +113,7 @@ int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent())
-      theAbstractions->getCurrent().processSingleClick(x, y, true);
-         // true --> redraw now
+      theAbstractions->getCurrent().processSingleClick(x, y);
 
    return TCL_OK;
 }
@@ -387,55 +386,58 @@ int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
 
 void deleteDummyProc(ClientData) {}
 void installWhereAxisCommands(Tcl_Interp *interp) {
-   Tcl_CreateCommand(interp, "configureHook", whereAxisResizeCallbackCommand,
+   Tcl_CreateCommand(interp, "whereAxisConfigureHook", whereAxisResizeCallbackCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
-   Tcl_CreateCommand(interp, "exposeHook", whereAxisExposeCallbackCommand,
+   Tcl_CreateCommand(interp, "whereAxisExposeHook", whereAxisExposeCallbackCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "singleClickHook", whereAxisSingleClickCallbackCommand,
+   Tcl_CreateCommand(interp, "whereAxisSingleClickHook",
+		     whereAxisSingleClickCallbackCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "doubleClickHook", whereAxisDoubleClickCallbackCommand,
+   Tcl_CreateCommand(interp, "whereAxisDoubleClickHook",
+		     whereAxisDoubleClickCallbackCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "shiftDoubleClickHook",
+   Tcl_CreateCommand(interp, "whereAxisShiftDoubleClickHook",
 		     whereAxisShiftDoubleClickCallbackCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "ctrlDoubleClickHook",
+   Tcl_CreateCommand(interp, "whereAxisCtrlDoubleClickHook",
 		     whereAxisCtrlDoubleClickCallbackCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "newVertScrollPosition",
+   Tcl_CreateCommand(interp, "whereAxisNewVertScrollPosition",
 		     whereAxisNewVertScrollPositionCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "newHorizScrollPosition",
+   Tcl_CreateCommand(interp, "whereAxisNewHorizScrollPosition",
 		     whereAxisNewHorizScrollPositionCommand,
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisClearSelections",
 		     whereAxisClearSelectionsCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "navigateTo", whereAxisNavigateToCommand,
+   Tcl_CreateCommand(interp, "whereAxisNavigateTo", whereAxisNavigateToCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "changeAbstraction", whereAxisChangeAbstractionCommand,
+   Tcl_CreateCommand(interp, "whereAxisChangeAbstraction",
+		     whereAxisChangeAbstractionCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "findHook", whereAxisFindCommand,
+   Tcl_CreateCommand(interp, "whereAxisFindHook", whereAxisFindCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "altPressHook", whereAxisAltPressCommand,
+   Tcl_CreateCommand(interp, "whereAxisAltPressHook", whereAxisAltPressCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "altReleaseHook", whereAxisAltReleaseCommand,
+   Tcl_CreateCommand(interp, "whereAxisAltReleaseHook", whereAxisAltReleaseCommand,
 		     NULL, deleteDummyProc);
 }
 
 void unInstallWhereAxisCommands(Tcl_Interp *interp) {
-   Tcl_DeleteCommand(interp, "altReleaseHook");
-   Tcl_DeleteCommand(interp, "altPressHook");
-   Tcl_DeleteCommand(interp, "findHook");
-   Tcl_DeleteCommand(interp, "changeAbstraction");
-   Tcl_DeleteCommand(interp, "navigateTo");
+   Tcl_DeleteCommand(interp, "whereAxisAltReleaseHook");
+   Tcl_DeleteCommand(interp, "whereAxisAltPressHook");
+   Tcl_DeleteCommand(interp, "whereAxisFindHook");
+   Tcl_DeleteCommand(interp, "whereAxisChangeAbstraction");
+   Tcl_DeleteCommand(interp, "whereAxisNavigateTo");
    Tcl_DeleteCommand(interp, "whereAxisClearSelections");
-   Tcl_DeleteCommand(interp, "newHorizScrollPosition");
-   Tcl_DeleteCommand(interp, "newVertScrollPosition");
-   Tcl_DeleteCommand(interp, "ctrlDoubleClickHook");
-   Tcl_DeleteCommand(interp, "shiftDoubleClickHook");
-   Tcl_DeleteCommand(interp, "doubleClickHook");
-   Tcl_DeleteCommand(interp, "singleClickHook");
-   Tcl_DeleteCommand(interp, "exposeHook");
-   Tcl_DeleteCommand(interp, "configureHook");
+   Tcl_DeleteCommand(interp, "whereAxisNewHorizScrollPosition");
+   Tcl_DeleteCommand(interp, "whereAxisNewVertScrollPosition");
+   Tcl_DeleteCommand(interp, "whereAxisCtrlDoubleClickHook");
+   Tcl_DeleteCommand(interp, "whereAxisShiftDoubleClickHook");
+   Tcl_DeleteCommand(interp, "whereAxisDoubleClickHook");
+   Tcl_DeleteCommand(interp, "whereAxisSingleClickHook");
+   Tcl_DeleteCommand(interp, "whereAxisExposeHook");
+   Tcl_DeleteCommand(interp, "whereAxisConfigureHook");
 }
