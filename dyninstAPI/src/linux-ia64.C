@@ -61,6 +61,7 @@ IA64_bundle generateTrapBundle() {
  */
 dyn_saved_regs *dyn_lwp::getRegisters()
 {
+#if defined( MUTATOR_SAVES_REGISTERS )
     int i;
     long int *memptr;
     dyn_saved_regs *result;
@@ -85,7 +86,23 @@ dyn_saved_regs *dyn_lwp::getRegisters()
 	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
 	++memptr;
     }
-    return result;
+    
+#else
+
+	/* (Almost) All the state preservation is done mutatee-side,
+	   except for the syscall handler's predicate registers,
+	   so we don't need to anything except the PC. */
+	dyn_saved_regs * result = NULL;
+	result = (dyn_saved_regs *)malloc( sizeof( dyn_saved_regs ) );
+	assert( result != NULL );
+
+	/* FIXME: assumes the ptrace succeeds. */	
+	result->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
+	result->restorePredicateRegistersFromStack = needToHandleSyscall( proc_ );
+#endif
+
+fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
+	return result;
 }
 
 bool changePC( int pid, Address loc ) { 
@@ -107,61 +124,15 @@ void printRegs( void * /* save */ ) {
 	assert( 0 );
 	} /* end printReg[isters, should be]() */
 
-/* dyn_lwp::executingSystemCall()
- *
- * For now, this function simply reads the previous instruction
- * (in the previous bundle if necessary) and returns true if
- * it is a break 0x100000.
- *
- * This is a slow and terrible hack, so if there is a better way, please
- * re-write this function.  Otherwise, it seems to work pretty well.
- */
-bool dyn_lwp::executingSystemCall()
-{
-    const uint64_t SYSCALL_MASK = 0x01000000000 >> 5;
-    uint64_t iip, instruction, rawBundle[2];
-    int64_t ipsr_ri, pr;
-    IA64_bundle origBundle;
-
-    // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status_ == stopped);
-    errno = 0;
-
-    // Find the correct bundle.
-    iip = getPC(proc_->getPid());
-    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0);
-    if (errno && (ipsr_ri == -1)) {
-	// Error reading process information.  Should we assert here?
-	assert(0);
-    }
-    ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
-    if (ipsr_ri == 0) iip -= 16;  // Get previous bundle, if necessary.
-
-    // Read bundle data
-    if (!proc_->readDataSpace((void *)iip, 16, (void *)rawBundle, true)) {
-	// Could have gotten here because the mutatee stopped right
-	// after a jump to the beginning of a memory segment (aka,
-	// no previous bundle).  But, that can't happen from a syscall.
+/* The iRPC header/trailer generators handle the special
+   case of being in a system call when it's time to run the iRPC. */
+bool dyn_lwp::executingSystemCall() {
 	return false;
-    }
-
-    // Isolate previous instruction.
-    origBundle = IA64_bundle(rawBundle[0], rawBundle[1]);
-    ipsr_ri = (ipsr_ri + 2) % 3;
-    instruction = origBundle.getInstruction(ipsr_ri)->getMachineCode();
-    instruction = instruction >> ALIGN_RIGHT_SHIFT;
-
-    // Determine predicate register and remove it from instruction.
-    pr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), PT_PR, 0);
-    if (errno && pr == -1) assert(0);
-    pr = (pr >> (0x1F & instruction)) & 0x1;
-    instruction = instruction >> 5;
-
-    return (pr && instruction == SYSCALL_MASK);
-} /* end executingSystemCall() */
+	} /* end executingSystemCall() */
 
 bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 {
+#if defined( MUTATOR_SAVES_REGISTERS )
     int i;
     const long int *memptr;
 
@@ -180,7 +151,27 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 	++memptr;
     }
 
-    // Should we free regs structure?
+	/* Do NOT free the register structure.  handleCompletedIRPC() handles that. */
+#else     
+
+	/* Restore the PC. */
+	changePC( regs->pc, NULL );
+
+	if( regs->restorePredicateRegistersFromStack ) {
+		/* FIXME: assumes ptrace always succeeds. */
+		Address stackPointer = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_R12, 0 );
+		stackPointer -= 48;
+
+		/* FIXME: assumes ptrace always succeeds. */
+		uint64_t predicateRegisters = P_ptrace( PTRACE_PEEKDATA, proc_->getPid(), stackPointer, 0 );
+		
+		/* FIXME: assumes ptrace always succeeds. */
+		P_ptrace( PTRACE_POKEDATA, proc_->getPid(), PT_PR, (Address) & predicateRegisters );
+		} /* end predicate register restoration. */
+
+#endif /* MUTATOR_SAVES_REGISTERS */
+
+fprintf( stderr, "-*- dyn_lwp::restoreRegisters()\n" );
     return true;
 }
 
@@ -301,7 +292,7 @@ Address dyn_lwp::readRegister( Register reg ) {
 
 /* FIXME: Ye flipping bits only knows if this actually works. */
 Frame dyn_lwp::getActiveFrame() {
-  Address pc, fp, sp, tp;
+  Address pc, sp, tp;
   
   /* FIXME: check for errors (errno) */
   pid_t pid = proc_->getPid();
@@ -309,7 +300,7 @@ Frame dyn_lwp::getActiveFrame() {
   sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
   tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
   
-  return Frame( pc, fp, sp, proc_->getPid(), NULL, this, true );
+  return Frame( pc, 0, sp, proc_->getPid(), NULL, this, true );
 } /* end getActiveFrame() */
 
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
