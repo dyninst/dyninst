@@ -6,11 +6,10 @@ dyner.obj: ../src/dyner.C ../src/dynerList.h \
  ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/h/BPatch_module.h \
  ../../dyninstAPI/h/BPatch_function.h \
  ../../dyninstAPI/src/BPatch_collections.h \
- ../../dyninstAPI/src/../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/refCounter.h \
- ../../dyninstAPI/src/../../util/h/Dictionary.h ../../util/h/Vector.h \
- ../../dyninstAPI/src/../../util/h/list.h ../src/breakpoint.h
+ ../../common/h/debugOstream.h ../../common/h/headers.h \
+ ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
+ ../../common/h/Dictionary.h ../../common/h/Vector.h \
+ ../../common/h/String.h ../../common/h/list.h ../src/breakpoint.h
 lex.dyner.obj: lex.dyner.C ../../dyninstAPI/h/BPatch_snippet.h \
  ../../dyninstAPI/h/BPatch_Vector.h \
  ../../dyninstAPI/h/BPatch_sourceObj.h \
