@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.174 2003/05/21 20:06:25 bernat Exp $
+ * $Id: inst-power.C,v 1.175 2003/05/30 21:32:34 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1683,10 +1683,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-/*
-  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
-          baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
-*/
+//  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+//          baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
   if (isReinstall) return NULL;
 
   return theTemplate;
@@ -3268,8 +3266,6 @@ bool pd_Function::findInstPoints(const image *owner)
       goto set_uninstrumentable;
   }
 
-  //cerr << "Finding inst points for " << this->prettyName();
-
   // This is for stack walks. If we don't make any calls, then we never
   // save the link register and (for stack walks) the correct value is in
   // the LR. If we do make calls, then the correct value is on the stack.
@@ -3278,9 +3274,9 @@ bool pd_Function::findInstPoints(const image *owner)
   makesNoCalls_ = true;
   noStackFrame = true;
 
+
   if (instr.raw == MFLR0raw) {
     makesNoCalls_ = false;
-    //cerr << " saves LR...";
   }
   // Do we make a stack frame? Umm... well... it's hard to tell. If we spot
   // the instruction used (stwu) on r1, then we assume we make a frame. If
@@ -3306,6 +3302,14 @@ bool pd_Function::findInstPoints(const image *owner)
   retInsn.raw = 0;
   funcReturns.push_back(new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn));
 
+
+  if (instr.dform.op == STFDop) {
+      goto set_uninstrumentable;
+  }
+  if (instr.dform.op == LFDop) {
+      goto set_uninstrumentable;
+  }
+  
   // Define call sites in the function
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
