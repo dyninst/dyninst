@@ -43,6 +43,9 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.19  1996/10/31 09:00:34  tamches
+ * added noCost param to findAndInstallBaseTramp
+ *
  * Revision 1.18  1996/10/03 22:12:14  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -203,13 +206,15 @@ class instWaitingList {
 extern List<instWaitingList *> instWList;
 
 trampTemplate *findAndInstallBaseTramp(process *proc, instPoint *location,
-				 returnInstance *&retInstance);
+				       returnInstance *&retInstance,
+				       bool noCost);
 void installTramp(instInstance *inst, char *code, int codeSize);
 void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
 void generateReturn(process *proc, int currAddr, instPoint *location);
 void generateEmulationInsn(process *proc, int addr, instPoint *location);
 void generateNoOp(process *proc, int addr);
-void generateBreakPoint(instruction &insn);
+//void generateBreakPoint(instruction &insn);
+//void generateIllegalInsn(instruction &insn);
 
 void initTramps();
 void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
