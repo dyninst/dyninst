@@ -3,6 +3,10 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.6  1995/12/19 00:46:19  tamches
+ * calls to tvMetric constructor use new args
+ * changeNumSigFigs now recognizes possibility of column pix width change
+ *
  * Revision 1.5  1995/12/03 21:09:19  newhall
  * changed units labeling to match type of data being displayed
  *
@@ -279,7 +283,7 @@ bool tableVisi::adjustVertSBOffset(Tcl_Interp *interp) {
 }
 
 void tableVisi::resize(Tcl_Interp *interp) {
-   // does not resize.  Does things like resize the offscreen pixmap
+   // does not redraw.  Does things like resize the offscreen pixmap
    if (tryFirst()) {
       if (offscreenPixmap) {
          XFreePixmap(Tk_Display(theTkWindow), offscreenPixmap);
@@ -563,7 +567,7 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
          continue;
       }
 
-      // making a new "string" would be toop expensive (calls new):
+      // making a new "string" would be too expensive (calls new):
       char buffer[200];
       double2string(buffer, theCell.getData());
 
@@ -614,7 +618,8 @@ void tableVisi::clearFoci(Tcl_Interp *interp) {
 }
 
 void tableVisi::addMetric(const string &metricName, const string &metricUnits) {
-   tvMetric newTvMetric(metricName, metricUnits, metricNameFont, metricUnitsFont);
+   tvMetric newTvMetric(metricName, metricUnits, metricNameFont, metricUnitsFont, cellFont,
+			numSigFigs);
    metrics += newTvMetric;
    indirectMetrics += (metrics.size()-1);
    cells += vector<tvCell>();
@@ -625,16 +630,13 @@ void tableVisi::addMetric(const string &metricName, const string &metricUnits) {
    assert(cells.size() == metrics.size());
 }
 
-void tableVisi::changeUnitsLabel(u_int which, const char *new_name){
-
-   if(which < indirectMetrics.size()){
-       const tvMetric &theMetric = metrics[indirectMetrics[which]];
-       const string name = new_name;
-       theMetric.changeUnitsName(name);
+void tableVisi::changeUnitsLabel (unsigned which, const string &new_name) {
+   if (which < indirectMetrics.size()) {
+       tvMetric &theMetric = metrics[indirectMetrics[which]];
+       theMetric.changeUnitsName(new_name);
    }
 }
 
-    
 void tableVisi::addFocus(const string &focusName) {
    tvFocus newTvFocus(focusName, focusNameFont);
    foci += newTvFocus;
@@ -766,6 +768,18 @@ bool tableVisi::setSigFigs(unsigned newNumSigFigs) {
       return false;
 
    numSigFigs = newNumSigFigs;
+   all_cells_width = 0;
+      // we'll be recalcing this from scratch, since col widths can change
+
+   for (unsigned met=0; met < metrics.size(); met++) {
+      // sorted order is not important here...
+      tvMetric &theMetric = metrics[met];
+
+      theMetric.changeNumSigFigs(newNumSigFigs, cellFont);
+
+      all_cells_width += theMetric.getColPixWidth();
+   }
+
    return true;
 }
 
