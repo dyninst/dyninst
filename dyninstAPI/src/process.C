@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.417 2003/04/25 22:31:13 jaw Exp $
+// $Id: process.C,v 1.418 2003/04/25 22:52:33 mjbrim Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6800,7 +6800,7 @@ dyn_thread *process::createThread(
   bool bySelf)
 {
   dyn_thread *thr;
-  fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
+  //fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
   thr = new dyn_thread(this, tid, pos, NULL);
   threads += thr;
@@ -6823,9 +6823,9 @@ dyn_thread *process::createThread(
     thr->update_stack_addr(stackbase);
   }
 
-  sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
+  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
 	  pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
-  logLine(errorLine);
+//logLine(errorLine);
   return(thr);
 }
 
@@ -6849,8 +6849,8 @@ void process::updateThread(dyn_thread *thr, int tid,
   thr->update_start_pc(0) ;
   thr->update_start_func(f_main) ;
 
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
-  logLine(errorLine);
+  //sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
+  //logLine(errorLine);
 }
 
 //
@@ -6890,9 +6890,9 @@ void process::updateThread(
     thr->update_stack_addr(stackbase);
   } //else
 
-  sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().c_str(), startpc, pos, tid, stackbase, (unsigned) resumestate_p);
-  logLine(errorLine);
+  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+  //pdf->prettyName().c_str(), startpc, pos, tid, stackbase, (unsigned) resumestate_p);
+  //logLine(errorLine);
 }
 
 void process::deleteThread(int tid)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.150 2003/04/23 23:00:01 bernat Exp $
+// $Id: perfStream.C,v 1.151 2003/04/25 22:52:37 mjbrim Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -963,7 +963,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    pdvector<string> parent_name;
    resource *parent = NULL;
    unsigned type;
-   cerr << "in createResource pid: " << pid << endl;
+   //cerr << "in createResource pid: " << pid << endl;
    switch (r->type) {
      case RES_TYPE_STRING: type = MDL_T_STRING; break;
      case RES_TYPE_INT:    type = MDL_T_INT; break;
@@ -976,10 +976,10 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    }
 
    name = r->name;
-   cerr << "cr - a, name: " << name << endl;
+   //cerr << "cr - a, name: " << name << endl;
    do {
       tmp = strchr(name, '/');
-      cerr << "  tmp at " << tmp << endl;
+      //cerr << "  tmp at " << tmp << endl;
       if (tmp) {
          *tmp = '\0';
          tmp++;
@@ -987,10 +987,10 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
          name = tmp;
       }
    } while (tmp);
-   cerr << "cr - b\n";
+   //cerr << "cr - b\n";
    timeStamp trWall(timeStamp::ts1970());
    trWall = getWallTimeMgr().units2timeStamp(header->wall);
-   cerr << "cr - c\n";
+   //cerr << "cr - c\n";
    if ((parent = resource::findResource(parent_name)) && name != r->name) {
       resource::newResource(parent, NULL, r->abstraction, name,
                             trWall, "", type, true);
@@ -1001,5 +1001,5 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
 		   string(pid);
       showErrorCallback(36,msg);
    }
-   cerr << "cr - return normal\n";
+   //cerr << "cr - return normal\n";
 }

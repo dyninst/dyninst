@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.16 2003/03/28 23:28:18 pcroth Exp $
+// $Id: Object-nt.C,v 1.17 2003/04/25 22:52:30 mjbrim Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -518,7 +518,7 @@ Object::ParseDebugInfo( void )
 			baseAddr = desc->addr();
 
 			// Initialize our symbol handler
-			cout << "calling SymInitialize with proc=" << desc->GetProcessHandle() << endl;
+			//cout << "calling SymInitialize with proc=" << desc->GetProcessHandle() << endl;
 			if( !SymInitialize( desc->GetProcessHandle(), NULL, FALSE ) )
 			{
 				fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
@@ -574,7 +574,7 @@ Object::ParseDebugInfo( void )
 		desc->SetFileHandle( hFile );
 
         // Initialize our symbol handler
-		cout << "calling SymInitialize with proc=" << hProc << endl;
+		//cout << "calling SymInitialize with proc=" << hProc << endl;
         if( !SymInitialize( hProc, NULL, FALSE ) )
         {
             fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );

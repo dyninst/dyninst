@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.91 2003/04/20 01:00:15 schendel Exp $ */
+/* $Id: context.C,v 1.92 2003/04/25 22:52:35 mjbrim Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -435,7 +435,7 @@ void processNewTSConnection(int tracesocket_fd) {
    assert(fd >= 0);
 
    unsigned cookie;
-   cerr << "processNewTSConnection\n";
+   //cerr << "processNewTSConnection\n";
    unsigned rRet = 0;
    if (sizeof(cookie) != (rRet=read(fd, &cookie, sizeof(cookie)))) {
       cerr << "error, read return: " << rRet << ", cookieSize: "

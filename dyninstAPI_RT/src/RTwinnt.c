@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.6 2003/02/04 14:59:37 bernat Exp $
+ * $Id: RTwinnt.c,v 1.7 2003/04/25 22:52:34 mjbrim Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
@@ -80,11 +80,11 @@ int DYNINSTloadLibrary(char *libname)
 {
     HMODULE res;
     gLoadLibraryErrorString[0] = '\0';
-    fprintf(stderr, "Attempting to load %s\n", libname);
+    //fprintf(stderr, "Attempting to load %s\n", libname);
     
     res = LoadLibrary(libname);
     if (res == NULL) {
-        perror("DYNINSTloadLibrary");
+        perror("DYNINSTloadLibrary - load of library failed");
         return 0;
     }
     return 1;
