@@ -7,16 +7,23 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.11  1994/11/06 10:31:40  tamches
-/* greatly improved commenting
-/* Changed bar height algorithm to pin at a minimum individual bar
-/* height.
-/* Much better implementation of numValidResources, validResources[],
-/* and indirectResources[], especially w.r.t assertion checking.
-/* Many loops now use numValidResources instead of numResources
-/* as their upper bounds, as they always should have (e.g. in
-/* calculating the total needed height)
+/* Revision 1.12  1994/11/11 06:41:30  tamches
+/* Fixed bug that required all metrics to be valid or else would
+/* crash with assertion error.  Just because we haven't implemented
+/* deleting does not mean that metrics cannot become invalid; they
+/* can become invalid when no more met/res pairs for the metric
+/* are Enabled() in datagrid...
 /*
+ * Revision 1.11  1994/11/06  10:31:40  tamches
+ * greatly improved commenting
+ * Changed bar height algorithm to pin at a minimum individual bar
+ * height.
+ * Much better implementation of numValidResources, validResources[],
+ * and indirectResources[], especially w.r.t assertion checking.
+ * Many loops now use numValidResources instead of numResources
+ * as their upper bounds, as they always should have (e.g. in
+ * calculating the total needed height)
+ *
  * Revision 1.10  1994/10/14  10:27:40  tamches
  * Swapped the x and y axes -- now resources print vertically and
  * metrics print horizontally.  Can fit many, many more resources
@@ -489,7 +496,10 @@ void BarChart::RethinkBarLayouts() {
 }
 
 void BarChart::RethinkBarWidths() {
-   // note -- validResources[] **must** be set before calling this routine
+   // Given: udpated numValidMetrics, indirectResources[], validResources[],
+   //                numValidResourcse, validMetrics[], barValues[][],
+   //                metricCurrMaxVals[]
+   // Does: rethinks barWidths[][], redraws
 
    // Set the height of each bar to the fraction of window height
    // that equals the fraction of the bar's current value to its
@@ -498,8 +508,7 @@ void BarChart::RethinkBarWidths() {
    // This routine is called on the "critical path" --- when "new data
    // callbacks" arrive.  We must be quick! (but keep the assert()s)
 
-   // Move from left to right on the screen, in sorted order
-   // (but store changes in original order)
+   // Move on screen in sorted order, but store changes in actual order
    for (int resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
       // account for possible resources sorting:
       const int actualResource = indirectResources[resourcelcv];
@@ -707,13 +716,23 @@ void BarChart::lowestLevelDrawBarsDoubleBuffer() {
       assert(validResources[actualResource]);
 
       int top = resourceBoundary + resourceBorderHeight;
-      
+
+      // for robustness:
+      int thisTimeNumValidMetrics=0;      
+
       for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-         // account for sorted metrics: (though not yet implemented)
+         // Eventually, we will account for sorted metrics here.
+         // Until then, we test the validMetrics[] field.  If false,
+         // then skip this metric.
          const int actualMetric = metriclcv;
+         if (!validMetrics[actualMetric]) continue;
+
          assert(actualMetric>=0);
          assert(actualMetric<numMetrics);
          assert(validMetrics[actualMetric]);
+
+         // for robustness:
+         thisTimeNumValidMetrics++;
 
          XSetForeground(display, myGC, metricColors[actualMetric]->pixel);
    
@@ -731,6 +750,8 @@ void BarChart::lowestLevelDrawBarsDoubleBuffer() {
       }
 
       resourceBoundary += totalResourceHeight;
+ 
+      assert(thisTimeNumValidMetrics == numValidMetrics);
    }
 
    // copy offscreen pixmap onto screen
