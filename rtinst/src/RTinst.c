@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.61 2002/08/02 21:25:47 bernat Exp $
+ * $Id: RTinst.c,v 1.62 2002/08/12 04:22:17 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -97,10 +97,6 @@ int PARADYNdebugPrintRT = 0;
 RTsharedData_t RTsharedData;
 /* And max # of threads allowed */
 unsigned MAX_NUMBER_OF_THREADS;
-
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-extern unsigned DYNINSTtotalTraps;
-#endif
 
 /*extern void   DYNINSTos_init(int calledByFork, int calledByAttach); ccw 22 apr 2002 : SPLIT */
 extern void   PARADYNos_init(int calledByFork, int calledByAttach);
@@ -236,6 +232,8 @@ timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
    will reset these to a "better" time querying function if available. */
 timeQueryFuncPtr_t pDYNINSTgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
+
+int paradyn_fork_occurring = 0;
 
 #if defined(rs6000_ibm_aix4_1)
 /* sync on powerPC is actually more general than just a memory barrier,
@@ -713,6 +711,8 @@ void pDYNINSTinit(int paradyndPid,
   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
 		     (int)getpid());
   PARADYNbreakPoint();
+  
+  shmsampling_printf("done with breakpoint\n", (int)getpid());  
   /* The next instruction is necessary to avoid a race condition when we
      link the thread library. This is just a hack to get the hw counters
      to work and it should be fixed - naim 4/9/97 */
@@ -801,21 +801,22 @@ DYNINSTexit(void) {
  *
  * track a fork() system call, and report to the paradyn daemon.
  *
- * Instrumented by paradynd to be called at the exit point of fork().  So, the address
- * space (including the instrumentation heap) has already been duplicated, though some
- * meta-data still needs to be manually duplicated by paradynd.  Note that for
- * shm_sampling, a fork() just increases the reference count for the shm segment.
- * This is not what we want, so we need to (1) detach from the old segment, (2) create
- * a new shm segment and attach to it in the *same* virtual addr spot as the old
- * one (otherwise, references to the shm segment will be out of date!), and (3) let
- * let paradynd know what segment key numbers we have chosen for the new segments, so
- * that it may attach to them (paradynd may also set some values w/in the segments such
- * as mid's).
+ * Instrumented by paradynd to be called at the exit point of fork().  So,
+ * the address space (including the instrumentation heap) has already been
+ * duplicated, though some meta-data still needs to be manually duplicated by
+ * paradynd.  Note that for shm_sampling, a fork() just increases the
+ * reference count for the shm segment.  This is not what we want, so we need
+ * to (1) detach from the old segment, (2) create a new shm segment and
+ * attach to it in the *same* virtual addr spot as the old one (otherwise,
+ * references to the shm segment will be out of date!), and (3) let paradynd
+ * know what segment key numbers we have chosen for the new segments, so that
+ * it may attach to them (paradynd may also set some values w/in the segments
+ * such as mid's).
  * 
- * Who sends the initial trace record to paradynd?  The child creates the new shm seg
- * and thus only the child can inform paradynd of the chosen keys.  One might argue that
- * the child does't have a traceRecord connection yet, but fork() should dup() all fd's
- * and take care of that limitation...
+ * Who sends the initial trace record to paradynd?  The child creates the new
+ * shm seg and thus only the child can inform paradynd of the chosen keys.
+ * One might argue that the child does't have a traceRecord connection yet,
+ * but fork() should dup() all fd's and take care of that limitation...
 ************************************************************************/
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
@@ -835,7 +836,6 @@ void forkexec_printf(const char *fmt, ...) {
 }
 
 #if !defined(i386_unknown_nt4_0)
- 
 static void
 breakpoint_for_fork()
 {
@@ -860,15 +860,20 @@ DYNINSTfork(int pid) {
 	  bad thing.  --ari */
 
        forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
+       paradyn_fork_occurring = 2;
        breakpoint_for_fork();
+       paradyn_fork_occurring = 0;
+       forkexec_printf("parent is continuing past SIGSTOP\n");
     } else if (pid == 0) {
        /* we are the child process */
 	int pid = getpid();
 	int ppid = getppid();
 	int ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
         /* char *traceEnv; */
-
-	forkexec_printf("DYNINSTfork CHILD -- welcome\n");
+	sleep(2);
+	paradyn_fork_occurring = 1;
+	forkexec_printf("DYNINSTfork CHILD -- welcome, pid = %d, ppid = %d\n",
+			pid, ppid);
 	fflush(stderr);
 
 	/* Here, we need to detach from the old shm segment, create a new one
@@ -876,21 +881,22 @@ DYNINSTfork(int pid) {
            to it */
 	makeNewShmSegCopy();
 
-	/* Here is where we used to send a TR_FORK trace record.  But we've found
-	   that sending a trace record followed by a DYNINSTbreakPoint had unpredictable
-	   results -- sometimes the breakPoint would get delivered to paradynd first.
-	   So idea #2 was to fill in DYNINST_bootstrapStruct and then do a breakpoint.
-	   But the breakPoint won't get forwarded to paradynd because paradynd hasn't
-	   yet attached to the child process.
-	   So idea #3 (the current one) is to just send all that information along the
-	   new connection (whereas we used to just send the pid).
+	/* Here is where we used to send a TR_FORK trace record.  But we've
+	   found that sending a trace record followed by a DYNINSTbreakPoint
+	   had unpredictable results -- sometimes the breakPoint would get
+	   delivered to paradynd first.  So idea #2 was to fill in
+	   DYNINST_bootstrapStruct and then do a breakpoint.  But the
+	   breakPoint won't get forwarded to paradynd because paradynd hasn't
+	   yet attached to the child process.  So idea #3 (the current one)
+	   is to just send all that information along the new connection
+	   (whereas we used to just send the pid).
 
 	   NOTE: soon attach will probably be implemented in a similar way -- by
 	         writing to the connection.
 	 */
 
-	/* set up a connection to the daemon for the trace stream.  (The child proc
-	   gets a different connection from the parent proc) */
+	/* set up a connection to the daemon for the trace stream.  (The
+	   child proc gets a different connection from the parent proc) */
 	forkexec_printf("dyninst-fork child closing old connections...\n");
 	DYNINSTcloseTrace();
 
@@ -924,6 +930,7 @@ DYNINSTfork(int pid) {
 	pDYNINSTinit(DYNINST_mutatorPid, MAX_NUMBER_OF_THREADS, -1, -1, -1);
 	   /* -1 params indicate called from DYNINSTfork */
 
+	paradyn_fork_occurring = 0;
 	forkexec_printf("dyninst-fork child done...running freely.\n");
     }
 }
@@ -1031,7 +1038,8 @@ DYNINSTprintCost(void) {
     stats.instTicks = 0;
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-	stats.totalTraps = DYNINSTtotalTraps;
+    stats.totalTraps = 0; /* value in DYNINSTtotalTraps, defined in
+			     libdyninstAPI_RT.so */
 #endif
 
 
