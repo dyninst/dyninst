@@ -151,6 +151,7 @@ bool process::getActiveFrame(int *fp, int *pc)
     //      if the current function makes a call.
     ret = readDataFromFrame(sp, fp, &dummy);
     firstFrame = *fp;
+
     return(ret);
 }
 
@@ -188,6 +189,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
 		      false)) {
         *fp = linkArea.oldFp;
         *rtn = linkArea.savedLR;
+
         if (currentFP == firstFrame) {
             // use the value stored in the link register instead.
             errno = 0;
@@ -979,6 +981,7 @@ void Object::load_object()
     struct syment *symbols = NULL;
     struct scnhdr *sectHdr = NULL;
     Symbol::SymbolLinkage linkage;
+    unsigned toc_offset = 0;
 
     fd = open(file_.string_of(), O_RDONLY, 0);
     if (fd <0) {
@@ -1126,6 +1129,14 @@ void Object::load_object()
 		    // bss or data
 		    csect = (union auxent *)
 			((char *) sym + sym->n_numaux * SYMESZ);
+		    
+		    if (csect->x_csect.x_smclas == XMC_TC0) { 
+			if (toc_offset)
+			    logLine("Found more than one XMC_TC0 entry.");
+			toc_offset = sym->n_value;
+			continue;
+		    }
+
 		    if ((csect->x_csect.x_smclas == XMC_TC) ||
 		        (csect->x_csect.x_smclas == XMC_DS)) {
 			// table of contents related entry not a real symbol.
@@ -1198,6 +1209,10 @@ void Object::load_object()
 	    }
         }
     }
+    	
+    // cout << "The value of TOC is: " << toc_offset << endl;
+    extern void initTocOffset(int);	
+    initTocOffset(toc_offset);	
 
 cleanup:
     close(fd);

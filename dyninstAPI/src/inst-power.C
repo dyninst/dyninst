@@ -775,6 +775,23 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
         return(0);
 }
 
+
+static int dummy[3];
+
+void
+initTocOffset(int toc_offset) {
+    //  st r2,20(r1)  ; 0x90410014 save toc register  
+    dummy[0] = 0x90410014; 
+
+    //  liu r2, 0x0000     ;0x3c40abcd reset the toc value to 0xabcdefgh
+    dummy[1] = (0x3c400000 | (toc_offset >> 16));
+
+    //  oril    r2, r2,0x0000   ;0x6042efgh
+    dummy[2] = (0x60420000 | (toc_offset & 0x0000ffff));
+
+}
+
+
 //
 // Author: Jeff Hollingsworth (3/26/96)
 //
@@ -906,6 +923,13 @@ unsigned emitFuncCall(opCode op,
     //  stu r1, -184(r1)		(AKA STWU)
     genImmInsn(insn, STWUop, 1, 1, -184); insn++;
     base += sizeof(instruction);
+
+    // save and reset the value of TOC 
+    insn->raw = dummy[0]; insn++; base += sizeof(instruction);
+    insn->raw = dummy[1]; insn++; base += sizeof(instruction);
+    insn->raw = dummy[2]; insn++; base += sizeof(instruction);
+    // 0x90410014 0x3c402000 0x6042fd7c 
+    // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
 
     // generate a to the subroutine to be called.
     // load r0 with address, then move to link reg and branch and link.

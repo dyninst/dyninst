@@ -759,8 +759,10 @@ class Frame {
     int getPC() const { return pc_; }
     int getFramePtr(){ return frame_;}
     bool isLastFrame() const { 
-	if (pc_ == 0) return(true);
-	else return(false); 
+	if ((pc_ == 0)||(frame_ == 0))
+	    return(true);
+	else 
+	    return(false); 
     }
 
     Frame getPreviousStackFrameInfo(process *proc) const;
