@@ -91,6 +91,10 @@ asm("		nop");
 asm("		call abort");
 asm("		nop");
 
+void call0()
+{
+}
+
 void call1()
 {
     passedTest[1] = TRUE;
