@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.2  1994/01/26 04:53:43  hollings
+ * Revision 1.3  1994/07/14 23:43:14  hollings
+ * added abort for malloc failure.
+ *
+ * Revision 1.2  1994/01/26  04:53:43  hollings
  * Change to using <module>/h/*.h
  *
  * Revision 1.1  1994/01/25  20:50:27  hollings
@@ -74,6 +77,7 @@ char *stringPool::getSpace(int size)
     if ((int)(currPos - currPage) + size > PAGE_SIZE) {
 	// create a new page.
 	currPage = (stringHandle) malloc(4090);
+	if (!currPage) abort();
 	currPos = currPage;
     }
     ret = currPos;
