@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.159 2004/03/19 21:26:53 bernat Exp $
+ * $Id: inst-x86.C,v 1.160 2004/03/22 20:17:18 mjbrim Exp $
  */
 
 #include <iomanip>
@@ -5035,7 +5035,7 @@ bool PushEIPmov::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 
    // Generate mov (adr + 5), %ebx instruction
    // mov OpCode
-   *movInsn++ = 0xbb;
+   *movInsn++ = 0xb8 + dst_reg;
 
    // address of instruction following call
    *((unsigned int *)movInsn) = (unsigned int)(oldAdr + 5);   
@@ -5285,10 +5285,13 @@ bool pd_Function::PA_attachGeneralRewrites(
             const unsigned char *target =
                (const unsigned char *)owner->getPtrToInstruction(targetAdr);
 
-            // The target instruction is a mov
+            // The target instruction is a mov (mem to reg)
             if (*(target) == 0x8b) {
+               unsigned char modrm = *(target + 1);
+               unsigned char reg = (modrm >> 3) & 0x3;
+
                // The source register of the mov is specified by a SIB byte 
-               if (*(target + 1) == 0x1c) {
+               if ((modrm == 0x0c) || (modrm == 0x1c)) {
  
                   // The source register of the mov is the %esp register
                   // (0x24) and the instruction after the mov is a ret
@@ -5300,7 +5303,7 @@ bool pd_Function::PA_attachGeneralRewrites(
                           << "Adding PushEIPmov LocalAlteration at offset " 
                           << offset << " of " << prettyName() << endl;
 #endif
-                     PushEIPmov *eipMov = new PushEIPmov(this, offset); 
+                     PushEIPmov *eipMov = new PushEIPmov(this, offset, reg); 
                      temp_alteration_set->AddAlteration(eipMov);
                   }
                }
