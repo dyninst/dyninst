@@ -1,6 +1,7 @@
 #define BPATCH_FILE
 
 #include <stdio.h>
+#include <string.h>
 #include <iostream>
 #include "BPatch_basicBlockLoop.h"
 
