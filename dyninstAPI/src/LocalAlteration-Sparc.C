@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.14 2002/05/13 19:51:48 mjbrim Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.15 2003/04/25 17:32:36 mirg Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -267,7 +267,7 @@ bool JmpNopTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) 
     ips->AddExpansion(beginning_offset + sizeof(instruction), 7 * sizeof(instruction));
     // One more insn of offset is added to make the total # of bytes of offset agree
     //  with the size change....
-    ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), sizeof(instruction));
+    ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), 2 * sizeof(instruction));
     return true;
 } 
 
@@ -538,14 +538,14 @@ bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *
 	ips->AddExpansion(beginning_offset + sizeof(instruction), 
 			  7 * sizeof(instruction));
 	ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), 
-                          sizeof(instruction));
+                          2 * sizeof(instruction));
 
     } else if (jmpl_call) {
         ips->AddExpansion(beginning_offset, 8 * sizeof(instruction));
         ips->AddExpansion(beginning_offset + sizeof(instruction), 
                           7 * sizeof(instruction));
 	ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), 
-                          sizeof(instruction));
+                          2 * sizeof(instruction));
     } 
     return true;
 }
