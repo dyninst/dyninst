@@ -7,14 +7,17 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.18  1996/01/10 02:36:11  tamches
-/* changed uses of dynamic1dArray/2d to the vector class
-/* removed theWindowName
-/* added a tkInstallIdle
-/* int --> unsigned for many index vrbles
-/* constructor now takes an array of color names
-/* added getMetricColorName; removed gimmeColorName, RethinkMetricColors
+/* Revision 1.19  1996/01/10 21:10:11  tamches
+/* metricMaxValues now indexed by metric units
 /*
+ * Revision 1.18  1996/01/10 02:36:11  tamches
+ * changed uses of dynamic1dArray/2d to the vector class
+ * removed theWindowName
+ * added a tkInstallIdle
+ * int --> unsigned for many index vrbles
+ * constructor now takes an array of color names
+ * added getMetricColorName; removed gimmeColorName, RethinkMetricColors
+ *
  * Revision 1.17  1995/09/22 19:24:21  tamches
  * removed warnings under g++ 2.7.0
  *
@@ -84,8 +87,8 @@
 #include <iostream.h>
 #include <math.h>
 
-#include <tclclean.h>
-#include <tkclean.h>
+#include "tcl.h"
+#include "tk.h"
 
 #include "visi/h/visualization.h"
 #include "dg2.h"
@@ -221,7 +224,7 @@ bool BarChart::TryFirstGoodWid() {
 
 void BarChart::processResizeWindow(const int newWidth, const int newHeight) {
    if (!TryFirstGoodWid())
-      return; // our window is still invalid
+      return;
 
    width  = newWidth - 2*borderPix; // subtract left+right border
    height = newHeight - 2*borderPix; // subract top+bottom border
@@ -235,7 +238,7 @@ void BarChart::processResizeWindow(const int newWidth, const int newHeight) {
 
 void BarChart::processExposeWindow() {
    if (!TryFirstGoodWid())
-      return; // our window is still invalid
+      return;
 
    drawWhenIdle.install(this);
 }
@@ -306,7 +309,8 @@ void BarChart::rethinkMetricMaxValues() {
 
       char buffer[64];
       sprintf(buffer, "%d", metriclcv);
-      char *str = Tcl_GetVar2(MainInterp, "metricMaxValues", buffer,
+      char *str = Tcl_GetVar2(MainInterp, "metricMaxValues",
+			      dataGrid.MetricLabel(metriclcv), // units
 			      TCL_GLOBAL_ONLY);
       if (str == NULL)
          panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'");
@@ -499,7 +503,7 @@ void BarChart::rethinkBarPixWidths() {
          theWidth *= this->width;
 
          // truncate, double-check for isnan(), and store
-         int integerResult = isnan(theWidth) ? 0 : (int)theWidth;
+         register int integerResult = isnan(theWidth) ? 0 : (int)theWidth;
          barPixWidths[actualMetric][actualResource] = integerResult;
       }
    }
