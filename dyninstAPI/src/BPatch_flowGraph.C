@@ -845,7 +845,7 @@ private:
 		label[s] = label[w];
 		size[v] += size[w];
 		if(size[v] < (2*size[w])){
-			int tmp = s;
+			int tmp = child[v];
 			child[v] = s;
 			s = tmp;
 		}
