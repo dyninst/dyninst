@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.30 2003/06/19 18:46:09 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.31 2003/07/29 00:32:48 eli Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -84,6 +84,7 @@ IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 
 IGEN_ISRCS    = dyninstRPC.I
 
+IFLAGS          = $(IFLAGS) -I..\..\dyninstAPI\h
 
 OBJS      = $(OBJS) association.obj \
 		ast.obj \
@@ -105,7 +106,12 @@ OBJS      = $(OBJS) association.obj \
 		internalMetrics.obj \
 		costmetrics.obj \
 		metricDefs-critPath.obj \
+		BPatch_sourceBlock.obj \
+		BPatch_basicBlock.obj \
+		BPatch_basicBlockLoop.obj \
+		BPatch_flowGraph.obj \
 		Object.obj \
+		MemoryAccess.obj \
 		dyn_thread.obj \
 		perfStream-def.obj \
 		resource.obj \
@@ -124,6 +130,7 @@ OBJS      = $(OBJS) association.obj \
 		rpcMgr-lwp.obj \
 		installed_miniTramps_list.obj \
 		sharedobject.obj \
+		LineInformation.obj \
 		processMgr.obj \
                 pd_process.obj \
 		threadMgr.obj \
@@ -132,6 +139,7 @@ OBJS      = $(OBJS) association.obj \
 		pd_module.obj \
 		dyninstRPC.xdr.SRVR.obj \
 		dyninstRPC.xdr.obj \
+		BPatch_templates.obj \
 		templatesIGEN.obj \
                 templatesPD-nt.obj \
 		templates-nt.obj
