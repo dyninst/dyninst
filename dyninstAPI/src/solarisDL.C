@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.37 2005/01/18 18:34:12 bernat Exp $
+// $Id: solarisDL.C,v 1.38 2005/03/07 21:19:48 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -47,14 +47,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
-
-extern unsigned enable_pd_sharedobj_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 #include <link.h>
 #include <libelf.h>
@@ -317,7 +309,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
       f_name[f_amount-1] = '\0';
       pdstring obj_name = pdstring(f_name);
 
-      sharedobj_cerr << 
+      parsing_cerr << 
          "dynamicLinking::processLinkMaps(): file name of next shared obj="
                      << obj_name << endl;
 
@@ -331,7 +323,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
          obj_name != "(unknown)"
          //strncmp(obj_name.c_str(), "(unknown)", 10)
          ) {
-         sharedobj_cerr << 
+         parsing_cerr << 
             "file name doesn't match image, so not ignoring it...firsttime=" 
                         << (int)first_time << endl;
 
@@ -351,7 +343,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
          }
       }
       else {
-         sharedobj_cerr << 
+         parsing_cerr << 
             "file name matches that of image, so ignoring...firsttime=" 
                         << (int)first_time << endl;
       }

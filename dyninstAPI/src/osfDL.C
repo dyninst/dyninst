@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.41 2005/01/18 18:34:11 bernat Exp $
+// $Id: osfDL.C,v 1.42 2005/03/07 21:19:48 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -50,13 +50,6 @@
 #include "dyninstAPI/src/inst-alpha.h"
 #include "common/h/debugOstream.h"
 
-extern unsigned enable_pd_sharedobj_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 #include <sys/types.h>
 #include <sys/procfs.h>
