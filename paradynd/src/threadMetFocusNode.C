@@ -129,10 +129,10 @@ bool threadMetFocusNode_Val::instrInserted() {
   return allParentsInserted;
 }
 
-unsigned threadMetFocusNode_Val::getThreadID() { 
+unsigned threadMetFocusNode_Val::getThreadID() const { 
   return pdThr->get_tid(); 
 }
-unsigned threadMetFocusNode_Val::getThreadPos() { 
+unsigned threadMetFocusNode_Val::getThreadPos() const { 
   return pdThr->get_pd_pos(); 
 }
 
@@ -236,4 +236,26 @@ process *threadMetFocusNode::proc() {
   return parent->proc();
 }
 
+// initializes agg info objects between this THR node and parent PROC NODE
+void threadMetFocusNode::initAggInfoObjects(timeStamp startTime, 
+					    pdSample initValue)
+{
+  for(unsigned i=0; i<V.parentsBuf.size(); i++) {  
+    processMetFocusNode *curParent  = V.parentsBuf[i].parent;    
+    if(parent == curParent) {
+      aggComponent *thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
+      thrNodeAggInfo->setInitialStartTime(startTime);
+      thrNodeAggInfo->setInitialActualValue(initValue);
+    }
+  }
+
+  
+}
+
+void threadMetFocusNode::initializeForSampling(timeStamp startTime, 
+					       pdSample initValue)
+{
+  initAggInfoObjects(startTime, initValue);
+  parent->prepareForSampling(this);
+}
 
