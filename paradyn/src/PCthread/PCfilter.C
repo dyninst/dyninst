@@ -21,6 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.3  1996/02/09 20:57:26  karavan
+ * Added performanceConsultant::globalRawDataServer and
+ * performanceConsultant::currentRawDataServer to streamline new data
+ * storage.
+ *
  * Revision 1.2  1996/02/08 19:52:41  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -213,10 +218,13 @@ filteredDataServer::filteredDataServer(phaseType pt)
   DataFilters(filteredDataServer::fdid_hash),
   DataByMetFocus(filteredDataServer::fdid_hash)
 {
-  if (pt == GlobalPhase)
+  if (pt == GlobalPhase) {
     currentBinSize = dataMgr->getGlobalBucketWidth();
-  else
+    performanceConsultant::globalRawDataServer = this;
+  } else {
     currentBinSize = dataMgr->getCurrentBucketWidth();
+    performanceConsultant::currentRawDataServer = this;
+  }
   timeStamp minGranularity = performanceConsultant::minObservationTime/4.0;
   // ensure that starting interval size is an even multiple of dm's 
   // bucket width, for efficiency:  once bucket width passes minimum,
@@ -228,7 +236,6 @@ filteredDataServer::filteredDataServer(phaseType pt)
   }
   // adjusted minGranularity, or binsize, whichever's bigger
   intervalSize = binFactor;
-  cout << "new FDS intervalSize = " << intervalSize << endl;
 }
 
 //

@@ -16,9 +16,14 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.44  1996/02/09 05:30:51  karavan
-/* changes to support multiple per phase searching.
+/* Revision 1.45  1996/02/09 20:57:30  karavan
+/* Added performanceConsultant::globalRawDataServer and
+/* performanceConsultant::currentRawDataServer to streamline new data
+/* storage.
 /*
+ * Revision 1.44  1996/02/09 05:30:51  karavan
+ * changes to support multiple per phase searching.
+ *
  * Revision 1.43  1996/02/08 19:52:43  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -59,6 +64,8 @@ bool performanceConsultant::useIndividualThresholds  = false;
 // 0 means no current phase defined  
 unsigned performanceConsultant::currentPhase = 0; 
 unsigned performanceConsultant::DMcurrentPhaseToken = 0;
+filteredDataServer *performanceConsultant::globalRawDataServer = NULL;
+filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
 
 // filteredDataServers use the bin width to interpret performance stream data 
 // so we need to pass fold notification to the appropriate server
@@ -75,6 +82,7 @@ void PCfold(perfStreamHandle,
   }
 }
 
+/*
 // all new data on any active search arrives via this upcall from the 
 // data manager.  Data arrival is what triggers experiment evaluation 
 // and search updates.
@@ -97,16 +105,35 @@ void PCnewData(metricInstanceHandle m_handle,
   assert (search);
   search-> newData(m_handle, value, bucketNum);
 }
+*/
 
 void PCnewDataCallback(vector<dataValueType> *values,
 		       u_int num_values) {
 
     if (values->size() < num_values) num_values = values->size();
+    dataValueType *curr;
     for(unsigned i=0; i < num_values;i++){
-	PCnewData((*values)[i].mi,
-	    	  (*values)[i].bucketNum,
-		  (*values)[i].value,
-    		  (*values)[i].type);
+//	PCnewData((*values)[i].mi,
+//	    	  (*values)[i].bucketNum,
+//		  (*values)[i].value,
+//    		  (*values)[i].type);
+      curr = &((*values)[i]);
+#ifdef PCDEBUG
+      if (performanceConsultant::printDataTrace) {
+	const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
+	const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
+	cout << "AR: " << metname << " " << focname;
+	cout << " value: " << curr->value;
+	cout << " bin: " << curr->bucketNum << endl;
+      }
+#endif
+      filteredDataServer *rawInput;
+      if (curr->type == GlobalPhase)
+	rawInput = performanceConsultant::globalRawDataServer;
+      else
+	rawInput = performanceConsultant::currentRawDataServer;
+      assert (rawInput);
+      rawInput-> newData(curr->mi, curr->value, curr->bucketNum);      
     }
     // dealloc buffer space
     datavalues_bufferpool.dealloc(values);
