@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.14  1996/04/05 21:04:27  naim
+# Revision 1.15  1996/04/15 16:18:41  naim
+# Changing from global to local grab - naim
+#
+# Revision 1.14  1996/04/05  21:04:27  naim
 # Chaging the way grabs are done to try to make sure they don't fail - naim
 #
 # Revision 1.13  1996/02/21  22:35:58  tamches
@@ -101,7 +104,7 @@ proc mkDialogWindow {w} {
     wm iconname $w "Dialog"
     wm geometry $w +425+300
     tkwait visibility $w
-    grab -global $w
+    catch {grab $w}
     focus $w
     return $w
 }
@@ -113,7 +116,7 @@ proc mkDialogWindowTitle {w theTitle} {
     wm iconname $w $theTitle
     wm geometry $w +425+300
     tkwait visibility $w
-    grab -global $w
+    catch {grab $w}
     focus $w
     return $w
 }
