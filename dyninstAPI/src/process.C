@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.306 2002/02/27 01:48:49 bernat Exp $
+// $Id: process.C,v 1.307 2002/02/27 19:44:05 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5623,10 +5623,12 @@ Address process::createRPCtempTramp(AstNode *action,
    }
 
    // Patch up the MT skip jump if required
+#if defined(MT_THREAD)
    if (skipBRAddr) {
      extern void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset);
      generateMTSkipBranch(insnBuffer, skipBRAddr, skipOffset);
    }
+#endif
 
    Address tempTrampBase;
    if (lowmem)
