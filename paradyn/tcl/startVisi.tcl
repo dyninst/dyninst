@@ -5,8 +5,7 @@ proc AcceptProc {} {
    
    set thesel [$W.bottom.menu.list curselection]
    if {$thesel!=""} {
-#     $W.bottom.button.accept configure -state disabled
-     destroy $W
+     $W.bottom.button.accept configure -state disabled
      set itemif [lindex $visiIds $thesel]
    
      if {$phase=="CurrentPhase"} {
