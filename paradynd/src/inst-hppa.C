@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.15  1996/08/16 04:06:00  lzheng
+ * Minor changes for the change of paradyn.rc and bug fixing.
+ *
  * Revision 1.14  1996/07/18 19:48:35  naim
  * Changing the "frequency" value from 250 to 100 - naim
  *
@@ -749,7 +752,7 @@ void relocateInstruction(process *proc, instruction *&insn, int origAddr,
 		insn++;
 	    }
 
-	    genArithImmn(insn, ADDIop, 31, 31, offset);
+	    genArithImmn(insn, ADDIop, 31, 31, offset-4);
 
 	/* If it is an unconditional branch instruction, 
 	   deal with it */     
@@ -806,7 +809,8 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 registerSpace *regSpace;
 
 // return values come via r28, r29; these should be dead at call point
-int deadRegList[] = { 28, 29, 3, 2, 23, 24, 25, 26 };
+// Not really, actually.
+int deadRegList[] = { 29, 3, 2, 23, 24, 25, 26 };
 
 // r26, r25, r24, r23 are call arguments (in that order)
 int liveRegList[] = { 1, 19, 20, 21, 22, 31, };
@@ -1404,7 +1408,7 @@ bool pdFunction::findInstPoints(const image *owner) {
   assert(funcEntry_);
   entryPoint = instr;
 
-  if (size() < 12) return true;
+  if (size() <= 12) return true;
 
   int index = 0; 
 
