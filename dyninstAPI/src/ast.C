@@ -1,10 +1,14 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.7  1994/09/22 01:33:59  markc
+ * Revision 1.8  1994/11/02 11:00:33  markc
+ * Replaced string handles.
+ * Attempted to use one type for addresses vs. caddr_t, int, unsigned.
+ *
+ * Revision 1.7  1994/09/22  01:33:59  markc
  * Cast args for printf
  * changed calloc to new
- * getOpString now returns const char*
+ * getOpstring now returns const char*
  * createPrimitiveCall takes const char*
  *
  */
@@ -18,6 +22,7 @@
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
+#include "inst-sparc.h"
 
 registerSpace::registerSpace(int count, int *possibles) {
     int i;
@@ -26,7 +31,7 @@ registerSpace::registerSpace(int count, int *possibles) {
     registers = new registerSlot[numRegisters];
     for (i=0; i < count; i++) {
 	registers[i].number = possibles[i];
-	registers[i].inUse = False;
+	registers[i].inUse = false;
     }
 }
 
@@ -34,7 +39,7 @@ reg registerSpace::allocateRegister() {
     int i;
     for (i=0; i < numRegisters; i++) {
 	if (!registers[i].inUse) {
-	    registers[i].inUse = True;
+	    registers[i].inUse = true;
 	    highWaterRegister = (highWaterRegister > i) ? 
 		 highWaterRegister : i;
 	    return(registers[i].number);
@@ -48,7 +53,7 @@ void registerSpace::freeRegister(int reg) {
     int i;
     for (i=0; i < numRegisters; i++) {
 	if (registers[i].number == reg) {
-	    registers[i].inUse = False;
+	    registers[i].inUse = false;
 	    return;
 	}
     }
@@ -57,14 +62,12 @@ void registerSpace::freeRegister(int reg) {
 void registerSpace::resetSpace() {
     int i;
     for (i=0; i < numRegisters; i++) {
-	registers[i].inUse = False;
+	registers[i].inUse = false;
     }
     highWaterRegister = 0;
 }
 
-extern registerSpace *regSpace;
-
-int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
+int AstNode::generateTramp(process *proc, char *i, unsigned &count)
 {
     int ret;
     int cycles;
@@ -98,11 +101,11 @@ int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
 reg AstNode::generateCode(process *proc,
 			  registerSpace *rs,
 			  char *insn, 
-			  caddr_t *base)
+			  unsigned &base)
 {
-    caddr_t addr;
-    caddr_t fromAddr;
-    caddr_t startInsn;
+    unsigned addr;
+    unsigned fromAddr;
+    unsigned startInsn;
     reg src1, src2;
     reg src = -1;
     reg dest = -1;
@@ -110,18 +113,18 @@ reg AstNode::generateCode(process *proc,
     if (type == opCodeNode) {
         if (op == ifOp) {
 	    src = loperand->generateCode(proc, rs, insn, base);
-	    startInsn = *base;
+	    startInsn = base;
 	    fromAddr = emit(op, src, (reg) 0, (reg) 0, insn, base);
 	    rs->freeRegister(src);
             (void) roperand->generateCode(proc, rs, insn, base);
 	    // call emit again now with correct offset.
-	    (void) emit(op, src, (reg) 0, (reg) (*base - fromAddr), 
-		insn, &startInsn);
-            // sprintf(errorLine,branch forward %d\n", *base - fromAddr);
+	    (void) emit(op, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
+		insn, startInsn);
+            // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	} else if (op == storeOp) {
 	    src1 = roperand->generateCode(proc, rs, insn, base);
 	    src2 = rs->allocateRegister();
-	    addr = loperand->dValue->getInferriorPtr();
+	    addr = loperand->dValue->getInferiorPtr();
 	    (void) emit(op, src1, src2, (reg) addr, insn, base);
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
@@ -146,10 +149,10 @@ reg AstNode::generateCode(process *proc,
 	if (oType == Constant) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
 	} else if (oType == DataPtr) {
-	    addr = dValue->getInferriorPtr();
+	    addr = dValue->getInferiorPtr();
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == DataValue) {
-	    addr = dValue->getInferriorPtr();
+	    addr = dValue->getInferiorPtr();
 	    if (dValue->getType() == timer) {
 		(void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	    } else {
@@ -163,14 +166,16 @@ reg AstNode::generateCode(process *proc,
 	    }
 	}
     } else if (type == callNode) {
-	caddr_t addr;
+	unsigned addr;
 	// find func addr.
-	addr = findInternalAddress(proc->symbols, callee, False);
-	if (!addr) {
+	bool err;
+	addr = (proc->symbols)->findInternalAddress(callee, false, err);
+	if (err) {
 	    pdFunction *func;
-	    func = findFunction(proc->symbols, callee);
+	    func = (proc->symbols)->findOneFunction(callee);
 	    if (!func) {
-		sprintf(errorLine, "unable to find addr of %s\n", callee);
+	        ostrstream os(errorLine, 1024, ios::out);
+		os << "unable to find addr of " << callee << endl;
 		logLine(errorLine);
 		abort();
 	    }
@@ -196,7 +201,7 @@ reg AstNode::generateCode(process *proc,
     return(dest);
 }
 
-const char *getOpString(opCode op)
+string getOpString(opCode op)
 {
     switch (op) {
 	case plusOp: return("+");
@@ -279,23 +284,25 @@ void AstNode::print()
 	    sprintf(errorLine, " %d", (int) oValue);
 	    logLine(errorLine);
 	} else if (oType == DataPtr) {
-	    sprintf(errorLine, " %d", (int) dValue->getInferriorPtr());
+	    sprintf(errorLine, " %d", (int) dValue->getInferiorPtr());
 	    logLine(errorLine);
 	} else if (oType == DataValue) {
-	    sprintf(errorLine, "@%d", (int) dValue->getInferriorPtr());
+	    sprintf(errorLine, "@%d", (int) dValue->getInferiorPtr());
 	    logLine(errorLine);
 	} else if (oType == Param) {
 	    sprintf(errorLine, "param[%d]", (int) oValue);
 	    logLine(errorLine);
 	}
     } else if (type == opCodeNode) {
-	sprintf(errorLine, "(%s", getOpString(op));
+        ostrstream os(errorLine, 1024, ios::out);
+	os << "(" << getOpString(op) << ends;
 	logLine(errorLine);
 	if (loperand) loperand->print();
 	if (roperand) roperand->print();
 	logLine(")");
     } else if (type == callNode) {
-	sprintf(errorLine, "(%s", callee);
+        ostrstream os(errorLine, 1024, ios::out);
+	os << "(" << callee << ends;
 	logLine(errorLine);
 	if (loperand) loperand->print();
 	if (roperand) roperand->print();
@@ -307,7 +314,7 @@ void AstNode::print()
     }
 }
 
-AstNode *createPrimitiveCall(const char *func, dataReqNode *dataPtr, int param2)
+AstNode *createPrimitiveCall(const string func, dataReqNode *dataPtr, int param2)
 {
     return(new AstNode(func, new AstNode(DataValue, (void *) dataPtr), 
 			     new AstNode(Constant, (void *) param2)));
