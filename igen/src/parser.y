@@ -163,12 +163,21 @@ typeSpec: classOrStruct tIDENT optDerived
 
    // FREE ALL MEMORY
 
-   $$.cp = new string(Options::allocate_type(*$2.cp, $1.class_data.b, $1.class_data.abs,
-					     $3.derived.is_derived,
-					     *($3.derived.name),
-					     type_defn::TYPE_COMPLEX, true, 
-					     false, $5.arg_vector, *$6.cp));
-   delete ($2.cp); delete($3.derived.name); delete ($5.arg_vector); delete($6.cp);
+   $$.cp = new string(Options::allocate_type(*$2.cp,
+                                                $1.class_data.b,
+                                                $1.class_data.abs,
+					                            $3.derived.is_derived,
+                                                $3.derived.is_virtual,
+					                            *($3.derived.name),
+					                            type_defn::TYPE_COMPLEX,
+                                                true, 
+					                            false,
+                                                $5.arg_vector,
+                                                *$6.cp));
+   delete ($2.cp);
+   delete($3.derived.name);
+   delete ($5.arg_vector);
+   delete($6.cp);
    parsing = 0;
    }
 | classOrStruct tIDENT tSEMI {
@@ -186,8 +195,25 @@ typeSpec: classOrStruct tIDENT optDerived
 
 ; 
 
-optDerived: {$$.derived.is_derived = false; $$.derived.name = new string;}
-          | tCOLON tIDENT {$$.derived.is_derived=true; $$.derived.name = $2.cp;};
+optDerived:
+    {
+        $$.derived.is_derived = false;
+        $$.derived.is_virtual = false;
+        $$.derived.name = new string;
+    }
+    | tCOLON tVIRTUAL tIDENT
+    {
+        $$.derived.is_derived = true;
+        $$.derived.is_virtual = true;
+        $$.derived.name = $3.cp;
+    }
+    | tCOLON tIDENT
+    {
+        $$.derived.is_derived = true;
+        $$.derived.is_virtual = false;
+        $$.derived.name = $2.cp;
+    };
+
 
 fieldDeclList:  { $$.arg_vector = new pdvector<arg*>; }
 | fieldDeclList fieldDecl {
@@ -226,7 +252,8 @@ typeName: tIDENT {
 
     if (!is_forward)
       $$.cp = new string(Options::allocate_type(*$1.cp, false, false,
-						false, "",
+						false, false,
+                        "",
 						type_defn::TYPE_COMPLEX, true, 
 						in_lib));
     else
@@ -248,7 +275,8 @@ typeName: tIDENT {
     } else
       in_lib = true;
 
-    $$.cp = new string(Options::allocate_type(tname, false, false, false, "",
+    $$.cp = new string(Options::allocate_type(tname, false, false, false, false,
+                          "",
 					      type_defn::TYPE_COMPLEX, 
 					      true, in_lib));
   } else

@@ -65,13 +65,21 @@ string Options::allocate_stl_type(string stl_type, string element_name,
   return (ign->name());
 }
 
-string Options::allocate_type(const string &name, bool is_class, bool is_abstract,
-			      bool is_derived, const string &parent,
+string Options::allocate_type(const string &name, bool is_class,
+                  bool is_abstract,
+			      bool is_derived,
+                  bool is_virtual,
+                  const string &parent,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib,
 			      pdvector<arg*> *arglist, const string &ignore_text,
 			      const string &bundle_name) {
-  return (Options::add_type(name, is_class, is_abstract, is_derived, parent, typ, can_point,
+  return (Options::add_type(name,
+                            is_class,
+                            is_abstract,
+                            is_derived,
+                            is_virtual,
+                            parent, typ, can_point,
 			    in_lib, arglist, ignore_text, bundle_name));
 }
 
@@ -83,12 +91,17 @@ string Options::allocate_type(const string &name, bool is_class,
 
 
 string Options::add_type(const string name, const bool is_class, const bool is_abstract,
-			 const bool is_derived, const string parent,
+			 const bool is_derived,
+             const bool is_virtual,
+             const string parent,
 			 const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib,
 			 pdvector<arg*> *arglist, const string ignore_text,
 			 const string bundler_name) {
-  type_defn *ign = new type_defn(name, is_class, is_abstract, is_derived, parent, type,
+  type_defn *ign = new type_defn(name, is_class, is_abstract,
+                 is_derived,
+                 is_virtual,
+                 parent, type,
 				 arglist, can_point, in_lib,
 				 ignore_text, bundler_name);
   assert(ign);

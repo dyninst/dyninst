@@ -35,7 +35,9 @@ signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(fa
       // get names here
     } else {
       type_ = Options::allocate_type(string("T_") + rf_name, false, false,
-				     false, "",
+				     false,
+                     false,
+                     "",
 				     type_defn::TYPE_COMPLEX,
 				     true, false, &args);
     }

@@ -19,7 +19,9 @@ public:
   type_defn(string stl_name, string element_name, const unsigned star_count,
             bool in_lib);
   type_defn(const string &name, bool is_class, bool is_abstract,
-            bool is_derived, const string &parent, 
+            bool is_derived,
+            bool is_virtual,
+            const string &parent, 
             const type_type type, pdvector<arg*> *arglist = NULL, 
             const bool can_point=false, const bool in_lib=false, 
 	    const string &ignore="", const string &bundle_name="");
@@ -70,6 +72,7 @@ public:
   bool is_class() const { return is_class_; }
   bool is_abstract() const { return is_abstract_; }
   bool is_derived() const { return is_derived_; }
+  bool is_virtual() const { return is_virtual_; }
   string parent() const { return parent_; }
   void add_kid(const string kid_name);
   bool has_kids() const { return (kids_.size() > 0); }
@@ -91,6 +94,7 @@ private:
   bool is_class_;
   bool is_abstract_;
   bool is_derived_;
+  bool is_virtual_;
   string parent_;
   pdvector<string> kids_;
 

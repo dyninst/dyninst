@@ -72,7 +72,9 @@ public:
 				  const unsigned star_count, const bool in_lib);
   static string allocate_type(const string &name, bool is_class,
                               bool is_abstract,
-			      bool is_derived, const string &parent,
+			                  bool is_derived,
+                              bool is_virtual,
+                  const string &parent,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib,
 			      pdvector<arg*> *arglist=NULL, const string &ignore_text="",
@@ -82,8 +84,12 @@ public:
                                bool can_point, bool in_lib);
                                
 
-  static string add_type(const string name, const bool is_class, const bool is_abstract,
-			 const bool is_derived, const string parent,
+  static string add_type(const string name,
+                        const bool is_class,
+                        const bool is_abstract,
+			            const bool is_derived,
+                        const bool is_virtual,
+                        const string parent,
 			 const type_defn::type_type &type, 
 			 const bool can_point, const bool in_lib, 
 			 pdvector<arg*> *arglist=NULL, const string ignore="",

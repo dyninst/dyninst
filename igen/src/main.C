@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.58 2003/06/06 17:47:35 pcroth Exp $
+// $Id: main.C,v 1.59 2003/06/17 17:16:24 pcroth Exp $
 
 /*
  * Note: AIX 5.1
@@ -379,46 +379,46 @@ static void init_types() {
   el.name = "string"; el.type = "string"; el.stars = 0;
   Options::stl_types[0].elements += el;
 
-  Options::add_type("kptr_t", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("kptr_t", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("dptr_t", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("dptr_t", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("uint32_t", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("uint32_t", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("uint64_t", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("uint64_t", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("int", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("int", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("double", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("double", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL);
-  Options::add_type("void", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("void", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("bool", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("bool", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL, "", "Boolean");
-  Options::add_type("u_int", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("u_int", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("unsigned", false, false, false, "", type_defn::TYPE_SCALAR,
+  Options::add_type("unsigned", false, false, false, false, "", type_defn::TYPE_SCALAR,
                     false, true, /*false,*/ NULL);
-  Options::add_type("u_long", false, false, false, "", type_defn::TYPE_SCALAR,
+  Options::add_type("u_long", false, false, false, false, "", type_defn::TYPE_SCALAR,
                     false, true, /*false,*/ NULL);
-  Options::add_type("u_longlong_t", false, false, false, "", type_defn::TYPE_SCALAR,
+  Options::add_type("u_longlong_t", false, false, false, false, "", type_defn::TYPE_SCALAR,
                     false, true, /*false,*/ NULL);
-  Options::add_type("float", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("float", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("u_char", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("u_char", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("char", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("char", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("u_short", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("u_short", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("short", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("short", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                     true, /*false,*/ NULL);
-  Options::add_type("string", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("string", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                      true, /*false,*/ NULL, "", "string_pd");
-  Options::add_type("crope", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("crope", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
                      true, /*false,*/ NULL, "", "crope_pd");
 /* trace data streams */
-  Options::add_type("byteArray", false, false, false, "", type_defn::TYPE_SCALAR, false,
+  Options::add_type("byteArray", false, false, false, false, "", type_defn::TYPE_SCALAR, false,
 		    true, /*false,*/ NULL, "", "byteArray_pd");
 }
 

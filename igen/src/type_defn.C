@@ -103,14 +103,17 @@ static string process_ignore(const string txt) {
 }
 
 type_defn::type_defn(const string &name, bool is_cl, bool is_abs,
-		     bool is_der, const string &par, 
+		     bool is_der,
+             bool is_virt,
+             const string &par, 
 		     const type_type type, pdvector<arg*> *arglist, 
 		     const bool can_point, const bool in_lib,
 		     const string &ignore, const string &bundle_name)
 : my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),
   is_stl_(false), pointer_used_(false), can_point_(can_point),
   ignore_(process_ignore(ignore)), is_class_(is_cl), 
-  is_abstract_(is_abs), is_derived_(is_der) 
+  is_abstract_(is_abs), is_derived_(is_der),
+  is_virtual_(is_virt)
 {
   stl_arg_ = NULL;
   if (Options::all_types.defines(name)) {
@@ -212,7 +215,14 @@ bool type_defn::gen_class(const string, ofstream &out_stream) {
    out_stream << unqual_name();
    
    if (is_derived()) 
-      out_stream << " : public " << Options::qual_to_unqual(parent()) << " ";
+   {
+      out_stream << " :";
+      if( is_virtual() )
+      {
+         out_stream << " virtual";
+      }
+      out_stream << " public " << Options::qual_to_unqual(parent()) << " ";
+   }
    out_stream << "{ \n";
    if (is_class()) {
       out_stream << " public: \n ";

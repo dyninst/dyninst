@@ -70,6 +70,7 @@ typedef struct functype_data {
 
 typedef struct derived_data {
   bool is_derived;
+  bool is_virtual;
   string *name;
 } Derived_data;
 
