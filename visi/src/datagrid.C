@@ -1,21 +1,67 @@
-/* $Log: datagrid.C,v $
-/* Revision 1.4  1994/03/26 04:19:46  newhall
-/* changed all floats to double
-/* fix problem with null string returned for first resource name
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+/* $Log: datagrid.C,v $
+/* Revision 1.5  1994/05/11 17:12:44  newhall
+/* changed data values type from double to float
+/* fixed fold method function to support a folding
+/* at any point in the histogram, rather than only
+/* when the histogram is full
+/*
+ * Revision 1.4  1994/03/26  04:19:46  newhall
+ * changed all floats to double
+ * fix problem with null string returned for first resource name
+ *
  * Revision 1.3  1994/03/17  05:19:59  newhall
  * changed bucket width and time value's type to double
  *
  * Revision 1.2  1994/03/14  20:28:44  newhall
  * changed visi subdirectory structure
  *  */ 
+///////////////////////////////////////////////
+// Member functions for the following classes:
+//  Metric, Resource, visi_GridCellHisto,
+//  visi_GridHistoArray, visi_DataGrid
+///////////////////////////////////////////////
 #include "visi/h/datagrid.h" 
 
-Metric::Metric(char *metricUnits,char *metricName,int id,int foldMethod){
-  units = new char[strlen(metricUnits) + 1];
-  strcpy(units,metricUnits);
-  name  = new char[strlen(metricName) + 1];
-  strcpy(name,metricName);
+Metric::Metric(char *metricUnits,
+	       char *metricName,
+	       int id,
+	       int foldMethod){
+
+  int len;
+
+  if(metricUnits != NULL){
+    len = strlen(metricUnits);
+    units = new char[len + 1];
+    strcpy(units,metricUnits);
+    units[len] = '\0';
+  }
+  else{
+   units = NULL;
+  }
+    if(metricName != NULL){
+    len = strlen(metricName);
+    name  = new char[len + 1];
+    strcpy(name,metricName);
+    name[len] = '\0';
+  }
+  else{
+    name = NULL;
+  }
   Id    = id;
   if(foldMethod == AVE)
     aggregate = foldMethod;
@@ -24,18 +70,22 @@ Metric::Metric(char *metricUnits,char *metricName,int id,int foldMethod){
 }
 
 ///////////////////////////////////////////
-/*
- *  Resource constructor
- */
-Resource::Resource(char *resourceName,int id){
+//
+//  Resource constructor
+//
+Resource::Resource(char *resourceName,
+		   int id){
+  int len;
 
   if(resourceName != NULL){
-   name = new char[strlen(resourceName) + 1];
-   strcpy(name,resourceName);
-   Id = id;
+    len = strlen(resourceName);
+    name = new char[len+1];
+    strcpy(name,resourceName);
+    name[len] = '\0';
+    Id = id;
   }
   else {
-   name = new char[1];
+    name = new char[1];
     name[0] = '\0';
     Id = -1;
   }
@@ -43,12 +93,15 @@ Resource::Resource(char *resourceName,int id){
 
 
 ///////////////////////////////////////////
+//
+//  visi_GridCellHisto constructor
+//
 visi_GridCellHisto::visi_GridCellHisto(int numElements){
 
  int i;
     
  if(numElements > 0){  
-   value = new double[numElements];
+   value = new sampleType[numElements];
    for(i = 0; i < numElements; i++)
      value[i] = ERROR;
    valid      = 1;
@@ -59,9 +112,9 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
 }
 
 ///////////////////////////////////////////
-/*
- * constructor for class GridHistoArray
- */
+//
+// constructor for class GridHistoArray
+//
 visi_GridHistoArray::visi_GridHistoArray(int numElements){
 
  if(numElements > 0){  
@@ -72,17 +125,18 @@ visi_GridHistoArray::visi_GridHistoArray(int numElements){
 }
 
 
-/*
- * destructor for class GridHistoArray
- */
+//
+// destructor for class GridHistoArray
+//
 visi_GridHistoArray::~visi_GridHistoArray(){
 
   delete[] values;
 }
 
-/*
- *
- */
+//
+// evaluates to true if the grid cell indexed by i (foucus index)
+// contains a histogram (is a valid metric/focus pair)
+//
 int visi_GridHistoArray::Valid(int i){
 
   if ((i< 0) || (i>= size)){
@@ -94,9 +148,9 @@ int visi_GridHistoArray::Valid(int i){
 }
 
 
-/*
- *
- */
+//
+// invalidates the grid cell indexed by i 
+//
 int visi_GridHistoArray::Invalidate(int i){
 
   if ((i< 0) || (i>= size)){
@@ -110,11 +164,16 @@ int visi_GridHistoArray::Invalidate(int i){
 
 
 ///////////////////////////////////////////
-/*
- * DataGrid constructor
- */
-visi_DataGrid::visi_DataGrid(int noMetrics,int noResources,Metric *metricList,
-	     Resource *resourceList,int noBins,double width){
+//
+// DataGrid constructor: creates metric and 
+// resource lists and empty datagrid
+//
+visi_DataGrid::visi_DataGrid(int noMetrics,
+			     int noResources,
+			     Metric *metricList,
+	     		     Resource *resourceList,
+			     int noBins,
+			     timeType width){
 int i;
 
   numMetrics   = noMetrics;
@@ -139,10 +198,16 @@ int i;
 }
 
 
-/*
- * DataGrid constructor
- */
-visi_DataGrid::visi_DataGrid(int noMetrics,int noResources,metricType *metricList,resourceType *resourceList,int noBins,double width){
+//
+// DataGrid constructor: creates metric and 
+// resource lists and empty datagrid
+//
+visi_DataGrid::visi_DataGrid(int noMetrics,
+			     int noResources,
+			     visi_metricType *metricList,
+			     visi_resourceType *resourceList,
+			     int noBins,
+			     timeType width){
 int i;
 
   numMetrics   = noMetrics;
@@ -167,12 +232,9 @@ int i;
 
 
 
-
-
-
-/*
- *  DataGrid destructor 
- */
+//
+//  DataGrid destructor 
+//
 visi_DataGrid::~visi_DataGrid(){
 
   delete[] resources;
@@ -180,18 +242,18 @@ visi_DataGrid::~visi_DataGrid(){
   delete[] data_values;
 }
 
-/* 
- * returns metric name for metric number i 
- */
+// 
+// returns metric name for metric number i 
+//
 char   *visi_DataGrid::MetricName(int i){
   if((i < numMetrics) && (i>=0))
     return(metrics[i].Name());
   return(NULL);
 }
 
-/* 
- * returns metric units for metric number i 
- */
+// 
+// returns metric units for metric number i 
+//
 char *visi_DataGrid::MetricUnits(int i){
 
   if((i < numMetrics) && (i>=0))
@@ -200,9 +262,9 @@ char *visi_DataGrid::MetricUnits(int i){
 }
 
 
-/* 
- * returns resource name for resource number j 
- */
+// 
+// returns resource name for resource number j 
+//
 char     *visi_DataGrid::ResourceName(int j){
 
   if((j < numResources) && (j>=0))
@@ -210,25 +272,10 @@ char     *visi_DataGrid::ResourceName(int j){
   return(NULL);
 }
 
-/* 
- * returns list of metrics for current visualization 
- */
-char  *visi_DataGrid::MetricList(){
 
-  return(NULL);
-}
-
-/* 
- * returns list of objects for current visualization 
- */
-char  *visi_DataGrid::ObjectList(){
-
-  return(NULL);
-}
-
-/* 
- *  returns fold method for metric i 
- */
+// 
+//  returns fold method for metric i 
+//
 int  visi_DataGrid::FoldMethod(int i){
 
   if((i < numMetrics) && (i >= 0))
@@ -238,9 +285,9 @@ int  visi_DataGrid::FoldMethod(int i){
 
 }
 
-/* 
- * returns metric identifier associated with metric number i 
- */
+// 
+// returns metric identifier associated with metric number i 
+//
 int  visi_DataGrid::MetricId(int i){
 
   if((i < numMetrics) && (i >= 0))
@@ -249,9 +296,9 @@ int  visi_DataGrid::MetricId(int i){
   return(ERROR_SUBSCRIPT);
 }
 
-/* 
- * returns resource identifier associated with resource number j 
- */
+// 
+// returns resource identifier associated with resource number j 
+//
 int  visi_DataGrid::ResourceId(int j){
 
   if((j < numResources) && (j >= 0))
@@ -260,11 +307,12 @@ int  visi_DataGrid::ResourceId(int j){
   return(ERROR_SUBSCRIPT);
 }
 
-/*
- * returns 1 if datagrid element indicated by metric#, resource#
- * contains histogram values, otherwise returns false
- */
-int visi_DataGrid::Valid(int metric,int resource){
+//
+// returns 1 if datagrid element indicated by metric#, resource#
+// contains histogram values, otherwise returns false
+//
+int visi_DataGrid::Valid(int metric, 
+			 int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
     visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_HistoDataGrid::Valid");
@@ -274,11 +322,12 @@ int visi_DataGrid::Valid(int metric,int resource){
 
 }
 
-/*
- * invalidates data_grid element indicated by metric#, resource#
- * sets valid to 0 and frees histogram space 
- */
-int visi_DataGrid::Invalidate(int metric,int resource){
+//
+// invalidates data_grid element indicated by metric#, resource#
+// sets valid to 0 and frees histogram space 
+//
+int visi_DataGrid::Invalidate(int metric,
+			      int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
     visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_HistoDataGrid::Invalidate");
