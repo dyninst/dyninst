@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.17 2000/11/15 22:56:08 bernat Exp $
+// $Id: osf.C,v 1.18 2000/12/15 21:38:27 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -996,7 +996,7 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
     /* Put secs and nsecs into usecs */
     now = procinfo.pr_time.tv_sec;
     now *= I64_C(1000000000);
-    now += procinfo.pr_time.tv_nsec);
+    now += procinfo.pr_time.tv_nsec;
 
     if (now<previous) {
         // time shouldn't go backwards, but we have seen this happening
