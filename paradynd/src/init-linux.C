@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.21 2003/07/31 19:01:09 schendel Exp $
+// $Id: init-linux.C,v 1.22 2003/11/24 17:38:37 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -69,7 +69,7 @@ bool initOS() {
    // call made from user space, _pthread_body is the parent of any created
    // thread, and so is a good place to instrument.
    instMapping *mapping;
-   mapping = new instMapping("pthread_start_thread", "DYNINST_dummy_create",
+   mapping = new instMapping("start_thread", "DYNINST_dummy_create",
                              FUNC_ENTRY, callPreInsn, orderFirstAtPoint);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
