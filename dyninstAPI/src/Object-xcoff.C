@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.32 2003/10/21 17:21:48 bernat Exp $
+// $Id: Object-xcoff.C,v 1.33 2004/03/11 22:20:30 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -905,7 +905,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
            heapLen = PAGESIZE - (heapAddr % PAGESIZE);
        }
        char name_scratch[256];
-       sprintf(name_scratch, "DYNINSTstaticHeap_%i_textHeap_%x_scratchpage",
+       sprintf(name_scratch, "DYNINSTstaticHeap_%i_uncopiedHeap_%x_scratchpage",
                (unsigned) heapLen,
                (unsigned) heapAddr);
        name = pdstring(name_scratch);
