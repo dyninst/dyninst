@@ -1,47 +1,6 @@
-# $Log: Makefile,v $
-# Revision 1.2  1999/05/13 23:08:26  hollings
-# Shared libraries on Alpha.
+# $Id: Makefile,v 1.3 1999/05/29 22:30:10 wylie Exp $
 #
-# Revision 1.1  1998/08/25 19:35:42  buck
-# Initial commit of DEC Alpha port.
-#
-# Revision 1.5  1997/09/29 20:32:19  buck
-# Merge latest changes from Wisconsin into Maryland repository.
-#
-# Revision 1.4  1997/08/27 02:07:39  buck
-# Merge latest changes from Wisconsin into Maryland repository.
-#
-# Revision 1.3  1997/08/18 20:47:15  buck
-# Merge changes from Wisconsin in to Maryland repository.
-#
-# Revision 1.2  1997/08/05 19:08:11  hollings
-# *** empty log message ***
-#
-# Revision 1.1.1.2  1997/07/08 20:03:33  buck
-# Bring latest changes from Wisconsin over to Maryland repository.
-#
-# Revision 1.3  1997/07/08 19:15:29  buck
-# Added support for the x86 Solaris platform and dynamically linked
-# executables to the dyninst API library.
-#
-# Revision 1.2  1997/06/23 19:16:10  buck
-# Added features to the dyninst API library, including an optional "else"
-# in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
-# disable all snippets; and the replaceFunctionCall and removeFunctionCall
-# member functions of BPatch_thread to retarget or NOOP out a function
-# call.
-#
-# Revision 1.1.1.1  1997/04/01 20:25:15  buck
-# Update Maryland repository with latest from Wisconsin.
-#
-# Revision 1.1  1997/03/18 19:45:08  buck
-# first commit of dyninst library.  Also includes:
-# 	moving templates from paradynd to dyninstAPI
-# 	converting showError into a function (in showerror.C)
-# 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
-#
-#
-# Makefile for test programs on Sparc Solaris 2.4
+# Makefile for dyninstAPI test programs on Compaq Alpha
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -64,8 +23,6 @@ SYSLIBS   += -g -lmld -liberty
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-
-USES_LIBDYNINSTRT_SO=1
 
 ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(TARGET2).o
