@@ -22,10 +22,15 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.35  1995/01/26 17:59:12  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.36  1995/02/16 08:22:29  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages - check for buffered messages
+/* Changed char*/igen-array code to use strings/vectors for igen functions
 /*
+ * Revision 1.35  1995/01/26  17:59:12  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.34  1995/01/05  19:23:10  newhall
  * changed the size of the data buffer to be proportional
  * to the number of enabled metric/focus pairs.
@@ -186,7 +191,7 @@ void VISIthreadDataHandler(performanceStream *ps,
 
 
  VISIthreadGlobals *ptr;
- dataValue_Array   temp;
+ vector<T_visi::dataValue> temp;
 #ifdef DEBUG3
  char	**blah;
  int           count,i;
@@ -242,8 +247,12 @@ if((bucketNum % 100) == 0){
   if(ptr->bufferSize >= ptr->maxBufferSize) {
 
     PARADYN_DEBUG(("sending %d dataBuckets",ptr->bufferSize));
-    temp.count = ptr->bufferSize;
-    temp.data = ptr->buffer;
+    // temp.count = ptr->bufferSize;
+    // temp.data = ptr->buffer;
+    for (unsigned ve=0; ve<ptr->bufferSize; ve++) {
+      temp += ptr->buffer[ve];
+    }
+      
     ptr->visip->Data(temp);
     if(ptr->visip->did_error_occur()){
        PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
@@ -328,7 +337,7 @@ void VISIthreadFoldCallback(performanceStream *ps,
 			timeStamp width){
 
  VISIthreadGlobals *ptr;
- dataValue_Array   temp;
+ vector<T_visi::dataValue> temp;
 
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -356,8 +365,10 @@ void VISIthreadFoldCallback(performanceStream *ps,
   if(ptr->bucketWidth != width){
      // if buffer is not empty send visualization buffer of data values
      if(ptr->bufferSize != 0){
-        temp.count = ptr->bufferSize;
-        temp.data = ptr->buffer;
+       // temp.count = ptr->bufferSize;
+       // temp.data = ptr->buffer;
+        for (unsigned ve=0; ve<ptr->bufferSize; ve++)
+	  temp += ptr->buffer[ve];
         ptr->visip->Data(temp);
         if(ptr->visip->did_error_occur()){
            PARADYN_DEBUG(("igen: visip->Data() in VISIthreadFoldCallback"));
@@ -395,8 +406,14 @@ int VISIthreadStartProcess(){
   // start the visualization process
   if(ptr->start_up){
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
+    vector<string> av;
+    unsigned index=0;
+    while(ptr->args->argv[index]) {
+      av += ptr->args->argv[index];
+      index++;
+    }
     ptr->fd = RPCprocessCreate(ptr->pid, "localhost", "",
-				 ptr->args->argv[0],ptr->args->argv);
+				 ptr->args->argv[0], av);
     if (ptr->fd < 0) {
       PARADYN_DEBUG(("Error in process Create"));
       ERROR_MSG(14,"Error in VISIthreadStartProcess: RPCprocessCreate");
@@ -404,9 +421,9 @@ int VISIthreadStartProcess(){
       return(0);
     }
 
-    ptr->visip = new visiUser(ptr->fd,NULL,NULL); 
+    ptr->visip = new visiUser(ptr->fd); 
 
-    if(msg_bind_buffered(ptr->fd,0, (int(*)(void*)) xdrrec_eof,ptr->visip->getXdrs()) 
+    if(msg_bind_buffered(ptr->fd,0, (int(*)(void*)) xdrrec_eof,ptr->visip->net_obj()) 
        != THR_OKAY) {
       PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
       ERROR_MSG(14,"Error VISIthreadStartProcess: msg_bind_buffered");
@@ -444,19 +461,19 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
  metricInstance *currMetInst;
  metricInstance *newEnabled[numElements];
  metrespair *retryList;
- visi_matrix_Array pairList;
+ vector<T_visi::visi_matrix> pairList;
  metricInstance *temp;
- metricInfo *temp2;
+ T_dyninstRPC::metricInfo *temp2;
  sampleValue buckets[1000];
- dataValue_Array   tempdata;
+ vector<T_visi::dataValue>   tempdata;
  timeStamp binWidth = 0.0;
  int  numEnabled = 0;
  int  numRetry = 0;
- int  i,j,found;
+ int  i, found;
  int  numBins = 0;
  int  howmany;
  stringHandle key;
- float_Array bulk_data;
+ vector<float> bulk_data;
  List<metricInstance*> walk;
  int k;
 
@@ -483,7 +500,7 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
       return;
   }
 
-  pairList.data = (visi_matrix *)NULL;
+  // pairList.data = (T_visi::visi_matrix *)NULL;
   for(k=0; k < numElements; k++){
 
       key = newMetRes[k].focus->getCanonicalName();
@@ -537,60 +554,36 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
     ASSERTTRUE(!ptr->start_up);
 
     // create a visi_matrix_Array to send to visualization
-    pairList.count = numEnabled;
-    if((pairList.data  = 
-	(visi_matrix *)malloc(sizeof(visi_matrix)*pairList.count)) == NULL){
-	ERROR_MSG(12,"in VISIthreadchooseMetRes");
-        ptr->quit = 1;
-        free(retryList);
-        free(newMetRes);
-        return;
-    }
+
     for(i=0; i < numEnabled; i++){
 	temp2 = newEnabled[i]->met->getInfo();
-        pairList.data[i].met.Id = (int)newEnabled[i]->met;
-	pairList.data[i].met.name = strdup(temp2->name); 
-	pairList.data[i].met.units = strdup(temp2->units);
-	pairList.data[i].met.aggregate = AVE;
-	pairList.data[i].res.Id = (int)newEnabled[i]->focus->getCanonicalName();
-	if((pairList.data[i].res.name =   
+	T_visi::visi_matrix matrix;
+        matrix.met.Id = (int)newEnabled[i]->met;
+	matrix.met.name = temp2->name; 
+	matrix.met.units = temp2->units;
+	matrix.met.aggregate = AVE;
+	matrix.res.Id = (int)newEnabled[i]->focus->getCanonicalName();
+	if((matrix.res.name =   
 	    AbbreviatedFocus(GetResourceName(newEnabled[i]->focus))) == NULL){
             ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	    ptr->quit = 1;
             free(retryList);
             free(newMetRes);
-            if(pairList.data){
-                 for(j=0; j < i-1; j++){
-                        free(pairList.data[j].met.units);
-                        free(pairList.data[j].met.name);
-                        free(pairList.data[j].res.name);
-                }
-            }
-            free(pairList.data[i].met.name);
-            free(pairList.data[i].res.name);
-            free(pairList.data);
 	    return;
         }
+        pairList += matrix;
     }
 
     // if buffer is not empty send visualization buffer of data values
     if(ptr->bufferSize != 0){
-	  tempdata.count = ptr->bufferSize;
-          tempdata.data = ptr->buffer;
+          for (unsigned ve=0; ve<ptr->bufferSize; ve++)
+	    tempdata += ptr->buffer[ve];
 	  ptr->visip->Data(tempdata);
           if(ptr->visip->did_error_occur()){
              PARADYN_DEBUG(("igen: visip->Data() in VISIthreadchooseMetRes"));
              ptr->quit = 1;
              free(retryList);
              free(newMetRes);
-             if(pairList.data){
-                 for(i=0; i < pairList.count; i++){
-                     free(pairList.data[i].met.units);
-                     free(pairList.data[i].met.name);
-                     free(pairList.data[i].res.name);
-                 }
-                 free(pairList.data);
-             }
              return;
           }
 	  ptr->bufferSize = 0;
@@ -605,14 +598,6 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
         ptr->quit = 1;
         free(retryList);
         free(newMetRes);
-        if(pairList.data){
-            for(i=0; i < pairList.count; i++){
-                free(pairList.data[i].met.units);
-                free(pairList.data[i].met.name);
-                free(pairList.data[i].res.name);
-            }
-            free(pairList.data);
-        }
         return;
     }
 
@@ -623,8 +608,10 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 					    buckets,1000,0);
         // send visi all old data bucket values
 	if(howmany > 0){
-            bulk_data.count = howmany; 
-            bulk_data.data = buckets; 
+            // bulk_data.count = howmany; 
+            // bulk_data.data = buckets; 
+	    for (unsigned ve=0; ve<bulk_data.size(); ve++)
+	      bulk_data += buckets[i];
             ptr->visip->BulkDataTransfer(bulk_data,
 		   (int)newEnabled[i]->met,
 		   (int)newEnabled[i]->focus->getCanonicalName());
@@ -633,14 +620,6 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
                 ptr->quit = 1;
                 free(retryList);
                 free(newMetRes);
-                if(pairList.data){
-                    for(i=0; i < pairList.count; i++){
-                        free(pairList.data[i].met.units);
-                        free(pairList.data[i].met.name);
-                        free(pairList.data[i].res.name);
-                    }
-                    free(pairList.data);
-                }
                 return;
             }
 	}
@@ -674,15 +653,6 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	 ptr->quit = 1;
       }
   }
-  if(pairList.data){
-    for(i=0; i < pairList.count; i++){
-     free(pairList.data[i].met.units);
-     free(pairList.data[i].met.name);
-     free(pairList.data[i].res.name);
-    }
-    free(pairList.data);
-  }
-
 }
 
 
@@ -801,26 +771,63 @@ void *VISIthreadmain(void *vargs){
  
   PARADYN_DEBUG(("before enter main loop"));
   while(!(globals->quit)){
+      if (globals->visip) {
+	// visip may not have been set yet
+	// see if any async upcalls have been buffered
+	while (globals->visip->buffered_requests()) {
+	  if (globals->visip->process_buffered() == T_visi::error) {
+	    cout << "error on visi\n";
+	    assert(0);
+	  }
+	}
+      }
       tag = MSG_TAG_ANY;
       from = msg_poll(&tag, 1);
-      if (globals->ump->isValidUpCall(tag)) {
-           globals->ump->awaitResponce(-1);
-      }
-      else if (globals->vmp->isValidUpCall(tag)) {
-          globals->vmp->awaitResponce(-1);
-      }
-      else if (globals->dmp->isValidUpCall(tag)) {
-          globals->dmp->awaitResponce(-1);
-      }
-      else if (tag == MSG_TAG_FILE){
-          globals->visip->awaitResponce(-1);
-          if(globals->visip->did_error_occur()){
-             PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
-             globals->quit = 1;
-          }
-      }
-      else {
-          vtp->mainLoop();
+      if (globals->ump->isValidTag((T_UI::message_tags)tag)) {
+	if (globals->ump->waitLoop(true, (T_UI::message_tags)tag) ==
+	    T_UI::error) {
+	  // TODO
+	  cerr << "Error in VISIthreadmain.C\n";
+	  assert(0);
+	}
+      } else if (globals->vmp->isValidTag((T_VM::message_tags)tag)) {
+	if (globals->vmp->waitLoop(true, (T_VM::message_tags)tag) ==
+	    T_VM::error) {
+	  // TODO
+	  cerr << "Error in VISIthreadmain.C\n";
+	  assert(0);
+	}
+      } else if (globals->dmp->isValidTag((T_dataManager::message_tags)tag)) {
+	if (globals->dmp->waitLoop(true, (T_dataManager::message_tags)tag) ==
+	    T_dataManager::error) {
+	  // TODO
+	  cerr << "Error in VISIthreadmain.C\n";
+	  assert(0);
+	}
+      } else if (tag == MSG_TAG_FILE){
+	assert(globals->visip);
+	assert(from == globals->visip->get_fd());
+	if (globals->visip->waitLoop() == T_visi::error) {
+	  PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
+	  globals->quit = 1;
+	}
+	// see if any async upcalls have been buffered
+	while (globals->visip->buffered_requests()) {
+	  if (globals->visip->process_buffered() == T_visi::error) {
+	    cout << "error on visi\n";
+	    assert(0);
+	  }
+	}
+      } else if (vtp->isValidTag((T_VISIthread::message_tags)tag)) {
+	if (vtp->waitLoop(true, (T_VISIthread::message_tags)tag) ==
+	    T_VISIthread::error) {
+	  // TODO
+	  cerr << "Error in VISIthreadmain.C\n";
+	  assert(0);
+	}
+      } else {
+	cerr << "Unrecognized message in VISIthreadmain.C\n";
+	assert(0);
       }
   }
   PARADYN_DEBUG(("leaving main loop"));

@@ -16,10 +16,15 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.11  1995/01/26 17:59:08  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.12  1995/02/16 08:22:26  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages - check for buffered messages
+/* Changed char*/igen-array code to use strings/vectors for igen functions
 /*
+ * Revision 1.11  1995/01/26  17:59:08  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.10  1995/01/05  19:23:07  newhall
  * changed the size of the data buffer to be proportional
  * to the number of enabled metric/focus pairs.
@@ -83,7 +88,7 @@ struct VISIGlobalsStruct {
   dataManagerUser *dmp;
   visualizationUser *visip;
   performanceStream *perStream;
-  dataValue buffer[BUFFERSIZE];
+  T_visi::dataValue buffer[BUFFERSIZE];
   int bufferSize;
   int maxBufferSize;
   int fd;
@@ -100,8 +105,8 @@ typedef struct VISIGlobalsStruct VISIthreadGlobals;
 class visiUser : public visualizationUser
 {
   public:
-    visiUser(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0) :
-	visualizationUser(fd, r, w, 0) {;};
+    visiUser(int fd) :
+	visualizationUser(fd, NULL, NULL, false) {;};
     virtual void handle_error();
 };
 
