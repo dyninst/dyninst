@@ -90,34 +90,40 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
 
 // Add nested loops and functions to the call graph
 void FillInCallGraphNodeNested(pdstring exe_name, 
-			       pdstring resource_full_name,
+			       pdstring func_name,
+			       pdstring parent_name,
 			       BPatch_loopTreeNode *node)
 {
-    AddCallGraphNodeCallback(exe_name, resource_full_name);
+    // register the name for the parent
+    AddCallGraphNodeCallback(exe_name, parent_name);
 				
-    // add nested function calls and loops as this node's child resources
+    // collect children nested under this node
     pdvector<pdstring> children;
 
+    // add callees
     for (unsigned i = 0; i < node->callees.size(); i++) {
 	pd_Function *f = static_cast<pd_Function *>(node->callees[i]);
-
         assert(f != NULL);
-
 	children.push_back(f->ResourceFullName());
     }
     
+    // add nested loops
     for (unsigned j = 0; j < node->children.size(); j++) {
-	children.push_back(resource_full_name + "/" + 
-			node->children[j]->name());
+        // loop resource names are not nested, all loop resource names are
+        // of the following form /Code/Module/Function/Loop
+	children.push_back(func_name+"/"+node->children[j]->name());
     }
-    
-    AddCallGraphStaticChildrenCallback(exe_name, resource_full_name, children);
 
-    // recurse with children
+    // register children for this parent
+    AddCallGraphStaticChildrenCallback(exe_name, parent_name, children);
+
+    // recurse with each child
     for (unsigned k = 0; k < node->children.size(); k++) {
-	FillInCallGraphNodeNested(exe_name, 
-                                  resource_full_name + "/" + 
-                                  node->children[k]->name(),
+        // we register resources while traversing the tree of nodes in a dfs
+        // so that the call graph is properly nested, while ensuring that the
+        // the resource names are correct (loop resource names are not nested)
+	FillInCallGraphNodeNested(exe_name, func_name,
+                                  func_name+"/"+node->children[k]->name(),
                                   node->children[k]);
     }
 }
@@ -186,7 +192,8 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       char *mname = getenv("PARADYN_LOOPS");
       if (mname && (0 == strcmp(mname, dyn_module->fileName().c_str()))) {
 	  BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
-	  FillInCallGraphNodeNested(exe_name, resource_full_name, root);
+	  FillInCallGraphNodeNested(exe_name, resource_full_name,
+                                    resource_full_name, root);
       }
       else {
           AddCallGraphNodeCallback(exe_name, resource_full_name);
