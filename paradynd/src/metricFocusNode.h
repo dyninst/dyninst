@@ -43,6 +43,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.50  1997/06/05 18:04:20  naim
+ * Cleaning up dataReqNodes for certain cases of deletion of metricDefinitionNodes
+ * - naim
+ *
  * Revision 1.49  1997/05/08 00:12:16  mjrg
  * changes for Visual C++ compiler: added return to functions
  *
@@ -639,6 +643,7 @@ public:
 
   ~metricDefinitionNode();
   void disable();
+  void cleanup_drn();
   void updateValue(time64, sampleValue);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 

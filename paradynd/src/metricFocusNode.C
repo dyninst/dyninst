@@ -1432,15 +1432,22 @@ metricDefinitionNode::~metricDefinitionNode()
         components.resize(0);
     } else {
       allMIComponents.undef(flat_name_);
-      unsigned size = dataRequests.size();
-      vector< vector<unsigned> > pointsToCheck;
-      while (size>0) {
-         dataRequests[size-1]->disable(proc_,pointsToCheck);
-         delete dataRequests[size-1];
-         dataRequests.resize(size-1);
-         size=dataRequests.size();
+      for (unsigned u=0; u<dataRequests.size(); u++) {
+        delete dataRequests[u];
       }
+      dataRequests.resize(0);
     }
+}
+
+void metricDefinitionNode::cleanup_drn()
+{
+      // we assume that it is safe to delete a dataReqNode at this point, 
+      // otherwise, we would need to do something similar as in the disable
+      // method for metricDefinitionNode - naim
+      vector<unsigVecType> pointsToCheck;
+      for (unsigned u=0; u<dataRequests.size(); u++) {
+        dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
+      }
 }
 
 // NOTE: This stuff (flush_batch_buffer() and batchSampleData()) belongs
