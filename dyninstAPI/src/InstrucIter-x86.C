@@ -299,8 +299,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 	(*this)--;
 
 	if (!hasMore()) {
-	    BPatch_reportError(BPatchWarning, 42, "unable to parse jump table");
-	    return;
+	  //BPatch_reportError(BPatchWarning, 42,"unable to parse jump table");
+	  fprintf(stdout, "DYNINST WARNING: unable to parse jump table\n");
+	  return;
 	}
 
 	/* now get the instruction to find the maximum switch value */
@@ -316,8 +317,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 	}
 
 	if (!hasMore()) {
-	    BPatch_reportError(BPatchWarning, 42, "unable to parse jump table");
-	    return;
+	  //BPatch_reportError(BPatchWarning, 42, "unable to parse jump table")
+	  fprintf(stdout, "DYNINST WARNING: unable to parse jump table\n");
+	  return;
 	}
 
 	unsigned maxSwitch = 0;
