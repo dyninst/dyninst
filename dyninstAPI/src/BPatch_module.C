@@ -752,12 +752,7 @@ void BPatch_module::parseTypes()
   					*currentSourceFile);
             }
             break;
-    }
-
-    if (!parseActive) continue;
-
-    switch(stabptr[i].type){
-        case N_SLINE:
+    case N_SLINE:
 	    //if the stab information is a line information
 	    //then insert an entry to the line info object
 	    if(!currentFunctionName) break;
@@ -766,7 +761,57 @@ void BPatch_module::parseTypes()
 			stabptr[i].desc,
 			stabptr[i].val+currentFunctionBase);
 	    break;
+    case N_FUN:
+	    //if it is a function stab then we have to insert an entry 
+            //to initialize the entries in the line information object
+	    int currentEntry = i;
+	    ptr = new char[1024];
+      	    strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	    while(ptr[strlen(ptr)-1] == '\\'){
+		ptr[strlen(ptr)-1] = '\0';
+		currentEntry++;
+		strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
+	    }
 
+	    char* colonPtr = NULL;
+	    if(currentFunctionName) delete currentFunctionName;
+	    if(!ptr || !(colonPtr = strchr(ptr,':')))
+		currentFunctionName = NULL;
+	    else {
+		char* tmp = new char[colonPtr-ptr+1];
+		strncpy(tmp,ptr,colonPtr-ptr);
+		tmp[colonPtr-ptr] = '\0';
+		currentFunctionName = new string(tmp);
+
+		currentFunctionBase = 0;
+		Symbol info;
+		if (!proc->getSymbolInfo(*currentFunctionName,
+					 info,currentFunctionBase))
+		{
+			string fortranName = *currentFunctionName + string("_");
+			if (proc->getSymbolInfo(fortranName,info,
+					        currentFunctionBase))
+			{
+				delete currentFunctionName;
+				currentFunctionName = new string(fortranName);
+			}
+		}
+
+		currentFunctionBase += info.addr();
+
+		delete[] tmp;		
+		if(currentSourceFile)
+			lineInformation->insertSourceFileName(
+					*currentFunctionName,
+					*currentSourceFile);
+	     }
+	     delete ptr;
+	     break;
+    }
+
+    if (!parseActive) continue;
+
+    switch(stabptr[i].type){
         case N_BCOMM:	{
 	    // begin Fortran named common block 
 	    commonBlockName = (char *) &stabstrs[stabptr[i].name];
@@ -817,51 +862,6 @@ void BPatch_module::parseTypes()
         case N_FUN:
         case 128:   // typedefs and variables -- N_LSYM
         case 160:   // parameter variable -- N_PSYM 
-	    int currentEntry;
-	    currentEntry = i;
-
-	    //if it is a function stab then we have to insert an entry 
-            //to initialize the entries in the line information object
-            if(stabptr[currentEntry].type == N_FUN){
-	        ptr = new char[1024];
-      	        strcpy(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
-	        while(ptr[strlen(ptr)-1] == '\\'){
-		     ptr[strlen(ptr)-1] = '\0';
-		     currentEntry++;
-		     strcat(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
-	        }
-
-	        char* colonPtr = NULL;
-	        if(currentFunctionName) delete currentFunctionName;
-	        if(!ptr || !(colonPtr = strchr(ptr,':')))
-		     currentFunctionName = NULL;
-	        else {
-		     char* tmp = new char[colonPtr-ptr+1];
-		     strncpy(tmp,ptr,colonPtr-ptr);
-		     tmp[colonPtr-ptr] = '\0';
-		     currentFunctionName = new string(tmp);
-
-		     currentFunctionBase = 0;
-		     Symbol info;
-		     if (!proc->getSymbolInfo(*currentFunctionName,info,
-				    currentFunctionBase)) {
-		        string fortranName = *currentFunctionName + string("_");
-		        if (proc->getSymbolInfo(fortranName,info, currentFunctionBase)) {
-		            delete currentFunctionName;
-		            currentFunctionName = new string(fortranName);
-		        }
-		     }
-
-		     currentFunctionBase += info.addr();
-
-		     delete[] tmp;		
-		     if(currentSourceFile)
-			lineInformation->insertSourceFileName(
-				*currentFunctionName,
-				*currentSourceFile);
-	        }
-	        delete ptr;
-             } 
 
 	     ptr = (char *) &stabstrs[stabptr[i].name];
              while (ptr[strlen(ptr)-1] == '\\') {

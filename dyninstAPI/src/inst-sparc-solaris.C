@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.93 2001/09/07 21:15:08 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.94 2001/09/28 14:28:28 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3437,7 +3437,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 				    relocatedFuncInfo* reloc_info)
 {
 
-    if(!reloc_info->funcArbitraryPoints().size())
+    if(!isInstalled(proc))
 	return;
 
     instPoint *point;
