@@ -80,8 +80,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
        rpc_lwp->postIRPC(theStruct);
     }
     else {
-        postedProcessRPCs_.push_back(theStruct);
-
+       postedProcessRPCs_.push_back(theStruct);
     }
 
     // Stick it in the global listing as well
@@ -100,6 +99,37 @@ inferiorRPCtoDo *rpcMgr::getProcessRPC() {
     postedProcessRPCs_ = newRPCs;
     return rpc;
 }
+
+#if defined(RPC_SHOWSTATE)  // def is ifdefed out since not normally used
+void rpcMgr::showState() const {
+   cerr << "   there are " << allRunningRPCs_.size() << " running rpcs\n";
+   for (unsigned i = 0; i < allRunningRPCs_.size(); i++) {
+      Frame activeFrame;
+      inferiorRPCinProgress *currRPC = allRunningRPCs_[i];
+      
+      rpcThr *rpcThr = currRPC->rpcthr;
+      rpcLWP *rpcLwp = currRPC->rpclwp;
+      struct inferiorRPCtoDo *rpc = currRPC->rpc;
+
+       if(rpcThr) {
+          cerr << "     [" << i << "] id: " << rpc->id << ", lwp: "
+               << rpcThr->get_thr()->get_lwp()->get_lwp_id()
+               << ", state: ";
+          switch(currRPC->state) {
+            case irpcNotValid:  cerr << "irpcNotValid";  break;
+            case irpcNotRunning:  cerr << "irpcNotRunning";  break;
+            case irpcRunning:  cerr << "irpcRunning";  break;
+            case irpcWaitingForSignal:  cerr << "irpcWaitingForSignal"; break;
+            case irpcNotReadyForIRPC:  cerr << "irpcNotReadyForIRPC";  break;
+          }
+          cerr << endl;
+       } else {
+          assert(rpcLwp != NULL);
+          cerr << "     [" << i << "] id: " << rpc->id << ", an lwp rpc\n";
+       }
+   }
+}
+#endif
 
 bool rpcMgr::existsReadyIRPC() const {
     if (postedProcessRPCs_.size() > 0)
@@ -141,7 +171,7 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
        rpcThr *rpcThr = currRPC->rpcthr;
        rpcLWP *rpcLwp = currRPC->rpclwp;
 
-       if(rpcThr) 
+       if(rpcThr)
           activeFrame = rpcThr->get_thr()->getActiveFrame();
        else {
           assert(rpcLwp != NULL);

@@ -314,6 +314,8 @@ class rpcMgr {
 
    // IRPC running
    bool existsRunningIRPC() const;
+
+   void showState() const;
    
    // posting RPC on a process
    unsigned postRPCtoDo(AstNode *action, bool noCost,
