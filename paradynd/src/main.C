@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.27  1994/11/06 09:58:20  newhall
+ * Revision 1.28  1994/11/10 22:22:58  markc
+ * "Ported" remote execution to pvm.  It was only working for the non-pvm case.
+ * Made all cases of remote execution call report_self.
+ *
+ * Revision 1.27  1994/11/06  09:58:20  newhall
  * fix to support remote paradynd start, replaced logLine with fprintf
  * to stdout (this is the handshaking signal sent to paradyn).  logLine
  * requires an initialized "tp" variable, but it was NULL.
@@ -138,10 +142,9 @@ pdRPC *tp;
 
 #ifdef PARADYND_PVM
 #include "paradyndPVM/h/pvm_support.h"
-static pdRPC *init_pvm_code(char *argv[], char *machine, int family,
-			     int type, int well_known_socket, int flag);
-static char machine_name[80];
 #endif     
+
+static char machine_name[80];
 
 int ready;
 
@@ -193,12 +196,6 @@ int main(int argc, char *argv[])
     assert (RPC_undo_arg_list (argc, argv, &pd_machine, pd_family, pd_type,
 		       pd_known_socket, pd_flag) == 0);
 
-
-#ifdef PARADYND_PVM
-    tp = init_pvm_code(argv, pd_machine, pd_family, pd_type, 
-		       pd_known_socket, pd_flag);
-#else
-
     if (!pd_flag) {
 	int pid;
 
@@ -208,6 +205,13 @@ int main(int argc, char *argv[])
 	    // setup socket
 	    tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
 			    NULL, NULL, 0);
+	    assert(!gethostname(machine_name, 99));
+	    tp->reportSelf (machine_name, argv[0], getpid(), metPVM);
+	    // TODO - please port pvm code with non-pvm code
+#ifdef PARADYND_PVM
+	    assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket,
+				     pd_flag));
+#endif
 	} else if (pid > 0) {
            // Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	  sprintf(errorLine, "PARADYND %d\n", pid);
@@ -232,7 +236,6 @@ int main(int argc, char *argv[])
 
 //	configStdIO(false);
     }
-#endif
 
     cyclesPerSecond = getCyclesPerSecond();
 
@@ -248,26 +251,6 @@ int main(int argc, char *argv[])
 }
 
 #ifdef PARADYND_PVM
-pdRPC *
-init_pvm_code(char *argv[], char *machine, int family,
-	      int type, int well_known_socket, int flag)
-{
-  pdRPC *temp;
-
-  assert(!PDYN_initForPVM (argv, machine, family, type, well_known_socket, flag));
-  assert(!gethostname(machine_name, 99));
-
-  // connect to paradyn
-  if (flag == 1) {
-    temp = new pdRPC(0, NULL, NULL);
-  }
-  else {
-    temp = new pdRPC(family, well_known_socket, type, machine, NULL, NULL);
-    temp->reportSelf (machine_name, argv[0], getpid(), metPVM);
-  }
-
-  return temp;
-}
 
 int
 PDYND_report_to_paradyn (int pid, int argc, char **argv)
