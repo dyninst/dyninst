@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.195 2003/10/28 04:33:06 jaw Exp $
+// $Id: symtab.C,v 1.196 2003/11/03 19:21:03 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3722,7 +3722,7 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
 			assert( status == DW_DLV_OK );
 			
-			// fprintf( stderr, "%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
+			// fprintf( stderr, "0x%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
 			
 			pd_Function * newFunction = moduleImage->findFuncByEntry(lineAddr);
 			if( newFunction != NULL ) {
