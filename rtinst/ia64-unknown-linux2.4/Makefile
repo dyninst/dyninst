@@ -1,8 +1,10 @@
+#
+# $Id: Makefile,v 1.5 2005/01/24 20:45:02 tlmiller Exp $
+#
+
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_SHM_SAMPLING = true
-
-# USES_LIBHRTIME = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -10,37 +12,30 @@ USES_SHM_SAMPLING = true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-LD			= $(GCC)
-LDFLAGS		+= -static -nostdlib -Xlinker -r
-CFLAGS		+= -O2 
+LD				= $(GCC)
+LDFLAGS			= -shared -ldl
 
-# if we want to produce a shared object...
-LD			= $(GCC)
-CFLAGS		= -Dia64_unknown_linux2_4 -g -O2
-CFLAGS		+= -fPIC
-CFLAGS		+= -I. -I../..
-LDFLAGS		= -shared -ldl
+CFLAGS          = -Dia64_unknown_linux2_4 -g -O2
+CFLAGS			+= -fPIC
+CFLAGS          += -I. -I../..
 
-VPATH		= ../src:../../dyninstAPI_RT/src
+VPATH			= ../src
 
-SRCS		+=	../src/RTfirst.c \
-				../../dyninstAPI_RT/src/RTheap.c \
-				../../dyninstAPI_RT/src/RTheap-linux.c \
-				../../dyninstAPI_RT/src/RTsig.c \
-				../../dyninstAPI_RT/src/RTposix.c \
-				../../dyninstAPI_RT/src/RTlinux.c \
-				../src/RTetc-posix.c \
-				../src/RTetc-linux.c \
-				../src/RThwtimer-linux.c \
-				../src/RTrexec.c
-
+SRCS			+= 	../src/RTfirst.c \
+					../src/RTetc-posix.c \
+					../src/RTetc-linux.c \
+					../src/RThwtimer-linux.c \
+					../src/RTrexec.c \
+					../src/RTpapi.c
+					
 ifdef USES_LIBHRTIME
-CFLAGS  += -I$(HRTIME_INCDIR) -DHRTIME
-LIBS	+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
+	CFLAGS		+= -I$(HRTIME_INCDIR) -DHRTIME
+	LIBS		+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
 endif
-
-#CFLAGS += -DSHM_SAMPLING_DEBUG
-#CFLAGS += -DDEBUG_PRINT_RT     # enable debug/trace messages from library
+                                                                                
+# enable debug/trace messages from library
+# CFLAGS			+= -DSHM_SAMPLING_DEBUG
+# CFLAGS			+= -DDEBUG_PRINT_RT
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -57,3 +52,4 @@ $(TARGET2): $(OBJS) $(CP_OBJS)
 	@$(RM) $(TARGET2)
 	$(LD) $(LDFLAGS) -o $(TARGET2) $(OBJS) $(CP_OBJS) $(LIBS)
 endif
+
