@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.C,v 1.1 1998/12/25 21:30:57 wylie Exp $
+ * $Id: Types.C,v 1.2 2000/05/16 01:31:48 wylie Exp $
  * Types.C: commonly used type-handling functions.
 ************************************************************************/
 
@@ -56,7 +56,7 @@ void Address_chk ()
 
 static const unsigned int _numaddrstrs=8;
                         // maximum number of addresses per outstanding printf!
-static char _addrstr[_numaddrstrs][18];
+static char _addrstr[_numaddrstrs][19]; // "0x"+16+'\0'
 
 // Format an address string according to the size of the Address type.
 // Note that "%x" outputs incorrect/incomplete addresses, and that "%lx"
