@@ -125,7 +125,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if defined(sparc_sun_sunos4_1_3) || defined(rs6000_ibm_aix3_2)
+#if defined(sparc_sun_sunos4_1_3) || defined(rs6000_ibm_aix4_1)
     if (useAttach) {
 	printf("Attach is not supported on this platform.\n");
 	exit(1);
