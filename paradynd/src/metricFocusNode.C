@@ -14,6 +14,14 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.65  1995/12/28 23:42:29  zhichen
+ * Added buffering to the paradynd --> paradyn interface
+ * calls to tp->sampleDataCallbackFunc replaced with calls to the
+ * local routine batchSampleData() which in turn occasionally calls
+ * the new igen routine tp->batchSampleDataCallbackFunc().
+ * Related buffer variables (theBatchBuffer, batch_buffer_next,
+ * BURST_HAS_COMPLETED) are new.
+ *
  * Revision 1.64  1995/12/20 23:48:43  mjrg
  * Stopped delivery of values from internal metrics when the application is paused.
  *
@@ -347,7 +355,7 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 
 // used to indicate the mi is no longer used.
 #define DELETED_MI 1
-#define MILLION	1000000.0
+#define MILLION 1000000.0
 
 bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
   unsigned size = internalMetric::allInternalMetrics.size();
@@ -361,8 +369,8 @@ bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
 }
 
 metricDefinitionNode::metricDefinitionNode(process *p, string& met_name, 
-					   vector< vector<string> >& foc,
-					   string& cat_name, int agg_style)
+                                           vector< vector<string> >& foc,
+                                           string& cat_name, int agg_style)
 : aggregate_(false), inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
   sample(agg_style), id_(-1), originalCost_(0.0), inform_(false), proc_(p)
 {
@@ -376,19 +384,19 @@ float metricDefinitionNode::getMetricValue()
     float total;
 
     if (aggregate_) {
-	total = 0.0;
-	unsigned c_size = components.size();
-	for (unsigned u=0; u<c_size; u++)
-	  total += components[u]->getMetricValue();
-	return(0.0);
+        total = 0.0;
+        unsigned c_size = components.size();
+        for (unsigned u=0; u<c_size; u++)
+          total += components[u]->getMetricValue();
+        return(0.0);
     }
     return (data[0]->getMetricValue());
 }
 
 metricDefinitionNode::metricDefinitionNode(string& metric_name,
-					   vector< vector<string> >& foc,
-					   string& cat_name, 
-					   vector<metricDefinitionNode*>& parts)
+                                           vector< vector<string> >& foc,
+                                           string& cat_name, 
+                                           vector<metricDefinitionNode*>& parts)
 : aggregate_(true), inserted_(false), met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
   id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
@@ -413,8 +421,8 @@ float getProcessCount() {  return ((float) processVec.size()); }
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
 metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
-				       string& metric_name, string& flat_name,
-				       bool enable, bool& matched)
+                                       string& metric_name, string& flat_name,
+                                       bool enable, bool& matched)
 {
   matched = false;
   unsigned im_size = internalMetric::allInternalMetrics.size();
@@ -425,8 +433,8 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
       internalMetric *im = internalMetric::allInternalMetrics[im_index];
       if (!im->legalToInst(canon_focus)) return NULL;
       metricDefinitionNode *mn = new metricDefinitionNode(NULL, metric_name,
-							  canon_focus, 
-							  flat_name, im->aggregate());
+                                                          canon_focus, 
+                                                          flat_name, im->aggregate());
       im->enable(mn);
       return(mn);
     }
@@ -446,7 +454,7 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
  */
 
 metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& focus,
-					   bool enable, bool& internal)
+                                           bool enable, bool& internal)
 {
     metricDefinitionNode *mi= NULL;
 
@@ -464,13 +472,13 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
     for (u=0; u<cf_size; u++) {
       unsigned v_size = canon_focus[u].size();
       for (unsigned v=0; v<v_size; v++) 
-	flat_name += canon_focus[u][v];
+        flat_name += canon_focus[u][v];
     }
 
     // TODO -- a dictionary search here will be much faster
     while (mdi.next(u, mi))
       if (mi->getFullName() == flat_name)
-	return mi;
+        return mi;
 
     // KLUDGE ALERT
     // Catch complex metrics that are currently beyond the mdl's power
@@ -500,7 +508,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     mdl_env::set(id, vname);
 
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
-						    true, internal);
+                                                    true, internal);
     
     if (!mi) return(-1);
     mi->id_ = ++MICount;
@@ -536,22 +544,22 @@ bool metricDefinitionNode::insertInstrumentation()
     /* check all proceses are in an ok state */
 
     if (!isApplicationPaused()) {
-	pauseAllProcesses();
-	needToCont = true;
+        pauseAllProcesses();
+        needToCont = true;
     }
 
     inserted_ = true;
     if (aggregate_) {
         unsigned c_size = components.size();
-	for (unsigned u=0; u<c_size; u++)
-	  components[u]->insertInstrumentation();
+        for (unsigned u=0; u<c_size; u++)
+          components[u]->insertInstrumentation();
     } else {
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
-	data[u]->insertInstrumentation(this);
+        data[u]->insertInstrumentation(this);
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
-	requests[u1]->insertInstrumentation();
+        requests[u1]->insertInstrumentation();
     }
     if (needToCont) continueAllProcesses();
     return(true);
@@ -565,14 +573,14 @@ float metricDefinitionNode::cost()
     ret = 0.0;
     if (aggregate_) {
         unsigned c_size = components.size();
-	for (unsigned u=0; u<c_size; u++) {
-	  nc = components[u]->cost();
-	  if (nc > ret) ret = nc;
-	}
+        for (unsigned u=0; u<c_size; u++) {
+          nc = components[u]->cost();
+          if (nc > ret) ret = nc;
+        }
     } else {
       unsigned size = requests.size();
       for (unsigned u=0; u<size; u++)
-	ret += requests[u]->cost();
+        ret += requests[u]->cost();
     }
     return(ret);
 }
@@ -584,26 +592,26 @@ void metricDefinitionNode::disable()
     unsigned ai_size = internalMetric::allInternalMetrics.size();
     for (unsigned u=0; u<ai_size; u++)
       if (internalMetric::allInternalMetrics[u]->node == this) {
-	internalMetric::allInternalMetrics[u]->disable();
-	logLine("disabled internal metric\n");
-	return;
+        internalMetric::allInternalMetrics[u]->disable();
+        logLine("disabled internal metric\n");
+        return;
       }
 
     if (!inserted_) return;
 
     inserted_ = false;
     if (aggregate_) {
-	/* disable components of aggregate metrics */
+        /* disable components of aggregate metrics */
         unsigned c_size = components.size();
-	for (unsigned u=0; u<c_size; u++)
-	  components[u]->disable();
+        for (unsigned u=0; u<c_size; u++)
+          components[u]->disable();
     } else {
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
-	data[u]->disable();
+        data[u]->disable();
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
-	requests[u1]->disable();
+        requests[u1]->disable();
     }
 
 }
@@ -611,33 +619,104 @@ void metricDefinitionNode::disable()
 metricDefinitionNode::~metricDefinitionNode()
 {
     if (aggregate_) {
-	/* delete components of aggregate metrics */
+        /* delete components of aggregate metrics */
         unsigned c_size = components.size();
-	for (unsigned u=0; u<c_size; u++)
-	  delete components[u];
-	components.resize(0);
+        for (unsigned u=0; u<c_size; u++)
+          delete components[u];
+        components.resize(0);
     } else {
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
-	delete data[u];
+        delete data[u];
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
-	delete requests[u1];
+        delete requests[u1];
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// Buffer the samples before we actually send it                            //
+//      Send it when the buffers are full                                   //
+//      or, send it when the last sample in the interval has arrived.       //
+//////////////////////////////////////////////////////////////////////////////
+
+const unsigned SAMPLE_BUFFER_SIZE = 1024;
+bool BURST_HAS_COMPLETED = false;
+   // set to true after a burst (after a processTraceStream(), or sampleNodes for
+   // the CM5), which will force the buffer to be flushed before it fills up
+   // (if not, we'd have bad response time)
+
+static vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer (SAMPLE_BUFFER_SIZE);
+static unsigned int batch_buffer_next=0;
+
+void flush_batch_buffer(int program) {
+   if (batch_buffer_next == 0)
+      return;
+
+   // alloc buffer of the exact size to make communication
+   // more efficient.  Why don't we send theBatchBuffer with a count?
+   // This would work but would always (in the igen call) copy the entire
+   // vector.  This solution has the downside of calling new but is not too bad
+   // and is clean.
+   vector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
+   for (int i=0; i< batch_buffer_next; i++)
+      copyBatchBuffer[i] = theBatchBuffer[i];
+
+  //char myLogBuffer[120] ;
+  //sprintf(myLogBuffer, "in metric.C batch size about to send = %d\n", batch_buffer_next) ;
+  //logLine(myLogBuffer) ;
+
+   // Now let's do the actual igen call!
+   tp->batchSampleDataCallbackFunc(program, copyBatchBuffer);
+
+   if (BURST_HAS_COMPLETED) BURST_HAS_COMPLETED = false ;
+
+   batch_buffer_next = 0 ;             // reset the index
+}
+
+void batchSampleData(int program, int mid, double startTimeStamp,
+                     double endTimeStamp, double value) 
+{
+   // This routine is called where we used to call tp->sampleDataCallbackFunc.
+   // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
+
+   char myLogBuffer[120] ;
+#ifdef notdef
+   sprintf(myLogBuffer, "mid %d, value %g\n", mid, value) ;
+   logLine(myLogBuffer) ;
+#endif
+
+   // Flush the buffer if (1) it is full, or (2) for good response time, after
+   // a burst of data:
+   if (batch_buffer_next >= SAMPLE_BUFFER_SIZE || BURST_HAS_COMPLETED) {
+      if (batch_buffer_next > 0)
+         // don't need to flush if the batch had no data (this does happen; see
+         // perfStream.C)
+         flush_batch_buffer(program);
+   }
+
+   // Now let's batch this entry.
+   T_dyninstRPC::batch_buffer_entry &theEntry = theBatchBuffer[batch_buffer_next];
+   theEntry.mid = mid;
+   theEntry.startTimeStamp = startTimeStamp;
+   theEntry.endTimeStamp = endTimeStamp;
+   theEntry.value = value;
+   batch_buffer_next++;
+}
+
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
-				       sampleValue value)
+                                       sampleValue value)
 {
   // TODO mdc
     assert(start >= (firstRecordTime/MILLION));
     assert(end >= (firstRecordTime/MILLION));
     assert(end > start);
-    tp->sampleDataCallbackFunc(0, id_, start, end, value);
+
+    batchSampleData(0, id_, start, end, value);
 }
 
 void metricDefinitionNode::updateValue(time64 wallTime, 
-				       sampleValue value)
+                                       sampleValue value)
 {
     sampleInterval ret;
     // extern timeStamp elapsedPauseTime;
@@ -651,7 +730,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 // TODO mdc
 //    if (!sample.firstSampleReceived) {
 //      sprintf(errorLine, "First for %s:%d at %f\n", met->info.name.string_of(), id,
-//	      sampleTime-(firstRecordTime/MILLION));
+//            sampleTime-(firstRecordTime/MILLION));
 //      logLine(errorLine);
 //    }
 
@@ -661,15 +740,15 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 
       // only use delta from last sample.
       if (value < sample.value) {
-	if ((value/sample.value) < 0.99999) {
-	  assert(value + 0.0001 >= sample.value);
-	} else {
-	  // floating point rounding error ignore
-	  sample.value = value;
-	}
+        if ((value/sample.value) < 0.99999) {
+          assert(value + 0.0001 >= sample.value);
+        } else {
+          // floating point rounding error ignore
+          sample.value = value;
+        }
       }
 
-      //	if (value + 0.0001 < sample.value)
+      //        if (value + 0.0001 < sample.value)
       //           printf ("WARNING:  sample went backwards!!!!!\n");
       value -= sample.value;
       sample.value += value;
@@ -683,8 +762,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     ret = sample.newValue(valueList, sampleTime, value);
 //    if (!ret.valid && inform_) {
 //       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
-//	      met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
-//	      value, inform);
+//            met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
+//            value, inform);
 //      logLine(errorLine);
 //    }
 
@@ -697,42 +776,46 @@ void metricDefinitionNode::updateValue(time64 wallTime,
      *  metric instance.
      */
     if (inform_ && ret.valid) {
-	/* invoke call backs */
-	// assert(ret.start >= 0.0);
-	// I have no idea where negative time comes from but leave it to
-	// the CM-5 to create it on the first sample -- jkh 7/15/94
+        /* invoke call backs */
+        // assert(ret.start >= 0.0);
+        // I have no idea where negative time comes from but leave it to
+        // the CM-5 to create it on the first sample -- jkh 7/15/94
         // This has been solved; no sample times will be bad -- zxu
-	if (ret.start < 0.0) ret.start = 0.0;
-	assert(ret.end >= 0.0);
-	assert(ret.end >= ret.start);
+        if (ret.start < 0.0) ret.start = 0.0;
+        assert(ret.end >= 0.0);
+        assert(ret.end >= ret.start);
 
-	// TODO mdc
-//	assert(ret.start >= (firstRecordTime/ MILLION));
-//	assert(ret.end >= (firstRecordTime/MILLION));
+        // TODO mdc
+//      assert(ret.start >= (firstRecordTime/ MILLION));
+//      assert(ret.end >= (firstRecordTime/MILLION));
 
 //        double time1 = getCurrentTime(false);
-	tp->sampleDataCallbackFunc(0, id_, ret.start, ret.end, ret.value);
+
+        batchSampleData(0, id_, ret.start, ret.end, ret.value);
+
 //        double diffTime = getCurrentTime(false) - time1;
 //        if (diffTime > 0.2) {
 //           char buffer[200];
-//           sprintf(buffer, "metricDefinitionNode::updateValue: igen call took unusually long: %g seconds\n", diffTime);
+//           sprintf(buffer, "metricDefinitionNode::updateValue: igen call took unusually long: %g seconds\n", 
+//                   diffTime);
 //           logLine(buffer);
-//	}
+//      }
     }
 }
 
 void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
-						    timeStamp sampleTime, 
-						    sampleValue value)
+                                                    timeStamp sampleTime, 
+                                                    sampleValue value)
 {
     sampleInterval ret;
 
     ret = sample.newValue(valueList, sampleTime, value);
     if (ret.valid) {
         assert(ret.end > ret.start);
-	assert(ret.start >= (firstRecordTime/MILLION));
-	assert(ret.end >= (firstRecordTime/MILLION));
-	tp->sampleDataCallbackFunc(0, id_, ret.start, ret.end, ret.value);
+        assert(ret.start >= (firstRecordTime/MILLION));
+        assert(ret.end >= (firstRecordTime/MILLION));
+
+        batchSampleData(0, id_, ret.start, ret.end, ret.value);
     }
 }
 
@@ -742,8 +825,8 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     double unInstTime;
 
     if (proc->theCost.wallTimeLastTrampSample) {
-	proc->pauseTime = s->pauseTime;
-/*	    ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0); */
+        proc->pauseTime = s->pauseTime;
+/*          ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0); */
     }
     proc->theCost.wallTimeLastTrampSample = h->wall;
 
@@ -765,12 +848,12 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // build circular buffer of recent values.
     //
     proc->theCost.past[proc->theCost.currentHist] = 
-	(s->obsCostIdeal - proc->theCost.lastObservedCost);
+        (s->obsCostIdeal - proc->theCost.lastObservedCost);
     if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist = 0;
 
     // now compute current value of "smooth cost";
     for (i=0, proc->theCost.smoothObsCost = 0.0; i < HIST_LIMIT; i++) {
-	proc->theCost.smoothObsCost += proc->theCost.past[i];
+        proc->theCost.smoothObsCost += proc->theCost.past[i];
     }
     proc->theCost.smoothObsCost /= HIST_LIMIT;
 
@@ -781,7 +864,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     unsigned size = processVec.size();
     for (unsigned u=0; u<size; u++) {
       if (processVec[u]->theCost.smoothObsCost > currentSmoothObsValue) {
-	currentSmoothObsValue = processVec[u]->theCost.smoothObsCost;
+        currentSmoothObsValue = processVec[u]->theCost.smoothObsCost;
       }
     }
     smooth_obs_cost->value = currentSmoothObsValue;
@@ -792,7 +875,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     totalPredictedCost->value = 0.0;
     for (unsigned u1=0; u1<size; u1++) {
       if (processVec[u1]->theCost.totalPredictedCost > totalPredictedCost->value) {
-	totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
+        totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
       }
     }
 
@@ -804,14 +887,14 @@ void processSample(traceHeader *h, traceSample *s)
     unsigned mid = s->id.id;
     if (!midToMiMap.defines(mid)) {
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
-	      s->id.id);
+              s->id.id);
       logLine(errorLine);
       return;
     }
     metricDefinitionNode *mi = midToMiMap[mid];
 
     //    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
-    //	((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
+    //  ((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
     //    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
@@ -825,7 +908,7 @@ instReqNode::instReqNode(process *iProc,
                          instPoint *iPoint,
                          AstNode *iAst,
                          callWhen  iWhen,
-			 callOrder o) 
+                         callOrder o) 
 {
     proc = iProc;
     point = iPoint;
@@ -892,13 +975,13 @@ float dataReqNode::getMetricValue()
     float ret;
 
     if (type == INTCOUNTER) {
-	ret = getIntCounterValue((intCounterHandle*) instance);
+        ret = getIntCounterValue((intCounterHandle*) instance);
     } else if (type == TIMER) {
-	ret = getTimerValue((timerHandle*) instance);
+        ret = getTimerValue((timerHandle*) instance);
     } else {
-	// unknown type.
-	abort();
-	return(0.0);
+        // unknown type.
+        abort();
+        return(0.0);
     }
     return(ret);
 }
@@ -910,21 +993,21 @@ unsigned dataReqNode::getInferiorPtr()
     intCounterHandle *counterInst;
 
     if (type == INTCOUNTER) {
-	counterInst = (intCounterHandle *) instance;
-	if (counterInst) {
-	    param = (unsigned) counterInst->counterPtr;
-	} else {
-	    param = 0;
-	}
+        counterInst = (intCounterHandle *) instance;
+        if (counterInst) {
+            param = (unsigned) counterInst->counterPtr;
+        } else {
+            param = 0;
+        }
     } else if (type == TIMER) {
-	timerInst = (timerHandle *) instance;
-	if (timerInst) {
-	    param = (unsigned) timerInst->timerPtr;
-	} else {
-	    param = 0;
-	}
+        timerInst = (timerHandle *) instance;
+        if (timerInst) {
+            param = (unsigned) timerInst->timerPtr;
+        } else {
+            param = 0;
+        }
     } else {
-	abort();
+        abort();
     }
     return(param);
 }
@@ -961,19 +1044,19 @@ void dataReqNode::insertGlobal() {
 void dataReqNode::insertInstrumentation(metricDefinitionNode *mi) 
 {
     if (type == INTCOUNTER) {
-	intCounterHandle *ret;
-	ret = createCounterInstance();
-	instance = (void *) ret;
-	id = ret->data.id;
+        intCounterHandle *ret;
+        ret = createCounterInstance();
+        instance = (void *) ret;
+        id = ret->data.id;
         unsigned mid = id.id;
-	midToMiMap[mid] = mi;
+        midToMiMap[mid] = mi;
     } else {
-	timerHandle *ret;
-	ret = createTimerInstance();
-	instance = (void *) ret;
-	id = ret->data.id;
-	unsigned mid = id.id;
-	midToMiMap[mid] = mi;
+        timerHandle *ret;
+        ret = createTimerInstance();
+        instance = (void *) ret;
+        id = ret->data.id;
+        unsigned mid = id.id;
+        midToMiMap[mid] = mi;
     }
 }
 
@@ -987,11 +1070,11 @@ void dataReqNode::disable()
     midToMiMap.undef(mid);
 
     if (type == TIMER) {
-	freeTimer((timerHandle *) instance);
+        freeTimer((timerHandle *) instance);
     } else if (type == INTCOUNTER) {
-	freeIntCounter((intCounterHandle *) instance);
+        freeIntCounter((intCounterHandle *) instance);
     } else {
-	abort();
+        abort();
     }
     instance = NULL;
 }
@@ -1048,15 +1131,15 @@ bool internalMetric::legalToInst(vector< vector<string> >& focus) {
 }
 
 internalMetric *internalMetric::newInternalMetric(const string n,
-						  metricStyle style,
-						  int a, 
-						  const string units, 
-						  sampleValueFunc f,
-						  im_pred_struct& im_pred,
-						  bool developerMode,
-						  int unitstype) {
+                                                  metricStyle style,
+                                                  int a, 
+                                                  const string units, 
+                                                  sampleValueFunc f,
+                                                  im_pred_struct& im_pred,
+                                                  bool developerMode,
+                                                  int unitstype) {
   internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
-					  developerMode, unitstype);
+                                          developerMode, unitstype);
   assert(im);
   unsigned size = allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)
@@ -1112,7 +1195,7 @@ void reportInternalMetrics()
     // see if we have a sample to establish time base.
     if (!firstRecordTime) return;
     if (end==0.0)
-	end = firstRecordTime/MILLION;
+        end = firstRecordTime/MILLION;
 
     now = getCurrentTime(false);
 
@@ -1128,18 +1211,18 @@ void reportInternalMetrics()
     unsigned ai_size = internalMetric::allInternalMetrics.size();
     for (unsigned u=0; u<ai_size; u++)
       if (internalMetric::allInternalMetrics[u]->enabled()) {
-	internalMetric *imp = internalMetric::allInternalMetrics[u];
+        internalMetric *imp = internalMetric::allInternalMetrics[u];
 
-	if (imp->name() == "active_processes") {
-	  value = (end - start) * processVec.size();
-	} else if (imp->style() == EventCounter) {
-	  value = imp->getValue();
-	  assert(value + 0.0001 >= imp->cumulativeValue);
-	  value -= imp->cumulativeValue;
-	  imp->cumulativeValue += value;
-	} else if (imp->style() == SampledFunction) {
-	  value = imp->getValue();
-	}
-	imp->node->forwardSimpleValue(start, end, value);
+        if (imp->name() == "active_processes") {
+          value = (end - start) * processVec.size();
+        } else if (imp->style() == EventCounter) {
+          value = imp->getValue();
+          assert(value + 0.0001 >= imp->cumulativeValue);
+          value -= imp->cumulativeValue;
+          imp->cumulativeValue += value;
+        } else if (imp->style() == SampledFunction) {
+          value = imp->getValue();
+        }
+        imp->node->forwardSimpleValue(start, end, value);
       }
 }
