@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.147 2004/03/11 05:29:20 lharris Exp $
+// $Id: symtab.h,v 1.148 2004/03/12 20:08:19 rchen Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -200,26 +200,25 @@ class function_base {
     
    static pdstring emptyString;
 
-   function_base(const pdstring &symbol, Address adr, const unsigned size)
+   function_base(const pdstring &symbol, Address adr, const unsigned size) :
 #if defined( ia64_unknown_linux2_4 )
 		/* This appears to be the only constructor, so this should be
 		   sufficient to make sure we don't think we have an AST when
 		   we don't. */
-		: framePointerCalculator( NULL ), line_(0), addr_(adr), size_(size)
-#else
-      : line_(0), addr_(adr), size_(size)
+		framePointerCalculator( NULL ), usedFPregs( NULL ),
 #endif
-      {
-         symTabName_.push_back(symbol); 
-         
+		line_(0), addr_(adr), size_(size) {
+
+       symTabName_.push_back(symbol);
+
 #if defined(i386_unknown_linux2_0) ||\
-            defined(i386_unknown_solaris2_5) ||\
-            defined(i386_unknown_nt4_0) ||\
-            defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-         iptrs = NULL;
-         blockList = new pdvector< BPatch_basicBlock* >;
-#endif 
-      }
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+       iptrs = NULL;
+       blockList = new pdvector< BPatch_basicBlock* >;
+#endif
+   }
 
    virtual ~function_base() {
 #if defined(i386_unknown_linux2_0) ||\
@@ -287,8 +286,12 @@ class function_base {
 	// put this pointer here, rather than in the BPatch_function
 	// that parseDwarf.C uses because instPoints store pd_Functions,
 	// not BPatch_functions.
-	
 	AstNode * framePointerCalculator;
+
+	// Place to store the results of doFloatingPointStaticAnalysis().
+	// This way, if they are ever needed in a mini-tramp, emitFuncJump()
+	// for example, the expensive operation doesn't need to happen again.
+	bool * usedFPregs;
 #endif
 
  protected:

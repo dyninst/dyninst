@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.45 2004/02/25 04:36:19 schendel Exp $
+ * $Id: inst-ia64.C,v 1.46 2004/03/12 20:08:11 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -490,12 +490,7 @@ bool ExpandInstruction::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 		int &oldOffset, int &newOffset, int newDisp,
 		unsigned &codeOffset, unsigned char* code ) { assert( 0 ); return false; }
 
-/* Required by ast.C */
-void emitFuncJump(opCode op, char * i, Address & base,
-		  const function_base * callee, process * proc,
-		  const instPoint *, bool) { assert( 0 ); }
-
-/* Required by BPatch_ function, image .C */
+/* Required by BPatch_function, image.C */
 BPatch_point *createInstructionInstPoint( process * proc, void * address,
 			BPatch_point ** alternative, BPatch_function * bpf ) { 
 	/* Since IA-64 instpoints never conflict, we can safely ignore 'alternative'.
@@ -1966,6 +1961,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	whichToPreserve[ 30 ] = false;
 	whichToPreserve[ 31 ] = false;
 																	
+	functionBase->usedFPregs = whichToPreserve;
 	return whichToPreserve;
  	} /* end doFloatingPointStaticAnalysis() */ 
 
@@ -2330,7 +2326,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 
 	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
 	   registers need to be preserved. */
-	bool * whichToPreserve = doFloatingPointStaticAnalysis( location );
+	bool *whichToPreserve = doFloatingPointStaticAnalysis( location );
 
 	/* Insert the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2513,6 +2509,121 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 void generateMTpreamble(char *, Address &, process *) {
 	assert( 0 );	// We don't yet handle multiple threads.
 	} /* end generateMTpreamble() */
+
+/* Required by ast.C */
+void emitFuncJump(opCode op, char *buf, Address &base, const function_base *callee,
+				  process *proc, const instPoint *location, bool) {
+
+	assert(op == funcJumpOp);
+	IA64_bundle bundle;
+	ia64_bundle_t *insnPtr = (ia64_bundle_t *)buf;
+
+	// Remove basetramp's frame on memory stack.
+	generatePreservationTrailer( insnPtr, base, location->pointFunc()->usedFPregs );
+
+	int extraOuts = regSpace->originalLocals % 3;
+	int offset = 32 + regSpace->originalLocals + 5;
+
+	// Generate a new register frame with an output size equal to the
+	// original local size.
+	// NOTE:	What we really want is the post-call, pre-alloc local size.
+	//			Unfortunatly, that is difficult to get, so we'll use the
+	//			post-call, post-alloc local instead.  While that may be
+	//			larger than is strictly necessary, it should still work
+	//			correctly.
+	bundle = IA64_bundle( MII,
+						  generateAllocInstructionFor( regSpace, 5, regSpace->originalLocals, 0 ),
+						  (extraOuts >= 1 ? generateRegisterToRegisterMove( 32, offset )
+										  : IA64_instruction( NOP_I )),
+						  (extraOuts >= 2 ? generateRegisterToRegisterMove( 33, offset + 1 )
+										  : IA64_instruction( NOP_I )));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Move local regs into output area.
+	for (int i = extraOuts; i < regSpace->originalLocals; i += 3) {
+		bundle = IA64_bundle( MII,
+							  generateRegisterToRegisterMove( 32 + (i+0), offset + (i+0) ),
+							  generateRegisterToRegisterMove( 32 + (i+1), offset + (i+1) ),
+							  generateRegisterToRegisterMove( 32 + (i+2), offset + (i+2) ));
+		insnPtr[base/16] = bundle.getMachineCode();
+		base += 16;
+	}
+
+	// Save system state into local registers.  AR.PFS saved earlier by alloc.
+	bundle = IA64_bundle( MII,
+						  generateRegisterToRegisterMove( REGISTER_GP, offset - 4 ),
+						  generateBranchToRegisterMove( BRANCH_RETURN, offset - 3 ),
+						  generateBranchToRegisterMove( BRANCH_SCRATCH, offset - 2 ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Ready the callee address.
+	Address callee_addr = callee->getEffectiveAddress(proc);
+	bundle = IA64_bundle( MLXstop,
+						  IA64_instruction( NOP_M ),
+						  generateLongConstantInRegister( offset - 1, callee_addr ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Install GP for callee.
+	bundle = IA64_bundle( MLX,
+						  IA64_instruction( NOP_M ),
+						  generateLongConstantInRegister( REGISTER_GP, proc->getTOCoffsetInfo( callee_addr )));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Copy the callee address and jump.
+	bundle = IA64_bundle( MIBstop,
+						  IA64_instruction( NOP_M ),
+						  generateRegisterToBranchMove( offset - 1, BRANCH_SCRATCH ),
+						  generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Restore system state.
+	bundle = IA64_bundle( MII,
+						  generateRegisterToRegisterMove( offset - 4, REGISTER_GP ),
+						  generateRegisterToBranchMove( offset - 3, BRANCH_RETURN ),
+						  generateRegisterToApplicationMove( offset - 5, AR_PFS ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	bundle = IA64_bundle( MII,
+						  (extraOuts >= 1 ? generateRegisterToRegisterMove( offset, 32 )
+										  : IA64_instruction( NOP_I )),
+						  (extraOuts >= 2 ? generateRegisterToRegisterMove( offset + 1, 33 )
+										  : IA64_instruction( NOP_I )),
+						  generateRegisterToBranchMove( offset - 1, BRANCH_SCRATCH ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Move output regs back into local area.
+	for (int i = extraOuts; i < regSpace->originalOutputs; i += 3) {
+		bundle = IA64_bundle( MII,
+							  generateRegisterToRegisterMove( offset + (i+0), 32 + (i+0) ),
+							  generateRegisterToRegisterMove( offset + (i+0), 32 + (i+1) ),
+							  generateRegisterToRegisterMove( offset + (i+0), 32 + (i+2) ));
+		insnPtr[base/16] = bundle.getMachineCode();
+		base += 16;
+	}
+
+	// Restore original register frame.
+	bundle = IA64_bundle( MstopMIstop,
+						  IA64_instruction( NOP_M ),
+						  generateOriginalAllocFor( regSpace ),
+						  IA64_instruction( NOP_M ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+
+	// Ignore rest of tramp, and return directly to original caller.
+	bundle = IA64_bundle( MMBstop,
+						  IA64_instruction( NOP_M ),
+						  IA64_instruction( NOP_M ),
+						  generateReturnTo( BRANCH_RETURN ));
+	insnPtr[base/16] = bundle.getMachineCode();
+	base += 16;
+}
 
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
