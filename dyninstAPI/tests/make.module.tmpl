@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.10 1999/06/08 05:57:25 csserra Exp $
+# $Id: make.module.tmpl,v 1.11 1999/06/18 21:49:07 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,7 +15,7 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS        = test1 test2 test1.mutatee test2.mutatee
+TARGETS        = test1 test2 test1.mutatee test2.mutatee 
 ifdef USES_LIBDYNINSTRT_SO
 TARGETS      += libtestA.so libtestB.so
 endif
@@ -38,6 +38,7 @@ SYSLIBS      += -liberty
 all:
 	$(MAKE) aTest TARGET=test1 TARGET2=test1.mutatee
 	$(MAKE) aTest TARGET=test2 TARGET2=test2.mutatee
+	$(MAKE) aTest TARGET=test3 TARGET2=test3.mutatee
 	$(MAKE) testlibs
 
 pc:
