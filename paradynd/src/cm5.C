@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.4  1995/02/16 08:52:58  markc
+ * Revision 1.5  1995/05/18 10:30:23  markc
+ * Added dummy functions for getrusage calls
+ *
+ * Revision 1.4  1995/02/16  08:52:58  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.3  1995/02/16  08:32:52  markc
@@ -387,4 +390,43 @@ bool process::loopUntilStopped() {
 #endif
   abort();
   return false;
+}
+
+float OS::compute_rusage_cpu() {
+    return 0;
+}
+
+float OS::compute_rusage_sys() {
+    return 0;
+}
+
+float OS::compute_rusage_min() {
+    return 0;
+}
+float OS::compute_rusage_maj() {
+    return 0;
+}
+float OS::compute_rusage_swap() {
+    return 0;
+}
+float OS::compute_rusage_io_in() {
+    return 0;
+}
+float OS::compute_rusage_io_out() {
+    return 0;
+}
+float OS::compute_rusage_msg_send() {
+    return 0;
+}
+float OS::compute_rusage_msg_recv() {
+    return 0;
+}
+float OS::compute_rusage_sigs() {
+    return 0;
+}
+float OS::compute_rusage_vol_cs() {
+    return 0;
+}
+float OS::compute_rusage_inv_cs() {
+    return 0;
 }
