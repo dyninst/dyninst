@@ -1,58 +1,58 @@
-String.obj: ../../common/src/String.C ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h
-ByteArray.obj: ../src/ByteArray.C ../../pdutil/h/ByteArray.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h
-Dictionary.obj: ../../common/src/Dictionary.C ../../common/h/Dictionary.h \
- ../../common/h/Vector.h
-lprintf.obj: ../../common/src/lprintf.C ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../common/h/lprintf.h
-rpcUtil.obj: ../src/rpcUtil.C ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h \
- ../../pdutil/h/pddesc.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
- ../../common/h/vectorSet.h
 aggregateSample.obj: ../src/aggregateSample.C \
  ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
  ../../common/h/Vector.h ../../pdutil/h/sys.h ../../pdutil/h/makenan.h \
  ../../pdutil/h/aggregation.h
-stringPool.obj: ../src/stringPool.C ../../common/h/list.h \
- ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h
-hist.obj: ../src/hist.C ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../pdutil/h/hist.h \
- ../../common/h/Vector.h ../../pdutil/h/sys.h ../../pdutil/h/makenan.h
-timing.obj: ../src/timing.C ../../common/h/Timer.h ../../common/h/headers.h \
+ByteArray.obj: ../src/ByteArray.C ../../pdutil/h/ByteArray.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h
-timing-nt.obj: ../src/timing-nt.C
-Timer.obj: ../../common/src/Timer.C ../../common/h/Timer.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h
-Types.obj: ../../common/src/Types.C ../../common/h/Types.h
-Ident.obj: ../../common/src/Ident.C ../../common/h/Ident.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../common/h/refCounter.h
-makenan.obj: ../src/makenan.C ../../pdutil/h/makenan.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h
-pathName.obj: ../../common/src/pathName.C ../../common/h/pathName.h \
- ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h
-PriorityQueue.obj: ../src/PriorityQueue.C ../../pdutil/h/PriorityQueue.h \
- ../../common/h/Vector.h
-odometer.obj: ../src/odometer.C ../../pdutil/h/odometer.h \
- ../../common/h/Vector.h
 CircularBuffer.obj: ../src/CircularBuffer.C \
  ../../pdutil/h/CircularBuffer.h
+debugOstream.obj: ../../common/src/debugOstream.C \
+ ../../common/h/debugOstream.h
+Dictionary.obj: ../../common/src/Dictionary.C \
+ ../../common/h/Dictionary.h ../../common/h/Vector.h
+hist.obj: ../src/hist.C ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h ../../pdutil/h/hist.h \
+ ../../common/h/Vector.h ../../pdutil/h/sys.h ../../pdutil/h/makenan.h \
+ ../../common/h/debugOstream.h
+Ident.obj: ../../common/src/Ident.C ../../common/h/Ident.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h ../../common/h/refCounter.h
+int64iostream.obj: ../src/int64iostream.C ../../pdutil/h/int64iostream.h
+lprintf.obj: ../../common/src/lprintf.C ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/lprintf.h
+makenan.obj: ../src/makenan.C ../../pdutil/h/makenan.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h
+odometer.obj: ../src/odometer.C ../../pdutil/h/odometer.h \
+ ../../common/h/Vector.h
+pathName.obj: ../../common/src/pathName.C ../../common/h/pathName.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h ../../common/h/refCounter.h
+PriorityQueue.obj: ../src/PriorityQueue.C ../../pdutil/h/PriorityQueue.h \
+ ../../common/h/Vector.h
+rpcUtil.obj: ../src/rpcUtil.C ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/rpcUtil.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
+ ../../common/h/Vector.h ../../common/h/vectorSet.h
+String.obj: ../../common/src/String.C ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h
+stringPool.obj: ../src/stringPool.C ../../common/h/list.h \
+ ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h
+Timer.obj: ../../common/src/Timer.C ../../common/h/Timer.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h
+Types.obj: ../../common/src/Types.C ../../common/h/Types.h
+timing.obj: ../src/timing.C ../../common/h/Timer.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h
+timing-nt.obj: ../src/timing-nt.C
 vectorSet.obj: ../../common/src/vectorSet.C ../../common/h/vectorSet.h \
  ../../common/h/Vector.h
-debugOstream.obj: ../../common/src/debugOstream.C ../../common/h/debugOstream.h
-templates.obj: ../src/templates.C ../../common/h/Vector.h \
- ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/pddesc.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h ../../pdutil/h/hist.h \
- ../../pdutil/h/sys.h ../../pdutil/h/makenan.h
-Types.obj: ../../common/src/Types.C ../../common/h/Types.h
-
