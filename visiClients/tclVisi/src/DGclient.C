@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.4  1994/09/25 02:07:47  newhall
+ * Revision 1.5  1994/09/30 21:03:07  newhall
+ * removed call to StartVisi
+ *
+ * Revision 1.4  1994/09/25  02:07:47  newhall
  * changed arguments to GetMetsRes
  *
  * Revision 1.3  1994/08/05  20:17:10  rbi
@@ -370,7 +373,7 @@ Dg_Init(Tcl_Interp *interp)
     /* vargv[2] = "Procedure Process Machine SyncObject";*/
 
     /* (void) StartVisi(3,vargv);*/
-    (void) StartVisi(0,NULL); 
+    /* (void) StartVisi(0,NULL); */ 
   }
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
