@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.19 2003/03/28 23:28:18 pcroth Exp $
+ * $Id: Object-nt.h,v 1.20 2003/04/04 15:25:06 pcroth Exp $
 ************************************************************************/
 
 
@@ -289,6 +289,21 @@ Object::Object(fileDescriptor* _desc,
 	baseAddr = baseAddress;
     ParseDebugInfo();
 }
+
+// In recent versions of the Platform SDK, the macros naming
+// the value for the Flags field of the SYMBOL_INFO struct have
+// names with a SYMFLAG_ prefix.  Older Platform SDKs, including
+// the version that shipped with the Visual Studio .NET product
+// (i.e., VC7), use names for these macros with a SYMF_ prefix.
+// If we find we are using these older headers, we define the
+// new-style names.
+#if !defined(SYMFLAG_FUNCTION)
+#  define SYMFLAG_FUNCTION      SYMF_FUNCTION
+#  define SYMFLAG_LOCAL         SYMF_LOCAL
+#  define SYMFLAG_PARAMETER     SYMF_PARAMETER
+#  define SYMFLAG_EXPORT        SYMF_EXPORT
+#endif // !defined(SYMFLAG_FUNCTION)
+
 
 
 #endif /* !defined(_Object_nt_h_) */
