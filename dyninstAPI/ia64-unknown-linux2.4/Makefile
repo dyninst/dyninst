@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2003/01/13 03:56:06 tlmiller Exp $
+# $Id: Makefile,v 1.7 2003/04/18 22:35:18 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,11 +38,12 @@ SRCS =          ../src/linux.C \
 		../src/FunctionExpansionRecord.C \
                 ../src/addLibraryLinux.C \
                 ../src/InstrucIter-ia64.C \
+		../src/parseDwarf.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C
 
 
-MYFLAGS          += -I/usr/include/libelf
+MYFLAGS          += -I/usr/include/libelf -DUSES_DWARF_DEBUG -I/u/t/l/tlmiller/libdwarf
 
 CXXFLAGS         += $(MYFLAGS)
 CFLAGS           += $(MYFLAGS)
@@ -52,6 +53,7 @@ TFLAGS           += $(MYFLAGS)
 #TFLAGS           += -g
 
 SYSLIBS = -lelf -ldl
+LIBS = /u/t/l/tlmiller/libdwarf/ia64-unknown-linux2.4/libdwarf.a
 
 AS		= /usr/bin/as
 
