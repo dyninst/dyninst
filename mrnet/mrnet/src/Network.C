@@ -132,10 +132,12 @@ int MC_Network::init_Backend(const char *_hostname, unsigned int port,
 
   //TLS: setup thread local storage for frontend
   //I am "BE(host:port)"
+  char port_str[16];
+  sprintf( port_str, "%u", port );
   std::string name("BE(");
   name += getHostName(host);
   name += ":";
-  name += port;
+  name += port_str;
   name += ")";
 
   int status;
