@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.9  1994/10/10 02:52:51  newhall
+ * Revision 1.10  1994/11/03 02:46:47  krisna
+ * removed bare prototype for gethostname
+ *
+ * Revision 1.9  1994/10/10  02:52:51  newhall
  * removed the default visi: HISTOGRAM_REALTIME
  *
  * Revision 1.8  1994/09/25  01:55:08  newhall
@@ -40,10 +43,6 @@
 #include <unistd.h>
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/rpcUtil.h"
-
-extern "C" {
-int gethostname(char*, int);
-}
 
 extern int yyparse();
 extern int yyrestart(FILE *);
