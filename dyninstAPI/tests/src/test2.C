@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.21 1999/06/30 16:11:31 davisj Exp $
+// $Id: test2.C,v 1.22 1999/06/30 23:16:12 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -53,7 +53,7 @@ bool expectErrors = false;
 bool gotError = false;
 
 bool runAllTests = true;
-const int MAX_TEST = 14;
+const unsigned int MAX_TEST = 14;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -429,14 +429,13 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
     // Test getDisplacedInstructions
     printf("Skipping test #11 (getDisplacedInstructions)\n");
     printf("         - not implemented on this platform\n");
-    passedTest[11] = true;
 #else
     BPatch_Vector<BPatch_point*> *points =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
     if (points == NULL) {
 	printf("**Failed** test #11 (getDisplacedInstructions)\n");
 	printf("    unable to locate function \"func11_1\".\n");
-	exit(1);
+	return;
     }
 
     char buf[128];
@@ -445,6 +444,7 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
     if (nbytes < 0 || nbytes > 128) {
 	printf("**Failed** test #11 (getDisplacedInstructions)\n");
 	printf("    getDisplacedInstructions returned a strange number of bytes (%d)\n", nbytes);
+        return;
     }
     int i;
     for (i = 0; i < nbytes; i++) {
@@ -453,9 +453,11 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
     if (i == nbytes) {
 	printf("**Failed** test #11 (getDisplacedInstructions)\n");
 	printf("    getDisplacedInstructions doesn't seem to have returned any instructions\n");
+        return;
     }
     printf("Passed test #11 (getDisplacedInstructions)\n");
 #endif
+    passedTest[11] = true;
 }
 
 //
@@ -554,7 +556,7 @@ BPatch_thread *mutatorMAIN(char *pathname)
     // Start the mutatee
     dprintf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[4];
+    char *child_argv[MAX_TEST+4];
    
     int n = 0;
     child_argv[n++] = pathname;
@@ -562,7 +564,7 @@ BPatch_thread *mutatorMAIN(char *pathname)
 
     if (!runAllTests) {
         child_argv[n++] = "-run";
-        for (int j=0; j <= MAX_TEST; j++) {
+        for (unsigned int j=0; j <= MAX_TEST; j++) {
             if (runTest[j]) {
                 char str[5];
                 sprintf(str, "%d", j);
@@ -608,7 +610,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 // main - decide our role and call the correct "main"
 //
 int
-main(int argc, char *argv[])
+main(unsigned int argc, char *argv[])
 {
     BPatch_thread *ret;
 
@@ -631,8 +633,56 @@ main(int argc, char *argv[])
     }
 #endif
 
+    unsigned int i;
 
-    // Create an instance of the bpatch library
+    // by default run all tests
+    for (i=0; i <= MAX_TEST; i++) {
+        runTest[i] = true;
+        passedTest[i] = false;
+    }
+
+    for (i=1; i < argc; i++) {
+	if (!strcmp(argv[i], "-verbose")) {
+	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-V")) {
+            fprintf (stdout, "%s\n", V_libdyninstAPI);
+            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            fflush(stdout);
+	} else if (!strcmp(argv[i], "-attach")) {
+	    useAttach = true;
+        } else if (!strcmp(argv[i], "-run")) {
+            unsigned int j;
+            runAllTests = false;
+            for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
+            for (j=i+1; j < argc; j++) {
+                unsigned int testId;
+                if ((testId = atoi(argv[j]))) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = true;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+                    break;
+                }
+            }
+            i = j-1;
+	} else {
+	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
+	    exit(-1);
+	}
+    }
+
+#if defined(sparc_sun_sunos4_1_3)
+    if (useAttach) {
+	printf("Attach is not supported on this platform.\n");
+	exit(1);
+    }
+#endif
+
+    // Create an instance of the BPatch library
     bpatch = new BPatch;
 
 #if defined (sparc_sun_solaris2_4)
@@ -641,14 +691,6 @@ main(int argc, char *argv[])
 #endif
 
     bpatch->registerErrorCallback(errorFunc);
-
-    int i;
-
-    // by default run all tests
-    for (i=0; i <= MAX_TEST; i++) {
-        runTest[i] = true;
-        passedTest[i] = false;
-    }
 
     // Try failure cases
     expectErrors = true;
@@ -735,7 +777,7 @@ main(int argc, char *argv[])
 
     if (allPassed) {
 	if (runAllTests) {
-	    printf("Passed all tests\n");
+	    printf("All tests passed\n");
 	} else {
 	    printf("All requested tests passed\n");
 	}
