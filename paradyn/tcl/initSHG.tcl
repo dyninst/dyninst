@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.11  1994/11/07 05:41:50  karavan
+# Revision 1.12  1995/06/11 22:57:41  karavan
+# nodeID type changed to unsigned from integer.
+#
+# Revision 1.11  1994/11/07  05:41:50  karavan
 # set minimum size for window to retain all pieces.
 #
 # Revision 1.10  1994/11/05  01:51:57  karavan
@@ -115,12 +118,12 @@ proc addDefaultShgBindingsAndStyles {cname dagID} {
 
 proc initSHG {SHGname dagID} {
 
-    global PCsearchState shgExplainStr currentSelection$dagID
+    global PCsearchState shgExplainStr currentSelection$dagID 
 
     set PCsearchState 1
     set shgExplainStr ""
     set csvar \$currentSelection$dagID
-    set currentSelection$dagID -1      
+    set currentSelection$dagID 0
     set clrSHGQUITBUTTbg "#fb63e620d36b"
     set clrSHGSTEPBUTTbg "#fb63e620d36b"
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
