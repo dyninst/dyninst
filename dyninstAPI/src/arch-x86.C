@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.23 2004/04/08 21:14:07 lharris Exp $
+// $Id: arch-x86.C,v 1.24 2004/05/25 19:24:21 legendre Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1142,9 +1142,12 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc) {
 
   unsigned char *instr = (const_cast<unsigned char *> (insn->ptr()));
   unsigned type = insn->type();
+  bool temp1, temp2;
 
   if (!((type & IS_JUMP) || (type & IS_JCC) || (type & IS_CALL))) return 0; 
-  
+
+  instr = const_cast<unsigned char *>(skip_headers(instr, temp1, temp2));
+
   if (type & IS_CALL) {
     if (type & REL_W) {
       if (outOfFunc) {
