@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.45 2001/06/20 20:34:54 schendel Exp $
+// $Id: DMdaemon.h,v 1.46 2001/08/23 14:43:38 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -258,7 +258,8 @@ class paradynDaemon: public dynRPCUser {
 	
 	// replace the igen provided error handler
 	virtual void handle_error();
-	virtual void firstSampleCallback(int program, double firstTime);
+	virtual void setDaemonStartTime(int, double startTime);
+	virtual void setInitialActualValueFE(int mid, double initActualVal);
         virtual void reportStatus(string);
 	virtual void processStatus(int pid, u_int stat);
 	virtual void reportSelf (string m, string p, int pd, string flav);
@@ -277,9 +278,16 @@ class paradynDaemon: public dynRPCUser {
         virtual void resourceBatchMode(bool onNow);  
 	void reportResources();
 
-	timeStamp getEarliestFirstTime() const { return earliestFirstTime;}
-	static void setEarliestFirstTime(timeStamp f){
-            if(! earliestFirstTime.isInitialized()) earliestFirstTime = f;
+	void setStartTime(timeStamp t) {
+	  startTime = t;
+	}
+	timeStamp getStartTime() const {
+	  return startTime;
+	}
+
+	static void setEarliestStartTime(timeStamp f);
+	static timeStamp getEarliestStartTime() {
+	  return earliestStartTime;
 	}
         void setTimeFactor(timeLength timef) {
             time_factor = timef;
@@ -288,6 +296,23 @@ class paradynDaemon: public dynRPCUser {
         timeStamp getAdjustedTime(timeStamp time) { 
 	  return time + time_factor; 
 	}
+	timeLength getMaxNetworkDelay() {
+	  return maxNetworkDelay;
+	}
+	void setMaxNetworkDelay(timeLength maxNetDelay) {
+	  maxNetworkDelay = maxNetDelay;
+	}
+	// calls attemptUpdateAggDelay(timeLength) after querying the
+	// network delay
+	//void attemptUpdateAggDelay();
+	// will set the aggDelay based on pdNetworkDelay, but only if it's
+	// larger than the currently stored value
+	//void attemptUpdateAggDelay(timeLength pdNetworkDelay);
+
+	void calc_FE_DMN_Times(timeLength *networkDelay,
+			       timeLength *timeAdjustment);
+	// the value 5 for samplesToTake is rather arbitrary
+	timeLength updateTimeAdjustment(const int samplesToTake = 5);
 
 	thread_t	getSocketTid( void ) const	{ return stid; }
 
@@ -388,7 +413,9 @@ class paradynDaemon: public dynRPCUser {
 
         timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.
-
+	timeLength maxNetworkDelay; // used in setting aggregation waiting time
+	timeStamp startTime;
+	
 	// all active metrics ids for this daemon.
         dictionary_hash<unsigned, metricInstance*> activeMids;
         vector<unsigned> disabledMids;
@@ -398,7 +425,7 @@ class paradynDaemon: public dynRPCUser {
 	vector<resourceHandle> newResourceHandles;
 	static u_int count;
 
-        static timeStamp earliestFirstTime;
+        static timeStamp earliestStartTime;
 
         // list of all possible daemons: currently one per unique name
         static vector<daemonEntry*> allEntries; 
@@ -421,11 +448,5 @@ class paradynDaemon: public dynRPCUser {
 				       const string &name);
 
         void propagateMetrics();
-	void checkForSampleTooEarly(metricInstance *mi,
-			   timeStamp *newStartTimeP, timeStamp *newEndTimeP);
-	void updateComponent(metricInstance *mi, timeStamp newStartTime,
-			     timeStamp newEndTime, pdSample value, 
-			     u_int weight);
-	void doAggregation(metricInstance *mi);
 };
 #endif
