@@ -7,9 +7,8 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
- 1995/05/30 05:05:05 krisna Exp";
- #endif
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26 1995/05/30 05:05:05 krisna Exp";
+#endif
 
 /*
  * symtab.C - generic symbol routines.  Implements an ADT for a symbol
@@ -17,7 +16,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.30  1995/11/03 00:06:13  newhall
+ * Revision 1.31  1995/11/03 21:17:38  naim
+ * Fixing minor warning - naim
+ *
+ * Revision 1.30  1995/11/03  00:06:13  newhall
  * changes to support changing the sampling rate: dynRPC::setSampleRate changes
  *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
  * fix so that SIGKILL is not being forwarded to CM5 applications.
