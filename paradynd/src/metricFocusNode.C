@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.233 2002/10/28 04:54:32 schendel Exp $
+// $Id: metricFocusNode.C,v 1.234 2002/11/25 23:52:48 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -328,109 +328,39 @@ void metricFocusNode::handleNewProcess(process *p) {
    }
 }
 
-
-void metricFocusNode::handleExec(process *) {
-   // a static member fn.  handling exec is tricky.  At the time this routine
-   // is called, the "new" process has been bootstrapped and is ready for
-   // stuff to get inserted.  No mi's have yet been propagated, and the data
-   // structures (allMIs, allMIComponents, etc.) are still in their old,
-   // pre-exec state, so they show component mi's enabled for this process,
-   // even though they're not (at least not yet).  This routines brings
-   // things up-to-date.
-   //
-   // Algorithm: loop thru all component mi's for this process.  If it is
-   // possible to propagate it to the "new" (post-exec) process, then do so.
-   // If not, fry the component mi.  An example where a component mi can no
-   // longer fit is an mi specific to, say, function foo(), which (thanks to
-   // the exec syscall) no longer exists in this process.  Note that the exec
-   // syscall changed the addr space enough so even if a given routine foo()
-   // is present in both the pre-exec and post-exec process, we must assume
-   // that it has MOVED TO A NEW LOCATION, thus making the component mi's
-   // instReqNode's instPoint out-of-date.  Ick.
-
-   // note the two loops; we can't safely combine into one since the second
-   // loop modifies the dictionary.
-  /*
-   vector<metricFocusNode*> allcomps;
-   dictionary_hash_iter<string,metricFocusNode*> iter =
-                                             getIter_processMetFocusBuf();
-   for (; iter; iter++)
-      allcomps += iter.currval();
-   
-   for (unsigned i=0; i < allcomps.size(); i++) {
-      processMetFocusNode* procnode = dynamic_cast<processMetFocusNode*>(
-                                                                allcomps[i]);
-      if (procnode->proc() != proc)
-	 continue;
-
-      forkexec_cerr << "calling handleExec for component "
-	            << procnode->flat_name_ << endl;
-
-      processMetFocusNode *replaceWithComponentMI = procnode->handleExec();
-      
-      if (replaceWithComponentMI == NULL) {
-	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
-	               << " failed, so not propagating it" << endl;
-         procnode->removeThisInstance(); // propagation failed; fry component mi
-      }
-      else {
-	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
-	               << " succeeded...it has been propagated" << endl;
-	 // new component mi has already been inserted in place of old
-	 // component mi in all of its aggregate's component lists.  So, not
-	 // much left to do, except to update allMIComponents.
-
-#if defined(MT_THREAD)
-	 for (unsigned u1=0; u1<procnode->comp_flat_names.size(); u1++)
-	    if (isKeyDef_processMetFocusBuf(procnode->comp_flat_names[u1]))
-	       undefKey_processMetFocusBuf(procnode->comp_flat_names[u1]);
-
-	 for (unsigned u2=0; u2<procnode->components.size(); u2++)
-	    procnode->removeComponent(procnode->components[u2]);
-	 procnode->components.resize(0);
-#else
-	 assert(replaceWithComponentMI->flat_name_ == procnode->flat_name_);
-#endif
-	 delete procnode; // old component mi (dtor removes it from allMIComponents)
-	 // This is redundant, see mdl.C, apply_to_process
-	 // assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
-#if defined(MT_THREAD)
-	 for (unsigned u=0; u<replaceWithComponentMI->comp_flat_names.size(); 
-	      u++) 
-	 {
-	    string &key = replaceWithComponentMI->comp_flat_names[u];
-	    setVal_processMetFocusBuf(key, replaceWithComponentMI);
-	 }
-#else
-	 setVal_processMetFocusBuf(replaceWithComponentMI->flat_name_,
-				   replaceWithComponentMI);
-#endif
-      }
-   }
-  */
-}
-
 // Remove the aggregate metric instances that don't have any components left
-void removeFromMetricInstances(process *proc) {
+void metricFocusNode::handleDeletedProcess(pd_process *proc) {
    metric_cerr << "removeFromMetricInstances- proc: " << proc << ", pid: " 
 	       << proc->getPid() << "\n";
 
-   // Loop through all of the _component_ mi's; for each with component
-   // process of "proc", remove the component mi from its aggregate mi.
-   // Note: imho, there should be a *per-process* vector of mi-components.
-   
-   // note 2 loops for safety (2d loop may modify dictionary?)
-   
    vector<processMetFocusNode *> greppedProcNodes;
    processMetFocusNode::getProcNodes(&greppedProcNodes, proc->getPid());
    for(unsigned i=0; i<greppedProcNodes.size(); i++) {
-     if (greppedProcNodes[i]->isBeingDeleted()) continue;
-     machineMetFocusNode *machNode = greppedProcNodes[i]->getParent();
-     machNode->deleteProcNode(greppedProcNodes[i]);
-     costMetric::removeProcessFromAll(proc); // what about internal metrics?
+      if (greppedProcNodes[i]->isBeingDeleted()) continue;
+      machineMetFocusNode *machNode = greppedProcNodes[i]->getParent();
+      machNode->deleteProcNode(greppedProcNodes[i]);
+      // what about internal metrics?
+      costMetric::removeProcessFromAll(proc->get_dyn_process());
    }
 }
 
+void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
+   vector<processMetFocusNode *> procNodes;
+   assert(proc->multithread_ready());
+   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      procNodes[i]->propagateToNewThread(thr);
+   }
+}
+
+void metricFocusNode::handleDeletedThread(pd_process *proc, pd_thread *thr) {
+   vector<processMetFocusNode *> procNodes;
+   assert(proc->multithread_ready());
+   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      procNodes[i]->updateForDeletedThread(thr);
+   }
+}
 
 /* *************************************************************************** */
 
@@ -616,14 +546,87 @@ void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
       procNodesToUnfork[k]->unFork();
    }
 }
-  
-void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
-   vector<processMetFocusNode *> procNodes;
-   assert(proc->multithread_ready());
-   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
-   for(unsigned i=0; i<procNodes.size(); i++) {
-      procNodes[i]->propagateToNewThread(thr);
+
+
+void metricFocusNode::handleExec(process *) {
+   // a static member fn.  handling exec is tricky.  At the time this routine
+   // is called, the "new" process has been bootstrapped and is ready for
+   // stuff to get inserted.  No mi's have yet been propagated, and the data
+   // structures (allMIs, allMIComponents, etc.) are still in their old,
+   // pre-exec state, so they show component mi's enabled for this process,
+   // even though they're not (at least not yet).  This routines brings
+   // things up-to-date.
+   //
+   // Algorithm: loop thru all component mi's for this process.  If it is
+   // possible to propagate it to the "new" (post-exec) process, then do so.
+   // If not, fry the component mi.  An example where a component mi can no
+   // longer fit is an mi specific to, say, function foo(), which (thanks to
+   // the exec syscall) no longer exists in this process.  Note that the exec
+   // syscall changed the addr space enough so even if a given routine foo()
+   // is present in both the pre-exec and post-exec process, we must assume
+   // that it has MOVED TO A NEW LOCATION, thus making the component mi's
+   // instReqNode's instPoint out-of-date.  Ick.
+
+   // note the two loops; we can't safely combine into one since the second
+   // loop modifies the dictionary.
+  /*
+   vector<metricFocusNode*> allcomps;
+   dictionary_hash_iter<string,metricFocusNode*> iter =
+                                             getIter_processMetFocusBuf();
+   for (; iter; iter++)
+      allcomps += iter.currval();
+   
+   for (unsigned i=0; i < allcomps.size(); i++) {
+      processMetFocusNode* procnode = dynamic_cast<processMetFocusNode*>(
+                                                                allcomps[i]);
+      if (procnode->proc() != proc)
+	 continue;
+
+      forkexec_cerr << "calling handleExec for component "
+	            << procnode->flat_name_ << endl;
+
+      processMetFocusNode *replaceWithComponentMI = procnode->handleExec();
+      
+      if (replaceWithComponentMI == NULL) {
+	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
+	               << " failed, so not propagating it" << endl;
+         procnode->removeThisInstance(); // propagation failed; fry component mi
+      }
+      else {
+	 forkexec_cerr << "handleExec for component " << procnode->flat_name_
+	               << " succeeded...it has been propagated" << endl;
+	 // new component mi has already been inserted in place of old
+	 // component mi in all of its aggregate's component lists.  So, not
+	 // much left to do, except to update allMIComponents.
+
+#if defined(MT_THREAD)
+	 for (unsigned u1=0; u1<procnode->comp_flat_names.size(); u1++)
+	    if (isKeyDef_processMetFocusBuf(procnode->comp_flat_names[u1]))
+	       undefKey_processMetFocusBuf(procnode->comp_flat_names[u1]);
+
+	 for (unsigned u2=0; u2<procnode->components.size(); u2++)
+	    procnode->removeComponent(procnode->components[u2]);
+	 procnode->components.resize(0);
+#else
+	 assert(replaceWithComponentMI->flat_name_ == procnode->flat_name_);
+#endif
+	 delete procnode; // old component mi (dtor removes it from allMIComponents)
+	 // This is redundant, see mdl.C, apply_to_process
+	 // assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
+#if defined(MT_THREAD)
+	 for (unsigned u=0; u<replaceWithComponentMI->comp_flat_names.size(); 
+	      u++) 
+	 {
+	    string &key = replaceWithComponentMI->comp_flat_names[u];
+	    setVal_processMetFocusBuf(key, replaceWithComponentMI);
+	 }
+#else
+	 setVal_processMetFocusBuf(replaceWithComponentMI->flat_name_,
+				   replaceWithComponentMI);
+#endif
+      }
    }
+  */
 }
 
 // startCollecting is called by dynRPC::enableDataCollection 
@@ -643,7 +646,7 @@ instr_insert_result_t startCollecting(string& metric_name,
 
    machineMetFocusNode *machNode = 
      createMetricInstance(mid, metric_name, focus, true);
-   //cerr << "startCollecting, " << machNode->getFullName() << "\n";
+
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
 		  << " failed because createMetricInstance failed" << endl;
