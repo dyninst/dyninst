@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-aix.h,v 1.8 1998/12/25 21:48:33 wylie Exp $
+ * $Id: Object-aix.h,v 1.9 1999/10/18 17:39:47 hollings Exp $
 ************************************************************************/
 
 
@@ -95,10 +95,20 @@ public:
 
     Object&   operator= (const Object &);
     int getTOCoffset() const { return toc_offset_; }
+    void get_stab_info(char *&stabstr, int &nstabs, Address &stabs, char *&stringpool) {
+	stabstr = (char *) stabstr_;
+	nstabs = nstabs_;
+	stabs = stabs_;
+	stringpool = stringpool_;
+    }
 
 private:
     void load_object ();
     int  toc_offset_;
+    int  nstabs_;
+    Address stabstr_;
+    Address stabs_;
+    Address stringpool_;
 };
 
 
