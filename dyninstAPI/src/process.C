@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.357 2002/09/17 20:08:06 bernat Exp $
+// $Id: process.C,v 1.358 2002/09/17 21:57:32 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4507,9 +4507,10 @@ function_base *process::findOneFunction(const string &name) const {
         if(dynamiclinking && shared_objects){ 
           for(u_int j=0; j < shared_objects->size(); j++){
             shared_object *so = (*shared_objects)[j];
-
-            // Add prefix wildcard to make name matching easy
-            lib_name = "*" + lib_name;             
+            
+	    // Add prefix wildcard to make name matching easy
+	    if (!lib_name.prefixed_by("*"))
+	      lib_name = "*" + lib_name;             
 
             if(matchLibName(lib_name, so->getName())) {
               function_base *fb = so->findFuncByName(func_name);
