@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.151 2004/02/25 04:36:24 schendel Exp $
+// $Id: inst-sparc.C,v 1.152 2004/02/26 02:51:45 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2019,7 +2019,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	    BPatch_reportError(BPatchSerious, 117,
 			       "instrumentation point conflict 1");
 	    if(alternative)
-		*alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
+			*alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
 	    return NULL;
 	}
 
@@ -2065,24 +2065,28 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
       //NOTE:if the previous instrumentation point is instrumented and
       //instrumentation used call instruction, anomaly occurs
+
+      if(alternative)
+        *alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
+
       if(isV9ISA())
         (proc->instPointMap)[curr_addr-INSN_SIZE]->point->dontUseCall = true;
       else {
         BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
         return NULL;
       }
-      if(alternative)
-        *alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
 
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
+
+	  if(alternative)
+		*alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
+
       if(isV9ISA())
         dontUseCallHere=true;
       else {
         BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
         return NULL;
       }
-      if(alternative)
-        *alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
     }
 
     // VG(4/24/2002): Should also modify this no to bother with b,a on v9
@@ -2090,52 +2094,53 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     bool decrement = false;
     if ((Address)address > func->getEffectiveAddress(proc)) {
-      //fprintf(stderr, "Wierd1=true@%p\n", address);
-	instruction prevInstr;
-	proc->readTextSpace((char *)address - INSN_SIZE,
+		//fprintf(stderr, "Wierd1=true@%p\n", address);
+		instruction prevInstr;
+		proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
 			    &prevInstr.raw);
-	if (isDCTI(prevInstr)){
-          if((prevInstr.call.op == CALLop) ||
-             ((prevInstr.call.op != CALLop) && !prevInstr.branch.anneal))
-          {
-              BPatch_reportError(BPatchSerious, 118, "point uninstrumentable (1)");
-              return NULL;
-          }
-          if(!(isV9ISA() && isUBA(prevInstr))) {
-            fprintf(stderr, "decrement=true@%p\n", address);
-            decrement = true;
-          }
-	}
+		if (isDCTI(prevInstr)){
+			if((prevInstr.call.op == CALLop) ||
+			   ((prevInstr.call.op != CALLop) && !prevInstr.branch.anneal))
+			{
+				BPatch_reportError(BPatchSerious, 118, "point uninstrumentable (1)");
+				return NULL;
+			}
+			if(!(isV9ISA() && isUBA(prevInstr))) {
+				fprintf(stderr, "decrement=true@%p\n", address);
+				decrement = true;
+			}
+		}
     }
 
-    if ((Address)address + INSN_SIZE <
-	func->getEffectiveAddress(proc) + func->size()) {
-      //fprintf(stderr, "Wierd2=true@%p\n", address); 
-	instruction nextInstr;
-	proc->readTextSpace((char *)address + INSN_SIZE,
-			    sizeof(instruction),
-			    &nextInstr.raw);
+    if (((Address)address + INSN_SIZE) < 
+			(func->getEffectiveAddress(proc) + func->size())) {
+		//fprintf(stderr, "Wierd2=true@%p\n", address); 
+
+		instruction nextInstr;
+		proc->readTextSpace((char *)address + INSN_SIZE,
+							sizeof(instruction),
+							&nextInstr.raw);
+
         //fprintf(stderr, "next@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
         // VG(4/24/2002): If we're on v9 and the next instruction is a DCTI, 
         // then we cannot use a call.
         // TODO: There rare case where it is trap was not dealt with...
-	if (isDCTI(nextInstr)){
-          //fprintf(stderr, "isDCTI=true@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
-          if(isV9ISA())
-            dontUseCallHere=true;
-          else {
-            proc->readTextSpace((char *)address + 2*INSN_SIZE,
-                                sizeof(instruction),
-                                &nextInstr.raw);
-            if(!isNopInsn(nextInstr)){
-              fprintf(stderr, "failes @ %p\n", address);
-              BPatch_reportError(BPatchSerious, 118,
-                                 "point uninstrumentable (2)");
-              return NULL;
-            }
-          }
-	}
+
+		if (isDCTI(nextInstr)){
+			proc->readTextSpace((char *)address + 2*INSN_SIZE,
+								sizeof(instruction),
+								&nextInstr.raw);
+			if(!isNopInsn(nextInstr)){
+				if(isV9ISA())
+					dontUseCallHere=true;
+				else{
+					//fprintf(stderr, "failes @ %p\n", address);
+					BPatch_reportError(BPatchSerious, 118,"point uninstrumentable (2)");
+					return NULL;
+				}
+			}
+		}
     }
 
     if(decrement){
