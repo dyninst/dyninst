@@ -20,6 +20,24 @@
 #include <map>
 #include <dlfcn.h>
 
+#define SA struct sockaddr
+
+#if !defined(i386_unknown_nt4_0)
+#include <sys/ioctl.h>
+#include <net/if.h>
+#else
+#include <Iphlpapi.h>
+#include <Iptypes.h>
+#endif // defined(i386_unknown_nt4_0)
+
+//LOOPBACK_IP used for hack to detect loopback interface
+//            must pay attention to endian-ness
+#if defined(sparc_sun_solaris2_4)
+#include <sys/sockio.h>         //only for solaris
+#define LOOPBACK_IP 2130706433
+#else
+#define LOOPBACK_IP 16777343
+#endif
 
 namespace MRN
 {
@@ -28,8 +46,6 @@ std::string LocalHostName="";
 unsigned short LocalPort=0;
 
 static int get_local_ip_address( std::string & ip_address );
-
-#define SA struct sockaddr
 
 pthread_key_t tsd_key;
 
@@ -567,22 +583,6 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
     return 0;
 }
 
-#if !defined(i386_unknown_nt4_0)
-#include <sys/ioctl.h>
-#include <net/if.h>
-#else
-#include <Iphlpapi.h>
-#include <Iptypes.h>
-#endif // defined(i386_unknown_nt4_0)
-
-//LOOPBACK_IP used for hack to detect loopback interface
-//            must pay attention to endian-ness
-#if defined(sparc_sun_solaris2_4)
-#include <sys/sockio.h>         //only for solaris
-#define LOOPBACK_IP 2130706433
-#else
-#define LOOPBACK_IP 16777343
-#endif
 static int get_local_ip_address( std::string & ip_address )
 {
     static std::string local_ip_address( "" );
