@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.33 2004/02/07 18:34:08 schendel Exp $
+// $Id: procfs.C,v 1.34 2004/03/02 22:46:00 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -406,66 +406,9 @@ int dyn_lwp::hasReachedSyscallTrap() {
         return 0;
     }
 
-    // Due to lack of information, we assume this was the 
-    // correct syscall.
-    return 2;
-}
-
-/*
-   detach from thr process, continuing its execution if the parameter "cont"
-   is true.
- */
-bool process::API_detach_(const bool cont)
-{
-  // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
-  long pr_flags = 0;
-  dyn_lwp *replwp = getRepresentativeLWP();
-  if (ioctl(replwp->get_fd(), PIOCSSPCACT, &pr_flags) < 0) {
-      sprintf(errorLine, "Cannot get status\n");
-      logLine(errorLine);
-      return false;
-  }
-
-  // Set the run-on-last-close-flag if necessary
-  if (cont) {
-    long pr_flags = 1;
-    if (ioctl(replwp->get_fd(),PIOCSRLC, &pr_flags) < 0) {
-      fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-  }
-
-  sigset_t sigs;
-  premptyset(&sigs);
-  if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
-    fprintf(stderr, "detach: PIOCSTRACE failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-  if (ioctl(replwp->get_fd(), PIOCSHOLD, &sigs) < 0) {
-    fprintf(stderr, "detach: PIOCSHOLD failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  fltset_t faults;
-  premptyset(&faults);
-  if (ioctl(replwp->get_fd(), PIOCSFAULT, &faults) < 0) {
-    fprintf(stderr, "detach: PIOCSFAULT failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  sysset_t syscalls;
-  premptyset(&syscalls);
-  if (ioctl(replwp->get_fd(), PIOCSENTRY, &syscalls) < 0) {
-    fprintf(stderr, "detach: PIOCSENTRY failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-  if (ioctl(replwp->get_fd(), PIOCSEXIT, &syscalls) < 0) {
-    fprintf(stderr, "detach: PIOCSEXIT failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  deleteLWP(replwp);
-  return true;
+    // Due to lack of information, we assume this was not the
+    // syscall we wanted. 
+    return 0;
 }
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {

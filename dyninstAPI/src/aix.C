@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.178 2004/02/25 04:36:36 schendel Exp $
+// $Id: aix.C,v 1.179 2004/03/02 22:45:59 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1544,44 +1544,54 @@ sysset_t *SYSSET_ALLOC(int pid)
     return ret;
 }
 
-bool process::get_entry_syscalls(pstatus_t *status,
-                                 sysset_t *entry)
+/*
+ * The set operations (set_entry_syscalls and set_exit_syscalls) are defined
+ * in sol_proc.C
+ */
+
+bool process::get_entry_syscalls(sysset_t *entry)
 {
-   // If the offset is 0, no syscalls are being traced
-   if (status->pr_sysentry_offset == 0) {
-      premptysysset(entry);
-   }
-   else {
-      // The entry member of the status vrble is a pointer
-      // to the sysset_t array.
-       if(pread(getRepresentativeLWP()->status_fd(), entry, 
-                SYSSET_SIZE(entry), status->pr_sysentry_offset)
-          != (int) SYSSET_SIZE(entry)) {
-           perror("get_entry_syscalls: read");
-           return false;
-       }
-   }
-   return true;
+    pstatus_t status;
+    if (!get_status(&status)) return false;
+    
+    // If the offset is 0, no syscalls are being traced
+    if (status.pr_sysentry_offset == 0) {
+        premptysysset(entry);
+    }
+    else {
+        // The entry member of the status vrble is a pointer
+        // to the sysset_t array.
+        if(pread(getRepresentativeLWP()->status_fd(), entry, 
+                 SYSSET_SIZE(entry), status.pr_sysentry_offset)
+           != (int) SYSSET_SIZE(entry)) {
+            perror("get_entry_syscalls: read");
+            return false;
+        }
+    }
+    return true;
 }
 
-bool process::get_exit_syscalls(pstatus_t *status,
-                                sysset_t *exit)
+bool process::get_exit_syscalls(sysset_t *exit)
 {
-   // If the offset is 0, no syscalls are being traced
-   if(status->pr_sysexit_offset == 0) {
-      premptysysset(exit);
-   }
-   else {
-      if(pread(getRepresentativeLWP()->status_fd(), exit, 
-               SYSSET_SIZE(exit), status->pr_sysexit_offset)
-         != (int) SYSSET_SIZE(exit)) {
-         perror("get_exit_syscalls: read");
-           return false;
-      }
-   }
-    
-   return true;
+    pstatus_t status;
+    if (!get_status(&status)) return false;
+
+    // If the offset is 0, no syscalls are being traced
+    if(status.pr_sysexit_offset == 0) {
+        premptysysset(exit);
+    }
+    else {
+        if(pread(getRepresentativeLWP()->status_fd(), exit, 
+                 SYSSET_SIZE(exit), status.pr_sysexit_offset)
+           != (int) SYSSET_SIZE(exit)) {
+            perror("get_exit_syscalls: read");
+            return false;
+        }
+    }
+    return true;
 }
+
+
 
 bool process::dumpCore_(const pdstring coreFile)
 {
