@@ -2,12 +2,15 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.30  1996/05/07 18:06:28  newhall
-/* added threadExiting, this routine must be synchrounous
+/* Revision 1.31  1996/10/31 08:10:37  tamches
+/* added enablePauseOrRun()
 /*
-# Revision 1.29  1996/05/01  20:57:20  tamches
-# added DAGinactivateEntireSearch
-#
+ * Revision 1.30  1996/05/07 18:06:28  newhall
+ * added threadExiting, this routine must be synchrounous
+ *
+ * Revision 1.29  1996/05/01  20:57:20  tamches
+ * added DAGinactivateEntireSearch
+ *
  * Revision 1.28  1996/05/01 14:03:48  naim
  * Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
  * and PC - naim
@@ -18,40 +21,6 @@
  *
  * Revision 1.26  1996/04/16  18:39:05  karavan
  * changed updateStatusDisplay to take a string
- *
- * Revision 1.25  1996/04/13 04:40:24  karavan
- * new interface for batching edge requests
- *
- * Revision 1.24  1996/04/09 19:24:22  karavan
- * added back batch mode to cut down on shg redraw time
- *
- * Revision 1.23  1996/04/07 21:19:37  karavan
- * added newPhaseNotification.
- *
- * Revision 1.22  1996/02/23 22:09:16  naim
- * Adding igen call to display status line (fixes a deadlock situation) - naim
- *
- * Revision 1.21  1996/02/07  19:02:09  tamches
- * got rid of initSHG
- *
- * Revision 1.20  1996/02/02 02:17:50  karavan
- * Changes for new performance consultant.
- *
- */
-
-/*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
- * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
  *
  */
 
@@ -101,7 +70,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 18;
+	$version 19;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -126,6 +95,8 @@ $remote UIM {
 	// update status display
 
 	$async void updateStatus(status_line *status, const char *msg);
+
+	$async void enablePauseOrRun();
 
 	// used to tell UI to source a tcl file after initialization
         // (but of course the -s option is for us developers only...)
