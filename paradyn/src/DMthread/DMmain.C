@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.18  1994/04/20 15:30:10  hollings
+ * Revision 1.19  1994/04/21 23:24:26  hollings
+ * removed process name from calls to RPC_make_arg_list.
+ *
+ * Revision 1.18  1994/04/20  15:30:10  hollings
  * Added error numbers.
  * Added data manager function to get histogram buckets.
  *
@@ -380,6 +383,9 @@ void *DMmain(int arg)
     // new paradynd's may try to connect to well known port
     DMsetupSocket (&sockfd, &known_sock);
     dynRPCUser::__wellKnownPortFd__ = sockfd;
+
+    paradynDaemon::args =
+	      RPC_make_arg_list(AF_INET, SOCK_STREAM, socket, 1);
 
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;

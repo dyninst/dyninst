@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.12  1994/04/20 15:30:11  hollings
+ * Revision 1.13  1994/04/21 23:24:27  hollings
+ * removed process name from calls to RPC_make_arg_list.
+ *
+ * Revision 1.12  1994/04/20  15:30:11  hollings
  * Added error numbers.
  * Added data manager function to get histogram buckets.
  *
@@ -114,21 +117,6 @@ Boolean dataManager::continueProcess(applicationContext *app, int pid)
 Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
 {
    return(app->detachApplication(pause));
-}
-
-// 
-// Informs that instance of the name of the paradynd for execs
-//
-void dataManager::sendParadyndName (String the_name)
-{
-   assert(the_name);
-   paradynd_name = strdup(the_name);
-
-  // setup arg list to pass
-  // to prevent memory leaks this list could be freed by the destructor
-  // this list is null terminated
-  assert (paradynDaemon::args =
-	  RPC_make_arg_list (the_name, AF_INET, SOCK_STREAM, socket, 1));
 }
 
 performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
