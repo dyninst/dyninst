@@ -2,6 +2,9 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
+ * Revision 1.24  1995/10/17 20:42:56  tamches
+ * Removed reference to the now-obsolete class "dag"
+ *
  * Revision 1.23  1995/10/13 22:07:01  newhall
  * Added code to change sampling rate as bucket width changes (this is not
  * completely implemented in daemon code yet, so now it has no effect).
@@ -129,7 +132,7 @@ class resource {
       friend class testValue;
       friend class focus;
       friend void initResources();
-      friend class dag;
+//      friend class dag;
 
       // ***************************************************************
   public:
