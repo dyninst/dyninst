@@ -119,13 +119,12 @@ int msg_unbind(thread_t tid) {
 
     if (to_unbind == INVALID_PDSOCKET) {
         ret = THR_ERR;
-        goto done;
+    } else {
+        thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
+        thread_t me = thr_self();
+        my_mail->unbind_sock( to_unbind );
     }
-
-    thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
-    thread_t me = thr_self();
-    my_mail->unbind_sock( to_unbind );
-
+    
   done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;
