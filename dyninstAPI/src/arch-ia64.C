@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.22 2004/01/23 22:01:12 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.23 2004/02/12 20:46:59 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -772,7 +772,7 @@ IA64_instruction generateFillFrom( Register address, Register destination, int64
 	uint64_t rawInsn = temp.getMachineCode();
 	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
 	rawInsn = rawInsn | ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) );
-	return temp;
+	return IA64_instruction( rawInsn );
 	} /* end generateFillFrom() */
 
 IA64_instruction generateRegisterStore( Register address, Register source, int size ) {
