@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.148 2005/02/14 23:19:47 mjbrim Exp $
+// $Id: DMpublic.C,v 1.149 2005/02/15 17:43:59 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -210,7 +210,7 @@ bool dataManager::defineDaemon(const char *command,
   return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, MPI_type, flavor));
 }
 
-bool dataManager::addExecutable(const char *machine,
+void dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
@@ -218,6 +218,7 @@ bool dataManager::addExecutable(const char *machine,
 				const pdvector<pdstring> *argv)
 {
   bool added = false;
+
 
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
@@ -236,8 +237,6 @@ bool dataManager::addExecutable(const char *machine,
   // Windows does not yet support the termWin
   added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
 #endif
-
-  return added;
 }
 
 

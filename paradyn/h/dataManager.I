@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.117 2005/01/28 18:12:02 legendre Exp $
+ * $Id: dataManager.I,v 1.118 2005/02/15 17:43:57 legendre Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -213,11 +213,11 @@ $remote dataManager {
     //     Note - arguments that are not used should be passed in
     //            as null, anything else will be assumed to be a
     //            valid string.
-    bool addExecutable(const char *machine, 
+    $async void addExecutable(const char *machine, 
 		       const char *login, 
 		       const char *name, 
-	               const char *dir,
-	               const char *MPItype,
+	          const char *dir,
+             const char *MPItype,
 		       const pdvector<pdstring> *argv);
 
     // Attach is the other way to start a process...newly implemented with v1.2

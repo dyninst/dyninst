@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.105 2005/01/28 18:12:04 legendre Exp $
+/* $Id: paradyn.tcl.C,v 1.106 2005/02/15 17:43:58 legendre Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -485,10 +485,10 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
     app_status = new status_line("Application status");
   }
  
-  pdvector<pdstring> av;
+  pdvector<pdstring> *av = new pdvector<pdstring>();
   unsigned ve=i;
   while (argv[ve]) {
-    av += argv[ve];
+    *av += argv[ve];
     ve++;
   }
 
@@ -504,26 +504,13 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
   pdstring dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
   // Note: the following is not an igen call to paradynd...just to the DM thread.
-  if (dataMgr->addExecutable(machine, user, paradynd, dir.c_str(), mpitype,
-			     &av) == false)
-  {
-    // NOTE: dataMgr->addExecutable isn't returning detailed-enough error
-    // code as a result, so we can't provide the user with good diagnostics
-    // when dataMgr->addExecutable() fails.  FIX THIS SITUATION BY MAKING THE 
-    // RETURN VAL OF dataMgr->addExecutable() SOMETHING OTHER THAN JUST A BOOL.
-    // (Actually, this may not be such a problem because dataMgr->addExecutable
-    // or something it calls seems to be putting up the error dialog box window
-    // as soon as it encounters an error.)
-    Tcl_SetResult(interp, "", TCL_STATIC);
-
-    return TCL_ERROR;
-  }
-  else {
-    // We used to enable the RUN button here, but now the implementation has
-    // changed (we wait for DYNINSTinit to run).
-
-    return TCL_OK;
-  }
+  char *m = machine ? strdup(machine) : NULL;
+  char *u = user ? strdup(user) : NULL;
+  char *p = paradynd ? strdup(paradynd) : NULL;
+  char *d = dir.length() ? strdup(dir.c_str()) : NULL;
+  char *mpi = mpitype ? strdup(mpitype) : NULL;
+  dataMgr->addExecutable(m, u, p, d, mpi, av);
+  return TCL_OK;
 }
 
 //
