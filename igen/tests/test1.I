@@ -1,4 +1,3 @@
-
 /* a struct with one int */
 $remote typedef struct { 
     int style;
