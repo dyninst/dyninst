@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.21 2003/04/16 21:07:27 bernat Exp $
+// $Id: templates2.C,v 1.22 2003/04/18 22:35:31 tlmiller Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -207,4 +207,11 @@ template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 #ifndef BPATCH_LIBRARY
 class defInst;
 template class pdvector<defInst *>;
+#endif
+
+#if defined( USES_DWARF_DEBUG )
+#include <stack>
+template class std::stack< long int >;
+#include <map>
+template class std::map< unsigned int, char * >;
 #endif
