@@ -82,8 +82,8 @@ extern void visi_StopMetRes(int metricIndex, int resourceIndex);
  * passing 0 will just start a new phase.
  */
 extern void visi_DefinePhase(char *phase_name,
-			     unsigned withPerfConsult,
-			     unsigned withVisis);
+			     u_int withPerfConsult,
+			     u_int withVisis);
 
 /* request to Paradyn to display error message
  */
@@ -161,7 +161,7 @@ extern int visi_NumResources(void);
 
 /* returns the number of phases currently defined in the system   
  */
-extern unsigned visi_NumPhases(void);
+extern u_int visi_NumPhases(void);
 
 /* returns the start time of the phase for which this visi is defined
  */
@@ -178,23 +178,23 @@ extern int visi_GetMyPhaseHandle(void);
 
 /* returns the handle of the ith phase or -1 on error
  */
-extern int visi_GetPhaseHandle(unsigned phase_num);
+extern int visi_GetPhaseHandle(u_int phase_num);
 
 /* returns phase name for the ith phase, or returns 0 on error
  */
-extern const char *visi_GetPhaseName(unsigned phase_num);
+extern const char *visi_GetPhaseName(u_int phase_num);
 
 /* returns phase start time for the ith phase, or returns -1.0 on error
  */
-extern visi_timeType visi_GetPhaseStartTime(unsigned phase_num);
+extern visi_timeType visi_GetPhaseStartTime(u_int phase_num);
 
 /* returns phase end time for the ith phase, or returns -1.0 on error
  */
-extern visi_timeType visi_GetPhaseEndTime(unsigned phase_num);
+extern visi_timeType visi_GetPhaseEndTime(u_int phase_num);
 
 /* returns phase bucket width for the ith phase, or returns -1.0 on error
  */
-extern visi_timeType visi_GetPhaseBucketWidth(unsigned phase_num);
+extern visi_timeType visi_GetPhaseBucketWidth(u_int phase_num);
 
 /* returns the average of all the data bucket values for the metric/resource
  * pair "metric_num" and "resource_num", returns NaN value on error 

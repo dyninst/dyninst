@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-X.C,v 1.2 2000/07/28 15:25:37 paradyn Exp $
+// $Id: templates-X.C,v 1.3 2002/04/09 18:06:54 mjbrim Exp $
 
 #if !defined(rs6000_ibm_aix4_1)
 ERROR: "templates-X is only for AIX"
@@ -54,7 +54,7 @@ template class dictionary_hash<string, Symbol>;
 
 #ifndef external_templates
 template class vector<string>;
-template class vector<unsigned int>;
+template class vector<u_int>;
 template class vector<Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;
 #endif

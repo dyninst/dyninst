@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.28 2001/11/20 17:42:05 schendel Exp $
+// $Id: datagrid.C,v 1.29 2002/04/09 18:06:51 mjbrim Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -97,7 +97,7 @@ Resource::Resource(string resourceName,
     Id = id;
   }
   else {
-    name = 0;
+    name = "";
     Id = 0;
   }
 }
@@ -542,7 +542,7 @@ const char *visi_DataGrid::GetMyPhaseName(){
 
     if (phase_handle == -1) return ("Global");
     if (phase_handle >= 0){
-        for(unsigned i = 0; i < phases.size(); i++){
+        for(u_int i = 0; i < phases.size(); i++){
 	    if(phase_handle == (int)phases[i]->getPhaseHandle()){
                 return phases[i]->getName();
     }}}

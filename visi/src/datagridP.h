@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.12 2001/11/20 17:42:06 schendel Exp $
+// $Id: datagridP.h,v 1.13 2002/04/09 18:06:53 mjbrim Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -69,14 +69,14 @@ class Metric{
      string	label;      // for data values, and ave. aggregate
      string	total_label; // for sum aggregate 
   public:
-     Metric(){name = 0; units = 0; Id = 0; aggregate=SUM;
-	      unitstype = Normalized; label = 0; total_label = 0;}
+     Metric(){units = ""; name = ""; Id = 0; aggregate=SUM;
+	      unitstype = Normalized; label = ""; total_label = "";}
      Metric(string,string,u_int,int,visi_unitsType); 
      ~Metric(); 
      const char *Units(){return(units.string_of());}
      const char *Name(){return(name.string_of());}
-     u_int       Identifier(){return(Id);}
-     int         Aggregate(){return(aggregate);}
+     u_int Identifier(){return(Id);}
+     int Aggregate(){return(aggregate);}
      visi_unitsType UnitsType(){return(unitstype);}
      const char *Label(){return(label.string_of());}
      const char *AveLabel(){return(label.string_of());}
@@ -88,7 +88,7 @@ class Resource{
      string   name;     // obj. name for graph labeling
      u_int    Id;       // unique resource id
    public:
-     Resource(){name = NULL; Id = 0;}
+     Resource(){name = ""; Id = 0;}
      Resource(string,u_int);
      ~Resource();
      const char *Name(){return(name.string_of());}
@@ -105,7 +105,7 @@ class PhaseInfo{
   public:
     PhaseInfo(){
 	    phaseHandle = 0; startTime = -1.0; 
-	    endTime = -1.0; bucketWidth = -1.0; phaseName = 0;
+	    endTime = -1.0; bucketWidth = -1.0; phaseName = "";
     }
     PhaseInfo(u_int h,visi_timeType s,visi_timeType e,visi_timeType w, string n){
 	   phaseHandle = h;
@@ -137,7 +137,7 @@ class PhaseInfo{
     void setStartTime(visi_timeType s){ startTime = s;}
     void setEndTime(visi_timeType e){ endTime = e;}
     void setBucketWidth(visi_timeType w){ bucketWidth = w;}
-    u_int  getPhaseHandle() const { return(phaseHandle);}
+    u_int getPhaseHandle() const { return(phaseHandle);}
     const char *getName() const{ return(phaseName.string_of());}
     visi_timeType getStartTime() const{ return(startTime);}
     visi_timeType getEndTime() const{ return(endTime);}
@@ -173,8 +173,7 @@ class visi_GridCellHisto {
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
 			  userdata = NULL; lastBucketFilled = -1; 
 			  firstValidBucket = -1; enabled = 0;
-			  initActVal = -1;
-     }
+			  initActVal = -1;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto();
      int    LastBucketFilled(){return(lastBucketFilled);}
@@ -341,7 +340,7 @@ class visi_DataGrid {
      }
      visi_DataGrid& operator= (const visi_DataGrid& v) { // copy assignment
         if (this != &v) {       // beware of self-assignment!
-          unsigned int p;
+          u_int p;
 
 		  delete[] metrics;
 
@@ -409,18 +408,18 @@ class visi_DataGrid {
      int 	GetPhaseHandle(){return(phase_handle);}
      const char *GetMyPhaseName();
 
-     const PhaseInfo	*GetPhaseInfo(unsigned i){
-	    unsigned j = phases.size();
+     const PhaseInfo	*GetPhaseInfo(u_int i){
+	    u_int j = phases.size();
             if((j == 0) || (i >= j)){
 		return(NULL);
             }
 	    return(phases[i]);
      }
 
-     int AddEndTime(visi_timeType end,unsigned handle){
+     int AddEndTime(visi_timeType end,u_int handle){
 	   PhaseInfo *p;
 
-           for(unsigned i = 0; i < phases.size(); i++){
+           for(u_int i = 0; i < phases.size(); i++){
 	       p = phases[i]; 
 	       if(p->getPhaseHandle() == handle){
 	          p->setEndTime(end);
@@ -430,7 +429,7 @@ class visi_DataGrid {
 	   return(0);
      }
 
-     int	ResourceIndex(unsigned resId){
+     int	ResourceIndex(u_int resId){
              for(int i = 0; i < numResources; i++){
 		 if(resources[i].Identifier() == resId)
 		    return(i);
@@ -438,7 +437,7 @@ class visi_DataGrid {
 	     return(-1);
      }
 
-     int	MetricIndex(unsigned metId){
+     int	MetricIndex(u_int metId){
              for(int i = 0; i < numMetrics; i++){
 		 if(metrics[i].Identifier() == metId)
 		    return(i);

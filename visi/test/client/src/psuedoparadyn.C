@@ -1,4 +1,4 @@
-/* $Id: psuedoparadyn.C,v 1.7 2002/02/15 18:35:17 pcroth Exp $
+/* $Id: psuedoparadyn.C,v 1.8 2002/04/09 18:06:55 mjbrim Exp $
  * */ 
 #include <stdio.h>
 #include <stream.h>
@@ -39,7 +39,7 @@ void visualizationUser::StopMetricResource(u_int metricId,u_int resourceId){
   cerr << "## in visualizationUser::StopMetricResource " << endl;
   cerr << "## metId = " << metricId << " resId = " << resourceId << endl;
   u_int size = mrlist.size();
-  for(unsigned i=0; i < size; i++){
+  for(u_int i=0; i < size; i++){
       if((metricId == mrlist[i].met.Id) && (resourceId == mrlist[i].res.Id)){
           mrlist[i] = mrlist[(size - 1)];
 	  mrlist.resize(size - 1);
@@ -77,7 +77,7 @@ main(int argc, char *argv[]){
     vector<string> arg_list;
     
     if(argc > 2){
-        unsigned index = 2;
+        u_int index = 2;
 	while(argv[index]){
 	    arg_list += argv[index];
 	    index++;
@@ -158,7 +158,7 @@ main(int argc, char *argv[]){
                 case 7:
 		    {
 			cerr << "LIST OF ENABLED METRIC/FOCUS PAIRS" << endl;
-                        for(unsigned i=0; i < mrlist.size(); i++){
+                        for(u_int i=0; i < mrlist.size(); i++){
 			    cerr << "    metric[" << i << "] = " << 
 				  mrlist[i].met.name.string_of() << " res[" <<
 				  i << "] = " << mrlist[i].res.name.string_of()
@@ -192,8 +192,8 @@ void SendData(u_int howmany,
         scanf("%f",&user_selected_value);
     }
     vector <T_visi::dataValue> tempData;
-    for(unsigned i=0; i < howmany; i++){
-        for(unsigned j=0; j < mrlist.size(); j++){
+    for(u_int i=0; i < howmany; i++){
+        for(u_int j=0; j < mrlist.size(); j++){
 	    T_visi::dataValue newValue;
 	    newValue.metricId = mrlist[j].met.Id;
 	    newValue.resourceId = mrlist[j].res.Id;
@@ -243,11 +243,11 @@ void NewMR(){
 
     cerr << "Add new metrics and resources to visualization:" << endl;
     cerr << "Enter number of metrics and number of resources" << endl;
-    unsigned num_mets = 0, num_res = 0;
+    u_int num_mets = 0, num_res = 0;
     scanf("%d%d",&num_mets,&num_res);
     vector<T_visi::visi_matrix> newlist;
-    for(unsigned i=0; i < num_mets; i++){
-        for(unsigned j=0; j < num_res; j++){
+    for(u_int i=0; i < num_mets; i++){
+        for(u_int j=0; j < num_res; j++){
 	    T_visi::visi_matrix newElement;
 	    char temp[32];
 	    sprintf(temp, "%s%d","metric_",nextMetId);
