@@ -2582,7 +2582,7 @@ MRNET_ROOT=`pwd`
 MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 
 cat >>confdefs.h <<_ACEOF
-#define COMMNODE_EXE "$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode"
+#define COMMNODE_EXE "$MRNET_ROOT/bin/$host/mrnet_commnode"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
