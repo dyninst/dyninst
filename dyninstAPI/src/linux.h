@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.5 2001/06/04 18:42:18 bernat Exp $
+// $Id: linux.h,v 1.6 2002/02/11 22:02:20 tlmiller Exp $
 
-#if !defined(i386_unknown_linux2_0)
+#if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
 #endif
 

@@ -2013,7 +2013,7 @@
 	SUBROUTINE func35_1
 #include "test1_common.h"
 	passedTest (35) = .true.
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
 	print *, 'Skipped test #35 (function relocation)'
 	print *, '       - not tested for Fortran'
 #else

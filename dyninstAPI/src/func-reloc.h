@@ -32,7 +32,14 @@
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #endif
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(ia64_unknown_linux2_4)
+#include "dyninstAPI/src/arch-ia64.h"
+#include "dyninstAPI/src/inst-ia64.h"
+#include "dyninstAPI/src/instPoint-ia64.h"
+#include "dyninstAPI/src/LocalAlteration-ia64.h"
+#endif
+
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
 
 // Check for ExpandInstruction alterations that have already been found.
 // Sparc does not use ExpandInstruction alterations

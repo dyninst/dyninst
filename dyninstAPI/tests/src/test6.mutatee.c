@@ -176,7 +176,7 @@ extern void* getsp();
 }
 #endif
 
-#ifdef i386_unknown_linux2_0
+#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0

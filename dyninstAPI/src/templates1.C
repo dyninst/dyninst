@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.39 2001/12/18 16:21:18 pcroth Exp $
+// $Id: templates1.C,v 1.40 2002/02/11 22:02:27 tlmiller Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -148,7 +148,8 @@ template class  vector<dictionary_hash <metricDefinitionNode*,metricDefinitionNo
 #if defined(i386_unknown_linux2_0) || \
 	defined(i386_unknown_solaris2_4) || \
 	defined(sparc_sun_solaris2_4) || \
-	defined(mips_sgi_irix_6_4)
+	defined(mips_sgi_irix_6_4) || \
+	defined(ia64_unknown_linux2_4)
 template class vector<pdElfShdr*>;
 #endif
 

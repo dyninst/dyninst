@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.8 2002/01/16 23:24:56 jaw Exp $
+// $Id: BPatch_init.C,v 1.9 2002/02/11 22:02:07 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -66,12 +66,12 @@ bool dyninstAPI_init() {
 
   // Protect our signal handler by overriding any which the application 
   // may already have or subsequently install.
-#if defined(i386_unknown_linux2_0) || defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_solaris2_5) || defined(ia64_unknown_linux2_4)
   // dyninst should really use the appropriate initOS function for this
   // but initOS is currently part of paradynd and (probably) won't
   // get moved over into dyninst until the event management does,
   // so here's a copy, just for dyninst.
-#ifdef i386_unknown_linux2_0
+#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
   const char *sigactionF="__sigaction";
 #else
   const char *sigactionF="_libc_sigaction";

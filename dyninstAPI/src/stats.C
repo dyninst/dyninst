@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.27 2001/08/23 14:43:28 schendel Exp $
+ * $Id: stats.C,v 1.28 2002/02/11 22:02:25 tlmiller Exp $
  */
 
 #if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 6 apr 2001
@@ -134,7 +134,7 @@ void printAppStats(struct endStatsRec *stats)
     logStream << "    Total wall time of program: " << wallTime << "\n";
     
     logStream << "    Total data samples: " << stats->samplesReported << "\n";
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
     logStream <<  "    Total traps hit: " << stats->totalTraps << "\n";
 #endif
     sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.18 2001/08/01 15:39:51 chadd Exp $
+// $Id: timing.C,v 1.19 2002/02/11 22:02:03 tlmiller Exp $
 
 #include <iostream.h>
 #include "common/h/Timer.h"
@@ -135,7 +135,8 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
 
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0) \
- || defined(i386_unknown_linux2_0)
+ || defined(i386_unknown_linux2_0) \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
   // the speed of the pentium is being overestimated by a factor of 2
   max_speed /= 2;
 #elif defined(mips_sgi_irix6_4)

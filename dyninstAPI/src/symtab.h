@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.104 2002/01/30 20:24:45 bernat Exp $
+// $Id: symtab.h,v 1.105 2002/02/11 22:02:26 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -221,8 +221,11 @@ class pd_Function : public function_base {
     void checkCallPoints();
     bool defineInstPoint();
     pdmodule *file() const { return file_;}
-    Address newCallPoint(Address adr, const instruction code, 
-			 const image *owner, bool &err);
+    Address newCallPoint(
+			 Address adr,
+			 const instruction code, 
+			 const image *owner,
+			 bool &err);
 
     // passing in a value of 0 for p will return the original address
     // otherwise, if the process is relocated it will return the new address
@@ -268,7 +271,8 @@ class pd_Function : public function_base {
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4)
+    defined(sparc_sun_solaris2_4) || \
+    defined(ia64_unknown_linux2_4)
 
         if(insp && p && relocatable_)
 	  for(u_int i=0; i < relocatedByProcess.size(); i++)
@@ -281,7 +285,8 @@ class pd_Function : public function_base {
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4)
+    defined(sparc_sun_solaris2_4) || \
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
     void addArbitraryPoint(instPoint*,process*,relocatedFuncInfo*);
 
@@ -383,7 +388,7 @@ class pd_Function : public function_base {
 
        vector<InactiveFrameRange> inactiveRanges;
 
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
     void instrAroundPt(instPoint *p, instruction allInstr[], int numBefore, 
                        int numAfter, unsigned type, int index);
@@ -404,7 +409,7 @@ class pd_Function : public function_base {
     bool is_o7_live(){ return o7_live; }
 #endif
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
     // modifyInstPoint: change the value of the instPoint if it is wrong: 
     // if this instPoint is from a function that was just relocated, then

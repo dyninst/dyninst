@@ -810,7 +810,8 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(mips_sgi_irix6_4) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
    char libStdC[64];
    BPatch_module *modStdC = NULL;
@@ -1200,7 +1201,7 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

@@ -68,6 +68,12 @@
 #elif defined(mips_sgi_irix6_4) 
 #include "dyninstAPI/src/irixDL.h"
 
+#elif defined(ia64_unknown_linux2_4)
+#include "dyninstAPI/src/linuxDL.h"
+
+#else
+#error "unknown architecture"
+
 #endif
 
 #endif /* _DYNAMIC_LINKING_H_ */

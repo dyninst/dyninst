@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.177 2002/02/05 18:33:19 schendel Exp $
+/* $Id: process.h,v 1.178 2002/02/11 22:02:24 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -752,7 +752,7 @@ class process {
   typedef timeMgr<process, int> cpuTimeMgr_t;
   cpuTimeMgr_t *cpuTimeMgr;
 
-#ifdef i386_unknown_linux2_0
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   bool isLibhrtimeAvail();           // for high resolution cpu timer on linux
   void free_hrtime_link();
 #ifdef HRTIME
@@ -874,7 +874,8 @@ class process {
  private:
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 #endif
@@ -1138,7 +1139,7 @@ class process {
   // if check_excluded is true it checks to see if the module is excluded
   // and if it is it returns 0.  If check_excluded is false it doesn't check
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
   // Same as vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
   // except that NULL is not used if address cannot be resolved to unique 
   // function. Used in function relocation for x86.
@@ -1358,7 +1359,7 @@ public:
 #endif
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
 #endif
@@ -1545,7 +1546,8 @@ private:
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
- || defined(mips_sgi_irix6_4)
+ || defined(mips_sgi_irix6_4) \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
    // some very useful items gathered from /proc as soon as /proc fd is opened)
    // (initialized in attach() [solaris.C],
    string argv0; // argv[0] of program, at the time it started up

@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.11 2001/07/11 21:21:09 gurari Exp $
+// $Id: test4.C,v 1.12 2002/02/11 22:02:38 tlmiller Exp $
 //
 
 #include <stdio.h>
@@ -586,7 +586,7 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

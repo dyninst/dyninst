@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.46 2001/07/11 21:21:09 gurari Exp $
+// $Id: test2.C,v 1.47 2002/02/11 22:02:34 tlmiller Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -219,7 +219,9 @@ void test6(BPatch_thread *thread, BPatch_image *img)
  && !defined(i386_unknown_linux2_0) \
  && !defined(mips_sgi_irix6_4) \
  && !defined(alpha_dec_osf4_0) \
- && !defined(rs6000_ibm_aix4_1)
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[6] = true;
@@ -265,7 +267,8 @@ void test7(BPatch_thread *thread, BPatch_image *img)
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_linux2_0) \
  && !defined(mips_sgi_irix6_4) \
- && !defined(rs6000_ibm_aix4_1)
+ && !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[7] = true;
@@ -402,7 +405,9 @@ void test10(BPatch_thread *thread)
  && !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_linux2_0) \
  && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0)
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+
     printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
     passedTest[10] = true;
@@ -674,7 +679,7 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif

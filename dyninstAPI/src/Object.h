@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.36 2001/08/01 15:39:54 chadd Exp $
+ * $Id: Object.h,v 1.37 2002/02/11 22:02:12 tlmiller Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -220,6 +220,9 @@ private:
 #include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/Object-elf.h"
+
+#elif defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(mips_sgi_irix6_4)

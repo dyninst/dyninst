@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.124 2001/12/06 20:57:52 schendel Exp $
+// $Id: perfStream.C,v 1.125 2002/02/11 22:02:47 tlmiller Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -832,7 +832,7 @@ void controllerMainLoop(bool check_buffer_first)
 
 #endif
 
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
         doDeferredInstrumentation();
 #endif
 
@@ -854,7 +854,7 @@ void controllerMainLoop(bool check_buffer_first)
            // may update pollTimeUSecs.
 #endif 
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 #ifndef DETACH_ON_THE_FLY
         pollTime = timeLength::Zero(); // hack for fairer trap servicing on Linux
 

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.29 2001/02/26 21:35:55 bernat Exp $ */
+/* $Id: test2.mutatee.c,v 1.30 2002/02/11 22:02:36 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -20,7 +20,8 @@
 
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1)
+    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
+    defined(ia64_unknown_linux2_4)
 #include <dlfcn.h>
 #endif
 
@@ -152,7 +153,8 @@ void func6_1()
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1)
+    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
+    defined(ia64_unknown_linux2_4)
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */

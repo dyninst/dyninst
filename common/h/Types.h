@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.15 2001/08/07 20:49:02 chadd Exp $
+ * $Id: Types.h,v 1.16 2002/02/11 22:01:59 tlmiller Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -106,6 +106,12 @@ typedef unsigned long uint64_t;
 #endif
 #else                            /* linux, solaris, irix -------- */
 #ifdef i386_unknown_linux2_0
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
+
+/* Not sure if this is right; why isn't the above using #elif? - TLM */
+#ifdef ia64_unknown_linux2_4
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.47 2002/02/05 17:01:37 chadd Exp $
+// $Id: BPatch_thread.C,v 1.48 2002/02/11 22:02:10 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -988,7 +988,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
 bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
 	return false;
@@ -1142,7 +1142,8 @@ bool BPatch_thread::loadLibrary(char *libname)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1)
+    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
     if (!statusIsStopped())
 	return false;
 

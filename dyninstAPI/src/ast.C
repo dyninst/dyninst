@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.88 2001/12/14 17:57:00 gaburici Exp $
+// $Id: ast.C,v 1.89 2002/02/11 22:02:14 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -71,6 +71,8 @@
 #include "dyninstAPI/src/inst-power.h"
 #elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/inst-x86.h"
+#elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
+#include "dyninstAPI/src/inst-ia64.h"
 #elif defined(alpha_dec_osf4_0)
 #include "dyninstAPI/src/inst-alpha.h"
 #elif defined(mips_sgi_irix6_4) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
@@ -84,7 +86,7 @@ extern bool doNotOverflow(int value);
 registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
                              const unsigned int liveCount, Register *live)
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   initTramps();
 #endif
 

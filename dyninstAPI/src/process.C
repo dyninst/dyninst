@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.294 2002/02/07 20:31:38 cortes Exp $
+// $Id: process.C,v 1.295 2002/02/11 22:02:23 tlmiller Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -953,7 +953,7 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
         cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
     }      
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-|| defined(i386_unknown_linux2_0)
+|| defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
     if ( point->address() == point->func()->getAddress( this ) ) {
       if ( pd_debug_catchup )
         cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
@@ -1911,7 +1911,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     createdViaFork = false;
     createdViaAttachToCreated = false;
 
-
 #ifndef BPATCH_LIBRARY
       if (iTraceLink == -1 ) createdViaAttachToCreated = true;
                          // indicates the unique case where paradynd is attached to
@@ -1954,7 +1953,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     proc_fd = -1;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
@@ -2156,7 +2155,7 @@ process::process(int iPid, image *iSymbols,
     proc_fd = -1;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
@@ -2410,7 +2409,7 @@ collectSaveWorldData(true)
     proc_fd = -1;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
@@ -4781,6 +4780,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Address baseAddr;
      static const string underscore = "_";
 #if !defined(i386_unknown_linux2_0) \
+ && !defined(ia64_unknown_linux2_4) \
  && !defined(alpha_dec_osf4_0) \
  && !defined(i386_unknown_nt4_0) \
  && !defined(mips_unknown_ce2_11) //ccw 20 july 2000
@@ -4937,7 +4937,7 @@ void process::handleExec() {
    all_modules = 0;
    signal_handler = 0;
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
    trampTableItems = 0;
    memset(trampTable, 0, sizeof(trampTable));
 #endif
@@ -5271,7 +5271,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    if (!todo.isSafeRPC) //only wait for syscall to finish if the rpc is SAFErpc
 #endif
      if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
-#ifndef i386_unknown_linux2_0
+#if !defined( i386_unknown_linux2_0 ) && ! defined( ia64_unknown_linux2_4 )
 #ifndef MT_THREAD
             assert(executingSystemCall());
 #endif
@@ -6149,7 +6149,7 @@ void process::installBootstrapInst() {
    function_base *func = getMainFunction();
    if (func) {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
        if (func_entry->usesTrap(this)) {
             // we can't instrument main's entry with a trap yet
             // since DYNINSTinit installs our instrumentation trapHandler

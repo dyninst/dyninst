@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.5 2001/10/30 21:02:51 gaburici Exp $ */
+/* $Id: test5.mutatee.C,v 1.6 2002/02/11 22:02:40 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -413,7 +413,8 @@ void stdlib_test1::func_cpp()
  || defined(mips_sgi_irix6_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(ia64_unknown_linux2_4)
      cout << "Passed test #10 (find standard C++ library)" << endl;
      passedTest[10] = TRUE;
 #else

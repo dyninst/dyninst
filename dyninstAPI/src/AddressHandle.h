@@ -57,7 +57,8 @@ protected:
 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 	const unsigned char** instructionPointers;
 #endif
 
@@ -99,7 +100,8 @@ public:
 	void getMultipleJumpTargets(BPatch_Set<Address>& result
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 				    ,AddressHandle& mayUpdate
 #endif
 				    );

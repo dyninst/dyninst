@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.215 2002/02/05 18:33:14 schendel Exp $
+// $Id: metricFocusNode.C,v 1.216 2002/02/11 22:02:46 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1759,7 +1759,7 @@ void adjustManuallyTrigger_debug(instReqNode &iRN)
     cerr << " FunctionExit " << endl;
   if( iRN.Point()->ipLoc == ipFuncCallPoint )
     cerr << " callSite " << endl;
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5)                                            || defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
   if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
     cerr << " FunctionEntry " << endl;
   else if ( iRN.Point()->insnAtPoint().isCall() ) 
@@ -1834,7 +1834,7 @@ void sampleMetFocusNode::adjustManuallyTrigger(vector<Address> stack_pcs,
       instPts += stack_func->funcCalls(proc_);
       instPts += stack_func->funcExits(proc_);
 
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
       if (stack_func->isInstalled(proc_)) {
         instPts += const_cast<instPoint*>( stack_func->funcEntry(0) );
         instPts += stack_func->funcCalls(0);
@@ -1844,7 +1844,8 @@ void sampleMetFocusNode::adjustManuallyTrigger(vector<Address> stack_pcs,
 
 #if !(defined(i386_unknown_nt4_0) \
   || defined(i386_unknown_solaris2_5) \
-  || defined(i386_unknown_linux2_0))
+  || defined(i386_unknown_linux2_0) \
+  || defined(ia64_unknown_linux2_4) ) /* Temporary duplication - TLM */
       // If there is a function on the stack with relevant instPoints which we were
       // not able to install return instances for, we don't want to manually trigger
       // anything else further on the stack, as it could cause inconsistencies with
@@ -1955,7 +1956,7 @@ void metricDefinitionNode::oldCatchUp(int tid) {
 #elif defined(rs6000_ibm_aix4_1)
 	  if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-      || defined(i386_unknown_linux2_0)
+      || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 	    if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
 #else
 #error Check for instPoint type == entry not implemented on this platform

@@ -784,7 +784,7 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
     return (newType);
 }
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* temporary duplication - TLM */
 //
 // parse range type of the form:	
 //

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.10 2001/08/07 20:49:01 chadd Exp $
+ * $Id: dyninstAPI_RT.h,v 1.11 2002/02/11 22:02:43 tlmiller Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -83,7 +83,7 @@ struct DYNINST_bootstrapStruct {
 };
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) /*ccw 26 july 2000 : 29 mar 2001*/
+ || defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) /*ccw 26 july 2000 : 29 mar 2001*/ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 /*
    The tramp table is used when we need to insert traps in instrumentation
    points. It is used by the trap handler to lookup the base tramp for

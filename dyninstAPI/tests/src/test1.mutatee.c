@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.75 2001/10/26 22:45:32 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.76 2002/02/11 22:02:30 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -25,7 +25,8 @@
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+    defined(i386_unknown_solaris2_5) || \
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -449,7 +450,8 @@ void call22_7(int x)
     defined(i386_unknown_linux2_0) || \
     defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0)
+    defined(alpha_dec_osf4_0) || \
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines has to be together otherwise test30 will fail */
@@ -1194,7 +1196,8 @@ void func21_1()
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(alpha_dec_osf4_0) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
@@ -1348,7 +1351,8 @@ void func23_1()
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0)
+    !defined(i386_unknown_nt4_0) && \
+    !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1423,7 +1427,8 @@ void func24_1()
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0)
+    !defined(i386_unknown_nt4_0) && \
+    !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1621,7 +1626,8 @@ void func26_1()
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0)
+    !defined(i386_unknown_nt4_0) && \
+    !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
@@ -1706,7 +1712,8 @@ void func27_1()
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_nt4_0)
+    !defined(i386_unknown_nt4_0) && \
+    !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");
@@ -1812,7 +1819,8 @@ int func30_1()
     defined(i386_unknown_linux2_0) || \
     defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0)
+    defined(alpha_dec_osf4_0) || \
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
     func30_2();
 
@@ -2113,7 +2121,7 @@ void func34_1()
     printf( "Passed test #34 (loop information)\n" );
 }
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 #ifndef Fortran
 #ifdef __cplusplus
 extern "C" int call35_1();
@@ -2125,7 +2133,7 @@ extern int call35_1();
 
 void func35_1()
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 #if !defined Fortran
 
     int value;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.36 2002/02/05 17:01:37 chadd Exp $
+ * $Id: Object-elf.C,v 1.37 2002/02/11 22:02:11 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -309,7 +309,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       plt_scnp = scnp;
       plt_addr_ = pd_shdrp->pd_addr;
       plt_size_ = pd_shdrp->pd_size;
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
       //
       // On x86, the GNU linker purposefully sets the PLT
 	  // table entry size to an incorrect value to be
@@ -574,7 +574,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 				    Elf_Scn*& dynsym_scnp, 
 				    Elf_Scn*& dynstr_scnp) 
 {
-#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
         Elf32_Rel *next_entry = 0;
         Elf32_Rel *entries = 0;
 #else
@@ -592,7 +592,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	const char* strs   = (const char *) strdatap->d_buf;
 	Address next_plt_entry_addr = plt_addr_;
 
-#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 	entries  = (Elf32_Rel *) reldatap->d_buf;
 	next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
@@ -1300,7 +1300,7 @@ bool Object::fix_global_symbol_modules_static_stab(
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
 /*
-#if !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
+#if !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && !defined(ia64_unknown_linux2_4)
 	    assert(stabsyms[i].name == 1);
 #endif
 */

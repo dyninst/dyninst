@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.60 2001/12/10 21:17:16 chadd Exp $
+// $Id: unix.C,v 1.61 2002/02/11 22:02:28 tlmiller Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -431,7 +431,7 @@ int handleSigChild(int pid, int status)
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
-#ifdef i386_unknown_linux2_0
+#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
 	int orig_sig = sig;
 #endif
 #ifdef DETACH_ON_THE_FLY
@@ -454,7 +454,7 @@ int handleSigChild(int pid, int status)
             sig = SIGTRAP;
           }
         }
-#elif defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
         // we put an illegal instead of a trap at the following places, but 
         // the illegal instructions are really for trapping purpose, so the
         // handling should be the same as for trap
@@ -705,7 +705,7 @@ int handleSigChild(int pid, int status)
 		   }
 		}
 		else {
-#if defined(i386_unknown_linux2_0) 
+#if defined(i386_unknown_linux2_0) || (ia64_unknown_linux2_4)
 			Address pc = getPC( pid );
 			if( orig_sig == SIGTRAP )
 			{

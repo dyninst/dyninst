@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.1 2001/10/26 22:46:47 hollings Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.2 2002/02/11 22:02:32 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -34,7 +34,8 @@ const char Builder_id[]=COMPILER; /* defined on compile line */
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+    defined(i386_unknown_solaris2_5) ||\
+    defined(ia64_unknown_linux2_4)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
