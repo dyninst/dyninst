@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.136 2005/03/07 21:18:48 bernat Exp $
+// $Id: unix.C,v 1.137 2005/03/16 20:55:59 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -284,11 +284,10 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv,
       errno = 0;
       OS::osTraceMe();
       if (errno != 0) {
-         sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
-         logLine(errorLine);
-         logLine(strerror(errno));
-         showErrorCallback(69, pdstring("Internal error: ") + 
-	                        pdstring((const char *) errorLine));
+         fprintf(stderr, 
+                 "Could perform set PTRACE_TRACEME on forked process\n");
+         fprintf(stderr, 
+                 " Perhaps your executable doesn't have the exec bit set?\n");
          P__exit(-1);   // double underscores are correct
       }
 
