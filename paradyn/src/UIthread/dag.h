@@ -49,7 +49,7 @@ class displayHeightOption: public displayOption {
   displayHeightOption (int rows, optionType type) 
     :displayOption (type) {
      if ((type == EXCEPT) || (type == SUBTRACT))
-       this = NULL;
+       return;
       numRows = rows;
     }
   int nodeVisible (rNode node, rGraph g);

@@ -503,7 +503,7 @@ dag::CreateNode (ApplNode nodeID, int root, char *nodeLabel, int style)
     strcpy (me->string, "");
   
   if (root) 
-    AppendRow (graph, 0, me);
+    AppendRow (graph, 0, me, NULL);
   else 
     me->row = -1;
   calcLabelSize (me);
@@ -561,7 +561,7 @@ dag::AddEdge(ApplNode src, ApplNode dst, int styleID)
 
   if (dstNode->row == -1)  {
     dstNode->row = srcNode->row + 1;
-    AppendRow (graph, dstNode->row, dstNode);
+    AppendRow (graph, dstNode->row, dstNode, srcNode);
   }
   LayoutDummy(graph, srcNode, dstNode, style);
   scheduleRedraw();

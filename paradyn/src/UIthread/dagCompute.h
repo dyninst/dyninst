@@ -109,7 +109,7 @@ struct _graph {
 rNode NewNode(rGraph g, int type, rNode ancestor, ApplNode aNode,
 		     char *style, char label[]); 
 void PrintNode(FILE *f, rGraph g, rNode me);
-void AppendRow(rGraph g, int r, rNode me);
+void AppendRow(rGraph g, int r, rNode me, rNode parent);
 void RelativeSweep(rGraph g);
 void AbsoluteSweep(rGraph g);
 void EdgePositions(rGraph g);

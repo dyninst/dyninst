@@ -70,7 +70,7 @@ inline static int PostSpacing(rNode me, rGraph g) {
 void InsertRow (rGraph g, int r, rNode prev, rNode me) {
 assert(r <= g->rSize);
     if (r == g->rSize) {  /* add a row */
-	g->row = GrowArray(g->row, &g->rSize, sizeof(*g->row));
+	g->row = (Row) GrowArray(g->row, &g->rSize, sizeof(*g->row));
 	me->forw = NULL;
 	me->back = NULL;
 	g->row[r].first = me;
@@ -119,7 +119,8 @@ int height = g->row[r].rHeight;
 	y = 0;
     else
 	y = g->row[r-1].y + 1 + g->row[r-1].rHeight + g->spaceY
-		+ Max(g->row_spacing, dx * g->row_ratio) + g->spaceY + 1;
+	  + Max(g->row_spacing, (int) (dx * g->row_ratio)) 
+	    + g->spaceY + 1;
     g->row[r].y = y;
 
     /* vertical edges */
@@ -412,7 +413,7 @@ int r;
 }
 
 static void InsertHalfEdge(rGraph g,
-	rNode src, rNode dst, int type, eStyle *edge_style) 
+	rNode src, rNode dst, ArrowType type, eStyle *edge_style) 
 {
 Edge *list, e;
 int *size, s;
@@ -431,11 +432,11 @@ int *size, s;
     if ((s < *size) && (e->eType == NO_LINE)) {
 	/* edge already exists */
 	assert(type != NO_LINE && type != NO_ARROW);
-	e->eType = ((e->eType & ~NO_ARROW) | type);
+	e->eType = ((ArrowType) (e->eType & ~NO_ARROW) | type);
 	e->style = edge_style;
 	return;
       }
-    *list = GrowArray(*list, size, sizeof(**list));
+    *list = (Edge) GrowArray(*list, size, sizeof(**list));
     /* insertion sort, e is insertion point */
     for (s = *size - 1, e = &(*list)[s]; s > 0; s--, e--) {
 	if ((e-1)->dest->placement <= dst->placement)
@@ -447,7 +448,8 @@ int *size, s;
     e->dest = dst;
 }
 
-void InsertEdge(rGraph g, rNode src, rNode dst, int type, eStyle *edge_style) 
+void InsertEdge(rGraph g, rNode src, rNode dst, ArrowType type, 
+		eStyle *edge_style) 
 {
     switch(type) {
 	case NO_LINE:
@@ -529,9 +531,9 @@ static float AncestorPlacement(rGraph g, rNode node, int row) {
  * NewDummyNode
  * Create, initialize, and return a dummy node structure 
  */
-static rNode NewDummyNode(int type, rNode ancestor) 
+static rNode NewDummyNode(NodeType type, rNode ancestor) 
 {
-    rNode  me = Mal(sizeof(*me));
+    rNode  me = (rNode) Mal(sizeof(*me));
 
     me->nType = type;
     me->aNode = 0;
@@ -545,16 +547,31 @@ static rNode NewDummyNode(int type, rNode ancestor)
     return(me);
 }
 
-void AppendRow(rGraph g, int r, rNode me) {
-    while (r > g->rSize) {
-	rNode dummy = NewDummyNode(0, DONT_CARE);
-	dummy->strType = INVISIBLE;
-	InsertRow(g, g->rSize, DONT_CARE, dummy);
+void AppendRow(rGraph g, int r, rNode me, rNode parent) {
+  while (r > g->rSize) {
+    rNode dummy = NewDummyNode(APPL_NODE, DONT_CARE);
+    dummy->strType = INVISIBLE;
+    InsertRow(g, g->rSize, DONT_CARE, dummy);
+  }
+  if (r == g->rSize)  /* add a row */
+    InsertRow(g, r, DONT_CARE, me);
+  else {  
+    if (r == 0)
+      // root node, just add to end of row 0
+      InsertRow (g, r, g->row[r].last, me);
+    else {
+      // insert in row in appropriate order according to parent placement
+      rNode curr = g->row[r].last;
+      while (curr) {
+	if (curr->upSize > 0) {
+	  if (curr->upList[0].dest->placement < parent->placement)
+	    break;
+	}
+	curr = curr->back;
+      }
+      InsertRow(g, r, curr, me);
     }
-    if (r == g->rSize)  /* add a row */
-	InsertRow(g, r, DONT_CARE, me);
-    else  /* postpend */
-	InsertRow(g, r, g->row[r].last, me);
+  }
 }
 
 
@@ -855,11 +872,11 @@ void PrintNode(FILE *f, rGraph g, rNode me) {
 	case INVALID:	fprintf(f, " (INVALID)\n");	break;
     }
     fprintf (f, "\tselected: %d\n", me->selected);
-/*
+
     fprintf(f, "\trow placement : x y w h = %d %.2f : %d %d %d %d\n",
 		me->row, me->placement,
 		me->x, g->row[me->row].y, me->sWidth, me->sHeight);
-*/
+
     fprintf(f, "\tancestor = ");  PrintString(f, me->ancestor);
     fprintf(f, ", forw = ");  PrintString(f, me->forw);
     fprintf(f, ", back = ");  PrintString(f, me->back);
