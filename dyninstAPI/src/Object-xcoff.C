@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.5 2001/03/01 22:43:22 bernat Exp $
+// $Id: Object-xcoff.C,v 1.6 2001/03/08 23:00:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -71,6 +71,7 @@
 #include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
+#include <sys/param.h> // PAGESIZE
 
 #include <xcoff.h>
 #define __AR_BIG__
@@ -306,6 +307,11 @@ void Object::parse_aout(int fd, int offset)
    unsigned ptrace_amount;
    char *in_self;
    char *in_traced;
+
+   // Creating extra inferior heap space
+   Address heapAddr;
+   Address heapLen;
+   Symbol heapSym;
    
    // Get to the right place in the file (not necessarily 0)
    lseek(fd, offset, SEEK_SET);
@@ -447,7 +453,7 @@ void Object::parse_aout(int fd, int offset)
 	 if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
 		    1024, (int *)in_self) == -1) {
 	   fprintf(stderr, "PTRACE_READ 1: from %x (in_traced) to %x (in_self)\n",
-		   in_traced, in_self);
+		   (int) in_traced, (int) in_self);
 	   perror("Reading data segment of inferior process");
 	   PARSE_AOUT_DIE("Reading data segment", 49);
 	 }
@@ -457,7 +463,7 @@ void Object::parse_aout(int fd, int offset)
      if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
 		ptrace_amount, (int *)in_self) == -1) {
        fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
-	       in_traced, in_self);
+	       (int) in_traced, (int) in_self);
        perror("Reading data segment of inferior process");
        PARSE_AOUT_DIE("Reading data segment", 49);
      }
@@ -616,36 +622,141 @@ void Object::parse_aout(int fd, int offset)
        // Is this stupid or what? 
        // Okay, fine. Get rid of this when symtab.C is fixed.
        if (
-	   (name == "MPI_Send") ||
-	   (name == "MPI_Bsend") ||
-	   (name == "MPI_Ssend") ||
-	   (name == "MPI_Isend") ||
-	   (name == "MPI_Issend") ||
-	   (name == "MPI_Recv") ||
-	   (name == "MPI_Irecv") ||
-	   (name == "MPI_Sendrecv") ||
-	   (name == "MPI_Sendrecv_replace") ||
-	   (name == "MPI_Probe") ||
-	   (name == "MPI_Wait") ||
-	   (name == "MPI_Waitany") ||
-	   (name == "MPI_Waitall") ||
-	   (name == "MPI_Waitsome") ||
-	   (name == "MPI_Barrier") ||
-	   (name == "MPI_Bcast") ||
+	   (name == "MPI_Abort") ||
+	   (name == "MPI_Address") ||
+	   (name == "MPI_Allgather") ||
+	   (name == "MPI_Allgatherv") || 
+	   (name == "MPI_Allreduce") ||
 	   (name == "MPI_Alltoall") ||
 	   (name == "MPI_Alltoallv") ||
+	   (name == "MPI_Attr_delete") ||
+	   (name == "MPI_Attr_get") ||
+	   (name == "MPI_Attr_put") ||
+	   (name == "MPI_Barrier") ||
+	   (name == "MPI_Bcast") ||
+	   (name == "MPI_Bsend") ||
+	   (name == "MPI_Bsend_init") ||
+	   (name == "MPI_Buffer_attach") ||
+	   (name == "MPI_Buffer_detach") ||
+	   (name == "MPI_Cancel") ||
+	   (name == "MPI_Cart_coords") ||
+	   (name == "MPI_Cart_create") ||
+	   (name == "MPI_Cart_get") ||
+	   (name == "MPI_Cart_map") ||
+	   (name == "MPI_Cart_rank") ||
+	   (name == "MPI_Cart_shift") ||
+	   (name == "MPI_Cart_sub") ||
+	   (name == "MPI_Cartdim_get") ||
+	   (name == "MPI_Comm_compare") ||
+	   (name == "MPI_Comm_create") ||
+	   (name == "MPI_Comm_dup") ||
+	   (name == "MPI_Comm_free") ||
+	   (name == "MPI_Comm_group") ||
+	   (name == "MPI_Comm_rank") ||
+	   (name == "MPI_Comm_remote_group") ||
+	   (name == "MPI_Comm_remote_size") ||
+	   (name == "MPI_Comm_size") ||
+	   (name == "MPI_Comm_split") ||
+	   (name == "MPI_Comm_test_inter") ||
+	   (name == "MPI_Dims_create") ||
+	   (name == "MPI_Errhandler_create") ||
+	   (name == "MPI_Errhandler_free") ||
+	   (name == "MPI_Errhandler_get") ||
+	   (name == "MPI_Errhandler_set") ||
+	   (name == "MPI_Error_class") ||
+	   (name == "MPI_Error_string") ||
+	   (name == "MPI_Finalize") ||
 	   (name == "MPI_Gather") ||
 	   (name == "MPI_Gatherv") ||
-	   (name == "MPI_Allgather") ||
-	   (name == "MPI_Allgatherv") ||
+	   (name == "MPI_Get_count") ||
+	   (name == "MPI_Get_elements") ||
+	   (name == "MPI_Get_processor_name") ||
+	   (name == "MPI_Get_version") ||
+	   (name == "MPI_Graph_create") ||
+	   (name == "MPI_Graph_get") ||
+	   (name == "MPI_Graph_map") ||
+	   (name == "MPI_Graph_neighbors") ||
+	   (name == "MPI_Graph_neighbors_count") ||
+	   (name == "MPI_Graphdims_get") ||
+	   (name == "MPI_Group_compare") ||
+	   (name == "MPI_Group_difference") ||
+	   (name == "MPI_Group_excl") ||
+	   (name == "MPI_Group_free") ||
+	   (name == "MPI_Group_incl") ||
+	   (name == "MPI_Group_intersection") ||
+	   (name == "MPI_Group_range_excl") ||
+	   (name == "MPI_Group_range_incl") ||
+	   (name == "MPI_Group_rank") ||
+	   (name == "MPI_Group_size") ||
+	   (name == "MPI_Group_translate_ranks") ||
+	   (name == "MPI_Group_union") ||
+	   (name == "MPI_Ibsend") ||
+	   (name == "MPI_Init") ||
+	   (name == "MPI_Initialized") ||
+	   (name == "MPI_Intercomm_create") ||
+	   (name == "MPI_Intercomm_merge") ||
+	   (name == "MPI_Iprobe") ||
+	   (name == "MPI_Irecv") ||
+	   (name == "MPI_Irsend") ||
+	   (name == "MPI_Isend") ||
+	   (name == "MPI_Issend") ||
+	   (name == "MPI_Keyval_create") ||
+	   (name == "MPI_Keyval_free") ||
+	   (name == "MPI_Op_create") ||
+	   (name == "MPI_Op_free") ||
+	   (name == "MPI_Pack") ||
+	   (name == "MPI_Pack_size") ||
+	   (name == "MPI_Pcontrol") ||
+	   (name == "MPI_Probe") ||
+	   (name == "MPI_Recv") ||
+	   (name == "MPI_Recv_init") ||
 	   (name == "MPI_Reduce") ||
-	   (name == "MPI_Allreduce") ||
 	   (name == "MPI_Reduce_scatter") ||
+	   (name == "MPI_Request_free") ||
+	   (name == "MPI_Rsend") ||
+	   (name == "MPI_Rsend_init") ||
+	   (name == "MPI_Scan") ||
 	   (name == "MPI_Scatter") ||
 	   (name == "MPI_Scatterv") ||
-	   (name == "MPI_Scan"))
+	   (name == "MPI_Send") ||
+	   (name == "MPI_Send_init") ||
+	   (name == "MPI_Sendrecv") ||
+	   (name == "MPI_Sendrecv_replace") ||
+	   (name == "MPI_Ssend") ||
+	   (name == "MPI_Ssend_init") ||
+	   (name == "MPI_Start") ||
+	   (name == "MPI_Startall") ||
+	   (name == "MPI_Test") ||
+	   (name == "MPI_Test_cancelled") ||
+	   (name == "MPI_Testall") ||
+	   (name == "MPI_Testany") ||
+	   (name == "MPI_Testsome") ||
+	   (name == "MPI_Topo_test") ||
+	   (name == "MPI_Type_commit") ||
+	   (name == "MPI_Type_contiguous") ||
+	   (name == "MPI_Type_extent") ||
+	   (name == "MPI_Type_free") ||
+	   (name == "MPI_Type_hindexed") ||
+	   (name == "MPI_Type_hvector") ||
+	   (name == "MPI_Type_indexed") ||
+	   (name == "MPI_Type_lb") ||
+	   (name == "MPI_Type_size") ||
+	   (name == "MPI_Type_struct") ||
+	   (name == "MPI_Type_ub") ||
+	   (name == "MPI_Type_vector") ||
+	   (name == "MPI_Unpack") ||
+	   (name == "MPI_Wait") ||
+	   (name == "MPI_Waitall") ||
+	   (name == "MPI_Waitany") ||
+	   (name == "MPI_Waitsome") ||
+	   (name == "MPI_Wtick") ||
+	   (name == "MPI_Wtime")
+	   )
 	 continue;
-
+       if ((name == "write") &&
+	   !(modName.suffixed_by("libc.a"))) {
+	 continue;
+       }
        Symbol sym(name, modName, type, linkage, value, false, size);
        
        // If we don't want the function size for some reason, comment out
@@ -697,9 +808,9 @@ void Object::parse_aout(int fd, int offset)
 	 modName = file_;
        else if (name == "glink.s")
 	 modName = string("Global_Linkage");
-       else
+       else {
 	 modName = name;
-       
+       }
        const Symbol modSym(modName, modName, 
 			   Symbol::PDST_MODULE, linkage,
 			   UINT_MAX, // dummy address for now!
@@ -709,61 +820,39 @@ void Object::parse_aout(int fd, int offset)
        continue;
      }
    }
+   // We grab the space at the end of the various objects to use as
+   // trampoline space. This allows us to instrument those objects 
+   // (reasonably) safely.
+   // For the application, we actually have from the end of the text
+   // to the beginning of the data segment as free space -- this 
+   // is readonly to the application, but writeable by debuggers.
+   // For shared objects, we can only safely assume that we have from
+   // the end of the object to the next page boundary.
+   // Since most of this code is the same, I've unified it.
 
-   // If we're in the binary (test_org is in 0x10000000 - 0x20000000),
-   // then create a "dummy" text heap for DyninstAPI/Paradyn to use.
-   // This way we don't need to link in a heap. Cool.
-   // This should really be fixed by a "not-shared-object" flag,
-   // though there is no reason we couldn't tack heaps onto shared
-   // objects...
-   if ((code_off_ > 0x10000000) && (code_off_ < 0x20000000)) {
-     // text location is code_off_
-     // text size is aout.tsize
-     // We want, oh, say, a 4M heap to start with. We could "allocate" more
-     // on the fly, actually.
-     Address heapAddr = code_off_ + code_len_;
-     // Word-align the heap
-     heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
-     string name = string("DYNINSTstaticHeap_4M_textHeap_");
-     name += heapAddr;
-     string modName = string("DYNINSTheap");
-     Symbol sym(name, modName, Symbol::PDST_OBJECT, 
-		Symbol::SL_UNKNOWN, heapAddr,
-		false, 4*1024*1024);
-     symbols_[name] = sym;
-     // And stick in a lowmem heap so that we can do inferiorMallocs without
-     // dying instantly
-     name = string("DYNINSTstaticHeap_32K_lowmemHeap_grabbed");
-     heapAddr = heapAddr+(5*1024*1024);
-     Symbol sym2(name, modName, Symbol::PDST_OBJECT,
-		 Symbol::SL_UNKNOWN, heapAddr, false,
-		 32*1024);
-     symbols_[name] = sym2;
-
-   }
+   // Start of the heap
+   heapAddr = code_off_ + code_len_;
+   // Word-align the heap
+   heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+   
+   // Get the appropriate length
+   if (code_off_ < 0x20000000) // main application binary
+     heapLen = (8*1024*1024);
    else {
-     // We're dealing with shared libraries. Now, from what I've seen,
-     // we can scavenge the space at the end of the library to use as
-     // tramp space. Is this reminding anyone of Kerninst yet? Hmmm?
-     string name = string("DYNINSTstaticHeap_");
-     //4M_textHeap_");
-     // Need to add size of space (in kilobytes)
-     Address heapAddr = code_off_ + code_len_;
-     // Word-align the heap
-     heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
-     Address length = 0x1000 - ((heapAddr) % 0x1000);
-
-     name += length;
-     name += "_textHeap_";
-     name += heapAddr; // unique identifier
-     string modName = string("DYNINSTheap");
-     Symbol sym(name, modName, Symbol::PDST_OBJECT, 
-		Symbol::SL_UNKNOWN, heapAddr,
-		false, 4*1024*1024);
-     symbols_[name] = sym;
+     heapLen = PAGESIZE - (heapAddr % PAGESIZE);
    }
+   name = string("DYNINSTstaticHeap_");
+   name += heapLen;
+   name += "_anyHeap_";
+   name += heapAddr; // a unique identifier. 
+   modName = string("DYNINSTheap");
+   heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
+		    Symbol::SL_UNKNOWN, heapAddr,
+		    false, (int) heapLen);
+   symbols_[name] = heapSym;
+
    toc_offset_ = toc_offset;
-      
+   
  cleanup:
 
    if (sectHdr) free(sectHdr);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.75 2000/10/17 17:42:18 schendel Exp $
+// $Id: inst.C,v 1.76 2001/03/08 23:00:49 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -343,11 +343,22 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	ret->cost = trampCost; 
 	ret->baseInstance->updateTrampCost(proc, trampCost);
     }
+#if defined(rs6000_ibm_aix4_1)
+    // We use the data heap on AIX because it is unlimited, unlike
+    // the textHeap. The text heap is allocated from spare parts of 
+    // pages, and as such can run out. Since minitramps can be arbitrarily
+    // far from the base tramp (link register branching), but only a 
+    // single jump from each other, we cluster them in the dataHeap.
+    // Note for future reference: shouldn't this near_ be the address
+    // of the previous/next minitramp instead of the base tramp?
+    inferiorHeapType htype = dataHeap;
+#else
     inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
-
+#endif
     Address near_ = ret->baseInstance->baseAddr;
     bool err = false;
     ret->trampBase = inferiorMalloc(proc, count, htype, near_, &err);
+
     if (err) return NULL;
     assert(ret->trampBase);
 

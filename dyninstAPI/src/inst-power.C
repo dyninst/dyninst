@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.99 2001/02/26 21:34:40 bernat Exp $
+ * $Id: inst-power.C,v 1.100 2001/03/08 23:00:49 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -102,7 +102,8 @@ inline void generateBranchInsn(instruction *insn, int offset)
     if (ABS(offset) > MAX_BRANCH) {
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
-	abort();
+	fprintf(stderr, "Attempted to make a branch of offset %x\n", offset);
+	return;
     }
 
     insn->raw = 0;
@@ -3233,21 +3234,24 @@ bool completeTheFork(process *parentProc, int childpid) {
       // the parent process, and then ptrace-write it to the same location
       // in the child process.
 
-      // 64-bit problem
-      int data; // big enough to hold 1 instr
-
-      errno = 0;
-      data = ptrace(PT_READ_I, parentProc->getPid(), 
-		    (int*)addr, 0, 0);
-      if (data == -1 && errno != 0)
-	 assert(false);
-
+      if (theLocation->ipLoc != ipFuncReturn) {
+	// 64-bit problem
+	int data; // big enough to hold 1 instr
+	
+	errno = 0;
+	data = ptrace(PT_READ_I, parentProc->getPid(), 
+		      (int*)addr, 0, 0);
+	if (data == -1 && errno != 0) {
+	  fprintf(stderr, "Error in fork handler, parent proc %d, reading instr at %x\n", parentProc->getPid(), addr);
+	  perror("fork handler");
+	  assert(false);
+	}
       errno = 0;
       if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
 	  errno != 0)
 	 assert(false);
+      }
    }
-
    return true;
 }
 
@@ -3450,8 +3454,6 @@ bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   vector<AstNode *> the_args(2);
   Register branch_target;
-  fprintf(stderr, "Monitor call site called at %x for insn %x\n",
-	  callSite->addr, i.raw);
 
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
@@ -3490,7 +3492,6 @@ bool process::MonitorCallSite(instPoint *callSite){
 		  orderFirstAtPoint,
 		  true,                              /* noCost flag                */
 		  false);                            /* trampRecursiveDesired flag */
-      fprintf(stderr, "Added DYNINSTRegister call to site %x\n", callSite->addr);
       return true;
     }
   else

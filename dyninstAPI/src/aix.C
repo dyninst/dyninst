@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.76 2001/03/01 22:43:21 bernat Exp $
+// $Id: aix.C,v 1.77 2001/03/08 23:00:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1064,16 +1064,6 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
 				   amount, const_cast<void*>(inSelf)))
     return false;
-  
-  /* Sleep for a short amount of time, allowing writes to propagate
-     The proper way to do this would be to flush the data cache and
-     ensure the icache is correct, but we don't do that yet.
-  */
-  // Do this only on Paradyn -- dyninst doesn't appear to have the same
-  // problem.
-#ifndef BPATCH_LIBRARY
-  usleep(36000);
-#endif
 
   return true;
 }
@@ -1182,8 +1172,6 @@ bool process::dumpImage() {
     // Get the kernel thread ID for the currently running
     // process
     struct thrdsinfo thrd_buf[10]; // max 10 threads
-    fprintf(stderr, "%d %p %d\n", 
-	    pid, thrd_buf, sizeof(struct thrdsinfo));
     int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
 			     0, 1);
     if (num_thrds == -1) {
@@ -1546,7 +1534,8 @@ bool handleAIXsigTraps(int pid, int status) {
 	// parent process.  Stay stopped until the child process has completed
 	// calling "completeTheFork()".
 	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " << pid << endl;
-
+	fprintf(stderr, "Fork on parent process, pid %d\n",
+		curr->getPid());
 	curr->status_ = stopped;
 
 	seenForkTrapForParent = true;
@@ -1582,7 +1571,7 @@ bool handleAIXsigTraps(int pid, int status) {
 	   process_whenBothForkTrapsReceived();
 	}
 
-	fprintf(stderr, "fork completed\n");
+	fprintf(stderr, "fork completed, child pid %d\n", pid);
         return true;
       } // child process
     } //  W_SFWTED (stopped-on-fork)
@@ -1745,14 +1734,22 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) {
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address branch_range = 0x01fffffc;
 static const Address lowest_addr = 0x10000000;
-// Looks like we can't touch the shared memory segment. I'm guessing also
-// that 0xe... (kernel space) would be a bad idea, as would 0xf... (shared data)
 static const Address highest_addr = 0xe0000000;
+static const Address data_low_addr = 0x20000000;
+static const Address data_hi_addr = 0xcfffff00;
+// Segment 0 is kernel space, and off-limits
+// Segment 1 is text space, and OK
+// Segment 2-12 (c) is data space
+// Segment 13 (d) is shared library text, and scavenged
+// Segment 14 (e) is kernel space, and off-limits
+// Segment 15 (f) is shared library data, and we don't care about it.
 // However, we can scavenge some space in with the shared libraries.
 
 void inferiorMallocConstraints(Address near, Address &lo, 
 			       Address &hi, inferiorHeapType type)
 {
+  lo = lowest_addr;
+  hi = highest_addr;
   if (near)
     {
       if (near < (lowest_addr + branch_range))
@@ -1764,21 +1761,27 @@ void inferiorMallocConstraints(Address near, Address &lo,
       else
 	hi = near + branch_range;
     }
-  else
+  switch (type)
     {
-      switch (type)
-	{
-	case dataHeap:
-	  // mmap, preexisting dataheap constraints
-	  lo = 0x20000000;
-	  hi = 0xcfffff00;
-	  break;
-	default:
-	  // Wide constraints
-	  lo = lowest_addr;
-	  hi = highest_addr;
-	  break;
-	}
+    case dataHeap:
+      // mmap, preexisting dataheap constraints
+      // so shift down lo and hi accordingly
+      if (lo < data_low_addr) {
+	lo = data_low_addr;
+	// Keep within branch range so that we know we can
+	// reach anywhere inside.
+	if (hi < (lo + branch_range))
+	  hi = lo + branch_range;
+      }
+      if (hi > data_hi_addr) {
+	hi = data_hi_addr;
+	if (lo > (hi - branch_range))
+	  lo = hi - branch_range;
+      }
+      break;
+    default:
+      // no change
+      break;
     }
 }
 
