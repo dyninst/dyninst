@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.13 1994/07/21 01:34:48 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.14 1994/07/22 19:16:01 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.13  1994/07/21 01:34:48  hollings
+ * Revision 1.14  1994/07/22 19:16:01  hollings
+ * update cost data, move pausetime in here.
+ *
+ * Revision 1.13  1994/07/21  01:34:48  hollings
  * removed extra polls of the nodes for printfs.
  *
  * Revision 1.12  1994/07/20  23:23:17  hollings
@@ -500,17 +503,17 @@ void initPrimitiveCost()
     /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
 #ifdef notdef
-    -- paper numbers
-    primitiveCosts.add(32, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(55, (void *) "DYNINSTstopWallTimer");
+    // cm-5 no assembly numbers.
+    primitiveCosts.add(48, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(85, (void *) "DYNINSTstopProcessTimer");
+    primitiveCosts.add(43, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(70, (void *) "DYNINSTstopWallTimer");
+#else
+    // -- paper numbers
     primitiveCosts.add(37, (void *) "DYNINSTstartProcessTimer");
     primitiveCosts.add(71, (void *) "DYNINSTstopProcessTimer");
-#else
-    // cm-5 no assembly numbers.
-    primitiveCosts.add(77, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(114, (void *) "DYNINSTstopProcessTimer");
-    primitiveCosts.add(72, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(99, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(32, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(55, (void *) "DYNINSTstopWallTimer");
 #endif
 }
 
@@ -587,4 +590,19 @@ char *getProcessStatus(process *proc)
 	}
 	return(ret);
     }
+}
+
+float computePauseTimeMetric()
+{
+    float max;
+    process *p;
+    List<process*> curr;
+
+    for (curr = processList, max = 0.0; p = *curr; curr++) {
+	if (p->pauseTime > max) {
+	    max = p->pauseTime;
+	}
+    }
+
+    return(max);
 }
