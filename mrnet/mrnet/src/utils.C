@@ -394,7 +394,7 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
     if( hostname == "" ) {
         // find this machine's hostname
         if( first_time ) {
-            local_ipaddr = XPlat::NetUtils::GetNetworkAddress();
+            local_ipaddr = XPlat::NetUtils::GetNetworkAddress().GetString();
             if( local_ipaddr.length() == 0 ) {
                 mrn_printf( 1, MCFL, stderr, "get_local_ip_address() failed\n" );
                 return -1;
@@ -415,7 +415,13 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
     struct in_addr in;
     memcpy( &in.s_addr, *( hp->h_addr_list ), sizeof( in.s_addr ) );
 
-    ipaddr = inet_ntoa( in );
+    // Convert address to a string.
+    // NOte that we use the XPlat utility function to convert the address
+    // because inet_ntoa is not (necessarily) thread-safe and other
+    // alternatives (e.g., inet_ntop) are not yet available on all platforms
+    // of interest.
+    XPlat::NetUtils::NetworkAddress tmpAddr( ntohl( in.s_addr ) );
+    ipaddr = tmpAddr.GetString();
     return 0;
 }
 

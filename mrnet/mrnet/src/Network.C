@@ -82,9 +82,35 @@ Network::Network( const char *_configBuf, bool unused,
     }
 }
 
+Network::Network( const char* _configBuffer, 
+                    bool /* unused */,
+                    const char* _application )
+{
+    network = new NetworkImpl( this, _configBuffer, true, _application );
+}
+
+Network::Network( const char* _configBuffer, bool /* unused */,
+                    Network::LeafInfo *** leafInfo, unsigned int *nLeaves )
+{
+    // build the network
+    network = new NetworkImpl( this, _configBuffer, true, NULL );
+    if( !network->fail( ) ) {
+        if( ( leafInfo != NULL ) && ( nLeaves != NULL ) ) {
+            network->get_LeafInfo( leafInfo, nLeaves );
+        }
+        else {
+            // TODO is this the right error?
+            network->error( ESYSTEM, "invalid argument" );
+            network->MRN_errno = MRN_ENETWORK_FAILURE;
+        }
+    }
+}
+
+
 Network::~Network(  )
 {
     delete network;
+    network = NULL;
 }
 
 int Network::connect_Backends( void )
