@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.54  1997/06/16 18:45:31  tamches
+ * delete rpcBuffers[j];   to remove a memory leak
+ *
  * Revision 1.53  1997/05/30 16:29:26  hseom
  * fixed some memory-related bug
  *
@@ -371,6 +374,8 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
     unsigned j;
     for (j = 0; j < (unsigned)index; j++) {
 	delete [] rpcBuffers[j]->buf;
+	delete rpcBuffers[j];
+	rpcBuffers[j] = NULL; // probably unnecessary
     }    
     
     for (j = 0; j < rpcBuffers.size() - index; j++)
