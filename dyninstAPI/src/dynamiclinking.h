@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.12 2004/03/23 01:12:03 eli Exp $
+// $Id: dynamiclinking.h,v 1.13 2005/03/16 22:59:40 bernat Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -123,7 +123,7 @@ public:
     // added or removed. On error error_occured is true.
     // This function normally only runs if we're at the dlopen/dlclose break address
     bool handleIfDueToSharedObjectMapping(pdvector<shared_object *> **changed_objects,
-			u_int &change_type,
+					  u_int &change_type,
 			bool &error_occured);
     // Force running handleIfDue... above
     void set_force_library_check(){ force_library_load = true; }
@@ -139,7 +139,7 @@ public:
     bool uninstallTracing();
     
 	Address getlowestSObaseaddr(){ return lowestSObaseaddr; } 
-
+	
   private:
 
     // Entirely cross-platform
@@ -179,13 +179,10 @@ public:
                                                     bool &error_occured);
     
     // getNewSharedObjects: returns a vector of shared_object one element for 
-    // newly mapped shared object.  old_addrs contains the addresses of the
-    // currently mapped shared objects. Sets error_occured to true, and 
-    // returns 0 on error.
-    pdvector<shared_object *> *getNewSharedObjects(pdvector<Address> *old_addrs,
-                                                   bool &error_occured);
-
-
+    // newly mapped shared object. 
+    // Returns NULL if there is an error. 
+    // And the returned vector needs to be cleaned up.
+    pdvector<shared_object *> *getNewSharedObjects();
 
     //////////////// PLATFORM SPECIFIC
     // Could this be wrapped into a sub-object?
@@ -196,7 +193,8 @@ public:
     Address r_brk_target_addr;	// Unused on x86 (could be changed), this is
     // where the IA-64 inserts a return instruction
 
-    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
+    unsigned previous_r_state;
+    unsigned current_r_state;
 
     // Gets necessary info from the linker
     bool get_ld_info(Address &addr, char **path);

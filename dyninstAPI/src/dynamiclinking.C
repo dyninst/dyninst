@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.5 2004/03/23 01:12:02 eli Exp $
+// $Id: dynamiclinking.C,v 1.6 2005/03/16 22:59:39 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -65,7 +65,7 @@ dynamic_linking::dynamic_linking(process *p,
 #if defined(os_linux)
     r_debug_addr = d->r_debug_addr;
     r_brk_target_addr = d->r_brk_target_addr;
-    r_state = d->r_state;
+    previous_r_state = d->previous_r_state;
 #endif
 #if defined(os_solaris)
     r_debug_addr = d->r_debug_addr;
