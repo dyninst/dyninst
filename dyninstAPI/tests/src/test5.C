@@ -328,12 +328,13 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
        if (func->getName(fn, 256) == NULL) {
             fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
             fprintf(stderr, "    Can't get name of called function in overload_func_test::func_cpp\n");
-            exit(1);
+            return;
        }
        if (strcmp(fn, "overload_func_test::call_cpp")) {
            fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-           fprintf(stderr, "    The called function has a wrong name\n");
-           exit(1);
+           fprintf(stderr, "    The called function was named \"%s\""
+                           " not \"overload_func_test::call_cpp\"\n", fn);
+           return;
        }
        BPatch_Vector<BPatch_point *> *point2_2 = func->findPoint(BPatch_entry);
        BPatch_Vector<BPatch_localVar *> *param = func->getParams();
@@ -1046,19 +1047,19 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
        !point12_3 || (point12_3->size() < 1)  ) {
 
        if ( !point12_0 || (point12_0->size() < 1) ) {
-         fprintf(stderr, "**Failed** test #12 (C++ Member functions)\n");
+         fprintf(stderr, "**Failed** test #12 (C++ member functions)\n");
          fprintf(stderr, "     Unable to find point in an virtual function \"cpp_test::func2_cpp.\"\n");
        }
        if ( !point12_1 || (point12_1->size() < 1) ) {
-         fprintf(stderr, "**Warning** test #12 (C++ Member functions)\n");
+         fprintf(stderr, "**Warning** test #12 (C++ member functions)\n");
          fprintf(stderr, "    Unable to find point in a pure virtual function \"cpp_test::func_cpp.\"\n");
        }
        if ( !point12_2 || (point12_2->size() < 1) ) {
-         fprintf(stderr, "**Failed** test #12 (C++ Member functions)\n");
+         fprintf(stderr, "**Failed** test #12 (C++ member functions)\n");
          fprintf(stderr, "     Unable to find point in a const function \"func_test::func_cpp.\"\n");
        }
        if ( !point12_3 || (point12_3->size() < 1) ) {
-         fprintf(stderr, "**Failed** test #12 (C++ Member functions)\n");
+         fprintf(stderr, "**Failed** test #12 (C++ member functions)\n");
          fprintf(stderr, "     Unable to find point in an inline function \"func_test::call_cpp.\"\n");
        }
   }
