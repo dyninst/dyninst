@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.36 2003/10/07 19:06:15 schendel Exp $
+// $Id: linux-x86.C,v 1.37 2003/10/16 23:14:29 jodom Exp $
 
 #include <fstream>
 
@@ -448,9 +448,10 @@ Frame Frame::getCallerFrame(process *p) const
 	     || (!isLeaf_ && p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
 					      (caddr_t) &addrs, true))) {
     Frame ret(*this);
-    if (isLeaf_)
+    if (isLeaf_) {
       ret.fp_ = fp_;
-    else
+      ret.sp_ = sp_ + 4;
+    } else
       ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn;
     ret.uppermost_ = false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.452 2003/10/07 19:06:08 schendel Exp $
+// $Id: process.C,v 1.453 2003/10/16 23:14:29 jodom Exp $
 
 #include <ctype.h>
 
@@ -305,6 +305,25 @@ bool process::walkStackFromFrame(Frame startFrame,
 #endif
     return false;
   }
+
+
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+  next_pc = currentFrame.getPC();
+
+  // Do a special check for the vsyscall page
+#if defined(i386_unknown_linux2_0)
+  if (next_pc >= 0xffffe000 && next_pc < 0xfffff000) {
+#else
+  if (next_pc >= 0xffffffffffffe000 && next_pc < 0xfffffffffffff000) {
+#endif
+    currentFrame.setLeaf(true);
+    fpOld = currentFrame.getSP();
+    // Silently toss this frame - it's in the vsyscall page, and we don't
+    // report that to the user
+
+    currentFrame = currentFrame.getCallerFrame(this); 
+  }
+#endif
 
   // Do special check first time for leaf frames
 #if defined(i386_unknown_linux2_0)
