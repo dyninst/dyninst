@@ -44,10 +44,10 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.45 2000/10/17 17:27:54 schendel Exp $ */
+/* $Id: uimpd.tcl.C,v 1.46 2001/06/20 20:35:56 schendel Exp $ */
  
 #include <stdlib.h>
-#include "pdutilOld/h/odometer.h"
+#include "pdutil/h/odometer.h"
 
 extern "C" {
   int atoi(const char*);
@@ -56,7 +56,7 @@ extern "C" {
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
 #include "abstractions.h"
-#include "pdutilOld/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 void printMFPlist (vector<metric_focus_pair> *list) 
 {
@@ -287,23 +287,19 @@ int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
 			int argc, char **argv) {
    assert(argc == 2);
    if (0==strcmp(argv[1], "plain")) {
-      dataMgr->StartPhase(-1, NULL,
-			      false, false);
+      dataMgr->StartPhase(NULL, NULL, false, false);
       return TCL_OK;
    }
    else if (0==strcmp(argv[1], "pc")) {
-      dataMgr->StartPhase(-1, NULL,
-			      true, false);
+      dataMgr->StartPhase(NULL, NULL, true, false);
       return TCL_OK;
    }
    else if (0==strcmp(argv[1], "visis")) {
-      dataMgr->StartPhase(-1, NULL,
-			      false, true);
+      dataMgr->StartPhase(NULL, NULL, false, true);
       return TCL_OK;
    }
    else if (0==strcmp(argv[1], "both")) {
-      dataMgr->StartPhase(-1, NULL,
-			      true, true);
+      dataMgr->StartPhase(NULL, NULL, true, true);
       return TCL_OK;
    }
    else {

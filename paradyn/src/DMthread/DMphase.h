@@ -43,39 +43,43 @@
 #define DMphase_H
 
 #include "common/h/String.h"
-#include "pdutilOld/h/sys.h"
 #include "common/h/Vector.h"
+#include "common/h/Time.h"
 #include "visi.xdr.h"
 #include "DMinclude.h"
 
 class phaseInfo {
 private:
-	timeStamp    startTime;
-	timeStamp    endTime;
-	float	     bucketWidth;
+        static const relTimeStamp histCurTime;  // a sentinal value
+	relTimeStamp    startTime;
+	relTimeStamp    endTime;
+	timeLength   bucketWidth;
 	phaseHandle  handle;
 	string       name;
 	static vector<phaseInfo *> dm_phases;
-	phaseInfo(timeStamp s,timeStamp e,timeStamp b,const string &n);
+	phaseInfo(relTimeStamp s, relTimeStamp e,timeLength b,const string &n);
 public:
 	~phaseInfo();
-	timeStamp GetStartTime(){ return(startTime); }
+	relTimeStamp GetStartTime(){ return(startTime); }
 	phaseHandle GetPhaseHandle(){ return(handle);}
-	timeStamp GetEndTime(){ return(endTime); }
-	float GetBucketWidth(){ return(bucketWidth);}
-	void SetEndTime(timeStamp time){ endTime = time;}
-	void ChangeBucketWidth(float newWidth){ bucketWidth = newWidth; }
+	relTimeStamp GetEndTime(){ return(endTime); }
+	timeLength GetBucketWidth(){ return(bucketWidth);}
+	void SetEndTime(relTimeStamp time){ endTime = time;}
+	void ChangeBucketWidth(timeLength newWidth){ bucketWidth = newWidth; }
         const char *PhaseName(){return(name.string_of());}
 	static vector<T_visi::phase_info> *GetAllPhaseInfo();
 	static int NumPhases(){return(dm_phases.size());}
-	static void startPhase(timeStamp start_Time, const string &name,
-			       bool with_new_pc,bool with_visis);
-	static void setLastEndTime(timeStamp);
+	// If no startTime is passed, than use as a start time for the phase
+	// the current time of the histogram.
+	static void startPhase(const string &name, bool with_new_pc, 
+			       bool with_visis, 
+			       const relTimeStamp startTime = histCurTime);
+	static void setLastEndTime(relTimeStamp);
 	// returns start time of current phase 
-	static timeStamp GetLastPhaseStart();  
+	static relTimeStamp GetLastPhaseStart();  
 	static phaseHandle CurrentPhaseHandle();
-	static timeStamp GetLastBucketWidth();
-	static void setCurrentBucketWidth(timeStamp new_width);
+	static timeLength GetLastBucketWidth();
+	static void setCurrentBucketWidth(timeLength new_width);
 };
 
 #endif

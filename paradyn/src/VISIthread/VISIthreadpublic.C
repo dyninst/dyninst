@@ -46,9 +46,10 @@
 /////////////////////////////////////////////////////////////////////
 #include <signal.h>
 #include <math.h>
+#include "../pdMain/paradyn.h"
 #include "thread/h/thread.h"
 #include "common/h/list.h"
-#include "pdutilOld/h/rpcUtil.h"
+#include "pdutil/h/rpcUtil.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "dataManager.thread.CLNT.h"
@@ -56,7 +57,6 @@
 #include "VISIthread.thread.SRVR.h"
 #include "../VMthread/VMtypes.h"
 #include "VISIthreadTypes.h"
-#include "../pdMain/paradyn.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "../DMthread/DMinclude.h"
 #define  ERROR_MSG(s1, s2) \
@@ -223,5 +223,5 @@ void visualizationUser::StartPhase(double, string,
   }
 
   // call datamanager start phase routine
-  ptr->dmp->StartPhase((timeStamp)-1.0, NULL, withPerfConsult, withVisis);
+  ptr->dmp->StartPhase(NULL, NULL, withPerfConsult, withVisis);
 }

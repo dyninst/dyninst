@@ -42,13 +42,14 @@
 #include "DMphase.h"
 #include "DMperfstream.h"
 #include "DMmetric.h"
-#include "pdutilOld/h/hist.h"
+#include "pdutil/h/hist.h"
 
-phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
+const relTimeStamp phaseInfo::histCurTime = relTimeStamp(-timeLength::sec());
 
-    startTime = s;
-    endTime = e;
-    bucketWidth = b;
+phaseInfo::phaseInfo(relTimeStamp s, relTimeStamp e, timeLength b, 
+		     const string &n) : 
+  startTime(s), endTime(e), bucketWidth(b) 
+{
     handle = dm_phases.size();
     if(!n.string_of())
       name = string("phase_") + string(handle);
@@ -63,26 +64,31 @@ phaseInfo::~phaseInfo(){
 }
 
 
-void phaseInfo::setLastEndTime(timeStamp stop_time){
+void phaseInfo::setLastEndTime(relTimeStamp stop_time){
    unsigned size = dm_phases.size();
    if(size > 0){
        (dm_phases[size-1])->SetEndTime(stop_time);
    }
 }
 
-void phaseInfo::startPhase(timeStamp, 
-			   const string &name,
-			   bool with_new_pc, 
-			   bool with_visis){
-
+void phaseInfo::startPhase(const string &name, bool with_new_pc, 
+			   bool with_visis, const relTimeStamp startTime){
     phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 
-    timeStamp bin_width = (Histogram::getMinBucketWidth());
-    timeStamp start_time = Histogram::currentTime();
+    timeLength bin_width = (Histogram::getMinBucketWidth());
+    relTimeStamp start_time = relTimeStamp::Zero();
+    // histCurTime is a sentinal value passed as the default arg for startTime
+    if(startTime == histCurTime) {  
+      start_time = Histogram::currentTime();
+    } else {
+      // As of May 2001, this method was not used in Paradyn and untested
+      start_time = startTime;
+    }
 
     // set the end time for the curr. phase
     phaseInfo::setLastEndTime(start_time);
-    phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
+    phaseInfo *p = new phaseInfo(start_time, relTimeStamp(-1, timeUnit::sec()),
+				 bin_width, name);
     assert(p);
     
     // update MI's current phase info 
@@ -160,9 +166,11 @@ vector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
 
     for(unsigned i=0; i < dm_phases.size(); i++){
 	phaseInfo *next_phase = dm_phases[i];
-	newValue.start = next_phase->GetStartTime();
-	newValue.end = next_phase->GetEndTime();
-	newValue.bucketWidth = next_phase->GetBucketWidth();
+	newValue.start = next_phase->GetStartTime().getD(timeUnit::sec());
+	newValue.end = next_phase->GetEndTime().getD(timeUnit::sec());
+	newValue.bucketWidth = 
+	  next_phase->GetBucketWidth().getD(timeUnit::sec()); 
+						 ;
 	newValue.handle = next_phase->GetPhaseHandle();
 	newValue.name = next_phase->PhaseName();
 	*phase_list += newValue;
@@ -172,10 +180,10 @@ vector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
 }
 
 // returns the start time of the last defined phase
-timeStamp phaseInfo::GetLastPhaseStart(){
+relTimeStamp phaseInfo::GetLastPhaseStart(){
 
   unsigned size = dm_phases.size(); 
-  if (size == 0) return -1;
+  if (size == 0) return relTimeStamp(-1, timeUnit::sec());
   return(dm_phases[size-1]->GetStartTime());
 
 }
@@ -188,15 +196,15 @@ phaseHandle phaseInfo::CurrentPhaseHandle(){
   return(dm_phases[size-1]->GetPhaseHandle());
 }
 
-timeStamp phaseInfo::GetLastBucketWidth(){
+timeLength phaseInfo::GetLastBucketWidth(){
 
   unsigned size = dm_phases.size(); 
-  if (size == 0) return -1;
+  if (size == 0) return timeLength(-1, timeUnit::sec());
   return(dm_phases[size-1]->GetBucketWidth());
 
 }
 
-void phaseInfo::setCurrentBucketWidth(timeStamp new_width){
+void phaseInfo::setCurrentBucketWidth(timeLength new_width){
 
   unsigned size = dm_phases.size(); 
   if (size == 0) return;
