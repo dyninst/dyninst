@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.57 2003/06/05 18:06:02 pcroth Exp $
+// $Id: main.C,v 1.58 2003/06/06 17:47:35 pcroth Exp $
 
 /*
  * Note: AIX 5.1
@@ -185,7 +185,14 @@ static void do_opts(int argc, char *argv[]) {
   }
 
   char *buffer = strdup(argv[argc-1]);
+#if defined(i386_unknown_nt4_0)
+  // support either forward or backslashes (or mixed) in the input pathname
+  char* btemp = strrchr(buffer, '\\');
+  char* ftemp = strrchr(buffer, '/');
+  char* temp = ((btemp > ftemp) ? btemp : ftemp);
+#else
   char *temp = strrchr(buffer, '/');
+#endif // defined(i386_unknown_nt4_0)
   if (temp)
     temp++;
   else
