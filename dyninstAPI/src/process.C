@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.244 2001/02/28 23:59:24 bernat Exp $
+// $Id: process.C,v 1.245 2001/03/07 23:10:24 shergali Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1296,6 +1296,13 @@ void alignUp(int &val, int align)
 // dynamically allocate a new inferior heap segment using inferiorRPC
 void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 {
+/* 03/07/2001 - Jeffrey Shergalis
+ * TODO: This code was placed to prevent the infinite recursion on the
+ * call to inferiorMallocDynamic, unfortunately it makes paradyn break
+ * on Irix, temporarily fixed by the #if !defined(mips..., but should be properly fixed
+ * in the future, just no time now
+ */
+#if !defined(mips_sgi_irix6_4)
   // Fun (not) case: there's no space for the RPC to execute.
   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
   // Avoid this with a static bool.
@@ -1303,6 +1310,8 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 
   if (inInferiorMallocDynamic) return;
   inInferiorMallocDynamic = true;
+#endif
+
   // word-align buffer size 
   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
   alignUp(size, 4);
@@ -1353,7 +1362,14 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
     p->heap.heapFree += h2;
     break;
   }
+
+/* 03/07/2001 - Jeffrey Shergalis
+ * Part of the above #if !defined(mips... patch for the recursion problem
+ * TODO: Need a better solution
+ */
+#if !defined(mips_sgi_irix6_4)
   inInferiorMallocDynamic = false;
+#endif
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
 
