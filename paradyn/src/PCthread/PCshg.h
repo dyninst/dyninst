@@ -1,7 +1,17 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.6  1994/07/14 23:47:01  hollings
+ * Revision 1.7  1994/07/25 04:47:11  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.6  1994/07/14  23:47:01  hollings
  * added flag to record if a SHG node has ever been true.
  *
  * Revision 1.5  1994/06/27  18:55:12  hollings
@@ -85,9 +95,11 @@ class searchHistoryNode {
 	void changeStatus(Boolean newstat);
 	void changeActive(Boolean newact);
 	void changeTested(Boolean newtested);
+	void changeSuppressed(Boolean nv) { suppressed = nv; }
 	Boolean getActive() { return(active); }
 	Boolean getStatus() { return(status); }
 	Boolean getBeenTrue() { return(beenTrue); }
+	Boolean getSuppressed() { return(suppressed); }
     private:
 	void changeColor();		// update node color.
 	Boolean beenActive;		// ever been tried
@@ -97,6 +109,7 @@ class searchHistoryNode {
 	Boolean status;			// true not not true.
 	Boolean beenTrue;		// has it ever been true??
 	int style;			// current color
+	Boolean suppressed;		// don't search here
 };
 
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,

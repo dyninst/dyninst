@@ -1,7 +1,17 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.7  1994/07/02 01:43:38  markc
+ * Revision 1.8  1994/07/25 04:47:08  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.7  1994/07/02  01:43:38  markc
  * Remove aggregation operator from enableDataCollection call.
  *
  * Revision 1.6  1994/06/14  15:30:26  markc
@@ -112,6 +122,7 @@ class datum {
 	metricInstance	*mi;			// when enabled.
 
 	Histogram	*hist;
+	char		*metName;
 };
 
 class performanceConsultant;
@@ -238,6 +249,7 @@ extern PCmetric vmFree;
 extern PCmetric vmDirty;
 extern PCmetric activeVM;
 extern PCmetric compensationFactor;
+extern PCmetric observedCost;
 
 // 
 extern PCmetricList allMetrics;

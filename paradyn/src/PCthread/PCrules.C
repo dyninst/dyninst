@@ -18,7 +18,17 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.15  1994/06/29 02:56:23  hollings
+ * Revision 1.16  1994/07/25 04:47:09  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.15  1994/06/29  02:56:23  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.14  1994/06/27  18:55:10  hollings
@@ -101,7 +111,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.15 1994/06/29 02:56:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.16 1994/07/25 04:47:09 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -159,7 +169,7 @@ const float maxLockRate = 600000.0;	// actual # from ips2 685,689
 // paradyn and sparcs are faster
 const float maxIPSprocedureCallRate = 2000000;
 
-const float highInstOverheadThreshold	= 0.15;
+const float highInstOverheadThreshold	= 0.20;
 
 // large critical section is one held more than 30% of the time.
 const float largeCriticalSectionThreshold = 0.30;
@@ -192,26 +202,23 @@ Boolean highFuncInst_ENABLE(collectMode newMode)
 {
     Boolean status = TRUE;
 
-    status = procedureCalls.changeCollection(newMode);
-    status = activeProcesses.changeCollection(whereAxis, newMode) && status;
+    status = observedCost.changeCollection(newMode);
     return(status);
 }
 
 /* ARGSUSED */
 void highFuncInst_TEST(testValue *result, float normalize)
 {
-  sampleValue pc, ap;
+    float oc;
 
     result->status = FALSE;
-    if ((pc =procedureCalls.value())/(ap = activeProcesses.value(whereAxis))/
-	maxIPSprocedureCallRate > highInstOverheadThreshold*normalize) {
+    oc = observedCost.value();
+    if (oc > highInstOverheadThreshold*normalize) {
 	result->status = TRUE;
     }
 #ifdef PC_PRINT
-    cout << "highFuncInst >? V=" << (pc / ap /
-				  maxIPSprocedureCallRate) << " A="
-				  << (highInstOverheadThreshold*normalize)
-				    << "\n";
+    cout << "highFuncInst >? V=" << oc << " A="
+         << (highInstOverheadThreshold*normalize) << "\n";
 #endif
     return;
 }
@@ -274,17 +281,37 @@ Boolean highCPUtoSyncRatio_ENABLE(collectMode newMode)
 //
 void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
 {
+    float cpu;
+    float factor;
     float processes;
+    Boolean conflict;
+    focusList newFoci;
 
     result->status = FALSE;
+    if (!currentFocus->moreSpecific(Procedures, conflict)) {
+	newFoci = whereAxis->magnify(Procedures);
+	// 40% above average.
+	factor = 1.4/newFoci.count();
+
+	// guard for very simple programs.
+	if (factor > highCPUtoSyncRatioThreshold) 
+	    factor = highCPUtoSyncRatioThreshold;
+#ifdef PC_PRINT
+	cout << "setting factor to " << factor << "\n";
+#endif
+    } else {
+	factor = highCPUtoSyncRatioThreshold;
+    }
+
+    cpu = CPUtime.value();
     processes = activeProcesses.value(whereAxis);
-    if (CPUtime.value()/processes > highCPUtoSyncRatioThreshold * normalize) {
+    if (cpu/processes > factor * normalize) {
 	result->status = TRUE;
 	result->addHint(Procedures, "Lots of cpu time");
     }
 #ifdef PC_PRINT
-    cout << "highCPUtoSyncRatio >? V=" << (CPUtime.value() / processes) <<
-      " A=" << (highCPUtoSyncRatioThreshold * normalize) << "\n";
+    cout << "highCPUtoSyncRatio >? V=" << (cpu / processes) <<
+      " A=" << (factor * normalize) << "\n";
 #endif
     return;
 }

@@ -19,7 +19,17 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.11  1994/07/14 23:49:48  hollings
+ * Revision 1.12  1994/07/25 04:47:02  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.11  1994/07/14  23:49:48  hollings
  * added batch mode for SHG, fixed the sort function to use beenTrue.
  *
  * Revision 1.10  1994/06/22  22:58:17  hollings
@@ -90,7 +100,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.11 1994/07/14 23:49:48 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.12 1994/07/25 04:47:02 hollings Exp $";
 #endif
 
 #include <stdlib.h>
@@ -122,7 +132,16 @@ int CompareOptions(const void *left, const void *right)
     searchHistoryNode *a = *(searchHistoryNode**) left;
     searchHistoryNode *b = *(searchHistoryNode**) right;
 
-    // first use hints.
+    // first check for suppressed.
+    if (a->getSuppressed() != b->getSuppressed()) {
+	if (a->getSuppressed()) {
+	    return(1);
+	} else {
+	    return(-1);
+	}
+    }
+
+    // second use hints.
     if (PCbaseSHGNode->hints) {
 	hl = *PCbaseSHGNode->hints;
 	for (;h = *hl; (void ) hl++) {
@@ -217,7 +236,6 @@ void autoChangeRefineList()
 {
     int i;
     float newCost;
-    char msgBuf[128];
     timeStamp timeLimit;
     float totalCost = 0.0;
     searchHistoryNode *curr;
@@ -228,11 +246,11 @@ void autoChangeRefineList()
     if (printNodes) printf("TRYING: ");
 
     UIM_BatchMode++;
-    totalCost = dataMgr->getCurrentHybridCost(context);
+    // totalCost = dataMgr->getCurrentHybridCost(context);
 
     if (currentRefinementBase) {
 	// some number of tests just expired.
-	totalCost -= batchCost;
+	// totalCost -= batchCost;
 
 	if (totalCost < 0.0) {
 	    // The estimated cost of the last batch was way too high!!!
@@ -255,7 +273,7 @@ void autoChangeRefineList()
 	newCost = curr->cost(); 
 
 	batchCost += newCost;
-	totalCost += newCost;
+	// totalCost += newCost;
 
 	curr->changeActive(TRUE);
     }

@@ -1,7 +1,17 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.4  1994/06/14 15:34:48  markc
+ * Revision 1.5  1994/07/25 04:47:13  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.4  1994/06/14  15:34:48  markc
  * Modified parameters for moreSpecific.
  * Added MsgTags as a resource.
  *
@@ -78,6 +88,7 @@ class focus {
 	void print();
 	void updateName();
 	stringHandle getName() 	{ return(name); }
+	Boolean getSuppressed()	{ return(suppress); }
 
 	resourceList *data;
     private:
@@ -91,6 +102,7 @@ class focus {
 	stringHandle name;		// for fast compare.
 	List<focusList*>		magnifyCache;
 	List<focus*>			constrainCache;
+	Boolean suppress;		// don't magnify on me.
 };
 
 class focusList: public HTable<focus*> {

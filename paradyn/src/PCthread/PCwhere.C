@@ -18,7 +18,17 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.8  1994/06/29 02:56:28  hollings
+ * Revision 1.9  1994/07/25 04:47:12  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.8  1994/06/29  02:56:28  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.7  1994/06/22  22:58:26  hollings
@@ -83,7 +93,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.8 1994/06/29 02:56:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.9 1994/07/25 04:47:12 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -111,6 +121,15 @@ int focus::operator =(focus f)
 
 focus::focus(resourceList *val)
 {
+    resource *r;
+    int i, limit;
+
+    suppress = FALSE;
+    limit = val->getCount();
+    for (i=0; i < limit; i++) {
+	r = val->getNth(i);
+	if (r->getSuppress()) suppress = TRUE;
+    }
 
     data = val;
     name = NULL;
@@ -134,9 +153,11 @@ void focus::updateName()
     if (data) {
 	limit = data->getCount();
 	names = (char **) malloc(sizeof(char *) * limit);
+	suppress = FALSE;
 	for (i=0; i < limit; i++) {
 	    res = data->getNth(i);
 	    names[i] = res->getFullName();
+	    if (res->getSuppress()) suppress = TRUE;
 	}
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), strCompare);

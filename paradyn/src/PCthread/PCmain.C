@@ -16,9 +16,19 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.17  1994/06/27 21:24:39  rbi
-/* New abstraction parameter for performance streams
+/* Revision 1.18  1994/07/25 04:47:05  hollings
+/* Added histogram to PCmetric so we only use data for minimum interval
+/* that all metrics for a current batch of requests has been enabled.
 /*
+/* added hypothsis to deal with the procedure level data correctly in
+/* CPU bound programs.
+/*
+/* changed inst hypothesis to use observed cost metric not old procedure
+/* call based one.
+/*
+ * Revision 1.17  1994/06/27  21:24:39  rbi
+ * New abstraction parameter for performance streams
+ *
  * Revision 1.16  1994/06/27  18:55:08  hollings
  * Added compiler flag to add SHG nodes to dag only on first evaluation.
  *
@@ -60,7 +70,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.17 1994/06/27 21:24:39 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.18 1994/07/25 04:47:05 hollings Exp $";
 #endif
 
 #include <assert.h>
@@ -76,11 +86,15 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCmetric.h"
 #include "../src/pdMain/paradyn.h"
 #include "../src/UIthread/UIstatDisp.h"
+#include "../src/DMthread/DMresource.h"
 
 performanceStream *pcStream;
 extern void initResources();
 extern void PCevaluateWorld();
 extern thread_t MAINtid;
+extern timeStamp PCstartTransTime;
+extern timeStamp PCendTransTime;
+
 statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
 
 int SHGid;             // id needed for Search History Graph uim dag calls
@@ -114,14 +128,20 @@ void PCnewData(performanceStream *ps,
     start = PCbucketWidth * first;
     end = PCbucketWidth * (first + count);
 
+    // cout << "AR: " << dp->metName << dp->resList->getCanonicalName();
+    // cout << " = " << total;
+    // cout << " from " << start << " to " << end << "\n";
+
+    dp->newSample(start, end, total);
+
     // see if we should check for new state change.
     //  we wait until time moves, otherwise we evaluate hypotheses too often.
     if (end > PCcurrentTime) {
 	PCcurrentTime = end;
-	PCevaluateWorld();
+	if (PCstartTransTime < PCendTransTime) {
+	    PCevaluateWorld();
+	}
     }
-
-    dp->newSample(start, end, total);
 }
 
 void PCnewInfo()

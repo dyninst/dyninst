@@ -17,7 +17,17 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.23  1994/07/22 19:25:44  hollings
+ * Revision 1.24  1994/07/25 04:47:04  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.23  1994/07/22  19:25:44  hollings
  * removed supress SHG option for now.
  *
  * Revision 1.22  1994/07/14  23:49:49  hollings
@@ -146,7 +156,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.23 1994/07/22 19:25:44 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.24 1994/07/25 04:47:04 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -180,6 +190,7 @@ tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
 int PCsearchPaused;
 extern Boolean textMode;
 extern int samplesSinceLastChange;
+extern timeStamp PCstartTransTime;
 extern timeStamp PClastTestChangeTime;
 extern timeStamp PCshortestEnableTime;
 Boolean printTestResults = FALSE;
@@ -759,6 +770,8 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
     extern void autoSelectRefinements();
 
     PClastTestChangeTime = PCcurrentTime;
+    PCstartTransTime = PCcurrentTime;
+    cout << "Setting PCstartTransTime = " << PCstartTransTime << "\n";
     if (!dataMgr->applicationDefined(context)) {
 	printf("must specify application to run first\n");
 	return;

@@ -18,7 +18,17 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.16  1994/07/14 23:48:28  hollings
+ * Revision 1.17  1994/07/25 04:47:07  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.16  1994/07/14  23:48:28  hollings
  * added checks to make sure met is non null.
  *
  * Revision 1.15  1994/07/02  01:43:37  markc
@@ -114,7 +124,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.16 1994/07/14 23:48:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.17 1994/07/25 04:47:07 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -130,6 +140,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
+timeStamp PCendTransTime;
+timeStamp PCstartTransTime;
 stringPool PCmetricStrings;
 int samplesSinceLastChange;
 timeStamp PCshortestEnableTime;
@@ -172,21 +184,15 @@ void PCmetric::print()
 
 sampleValue PCmetric::value()
 {
-    timeStamp end;
-
-    end = PCcurrentTime;
-    return(value(currentFocus, (timeStamp) PCcurrentTime, end)); 
+    return(value(currentFocus, (timeStamp) PCstartTransTime, PCendTransTime)); 
 }
 
 /* ARGSUSED */
 sampleValue PCmetric::value(focus *f)
 {
-    timeStamp end;
-
     if (!f) return(0.0);
 
-    end = PCcurrentTime;
-    return(value(f, (timeStamp) PCcurrentTime, end));
+    return(value(f, (timeStamp) PCstartTransTime, PCendTransTime));
 }
 
 /* ARGSUSED */
@@ -204,10 +210,7 @@ Boolean PCmetric::enabled(focus *f)
 
 sampleValue PCmetric::value(focusList fList)
 {
-    timeStamp end;
-
-    end = PCcurrentTime;
-    return(value(fList, (timeStamp) PCcurrentTime, end));
+    return(value(fList, (timeStamp) PCstartTransTime, PCendTransTime));
 }
 
 /* ARGSUSED */
@@ -233,19 +236,25 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
     }
 
     // ask for time only from when it was enabled.
-    start = val->enableTime;
+    //start = val->enableTime;
+    assert(start >= val->enableTime);
+
     val->lastUsed = end;
 
-    if (fetchPrint == TRUE) {
-	printf("getting value for %s from %f to %f\n", name, start, end);
-    }
 
-    ret = val->sample;
+    // ret = val->sample;
+    ret = val->hist->getValue(start, end);
 
     // see if we should normalize it.
     if (calc == CalcNormalize) {
-	ret /= ((end-start) + val->totalUsed);
+	ret /= (end-start);
     }
+
+    if (fetchPrint == TRUE) {
+	cout << "value for " << name << " from " << start << " to " << end;
+	cout << " = " << ret << "\n";
+    }
+
     return(ret);
 }
 
@@ -292,8 +301,9 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	if (!val) {
 	    val = new(datum);
 	    val->f = f;
+	    val->metName = name;
 	    val->resList = f->data;
-	    val->hist = NULL;
+	    val->hist = new Histogram(EventCounter, NULL, NULL, NULL);
 	    val->enabled = FALSE;
 	    val->refCount = 0;
 	    addDatum(val);
@@ -307,7 +317,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
 						    met);
 	    if (val->mi) {
-		// only the data that really exhists gets enabled.
+		// only the data that really exists gets enabled.
 		miToDatumMap.add(val, val->mi);
 		val->enabled = TRUE;
 	    }
@@ -464,10 +474,20 @@ timeStamp globalMinEnabledTime()
     timeStamp elapsed;
 
     min = infinity();
+    PCendTransTime = infinity();
+    PCstartTransTime = 0.0;
     for (curr = miToDatumMap; d = *curr; curr++) {
 	elapsed = d->lastSampleTime - d->enableTime;
 	if ((d->enabled) && (elapsed < min)) {
 	    min = elapsed;
+	}
+	if ((d->enabled) && (d->enableTime > PCstartTransTime)) {
+	    PCstartTransTime = d->enableTime;
+	}
+
+	// earliest last sample 
+	if ((d->enabled) && (d->lastSampleTime < PCendTransTime)) {
+	    PCendTransTime = d->lastSampleTime;
 	}
     }
     return(min);
@@ -475,6 +495,8 @@ timeStamp globalMinEnabledTime()
 
 void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 {
+    hist->addInterval(start, end, value, FALSE);
+
     sample += value;
     samplesSinceEnable++;
     lastSampleTime = end;
@@ -527,6 +549,7 @@ PCmetric blockingLocks("blocking_locks");
 PCmetric LockWaits("spin_waits");
 PCmetric unbalancedWorkWaits("system_busy_waits");
 
+PCmetric observedCost("observed_cost", aggMax, CalcNormalize);
 PCmetric compensationFactor("pause_time", aggAvg, CalcNormalize);
 
 // EDCU based metrics.

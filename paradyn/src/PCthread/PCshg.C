@@ -17,7 +17,17 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.12  1994/07/22 19:25:45  hollings
+ * Revision 1.13  1994/07/25 04:47:10  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
+ * Revision 1.12  1994/07/22  19:25:45  hollings
  * removed supress SHG option for now.
  *
  * Revision 1.11  1994/07/14  23:47:56  hollings
@@ -97,7 +107,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.12 1994/07/22 19:25:45 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.13 1994/07/25 04:47:10 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -143,6 +153,8 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     shortName = (char *) malloc(16);
     sprintf(shortName, " %d ", nodeId);
     style = UNTESTEDNODESTYLE;
+    suppressed = FALSE;
+    if (f->getSuppressed()) suppressed = TRUE;
 };
 
 void searchHistoryNode::print(int level)
