@@ -2,7 +2,10 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.7  1994/11/01 16:07:35  markc
+ * Revision 1.8  1994/11/04 15:52:51  tamches
+ * setValue() for boolean tc's now correctly invokes its callback function, if any.
+ *
+ * Revision 1.7  1994/11/01  16:07:35  markc
  * Added Object classes that provide os independent symbol tables.
  * Added stl-like container classes with iterators.
  *
@@ -70,7 +73,12 @@ class tunableBooleanConstant: public tunableConstant {
 			       const char *name,
 			       const char *desc);
 	Boolean getValue() { return value; }
-	Boolean setValue(Boolean newVal) { value = newVal; return TRUE; }
+	Boolean setValue(Boolean newVal) {
+           value = newVal;
+           if (newValueCallBack)
+              newValueCallBack(newVal);
+           return TRUE;
+        }
 	virtual void print();
     private:
 	Boolean value;
