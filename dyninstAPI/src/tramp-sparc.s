@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.26 2002/09/17 20:08:09 bernat Exp $ */
+/* $Id: tramp-sparc.s,v 1.27 2002/09/23 15:57:03 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -246,7 +246,6 @@ _conservativeBaseTramp_savePreInsn:
 	save  %sp, -256, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
-	.word	GLOBAL_PRE_BRANCH
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
@@ -269,30 +268,9 @@ _conservativeBaseTramp_savePreInsn:
 	std  %f30, [ %fp + -160 ]
 	.word CONSERVATIVE_TRAMP_READ_CONDITION /* saving the condition codes */
 	st   %g1, [ %fp + -164 ]
-	nop			/* fill this in with instructions to  */
-	nop			/* compute the address of the vector  */
-	nop			/* of counter/timers for each thread  */
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 #if defined(MT_THREAD)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	/* Calculate the POS of the current thread and stick it somewhere (G6?)	*/
+	.word MT_POS_CALC
 	nop
 	nop
 	nop
@@ -305,11 +283,19 @@ _conservativeBaseTramp_savePreInsn:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	.word	LOCAL_PRE_BRANCH
 	nop
 	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
@@ -352,7 +338,6 @@ _conservativeBaseTramp_restorePreInsn:
 	nop			/* extra nop for set condition code insn */
 	.word   SKIP_POST_INSN
 	nop
-	.word	GLOBAL_POST_BRANCH
 	.global conservativeBaseTramp_savePostInsn
 	.global	_conservativeBaseTramp_savePostInsn
 conservativeBaseTramp_savePostInsn:
@@ -380,30 +365,8 @@ _conservativeBaseTramp_savePostInsn:
 	std  %f30, [ %fp + -160 ]
 	.word CONSERVATIVE_TRAMP_READ_CONDITION /* saving the condition codes */
 	st   %g1, [ %fp + -164 ]
-	nop			/* fill this in with instructions to  */
-	nop			/* compute the address of the vector  */
-	nop			/* of counter/timers for each thread  */
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 #if defined(MT_THREAD)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	.word MT_POS_CALC
 	nop
 	nop
 	nop
@@ -416,11 +379,19 @@ _conservativeBaseTramp_savePostInsn:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	.word	LOCAL_POST_BRANCH
 	nop
 	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
