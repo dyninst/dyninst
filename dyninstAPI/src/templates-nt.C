@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.17 1999/11/11 16:14:56 wylie Exp $
+// $Id: templates-nt.C,v 1.18 2000/02/22 23:10:01 pcroth Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -111,3 +111,24 @@ template class dictionary_hash<Address, heapItem *>;
 template class dictionary_hash<Address, instPoint *>;
 template class dictionary_hash<Address, pd_Function *>;
 template class dictionary_hash<Address, unsigned>;
+
+#ifdef SHM_SAMPLING
+#include "paradynd/src/baseTable.h"
+#include "paradynd/src/baseTable.C"
+template class baseTable<processTimerHK, tTimerRec>;
+template class baseTable<wallTimerHK, tTimerRec>;
+template class baseTable<intCounterHK, intCounterRec>;
+
+#include "paradynd/src/superVector.h"
+#include "paradynd/src/superVector.C"
+template class superVector<processTimerHK, tTimerRec>;
+template class superVector<wallTimerHK, tTimerRec>;
+template class superVector<intCounterHK, intCounterRec>;
+
+#include "paradynd/src/fastInferiorHeap.h"
+#include "paradynd/src/fastInferiorHeap.C"
+template class fastInferiorHeap<processTimerHK, tTimerRec>;
+template class fastInferiorHeap<wallTimerHK, tTimerRec>;
+template class fastInferiorHeap<intCounterHK, intCounterRec>;
+#endif // SHM_SAMPLING
+

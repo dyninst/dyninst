@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.18 2000/02/04 21:52:47 zhichen Exp $
+// $Id: pdwinnt.C,v 1.19 2000/02/22 23:10:01 pcroth Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -119,18 +119,26 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
     assert(buf);
 
     if (f = p->findFunctionIn((Address)addr))
-	printf("Function %s, addr=0x%lx, sz=%d\n", 
-	       f->prettyName().string_of(),
-	       f->getAddress(p),
-	       f->size());
+    {
+        printf("Function %s, addr=0x%lx, sz=%d\n", 
+                f->prettyName().string_of(),
+                f->getAddress(p),
+                f->size());
+    }
     p->readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true);
     printf("## 0x%lx:\n", (unsigned)addr-32);
     for (unsigned u = 0; u < nbytes; u++)
-	printf(" %x", buf[u]);
+    {
+	    printf(" %x", buf[u]);
+    }
+    printf( "\n" );
     p->readDataSpace(addr, nbytes, buf, true);
     printf("## 0x%lx:\n", addr);
     for (unsigned u1 = 0; u1 < nbytes; u1++)
-	printf(" %x", buf[u1]);
+    {
+	    printf(" %x", buf[u1]);
+    }
+    printf( "\n" );
 }
 
 
@@ -534,6 +542,16 @@ int process::waitProcs(int *status) {
 		   debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
 		   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
 	    dumpMem(p, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
+
+        {
+            vector<Address> pcs = p->walkStack( false );
+            for( unsigned i = 0; i < pcs.size(); i++ )
+            {
+                function_base* f = p->findFunctionIn( pcs[i] );
+                const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
+                fprintf( stderr, "%08x: %s\n", pcs[i], szFuncName );
+            }
+        }
 	    //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
 	    //			   DBG_EXCEPTION_NOT_HANDLED);
 	    //	break;
@@ -1254,3 +1272,46 @@ bool OS::osKill(int pid) {
     CloseHandle(h);
     return res;
 }
+
+
+time64
+FILETIME2time64( FILETIME& ft )
+{
+    return (((time64)(ft).dwHighDateTime<<32) | ((time64)(ft).dwLowDateTime));
+}
+
+
+#ifdef SHM_SAMPLING
+// returns user+sys time from the u or proc area of the inferior process, which in
+// turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
+// to obtain it (solaris).  It must not stop the inferior process in order
+// to obtain the result, nor can it assue that the inferior has been stopped.
+// The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+time64 process::getInferiorProcessCPUtime(int /* lwp_id */)
+{
+  FILETIME kernelT, userT, creatT, exitT;
+  time64 now;
+
+
+  if(GetProcessTimes( (HANDLE)getProcFileDescriptor(),
+      &creatT, &exitT, &kernelT,&userT)==0) {
+    abort();
+    return 0;
+  }
+
+  // GetProcessTimes returns values in 100-ns units
+  now = (FILETIME2time64(userT)+FILETIME2time64(kernelT)) / (time64)10;
+
+  // time shouldn't go backwards, but we'd better handle it if it does
+  if (now < previous) {
+     logLine("********* time going backwards in paradynd **********\n");
+     now = previous;
+  }
+  else {
+     previous = now;
+  }
+
+  return now;
+}
+
+#endif // SHM_SAMPLING

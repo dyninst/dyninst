@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.125 2000/02/04 21:52:49 zhichen Exp $
+/* $Id: process.h,v 1.126 2000/02/22 23:10:01 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -70,6 +70,7 @@
 #include "dyninstAPI/src/symtab.h" // internalSym
 
 #ifdef SHM_SAMPLING
+#include "paradynd/src/shmSegment.h"
 #include "paradynd/src/fastInferiorHeapMgr.h"
 #include "paradynd/src/superTable.h"
 #include "paradynd/src/hashTable.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.3 1998/12/25 22:02:16 wylie Exp $
+// $Id: pdwinnt.h,v 1.4 2000/02/22 23:10:01 pcroth Exp $
 
 #if !defined(i386_unknown_nt4_0)
 #error "invalid architecture-os inclusion"
@@ -48,7 +48,6 @@
 #ifndef PDWINNT_HDR
 #define PDWINNT_HDR
 
-typedef void *pid_t;
 typedef HANDLE handleT;
 
 #define read(x,y,z) recv(x,(char *)y,z,0)

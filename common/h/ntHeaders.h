@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.3 1999/03/03 17:43:48 pcroth Exp $
+// $Id: ntHeaders.h,v 1.4 2000/02/22 23:13:22 pcroth Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -80,6 +80,10 @@ extern "C" {
 
 #define isnan _isnan
 #define alloca _alloca
+
+/* compatiblity typedefs */
+typedef int pid_t;
+typedef int key_t;
 
 typedef int (*P_xdrproc_t)(XDR*, ...);
 //extern const char *sys_errlist[];
