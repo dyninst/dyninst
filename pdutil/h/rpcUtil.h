@@ -4,7 +4,11 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.19  1994/07/18 19:09:10  hollings
+ * Revision 1.20  1994/07/19 18:29:59  markc
+ * Made machineName default to zero as last parameter to RPC_make_arg_list.
+ * Added typecast to malloc call in RPC_make_arg_list.
+ *
+ * Revision 1.19  1994/07/18  19:09:10  hollings
  * added extra arg to RPC_make_arg_list.
  *
  * Revision 1.18  1994/06/02  23:35:15  markc
@@ -124,7 +128,7 @@ extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
 extern char **RPC_make_arg_list (int family, int type, 
 				 int port, 
 				 int flag,
-				 char *machienName);
+				 char *machienName = (char*) 0);
 
 extern int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
