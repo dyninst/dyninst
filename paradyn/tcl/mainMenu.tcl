@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.45  1995/11/16 00:46:40  tamches
+# removed obsolete menu item "options control"
+#
 # Revision 1.44  1995/11/09 02:13:27  tamches
 # some general cleanup, such as removing references to tk_menuBar
 # (obsolete in tk4.0), and removing old code that had until now been
@@ -296,8 +299,7 @@ proc drawToolBar {} {
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Where Axis" \
 	    -command {wm deiconify .whereAxis; raise .whereAxis}
-    .parent.menub.left.men.b1.m add command -label "Options Control" \
-	    -state disabled
+
 #
 #  added to support phase specification
 #
