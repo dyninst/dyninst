@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.54 2002/10/28 04:54:19 schendel Exp $
+// $Id: mdl.C,v 1.55 2002/11/25 23:52:42 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -541,10 +541,6 @@ T_dyninstRPC::mdl_v_expr::~mdl_v_expr()
     delete args_;
   }
   delete left_; delete right_;
-}
-
-bool T_dyninstRPC::mdl_v_expr::isThreadStartPoint() {
-   return false;
 }
 
 bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
