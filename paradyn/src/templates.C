@@ -5,6 +5,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.25  1995/12/11 02:24:03  newhall
+ * added vector of rlNameId
+ *
  * Revision 1.24  1995/12/09 04:06:51  tamches
  * added some missing templates
  *
@@ -166,6 +169,7 @@ template class vector<resourceList*>;
 template class vector<abstraction*>;
 template class vector<metricInstance*>;
 template class vector<ArchiveType *>;
+template class vector<rlNameIdType>;
 template class dictionary<string,metric*>;
 template class dictionary_hash<string,metric*>;
 template class pair<string, metric*>;
