@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.105 2001/10/26 06:29:52 schendel Exp $
+ * $Id: DMdaemon.C,v 1.106 2001/11/01 20:22:25 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1399,7 +1399,8 @@ bool mpichCreateWrapper(const string& machine,
 		// we write the script to a local temporary file so as to 
 		// copy it to the remote system
 		//
-		string localWrapper = mkstemp( NULL );
+  	        char templ[40] = "pd.wrapper.XXXXXX";
+		string localWrapper = mktemp(templ);
 		if( !writeMPICHWrapper( localWrapper, buffer ) )
 		{
 			return false;
