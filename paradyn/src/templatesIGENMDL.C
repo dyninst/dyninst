@@ -68,6 +68,7 @@ class processMet;
 class visiMet;
 class tunableMet;
 
+template class vector<functionName*>;
 template class vector<processMet *>;
 template class vector<daemonMet*>;
 template class vector<visiMet*>;
