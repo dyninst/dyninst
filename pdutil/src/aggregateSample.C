@@ -61,6 +61,17 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 		firstSampleReceived = True;
 		ret.valid = FALSE;
 		lastSampleEnd = earlyestTime;
+
+               // this gives all of the samples the same initial starting
+	       // time
+	       // It is very important for them to have the same time
+	       // if this is not done, fract that is calculated below
+	       // will fail the assertions
+	       // You may want to zero the lastSample values here too
+
+		for (cp=parts; curr=*cp; cp++) 
+		    curr->lastSampleStart = earlyestTime;
+
 		return(ret);
 	    }
 
