@@ -221,7 +221,5 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_
 template class vector<T_dyninstRPC::trace_batch_buffer_entry>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *) ;
 
-///* ******************************************* */
-//
-//#include "util/h/hist.h"
-//template class vector<Histogram *>;
+
+template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
