@@ -189,10 +189,10 @@ void BPatch_flowGraph::assignAnExitBlockIfNoneExists(){
 		currentDepth |= nextDepth;
 	}
 
-	for(int i=(int)(allBlocks.size())-1;i>=0;i--)
-		if(depthMinimums[i]){
-			exitBlock += depthMinimums[i];
-			depthMinimums[i]->isExitBasicBlock = true;
+	for(int j=(int)(allBlocks.size())-1;j>=0;j--)
+		if(depthMinimums[j]){
+			exitBlock += depthMinimums[j];
+			depthMinimums[j]->isExitBasicBlock = true;
 			break;
 		}
 
@@ -416,7 +416,7 @@ bool BPatch_flowGraph::createBasicBlocks()
    Address effectiveAddress = (Address)
       ((void *)func->getEffectiveAddress(proc));
    
-   Address relativeAddress = (Address) ((void *)func->addr());
+   Address relativeAddress = (Address) ((void *)func->get_address());
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) 
    long diffAddress = effectiveAddress;
@@ -432,7 +432,7 @@ bool BPatch_flowGraph::createBasicBlocks()
 
    Address baddr = relativeAddress;
 
-   Address maddr = relativeAddress + func->size();
+   Address maddr = relativeAddress + func->get_size();
 
    Address taddr;
 
@@ -517,10 +517,11 @@ bool BPatch_flowGraph::createBasicBlocks()
 #endif
       }
 #if defined(rs6000_ibm_aix4_1)
-      else if (inst.isAIndirectJumpInstruction(InstrucIter(ah))) {
+      else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
 #else
-      else if (inst.isAIndirectJumpInstruction()) {
+      else if (inst.isAIndirectJumpInstruction())
 #endif
+      {
          InstrucIter ah2(ah);
          BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
@@ -694,10 +695,11 @@ bool BPatch_flowGraph::createBasicBlocks()
                   ++ah;
             }
 #if defined(rs6000_ibm_aix4_1)
-            else if (inst.isAIndirectJumpInstruction(InstrucIter(ah))) {
+            else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
 #else
-            else if (inst.isAIndirectJumpInstruction()) {
+            else if (inst.isAIndirectJumpInstruction())
 #endif
+            {
                InstrucIter ah2(ah);
                BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
