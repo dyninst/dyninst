@@ -1,6 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.20  1996/03/20 17:02:36  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.19  1995/12/19 01:04:44  hollings
  * Moved the implementation of registerSpace::readOnlyRegister to processor
  *   specific files (since it is).
@@ -222,6 +226,7 @@ reg AstNode::generateCode(process *proc,
     reg src = -1;
     reg dest = -1;
     reg right_dest = -1;
+    vector <reg> srcs;
 
     if (type == opCodeNode) {
         if (op == ifOp) {
@@ -295,7 +300,7 @@ reg AstNode::generateCode(process *proc,
 	} else if (oType == Param) {
 	    src = rs->allocateRegister(insn, base);
 	    // return the actual reg it is in.
-	    dest = emit(getParamOp, oValue, 0, src, insn, base);
+	    dest = emit(getParamOp, (reg)oValue, 0, src, insn, base);
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
@@ -320,18 +325,9 @@ reg AstNode::generateCode(process *proc,
 	  addr = func->addr();
 	}
 
-	if (loperand) {
-	    src1 = loperand->generateCode(proc, rs, insn, base);
-	} else {
-	    src1 = -1;
-	}
-
-	if (roperand) {
-	    src2 = roperand->generateCode(proc, rs, insn, base);
-	} else {
-	    src2 = -1;
-	}
-	dest = emit(callOp, src1, src2, (int) addr, insn, base);
+	for (unsigned u = 0; u < operands.size(); u++)
+	  srcs += operands[u]->generateCode(proc, rs, insn, base);
+	dest = emitFuncCall(callOp, srcs, (int) addr, insn, base);
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));
@@ -401,13 +397,12 @@ int AstNode::cost()
 		total = getInsnCost(loadOp);
 	    }
 	} else if (oType == Param) {
-	    // for SPARC its always in a register.
-	    total = 0;
+	    total = getInsnCost(getParamOp);
 	}
     } else if (type == callNode) {
 	total = getPrimitiveCost(callee);
-	if (loperand) total += loperand->cost();
-	if (roperand) total += roperand->cost();
+	for (unsigned u = 0; u < operands.size(); u++)
+	  total += operands[u]->cost();
     } else if (type == sequenceNode) {
 	total += loperand->cost();
 	total += roperand->cost();
@@ -442,8 +437,8 @@ void AstNode::print()
         ostrstream os(errorLine, 1024, ios::out);
 	os << "(" << callee << ends;
 	logLine(errorLine);
-	if (loperand) loperand->print();
-	if (roperand) roperand->print();
+	for (unsigned u = 0; u < operands.size(); u++)
+	  operands[u]->print();
 	logLine(")");
     } else if (type == sequenceNode) {
 	if (loperand) loperand->print();

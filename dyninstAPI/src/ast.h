@@ -4,6 +4,10 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.11  1996/03/20 17:02:42  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.10  1995/08/24 15:03:45  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -103,46 +107,40 @@ class AstNode {
 		type = opCodeNode;
 		roperand = new AstNode(minusOp, l, r);
 		op = storeOp;
-	    } else if (func == "startTimer") {
-	      // Just testing to see if this is ever called
-	        assert(0);
-		type = callNode;
-		roperand = NULL;
-		if ((r->type != operandNode) || (r->oType !=  Constant)) {
-		    ostrstream os(errorLine, 1024, ios::out);
-		    os << "invalid second operand to " << func << endl;
-		    logLine(errorLine);
-		    loperand = NULL;
-		} else {
-		    if (r->oValue == 0) {
-			callee = "DYNINSTstartWallTimer";
-		    } else {
-			callee = "DYNINSTstartProcessTimer";
-		    }
-		    loperand = l;
-		}
-	    } else if (func == "stopTimer") {
-	      // Just testing to see if this is ever called
-	        assert(0);
-		type = callNode;
-		roperand = NULL;
-		if ((r->type != operandNode) || (r->oType !=  Constant)) {
-		    ostrstream os(errorLine, 1024, ios::out);
-		    os << "invalid second operand to " << func << endl;
-		    loperand = NULL;
-		} else {
-		    loperand = l;
-		    if (r->oValue == 0) {
-			callee = "DYNINSTstopWallTimer";
-		    } else {
-			callee = "DYNINSTstopProcessTimer";
-		    }
-		}
 	    } else {
 		type = callNode;
 		callee = func;
+		if (l)
+		  operands += l;
+		if (r)
+		  operands += r;
 	    }
 	};
+
+        AstNode(const string func, vector<AstNode *> ast_args) {
+            if (func == "setCounter" || func == "addCounter" 
+           	|| func == "subCounter") {
+                loperand = ast_args[0];
+                roperand = ast_args[1];
+            } else {
+                operands = ast_args;
+            }
+            if (func == "setCounter") {
+                type = opCodeNode;
+                op = storeOp;
+            } else if (func == "addCounter") {
+                type = opCodeNode;
+                roperand = new AstNode(plusOp, loperand, roperand);
+                op = storeOp;
+            } else if (func == "subCounter") {
+                type = opCodeNode;
+                roperand = new AstNode(minusOp, loperand, roperand);
+                op = storeOp;
+            } else {
+                type = callNode;
+                callee = func;
+            }
+        };
 	AstNode(operandType ot, void *arg) {
 	    type = operandNode;
 	    oType = ot;
@@ -181,6 +179,7 @@ class AstNode {
 	dataReqNode *dValue;	// for operand nodes
 	AstNode *loperand;
 	AstNode *roperand;
+	vector<AstNode *> operands;
 	int firstInsn;
 	int lastInsn;
 };

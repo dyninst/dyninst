@@ -11,6 +11,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.15  1996/03/20 17:02:49  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.14  1995/11/29 18:45:21  krisna
  * added inlines for compiler. added templates
  *
@@ -262,6 +266,7 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
+unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base);
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
 
 int getInsnCost(opCode t);

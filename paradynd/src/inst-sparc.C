@@ -19,13 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.32 1995/12/19 01:04:50 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.33 1996/03/20 17:02:46 mjrg Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.33  1996/03/20 17:02:46  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.32  1995/12/19 01:04:50  hollings
  * Moved the implementation of registerSpace::readOnlyRegister to processor
  *   specific files (since it is).
@@ -398,13 +402,12 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 // classified
 //
 void pdFunction::checkCallPoints() {
-  int i;
   instPoint *p;
   Address loc_addr;
 
   vector<instPoint*> non_lib;
 
-  for (i=0; i<calls.size(); ++i) {
+  for (unsigned i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
     p = calls[i];
     assert(p);
@@ -648,7 +651,7 @@ void installBaseTramp(unsigned baseAddr,
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
 
     for (temp = code, currAddr = baseAddr; 
-	(currAddr - baseAddr) < baseTemplate.size;
+	(currAddr - baseAddr) < (unsigned) baseTemplate.size;
 	temp++, currAddr += sizeof(instruction)) {
 	if (temp->raw == EMULATE_INSN) {
 	    *temp = location->originalInstruction;
@@ -792,6 +795,35 @@ pdFunction *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
+unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base)
+{
+	// TODO cast
+	instruction *insn = (instruction *) ((void*)&i[base]);
+
+        for (unsigned u=0; u<srcs.size(); u++){
+            if (u >= 5) {
+	         string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+		 fprintf(stderr, msg.string_of());
+	         showErrorCallback(94,msg);
+		 cleanUpAndExit(-1);
+            }
+            genSimpleInsn(insn, ORop3, 0, srcs[u], u+8); insn++;
+            base += sizeof(instruction);
+        }
+
+        generateSetHi(insn, dest, 13); insn++;
+        genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
+        generateNOOP(insn);
+
+        base += 3 * sizeof(instruction);
+
+        // return value is the register with the return value from the
+        //   function.
+        // This needs to be %o0 since it is back in the callers scope.
+        return(8);
+}
+ 
+
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 {
     // TODO cast
@@ -845,35 +877,6 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
-    } else if (op ==  callOp) {
-	if (src1 > 0) {
-	    genSimpleInsn(insn, ORop3, 0, src1, 8); insn++;
-	    base += sizeof(instruction);
-	}
-	if (src2 > 0) {
-	    genSimpleInsn(insn, ORop3, 0, src2, 9); insn++;
-	    base += sizeof(instruction);
-	}
-	/* ??? - should really set up correct # of args */
-	// clr i2
-	genSimpleInsn(insn, ORop3, 0, 0, 10); insn++;
-	base += sizeof(instruction);
-
-	// clr i3
-	genSimpleInsn(insn, ORop3, 0, 0, 11); insn++;
-	base += sizeof(instruction);
-
-
-	generateSetHi(insn, dest, 13); insn++;
-	genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
-	generateNOOP(insn);
-
-	base += 3 * sizeof(instruction);
-
-	// return value is the register with the return value from the
-	//   function.
-	// This needs to be %o0 since it is back in the callers scope.
-	return(8);
     } else if (op ==  trampPreamble) {
         genImmInsn(insn, SAVEop3, 14, -112, 14);
 	base += sizeof(instruction);
@@ -944,6 +947,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	if (src1 <= 8) {
 	    return(24+src1);
 	}
+	
 	abort();
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
@@ -1084,6 +1088,8 @@ int getInsnCost(opCode op)
     } else if (op == noOp) {
 	// noop
 	return(1);
+    } else if (op == getParamOp) {
+        return(0);
     } else {
 	switch (op) {
 	    // rel ops

@@ -5,6 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.30  1996/03/20 17:02:53  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.29  1996/03/14 14:23:27  naim
  * Batching enable data requests for better performance - naim
  *
@@ -174,6 +178,14 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
 				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 				       T_dyninstRPC::mdl_metric**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_rand*>*,
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
+			       T_dyninstRPC::mdl_rand**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>*,
+			       bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
+			       T_dyninstRPC::mdl_instr_rand**);
+
+
 
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
@@ -190,6 +202,13 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constr
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 					   T_dyninstRPC::mdl_metric**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_rand*>**,
+				   bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
+				   T_dyninstRPC::mdl_rand**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>**,
+				   bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
+				   T_dyninstRPC::mdl_instr_rand**);
+
 // added for batchSampleDataCallbackFunc
 template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
 T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
@@ -216,8 +235,11 @@ template class vector<bool>;
 
 //template class  queue<T_dyninstRPC::buf_struct*>;
 
+template class  vector<AstNode *>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
+template class  vector<T_dyninstRPC::mdl_rand *>;
+template class  vector<T_dyninstRPC::mdl_instr_rand *>;
 template class  vector<T_dyninstRPC::buf_struct*>;
 template class  vector<T_dyninstRPC::mdl_constraint *>;
 template class  vector<T_dyninstRPC::mdl_expr *>;

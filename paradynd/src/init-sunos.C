@@ -1,6 +1,10 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.7  1996/03/20 17:02:44  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.6  1996/03/01 22:31:59  mjrg
  * Replaced calls at the exit point by a call to DYNINSTexit
  *
@@ -52,7 +56,8 @@ bool initOS() {
   initialRequests += new instMapping("CMRT_init", "DYNINSTparallelInit", FUNC_ENTRY);
   initialRequests += new instMapping("cmmd_debug", "DYNINSTbreakPoint", FUNC_EXIT);
   initialRequests += new instMapping("CMRT_init", "DYNINSTbreakPoint", FUNC_ENTRY);
-  initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
+  //initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
+  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
 #ifdef notdef
   initialRequests += new instMapping("fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS);
@@ -84,7 +89,7 @@ bool initOS() {
 #ifdef PARADYND_PVM
   char *doPiggy;
 
-  initialRequests += new instMapping("pvm_recv", "DYNINSTrecordTag",
+  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, &tagArg);
 
   // kludge to get Critical Path to work.

@@ -1,6 +1,10 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.4  1996/03/20 17:02:43  mjrg
+ * Added multiple arguments to calls.
+ * Instrument pvm_send instead of pvm_recv to get tags.
+ *
  * Revision 1.3  1996/03/01 22:31:55  mjrg
  * Replaced calls at the exit point by a call to DYNINSTexit
  *
@@ -59,7 +63,7 @@ bool initOS() {
 #ifdef PARADYND_PVM
   char *doPiggy;
 
-  initialRequests += new instMapping("pvm_recv", "DYNINSTrecordTag",
+  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
 				 FUNC_ENTRY|FUNC_ARG, &tagArg);
 
   // kludge to get Critical Path to work.
