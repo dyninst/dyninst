@@ -17,6 +17,7 @@
 
 class BPatch_basicBlock {
 	friend class BPatch_flowGraph;
+	friend class TarjanDominator;
 
 	friend ostream& operator<<(ostream&,BPatch_basicBlock&);
 
