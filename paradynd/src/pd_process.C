@@ -57,11 +57,10 @@ extern pdRPC *tp;
 // Exec callback
 extern void pd_execCallback(process *proc);
 
-// Find parent process (should be pd_process)
-extern process *findProcess(int);
-
 pdvector<string> pd_process::arg_list;
 string pd_process::defaultParadynRTname;
+
+const string nullString("");
 
 // Global "create a new pd_process object" functions
 
@@ -171,7 +170,7 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
                        pdvector<string> envp, const string dir,
                        int stdin_fd, int stdout_fd, int stderr_fd) 
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
-          numOfActWallTimers_is(0), bufStart(0), bufEnd(0),
+          numOfActWallTimers_is(0), 
           paradynRTState(libUnloaded),
           wasCreated(true), wasAttached(false), 
           wasForked(false),
@@ -198,7 +197,7 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
 // Attach constructor
 pd_process::pd_process(const string &progpath, int pid)
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
-          numOfActWallTimers_is(0), bufStart(0), bufEnd(0),
+          numOfActWallTimers_is(0), 
           paradynRTState(libUnloaded),
           wasCreated(false), wasAttached(true), wasForked(false),
           wasExeced(false), inExec(false)
@@ -223,18 +222,42 @@ pd_process::pd_process(const string &progpath, int pid)
 
 // fork constructor
 pd_process::pd_process(const pd_process &parent, process *childDynProc) :
-        dyninst_process(childDynProc), bufStart(0), bufEnd(0),
+        dyninst_process(childDynProc), 
         paradynRTState(libLoaded),
         wasCreated(parent.wasCreated), wasAttached(parent.wasAttached),
         wasForked(true), wasExeced(false), inExec(false)
 {
+   setLibState(paradynRTState, libReady);
    for(unsigned i=0; i<childDynProc->threads.size(); i++) {
-      pd_thread *thr = new pd_thread(childDynProc->threads[i]);
-      thr_mgr.addThread(thr);
+      pd_thread *pd_thr = new pd_thread(childDynProc->threads[i]);
+      thr_mgr.addThread(pd_thr);
+      dyn_thread *thr = pd_thr->get_dyn_thread();
+
+      if(! multithread_ready()) continue;
+      // computing resource id
+      string buffer;
+      string pretty_name = string(thr->get_start_func()->prettyName().c_str());
+      buffer = string("thr_") + string(thr->get_tid()) + string("{")
+               + pretty_name + string("}");
+      resource *rid;
+      rid = resource::newResource(get_rid(), (void *)thr, nullString, 
+                                  buffer, timeStamp::ts1970(), "",
+                                  MDL_T_STRING, true);
+      pd_thr->get_dyn_thread()->update_rid(rid);
+      // tell front-end about thread start function for newly created threads
+      // We need the module, which could be anywhere (including a library)
+      pd_Function *func = (pd_Function *)thr->get_start_func();
+      pdmodule *foundMod = func->file();
+      assert(foundMod != NULL);
+      resource *modRes = foundMod->getResource();
+      string start_func_str = thr->get_start_func()->prettyName();
+      string res_string = modRes->full_name() + "/" + start_func_str;
+      CallGraphSetEntryFuncCallback(getImage()->file(), res_string, 
+                                    thr->get_tid());
    }
 
    theVariableMgr = new variableMgr(*parent.theVariableMgr, this,
-				    getSharedMemMgr());
+                                    getSharedMemMgr());
    theVariableMgr->initializeVarsAfterFork();
 }
 
@@ -327,6 +350,25 @@ void pd_process::handleExit(int exitStatus) {
    tp->processStatus(getPid(), procExited);
 }
 
+void pd_process::initAfterFork(pd_process *parentProc) {
+   process *childproc = get_dyn_process();
+   process *parentproc = parentProc->get_dyn_process();
+   int pid = getPid();
+
+   childproc->initCpuTimeMgr();
+
+   string buff = string(pid); // + string("_") + getHostName();
+   childproc->rid = resource::newResource(machineResource, // parent
+                               (void*)this, // handle
+                               nullString, // abstraction
+                               parentproc->getImage()->name(),
+                               timeStamp::ts1970(), // creation time
+                               buff, // unique name (?)
+                               MDL_T_STRING, // mdl type (?)
+                               true
+                               );
+}
+
 /********************************************************************
  **** Fork/Exec handling code                                    ****
  ********************************************************************/
@@ -389,7 +431,7 @@ bool pd_process::loadParadynLib() {
     // BPatch_thread::loadLibrary
     
     assert(dyninst_process->status() == stopped);
-    
+
     string buffer = string("PID=") + string(getPid());
     buffer += string(", loading Paradyn RT lib via iRPC");       
     statusLine(buffer.c_str());
@@ -423,8 +465,7 @@ bool pd_process::loadParadynLib() {
     // We've built a call to loadLibrary, now run it via inferior RPC
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::paradynLibLoadCallback,
-                (void *)this, // User data
-                -1); // Not metric definition
+                (void *)this); // User data
 
     setLibState(paradynRTState, libLoading);
     // .. run RPC
@@ -458,7 +499,8 @@ bool pd_process::loadParadynLib() {
     return true;
 }
 
-void pd_process::paradynLibLoadCallback(process * /*p*/, void *data, void * /*ret*/)
+void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
+                                        void *data, void * /*ret*/)
 {
     // Paradyn library has been loaded (via inferior RPC).
     pd_process *pd_p = (pd_process *)data;
@@ -631,7 +673,7 @@ bool pd_process::finalizeParadynLib() {
     if (calledFromFork) {
         // the parent proc has been waiting patiently at the start of DYNINSTfork
         // (i.e. the fork syscall executed but that's it).  We can continue it now.
-        process *parentProcess = findProcess(bs_record.ppid);
+        process *parentProcess = process::findProcess(bs_record.ppid);
         
         if (parentProcess) {
             if (parentProcess->status() == stopped) {
@@ -703,8 +745,7 @@ bool pd_process::iRPCParadynInit() {
     AstNode *paradyn_init = new AstNode("libparadynRT_init", the_args);
     postRPCtoDo(paradyn_init, false, // noCost
                 pd_process::paradynInitCompletionCallback,
-                (void *)this, // User data
-                -1); // Not metric definition
+                (void *)this); // User data
 
     // And force a flush...
     
@@ -715,7 +756,8 @@ bool pd_process::iRPCParadynInit() {
     return true;
 }
 
-void pd_process::paradynInitCompletionCallback(process* /*p*/, 
+void pd_process::paradynInitCompletionCallback(process* /*p*/,
+                                               unsigned /* rpc_id */,
                                                void* data, 
                                                void* /*ret*/) {
     // Run finalizeParadynLib on the appropriate 
@@ -829,8 +871,7 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     // We've built a call to loadLibrary, now run it via inferior RPC
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::loadAuxiliaryLibraryCallback,
-                (void *)this, // User data
-                -1); // Not metric definition
+                (void *)this); // User data
 
     setLibState(auxLibState, libLoading);
     // .. run RPC
@@ -846,6 +887,7 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
 }
 
 void pd_process::loadAuxiliaryLibraryCallback(process* /*ignored*/,
+                                              unsigned /* rpc_id */,
                                               void *data, void* /*ignored*/) {
     pd_process *p = (pd_process *)data;
     setLibState(p->auxLibState, libLoaded);
