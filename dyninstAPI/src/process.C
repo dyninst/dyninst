@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.194 1999/10/19 05:16:23 nick Exp $
+// $Id: process.C,v 1.195 1999/11/06 21:40:04 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1059,6 +1059,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     mainFunction = NULL; // set in platform dependent function heapIsOk
 
     status_ = neonatal;
+    exitCode_ = -1;
     continueAfterNextStop_ = 0;
     deferredContinueProc = false;
 
@@ -1206,6 +1207,7 @@ process::process(int iPid, image *iSymbols,
    mainFunction = NULL; // set in platform dependent function heapIsOk
 
    status_ = neonatal;
+   exitCode_ = -1;
    continueAfterNextStop_ = 0;
    deferredContinueProc = false;
 
@@ -1384,6 +1386,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     ioLink = -1; // when does this get set?
 
     status_ = neonatal; // is neonatal right?
+    exitCode_ = -1;
     continueAfterNextStop_ = 0;
     deferredContinueProc = false;
 
@@ -1941,11 +1944,10 @@ bool process::doMinorShmSample() {
 extern void removeFromMetricInstances(process *);
 extern void disableAllInternalMetrics();
 
-void handleProcessExit(process *proc, int 
-#ifdef PARADYND_PVM
-                exitStatus
-#endif
-        ) {
+void handleProcessExit(process *proc, int exitStatus) {
+
+  proc->exitCode_ = exitStatus;
+
   if (proc->status() == exited)
     return;
 

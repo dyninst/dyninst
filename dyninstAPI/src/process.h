@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.120 1999/10/14 22:27:28 zandy Exp $
+/* $Id: process.h,v 1.121 1999/11/06 21:40:05 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -404,6 +404,7 @@ class process {
 #endif
 
   processState status() const { return status_;}
+  int exitCode() const { return exitCode_; }
   string getStatusAsString() const; // useful for debug printing etc.
 
   bool checkContinueAfterStop() {
@@ -553,6 +554,7 @@ class process {
   // These member vrbles should be made private!
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
+  int exitCode_;                /* termination status code */
   processState status_;	        /* running, stopped, etc. */
   vector<pdThread *> threads;	/* threads belonging to this process */
 #if defined(MT_THREAD) 
