@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.63 2000/07/12 17:56:01 buck Exp $
+ * $Id: inst-x86.C,v 1.64 2000/07/13 18:00:06 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -605,7 +605,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    for (u = 0; u < npoints; u++) {
 	instPoint *p = points[u].point;
 	if (p->size() < 2) {
-	     /* FIXME: We assume this test is sufficent to find trap
+	     /* FIXME: We assume this test is sufficient to find trap
 		points.  Existing code to determine if a point really
 		needs a trap requires a proc handle (it probably
 		should not).  Does this test exclude points that may

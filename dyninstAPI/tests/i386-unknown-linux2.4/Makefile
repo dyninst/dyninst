@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2000/05/31 18:33:21 schendel Exp $
+# $Id: Makefile,v 1.8 2000/07/13 18:00:23 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -32,6 +32,11 @@ endif
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
+ifdef DETACH_ON_THE_FLY
+USES_MUTATEE_LIBS = true
+endif
+MUTATEE_LIBS = -ldl
+
 include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
@@ -41,7 +46,6 @@ MUTATEE_CFLAGS = -g $(ARCH_DEF)
 ifdef DETACH_ON_THE_FLY
 MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
 endif
-MUTATEE_LIBS = -ldl
 
 ifeq ($(MUTATEE_CC),gcc)
 MUTATEE_CFLAGS += -rdynamic

@@ -800,17 +800,9 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
     // set the pc to the "ret" instruction
     // Try disassembling the dummy function at _r_debug to find out the
     // offset to the "ret" instruction; it was 4 on x86-solaris and 6 here
-#ifdef DETACH_ON_THE_FLY
-    if (! proc->use_sigill_pc) {
-	 u_int next_pc = pc + 6;
-	 if (!proc->changePC(next_pc))
-	      error_occured = true;
-    }
-#else
     u_int next_pc = pc + 6;
     if (!proc->changePC(next_pc))
       error_occured = true;
-#endif
     return true;
   }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.224 2000/07/12 17:56:02 buck Exp $
+// $Id: process.C,v 1.225 2000/07/13 18:00:07 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1358,13 +1358,6 @@ bool process::initDyninstLib() {
 
   initInferiorHeap();
 
-#ifdef DETACH_ON_THE_FLY
-  /* FIXME: This will probably go away when you clean up the PC handling */
-  bool sigillerr;
-  this->sigill_inferiorPCaddr = findInternalAddress("DYNINSTinferiorPC", true, sigillerr);
-  assert(!sigillerr);
-#endif
-
   return true;
 }
 
@@ -1433,10 +1426,6 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
-  sigill_waiting = 0;
-  use_sigill_pc = 0;
-  sigill_pc = 0;
-  sigill_inferiorPCaddr = 0;
 #endif /* DETACH_ON_THE_FLY */
 
 #if defined(MT_THREAD)
@@ -1596,10 +1585,6 @@ process::process(int iPid, image *iSymbols,
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
-  sigill_waiting = 0;
-  use_sigill_pc = 0;
-  sigill_pc = 0;
-  sigill_inferiorPCaddr = 0;
 #endif /* DETACH_ON_THE_FLY */
 
 
@@ -1816,10 +1801,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   haveDetached = 0;
   juststopped = 0;
   needsDetach = 0;
-  sigill_waiting = 0;
-  use_sigill_pc = 0;
-  sigill_pc = 0;
-  sigill_inferiorPCaddr = parentProc.sigill_inferiorPCaddr;
 #endif /* DETACH_ON_THE_FLY */
 
     // This is the "fork" ctor

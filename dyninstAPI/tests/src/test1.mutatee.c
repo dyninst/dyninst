@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.51 2000/07/12 17:56:08 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.52 2000/07/13 18:00:23 zandy Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -240,6 +240,56 @@ int checkIfAttached()
 #if defined(alpha_dec_osf4_0) && defined(__GNUC__)
 static long long int  beginFP;
 #endif
+
+#ifdef DETACH_ON_THE_FLY
+/*
+ All this to stop ourselves.  We may be detached, but the mutator
+ needs to notice the stop.  We must send a SIGILL to ourselves, not
+ SIGSTOP, to get the mutator to notice.
+
+ DYNINSTsigill is a runtime library function that does this.  Here we
+ obtain a pointer to DYNINSTsigill from the runtime loader and then
+ call it.  Note that this depends upon the mutatee having
+ DYNINSTAPI_RT_LIB defined (with the same value as mutator) in its
+ environment, so this technique does not work for ordinary mutatees.
+
+ We could call kill to send ourselves SIGILL, but this is unsupported
+ because it complicates the SIGILL signal handler.  */
+static void
+dotf_stop_process()
+{
+     void *h;
+     char *rtlib;
+     static void (*DYNINSTsigill)() = NULL;
+
+     if (!DYNINSTsigill) {
+	  /* Obtain the name of the runtime library linked with this process */
+	  rtlib = getenv("DYNINSTAPI_RT_LIB");
+	  if (!rtlib) {
+	       fprintf(stderr, "ERROR: Mutatee can't find the runtime library pathname\n");
+	       assert(0);
+	  }
+
+	  /* Obtain a handle for the runtime library */
+	  h = dlopen(rtlib, RTLD_LAZY); /* It should already be loaded */
+	  if (!h) {
+	       fprintf(stderr, "ERROR: Mutatee can't find its runtime library: %s\n",
+		       dlerror());
+	       assert(0);
+	  }
+
+	  /* Obtain a pointer to the function DYNINSTsigill in the runtime library */
+	  DYNINSTsigill = (void(*)()) dlsym(h, "DYNINSTsigill");
+	  if (!DYNINSTsigill) {
+	       fprintf(stderr, "ERROR: Mutatee can't find DYNINSTsigill in the runtime library: %s\n",
+		       dlerror());
+	       assert(0);
+	  }
+     }
+     DYNINSTsigill();
+}
+#endif /* DETACH_ON_THE_FLY */
+
 void stop_process()
 {
 #ifdef i386_unknown_nt4_0
@@ -258,10 +308,11 @@ void stop_process()
 #endif
 
 #ifdef DETACH_ON_THE_FLY
-    kill(getpid(), SIGILL);
-#else
-    kill(getpid(), SIGSTOP);
+    dotf_stop_process();
+    return;
 #endif
+
+    kill(getpid(), SIGSTOP);
 
 #if defined(alpha_dec_osf4_0) && defined(__GNUC__)
     fp = beginFP;
@@ -914,6 +965,7 @@ void func12_1()
 	passedTest[12] = TRUE;
     } else {
         printf("**Failed test #12 (insert/remove and malloc/free)\n");
+	printf("ZANDY: #12 failed because globalVariable12_1 == %d\n", globalVariable12_1);
     }
 }
 

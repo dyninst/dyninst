@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.34 2000/06/14 23:03:23 wylie Exp $
+// $Id: linux.C,v 1.35 2000/07/13 18:00:07 zandy Exp $
 
 #include <fstream.h>
 
@@ -456,21 +456,6 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 process *findProcess(int);  // In process.C
 
 Address getPC(int pid) {
-
-#ifdef DETACH_ON_THE_FLY
-   process *proc;
-   proc = findProcess(pid);
-   assert(proc);
-   /* If inferior was stopped by an illegal instruction trap that was
-      handled in the inferior's SIGILL handler, then its actual PC is
-      in the handler, but the PC we want to return here is in
-      proc->sigill_pc (it is the pc of the trap instruction). */
-   if (proc->use_sigill_pc) {
-	assert(proc->sigill_pc);
-	return proc->sigill_pc;
-   }
-#endif
-
    Address regaddr = EIP * INTREGSIZE;
    int res;
    res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
@@ -566,15 +551,25 @@ waitForInferiorSigillStop(int pid)
      }
 }
 
+/* When a detached mutatee needs us to reattach and handle an event,
+   it sends itself a SIGILL.  Its SIGILL handler in turn sends us
+   SIG33, which brings us here.  Here we reattach to the process and
+   then help it re-execute the code that caused its SIGILL.  Having
+   reattached, we receive the new SIGILL event and dispatch it as
+   usual (in handleSigChild). */
 static void sigill_handler(int sig, siginfo_t *si, void *unused)
 {
      int ret;
      process *p;
+
+     /* Determine the process that sent the signal.  On Linux (at
+	least upto 2.2), we can only obtain this with the real-time
+	signals, those numbered 33 or higher. */
      p = findProcess(si->si_pid);
      if (!p) {
 	  fprintf(stderr, "Received SIGILL sent by unregistered or non-inferior process\n");
+	  assert(0);
      }
-     assert(p);
 
      /* Reattach, which should stop the process. */
      p->reattach();
@@ -584,14 +579,14 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 	     FIXME: Why have we released the process for RPCs anyway? */
 	  p->needsDetach = true;
 
-     /* Synchronize with the inferior sigill handler */
+     /* Synchronize with the SIGSTOP sent by inferior sigill handler */
      waitForInferiorSigillStop(p->getPid());
 
-     /* Copy the PC from where the inferior took the signal */
-     assert(p->readDataSpace((void *)p->sigill_inferiorPCaddr, sizeof(p->sigill_pc), &p->sigill_pc, true));
-     assert(p->sigill_pc);
-
-     p->sigill_waiting = 1;
+     /* Resume the process.  We expect it to re-execute the code that
+        generated the SIGILL.  Now that we are attached, we'll get the
+        SIGILL event and handle it as usual. */
+     if (!p->continueProc())
+	  assert(0);
 }
 
 void initDetachOnTheFly()
@@ -634,7 +629,7 @@ bool haveDetachedFromProcess(int pid)
 
 
 /* The following two routines block SIG33 to prevent themselves from
-   being reentered.  (FIXME: Is this okay for multiple processes?) */
+   being reentered. */
 int process::detach()
 {
      int res, ret;
@@ -646,7 +641,7 @@ int process::detach()
      sigprocmask(SIG_BLOCK, &tmp, &old);
 
 #if 0
-     fprintf(stderr, "ZANDY: detach ENTRY\n");
+     fprintf(stderr, "DEBUG: detach ENTRY\n");
 #endif
 
      if (this->haveDetached) {
@@ -664,11 +659,10 @@ int process::detach()
      this->juststopped = false;
      this->needsDetach = false;
      this->status_ = running;
-     this->use_sigill_pc = 0;
      ret = 1;
 out:
 #if 0
-     fprintf(stderr, "ZANDY: detach EXIT (%s)\n", ret == 1 ? "success" : "failure");
+     fprintf(stderr, "DEBUG: detach EXIT (%s)\n", ret == 1 ? "success" : "failure");
 #endif
      sigprocmask(SIG_SETMASK, &old, NULL);
      return ret;
@@ -685,7 +679,7 @@ int process::reattach()
      sigprocmask(SIG_BLOCK, &tmp, &old);
 
 #if 0
-     fprintf(stderr, "ZANDY: reattach ENTRY\n");
+     fprintf(stderr, "DEBUG: reattach ENTRY\n");
 #endif
      if (! this->haveDetached) {
 	  /* It is safe to call this when already attached.  Silently
@@ -762,27 +756,6 @@ int process::waitProcs(int *status) {
   int result = 0, sig = 0;
   bool ignore;
 
-#ifdef DETACH_ON_THE_FLY
-  process *ill_proc = 0;
-  /* Check for any process that has triggered its own sigill handler */
-  /* FIXME: This should be replaced by the general purpose
-     asynchronous inferior->daemon/mutator signalling mechanism, if it
-     is ever written. */
-  for (unsigned u = 0; u < processVec.size(); u++)
-       if (processVec[u] && processVec[u]->sigill_waiting)
-	    ill_proc = processVec[u];
-  if (ill_proc) {
-       /* sigill waiting in ill_proc*/
-       int x;
-       x = 0x7f;                /* STOPPED */
-       x |= ((int)SIGILL << 8); /* in SIGILL */
-       *status = x;
-       result = ill_proc->getPid();
-       ill_proc->sigill_waiting = 0;
-       ill_proc->use_sigill_pc = 1;
-  } else
-#endif /* DETACH_ON_THE_FLY */
-       /* ZANDY: FIXME:  race between sigusr2 arrival and waitpid calls */
        do {
 	    ignore = false;
 	    result = waitpid( -1, status, options );
@@ -792,12 +765,6 @@ int process::waitProcs(int *status) {
 	    // send the signal back and wait for another.
 	    if( result > 0 && WIFSTOPPED(*status) ) {
 		 process *p = findProcess( result );
-#ifdef DETACH_ON_THE_FLY
-		 /* We have consumed an event caused by the sigill
-		    handler in the inferior.  Resume normal PC
-		    value access. */
-		 p->use_sigill_pc = 0;
-#endif /* DETACH_ON_THE_FLY */
 		 sig = WSTOPSIG(*status);
 		 if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
 		      ; // Report it
@@ -1344,10 +1311,6 @@ bool process::continueProc_() {
 		  else*/
 		  perror("continueProc_()");
   }
-
-#ifdef DETACH_ON_THE_FLY
-  this->use_sigill_pc = 0;
-#endif  
 
   return ret != -1;
 }

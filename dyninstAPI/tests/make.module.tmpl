@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.24 2000/04/24 15:06:53 wylie Exp $
+# $Id: make.module.tmpl,v 1.25 2000/07/13 18:00:21 zandy Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -122,6 +122,7 @@ endif
 
 # test1.mutatee uses dlopen for replaceFunction tests
 # (currently only implemented on SPARC/Solaris and Alpha/Tru64)
+# It also uses it for detach-on-the-fly on Linux.
 ifeq (test1,$(findstring test1,$(TARGET2)))
 ifdef USES_MUTATEE_LIBS
 MUTLIBS=$(MUTATEE_LIBS)

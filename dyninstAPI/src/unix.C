@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.38 2000/06/14 23:03:22 wylie Exp $
+// $Id: unix.C,v 1.39 2000/07/13 18:00:10 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -398,6 +398,11 @@ int handleSigChild(int pid, int status)
 #ifdef i386_unknown_linux2_0
 	int orig_sig = sig;
 #endif
+#ifdef DETACH_ON_THE_FLY
+	/* Keep track of ILL->STOP events, in case we need to adjust
+	   the PC past the illegal instruction. */
+        int fix_ill = 0;
+#endif
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
         // we put an illegal instead of a trap at the following places, but 
@@ -433,6 +438,7 @@ int handleSigChild(int pid, int status)
 			  the resulting signal is now lost. */
 		       signal_cerr << "Changing SIGILL to SIGSTOP" << endl;
 		       sig = SIGSTOP;
+		       fix_ill = 1;
 		  }
 #endif /* DETACH_ON_THE_FLY */
 	}
@@ -709,12 +715,21 @@ int handleSigChild(int pid, int status)
 		     inferiorrpc_cerr << "processed RPC response in SIGSTOP!" << endl; cerr.flush();
 		     break; // we don't forward the signal -- on purpose
 		}
+
+		/* If an illegal instruction (assume "ud2") caused
+                   this event, but it was not an inferior RPC, advance
+                   the PC past the illegal instruction. */
+		if (fix_ill) {
+		     Address pc = getPC(pid);
+		     if (! curr->changePC(pc + 2))
+			  assert(0);
+		}
+		fix_ill = 0;
 #endif
 		int result = curr->procStopFromDYNINSTinit();
 		assert(result >=0 && result <= 2);
 		if (result != 0) {
 		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
-
 		   if (result == 1) {
 		      assert(curr->status_ == stopped);
 		      // DYNINSTinit() after normal startup, after fork, or after exec
