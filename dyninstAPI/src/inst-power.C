@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.139 2002/06/26 21:14:43 schendel Exp $
+ * $Id: inst-power.C,v 1.140 2002/06/27 20:21:55 mirg Exp $
  */
 
 #include "common/h/headers.h"
@@ -2223,8 +2223,8 @@ Register emitFuncCall(opCode /* ocode */,
 #endif
 
   // see what others we need to save.
-  for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-    registerSlot *reg = regSpace->getRegSlot(i);
+  for (u_int i = 0; i < rs->getRegisterCount(); i++) {
+    registerSlot *reg = rs->getRegSlot(i);
     if (reg->needsSaving) {
       // needsSaving -> caller saves register
       // we MUST save restore this and the end of the function call
@@ -2237,7 +2237,7 @@ Register emitFuncCall(opCode /* ocode */,
       // architecture anymore - naim
       // saveRegister(insn,base,reg->number,8+(46*4));
       // savedRegs += reg->number;
-    } else if (reg->inUse && !reg->mustRestore) {
+    } else if (reg->refCount > 0 && !reg->mustRestore) {
       // inUse && !mustRestore -> in use scratch register 
       //		(i.e. part of an expression being evaluated).
 
@@ -2256,7 +2256,7 @@ Register emitFuncCall(opCode /* ocode */,
 	savedRegs.push_back(reg->number);
 	cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
       }
-    } else if (reg->inUse) {
+    } else if (reg->refCount > 0) {
       // only inuse registers permitted here are the parameters.
       unsigned u;
       for (u=0; u<srcs.size(); u++){
@@ -2289,20 +2289,20 @@ Register emitFuncCall(opCode /* ocode */,
   for (unsigned u=0; u<srcs.size(); u++){
     // check that is is not already in the register
     if (srcs[u] == (unsigned int) u+3) {
-      regSpace->freeRegister(srcs[u]);
+      rs->freeRegister(srcs[u]);
       continue;
     }
 
-    assert(regSpace->isFreeRegister(u+3));
+    assert(rs->isFreeRegister(u+3));
 
     // internal error we expect this register to be free here
-    // if (!regSpace->isFreeRegister(u+3)) abort();
+    // if (!rs->isFreeRegister(u+3)) abort();
     
     genImmInsn(insn, ORILop, srcs[u], u+3, 0);
     insn++;
     base += sizeof(instruction);
     // source register is now free.
-    regSpace->freeRegister(srcs[u]);
+    rs->freeRegister(srcs[u]);
   }
 
   // Set up the new TOC value
