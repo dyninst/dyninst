@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.112 1999/06/17 22:08:12 wylie Exp $
+/* $Id: process.h,v 1.113 1999/07/07 16:08:37 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -289,17 +289,41 @@ class process {
 #endif
 
   vector<Address> walkStack(bool noPause=false);
+#if defined(MT_THREAD)
+  vector<vector<Address> > walkAllStack(bool noPause=false);
+  void walkAStack(int, 
+    Frame top, 
+    Address sig_addr, 
+    u_int sig_size, 
+    vector<Address>&pcs,
+    vector<Address>&fps);
+#endif
 
   // 
   // getActiveFrame and readDataFromFrame are platform dependant
   //
-  bool getActiveFrame(Address *fp, Address *pc);
+  bool getActiveFrame(Address *fp, Address *pc); 
+#if defined(MT_THREAD)
+  bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
+  bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
+  bool readDataFromLWPFrame(int lwp_id, 
+                         Address currentFP, 
+			 Address *previousFP, 
+			 Address *rtn, 
+			 bool uppermost=false);
+
+  bool readDataFromThreadFrame(Address currentFP, 
+			 Address *previousFP, 
+			 Address *rtn, 
+			 bool uppermost=false);
+  bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
+#endif
   bool readDataFromFrame(Address currentFP, Address *previousFP, Address *rtn, 
 			 bool uppermost=false);
 
 
 #ifdef SHM_SAMPLING
-  time64 getInferiorProcessCPUtime();
+  time64 getInferiorProcessCPUtime(int lwp_id=-1);
      // returns user+sys time from the u or proc area of the inferior process, which in
      // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
      // to obtain it (solaris).  It is hoped that the implementation would not have to
@@ -349,12 +373,20 @@ class process {
   void clearDyninstLibLoadFlags() { hasLoadedDyninstLib = isLoadingDyninstLib = false; }
   unsigned numOfActCounters_is;
   unsigned numOfActProcTimers_is;
-  unsigned numOfActWallTimers_is; 
+  unsigned numOfActWallTimers_is;
+#if defined(MT_THREAD)
+  unsigned numOfCurrentLevels_is;
+  unsigned numOfCurrentThreads_is; 
+#endif
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
   void postRPCtoDo(AstNode *, bool noCost,
-		   inferiorRPCcallbackFunc, void *data, int);
+#if defined(MT_THREAD)
+		   inferiorRPCcallbackFunc, void *data, int, int, bool);
+#else
+                   inferiorRPCcallbackFunc, void *data, int);
+#endif
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
@@ -371,6 +403,9 @@ class process {
      RPCs_waiting_for_syscall_to_complete = flag;
   }
 
+#if defined(MT_THREAD)
+  bool handleDoneRPC(unsigned cookie);
+#endif
   bool handleTrapIfDueToRPC();
      // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
      // true iff found.  Also, if true is being returned, then additionally does
@@ -446,10 +481,32 @@ class process {
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
   vector<pdThread *> threads;	/* threads belonging to this process */
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  hashTable *threadMap;         /* mapping table for threads into superTable */
-#endif
-  int continueAfterNextStop_;
+#if defined(MT_THREAD) && defined(SHM_SAMPLING)
+  hashTable *threadMap;         /* mapping table for tid->superTable */
+  Address DYNINST_allthreads_p ;  /* in libRTinst  */
+  Address allthreads ;            /* in libthread  */
+  vector<metricDefinitionNode*> allMIComponentsWithThreads;
+  bool preambleForDYNINSTinit;
+  bool inThreadCreation;
+  //pdThread *createThread(int tid, unsigned pos);
+  pdThread *createThread(
+    int tid, 
+    unsigned pos, 
+    unsigned stack_addr, 
+    unsigned start_pc, 
+    void* resumestate_p, 
+    bool);
+  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource* rid) ;
+  void updateThread(
+    pdThread *thr, 
+    int tid, 
+    unsigned pos, 
+    unsigned stack_addr, 
+    unsigned start_pc, 
+    void* resumestate_p);
+  void deleteThread(int tid);
+#endif//MT_THREAD && SHM_SAMPLING
+  bool continueAfterNextStop_;
 
   resource *rid;		/* handle to resource for this process */
 
@@ -498,7 +555,16 @@ class process {
      inferiorRPCcallbackFunc callbackFunc;
      void *userData;
      int mid;
+#if defined(MT_THREAD)
+     int thrId;
+     bool isSafeRPC; // launch it as MT RPC or regular RPC
+		     // if DYNINSTinit, we launch it as regular RPC
+		     // otherwise launch it as MT RPC
+#endif
   };
+#if defined(MT_THREAD)
+  rpcToDo* DYNINSTthreadRPC ; 
+#endif
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   bool RPCs_waiting_for_syscall_to_complete;
   bool was_running_before_RPC_syscall_complete;
@@ -535,6 +601,9 @@ class process {
 
      Address breakAddr;
         // location of the TRAP or ILL insn which marks the end of the inferiorRPC
+#if defined(MT_THREAD)
+     bool isSafeRPC ;
+#endif
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
@@ -544,21 +613,29 @@ class process {
   //  PRIVATE MEMBER FUNCTIONS
   // 
 
+  bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, Address &baseBytes);
   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
 			      bool stopForResult,
 			      unsigned &stopForResultOffset,
-			      unsigned &justAfter_stopForResultOffset);
-
+#if defined(MT_THREAD)
+			      unsigned &justAfter_stopForResultOffset, 
+			      bool isMT=false);
+#else
+                              unsigned &justAfter_stopForResultOffset);
+#endif
   Address createRPCtempTramp(AstNode *action,
 			      bool noCost, bool careAboutResult,
 			      Address &breakAddr,
 			      Address &stopForResultAddr,
 			      Address &justAfter_stopForResultAddr,
-			      Register &resultReg);
-
+#if defined(MT_THREAD)
+			      Register &resultReg, int thrId, bool isMT=false);
+#else
+                              Register &resultReg);
+#endif
   void *getRegisters();
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
      // Result is returned in an opaque type which is allocated with new[]
@@ -796,6 +873,16 @@ class process {
      return inferiorHeapMgr.getHeapTotalNumBytes();
   }
 
+#if defined(MT_THREAD)
+  void *getRTsharedDataInApplicSpace() {
+     void *result = inferiorHeapMgr.getRTsharedDataInApplicSpace();
+     return result;
+  }
+  void *getRTsharedDataInParadyndSpace() {
+     void *result = inferiorHeapMgr.getRTsharedDataInParadyndSpace();
+     return result;
+  }
+#endif
   void *getObsCostLowAddrInApplicSpace() {
      void *result = inferiorHeapMgr.getObsCostAddrInApplicSpace();
      return result;
@@ -1081,15 +1168,35 @@ class Frame {
     Address frame_;
     Address pc_;
     bool uppermostFrame;
+#if defined(MT_THREAD)
+    int lwp_id ;       // a frame for a LWP
+    pdThread* thread ; // a frame for a user-level thread
+#endif
 
   public:
-    Frame(process *);
+    Frame(process *); 
        // formerly getActiveStackFrameInfo
 
+#if defined(MT_THREAD)
+    Frame(pdThread *); //solaris.C
+#endif
     Frame(Address theFrame, Address thePc, bool theUppermost) {
        frame_ = theFrame; pc_ = thePc;
        uppermostFrame = theUppermost;
+#if defined(MT_THREAD)
+       lwp_id = 0 ;
+       thread = NULL;
+#endif
     }
+
+#if defined(MT_THREAD)
+    Frame(int lwpid, Address theFrame, Address thePc, bool theUppermost) {
+       frame_ = theFrame; pc_ = thePc;
+       uppermostFrame = theUppermost;
+       lwp_id = lwpid ;
+       thread = NULL ;
+    }
+#endif
 
     Address getPC() const { return pc_; }
     Address getFramePtr(){ return frame_;}
