@@ -279,7 +279,7 @@ bool interface_spec::gen_ctor_4(ofstream &out_stream, const bool &server,
     << gen_class_name(server) 
       << "(const unsigned tid) :\n ";
   out_stream << " RPCBase(igen_no_err, 0), \n"
-    << Options::ml->rpc_parent() << "(tid) { assert(!MSG_TAG_ANY); } \n";
+    << Options::ml->rpc_parent() << "(tid) { } \n";
   return true;
 }
 
