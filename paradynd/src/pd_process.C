@@ -174,9 +174,7 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           paradynRTState(libUnloaded),
-          wasCreated(true), wasAttached(false), 
-          wasForked(false),
-          wasExeced(false), inExec(false)
+          inExec(false)
 {
     dyninst_process = createProcess(argv0, argv, envp, dir, 
                                     stdin_fd, stdout_fd, stderr_fd);
@@ -200,8 +198,7 @@ pd_process::pd_process(const string &progpath, int pid)
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           paradynRTState(libUnloaded),
-          wasCreated(false), wasAttached(true), wasForked(false),
-          wasExeced(false), inExec(false)
+          inExec(false)
 {
     
     dyninst_process = attachProcess(progpath, pid);
@@ -223,9 +220,7 @@ pd_process::pd_process(const string &progpath, int pid)
 // fork constructor
 pd_process::pd_process(const pd_process &parent, process *childDynProc) :
         dyninst_process(childDynProc), 
-        paradynRTState(libLoaded),
-        wasCreated(parent.wasCreated), wasAttached(parent.wasAttached),
-        wasForked(true), wasExeced(false), inExec(false),
+        paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
    setLibState(paradynRTState, libReady);
@@ -425,7 +420,6 @@ void pd_process::postExecHandler(process *p) {
     // We need to reload the Paradyn library
     paradynRTState = libUnloaded; // It was removed when we execed
     inExec = true;
-    wasExeced = true;
 
     // Renew the metadata: it's been scribbled on
     sharedMetaDataOffset = dyninst_process->initSharedMetaData();
@@ -740,6 +734,8 @@ bool pd_process::iRPCParadynInit() {
     the_args[0] = new AstNode(AstNode::Constant, (void *)traceConnectInfo); // Global var set in perfStream.C
 
     // Argument 2: creation method (created/attached/forked/other)
+    // need to switch from wasForked, wasCreated, and wasAttached  to
+    // using ldcause, as in pd_process::loadParadynLib(load_cause_t ldcause)
     if (wasForked) // Forked overrides (?)
         the_args[1] = new AstNode(AstNode::Constant, (void *)2);
     else if (wasCreated) 

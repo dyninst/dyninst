@@ -352,10 +352,6 @@ class pd_process {
    *************************************************************/
   private:
   
-  bool wasCreated;
-  bool wasAttached;
-  bool wasForked;
-  bool wasExeced;
   bool inExec;
 
   Address sharedMetaDataOffset;
