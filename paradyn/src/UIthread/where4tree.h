@@ -4,9 +4,13 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.6  1995/08/07 00:02:16  tamches
-/* added selectUnSelectFromFullPathName
+/* Revision 1.7  1995/09/20 01:24:11  tamches
+/* Major cleanification; too many things to enumerate.  no path items
+/* have negative values.  No more uses of graphical paths.
 /*
+ * Revision 1.6  1995/08/07  00:02:16  tamches
+ * added selectUnSelectFromFullPathName
+ *
  * Revision 1.5  1995/08/04  19:18:00  tamches
  * Added numChildrenAddedSinceLastSort field to every node.
  * Changes needed for using Vector::sort()
@@ -57,77 +61,33 @@ extern "C" {
 #include "simpSeq.h"
 
 #include "where4treeConstants.h"
+#include "whereAxisMisc.h"
+
 #include "rootNode.h"
 #include "scrollbar.h"
 
 /* ********************************************************************* */
 
-struct whereNodeGraphicalPathItem {
-   int root_centerxpix, root_topypix;
-   int childnum;
-      // children.size() refers to end-of-path (stopping on a non-listbox-item)
-      // 0 thru children.size()-1 refers to a child (not end of path)
-      // < 0 refers to end-of-path (stopping on a listbox item whose index
-      //            equals the absolute value of this number - 1)
-
-   whereNodeGraphicalPathItem() {}
-   whereNodeGraphicalPathItem(const int cn) {
-      childnum = cn; root_centerxpix=-1; root_topypix=-1;
-   }
-   whereNodeGraphicalPathItem(const int x, const int y, const int cn) {
-      root_centerxpix = x;
-      root_topypix = y;
-      childnum = cn;
-   }
-   whereNodeGraphicalPathItem(const whereNodeGraphicalPathItem &src) {
-      this->root_centerxpix = src.root_centerxpix;
-      this->root_topypix    = src.root_topypix;
-      this->childnum        = src.childnum;
-   }
-   whereNodeGraphicalPathItem &operator=(const whereNodeGraphicalPathItem &src) {
-      this->root_centerxpix = src.root_centerxpix;
-      this->root_topypix    = src.root_topypix;
-      this->childnum  = src.childnum;
-      return *this;
-   }
-};
-
-struct whereNodeRawPathItem {
-   int childnum;
-   whereNodeRawPathItem() {}
-   whereNodeRawPathItem(const int cn) {childnum=cn;}
-   whereNodeRawPathItem(const whereNodeRawPathItem &src) {childnum=src.childnum;}
-   whereNodeRawPathItem &operator=(const whereNodeRawPathItem &src) {
-      childnum = src.childnum;
-      return *this;
-   }
-
-   operator int() const {return childnum;}
-};
-
-typedef simpSeq<whereNodeGraphicalPathItem> whereNodeGraphicalPath;
-typedef simpSeq<whereNodeRawPathItem> whereNodeRawPath;
+typedef simpSeq<unsigned> whereNodePosRawPath;
 
 
-#include "whereAxis.h"
 template <class USERNODEDATA>
 class where4tree {
- friend class whereAxis<USERNODEDATA>;
  private:
    rootNode theRootNode;
    USERNODEDATA theUserNodeData;
    unsigned numChildrenAddedSinceLastSort;
-      // if << children.size(), then we resort using an insertion sort;
-      // else, we resort using a quicksort.  If 0, no sorting is needed.
+      // if << children.size(), then resort using selection sort; else, quicksort.
+      // If 0, no sorting is needed.
 
    struct childstruct {
-      where4tree *theTree;
+      where4tree *theTree; // a ptr since we may use inheritence
       bool isExplicitlyExpanded;
       int  nameTextWidthIfInListbox; // caches away an XTextWidth() call [lb width],
          // easing the pain of rethink_listbox_dimensions()
 
       static int cmpfunc(const void *ptr1, const void *ptr2) {
-         // for qsort()
+         // for passing to Vector::sort()
          const childstruct &child1 = *(const childstruct *)ptr1;
          const childstruct &child2 = *(const childstruct *)ptr2;
 
@@ -149,11 +109,6 @@ class where4tree {
 
    vector<childstruct> theChildren;
       // Why a vector instead of a set?  Because the children must be ordered.
-      // Why is "theTree" a pointer?  Because we may use inheritance
-      // isExplicitlyExpanded is true iff the subtree has been _explicitly_
-      //    expanded at least one level.  Other subtrees (all other or none other)
-      //    will be implicitly (automatically) expanded if there is enough screen
-      //    real estate for them all.
       // Why do we group these into a childstruct?  To make memory allocation faster.
 
 // Sorry, "not yet implemented" in g++ 2.6.3: static members of a template type
@@ -175,25 +130,28 @@ class where4tree {
 
  private:
 
+   bool expandUnexpand1(const where4TreeConstants &tc, int childindex, bool expandFlag,
+			bool rethinkFlag);
+
    // Mouse clicks and node expansion
    int point2ItemWithinListbox(const where4TreeConstants &tc,
 			       int localx, int localy) const;
       // returns index of item clicked on (-2 if nothing), given point
-      // local to the _data_ part of listbox.  0<=localy<=listboxFullPixHeight
+      // local to the _data_ part of listbox.  0<=localy<listboxFullPixHeight
 
-   int point2ItemOneStepScrollbar(const where4TreeConstants &tc,
-				  const int ypix,
-				  const int scrollbarTop,
-				  const int scrollbarHeight) const;
+   int point2ItemOneStepScrollbar(int ypix,
+				  int scrollbarTop,
+				  int scrollbarHeight) const;
       // -3 for a point in listbox scrollbar up-arrow,
       // -4 for point in listbox scrollbar down-arrow,
       // -5 for point in listbox scrollbar pageup-region,
       // -6 for point in listbox scrollbar pagedown-region,
       // -7 for point in listbox scrollbar slider.
 
+ public:
    int point2ItemOneStep(const where4TreeConstants &tc,
-			 const int xpix, const int ypix,
-			 const int root_centerx, const int root_topy) const;
+			 int xpix, int ypix,
+			 int root_centerx, int root_topy) const;
       // returns -1 for a point in root, 0 thru n-1 for point w/in general
       // range of a child subtree [even if child is in a listbox],
       // -2 for a point on nothing,
@@ -203,65 +161,112 @@ class where4tree {
       // -6 for point in listbox scrollbar pagedown-region,
       // -7 for point in listbox scrollbar slider.
 
- public: // these things had to be public to whereAxis.h could access 'em.
-
-   void makeGraphicalPathFromRawPath(const where4TreeConstants &tc,
-                                     int index,
-                                     whereNodeGraphicalPath &destPath,
-                                     whereNodeRawPath &srcPath,
-                                     int rootNodeCenterX, int rootNodeTopY);
-   void noNegativeChildNums(whereNodeRawPath &thePath, int index) {
-      if (index == thePath.getSize()-1) {
-         if (thePath[index].childnum < 0) {
-            thePath[index].childnum = -thePath[index].childnum - 1;
-            thePath.append(theChildren[thePath[index].childnum].theTree->theChildren.size());
-         }
-      }
-      else {
-         if (thePath[index].childnum < 0)
-            thePath[index].childnum = -thePath[index].childnum - 1;
-
-         theChildren[thePath[index].childnum].theTree->
-                                              noNegativeChildNums(thePath, index+1);
-      }
+ private:
+   const where4tree *get_end_of_path0(const whereNodePosRawPath &thePath,
+                                      unsigned index) const {
+      if (index < thePath.getSize())
+         return getChildTree(thePath[index])->get_end_of_path0(thePath, index+1);
+      else
+         return this;
    }
 
-   void removeListbox();
+   where4tree *get_end_of_path0(const whereNodePosRawPath &thePath, unsigned index) {
+      if (index < thePath.getSize())
+         return getChildTree(thePath[index])->get_end_of_path0(thePath, index+1);
+      else
+         return this;
+   }
+
+   const where4tree *get_parent_of_end_of_path0(const whereNodePosRawPath &thePath,
+                                                unsigned index) const {
+      if (index < thePath.getSize()-1)
+         return getChildTree(thePath[index])->get_parent_of_end_of_path0(thePath, index+1);
+      else
+         return this;
+   }
+
+   where4tree *get_parent_of_end_of_path0(const whereNodePosRawPath &thePath,
+                                          unsigned index) {
+      if (index < thePath.getSize()-1)
+         return getChildTree(thePath[index])->get_parent_of_end_of_path0(thePath, index+1);
+      else
+         return this;
+   }
+
+ public:
+
+   const where4tree *get_end_of_path(const whereNodePosRawPath &thePath) const {
+      return get_end_of_path0(thePath, 0);
+   }
+
+   where4tree *get_end_of_path(const whereNodePosRawPath &thePath) {
+      return get_end_of_path0(thePath, 0);
+   }
+
+   const where4tree *get_parent_of_end_of_path(const whereNodePosRawPath &thePath) const {
+      return get_parent_of_end_of_path0(thePath, 0);
+   }
+
+   where4tree *get_parent_of_end_of_path(const whereNodePosRawPath &thePath) {
+      return get_parent_of_end_of_path0(thePath, 0);
+   }
+
+   unsigned getNumChildren() const {return theChildren.size();}
+   where4tree *getChildTree(unsigned index) {
+      return theChildren[index].theTree;
+   }
+   const where4tree *getChildTree(unsigned index) const {
+      return theChildren[index].theTree;
+   }
+   bool getChildIsExpandedFlag(unsigned index) const {
+      return theChildren[index].isExplicitlyExpanded;
+   }
 
    bool existsANonExplicitlyExpandedChild() const {
       // assert me when a listbox is up
-      const int numChildren = theChildren.size();
-      for (int childlcv = 0; childlcv < numChildren; childlcv++)
+      const unsigned numChildren = theChildren.size();
+      for (unsigned childlcv = 0; childlcv < numChildren; childlcv++)
          if (!theChildren[childlcv].isExplicitlyExpanded)
            return true;
       return false;
    }
 
-   // listbox:
+   int getListboxPixWidth() const {return listboxPixWidth;}
+   int getListboxFullPixHeight() const {return listboxFullPixHeight;}
+   int getListboxActualPixHeight() const {return listboxActualPixHeight;}
+   scrollbar &getScrollbar() {return theScrollbar;}
+   const scrollbar &getScrollbar() const {return theScrollbar;}
+
+   void removeListbox();
+
+   int scroll_listbox(int deltaYpix);
+      // returns true scroll amt.  Doesn't redraw
+
+   bool scroll_listbox(const where4TreeConstants &tc,
+		       int listboxLeft,
+		       int listboxTop,
+		       int deltaYpix);
+      // returns true iff any changes were made.  This version redraws.
+
    void rethink_listbox_dimensions(const where4TreeConstants &tc);
       // an expensive routine; time = O(numchildren).  Calculating just the
       // listbox height could be quicker.
 
-   void drawTriangle(const where4TreeConstants &tc,
-		     int theDrawable,
-		     const int triangleEndX, const int currBaseLine) const;
+   static void drawTriangle(const where4TreeConstants &tc, Drawable theDrawable,
+		            int triangleEndX, int currBaseLine);
       // cost is O(XFillPolygon())
 
-   void draw_listbox(const where4TreeConstants &tc, int theDrawable,
-                            const int left, const int top,
-			    const int datapart_relative_starty,
-			    const int datapart_relative_height
-			    ) const;
-      // crude clipping at no extra charge
+   void draw_listbox(const where4TreeConstants &tc, Drawable theDrawable,
+		     int left, int top,
+		     int datapart_relative_starty,
+		     int datapart_relative_height) const;
 
    // Children Pixel Calculations (excl. those in a listbox)
    int horiz_offset_to_expanded_child(const where4TreeConstants &,
-                                      const int childIndex) const;
-      // Returns the horiz pix offset (from left point of leftmost item drawn
-      // below root, which is usually the listbox) of a certain
-      // expanded (implicitly or explicitly) child.
-      // Simply adds up listbox width plus all the expanded children widths
-      // from 0 to childIndex-1 (plus padding where appropriate).
+                                      unsigned childIndex) const;
+      // Returns the horiz pix offset (from left side of leftmost item drawn
+      // below root, which is usually the listbox) of a certain expanded
+      // (implicitly or explicitly) child.
       // cost is O(childindex)
 
    void rethink_all_expanded_children_dimensions(const where4TreeConstants &tc) {
@@ -269,58 +274,38 @@ class where4tree {
       allExpandedChildrenHeightAsDrawn=wouldbe_all_expanded_children_height(tc);
    }
 
+   // The following 2 routines are expensive; call only to rethink
+   // cache variables "allExpandedChildrenWidth(Height)AsDrawn".
+   // Each assumes all descendants have updated layout variables.
+   // Costs are O(numchildren)
    int wouldbe_all_expanded_children_width(const where4TreeConstants &tc) const;
-      // expensive; call only to rethink "allExpandedChildrenWidthAsDrawn".
-      // MAJOR ASSUMPTION: All descendants have up-to-date values for sizes of
-      // everything, and this node has up-to-date listbox sizes
-      // (so we can know whether or not one is up).
-      // cost is O(numchildren)
-
    int wouldbe_all_expanded_children_height(const where4TreeConstants &tc) const;
-      // expensive; call only to rethink "allExpandedChildrenHeightAsDrawn".
-      // MAJOR ASSUMPTION: all descendants have up-to-date values for sizes of
-      // everything, and this node has up-to-date listbox sizes
-      // (so we can know whether or not one is up).
-      // cost is O(numchildren)
 
+   // The following routines are O(1):
    int horiz_pix_everything_below_root(const where4TreeConstants &tc) const;
-      // cost is O(1)
    int vert_pix_everything_below_root() const;
-      // cost is O(1)
-
-   // Entire Tree Calculations:
-   int myEntireWidthAsDrawn(const where4TreeConstants &tc) const;
-      // cost is O(1)
-   int myEntireHeightAsDrawn(const where4TreeConstants &tc) const;
-      // cost is O(1)
+   int entire_width (const where4TreeConstants &tc) const;
+   int entire_height(const where4TreeConstants &tc) const;
 
    bool expandEntirePath(const where4TreeConstants &tc,
-                         const whereNodeRawPath &thePath,
-                         const int pathIndex);
-      // Given a path with no negative childnum's [i.e., one in which we
-      // determine manually whether or not an element is w/in a listbox],
-      // forcibly expand out any and all listbox path elements.
+                         const whereNodePosRawPath &thePath,
+                         unsigned pathIndex);
+      // Given a path, forcibly expand out any and all listbox path elements.
       // Exception: won't expand a listbox item at the very end of the path.
       // Returns true iff any expansion(s) actually took place.
 
-   bool explicitlyExpandSubchild1Level(const where4TreeConstants &tc,
-			  	       const int childindex);
-      // Expand a subtree out of a listbox, and update internal structures.  Doesn't
-      // redraw.  Implements explicit expansion (via mouse-double-click within
-      // the listbox).  Returns true iff any changes were made.
+   bool explicitlyExpandSubchild(const where4TreeConstants &tc, unsigned childindex);
+      // Expand a subtree out of a listbox.  Doesn't redraw.
+      // Returns true iff any changes were made.
+   bool explicitlyUnexpandSubchild(const where4TreeConstants &tc, unsigned childindex);
+      // Unexpand a subchild (into a listbox).  Doesn't redraw.
+      // Returns true iff any changes were made.
    
-   bool explicitlyUnexpandSubchild(const where4TreeConstants &tc,
-				   const int childindex);
-      // Unexpand a subchild (into a listbox), and update internal structures; but,
-      // don't redraw.  Returns true iff any changes were made.
-
    bool expandAllChildren(const where4TreeConstants &tc);
    bool unExpandAllChildren(const where4TreeConstants &tc);
-   
-   void manual_construct(const where4TreeConstants &tc);
-      // the constructor
 
-   int partitionChildren(int left, int right); // for quicksort
+ private:   
+   void manual_construct();
 
  public:
 
@@ -328,40 +313,36 @@ class where4tree {
               const string &init_str, const where4TreeConstants &tc) :
                  theRootNode(init_str, tc, false),
                  theUserNodeData(iUserNodeData) {
-      manual_construct(tc);
+      manual_construct();
    }
    virtual ~where4tree();
 
+   const USERNODEDATA &getUserNodeData() const { return theUserNodeData; }
+   USERNODEDATA &getUserNodeData() { return theUserNodeData; }
    const string &getRootName() const { return theRootNode.getName(); }
+   const rootNode &getRootNode() const { return theRootNode; }
 
-   // Adding children
+   // Adding children:
    void addChild(where4tree *theNewChild,
-		 const bool explicitlyExpanded,
+		 bool explicitlyExpanded,
 		 const where4TreeConstants &tc,
-		 const bool rethinkGraphicsNow,
-                 const bool resortNow);
+		 bool rethinkLayoutNow, bool resortNow);
       // add a child subtree **that has been allocated with new** (not negotiable)
-      // NOTE: In the current implementation, we always put the child into the listbox
-      //       unless explicitlyExpanded is true.
+      // NOTE: Current implementation puts child into listbox unless
+      //       explicitlyExpanded.
 
    void doneAddingChildren(const where4TreeConstants &tc);
    void recursiveDoneAddingChildren(const where4TreeConstants &tc);
       // Needed after having called addChild() several times for a given root and
-      // had passed false as the last parameter...(Of course, calling addChildren()
-      // just once would have been even better, but it's not always convenient to use.)
+      // had passed false as the last parameter...
 
-//   void InsertionsortChildren(int left, int right);
-//   void QuicksortChildren(int left, int right);
    void sortChildren();
-      // does no redrawing.
+      // does not redraw
 
-   void draw(const where4TreeConstants &tc,
-	     Drawable theDrawable,
-	     const int middlex, const int topy,
-	     const bool rootOnly, const bool listboxOnly) const;
-      // Note: draw() for a given subree is responsible for drawing the root
-      //       node AND the lines connecting the subtrees; it indirectly draws
-      //       the child subtrees via recursion.
+   void draw(const where4TreeConstants &tc, Drawable theDrawable,
+	     int middlex, int topy, bool rootOnly, bool listboxOnly) const;
+      // Draws root node AND the lines connecting the subtrees; children are
+      // drawn via recursion.
 
    // Resize:
    bool rethinkListboxAfterResize1(const where4TreeConstants &tc);
@@ -374,45 +355,17 @@ class where4tree {
       // make internal changes.  Explicitly expanded items will stay expanded;
       // implicitly expanded items _may_ become un-expanded.
 
-   int point2GraphicalPath(whereNodeGraphicalPath &thePath,
-			   const where4TreeConstants &tc,
-			   const int xpix, const int yix,
-			   const int root_centerxpix, const int root_topypix);
-      // Returns 1 for point in an expanded node, 2 for point in listbox data item,
-      // 3 for point in listbox scrollbar up-arrow,
-      // 4 for point in listbox scrollbar down-arrow,
-      // 5 for point in listbox scrollbar pageup-region,
-      // 6 for point in listbox scrollbar pagedown-region,
-      // 7 for point in listbox scrollbar slider,
-      // -1 for point in nothing.
-      // The actual path is "returned" by modifying "thePath".
-      // Uses point2ItemOneStep() for its main work...
-
-   int string2Path(whereNodeRawPath &thePath, const where4TreeConstants &tc,
+   int string2Path(whereNodePosRawPath &thePath, const where4TreeConstants &tc,
                    const string &str, where4tree *beginSearchFromPtr,
 		   bool testRootNode);
-      // returns 0 if not found.  returns 1 (and modifies "thePath") iff found,
-      // and no expansions are necessary (we can scroll directly there); returns
-      // 2 (and modifies "thePath") iff found but expansions of some intermediate
-      // path items would be needed.
-      // NOTE: The path returned will not contain ANY listbox childnums, except perhaps
-      //       at the end.  You must check for this manually.
-
-   void path2pixOffset(const where4TreeConstants &tc,
-		       const whereNodeRawPath &thePath, const int currPathIndex,
-		       const int root_centerx, const int root_topy,
-                       int &result_offset_centerx, int &result_offset_topy) const;
-      // Finds the [centerx, topy] pixels (relative to leftx, topy of the root) of
-      // the item at the end of the path.
-      // WARNING: All elements along the path must be expanded.
-      // WARNING: For a listbox item, we simply return the (centerx, topy) of the
-      //          listbox itself, which is a mediocre solution.  (We also want the
-      //          vertical offset w/in the listbox)
+      // If not found, thePath is left undefined, and 0 is returned.
+      // Otherwise, modifies "thePath" and:
+      //    -- returns 1 if no expansions are necessary (can scroll)
+      //    -- returns 2 if expansions are necessary before scrolling
 
    // Subtree expansion/un-expansion
-   int path2lbItemExpand(const where4TreeConstants &tc,
-			 whereNodeRawPath &thePath,
-			 const int pathIndex);
+   int path2lbItemExpand(const where4TreeConstants &tc, 
+			 const whereNodePosRawPath &thePath, unsigned pathIndex);
       // Given a path (ending in a listbox item), expand it.
       // returns 0 if you tried to expand an already-expanded item,
       // returns 1 if you tried to expand a leaf listbox item,
@@ -424,92 +377,52 @@ class where4tree {
       // childnums.  Why don't we update xpix/ypix?  Because, after an expansion,
       // the entire path's xpix/ypix becomes invalid due to changes in the
       // entire tree.  You can still use routines like
-      // path2pixOffset, which specifically ignore the path's xpix/ypix values.
-
-   bool path2lbItemScrollSoVisible(const where4TreeConstants &tc,
-				   const whereNodeGraphicalPath &thePath,
-				   const int pathIndex);
-      // Assuming thePath ends in a listbox item, scroll within the listbox
-      // so that the item at the end of the path is visible.
-      // returns true iff any changes were made
+      // path2pixOffset, which ignore the path's xpix/ypix values.
 
    bool path2ExpandAllChildren(const where4TreeConstants &tc,
-			       const whereNodeRawPath &thePath,
-			       const int index);
+			       const whereNodePosRawPath &thePath,
+			       unsigned index);
 
    bool path2lbItemUnexpand(const where4TreeConstants &tc,
-			    const whereNodeRawPath &thePath,
-			    const int pathIndex);
-      // Given a path (ending in a non-listbox item), un-expand it into a listbox.
-      // (Creating the listbox if necessary)
+			    const whereNodePosRawPath &thePath, unsigned pathIndex);
+      // "thePath" ends in a non-listbox item; i.e., the item at the end of the
+      // path is expanded.  This routine un-expands it, creating the listbox if needed.
 
    bool path2UnExpandAllChildren(const where4TreeConstants &tc,
-				 const whereNodeRawPath &thePath,
-				 const int index);
+				 const whereNodePosRawPath &thePath, unsigned index);
 
-   // Scrollbar clicks & scrolling:
-   bool scroll_listbox(const where4TreeConstants &tc,
-		       const int listboxLeft,
-		       const int listboxTop,
-		       const int deltaYpix,
-		       const bool redrawNow);
-
-   void scrollBarClick(const where4TreeConstants &tc,
-		       const int clicklocation,
-		          // 3 --> up arrow
-		          // 4 --> down arrow
-		          // 5 --> pageup   region
-		          // 6 --> pagedown region
-		       const int root_centerx,
-		       const int root_topy,
-		       const bool redrawNow);
-
-   void path2lbScrollBarClick(const where4TreeConstants &tc,
-			      const whereNodeGraphicalPath &thePath,
-			      const int pathlcv,
-			      const int clickLocation,
-			         // 3 --> up arrow
-			         // 4 --> down arrow
-			         // 5 --> pageup   region
-			         // 6 --> pagedown region
-			      const bool redrawNow);
-   int  path2lbScrollBarSliderTopPix(const where4TreeConstants &tc,
-				     const whereNodeGraphicalPath &thePath,
-				     const int pathlcv);
    bool rigListboxScrollbarSliderTopPix(const where4TreeConstants &tc,
-					const int scrollBarLeft,
-					const int scrollBarTop,
-					const int scrollBarBottom,
-					const int newScrollBarSliderTopPix,
-					const bool redrawNow
-					);
+					int scrollBarLeft,
+					int scrollBarTop,
+					int scrollBarBottom,
+					int newScrollBarSliderTopPix,
+					bool redrawNow);
       // returns true iff any changes were made
 
    // Highlighting
-   void toggleHighlightFromPath(const where4TreeConstants &tc,
-				const whereNodeGraphicalPath &thePath,
-				const bool redrawNow);
-      // "thePath" was presumably initialized with a call to point2NodePath
-
-   void toggle_highlight_root_only(const bool redrawNow,
-				   const where4TreeConstants &tc,
-				   const int middlex, const int topy);
-      // when called, the next redraw will (presumably) look different (although
-      // the derived class could be written to ignore highlightedness, I suppose).
 
    bool isHighlighted() const {
       return theRootNode.getHighlighted();
    }
    void highlight() {
+      // does not redraw
       theRootNode.highlight();
    }
    void unhighlight() {
+      // does not redraw
       theRootNode.unhighlight();
    }
+   void toggle_highlight() {
+      theRootNode.toggle_highlight();
+   }
 
-   bool selectUnSelectFromFullPathName(const char *name,
-				       const bool selectFlag);
-      // returns true iff found
+//   void toggle_highlight(const where4TreeConstants &tc,
+//			 int middlex, int topy);
+//      // same as above, but also redraws now
+
+   bool selectUnSelectFromFullPathName(const char *name, bool selectFlag);
+      // returns true iff found.  char * is used instead of string because
+      // we'll be using pointer arithmetic as we parse "name".
 
    vector<USERNODEDATA> getSelections() const;
    void recursiveClearSelections();
