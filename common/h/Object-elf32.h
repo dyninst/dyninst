@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf32.h,v 1.31 1998/12/25 21:48:36 wylie Exp $
+ * $Id: Object-elf32.h,v 1.32 1999/02/23 22:14:46 nash Exp $
  * Object-elf32.h: ELF-32 object files.
 ************************************************************************/
 
@@ -57,6 +57,7 @@
 #include "util/h/Symbol.h"
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
+#include <elf.h>
 #include <libelf.h>
 
 extern "C" {
