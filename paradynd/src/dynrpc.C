@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.94 2003/02/04 22:42:43 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.95 2003/02/05 17:06:21 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -494,8 +494,6 @@ double dynRPC::getTime() {
 void
 dynRPC::reportSelfDone( void )
 {
-    std::cout << "in reportSelfDone" << std::endl;
-
     if( startOnReportSelfDone )
     {
         // The front-end is done handling our reportSelf request
