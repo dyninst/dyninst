@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.17  1994/06/17 22:07:58  hollings
+ * Revision 1.18  1994/06/27 21:23:22  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.17  1994/06/17  22:07:58  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
  *
@@ -195,11 +198,13 @@ class performanceStream {
     public:
 	performanceStream(applicationContext *a, 
 			  dataType t,
+			  abstractionType ab,
 			  dataCallback dc,
 			  controlCallback cc,
 			  int tid) {
 	    appl = a;
 	    type = t;
+	    abstraction = ab;
 	    dataFunc = dc;
 	    controlFunc = cc;
 	    sampleRate = 10000;
@@ -217,9 +222,11 @@ class performanceStream {
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);
+        abstractionType getAbstraction() { return abstraction; }
     private:
 	applicationContext      *appl;
 	dataType                type;
+        abstractionType         abstraction;
 	dataCallback            dataFunc;
 	controlCallback         controlFunc;
 	int threadId;

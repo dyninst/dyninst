@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.6 1994/06/27 18:57:08 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.7 1994/06/27 21:28:20 rbi Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.6  1994/06/27 18:57:08  hollings
+ * Revision 1.7  1994/06/27 21:28:20  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.6  1994/06/27  18:57:08  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -136,13 +139,14 @@ Boolean addResourceList(resourceList rl, resource r)
 Boolean initResourceRoot;
 
 resource newResource(resource parent, 
-		     void *handle, 
+		     void *handle,
+		     char *abstraction, 
 		     char *name, 
 		     timeStamp creation,
 		     Boolean unique)
 {
     int c;
-    char *iName;
+    char *iName, *iAbstraction;
     resource ret;
     resource *curr;
     char tempName[255];
@@ -163,6 +167,10 @@ resource newResource(resource parent,
     }
 
     iName = pool.findAndAdd(name);
+    if (abstraction)
+      iAbstraction = pool.findAndAdd(abstraction);
+    else 
+      iAbstraction = NULL;
 
     /* first check to see if the resource has already been defined */
     if (parent->children) {
@@ -184,6 +192,7 @@ resource newResource(resource parent,
     sprintf(tempName, "%s/%s", parent->info.fullName, name);
     ret->info.fullName = pool.findAndAdd(tempName);
     ret->info.name = iName;
+    ret->info.abstraction = iAbstraction;
 
     ret->info.creation = creation;
 
@@ -192,7 +201,7 @@ resource newResource(resource parent,
 
     /* call notification upcall */
     tp->resourceInfoCallback(0, parent->info.fullName, ret->info.name, 
- 	 ret->info.name);
+ 	 ret->info.name, ret->info.abstraction);
 
     return(ret);
 }
@@ -280,7 +289,7 @@ resourceList findFocus(int count, char **data)
 	iName = pool.findAndAdd(data[i]);
 	res = allResources.find(iName);
 	if (!res && (strchr(iName, '/') == strrchr(iName, '/'))) {
-	    res = newResource(rootResource, NULL, ++iName, 0.0, FALSE);
+	    res = newResource(rootResource, NULL, NULL, ++iName, 0.0, FALSE);
 	} else if (!res) {
 	    return(NULL);
 	}

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.3 1994/06/27 18:57:15 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.4 1994/06/27 21:28:23 rbi Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.3  1994/06/27 18:57:15  hollings
+ * Revision 1.4  1994/06/27 21:28:23  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.3  1994/06/27  18:57:15  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -292,10 +295,11 @@ image *parseImage(char *file, int offset)
      * Define all of the functions in the code resource hierarchy.
      *
      */
-    procedureRoot = newResource(rootResource, NULL, "Procedure", 0.0, FALSE);
+    procedureRoot = newResource(rootResource, NULL, NULL, "Procedure", 0.0, 
+				FALSE);
     for (func = ret->funcs; func; func=func->next) {
 	if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
-	    (void) newResource(procedureRoot, func, func->prettyName,0.0,FALSE);
+	    (void) newResource(procedureRoot, func, NULL, func->prettyName,0.0,FALSE);
 	} else {
 	    func->tag |= TAG_LIB_FUNC;
 	}

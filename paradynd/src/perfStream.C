@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.16 1994/06/27 18:57:04 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.17 1994/06/27 21:28:14 rbi Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.16  1994/06/27 18:57:04  hollings
+ * Revision 1.17  1994/06/27 21:28:14  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.16  1994/06/27  18:57:04  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -180,6 +183,7 @@ extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
 extern void forkProcess(traceHeader *hr, traceFork *fr);
 extern void sendPtraceBuffer(process *proc);
 extern void createResource(traceHeader *header, struct _newresource *res);
+extern void newAssoc(process *proc, char *a, char *t, char *k, char *v);
 
 extern "C" Boolean synchronousMode;
 Boolean synchronousMode;
@@ -230,6 +234,7 @@ void processTraceStream(process *curr)
     traceStream sid;
     char *recordData;
     traceHeader header;
+    struct _association *a;
 
     // each process has its own buffer
     // int bufStart;		/* current starting point */
@@ -302,6 +307,11 @@ void processTraceStream(process *curr)
 
 	    case TR_NEW_RESOURCE:
 		createResource(&header, (struct _newresource *) recordData);
+		break;
+
+	    case TR_NEW_ASSOCIATION:
+		a = (struct _association *) recordData;
+		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
 		break;
 
 	    case TR_MULTI_FORK:
@@ -584,8 +594,10 @@ void createResource(traceHeader *header, struct _newresource *r)
 	    *tmp = '\0';
 	    tmp++;
 	}
-	res = newResource(parent, r->maping, name, header->wall, FALSE);
+	res = newResource(parent, NULL, r->abstraction, name, 
+			  header->wall, FALSE);
 	parent = res;
 	name = tmp;
     }
 }
+

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.7 1994/06/17 00:11:55 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.8 1994/06/27 21:23:31 rbi Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.7  1994/06/17 00:11:55  hollings
+ * Revision 1.8  1994/06/27 21:23:31  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.7  1994/06/17  00:11:55  hollings
  * Fixed off by one error in string canonical string name code.
  *
  * Revision 1.6  1994/06/14  15:25:03  markc
@@ -64,7 +67,7 @@ resource::resource()
     parent = NULL;
 }
 
-resource::resource(resource *p, char *newResource) 
+resource::resource(resource *p, char *newResource, abstractionType at) 
 {
     char *iName;
     char tempName[255];
@@ -78,6 +81,8 @@ resource::resource(resource *p, char *newResource)
     fullName = names.findAndAdd(tempName);
     allResources.add(this, (void *) fullName);
     name = iName;
+
+    abstraction = at;
 
     parent->children.add(this);
 }

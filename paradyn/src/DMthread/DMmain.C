@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.32  1994/06/27 18:54:48  hollings
+ * Revision 1.33  1994/06/27 21:23:25  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.32  1994/06/27  18:54:48  hollings
  * changed stdio printf for paradynd.
  *
  * Revision 1.31  1994/06/17  22:07:59  hollings
@@ -202,7 +205,6 @@ void performanceStream::callResourceFunc(resource *p,
     }
 }
 
-
 void performanceStream::callResourceBatchFunc(batchMode mode)
 {
     if (controlFunc.bFunc) {
@@ -260,15 +262,27 @@ void dynRPCUser::applicationIO(int pid, int len, String data)
     strcpy(extra, rest);
 }
 
+abstractionType parseAbstractionName(String abstraction)
+{
+  if (!abstraction) return BASE;
+  if (strcmp(abstraction,"TCL") == 0) return TCL;
+  if (strcmp(abstraction,"CMF") == 0) return CMF;
+  if (strcmp(abstraction,"BASE") == 0) return BASE;
+  printf("DATAMANGER: bad abstraction '%s'\n",abstraction);
+  return BASE;
+}
+
 //
 // upcalls from remote process.
 //
 void dynRPCUser::resourceInfoCallback(int program,
 				      String parentString,
 				      String newResource,
-				      String name)
+				      String name,
+				      String abstraction)
 {
     resource *parent;
+    abstractionType at;
 
     // create the resource.
     if (*parentString != '\0') {
@@ -280,7 +294,31 @@ void dynRPCUser::resourceInfoCallback(int program,
 	parent = resource::rootResource;
     }
 
-    createResource(parent, name);
+// rbi
+    at = parseAbstractionName(abstraction);
+// rbi
+
+    createResource(parent, name, at);
+}
+
+void dynRPCUser::mappingInfoCallback(int program,
+				     String abstraction, 
+				     String type, 
+				     String key,
+				     String value)
+
+{
+//  List<performanceStream *> curr;
+//  performanceStream *stream;
+
+/*  printf("DATAMANAGER: '%s' '%s' map '%s -> %s'\n", abstraction, 
+	 type, key, value); */
+/*  for (curr = applicationContext::streams; stream = *curr; curr++) {
+     Make sure stream is of right abstraction 
+    stream->callMappingFunc(abstraction, type, key, value);
+  }
+*/
+  
 }
 
 class uniqueName {
@@ -581,7 +619,7 @@ void addMetric(metricInfo info)
 }
 
 
-resource *createResource(resource *p, char *newResource)
+resource *createResource(resource *p, char *newResource, abstractionType at)
 {
     resource *ret;
     char *fullName;
@@ -594,12 +632,14 @@ resource *createResource(resource *p, char *newResource)
     if (temp) return(temp);
 
     /* then create it */
-    ret = new resource(p, strdup(newResource));
+    ret = new resource(p, strdup(newResource), at);
     fullName = ret->getFullName();
 
-    /* inform others about it */
+    /* inform others about it if they need to know */
     for (curr = applicationContext::streams; stream = *curr; curr++) {
+      if (stream->getAbstraction() == at) {
 	stream->callResourceFunc(p, ret, fullName);
+      }
     }
 
     return(ret);

@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.5  1994/06/14 15:25:03  markc
+ * Revision 1.6  1994/06/27 21:23:33  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.5  1994/06/14  15:25:03  markc
  * Added new call (sameRoot) to the resource class.  This call is used to
  * determine if two resources have the same parent but are not in an
  * ancestor-descendant relationship.  Such a relationship implies a conflict
@@ -35,6 +38,7 @@ extern "C" {
 
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
+#include "dataManager.h"
 
 class resource;
 
@@ -95,7 +99,7 @@ class resourceList {
 };
 
 class resource {
-      friend resource *createResource(resource *parent, char *name);
+      friend resource *createResource(resource *parent, char *name, abstractionType at);
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
@@ -115,7 +119,7 @@ class resource {
 
   protected:
     resource();
-    resource(resource *parent, char *name);
+    resource(resource *parent, char *name, abstractionType at);
 
   private:
     resource *parent;         /* parent of this resourceBase */
@@ -125,6 +129,7 @@ class resource {
 
     char *name;
     char *fullName;
+    abstractionType abstraction;
 
     List<performanceStream*> notify;
 
@@ -132,3 +137,4 @@ class resource {
     static stringPool names;
     static HTable<resource*> allResources;
 };
+

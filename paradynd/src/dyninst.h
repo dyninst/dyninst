@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.8  1994/05/18 00:52:26  hollings
+ * Revision 1.9  1994/06/27 21:28:08  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.8  1994/05/18  00:52:26  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -69,6 +72,7 @@ typedef struct _resourceRec *resource;
 struct _resourceInfo {
     char *name;			/* name of actual resource */
     char *fullName;		/* full path name of resource */
+    char *abstraction;          /* abstraction name */
     timeStamp creation;		/* when did it get created */
 };		
 typedef struct _resourceInfo resourceInfo;
@@ -191,6 +195,7 @@ Boolean addResourceList(resourceList, resource);
 
 resource newResource(resource parent,
 		     void *handle,
+		     char *abstraction,
 		     char *name,
 		     timeStamp creation,
 		     Boolean unique);

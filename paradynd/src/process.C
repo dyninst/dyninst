@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.11 1994/06/27 18:57:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.12 1994/06/27 21:28:18 rbi Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.11  1994/06/27 18:57:07  hollings
+ * Revision 1.12  1994/06/27 21:28:18  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.11  1994/06/27  18:57:07  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -235,15 +238,15 @@ process *allocateProcess(int pid, char *name)
 
 	gethostname(hostName, sizeof(hostName));
 	resource machineRoot;
-	machineRoot = newResource(rootResource, NULL, "Machine", 0.0,FALSE);
-	machineResource = newResource(machineRoot, NULL, hostName, 0.0, FALSE);
+	machineRoot = newResource(rootResource, NULL, NULL, "Machine", 0.0,FALSE);
+	machineResource = newResource(machineRoot, NULL, NULL, hostName, 0.0, FALSE);
     }
 
     ret->pid = pid;
     if (!processResource) {
-	processResource = newResource(rootResource, NULL, "Process", 0.0,FALSE);
+	processResource = newResource(rootResource, NULL, NULL, "Process", 0.0,FALSE);
     }
-    ret->rid = newResource(processResource, ret, name, 0.0, TRUE);
+    ret->rid = newResource(processResource, ret, NULL, name, 0.0, TRUE);
 
     ret->bufEnd = 0;
     return(ret);

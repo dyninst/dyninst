@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.16  1994/06/27 18:56:53  hollings
+ * Revision 1.17  1994/06/27 21:28:11  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.16  1994/06/27  18:56:53  hollings
  * removed printfs.  Now use logLine so it works in the remote case.
  * added internalMetric class.
  * added extra paramter to metric info for aggregation.
@@ -178,7 +181,7 @@ void dynRPC::addResource(String parent, String name)
     extern resource findResource(char*);
 
     pr = findResource(parent);
-    if (pr) (void) newResource(pr, NULL, name, 0.0, FALSE);
+    if (pr) (void) newResource(pr, NULL, NULL, name, 0.0, FALSE);
 }
 
 void dynRPC::coreProcess(int pid)

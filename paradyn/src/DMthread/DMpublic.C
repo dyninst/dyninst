@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.19  1994/06/17 22:08:00  hollings
+ * Revision 1.20  1994/06/27 21:23:29  rbi
+ * Abstraction-specific resources and mapping info
+ *
+ * Revision 1.19  1994/06/17  22:08:00  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
  *
@@ -140,6 +143,7 @@ Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
 
 performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
 						        dataType dt,
+						        abstractionType ab,
 						        dataCallback dc,
 						        controlCallback cc)
 {
@@ -147,7 +151,7 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
     performanceStream *ps;
 
     tid = getRequestingThread();
-    ps = new performanceStream(ap, dt, dc, cc, tid);
+    ps = new performanceStream(ap, dt, ab, dc, cc, tid);
     ap->streams.add(ps);
 
     return(ps);
@@ -326,7 +330,7 @@ resource *dataManager::newResource(applicationContext *app,
 {
     resource *child;
 
-    child = createResource(res, name);
+    child = createResource(res, name, BASE);
     app->tellDaemonsOfResource(res->getFullName(), name);
     return(child);
 }
