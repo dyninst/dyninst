@@ -6,7 +6,10 @@
  * ptrace_emul.h:  Header file for ptrace emulation stuff.
  *
  * $Log: ptrace_emul.h,v $
- * Revision 1.5  1994/11/02 11:15:58  markc
+ * Revision 1.6  1995/02/10 22:36:22  jcargill
+ * Removed include of util kludges
+ *
+ * Revision 1.5  1994/11/02  11:15:58  markc
  * Put our "PTRACE" defines here.
  *
  * Revision 1.4  1994/10/13  07:24:59  krisna
@@ -26,7 +29,6 @@
  *
  */
 
-#include "util/h/kludges.h"
 
 /*
  * Node-Ptrace request forwarding protocol.  We send ptrace requests
