@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.90  1996/04/29 03:41:29  tamches
+ * Revision 1.91  1996/05/01 14:08:41  naim
+ * Making sure that gettimeofday does not go backwards - naim
+ *
+ * Revision 1.90  1996/04/29  03:41:29  tamches
  * overhaul of how internal metrics are used, to correspond to the
  * greatly updated internalMetrics class
  *
@@ -1191,7 +1194,9 @@ timeStamp xgetCurrentTime(bool firstRecordRelative)
 
 timeStamp getCurrentTime(bool firstRecordRelative)
 {
+    static double previousTime=0.0;
     struct timeval tv;
+  retry:
     assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
 
     double seconds_dbl = tv.tv_sec * 1.0;
@@ -1199,6 +1204,9 @@ timeStamp getCurrentTime(bool firstRecordRelative)
     double useconds_dbl = tv.tv_usec * 1.0;
   
     seconds_dbl += useconds_dbl / 1000000.0;
+
+    if (seconds_dbl < previousTime) goto retry;
+    previousTime = seconds_dbl;
 
     if (firstRecordRelative)
        seconds_dbl -= firstRecordTime;
