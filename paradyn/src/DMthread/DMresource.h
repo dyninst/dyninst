@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.16  1995/02/16 08:17:54  markc
+ * Revision 1.17  1995/05/18 10:57:08  markc
+ * added ids to resource class
+ *
+ * Revision 1.16  1995/02/16  08:17:54  markc
  * Changed Boolean to bool
  *
  * Revision 1.15  1995/01/26  17:58:26  jcargill
@@ -78,6 +81,10 @@ extern "C" {
 
 class resource;
 
+// Does this confuse anybody?
+// TODO -- these classes are in serious need of a rewrite.  It is very difficult
+//         to determine what is going on in here.  
+
 class resourceList {
   public:
       resourceList() { count = 0; 
@@ -119,7 +126,9 @@ class resourceList {
       int getCount()	{ return(count); }
       void print();
       char **convertToStringList();
-      bool convertToStringList(vector<string> &vs);
+      bool convertToStringList(vector< vector<string> >& fs);
+      bool convertToIDList(vector<u_int>& flist);
+
   private:
       // provide mutex so we can support shared access.
       void lock() { assert(!locked); locked = 1; }
@@ -135,8 +144,11 @@ class resourceList {
       static stringPool names;
 };
 
+// Please fix me.
+
 class resource {
-      friend resource *createResource(resource *parent, const char *name, const char *abstr);
+  // friend resource *createResource(resource *parent, const char *name, const char *abstr);
+      friend resource *createResource(vector<string>& res_name, string& abstraction);
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
@@ -158,11 +170,17 @@ class resource {
     bool getSuppress()		{ return(suppressSearch); }
     bool getSuppressChildren()	{ return(suppressChildSearch); }
     abstraction *getAbstraction() { return(abstr); }
+    vector<string>& getParts()  { return name_parts_; }
+    unsigned id()               { return id_;}
+
   protected:
     resource();
-    resource(resource *parent, char *name, const char *a);
+    // resource(resource *parent, char *name, const char *a);
+    resource(resource *parent, stringHandle name, stringHandle a,
+	     vector<string>& name_parts);
 
   private:
+    vector<string> name_parts_;
     resource *parent;         /* parent of this resourceBase */
 
     /* children of this resourceBase */
@@ -182,6 +200,9 @@ class resource {
     bool suppressChildSearch;	// user wants to ignore children of
 					// this one.  Important for top-level
 					// resources, which are in all foci.
+    unsigned id_;               // this could serve as a handle to the resource
+
+    static unsigned all_id_;
 };
 #endif
 
