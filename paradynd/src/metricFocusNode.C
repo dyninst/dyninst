@@ -326,7 +326,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
  */
 
     // first see if it is already defined.
-    for (dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi = allMIs; mdi; mdi++) {
+    for (; mdi; mdi++) {
        metricDefinitionNode *mi = mdi.currval();
 
        if (mi->getFullName() == flat_name) {
