@@ -1,6 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.23  1996/04/10 18:00:11  lzheng
+ * Added multiple arguments to calls for HPUX by using stack instead of extra
+ * registers.
+ *
  * Revision 1.22  1996/04/08 21:21:11  lzheng
  * changes for HP generateCode and emitFuncCall
  *
@@ -440,7 +444,11 @@ reg AstNode::generateCode(process *proc,
     reg src = -1;
     reg dest = -1;
     reg right_dest = -1;
+#if defined(hppa1_1_hp_hpux)
+    reg srcs;
+#else
     vector <reg> srcs;
+#endif
 
     if (type == opCodeNode) {
         if (op == ifOp) {
@@ -532,9 +540,24 @@ reg AstNode::generateCode(process *proc,
 	bool err;
         // This part for HP is moved to the HP dependent file  
 #if defined(hppa1_1_hp_hpux)
-        for (unsigned u = 0; u < operands.size(); u++)
-          srcs += operands[u].generateCode(proc, rs, insn, base);
-	dest = emitFuncCall(callOp, srcs, insn, base, callee, proc);
+        for (unsigned u = 0; u < operands.size(); u++) {
+	    if (u >= 4) {
+                 string msg = "Too many arguments to function call in instrumentation code:
+ only 4 arguments can be passed on the sparc architecture.\n";
+                 fprintf(stderr, msg.string_of());
+                 showErrorCallback(94,msg);
+                 cleanUpAndExit(-1);
+            }  
+	    srcs = operands[u].generateCode(proc, rs, insn, base);
+	    emit(storeMemOp, srcs, 30, -36-4*u, insn, base);
+	    rs->freeRegister(srcs);
+        }
+
+	for (unsigned u = 0; u < operands.size(); u++) {
+	    assert(u < 4);
+	    emit(loadMemOp, 30, 26-u,-36-4*u, insn, base);  
+	}
+	dest = emitFuncCall(callOp, insn, base, callee, proc);
 #else
         addr = (proc->symbols)->findInternalAddress(callee, false, err);
         if (err) {
