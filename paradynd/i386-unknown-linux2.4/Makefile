@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2002/08/31 16:53:27 mikem Exp $
+# $Id: Makefile,v 1.13 2002/12/14 16:37:46 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -79,9 +79,9 @@ LIBS    += $(PERFCTR_LIB)
 endif
 
 # no support for elf64_XXX() functions
-CFLAGS		+= -DUSES_ELF32_ONLY -g
-CXXFLAGS	+= -DUSES_ELF32_ONLY -g 
-TFLAGS		+= -DUSES_ELF32_ONLY -g
+CFLAGS		+= -DUSES_ELF32_ONLY
+CXXFLAGS	+= -DUSES_ELF32_ONLY
+TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
