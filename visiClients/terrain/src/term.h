@@ -40,7 +40,7 @@
  *
  * term.h - header file of term.c
  *
- * $Id: term.h,v 1.3 1998/03/30 01:22:37 wylie Exp $
+ * $Id: term.h,v 1.4 2001/06/12 19:56:13 schendel Exp $
  */
 
 #ifndef TERM_H
@@ -51,10 +51,10 @@
 int do_point(int x, int y, int number);
 int line_and_point(int x, int y, int number);
 int do_arrow(int sx, int sy, int ex, int ey);
-int null_text_angle();
-int null_justify_text();
-int null_scale();
-int UNKNOWN_null();
+int null_text_angle(void);
+int null_justify_text(void);
+int null_scale(void);
+int UNKNOWN_null(void);
 int change_term(char* name, int length);
 
 #endif

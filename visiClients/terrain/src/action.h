@@ -15,7 +15,7 @@
 /* 
  * action.h - Header file for RequestAction Display.
  *
- * $Id: action.h,v 1.5 1998/03/30 01:22:19 wylie Exp $
+ * $Id: action.h,v 1.6 2001/06/12 19:56:11 schendel Exp $
  */
 
 
@@ -30,7 +30,7 @@ struct Logo {
 void EndActFunc(Widget w, int id, int cdata);
 int  RequestAction(int labelc, int buttonc, int justify, char *banner, 
 		   	  char *labels[], char *buttons[], struct Logo *Llogo, 
-			  struct Logo *Rlogo, void (*callBack)());
+			  struct Logo *Rlogo, void (*callBack)(int));
 void InitAction(int x, int y);
 
 

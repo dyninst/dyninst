@@ -15,8 +15,13 @@
 /*
  * miscx.c - Assorted X routines.
  *
- * $Id: miscx.c,v 1.3 1998/03/30 01:22:31 wylie Exp $
+ * $Id: miscx.c,v 1.4 2001/06/12 19:56:12 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 /* This must be first */
 #include "terrain.h"

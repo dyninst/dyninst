@@ -15,7 +15,7 @@
 /*
  * command.h - header file of command.c.
  *
- * $Id: command.h,v 1.5 1998/03/30 01:22:22 wylie Exp $
+ * $Id: command.h,v 1.6 2001/06/12 19:56:12 schendel Exp $
  */
 
 #ifndef COMMAND_H
@@ -33,7 +33,6 @@
 #define SA_USEMED   8
 #define SA_NOMED    9
 
-
 extern void plot3drequest( int action );
 extern void kill_surface(void);
 extern int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
@@ -42,7 +41,7 @@ extern void Graph3DSetCurveData();
 
 void done(int status);
 int getStartIndex(int ID);
-int checkDecimal(float zmax);
+int checkDecimal(double zmax);
 void copyResName(char* destination, char* source);
 void ReDisplayGraph(void);
 void ProcessNewSegments(int printIndex);

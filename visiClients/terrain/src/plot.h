@@ -33,7 +33,7 @@
  *
  * plot.h - data structures and default values of the terrain plot.
  *
- * $Id: plot.h,v 1.4 1998/03/30 01:22:32 wylie Exp $
+ * $Id: plot.h,v 1.5 2001/06/12 19:56:12 schendel Exp $
  */
 
 
@@ -368,7 +368,7 @@ extern BOOLEAN term_init;
 extern BOOLEAN undefined;
 extern struct termentry term_tbl[];
 
-extern char *alloc();
+extern char *alloc(void);
 
 
 

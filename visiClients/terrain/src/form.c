@@ -16,10 +16,17 @@
  * form.c - define the basic frame of the window.
  *          scroll bars and menu routines.
  *
- * $Id: form.c,v 1.10 2000/10/17 17:29:00 schendel Exp $
+ * $Id: form.c,v 1.11 2001/06/12 19:56:12 schendel Exp $
  */
 
 #include <stdio.h>
+
+#define XTSTRINGDEFINES
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <X11/Intrinsic.h>	/* Include standard Toolkit Header file.
 				   We do no need "StringDefs.h" */
@@ -48,13 +55,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+#include "terrain.h"
+#include "misc.h"
 #include "menu.h"
 #include "plot.h"
 #include "setshow.h"
 #include "command.h"
 #include "form.h"
-#include "terrain.h"
-#include "misc.h"
 #include "pdutilOld/h/pdsocket.h"
 #include "visi/h/visualization.h"
 
@@ -401,7 +408,7 @@ void gotJumpV(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
-
+    if(&scrollbar != &scrollbar) { line[79] = 0; }   // junk, to remove warning
     surface_rot_x = (1.0 - *((float *)position)) * 180.0;
     sprintf(line, INFOV_FORMAT, surface_rot_x);
 
@@ -440,7 +447,7 @@ void gotJumpH(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
-
+    if(&scrollbar != &scrollbar) { line[79] = 0; }   // junk, to remove warning
     surface_rot_z = *((float *)position) * 360.0;
     sprintf(line, INFOH_FORMAT, surface_rot_z);
 

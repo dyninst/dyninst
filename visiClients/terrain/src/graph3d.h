@@ -15,7 +15,7 @@
 /*
  * graph3d.h - header file for graph3d.c
  *
- * $Id: graph3d.h,v 1.7 1999/10/19 05:18:47 nick Exp $
+ * $Id: graph3d.h,v 1.8 2001/06/12 19:56:12 schendel Exp $
  */
 
 
@@ -24,32 +24,47 @@
 
 /* extern char *strcpy(),*strncpy(),*strcat();*/
 #include <string.h>
+#include "plot.h"
 
 extern void changeXFormat(int);
-extern int do_3dplot();
-extern int plot3d_lines();
-extern int map3d_xy();
+extern int do_3dplot(struct surface_points *plots, int pcount, double min_x, 
+		     double max_x, double min_y, double max_y, double min_z, 
+		     double max_z);
+extern int plot3d_lines(struct surface_points *plot, int printIndex);
+extern int map3d_xy(double x, double y, double z, int *xt, int *yt);
 
 
 
 
 
-int update_extrema_pts();
-int draw_parametric_grid();
-int draw_non_param_grid();
-int draw_bottom_grid();
-int draw_3dxtics();
-int draw_3dytics();
-int draw_3dztics();
-int draw_series_3dxtics();
-int draw_series_3dytics();
-int draw_series_3dztics();
-int draw_set_3dxtics();
-int draw_set_3dytics();
-int draw_set_3dztics();
-int xtick();
-int ytick();
-int ztick();
+int update_extrema_pts(int ix, int iy, int *min_sx_x, int *min_sx_y, 
+			      int *min_sy_x, int *min_sy_y,
+			      double x, double y);
+int draw_parametric_grid(double z_min);
+int draw_bottom_grid(struct surface_points *plot, double min_z, 
+			    double max_z);
+int draw_3dxtics(double start, double incr, double end, double ypos, 
+		 double z_min);
+int draw_3dytics(double start, double incr, double end, double xpos, 
+		 double z_min);
+int draw_3dztics(double start, double incr, double end, double xpos, 
+		 double ypos, double z_min, double z_max);
+int draw_series_3dxtics(double start, double incr, double end, double ypos, 
+			double z_min);
+int draw_series_3dytics(double start, double incr, double end, double xpos, 
+			double z_min);
+int draw_series_3dztics(double start, double incr, double end, double xpos, 
+			double ypos, double z_min, double z_max);
+int draw_set_3dxtics(struct ticmark *list, double ypos, double z_min);
+int draw_set_3dytics(struct ticmark *list, double xpos, double z_min);
+int draw_set_3dztics(struct ticmark *list, double xpos, double ypos, 
+		     double z_min, double z_max);
+int xtick(double place, char *text, double spacing, double ticscale, 
+	  double ypos, double z_min);
+int ytick(double place, char *text, double spacing, double ticscale, 
+	  double xpos, double z_min);
+int ztick(double place, char *text, double spacing, double ticscale, 
+	  double xpos, double ypos);
 
 
 

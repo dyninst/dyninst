@@ -15,26 +15,26 @@
 /*
  * form.h - header file of form.c
  *
- * $Id: form.h,v 1.3 1998/03/30 01:22:25 wylie Exp $
+ * $Id: form.h,v 1.4 2001/06/12 19:56:12 schendel Exp $
  */
 
 #ifndef FORM_HEADER
 #define FORM_HEADER
 
 Widget createForm(Widget, int, int);
-int quit3d();
+int quit3d(void);
 void gotJumpV(Widget, XtPointer, XtPointer);
 void gotScrollV(Widget, XtPointer, XtPointer);
 void gotJumpH(Widget, XtPointer, XtPointer);
 void gotScrollH(Widget, XtPointer, XtPointer);
  
-void plot_smooth();
-void plot_unsmooth();   
+void plot_smooth(void);
+void plot_unsmooth(void);   
 
-void plot_usemed();
-void plot_nomed();
+void plot_usemed(void);
+void plot_nomed(void);
 
-void reset_rotate();
+void reset_rotate(void);
 
 
 #endif

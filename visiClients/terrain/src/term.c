@@ -33,15 +33,20 @@
  *
  * term.c - misc terminal routines.
  *
- * $Id: term.c,v 1.3 1998/03/30 01:22:36 wylie Exp $
+ * $Id: term.c,v 1.4 2001/06/12 19:56:13 schendel Exp $
  */
 
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
+
 #include <stdio.h>
+#include "terrain.h"
 #include "plot.h"
 #include "setshow.h"
 #include "term.h"
 
-#include "terrain.h"
 
 /* for use by all drivers */
 #define sign(x) ((x) >= 0 ? 1 : -1)

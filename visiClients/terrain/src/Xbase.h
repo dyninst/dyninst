@@ -13,7 +13,7 @@
  */
 
 /* 
- * $Id: Xbase.h,v 1.2 1998/03/30 01:22:16 wylie Exp $
+ * $Id: Xbase.h,v 1.3 2001/06/12 19:56:11 schendel Exp $
  */
 
 #define ROOTWINDOW 1
@@ -33,4 +33,5 @@ typedef struct _WindowInfo {
 	Window root;		/* root of screen containing window */
 } WindowInfo;
 
-extern void XtGetValue();
+extern void XtGetValue(Widget widget, char *field, caddr_t result);
+

@@ -34,18 +34,23 @@
  * Adapted for terrain.c:
  *      Chi-Ting Lam.
  *
- * $Id: graph3d.c,v 1.9 1998/03/30 01:22:26 wylie Exp $
+ * $Id: graph3d.c,v 1.10 2001/06/12 19:56:12 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include "terrain.h"
 #include "plot.h"
 #include "colorize.h"
 #include "setshow.h"
 #include "graph3d.h"
-#include "terrain.h"
 
 
 static int timeAxis = 0;  /* 0 - display as min:sec  */
@@ -107,8 +112,7 @@ int format;
    timeAxis = format;
 }
 
-static int mat_unit(mat)
-transform_matrix mat;
+static int mat_unit(transform_matrix mat)
 {
     int i, j;
 
@@ -122,9 +126,7 @@ transform_matrix mat;
 
 }
 
-static int mat_trans(tx, ty, tz, mat)
-float tx, ty, tz;
-transform_matrix mat;
+static int mat_trans(double tx, double ty, double tz, transform_matrix mat)
 {
      mat_unit(mat);                                 /* Make it unit matrix. */
      mat[matCell(3,0)] = tx;
@@ -134,9 +136,7 @@ transform_matrix mat;
   return 0;
 }
 
-static int mat_scale(sx, sy, sz, mat)
-float sx, sy, sz;
-transform_matrix mat;
+static int mat_scale(double sx, double sy, double sz, transform_matrix mat)
 {
      mat_unit(mat);                                 /* Make it unit matrix. */
      mat[matCell(0,0)] = sx;
@@ -146,9 +146,7 @@ transform_matrix mat;
     return 0;
 }
 
-static int mat_rot_x(teta, mat)
-float teta;
-transform_matrix mat;
+static int mat_rot_x(double teta, transform_matrix mat)
 {
     float cos_teta, sin_teta;
 
@@ -165,9 +163,7 @@ transform_matrix mat;
 return 0;
 }
 
-static int mat_rot_y(teta, mat)
-float teta;
-transform_matrix mat;
+static int mat_rot_y(double teta, transform_matrix mat)
 {
     float cos_teta, sin_teta;
 
@@ -184,9 +180,7 @@ transform_matrix mat;
     return 0;
 }
 
-static int mat_rot_z(teta, mat)
-float teta;
-transform_matrix mat;
+static int mat_rot_z(double teta, transform_matrix mat)
 {
     float cos_teta, sin_teta;
 
@@ -204,8 +198,8 @@ transform_matrix mat;
 }
 
 /* Multiply two transform_matrix. Result can be one of two operands. */
-void mat_mult(mat_res, mat1, mat2)
-transform_matrix mat_res, mat1, mat2;
+static void mat_mult(transform_matrix mat_res, transform_matrix mat1, 
+	      transform_matrix mat2)
 {
     int i, j, k;
     transform_matrix mat_res_temp;
@@ -222,9 +216,7 @@ transform_matrix mat_res, mat1, mat2;
 }
 
 /* And the functions to map from user 3D space to terminal coordinates */
-int map3d_xy(x, y, z, xt, yt)
-float x, y, z;
-int *xt, *yt;
+int map3d_xy(double x, double y, double z, int *xt, int *yt)
 {
     int i;
     float v[4], res[4],		/* Homogeneous coords. vectors. */
@@ -262,8 +254,7 @@ int *xt, *yt;
  * bit 3 if below of ybot.
  * 0 is returned if inside.
  */
-static int clip_point(x, y)
-int x, y;
+static int clip_point(int x, int y)
 {
     int ret_val = 0;
 
@@ -279,8 +270,7 @@ int x, y;
  *   This routine uses the cohen & sutherland bit mapping for fast clipping -
  * see "Principles of Interactive Computer Graphics" Newman & Sproull page 65.
  */
-static void draw_clip_line(x1, y1, x2, y2)
-int x1, y1, x2, y2;
+static void draw_clip_line(int x1, int y1, int x2, int y2)
 {
     int x, y, dx, dy, x_intr[2], y_intr[2], count, pos1, pos2;
     register struct termentry *t = &term_tbl[term];
@@ -378,15 +368,13 @@ int x1, y1, x2, y2;
 /* Two routine to emulate move/vector sequence using line drawing routine. */
 static int move_pos_x, move_pos_y;
 
-static void clip_move(x,y)
-int x,y;
+static void clip_move(int x,int y)
 {
     move_pos_x = x;
     move_pos_y = y;
 }
 
-static void clip_vector(x,y)
-int x,y;
+static void clip_vector(int x, int y)
 {
     draw_clip_line(move_pos_x,move_pos_y, x, y);
     move_pos_x = x;
@@ -394,9 +382,7 @@ int x,y;
 }
 
 /* And text clipping routine. */
-static void clip_put_text(x, y, str)
-int x,y;
-char *str;
+static void clip_put_text(int x, int y, char *str)
 {
     register struct termentry *t = &term_tbl[term];
 
@@ -428,8 +414,8 @@ CheckLog(log, x)
 
 /* borders of plotting area */
 /* computed once on every call to do_plot */
-static int boundary3d(scaling)
-	BOOLEAN scaling;		/* TRUE if terminal is doing the scaling */
+static int boundary3d(BOOLEAN scaling)
+     /* BOOLEAN scaling:  TRUE if terminal is doing the scaling */
 {
     register struct termentry *t = &term_tbl[term];
     xleft = (t->h_char)*2 + (t->h_tic);
@@ -444,9 +430,7 @@ static int boundary3d(scaling)
 return 0;
 }
 
-static float dbl_raise(x,y)
-float x;
-int y;
+static float dbl_raise(double x, int y)
 {
 register int i;
 float val;
@@ -459,10 +443,7 @@ float val;
 }
 
 
-static float make_3dtics(tmin,tmax,axis,logscale)
-float tmin,tmax;
-int axis;
-BOOLEAN logscale;
+static float make_3dtics(double tmin, double tmax, int axis, BOOLEAN logscale)
 {
 int x1,y1,x2,y2;
 register float xr,xnorm,tics,tic,l10;
@@ -504,17 +485,15 @@ register float xr,xnorm,tics,tic,l10;
 	return(tic);
 }
 
-int do_3dplot(plots, pcount, min_x, max_x, min_y, max_y, min_z, max_z)
-struct surface_points *plots;
-int pcount;			/* count of plots in linked list */
-float min_x, max_x;
-float min_y, max_y;
-float min_z, max_z;
+int do_3dplot(struct surface_points *plots, int pcount, double min_x, 
+	      double max_x, double min_y, double max_y, double min_z, 
+	      double max_z)
+/* pcount: count of plots in linked list */
 {
 register struct termentry *t = &term_tbl[term];
 register int surface;
 register struct surface_points *this_plot;
-register int xl, yl;
+register int xl=0, yl=0;
 			/* only a Pyramid would have this many registers! */
 float xtemp, ytemp, ztemp, temp;
 struct text_label *this_label;
@@ -747,17 +726,15 @@ return 0;
 /* plot3d_lines:
  * Plot the surfaces in LINES style
  */
-int plot3d_lines(plot, printIndex)
-struct surface_points *plot;
-int printIndex;
-
+int plot3d_lines(struct surface_points *plot, int printIndex)
 {
     int i,j,k;				/* point index */
     
-    static int path[4][4][2] = {0,0,0,1,-1,1,-1,0,
+    static int path[4][4][2] = {   0,0,0,1,-1,1,-1,0,
 				   0,0,0,1,1,1,1,0,
 				   0,0,0,-1,1,-1,1,0,
-				   0,0,0,-1,-1,-1,-1,0};
+				   0,0,0,-1,-1,-1,-1,0
+                               };
     
     int i_st, i_end, i_step, j_st, j_end, j_step;
     int l, path_i;
@@ -930,10 +907,9 @@ return 0;
 
 }
 
-static int update_extrema_pts(ix, iy, min_sx_x, min_sx_y, min_sy_x, min_sy_y,
-			  x, y)
-	int ix, iy, *min_sx_x, *min_sx_y, *min_sy_x, *min_sy_y;
-	float x, y;
+int update_extrema_pts(int ix, int iy, int *min_sx_x, int *min_sx_y, 
+			      int *min_sy_x, int *min_sy_y,
+			      double x, double y)
 {
 
     if (*min_sx_x > ix + 2 ||         /* find (bottom) left corner of grid */
@@ -955,9 +931,7 @@ static int update_extrema_pts(ix, iy, min_sx_x, min_sx_y, min_sy_x, min_sy_y,
 }
 
 /* Draw the bottom grid for the parametric case. */
-static int draw_parametric_grid(plot,z_min)
-	struct surface_points *plot;
-	float z_min;
+static int draw_parametric_grid(double z_min)
 {
     int i,ix,iy,			/* point in terminal coordinates */
 	min_sx_x = 10000,min_sx_y = 10000,min_sy_x = 10000,min_sy_y = 10000;
@@ -1039,9 +1013,8 @@ static int draw_parametric_grid(plot,z_min)
 
 
 /* Draw the bottom grid that hold the tic marks for 3d surface. */
-static int draw_bottom_grid(plot, min_z, max_z)
-	struct surface_points *plot;
-	float min_z, max_z;
+static int draw_bottom_grid(struct surface_points *plot, double min_z, 
+			    double max_z)
 {
     int x,y;
     float xtic,ytic,ztic;
@@ -1051,7 +1024,7 @@ static int draw_bottom_grid(plot, min_z, max_z)
     ytic = make_3dtics(y_min3d,y_max3d,'y',log_y);
     ztic = make_3dtics(min_z,max_z,'z',log_z);
 
-    if (draw_border) draw_parametric_grid(plot, min_z);
+    if (draw_border) draw_parametric_grid(min_z);
 
     (*t->linetype)(-2); /* border linetype */
 
@@ -1224,10 +1197,10 @@ return 0;
 }
 
 /* DRAW_3DXTICS: draw a regular tic series, x axis */
-static int draw_3dxtics(start, incr, end, ypos, z_min)
-	float start, incr, end, ypos; /* tic series definition */
-		/* assume start < end, incr > 0 */
-	float z_min;
+int draw_3dxtics(double start, double incr, double end, double ypos, 
+		 double z_min)
+     /* start, incr, end, ypos: tic series definition */
+     /* assume start < end, incr > 0 */
 {
 	float ticplace;
 	int ltic;		/* for mini log tics */
@@ -1251,10 +1224,10 @@ return 0;
 }
 
 /* DRAW_3DYTICS: draw a regular tic series, y axis */
-static int draw_3dytics(start, incr, end, xpos, z_min)
-	float start, incr, end, xpos; /* tic series definition */
-		/* assume start < end, incr > 0 */
-	float z_min;
+int draw_3dytics(double start, double incr, double end, double xpos, 
+		 double z_min)
+     /* start, incr, end, xpos: tic series definition */
+     /* assume start < end, incr > 0 */
 {
 	float ticplace;
 	int ltic;		/* for mini log tics */
@@ -1278,8 +1251,8 @@ return 0;
 }
 
 /* DRAW_3DZTICS: draw a regular tic series, z axis */
-static int draw_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
-	float start, incr, end, xpos, ypos, z_min, z_max;
+int draw_3dztics(double start, double incr, double end, double xpos, 
+		 double ypos, double z_min, double z_max)
 		/* assume start < end, incr > 0 */
 {
 	int x, y;
@@ -1317,10 +1290,10 @@ static int draw_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
 }
 
 /* DRAW_SERIES_3DXTICS: draw a user tic series, x axis */
-static int draw_series_3dxtics(start, incr, end, ypos, z_min)
-		float start, incr, end, ypos; /* tic series definition */
-		/* assume start < end, incr > 0 */
-		float z_min;
+int draw_series_3dxtics(double start, double incr, double end, double ypos, 
+			double z_min)
+     /* start, incr, end, ypos: tic series definition */
+     /* assume start < end, incr > 0 */
 {
 	float ticplace, place;
 	float ticmin, ticmax;	/* for checking if tic is almost inrange */
@@ -1347,9 +1320,10 @@ return 0;
 }
 
 /* DRAW_SERIES_3DYTICS: draw a user tic series, y axis */
-static int draw_series_3dytics(start, incr, end, xpos, z_min)
-		float start, incr, end, xpos; /* tic series definition */
-		/* assume start < end, incr > 0 */
+int draw_series_3dytics(double start, double incr, double end, double xpos, 
+			double z_min)
+     /* start, incr, end, xpos: tic series definition */
+     /* assume start < end, incr > 0 */
 {
 	float ticplace, place;
 	float ticmin, ticmax;	/* for checking if tic is almost inrange */
@@ -1376,10 +1350,10 @@ return 0;
 }
 
 /* DRAW_SERIES_3DZTICS: draw a user tic series, z axis */
-static int draw_series_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
-		float start, incr, end; /* tic series definition */
-		float xpos, ypos, z_min, z_max;
-		/* assume start < end, incr > 0 */
+int draw_series_3dztics(double start, double incr, double end, double xpos, 
+			double ypos, double z_min, double z_max)
+     /* start, incr, end: tic series definition */
+     /* assume start < end, incr > 0 */
 {
 	int x, y;
 	float ticplace, place;
@@ -1418,10 +1392,8 @@ return 0;
 }
 
 /* DRAW_SET_3DXTICS: draw a user tic set, x axis */
-static int draw_set_3dxtics(list, ypos, z_min)
-	struct ticmark *list;	/* list of tic marks */
-	float ypos;
-	float z_min;
+int draw_set_3dxtics(struct ticmark *list, double ypos, double z_min)
+     /* struct ticmark *list: list of tic marks */
 {
     float ticplace;
     float incr = (x_max3d - x_min3d) / 10;
@@ -1441,10 +1413,7 @@ return 0;
 }
 
 /* DRAW_SET_3DYTICS: draw a user tic set, y axis */
-static draw_set_3dytics(list, xpos, z_min)
-	struct ticmark *list;	/* list of tic marks */
-	float xpos;
-	float z_min;
+int draw_set_3dytics(struct ticmark *list, double xpos, double z_min)
 {
     float ticplace;
     float incr = (y_max3d - y_min3d) / 10;
@@ -1459,12 +1428,13 @@ static draw_set_3dytics(list, xpos, z_min)
 
 	   list = list->next;
     }
+    return 0;
 }
 
 /* DRAW_SET_3DZTICS: draw a user tic set, z axis */
-static int draw_set_3dztics(list, xpos, ypos, z_min, z_max)
-	struct ticmark *list;	/* list of tic marks */
-	float xpos, ypos, z_min, z_max;
+int draw_set_3dztics(struct ticmark *list, double xpos, double ypos, 
+		     double z_min, double z_max)
+     /* struct ticmark *list:  list of tic marks */
 {
     int x, y;
     float ticplace;
@@ -1495,13 +1465,12 @@ return 0;
 }
 
 /* draw and label a x-axis ticmark */
-static int xtick(place, text, spacing, ticscale, ypos, z_min)
-        float place;                   /* where on axis to put it */
-        char *text;                     /* optional text label */
-        float spacing;         /* something to use with checkzero */
-        float ticscale;         /* scale factor for tic mark (0..1] */
-	float ypos;
-	float z_min;
+int xtick(double place, char *text, double spacing, double ticscale, 
+	  double ypos, double z_min)
+     /* place:     where on axis to put it */
+     /* text:      optional text label */
+     /* spacing:   something to use with checkzero */
+     /* ticscale:  scale factor for tic mark (0..1] */
 {
     register struct termentry *t = &term_tbl[term];
     char ticlabel[101];
@@ -1608,13 +1577,12 @@ static int xtick(place, text, spacing, ticscale, ypos, z_min)
 }
 
 /* draw and label a y-axis ticmark */
-static int ytick(place, text, spacing, ticscale, xpos, z_min)
-        float place;                   /* where on axis to put it */
-        char *text;                     /* optional text label */
-        float spacing;         /* something to use with checkzero */
-        float ticscale;         /* scale factor for tic mark (0..1] */
-	float xpos;
-	float z_min;
+int ytick(double place, char *text, double spacing, double ticscale, 
+	  double xpos, double z_min)
+     /* place:    where on axis to put it */
+     /* text:     optional text label */
+     /* spacing:  something to use with checkzero */
+     /* ticscale: scale factor for tic mark (0..1] */
 {
     register struct termentry *t = &term_tbl[term];
     char ticlabel[101];
@@ -1696,12 +1664,12 @@ return 0;
 }
 
 /* draw and label a z-axis ticmark */
-static int ztick(place, text, spacing, ticscale, xpos, ypos)
-        float place;                   /* where on axis to put it */
-        char *text;                     /* optional text label */
-        float spacing;         /* something to use with checkzero */
-        float ticscale;         /* scale factor for tic mark (0..1] */
-	float xpos, ypos;
+int ztick(double place, char *text, double spacing, double ticscale, 
+	  double xpos, double ypos)
+     /* place:      where on axis to put it */
+     /* text:       optional text label */
+     /* spacing:    something to use with checkzero */
+     /* ticscale:   scale factor for tic mark (0..1] */
 {
     register struct termentry *t = &term_tbl[term];
     char ticlabel[101];

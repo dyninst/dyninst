@@ -15,8 +15,13 @@
 /*
  * menu.c - menu handler code.
  *
- * $Id: menu.c,v 1.5 1998/03/30 01:22:28 wylie Exp $
+ * $Id: menu.c,v 1.6 2001/06/12 19:56:12 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>

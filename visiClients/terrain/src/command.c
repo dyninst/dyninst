@@ -33,27 +33,31 @@
  *
  * command.c - main switchboard of the program.
  *
- * $Id: command.c,v 1.13 1998/03/30 01:22:21 wylie Exp $
+ * $Id: command.c,v 1.14 2001/06/12 19:56:12 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 /* #include <strings.h> */
 
-#include "plot.h"
+#include "terrain.h"
+#include "misc.h"
 #include "setshow.h"
 #include "graph3d.h"
-#include "misc.h"
 #include "smooth.h"
 #include "command.h"
-#include "terrain.h"
-
+#include "plot.h"
 
 #define inrange(z,min,max) ((min<max) ? ((z>=min)&&(z<=max)) : ((z>=max)&&(z<=min)) )
 
 /* Reduce needs screen width */
-extern W;
+extern int W;
 
 /* input data, parsing variables */
 struct lexical_unit token[MAX_TOKENS];
@@ -93,11 +97,15 @@ void plot3drequest(int action);
 void done(int status);
 int getStartIndex(int ID);
 void kill_surface();
-int checkDecimal(float zmax);
+int checkDecimal(double zmax);
 void copyResName(char* destination, char* source);
 void ReDisplayGraph();
 void ProcessNewSegments(int printIndex);
-void Graph3DSetCurveData();
+void Graph3DSetCurveData(int curveID, int firstSample, int numSamples, 
+			 const float *sample, double startTime, double x_inter,
+                         int fold, int color_disp, Display* dpy, GC gc, 
+			 RValues rv, Pixmap pixmap, Dimension W, Dimension H, 
+			 Window win);
 int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
                         int no_points, int no_curves);
 */
@@ -189,7 +197,7 @@ void kill_surface()
 }
 
 
-int checkDecimal(float zmax)
+int checkDecimal(double zmax)
 {
   int i = 0;
 
@@ -326,9 +334,9 @@ void ProcessNewSegments(int printIndex)
 
 }
 
-
-void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime, x_inter,
-                         fold, color_disp, dpy, gc, rv, pixmap, W, H, win)
+void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime,
+			  x_inter, fold, color_disp, dpy, gc, rv, pixmap, W, 
+			  H, win)
 int curveID;
 int firstSample;
 int numSamples;

@@ -15,17 +15,19 @@
 /*
  * misc.h - header file of misc.c
  *
- * $Id: misc.h,v 1.4 1998/03/30 01:22:30 wylie Exp $
+ * $Id: misc.h,v 1.5 2001/06/12 19:56:12 schendel Exp $
  */
 
 #ifndef TERRAIN_MISC_GUARD
 #define TERRAIN_MISC_GUARD
 
+#include "plot.h"
+
 void terrain_error(char*);
 char *terrain_mem_error(char*);
 void terrain_warning(char*);
-extern void free_surface();
-int quit3d();
+extern void free_surface(struct surface_points* surface);
+int quit3d(void);
 
 extern char *ta_new_mem;
 

@@ -15,8 +15,13 @@
 /* 
  * FormatBox.c - Formated box widget
  * 
- * $Id: FormatBox.c,v 1.5 1998/03/30 01:22:14 wylie Exp $
+ * $Id: FormatBox.c,v 1.6 2001/06/12 19:56:11 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>

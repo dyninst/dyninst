@@ -15,16 +15,21 @@
 /*
  * colorize.c - colorize surfaces according to their height.
  *
- * $Id: colorize.c,v 1.6 1998/03/30 01:22:20 wylie Exp $
+ * $Id: colorize.c,v 1.7 2001/06/12 19:56:11 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-   
+
+#include "terrain.h"   
 #include "misc.h"
 #include "graph3d.h"
-#include "terrain.h"
 #include "colorize.h"
    
 #define TRUE	1

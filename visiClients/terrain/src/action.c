@@ -18,10 +18,17 @@
  *   buttons defining the possible actions to take in responce to the
  *   message.
  *
- * $Id: action.c,v 1.7 1998/03/30 01:22:18 wylie Exp $
+ * $Id: action.c,v 1.8 2001/06/12 19:56:11 schendel Exp $
  */
 
 #define max(x,y) 	((x > y) ? x : y);
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
+#define XTSTRINGDEFINES
+
 #include <stdio.h>
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
@@ -41,8 +48,6 @@
 #include "terrain.h"
 #include "miscx.h"
 
-static int Xorig, Yorig;
-
 struct ActData {
     int active;			/* still waiting on a responce */
     Widget shell;		/* top level holder */
@@ -54,7 +59,7 @@ struct ActData {
     Widget *buttons;		/* buttons */
     Widget message;		/* message */
     char *str;			/* text of message */
-    void (*callBack)();		/* func to call when we are done */
+    void (*callBack)(int);	/* func to call when we are done */
 };
 
 
@@ -66,12 +71,11 @@ Pixmap icon_pixmap = (Pixmap)NULL;
 static int width, height;
 static struct ActData act;
 static int start_x, start_y;
-static Arg get_stuff[] = {
-    {    XtNwidth,      (XtArgVal) &width },
-};
 
-static void EndActFunc(Widget w, int id, int cdata)
+void EndActFunc(Widget w, int id, int cdata)
 {
+    // garbage, just to remove warning
+    void *ptr = w; if(ptr==NULL) { cdata=cdata; } 
     XtRemoveGrab(act.shell);
     XtUnmapWidget(act.shell);
     if (act.callBack) (act.callBack)(id);
@@ -84,7 +88,7 @@ static void EndActFunc(Widget w, int id, int cdata)
 
 int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labels[],
                    char *buttons[], struct Logo *Llogo, struct Logo *Rlogo, 
-                   void (*callBack)())
+                   void (*callBack)(int))
 {
 
     int i;

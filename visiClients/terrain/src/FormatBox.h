@@ -18,7 +18,7 @@
 /*
  * Public interface to formatted box widget 
  *
- * $Id: FormatBox.h,v 1.4 1998/03/30 01:22:15 wylie Exp $
+ * $Id: FormatBox.h,v 1.5 2001/06/12 19:56:11 schendel Exp $
  */
 
 
@@ -44,7 +44,7 @@ typedef struct _FormatBoxRec *FormatBoxWidget;
 extern WidgetClass formatBoxWidgetClass;
 
 void StringToOption(XrmValue *args, int a_count, XrmValue *from, XrmValue *to);
-void InitStuff();
+void InitStuff(void);
 void ChangedManaged(FormatBoxWidget w);
 void Resize(FormatBoxWidget w);
 

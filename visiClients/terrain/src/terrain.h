@@ -20,7 +20,7 @@
  *
  * terrain.h - header file of terrain.c.
  *
- * $Id: terrain.h,v 1.6 1998/03/30 01:22:39 wylie Exp $
+ * $Id: terrain.h,v 1.7 2001/06/12 19:56:13 schendel Exp $
  */
 
 #ifndef TERRAIN_H
@@ -30,7 +30,7 @@
 #include <X11/StringDefs.h>
 #include <X11/Xaw/Cardinals.h>
 
-#include <Label.h>          /* use -Idir for location on your system */
+#include <X11/Xaw/Label.h>
 
 #include "misc.h"
 
@@ -43,18 +43,20 @@
 #define LabelBPM XtNbitmap
 #endif
 
+#include "plot.h"
+
 extern void displayScreen(int action);
 extern int X11_vector(unsigned int x, unsigned int y);
 extern int X11_move(unsigned int x, unsigned int y);
 extern int X11_put_text(unsigned int x, unsigned int y, char *str);
 extern int X11_justify_text(enum JUSTIFY mode);
 extern int X11_linetype(int lt);
-extern X11_colorPoly();
-extern X11_init();
-extern X11_reset();
-extern X11_graphics();
-extern X11_text();
-extern X11_colorPoly_pixmap();
+/* extern X11_colorPoly(); */
+extern int X11_init(void);
+extern int X11_reset(void);
+extern int X11_graphics(void);
+extern int X11_text(void);
+/* extern X11_colorPoly_pi[xmap(); */
 
 
 
@@ -74,14 +76,14 @@ extern float xscale, yscale;
 extern Display *dpy;
 extern GC gc;
 extern Pixmap pixmap;
-extern cur_lt;
+extern int cur_lt;
 extern unsigned long colors[];
 extern int Ntcolors;
 extern unsigned long *tcolors;
 extern Widget w_top;
 extern Window win;
 
-extern vchar;			/* Height of the default font */
+extern int vchar;			/* Height of the default font */
 
 
 
@@ -98,7 +100,7 @@ XtActionProc NotifyEndThumb();
 
 
 /*int display(int action); */
-int init_pixmap();
+int init_pixmap(void);
 
 
 

@@ -15,15 +15,20 @@
 /*
  * misc.c - misc utility routines.
  *
- * $Id: misc.c,v 1.6 1998/03/30 01:22:29 wylie Exp $
+ * $Id: misc.c,v 1.7 2001/06/12 19:56:12 schendel Exp $
  */
+
+#ifdef i386_unknown_linux2_0
+#define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
+#define _HAVE_STRING_ARCH_strsep
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "terrain.h"
 #include "misc.h"
 #include "plot.h"
-#include "terrain.h"
 #include "command.h"
 #include "error.h"
 
