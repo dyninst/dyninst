@@ -40,45 +40,31 @@
  */
 
 /************************************************************************
- * Types.h: commonly used types and functions.
+ * $Id: Types.h,v 1.5 1998/12/25 21:47:23 wylie Exp $
+ * Types.h: commonly used types.
 ************************************************************************/
-
-
-
-
 
 #if !defined(_Types_h_)
 #define _Types_h_
 
+typedef unsigned int Word;
 
-
+typedef int RegValue;           // register content
+typedef unsigned char Register; // a register number, e.g., [0..31]
+const Register Null_Register = (Register)(-1); // '255'
 
-
-/************************************************************************
- * types.
-************************************************************************/
-
-typedef unsigned Word;
-#if defined(alpha_dec_osf4_0)
-typedef unsigned long Address;
-#else
-typedef unsigned Address;
-#endif
+typedef long unsigned int Address;
+// Note the inherent assumption that the size of a "long" integer matches
+// that of an address (void*) on every supported Paradyn/DynInst system!
+// (This can be checked with Address_chk().)
 
 
-
+extern void Address_chk ();
+extern char *Address_str (Address addr);
 
-
-/************************************************************************
- * functions.
-************************************************************************/
-
-static inline unsigned hash_address(const Address& addr) {
+// NB: this is probably inappropriate for 64-bit addresses!
+inline unsigned hash_address(const Address& addr) {
     return (addr >> 2);
 }
-
-
-
-
 
 #endif /* !defined(_Types_h_) */
