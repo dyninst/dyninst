@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.24 2005/03/14 22:31:55 tlmiller Exp $
+// $Id: Object-coff.C,v 1.25 2005/03/22 05:56:26 rchen Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -397,6 +397,12 @@ void Object::load_object(bool sharedLibrary) {
 	  return;
 	}
 
+	// COFF doesn't have segments, so the entire code/data sections are valid
+	code_vldS_ = code_off_;
+	code_vldE_ = code_off_ + code_len_ * sizeof(Word);
+	data_vldS_ = data_off_;
+	data_vldE_ = data_off_ + code_len_ * sizeof(Word);
+
         // Check for the symbol table
 	if (!(sym_tab_ptr = PSYMTAB(ldptr))) {
 	    success = false;
@@ -453,12 +459,12 @@ void Object::load_object(bool sharedLibrary) {
 	switch(symbol.st) {
 	case stProc:
 	case stStaticProc:
-	    // Native C++ name demangling.
-	    MLD_demangle_string(name, prettyName, 1024,
-				MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
-	    if (strchr(prettyName, '('))
-		*strchr(prettyName, '(') = 0;
-	    name = prettyName;
+		// Native C++ name demangling.
+		MLD_demangle_string(name, prettyName, 1024,
+				    MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
+		if (strchr(prettyName, '('))
+		    *strchr(prettyName, '(') = 0;
+		name = prettyName;
 
 		if (symbol.sc == scText && !fcnNames.defines(name)) {
 			type = Symbol::PDST_FUNCTION;
@@ -535,6 +541,30 @@ void Object::load_object(bool sharedLibrary) {
 			//Detect the compiler type by searching libgcc.
 			if (strstr(module.c_str(), "libgcc"))
 				GCC_COMPILED = true;
+		}
+		break;
+
+	case stLabel:
+		// For stLabel/scText combinations, if the symbol address falls
+		// within the text section and has a valid name, process it as
+		// a function.
+		if (symbol.sc == scText &&
+		    code_vldS_ <= symbol.value && symbol.value < code_vldE_ &&
+		    name && *name && !fcnNames.defines(name)) {
+			// Native C++ name demangling.
+		        // Keep this in sync with stProc case above.
+
+			MLD_demangle_string(name, prettyName, 1024,
+					    MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
+			if (strchr(prettyName, '('))
+			    *strchr(prettyName, '(') = 0;
+			name = prettyName;
+
+			type = Symbol::PDST_FUNCTION;
+			fcnNames[name] = 1;
+
+		} else {
+			sym_use = false;
 		}
 		break;
 
@@ -616,12 +646,6 @@ void Object::load_object(bool sharedLibrary) {
     }
     free(file);
 
-    // COFF doesn't have segments, so the entire code/data sections are valid
-
-    code_vldS_ = code_off_;
-    code_vldE_ = code_off_ + code_len_ * sizeof(Word);
-    data_vldS_ = data_off_;
-    data_vldE_ = data_off_ + code_len_ * sizeof(Word);
 }
 
 
