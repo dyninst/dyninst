@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.11  1996/02/07 21:50:33  tamches
-/* fixed draw() bug that wouldn't properly double-buffer when drawing a
-/* blank shg
+/* Revision 1.12  1996/02/11 18:24:16  tamches
+/* removed addToStatusDisplay
 /*
+ * Revision 1.11  1996/02/07 21:50:33  tamches
+ * fixed draw() bug that wouldn't properly double-buffer when drawing a
+ * blank shg
+ *
  * Revision 1.10  1996/02/07 19:08:23  tamches
  * addNode, configNode, and addEdge now take in "isCurrShg" flag, which
  * is in turn passed to rethink_entire_layout
@@ -806,7 +809,9 @@ void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalS
 
    // Note that processing here is very different from the where axis.
    // In the where axis, you are always given a parent when inserting a node.
-   // Here, we are not (which is ugly and should be eventually fixed, imho).
+   // Here, we are not (intentionally); creating nodes and adding edges must be
+   // kept separate, or else we couldn't create a dag (we would only be able to
+   // create a tree).
    // So, we put the node in the hash table but don't try to link it to any parent
    // until the addEdge...
 
@@ -981,13 +986,4 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
    // rethink layout of entire shg (slow...):
    rethink_entire_layout(isCurrShg);
-}
-
-void shg::addToStatusDisplay(const string &str) {
-   string commandStr = string(".shg.nontop.textarea.text insert end ") +
-                       "{" + str + "}\n";
-   myTclEval(interp, commandStr);
-
-   commandStr = ".shg.nontop.textarea.text yview -pickplace end";
-   myTclEval(interp, commandStr);
 }

@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.6  1996/02/07 19:07:46  tamches
-/* rethink_entire_layout, addNode, configNode, and addEdge now
-/* take in "isCurrShg" flag
+/* Revision 1.7  1996/02/11 18:23:57  tamches
+/* removed addToStatusDisplay
 /*
+ * Revision 1.6  1996/02/07 19:07:46  tamches
+ * rethink_entire_layout, addNode, configNode, and addEdge now
+ * take in "isCurrShg" flag
+ *
  * Revision 1.5  1996/02/02 18:43:33  tamches
  * Displaying extra information about a node has moved from a mousemove
  * to a middle-click
@@ -208,9 +211,6 @@ class shg {
 
    void initializeStaticsIfNeeded();
 
-   const string &getHorizSBName() const {return horizSBName;}
-   const string &getVertSBName()  const {return vertSBName;}
-
    // the return values of the next 2 routines will be <= 0
    int getVertSBOffset()  const {return vertScrollBarOffset;}
    int getHorizSBOffset() const {return horizScrollBarOffset;}
@@ -268,8 +268,6 @@ class shg {
                 bool isCurrShg);
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
-
-   void addToStatusDisplay(const string &);
 };
 
 #endif
