@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.29 2002/09/05 19:47:58 mikem Exp $
+// $Id: templates-nt.C,v 1.30 2002/10/08 16:23:08 mikem Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -139,8 +139,10 @@ template class dictionary_hash<Address, unsigned>;
 template class varTable<intCounterHK>;
 template class varTable<wallTimerHK>;
 template class varTable<processTimerHK>;
+#ifdef PAPI
 template class varTable<hwTimerHK>;
 template class varTable<hwCounterHK>;
+#endif
 template class vector<baseVarTable *>;
 
 #include "paradynd/src/varInstance.h"
@@ -148,8 +150,10 @@ template class vector<baseVarTable *>;
 template class varInstance<intCounterHK>;
 template class varInstance<wallTimerHK>;
 template class varInstance<processTimerHK>;
+#ifdef PAPI
 template class varInstance<hwTimerHK>;
 template class varInstance<hwCounterHK>;
+#endif
 template class vector<baseVarInstance *>;
 
 #endif // SHM_SAMPLING
