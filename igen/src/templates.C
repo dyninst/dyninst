@@ -39,40 +39,30 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.12 2000/07/28 17:21:40 pcroth Exp $
-
-#include "common/h/headers.h"
-
-#pragma implementation "Vector.h"
-#include "common/h/Vector.h"
+// $Id: templates.C,v 1.13 2002/04/09 18:05:34 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-#include "parse.h"
+#include "arg.h"
+#include "type_defn.h"
+#include "message_layer.h"
+#include "Options.h"
 
-template class vector<arg*>;
-template class vector<message_layer*>;
-template class vector<string>;
-template class vector<Options::el_data>;
-template class vector<Options::stl_data>;
-template class vector<type_defn *>;
-
-template class dictionary_hash<string, remote_func*>;
-template class vector<dictionary_hash<string, remote_func*>::entry>;
-
-template class dictionary_hash<string, type_defn*>;
-template class vector<dictionary_hash<string, type_defn*>::entry>;
-
-template class dictionary_hash_iter<string, type_defn*>;
-template class dictionary_hash_iter<string, remote_func*>;
-
-template class refCounter<string_ll>;
-
-template class vector<unsigned>;
-
-#if defined(rs6000_ibm_aix4_1)
+#ifdef rs6000_ibm_aix4_1
 #include "common/h/Symbol.h"
+template class pair<string, Symbol>;
+template pair<string, Symbol> make_pair<string, Symbol>(const string &, const Symbol &);
 template class dictionary_hash<string, Symbol>;
 #endif
 
+template class vector<arg *>;
+template class vector<unsigned>;
+template class vector<type_defn *>;
+template class vector<message_layer *>;
+template class vector<Options::stl_data>;
+template class vector<Options::el_data>;
+template class dictionary_hash<string, type_defn *>;
+template class dictionary_hash<string, remote_func *>;
+template class vector<dictionary_hash<string, type_defn *>::entry>;
+template class vector<dictionary_hash<string, remote_func *>::entry>;

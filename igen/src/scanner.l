@@ -108,6 +108,7 @@ INT	{DIGIT}+
 FIX	{INT}"."{INT}
 ALPHA	[A-Za-z]
 IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
+FWD     "forward"
 %%
 \$remote	{ parsing = 1; 	}
 "//".*\n		{ if (!parsing) REJECT; }
@@ -122,7 +123,7 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
                   } else
 		    REJECT;
 		}
-"forward"	{ return(tFORWARD); }
+"forward"     	{ printf("forward!\n"); return(tFORWARD); }
 \$upcall	{ return(tUPCALL); }
 \$virtual	{ return(tVIRTUAL); }
 \$base		{ return(tBASE); }

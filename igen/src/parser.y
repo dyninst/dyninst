@@ -43,6 +43,7 @@
 
 extern int ignoring;
 #include "parse.h"
+#include "Options.h"
 
 #define YYSTYPE union parse_stack
 
@@ -90,7 +91,8 @@ interfaceBase: tBASE tUNS tSEMI { $$.u = $2.u; };
 interfaceVersion: tVERSION tUNS tSEMI { $$.u = $2.u; };
 
 forward_spec: tFORWARD tIDENT tSEMI {
-  Options::forward_decls += *$2.cp; delete $2.cp;
+   printf("Found a forward spec\n");
+   Options::forward_decls += *$2.cp; delete $2.cp;
 };
 
 definitionList:
@@ -129,10 +131,10 @@ definition: optFree optUpcall optConst typeName pointers optRef tIDENT tLPAREN a
  Options::current_interface->ignore(false, $1.charp);
 } | tSIGNORE {
  Options::current_interface->ignore(true, $1.charp);
-};
+} | forward_spec;
 
 optIgnore: tIGNORE { $$.cp = new string($1.charp);}
-           |        { $$.cp = new string((char*)NULL); };
+           |        { $$.cp = new string(); };
 
 optAbstract:      { $$.b = false; }
            | tABSTRACT { $$.b = true; };
@@ -154,7 +156,7 @@ typeSpec: classOrStruct tIDENT optDerived
    if (Options::types_defined(*$2.cp)) {
      char str[80];
      
-     sprintf(str, "Duplicate type %s, exiting", ($2.cp)->string_of());
+     sprintf(str, "Duplicate type %s, exiting", ($2.cp)->c_str());
      yyerror(str);
      exit(0);
    }
@@ -164,11 +166,19 @@ typeSpec: classOrStruct tIDENT optDerived
    $$.cp = new string(Options::allocate_type(*$2.cp, $1.class_data.b, $1.class_data.abs,
 					     $3.derived.is_derived,
 					     *($3.derived.name),
-					     type_defn::TYPE_COMPLEX, true, false,
-					     $5.arg_vector, *$6.cp));
+					     type_defn::TYPE_COMPLEX, true, 
+					     false, $5.arg_vector, *$6.cp));
    delete ($2.cp); delete($3.derived.name); delete ($5.arg_vector); delete($6.cp);
    parsing = 0;
- }; 
+   }
+| classOrStruct tIDENT tSEMI {
+   $$.cp = new string(Options::allocate_type(*$2.cp, $1.class_data.b,
+					     type_defn::TYPE_COMPLEX,
+                                             false, false));
+   delete $2.cp;
+}
+
+; 
 
 optDerived: {$$.derived.is_derived = false; $$.derived.name = new string;}
           | tCOLON tIDENT {$$.derived.is_derived=true; $$.derived.name = $2.cp;};
@@ -192,14 +202,16 @@ typeName: tIDENT {
     bool is_forward = false;
 
     unsigned fsize = Options::forward_decls.size();
+    
     for (unsigned u=0; u<fsize; u++) 
-      if (Options::forward_decls[u] == *$1.cp) {
-	is_forward = true; break;
-      }
+       if (Options::forward_decls[u] == *$1.cp) {
+          is_forward = true;
+          break;
+       }
 
     if (Options::current_interface->are_bundlers_generated()) {
       if (!is_forward) {
-	sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
+	sprintf(str, "(0) unknown type %s, exiting", ($1.cp)->c_str());
 	yyerror(str);
 	exit(0);
       }
@@ -209,7 +221,8 @@ typeName: tIDENT {
     if (!is_forward)
       $$.cp = new string(Options::allocate_type(*$1.cp, false, false,
 						false, "",
-						type_defn::TYPE_COMPLEX, true, in_lib));
+						type_defn::TYPE_COMPLEX, true, 
+						in_lib));
     else
       $$.cp = new string(Options::type_prefix() + *$1.cp);
 
@@ -223,14 +236,15 @@ typeName: tIDENT {
 
     bool in_lib = false;
     if (Options::current_interface->are_bundlers_generated()) {
-      sprintf(str, "unknown type %s, exiting", tname.string_of());
+      sprintf(str, "(1) unknown type %s, exiting", tname.c_str());
       yyerror(str);
       exit(0);
     } else
       in_lib = true;
 
     $$.cp = new string(Options::allocate_type(tname, false, false, false, "",
-					      type_defn::TYPE_COMPLEX, true, in_lib));
+					      type_defn::TYPE_COMPLEX, 
+					      true, in_lib));
   } else
     $$.cp = new string(Options::get_type(tname));
 } | tIDENT tANGLE_L typeName pointers tANGLE_R {
@@ -245,7 +259,7 @@ typeName: tIDENT {
 	break;
       }
     if (!found) {
-      sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
+      sprintf(str, "(2) unknown type %s, exiting", ($1.cp)->c_str());
       yyerror(str);
       exit(0);
     }
@@ -316,3 +330,6 @@ arglist:		{ $$.arg_vector = new vector<arg*>; }
 | nonEmptyArg	{
   $$.arg_vector = $1.arg_vector;
 };
+
+
+
