@@ -93,8 +93,8 @@ extern int    fprintf(FILE *, const char *, ...);
 extern int    printf(const char *, ...);
 extern int    setitimer(int, struct itimerval *, struct itimerval *);
 extern int    sigpause(int);
-extern size_t fread(void *, size_t, size_t, FILE *);
-extern size_t fwrite(void *, size_t, size_t, FILE *);
+/* extern size_t fread(void *, size_t, size_t, FILE *); */
+/* extern size_t fwrite(void *, size_t, size_t, FILE *); */
 
 #endif /* defined(sparc_sun_sunos4_1_3) */
 
@@ -117,10 +117,6 @@ extern void perror(const char *);
 
 #endif /* !defined(__cplusplus) */
 
-/* If we must make up a boolean type, we should make it unique */
-#define RT_Boolean unsigned char
-#define RT_TRUE 1
-#define RT_FALSE 0
 
 
 

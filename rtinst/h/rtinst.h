@@ -8,6 +8,11 @@
 #ifndef _RTINST_H
 #define _RTINST_H
 
+/* If we must make up a boolean type, we should make it unique */
+#define RT_Boolean unsigned char
+#define RT_TRUE 1
+#define RT_FALSE 0
+
 typedef void (*instFunc)(void *cdata, int type, char *eventData);
 
 typedef struct intCounterRec intCounter;
