@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.93 2003/05/12 15:15:52 chadd Exp $
+// $Id: unix.C,v 1.94 2003/05/13 03:57:06 buck Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -861,23 +861,34 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
 		//and continue the child process we are good.  This flag
 		//lets us know (in handleSigTrap) that the next SIGTRAP should be eaten
 		theChild->nextTrapIsFork = true;  
+
+		// On AIX, we don't continue the process elsewhere because we
+		// want to wait until we've seen the fork exit in both the
+		// parent and the child.  This is so that the
+		// copyInstrumentationToChild above will work - without
+		// leaving the parent paused, it may, for instance, exit
+		// before we copy the instrumentation.  Now that we've handled
+		// that, continue both the parent and the child.
+		proc->continueProc();
+		theChild->continueProc();
 #endif
-                
             }
             else {
                 // Can happen if we're forking something we can't trace
                 cerr << "Process forked, but unable to initialize child" << endl;
+#if defined(rs6000_ibm_aix4_1)
+		// It's not clear what we want to do on AIX with the parent
+		// in this case.  For now, we'll just continue it.
+		proc->continueProc();
+#endif
             }
         }
 #if defined(rs6000_ibm_aix4_1)
-	// On AIX, we don't continue the process elsewhere because we want to
-	// wait until we've seen the fork exit in both the parent and the
-	// child.  This is so that the copyInstrumentationToChild above will
-	// work - without leaving the parent paused, it may, for instance,
-	// exit before we copy the instrumentation.  Now that we've handled
-	// that, continue both the parent and the child.
-	proc->continueProc();
-	processVec[i]->continueProc();
+	else {
+	    // Continue both parent and child (see above)
+	    proc->continueProc();
+	    processVec[i]->continueProc();
+	}
 #endif
     }
 
