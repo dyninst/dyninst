@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.52  1996/05/10 06:55:50  tamches
+ * Revision 1.53  1996/05/10 13:51:33  naim
+ * Changes to improve the instrumentation deletion process - naim
+ *
+ * Revision 1.52  1996/05/10  06:55:50  tamches
  * isFreeOK now takes in references as its last 2 args
  * calls to disabledItem member fns, now that its data are private
  * call to dictionary's find() instead of defines() & operator[].
@@ -131,7 +134,7 @@ int pvmendtask();
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
 static const timeStamp MAX_WAITING_TIME=10.0;
-static const timeStamp MAX_DELETING_TIME=2.0;
+static const timeStamp MAX_DELETING_TIME=1.0;
 
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
@@ -180,13 +183,14 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
   const unsigned disItemPointer = disItem.getPointer();
   const inferiorHeapType disItemHeap = disItem.getHeapType();
 
-  heapItem *ptr;
+  heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
     sprintf(errorLine,"Attempt to free already freed heap entry %x\n", disItemPointer);
     logLine(errorLine);
     showErrorCallback(67, (const char *)errorLine); 
     return(false);
   }
+  assert(ptr);
 
 #ifdef FREEDEBUG1
   sprintf(errorLine, "IS ok called on 0x%x\n", ptr->addr);
@@ -208,7 +212,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 	                                                           proc->heaps[textHeap].heapActive :
                                                                    proc->heaps[dataHeap].heapActive;
 
-      heapItem *np;
+      heapItem *np=NULL;
       if (!heapActivePart.find(pointer, np)) { // fills in "np" if found
 #ifdef FREEDEBUG1
 	    sprintf(errorLine, "something freed addr 0x%x from us\n", pointer);
@@ -226,6 +230,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 	// need to make sure we check the next item too 
 	k--;
       } else {
+        assert(np);
         if ( (ptr->addr >= np->addr) && 
              (ptr->addr <= (np->addr + np->length)) )
         {
@@ -335,13 +340,13 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   {
     disabledItem &item = (*disList)[i];
     if (isFreeOK(proc,item,pcs)) {
-      heapItem *np;
+      heapItem *np=NULL;
       unsigned pointer = item.getPointer();
-      if (!hp->heapActive.defines(pointer)) {
+      if (!hp->heapActive.find(pointer,np)) {
         showErrorCallback(96,"");
         return;
       }
-      np = hp->heapActive[pointer];
+      assert(np);
 
       if (np->status != HEAPallocated) {
         sprintf(errorLine,"Attempt to free already freed heap entry %x\n", pointer);
@@ -493,11 +498,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
         sprintf(errorLine,"==> TEST <== In inferiorMalloc: heap overflow, calling inferiorFreeDefered for a second chance...\n");
         logLine(errorLine);
 #endif
-#if !defined(hppa1_1_hp_hpux)
-#if !defined(sparc_tmc_cmost7_3)
+#if !defined(hppa1_1_hp_hpux) && !defined(sparc_tmc_cmost7_3)
         inferiorFreeDefered(proc, hp, true);
         inferiorFreeCompact(hp);
-#endif
 #endif
       }
       countingChances++;
@@ -554,12 +557,34 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
 {
     inferiorHeapType which = (type == textHeap && proc->splitHeaps) ? textHeap : dataHeap;
     inferiorHeap *hp = &proc->heaps[which];
+    heapItem *np=NULL;
 
-    heapItem *np;
+#ifdef FREEDEBUG
+    static vector<unsigned> TESTpointers;
+    static vector<int> TESTprocs;
+    bool found=false;
+    for (unsigned i=0;i<TESTpointers.size();i++) 
+    {
+      if ((TESTpointers[i] == pointer) && (TESTprocs == proc->pid)) {
+        found=true;
+        break;
+      }
+    }
+    if (found) { 
+      sprintf(errorLine,"***** Trying to delete the SAME pointer = 0x%x, type=%d, proc=%d\n",pointer,type,proc->pid);
+      logLine(errorLine);
+    }
+    else {
+      TESTpointers += pointer;
+      TESTprocs += proc->pid;
+    }
+#endif
+
     if (!hp->heapActive.find(pointer, np)) {
       showErrorCallback(96,"");
       return;
     }
+    assert(np);
 
 #ifndef sparc_tmc_cmost7_3
     //
