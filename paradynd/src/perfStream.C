@@ -7,6 +7,9 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.59  1996/05/13 15:44:48  mjrg
+ * Check the pid of a TR_EXEC record
+ *
  * Revision 1.58  1996/05/11 00:30:47  mjrg
  * Added new calls to handleProcessExit
  *
@@ -547,9 +550,14 @@ void processTraceStream(process *curr)
 
 	    case TR_EXEC:
 		{ traceExec *execData = (traceExec *) recordData;
-		  process *p = findProcess(execData->pid);
-		  p->inExec = true;
-		  p->execFilePath = string(execData->path);
+		  if (execData->pid == curr->getPid()) {
+		    curr->inExec = true;
+		    curr->execFilePath = string(execData->path);
+		  }
+		  else {
+		    sprintf(errorLine, "Received inconsistent trace data from process %d", curr->getPid());
+		    showErrorCallback(37, (const char *) errorLine);
+		  }
 		}
 		break;
 
