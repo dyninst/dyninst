@@ -1,7 +1,7 @@
 #include "makenan.h"
 #include "headers.h"
-#include <iostream>
-#include <cmath>
+#include <iostream.h>
+#include <math.h>
 
 int
 main(int /*argc*/, char */*argv*/[])
