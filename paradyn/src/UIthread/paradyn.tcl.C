@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.8  1994/04/27 22:55:09  hollings
-/* Merged refine auto and search.
+/* Revision 1.9  1994/05/02 20:38:31  hollings
+/* added search pause command and shg commands.
 /*
+ * Revision 1.8  1994/04/27  22:55:09  hollings
+ * Merged refine auto and search.
+ *
  * Revision 1.7  1994/04/21  23:24:51  hollings
  * added process command.
  *
@@ -468,13 +471,18 @@ int ParadynSearchCmd (ClientData clientData,
 {
   int limit;
 
-  if (argc == 3) {
+  if (argc == 2 && !strcmp(argv[1], "pause")) {
+    // stop the search
+    perfConsult->pauseSearch();
+    return TCL_OK;
+  } else if (argc == 3) {
     if (Tcl_GetInt (interp, argv[2], &limit) == TCL_ERROR) 
       return TCL_ERROR;
   } else if (argc == 2) {
     limit = -1;
   } else {
     printf("Usage: paradynd search <false|true> <int>\n");
+    printf("       paradynd search pause\n");
     return TCL_ERROR;
   }
 
@@ -484,6 +492,35 @@ int ParadynSearchCmd (ClientData clientData,
   } else {
     perfConsult->search(True, limit);
     return TCL_OK;
+  }
+}
+
+
+int ParadynSHGCmd (ClientData clientData,
+		   Tcl_Interp *interp,
+		   int argc,
+		   char *argv[])
+{
+  int node;
+
+  if (argc == 2 && !strcmp(argv[1], "get")) {
+    node = perfConsult->getCurrentNodeId();
+    sprintf(interp->result, "%d", node);
+    return(TCL_OK);
+  } else if (argc == 2 && !strcmp(argv[1], "reset")) {
+    perfConsult->resetRefinement();
+    sprintf(interp->result, "1");
+    return(TCL_OK);
+  } else if (argc == 3 && 
+	     !strcmp(argv[1], "set") && 
+	     (node = atoi(argv[2]) > 0)) {
+    sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
+    return TCL_OK;
+  } else {
+    printf("Usage: paradynd shg set <int>\n");
+    printf("       paradynd shg get\n");
+    printf("       paradynd shg reset\n");
+    return TCL_ERROR;
   }
 }
 
@@ -553,6 +590,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"set", ParadynSetCmd},
   {"core", ParadynCoreCmd},
   {"search", ParadynSearchCmd},
+  {"shg", ParadynSHGCmd},
   {"visi", ParadynVisiCmd},
   {NULL, NULL}
 };

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.8  1994/04/21 23:24:50  hollings
-/* added process command.
+/* Revision 1.9  1994/05/02 20:38:30  hollings
+/* added search pause command and shg commands.
 /*
+ * Revision 1.8  1994/04/21  23:24:50  hollings
+ * added process command.
+ *
  * Revision 1.7  1994/04/21  19:42:51  karavan
  * the *working* version, this time!
  *
@@ -137,7 +140,6 @@ static Tk_ArgvInfo argTable[] = {
 
 extern "C" {
   void		exit _ANSI_ARGS_((int status));
-  int		read _ANSI_ARGS_((int fd, char *buf, size_t size));
   char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
   int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
         Tcl_Interp *interp, int argc, char **argv));
