@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.210 2001/11/29 23:38:03 gurari Exp $
+// $Id: metricFocusNode.C,v 1.211 2001/12/04 18:25:29 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2014,9 +2014,24 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	  }
 	}
 
+        // Array to hold boolean check if any of the component mdn's
+        // already have there instrementation inserted and installed 
+        bool *alreadyThere = new bool[mi->components.size()];
 
-	bool alreadyThere = mi->inserted() && mi->installed(); 
-	// shouldn't manually trigger if already there
+        // initialize to false
+        for (int j=0; j < mi->components.size(); j++) {
+	  alreadyThere[j] = false;
+	}
+
+        // Check if components' instrumentation has been inserted and 
+        // installed        
+        for (int i=0; i < mi->components.size(); i++) {
+            metricDefinitionNode *comp = mi->components[i];
+
+	    if (comp->inserted() && comp->installed()) {
+	      alreadyThere[i] = true;
+	    }
+	}
 
         int ret = 0;
 
@@ -2093,39 +2108,45 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	// Adjust mi's manuallyTrigger fields to try to execute function entry
 	// and call site instrumentation according to the program stack....
 	//cerr << " (startCollecting) about to call mi->adjustManuallyTrigger" << endl;
-	if (!alreadyThere) { // trigger only if it is fresh request
-	  mi->adjustManuallyTrigger();
-	}
-        else {
-	  if (pd_debug_catchup)
-	    cerr << "SKIPPED  adjustManuallyTrigger for "
-		 << mi->getFullName().string_of()
-		 << ", instrumentation is already there" << endl;
-	}
 
-	if (mi->anythingToManuallyTrigger()) {
-	   process *theProc = mi->components[0]->proc();
-	   assert(theProc);
+        // Do catch-up instrumentation for individual components that need it 
+        for (int k=0; k < mi->components.size(); k++) {
+          metricDefinitionNode *comp = mi->components[k];
 
-	   bool alreadyRunning = (theProc->status_ == running);
+	  if (!alreadyThere[k]) { // trigger only if it is fresh request
+	    comp->adjustManuallyTrigger();
+	  }
+          else {
+	    if (pd_debug_catchup)
+	      cerr << "SKIPPED  adjustManuallyTrigger for "
+		   << comp->getFullName().string_of()
+		   << ", instrumentation is already there" << endl;
+	  }
 
-	   if (alreadyRunning) {
+  	  if (comp->anythingToManuallyTrigger()) {
+	    process *theProc = comp->proc();
+	    assert(theProc);
+
+	    bool alreadyRunning = (theProc->status_ == running);
+
+	    if (alreadyRunning) {
 #ifdef DETACH_ON_THE_FLY
 	      theProc->reattachAndPause();
 #else
 	      theProc->pause();
 #endif
-	   }
+	    }
 
-	   mi->manuallyTrigger(id);
+	    comp->manuallyTrigger(comp->id_);
 
-	   if (alreadyRunning) {
+	    if (alreadyRunning) {
 #ifdef DETACH_ON_THE_FLY
-	     theProc->detachAndContinue();
+	      theProc->detachAndContinue();
 #else
-	     theProc->continueProc();
+	      theProc->continueProc();
 #endif
-	   }
+	    }
+	  }
 	}
     }
 
