@@ -5,6 +5,10 @@
 ; *    appropriate inferior process via ptrace calls.
 ; *
 ; * $Log: tramp-hppa.s,v $
+; * Revision 1.3  1996/04/26 19:54:40  lzheng
+; * Removed the instruction words used to save the function argument registers.
+; * They are saved in miniTrampoline now
+; *
 ; * Revision 1.2  1996/04/08 21:14:12  lzheng
 ; * The working version of paradynd/HP
 ; *
@@ -44,10 +48,6 @@ _baseTramp
 ;	/* should update cost of base tramp here, but we don't have a
 ;	   register to use!
 ;	*/
-	.word	0xfffff0ff	; PARAM_SAV_0   save 26
-	.word	0xfffff1ff	; PARAM_SAV_1   save 25
-	.word	0xfffff2ff	; PARAM_SAV_2   save 24
-	.word	0xfffff3ff	; PARAM_SAV_3   save 23
 	.word	0xffffff0f	; PREAMBLE_0    stack pointer
 	.word	0xffffff1f	; PREAMBLE_1    save 31
 	.word	0xffffff2f	; PREAMBLE_2    save 2
@@ -83,10 +83,6 @@ _baseTramp
 	.word	0xffffffc1	; TRAILER_22     restore 2
 	.word	0xffffffd1	; TRAILER_11     restore 31
 	.word	0xffffffe1	; TRAILER_00     stack pointer
-	.word	0xfffffbff	; PARAM_RES_3    restore 23
-	.word	0xfffffcff	; PARAM_RES_2    restore 24
-	.word	0xfffffdff	; PARAM_RES_1    restore 25
-	.word	0xfffffeff	; PARAM_RES_0    restore 26 
 	.word	0xfffffff7	; RETURN_INSN
 	.word   0xfffffff6	; RETURN_INSN_1
 	nop			; /* see if this prevents crash jkh 4/4/95 */
