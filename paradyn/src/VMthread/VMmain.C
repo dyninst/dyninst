@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.7  1994/05/22 01:58:53  newhall
-/* fixed problem with thr_create arguments in VMCreateVisi
+/* Revision 1.8  1994/05/22 16:40:58  newhall
+/* *** empty log message ***
 /*
+ * Revision 1.7  1994/05/22  01:58:53  newhall
+ * fixed problem with thr_create arguments in VMCreateVisi
+ *
  * Revision 1.6  1994/05/11  21:32:26  newhall
  * changed location of VMconfig.file
  *
@@ -151,6 +154,7 @@ int id;
 
   id = visiList.count();
   id++;
+
   // create new VMvisis list element and add to visiList
   if((temp = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
     perror("malloc in VM::VMAddNewVisualization");
@@ -208,8 +212,6 @@ VMvisis *visitemp;
   temp->argv = (char **)visitemp->argv;
   temp->parent_tid = thr_self();
 
-  printf("before thread create: temp.arv[0] = %s visitemp->argv[0] = %s\n",
-	 temp.argv[0],visitemp->argv[0]);
 
   // create a visi thread  
   thr_create(0,0,&VISIthreadmain,temp,0,&tid);
