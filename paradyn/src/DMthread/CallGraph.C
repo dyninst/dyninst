@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.12 2002/12/20 07:50:01 jaw Exp $
+// $Id: CallGraph.C,v 1.13 2003/05/30 07:28:26 schendel Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -149,11 +149,11 @@ CallGraph::~CallGraph() {
 }
 
 void CallGraph::AddProgram(string exe_name){
-  CallGraph *cg;
-  if(name2id(exe_name) == -1){
-    cg = new CallGraph(exe_name);
-    directory[cg->getId()] = cg;
-  }
+   CallGraph *cg;
+   if(name2id(exe_name) == -1) {
+      cg = new CallGraph(exe_name);
+      directory[cg->getId()] = cg;
+   }
 }
 void CallGraph::CallGraphFillDone(){
   callGraphInitialized = true;
@@ -317,8 +317,16 @@ CallGraph *CallGraph::FindCallGraph(string exe_name) {
 }
 
 CallGraph *CallGraph::FindCallGraph(){
-  assert(directory.size() == 1);
-  return directory[0];
+   static bool warned_about_multiple_cg = false;
+   if(directory.size() > 1) {
+      if(! warned_about_multiple_cg) {
+         cerr << "Warning: search of multiple programs with different call"
+              << "graphs" << endl;
+         cerr << "is not fully supported yet. Attempting to continue." << endl;
+         warned_about_multiple_cg = true;
+      }
+   }
+   return directory[0];
 }
 
 void CallGraph::displayCallGraph(){
@@ -423,8 +431,18 @@ pdvector <resourceHandle> *CallGraph::getChildren(resource *rh) {
 }
 
 bool CallGraph::isDescendentOfAny(resource *child, const resource *parent){
+  static bool warned_about_multiple_cg = false;
   dictionary_hash <resource *, int> have_visited(hash_dummy);
-  assert(directory.size() == 1);
+
+  if(directory.size() > 1) {
+     if(! warned_about_multiple_cg) {
+        cerr << "Warning: search of multiple programs with different call"
+             << "graphs" << endl;
+        cerr << "is not fully supported yet. Attempting to continue." << endl;
+        warned_about_multiple_cg = true;
+     }
+  }
+
   CallGraph *cg = directory[0];
   if(cg->isDescendent(child, parent,have_visited))
     return true;
