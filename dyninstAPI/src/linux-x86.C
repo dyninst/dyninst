@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.38 2003/10/22 16:00:47 schendel Exp $
+// $Id: linux-x86.C,v 1.39 2003/11/24 17:37:51 schendel Exp $
 
 #include <fstream>
 
@@ -66,6 +66,8 @@
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/dyn_thread.h"
+
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
 #include "common/h/timing.h"
@@ -186,6 +188,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
     
    int error;
    bool errorFlag = false;
+   assert(get_lwp_id() != 0);
    error = P_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (int)&(regs->gprs) );
    if( error ) {
       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
@@ -208,6 +211,7 @@ bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {
    Address regaddr = EIP * INTREGSIZE;
+   assert(get_lwp_id() != 0);
    if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc )) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
       return false;
@@ -218,6 +222,7 @@ bool dyn_lwp::changePC(Address loc,
 
 bool dyn_lwp::clearOPC() {
    Address regaddr = ORIG_EAX * INTREGSIZE;
+   assert(get_lwp_id() != 0);
    if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL)) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
       return false;
@@ -268,6 +273,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
 
    bool retVal = true;
    
+   assert(get_lwp_id() != 0);
    if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(int)&(regs->gprs) ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
@@ -289,13 +295,13 @@ Frame dyn_lwp::getActiveFrame()
    Address pc, fp, sp;
    fp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
    if (errno) return Frame();
-   
+
    pc = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
    if (errno) return Frame();
    
    sp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
    if (errno) return Frame();
-   
+
    return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
 }
 
@@ -345,8 +351,15 @@ bool process::loadDYNINSTlibCleanup()
 
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
+  dyn_lwp *lwp_to_use = NULL;
+
+  if(process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
+     lwp_to_use = getInitialThread()->get_lwp();
+  else
+     lwp_to_use = getRepresentativeLWP();
+  
   // restore registers
-  getRepresentativeLWP()->restoreRegisters(savedRegs); 
+  lwp_to_use->restoreRegisters(savedRegs); 
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -980,7 +993,14 @@ bool process::loadDYNINSTlib() {
   }
 
   // save registers
-  savedRegs = getRepresentativeLWP()->getRegisters();
+  dyn_lwp *lwp_to_use = NULL;
+  if(process::IndependentLwpControl() && getRepresentativeLWP() ==NULL)
+     lwp_to_use = getInitialThread()->get_lwp();
+  else
+     lwp_to_use = getRepresentativeLWP();
+
+  savedRegs = lwp_to_use->getRegisters();
+
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   struct dyn_saved_regs new_regs;
@@ -1006,9 +1026,16 @@ bool process::loadDYNINSTlib() {
   readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
   attach_cerr << "Changing PC to " << (void*)codeBase << endl;
 
+  lwp_to_use = NULL;
+
+  if(process::IndependentLwpControl() && getRepresentativeLWP() ==NULL)
+     lwp_to_use = getInitialThread()->get_lwp();
+  else
+     lwp_to_use = getRepresentativeLWP();
+
   if (!libc_21)
   {
-      if (!getRepresentativeLWP()->changePC(codeBase,NULL))
+      if (! lwp_to_use->changePC(codeBase,NULL))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1026,7 +1053,7 @@ bool process::loadDYNINSTlib() {
           reg_ptr->ecx = codeBase;
       }
 
-      if( !getRepresentativeLWP()->restoreRegisters(&new_regs) )
+      if(! lwp_to_use->restoreRegisters(&new_regs) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
