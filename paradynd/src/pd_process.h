@@ -218,8 +218,8 @@ class pd_process {
       dyninst_process->lowlevel_process()->continueAfterNextStop();
    }
 
-   bool detach(const bool paused) { // why the param?
-      return dyninst_process->lowlevel_process()->detach(paused);
+   bool detachProcess(const bool leaveRunning) {
+      return dyninst_process->lowlevel_process()->detachProcess(leaveRunning);
    }
 
    int getPid() const {

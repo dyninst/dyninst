@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.112 2003/09/05 16:28:18 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.113 2004/03/02 22:46:15 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -357,7 +357,7 @@ bool dynRPC::detachProgram(int program, bool pause)
 {
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (proc)
-      return(proc->detach(pause));
+      return(proc->detachProcess(pause));
    else
       return false;
 }
