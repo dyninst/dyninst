@@ -3,7 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.6  1995/05/26 21:51:35  markc
+ * Revision 1.7  1995/06/02 20:49:02  newhall
+ * made code compatable with new DM interface
+ * fixed problem with force option in visiDef
+ * fixed hpux link errors
+ *
+ * Revision 1.6  1995/05/26  21:51:35  markc
  * Changed tINT to tUNS.  The scanner does not produce tINT.
  *
  * Revision 1.5  1995/05/18  10:58:33  markc
@@ -141,7 +146,7 @@ vItem: tCOMMAND tLITERAL tSEMI
      | tDIR tIDENT tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
      | tFORCE tUNS tSEMI
-           { $$.fld.force = $2.i; $$.fld.spec = SET_FORCE;};
+           { $$.fld.force = $2.u; $$.fld.spec = SET_FORCE;};
 
 processDef: tPROCESS tIDENT processItem {
                field f;

@@ -10,7 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.17  1995/05/18 10:58:29  markc
+ * Revision 1.18  1995/06/02 20:49:01  newhall
+ * made code compatable with new DM interface
+ * fixed problem with force option in visiDef
+ * fixed hpux link errors
+ *
+ * Revision 1.17  1995/05/18  10:58:29  markc
  * mdl
  *
  * Revision 1.16  1995/03/30  15:32:37  jcargill
@@ -73,7 +78,8 @@
 #include <unistd.h>
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/rpcUtil.h"
-#include "paradyn/src/DMthread/DMinternals.h"
+#include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/DMthread/DMdaemon.h"
 
 extern int yyparse();
 extern int yyrestart(FILE *);
@@ -84,9 +90,9 @@ static int open_N_parse(string& file);
 // return -1 on failure to open file
 // else return yyparse result
 
-static bool metDoDaemon(applicationContext *appCon);
+static bool metDoDaemon();
 static bool metDoVisi();
-static bool metDoProcess(applicationContext *appCon);
+static bool metDoProcess();
 static bool metDoTunable();
 
 static int open_N_parse (string& file)
@@ -114,7 +120,7 @@ static int open_N_parse (string& file)
 }
 
 // parse the 3 files (system, user, application)
-bool metMain(applicationContext *appCon, string &userFile)
+bool metMain(string &userFile)
 {
   // return yyparse();
   int yy1=0, yy2, yy3;
@@ -145,9 +151,9 @@ bool metMain(applicationContext *appCon, string &userFile)
     yy3 = open_N_parse(userFile);
 
   // take actions based on the parsed configuration files
-  metDoDaemon(appCon);
+  metDoDaemon();
   metDoTunable();
-  metDoProcess(appCon);
+  metDoProcess();
   metDoVisi();
 
   bool mdl_res = mdl_apply();
@@ -155,21 +161,21 @@ bool metMain(applicationContext *appCon, string &userFile)
   return true;
 }
 
-static bool metDoDaemon(applicationContext *appCon)
+static bool metDoDaemon()
 {
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    appCon->defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
-    appCon->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
+    paradynDaemon::defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
+    paradynDaemon::defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
     // TODO -- should cm5d be defined
-    appCon->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
-    appCon->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
+    paradynDaemon::defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
+    paradynDaemon::defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();
   for (unsigned u=0; u<size; u++) {
-    appCon->defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
+    paradynDaemon::defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
 			 daemonMet::allDaemons[u]->execDir().string_of(),
 			 daemonMet::allDaemons[u]->user().string_of(),
 			 daemonMet::allDaemons[u]->name().string_of(),
@@ -202,21 +208,21 @@ static bool metDoVisi()
   return true;
 }
 
-static void start_process(processMet *the_ps, applicationContext *appCon)
+static void start_process(processMet *the_ps)
 {
   vector<string> argv;
   assert(RPCgetArg(argv, the_ps->command().string_of()));
 
-  appCon->addExecutable(the_ps->host().string_of(), the_ps->user().string_of(),
+  dataMgr->addExecutable(the_ps->host().string_of(), the_ps->user().string_of(),
 			the_ps->daemon().string_of(), the_ps->execDir().string_of(),
 			&argv);
 }
 
-static bool metDoProcess(applicationContext *appCon)
+static bool metDoProcess()
 {
   unsigned size = processMet::allProcs.size();
   for (unsigned u=0; u<size; u++) {
-    start_process(processMet::allProcs[u], appCon);
+    start_process(processMet::allProcs[u]);
     delete processMet::allProcs[u];
   }
   return true;
