@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.77 1999/07/08 00:26:22 nash Exp $
+// $Id: main.C,v 1.78 1999/07/26 21:51:23 cain Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -203,6 +203,7 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
 
 int main(unsigned argc, char *argv[]) {
 
+  string *dir = new string("");
 #if !defined(i386_unknown_nt4_0)
     {
         char *pdkill;
@@ -275,13 +276,17 @@ int main(unsigned argc, char *argv[]) {
     //
     vector<string> cmdLine;
     for (int i=0; argv[i]; i++) {
-	if (!strcmp(argv[i], "-runme")) {
-	     // next arg is the command to run.
-	     int j;
-	     for (j=0,i++; argv[i]; i++,j++) {
-		 cmdLine += argv[i];
-	     }
+      //find working directory of process
+      if(strstr(argv[i],"PWD=")){
+	dir = new string(strdup(argv[i]+(4*sizeof(char))));
+      }
+      if (!strcmp(argv[i], "-runme")) {
+	// next arg is the command to run.
+	int j;
+	for (j=0,i++; argv[i]; i++,j++) {
+	  cmdLine += argv[i];
 	}
+      }
     }
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
@@ -459,13 +464,8 @@ int main(unsigned argc, char *argv[]) {
       abort();
 
     if (cmdLine.size()) {
-         //logLine("paradynd: cmdLine is non-empty so we'll be calling addProcess now!\n") ; 
-	 //cerr << "cmdLine is:" << endl;
-	 //for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
-	 //   cerr << cmdLine[lcv] << endl;
-
          vector<string> envp;
-	 addProcess(cmdLine, envp, string("")); // ignore return val (is this right?)
+	 addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
     }
 
     controllerMainLoop(true);
