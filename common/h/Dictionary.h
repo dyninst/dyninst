@@ -83,6 +83,14 @@
 //ifdef this to nothing if it bothers old broken compilers
 #define TYPENAME typename
 
+#if ! defined( TYPENAME31 )
+#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
+#define TYPENAME31 typename
+#else
+#define TYPENAME31
+#endif
+#endif
+
 template<class K, class V> class dictionary_hash_iter;
 
 template<class K, class V>
@@ -296,14 +304,14 @@ class dictionary_hash_iter {
     reset();
   }
   dictionary_hash_iter(dictionary_hash<K,V> &idict,
-		       TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry>::iterator curi) 
+		       TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry>::iterator curi) 
     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
   }
   dictionary_hash_iter(const dictionary_hash<K,V> &idict,
-		    TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator curi) 
+		    TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry>::const_iterator curi) 
     : dict(const_cast< dictionary_hash<K,V>& >(idict)), 
-    i(const_cast< TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(curi)), 
-    the_end(const_cast< TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(
+    i(const_cast< TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(curi)), 
+    the_end(const_cast< TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(
 						       dict.all_elems.end()))
   {  }
 

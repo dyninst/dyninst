@@ -44,8 +44,14 @@
 #ifndef LIST_H
 #define LIST_H
 
+#if ! defined( TYPENAME31 )
+#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
 // Get gcc 3.1 to stop whining.
-#define TYPENAME typename
+#define TYPENAME31 typename
+#else
+#define TYPENAME31
+#endif
+#endif
 
 #include <iostream.h>
 
@@ -235,8 +241,8 @@ template <class DataType, class KeyType> class ListBase {
 template <class DataType, class KeyType>
 inline ostream &operator<<(ostream &os, 
 			   const ListBase<DataType, KeyType> &data) {
-   TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
-   TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
+   TYPENAME31 ListBase<DataType, KeyType>::iterator curr = data.begin();
+   TYPENAME31 ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
    for(; curr != endMarker; ++curr) {
       os << *curr << endl;
@@ -483,7 +489,7 @@ template <class Type> class StringList: public List<Type> {
 template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
     // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
-    TYPENAME StringList<Type>::node *curr;
+    TYPENAME31 StringList<Type>::node *curr;
 
     for (curr=head; curr; curr=curr->next) {
 	if (!strcmp((char *) curr->key, (char *) data)) {
