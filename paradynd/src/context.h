@@ -42,15 +42,17 @@
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
 
-/*
- */
-
 #include "rtinst/h/trace.h"
 #include "dyninst.h"
 
 extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;
-extern void forkProcess(traceFork *fr);
-extern void startProcess(traceStart *sr);
+
+#ifdef SHM_SAMPLING
+extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr,
+			bool childHasInstr);
+#else
+extern void forkProcess(int pid, int ppid, bool childHasInstr);
+#endif
 
 #endif
