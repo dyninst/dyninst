@@ -52,17 +52,18 @@
  */
 
 #include "util/h/Vector.h"
-#include "util/src/DictionaryLite.C"
+
+#include "util/src/Dictionary.C"
 
 #include "paradyn/src/UIthread/where4tree.C"
 #include "paradyn/src/UIthread/rootNode.h"
 template class where4tree<whereAxisRootNode>;
 template class vector<const whereAxisRootNode *>;
 template class vector<where4tree<whereAxisRootNode>::childstruct>;
-template class dictionary_lite< resourceHandle, where4tree<whereAxisRootNode> * >;
+
+template class dictionary_hash< resourceHandle, where4tree<whereAxisRootNode> * >;
+template class vector<dictionary_hash< resourceHandle, where4tree<whereAxisRootNode> * >::entry>;
 template class vector<where4tree<whereAxisRootNode> *>;
-template class vector<dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair>;
-template class vector< vector< dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair> >;
 
 #include "paradyn/src/UIthread/graphicalPath.C"
 template class whereNodeGraphicalPath<whereAxisRootNode>;
@@ -86,20 +87,17 @@ template class vector<const shgRootNode *>;
 #include "paradyn/src/UIthread/shgPhases.h"
 template class vector<shgPhases::shgStruct>;
 
-template class dictionary_lite<unsigned, where4tree<shgRootNode> *>;
+template class dictionary_hash<unsigned, where4tree<shgRootNode> *>;
+template class vector<dictionary_hash<unsigned, where4tree<shgRootNode> *>::entry>;
 template class vector<where4tree<shgRootNode> *>;
-template class vector<dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair>;
-template class vector< vector< dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair> >;
 
-template class dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
-template class vector<dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair>;
-template class vector< vector< dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair> >;
+template class dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
+template class vector<dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::entry>;
 
-template class dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> >;
-template class vector< vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair > >;
-template class vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair >;
+template class dictionary_hash< unsigned, vector<where4tree<shgRootNode>*> >;
+template class vector<dictionary_hash< unsigned, vector<where4tree<shgRootNode>*> >::entry>;
 template class vector< vector<where4tree<shgRootNode>*> >;
-//template class vector<where4tree<shgRootNode>*>;
+template class vector<where4tree<shgRootNode>*>;
 
 
 template class vector<Tk_3DBorder>; // shg consts

@@ -50,7 +50,8 @@
 #include "util/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
+
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
 #pragma implementation "visi.xdr.h"
@@ -167,13 +168,10 @@ template class vector<dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
 template class vector<mdl_type_desc>;
-template class pair< unsigned, vector<mdl_type_desc> >;
-template class vector< pair< unsigned, vector<mdl_type_desc> > >;
-template class dictionary<unsigned, vector<mdl_type_desc> >;
+
 template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
+template class vector<dictionary_hash<unsigned, vector<mdl_type_desc> >::entry>;
 template class vector< vector< mdl_type_desc > >;
-template class vector< dictionary_hash< unsigned, vector<mdl_type_desc> > :: hash_pair >;
-template class vector< vector< dictionary_hash<unsigned, vector<mdl_type_desc> > :: hash_pair > >;
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
 			       bool_t (*)(XDR*, u_int*), u_int*);

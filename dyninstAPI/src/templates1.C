@@ -42,7 +42,7 @@
 // templates1.C
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
 
 #include "util/h/String.h"
 
@@ -59,15 +59,11 @@
 class BPatch_type;
 class BPatch_thread;
 
-template class  dictionary <const instPoint *, trampTemplate *>;
-template class  dictionary <const instPoint *, point *>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
-template class  dictionary <instInstance *, instInstance *>;
 template class  dictionary_hash <instInstance *, instInstance *>;
 template class  dictionary_hash <Address, Symbol*>;
 template class  dictionary_hash<const instPoint*, point*>;
 template class  dictionary_hash <instPoint*, unsigned>;
-template class  dictionary_hash <string, Symbol>;
 template class  dictionary_hash <string, internalSym*>;
 template class  dictionary_hash <string, pdmodule *>;
 template class  dictionary_hash <string, pd_Function*>;
@@ -80,23 +76,7 @@ template class  dictionary_hash <string, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  dictionary_hash <unsigned, unsigned>;
-template class  dictionary <metricDefinitionNode*,metricDefinitionNode*>;
 template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
-
-template class  dictionary_iter<unsigned int, pd_Function *>;
-template class  dictionary_iter<unsigned int, metricDefinitionNode *>;
-template class  dictionary_iter<unsigned int, heapItem *>;
-template class  dictionary_iter<string, vector<pd_Function *> *>;
-template class  dictionary_iter<string, unsigned int>;
-template class  dictionary_iter<string, resource *>;
-template class  dictionary_iter<string, pd_Function *>;
-template class  dictionary_iter<string, pdmodule *>;
-template class  dictionary_iter<string, internalSym *>;
-template class  dictionary_iter<instPoint *, unsigned int>;
-template class  dictionary_iter<instPoint *, point *>;
-template class  dictionary_iter<const instPoint *, point *>;
-template class  dictionary_iter<unsigned int, Symbol *>;
-
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <const instPoint*, point*>;
@@ -154,21 +134,13 @@ template class vector<fastInferiorHeapMgr::oneHeapStats>;
 #endif
 
 #ifdef BPATCH_LIBRARY
-template class dictionary<string, BPatch_type *>;
-template class dictionary<int, BPatch_thread *>;
-
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
-
-template class dictionary_iter<string, BPatch_type *>;
-template class dictionary_iter<const instPoint *, trampTemplate *>;
-template class dictionary_iter<int, BPatch_thread *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
 template class dictionary_hash_iter<const instPoint *, trampTemplate *>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
 #endif
-template class dictionary<string, vector<string> *>;
 template class  dictionary_hash <string, vector<string>*>;
 
 template class vector<process::inferiorRPCtoDo>;

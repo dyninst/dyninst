@@ -52,10 +52,13 @@
 
 #pragma implementation "BufferPool.h"
 #include "paradyn/src/DMthread/BufferPool.h"
+
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
+
 #pragma implementation "DictionaryLite.h"
 #include "util/src/DictionaryLite.C"
+
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
 #pragma implementation "visi.xdr.h"
@@ -126,12 +129,12 @@ template class vector<abstraction*>;
 template class vector<metricInstance*>;
 template class vector<ArchiveType *>;
 template class vector<rlNameIdType>;
-template class dictionary<string,metric*>;
+
 template class dictionary_hash<string,metric*>;
+template class vector<dictionary_hash<string,metric*>::entry>;
+
 template class pair<string, metric*>;
-template class vector< pair< string, metric*> >;
-template class vector< dictionary_hash<string, metric *> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, metric *> :: hash_pair > >;
+
 template class vector<dataValueType>;
 template class BufferPool<dataValueType>;
 template class vector<predCostType*>;
@@ -143,72 +146,38 @@ template class vector<traceDataValueType>;
 template class BufferPool<traceDataValueType>;
 
 
-template class dictionary<string, resource*>;
 template class dictionary_hash<string, resource*>;
-template class pair<string, resource*>;
-template class vector< pair<string, resource*> >;
-template class vector< dictionary_hash<string, resource*> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, resource*> :: hash_pair > >;
+template class vector<dictionary_hash<string, resource*>::entry>;
 
-template class dictionary<unsigned, resource*>;
 template class dictionary_hash<unsigned, resource*>;
-template class pair<unsigned, resource*>;
-template class vector< pair<unsigned, resource*> >;
-template class vector< dictionary_hash<unsigned, resource*> :: hash_pair >;
-template class vector< vector< dictionary_hash<unsigned, resource*> :: hash_pair > >;
+template class vector<dictionary_hash<unsigned, resource*>::entry>;
 
 
-template class dictionary<unsigned int, cpContext*>;
 template class dictionary_hash<unsigned int, cpContext*>;
-template class pair<unsigned int, cpContext*>;
-template class vector< pair<unsigned int, cpContext*> >;
-template class vector< dictionary_hash<unsigned int, cpContext*> :: hash_pair >;
-template class vector< vector< dictionary_hash<unsigned int, cpContext*> :: hash_pair > >;
+template class vector<dictionary_hash<unsigned int, cpContext*>::entry>;
+
 template class vector<cpContext *>;
 
-template class dictionary<string, resourceList*>;
 template class dictionary_hash<string, resourceList*>;
-template class pair<string, resourceList*>;
-template class vector< pair<string, resourceList*> >;
-template class vector< dictionary_hash<string, resourceList*> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, resourceList*> :: hash_pair > >;
+template class vector<dictionary_hash<string, resourceList*>::entry>;
 
-template class dictionary<string, abstraction*>;
 template class dictionary_hash<string, abstraction*>;
-template class vector< dictionary_hash<string, abstraction*> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, abstraction*> :: hash_pair > >;
-template class pair<string, abstraction*>;
-template class vector< pair<string, abstraction*> >;
-template class vector< vector< pair<string, abstraction*> > >;
+template class vector<dictionary_hash<string, abstraction*>::entry>;
 
 template class vector<performanceStream *>;
-template class pair< perfStreamHandle, performanceStream* >;
-template class vector< pair< perfStreamHandle, performanceStream* > >;
-template class dictionary<perfStreamHandle,performanceStream*>;
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
+template class vector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
 template class dictionary_hash_iter<perfStreamHandle,performanceStream*>;
-template class vector< vector< dictionary_hash<perfStreamHandle, performanceStream *> :: hash_pair > >;
-template class vector< dictionary_hash<perfStreamHandle, performanceStream *> :: hash_pair >;
-template class dictionary_iter<unsigned, performanceStream *>;
 
-template class dictionary<metricInstanceHandle,metricInstance*>;
-template class pair<metricInstanceHandle, metricInstance*>;
-template class vector< pair<metricInstanceHandle, metricInstance*> >; 
 template class dictionary_hash<metricInstanceHandle,metricInstance*>;
+template class vector<dictionary_hash<metricInstanceHandle,metricInstance*>::entry>;
 template class dictionary_hash_iter<metricInstanceHandle,metricInstance*>;
-template class vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair >;
-template class vector< vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair > >;
-template class dictionary_iter<unsigned, metricInstance *>;
+
 
 //Blizzard
-template class dictionary<string, unsigned>;
-template class pair<string, unsigned> ;
-template class vector< pair<string, unsigned> >;
 template class dictionary_hash<string,unsigned>;
+template class vector<dictionary_hash<string,unsigned>::entry>;
 template class dictionary_hash_iter<string,unsigned>;
-template class vector< dictionary_hash<string, unsigned> :: hash_pair >;
-template class vector< vector< dictionary_hash<string, unsigned> :: hash_pair > >;
-template class dictionary_iter<string, unsigned>;
 //
 
 template class List<sampleInfo*>;

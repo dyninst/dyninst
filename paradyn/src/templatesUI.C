@@ -50,10 +50,7 @@
 
 #include "util/h/Vector.h"
 
-#include "util/h/Dictionary.h"
-
-#include "util/src/DictionaryLite.C"
-
+#include "util/src/Dictionary.C"
 
 /* ******************************
  * TCthread stuff
@@ -62,12 +59,10 @@
 
 template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
-template class dictionary_lite<string, tunableBooleanConstant>;
-template class dictionary_lite<string, tunableFloatConstant>;
-template class vector< dictionary_lite<string, tunableBooleanConstant> :: hash_pair >;
-template class vector< dictionary_lite<string, tunableFloatConstant> :: hash_pair >;
-template class vector< vector< dictionary_lite<string, tunableBooleanConstant>::hash_pair > >;
-template class vector< vector< dictionary_lite<string, tunableFloatConstant>::hash_pair > >;
+template class dictionary_hash<string, tunableBooleanConstant>;
+template class vector<dictionary_hash<string, tunableBooleanConstant>::entry>;
+template class dictionary_hash<string, tunableFloatConstant>;
+template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
 
 
 /* *************************************
@@ -77,19 +72,10 @@ template class vector< vector< dictionary_lite<string, tunableFloatConstant>::ha
 #include "../src/UIthread/UIglobals.h"
 
 template class List<metricInstInfo *>;
-//template class ListItem<metricInstInfo *>;
 template class vector<VM_activeVisiInfo>;
 
-//template class dictionary<unsigned,string*>;
-//template class dictionary_hash<unsigned, string*>;
-//template class vector< pair<unsigned,string *> >;
-//template class pair<unsigned, string*>;
-//template class vector< vector<dictionary_hash<unsigned, string *>::hash_pair> >;
-//template class vector< dictionary_hash<unsigned, string *>::hash_pair >;
-
-template class dictionary_lite<unsigned, string>;
-template class vector< dictionary_lite<unsigned, string>::hash_pair >;
-template class vector< vector< dictionary_lite<unsigned, string>::hash_pair > >;
+template class dictionary_hash<unsigned, string>;
+template class vector<dictionary_hash<unsigned, string>::entry>;
 
 /* *************************************
  * UIthread Logo Stuff
@@ -97,14 +83,12 @@ template class vector< vector< dictionary_lite<unsigned, string>::hash_pair > >;
 
 #include "paradyn/src/UIthread/pdLogo.h"
 template class vector<pdLogo *>;
-template class dictionary_lite<string, pdLogo *>;
-template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
-template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
+template class dictionary_hash<string, pdLogo *>;
+template class vector<dictionary_hash<string, pdLogo *>::entry>;
 
-template class dictionary_lite<string, pdLogo::logoStruct>;
+template class dictionary_hash<string, pdLogo::logoStruct>;
+template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
-template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
-template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
 
 /* *************************************
  * UIthread Misc Stuff
