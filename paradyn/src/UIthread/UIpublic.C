@@ -30,13 +30,17 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.27  1995/10/17 20:48:24  tamches
-/* New search history graph:
-/* Commented out StrNodeIdType (no longer needed w/ new shg).
-/* Commented out references to class shgDisplay (obsoleted class).
-/* Added tryFirstGoodShgWid
-/* DAGaddNode, DAGaddEdge, DAGconfigNode adapted for use with new shg.
+/* Revision 1.28  1995/11/06 18:02:56  tamches
+/* changed nodeIdType to unsigned (nodeIdType is no longer used)
+/* Added an shg hack s.t. the root node appears as "Whole Program" instead of "1"
 /*
+ * Revision 1.27  1995/10/17 20:48:24  tamches
+ * New search history graph:
+ * Commented out StrNodeIdType (no longer needed w/ new shg).
+ * Commented out references to class shgDisplay (obsoleted class).
+ * Added tryFirstGoodShgWid
+ * DAGaddNode, DAGaddEdge, DAGconfigNode adapted for use with new shg.
+ *
  * Revision 1.26  1995/10/05 04:28:03  karavan
  * added ActiveDags to dag class.
  * removed globals formerly used for search display to move to multiple-display
@@ -502,7 +506,7 @@ shgRootNode::style int2style(int styleid) {
  */
 
 int 
-UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID, 
+UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 		char *label, char *shgname, int flags)
 {
    shg &theShg = theShgPhases->getByID(dagID);
@@ -510,7 +514,10 @@ UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID,
    const bool isRootNode = (flags == 1);
    shgRootNode::style theStyle = int2style(styleID);
 
-   theShg.addNode(nodeID, theStyle, label, shgname, isRootNode);
+//   theShg.addNode(nodeID, theStyle, label, shgname, isRootNode);
+   // A temporary hack for the mysterious "1" that appears for the root node:
+   theShg.addNode(nodeID, theStyle, isRootNode ? "Whole Program" : label,
+		  shgname, isRootNode);
 
    // note: we _intentionally_ don't redraw...do you see why?
    // (no edge connections to this node --> it shouldn't appear yet) 
@@ -525,8 +532,8 @@ UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID,
 }
 
 int 
-UIM::DAGaddEdge (int dagID, nodeIdType srcID, 
-		 nodeIdType dstID, int styleID)
+UIM::DAGaddEdge (int dagID, unsigned srcID, 
+		 unsigned dstID, int styleID)
 {
    shg &theShg = theShgPhases->getByID(dagID);
    shgRootNode::style theStyle = int2style(styleID);
@@ -545,7 +552,7 @@ UIM::DAGaddEdge (int dagID, nodeIdType srcID,
 
   
 int 
-UIM::DAGconfigNode (int dagID, nodeIdType nodeID, int styleID)
+UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 {
    shg &theShg = theShgPhases->getByID(dagID);
    shgRootNode::style theStyle = int2style(styleID);
