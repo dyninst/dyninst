@@ -229,7 +229,14 @@ void processTraceStream(process *curr)
 
 	switch (header.type) {
 	    case TR_FORK:
+	        // a TR_FORK is generated when a process forks.
+	        // This is used on all platforms, except AIX where the fork
+	        // must be handled in a different way.
+	        // On AIX, we handle the fork case when we get a SIGTRAP
+	        // from the forked process.
+#ifndef rs6000_ibm_aix4_1
 		forkProcess((traceFork *) ((void*)recordData));
+#endif
 		break;
 
 	    case TR_NEW_RESOURCE:
@@ -337,6 +344,17 @@ void doDeferredRPCs() {
 // TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
+
+#ifdef rs6000_ibm_aix4_1
+    // On AIX, we get sigtraps on fork and load, and must handle
+    // these cases specially
+    extern bool handleAIXsigTraps(int, int);
+    if (handleAIXsigTraps(pid, status)) {
+      return 0;
+    }
+    /* else check for regular traps and signals */
+#endif
+
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
     if (!curr) return -1;

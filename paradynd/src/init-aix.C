@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.8  1996/12/16 23:10:27  mjrg
+ * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
+ *
  * Revision 1.7  1996/10/31 08:42:41  tamches
  * removed main-->DYNINSTinit() instrumentation in initOS()
  *
@@ -98,7 +101,11 @@ bool initOS() {
 
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
-  initialRequests += new instMapping("fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG, &tidArg);  initialRequests += new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, &tidArg);
+  // we need to instrument __fork instead of fork. fork makes a tail call
+  // to __fork, and we can't get the correct return value from fork.
+  initialRequests += new instMapping("__fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG, &tidArg);
+
+  initialRequests += new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, &tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);

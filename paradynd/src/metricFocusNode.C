@@ -322,8 +322,10 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
     components += mi->components[0];
     mi->components[0]->aggregators[0] = this;
     mi->components[0]->samples[0] = aggSample.newComponent();
-    if (!internal)
+    if (!internal) {
       mi->components[0]->insertInstrumentation();
+      mi->components[0]->checkAndInstallInstrumentation();
+    }
 
     // update cost
     float cost = mi->cost();
@@ -361,6 +363,8 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp) {
   unsigned size = components.size();
   for (unsigned u = 0; u < size; u++) {
     if (components[u] == comp) {
+      delete components[u];
+      components[u] = NULL;
       components[u] = components[size-1];
       components.resize(size-1);
       if (size == 1) {
@@ -482,6 +486,7 @@ dataReqNode *metricDefinitionNode::addProcessTimer() {
 metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
     metricDefinitionNode *mi = new metricDefinitionNode(child, met_, focus_, flat_name_, aggOp);
     assert(mi);
+    allMIComponents[flat_name_] = mi;
 
     for (unsigned u = 0; u < dataRequests.size(); u++) {
        dataReqNode *newNode = dataRequests[u]->dup(child,
@@ -761,7 +766,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
             return false;
         }
 
-        Frame frame(proc_);
+        //Frame frame(proc_);
         pc = proc_->walkStack();
 
 	// for(u_int i=0; i < pc.size(); i++){

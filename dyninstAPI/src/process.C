@@ -444,7 +444,13 @@ void process::initInferiorHeap(bool initTextHeap)
     }
 
     hp->totalFreeMemAvailable = np->length;
+    // need to clear everything here, since this function may be called to re-init a heap
+    hp->heapActive.clear();
+    hp->heapFree.resize(0);
     hp->heapFree += np;
+    hp->disabledList.resize(0);
+    hp->disabledListTotalMem = 0;
+    hp->freed = 0;
 }
 
 // create a new inferior heap that is a copy of src. This is used when a process
@@ -452,17 +458,17 @@ void process::initInferiorHeap(bool initTextHeap)
 inferiorHeap::inferiorHeap(const inferiorHeap &src):
     heapActive(addrHash16)
 {
-    for (unsigned u = 0; u < src.heapFree.size(); u++) {
-      heapFree += new heapItem(src.heapFree[u]);
+    for (unsigned u1 = 0; u1 < src.heapFree.size(); u1++) {
+      heapFree += new heapItem(src.heapFree[u1]);
     }
 
     vector<heapItem *> items = src.heapActive.values();
-    for (unsigned u = 0; u < items.size(); u++) {
-      heapActive[items[u]->addr] = new heapItem(items[u]);
+    for (unsigned u2 = 0; u2 < items.size(); u2++) {
+      heapActive[items[u2]->addr] = new heapItem(items[u2]);
     }
     
-    for (unsigned u = 0; u < src.disabledList.size(); u++) {
-      disabledList += src.disabledList[u];
+    for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
+      disabledList += src.disabledList[u3];
     }
     disabledListTotalMem = src.disabledListTotalMem;
     totalFreeMemAvailable = src.totalFreeMemAvailable;
@@ -772,6 +778,7 @@ process::process(const process &parentProc, int iPid
 		 void *applShmSegPtr,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
+		 , bool childHasInstrumentation
 		 ) :
                      baseMap(ipHash), 
                      instInstanceMapping(instInstanceHash),
@@ -825,8 +832,14 @@ process::process(const process &parentProc, int iPid
     reachedFirstBreak = false; // process won't be paused until this is set
 
     splitHeaps = parentProc.splitHeaps;
-    heaps[0] = inferiorHeap(parentProc.heaps[0]);
-    heaps[1] = inferiorHeap(parentProc.heaps[1]);
+    if (childHasInstrumentation) {
+      heaps[0] = inferiorHeap(parentProc.heaps[0]);
+      heaps[1] = inferiorHeap(parentProc.heaps[1]);
+    } else {
+      initInferiorHeap(false);
+      if (splitHeaps)
+	initInferiorHeap(true);
+    }
 
     inExec = false;
 
@@ -1010,10 +1023,10 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	}
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-	extern bool establishBaseAddrs(int pid, int &status);
+	extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
 	int status;
 
-	if (!establishBaseAddrs(pid, status)) {
+	if (!establishBaseAddrs(pid, status, true)) {
 	    return(NULL);
 	}
 #endif
@@ -1209,11 +1222,14 @@ tp->resourceBatchMode(true);
 	}
 	P_putenv(paradynInfo);
 
-	/* put the traceSocket address in the environment. This will be used
-	   by forked processes to get a connection with the daemon
+	/* put the traceSocket address and host address in the environment. 
+	   This will be use by forked processes to get a connection with the daemon
 	*/
 	extern int traceSocket;
-	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket);
+	extern unsigned hostAddr;
+	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket)
+	                          + string(" ") + string(hostAddr);
+
 	P_putenv(paradyndSockInfo.string_of());
 
 	char **args;
@@ -1345,12 +1361,20 @@ void handleProcessExit(process *proc, int exitStatus) {
 /*
    process::forkProcess: called when a process forks, to initialize a new
    process object for the child.
+
+   the variable childHasInstrumentation is true if the child process has the 
+   instrumentation of the parent. This is the common case.
+   On some platforms (AIX) the child does not have any instrumentation because
+   the text segment of the child is not a copy of the parent text segment at
+   the time of the fork, but a copy of the original text segment of the parent,
+   without any instrumentation.
 */
 process *process::forkProcess(const process *theParent, pid_t childPid
 #ifdef SHM_SAMPLING
 			      ,key_t theKey,
 			      void *applAttachedPtr
 #endif
+			      , bool childHasInstrumentation
 			      ) {
 #ifdef SHM_SAMPLING
     vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
@@ -1370,6 +1394,7 @@ process *process::forkProcess(const process *theParent, pid_t childPid
 			       applAttachedPtr,
 			       theShmHeapStats
 #endif
+			       , childHasInstrumentation
 			       );
 
        // change this to a "fork" ctor that takes in more args
@@ -1386,13 +1411,15 @@ process *process::forkProcess(const process *theParent, pid_t childPid
       return 0;
     }
 
-    /* all instrumentation on the parent is active on the child */
-    /* TODO: what about instrumentation inserted near the fork time??? */
-    ret->baseMap = theParent->baseMap;
+    if (childHasInstrumentation) {
+      /* all instrumentation on the parent is active on the child */
+      /* TODO: what about instrumentation inserted near the fork time??? */
+      ret->baseMap = theParent->baseMap;
 
-    /* copy all instrumentation instances of the parent to the child */
-    /* this will update instMapping */
-    copyInstInstances(theParent, ret, ret->instInstanceMapping);
+      /* copy all instrumentation instances of the parent to the child */
+      /* this will update instMapping */
+      copyInstInstances(theParent, ret, ret->instInstanceMapping);
+    }
 
     return ret;
 }
@@ -2043,6 +2070,17 @@ void process::handleExec() {
     all_functions = 0;
     all_modules = 0;
     signal_handler = 0;
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    baseMap.clear();
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+    // must call establishBaseAddrs before parsing the new image,
+    // but doesn't need to wait for trap, since we already got the trap.
+    bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
+    int status;
+    establishBaseAddrs(getPid(), status, false);
+#endif
 
     image *img = image::parseImage(execFilePath);
     if (!img) {
@@ -2060,6 +2098,12 @@ void process::handleExec() {
     // add some sort of reference count to these classes so that they can
     // be deleted
     symbols = img;
+
+    // initInferiorHeap can only be called after symbols is set!
+    initInferiorHeap(false);
+    if (splitHeaps) {
+      initInferiorHeap(true);  // create separate text heap
+    }
 
     /* update process status */
     reachedFirstBreak = false;

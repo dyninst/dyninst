@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.52  1996/12/16 23:10:16  mjrg
+ * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
+ *
  * Revision 1.51  1996/12/06 09:37:55  tamches
  * cleanUpAndExit() moved here (from .h file); it now also
  * calls destructors for all processes, which should clean up
@@ -130,6 +133,7 @@ extern "C" {
 
 int traceSocket;
 int traceSocket_fd;
+unsigned hostAddr;
 
 bool pvm_running = false;
 
@@ -344,7 +348,7 @@ int main(int argc, char *argv[])
 	assert(tp);
 
 	if (cmdLine.size()) {
-	    tp->reportSelf(machine_name, argv[0], getpid(), metPVM);
+	    tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
 	}
       } else if (pid > 0) {
 //	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
@@ -392,6 +396,13 @@ int main(int argc, char *argv[])
       perror("paradynd -- cannot create socket");
       cleanUpAndExit(-1);
     }
+
+    /* get the address of this host to be used by the apllications when 
+       they get a connection. This avoids a load on AIX */
+    struct hostent *hostptr = gethostbyname("localhost");
+    assert(hostptr);
+    struct in_addr *inadr = (struct in_addr *)((void*) hostptr->h_addr_list[0]);
+    hostAddr = inadr->s_addr;
 
     controllerMainLoop(true);
 }

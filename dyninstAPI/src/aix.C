@@ -167,7 +167,7 @@ bool process::needToAddALeafFrame(Frame,unsigned int &){
 //     (2) the return address of the function for that frame (rtn).
 //     (3) return true if we are able to read the frame.
 //
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool /*uppermost*/)
 {
     //
     // define the linkage area of an activation record.
@@ -202,7 +202,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     }
 }
 
-void *process::getRegisters(bool &syscall) {
+void *process::getRegisters(bool & /*syscall*/) {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
 
@@ -334,7 +334,7 @@ static bool executeDummyTrap(process *theProc) {
    P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, tempTramp, 0);
    assert(errno == 0);
 
-   if (P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0) != tempTramp) {
+   if ((unsigned)P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0) != tempTramp) {
       cerr << "executeDummyTrap failed because PT_READ_GPR of IAR register failed" << endl;
       return false;
    }
@@ -342,7 +342,7 @@ static bool executeDummyTrap(process *theProc) {
    // We bypass continueProc() because continueProc() changes theProc->status_, which
    // we don't want to do here
    errno = 0;
-   ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
+   P_ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
       // what if there are any pending signals?  Don't we lose the chance to forward
       // them now?
    assert(errno == 0);
@@ -392,7 +392,7 @@ while (true) {
       // We bypass continueProc() because continueProc() changes theProc->status_, which
       // we don't want to do here
       errno = 0;
-      ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
+      P_ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
          // what if there are any pending signals?  Don't we lose the chance to forward
          // them now?
       assert(errno == 0);
@@ -452,7 +452,7 @@ bool process::changePC(unsigned loc, void *) {
 
    // Double-check that the change was made by reading the IAR register
    errno = 0;
-   if (P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0) != loc) {
+   if (P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0) != (int)loc) {
       cerr << "changePC failed because couldn't re-read IAR register" << endl;
       return false;
    }
@@ -473,7 +473,7 @@ bool process::restoreRegisters(void *buffer) {
    // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
    // restore the PC, free up the breakpoint.  But again, why is this needed?
 
-   const unsigned *bufferPtr = (const unsigned *)buffer;
+   unsigned *bufferPtr = (unsigned *)buffer;
 
    // First, the general-purpose registers:
    // Format for PT_WRITE_GPR:
@@ -506,7 +506,7 @@ bool process::restoreRegisters(void *buffer) {
 
    for (unsigned i=FPR0; i <= FPR31; i++) {
       errno = 0;
-      P_ptrace(PT_WRITE_FPR, pid, (const void *)bufferPtr, i, 0);
+      P_ptrace(PT_WRITE_FPR, pid, (void *)bufferPtr, i, 0);
          // don't ask me why args 3,4 are reversed from the PT_WRITE_GPR case.,
          // or why param 4 is a ptr to data instead of just data.
       if (errno != 0) {
@@ -732,7 +732,7 @@ bool process::detach_() {
 }
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
-bool process::dumpCore_(const string coreFile) {
+bool process::dumpCore_(const string /*coreFile*/) {
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
@@ -818,7 +818,7 @@ bool process::loopUntilStopped() {
 bool process::dumpImage() {
     // formerly OS::osDumpImage()
     const string &imageFileName = symbols->file();
-    const Address codeOff = symbols->codeOffset();
+    // const Address codeOff = symbols->codeOffset();
 
     int i;
     int rd;
@@ -910,7 +910,7 @@ bool process::dumpImage() {
 	return false;
     }
 
-    baseAddr = info[0].ldinfo_textorg + aout.text_start;
+    baseAddr = (unsigned)info[0].ldinfo_textorg + (unsigned)aout.text_start;
     sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
 	aout.text_start);
     logLine(errorLine);
@@ -1269,7 +1269,7 @@ Object& Object::operator=(const Object& obj) {
 // Verify that that program is statically linked, and establish the text 
 //   and data segments starting addresses.
 //
-bool establishBaseAddrs(int pid, int &status)
+bool establishBaseAddrs(int pid, int &status, bool waitForTrap)
 {
     int ret;
     struct ld_info *ptr;
@@ -1284,7 +1284,8 @@ bool establishBaseAddrs(int pid, int &status)
     usleep (36000);
 
     // wait for the TRAP point.
-    waitpid(pid, &status, WUNTRACED);
+    if (waitForTrap)
+      waitpid(pid, &status, WUNTRACED);
 
     ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
     if (ret != 0) {
@@ -1304,6 +1305,8 @@ bool establishBaseAddrs(int pid, int &status)
     // now check addr.
     AIX_TEXT_OFFSET_HACK = (unsigned) ptr->ldinfo_textorg + 0x200;
     AIX_DATA_OFFSET_HACK = (unsigned) ptr->ldinfo_dataorg;
+
+    ptrace(PT_MULTI, pid, 0, 1, 0);
 
     return true;
 }
@@ -1327,5 +1330,90 @@ float OS::compute_rusage_msg_recv() { return(0.0); }
 int getNumberOfCPUs()
 {
   return(1);
+}
+
+#include "metric.h"
+#include "costmetrics.h"
+
+bool handleAIXsigTraps(int pid, int status) {
+  
+    process *curr = findProcess(pid);
+
+    if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
+	&& ((status & 0x7f) == W_SLWTED)) {
+      // process is stopped on a load, ignore this SIGTRAP 
+      fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid, curr->currentPC());
+      if (curr) {
+	curr->status_ = stopped;
+	curr->continueProc();
+      }
+      return true;
+    }
+
+    // On AIX the processes will get a SIGTRAP when they execute a fork.
+    // we must check for the SIGTRAP here, and handle the fork.
+    // On aix the instrumentation on the parent will not be duplicated on 
+    // the child, so we need to insert instrumentation again.
+    if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
+	&& ((status & 0x7f) == W_SFWTED)) {
+      if (curr) {
+	// parent process, ignore the trap and continue the process
+	fprintf(stderr, "handleSigChild: got SIGTRAP from parent process %d\n", pid);
+	curr->status_ = stopped;
+	curr->continueProc();
+	return true;
+      } else {
+	// child process
+	fprintf(stderr, "handleSigChild: got SIGTRAP from forked process %d\n", pid);
+	//fprintf(stderr, "handleSigChild: %x %x %x %x %x\n", status, WIFSTOPPED(status), 
+	//	WSTOPSIG(status), WEXITSTATUS(status), W_SFWTED);
+
+	// get process info
+	struct procsinfo psinfo;
+	pid_t process_pid = pid;
+	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &process_pid, 1) == 1) {
+	  assert((pid_t)psinfo.pi_pid == pid);
+	  fprintf(stderr, "Parent of process %d is %d\n", pid, psinfo.pi_ppid);
+	  process *parent = findProcess(psinfo.pi_ppid);
+	  assert(parent);
+	  process *child = process::forkProcess(parent, pid, false);
+	  child->status_ = stopped;
+	  fprintf(stderr, "Forked process %d stopped at %x\n", pid, child->currentPC());
+	  // now must insert initial instrumentation
+
+	  if (!child->handleStartProcess(child))
+	     logLine("warning: handleStartProcess failed\n");
+
+	  extern vector<instMapping*> initialRequests; // init.C
+	  installDefaultInst(child, initialRequests);
+
+	  // propagate any metric that is already enabled to the new process.
+	  vector<metricDefinitionNode *> MIs = allMIs.values();
+	  for (unsigned j = 0; j < MIs.size(); j++) {
+	    MIs[j]->propagateMetricInstance(child);
+	  }
+
+	  tp->newProgramCallbackFunc(pid, child->arg_list, 
+			      machineResource->part_name());
+
+	  extern time64 firstRecordTime;
+	  const time64 currWallTime = getCurrWallTime();
+
+	  if (!firstRecordTime) {
+	    //cerr << "process.C setting firstRecordTime to " << currWallTime << endl;
+	    firstRecordTime = currWallTime; 
+	  }
+	  tp->firstSampleCallback(child->getPid(), (double)currWallTime / 1000000.0);
+
+          return true;
+	} else {
+	  perror("getprocs");
+	  assert(0);
+	  return false;
+	}
+        return true;
+      }
+    }
+    return false;
 }
 
