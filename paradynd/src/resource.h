@@ -149,7 +149,6 @@ public:
   static resource *newResource(resource *parent, const pdstring& name, unsigned id,
 			       unsigned type);
   inline void set_id(unsigned id);
-  static u_int num_outstanding_creates; 
 
 private:
   pdstring name_;                 // name of resource

@@ -52,7 +52,6 @@
 #include "common/h/Dictionary.h"
 #include "paradynd/src/main.h"
 
-u_int resource::num_outstanding_creates = 0;
 dictionary_hash<pdstring, resource*> resource::allResources(pdstring::hash);
 dictionary_hash<unsigned, resource*> resource::res_dict(uiHash);
 
