@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.127 2003/04/10 17:41:58 pcroth Exp $
+// $Id: mdl.C,v 1.128 2003/04/10 21:34:34 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -536,6 +536,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
          }
          pdf = fbv[0];
       }
+      if(pdf)  (*start_func_buf).push_back(pdf);
    }
    
    if (NULL != (pdf = proc->getMainFunction())) {
