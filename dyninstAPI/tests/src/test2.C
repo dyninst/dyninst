@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.25 1999/07/19 23:01:46 wylie Exp $
+// $Id: test2.C,v 1.26 1999/07/29 14:02:17 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -646,7 +646,7 @@ main(unsigned int argc, char *argv[])
     unsigned int i;
 
     // by default run all tests
-    for (i=0; i <= MAX_TEST; i++) {
+    for (i=1; i <= MAX_TEST; i++) {
         runTest[i] = true;
         passedTest[i] = false;
     }
@@ -666,6 +666,24 @@ main(unsigned int argc, char *argv[])
 	    printf(" attach option not supported on this platform.\n");
 	    exit(0);
 #endif
+        } else if (!strcmp(argv[i], "-skip")) {
+            unsigned int j;
+            runAllTests = false;
+            for (j=i+1; j < argc; j++) {
+                unsigned int testId;
+                if ((testId = atoi(argv[j]))) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = false;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+                    break;
+                }
+            }
+            i=j-1;
         } else if (!strcmp(argv[i], "-run")) {
             unsigned int j;
             runAllTests = false;

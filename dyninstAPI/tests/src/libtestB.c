@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// These are copied in test1.mutatee.c and libtestA.c
+/* These are copied in test1.mutatee.c and libtestA.c */
 #define MAGIC22_1   2200100
 #define MAGIC22_2   2200200
 #define MAGIC22_3   2200300
@@ -22,8 +22,8 @@ void call22_5(int x)
      globalVariable22_3 += MAGIC22_5B;
 }
 
-// Keep this function at the end of this file to kludgily ensure that
-// its base address differs from its counterpart in libtestA.c
+/* Keep this function at the end of this file to kludgily ensure that
+   its base address differs from its counterpart in libtestA.c */
 void call21_1()
 {
      printf("This function was not meant to be called!\n");

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.21 1999/07/13 04:31:31 csserra Exp $ */
+/* $Id: test1.mutatee.c,v 1.22 1999/07/29 14:02:16 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -36,7 +36,7 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
-#define MAX_TEST 22
+#define MAX_TEST 26
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -221,6 +221,34 @@ int eq_doubles(double a, double b)
 
     if (diff < 0.00000000001) return 1;
     else return 0;
+}
+
+/*
+ * Verify that a scalar value of a variable is what is expected
+ *
+ */
+void verifyScalarValue(char *name, int a, int value, int testNum, char *testName)
+{
+    if (a != value) {
+	if (passedTest[testNum]) 
+	    printf("**Failed** test %d (%s)\n", testNum, testName);
+	printf("  %s = %d, not %d\n", name, a, value);
+	passedTest[testNum] = FALSE;
+    }
+}
+
+/*
+ * Verify that a passed array has the correct value in the passed element.
+ *
+ */
+void verifyValue(char *name, int *a, int index, int value, int tst, char *tn)
+{
+    if (a[index] != value) {
+	if (passedTest[tst]) printf("**Failed** test #%d (%s)\n", tst, tn);
+	printf("  %s[%d] = %d, not %d\n", 
+	    name, index, a[index], value);
+	passedTest[tst] = FALSE;
+    }
 }
 
 void call1_1()
@@ -1276,6 +1304,8 @@ void func22_1()
     } 
     call22_5(30);  // replaced by call22_5 (in libtestB)
     if (globalVariable22_3 != 30 + MAGIC22_5B) {
+	 printf("globalVariable22_3 = %d\n", globalVariable22_3);
+	 printf("30 + MAGIC22_5B = %d\n", 30 + MAGIC22_5B);
 	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
 	 return;
     } 
@@ -1286,6 +1316,351 @@ void func22_1()
     }
     printf("Passed test #22 (replace function)\n");
     passedTest[22] = TRUE;
+#endif
+}
+
+
+//
+// Test #23 - local variables
+//
+int shadowVariable23_1 = 2300010;
+int shadowVariable23_2 = 2300020;
+int globalShadowVariable23_1 = 0xdeadbeef;
+int globalShadowVariable23_2 = 0xdeadbeef;
+int globalVariable23_1 = 2300000;
+
+void verifyScalarValue23(char *name, int a, int value)
+{
+    verifyScalarValue(name, a, value, 23, "local variables");
+}
+
+void call23_2()
+{
+    // copy shadowed global variables to visible global variables to permit
+    //    checking their values
+    globalShadowVariable23_1 = shadowVariable23_1;
+    globalShadowVariable23_2 = shadowVariable23_2;
+}
+
+void call23_1()
+{
+    int localVariable23_1;
+    int shadowVariable23_1 = 2300011;
+    int shadowVariable23_2 = 2300021;
+
+    call23_2();			// place to manipulate local variables
+
+    passedTest[23] = TRUE;
+
+    // snippet didn't update local variable
+    verifyScalarValue23("localVariable23_1", localVariable23_1, 2300001);
+
+    // did snippet update shadow variable (in the global scope)
+    verifyScalarValue23("globalShadowVariable23_1", globalShadowVariable23_1,
+	2300010);
+
+    // did snippet correctly update shadow variable call23_2
+    verifyScalarValue23("shadowVariable23_1", shadowVariable23_1, 2300012);
+
+    // did snippet correctly update shadow variable via global scope in call23_2
+    verifyScalarValue23("shadowVariable23_2", shadowVariable23_2, 2300021);
+
+    // did snippet correctly update shadow variable via global scope in call23_2
+    verifyScalarValue23("globalShadowVariable23_2", globalShadowVariable23_2, 
+	2300023);
+
+    // did snippet correctly read local variable in call23_2
+    verifyScalarValue23("globalVariable23_1", globalVariable23_1, 2300001);
+}
+
+void func23_1()
+{
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #23 (local variables)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[23] = TRUE;
+#else
+    call23_1();
+
+    if (passedTest[23]) printf("Passed test #23 (local variables)\n");
+#endif
+}
+
+//
+// Test #24 - arrary variables
+//
+int dummy;
+int foo;
+
+int globalVariable24_1[100];
+int globalVariable24_2 = 53;
+int globalVariable24_3;
+int globalVariable24_4 = 83;
+int globalVariable24_5;
+
+// to hold values from local array
+int globalVariable24_6;
+int globalVariable24_7;
+
+// for 2-d arrays - array is not square and we avoid using diagonal elements
+//    to make sure we test address computation
+int globalVariable24_8[10][15];
+int globalVariable24_9;
+
+void verifyValue24(char *name, int *a, int index, int value)
+{
+    verifyValue(name, a, index, value, 24, "array variables");
+}
+
+void verifyScalarValue24(char *name, int a, int value)
+{
+    verifyScalarValue(name, a, value, 24, "array variables");
+}
+
+void call24_2()
+{
+}
+
+void call24_1() 
+{ 
+    int i;
+    int localVariable24_1[100];
+
+    call24_2();
+
+    verifyValue24("localVariable24_1", localVariable24_1, 1, 2400005);
+    verifyValue24("localVariable24_1", localVariable24_1, 53, 2400006);
+
+    // do this after checks above since the entry snipets set the values
+    //   we are testing
+    for (i=0; i < 100; i++) localVariable24_1[i] = 2400000;
+
+    localVariable24_1[79] = 2400007;
+    localVariable24_1[83] = 2400008;
+}
+
+void func24_1()
+{
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #24 (arrary variables)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[24] = TRUE;
+#else
+    int i, j;
+
+    passedTest[24] = TRUE;
+
+
+    for (i=0; i < 100; i++) globalVariable24_1[i] = 2400000;
+    globalVariable24_1[79] = 2400003;
+    globalVariable24_1[83] = 2400004;
+
+    for (i=0; i < 10; i++) {
+	for (j=0; j < 15; j++) {
+	    globalVariable24_8[i][j] = 2400010;
+	}
+    }
+    globalVariable24_8[7][9] = 2400012;
+
+    // inst code we put into this function:
+    //  At Entry:
+    //     globalVariable24_1[1] = 2400001
+    //     globalVariable24_1[globalVariable24_2] = 2400002
+    //	   globalVariable24_3 = globalVariable24_1[79]
+    //	   globalVariable24_5 = globalVariable24_1[globalVariable24_4]
+    //     localVariable24_1[1] = 2400001
+    //     localVariable24_1[globalVariable24_2] = 2400002
+    //	   globalVariable24_8[2][3] = 2400011
+    //  At Exit:
+    //	   globalVariable24_6 = localVariable24_1[79]
+    //	   globalVariable24_7 = localVariable24_1[globalVariable24_4]
+    call24_1();
+
+    for (i=0; i < 100; i++) {
+	if (i == 1) {
+	    // 1st element should be modified by the snippet (constant index)
+	    verifyValue24("globalVariable24_1", globalVariable24_1, 1, 2400001);
+	} else if (i == 53) {
+	    // 53rd element should be modified by the snippet (variable index)
+	    verifyValue24("globalVariable24_1", globalVariable24_1, 53, 2400002);
+	} else if (i == 79) {
+	    // 79th element was modified by us 
+	    verifyValue24("globalVariable24_1", globalVariable24_1, 79, 2400003);
+	} else if (i == 83) {
+	    // 83rd element was modified by us 
+	    verifyValue24("globalVariable24_1", globalVariable24_1, 83, 2400004);
+	} else if (globalVariable24_1[i] != 2400000) {
+	    // rest should still be the original value
+	    verifyValue24("globalVariable24_1", globalVariable24_1, i, 2400000);
+	}
+    }
+
+    verifyScalarValue24("globalVariable24_3", globalVariable24_3, 2400003);
+    verifyScalarValue24("globalVariable24_5", globalVariable24_5, 2400004);
+
+    // now for the two elements read from the local variable
+    verifyScalarValue24("globalVariable24_6", globalVariable24_6, 2400007);
+    verifyScalarValue24("globalVariable24_7", globalVariable24_7, 2400008);
+
+    // verify 2-d element use
+    verifyScalarValue24("globalVariable24_8[2][3]", globalVariable24_8[2][3], 
+	 2400011);
+    verifyScalarValue24("globalVariable24_9", globalVariable24_9, 2400012);
+
+    if (passedTest[24]) printf("Passed test #24 (array variables)\n");
+#endif
+}
+
+//
+// Test #25 - unary operators
+//
+int globalVariable25_1;
+void *globalVariable25_2;	// used to hold addres of globalVariable25_1
+int globalVariable25_3;
+int globalVariable25_4;
+int globalVariable25_5;
+int globalVariable25_6;
+int globalVariable25_7;
+
+void call25_1() 
+{ 
+}
+
+void func25_1()
+{
+    passedTest[25] = TRUE;
+
+    globalVariable25_1 = 25000001;
+    globalVariable25_2 = (void *) 25000002;
+    globalVariable25_3 = 25000003;
+    globalVariable25_4 = 25000004;
+    globalVariable25_5 = 25000005;
+    globalVariable25_6 = -25000006;
+    globalVariable25_7 = 25000007;
+
+    // inst code we put into this function:
+    //  At Entry:
+    //     globalVariable25_2 = &globalVariable25_1
+    //     globalVariable25_3 = *globalVariable25_2
+    //     globalVariable25_5 = -globalVariable25_4
+    //     globalVariable25_7 = -globalVariable25_6
+
+    call25_1();
+
+    if ((int *) globalVariable25_2 != &globalVariable25_1) {
+	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	passedTest[25] = FALSE;
+	printf("    globalVariable25_2 = %lx, not %lx\n", 
+	    globalVariable25_2, (void *) &globalVariable25_1);
+    }
+
+    if (globalVariable25_3 != globalVariable25_1) {
+	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	passedTest[25] = FALSE;
+	printf("    globalVariable25_3 = %d, not %d\n", 
+	    globalVariable25_3, globalVariable25_1);
+    }
+
+    if (globalVariable25_5 != -globalVariable25_4) {
+	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	passedTest[25] = FALSE;
+	printf("    globalVariable25_5 = %d, not %d\n", 
+	    globalVariable25_5, -globalVariable25_4);
+    }
+
+    if (globalVariable25_7 != -globalVariable25_6) {
+	if (passedTest[25]) printf("**Failed** test #25 (unary operatos)\n");
+	passedTest[25] = FALSE;
+	printf("    globalVariable25_7 = %d, not %d\n", 
+	    globalVariable25_7, -globalVariable25_6);
+    }
+
+    if (passedTest[25]) printf("Passed test #25 (unary operators)\n");
+}
+
+//
+// Test #26 - field operators
+//
+
+struct struct26_1 {
+    int field1;
+    int field2;
+};
+
+struct struct26_2 {
+    int field1;
+    int field2;
+    int field3[10];
+    struct struct26_1 field4;
+};
+
+struct struct26_2 globalVariable26_1;
+int globalVariable26_2 = 26000000;
+int globalVariable26_3 = 26000000;
+int globalVariable26_4 = 26000000;
+int globalVariable26_5 = 26000000;
+int globalVariable26_6 = 26000000;
+int globalVariable26_7 = 26000000;
+
+int globalVariable26_8 = 26000000;
+int globalVariable26_9 = 26000000;
+int globalVariable26_10 = 26000000;
+int globalVariable26_11 = 26000000;
+int globalVariable26_12 = 26000000;
+int globalVariable26_13 = 26000000;
+
+void verifyScalarValue26(char *name, int a, int value)
+{
+    verifyScalarValue(name, a, value, 26, "field operators");
+}
+
+void call26_1()
+{
+    int i;
+    struct struct26_2 localVariable26_1;
+
+    localVariable26_1.field1 = 26002001;
+    localVariable26_1.field2 = 26002002;
+    for (i=0; i < 10; i++) localVariable26_1.field3[i] = 26002003 + i;
+    localVariable26_1.field4.field1 = 26002013;
+    localVariable26_1.field4.field2 = 26002014;
+}
+
+void func26_1()
+{
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #26 (struct elements)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[26] = TRUE;
+#else
+    int i;
+
+    passedTest[26] = TRUE;
+
+    globalVariable26_1.field1 = 26001001;
+    globalVariable26_1.field2 = 26001002;
+    for (i=0; i < 10; i++) globalVariable26_1.field3[i] = 26001003 + i;
+    globalVariable26_1.field4.field1 = 26000013;
+    globalVariable26_1.field4.field2 = 26000014;
+
+    call26_1();
+
+    verifyScalarValue26("globalVariable26_2", globalVariable26_2, 26001001);
+    verifyScalarValue26("globalVariable26_3", globalVariable26_3, 26001002);
+    verifyScalarValue26("globalVariable26_4", globalVariable26_4, 26001003);
+    verifyScalarValue26("globalVariable26_5", globalVariable26_5, 26001003+5);
+    verifyScalarValue26("globalVariable26_6", globalVariable26_6, 26000013);
+    verifyScalarValue26("globalVariable26_7", globalVariable26_7, 26000014);
+
+    // local variables
+    verifyScalarValue26("globalVariable26_8", globalVariable26_8, 26002001);
+    verifyScalarValue26("globalVariable26_9", globalVariable26_9, 26002002);
+    verifyScalarValue26("globalVariable26_10", globalVariable26_10, 26002003);
+    verifyScalarValue26("globalVariable26_11", globalVariable26_11, 26002003+5);
+    verifyScalarValue26("globalVariable26_12", globalVariable26_12, 26002013);
+    verifyScalarValue26("globalVariable26_13", globalVariable26_13, 26002014);
+
+    if (passedTest[26]) printf("Passed test #26 (field operators)\n");
 #endif
 }
 
@@ -1382,6 +1757,10 @@ int main(int iargc, char *argv[])
     if (runTest[20]) func20_1();
     if (runTest[21]) func21_1();
     if (runTest[22]) func22_1();
+    if (runTest[23]) func23_1();
+    if (runTest[24]) func24_1();
+    if (runTest[25]) func25_1();
+    if (runTest[26]) func26_1();
 
     // See how we did running the tests.
     allPassed = TRUE;

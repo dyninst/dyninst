@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.14 1999/06/30 23:01:38 wylie Exp $ */
+/* $Id: test2.mutatee.c,v 1.15 1999/07/29 14:02:17 hollings Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -122,7 +122,7 @@ int main(int iargc, char *argv[])
 #endif
     int useAttach = FALSE;
  
-    for (j=0; j <= MAX_TEST; j++) {
+    for (j=1; j <= MAX_TEST; j++) {
         runTest[j] = TRUE;
     }
 

@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.33 1999/07/19 23:01:45 wylie Exp $
+// $Id: test1.C,v 1.34 1999/07/29 14:02:16 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -37,7 +37,7 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 22;
+const unsigned int MAX_TEST = 26;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -1553,7 +1553,6 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     if (! appThread->replaceFunction(*call22_5Afunc, *call22_5Bfunc)) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> shlib)\n");
-	 exit(1);
     }
 
     // Replace a shlib function with an a.out function
@@ -1569,6 +1568,337 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
 	 exit(1);
     }
+
+#endif
+}
+
+//
+// Start Test Case #23 - local variables
+//
+void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4)
+    //     First verify that we can find a local variable in call23_1
+    BPatch_Vector<BPatch_point *> *point23_1 =
+	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
+    
+    assert(point23_1);
+    BPatch_variableExpr *var1 = appImage->findVariable(*(*point23_1)[0], 
+	"localVariable23_1");
+    BPatch_variableExpr *var2 = appImage->findVariable(*(*point23_1)[0], 
+	"shadowVariable23_1");
+    BPatch_variableExpr *var3 = appImage->findVariable("shadowVariable23_2");
+    BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
+    if (!var1 || !var2 || !var3 || !var4) {
+	fprintf(stderr, "**Failed** test #23 (local variables)\n");
+	if (!var1) 
+	    fprintf(stderr, "  can't find local variable localVariable23_1\n");
+	if (!var2) 
+	    fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
+	if (!var3) 
+	    fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
+	return;
+    }
+
+    BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
+    BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
+    BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
+    BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
+
+    BPatch_Vector<BPatch_snippet *> exprs;
+
+    exprs.push_back(&expr23_4); // put this one first so it isn't clobbered
+    exprs.push_back(&expr23_1);
+    exprs.push_back(&expr23_2);
+    exprs.push_back(&expr23_3);
+
+    BPatch_sequence allParts(exprs);
+
+    BPatch_Vector<BPatch_point *> *points =
+	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
+    if (!points || (points->size() < 1)) {
+	fprintf(stderr, "**Failed** test #23 (local variables)\n");
+	fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
+	exit(1);
+    }
+    appThread->insertSnippet(allParts, *points);
+#endif
+}
+
+
+//
+// Start Test Case #24 - array variables
+//
+void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4)
+    //     First verify that we can find a local variable in call24_1
+    BPatch_Vector<BPatch_point *> *temp =
+	appImage->findProcedurePoint("call24_1", BPatch_subroutine);
+    BPatch_Vector<BPatch_point *> *point24_1  = 
+	new(BPatch_Vector<BPatch_point *>);
+    point24_1->push_back((*temp)[0]);
+
+    BPatch_Vector<BPatch_point *> *point24_2 =
+	appImage->findProcedurePoint("call24_1", BPatch_exit);
+    
+    assert(point24_1 && point24_2);
+
+    BPatch_variableExpr *lvar;
+    BPatch_variableExpr *gvar[10];
+
+    for (int i=1; i <= 9; i++) {
+	char name[80];
+
+	sprintf(name, "globalVariable24_%d", i);
+	gvar[i] = appImage->findVariable(name);
+	if (!gvar[i]) {
+	    fprintf(stderr, "**Failed** test #24 (array variables)\n");
+	    fprintf(stderr, "  can't find variable globalVariable24_%d\n", i);
+	    exit(-1);
+	}
+    }
+
+    lvar = appImage->findVariable(*(*point24_1)[0], "localVariable24_1");
+    if (!lvar) {
+	fprintf(stderr, "**Failed** test #24 (array variables)\n");
+	fprintf(stderr, "  can't find variable localVariable24_1\n");
+    }
+
+    //     globalVariable24_1[1] = 2400001
+    BPatch_arithExpr assignment1(BPatch_assign, 
+	BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
+	BPatch_constExpr(2400001));
+    appThread->insertSnippet(assignment1, *point24_1);
+
+    //     globalVariable24_1[globalVariable24_2] = 2400002
+    BPatch_arithExpr assignment2(BPatch_assign, 
+	BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),
+	BPatch_constExpr(2400002));
+    appThread->insertSnippet(assignment2, *point24_1);
+
+    //     globalVariable24_3 = globalVariable24_1[79]
+    BPatch_arithExpr assignment3(BPatch_assign, *gvar[3],
+	BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(79)));
+    appThread->insertSnippet(assignment3, *point24_1);
+
+    //     globalVariable24_5 = globalVariable24_1[globalVariable24_4]
+    BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
+	BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[4]));
+    appThread->insertSnippet(assignment4, *point24_1);
+
+    // now the local variables
+    //     localVariable24_1[1] = 2400005
+    BPatch_arithExpr assignment5(BPatch_assign, 
+	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(1)),
+	BPatch_constExpr(2400005));
+    appThread->insertSnippet(assignment5, *point24_1);
+
+    //     localVariable24_1[globalVariable24_2] = 2400006
+    BPatch_arithExpr assignment6(BPatch_assign, 
+	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[2]),
+	BPatch_constExpr(2400006));
+    appThread->insertSnippet(assignment6, *point24_1);
+
+    //     globalVariable24_6 = localVariable24_1[79]
+    BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],
+	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
+    appThread->insertSnippet(assignment7, *point24_2);
+
+    //     localVariable24_7 = localVariable24_1[globalVariable24_4]
+    BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
+	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
+    appThread->insertSnippet(assignment8, *point24_2);
+
+    // now test multi-dimensional arrays
+
+    //	   globalVariable24_8[2][3] = 2400011
+    BPatch_arithExpr assignment9(BPatch_assign, 
+	BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8], 
+						      BPatch_constExpr(2)), 
+	     BPatch_constExpr(3)), BPatch_constExpr(2400011));
+    appThread->insertSnippet(assignment9, *point24_1);
+
+    // globalVariable24_9 = globalVariable24_8[7][9]
+    BPatch_arithExpr assignment10(BPatch_assign, *gvar[9],
+	BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8], 
+						      BPatch_constExpr(7)), 
+				     BPatch_constExpr(9)));
+    appThread->insertSnippet(assignment10, *point24_1);
+#endif
+}
+
+//
+// Start Test Case #25 - unary operators
+//
+void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    //     First verify that we can find a local variable in call25_1
+    BPatch_Vector<BPatch_point *> *point25_1 =
+	appImage->findProcedurePoint("call25_1", BPatch_entry);
+
+    assert(point25_1 && (point25_1->size() == 1));
+
+    BPatch_variableExpr *lvar;
+    BPatch_variableExpr *gvar[8];
+
+    for (int i=1; i <= 7; i++) {
+	char name[80];
+
+	sprintf(name, "globalVariable25_%d", i);
+	gvar[i] = appImage->findVariable(name);
+	if (!gvar[i]) {
+	    fprintf(stderr, "**Failed** test #25 (unary operaors)\n");
+	    fprintf(stderr, "  can't find variable globalVariable25_%d\n", i);
+	    exit(-1);
+	}
+    }
+
+    //     globalVariable25_2 = &globalVariable25_1
+#ifndef sparc_sun_solaris2_4
+    // without type info need to inform
+    BPatch_type *type = appImage->findType("void *");
+    assert(type);
+    gvar[2]->setType(type);
+#endif
+    BPatch_arithExpr assignment1(BPatch_assign, *gvar[2],
+	BPatch_arithExpr(BPatch_addr, *gvar[1]));
+    appThread->insertSnippet(assignment1, *point25_1);
+
+    // 	   globalVariable25_3 = *globalVariable25_2
+    //		Need to make sure this happens after the first one
+    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3],
+	BPatch_arithExpr(BPatch_deref, *gvar[2]));
+    appThread->insertSnippet(assignment2, *point25_1,  BPatch_callBefore,
+	    BPatch_lastSnippet);
+
+    // 	   globalVariable25_5 = -globalVariable25_4
+    BPatch_arithExpr assignment3(BPatch_assign, *gvar[5],
+	BPatch_arithExpr(BPatch_negate, *gvar[4]));
+    appThread->insertSnippet(assignment3, *point25_1);
+
+    // 	   globalVariable25_7 = -globalVariable25_6
+    BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
+	BPatch_arithExpr(BPatch_negate, *gvar[6]));
+    appThread->insertSnippet(assignment4, *point25_1);
+}
+
+
+//
+// Start Test Case #26 - struct elements
+//
+void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4)
+    //     First verify that we can find a local variable in call26_1
+    BPatch_Vector<BPatch_point *> *point26_1 =
+	appImage->findProcedurePoint("call26_1", BPatch_exit);
+
+    assert(point26_1 && (point26_1->size() == 1));
+
+    BPatch_variableExpr *lvar;
+    BPatch_variableExpr *gvar[14];
+
+    for (int i=1; i <= 13; i++) {
+	char name[80];
+
+	sprintf(name, "globalVariable26_%d", i);
+	gvar[i] = appImage->findVariable(name);
+	if (!gvar[i]) {
+	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+	    fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
+	    exit(-1);
+	}
+    }
+
+    // start of code for globalVariable26_1
+    BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
+    assert(fields && (fields->size() == 4));
+
+    for (int i=0; i < 4; i++) {
+	 char fieldName[80];
+	 sprintf(fieldName, "field%d", i+1);
+	 if (strcmp(fieldName, (*fields)[i]->getName())) {
+	      printf("field %d of the struct is %s, not %s\n",
+		  i+1, fieldName, (*fields)[i]->getName());
+	      return;
+	 }
+    }
+
+    // 	   globalVariable26_2 = globalVariable26_1.field1
+    BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
+    appThread->insertSnippet(assignment1, *point26_1);
+
+    // 	   globalVariable26_3 = globalVariable26_1.field2
+    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
+    appThread->insertSnippet(assignment2, *point26_1);
+
+    // 	   globalVariable26_4 = globalVariable26_1.field3[0]
+    BPatch_arithExpr assignment3(BPatch_assign, *gvar[4], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+    appThread->insertSnippet(assignment3, *point26_1);
+
+    // 	   globalVariable26_5 = globalVariable26_1.field3[5]
+    BPatch_arithExpr assignment4(BPatch_assign, *gvar[5], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+    appThread->insertSnippet(assignment4, *point26_1);
+
+    BPatch_Vector<BPatch_variableExpr *> *subfields = 
+	(*fields)[3]->getComponents();
+    assert(subfields != NULL);
+
+    // 	   globalVariable26_6 = globalVariable26_1.field4.field1
+    BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
+    appThread->insertSnippet(assignment5, *point26_1);
+
+    // 	   globalVariable26_7 = globalVariable26_1.field4.field2
+    BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
+    appThread->insertSnippet(assignment6, *point26_1);
+
+    // start of code for localVariable26_1
+    lvar = appImage->findVariable(*(*point26_1)[0], "localVariable26_1");
+
+    fields = lvar->getComponents();
+    assert(fields && (fields->size() == 4));
+
+    for (int i=0; i < 4; i++) {
+	 char fieldName[80];
+	 sprintf(fieldName, "field%d", i+1);
+	 if (strcmp(fieldName, (*fields)[i]->getName())) {
+	      printf("field %d of the local struct is %s, not %s\n",
+		  i+1, fieldName, (*fields)[i]->getName());
+	      return;
+	 }
+    }
+
+    // 	   globalVariable26_8 = localVariable26_1.field1
+    BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
+    appThread->insertSnippet(assignment7, *point26_1);
+
+    // 	   globalVariable26_9 = localVariable26_1.field2
+    BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
+    appThread->insertSnippet(assignment8, *point26_1);
+
+    // 	   globalVariable26_10 = localVariable26_1.field3[0]
+    BPatch_arithExpr assignment9(BPatch_assign, *gvar[10], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+    appThread->insertSnippet(assignment9, *point26_1);
+
+    // 	   globalVariable26_11 = localVariable26_1.field3[5]
+    BPatch_arithExpr assignment10(BPatch_assign, *gvar[11], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+    appThread->insertSnippet(assignment10, *point26_1);
+
+    subfields = (*fields)[3]->getComponents();
+    assert(subfields != NULL);
+
+    // 	   globalVariable26_12 = localVariable26_1.field4.field1
+    BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
+    appThread->insertSnippet(assignment11, *point26_1);
+
+    // 	   globalVariable26_13 = localVariable26_1.field4.field2
+    BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
+    appThread->insertSnippet(assignment12, *point26_1);
 
 #endif
 }
@@ -1675,6 +2005,10 @@ void mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[21] || runTest[22]) readyTest21or22(appThread);
     if (runTest[21]) mutatorTest21(appThread, appImage); 
     if (runTest[22]) mutatorTest22(appThread, appImage);
+    if (runTest[23]) mutatorTest23(appThread, appImage);
+    if (runTest[24]) mutatorTest24(appThread, appImage);
+    if (runTest[25]) mutatorTest25(appThread, appImage);
+    if (runTest[26]) mutatorTest26(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
@@ -1724,7 +2058,7 @@ main(unsigned int argc, char *argv[])
 
     unsigned int i;
     // by default run all tests
-    for (i=0; i <= MAX_TEST; i++) {
+    for (i=1; i <= MAX_TEST; i++) {
         runTest[i] = true;
         passedTest[i] = false;
     }
@@ -1740,6 +2074,24 @@ main(unsigned int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
+	} else if (!strcmp(argv[i], "-skip")) {
+	    unsigned int j;
+	    runAllTests = false;
+            for (j=i+1; j < argc; j++) {
+                unsigned int testId;
+                if ((testId = atoi(argv[j]))) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = false;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+		    break;
+                }
+            }
+            i=j-1;
 	} else if (!strcmp(argv[i], "-run")) {
 	    unsigned int j;
 	    runAllTests = false;
