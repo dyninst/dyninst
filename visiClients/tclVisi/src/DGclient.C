@@ -2,7 +2,11 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.8  1995/11/12 23:30:49  newhall
+ * Revision 1.9  1995/11/17 17:30:32  newhall
+ * added Dg metriclabel, Dg metricavelabel, and Dg metricsumlabel commands
+ * changed the Dg start command so that it doesn't take any arguments
+ *
+ * Revision 1.8  1995/11/12  23:30:49  newhall
  * added Dg_Exited
  *
  * Revision 1.7  1995/02/26  02:02:02  newhall
@@ -145,6 +149,8 @@ int Dg_Exited(int dummy) {
 #define   PHASENAME        20
 #define   PHASESTARTTIME   21
 #define   PHASEENDTIME     22
+#define   METRICAVELAB     23
+#define   METRICSUMLAB	   24
 
 struct cmdTabEntry {
    char *cmdname;
@@ -159,13 +165,13 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
-  {"metricunits",  METRICUNITS,     1},
+  {"metriclabel",  METRICUNITS,     1},
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
   {"phase",        DEFINEPHASE,     0},
   {"resourcename", RESOURCENAME,    1},
-  {"start",        STARTSTREAM,     2},
+  {"start",        STARTSTREAM,     0},
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
@@ -175,6 +181,8 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"phasestartT",  PHASESTARTTIME,  1},
   {"phaseendT",    PHASEENDTIME,    1},
   {"numphases",    NUMPHASES,       0},
+  {"metricavelabel",  METRICAVELAB, 1},
+  {"metricsumlabel",  METRICSUMLAB, 1},
   {NULL,           CMDERROR,        0}
 };
 
@@ -246,7 +254,7 @@ int Dg_TclCommand(ClientData clientData,
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricUnits(m));
+    sprintf(interp->result, "%s", dataGrid.MetricLabel(m));
     return TCL_OK;
 
   case NUMBINS:     
@@ -272,10 +280,7 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    // GetMetsRes(argv[2], argv[3], 0); 
-//    GetMetsRes((char *)NULL,0, 0); 
-    GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
-                                           // argv[3] is num
+    GetMetsRes();
     return TCL_OK;
 
   case STOPSTREAM:
@@ -331,6 +336,16 @@ int Dg_TclCommand(ClientData clientData,
     sprintf(interp->result, "%f", p->getEndTime());
     return TCL_OK;
 
+  case METRICAVELAB:
+    m = atoi(argv[2]);
+    sprintf(interp->result, "%s", dataGrid.MetricAveLabel(m));
+    return TCL_OK;
+
+  case METRICSUMLAB:
+    m = atoi(argv[2]);
+    sprintf(interp->result, "%s", dataGrid.MetricSumLabel(m));
+    return TCL_OK;
+   
   }
 
   sprintf(interp->result, "Internal error (func findCommand)\n");
