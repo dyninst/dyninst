@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.35 2002/10/08 22:50:33 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.36 2002/11/02 21:08:40 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -61,6 +61,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "rtinst/h/rthwctr-aix.h"
 #include <dlfcn.h>
 
 #include <sys/types.h>
@@ -97,62 +98,55 @@ rawTime64 cpuPrevious  = 0;
 /* For the hardware counters */
 #include <pmapi.h>
 
-#define MAX_EVENTS	2
-#define CMPL_INDEX	0
-#define CYC_INDEX	1
-
-/* Event 1: instructions completed (per kernel thread)
-   Event 2: total machine cycles completed */
-
-char *pdyn_search_evs[MAX_EVENTS] = {"PM_INST_CMPL", "PM_CYC"};
-int pdyn_counter_mapping[MAX_EVENTS];
 pm_prog_t pdyn_pm_prog;
 pm_info_t pinfo;
 
-/* 
-   Given a list of (string) events, try and get a mapping for them. We
-   use this because we know what events we want, but not (necessarily) the 
-   mapping.
+/* returns 0 on success, 1 on error */
+int pmapi_bind_event_to_hwctr(pm_info_t *myinfo, int destination_mapping[],
+                               pmapi_event_t event_type, 
+                               int hwctr_num) {
+   int num_avail_ctrs = myinfo->maxpmcs;
+   int num_events = myinfo->maxevents[hwctr_num];
+   pm_events_t *list_of_avail_events = myinfo->list_events[hwctr_num];
+   char *event_string = get_event_string(hwctr_num);
+   unsigned i;
+   assert(hwctr_num < num_avail_ctrs);
 
-   So when this is done, you can get event foo by asking for 
-   event.mappings[# of foo]
-*/
-
-int
-pdyn_search_cpi(pm_info_t *myinfo, int evs[], int mappings[])
-{
-  int             s_index, pmc, ev, found = 0;
-  pm_events_t     *wevp;
-  
-  for (pmc = 0; pmc < myinfo->maxpmcs; pmc++)
-    evs[pmc] = -1;
-  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
-    mappings[pmc] = -1;
-  
-  for (s_index = 0; s_index < MAX_EVENTS; s_index++) {
-    found = 0;
-    for (pmc = 0; pmc < myinfo->maxpmcs; pmc++) {
-      wevp = myinfo->list_events[pmc];
-      for (ev = 0; ev < myinfo->maxevents[pmc]; ev++, wevp++) {
-	if ((evs[pmc] == -1) && 
-	    (strcmp(pdyn_search_evs[s_index], wevp->short_name) == 0)) {
-	  evs[pmc] = wevp->event_id;
-	  mappings[s_index] = pmc;
-	  break;
-	}
+   /* fprintf(stderr, "   num_avail_ctrs: %d, event_string: %s, num_events: %d"
+              "\n", num_avail_ctrs, event_string, num_events); */
+   for(i=0; i<num_events; i++) {
+      pm_events_t cur_event = list_of_avail_events[i];
+      /* fprintf(stderr, "      event: %d  str: %s\n", i, 
+                 cur_event.short_name); */
+      if(! strcmp(cur_event.short_name, event_string)) {
+         /* fprintf(stderr, "      GOT A MATCH, mapping[%d] = %d\n",
+                    hwctr_num, cur_event.event_id); */
+         destination_mapping[hwctr_num] = cur_event.event_id;
+         return 0;
       }
-      if (mappings[s_index] != -1) break;
-    }
-  }
-  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
-    if (mappings[pmc] == -1)
-      return -1;
-  return(0);
+   }
+   return 1;
 }
 
+/* returns 0 on success, 1 on error */
+int pmapi_setup_bindings(pm_info_t *myinfo, int destination_mapping[]) {
+   unsigned hwctr_num;
+   pmapi_event_t cur_ev;
+   for(hwctr_num = 0; hwctr_num < myinfo->maxpmcs; hwctr_num++)
+      destination_mapping[hwctr_num] = -1;
 
-void
-PARADYNos_init(int calledByFork, int calledByAttach) {
+   for(cur_ev=PM_FIRST_EVENT; cur_ev != PM_END_EVENT; cur_ev++) {
+      int hwctr_to_assign = get_hwctr_binding(cur_ev);
+      /* fprintf(stderr, "going to assign event %d to hwctr %d\n",
+                 cur_ev, hwctr_to_assign); */
+      int result = pmapi_bind_event_to_hwctr(myinfo, destination_mapping, 
+                                             cur_ev, hwctr_to_assign);
+      if(result == 1) return 1;
+   }
+   return 0;
+}
+
+void PARADYNos_init(int calledByFork, int calledByAttach) {
   int ret;
   void *lib;
   hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
@@ -161,7 +155,7 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
   if (ret) pm_error("PARADYNos_init: pm_init", ret);
   
-  if (pdyn_search_cpi(&pinfo, pdyn_pm_prog.events, pdyn_counter_mapping))
+  if(pmapi_setup_bindings(&pinfo, pdyn_pm_prog.events))
     fprintf(stderr, "Mapping failed for pm events\n");
 
   /* Count both user and kernel instructions */
@@ -170,14 +164,14 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   pdyn_pm_prog.mode.b.kernel = 1;
   /* Count for an entire process group. Catch all threads concurrently */
   pdyn_pm_prog.mode.b.process = 1;
+  pdyn_pm_prog.mode.b.count  = 1;  /* start counting immediately,
+                                      precludes the need for pm_start_...() */
 
   /* Prep the sucker for launch */
-  ret = pm_set_program_mythread(&pdyn_pm_prog);
+  /* we need to set up a group because we need to sample the cycle hwctr
+     for all of the threads (in addition to, for each thread) */
+  ret = pm_set_program_mygroup(&pdyn_pm_prog);
   if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
-
-  /* Start it up, and let 'er rip */
-  ret = pm_start_mythread();
-  if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
 
   /* needs to be reinitialized when fork occurs */
   wallPrevious_hw = 0;
@@ -206,6 +200,8 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
 }
 
 #endif USES_PMAPI
+
+
 /* We'll see an occasional small rollback ( ~ 1 usec) that is ignored. */
 static int MaxRollbackReport = 0; /* don't report any rollbacks! */
 /*static int MaxRollbackReport = 1;*/ /* only report 1st rollback */
@@ -220,22 +216,17 @@ DYNINSTgetCPUtime_hw(void) {
   static int no_pmapi_error = 0;
 #ifdef USES_PMAPI
   /* Get time for my thread */
-  static int initialized = 0;
   static int cpuRollbackOccurred = 0;
   pm_data_t data;
   int ret;
   rawTime64 now;
 
-  if (!initialized) {
-    pm_set_program_mythread(&pdyn_pm_prog);
-    initialized = 1;
-  }
   ret = pm_get_data_mythread(&data);
   if (ret) pm_error("DYNINSTgetCPUtime: pm_get_data_mythread", ret);
   /* I'm pretty sure we want to use cycles completed, not instructions
      completed, using INSTR_CMPL could yield a total ratio > 1 for
      a superscalar processor */
-  now = data.accu[pdyn_counter_mapping[CYC_INDEX]];
+  now = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
 
   if (now < cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
@@ -470,7 +461,7 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
     pm_error("DYNINSTgetCPUtime_LWP: pm_get_data_thread", ret);
     fprintf(stderr, "Time requested for thread %d, running on thread %d\n", lwp_id, thread_self());
   }
-  time = data.accu[pdyn_counter_mapping[0]]; 
+  time = data.accu[get_hwctr_binding(PM_CYC_EVENT)]; 
   return time;
 #else
   assert(0);
