@@ -103,7 +103,9 @@ int MC_Synchronizer::push_packets(std::list <MC_Packet *> &packets_in,
 {
   mc_printf(MCFL, stderr, "In sync.push_packets(). Pushing %d packets\n",
             packets_in.size());
+  fsync.lock();
   sync(packets_in, packets_out, downstream_nodes, &object_local_storage);
+  fsync.unlock();
   mc_printf(MCFL, stderr, "Leaving sync.push_packets(). Returning %d packets\n",
             packets_out.size());
   return 0;

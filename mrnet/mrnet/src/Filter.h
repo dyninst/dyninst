@@ -5,6 +5,7 @@
 #include <list>
 #include <map>
 #include "mrnet/src/Message.h"
+#include "mrnet/src/pthread_sync.h"
 
 class MC_Filter{
  protected:
@@ -42,6 +43,7 @@ class MC_Synchronizer: public MC_Filter{
               std::list <MC_RemoteNode *> &, void **);
   std::list <MC_RemoteNode *> downstream_nodes;
   void * object_local_storage;
+  pthread_sync fsync;
 
  public:
   MC_Synchronizer(unsigned short _filter_id, std::list <MC_RemoteNode *> &);
