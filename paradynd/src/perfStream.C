@@ -43,6 +43,11 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.64  1996/10/31 09:23:49  tamches
+ * the shm-sampling commit; shared-memory sampling in the main loop;
+ * new inferiorRPC activities in SIGTRAP/STOP/ILL; removed TR_START;
+ * removed some warnings
+ *
  * Revision 1.63  1996/09/26 18:58:53  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -109,18 +114,12 @@ extern "C" {
 #include "showerror.h"
 #include "main.h"
 
-
-// TODO: this eliminates a warning but creates a conflict when compiling
-// paradyndCM5.
-//extern "C" void bzero(char *b, int length);
-
 void createResource(int pid, traceHeader *header, struct _newresource *r);
 
-bool synchronousMode = false;
 bool firstSampleReceived = false;
 
 double cyclesPerSecond = 0;
-time64 firstRecordTime = 0;
+extern time64 firstRecordTime; // util.C
 
 // Read output data from process curr. 
 void processAppIO(process *curr)
@@ -142,7 +141,7 @@ void processAppIO(process *curr)
 	curr->ioLink = -1;
 	return;
     } else if (ret == 0) {
-	/* end of file */
+	/* end of file -- process exited */
         P_close(curr->ioLink);
 	curr->ioLink = -1;
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
@@ -154,9 +153,9 @@ void processAppIO(process *curr)
     // null terminate it
     lineBuf[ret] = '\0';
 
-    // forawrd the data to the paradyn process.
-    tp->applicationIO(curr->pid, ret, lineBuf);
-
+    // forward the data to the paradyn process.
+    tp->applicationIO(curr->getPid(), ret, lineBuf);
+       // note: this is an async igen call, so the results may not appear right away.
 }
 
 
@@ -231,7 +230,7 @@ void processTraceStream(process *curr)
 	    break;
 	}
 
-	if (curr->bufStart % WORDSIZE != 0)	/* Word alignment check */
+	if (curr->bufStart % WORDSIZE != 0)     /* Word alignment check */
 	    break;		        /* this will re-align by shifting */
 
 	memcpy(&sid, &(curr->buffer[curr->bufStart]), sizeof(traceStream));
@@ -258,34 +257,29 @@ void processTraceStream(process *curr)
 
 	if (!firstRecordTime)
 	    firstRecordTime = header.wall;
+            // firstRecordTime is used by getCurrentTime() in util.C when arg passed
+            // is 'true', but noone seems to do that...so firstRecordTime is not a
+            // terribly important vrble (but, for now at least, it's used in metric.C)
 
-	/*
-	 * convert header to time based on first record.
-	 *
-	 */
-	if (!curr->getFirstRecordTime()) {
-	    double st;
-
-	    curr->setFirstRecordTime(header.wall);
-	    st = curr->getFirstRecordTime() / 1000000.0;
-	    /* sprintf(errorLine, "started at %f\n", st);*/
-	    /* logLine(errorLine);*/
-	    // report sample here
-	    
-	    tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
-
+	// callback to paradyn (okay if this callback is done more than once; paradyn
+        // detects this.  This is important since right now, we're also gonna do this
+        // callback when starting a new process; needed since SHM_SAMPLING might well
+        // start sending samples to paradyn before any trace records were received
+        // here.)
+	static bool done_yet = false;
+	if (!done_yet) {
+	   tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
+	   done_yet = true;
 	}
-	// header.wall -= curr->firstRecordTime();
+
 	switch (header.type) {
-	    case TR_START:
-		startProcess((traceStart *) ((void*)recordData));
-		break;
 	    case TR_FORK:
 		forkProcess((traceFork *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_RESOURCE:
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
+		   // createResource() is in this file, below
 		break;
 
 	    case TR_NEW_ASSOCIATION:
@@ -293,16 +287,19 @@ void processTraceStream(process *curr)
 		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
 		break;
 
+#ifndef SHM_SAMPLING
 	    case TR_SAMPLE:
 		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
 		// logLine(errorLine);
-		assert(curr->getFirstRecordTime());
+//		assert(curr->getFirstRecordTime());
 		processSample(&header, (traceSample *) ((void*)recordData));
+		   // in metric.C
 		firstSampleReceived = true;
 		break;
+#endif
 
 	    case TR_EXIT:
-		sprintf(errorLine, "process %d exited\n", curr->pid);
+		sprintf(errorLine, "process %d exited\n", curr->getPid());
 		logLine(errorLine);
 		printAppStats((struct endStatsRec *) ((void*)recordData),
 			      cyclesPerSecond);
@@ -312,11 +309,15 @@ void processTraceStream(process *curr)
 		handleProcessExit(curr, 0);
 		break;
 
+#ifndef SHM_SAMPLING
 	    case TR_COST_UPDATE:
 		processCost(curr, &header, (costUpdate *) ((void*)recordData));
+		   // in metric.C
 		break;
+#endif
 
 	    case TR_CP_SAMPLE:
+		// critical path sample
 		extern void processCP(process *, traceHeader *, cpSample *);
 		processCP(curr, &header, (cpSample *) recordData);
 		break;
@@ -343,7 +344,7 @@ void processTraceStream(process *curr)
 		break;
 
 	    default:
-		sprintf(errorLine, "Got record type %d on sid %d\n", 
+		sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
 		    header.type, sid);
 		logLine(errorLine);
 		sprintf(errorLine, "Received bad trace data from process %d.", curr->getPid());
@@ -358,18 +359,30 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
+void doDeferredRPCs() {
+   // Any RPCs waiting to be performed?  If so, and if it's safe to
+   // perform one, then launch one.
+   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
+      process *proc = processVec[lcv];
+      if (proc->status() == exited) continue;
+      if (proc->status() == neonatal) continue; // not sure if this is appropriate
+      
+      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
+      // do we need to do anything with 'wasLaunched'?
+      if (wasLaunched)
+	 cerr << "launched an inferior RPC" << endl;
+   }
+}
+
 // TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
-    int sig;
-    string buffer;
-
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
     if (!curr) return -1;
 
     if (WIFSTOPPED(status)) {
-	sig = WSTOPSIG(status);
+	int sig = WSTOPSIG(status);
 	switch (sig) {
 
 	    case SIGTSTP:
@@ -378,69 +391,104 @@ int handleSigChild(int pid, int status)
 		curr->Stopped();
 		break;
 
-	    case SIGTRAP:
-		/* trap at the start of a ptraced process 
-		 *   continue past it.
-		 */
+	    case SIGTRAP: {
+		// Note that there are now several uses for SIGTRAPs in paradynd.
+		// The original use was to detect when a ptraced process had
+		// started up.  Several have been added.  We must be careful
+		// to make sure that uses of SIGTRAPs do not conflict.
+
+	        //cerr << "welcome to SIGTRAP" << endl;
+
+		const bool wasRunning = (curr->status() == running);
+		curr->status_ = stopped; // probably was 'neonatal'
+		    
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
-		if (!(instWList.empty())) {
-		    curr -> cleanUpInstrumentation();
+		if (!instWList.empty()) {
+		    //cerr << "SIGTRAP: there was something on the waiting list...cleaning it up now" << endl;
+		    if (curr -> cleanUpInstrumentation(wasRunning))
+		       break; // successfully processed the SIGTRAP
 		}
-		//else, do what we are doing before   
-		else {
-		    if (curr->inExec) {
-			// the process has executed a succesful exec, and is now
-			// stopped at the exit of the exec call.
-			curr->handleExec();
-			curr->inExec = false;
-			curr->reachedFirstBreak = false;
-		    }
-		    
-		    // the process is stopped as a result of the initial SIGTRAP
-		    curr->status_ = stopped;
-		    
-		    // query default instrumentation here - not done yet
-		    // We must check that this is the first trap since on machines
-		    //   where we use ptrace detach, a TRAP is generated on a pause.
-		    //   - jkh 7/7/95
-		    if (!curr->reachedFirstBreak) {
-			buffer = string("PID=") + string(pid);
-			buffer += string(", passed trap at start of program");
-			statusLine(P_strdup(buffer.string_of()));
 
-		        (void)(curr->findDynamicLinkingInfo());
-
-			installDefaultInst(curr, initialRequests);
-			curr->reachedFirstBreak = 1;
-			
-			// propagate any metric that is already enabled to the new
-			// process
-			vector<metricDefinitionNode *> MIs = allMIs.values();
-			for (unsigned j = 0; j < MIs.size(); j++) {
-			    MIs[j]->propagateMetricInstance(curr);
-			}
-			costMetric::addProcessToAll(curr);
-			
-			tp->newProgramCallbackFunc(pid, curr->arg_list, 
-					   machineResource->part_name());
-			
-		    }
+		if (curr->inExec) {
+		   // the process has executed a succesful exec, and is now
+		   // stopped at the exit of the exec call.
+		   cerr << "SIGTRAP: processing the handleExec case!" << endl;
+		   curr->handleExec();
+		   curr->inExec = false;
+		   curr->reachedFirstBreak = false;
+		   break;
 		}
+
+		if (curr->handleTrapIfDueToRPC()) {
+		   cerr << "processed RPC response in SIGTRAP" << endl;
+		   break;
+		}
+		    
+                // Now we expect that the TRAP is due to the fact that a TRAP
+                // is always generated when a ptraced process starts up.
+                // But we must query 'reachedFirstBreak' because on machines where
+                // we use ptrace detach (on continuing), a TRAP is generated on a
+                // pause.
+		if (!curr->reachedFirstBreak) {
+		   string buffer = string("PID=") + string(pid);
+		   buffer += string(", passed trap at start of program");
+		   statusLine(buffer.string_of());
+
+		   (void)(curr->findDynamicLinkingInfo());
+
+		   curr->reachedFirstBreak = true;
+
+		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
+		   statusLine(buffer.string_of());
+
+		   installBootstrapInst(curr);
+			
+		   // now, let main() and then DYNINSTinit() get invoked.  DYNINST will
+                   // send us back a TR_INFERIOR_BOOTSTRAPPED record; at that time we
+		   // can safely propagate metric instances, do
+		   // tp->newProgramCallbackFunc(), etc.
+		   if (!curr->continueProc()) {
+		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
+		   }
+		   else {
+		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
+		      statusLine(buffer.string_of());
+		   }
+		}
+
 		break;
+	    }
 
 	    case SIGSTOP:
-	    case SIGINT:
+	    case SIGINT: {
+		//cerr << "welcome to SIGSTOP/SIGINT" << endl;
+
+		const bool wasRunning = (curr->status_ == running);
+		const bool wasNeonatal = (curr->status_ == neonatal);
+		curr->status_ = stopped;
+
+		if (curr->tryToReadAndProcessBootstrapInfo()) {
+		   // grab data from DYNINST_bootstrap_info
+		   tp->processStatus(curr->getPid(), procPaused);
+		   break;
+		}
+
+		if (curr->handleTrapIfDueToRPC()) {
+		   cerr << "processed RPC response in SIGSTOP" << endl;
+		   break;
+		}
+
 		if(curr->isInHandleStart()){
-                    bool need_to_cont = (curr->status() == running);
-		    if(need_to_cont){
-			curr->status_ = stopped;
+		    if(wasRunning) {
 			// if there are no outstanding resource creation
 			// responses, then continue process, otherwise wait
 			if(!resource::num_outstanding_creates){
+			    cerr << "SIGSTOP: inHandleStart=true, was running, so doing continueProc() now" << endl;
 			    curr->continueProc();
                         }
 			else {
+			    cerr << "SIGSTOP: inHandleStart=true, wasn't running, so doing curr->setWaitingForResources()" << endl; // does this ever happen?
 			    curr->setWaitingForResources();
 			}
 		    }
@@ -448,30 +496,39 @@ int handleSigChild(int pid, int status)
 		    break;
 		}
 
-		if (curr->reachedFirstBreak == false && curr->status() == neonatal) {
+		if (curr->reachedFirstBreak == false && wasNeonatal) {
 		  // forked process
+		  cerr << "paradynd SIGSTOP or SIGINT: it's a fork!" << endl;
 		  curr->reachedFirstBreak = true;
 		  curr->status_ = stopped;
-		  metricDefinitionNode::handleFork(curr->parent, curr);
+		  metricDefinitionNode::handleFork(curr->getParent(), curr);
 		  tp->newProgramCallbackFunc(pid, curr->arg_list,
 					     machineResource->part_name());
 		  break;
 		}
 
 		curr->Stopped();
-		curr->reachedFirstBreak = 1;
+		curr->reachedFirstBreak = true; // probably not needed; should already be true
 
-		// The Unix process should be stopped already, 
-		// since it's blocked on ptrace and we didn't forward
-		// received the SIGSTOP...
-		// But we need to pause the rest of the application
-		//pauseAllProcesses();
-		//statusLine("application paused");
 		break;
+	    }
+
+	    case SIGILL:
+	       //cerr << "welcome to SIGILL" << endl;
+	       curr->status_ = stopped;
+
+	       if (curr->handleTrapIfDueToRPC()) {
+		  cerr << "processed RPC response in SIGILL" << endl;
+		  break; // we don't forward the signal -- on purpose
+	       }
+	       else
+		  // fall through, on purpose
+		  ;
 
 	    case SIGIOT:
 	    case SIGBUS:
-	    case SIGILL:
+//		 printf("caught signal, dying...  (sig=%d)\n", 
+//		       WSTOPSIG(status)); fflush(stdout);
 		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
@@ -480,23 +537,42 @@ int handleSigChild(int pid, int status)
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
 		// now forward it to the process.
-		OS::osForwardSignal(pid, WSTOPSIG(status));
+		curr->continueWithForwardSignal(WSTOPSIG(status));
 		break;
+
+	    case SIGALRM:
+#ifndef SHM_SAMPLING
+		// Due to the DYNINSTin_sample variable, it's safest to launch
+		// inferior-RPCs only when we know that the inferior is not in the
+		// middle of processing an alarm-expire.  Otherwise, code that does
+		// stuff like call DYNINSTstartWallTimer will appear to do nothing
+		// (DYNINSTstartWallTimer will be invoked but will see that
+		//  DYNINSTin_sample is set and so bails out!!!)
+		// Ick.
+		if (curr->existsRPCreadyToLaunch()) {
+		   curr -> status_ = stopped;
+		   (void)curr->launchRPCifAppropriate(true);
+		   break; // sure, we lose the SIGALARM, but so what.
+		}
+		else
+		   ; // no break, on purpose
+#endif
 
 	    case SIGCHLD:
 	    case SIGUSR1:
 	    case SIGUSR2:
-	    case SIGALRM:
 	    case SIGVTALRM:
 	    case SIGCONT:
 	    case SIGSEGV:	// treadmarks needs this signal
-		// printf("caught signal, forwarding...  (sig=%d)\n", 
-		//       WSTOPSIG(status));
-		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
+//		 printf("caught signal, forwarding...  (sig=%d)\n", 
+//		       WSTOPSIG(status)); fflush(stdout);
+
+		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
 		     showErrorCallback(38, "Error  in forwarding  signal");
                      //P_abort();
                 }
+
 		break;
 
 #ifdef notdef
@@ -507,7 +583,7 @@ int handleSigChild(int pid, int status)
 		logLine(errorLine);
 #endif
 	    default:
-		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
+		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
                      P_abort();
                 }
@@ -520,20 +596,20 @@ int handleSigChild(int pid, int status)
         //         PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 	//}
 #endif
-	sprintf(errorLine, "Process %d has terminated\n", curr->pid);
+	sprintf(errorLine, "Process %d has terminated\n", curr->getPid());
 	statusLine(errorLine);
 	logLine(errorLine);
 
 	printDyninstStats();
         handleProcessExit(curr, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
+	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(),
 	    WTERMSIG(status));
 	logLine(errorLine);
 	statusLine(errorLine);
 	handleProcessExit(curr, WTERMSIG(status));
     } else {
-	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->pid);
+	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->getPid());
 	logLine(errorLine);
 	showErrorCallback(39,(const char *) errorLine);
     }
@@ -547,16 +623,16 @@ void ioFunc()
 }
 
 
+
 /*
- * Wait for a data from one of the inferriors or a request to come in.
+ * Wait for a data from one of the inferiors or a request to come in.
  *
  */
+
 void controllerMainLoop(bool check_buffer_first)
 {
     int ct;
-    int pid;
     int width;
-    int status;
     fd_set readSet;
     fd_set errorSet;
     struct timeval pollTime;
@@ -575,6 +651,10 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 
+//    cerr << "welcome to controllerMainLoop...pid=" << getpid() << endl;
+//    kill(getpid(), SIGSTOP);
+//    cerr << "doing controllerMainLoop..." << endl;
+
     while (1) {
 	FD_ZERO(&readSet);
 	FD_ZERO(&errorSet);
@@ -585,18 +665,19 @@ void controllerMainLoop(bool check_buffer_first)
 	      FD_SET(processVec[u]->traceLink, &readSet);
 	    if (processVec[u]->traceLink > width)
 	      width = processVec[u]->traceLink;
+
 	    if (processVec[u]->ioLink >= 0)
 	      FD_SET(processVec[u]->ioLink, &readSet);
 	    if (processVec[u]->ioLink > width)
 	      width = processVec[u]->ioLink;
 	}
 
-	// add trace 
+	// add trace stream coming from DYNINST
 	extern int traceSocket_fd;
 	if (traceSocket_fd > 0) FD_SET(traceSocket_fd, &readSet);
 	if (traceSocket_fd > width) width = traceSocket_fd;
 
-	// add connection to paradyn process.
+	// add our igen connection with the paradyn process.
 	FD_SET(tp->get_fd(), &readSet);
 	FD_SET(tp->get_fd(), &errorSet);
 	if (tp->get_fd() > width) width = tp->get_fd();
@@ -619,9 +700,87 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 
-	// poll for IO
-	pollTime.tv_sec = 0;
-	pollTime.tv_usec = 50000;
+#ifdef SHM_SAMPLING
+// Because of the variable DYNINSTin_sample (rtinst), it's possible
+// that an inferiorRPC launched here could be nullified when not doing
+// shared-mem sampling.  Therefore, as a kludge, when not SHM_SAMPLING,
+// we can't "safely" do this code here; we need to wait until we're sure
+// that we're not in the middle of processing a timer.  One way to do
+// that is to manually reset DYNINSTin_sample when doing an RPC, and
+// then restoring its initial value when done.  Instead, what we do
+// here is wait for an ALARM signal to be delivered, and do pending RPCs
+// just before we forward the signal.  Assuming ALARM signals aren't
+// recursive, this should do the trick.  Ick...yet another reason to
+// kill the ALARM signal and go with shm sampling.
+
+	doDeferredRPCs();
+#endif
+
+	unsigned long long pollTimeUSecs = 50000;
+           // this is the time (rather arbitrarily) chosen fixed time length
+           // in which to check for signals, etc.
+
+#ifdef SHM_SAMPLING
+        // Now for shm sampling:
+        // We assume that nextShmSampleTime (synched to getCurrWallTime())
+        // has already been set.  If the curr time is >= to this, then
+        // we should sample immediately, and update nextShmSampleTime to
+        // be nextShmSampleTime + sampleInterval, unless it is <= currTime,
+        // in which case we set it to currTime + sampleInterval.
+        // QUESTION: should we sample while paused?
+	static unsigned long long nextShmSampleTime = 0;
+        const unsigned long long currWallTime = getCurrWallTimeULL(); // checks for rollback
+
+	if (currWallTime >= nextShmSampleTime) {
+	   // Do shared memory sampling now!
+
+	   // Loop thru all processes.  For each, process inferiorIntCounters,
+	   // inferiorWallTimers, and inferiorProcessTimers.
+	   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
+	      process *theProc = processVec[lcv];
+
+	      // Don't sample paused/exited/neonatal processes, or even
+	      // running processes that haven't been bootstrapped yet (i.e. haven't
+	      // called DYNINSTinit yet)
+	      if (theProc->status_ != running) {
+		 //cerr << "(-" << theProc->status_ << "-)";
+		 continue;
+	      }
+	      else if (!theProc->isBootstrappedYet()) {
+		 //cerr << "(-*-)" << endl;
+		 continue;
+	      }
+
+	      theProc->doSharedMemSampling(currWallTime);
+	   }
+
+	   // And now, do the internal metrics
+	   reportInternalMetrics(true);
+
+	   // Here, we should probably flush the batch buffer
+	   extern void flush_batch_buffer(); // metric.C (should be in this file)
+	   flush_batch_buffer();
+
+	   // Take currSamplingRate (which has values such as 0.2, 0.4, 0.8, 1.6, etc.)
+	   // and multiply by a million to get the # of usecs per sample.
+	   extern float currSamplingRate; // dynrpc.C
+	   assert(currSamplingRate > 0);
+	   const unsigned long long shmSamplingInterval = (unsigned long long)((double)currSamplingRate * 1000000.0);
+
+	   nextShmSampleTime += shmSamplingInterval;
+	   if (nextShmSampleTime <= currWallTime)
+	      nextShmSampleTime = currWallTime + shmSamplingInterval;
+	}
+
+	assert(nextShmSampleTime >= currWallTime);
+	unsigned long long shmSamplingTimeout = nextShmSampleTime - currWallTime;
+
+	if (shmSamplingTimeout < pollTimeUSecs)
+	   pollTimeUSecs = shmSamplingTimeout;
+#endif 
+
+	pollTime.tv_sec  = pollTimeUSecs / 1000000;
+	pollTime.tv_usec = pollTimeUSecs % 1000000;
 
 	// This fd may have been read from prior to entering this loop
 	// There may be some bytes lying around
@@ -646,39 +805,56 @@ void controllerMainLoop(bool check_buffer_first)
 	      // a process forked by a process we are tracing is trying
 	      // to get a connection for the trace stream. 
 	      // Accept the connection.
+
+	      cerr << "getting new connection from a forked process..." << endl; cerr.flush();
+
 	      int fd = RPC_getConnect(traceSocket_fd);
+                 // will become traceLink of the new process
 	      assert(fd >= 0);
+
 	      int pid;
-	      if (read(fd, &pid, sizeof(pid)) != sizeof(pid))
-		abort();
+	      if (sizeof(pid) != read(fd, &pid, sizeof(pid))) {
+		 assert(false);
+	      }
+
 	      fprintf(stderr, "Connected to process %d\n", pid);
+
+	      // the process structure should have already been created
+	      // when the parent of the fork sent paradynd a TR_FORK
+	      // trace record.
 	      process *p = findProcess(pid);
 	      assert(p);
+
 	      p->traceLink = fd;
 	    }
 
             unsigned p_size = processVec.size();
 	    for (unsigned u=0; u<p_size; u++) {
 		if ((processVec[u]->traceLink >= 0) && 
-		    FD_ISSET(processVec[u]->traceLink, &readSet)) {
+		       FD_ISSET(processVec[u]->traceLink, &readSet)) {
 		    processTraceStream(processVec[u]);
+
 		    /* clear it in case another process is sharing it */
-		    if (processVec[u]->traceLink >= 0) 
-			FD_CLR(processVec[u]->traceLink, &readSet);
+		    if (processVec[u]->traceLink >= 0) // may have been set to -1
+		       FD_CLR(processVec[u]->traceLink, &readSet);
 		}
 
 		if ((processVec[u]->ioLink >= 0) && 
-		    FD_ISSET(processVec[u]->ioLink, &readSet)) {
+    		       FD_ISSET(processVec[u]->ioLink, &readSet)) {
 		    processAppIO(processVec[u]);
+
 		    /* clear it in case another process is sharing it */
-		    if (processVec[u]->ioLink >= 0) 
-			FD_CLR(processVec[u]->ioLink, &readSet);
+		    if (processVec[u]->ioLink >= 0) // may have been set to -1
+		       FD_CLR(processVec[u]->ioLink, &readSet);
 		}
 	    }
+
 	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
-		// paradyn is gone so we got too.
+		// paradyn is gone so we go too.
 	        cleanUpAndExit(-1);
 	    }
+
+            // Check if something has arrived from Paradyn on our igen link.
 	    if (FD_ISSET(tp->get_fd(), &readSet)) {
 	      bool no_stuff_there = false;
 	      while(!no_stuff_there) {
@@ -710,6 +886,7 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 	}
+
 #ifdef PARADYND_PVM
 	// poll for messages from the pvm daemon, and handle the message if 
 	// there is one.
@@ -718,16 +895,24 @@ void controllerMainLoop(bool check_buffer_first)
 	  PDYN_handle_pvmd_message();
 	}
 #endif
-	processArchDependentTraceStream();
 
-	/* generate internal metrics */
-	reportInternalMetrics();
+//	processArchDependentTraceStream();
 
-	/* check for status change on inferrior processes */
-	pid = process::waitProcs(&status);
-	if (pid > 0) {
-	    handleSigChild(pid, status);
-	}
+#ifndef SHM_SAMPLING
+	// the ifdef is here because when shm sampling, reportInternalMetrics is already done.
+	reportInternalMetrics(false);
+#endif
+
+	/* check for status change on inferior processes, or the arrival of
+	   a signal. */
+	int status;
+	int pid = process::waitProcs(&status);
+	if (pid > 0)
+	    if (handleSigChild(pid, status) < 0) {
+	       string buffer=string("handleSigChild failed for pid ") +
+		 string(pid) + " (not found?)\n";
+	       logLine(buffer.string_of());
+	    }
     }
 }
 
@@ -774,4 +959,3 @@ void createResource(int pid, traceHeader *header, struct _newresource *r)
     }
 
 }
-
