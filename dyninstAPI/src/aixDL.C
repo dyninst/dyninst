@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.7 2001/04/02 17:58:44 bernat Exp $
+// $Id: aixDL.C,v 1.8 2001/05/30 22:25:40 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -54,7 +54,6 @@
 /* Parse a binary to extract all shared objects it
    contains, and create shared object objects for each
    of them */
-
 vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 {
   // First things first, get a list of all loader info structures.
@@ -62,10 +61,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   int ret;
   struct ld_info *ptr;
   struct stat ld_stat;
+  static bool did_ptrace_multi = false;
   // We hope that we don't get more than 1024 libraries loaded.
   ptr = (struct ld_info *) malloc (1024*sizeof(*ptr));
   pid = p->getPid();
-
   /* It seems that AIX has some timing problems and
      when the user stack grows, the kernel doesn't update the stack info in time
      and ptrace calls step on user stack. This is the reason why call sleep 
@@ -81,7 +80,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
     fprintf(stderr, "For process %d\n", pid);
     statusLine("Unable to get loader info about process, application aborted");
     showErrorCallback(43, "Unable to get loader info about process, application aborted");
-    return false;
+    return 0;
   }
 
   // turn on 'multiprocess debugging', which allows ptracing of both the
@@ -94,7 +93,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   // Should do this in loadSharedObjects
   // Note: this can also get called when we incrementally find a shared object.
   // So? :)
-  ptrace(PT_MULTI, pid, 0, 1, 0);
+  if (!did_ptrace_multi) {
+    ptrace(PT_MULTI, pid, 0, 1, 0);
+    did_ptrace_multi = true;
+  }
 
   if (!ptr->ldinfo_next)
     {
@@ -127,7 +129,8 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 	ptr->ldinfo_fd = open(ptr->ldinfo_filename, O_RDONLY);
 	if (ptr->ldinfo_fd == -1) {
 	  // Sucks to be us
-	  fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
+	  //fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
+	  perror("aixDL.C:getSharedObjects");
 	  // Set the memory offsets to -1 so we don't try to parse it.
 	  ptr->ldinfo_textorg = (void *)-1;
 	  ptr->ldinfo_dataorg = (void *)-1;
@@ -149,10 +152,12 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
 						       text_org, data_org,
 						       pid);
-
       shared_object *newobj = new shared_object(fda,
 						false,true,true,0);
       *result += newobj;      
+
+      // Close the file descriptor we're given
+      close(ptr->ldinfo_fd);
     }
   while ((ptr->ldinfo_next) &&
 	 // Pointer arithmetic -- the ldinfo_next data is all relative.
