@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.199 2002/06/10 19:24:57 bernat Exp $
+/* $Id: process.h,v 1.200 2002/06/10 21:30:57 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -388,6 +388,9 @@ class process {
 #endif
 
   bool walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
+  bool hasRunSincePreviousWalk;
+  vector<Frame> previousStackWalk;
+  Frame previousFrame;
   
   // MT_AIX stuff
   // Keep the current "best guess" of the active kernel thread around
@@ -406,6 +409,7 @@ class process {
 
   // Walk threads stacks
   bool walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
+  vector <vector <Frame> > previousAllStackWalk;
   //  void walkAStack(Frame, vector<Address>&pcs, vector<Address>&fps);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
@@ -643,6 +647,7 @@ void saveWorldData(Address address, int size, const void* src);
                      const void *inSelf);
 #endif
   bool continueProc();
+  
 #ifdef BPATCH_LIBRARY
   bool terminateProc() { return terminateProc_(); }
 #endif
@@ -1389,6 +1394,7 @@ private:
 #endif
   bool pause_();
   bool continueProc_();
+
 #ifdef BPATCH_LIBRARY
   bool terminateProc_();
 #endif

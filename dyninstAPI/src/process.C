@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.329 2002/06/10 19:45:15 bernat Exp $
+// $Id: process.C,v 1.330 2002/06/10 21:30:56 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -257,6 +257,15 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
   
   stackWalk.resize(0);
 
+  // Attempt at optimization
+  if (!hasRunSincePreviousWalk &&
+      (currentFrame == previousFrame)) {
+    stackWalk=previousStackWalk;
+    return true;
+  }
+  
+  previousFrame = currentFrame;
+
   Address next_pc = 0;
   Address leaf_pc = 0;
   Address fpOld   = 0;
@@ -363,6 +372,8 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
+  hasRunSincePreviousWalk = false;
+  previousStackWalk = stackWalk;
   return true;
 }
 #endif
@@ -441,6 +452,9 @@ bool process::init_pthdb_library()
 
 bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false)
 {
+  if (!hasRunSincePreviousWalk)
+    allStackWalks = previousAllStackWalk;
+
   vector<Frame> stackWalk;
   bool needToCont = paused ? false : (status() == running);
   allStackWalks.resize(0);
@@ -468,7 +482,6 @@ bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
     // id if necessary
     for (unsigned i=0; i<threads.size(); i++) {
       Frame currentFrame = threads[i]->getActiveFrame();
-      cerr << "Walking stack of frame " << currentFrame << endl;
       if (!walkStack(currentFrame, stackWalk, paused))
 	retval = false;
       allStackWalks.push_back(stackWalk);
@@ -485,6 +498,7 @@ bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
+  previousAllStackWalk = allStackWalks;
   return true;
 }
 #endif //MT_THREAD
@@ -1989,6 +2003,7 @@ process::process(int iPid, image *iImage, int iTraceLink
                  , key_t theShmKey
 #endif
 ) :
+  hasRunSincePreviousWalk(true),
   curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
@@ -2167,6 +2182,7 @@ process::process(int iPid, image *iSymbols,
                  , key_t theShmKey
 #endif
                  ) :
+  hasRunSincePreviousWalk(true),
   curr_lwp(0),
   collectSaveWorldData(true),
 #if !defined(BPATCH_LIBRARY)
@@ -2413,6 +2429,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  void *applShmSegPtr
 #endif
                  ) :
+  hasRunSincePreviousWalk(true),
   curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
@@ -4934,6 +4951,7 @@ bool process::continueProc() {
     return false;
   }
   status_ = running;
+  hasRunSincePreviousWalk = true;
   return true;
 }
 

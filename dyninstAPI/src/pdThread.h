@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.14 2002/05/10 18:37:03 schendel Exp $
+// $Id: pdThread.h,v 1.15 2002/06/10 21:30:56 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -135,7 +135,7 @@ class pdThread {
 
     Frame getActiveFrame();
 
-    int            get_tid()           const { return(tid); }
+    unsigned       get_tid()           const { return(tid); }
     unsigned       get_pos()           const { return(pos); }
     unsigned       get_pd_pos()        const { return(pd_pos); }
     unsigned       get_stack_addr()    const { return(stack_addr); }

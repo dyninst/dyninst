@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.2 2002/05/28 02:19:12 bernat Exp $
+// $Id: frame.h,v 1.3 2002/06/10 21:30:56 bernat Exp $
 
 class pdThread;
 class process;
@@ -78,6 +78,28 @@ class Frame {
     pid_(pid), thread_(thread), lwp_(lwp)
     {};
 
+  Frame &operator=(const Frame &F) {
+    uppermost_ = F.uppermost_;
+    pc_ = F.pc_;
+    fp_ = F.fp_;
+    sp_ = F.sp_;
+    pid_ = F.pid_;
+    thread_ = F.thread_;
+    lwp_ = F.lwp_;
+    saved_fp = F.saved_fp;
+    return *this;
+  }
+
+  bool operator==(const Frame &F) {
+    return ((uppermost_ == F.uppermost_) &&
+	    (pc_      == F.pc_) &&
+	    (fp_      == F.fp_) &&
+	    (sp_      == F.sp_) &&	    
+	    (pid_     == F.pid_) &&
+	    (thread_  == F.thread_) &&
+	    (lwp_     == F.lwp_) &&
+	    (saved_fp == F.saved_fp));
+  }
 
   Address getPC() const { return pc_; }
   Address getFP() const { return fp_; }
