@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.7 1999/03/13 15:23:42 pcroth Exp $
+// $Id: datagridP.h,v 1.8 1999/12/06 23:07:08 pcroth Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -232,7 +232,7 @@ class visi_GridCellHisto {
 	     && (j< (lastBucketFilled+1)); // old bucket counter
 	     i++,j+=2){
 	   if((!isnan(value[j])) && (!isnan(value[j+1]))){
-             value[i] = value[j] + value[j+1];
+             value[i] = (value[j] + value[j+1])/2;
 	     if(firstValidBucket == -1){
 	       firstValidBucket = i;
              }
@@ -240,8 +240,6 @@ class visi_GridCellHisto {
            else{
 	     value[i] = VISI_ERROR;
            }
-	   if((value[i] != VISI_ERROR))
-	     value[i] = value[i]/2; 
 	 }
 	 for(i=(lastBucketFilled+1)/2; i < size; i++){
            value[i] = VISI_ERROR;
