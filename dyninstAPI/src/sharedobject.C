@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.12 2002/05/13 19:52:38 mjbrim Exp $
+// $Id: sharedobject.C,v 1.13 2002/10/28 04:54:04 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -72,6 +72,16 @@ char *shared_object::getModulePart(string &full_path_name) {
     }
     delete whole_name;
     return 0;
+}
+
+pdmodule *shared_object::findModule(string m_name, bool check_excluded) {
+   if(objs_image) {
+      if(check_excluded==false && !include_funcs){
+         return 0;
+      }
+      return (objs_image->findModule(m_name, check_excluded));
+   }
+   return 0;
 }
 
 
