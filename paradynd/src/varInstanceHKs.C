@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.21 2004/03/23 01:12:38 eli Exp $
+// $Id: varInstanceHKs.C,v 1.22 2005/01/14 20:57:53 tlmiller Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -88,6 +88,8 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
    of here is as a memory barrier 
 */
 #define MEMORY_BARRIER     asm volatile ("sync")
+#elif defined( arch_ia64 )
+#define MEMORY_BARRIER     asm volatile ( "mf" )
 #else
 #define MEMORY_BARRIER
 #endif
@@ -118,6 +120,10 @@ bool intCounterHK::perform(const intCounter *dataValue,
      fild qword ptr [ecx]
      fistp val
    }
+#elif defined( arch_ia64 )
+	/* I haven't the faintest idea why the byte values were being switched around,
+	   but it sure seems to break stuff. */
+   val = dataValue->value;
 #else
    // The 64 bit platforms have 64 bit load instructions.
    // Perhaps this will need to be changed to not switch the byte values
@@ -131,7 +137,7 @@ bool intCounterHK::perform(const intCounter *dataValue,
    curSample.i64 = dataValue->value;
    switchedSample.u32[0] = curSample.u32[1];
    switchedSample.u32[1] = curSample.u32[0];
-   val = switchedSample.i64;
+   val = switchedSample.i64;   
 #endif
 
    // To avoid race condition, don't use 'dataValue' after this point!
