@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.170 2000/03/20 22:57:58 chambrea Exp $
+// $Id: metricFocusNode.C,v 1.171 2000/04/26 16:37:29 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1444,9 +1444,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	for(k=0;k<instRequests.size();k++) {
 	  if( instPts[j] == instRequests[k].Point() ) {
 	    if( instRequests[k].getRInstance() != NULL
-		&& !(instRequests[k].getRInstance()->Installed())
-	//&& instPts[j]->triggeredExitingStackFrame(stack_func, stack_pc,
-	// instRequests[k].When(), proc_ ) 
+		&& !(instRequests[k].getRInstance()->Installed()) 
 	    )
 	    {
 	      if (pd_debug_catchup) {
@@ -1468,6 +1466,12 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	point = instPts[j];
 	for(k=0;k<instRequests.size();k++) {
 	  if (point == instRequests[k].Point()) {
+	    if (instRequests[k].Ast()->accessesParam()) {
+	      cerr << "AdjustManuallyTrigger -- instrumentation accesses "
+		   << "parameter, not manually triggering for this stack "
+		   << "frame." << endl;
+	      break;
+	    }
 	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc_))
 	    {
 

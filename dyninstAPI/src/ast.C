@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.77 2000/04/24 02:29:33 wylie Exp $
+// $Id: ast.C,v 1.78 2000/04/26 16:37:18 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -836,20 +836,6 @@ bool isPowerOf2(int value, int &result)
   }
   else return(false);
 }
-
-/*
-void AstNode::setUseCount(void)
-{
-
-  useCount=referenceCount ;
-  kept_register=Null_Register;
-  if (loperand) loperand->setUseCount();
-  if (roperand) roperand->setUseCount();
-  if (eoperand) eoperand->setUseCount();
-  for (unsigned i=0;i<operands.size(); i++)
-    operands[i]->setUseCount() ;
-}
-*/
 
 void AstNode::setUseCount(void) {
   if (useCount == 0) {
@@ -1916,12 +1902,6 @@ void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
 			       vector<AstNode *> &more_args, int index)
 {
   unsigned i ;
-  /*
-  cerr << "AstNode::replaceFuncInAst(" 
-       << func1->prettyName().string_of() << "' "
-       << func2->prettyName().string_of() << ", ..."
-       << index << ")" << endl ;
-  */
   if (type == callNode) {
       bool replargs = false;
       if (calleefunc) {
@@ -1952,3 +1932,25 @@ void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
 }
 
 
+// This is not the most efficient way to traverse a DAG
+bool AstNode::accessesParam(void)
+{
+  bool ret = false;
+
+  ret = (type == operandNode && oType == Param);
+
+  if (!ret && loperand) 
+       ret = loperand->accessesParam();
+  if (!ret && roperand) 
+      ret = roperand->accessesParam();
+  if (!ret && eoperand) 
+      ret = eoperand->accessesParam();
+  for (unsigned i=0;i<operands.size(); i++) {
+      if (!ret)
+        ret = operands[i]->accessesParam() ;
+      else
+        break;
+  }
+
+  return ret;
+}

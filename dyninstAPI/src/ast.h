@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.42 1999/11/09 19:20:04 cain Exp $
+// $Id: ast.h,v 1.43 2000/04/26 16:37:18 zhichen Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -186,6 +186,7 @@ class AstNode {
 	bool findFuncInAst(string func) ;
 	void replaceFuncInAst(function_base *func1, function_base *func2);
 	void replaceFuncInAst(function_base *func1, function_base *func2, vector<AstNode *> &ast_args, int index=0);
+	bool accessesParam(void);         // Does this AST access "Param"
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	bool astFlag;  

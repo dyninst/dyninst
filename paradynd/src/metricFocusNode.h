@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.61 2000/03/20 22:58:01 chambrea Exp $ 
+// $Id: metricFocusNode.h,v 1.62 2000/04/26 16:37:29 zhichen Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -626,6 +626,7 @@ public:
                              process *p);
   
   instPoint *Point() {return point;}
+  AstNode* Ast()  {return ast;}
   callWhen When() {return when;}
 
 private:
