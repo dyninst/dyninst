@@ -81,7 +81,14 @@ DYNINSTos_init(void) {
 
 time64
 DYNINSTgetCPUtime(void) {
-    return ((time64)gethrvtime()/(time64)1000);
+  static time64 previous=0;
+  time64 now;
+
+retryCPU:
+  now = (time64)gethrvtime()/(time64)1000;
+  if (now < previous) goto retryCPU;
+  previous = now;
+  return (now);
 }
 
 
@@ -97,10 +104,17 @@ DYNINSTgetCPUtime(void) {
 
 time64
 DYNINSTgetWalltime(void) {
-    struct timeval tv;
+  static time64 previous=0;
+  time64 now;
+  struct timeval tv;
+
+retryWall:
     if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
-    return ((time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec);
+    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+    if (now < previous) goto retryWall;
+    previous = now;
+    return(now);
 }
