@@ -28,6 +28,7 @@ class internalMetric {
     }
     struct _metricRec metRec;
     float value;
+    float cumlativeValue;
     sampleValueFunc func;
     static List<internalMetric*> allInternalMetrics;
     static List<internalMetric*> activeInternalMetrics;

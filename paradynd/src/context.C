@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.14 1994/07/14 14:24:17 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.15 1994/07/14 23:30:21 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.14  1994/07/14 14:24:17  jcargill
+ * Revision 1.15  1994/07/14 23:30:21  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.14  1994/07/14  14:24:17  jcargill
  * Removed old call to flushPtrace -- not needed anymore
  *
  * Revision 1.13  1994/07/12  20:04:09  jcargill
@@ -164,9 +167,9 @@ static AstNode tagArg(Param, (void *) 1);
 instMaping initialRequests[] = {
   { "pvm_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
   { "pvm_recv", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-  { "main", "DYNINSTsampleValues", FUNC_EXIT },
+  { "main", "DYNINSTalarmExpire", FUNC_EXIT },
   { "main", "DYNINSTinit", FUNC_ENTRY },
-  { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
+  { "exit", "DYNINSTalarmExpire", FUNC_ENTRY },
   { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
   { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
   { NULL, NULL, 0, NULL },
@@ -180,11 +183,11 @@ instMaping initialRequests[] = {
     { "cmmd_debug", "DYNINSTnodeCreate", FUNC_ENTRY },
     { "cmmd_debug", "DYNINSTparallelInit", FUNC_EXIT },
     { "cmmd_debug", "DYNINSTbreakPoint", FUNC_EXIT },
-    { "main", "DYNINSTsampleValues", FUNC_EXIT },
+    { "main", "DYNINSTalarmExpire", FUNC_EXIT },
 #ifdef notdef
     { "fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS },
 #endif
-    { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
+    { "exit", "DYNINSTalarmExpire", FUNC_ENTRY },
     { "exit", "DYNINSTprintCost", FUNC_ENTRY },
     { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
     { "main", "DYNINSTinit", FUNC_ENTRY },

@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.20  1994/07/14 14:29:20  jcargill
+ * Revision 1.21  1994/07/14 23:30:28  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.20  1994/07/14  14:29:20  jcargill
  * Renamed connection-related variables (family, port, ...), and moved all the
  * standard dynRPC functions to another file.
  *
@@ -155,8 +158,6 @@ main(int argc, char *argv[])
 {
     int i;
     metricList stuff;
-    int val;
-    char *interval;
 
     programName = argv[0];
 
@@ -215,8 +216,6 @@ main(int argc, char *argv[])
 
     controllerMainLoop();
 }
-
-
 
 #ifdef PARADYND_PVM
 pdRPC *

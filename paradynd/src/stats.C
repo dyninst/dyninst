@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.2  1994/07/05 03:26:18  hollings
+ * Revision 1.3  1994/07/14 23:30:32  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.2  1994/07/05  03:26:18  hollings
  * observed cost model
  *
  * Revision 1.1  1994/01/27  20:31:42  hollings
@@ -35,9 +38,9 @@ int samplesDelivered;
 int totalMiniTramps;
 int metResPairsEnabled;
 double timeCostLastChanged;
-double totalPredictedCost;
 HTable<resourceList> fociUsed;
 HTable<metric> metricsUsed;
+extern internalMetric totalPredictedCost;
 int ptraceOtherOps, ptraceOps, ptraceBytes;
 
 void printDyninstStats()
@@ -46,19 +49,28 @@ void printDyninstStats()
     extern internalMetric currentPredictedCost;
 
     now = getCurrentTime(FALSE);
-    totalPredictedCost += (now - timeCostLastChanged) * 
-	currentPredictedCost.value;
-    sprintf(errorLine, "totalPredictedCost = %f\n", totalPredictedCost);
+    sprintf(errorLine, "totalPredictedCost = %f\n", 
+	totalPredictedCost.getValue()/1000000.0);
     logLine(errorLine);
 
-    printf("%d total points used\n", pointsUsed);
-    printf("%d mini-tramps used\n", totalMiniTramps);
-    printf("%d metric/resource pairs enabled\n", metResPairsEnabled);
-    printf("%d metrics used\n", metricsUsed.count());
-    printf("%d foci used\n", fociUsed.count());
-    printf("%d tramp bytes\n", trampBytes);
-    printf("%d samples delivered\n", samplesDelivered);
-    printf("%d ptrace other calls\n", ptraceOtherOps);
-    printf("%d ptrace write calls\n", ptraceOps-ptraceOtherOps);
-    printf("%d ptrace bytes written\n", ptraceBytes);
+    sprintf(errorLine, "%d total points used\n", pointsUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "%d mini-tramps used\n", totalMiniTramps);
+    logLine(errorLine);
+    sprintf(errorLine, "%d metric/resource pairs enabled\n",metResPairsEnabled);
+    logLine(errorLine);
+    sprintf(errorLine, "%d metrics used\n", metricsUsed.count());
+    logLine(errorLine);
+    sprintf(errorLine, "%d foci used\n", fociUsed.count());
+    logLine(errorLine);
+    sprintf(errorLine, "%d tramp bytes\n", trampBytes);
+    logLine(errorLine);
+    sprintf(errorLine, "%d samples delivered\n", samplesDelivered);
+    logLine(errorLine);
+    sprintf(errorLine, "%d ptrace other calls\n", ptraceOtherOps);
+    logLine(errorLine);
+    sprintf(errorLine, "%d ptrace write calls\n", ptraceOps-ptraceOtherOps);
+    logLine(errorLine);
+    sprintf(errorLine, "%d ptrace bytes written\n", ptraceBytes);
+    logLine(errorLine);
 }

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.21 1994/07/14 14:35:37 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.22 1994/07/14 23:30:30 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.21  1994/07/14 14:35:37  jcargill
+ * Revision 1.22  1994/07/14 23:30:30  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.21  1994/07/14  14:35:37  jcargill
  * Removed some dead code, added called to processArchDependentTraceStream
  *
  * Revision 1.20  1994/07/12  18:45:30  jcargill
@@ -243,6 +246,37 @@ void logLine(char *line)
     }
 }
 
+void printAppStats(struct endStatsRec *stats)
+{
+    sprintf(errorLine, "DYNINSTtotalAlaramExpires %d\n", stats->alarms);
+    logLine(errorLine);
+    sprintf(errorLine, "DYNINSTnumReported %d\n", stats->numReported);
+    logLine(errorLine);
+    sprintf(errorLine,"Raw cycle count = %f\n", (double) stats->instCycles);
+    logLine(errorLine);
+
+    // for ss-10 use 60 MHZ clock.
+    sprintf(errorLine,"Total instrumentation (60Mhz clock) cost = %f\n", 
+	stats->instCycles/60000000.0);
+    logLine(errorLine);
+    sprintf(errorLine,"Total handler cost = %f\n", stats->handlerCost);
+    logLine(errorLine);
+    sprintf(errorLine,"Total cpu time of program %f\n", stats->totalCpuTime);
+    logLine(errorLine);
+    sprintf(errorLine,"Elapsed wall time of program %f\n",
+	stats->totalWallTime/1000000.0);
+    logLine(errorLine);
+    sprintf(errorLine,"total data samples %d\n", stats->samplesReported);
+    logLine(errorLine);
+    sprintf(errorLine,"sampling rate %f\n", stats->samplingRate);
+    logLine(errorLine);
+    sprintf(errorLine,"Application program ticks %d\n", stats->userTicks);
+    logLine(errorLine);
+    sprintf(errorLine,"Instrumentation ticks %d\n", stats->instTicks);
+    logLine(errorLine);
+}
+
+extern void processCost(process *p, traceHeader *h, costUpdate *c);
 
 void processTraceStream(process *curr)
 {
@@ -288,6 +322,7 @@ void processTraceStream(process *curr)
 	memcpy(&header, &(curr->buffer[curr->bufStart]), sizeof(header));
 	curr->bufStart += sizeof(header);
 
+	curr->bufStart = ALIGN_TO_WORDSIZE(curr->bufStart);
 	if (header.length % WORDSIZE != 0) {
 	    sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
 	    logLine(errorLine);
@@ -331,6 +366,8 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_MULTI_FORK:
+		printf("got TR_MULTI_FORK record\n");
+		logLine("got TR_MULTI_FORK record\n");
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);
 		break;
 
@@ -344,19 +381,26 @@ void processTraceStream(process *curr)
 
 		sprintf(errorLine, "process %d exited\n", curr->pid);
 		logLine(errorLine);
+		printAppStats((struct endStatsRec *) recordData);
 		printDyninstStats();
 
 		curr->status = exited;
 		break;
 
+	    case TR_COST_UPDATE:
+		processCost(curr, &header, (costUpdate *) recordData);
+		break;
+
 	    default:
-		sprintf(errorLine, "got record type %d on sid %d\n", header.type, sid);
+		sprintf(errorLine, "got record type %d on sid %d\n", 
+		    header.type, sid);
 		logLine(errorLine);
 	}
     }
 
     /* copy those bits we have to the base */
-    memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), curr->bufEnd - curr->bufStart);
+    memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), 
+	curr->bufEnd - curr->bufStart);
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
@@ -438,8 +482,8 @@ int handleSigChild(int pid, int status)
 	    case SIGUSR2:
 	    case SIGALRM:
 	    case SIGCONT:
-		printf("caught signal, forwarding...  (sig=%d)\n", 
-		       WSTOPSIG(status));
+		// printf("caught signal, forwarding...  (sig=%d)\n", 
+		//       WSTOPSIG(status));
 		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
 		break;
 

@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.8  1994/07/12 19:46:57  jcargill
+ * Revision 1.9  1994/07/14 23:30:26  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.8  1994/07/12  19:46:57  jcargill
  * Removed old code, added ability for fork paradyndCM5 when nodes start.
  *
  * Revision 1.7  1994/07/05  03:26:04  hollings
@@ -39,7 +42,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.8 1994/07/12 19:46:57 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.9 1994/07/14 23:30:26 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,16 +108,19 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
 
     // these happen async of the rest of the system.
-    primitiveCosts.add(-1, (void *) "DYNINSTsampleValues");
-    primitiveCosts.add(-1, (void *) "DYNINSTreportTimer");
-    primitiveCosts.add(-1, (void *) "DYNINSTreportCounter");
-    primitiveCosts.add(-1, (void *) "DYNINSTreportCost");
+    primitiveCosts.add(1, (void *) "DYNINSTalarmExpire");
+    primitiveCosts.add(1, (void *) "DYNINSTsampleValues");
+    primitiveCosts.add(1, (void *) "DYNINSTreportTimer");
+    primitiveCosts.add(1, (void *) "DYNINSTreportCounter");
+    primitiveCosts.add(1, (void *) "DYNINSTreportCost");
+    primitiveCosts.add(1, (void *) "DYNINSTreportNewTags");
+    primitiveCosts.add(1, (void *) "DYNINSTprintCost");
 
     // this doesn't really take any time
-    primitiveCosts.add(-1, (void *) "DYNINSTbreakPoint");
+    primitiveCosts.add(1, (void *) "DYNINSTbreakPoint");
 
     // this happens before we start keeping time.
-    primitiveCosts.add(-1, (void *) "DYNINSTinit");
+    primitiveCosts.add(1, (void *) "DYNINSTinit");
 
     // isthmus acutal numbers from 7/3/94 -- jkh
     // 240 ns
@@ -167,12 +173,21 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     int status;
     int isStopped, wasStopped;
     extern int errno;
+    extern int ptraceOtherOps, ptraceOps, ptraceBytes;
 
     if (proc->status == exited) {
         printf("attempt to ptrace exited process %d\n", proc->pid);
         return(-1);
     }
 	
+    ptraceOps++;
+    if (request == PTRACE_WRITEDATA)
+	ptraceBytes += data;
+    else if (request == PTRACE_POKETEXT)
+	ptraceBytes += sizeof(int);
+    else
+	ptraceOtherOps++;
+
     wasStopped = (proc->status == stopped);
     if (proc->status != neonatal && !wasStopped && 
 	request != PTRACE_DUMPCORE) {
@@ -225,7 +240,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     int childPid;
     process *parent;
     char **arg_list;
-    char command[80];
+    char command[256];
     char application[256];
     char app_pid[20];
     char num_nodes[20];	
@@ -235,32 +250,33 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     parent = findProcess(fr->ppid);
     assert(parent);
 
-    if ((childPid=fork()) == 0) {		/* child */
-	/* Build arglist */
-	arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				      pd_known_socket, pd_flag);
-	sprintf (command, "%sCM5", programName);
-	sprintf (application, "%s", curr->symbols->file);
-	sprintf (app_pid, "%d", curr->pid);
-	sprintf (num_nodes, "%d", fr->npids);
+    /* Build arglist */
+    arg_list = RPC_make_arg_list (pd_family, pd_type, 
+				  pd_known_socket, pd_flag);
+    sprintf (command, "%sCM5", programName);
+    sprintf (application, "%s", curr->symbols->file);
+    sprintf (app_pid, "%d", curr->pid);
+    sprintf (num_nodes, "%d", fr->npids);
 
-	/*
-	 * It would be nice if this weren't sensitive to the size of
-	 * arg_list.  For the moment, only 6 are written by
-	 * make_arg_list; this could be cleaner.
-	 */
-	argv[0] = command;
-	argv[1] = application;
-	argv[2] = app_pid;
-	argv[3] = num_nodes;
-	argv[4] = arg_list[1];
-	argv[5] = arg_list[2];
-	argv[6] = arg_list[3];
-	argv[7] = arg_list[4];
-	argv[8] = arg_list[5];
-	argv[9] = arg_list[6];
-	argv[10] = arg_list[7];
-	argv[11] = 0;
+    /*
+     * It would be nice if this weren't sensitive to the size of
+     * arg_list.  For the moment, only 6 are written by
+     * make_arg_list; this could be cleaner.
+     */
+    argv[0] = command;
+    argv[1] = application;
+    argv[2] = app_pid;
+    argv[3] = num_nodes;
+    argv[4] = arg_list[1];
+    argv[5] = arg_list[2];
+    argv[6] = arg_list[3];
+    argv[7] = arg_list[4];
+    argv[8] = arg_list[5];
+    argv[9] = arg_list[6];
+    argv[10] = arg_list[7];
+    argv[11] = 0;
+
+    if ((childPid=fork()) == 0) {		/* child */
 
 /* 	ptrace (0, 0, 0, 0, 0); */
 
@@ -312,6 +328,7 @@ void initLibraryFunctions()
     addLibFunc(&fileByteFunctions, "read", 
 		TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
 
+    addLibFunc(&libraryFunctions, "DYNINSTalarmExpire", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "DYNINSTsampleValues", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "exit", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "fork", TAG_LIB_FUNC);

@@ -67,12 +67,13 @@ int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
 	new AstNode(Constant, (void *) 0), NULL);
     
     
-    //
-    // argument to the preamble is the cost of this tramp
-    //    WARNING: WE assume the machine specific part will add the
-    //       cost of its preamble and trailer to this cost.
-    // 
     cycles = preambleTemplate->cost() + cost() + trailer->cost();
+
+#ifdef notdef
+    print();
+    sprintf(errorLine, "cost of inst point = %d cycles\n", cycles);
+    logLine(errorLine);
+#endif
 
     preamble = new AstNode(trampPreamble, 
 	new AstNode(Constant, (void *) cycles), NULL);

@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.5  1994/07/12 19:43:18  jcargill
+ * Revision 1.6  1994/07/14 23:30:32  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.5  1994/07/12  19:43:18  jcargill
  * Changed order of processState defn, so that initial (==0) state is neonatal.
  * Otherwise there is a small time-window at startup when it looks like it's
  * running, but hasn't been initialized.
@@ -73,6 +76,18 @@ struct freeListRec {
     freeListEntry *next;
 }; 
 
+#define HIST_LIMIT      6
+
+struct costRec {
+    float hybrid;
+    int currentHist;
+    float lastObservedCost;
+    float past[HIST_LIMIT];
+    float totalPredictedCost;
+    float currentPredictedCost;
+    time64 timeLastTrampSample;
+};
+
 struct processRec {
     image *symbols;		/* information related to the process */
     int traceLink;		/* pipe to transfer traces data over */
@@ -88,6 +103,7 @@ struct processRec {
     char buffer[2048];
     int bufStart;
     int bufEnd;
+    struct costRec cost;
 };
 
 extern List<process*> processList;

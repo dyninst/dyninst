@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.9 1994/07/12 20:09:06 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.10 1994/07/14 23:30:24 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.9  1994/07/12 20:09:06  jcargill
+ * Revision 1.10  1994/07/14 23:30:24  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.9  1994/07/12  20:09:06  jcargill
  * Added warning if a function's code appears to be a valid insn.
  *
  * Revision 1.8  1994/07/06  00:35:44  hollings
@@ -531,9 +534,9 @@ float getPointFrequency(instPoint *point)
     val = funcFrequencyTable.find(func->prettyName);
     if (!val) {
 	if (func->tag & TAG_LIB_FUNC) {
-	    return(1000);
+	    return(100);
 	} else {
-	    return(1000);
+	    return(250);
 	}
     }
     return(val);

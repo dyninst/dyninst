@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.25 1994/07/14 14:39:17 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.26 1994/07/14 23:30:29 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.25  1994/07/14 14:39:17  jcargill
+ * Revision 1.26  1994/07/14 23:30:29  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.25  1994/07/14  14:39:17  jcargill
  * Removed call to flushPtrace
  *
  * Revision 1.24  1994/07/12  20:13:58  jcargill
@@ -40,8 +43,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * added extra paramter to metric info for aggregation.
  *
  * Revision 1.19  1994/06/22  01:43:16  markc
- * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
- * reference to proc->status to use proc->heap->status.
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed 
+ * process.C reference to proc->status to use proc->heap->status.
  *
  * Revision 1.18  1994/06/02  23:27:57  markc
  * Replaced references to igen generated class to a new class derived from
@@ -192,6 +195,7 @@ extern HTable<resourceList> fociUsed;
 
 HTable<metricInstance> midToMiMap;
 
+double currentHybridValue;
 metricList globalMetricList;
 extern process *nodePseudoProcess;
 
@@ -350,11 +354,6 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	}
     }
 
-    /* check all proceses are in an ok state */
-    if (!isApplicationPaused()) {
-	return(NULL);
-    }
-
     for (count=0; proc = instProcessList[count]; count++) {
 	mn = new metricDefinitionNode(proc, m->info.aggregate);
 
@@ -501,11 +500,8 @@ metricInstance createMetricInstance(resourceList l, metric m)
 int startCollecting(resourceList l, metric m)
 {
     float cost;
-    timeStamp now;
     metricInstance mi;
-    extern double totalPredictedCost;
-    extern timeStamp timeCostLastChanged;
-    extern internalMetric currentPredictedCost;
+    extern double currentPredictedCost;
     extern void printResourceList(resourceList);
 
     mi = createMetricInstance(l, m);
@@ -514,12 +510,7 @@ int startCollecting(resourceList l, metric m)
     cost = mi->cost();
     mi->originalCost = cost;
 
-    now = getCurrentTime(FALSE);
-    totalPredictedCost += currentPredictedCost.value * 
-	(now - timeCostLastChanged);
-    timeCostLastChanged = now;
-
-    currentPredictedCost.value += cost;
+    currentPredictedCost += cost;
     sprintf(errorLine, "*** metric cost = %f\n", cost);
     logLine(errorLine);
 
@@ -554,9 +545,17 @@ Boolean metricDefinitionNode::insertInstrumentation()
 {
     List<instReqNode*> req;
     List<dataReqNode*> dp;
+    Boolean needToCont = FALSE;
     List<metricDefinitionNode*> curr;
 
     if (inserted) return(True);
+
+    /* check all proceses are in an ok state */
+    if (!isApplicationPaused()) {
+	pauseAllProcesses();
+	needToCont = TRUE;
+	return(NULL);
+    }
 
     inserted = True;
     if (aggregate) {
@@ -571,6 +570,8 @@ Boolean metricDefinitionNode::insertInstrumentation()
 	    (*req)->insertInstrumentation();
 	}
     }
+
+    if (needToCont) continueAllProcesses();
     return(True);
 }
 
@@ -709,6 +710,59 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
     if (ret.valid) {
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
+}
+
+void processCost(process *proc, traceHeader *h, costUpdate *s)
+{
+    int i;
+    process *p;
+    List<process *> curr;
+    extern double currentPredictedCost;
+    extern internalMetric totalPredictedCost;
+    extern internalMetric hybridPredictedCost;
+
+    // should really compute this on a per process basis.
+    proc->cost.currentPredictedCost = currentPredictedCost;
+
+    // update totalPredicted cost.
+    proc->cost.totalPredictedCost += proc->cost.currentPredictedCost *
+	    (h->process - proc->cost.timeLastTrampSample)/1000000.0;
+    proc->cost.timeLastTrampSample = h->process;
+
+    //
+    // build circular buffer of recent values.
+    //
+    proc->cost.past[proc->cost.currentHist] = 
+	(s->observedCost - proc->cost.lastObservedCost);
+    if (++proc->cost.currentHist == HIST_LIMIT) proc->cost.currentHist = 0;
+
+    // now compute current value of hybrid;
+    for (i=0, proc->cost.hybrid = 0.0; i < HIST_LIMIT; i++) {
+	proc->cost.hybrid += proc->cost.past[i];
+    }
+    proc->cost.hybrid /= HIST_LIMIT;
+
+    proc->cost.lastObservedCost = s->observedCost;
+
+    currentHybridValue = 0.0;
+    for (curr = processList; p = *curr; curr++) {
+	if (p->cost.hybrid > currentHybridValue) {
+	    currentHybridValue = p->cost.hybrid;
+	}
+    }
+    hybridPredictedCost.value = currentHybridValue;
+
+    //
+    // update total predicted cost.
+    //
+    totalPredictedCost.value = 0.0;
+    for (curr = processList; p = *curr; curr++) {
+	if (p->cost.totalPredictedCost > totalPredictedCost.value) {
+	    totalPredictedCost.value = p->cost.totalPredictedCost;
+	}
+    }
+
+    return;
 }
 
 void processSample(traceHeader *h, traceSample *s)
@@ -994,6 +1048,8 @@ internalMetric::internalMetric(char *n,
   			       sampleValueFunc f) 
 {
     allInternalMetrics.add(this, n);
+    value = 0.0;
+    cumlativeValue = 0.0;
     metRec.info.name = n;
     metRec.info.style = style;
     metRec.info.aggregate = a;
@@ -1006,13 +1062,22 @@ internalMetric::internalMetric(char *n,
 List<internalMetric*>internalMetric::allInternalMetrics;
 List<internalMetric*>internalMetric::activeInternalMetrics;
 
+double currentPredictedCost;
+
 internalMetric pauseTime("pause_time", 
 			 SampledFunction, 
 			 aggMin, 
 			 "% Time",
 			 computePauseTimeMetric);
 
-internalMetric currentPredictedCost("predicted_cost", 
+internalMetric totalPredictedCost("predicted_cost", 
+				  EventCounter,
+				  aggMax,
+				  "Wasted CPUs",
+				  NULL);
+
+
+internalMetric hybridPredictedCost("hybrid_cost", 
 				  SampledFunction,
 				  aggMax,
 				  "Wasted CPUs",
@@ -1066,6 +1131,11 @@ void reportInternalMetrics()
     for (curr = internalMetric::allInternalMetrics; im = *curr; curr++) {
 	if (im->enabled()) {
 	    value = im->getValue();
+	    if (im->metRec.info.style == EventCounter) {
+		assert(value + 0.0001 >= im->cumlativeValue);
+		value -= im->cumlativeValue;
+		im->cumlativeValue += value;
+	    }
 	    im->node->forwardSimpleValue(start, end, value);
 	}
     }

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.9 1994/07/14 14:41:39 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.10 1994/07/14 23:30:23 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.9  1994/07/14 14:41:39  jcargill
+ * Revision 1.10  1994/07/14 23:30:23  hollings
+ * Hybrid cost model added.
+ *
+ * Revision 1.9  1994/07/14  14:41:39  jcargill
  * Major CM5 changes for new ptrace, and new transport.  Removed lots of
  * old/dead code.  Changes to default CMMD instrumentation (to handle
  * optimization)
@@ -201,6 +204,7 @@ void initLibraryFunctions()
     addLibFunc(&fileByteFunctions, "read", 
 		TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
 
+    addLibFunc(&libraryFunctions, "DYNINSTalarmExpire", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "DYNINSTsampleValues", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "cmmd_debug", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "CMMD_init", TAG_LIB_FUNC);
@@ -272,8 +276,6 @@ void initLibraryFunctions()
     msgByteFunctions += msgByteSentFunctions;
     msgByteFunctions += msgByteRecvFunctions;
 }
-
-
 
 
 extern char *pd_machine;
