@@ -42,6 +42,8 @@
 #ifndef _FUNC_RELOC_H_
 #define _FUNC_RELOC_H_
 
+/*
+
 #include "common/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
@@ -78,6 +80,18 @@
 #include "dyninstAPI/src/LocalAlteration-ia64.h"
 #endif
 
+*/
+
+#include "common/h/headers.h"
+#include "codeRange.h"
+#include "instPoint.h"
+
+class LocalAlteration;
+class LocalAlterationSet;
+class process;
+class pd_Function;
+
+
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
 
 // Check for ExpandInstruction alterations that have already been found.
@@ -91,6 +105,66 @@ bool combineAlterationSets(LocalAlterationSet *alteration_set,
 
 LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration, 
                                            LocalAlteration *tempAlteration);
+
+// if a function needs to be relocated when it's instrumented then we need
+// to keep track of new instrumentation points for this function on a per
+// process basis (there is no guarentee that two processes are going to
+// relocated this function to the same location in the heap)
+class relocatedFuncInfo : public codeRange {
+ public:
+   relocatedFuncInfo(process *p, Address na, unsigned s, pd_Function *f):
+     proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) {};
+        
+   ~relocatedFuncInfo(){proc_ = 0;}
+
+   Address get_address() const { return addr_;}
+   unsigned get_size() const { return size_;}
+   codeRange *copy() const { return new relocatedFuncInfo(*this);}
+   pd_Function *func() { return func_;}
+    
+   const process *getProcess(){ return proc_;}
+   void setProcess(process *proc) { proc_ = proc; }
+   instPoint *funcEntry() {
+      return funcEntry_;
+   }
+
+   const pdvector<instPoint*> &funcReturns() const {
+     return funcReturns_;
+   }
+
+   const pdvector<instPoint*> &funcCallSites() const {
+      return calls_;
+   }
+
+   const pdvector<instPoint*> &funcArbitraryPoints() {
+      return arbitraryPoints_;
+   }
+
+   void addFuncEntry(instPoint *e) {
+      if(e) funcEntry_ = e;
+   }
+   void addFuncReturn(instPoint *r) {
+      if(r) funcReturns_.push_back(r);
+   }
+   void addFuncCall(instPoint *c) {
+      if(c) calls_.push_back(c);
+   }
+   void addArbitraryPoint(instPoint *r) {
+      if(r) arbitraryPoints_.push_back(r);
+   }
+
+ private:
+   const process *proc_;		// process assoc. with the relocation
+   Address addr_;			// function's relocated address
+   unsigned size_;             // Bulked-up size    
+   instPoint *funcEntry_;		// function entry point
+   pdvector<instPoint*> funcReturns_;    // return point(s)
+   pdvector<instPoint*> calls_;          // pointer to the calls
+   pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
+   pd_Function *func_;         // "Parent" function pointer
+};
+
+
 
 #endif
 
