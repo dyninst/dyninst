@@ -3,8 +3,12 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.5 2003/10/28 18:37:08 pcroth Exp $
+# $Id: make.module.tmpl,v 1.6 2004/06/21 18:58:40 pcroth Exp $
 #
+
+VPATH 	     += ../../../paradyn/src/UIthread \
+		        ../../tclVisi/src \
+		        ../../../paradyn/h
 
 TARGET	      = termWin
 
@@ -12,11 +16,11 @@ SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/minmax.C \
 		../src/templates.C \
-		../src/main.C
-
-VPATH 	     += ../../../paradyn/src/UIthread \
-		../../tclVisi/src \
-		../../../paradyn/h
+		../src/main.C \
+        ../src/TermWin.C \
+        ../src/TermWinCLUI.C \
+        ../src/TermWinTkGUI.C \
+        ../src/TermWinUnixTkGUI.C
 
 IFLAGS	     += -I../../../paradyn/src/UIthread
 
