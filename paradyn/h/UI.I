@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.23  1996/04/07 21:19:37  karavan
-/* added newPhaseNotification.
+/* Revision 1.24  1996/04/09 19:24:22  karavan
+/* added back batch mode to cut down on shg redraw time
 /*
+ * Revision 1.23  1996/04/07 21:19:37  karavan
+ * added newPhaseNotification.
+ *
  * Revision 1.22  1996/02/23 22:09:16  naim
  * Adding igen call to display status line (fixes a deadlock situation) - naim
  *
@@ -135,7 +138,7 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 12;
+	$version 13;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -175,5 +178,9 @@ $remote UIM {
 			const char *label // only used for shadow nodes; else NULL
 			);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
-
+	// these two calls suppress and restore, respectively, shg redraw after
+	// each addEdge and certain addNode and configNode calls
+	// handle nested set/clear requests. 
+	void setBatchMode(int phaseID);
+	void clearBatchMode(int phaseID);
 };
