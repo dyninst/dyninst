@@ -40,7 +40,7 @@
  */
 
 #include "paradynd/src/instrCodeNode.h"
-#include "paradynd/src/instrThrDataNode.h"
+#include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "dyninstAPI/src/process.h"
@@ -63,20 +63,36 @@ dictionary_hash<string, instrCodeNode_Val*>
 instrCodeNode_Val::~instrCodeNode_Val() {
   vector<addrVecType> pointsToCheck;
 
-  for (unsigned u1=0; u1<instRequests.size(); u1++) {
+  for (unsigned i=0; i<instRequests.size(); i++) {
     addrVecType pointsForThisRequest =
-      getAllTrampsAtPoint(instRequests[u1].getInstance());
+      getAllTrampsAtPoint(instRequests[i].getInstance());
     pointsToCheck += pointsForThisRequest;
     
-    instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
+    instRequests[i].disable(pointsForThisRequest); // calls deleteInst()
   }
 
-  // disable components of aggregate metrics
-  for (int u=(int)dataNodes.size()-1; u>=0; u--) {
-    instrThrDataNode *dataNode = dataNodes[u];
-    dataNode->disableAndDelete(pointsToCheck);
-    dataNodes.erase(u);
+  if(sampledDataNode != NULL) {
+    sampledDataNode->disableAndDelete(pointsToCheck);
+    sampledDataNode = NULL;
   }
+  if(constraintDataNode != NULL) {
+    constraintDataNode->disableAndDelete(pointsToCheck);
+    constraintDataNode = NULL;
+  }
+  for (int u=(int)tempCtrDataNodes.size()-1; u>=0; u--) {
+    tempCtrDataNodes[u]->disableAndDelete(pointsToCheck);
+    tempCtrDataNodes.erase(u);
+  }
+}
+
+vector<instrDataNode *> instrCodeNode_Val::getDataNodes() { 
+  vector<instrDataNode*> buff;
+  if(sampledDataNode != NULL)  buff.push_back(sampledDataNode);
+  if(constraintDataNode != NULL)  buff.push_back(constraintDataNode);
+  for(unsigned i=0; i<tempCtrDataNodes.size(); i++) {
+    buff.push_back(tempCtrDataNodes[i]);
+  }
+  return buff;
 }
 
 instrCodeNode::~instrCodeNode() {
@@ -316,26 +332,13 @@ void instrCodeNode::mapSampledDRNs2ThrNodes(
 
   for(unsigned i=0; i<thrNodes.size(); i++) {
     threadMetFocusNode *curThrNode = thrNodes[i];
-    instrThrDataNode *curDataNode = getThrDataNode(curThrNode->getThreadID());
-    if(curDataNode) {
-      curDataNode->startSampling(curThrNode->getValuePtr());
-      //cerr << "setting thrNode to " << (void*)curThrNode 
-      //     << " for instrThrDataNode: " << (void*)curDataNode << "\n";
-    } else {
-      cerr << "Couldn't find a corresponding instrThrDataNode for the "
-	   << "thrMetFocusNode which is being sampled\n";
-      assert(false);
-    }
+    V.sampledDataNode->startSampling(curThrNode->getThreadPos(), 
+				     curThrNode->getValuePtr());
   }
 }
 
 void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
-  instrThrDataNode *curDataNode = getThrDataNode(thrNodeVal->getThreadID());  
-  if(curDataNode) {
-    curDataNode->stopSampling();    
-  } else {
-    cerr << "Warning, couldn't find proper thread_id for stopSampling\n";
-  }
+  V.sampledDataNode->stopSampling(thrNodeVal->getThreadPos());
 }
 
 
@@ -409,56 +412,9 @@ timeLength instrCodeNode::cost() const {
 
 void instrCodeNode::print() {
    cerr << "S:" << (void*)this << "\n";
-   for(unsigned i=0; i<V.dataNodes.size(); i++)
-      cerr << "ST:" << (void*)V.dataNodes[i] << "\n";
 }
 
-instrThrDataNode *instrCodeNode::getThrDataNode(const string &tname) {
-  bool findCollectThread = false;
-
-  if(tname == collectThreadName)  findCollectThread = true;
-  else                            findCollectThread = false;
-  
-#if defined(MT_THREAD)
-  unsigned numThrNames = V.thr_names.size();
-#endif
-  for (unsigned i=0; i<V.dataNodes.size(); i++) {
-    if(findCollectThread) {
-      return V.dataNodes[i];
-    } else {
-#if defined(MT_THREAD)
-      cerr << "i is " << i << " and numThrNames " << numThrNames << endl;
-      
-      if(i > (numThrNames-1))  break;
-      if(V.thr_names[i] == tname) {
-	return V.dataNodes[i];
-      }
-#endif
-    }
-  }
-  return NULL;
-}
-
-instrThrDataNode *instrCodeNode::getThrDataNode(int thr_id) {
-  for(unsigned i=0; i<V.dataNodes.size(); i++) {
-    instrThrDataNode *curThr = V.dataNodes[i];
-    if(curThr->getThreadID() == thr_id)
-      return curThr;
-  }
-  // not found
-  return NULL;
-}
-
-const instrThrDataNode *instrCodeNode::getThrDataNode(int thr_id) const {
-  for(unsigned i=0; i<V.dataNodes.size(); i++) {
-    const instrThrDataNode *curThr = V.dataNodes[i];
-    if(curThr->getThreadID() == thr_id)
-      return curThr;
-  }
-  // not found
-  return NULL;
-}
-
+/*
 // Check if "mn" and "this" correspond to the same instrumentation?
 bool instrCodeNode::condMatch(instrCodeNode *mn,
 				   vector<dataReqNode*> &data_tuple1,
@@ -501,6 +457,7 @@ bool instrCodeNode::condMatch(instrCodeNode *mn,
 
   return true;
 }
+*/
 
 /*
 // incremental code generation optimization
@@ -545,13 +502,8 @@ instrCodeNode* instrCodeNode::matchInMIPrimitives() {
 */
 
 // assume constraint variable is always the first in primitive
-const dataReqNode* instrCodeNode::getFlagDRN(int thrID) const { 
-  const instrThrDataNode *curDataNode = getThrDataNode(thrID); 
-  const dataReqNode *retDRN = NULL;
-  if(curDataNode) {
-    retDRN = curDataNode->getConstraintDRN();
-  }
-  return retDRN;
+const instrDataNode *instrCodeNode::getFlagDataNode() const { 
+  return V.constraintDataNode;
 }
 
 void instrCodeNode::addInst(instPoint *point, AstNode *ast,
@@ -563,34 +515,20 @@ void instrCodeNode::addInst(instPoint *point, AstNode *ast,
   V.instRequests += temp;
 }
 
-vector<dataReqNode *> instrCodeNode::getDataRequests()
-{
-  vector<dataReqNode *> curDataRequests;
-  for(unsigned i=0; i<V.dataNodes.size(); i++) {
-    curDataRequests += V.dataNodes[i]->getDataRequests();
-  }
-  return curDataRequests;
-}
-
 // returns the instrumentation variable index in the superTable
 inst_var_index instrCodeNode::allocateInstVarForThreads(inst_var_type varType)
 {
   inst_var_index allocatedIndex;
   vector<unsigned> thrPosBuf;
   
-  if(! proc()->is_multithreaded()) {
-    thrPosBuf.push_back(0);
-  } else {
-    for(unsigned i=0; i<V.dataNodes.size(); i++) {
-      indivInstrThrDataNode *curDataNode = 
-	dynamic_cast<indivInstrThrDataNode*>(V.dataNodes[i]);
-      unsigned curThrPos = curDataNode->getThreadObj()->get_pd_pos();
-      thrPosBuf.push_back(curThrPos);
-    }
+  vector <pdThread *>& allThr = proc()->threads ;
+  for(unsigned i=0; i<allThr.size(); i++) {
+    unsigned curThrPos = allThr[i]->get_pd_pos();
+    thrPosBuf.push_back(curThrPos);
   }
 
   variableMgr &varMgr = proc()->getVariableMgr();
-  allocatedIndex = varMgr.allocateForInstVar(varType, thrPosBuf);
+  allocatedIndex = varMgr.allocateForInstVar(varType);
   return allocatedIndex;
 }
 
