@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.10  1994/05/31 18:30:36  markc
+ * Revision 1.11  1994/05/31 21:43:00  markc
+ * Allow compensationFactor to be computed, but keep it within 0 and 1, which
+ * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
+ *
+ * Revision 1.10  1994/05/31  18:30:36  markc
  * Added msg_bytes_sent and msg_bytes_recv as default metrics.
  *
  * Revision 1.9  1994/05/19  00:00:28  hollings
@@ -77,7 +81,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.10 1994/05/31 18:30:36 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.11 1994/05/31 21:43:00 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -486,7 +490,7 @@ PCmetric blockingLocks("blocking_locks");
 PCmetric LockWaits("spin_waits");
 PCmetric unbalancedWorkWaits("system_busy_waits");
 
-PCmetric compensationFactor("pause_time");
+PCmetric compensationFactor("pause_time", Avg, CalcNormalize);
 
 // EDCU based metrics.
 PCmetric pageFaults("vm_faults");

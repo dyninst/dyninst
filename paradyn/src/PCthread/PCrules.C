@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.8  1994/05/31 18:40:43  markc
+ * Revision 1.9  1994/05/31 21:43:01  markc
+ * Allow compensationFactor to be computed, but keep it within 0 and 1, which
+ * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
+ *
+ * Revision 1.8  1994/05/31  18:40:43  markc
  * Cleaned up debugging messages.  Commented out the code that divided by
  * metric values by the number of active processes in the test for
  * highSynctoCPU ratio until this is clarified by Jeff.
@@ -60,7 +64,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.8 1994/05/31 18:40:43 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.9 1994/05/31 21:43:01 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -634,9 +638,7 @@ hypothesis excesiveBlockingTime(&syncBottleneck,
 // hypothesis lockTooLarge(&excesiveBlockingTime, &lockTooLarge);
 //
 
-/* 
 hypothesis hotSyncObject(&excesiveBlockingTime, &highVariationLock, "hotSync");
-*/
 
 hypothesis excesiveSyncRates(&syncBottleneck, &highSyncRate, 
 	"excesiveSyncRates");

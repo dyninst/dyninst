@@ -1,6 +1,10 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.16  1994/05/31 19:11:41  hollings
+ * Revision 1.17  1994/05/31 21:42:58  markc
+ * Allow compensationFactor to be computed, but keep it within 0 and 1, which
+ * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
+ *
+ * Revision 1.16  1994/05/31  19:11:41  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
  * Revision 1.15  1994/05/31  18:43:03  markc
@@ -101,7 +105,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.16 1994/05/31 19:11:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.17 1994/05/31 21:42:58 markc Exp $";
 #endif
 
 
@@ -394,10 +398,9 @@ Boolean evalTests()
     testResultList curr;
     Boolean previousStatus;
 
-    /*
     factor = (1.0-compensationFactor.value(whereAxis));
-    */
-    factor = 1.0;
+    if (factor < 0.0) factor = 0.01;
+    assert ((factor <= 1.0) && (factor > 0.0));
 
     for (curr = *currentTestResults; r=*curr; curr++) {
 	// try the test
