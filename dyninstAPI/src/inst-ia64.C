@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.10 2002/06/26 21:14:41 schendel Exp $
+ * $Id: inst-ia64.C,v 1.11 2002/07/02 17:37:43 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -362,7 +362,7 @@ bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * s
 	unsigned short offset = encodedAddress % 16;
 	Address alignedOffset = encodedAddress - offset + (offsetInBundles * 16);
 
-	return myProc->writeDataSpace( (void *)alignedOffset, length, string );
+	return myProc->writeDataSpace( (void *)alignedOffset, length + 1, string );
 	} /* end writeStringAtOffset() */
 
 uint64_t InsnAddr::operator * () {
