@@ -43,7 +43,10 @@ extern "C" {
 extern int fork();
 extern int vfork();
 
-  typedef int (*P_xdrproc_t)(XDR*, ...);
+/* this definition seems to be missing from <sys/ptrace.h> on Alpha */
+extern int ptrace (long request, long process, ulong_t *addr, ulong_t data);
+
+typedef int (*P_xdrproc_t)(XDR*, ...);
 
 #if defined(__cplusplus)
 };
@@ -130,8 +133,8 @@ extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern void P_endservent(void);
 
-inline int P_ptrace(int req, int pid, void *addr, int data, void *addr2)
-  { return(ptrace(req, pid, (int *)addr, data, (int *)addr2));}
+inline int P_ptrace(int req, int pid, void *addr, int data)
+  { return(ptrace(req, pid, (ulong_t *)addr, data));}
 
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 
