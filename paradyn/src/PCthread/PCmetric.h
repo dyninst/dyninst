@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.6  1994/06/14 15:30:26  markc
+ * Revision 1.7  1994/07/02 01:43:38  markc
+ * Remove aggregation operator from enableDataCollection call.
+ *
+ * Revision 1.6  1994/06/14  15:30:26  markc
  * Moved aggregationOperator defines to util directory.
  *
  * Revision 1.5  1994/05/18  00:48:55  hollings
@@ -139,7 +142,7 @@ class PCmetric {
 	Boolean changeCollection(collectMode);		// currentFocus
 	Boolean changeCollection(focus*, collectMode);	// explicit focus.
 	Boolean changeCollection(focusList, collectMode);// explicit focus.
-	PCmetric(char *, aggregation, calcType);
+	PCmetric(char *, int, calcType);
 	PCmetric(char *);
 
 	// Get back values.
@@ -181,7 +184,7 @@ class PCmetric {
 	char *name;
 	metric	*met;		// handle to inst.
 	List<datum*> samples;
-	aggregation aggregationOperator;
+	int aggregationOperator;
 	calcType calc;
 };
 

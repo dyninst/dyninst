@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.14  1994/06/29 02:56:20  hollings
+ * Revision 1.15  1994/07/02 01:43:37  markc
+ * Remove aggregation operator from enableDataCollection call.
+ *
+ * Revision 1.14  1994/06/29  02:56:20  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.13  1994/06/22  22:58:20  hollings
@@ -108,7 +111,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.14 1994/06/29 02:56:20 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.15 1994/07/02 01:43:37 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -146,12 +149,12 @@ extern Boolean doAutoRefinement(searchHistoryNode *, int);
 PCmetric::PCmetric(char *id)
 {
     name = PCmetricStrings.findAndAdd(id);
-    aggregationOperator = Sum;
+    aggregationOperator = aggSum;
     calc = CalcNormalize;
     allMetrics.add(this, name);
 }
 
-PCmetric::PCmetric(char *id, aggregation ag, calcType c)
+PCmetric::PCmetric(char *id, int ag, calcType c)
 {
     name = PCmetricStrings.findAndAdd(id);
     aggregationOperator = ag;
@@ -296,7 +299,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->enableTime = 0.0;
 	    val->used = TRUE;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
-						    met, aggregationOperator);
+						    met);
 	    if (val->mi) {
 		// only the data that really exhists gets enabled.
 		miToDatumMap.add(val, val->mi);
@@ -329,13 +332,13 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 sampleValue PCmetric::value(focusList fList, timeStamp start, timeStamp end)
 {
     switch (aggregationOperator) {
-	case Sum:
+	case aggSum:
 	    return(sum(fList, start, end));
-	case Avg:
+	case aggAvg:
 	    return(avg(fList, start, end));
-	case Min:
+	case aggMin:
 	    return(min(fList, start, end));
-	case Max:
+	case aggMax:
 	    return(max(fList, start, end));
 	default:
 	    abort();
@@ -503,7 +506,7 @@ PCmetric IOwait("io_wait");
 PCmetric IOops("io_oops");
 PCmetric IOBytes("io_bytes");
 PCmetric seekWait("seek_wait");
-PCmetric elapsedTime("exec_time", Max, CalcSum);
+PCmetric elapsedTime("exec_time", aggMax, CalcSum);
 PCmetric activeProcesses("active_processes");
 PCmetric msgBytes("msg_bytes");
 PCmetric msgBytesSent("msg_bytes_sent");
@@ -518,7 +521,7 @@ PCmetric blockingLocks("blocking_locks");
 PCmetric LockWaits("spin_waits");
 PCmetric unbalancedWorkWaits("system_busy_waits");
 
-PCmetric compensationFactor("pause_time", Avg, CalcNormalize);
+PCmetric compensationFactor("pause_time", aggAvg, CalcNormalize);
 
 // EDCU based metrics.
 PCmetric pageFaults("vm_faults");
