@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.193 2005/02/28 01:47:22 jaw Exp $
+ * $Id: inst-x86.C,v 1.194 2005/03/01 23:08:03 bernat Exp $
  */
 #include <iomanip>
 
@@ -70,6 +70,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "InstrucIter.h"
+#include "edgeTrampTemplate.h"
 
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
@@ -1566,32 +1567,28 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
 
 unsigned generateBranchToEdgeTramp(process *proc, 
                                    unsigned char *insn,
-                                   unsigned jccSize,
-                                   unsigned relocSize,
-                                   Address jumpAddr, 
-                                   Address imageBaseAddr, 
+                                   unsigned jumpSize,
+                                   Address absJumpAddr, 
                                    Address trampBaseAddr)
 {
     // if we can fit the jump to the edge tramp within the jcc or if
     // the jcc plus size of relocated instructions is big enough
-    if ((jccSize >= JUMP_REL32_SZ) || (jccSize + relocSize >= JUMP_REL32_SZ)) {
-        // we can bump the jump addr back some because we relocated 
-        if (relocSize > 0)
-            jumpAddr -= relocSize; 
-        Address afterJumpAddr = jumpAddr + imageBaseAddr + JUMP_REL32_SZ;
-        emitJump(trampBaseAddr - afterJumpAddr, insn);
-//         fprintf(stderr,"jump to edge tramp 0x%x --> 0x%x\n\n", 
-//                 jumpAddr, trampBaseAddr);
-        return jccSize+relocSize;
-    }
-    // otherwise we trap
-    else {
-	//fprintf(stderr,"Trapping to edge tramp 0x%x 0x%x\n", 
-        //        jumpAddr + imageBaseAddr, trampBaseAddr);
-        proc->trampTrapMapping[jumpAddr+imageBaseAddr] = trampBaseAddr;
-        *insn++ = 0xCC;
-        return 1;
-    }
+  if (jumpSize >= JUMP_REL32_SZ) {
+    // we can bump the jump addr back some because we relocated 
+    Address afterJumpAddr = absJumpAddr + JUMP_REL32_SZ;
+    emitJump(trampBaseAddr - afterJumpAddr, insn);
+    //         fprintf(stderr,"jump to edge tramp 0x%x --> 0x%x\n\n", 
+    //                 jumpAddr, trampBaseAddr);
+    return jumpSize;
+  }
+  // otherwise we trap
+  else {
+    //fprintf(stderr,"Trapping to edge tramp 0x%x 0x%x\n", 
+    //        jumpAddr + imageBaseAddr, trampBaseAddr);
+    proc->trampTrapMapping[absJumpAddr] = trampBaseAddr;
+    *insn++ = 0xCC;
+    return 1;
+  }
 }
 
 
@@ -1612,39 +1609,101 @@ unsigned generateBranchToEdgeTramp(process *proc,
 //    tAddr |     | <------- | jmp (jcc taken)   |
 //          -------          ---------------------
 //
-void createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
-{
+edgeTrampTemplate *createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+{  
+  // First things first. If we need to relocate the function, do it now.
+  // Oh yeah... the function might change.
+  int_function *func = const_cast<int_function *>(edge->flowGraph->getFunction());
+
+  if (func->needsRelocation() &&
+      !func->hasBeenRelocated(proc)) {
+    // Uhh... right. What if we're in the function? We have no mechanism for deferring!
+    // Oops. This could get icky.
+    // relocateFunction takes a placeholder inst point. Toss it the entry point, why not.
+    instPoint *temp = const_cast<instPoint *>(func->funcEntry(NULL));
+    bool relocated = func->relocateFunction(proc, temp);
+  }
     //    fprintf(stderr,"  >>> create edge tramp\n");
 
     assert(CondJumpTaken == edge->type || CondJumpNottaken == edge->type);
 
+    edgeTrampTemplate *eT = new edgeTrampTemplate(proc);
+
+    // Variables that are needed later
+    Address imageBaseAddr; // Where this whole thing is offset from
+    Address origFuncOffset; // Offset from start of image
+    Address origFuncAddr;
+    Address origFirstRelocInsnOffset; 
+    Address origJCCoffset;
+    Address origNToffset;
+    Address origToffset;
+    Address effFuncAddr;
+    Address effFirstRelocInsnOffset;
+    Address effJCCoffset; // For relocation. If !reloc, eff==orig
+    Address effNToffset;
+    Address effToffset;
+    Address NTretDisp;
+    Address TretDisp;
+
     unsigned char *trampCodeStart;
     unsigned char *trampCode;
 
-    Address imageBaseAddr;
-
     if (!proc->getBaseAddress(img, imageBaseAddr)) 
         abort();
+
+    // the conditional jump terminates the source block and is
+    // therefore its last instruction
+
+
+  bool was_reloc = func->hasBeenRelocated(proc);
+
+    origFuncOffset = func->getOffset();
+    origFuncAddr = origFuncOffset + imageBaseAddr;
+    if (was_reloc)
+      effFuncAddr = func->getAddress(proc);
+    else
+      effFuncAddr = origFuncAddr;
+
+    // We want the offset from the start of the function
+    origJCCoffset = edge->source->getRelLast() - origFuncOffset;
+
 
     // get pointer to conditional jump to relocate
     unsigned jccType; 
     unsigned jccSize;
 
     jccSize = get_instruction(edge->relocationPointer, jccType);
-
+    
     //XXX
-    //    fprintf(stderr,"jcc %u %u\n",jccSize,jccType);
 
     // if the size of the conditional jump to relocate is less than
     // the size of the jump necesary to get to the edge tramp check to
     // see if we can relocate instructions before the conditional jump
     // to make room.
-    unsigned relocSize = 0;  // size of instructions to relocate
+
     unsigned relocTrampSize = 0; // size they need in a tramp
     pdvector<instruction> relocInsns; // instructions to relocate
 
-    if (jccSize < JUMP_REL32_SZ) {
+    unsigned space_needed = JUMP_REL32_SZ;
+    unsigned jump_size = jccSize;
+
+    if (was_reloc) {
+      // TODO: make this work with the current arbitrary inst point code.
+      // Right now we have two mechanisms that will happily jump on each other.
+      LocalAlteration *alt = func->getRelocRecord(proc)->getAlterationSet().getAlterationAtOffset(origJCCoffset);
+      if (alt) {
+	jump_size += alt->getShift();
+      }
+    }
+    // The padded noops are invisible to the CFG code. We'll fix it
+    // by requiring less space for the jump.
+
+    if (jump_size < space_needed) {
         // iterate over all the instructions in the block 
+
+      // As a note: we may have relocated the function to pad
+      // out the block. So, first thing we check is
+      // a) if we relocated, b) if we altered this site
         pdvector<instruction> insns; 
 
         InstrucIter ii(edge->source);
@@ -1676,14 +1735,14 @@ void createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 	unsigned i;
 
         for (i = 0; i < insns.size(); i++) {
-            if (relocSize + jccSize >= JUMP_REL32_SZ) 
-                break;
-            instruction insn = insns[insns.size()-1-i];
-            unsigned tmp = getRelocatedInstructionSz(insn);
-            //fprintf(stderr,"insn %u:%u %u\n", insn.size(),tmp,insn.type());
-            relocSize += insn.size();
-            relocTrampSize += tmp;
-            num_reloc++;
+	  if (jump_size >= space_needed) 
+	    break;
+	  instruction insn = insns[insns.size()-1-i];
+	  unsigned tmp = getRelocatedInstructionSz(insn);
+	  //fprintf(stderr,"insn %u:%u %u\n", insn.size(),tmp,insn.type());
+	  jump_size += insn.size();
+	  relocTrampSize += tmp;
+	  num_reloc++;
         }
 
         // need to relocate instructions in order
@@ -1694,74 +1753,80 @@ void createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
         }
     }
 
-    //    fprintf(stderr,"reloc %d insns (%d bytes)\n", relocInsns.size(), 
-    //      relocSize);
-
     // could we relocate enough instructions for jump to edge tramp?
     // if not then don't relocate (we will have to trap to tramp)
-    if (relocSize + jccSize < JUMP_REL32_SZ) {
-        //fprintf(stderr,"Only have %u bytes to get to tramp.\n",
-        //        relocSize + jccSize);
-        relocSize = 0;
-        relocTrampSize = 0; // last jcc is accounted for as jccSize
-        relocInsns.clear();
+    if (jump_size < space_needed) {
+      jump_size = jccSize;
+      relocTrampSize = 0; // last jcc is accounted for as jccSize
+      relocInsns.clear();
     }
 
     // allocate space for the edge tramp
-    unsigned trampSize = relocTrampSize + jccSize + 
-        JUMP_SZ*2 + JUMP_REL32_SZ*2; 
+    eT->size = relocTrampSize + jccSize + JUMP_SZ*2 + JUMP_REL32_SZ*2; 
 
-    Address trampBaseAddr = proc->inferiorMalloc(trampSize, textHeap);
+    eT->baseAddr = proc->inferiorMalloc(eT->size, textHeap);
 
-    // the conditional jump terminates the source block and is
-    // therefore its last instruction
+    origFirstRelocInsnOffset = origJCCoffset - (jump_size - jccSize);
+    origNToffset = edge->source->getRelEnd() - origFuncOffset;
+    origToffset = (CondJumpTaken == edge->type) ?
+      // Target of this edge...
+      (edge->target->getRelStart() - origFuncOffset) :
+      (edge->conditionalBuddy->target->getRelStart() - origFuncOffset);
 
-    Address jccAddr  = imageBaseAddr + edge->source->getRelLast();
-    Address insnAddr = jccAddr - relocSize;
-    Address ntAddr   = imageBaseAddr + edge->source->getRelEnd();
+    // We need to map to the new function
+    effFirstRelocInsnOffset = func->mapOrigToRelocOffset(origFirstRelocInsnOffset,
+							 proc);
+    effJCCoffset = func->mapOrigToRelocOffset(origJCCoffset,
+					      proc);
+    effNToffset = func->mapOrigToRelocOffset(origNToffset,
+					     proc);
+    effToffset = func->mapOrigToRelocOffset(origToffset,
+					    proc);
 
-    // the taken addr is the first instruction of the target block of
-    // the taken edge
-    Address tAddr = 
-        (CondJumpTaken == edge->type) ? 
-        (imageBaseAddr + edge->target->getRelStart()) :
-        (imageBaseAddr + edge->conditionalBuddy->target->getRelStart());
+#if 0
+    fprintf(stderr, "original: first 0x%x, jump 0x%x, nt 0x%x, t 0x%x\n",
+	    origFirstRelocInsnOffset,
+	    origJCCoffset,
+	    origNToffset,
+	    origToffset);
 
-    Address jccRelocAddr    = trampBaseAddr + relocSize;
-    Address ntInstPointAddr = jccRelocAddr+jccSize;
-    Address ntJumpAddr      = jccRelocAddr+jccSize+JUMP_SZ;
-    Address ntDisp          = ntAddr - (ntJumpAddr + JUMP_REL32_SZ);
-    Address tInstPointAddr  = jccRelocAddr+jccSize+JUMP_SZ+JUMP_REL32_SZ;
-    Address tJumpAddr       = jccRelocAddr+jccSize+(2*JUMP_SZ)+JUMP_REL32_SZ;
-    Address tDisp = tAddr - (tJumpAddr + JUMP_REL32_SZ);
+    fprintf(stderr, "effective: first 0x%x, jump 0x%x, nt 0x%x, t 0x%x\n",
+	    effFirstRelocInsnOffset,
+	    effJCCoffset,
+	    effNToffset,
+	    effToffset);
+#endif
+	    
+    // Addr where the jump is moved to
+    eT->jccRelocOffset = (jump_size - jccSize);
 
-//     fprintf(stderr,"0x%x image base\n", imageBaseAddr);
-//     fprintf(stderr,"0x%x tramp base\n", trampBaseAddr);
-//     fprintf(stderr,"0x%x jccRelocAddr base\n", jccRelocAddr);
-//     fprintf(stderr,"0x%x jccAddr\n", jccAddr);
-//     fprintf(stderr,"0x%x insnAddr\n", insnAddr);
-//     fprintf(stderr,"0x%x edge->relocationPointer\n", 
-//             (Address)edge->relocationPointer);
-//     fprintf(stderr,"0x%x  ntAddr\n",ntAddr);
-//     fprintf(stderr,"0x%x ntJumpAddr\n",ntJumpAddr);
-//     fprintf(stderr,"0x%x ntDisp\n",ntDisp);
-//     fprintf(stderr,"0x%x  ntJumpAddr + ntDisp\n",ntJumpAddr+ntDisp);
-//     fprintf(stderr,"0x%x  tAddr\n",tAddr);
-//     fprintf(stderr,"0x%x tJumpAddr\n",tJumpAddr);
-//     fprintf(stderr,"0x%x tDisp\n",tDisp);
-//     fprintf(stderr,"0x%x  tJumpAddr + tDisp\n",tJumpAddr+tDisp);
+    eT->ntInstPointOffset = eT->jccRelocOffset+jccSize;
+    eT->ntInstPointReturnOffset = eT->ntInstPointOffset + JUMP_SZ;
 
+    eT->tInstPointOffset = eT->ntInstPointReturnOffset + JUMP_REL32_SZ;
+    eT->tInstPointReturnOffset = eT->tInstPointOffset + JUMP_SZ;
 
-    edge->addrInFunc = insnAddr;
+    NTretDisp = (effFuncAddr + effNToffset) -
+      (eT->baseAddr + eT->ntInstPointReturnOffset + JUMP_SZ);
 
-    trampCodeStart = new unsigned char[trampSize];
+    TretDisp = (effFuncAddr + effToffset) -
+      (eT->baseAddr + eT->tInstPointReturnOffset + JUMP_SZ);
+
+    // Don't want the edge to know about a relocated function.
+    // TODO: is this actually necessary? I think it's a holdover from
+    // old catchup logic that didn't know about edge tramps.
+    edge->addrInFunc = origFuncAddr + origJCCoffset;
+    // Edge tramp gets the actual/effective address.
+    eT->addrInFunc = effFuncAddr + effJCCoffset;
+    
+    trampCodeStart = new unsigned char[eT->size];
     trampCode = trampCodeStart;
-
+    
     // clear tramp with nops
     unsigned i;
 
-    for (i = 0; i < trampSize; i++)
-        trampCode[i] = 0x90;
+    for (i = 0; i < eT->size; i++)
+        trampCode[i] = NOP;
 
     // if needed, relocate instructions before the jcc to edge
     // trampoline.  since these instructions are part of the same
@@ -1772,59 +1837,89 @@ void createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
     unsigned relocated = 0;
     for (i = 0; i < relocInsns.size(); i++) {
         relocated += relocateInstruction(relocInsns[i],
-                                         insnAddr+relocated, 
-                                         trampBaseAddr+relocated, 
+                                         origFuncOffset + 
+					 origFirstRelocInsnOffset + 
+					 relocated, 
+					 eT->baseAddr + relocated, 
                                          trampCode);
         //fprintf(stderr,"relocate instruction %d\n",relocated);
     }
 
     // relocate the jcc to the edge trampoline at jccRelocAddr and
     // give it new target address tInstPointAddr
+#if 0
+    fprintf(stderr, "Changing conditional jump. move to 0x%x, new target 0x%x, %d bytes\n",
+	    eT->baseAddr + eT->jccRelocOffset,
+	    eT->baseAddr + eT->tInstPointOffset,
+	    jccSize);
+#endif
+    // relocation pointer: pointer to the insn in _our_ address space
+    // this needs to be done with relatives.
 
-    changeConditionalJump(edge->relocationPointer, jccType, jccSize, 
-                          (Address)edge->relocationPointer, jccRelocAddr,
-                          tInstPointAddr, trampCode);
+    changeConditionalJump(edge->relocationPointer, 
+			  jccType, 
+			  jccSize, 
+                          (Address)edge->relocationPointer, 
+			  eT->jccRelocOffset,
+                          eT->tInstPointOffset,
+			  trampCode);
 
+    assert((Address) (trampCode-trampCodeStart) == eT->ntInstPointOffset);
     trampCode += JUMP_SZ; // skip past not-taken inst point
+    assert((Address) (trampCode-trampCodeStart) == eT->ntInstPointReturnOffset);
+#if 0
+    fprintf(stderr, "Emitting jump of displacement 0x%x, from 0x%x to 0x%x\n",
+	    NTretDisp,
+	    eT->baseAddr + eT->ntInstPointReturnOffset,
+	    eT->baseAddr + eT->ntInstPointReturnOffset + NTretDisp);
+#endif
+    emitJump(NTretDisp, trampCode);
 
-    emitJump(ntDisp, trampCode);
 
+    assert((Address) (trampCode-trampCodeStart) == eT->tInstPointOffset);
     trampCode += JUMP_SZ; // skip past taken inst point
-        
-    emitJump(tDisp, trampCode);
-
-    // XXX TODO edge tramp template needed?
-    //edgeTrampTemplate *et = new edgeTrampTemplate(trampBaseAddr, 
-    //                                      (trampCode-trampCodeStart));
-    //proc->addCodeRange(trampBaseAddr, et);
+    assert((Address) (trampCode-trampCodeStart) == eT->tInstPointReturnOffset);
+#if 0
+    fprintf(stderr, "Emitting jump of displacement 0x%x, from 0x%x to 0x%x\n",
+	    TretDisp,
+	    eT->baseAddr + eT->tInstPointReturnOffset,
+	    eT->baseAddr + eT->tInstPointReturnOffset + TretDisp);
+#endif        
+    emitJump(TretDisp, trampCode);
 
     // install edge tramp
     
     //fprintf(stderr,"write data space 0x%x 0x%x\n",
     //trampBaseAddr,trampBaseAddr+trampSize);
 
-    proc->writeTextSpace((void *)trampBaseAddr, 
-                         trampSize, // trampCode-trampCodeStart,
+    proc->writeTextSpace((void *)eT->baseAddr,
+                         eT->size,
                          (void *)trampCodeStart);
+
+    proc->addCodeRange(eT->baseAddr,
+		       eT);
 
     delete[] trampCodeStart;
 
     // overwrite conditional jump and any relocated instructions with
     // a jump to the edge tramp
-    unsigned char *insn = new unsigned char[jccSize+relocSize];
+    unsigned char *insn = new unsigned char[jump_size];
 
-    for (i = 0; i < jccSize+relocSize; i++)
-        insn[i] = 0x90;
+    for (i = 0; i < jump_size; i++)
+        insn[i] = NOP;
 
-    int siz = generateBranchToEdgeTramp(proc, insn, jccSize, relocSize, 
-                                        jccAddr, imageBaseAddr, trampBaseAddr);
+    int siz = generateBranchToEdgeTramp(proc, 
+					insn, 
+					jump_size,
+                                        effFuncAddr + effFirstRelocInsnOffset,
+					eT->baseAddr);
     
     
-//     fprintf(stderr,"write jmp to tramp 0x%x 0x%x\n",
-//             (void*)insnAddr,insnAddr+siz);
-
-    proc->writeTextSpace((void *)insnAddr, siz, insn);
-
+    proc->writeTextSpace((void *)(effFuncAddr + effFirstRelocInsnOffset), siz, insn);
+#if 0
+    fprintf(stderr, "Installed jump at 0x%x\n",
+	    effFuncAddr + effFirstRelocInsnOffset);
+#endif
     delete[] insn;
 
     // XXX TODO Is current PC where we're installing tramp?
@@ -1834,13 +1929,15 @@ void createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 
     // set inst point addresses 
     if (edge->type == CondJumpTaken) {
-        edge->instAddr = (void *)tInstPointAddr;
-        edge->conditionalBuddy->instAddr = (void *)ntInstPointAddr;
+      edge->instAddr = (void *)(eT->baseAddr + eT->tInstPointOffset);
+      edge->conditionalBuddy->instAddr = (void *)(eT->baseAddr + eT->ntInstPointOffset);
     } 
     else {
-        edge->instAddr = (void *)ntInstPointAddr;
-        edge->conditionalBuddy->instAddr = (void *)tInstPointAddr;
+      edge->instAddr = (void *)(eT->baseAddr + eT->ntInstPointOffset);
+      edge->conditionalBuddy->instAddr = (void *)(eT->baseAddr + eT->tInstPointOffset);
     }
+
+    return eT;
 }        
 
 //int trapped = 0;
@@ -1919,12 +2016,13 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
            << point->pointFunc()->prettyName() << " @"
            << (void*)point->pointAddr() << ". Using trap!" << endl;
 #endif
-
-//       fprintf(stderr,"Trapping to tramp 0x%x (0x%x 0x%x) size %u (%u %u)\n",
-// 	      point->pointAddr(), baseAddr, 
-// 	      point->jumpAddr()+imageBaseAddr, point->size(),
-// 	      point->insnsBefore(), point->insnsAfter());
-//       trapped = 1;
+#if 0
+       fprintf(stderr,"Trapping to tramp 0x%x (0x%x 0x%x) size %u (%u %u)\n",
+ 	      point->pointAddr(), baseAddr, 
+ 	      point->jumpAddr()+imageBaseAddr, point->size(),
+ 	      point->insnsBefore(), point->insnsAfter());
+#endif
+       //trapped = 1;
 
       proc->trampTrapMapping[point->jumpAddr()+imageBaseAddr] = baseAddr;
       *insn++ = 0xCC;
@@ -2181,10 +2279,13 @@ int tramp_pre_frame_size = 36; //Stack space allocated by 'pushf; pusha'
 trampTemplate *installBaseTramp(const instPoint *location, process *proc,
                                 bool noCost, bool trampRecursiveDesired = true)
 {  
-//     fprintf(stderr,"installBaseTramp at 0x%x %u\n", 
-//             ((instPoint*)location)->insnAddress(),
-//             ((instPoint*)location)->insnsBefore());
-
+#if 0 
+     fprintf(stderr,"installBaseTramp at 0x%x %u %u\n", 
+             ((instPoint*)location)->insnAddress(),
+             ((instPoint*)location)->insnsBefore(),
+	     ((instPoint*)location)->insnsAfter());
+     fprintf(stderr, "Location is %p\n", location);
+#endif
    bool aflag;
   
    /*
@@ -2269,21 +2370,20 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    if( ! trampRecursiveDesired ) {
       trampSize += get_guard_code_size();   // NOTE-131 with Relocation
    }
-
    if (location->hasInsnAtPoint()) {
-       for (u = 0; u < location->insnsBefore(); u++) {
-           trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
-       }
-
-       if (location->insnAtPoint().type() & IS_JCC) {
-           trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
-       } else {
-           trampSize += getRelocatedInstructionSz(location->insnAtPoint());
-       }
-  
-       for (u = 0; u < location->insnsAfter(); u++) {
-           trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
-       }
+     for (u = 0; u < location->insnsBefore(); u++) {
+       trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
+     }
+     
+     if (location->insnAtPoint().type() & IS_JCC) {
+       trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
+     } else {
+       trampSize += getRelocatedInstructionSz(location->insnAtPoint());
+     }
+     
+     for (u = 0; u < location->insnsAfter(); u++) {
+       trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
+     }
    }
 
    Address imageBaseAddr;
@@ -2639,9 +2739,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
    emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
 
-//    fprintf(stderr,"0x%x curr\n", currAddr);
-//    fprintf(stderr,"0x%x pointAddr\n", location->pointAddr());
-//    fprintf(stderr,"0x%x return\n", location->returnAddr());
+   //    fprintf(stderr,"0x%x curr\n", currAddr);
 
 #ifdef INST_TRAP_DEBUG
    cerr << "installBaseTramp jump back to " <<
@@ -2753,6 +2851,7 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
                    bool &deferred,
                    bool allowTrap)
 {
+
     //    fprintf(stderr,"location addr 0x%x\n",location->insnAddress());
 
    //=======================================================================
@@ -2809,7 +2908,7 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
 
    relocated = ptFunc->relocateFunction(proc, location);
    if(! relocated) { // try to install original func
-       fprintf(stderr,"Func not relocated\n");
+     //fprintf(stderr,"Func not relocated\n");
    }
 
    location->setBPatch_point(old_bppoint);
@@ -2817,7 +2916,6 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
 
 
    install_base_tramp:
-
    ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
    proc->baseMap[location] = ret;
    
@@ -4798,10 +4896,11 @@ BPatch_point *createInstructionEdgeInstPoint(process* proc,
     // XXX this inst point has no instruction to relocate -- we're
     // placing it atop of 5 nops we created
     instPoint *pt = new instPoint(func, image, relAddr, otherPoint, true);
-    
+
     func->addArbitraryPoint(pt, proc);
     
     BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
+
     return proc->findOrCreateBPPoint(bpfunc, pt, BPatch_arbitrary);
 }
 
@@ -4820,8 +4919,6 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
                                          BPatch_point** alternative,
                                          BPatch_function *bpf)
 {
-    //fprintf(stderr,">> Create arbitrary inst point at 0x%x\n",address);
-
    /*
     * Get some objects we need, such as the enclosing function, image, etc.
     */
@@ -4831,9 +4928,23 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    else
       func = (int_function*)proc->findFuncByAddr((Address)address);
 
-   if (func == NULL) // Should make an error callback here? 
-      return NULL;
+#if !defined(BPATCH_LIBRARY)
+   // Trigger relocation... 
 
+  if (func->needsRelocation() &&
+      !func->hasBeenRelocated(proc)) {
+    // Uhh... right. What if we're in the function? We have no mechanism for deferring!
+    // Oops. This could get icky.
+    // relocateFunction takes a placeholder inst point. Toss it the entry point, why not.
+    instPoint *temp = const_cast<instPoint *>(func->funcEntry(NULL));
+    bool relocated = func->relocateFunction(proc, temp);
+  }
+
+#endif
+
+   if (func == NULL) { // Should make an error callback here? 
+      return NULL;
+   }
    const image *image = func->pdmod()->exec();
 
    Address imageBase;
@@ -4853,11 +4964,9 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    instruction insn;
    unsigned insnSize;
 
-   // the following line seems wrong, we're using possibly the begin address
-   // of a relocated function, but the size of the original function
-   // FIXME
-   Address funcEnd = func->getAddress(proc) + func->get_size();
-   for (Address checkAddr = func->getAddress(proc);
+   // FIXME: are we looking at the original or relocated address here?
+   Address funcEnd = func->getAddress(NULL) + func->getSize(NULL);
+   for (Address checkAddr = func->getAddress(NULL);
         checkAddr < funcEnd; ptr += insnSize, checkAddr += insnSize) {
 
       if (checkAddr == (Address)address) {
@@ -4871,9 +4980,9 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
       assert(insnSize > 0);
    }
 
-   if (!isInstructionStart) 
+   if (!isInstructionStart) {
       return NULL; // Should make an error callback as well?
-
+   }
     
    /*
     * Check if the point overlaps an existing instrumentation point.
@@ -4966,25 +5075,25 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
        bblocks.elements(blocks);
    
        for (unsigned i = 0; i < bblocks.size(); i++) {
-	   if (blocks[i])
-	       if (blocks[i]->getRelLast() == (unsigned long)address) {
-		   pdvector<instruction> insns; 
-		   InstrucIter ii(blocks[i]);
-		   while (ii.hasMore()) {
-		       instruction i = ii.getInstruction();
-		       insns.push_back(i);
-		       ii++;
-		   }
-		   insns.pop_back();
+           if (blocks[i])
+               if (blocks[i]->getRelLast() == (unsigned long)address) {
+                   pdvector<instruction> insns; 
+                   InstrucIter ii(blocks[i]);
+                   while (ii.hasMore()) {
+                       instruction i = ii.getInstruction();
+                       insns.push_back(i);
+                       ii++;
+                   }
+                   insns.pop_back();
 
-		   for (int j = insns.size()-1; j >= 0; j--) {
-		       newpt->addInstrBeforePt(insns[j]);
-		   }
+                   for (int j = insns.size()-1; j >= 0; j--) {
+                       newpt->addInstrBeforePt(insns[j]);
+                   }
 
-// 		   fprintf(stderr,">> block for 0x%x %u %u before insns\n",
-// 			   address,blocks[i]->size(),insns.size());
-		   break;
-	       }
+//                 fprintf(stderr,">> block for 0x%x %u %u before insns\n",
+//                         address,blocks[i]->size(),insns.size());
+                   break;
+               }
        }
 
        delete[] blocks;
@@ -5090,7 +5199,7 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
 {
    pdvector<instruction> insnVec;
    unsigned type, insnSize, totalSize = 0; 
-   instruction *insn = 0;
+   instruction insn;
 
 #ifdef DEBUG_FUNC_RELOC 
    cerr << "int_function::loadCode" << endl;
@@ -5113,8 +5222,8 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
 
       // new instruction object 
       insnSize = get_instruction(p, type);
-      insn = new instruction(p, type, insnSize);   
-      insnVec.push_back(*insn);
+      insn = instruction(p, type, insnSize);   
+      insnVec.push_back(insn);
 
       /*
       // check for the following instruction sequence:
@@ -5145,8 +5254,6 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
       // update p so it points to the next machine code instruction
       p = p + insnSize; 
       totalSize += insnSize;
-
-      delete insn;
    }
 
    // Occasionally a function's size is not calculated correctly for 
@@ -5172,15 +5279,16 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
       nop--;
 
       // create an x86 instruction for a nop
-      insn = new instruction(nop, 0, 1);
+      insn = instruction(nop, 0, 1);
 
       // replace "garbage" x86 instruction with a nop instruction
-      insnVec[insnVec.size() - 1] = *insn;
+      insnVec[insnVec.size() - 1] = insn;
 
       // replace all "garbage" bytes up to the end of the function with nops
       for (int i = 0; i < garbage; i++) {   
-         insnVec.push_back(*insn);
+         insnVec.push_back(insn);
       }  
+      delete nop;
    }
 
    // buffer of x86 instructions
@@ -5202,7 +5310,7 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
 
    numberOfInstructions = insnVec.size();
    setNumInstructions(numberOfInstructions);  
-  
+   //delete [] originalCode;
    return true;
 } 
 
@@ -5397,10 +5505,10 @@ void int_function::instrAroundPt(instPoint *p, instruction allInstr[],
       if (type == EntryPt) maxSize = 2*JUMP_SZ;
       for (int u1 = index+1; size < maxSize && u1 < index+1+numAfter; u1++) {
          if (!allInstr[u1].isCall()) {
-            p->addInstrAfterPt(allInstr[u1]);
-            size += allInstr[u1].size();
+	   p->addInstrAfterPt(allInstr[u1]);
+	   size += allInstr[u1].size();
          } else { 
-            break;
+	   break;
          }
       }
    }
@@ -5442,12 +5550,12 @@ void int_function::instrAroundPt(instPoint *p, instruction allInstr[],
 // update info about instrumentation points
 
 bool int_function::fillInRelocInstPoints(
-                            const image *owner, process *proc,
-                            instPoint *&location, 
-                            relocatedFuncInfo *reloc_info, Address mutatee, 
-                            Address mutator,instruction oldCode[], 
-                            Address newAdr,instruction newCode[],
-                            LocalAlterationSet &alteration_set)
+					 const image *owner, process *proc,
+					 instPoint *&location, 
+					 relocatedFuncInfo *reloc_info, Address mutatee, 
+					 Address mutator,instruction oldCode[], 
+					 Address newAdr,instruction newCode[],
+					 LocalAlterationSet &alteration_set)
 {  
    unsigned retId = 0, callId = 0,arbitraryId = 0;
    int originalOffset, newOffset, originalArrayOffset, newArrayOffset;
@@ -5498,7 +5606,7 @@ bool int_function::fillInRelocInstPoints(
                     funcEntry_->insnsAfter() + numAddedInstr,
                     EntryPt, newArrayOffset);  
       
-      if (location == funcEntry_) {
+      if (location && location == funcEntry_) {
          location = point;
       }
       
@@ -5533,7 +5641,7 @@ bool int_function::fillInRelocInstPoints(
                     funcReturns[retId]->insnsAfter() + numAddedInstr,
                     ReturnPt, newArrayOffset);
       
-      if (location == funcReturns[retId]) {
+      if (location && (location == funcReturns[retId])) {
          location = point;
       } 
       
@@ -5566,14 +5674,14 @@ bool int_function::fillInRelocInstPoints(
                     calls[callId]->insnsAfter() + numAddedInstr,
                     CallPt, newArrayOffset);
       
-      if (location == calls[callId]) {
+      if (location && (location == calls[callId])) {
          location = point;
       }
       
       // update reloc_info with new instPoint
       reloc_info->addFuncCall(point);
    }
-   
+
    for(arbitraryId=0;arbitraryId < arbitraryPoints.size();arbitraryId++)
    {  
       CALC_OFFSETS(arbitraryPoints[arbitraryId]);
@@ -5593,7 +5701,7 @@ bool int_function::fillInRelocInstPoints(
                     funcReturns[arbitraryId]->insnsAfter() + numAddedInstr,
                     ReturnPt, newArrayOffset);
       
-      if (location == arbitraryPoints[arbitraryId])
+      if (location && (location == arbitraryPoints[arbitraryId]))
          location = point;
       
       reloc_info->addArbitraryPoint(point);
@@ -5976,6 +6084,56 @@ bool int_function::PA_attachOverlappingInstPoints(
 
 /****************************************************************************/
 /****************************************************************************/
+/****************************************************************************/
+
+// Find overlapping instrumentation points 
+
+// Cheap and cheesy sort routine
+
+int basicBlockStartAddrSort(const void *b1, const void *b2) {
+  const BPatch_basicBlock *block1 = (const BPatch_basicBlock *)b1;
+  const BPatch_basicBlock *block2 = (const BPatch_basicBlock *)b2;
+  
+  if (block1->getRelStart() < block2->getRelStart()) return -1;
+  if (block1->getRelStart() > block2->getRelStart()) return -1;
+  return 0;
+}
+
+bool int_function::PA_expandLoopBlocks(LocalAlterationSet *temp_alteration_set, 
+				       process *proc)
+{
+#ifdef DEBUG_FUNC_RELOC
+   cerr << "int_function::PA_expandLoopBlocks called" <<endl;
+#endif
+
+   BPatch_loopTreeNode *loopTree = getLoopTree(proc);
+   
+   assert(loopTree->loop == NULL);
+
+   // The func relocation code wants these to be in order, and there is
+   // no guarantee that loop blocks will come out in order. 
+
+   blocksNeedingReloc.sort(basicBlockStartAddrSort);
+
+   for (unsigned i = 0; i < blocksNeedingReloc.size(); i++) {
+     if (i >= 1 && 
+	 (blocksNeedingReloc[i]->getBlockNumber() == blocksNeedingReloc[i-1]->getBlockNumber()))
+       continue;
+#if defined(DEBUG)
+     fprintf(stderr, "Inserting %d nops in block %d\n",
+	     JUMP_SZ-blocksNeedingReloc[i]->size(),
+	     blocksNeedingReloc[i]->getBlockNumber());
+#endif
+     InsertNops *nops = new InsertNops(this, 
+				       blocksNeedingReloc[i]->getRelStart() - getAddress(NULL),
+				       JUMP_SZ-blocksNeedingReloc[i]->size());
+     temp_alteration_set->AddAlteration(nops);
+   }
+   return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
 
 // Locate jumps with targets inside the footprint of an inst points. 
 
@@ -6298,30 +6456,35 @@ void int_function::addArbitraryPoint(instPoint* location,
    if(! hasBeenRelocated(proc))
       return;
 
+   assert(instructions);
+
+   // We may get called with a point outside the function.
+   // This happens if we get an edge tramp. In this case,
+   // duck.
+   if ((location->pointAddr() > (getAddress(NULL) + getSize(NULL))) ||
+       (location->pointAddr() < getAddress(NULL))) {
+     reloc_info->addArbitraryPoint(location);
+     return;
+   }
+
    instPoint *point;
    int originalOffset, newOffset;
    //int arrayOffset, 
    int originalArrayOffset, newArrayOffset;
 
-   Address mutatee,newAdr,mutator;
-   LocalAlterationSet alteration_set(this);
-   Address adr;
-
-   instruction *oldCode = NULL, *newCode = NULL;
-
+   const LocalAlterationSet alteration_set = reloc_info->getAlterationSet();
    const image* owner = location->getOwner();
 
-   findAlterations(owner,proc,oldCode,alteration_set,
-                   mutator, mutatee);
    Address imageBaseAddr;
    if (!proc->getBaseAddress(owner,imageBaseAddr))
       abort();
 
-   newAdr = reloc_info->get_address();
+   originalOffset = (location->pointAddr() - getAddress(NULL));
 
-   originalOffset = ((location->pointAddr() + imageBaseAddr) - mutatee);
+   Address codeBaseAddr = addressOfMachineInsn(&instructions[0]);
 
-   originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode);
+   /// getArrayOffset wants an absolute....
+   originalArrayOffset = getArrayOffset(codeBaseAddr + originalOffset, instructions);
 
    assert(originalArrayOffset >= 0);
 
@@ -6330,15 +6493,13 @@ void int_function::addArbitraryPoint(instPoint* location,
    newArrayOffset = originalArrayOffset +
       alteration_set.getInstPointShift(originalOffset);
 
-   adr = newAdr + newOffset;
-
-   newCode  = reinterpret_cast<instruction *> (relocatedCode);
+   Address newAdr = reloc_info->get_address() + newOffset;
 
    unsigned int original_id = location->getID();
 
-   point = new instPoint(original_id, this, owner, newAdr-imageBaseAddr,
-                         otherPoint, newCode[newArrayOffset], true);
 
+   point = new instPoint(original_id, this, owner, newAdr-imageBaseAddr,
+                         otherPoint, relocatedInstructions[newArrayOffset], true);
    int numAddedInstr = 0;
 
    LocalAlteration *alter =
@@ -6346,13 +6507,11 @@ void int_function::addArbitraryPoint(instPoint* location,
 
    if(alter) numAddedInstr = alter->numInstrAddedAfter();
 
-   instrAroundPt(point, newCode, location->insnsBefore(), 
+   instrAroundPt(point, relocatedInstructions, location->insnsBefore(), 
                  location->insnsAfter() + numAddedInstr,
                  OtherPt, newArrayOffset);
 
    reloc_info->addArbitraryPoint(point);
-
-   delete[] oldCode;
 }
 
 int getMaxJumpSize()
