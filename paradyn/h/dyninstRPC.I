@@ -16,7 +16,12 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.20  1994/08/22 16:01:31  markc
+ * Revision 1.21  1994/09/22 00:44:26  markc
+ * Incremented version number
+ * Changed "String" to "char*"
+ * Made array declarations explicit
+ *
+ * Revision 1.20  1994/08/22  16:01:31  markc
  * Remove my_pid which duplicated a class member
  * Add daemon dictionary calls to dataManager interface.
  *
@@ -52,32 +57,36 @@
 
 #include "util/h/aggregation.h"
 
+$remote array char * String_Array;
+
 /* descriptive information about a metric */
 $remote typedef struct { 
-    String name;
+    char *name;
     int style;
     int aggregate;
-    String units;
+    char *units;
 } metricInfo;		
+
+$remote array metricInfo metricInfo_Array;
 
 /*
  * Create a paradynd process.
  *
  */
-int createDaemon(String machine,
-		 String login,
-		 String name,
+int createDaemon(char *machine,
+		 char *login,
+		 char *name,
 		 int argc,
 		 char *argv[]);
 
 
 $remote dynRPC {
     $base 4000;
-    $version 17;
+    $version 18;
 
     //
     // Define a program to run. 
-    int addExecutable(int argc, $array String argv);
+    int addExecutable(int argc, String_Array argv);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -122,8 +131,8 @@ $remote dynRPC {
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
 						int argc, 
-						$array String argv, 
-						String machine);
+						String_Array argv, 
+						char *machine);
 				
 
     //
@@ -150,10 +159,10 @@ $remote dynRPC {
     // abstraction      - abstraction to which it belongs     
     //
     $upcall $async void resourceInfoCallback(int program, 
-					      String parent, 
-					      String newResource, 
-					      String name,
-					      String abstraction);
+					      char *parent, 
+					      char *newResource, 
+					      char *name,
+					      char *abstraction);
 
     $upcall $async void resourceBatchMode(Boolean);
 
@@ -161,17 +170,17 @@ $remote dynRPC {
     // Handler that gets called when new mapping data is collected.
     //
     $upcall $async void mappingInfoCallback(int program, 
-					      String abstraction, 
-					      String type, 
-					      String key,
-					      String value);
+					      char *abstraction, 
+					      char *type, 
+					      char *key,
+					      char *value);
 
     //
     // Request a unique resource name
     //
-    $upcall String getUniqueResource(int program, 
-				     String parent, 
-				     String newResource);
+    $upcall char *getUniqueResource(int program, 
+				     char *parent, 
+				     char *newResource);
 
 
     // Upcall for a new metric being defined.
@@ -186,7 +195,7 @@ $remote dynRPC {
     //    False - suppress
     //    True - enable
     //
-    Boolean setTracking(String resource, Boolean);
+    Boolean setTracking(char *resource, Boolean);
 
     //
     // Routines to control data collection on a performanceStream.
@@ -194,7 +203,7 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    int enableDataCollection($array String resourceList, String metric);
+    int enableDataCollection(String_Array resourceList, char *metric);
 
     //
     // stop collecting data for the named mi.
@@ -207,7 +216,7 @@ $remote dynRPC {
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    double getPredictedDataCost($array String resourceList, String metric);
+    double getPredictedDataCost(String_Array resourceList, char *metric);
 
     //
     // Current best guess about the cost of instrumentation.
@@ -217,31 +226,31 @@ $remote dynRPC {
     //
     // Get the static configuration information.
     //
-    $array metricInfo getAvailableMetrics();
+    metricInfo_Array getAvailableMetrics();
 
     //
     // Create a new resource.
     //
-    void addResource(String parent, String name);
+    void addResource(const char *parent, const char *name);
 
     //
     // stdio or stderr from an application.
     //
-    $upcall $async void applicationIO(int pid, int len, String line);
+    $upcall $async void applicationIO(int pid, int len, char *line);
 
     //
     // Debugger style calls.
     //
     //
-    String getStatus(int pid);
+    char *getStatus(int pid);
     void coreProcess(int pid);
 
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
     // flavor = programming environment {metPVM, metCM5}
-    $virtual $upcall $async void reportSelf(String machine, 
-					    String program, 
+    $virtual $upcall $async void reportSelf(char *machine, 
+					    char *program, 
 					    int pid,
 					    int flavor);
 
