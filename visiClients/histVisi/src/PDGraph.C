@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.15 2001/10/26 06:29:59 schendel Exp $
+// $Id: PDGraph.C,v 1.16 2002/02/15 18:35:24 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -79,7 +79,7 @@
 #include "common/h/Dictionary.h"
 #include "PDGraph.h"
 #include "paradyn/src/UIthread/minmax.h"
-#include "pdutilOld/h/makenan.h"
+#include "pdutil/h/makenan.h"
 
 #define ZOOM_THUMB_SIZE             (0.2)
 #define ZOOM_UNIT_SIZE              (0.05)

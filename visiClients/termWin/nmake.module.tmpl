@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 2001/04/25 20:07:51 wxd Exp $
+# $Id: nmake.module.tmpl,v 1.2 2002/02/15 18:35:34 pcroth Exp $
 #
 
 TARGET	= termWin.exe
@@ -29,7 +29,7 @@ OBJS	= $(OBJS) \
 		$(TCL2C_GEN_SRCS:.C=.obj)
 
 
-LIBS	= $(LIBS) libpdutilOld.lib libpdthread.lib
+LIBS	= $(LIBS) libpdutil.lib libpdthread.lib
 SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 
 all: $(TARGET)

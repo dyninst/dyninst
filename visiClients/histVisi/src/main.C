@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.5 2000/10/17 17:28:55 schendel Exp $
+// $Id: main.C,v 1.6 2002/02/15 18:35:24 pcroth Exp $
 //----------------------------------------------------------------------------
 #include "common/h/headers.h"
 
@@ -69,8 +69,8 @@
 //---------------------------------------------------------------------------
 extern "C" const char V_rthist[];
 Ident V_Pid(V_rthist,"Paradyn");
-extern "C" const char V_libpdutilOld[];
-Ident V_Uid(V_libpdutilOld,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
 extern "C" const char V_libvisi[];
 Ident V_Vid(V_libvisi,"Paradyn");
 

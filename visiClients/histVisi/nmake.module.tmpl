@@ -4,7 +4,7 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2001/11/08 14:53:27 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.6 2002/02/15 18:35:22 pcroth Exp $
 #
 
 TARGET	= rthist.exe
@@ -45,7 +45,7 @@ AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
 
 OBJS	= $(OBJS) $(AUX_TMPO:.C=.obj) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)  $(TCL2C_GEN_SRCS:.C=.obj)
 
-LIBS	= $(LIBS) libvisi.lib libpdutilOld.lib
+LIBS	= $(LIBS) libvisi.lib libpdutil.lib
 SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 
 

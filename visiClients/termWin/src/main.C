@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.4 2001/11/02 16:05:27 pcroth Exp $
+// $Id: main.C,v 1.5 2002/02/15 18:35:37 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -54,7 +54,7 @@
 #include "paradyn/xbm/logo.xbm"
 
 #include "thread/h/thread.h"
-#include "pdutilOld/h/rpcUtil.h"
+#include "pdutil/h/rpcUtil.h"
 #include "visi/h/visualization.h"
 
 #include "clientConn.h"
@@ -63,8 +63,8 @@
 #include "termWin.xdr.SRVR.h"
 
 #include "common/h/Ident.h"
-extern "C" const char V_libpdutilOld[];
-Ident V_Uid(V_libpdutilOld,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
 
 Tcl_Interp *MainInterp;
 termWin* twServer = NULL;

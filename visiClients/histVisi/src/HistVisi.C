@@ -46,12 +46,12 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.7 2001/11/07 05:03:25 darnold Exp $
+// $Id: HistVisi.C,v 1.8 2002/02/15 18:35:24 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
-#include "pdutilOld/h/pdsocket.h"
-#include "pdutilOld/h/pddesc.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/pddesc.h"
 
 #include "tcl.h"
 #include "tk.h"

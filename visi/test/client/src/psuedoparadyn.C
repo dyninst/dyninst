@@ -1,33 +1,10 @@
-/* $Log: psuedoparadyn.C,v $
-/* Revision 1.6  2000/10/17 17:28:33  schendel
-/* Modified include statements to use the newly added pdutilOld library.  This
-/* is a library that will be used temporarily during the changes to update the
-/* sample value pipeline in the daemon, front-end, and visis.  The pdutilOld
-/* library is a snapshot of the pdutil library before the changes required for
-/* the pipeline update.  The front-end and visis can be changed to use the
-/* already updated pdutil directory after they themselves have had the pipeline
-/* updates.
-/*
-/* Revision 1.5  2000/07/28 17:22:56  pcroth
-/* Updated #includes to reflect util library split
-/*
-/* Revision 1.4  1996/01/17 20:43:37  newhall
-/* changes due to new version of visiLib
-/*
- * Revision 1.3  1995/10/14  21:01:45  newhall
- * modified command line args to psuedoparadyn
- *
- * Revision 1.2  1995/09/27  16:30:15  newhall
- * added option for sending user specified data values to a visi
- *
- * Revision 1.1  1995/09/18  18:26:48  newhall
- * updated test subdirectory, added visilib routine GetMetRes()
+/* $Id: psuedoparadyn.C,v 1.7 2002/02/15 18:35:17 pcroth Exp $
  * */ 
 #include <stdio.h>
 #include <stream.h>
 #include "common/h/String.h"
 #include "common/h/Vector.h"
-#include "pdutilOld/h/makenan.h"
+#include "pdutil/h/makenan.h"
 #include "visi.xdr.CLNT.h" 
 
 

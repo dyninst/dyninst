@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.14 2001/11/07 05:03:18 darnold Exp $
+# $Id: make.module.tmpl,v 1.15 2002/02/15 18:35:28 pcroth Exp $
 #
 
 TARGET	      = tableVisi
@@ -39,7 +39,7 @@ TCL_SRCS	= ../tcl/tableVisi.tcl \
                   $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lvisi -lpdutilOld 
+LIBS         += -lvisi -lpdutil
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER

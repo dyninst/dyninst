@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.12 2000/10/17 17:28:55 schendel Exp $
+# $Id: make.module.tmpl,v 1.13 2002/02/15 18:35:25 pcroth Exp $
 #
 
 TARGET	      = phaseTable
@@ -30,7 +30,7 @@ TCL_SRCS        = ../tcl/phasetbl.tcl
 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lvisi -lpdutilOld
+LIBS         += -lvisi -lpdutil
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER

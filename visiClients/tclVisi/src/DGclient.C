@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DGclient.C,v 1.23 2000/10/17 17:28:59 schendel Exp $
+ * $Id: DGclient.C,v 1.24 2002/02/15 18:35:32 pcroth Exp $
  * DGclient.C -- Code for the visi<->tcl interface.
  */
 
@@ -51,11 +51,11 @@
 #include "tcl.h"
 #include "tk.h"
 
-#include "pdutilOld/h/pdsocket.h"
-#include "pdutilOld/h/pddesc.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/pddesc.h"
 #include "common/h/Types.h"
 #include "visi/h/visualization.h"
-#include "pdutilOld/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 
 

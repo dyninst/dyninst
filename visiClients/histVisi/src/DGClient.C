@@ -47,7 +47,7 @@
 // access to the Visi library from Tcl code.
 //
 //----------------------------------------------------------------------------
-// $Id: DGClient.C,v 1.5 2000/10/17 17:28:54 schendel Exp $
+// $Id: DGClient.C,v 1.6 2002/02/15 18:35:24 pcroth Exp $
 //----------------------------------------------------------------------------
 #include <iostream.h>
 
@@ -57,9 +57,9 @@
 #include "tk.h"
 
 #include "DGClient.h"
-#include "pdutilOld/h/pdsocket.h"
+#include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h"
-#include "pdutilOld/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 
 

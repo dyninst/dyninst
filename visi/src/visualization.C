@@ -46,7 +46,7 @@
 #include "visi/src/visualizationP.h"
 #include "visi/src/datagridP.h"
 #include "visi/src/visiTypesP.h"
-#include "pdutilOld/h/makenan.h"
+#include "pdutil/h/makenan.h"
 #include "visi/h/visualization.h"
 #include "common/h/Types.h" // Address
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2001/11/08 14:53:25 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.5 2002/02/15 18:35:19 pcroth Exp $
 #
 
 TARGET	= barChart.exe
@@ -37,7 +37,7 @@ AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
 
 OBJS	= $(OBJS) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(AUX_TMPO:.C=.obj) $(TCL2C_GEN_SRCS:.C=.obj)
 
-LIBS	= $(LIBS) libvisi.lib libpdutilOld.lib
+LIBS	= $(LIBS) libvisi.lib libpdutil.lib
 SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 
 

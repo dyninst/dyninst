@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.22 2000/10/17 17:28:52 schendel Exp $ */
+/* $Id: barChartTcl.C,v 1.23 2002/02/15 18:35:21 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -49,7 +49,7 @@
 #include "common/h/String.h"
 
 #include "common/h/headers.h"
-#include "pdutilOld/h/pdsocket.h"
+#include "pdutil/h/pdsocket.h"
 
 #include "tcl.h"
 #include "tk.h"

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.16 2000/10/17 17:28:58 schendel Exp $
+# $Id: make.module.tmpl,v 1.17 2002/02/15 18:35:31 pcroth Exp $
 #
 
 TARGET	      = tclVisi
@@ -25,7 +25,7 @@ IFLAGS	     += -I../../../paradyn/src/UIthread
 # "visi" checked out in order to compile tclVisi.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-LIBS         += -lvisi -lpdutilOld
+LIBS         += -lvisi -lpdutil
 SYSLIBS      += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER
