@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-X.C,v 1.1 2000/04/06 15:26:11 wylie Exp $
+// $Id: templates-X.C,v 1.2 2000/07/28 15:25:37 paradyn Exp $
 
 #if !defined(rs6000_ibm_aix4_1)
 ERROR: "templates-X is only for AIX"
 #endif
 
-#include "util/h/String.h"
-#include "util/h/Symbol.h"
+#include "common/h/String.h"
+#include "common/h/Symbol.h"
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 template class dictionary_hash<string, Symbol>;
 
