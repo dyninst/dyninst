@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.80 1999/11/11 00:50:35 wylie Exp $
+// $Id: solaris.C,v 1.81 1999/11/30 22:41:27 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -631,7 +631,8 @@ void process::handleIfDueToDyninstLib()
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  Address codeBase = (this->findOneFunction("_start"))->addr();
+  function_base *_startfn = this->findOneFunctionFromAll("_start");
+  Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
@@ -704,7 +705,8 @@ bool process::dlopenDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
-  Address codeBase = (this->findOneFunction("_start"))->addr();
+  function_base *_startfn = this->findOneFunctionFromAll("_start");
+  Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
 
   // Or should this be readText... it seems like they are identical
