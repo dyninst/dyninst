@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.436 2003/06/25 17:33:57 schendel Exp $
+// $Id: process.C,v 1.437 2003/07/15 15:29:47 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5850,10 +5850,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             for (unsigned j=0; j < func_rets.size(); j++) {
                instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
                miniTrampHandle mtHandle;
-               assert(addInstFunc(&mtHandle, this, func_ret, ast,
-                                  req->when, req->order, false, 
-                                  (!req->useTrampGuard))
-                      == success_res);
+               loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
+                                                func_ret, ast,
+                                                req->when, req->order, false, 
+                                                (!req->useTrampGuard));
+               assert( opResult == success_res );
             }
 	  
          }
@@ -5861,11 +5862,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
          if (req->where & FUNC_ENTRY) {
             instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
             miniTrampHandle mtHandle;
-            assert(addInstFunc(&mtHandle, this, func_entry, ast,
-                               req->when, req->order, false,
-                               (!req->useTrampGuard))
-                   == success_res);
-            
+            loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
+                                                func_entry, ast,
+                                                req->when, req->order, false,
+                                                (!req->useTrampGuard));
+            assert( opResult == success_res );
             
          }
          
@@ -5876,11 +5877,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             
             for (unsigned j=0; j < func_calls.size(); j++) {
                miniTrampHandle mtHandle;
-               assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
-                                  req->when, req->order, false, 
-                                  (!req->useTrampGuard))
-                      == success_res);
-               
+               loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
+                                                func_calls[j], ast,
+                                                req->when, req->order, false, 
+                                                (!req->useTrampGuard));
+               assert( opResult == success_res);
             }
          }
          
