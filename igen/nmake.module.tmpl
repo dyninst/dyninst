@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: nmake.module.tmpl,v $
+# Revision 1.2  1997/10/14 21:32:34  wylie
+# Updated path to flex library after re-build/re-installation of oregano
+#
 # Revision 1.1  1997/05/23 22:59:52  mjrg
 # Windows NT port
 #
@@ -24,8 +27,7 @@ OBJS 		= main.obj parser.obj scanner.obj interface_spec.obj
 
 LIBS 	     = $(LIBS) ..\..\..\lib\$(PLATFORM)\libpdutil.lib
 
-### kludge -- TODO: fix flex to build libfl.lib
-SYSLIBS = c:\gnu\flex-2.5.3\libyywrap.obj
+SYSLIBS = p:\paradyn\packages\winnt\lib\libfl.lib
 
 
 all:	$(TARGET)
