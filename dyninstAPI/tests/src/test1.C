@@ -3551,15 +3551,17 @@ int mutatorMAIN(char *pathname, bool useAttach)
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
 
-    if (!runAllTests) {
-	child_argv[n++] = "-run";
-	for (unsigned int j=0; j <= MAX_TEST; j++) {
-	    if (runTest[j]) {
-		char str[5];
-		sprintf(str, "%d", j);
-		child_argv[n++] = strdup(str);
-	    }
-	}
+    if (runAllTests) {
+        child_argv[n++] = "-runall"; // signifies all tests
+    } else {
+        child_argv[n++] = "-run";
+        for (unsigned int j=1; j <= MAX_TEST; j++) {
+            if (runTest[j]) {
+        	char str[5];
+        	sprintf(str, "%d", j);
+        	child_argv[n++] = strdup(str);
+            }
+        }
     }
 
     child_argv[n] = NULL;
