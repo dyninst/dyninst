@@ -7,8 +7,9 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26 1995/05/30 05:05:05 krisna Exp";
-#endif
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
+ 1995/05/30 05:05:05 krisna Exp";
+ #endif
 
 /*
  * symtab.C - generic symbol routines.  Implements an ADT for a symbol
@@ -16,7 +17,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.27  1995/08/24 15:04:36  hollings
+ * Revision 1.28  1995/09/26 20:34:44  naim
+ * Minor fix: change all msg char[100] by string msg everywhere, since this can
+ * cause serious troubles. Adding some error messages too.
+ *
+ * Revision 1.27  1995/08/24  15:04:36  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -164,6 +169,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
 #include "main.h"
 #include "util/h/Timer.h"
 #include "init.h"
+#include "showerror.h"
 
 vector<watch_data> image::watch_vec;
 vector<image*> image::allImages;
@@ -231,6 +237,7 @@ bool image::newFunc(module *mod, const string name, const Address addr,
 
   if (!mod) {
     logLine("Error function without module\n");
+    showErrorCallback(34, "Error function without module");
     return false;
   }
   
@@ -392,13 +399,15 @@ Address image::findInternalAddress(const string name, const bool warn, bool &err
 
   if (!iSymsMap.defines(name)) {
     if (warn) {
-      char msg[100];
-      sprintf(msg, "Unable to find symbol: %s", name.string_of());
-      statusLine(msg);
+      string msg;
+      msg = string("Unable to find symbol: ") + name;
+      statusLine(msg.string_of());
+      showErrorCallback(28, msg);
     }
     err = true;
     return 0;
-  } else
+  } 
+  else
     return (iSymsMap[name]->getAddr());
 }
 
@@ -519,6 +528,7 @@ void image::postProcess(const string pifname)
 	    "Tried to open PIF file %s, but could not (continuing)\n", 
 	    fname.string_of());
     logLine(errorstr);
+    showErrorCallback(35, errorstr); 
     return;
   }
 
@@ -684,7 +694,6 @@ bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
   Address modAddr = 0;
   
   string progName = name_ + "_module";
-  module *progModule = newModule(progName, 0);
   
   binSearch(lookUp, mods, modName, modAddr, progName);
   return (defineFunction(lib, lookUp, modName, modAddr, retFunc));
@@ -727,6 +736,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
     statusLine("Internal symbol DYNINSTfirst not found");
+    showErrorCallback(31, "Internal symbol DYNINSTfirst not found");
     return false;
   } else
     boundary_start = lookUp.addr();
@@ -734,6 +744,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   if (!linkedFile.get_symbol(symString="DYNINSTend", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTend", lookUp)) {
     statusLine("Internal symbol DYNINSTend not found");
+    showErrorCallback(32, "Internal symbol DYNINSTend not found");
     return false;
   } else
     boundary_end = lookUp.addr();
@@ -753,10 +764,13 @@ bool image::addAllFunctions(vector<Symbol> &mods,
       ;
     } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
       if (!isValidAddress(lookUp.addr())) {
-	char msg[100];
-	sprintf(msg, "Function %s has bad address %x", lookUp.name().string_of(),
-		lookUp.addr());
-	statusLine(msg);
+	string msg;
+	char tempBuffer[40];
+	sprintf(tempBuffer,"%x",lookUp.addr());
+	msg = string("Function") + lookUp.name() + string("has bad address ") +
+	      string(tempBuffer);
+	statusLine(msg.string_of());
+	showErrorCallback(29, msg);
 	return false;
       }
       pdFunction *pdf;
@@ -821,7 +835,6 @@ bool image::findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
       unsigned non_size = watch_vec[wv].non_prefix.size();
       for (unsigned non=0; non<non_size; non++) {
 	pdFunction *pdf;
-	char buffer[200], *ptr;
 	string non_string(watch_vec[wv].non_prefix[non]);
 	string under_string(string("_") + non_string);
 
@@ -884,10 +897,11 @@ image::image(const string &fileName, bool &err)
   dataLen_ = linkedFile.data_len();
 
   if (!codeLen_ || !linkedFile.code_ptr()) {
-    char msg[100];
-    sprintf(msg, "Could not open executable file: %s", fileName.string_of());
-    statusLine(msg);
+    string msg;
+    msg = string("Unable to open executable file: ") + fileName;
+    statusLine(msg.string_of());
     err = true;
+    showErrorCallback(27, msg); 
     return;
   }
 
@@ -895,15 +909,18 @@ image::image(const string &fileName, bool &err)
   if (!linkedFile.get_symbol("DYNINSTversion", version) &&
       !linkedFile.get_symbol("_DYNINSTversion", version)) {
     statusLine("Could not find version number in instrumentation\n");
+    showErrorCallback(33, "Could not find version number in instrumentation");
     err = true;
     return;
   }
 
   Word version_number = get_instruction(version.addr());
   if (version_number != 1) {
-    char msg[100];
-    sprintf(msg, "Incorrect version number, expected %d, found %d\n", 1, version_number);
-    statusLine(msg);
+    string msg;
+    msg = string("Incorrect version number, expected ") + string(1) + 
+	  string("found ") + string(version_number);
+    statusLine(msg.string_of());
+    showErrorCallback(30, msg);
     err = true;
     return;
   }

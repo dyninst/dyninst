@@ -6,7 +6,11 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.1  1995/08/24 15:03:57  hollings
+ * Revision 1.2  1995/09/26 20:34:40  naim
+ * Minor fix: change all msg char[100] by string msg everywhere, since this can
+ * cause serious troubles. Adding some error messages too.
+ *
+ * Revision 1.1  1995/08/24  15:03:57  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -33,6 +37,7 @@
 #include "internalMetrics.h"
 #include "stats.h"
 #include "os.h"
+#include "showerror.h"
 
 #define perror(a) P_abort();
 
@@ -57,6 +62,7 @@ inline void generateBranchInsn(instruction *insn, int offset)
 {
     if (ABS(offset) > MAX_BRANCH) {
 	logLine("a branch too far\n");
+	showErrorCallback(52, "Internal error: branch too far");
 	abort();
     }
 
@@ -941,9 +947,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     if (!linkedFile.get_symbol(str, sym)) {
       string str1 = string("_") + str.string_of();
       if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
-	char msg[100];
-        sprintf(msg, "Cannot find %s, exiting", str.string_of());
-	statusLine(msg);
+	string msg;
+        msg = string("Cannot find ") + str + string(". Exiting");
+	statusLine(msg.string_of());
+	showErrorCallback(50, msg);
 	return false;
       }
     }
@@ -952,9 +959,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 
   string ghb = "_DYNINSTtext";
   if (!linkedFile.get_symbol(ghb, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, exiting", ghb.string_of());
-      statusLine(msg);
+      string msg;
+      msg = string("Cannot find ") + ghb + string(". Exiting");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
       return false;
   }
   instHeapStart = sym.addr();
@@ -968,18 +976,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     sprintf(errorLine, "    max reachable at %x\n", 
 	getMaxBranch() + AIX_TEXT_OFFSET_HACK);
     logLine(errorLine);
+    showErrorCallback(53,(const char *) errorLine);
     return false;
   } else if (instHeapStart + SYN_INST_BUF_SIZE > 
 	     getMaxBranch() + AIX_TEXT_OFFSET_HACK) {
     logLine("WARNING: Program text + data could be too big for dyninst\n");
+    showErrorCallback(54,(const char *) errorLine);
     return false;
   }
 
   string hd = "DYNINSTdata";
   if (!linkedFile.get_symbol(hd, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, exiting", hd.string_of());
-      statusLine(msg);
+      string msg;
+      msg = string("Cannot find ") + hd + string(". Exiting");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
       return false;
   }
   instHeapStart = sym.addr();

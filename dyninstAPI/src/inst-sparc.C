@@ -19,14 +19,18 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.27 1995/08/24 15:04:01 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.28 1995/09/26 20:34:42 naim Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.27  1995/08/24 15:04:01  hollings
+ * Revision 1.28  1995/09/26 20:34:42  naim
+ * Minor fix: change all msg char[100] by string msg everywhere, since this can
+ * cause serious troubles. Adding some error messages too.
+ *
+ * Revision 1.27  1995/08/24  15:04:01  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -192,6 +196,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 #include "internalMetrics.h"
 #include "stats.h"
 #include "os.h"
+#include "showerror.h"
 
 #define perror(a) P_abort();
 
@@ -250,6 +255,7 @@ inline void generateBranchInsn(instruction *insn, int offset)
 {
     if (ABS(offset) > MAX_BRANCH) {
 	logLine("a branch too far\n");
+	showErrorCallback(52, "");
 	abort();
     }
 
@@ -1110,6 +1116,7 @@ bool isReturnInsn(const instruction instr)
 	    logLine("*** FATAL Error:");
 	    sprintf(errorLine, " unsupported return\n");
 	    logLine(errorLine);
+	    showErrorCallback(55, "");
 	    P_abort();
         }
 	return true;
@@ -1132,9 +1139,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     if (!linkedFile.get_symbol(str, sym)) {
       string str1 = string("_") + str.string_of();
       if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
-	char msg[100];
-        sprintf(msg, "Cannot find %s, exiting", str.string_of());
-	statusLine(msg);
+	string msg;
+        msg = string("Cannot find ") + str + string(". Exiting");
+	statusLine(msg.string_of());
+	showErrorCallback(50, msg);
 	return false;
       }
     }
@@ -1145,9 +1153,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = U_GLOBAL_HEAP_BASE;
     if (!linkedFile.get_symbol(ghb, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, exiting", str.string_of());
-      statusLine(msg);
+      string msg;
+      msg = string("Cannot find ") + str + string(". Exiting");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
       return false;
     }
   }
@@ -1158,9 +1167,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = UINFERIOR_HEAP_BASE;
     if (!linkedFile.get_symbol(ghb, sym)) {
-      char msg[100];
-      sprintf(msg, "Cannot find %s, cannot use this application", str.string_of());
-      statusLine(msg);
+      string msg;
+      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
       return false;
     }
   }
@@ -1176,6 +1186,7 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     return false;
   } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
     logLine("WARNING: Program text + data could be too big for dyninst\n");
+    showErrorCallback(54, "");
     return false;
   }
   return true;
