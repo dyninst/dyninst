@@ -179,7 +179,9 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 }
 
 timeStamp getCurrentTime(void) {
+    static double previousTime=0.0;
     struct timeval tv;
+  retry:
     assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
 
     double seconds_dbl = tv.tv_sec * 1.0;
@@ -187,6 +189,9 @@ timeStamp getCurrentTime(void) {
     double useconds_dbl = tv.tv_usec * 1.0;
 
     seconds_dbl += useconds_dbl / 1000000.0;
+
+    if (seconds_dbl < previousTime) goto retry;
+    previousTime = seconds_dbl;
 
     return seconds_dbl;
 }
