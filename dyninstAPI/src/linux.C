@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.55 2002/01/31 17:06:55 cortes Exp $
+// $Id: linux.C,v 1.56 2002/02/07 20:30:27 cortes Exp $
 
 #include <fstream.h>
 
@@ -904,6 +904,11 @@ bool process::attach() {
 		perror( "process::attach - PTRACE_ATTACH" );
 		return false;
 	}
+
+    if (0 > waitpid(getPid(), NULL, 0)) {
+      perror("process::attach - waitpid");
+      exit(1);
+    }
   }
 
   if( createdViaAttach )
@@ -925,13 +930,6 @@ bool process::attach() {
       // This case is a special situation. The process is stopped
       // in the exec() system call but we have not received the first 
       // TRAP because it has been caught by another process.
-
-
-      cerr << "process::attach() doing wait" << endl;
-      if (0 > waitpid(getPid(), NULL, 0)) {
-          perror("waitpid");
-          exit(1);
-      }
 
       /* lose race */
       sleep(1);
