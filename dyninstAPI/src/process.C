@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.204 2000/03/02 18:37:53 chambrea Exp $
+// $Id: process.C,v 1.205 2000/03/02 20:11:27 chambrea Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4603,7 +4603,11 @@ int process::procStopFromDYNINSTinit() {
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
    assert(bs_record.pid == getPid());
 
+#ifndef BPATCH_LIBRARY
    if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+#else
+   if (bs_record.event != 3 )
+#endif
    {
       // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
       // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
@@ -4647,7 +4651,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
    const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromAttach = fromAttach || bs_record.event == 3;
-   if (calledFromAttach && !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+   if (calledFromAttach 
+#ifndef BPATCH_LIBRARY
+      && !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) 
+#endif
+      )
       assert(createdViaAttach);
 
 #ifdef SHM_SAMPLING
