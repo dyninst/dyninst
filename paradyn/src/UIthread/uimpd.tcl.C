@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.4  1994/08/01 20:24:42  karavan
-/* new version of dag; new dag support commands
+/* Revision 1.5  1994/09/21 15:35:24  karavan
+/* added addNStyle and addEStyle commands
 /*
+ * Revision 1.4  1994/08/01  20:24:42  karavan
+ * new version of dag; new dag support commands
+ *
  * Revision 1.3  1994/05/12  23:34:18  hollings
  * made path to paradyn.h relative.
  *
@@ -88,6 +91,46 @@ int closeDAGCmd (ClientData clientData,
   currDag = ActiveDags[dagID];
   currDag->destroyDisplay();
   printf ("dag %d destroyed\n", dagID);
+  return TCL_OK;
+}
+
+/*
+  addEStyleCmd
+  looks up dag * for this display and calls function to add Edge Style
+  arguments: dagID, styleID, arrow, fill, capstyle, width
+*/
+int addEStyleCmd (ClientData clientData, 
+		   Tcl_Interp *interp, 
+		   int argc, 
+		   char *argv[])
+{
+  int dagID;
+  dag *currDag;
+  dagID = atoi(argv[1]);
+  currDag = ActiveDags[dagID];
+
+  currDag->AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
+		     argv[4], argv[5][0], atof(argv[6]));
+  return TCL_OK;
+}
+
+/*
+  addNStyleCmd
+  looks up dag * for this display and calls function to add node Style
+  arguments: dagID, styleID, bg, outline, font, text, shape, 
+             width
+*/
+int addNStyleCmd (ClientData clientData, 
+		   Tcl_Interp *interp, 
+		   int argc, 
+		   char *argv[])
+{
+  int dagID;
+  dag *currDag;
+  dagID = atoi(argv[1]);
+  currDag = ActiveDags[dagID];
+  currDag->AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
+		     argv[5], argv[6], argv[7][0], atof(argv[8]));
   return TCL_OK;
 }
 
@@ -337,6 +380,8 @@ static struct cmdTabEntry uimpd_Cmds[] = {
   {"refineSHG", refineSHGCmd},
   {"hideSubgraph", hideSubgraphCmd},
   {"showAllNodes", showAllNodesCmd},
+  {"addEStyle", addEStyleCmd},
+  {"addNStyle", addNStyleCmd},
   {NULL, NULL}
 };
 
