@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: headers.h,v 1.11 1999/05/15 20:26:24 wylie Exp $
+
 #ifndef KLUDGES_H
 #define KLUDGES_H
 
@@ -49,9 +51,6 @@
 typedef int (*xdr_rd_func)(const void *, char *, const int);
 typedef int (*xdr_wr_func)(const void *, const char *, const int);
 
-#if defined(sparc_sun_sunos4_1_3)
-#include "util/h/sunosHeaders.h"
-
 #elif defined(sparc_sun_solaris2_4)
 #include "util/h/solarisHeaders.h"
 
@@ -60,18 +59,6 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 
 #elif defined(i386_unknown_linux2_0)
 #include "util/h/linuxHeaders.h"
-
-#elif defined(i386_unknown_netbsd1_0)
-#include "util/h/netbsdHeaders.h"
-
-#elif defined(hppa1_1_hp_hpux)
-#include "util/h/hpuxHeaders.h"
-
-#elif defined(sparc_tmc_cmost7_3)
-#include "util/h/sunosHeaders.h"
-
-#elif defined(rs6000_ibm_aix3_2)
-#include "util/h/aixv32Headers.h"
 
 #elif defined(rs6000_ibm_aix4_1)
 #include "util/h/aixv41Headers.h"
