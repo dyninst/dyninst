@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.94 2003/04/15 18:44:35 bernat Exp $
+// $Id: pdwinnt.C,v 1.95 2003/04/17 14:24:08 schendel Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -644,7 +644,7 @@ DWORD handleIllegal(process *proc, procSignalInfo_t info) {
 
     Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
     
-    if( proc->handleTrapIfDueToRPC() )
+    if( proc->getRpcMgr()->handleSignalIfDueToIRPC() )
     {
         // handleTrapIfDueToRPC calls continueproc()
         // however, under Windows NT, it doesn't actually 
@@ -654,7 +654,7 @@ DWORD handleIllegal(process *proc, procSignalInfo_t info) {
         // pending instrumentation is executed.  (I.e., instrumentation
         // put off so we could be sure to execute inferior RPC code is
         // now executed.)
-        if( !proc->getRpcMgr()->isRunningIRPC() )	{
+        if( !proc->getRpcMgr()->existsRunningIRPC() )	{
             // we finished the inferior RPC, so we can now execute
             // any pending instrumentation
             
@@ -1088,7 +1088,7 @@ void OS::osDisconnect(void) {
 
 dyn_lwp *process::createLWP(unsigned lwp_id, int index, handleT fd) {
    dyn_lwp *lwp = new dyn_lwp(lwp_id, fd, this);
-   theRpcMgr->newLwpFound(lwp);
+   theRpcMgr->addLWP(lwp);
    lwps[index] = lwp;
    return lwp;
 }
