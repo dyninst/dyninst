@@ -485,6 +485,63 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    fromAddr += sizeof(instruction);
 	    currAddr += sizeof(instruction);
 	    *++temp = location->delaySlotInsn;
+ 
+ 	    // if the NEXT instruction is a call instruction to a location
+ 	    // within the function, then the 07 regester must be saved and 
+ 	    // resored around the relocated call from the base tramp...the call
+ 	    // instruction changes the value of 07 to be the PC value, and if
+ 	    // we move the call instruction to the base tramp, its value will
+ 	    // be incorrect when we use it in the function.  We generate:
+ 	    //
+ 	    //  orignial	    relocated to base tramp
+ 	    //	--------	    -----------------------
+ 	    // 	save 		    nop	 // SAVE added above, replace w/nop 
+ 	    // 	original insn	    original instruction // already relocated
+ 	    //	delaySlotInsn	    isDelayedInsn
+ 	    //  isDelayedInsn	    save
+ 	    //			    delaySlotInsn  (call with offset - 4)
+ 	    //			    restore
+ 	    //  In the function, the call to the base tramp will have an
+ 	    //  additional add instruction to adjust the 07 register
+ 	    //  orignial	    relocated to base tramp
+ 	    //	--------	    -----------------------
+ 	    //  save		     save	
+ 	    //  mov		     call
+ 	    //  call 		     nop
+ 	    //  sethi		     add $o7 4   
+ 	    //
+ 	    if (isInsnType(*temp, CALLmask, CALLmatch)) {
+ 		Address offset = fromAddr + (temp->call.disp30 << 2);
+ 		if ((offset > (location->func->getAddress(0)+ baseAddress)) && 
+ 		    (offset < ((location->func->getAddress(0)+ baseAddress)+
+ 				 location->func->size()))) {
+ 		    
+ 		    temp--;
+ 		    temp--;
+ 		    generateNOOP(temp);  
+ 		    temp++;
+ 		    temp++;
+ 		    location->isLongJump = true;
+ 		    // assert(location->leaf == false);
+ 		    // assume that this is not a delayed instr.
+ 		    *temp = location->isDelayedInsn;  
+ 		    temp++; 
+ 		    currAddr += sizeof(instruction);
+ 		    genImmInsn(temp, SAVEop3, REG_SP, -112, REG_SP); 
+ 		    temp++; 
+ 		    currAddr += sizeof(instruction);  
+ 		    *temp = location->delaySlotInsn;
+ 		    Address new_call_addr = fromAddr - sizeof(instruction);
+ 		    relocateInstruction(temp,new_call_addr,currAddr,proc);
+ 		    temp++; 
+ 		    fromAddr += sizeof(instruction); 
+ 		    currAddr += sizeof(instruction);
+ 		    genImmInsn(temp, RESTOREop3, 0, 0, 0);
+ 		    continue;
+ 		}
+ 	    }   
+
+            // otherwise relocate the NEXT instruction
 	    relocateInstruction(temp, fromAddr, currAddr,
 				(process *)proc);
 	    
@@ -800,6 +857,23 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 	    // Install base tramp for all the other regular functions. 
 	    ret = installBaseTramp(location, proc);
+            // check to see if this is an entry point and if the delay 
+ 	    // slot instruction is a call insn, if so, then if the 
+ 	    // call is to a location within the function we need to 
+ 	    // add an extra instruction after the restore to correctly
+ 	    // set the o7 register
+ 	    bool need_to_add = false;
+ 	    if((location->ipType==functionEntry) 
+ 		    &&(isInsnType(location->delaySlotInsn,CALLmask,CALLmatch))){
+                 Address call_offset = location->addr + 
+ 		                       (location->delaySlotInsn.call.disp30<<2);
+                 Address fun_addr = location->func->getAddress(0);
+                 u_int fun_size = location->func->size();
+                 if((call_offset>fun_addr)&&(call_offset<(fun_addr+fun_size))){
+ 		     assert(location->isLongJump);
+ 		     need_to_add = true;
+ 	        }
+ 	    }	
 
 	    if (location->leaf) {
 		// if it is the leaf function, we need to generate
@@ -812,6 +886,15 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 		    retInstance = new returnInstance((instructUnion *)insn,
 						     sizeof(instruction), adr, 
 						     sizeof(instruction));
+                } else if(need_to_add) {
+		    // generate  origninal; call; add $o7 imm4 
+		    instruction *insn = new instruction[2];
+		    generateCallInsn(insn, adr+4, (int) ret->baseAddr);
+ 		    genImmInsn(insn+1,ADDop3,REG_O7,4,REG_O7);
+		    retInstance = new returnInstance((instructUnion *)insn,
+				 2*sizeof(instruction), adr+4,
+			         2*sizeof(instruction));
+
                 } else {
 		    instruction *insn = new instruction[3];
 		    genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
@@ -830,6 +913,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 		// Otherwise,
 		// Generate branch instruction from the application to the
 		// base trampoline and no SAVE instruction is needed
+
 		
 		if (in1BranchInsnRange(adr, ret->baseAddr)) {
 		    // make sure that the isLongJump won't be true
@@ -850,6 +934,20 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 							 adr, 
 							 sizeof(instruction));
 		    }
+ 
+ 		} else if(need_to_add) {
+ 	          // the delay slot instruction is is a call to a location
+ 	          // within the same function, then need to generate 3 instrs
+ 		  //    call
+ 		  //    nop          // delay slot (originally call insn)
+ 		  //    add o7 imm4  // sets o7 register to correct value
+ 		  instruction *insn = new instruction[3];	
+ 		  generateCallInsn(insn, adr, (int) ret->baseAddr);
+ 		  generateNOOP(insn+1);
+ 		  genImmInsn(insn+2,ADDop3,REG_O7,4,REG_O7);
+ 		  retInstance = new returnInstance((instructUnion *)insn, 
+ 					     3*sizeof(instruction), adr, 
+ 					     3*sizeof(instruction));
 		} else {
 		    instruction *insn = new instruction[2];	
 		    generateCallInsn(insn, adr, (int) ret->baseAddr);
