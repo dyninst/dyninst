@@ -39,8 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.20 2001/08/23 14:44:01 schendel Exp $
+// $Id: costmetrics.C,v 1.21 2001/12/06 20:57:58 schendel Exp $
 
+#include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -246,16 +247,25 @@ bool costMetric::aggregateAndBatch() {
   sampleVal_cerr << "costMetric- end: " << aggSample.end << "  start: " 
 		 << aggSample.start << "  span_ns: " 
 		 << span_ns << "  rval: " << rval << "\n";
-  if(span_ns - rval > 0) {
+
+  pdSample adjSampleVal;
+  if(rval < span_ns) {
     // cost = total execution / computation 
     //      = computation + instr / computation
     //      = ratio of program time for instrumented program to
     //                 program time for uninstrumented program
     double adjRatio = static_cast<double>(span_ns) / (span_ns - rval);
-    aggSample.value.assign(static_cast<int64_t>(span_ns * adjRatio));
-    sampleVal_cerr << "costMetric- adj. value: " << aggSample.value << "\n";
-    node->forwardSimpleValue(aggSample.start, aggSample.end, aggSample.value);
+    adjSampleVal.assign(static_cast<int64_t>(span_ns * adjRatio));
+  } else {
+    // these sample values might need to be aggregated in front-end;
+    // the chosen value allows for 100,000 daemons (ie. nodes)
+    const int64_t largestCostVal = I64_MAX / 100000;
+    adjSampleVal.assign(largestCostVal);
   }
+  sampleVal_cerr << "costMetric- adjSampleVal: " << adjSampleVal << "\n";
+
+  node->forwardSimpleValue(aggSample.start, aggSample.end, adjSampleVal);
   return true;
 }
+
 
