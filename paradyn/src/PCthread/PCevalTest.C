@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.24  1994/07/25 04:47:04  hollings
+ * Revision 1.25  1994/07/26 20:03:31  hollings
+ * added resetActiveFlag
+ *
+ * Revision 1.24  1994/07/25  04:47:04  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -156,7 +159,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.24 1994/07/25 04:47:04 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.25 1994/07/26 20:03:31 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -667,6 +670,22 @@ void setCurrentRefinement(searchHistoryNode *curr)
     PCrefinementPath[PCpathDepth++] = curr;
 }
 
+
+//
+// mark current node and decendents as status = false.
+//
+void resetActiveFlag(searchHistoryNode *curr)
+{
+    searchHistoryNodeList currNode;
+
+    if (curr->children) {
+	for (currNode = *curr->children; curr = *currNode; currNode++) {
+	    if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
+	    resetActiveFlag(curr);
+	}
+    }
+}
+
 Boolean verifyPreviousRefinements()
 {
     int i;
@@ -705,9 +724,16 @@ Boolean verifyPreviousRefinements()
 		}
 	    }
 
-	    // reset status of disabled nodes.
-	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
-		if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
+	    // reset status of disabled nodes decended from the new current
+	    // refinement.   These are things we might have rejected before,
+	    // but due to backing up the search we want to consider them 
+	    // again.
+	    if (currentSHGNode->children) {
+		for (currNode = *currentSHGNode->children; curr = *currNode; 
+		     currNode++) {
+		    resetActiveFlag(curr);
+		    if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
+		}
 	    }
 
 	  PCstatusDisplay->updateStatusDisplay 
