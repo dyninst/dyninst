@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.200 2001/09/14 16:02:05 gurari Exp $
+// $Id: metricFocusNode.C,v 1.201 2001/10/08 20:51:43 zandy Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2075,9 +2075,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         assert(inserted || true);
  
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
-        // number of functions for which instrumentation was deferred
-        int numDeferred = instrumentationToDo.size();
-
         if(inserted == false) {
 
           // instrumentation was deferred

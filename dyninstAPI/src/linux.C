@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.49 2001/08/23 14:43:18 schendel Exp $
+// $Id: linux.C,v 1.50 2001/10/08 20:51:41 zandy Exp $
 
 #include <fstream.h>
 
@@ -156,7 +156,7 @@ static int regmap[] =
 #define REGS_SIZE ( NUM_REGS * REGISTER_RAW_SIZE(0) + NUM_FREGS * REGISTER_RAW_SIZE(FP0_REGNUM) )
 #define REGS_INTS ( REGS_SIZE / INTREGSIZE )
 
-const int GENREGS_STRUCT_SIZE = sizeof( user::regs );
+const int GENREGS_STRUCT_SIZE = sizeof( user_regs_struct );
 #ifdef _SYS_USER_H 
 const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
 #else

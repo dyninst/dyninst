@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.103 2001/08/23 14:43:37 schendel Exp $
+ * $Id: DMdaemon.C,v 1.104 2001/10/08 20:51:42 zandy Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2327,7 +2327,7 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
       return -1;
 
     msg_bind((int)handle, true, (int(*)(void*))xdrrec_eof,
-		      (void*)(pd)->net_obj(), &???);
+		      (void*)(pd)->net_obj(), &xxx);
     fd_vect[(unsigned)handle] = 1;
   }
 

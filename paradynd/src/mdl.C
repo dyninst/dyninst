@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.96 2001/09/14 16:02:02 gurari Exp $
+// $Id: mdl.C,v 1.97 2001/10/08 20:51:43 zandy Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1863,7 +1863,7 @@ apply_to_process(process *proc,
 
     return selected_mn;
 }
-#endif notdef
+#endif /* notdef */
 #endif // !defined(MT_THREAD)
 
 

@@ -15,7 +15,7 @@
 /* 
  * error.c - code to generate an error window when an error occurs.  
  *
- * $Id: error.c,v 1.8 2001/06/12 19:56:12 schendel Exp $
+ * $Id: error.c,v 1.9 2001/10/08 20:51:45 zandy Exp $
  */
 
 #ifdef i386_unknown_linux2_0
@@ -24,6 +24,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xmu/Xmu.h>
 

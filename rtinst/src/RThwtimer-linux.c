@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RThwtimer-linux.c,v 1.1 2001/02/01 01:08:46 schendel Exp $ */
+/* $Id: RThwtimer-linux.c,v 1.2 2001/10/08 20:51:44 zandy Exp $ */
 
 /************************************************************************
  * RThwtimer-linux.c: linux hardware level timer support functions
@@ -47,6 +47,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <setjmp.h>
 #include "rtinst/h/RThwtimer-linux.h"

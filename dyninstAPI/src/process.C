@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.266 2001/10/04 20:04:44 buck Exp $
+// $Id: process.C,v 1.267 2001/10/08 20:51:41 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1151,7 +1151,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 	      heapSymbols[j].name().string_of(), 
 	      heapSymbols[j].addr()+baseAddr,
 	      heapSymbols[j].addr()+baseAddr+heap_size);
-#endif DEBUG
+#endif /* DEBUG */
       free(temp_str);
     }
   return foundHeap;
@@ -4072,7 +4072,7 @@ pd_Function *process::findFuncByAddr(Address adr)
 
   if (returned_functions.size() > 1) { // Got more than one return
     cerr << "Warning: multiple matches found for address " << adr << endl;
-    for (int i = 0; i < returned_functions.size(); i++)
+    for (unsigned int i = 0; i < returned_functions.size(); i++)
       cerr << returned_functions[i]->prettyName() << endl;
   }
 
@@ -4102,7 +4102,7 @@ pd_Function *process::findFuncByAddr(Address adr)
 
   if (returned_functions.size() > 1) { // Got more than one return
     cerr << "Warning: multiple matches found for address " << adr << endl;
-    for (int i = 0; i < returned_functions.size(); i++)
+    for (unsigned int i = 0; i < returned_functions.size(); i++)
       cerr << returned_functions[i]->prettyName() << endl;
   }
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.18 2001/08/30 18:17:15 beyerj Exp $
+# $Id: Makefile,v 1.19 2001/10/08 20:51:42 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,7 @@ CFLAGS +=
 MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
 
-SYSLIBS += -lelf -lnsl
+SYSLIBS += -lelf -ldl
 GNU_CXX = g++
 GNU_CC = gcc
 # there is no "native" or OS-provided compiler for Linux!

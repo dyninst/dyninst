@@ -21,9 +21,7 @@
 
 extern "C" {
 #if !defined(i386_unknown_nt4_0)
-#if defined(i386_unknown_linux2_0)
-	void usleep(unsigned int);
-#else
+#if !defined(i386_unknown_linux2_0)
 	int usleep(useconds_t);
 #endif
 #endif

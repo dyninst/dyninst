@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.27 2000/10/17 17:28:52 schendel Exp $ */
+/* $Id: barChart.C,v 1.28 2001/10/08 20:51:44 zandy Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -328,7 +328,7 @@ void BarChart::processNewData(int newBucketIndex) {
          if (visi_Valid(metriclcv,resourcelcv)) {
             // note that we check the .Valid flag, not the .enabled flag
 
-            register double newVal;
+	    register double newVal = 0.0;
             switch (DataFormat) {
                case Current:
                   newVal = visi_DataValue(metriclcv,resourcelcv,newBucketIndex);

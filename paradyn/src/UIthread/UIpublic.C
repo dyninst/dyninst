@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.73 2001/06/20 20:34:28 schendel Exp $
+/* $Id: UIpublic.C,v 1.74 2001/10/08 20:51:42 zandy Exp $
  */
 
 #include <stdio.h>
@@ -159,7 +159,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
   UIMReplyRec *reply = new UIMReplyRec;
   reply->tid = requestingThread;
-  reply->cb = (showMsgCBFunc) cb;
+  reply->cb = (void *) cb;
   Tcl_SetHashValue (entryPtr, reply);
 
   if (!UI_all_metrics_set_yet) {

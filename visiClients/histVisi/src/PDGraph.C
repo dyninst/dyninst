@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.13 2001/08/23 14:44:52 schendel Exp $
+// $Id: PDGraph.C,v 1.14 2001/10/08 20:51:45 zandy Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -2101,7 +2101,9 @@ vector<PDGraph::Curve::LineSpec> PDGraph::Curve::lineColorSpecs;
 vector<PDGraph::Curve::LineSpec> PDGraph::Curve::linePatternSpecs;
 unsigned int PDGraph::Curve::nextLineSpecIdx = 0;
 
-
+#ifndef DBL_MIN
+#define DBL_MIN 1e-37
+#endif
 
 PDGraph::Curve::Curve( const char* metricName,
                        const char* resourceName,
