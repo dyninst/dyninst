@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.56 2003/09/18 01:05:26 jodom Exp $
+ * $Id: Object-elf.h,v 1.57 2004/03/11 05:29:16 lharris Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -127,6 +127,10 @@ class pdElfShdr;
 
 class Object : public AObject {
  public:
+
+    Symbol findMain( pdvector< Symbol > &allsymbols );
+    Address findDynamic( pdvector< Symbol > &allsymbols );
+    bool shared();
   // executable ctor
   Object(const pdstring, 
 	 void (*)(const char *) = log_msg);
@@ -171,6 +175,17 @@ class Object : public AObject {
 	// returns an offset from the base address of the object
 	// so the entry can easily be located in memory
 	Address getPltSlot(pdstring funcName) const ;
+	bool hasSymAtAddr( Address adr )
+	{
+	    return symbolNamesByAddr.defines( adr );
+	}
+	Address textAddress(){ return text_addr_;}
+	bool isText( Address addr ) const
+	{
+	    if( addr >= text_addr_ && addr <= text_addr_ + text_size_ )
+		return true;
+	    return false;
+	}
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -178,12 +193,12 @@ class Object : public AObject {
   int       file_fd_;            // mapped ELF file
   unsigned  file_size_;          // mapped ELF file
   char     *file_ptr_;           // mapped ELF file
-
+  
   const char * fileName;
-
-	Address text_addr_; //.text section 
-	Address text_size_; //.text section size
-
+  //Symbol    mainSym_;
+  Address   text_addr_; //.text section 
+  Address   text_size_; //.text section size
+  Address   dynamic_addr_;//.dynamic section
   Address   dynsym_addr_;        // .dynsym section
   Address   dynstr_addr_;        // .dynstr section
   Address   got_addr_;           // global offset table
@@ -208,7 +223,7 @@ class Object : public AObject {
 #if defined(ia64_unknown_linux2_4)
   Address   gp;			 // The gp for this object.
 #endif
-
+  bool shared_;
   bool      EEL;                 // true if EEL rewritten
   bool      is_elf64_;           // true if Elf64 file type 
 

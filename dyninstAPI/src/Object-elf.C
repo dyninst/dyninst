@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.59 2004/03/09 17:44:55 chadd Exp $
+ * $Id: Object-elf.C,v 1.60 2004/03/11 05:29:15 lharris Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -147,6 +147,11 @@ SectionHeaderSortFunction( const void* v1, const void* v2 )
 }
 }
 
+bool Object::shared()
+{
+    return shared_;
+}
+
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(bool& did_elf, Elf*& elfp, 
@@ -209,7 +214,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   const char* DYNSTR_NAME      = ".dynstr";
   const char* DATA_NAME        = ".data";
   const char* RO_DATA_NAME     = ".ro_data";  // mips
-
+  const char* DYNAMIC_NAME     = ".dynamic";
   // initialize Object members
 
 	text_addr_ = 0; //ccw 23 jan 2002
@@ -217,6 +222,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 			//falls within the text section 
 			//of a shared library
 
+  dynamic_addr_ = 0;
   dynsym_addr_ = 0;
   dynstr_addr_ = 0;
   got_addr_ = 0;
@@ -374,9 +380,20 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     else if (strcmp(name, ".debug_info") == 0) {
       dwarvenDebugInfo = true;
     }
-#if defined( ia64_unknown_linux2_4 ) 
-    else if (strcmp(name, ".dynamic") == 0) {
 
+//TODO clean up this. it is ugly
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    else if( strcmp( name, DYNAMIC_NAME ) == 0 )
+    {
+	dynamic_addr_ = pd_shdrp->pd_addr;
+    }
+#endif
+
+#if defined( ia64_unknown_linux2_4 ) 
+    else if( strcmp( name, DYNAMIC_NAME ) == 0 )
+    {
 	Elf_Data *datap = elf_getdata(scnp, 0);
 	Elf64_Dyn *dyns = (Elf64_Dyn *)datap->d_buf;
 	unsigned ndyns = datap->d_size / sizeof(Elf64_Dyn);
@@ -385,6 +402,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 	  switch(dyn->d_tag) {
 
 		case DT_PLTGOT:
+			fprintf( stderr, "dyngp: 0x%lx\n", dyn->d_un.d_ptr );
 			this->gp = dyn->d_un.d_ptr;
 			break;
 
@@ -392,9 +410,9 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 			break;
 		} // switch
 	} // for
-    }// .dynamic
-
+    }
 #endif /* ia64_unknown_linux2_4 */
+    // .dynamic
 
 #if defined(mips_sgi_irix6_4)
     else if (strcmp(name, ".MIPS.stubs") == 0) {
@@ -672,6 +690,7 @@ bool Object::mmap_file(const char *file,
 
 void Object::load_object()
 {
+    shared_ = false;
   Elf  *elfp  = 0;  
   bool  did_open = false;
   bool  did_mmap = false;
@@ -744,7 +763,8 @@ void Object::load_object()
     Elf_Data* strdatap = elf_getdata(strscnp, 0);
     if (!symdatap || !strdatap) {
       log_elferror(err_func_, "no symbol/string data");
-      goto cleanup;
+      
+       //goto cleanup;
     }
     pdstring      module = "DEFAULT_MODULE";
     pdstring      name   = "DEFAULT_NAME";
@@ -816,6 +836,7 @@ void Object::load_object()
 
 void Object::load_shared_object() 
 {
+    shared_ = true;
   Elf  *elfp  = 0;  
   bool  did_open = false;
   bool  did_mmap = false;
@@ -935,6 +956,131 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
   return Symbol::SL_UNKNOWN;
 }
 
+
+//============================================================================
+
+#include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/inst.h"
+//#include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
+//#include "dyninstAPI/src/instP.h" // class returnInstance
+//#include "dyninstAPI/src/rpcMgr.h"
+
+//linear search
+bool lookUpSymbol( pdvector< Symbol >& allsymbols, Address& addr )
+{
+    for( unsigned i = 0; i < allsymbols.size(); i++ )
+    {
+	if( allsymbols[ i ].addr() == addr )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+bool lookUpAddress( pdvector< Address >& jumpTargets, Address& addr )
+{
+    for( unsigned i = 0; i < jumpTargets.size(); i++ )
+    {
+	if( jumpTargets[ i ] == addr )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+/******************************************************************************
+findMain: we parse _start for the address of main.  _start pushes the address 
+          of main before a call to libc_start_main. we locate the push 
+          instruction and return its operand
+
+assumptions: (address of _start) == (address of .text)
+******************************************************************************/
+
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+Symbol Object::findMain( pdvector< Symbol > &allsymbols )
+{
+    //TODO add function to get push operand to machine dependent files
+
+    //check if 'main' is in allsymbols
+    for( unsigned i = 0; i < allsymbols.size(); i++ )
+    {
+	if( allsymbols[ i ].name() == "main" ||
+	    allsymbols[ i ].name() == "_main"   )
+	{
+	    return allsymbols[ i ].addr();
+	}	
+    }
+
+    //find and add main to allsymbols
+    const unsigned char* p;
+    p = ( const unsigned char* )elf_vaddr_to_ptr( text_addr_ );
+
+    const int pushCodeSize = 1;
+
+    instruction insn;
+    insn.getNextInstruction( p );
+    
+    while( !insn.isCall() )
+    {
+	p += insn.size();
+	insn.getNextInstruction( p );
+    }
+    p -= insn.size() - pushCodeSize;
+     
+    Address mainAddress =  *( const Address* )p;
+    
+    logLine( "No main symbol found: creating symbol for main" );
+    Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+    	   Symbol::SL_GLOBAL, mainAddress, 0, -1 );
+    
+    allsymbols.push_back( newSym );
+    return newSym;
+}
+
+#endif
+
+
+/*****************************************************************************
+findDynamic(): looks for "_DYNAMIC" in allsymbols. if not present create
+               a symbol for "_DYNAMIC" using dynamic_addr_
+******************************************************************************/
+Address Object::findDynamic( pdvector< Symbol > &allsymbols )
+{
+    for( unsigned i = 0; i < allsymbols.size(); i++ )
+    {
+	if( allsymbols[ i ].name() == "_DYNAMIC" )
+	{
+	    return allsymbols[ i ].addr();
+	}
+    }
+    
+    logLine( "No _DYNAMIC symbol found: creating symbol for _DYNAMIC" );
+    Symbol newSym( "_DYNAMIC", "DEFAULT_MODULE", Symbol::PDST_OBJECT,
+		   Symbol::SL_GLOBAL, dynamic_addr_, 0, 0 );
+    allsymbols.push_back( newSym );
+
+    return dynamic_addr_;
+}
+
+//utitility function to print vector of symbols
+void printSyms( pdvector< Symbol >& allsymbols )
+{
+    for( unsigned i = 0; i < allsymbols.size(); i++ )
+    {
+	if( allsymbols[ i ].type() != Symbol::PDST_FUNCTION )
+	{
+	    continue;
+	}
+	cout << allsymbols[ i ] << endl;
+    } 
+} 
+
+
+
 // parse_symbols(): populate "allsymbols"
 void Object::parse_symbols(pdvector<Symbol> &allsymbols, 
 			   Elf_Data *symdatap, Elf_Data *strdatap,
@@ -1023,6 +1169,21 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
     }
 
   }
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+  
+  if( dynamic_addr_ )
+  {
+      findDynamic( allsymbols );
+  }
+
+  if( !shared )
+  {
+      findMain( allsymbols );
+  }
+#endif
+
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
