@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.70 1999/12/17 19:23:25 paradyn Exp $
+// $Id: rpcUtil.C,v 1.71 2000/03/23 01:28:52 wylie Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -528,7 +528,7 @@ bool RPC_make_arg_list(vector<string> &list,
   // arg_list[arg_count++] = strdup (arg_str);  // 0
 
   if (!use_machine) {
-    list += string("-m") + getHostName();
+    list += string("-m") + getNetworkName();
   } else {
     list += string("-m") + machine_name;
   }
@@ -1170,19 +1170,6 @@ bool RPCgetArg(vector<string> &arg, const char *input)
 }
 
 
-string getHostName() {
-#if defined(i386_unknown_nt4_0)
-    char nameBuf[1000];
-    gethostname(nameBuf,999);
-    return string(nameBuf);
-#else
-    struct utsname un;
-    P_uname(&un);
-    return string(un.nodename);
-#endif
-}
-
-
 #if defined(i386_unknown_nt4_0)
 
 
@@ -1307,4 +1294,107 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 
 
 #endif // defined(i386_unknown_nt4_0)
+
+
+// get the current (localhost) machine name, e.g. "grilled"
+const string getHostName()
+{
+    char hostname[256];
+    int i;
+
+    if ((i=gethostname(hostname,sizeof(hostname))) != 0) {
+#if defined(i386_unknown_nt4_0)
+        i=WSAGetLastError();
+#endif
+        fprintf(stderr,"Failed gethostname(): %d\n", i);
+        return string("");
+    }
+    
+    //cerr << "getHostName=" << hostname << endl;
+    return string(hostname);
+}
+
+// get the network domain name from the given hostname (default=localhost)
+// e.g. "grilled.cs.wisc.edu" -> "cs.wisc.edu"
+const string getDomainName (const string hostname)
+{
+    unsigned index=0;
+
+    string networkname = hostname;
+    if (hostname.length() == 0) networkname = getNetworkName();
+
+    while (index < networkname.length() && networkname[index]!='.') index++;
+    if (index == networkname.length()) {
+        cerr << "Failed to determine domain: hostname=<" << hostname 
+             << ">" << endl;
+        return ("");
+    } else {
+        const string simplename = networkname.substr(0,index);
+        const string domain = networkname.substr(index+1,networkname.length());
+        if (simplename.regexEquiv("[0-9]*",false)) {
+            cerr << "Got invalid simplename: " << simplename << endl;
+            return ("");
+        } else {
+            //cerr << "getDomainName=" << domain << endl;
+            return (domain);
+        }
+    }
+}
+
+// get the fully-qualified network name for given hostname (default=localhost)
+// e.g. "grilled" -> "grilled.cs.wisc.edu"
+const string getNetworkName (const string hostname)
+{
+    struct hostent *hp;
+
+    char name[256];
+    strcpy(name,hostname.string_of());
+
+    if (!name[0]) { // find this machine's hostname
+        const string thishostname=getHostName();
+        strcpy(name,thishostname.string_of());
+    }
+
+    hp = gethostbyname(name);
+    if (hp == NULL) {
+        cerr << "Host information not found for " << name << endl;
+        return string("");
+    }
+
+    string networkname = string(hp->h_name);
+
+    // check that networkname is fully-qualified with domain information
+    if (getDomainName(networkname) == "") 
+        networkname = getNetworkAddr(networkname); // default to IP address
+
+    //cerr << "getNetworkName=" << networkname << endl;
+    return (networkname);
+}
+
+// get the network IP address for given hostname (default=localhost)
+// e.g. "grilled" -> "128.105.166.40"
+const string getNetworkAddr (const string hostname)
+{
+    struct hostent *hp;
+
+    char name[256];
+    strcpy(name,hostname.string_of());
+
+    if (!name[0]) { // find this machine's hostname
+        const string thishostname=getHostName();
+        strcpy(name,thishostname.string_of());
+    }
+
+    hp = gethostbyname(name);
+    if (hp == NULL) {
+        cerr << "Host information not found for " << name << endl;
+        return string("");
+    }
+
+    struct in_addr in;
+    memcpy(&in.s_addr, *(hp->h_addr_list), sizeof (in.s_addr));
+
+    //cerr << "getNetworkAddr=" << inet_ntoa(in) << endl;
+    return string(inet_ntoa(in));
+}
 

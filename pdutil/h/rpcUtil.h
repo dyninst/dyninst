@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.43 1999/12/17 16:11:14 pcroth Exp $
+// $Id: rpcUtil.h,v 1.44 2000/03/23 01:28:49 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
@@ -160,7 +160,10 @@ extern bool RPCgetArg(vector<string> &ret, const char *input);
 extern double timing_loop(const unsigned TRIES=1,
 			  const unsigned LOOP_LIMIT=100000);
 
-extern string getHostName();
+extern const string getHostName();                            // e.g. "foo"
+extern const string getDomainName(const string hostname="");  // "bar.net"
+extern const string getNetworkName(const string hostname=""); // "foo.bar.net"
+extern const string getNetworkAddr(const string hostname=""); // "127.0.0.1"
 
 class rpcBuffer {
   public:

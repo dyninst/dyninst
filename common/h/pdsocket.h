@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdsocket.h,v 1.1 1999/03/03 17:31:26 pcroth Exp $
+// $Id: pdsocket.h,v 1.2 2000/03/23 01:28:49 wylie Exp $
 #ifndef PDSOCKET_H
 #define PDSOCKET_H
 
@@ -63,6 +63,7 @@ typedef	int	PDSOCKET;
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
 #include <unistd.h>
