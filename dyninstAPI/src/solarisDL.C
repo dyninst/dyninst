@@ -43,6 +43,9 @@
 #include "paradynd/src/solarisDL.h"
 #include "paradynd/src/process.h"
 #include "paradynd/src/symtab.h"
+#include "util/h/debugOstream.h"
+
+extern debug_ostream sharedobj_cerr;
 
 #include <link.h>
 #include <libelf.h>
@@ -179,16 +182,17 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	}
         f_name[f_amount-1] = '\0';
 	string obj_name = string(f_name);
-	// string blah = string("next so: ");
-	// blah += f_name;
-	// blah += string("\n");
-	// printf("%s",blah.string_of());
+
+	sharedobj_cerr << "dynamicLinking::processLinkMaps(): file name of next shared obj=" << obj_name << endl;
 
 	// create a shared_object and add it to the list
 	// kludge: ignore the entry if it has the same name as the
 	// executable file...this seems to be the first link-map entry
-	if((obj_name != p->getImage()->file()) && 
-	   (obj_name != p->getImage()->name()) ){
+	if(obj_name != p->getImage()->file() && 
+	   obj_name != p->getImage()->name() &&
+	   obj_name != p->getArgv0()) {
+	   sharedobj_cerr << "file name doesn't match that of image, so not ignoring it...firsttime=" << first_time << endl;
+
 	   // kludge for when an exec occurs...the first element
 	   // in the link maps is the file name of the parent process
 	   // so in this case, we ignore the first entry
@@ -199,6 +203,9 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	        *shared_objects += newobj;
 	    }
 	}
+	else
+	   sharedobj_cerr << "file name matches that of image, so ignoring...firsttime=" << first_time << endl;
+
 	first_time = false;
 	next_addr = (u_int)link_elm.l_next;
     }
