@@ -1065,91 +1065,87 @@ int guessSize(const char *low, const char *hi) {
 static char *parseRangeType(BPatch_module *mod, const char *name, int ID, 
                             char *stabstr, unsigned int sizeHint = 0)
 {
-    int cnt, i, symdescID;
-    //int sign = 1;
-    BPatch_type *baseType;
+   int cnt, i, symdescID;
+   //int sign = 1;
+   BPatch_type *baseType;
 
-    cnt = i = 0;
+   cnt = i = 0;
 
-    assert(stabstr[0] == 'r');
-    cnt++;
+   assert(stabstr[0] == 'r');
+   cnt++;
 
-    BPatch_dataClass typdescr = BPatchSymTypeRange;
+   BPatch_dataClass typdescr = BPatchSymTypeRange;
 
-    // range index type - not used
-    symdescID = parseSymDesc(stabstr, cnt);
+   // range index type - not used
+   symdescID = parseSymDesc(stabstr, cnt);
 
-    baseType = mod->moduleTypes->findType(symdescID);
+   baseType = mod->moduleTypes->findType(symdescID);
 
-    // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
+   // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
-    cnt++; /* Discarding the ';' */
-    i=0;
-    if (stabstr[cnt] == '-' ) {
-       i++;
-    }
+   cnt++; /* Discarding the ';' */
+   i=0;
+   if (stabstr[cnt] == '-' ) {
+      i++;
+   }
 
-    /* Getting type range or size */
+   /* Getting type range or size */
 
-    while (isdigit(stabstr[cnt+i])) i++;
+   while (isdigit(stabstr[cnt+i])) i++;
 
-    char *low = (char *)malloc(sizeof(char)*(i+1));
-    if(!strncpy(low, &(stabstr[cnt]), i))
+   char *low = (char *)malloc(sizeof(char)*(i+1));
+   if(!strncpy(low, &(stabstr[cnt]), i))
       /* Error copying size/range*/
       exit(1);
-    low[i] = '\0';
+   low[i] = '\0';
 
-    cnt = cnt + i + 1; /* Discard other Semicolon */
-    i = 0;
-    if((stabstr[cnt]) == '-') {
-        i++; /* discard '-' for (long) unsigned int */
-    }
-    //Find high bound
-    while (isdigit(stabstr[cnt+i])) i++;
-    char *hi = (char *)malloc(sizeof(char)*(i+1));
-    if(!strncpy(hi, &(stabstr[cnt]), i))
-	/* Error copying upper range */
-	exit(1);
-    hi[i] = '\0';
+   cnt = cnt + i + 1; /* Discard other Semicolon */
+   i = 0;
+   if((stabstr[cnt]) == '-') {
+      i++; /* discard '-' for (long) unsigned int */
+   }
+   //Find high bound
+   while (isdigit(stabstr[cnt+i])) i++;
+   char *hi = (char *)malloc(sizeof(char)*(i+1));
+   if(!strncpy(hi, &(stabstr[cnt]), i))
+      /* Error copying upper range */
+      exit(1);
+   hi[i] = '\0';
 
-    int j = atol(hi);
+   int j = atol(hi);
     
-    if (j == 0) {
-    //Size
-  	int size = atol(low);
+   if (j == 0) {
+      //Size
+      int size = atol(low);
 
-	//Create new type
-	BPatch_type *newType = new BPatch_typeScalar(ID, size, name);
-	//Add to Collection
-	mod->moduleTypes->addOrUpdateType(newType);
-        newType->decrRefCount();
-    }
-    else {
-	//Range
-        //Create new type
-        BPatch_type *newType;
-        if (baseType == NULL)
-           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), low, hi, name);
-        else
-           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), low, hi, name);
-        //Add to Collection
-        mod->moduleTypes->addOrUpdateType(newType);
-        newType->decrRefCount();
-    }
+      //Create new type
+      BPatch_type *newType = new BPatch_typeScalar(ID, size, name);
+      //Add to Collection
+      mod->moduleTypes->addOrUpdateType(newType);
+      newType->decrRefCount();
+   }
+   else {
+      //Range
+      //Create new type
+      BPatch_type *newType;
+      if (baseType == NULL)
+         newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), low, hi, name);
+      else
+         newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), low, hi, name);
+      //Add to Collection
+      mod->moduleTypes->addOrUpdateType(newType);
+      newType->decrRefCount();
+   }
 
-    free(low);
-    free(hi);
-    hi=low=NULL;
+   free(low);
+   free(hi);
+   hi=low=NULL;
 
-    cnt = cnt + i;
-    if( stabstr[cnt] == ';')
+   cnt = cnt + i;
+   if( stabstr[cnt] == ';')
       cnt++;
-    if( stabstr[cnt] ) {
-      bperr( "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
-		  bperr( "\tFull String: %s\n", stabstr);
-    }
-    
-    return(&(stabstr[cnt]));
+
+   return(&(stabstr[cnt]));
 }
 
 #else
