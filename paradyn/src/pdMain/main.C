@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.14  1994/11/02 04:39:01  karavan
-/* added -s commandline option for a tcl script
+/* Revision 1.15  1995/02/16 08:25:09  markc
+/* Removed system includes
+/* Added includes of posix interfaces
 /*
+ * Revision 1.14  1994/11/02  04:39:01  karavan
+ * added -s commandline option for a tcl script
+ *
  * Revision 1.13  1994/11/01  22:27:22  karavan
  * Changed debugging printfs to PARADYN_DEBUG calls.
  *
@@ -50,15 +54,7 @@
  *   This routine creates DM, UIM, VM, and PC threads.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-extern "C" {
-#include <signal.h>
-// void (*signal())(int, void (*)());
-};
-
-
+#include "util/h/headers.h"
 #include "paradyn.h"
 #include "thread/h/thread.h"
 #include "paradyn/src/met/metricExt.h"
@@ -125,7 +121,7 @@ main (int argc, char *argv[])
   //
   // We check our own read/write events.
   //
-  signal(SIGPIPE, SIG_IGN);
+  P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
 
   if (argc != 1 && argc != 3 && argc != 5) {
     printf("usage: %s [-f <filename>] [-s <tclscriptname>]\n", argv[0]);
