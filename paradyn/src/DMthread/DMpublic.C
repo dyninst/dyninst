@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.8  1994/04/01 20:45:05  hollings
+ * Revision 1.9  1994/04/06 21:26:41  markc
+ * Added "include <assert.h>"
+ *
+ * Revision 1.8  1994/04/01  20:45:05  hollings
  * Added calls to query bucketWidth and max number of bins.
  *
  * Revision 1.7  1994/03/31  01:39:01  markc
@@ -47,6 +50,7 @@ extern "C" {
 #include "dataManager.CLNT.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
+#include <assert.h>
 
 // the argument list passed to paradynds
 char **paradynDaemon::args = 0;
