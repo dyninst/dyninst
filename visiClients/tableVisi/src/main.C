@@ -44,6 +44,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.11  1997/09/24 19:32:04  tamches
+ * Tcl_GetFile() no longer used in tcl 8.0
+ *
  * Revision 1.10  1996/08/16 21:36:55  tamches
  * updated copyright for release 1.1
  *
@@ -148,8 +151,7 @@ int main(int argc, char **argv) {
 //      panic("Dg2_Init() -- couldn't install PHASEINFO callback");
 
    // new with tcl 7.5: the Tcl_File type instead of int is passed to Tk_CreateFileHandler
-   Tcl_File visiFdFile = Tcl_GetFile((ClientData)fd, TCL_UNIX_FD);
-   Tcl_CreateFileHandler(visiFdFile, TK_READABLE, visiFdReadableHandler, 0);
+   Tcl_CreateFileHandler(fd, TCL_READABLE, visiFdReadableHandler, 0);
 
    // Krishna's tcl2c stuff:
    extern int initialize_tcl_sources(Tcl_Interp *);
@@ -187,6 +189,4 @@ int main(int argc, char **argv) {
    Tk_MainLoop(); // returns when all tk windows are closed
 
    delete theTableVisi;
-
-   Tcl_FreeFile(visiFdFile);
 }

@@ -43,6 +43,9 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
+ * Revision 1.18  1997/09/24 19:32:49  tamches
+ * Tcl_GetFile() no longer used in tcl 8.0
+ *
  * Revision 1.17  1996/08/16 21:37:39  tamches
  * updated copyright for release 1.1
  *
@@ -427,11 +430,8 @@ int Dg_Init(Tcl_Interp *interp) {
   // Arrange for my_visi_callback() to be called whenever data is waiting
   // to be read off of descriptor "fd".
   
-  // New to tcl 7.5: need to call Tcl_GetFile() before Tcl_CreateFileHandler()
-  Tcl_File theFdFile = Tcl_GetFile((ClientData)fd, TCL_UNIX_FD);
-  Tcl_CreateFileHandler(theFdFile, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
-     // note that since we don't return "theFdFile", the opportunity to properly
-     // call Tcl_FreeFile() when done is lost, but that's no huge bug.
+  Tcl_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
+     // tcl 8.0 removes Tcl_File
 
   return TCL_OK;
 }

@@ -43,9 +43,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.19  1996/08/16 21:35:27  tamches
-/* updated copyright for release 1.1
+/* Revision 1.20  1997/09/24 19:31:22  tamches
+/* Tcl_GetFile() no longer used in tcl 8.0
 /*
+ * Revision 1.19  1996/08/16 21:35:27  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.18  1996/08/05 07:09:30  tamches
  * update for tcl 7.5
  *
@@ -316,10 +319,8 @@ int Dg2_Init(Tcl_Interp *interp) {
  
    // Arrange for my_visi_callback() to be called whenever data is waiting
    // to be read off of descriptor "fd".
-   Tcl_File visiFdFile = Tcl_GetFile((ClientData)fd, TCL_UNIX_FD); // new with tcl 7.5
-   Tcl_CreateFileHandler(visiFdFile, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
-      // note that we don't call Tcl_FreeFile() properly since we don't return
-      // the Tcl_File, but that's no big tragedy.
+   Tcl_CreateFileHandler(fd, TCL_READABLE, (Tk_FileProc *) my_visi_callback, 0);
+      // tcl 8.0 gets rid of the Tcl_File structure
 
    return TCL_OK;
 }
