@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.238 2003/04/21 17:11:18 zandy Exp $
+// $Id: metricFocusNode.C,v 1.239 2003/05/19 03:02:59 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -285,67 +285,67 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 
    if (mdl_can_do(metric_name)) {
       /* select the processes that should be instrumented. We skip process
-	 that have exited, and processes that have been created but are not
-	 completely initialized yet.  If we try to insert instrumentation in
-	 a process that is not ready yet, we get a core dump.  A process is
-	 ready when it is not in neonatal state and the isBootstrappedYet
-	 returns true.
+         that have exited, and processes that have been created but are not
+         completely initialized yet.  If we try to insert instrumentation in
+         a process that is not ready yet, we get a core dump.  A process is
+         ready when it is not in neonatal state and the isBootstrappedYet
+         returns true.
       */
       pdvector<pd_process*> procs;
-
+      
       processMgr::procIter itr = getProcMgr().begin();
       while(itr != getProcMgr().end()) {
-	 pd_process *curProc = *itr++;
+         pd_process *curProc = *itr++;
          if(!curProc) continue;
-	 if(curProc->status()==exited || curProc->status()==neonatal || 
-	    curProc->isBootstrappedYet())
-	 {
-	    procs += curProc;
-	 }
+         if(curProc->status()==exited || curProc->status()==neonatal || 
+            curProc->isBootstrappedYet())
+         {
+            procs += curProc;
+         }
       }
       
       if (procs.size() == 0)
-	 // there are no processes to instrument
+         // there are no processes to instrument
       {	    
-	 //printf("createMetricInstance failed, no processes to instrument\n");
-	 return NULL;
+         //printf("createMetricInstance failed, no processes to instrument\n");
+         return NULL;
       }
       
       machineMetFocusNode *machNode = 
-	 makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
+         makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
       
       if (machNode == NULL) {
-	 metric_cerr << "createMetricInstance failed since mdl_do failed\n";
-	 metric_cerr << "metric name was " << metric_name << "; focus was ";
-	 metric_cerr << "createMetricInstance failed since mdl_do failed\n";
+         metric_cerr << "createMetricInstance failed since mdl_do failed\n";
+         metric_cerr << "metric name was " << metric_name << "; focus was ";
+         metric_cerr << "createMetricInstance failed since mdl_do failed\n";
       }
       return machNode;
    } else {
       bool matched;
       machineMetFocusNode *machNode = 
-	 doInternalMetric(mid, focus, metric_name, enable, matched);
+         doInternalMetric(mid, focus, metric_name, enable, matched);
       // NULL on serious error; -1 if enable was false; -2 if illegal to
       // instr with given focus [many internal metrics work only for whole
       // program]
 
       if (machNode == (machineMetFocusNode*)-2) {
-	 metric_cerr << "createMetricInstance: internal metric " 
-		     << metric_name << " isn't defined for focus: " 
-		     << focus.getName() << "\n";
-	 machNode = NULL; // straighten up the return value
+         metric_cerr << "createMetricInstance: internal metric " 
+                     << metric_name << " isn't defined for focus: " 
+                     << focus.getName() << "\n";
+         machNode = NULL; // straighten up the return value
       }
       else if (machNode == (machineMetFocusNode*)-1) {
-	 metric_cerr << " createMetricInstance: internal metric not enable: " 
-		     << metric_name << endl;
-	 assert(!enable); // no error msg needed
-	 machNode = NULL; // straighten up the return value
+         metric_cerr << " createMetricInstance: internal metric not enable: " 
+                     << metric_name << endl;
+         assert(!enable); // no error msg needed
+         machNode = NULL; // straighten up the return value
       }
       else if (machNode == NULL) {
-	 // more serious error...do a printout
-	 metric_cerr 
-	    << "createMetricInstance failed since doInternalMetric failed\n";
-	 metric_cerr << "metric name was " << metric_name << "; focus was "
-		     << focus.getName() << "\n";
+         // more serious error...do a printout
+         metric_cerr 
+            << "createMetricInstance failed since doInternalMetric failed\n";
+         metric_cerr << "metric name was " << metric_name << "; focus was "
+                     << focus.getName() << "\n";
       }
       if(machNode)  machNode->markAsInternalMetric();
       return machNode;
@@ -372,36 +372,38 @@ void metricFocusNode::handleNewProcess(process *p) {
 }
 
 // Remove the aggregate metric instances that don't have any components left
-void metricFocusNode::handleDeletedProcess(pd_process *proc) {
+void metricFocusNode::handleExitedProcess(pd_process *proc) {
    metric_cerr << "removeFromMetricInstances- proc: " << proc << ", pid: " 
 	       << proc->getPid() << "\n";
 
-   pdvector<processMetFocusNode *> greppedProcNodes;
-   processMetFocusNode::getProcNodes(&greppedProcNodes, proc->getPid());
-   for(unsigned i=0; i<greppedProcNodes.size(); i++) {
-      if (greppedProcNodes[i]->isBeingDeleted()) continue;
-      machineMetFocusNode *machNode = greppedProcNodes[i]->getParent();
-      machNode->deleteProcNode(greppedProcNodes[i]);
-      // what about internal metrics?
-      costMetric::removeProcessFromAll(proc->get_dyn_process());
+   pdvector<machineMetFocusNode *> all_mach_nodes;
+   machineMetFocusNode::getMachineNodes(&all_mach_nodes);
+   for(unsigned i=0; i<all_mach_nodes.size(); i++) {
+      machineMetFocusNode *curMachNode = all_mach_nodes[i];
+      curMachNode->adjustForExitedProcess(proc);
    }
+
+   // what about internal metrics?
+   costMetric::removeProcessFromAll(proc->get_dyn_process());
 }
 
 void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
-   pdvector<processMetFocusNode *> procNodes;
    assert(proc->multithread_ready());
-   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
-   for(unsigned i=0; i<procNodes.size(); i++) {
-      procNodes[i]->propagateToNewThread(thr);
+   pdvector<machineMetFocusNode *> all_mach_nodes;
+   machineMetFocusNode::getMachineNodes(&all_mach_nodes);
+   for(unsigned i=0; i<all_mach_nodes.size(); i++) {
+      machineMetFocusNode *curMachNode = all_mach_nodes[i];
+      curMachNode->adjustForNewThread(proc, thr);
    }
 }
 
-void metricFocusNode::handleDeletedThread(pd_process *proc, pd_thread *thr) {
-   pdvector<processMetFocusNode *> procNodes;
-   assert(proc->multithread_ready());
-   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
-   for(unsigned i=0; i<procNodes.size(); i++) {
-      procNodes[i]->updateForDeletedThread(thr);
+void metricFocusNode::handleExitedThread(pd_process *proc, pd_thread *thr) {
+   assert(proc->multithread_ready());   
+   pdvector<machineMetFocusNode *> all_mach_nodes;
+   machineMetFocusNode::getMachineNodes(&all_mach_nodes);
+   for(unsigned i=0; i<all_mach_nodes.size(); i++) {
+      machineMetFocusNode *curMachNode = all_mach_nodes[i];
+      curMachNode->adjustForExitedThread(proc, thr);
    }
 }
 
