@@ -3098,7 +3098,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 					       inProgStruct.resultRegister);
       // the last 4 args are written to
 
-   if (tempTrampBase == NULL) {
+   if (tempTrampBase == 0) {
       cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed" << endl;
       if (wasRunning)
 	 (void)continueProc();

@@ -51,6 +51,9 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.16  1997/12/01 02:30:19  tung
+ * For Linux/X86 port
+ *
  * Revision 1.15  1997/04/29 23:16:07  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -93,6 +96,8 @@
 #include "dyninstAPI/src/hpux.h"
 #elif defined(i386_unknown_nt4_0)
 #include "dyninstAPI/src/pdwinnt.h"
+#elif defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/linux.h"
 
 #endif
 

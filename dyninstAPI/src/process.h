@@ -960,7 +960,7 @@ private:
    bool writeMutationList(mutationList &list);
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
    // some very useful items gathered from /proc (initialized in attach() [solaris.C],
    // as soon as /proc fd is opened)
    string argv0; // argv[0] of program, at the time it started up

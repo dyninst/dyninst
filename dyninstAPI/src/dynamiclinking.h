@@ -59,6 +59,8 @@
 #elif defined(i386_unknown_nt4_0)
 #include "dyninstAPI/src/ntDL.h"
 
+#elif defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/linuxDL.h"
 #endif
 
 #endif

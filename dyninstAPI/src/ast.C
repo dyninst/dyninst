@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.49  1997/12/01 02:29:09  tung
+ * For Linux/X86 port
+ *
  * Revision 1.48  1997/08/31 01:20:22  ssuen
  * Commented out one debugging message
  *
@@ -199,7 +202,7 @@
 #include "dyninstAPI/src/inst-hppa.h"
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/inst-power.h"
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/inst-x86.h"
 #else
 #endif
