@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.22  1996/03/18 07:11:12  karavan
+ * added new TC, PCcollectInstrTimings
+ *
  * Revision 1.21  1996/02/09 20:56:11  karavan
  * Added globalRawDataServer and currentRawDataServer to keep the new data
  * path efficient.
@@ -88,6 +91,7 @@
 //
 class searchHistoryNode;
 class filteredDataServer;
+class PCmetricInstServer;
 
 typedef struct int_Array {
   int count;
@@ -110,7 +114,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 11;
+    $version 12;
 
     // all initialization for new search; checks first if search already
     // active for specified phase, to enforce 1 search/phase rule
@@ -140,6 +144,7 @@ $remote performanceConsultant {
     static bool printTestResults;
     static bool printSearchChanges;
     static bool printDataCollection;
+    static bool collectInstrTimings;
     static bool useIndividualThresholds;
     // other PC-globals
     static unsigned DMcurrentPhaseToken;
@@ -147,5 +152,6 @@ $remote performanceConsultant {
     // for quick handling of new data
     static filteredDataServer *globalRawDataServer;
     static filteredDataServer *currentRawDataServer;
+    static PCmetricInstServer *globalPCMetricServer;
     $signore    
 };
