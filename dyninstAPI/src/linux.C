@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.126 2004/03/02 22:46:03 bernat Exp $
+// $Id: linux.C,v 1.127 2004/03/05 16:51:33 bernat Exp $
 
 #include <fstream>
 
@@ -395,10 +395,10 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            //Address pc = frame.getPC();
            Address pc = getPC(pertinantPid);
            
-           if(pc == pertinantProc->rbrkAddr() ||
-              pc == pertinantProc->main_brk_addr ||
-              pc == pertinantProc->dyninstlib_brk_addr) {
-              what = SIGTRAP;
+           if(pc == pertinantProc->dyninstlib_brk_addr ||
+              pc == pertinantProc->main_brk_addr || 
+              pertinantProc->getDyn()->reachedLibHook(pc)) {
+               what = SIGTRAP;
            }
            break;
       }
@@ -527,13 +527,6 @@ bool process::unsetProcessFlags(){
 
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
-
-Address process::get_dlopen_addr() const {
-  if (dyn != NULL)
-    return(dyn->get_dlopen_addr());
-  else 
-    return(0);
-}
 
 /* Input P points to a buffer containing the contents of
    /proc/PID/stat.  This buffer will be modified.  Output STATUS is
