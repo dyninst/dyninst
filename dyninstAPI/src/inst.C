@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.72 1999/09/10 14:26:28 nash Exp $
+// $Id: inst.C,v 1.73 2000/02/18 20:40:53 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -215,13 +215,14 @@ vector<instWaitingList *> instWList;
 instInstance *addInstFunc(process *proc, instPoint *&location,
 			  AstNode *&ast, // ast may change (sysFlag stuff)
 			  callWhen when, callOrder order,
-			  bool noCost)
+			  bool noCost,
+			  bool trampRecursiveDesired)
 {
     returnInstance *retInstance = NULL;
        // describes how to jmp to the base tramp
 
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
-				     noCost, retInstance);
+				     noCost, retInstance, trampRecursiveDesired);
     if (retInstance) {
        // Looking at the code for the other addInstFunc below, it seems that
        // this will always be true...retInstance is never NULL.
@@ -237,11 +238,15 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 }
 
 // Shouldn't this be a member fn of class process?
+// The trampRecursiveDesired flag decides which base tramp is used,
+// _if_ a base tramp is installed. If there is already a base tramp
+// at the instrumentation point, the flag is ignored.
 instInstance *addInstFunc(process *proc, instPoint *&location,
 			  AstNode *&ast, // the ast could be changed 
 			  callWhen when, callOrder order,
 			  bool noCost,
-			  returnInstance *&retInstance)
+			  returnInstance *&retInstance,
+			  bool trampRecursiveDesired = false)
 {
 
     // retInstance gets filled in with info on how to jmp to the base tramp
@@ -255,6 +260,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 
     ret->proc = proc;
     ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, 
+						trampRecursiveDesired,
 						noCost);
     if (!ret->baseInstance)
        return(NULL);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.53 2000/02/04 21:52:45 zhichen Exp $
+// $Id: inst.h,v 1.54 2000/02/18 20:40:53 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -76,7 +76,8 @@ instInstance *addInstFunc(process *proc,
 			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
-			  bool noCost);
+			  bool noCost,
+			  bool trampRecursionDesired);
 
 instInstance *addInstFunc(process *proc,
 			  instPoint *&location,
@@ -84,7 +85,8 @@ instInstance *addInstFunc(process *proc,
 			  callWhen when,
 			  callOrder order,
 			  bool noCost,
-			  returnInstance *&retInstance);
+			  returnInstance *&retInstance,
+			  bool trampRecursionDesired);
 
 
 /* Utility functions */

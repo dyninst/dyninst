@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.29 1999/08/09 05:50:24 csserra Exp $
+// $Id: instP.h,v 1.30 2000/02/18 20:40:54 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -72,6 +72,9 @@ class trampTemplate {
     int restorePreInsOffset;
     int savePostInsOffset;
     int restorePostInsOffset;
+
+    int recursiveGuardPreJumpOffset;
+    int recursiveGuardPostJumpOffset;
 
     int cost;			/* cost in cycles for this basetramp. */
     Address costAddr;           /* address of cost in this tramp      */
@@ -166,6 +169,7 @@ extern vector<instWaitingList*> instWList;
 extern trampTemplate *findAndInstallBaseTramp(process *proc, 
 				 instPoint *&location,
 				 returnInstance *&retInstance,
+				 bool trampRecursiveDesired,
 				 bool noCost);
 extern void installTramp(instInstance *inst, char *code, int codeSize);
 extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo);

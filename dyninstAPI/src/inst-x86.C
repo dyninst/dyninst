@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.53 2000/01/11 21:55:35 altinel Exp $
+ * $Id: inst-x86.C,v 1.54 2000/02/18 20:40:53 bernat Exp $
  */
 
 #include <limits.h>
@@ -1023,7 +1023,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
 	  // XXX Is making the noCost parameter always false okay here?
 	  trampTemplate *entryBase =
 	      findAndInstallBaseTramp(proc, nonConstEntry,
-				      retInstance, false);
+				      retInstance, false, false);
 	  assert(entryBase);
 	  if (retInstance) {
 	      retInstance->installReturnInstance(proc);
@@ -1424,6 +1424,7 @@ void generateNoOp(process *proc, Address addr)
 trampTemplate *findAndInstallBaseTramp(process *proc, 
 				       instPoint *&location, 
 				       returnInstance *&retInstance,
+				       bool trampRecursiveDesired,
 				       bool noCost)
 {
     trampTemplate *ret;

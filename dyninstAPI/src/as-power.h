@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: as-power.h,v 1.8 1998/12/26 18:48:38 wylie Exp $ */
+/* $Id: as-power.h,v 1.9 2000/02/18 20:40:51 bernat Exp $ */
 
 #ifndef AS_POWER_H
 #define AS_POWER_H
@@ -48,6 +48,13 @@
  *   to patch up.   This must be invalid instructions (any instruction with
  *   its top 6 bits as 0 is invalid (technically UNIMP?).
  */
+
+/* Note: this file says top 6, the inst-power.h file says top 10. ??? 
+   -- bernat
+
+   Assuming top 10 (more restrictive), that still leaves up to 4M to
+   play with (2^22) 
+*/
 
 #define UPDATE_LR       0x5
 
@@ -88,5 +95,15 @@
 #define SAVE_POST_INSN          0xb2
 #define RESTORE_PRE_INSN        0xc1
 #define RESTORE_POST_INSN       0xc2
+
+/* Various recursion avoidance constants */
+/* Added 5JAN99 by Drew Bernat */
+
+#define REENTRANT_GUARD_LOAD      0x20
+#define REENTRANT_PRE_INSN_JUMP   0x21
+#define REENTRANT_POST_INSN_JUMP  0x26
+#define REENTRANT_GUARD_INC       0x2a
+#define REENTRANT_GUARD_DEC       0x2b
+#define REENTRANT_GUARD_STORE     0x2c
 
 #endif

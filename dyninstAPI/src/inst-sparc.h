@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.38 1999/11/09 19:20:53 cain Exp $
+// $Id: inst-sparc.h,v 1.39 2000/02/18 20:40:53 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -435,7 +435,9 @@ extern void changeBranch(process *proc, Address fromAddr, Address newAddr,
 		  instruction originalBranch);
 extern trampTemplate *findAndInstallBaseTramp(process *proc,
 				 instPoint *&location, 
-				 returnInstance *&retInstance, bool noCost);
+				 returnInstance *&retInstance,
+				 bool trampRecursiveDesired,
+				 bool noCost);
 
 extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
 extern void generateCall(process *proc, Address fromAddr, Address newAddr);

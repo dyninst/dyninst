@@ -2137,6 +2137,7 @@ trampTemplate *installBaseTramp(process *p, instPoint *&ip)
 trampTemplate *findAndInstallBaseTramp(process *p, 
 				       instPoint *&ip,
 				       returnInstance *&retInst,
+				       bool trampRecursiveDesired,
 				       bool /*noCost*/)
 {
   //fprintf(stderr, ">>> findAndInstallBaseTramp(): "); ip->print();

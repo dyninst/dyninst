@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.28 2000/01/11 21:55:34 altinel Exp $
+// $Id: BPatch_thread.C,v 1.29 2000/02/18 20:40:51 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -627,7 +627,11 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 			    ast,
 			    _when,
 			    _order,
-			    false)) != NULL) {
+			    false,
+			    // Do we want the base tramp (if any) created allowing
+			    // recursion? 
+			    BPatch::bpatch->isTrampRecursive()
+			    )) != NULL) {
 	    handle->add(instance);
 	} else {
 	    delete handle;

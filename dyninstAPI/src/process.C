@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.201 2000/02/04 21:52:47 zhichen Exp $
+// $Id: process.C,v 1.202 2000/02/18 20:40:54 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4401,7 +4401,8 @@ void process::installBootstrapInst() {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
        addInstFunc(this, func_entry, ast, callPreInsn,
                orderFirstAtPoint,
-               true // true --> don't try to have tramp code update the cost
+               true, // true --> don't try to have tramp code update the cost
+ 	       false // don't want to allow recursion
                );
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
@@ -4450,14 +4451,14 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	 const vector<instPoint*> func_rets = func->funcExits(this);
 	 for (unsigned j=0; j < func_rets.size(); j++)
 	    (void)addInstFunc(this, func_rets[j], ast,
-			      req->when, req->order, false);
+			      req->when, req->order, false, false);
 
       }
 
       if (req->where & FUNC_ENTRY) {
 	 instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
 	 (void)addInstFunc(this, func_entry, ast,
-			   req->when, req->order, false);
+			   req->when, req->order, false, false);
 
       }
 
@@ -4468,7 +4469,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 
 	 for (unsigned j=0; j < func_calls.size(); j++)
 	    (void)addInstFunc(this, func_calls[j], ast,
-			      req->when, req->order, false);
+			      req->when, req->order, false, false);
 
       }
 
