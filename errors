@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.18  1994/07/11 20:48:38  newhall
+# Revision 1.19  1994/07/11 21:14:26  newhall
+# created error #14
+#
+# Revision 1.18  1994/07/11  20:48:38  newhall
 # created error #13
 #
 # Revision 1.17  1994/07/11  20:47:15  newhall
@@ -184,4 +187,13 @@ Call to malloc failed within a visi-thread function
 %S serious
 %X
 Call to thr_getspecific in a visi-thread function failed.
+%Y
+
+%N 14
+%E unable to start visualization process
+%A vi
+%S serious
+%X
+A request to start a new visualization process failed.  This is due
+to a return value of -1 from the call to RPCprocessCreate.
 %Y
