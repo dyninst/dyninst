@@ -265,7 +265,7 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //to control flow graph. This makes only one basic block to be in the
 //entryBlocks field of the controlflow grpah. If it is possible
 //to enter a function from many points some modification is needed
-//to insert all entry basic blocks to the relevant field of the class.
+//to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
 {
    // assign sequential block numbers to basic blocks
@@ -459,29 +459,44 @@ bool BPatch_flowGraph::createBasicBlocks()
          BPatch_basicBlock * bb = leaderToBlock[elements[i]];
          bb->startAddress = (Address)(elements[i]+diffAddress);
          
+	 // was the previous instruction an unconditional jump?
+	 bool prevInsIsUncondJump = false;
+
          //while the address handle has instructions to process
          while (ah.hasMore()) {
             InstrucIter inst(ah);
             Address pos = *ah;
             
-            //if the next leaders instruction is seen and it is not
-            //the end of the function yet, find out whether
-            //the successors of the basic block already has
-            //some information. If not then it has no branch
-            //instruction as a last instruction. So the next
-            //leaders basic block must be in the successor list
-            //and break processing for the current leader
+            // if the next leaders instruction is seen and it is not
+            // the end of the function yet
             if ((i < (leaders.size()-1)) && (pos == elements[i+1])) {
-               bb->endAddress = (Address)(ah.prevAddress() + diffAddress);
-               if (bb->targets.size() == 0) {
-                  bb->targets += leaderToBlock[pos];
-                  leaderToBlock[pos]->sources += bb;    
-               }
-               break;
+		// end of current block
+		bb->endAddress = (Address)(ah.prevAddress() + diffAddress);
+
+		// if the previous block has no targets inside the current 
+		// function and is not an exit block and the previous 
+		// instruction was not an unconditional jump then we infer
+		// that there is a fall-through edge from bb to the next block
+		// (which pos is the leader of). if the target of return
+		// instructions and jumps outside the function were added to
+		// the basic blocks vector of targets then checking that 
+		// the vector of targets is empty would be enough
+		if (bb->targets.size() == 0 && !bb->isExitBasicBlock
+		    && !prevInsIsUncondJump) {
+		    bb->targets += leaderToBlock[pos];
+		    leaderToBlock[pos]->sources += bb;    
+
+		    prevInsIsUncondJump = false; 
+		}
+
+		// continue to next leader
+		break;
             }
             
             ah++;
             
+	    prevInsIsUncondJump = false; 
+
             //if the instruction is conditional branch then
             //find the target address and find the corresponding 
             //leader and basic block for it. Then insert the found
@@ -524,8 +539,13 @@ bool BPatch_flowGraph::createBasicBlocks()
                   leaderToBlock[taddr]->sources += bb;
                }
                else {
-                  exitBlock += bb;
+		   exitBlock += bb;
                }
+
+	       // flag this unconditional jump so that when we examine the
+	       // next instruction and find that it is a leader we will know
+	       // there is not a fall-through edge between these two blocks
+	       prevInsIsUncondJump = true; 
 
                if (InstrucIter::delayInstructionSupported() && 
                    !inst.isAnneal())
