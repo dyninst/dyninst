@@ -44,33 +44,39 @@
 #include "paradynd/src/pd_thread.h"
 
 
+void threadMgr::removeThread(pd_thread *p) {
+   removeThread(p->get_tid());
+}
+
 void threadMgr::removeThread(unsigned tid) {
-   for(unsigned i=0; i<thrBuf.size(); i++) {
-      if(thrBuf[i] && thrBuf[i]->get_tid() == tid) {
-	 thrBuf[i] = NULL;
+   thrIter itr = thrBuf.end();
+   while(itr != thrBuf.begin()) {
+      itr--;
+      pd_thread *thr = *itr;
+      if(thr->get_tid() == tid) {
+         thrBuf.erase(itr);
+         break;
       }
    }
 }
 
 pd_thread *threadMgr::find_pd_thread(dyn_thread *dyn_thr) {
-   cerr << "in threadMgr::find_pd_thread, " << thrBuf.size() << " threads\n"
-	<< flush;
-   for(unsigned i=0; thrBuf.size(); i++) {
-      pd_thread *curThr = thrBuf[i];
-      cerr << "   i: " << i << ", pd_thr = " << curThr << ", dyn_thr = "
-	   << curThr->get_dyn_thread() << "\n" << flush;
+   thrIter itr = thrBuf.begin();
+   while(itr != thrBuf.end()) {
+      pd_thread *curThr = (*itr);
+      itr++;
       if(curThr->get_dyn_thread() == dyn_thr) {
-	 cerr << "returning " << curThr << "\n" << flush;
 	 return curThr;
       }
    }
-   cerr << "returning NULL\n" << flush;
    return NULL;
 }
 
 pd_thread *threadMgr::find_pd_thread(int tid) {
-   for(unsigned i=0; thrBuf.size(); i++) {
-      pd_thread *curThr = thrBuf[i];
+   thrIter itr = thrBuf.begin();
+   while(itr != thrBuf.end()) {
+      pd_thread *curThr = (*itr);
+      itr++;
       if(curThr->get_tid() == tid) {
 	 return curThr;
       }
