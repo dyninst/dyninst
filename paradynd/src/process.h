@@ -424,12 +424,6 @@ class process {
 
   bool handleStopDueToExecEntry();
 
-  // findDynamicLinkingInfo: This routine is called on exit point of 
-  // of the exec system call. It checks if the a.out is dynamically linked,
-  // and if so, it inserts any initial instrumentation that is necessary
-  // for collecting run-time linking info.
-  // bool findDynamicLinkingInfo();
-
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's
   // address space

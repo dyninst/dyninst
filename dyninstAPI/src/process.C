@@ -1918,15 +1918,8 @@ bool process::pause() {
 }
 
 //
-//  this routines inserts initial instrumentation into the PLT
-//  so that function calls to dynamically linked objects that invoke
-//  the dynamic linker are caught 
-//
-//  TODO: This routine also traverses the link map and creates a list
-//        of (shared object file name,shared object base address, processed)
-//        structs for each element in the link map.  The daemon also 
-//	  instruments the r_brk routine so that mapping and unmapping
-//	  of shared objects by the runtime linker is detected
+//  If this process is a dynamic executable, then get all its 
+//  shared objects, parse them, and define new instpoints and resources 
 //
 bool process::handleStartProcess(process *p){
 
@@ -1935,22 +1928,13 @@ bool process::handleStartProcess(process *p){
     }
 
     // get shared objects, parse them, and define new resources 
-    p->getSharedObjects(); // should now work when we attach to a running process
+    p->getSharedObjects();
 
     if(resource::num_outstanding_creates)
        p->setWaitingForResources();
 
     return true;
 }
-
-//  Executes on the exit point of the exec: does any necessary initialization
-//  for the run time linker to export dynamic linking information
-//  returns true if the executable is dynamic
-//
-// bool process::findDynamicLinkingInfo(){
-//     dynamiclinking = true;
-//     return dynamiclinking;
-// }
 
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
@@ -2000,9 +1984,9 @@ bool process::addASharedObject(shared_object &new_obj){
     return true;
 }
 
-// getSharedObjects: This routine is called before main() to get and
-// process all shared objects that have been mapped into the process's
-// address space
+// getSharedObjects: This routine is called before main() or on attach
+// to an already running process.  It gets and process all shared objects
+// that have been mapped into the process's address space
 bool process::getSharedObjects() {
 
     assert(!shared_objects);
@@ -2359,7 +2343,8 @@ void process::handleExec() {
     // can't delete dynamic linking stuff here, because parent process
     // could still have pointers
     dynamiclinking = false;
-    dyn = 0; // AHEM.  LEAKED MEMORY!
+    dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
+	     // to this dynamic_linking object.
     dyn = new dynamic_linking;
     if(shared_objects){
         for(u_int i=0; i< shared_objects->size(); i++){
@@ -2408,7 +2393,8 @@ void process::handleExec() {
     // than one process...images and instPoints can not be deleted...TODO
     // add some sort of reference count to these classes so that they can
     // be deleted
-    symbols = img; // AHEM!  LEAKED MEMORY!!!
+    symbols = img; // AHEM!  LEAKED MEMORY!!! ...not if parent has ptr to 
+		   // previous image
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
@@ -3075,6 +3061,19 @@ bool process::procStopFromDYNINSTinit() {
    // could conceivably receive and process a tp->continueProgram() (which paradyn
    // usually sends as soon as it receives a newProgramCallbackFunc()), all occuring
    // before the remainder of this fn is executed.
+   //
+   // NO, this is not right. Paradynd will only receive an igen call from 
+   // paradyn when it enters its main loop.  The only exception to this is if
+   // paradynd makes a synchronous call, then it waits for the corresponding
+   // response from paradyn. It buffers (ie. does not handle) any calls from 
+   // paradyn that are made between paradynd's synchronous call to paradyn and
+   // paradyn's response to paradynd.  In either case, sending a msg will never
+   // result in paradynd handling arbitrary msgs sent by paradyn...this 
+   // function will always complete before a request to continueProgram is 
+   // handled.  Also, since paradynd is the server side of the dyninstRPC 
+   // interface it can never make a synchronous upcall to paradyn (igen does 
+   // not support synchronous upcalls). TN 
+
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
 			      machineResource->part_name(),
 			      calledFromExec);
