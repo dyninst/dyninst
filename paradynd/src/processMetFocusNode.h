@@ -89,16 +89,9 @@ class processMetFocusNode : public metricFocusNode {
 
   bool dontInsertData_;
   bool currentlyPaused;
+  bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
   vector<catchup_t >   catchupASTList;
   vector<sideEffect_t> sideEffectFrameList;
-
-  dictionary_hash<unsigned, int> thridsCatchuped;
-
-  // remember the threads that need catchup separately than the threads in
-  // the process because pd_process could gain more threads independently
-  // of procMetFocusNode being informed
-  vector<pd_thread *> threadsNeedingCatchup;
-  bool hasBeenCatchuped_;
 
   // don't have a hash indexed by pid because can have multiple procNodes
   // with same pid
@@ -111,15 +104,9 @@ class processMetFocusNode : public metricFocusNode {
 		      bool arg_dontInsertData);
 
   void manuallyTrigger(int mid);
-  bool catchupInstrNeeded() const;
   void prepareCatchupInstr(pd_thread *thr);  // do catchup on given thread
 
-  // returns true if any instrumentation was added for codeNodes
-  bool updateCodeNodes(pd_thread *thr);
-  void markAsCatchuped(const pd_thread *thr) {
-     thridsCatchuped[thr->get_tid()] = 1;
-  }
-
+  threadMetFocusNode *getThrNode(pd_thread *thr);
 
  public:
   bool isBeingDeleted() {return isBeingDeleted_; };
@@ -145,7 +132,7 @@ class processMetFocusNode : public metricFocusNode {
   void setMetricVarCodeNode(instrCodeNode* part);
   void addConstraintCodeNode(instrCodeNode* part);
   void propagateToNewThread(pd_thread *thr);
-  void deleteThread(dyn_thread *thr);
+  void updateForDeletedThread(pd_thread *thr);
   processMetFocusNode* handleExec();
   timeLength cost() const;
   instrCodeNode *getMetricVarCodeNode() {
@@ -168,7 +155,8 @@ class processMetFocusNode : public metricFocusNode {
       (*vecPtr).push_back(constraintCodeNodes[i]);
   }
   aggregateOp getAggOp() { return aggOp; }
-  void addPart(threadMetFocusNode* thrNode);
+  void addThrMetFocusNode(threadMetFocusNode *thrNode);
+  void removeThrMetFocusNode(threadMetFocusNode *thrNode);
   void updateAggInterval(timeLength width) {
     aggregator.changeAggIntervalWidth(width);
   }
@@ -180,19 +168,13 @@ class processMetFocusNode : public metricFocusNode {
   void print();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   void initAggInfoObjects(timeStamp timeOfCont, pdSample initValue);
+  bool hasBeenCatchuped();
+  bool trampsHookedUp();
   bool hasDeferredInstr();
   bool insertJumpsToTramps();
-  bool trampsHookedUp();
+  bool instrInserted() { return instrInserted_; }
   bool instrLoaded();
-  bool hasBeenCatchuped() { return hasBeenCatchuped_; }
 
-  // considers the passed thread
-  bool hasBeenCatchuped(const pd_thread *thr) {
-     return thridsCatchuped.defines(thr->get_tid());
-  }
-
-  bool instrInserted() { return (instrLoaded() && trampsHookedUp()
-				 && hasBeenCatchuped()); }
   instr_insert_result_t loadInstrIntoApp();
   void doCatchupInstrumentation();
   instr_insert_result_t insertInstrumentation();
