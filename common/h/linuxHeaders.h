@@ -221,7 +221,7 @@ inline void P_endservent(void) { endservent(); }
 #ifndef DETACH_ON_THE_FLY
 /* Ugly */
 
-inline Address P_ptrace(int req, pid_t pid, Address addr, Address data) {
+inline long int P_ptrace(int req, pid_t pid, Address addr, Address data) {
   return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 #else 
 /* Very ugly */
@@ -268,7 +268,7 @@ pt_req(int req)
 
 extern bool haveDetachedFromProcess(int pid);
 
-inline Address P_ptrace(int req, pid_t pid, Address addr, Address data) {
+inline long int P_ptrace(int req, pid_t pid, Address addr, Address data) {
      if (haveDetachedFromProcess(pid) && req != PTRACE_ATTACH) {
 	  /* We should never issue ptrace commands while detached. */
 	  assert(0);
