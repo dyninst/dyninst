@@ -121,6 +121,7 @@ Address instrDataNode::getInferiorPtr() const {
     variableMgr &varMgr = proc->getVariableMgr();
     // we assume there is only one thread
     varAddr = (Address)varMgr.shmVarApplicAddr(varType, varIndex);
+    assert(varAddr != 0);
   }
   return varAddr;
 }
@@ -195,3 +196,5 @@ void instrDataNode::decRefCountCallback(void *temp, instInstance *)
     (*dataNodes)[i]->decRefCount();
   }
 }
+
+
