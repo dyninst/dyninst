@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.16  1994/05/31 19:11:47  hollings
-/* Changes to permit direct access to resources and resourceLists.
+/* Revision 1.17  1994/06/12 22:37:11  karavan
+/* implemented status change for run/pause buttons.
+/* bug fix:  node labels may now contain tcl special characters, eg [].
 /*
+ * Revision 1.16  1994/05/31  19:11:47  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
  * Revision 1.15  1994/05/26  20:57:16  karavan
  * added tcl variable for location of bitmap files.
  *
@@ -55,6 +59,21 @@
  *    called at thread creation.
  */
 
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
 
 /* 
  * main.c --
@@ -136,6 +155,7 @@ Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 int UIMwhereDagID;
+appState PDapplicState = appPaused;     // used to update run/pause buttons  
 
 /*
  * Command-line options:
@@ -226,14 +246,14 @@ void controlFunc (performanceStream *ps ,
   label = strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
     sprintf 
-      (tcommand, "$WHEREname.d01 addNode %d -root yes -style %d -label \"%s\"",
+      (tcommand, "$WHEREname.d01 addNode %d -root yes -style %d -label {%s}",
        nodeID, 1, label);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddNodeError: %s\n", interp->result);
     }
   }
   else {
-    sprintf (tcommand, "$WHEREname.d01 addNode %d -root no -style 1 -label \"%s\"",
+    sprintf (tcommand, "$WHEREname.d01 addNode %d -root no -style 1 -label {%s}",
 	     nodeID, label);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddNodeError: %s\n", interp->result);
@@ -251,11 +271,16 @@ void controlFunc (performanceStream *ps ,
 void
 applicStateChanged (performanceStream*, appState state) 
 {
-  char cmd[6];
-  sprintf (cmd, "%d", state);
-  if (Tcl_VarEval (interp, "changeApplicState ", cmd, 0) == TCL_ERROR) {
-    printf ("changeApplicStateERROR: %s\n", interp->result);
+  if ((state == appRunning) && (PDapplicState == appPaused)) { 
+    if (Tcl_VarEval (interp, "changeApplicState 1", 0) == TCL_ERROR) {
+      printf ("changeApplicStateERROR: %s\n", interp->result);
+    }
+  } else if ((state == appPaused) && (PDapplicState == appRunning)) {
+    if (Tcl_VarEval (interp, "changeApplicState 0", 0) == TCL_ERROR) {
+      printf ("changeApplicStateERROR: %s\n", interp->result);
+    }
   }
+    PDapplicState = state;
 }
  
 /*
