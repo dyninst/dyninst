@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.87 2005/03/16 20:53:33 bernat Exp $
+ * $Id: RTinst.c,v 1.88 2005/03/23 04:34:23 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1229,7 +1229,7 @@ void DYNINSTreportNewTags(void)
       sprintf(newRes.name, "SyncObject/Message/%d-%d",
         TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].TGUniqueId);
       strcpy(newRes.abstraction, "BASE");
-      newRes.mdlType = RES_TYPE_INT;
+      newRes.mdlType = RES_TYPE_STRING;
       newRes.btype = MessageGroupResourceType;
 
       DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
@@ -1531,7 +1531,7 @@ void DYNINSTreportNewWindow(const struct DynInstWin_st * WinSt )
     sprintf(newRes.name, "SyncObject/Window/%d-%d",
               WinSt->WinId,WinSt->WinUniqueId);
       strcpy(newRes.abstraction, "BASE");
-      newRes.mdlType = RES_TYPE_INT;
+      newRes.mdlType = RES_TYPE_STRING;
       newRes.btype = WindowResourceType;
 
       DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
@@ -1598,7 +1598,7 @@ void DYNINSTnameWindow(unsigned int WindowId, char * name){
   sprintf(Res.displayname, "SyncObject/Window/%s",
              WinSt->WinName);
   strcpy(Res.abstraction, "BASE");
-  Res.mdlType = RES_TYPE_INT;
+  Res.mdlType = RES_TYPE_STRING;
   Res.btype = WindowResourceType;  
   Res.retired = 0;
 
@@ -1674,7 +1674,7 @@ void DYNINSTnameGroup(unsigned int gId, char * name){
              tagSt->TagGroupId,tagSt->TGUniqueId );
   sprintf(Res.displayname, "SyncObject/Message/%s", name);
   strcpy(Res.abstraction, "BASE");
-  Res.mdlType = RES_TYPE_INT;
+  Res.mdlType = RES_TYPE_STRING;
   Res.btype = MessageGroupResourceType;
   Res.retired = 0;
     
@@ -1753,7 +1753,7 @@ void DYNINSTretireGroupTag(unsigned int * gId){
              tagSt->TagGroupId, tagSt->TGUniqueId);
   sprintf(Res.displayname, "SyncObject/Message/%s", "");
   strcpy(Res.abstraction, "BASE");
-  Res.mdlType = RES_TYPE_INT;
+  Res.mdlType = RES_TYPE_STRING;
   Res.btype = MessageTagResourceType;
   Res.retired = 1;
 
@@ -1761,7 +1761,7 @@ void DYNINSTretireGroupTag(unsigned int * gId){
                                  sizeof(struct _updtresource), &Res, 1,
                                  wall_time,process_time);
 
-  /* remove the window from the WindowTable */
+  /* remove the group from the GroupTable */
 
 assert(tagSt);
   if(!prevtagSt)
@@ -1822,7 +1822,7 @@ void DYNINSTretireWindow(unsigned int * WindowId){
   else
     sprintf(Res.displayname, "SyncObject/Window/%s", "");
   strcpy(Res.abstraction, "BASE");
-  Res.mdlType = RES_TYPE_INT;
+  Res.mdlType = RES_TYPE_STRING;
   Res.btype = WindowResourceType; 
   Res.retired = 1;
 
@@ -1993,7 +1993,7 @@ int DYNINSTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTGroup_FindUniqueId(unsigned gId)
+int DYNINSTGroup_FindUniqueId(unsigned gId, char * constraint)
 {
   int           groupDx;
   int           groupId;
@@ -2016,15 +2016,27 @@ int DYNINSTGroup_FindUniqueId(unsigned gId)
   for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
       tagSt = tagSt->Next)
   {
-    if(tagSt->TagGroupId == groupId)
-        return(tagSt->TagGroupId);
+    if(tagSt->TagGroupId == groupId){
+ 
+      // allows two numbers 1024 digits long + a dash and a '\0'
+      char temp[2051];
+      sprintf(temp,"%d-%d",tagSt->TagGroupId, tagSt->TGUniqueId);
+      assert(constraint);
+
+      //fprintf(stderr,"constraint is %s temp is %s\n", constraint, temp);
+      if (!strcmp(temp, constraint)){
+        //match!
+         return 1;
+      }
+      return 0;
+    }
   }
 
-  return(-1);
+  return(0);
 }
 
 //find the indentifier of the RMA window in question
-int DYNINSTWindow_FindUniqueId(unsigned int WindowId)
+int DYNINSTWindow_FindUniqueId(unsigned int WindowId, char * constraint)
 {
   int           WinDx;
   DynInstWinSt* WinSt = NULL;
@@ -2056,7 +2068,17 @@ int DYNINSTWindow_FindUniqueId(unsigned int WindowId)
   }
 
   if(WinSt->WinId == WinId){
-        return(WinSt->WinId);
+
+      // allows two numbers 1024 digits long + a dash and a '\0'
+      char temp[2051];
+      sprintf(temp,"%d-%d",WinSt->WinId, WinSt->WinUniqueId);
+      //fprintf(stderr,"constraint is %s temp is %s\n", constraint, temp);
+      assert(constraint);
+      if (!strcmp(temp, constraint)){
+         //match
+         return 1;
+      }
+      return 0;
   }
 
   return(-1);

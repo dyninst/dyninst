@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.173 2005/03/07 21:19:00 bernat Exp $
+// $Id: mdl.C,v 1.174 2005/03/23 04:34:22 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -660,15 +660,27 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            else if (var_ == pdstring ("$constraint"))
            {
               pdstring tmp = pdstring("$constraint") + pdstring(index_value);
-              mdl_var int_var;
-              assert (mdl_data::cur_mdl_data->env->get(int_var, tmp));
-              int value;
-              if (!int_var.get(value))
-              {
-                 fflush(stderr);
-                 return false;
+              mdl_var the_var;
+              assert (mdl_data::cur_mdl_data->env->get(the_var, tmp));
+              
+              if(the_var.get_type() == MDL_T_INT){
+                 int value;
+                 if (!the_var.get(value))
+                 {
+                    fflush(stderr);
+                    return false;
+                 }
+                 snip = new BPatch_constExpr((int)value);
               }
-              snip = new BPatch_constExpr((int)value);
+              else if(the_var.get_type() == MDL_T_STRING){
+                 pdstring value;
+                 if (!the_var.get(value))
+                 {
+                    fflush(stderr);
+                    return false;
+                 }
+                 snip = new BPatch_constExpr(value.c_str());
+              }
            }
            else
            {
