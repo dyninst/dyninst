@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.32 2001/11/20 01:12:51 tikir Exp $
+// $Id: BPatch_image.C,v 1.33 2002/03/12 18:40:02 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -175,7 +175,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     }
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
-	var = new BPatch_variableExpr((char *) name, proc, 
+	var = new BPatch_variableExpr( (char *)name, proc, 
 	    (void *)syminfo.addr(), (const BPatch_type *) type);
 	AddrToVarExpr->hash[syminfo.addr()] = var;
     }
@@ -199,8 +199,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
-    BPatch_type *type;
-    for (int m = 0; m < mods->size(); m++) {
+    //BPatch_type *type;
+    for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	char name[255];
 	module->getName(name, sizeof(name));
@@ -423,7 +423,7 @@ void BPatch_image::findFunctionInImage(
     if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
 	assert(pdfv->size() > 0);
 
-	for (int i = 0; i < pdfv->size(); i++)
+	for (unsigned int i = 0; i < pdfv->size(); i++)
 	    funcs.push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
     } else {
 	if ((pdf = img->findFuncByMangled(name)) != NULL)
@@ -489,7 +489,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     findFunctionInImage(name, proc->symbols, funcs);
 
     if (proc->dynamiclinking && proc->shared_objects) {
-	for(int j = 0; j < proc->shared_objects->size(); j++){
+	for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
 	    const image *obj_image = ((*proc->shared_objects)[j])->getImage();
 	    if (obj_image)
 		findFunctionInImage(name, (image*)obj_image, funcs);
@@ -541,7 +541,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     BPatch_type *type = NULL;
-    for (int m = 0; m < mods->size(); m++) {
+    for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	//printf("The moduleType address is : %x\n", &(module->moduleTypes));
 	type = module->moduleTypes->findVariableType(name);
@@ -609,7 +609,7 @@ BPatch_type *BPatch_image::findType(const char *name)
 
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
-    for (int m = 0; m < mods->size(); m++) {
+    for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	type = module->moduleTypes->findType(name);
 	if (type) return type;
@@ -644,7 +644,7 @@ BPatch_function  *BPatch_image::findBPFunction(const char *name)
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     //printf(" Number of Modules %d\n",mods->size());
-    for (int m = 0; m < mods->size(); m++) {
+    for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	func = module->findFunction(name);
 	if (func) {
@@ -658,7 +658,7 @@ BPatch_function  *BPatch_image::findBPFunction(const char *name)
     if (!funclist->size()) {
 	fullName = (char *) malloc(strlen(name) + 2);
 	sprintf(fullName, "%s_", name);
-	for (int m = 0; m < mods->size(); m++) {
+	for (unsigned int m = 0; m < mods->size(); m++) {
 	    BPatch_module *module = (*mods)[m];
 	    func = module->findFunction(fullName);
 	    if (func) {
@@ -772,7 +772,8 @@ char *BPatch_image::programName(char *name, unsigned int len) {
 }
 
 char *BPatch_image::getProgramName(char *name, unsigned int len) {
-    strcpy(name, "<unknown>");
+  len < strlen("<unknown") ?   
+    strncpy(name, "<unknown>", len) : strcpy(name, "<unknown>");
     return name;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.34 2001/12/11 20:22:22 chadd Exp $
+// $Id: BPatch_snippet.C,v 1.35 2002/03/12 18:40:02 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -465,7 +465,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 {
     vector<AstNode *> ast_args;
 
-    int i;
+    unsigned int i;
     for (i = 0; i < args.size(); i++)
         ast_args.push_back(assignAst(args[i]->ast));
 
@@ -603,7 +603,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
     ast = new AstNode(items[0]->ast);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
-    for (int i = 1; i < items.size(); i++) {
+    for (unsigned int i = 1; i < items.size(); i++) {
         AstNode *tempAst = new AstNode(ast, items[i]->ast);
         tempAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
         removeAst(ast);
@@ -846,7 +846,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     assert(retList);
 
     fields = type->getComponents();
-    for (int i=0; i < fields->size(); i++) {
+    for (unsigned int i=0; i < fields->size(); i++) {
 
 	BPatch_field *field = (*fields)[i];
 	int offset = (field->offset / 8);

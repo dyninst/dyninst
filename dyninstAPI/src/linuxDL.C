@@ -826,7 +826,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
 		if(change_type == 1) { // RT_ADD
-			for(int index = 0; index < (*changed_objects)->size(); index++){
+			for(unsigned int index = 0; index < (*changed_objects)->size(); index++){
 				char *tmpStr = new char[ 1+strlen((*(*changed_objects))[index]->getName().string_of())];
 				strcpy(tmpStr,(*(*changed_objects))[index]->getName().string_of());
 				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 

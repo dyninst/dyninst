@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.5 2002/02/12 15:42:05 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.6 2002/03/12 18:40:04 jaw Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -199,10 +199,11 @@ void writeBackElf::fixData(Elf_Data* newdata, unsigned int startAddress){
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
 
-	Elf32_Shdr *newsh, *shdr, *dynamicShdr;
+	Elf32_Shdr *newsh, *shdr;
+	//Elf32_Shdr *dynamicShdr;
 	Elf_Scn *scn, *newScn; 
         Elf32_Ehdr *ehdr = elf32_getehdr(oldElf);
-	Elf_Data *data, *newdata, *olddata;
+	Elf_Data *data = NULL, *newdata, *olddata;
 
         if(!(newEhdr = elf32_newehdr(newElf))){
 		printf("newEhdr failed\n");
@@ -456,8 +457,11 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
 		elf_update(newElf, ELF_C_NULL);
 		if(DEBUG_MSG){
-			printf("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
-				newdata->d_size,*(unsigned int*) newdata->d_buf);
+			printf("ADDED: size %lx Addr %lx size %x data; %x\n",
+			       (unsigned long) newsh->sh_size, 
+			       (unsigned long) newsh->sh_addr,
+				(unsigned int) newdata->d_size,
+			       *((unsigned int*) newdata->d_buf));
 		}
 	}
 }

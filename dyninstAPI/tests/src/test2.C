@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.47 2002/02/11 22:02:34 tlmiller Exp $
+// $Id: test2.C,v 1.48 2002/03/12 18:40:05 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -283,7 +283,7 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 	char match2[256];
 	sprintf(match2, "%s_module", TEST_DYNAMIC_LIB2);
 	BPatch_Vector<BPatch_module *> *m = img->getModules();
-	for (int i=0; i < m->size(); i++) {
+	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
 		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
@@ -494,9 +494,10 @@ void test12(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    void *addr = (*points)[0]->getAddress();
+    //void *addr = (*points)[0]->getAddress();
 
-    bool trapFlag = (*points)[0]->usesTrap_NP();
+    //bool trapFlag = 
+    (*points)[0]->usesTrap_NP();
 
     printf("Passed test #12 (BPatch_point query funcs)\n");
     passedTest[12] = true;
@@ -510,7 +511,7 @@ void test13(BPatch_thread *thread)
 {
     bool failed_this = false;
     BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
-    for (int i=0; i < threads->size(); i++) {
+    for (unsigned int i=0; i < threads->size(); i++) {
 	if ((*threads)[i] == thread) {
 	    printf("**Failed** test #13 (delete thread)\n"); 
 	    printf("    thread %d was deleted, but getThreads found it\n",

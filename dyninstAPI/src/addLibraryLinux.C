@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.1 2002/02/12 15:42:03 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.2 2002/03/12 18:40:02 jaw Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 #include "addLibraryLinux.h"
@@ -42,7 +42,7 @@ void addLibrary::createNewElf(){
 	newElfFileSec = (Elf_element *) new char[sizeof(Elf_element) * (oldEhdr->e_shnum + 1)];
 	arraySize = oldEhdr->e_shnum + 1;
 	oldScn = NULL;
-	for(int cnt = 0; oldScn = elf_nextscn(oldElf, oldScn);cnt++){
+	for(int cnt = 0; (oldScn = elf_nextscn(oldElf, oldScn));cnt++){
                 oldData=elf_getdata(oldScn,NULL);
                 oldShdr = elf32_getshdr(oldScn);
 
@@ -84,10 +84,10 @@ void addLibrary::shiftSections(int index, int distance){
 void addLibrary::updateShLinks(int insertPt, int oldDynstr,  int shiftSize){
 
 	for(int cnt = 0 ; cnt < newElfFileEhdr->e_shnum-1; cnt++){
-		if(newElfFileSec[cnt].sec_hdr->sh_link > insertPt){
+		if(newElfFileSec[cnt].sec_hdr->sh_link > (unsigned) insertPt){
 			newElfFileSec[cnt].sec_hdr->sh_link +=shiftSize;
 		}
-		if(newElfFileSec[cnt].sec_hdr->sh_link == oldDynstr){
+		if(newElfFileSec[cnt].sec_hdr->sh_link == (unsigned) oldDynstr){
 			newElfFileSec[cnt].sec_hdr->sh_link = dynstr+1;
 		}
 	}
@@ -185,7 +185,7 @@ void addLibrary::fix_end(Elf_Data *symData, Elf_Data *strData, int shiftSize){
 	Elf32_Sym *symPtr = (Elf32_Sym*) symData->d_buf;
 
 		
-	for(int indx=0; indx < symData->d_size / sizeof(Elf32_Sym); indx++,symPtr++){
+	for(unsigned int indx=0; indx < symData->d_size / sizeof(Elf32_Sym); indx++,symPtr++){
 		if(!strcmp("_end", (char*) strData->d_buf + symPtr->st_name)){
 			symPtr->st_value += shiftSize;
 		}
@@ -280,8 +280,9 @@ void addLibrary::writeNewElf(char* filename, char* libname){
 	}
 	elf_update(newElf, ELF_C_NULL);
 
-	int pad = updateProgramHeaders(realPhdr, newElfFileSec[dynstr].sec_hdr->sh_size,
-			 realDynamicShdr->sh_offset, realDataShdr->sh_offset);
+	//int pad = 
+	updateProgramHeaders(realPhdr, newElfFileSec[dynstr].sec_hdr->sh_size,
+			     realDynamicShdr->sh_offset, realDataShdr->sh_offset);
 /*	if(pad){
 		realData = elf_newdata(dynstrScn);
 		realData->d_buf = new char[pad]; 
@@ -315,7 +316,7 @@ int addLibrary::addStr(int indx, char* str){
 void addLibrary::addSO(int strInx){
 
 	Elf_Data *newData = newElfFileSec[findSection(".dynamic")].sec_data;
-	for(int counter=0;counter<newData->d_size/sizeof(Elf32_Dyn);counter++){
+	for(unsigned int counter=0;counter<newData->d_size/sizeof(Elf32_Dyn);counter++){
         	if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
                 	((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
                 }else if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == 0){//DT_CHECKSUM){

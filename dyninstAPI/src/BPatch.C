@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.43 2002/02/05 17:01:37 chadd Exp $
+// $Id: BPatch.C,v 1.44 2002/03/12 18:40:01 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -333,9 +333,10 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
     !defined(i386_unknown_solaris2_5) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(mips_sgi_irix6_4)
-    reportError(BPatchWarning, 0,
-	"postfork callbacks not implemented on this platform\n");
-    return NULL;
+
+  reportError(BPatchWarning, 0,
+	      "postfork callbacks not implemented on this platform\n");
+  return NULL;
 #else
     BPatchForkCallback ret;
 
@@ -939,7 +940,7 @@ BPatch_type * BPatch::createEnum( const char * name,
     APITypes->addType(newType);
 
     // ADD components to type
-    for (int i=0; i < elementNames.size(); i++) {
+    for (unsigned int i=0; i < elementNames.size(); i++) {
         newType->addField(elementNames[i], BPatch_dataScalar, elementIds[i]);
     }
 
@@ -966,7 +967,7 @@ BPatch_type * BPatch::createEnum( const char * name,
     APITypes->addType(newType);
 
     // ADD components to type
-    for (int i=0; i < elementNames.size(); i++) {
+    for (unsigned int i=0; i < elementNames.size(); i++) {
         newType->addField(elementNames[i], BPatch_dataScalar, i);
     }
 
@@ -987,7 +988,7 @@ BPatch_type * BPatch::createStruct( const char * name,
 				    BPatch_Vector<char *> fieldNames,
 				    BPatch_Vector<BPatch_type *> fieldTypes)
 {
-    int i;
+    unsigned int i;
     int offset, size;
 
     offset = size = 0;
@@ -1035,7 +1036,7 @@ BPatch_type * BPatch::createUnion( const char * name,
 				   BPatch_Vector<char *> fieldNames,
 				   BPatch_Vector<BPatch_type *> fieldTypes)
 {
-    int i;
+    unsigned int i;
     int offset, size, newsize;
     offset = size = newsize = 0;
 

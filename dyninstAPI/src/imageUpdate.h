@@ -1,4 +1,4 @@
-/* $Id: imageUpdate.h,v 1.1 2001/12/11 20:22:22 chadd Exp $ */
+/* $Id: imageUpdate.h,v 1.2 2002/03/12 18:40:02 jaw Exp $ */
 
 #if defined(BPATCH_LIBRARY)
 
@@ -57,20 +57,27 @@ class imageUpdate{
 		return address> right.address;
 	};
 
-static int imageUpdateSort(const void * left, const void *right)
-{
+	static int imageUpdateSort(const void * left, const void *right)
+	  {
+	    const imageUpdate *leftSym = *(const imageUpdate* const *) left;
+	    const imageUpdate *rightSym = *(const imageUpdate* const *) right;
 
-	const imageUpdate **leftSym = (const imageUpdate**) left;
-	const imageUpdate **rightSym = (const imageUpdate**) right;
-        if(  (*leftSym)->address > (*rightSym)->address) {
-                return 1;
-        }else {
-                return -1;
-        }
+	    if(leftSym->address > rightSym->address)
+	      return 1;
+	    else 
+	      return -1;
+	  };
 };
 
-
+#ifdef USE_STL_VECTOR
+#include <vector>
+#include <algorithm>
+#include "imageUpdate.h"
+struct imageUpdateOrderingRelation : public binary_function<imageUpdate *, imageUpdate *, bool> {
+  bool operator()(imageUpdate *left, imageUpdate *right) {return left->address < right->address;}
 };
+#endif
+
 
 
 

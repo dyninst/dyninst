@@ -162,7 +162,10 @@ public:
 
     BPatchThreadEventCallback registerDetachDoneCallback(BPatchThreadEventCallback) { return NULL; }
     BPatchThreadEventCallback registerSnippetRemovedCallback(BPatchThreadEventCallback) { return NULL; }
-    BPatchSignalCallback registerSignalCallback(BPatchSignalCallback func, int sigNum) { return NULL; }
+    BPatchSignalCallback registerSignalCallback(BPatchSignalCallback, int) { 
+      //fprintf(stderr,"inside empty function:  registerSignalCallback (signal #%d)\n", sigNum);
+      return NULL; 
+    }
 
     BPatchThreadEventCallback registerRPCTerminationCallback(BPatchThreadEventCallback);
     BPatchThreadEventCallback		RPCdoneCallback;

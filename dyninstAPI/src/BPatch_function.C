@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.21 2002/01/16 23:24:56 jaw Exp $
+// $Id: BPatch_function.C,v 1.22 2002/03/12 18:40:02 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -631,7 +631,7 @@ void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
 {
     BPatch_Vector<BPatch_point *> *v1 = findPoint(BPatch_allLocations);
     if (v1) {
-	for (int i=0; i < v1->size(); i++) {
+	for (unsigned int i=0; i < v1->size(); i++) {
 	    vect.push_back((*v1)[i]);
 	}
     }
@@ -640,8 +640,9 @@ void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
 int	BPatch_function::getMangledNameLen() { return 1024; }
 
 void BPatch_function::getExcPoints(BPatch_Vector<BPatch_point*> &points) {
-    abort();
-    return;
+  points.clear();
+  abort();
+  return;
 };
 
 // return a function that can be passed as a paramter

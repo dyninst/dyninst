@@ -870,7 +870,8 @@ bool combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   assert (combined_alteration_set != NULL);
   assert (alteration_set != NULL);
 
-  LocalAlterationSet temp_alteration_set = *combined_alteration_set;
+  LocalAlterationSet temp_alteration_set;
+  temp_alteration_set = *combined_alteration_set;
   combined_alteration_set->Flush();
 
 #ifdef DEBUG_FUNC_RELOC 

@@ -2,6 +2,9 @@
 #define __DYNERLIST__
 
 #ifdef USE_STL_VECTOR
+#include <vector>
+#include <list>
+#include <algorithm>
 #define DynerList	list
 #else
 

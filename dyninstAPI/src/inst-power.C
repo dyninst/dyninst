@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.123 2002/02/27 01:48:49 bernat Exp $
+ * $Id: inst-power.C,v 1.124 2002/03/12 18:40:02 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -2140,7 +2140,7 @@ Register emitFuncCall(opCode /* ocode */,
 		      const instPoint *location = NULL)
 {
 
-  Address initBase = base;
+  //  Address initBase = base;
   Address dest;
   Address toc_anchor;
   bool err;

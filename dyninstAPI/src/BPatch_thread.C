@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.50 2002/02/17 00:41:10 gurari Exp $
+// $Id: BPatch_thread.C,v 1.51 2002/03/12 18:40:02 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -805,12 +805,12 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 {
     BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
 
-    for (int i = 0; i < points.size(); i++) {
+    for (unsigned int i = 0; i < points.size(); i++) {
 	BPatch_point *point = points[i];
 
 	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
 	if (ret) {
-	    for (int j=0; j < ret->instance.size(); j++) {
+	    for (unsigned int j=0; j < ret->instance.size(); j++) {
 		handle->add(ret->instance[j]);
 	    }
 	    delete ret;
@@ -841,7 +841,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 {
     BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
 
-    for (int i = 0; i < points.size(); i++) {
+    for (unsigned int i = 0; i < points.size(); i++) {
 	BPatch_point *point = points[i]; // Cast away const
 
         BPatch_callWhen when;
@@ -856,7 +856,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 
 	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
 	if (ret) {
-	    for (int j=0; j < ret->instance.size(); j++) {
+	    for (unsigned int j=0; j < ret->instance.size(); j++) {
 		handle->add(ret->instance[j]);
 	    }
 	    delete ret;
@@ -880,7 +880,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
     if (handle->proc == proc) {
-	for (int i=0; i < handle->instance.size(); i++) {
+	for (unsigned int i=0; i < handle->instance.size(); i++) {
 	    deleteInst(handle->instance[i], 
 		getAllTrampsAtPoint(handle->instance[i]));
 	}
@@ -1180,7 +1180,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	size--;
 	LineInformation* lineInformation = NULL;
 	BPatch_Vector<BPatch_module*>* appModules = image->getModules();
-	for(int i=0;i<appModules->size();i++){
+	for(unsigned int i=0;i<appModules->size();i++){
 		lineInformation = (*appModules)[i]->lineInformation;
 		if(!lineInformation)
 			continue;

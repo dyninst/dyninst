@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.6 2002/01/16 23:24:56 jaw Exp $
+// $Id: LocalAlteration.C,v 1.7 2002/03/12 18:40:02 jaw Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -98,14 +98,14 @@ LocalAlterationSet::LocalAlterationSet(pd_Function *f) {
     ordered = false;
 }
 
-#ifdef USE_STL_VECTOR
+//#ifdef USE_STL_VECTOR
 LocalAlterationSet::LocalAlterationSet() 
 {
     func = (pd_Function *)NULL;
     iterIdx = -1;
     ordered = false;
 }
-#endif
+//#endif
 
 LocalAlterationSet::~LocalAlterationSet() {
   //    Flush();
@@ -143,8 +143,8 @@ void LocalAlterationSet::AddAlteration(LocalAlteration *a) {
 }
 
 int order_peephole_alteration_offsets(const void *a1, const void *a2) {
-    const LocalAlteration* la1 = *(const LocalAlteration**)a1;
-	const LocalAlteration* la2 = *(const LocalAlteration**)a2;
+    const LocalAlteration* la1 = *(const LocalAlteration* const*)a1;
+	const LocalAlteration* la2 = *(const LocalAlteration* const*)a2;
 
     int offset1 = la1->getOffset();
     int offset2 = la2->getOffset();

@@ -130,7 +130,7 @@ BPatch_module::~BPatch_module()
 {
     delete moduleTypes;
 
-    for (int f = 0; f < BPfuncs->size(); f++) {
+    for (unsigned int f = 0; f < BPfuncs->size(); f++) {
 	delete (*BPfuncs)[f];
     }
     delete BPfuncs;
@@ -293,7 +293,7 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 			  SYMENT *sym,
 			  Address linesfdptr,char* lines,int nlines)
 {
-      int j;
+      unsigned int j;
       union auxent *aux;
 
       /* if it is beginning of include files then update the data structure 
@@ -612,7 +612,7 @@ void BPatch_module::parseTypes()
   const char *stabstrs = 0;
   struct stab_entry *stabptr = NULL;
   BPatch_type *commonBlock = NULL;
-  BPatch_variableExpr *commonBlockVar;
+  BPatch_variableExpr *commonBlockVar = NULL;
   
   //Using pdmodule to get the image Object.
   imgPtr = mod->exec();
@@ -1058,8 +1058,8 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
     }
     if (limit) 
 	return true;
-    else
-	return false;
+
+    return false;
 }
 
 LineInformation* BPatch_module::getLineInformation(){
@@ -1072,6 +1072,7 @@ bool BPatch_module::getLineNumbers(unsigned int &start, unsigned int &end)
 {
     start = 0;
     end = 0;
+    return true;
 }
 
 char *BPatch_module::getUniqueString(char *buffer, int length)

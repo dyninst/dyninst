@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.5 2002/01/16 23:24:56 jaw Exp $
+// $Id: LocalAlteration.h,v 1.6 2002/03/12 18:40:02 jaw Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -181,9 +181,9 @@ class LocalAlterationSet {
  
     // ....CONSTRUCTOR....
     LocalAlterationSet(pd_Function *f);
-#ifdef USE_STL_VECTOR
+    //#ifdef USE_STL_VECTOR
     LocalAlterationSet();
-#endif
+    //#endif
     // flush the LocalAlterations out of alterations....
     void Flush();
 

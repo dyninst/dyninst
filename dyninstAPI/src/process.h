@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.187 2002/03/04 20:44:59 bernat Exp $
+/* $Id: process.h,v 1.188 2002/03/12 18:40:04 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -447,10 +447,13 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
+  
   // MT_AIX stuff
   // Keep the current "best guess" of the active kernel thread around
   unsigned curr_lwp;
-  
+  bool collectSaveWorldData;//this is set to collect data for
+				//save the world
+
   void walkStack(Frame currentFrame, vector<Address>&pcs, 
                  vector<Address>&fps, bool noPause=false);
 
@@ -669,8 +672,6 @@ class process {
 #endif
 #endif
 	void saveWorldData(Address address, int size, const void* src);
-	bool collectSaveWorldData;//this is set to collect data for
-				//save the world
 
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.61 2002/02/21 21:47:49 bernat Exp $
+// $Id: linux.C,v 1.62 2002/03/12 18:40:03 jaw Exp $
 
 #include <fstream.h>
 
@@ -1471,9 +1471,9 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
 	if(collectSaveWorldData &&  ((Address) inTraced) > getDyn()->getlowestSObaseaddr() ){
-		shared_object *sh_obj;
+		shared_object *sh_obj = NULL;
 		bool result = false;
-		for(int i = 0; shared_objects && !result && i<shared_objects->size();i++){
+		for(unsigned int i = 0; shared_objects && !result && i<shared_objects->size();i++){
 			sh_obj = (*shared_objects)[i];
 			result = sh_obj->isinText((Address) inTraced);
 		}
@@ -1880,9 +1880,9 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
                 BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
                 return NULL;
         }
-        directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
+        directoryName = new char[strlen(( const char*) getImage()->file().string_of()) +
                         strlen(directoryNameExt) + 3+1+1];
-	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+	sprintf(directoryName,"%s%s%x",(const char*)getImage()->file().string_of(), directoryNameExt,dirNo);
         while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
                  if(errno == EEXIST){
                          dirNo ++;
@@ -1891,7 +1891,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
                          delete [] directoryName;
                          return NULL;
                  }
-                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().string_of(),
+                 sprintf(directoryName, "%s%s%x",(const char*)getImage()->file().string_of(),
                          directoryNameExt,dirNo);
         }
 	if(dirNo == 0x1000){
@@ -1900,13 +1900,13 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	         return NULL;
 	}
 	strcat(directoryName, "/");	
-	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
+	char* fullName = new char[strlen(directoryName) + strlen((const char*)imageFileName.string_of())+1];
         strcpy(fullName, directoryName);
-        strcat(fullName, (char*)imageFileName.string_of());
+        strcat(fullName, (const char*)imageFileName.string_of());
 
 
 	shared_object *sh_obj;
-	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+	for(unsigned int i=0;shared_objects && i<shared_objects->size() ; i++) {
 		sh_obj = (*shared_objects)[i];
 		if(sh_obj->isDirty()){
 			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
@@ -1943,7 +1943,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	}
 	if(mutatedSharedObjectsSize){
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
-		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+		for(unsigned int i=0;shared_objects && i<shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
 			if(sh_obj->isDirty()){
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
@@ -1956,12 +1956,15 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	}
 
 	
-        writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().string_of(),
-			                "/tmp/dyninstMutatee",errFlag);
+        writeBackElf *newElf = new writeBackElf((char *) getImage()->file().string_of(),
+						"/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
-
+#ifndef USE_STL_VECTOR
         highmemUpdates.sort( imageUpdate::imageUpdateSort);
+#else
+	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
+#endif
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
         newElf->alignHighMem(compactedHighmemUpdates);
@@ -2017,7 +2020,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
                 //fill in address of update
                 //fill in size of update
-                for(unsigned index = startIndex; index<=stopIndex;index++){
+                for(int index = startIndex; index<=stopIndex;index++){
 		  	memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));
 		  	dataPtr ++;
 		  	memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
@@ -2483,5 +2486,6 @@ void inferiorMallocAlign(unsigned &size)
 
 bool getLWPIDs(vector <unsigned> &LWPids)
 {
+  LWPids.push_back(0);
   assert (0 && "Not implemented");
 }

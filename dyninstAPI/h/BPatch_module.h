@@ -112,8 +112,8 @@ public:
     bool getLineNumbers(unsigned int &start, unsigned int &end);
     char *getUniqueString(char *buffer, int length);
 
-    char *sharedLibraryName(char *buffer, int length) { getFullName(buffer, length); }
-    char *getSharedLibName(char *buffer, int length) { getFullName(buffer, length); }
+    char *sharedLibraryName(char *buffer, int length) { getFullName(buffer, length); return buffer;}
+    char *getSharedLibName(char *buffer, int length) { getFullName(buffer, length); return buffer;}
     int getSharedLibType();
     int getBindingType();
 #endif

@@ -178,7 +178,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 	}
     }
 
-    for (int n = 0; n < points->size(); n++) {
+    for (unsigned int n = 0; n < points->size(); n++) {
 	BPatch_function *func;
 
 	if ((func = (*points)[n]->getCalledFunction()) == NULL) continue;
@@ -314,7 +314,7 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
 BPatch_variableExpr *findVariable (BPatch_image *appImage,
      char* var, BPatch_Vector <BPatch_point *> *point = NULL)
 {
-    BPatch_variableExpr *FortVar = NULL;
+  //BPatch_variableExpr *FortVar = NULL;
     BPatch_variableExpr *ret = NULL;
     int i, numchars = strlen (var);
     char *lowercase = new char [numchars];
@@ -1801,7 +1801,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 	 exit(1);
     }
 
-    for (int i = 0; i < mods->size() && !(modA && modB); i++) {
+    for (unsigned int i = 0; i < mods->size() && !(modA && modB); i++) {
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
@@ -2572,7 +2572,7 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 
 bool printSrcObj(BPatch_sourceObj *p, int level)
 {
-    int i;
+    unsigned int i;
     bool ret = true;
 
     BPatch_Vector<BPatch_sourceObj *> curr;
@@ -2742,7 +2742,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
         	exit(1);
     	}
 	BPatch_Vector<BPatch_module*>* appModules = appImage->getModules();
-	for(int i=0;i<appModules->size();i++){
+	for(unsigned int i=0;i<appModules->size();i++){
 		char mname[256];
 		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
 		if(!strncmp(mname,"test1.mutatee.c",15)){
@@ -2813,7 +2813,7 @@ void instrument_entry_points( BPatch_thread * app_thread,
   point_vector * entries = func->findPoint( BPatch_entry );
   assert( entries != 0 );
 
-  for( int i = 0; i < entries->size(); i++ )
+  for( unsigned int i = 0; i < entries->size(); i++ )
     {
       BPatch_point * point = ( * entries )[ i ];
       if( point == 0 )
@@ -2861,7 +2861,7 @@ void instrument_exit_points( BPatch_thread * app_thread,
   point_vector * exits = func->findPoint( BPatch_exit );
   assert( exits != 0 );
 
-  for( int i = 0; i < exits->size(); i++ )
+  for( unsigned int i = 0; i < exits->size(); i++ )
     {
       BPatch_point * point = ( * exits )[ i ];
       if( point == 0 )
@@ -3074,7 +3074,7 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
     BPatch_Vector<BPatch_basicBlock*> targets;
     bb->getTargets(targets);
 
-    int i;
+    unsigned int i;
     for (i = 0; i < targets.size(); i++) {
 	if (hasBackEdge(targets[i], visited))
 	    return true;
@@ -3085,7 +3085,7 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
 
 void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
-    int i;
+    unsigned int i;
 
     BPatch_function *func2;
     BPatch_function *func3;
@@ -3185,7 +3185,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     bool foundInDegreeTwo = false;
     int blocksNoIn = 0, blocksNoOut = 0;
 
-    for (i = 0; i < blocks.size(); i++) {
+    for (i = 0; i < (unsigned int) blocks.size(); i++) {
 	BPatch_Vector<BPatch_basicBlock*> in;
 	BPatch_Vector<BPatch_basicBlock*> out;
 
@@ -3315,7 +3315,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     bool foundSwitchIn = false;
     bool foundSwitchOut = false;
     bool foundRangeCheck = false;
-    for (i = 0; i < blocks3.size(); i++) {
+    for (i = 0; i < (unsigned int)blocks3.size(); i++) {
 	BPatch_Vector<BPatch_basicBlock*> in;
 	BPatch_Vector<BPatch_basicBlock*> out;
 
@@ -3355,7 +3355,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	exit(1);
     }
 
-    for (i = 0; i < blocks3.size(); i++) {
+    for (i = 0; i < (unsigned int) blocks3.size(); i++) {
 	if (!entry3[0]->dominates(block_elements[i])) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Entry block does not dominate all blocks in func33_3\n");
@@ -3391,7 +3391,7 @@ int numBackEdges(BPatch_basicBlockLoop *loop)
 //
 void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
-    int i;
+    unsigned int i;
 
     BPatch_function *func2;
     func2 = appImage->findFunction("func34_2");
@@ -3688,17 +3688,17 @@ int mutatorMAIN(char *pathname, bool useAttach)
         isF77->readValue(&mutateeF77);
         dprintf("Mutatee is %s.\n", mutateeF77 ? "F77" : "not F77");
     }
-
-    int i;
+    /*
+    unsigned int i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
     for (i=0; i < m->size(); i++) {
-        // dprintf("func %s\n", (*m)[i]->name());
+         dprintf("func %s\n", (*m)[i]->name());
     }
     BPatch_Vector<BPatch_function *> *p = appImage->getProcedures();
     for (i=0; i < p->size(); i++) {
-        // dprintf("func %s\n", (*p)[i]->name());
+         dprintf("func %s\n", (*p)[i]->name());
     }
-
+    */
     if (runTest[1]) mutatorTest1(appThread, appImage);
     if (runTest[2]) mutatorTest2(appThread, appImage);
     if (runTest[3]) mutatorTest3(appThread, appImage);

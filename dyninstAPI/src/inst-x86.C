@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.101 2002/02/21 21:47:48 bernat Exp $
+ * $Id: inst-x86.C,v 1.102 2002/03/12 18:40:03 jaw Exp $
  */
 
 #include <iomanip.h>
@@ -1358,7 +1358,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
      A total of 58 bytes are added to the base tramp.
 */
 
-   pd_Function *f = location->func();
+   //pd_Function *f = location->func();
 
   unsigned u;
   trampTemplate *ret = 0;
@@ -3296,7 +3296,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
      * Check if the point overlaps an existing instrumentation point.
      */
     Address begin_addr, end_addr, curr_addr;
-    int i;
+    unsigned int i;
 
     curr_addr = (Address)address;
 
@@ -4638,7 +4638,8 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
     instPoint *point;
     int originalOffset, newOffset;
-    int arrayOffset, originalArrayOffset, newArrayOffset;
+    //int arrayOffset, 
+    int originalArrayOffset, newArrayOffset;
 
     Address mutatee,newAdr,mutator;
     LocalAlterationSet alteration_set(this);

@@ -654,7 +654,7 @@ void BPatch_type::beginCommonBlock()
 
 void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
 {
-    int i, j;
+    unsigned int i, j;
 
     // create local variables in func's scope for each field of common block
     for (j=0; j < fieldList.size(); j++) {
@@ -873,7 +873,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       }
       
       //need to compare componment by component to verify compatibility
-      for(int i=0;i<fields1->size();i++){
+      for(unsigned int i=0;i<fields1->size();i++){
 	BPatch_field * field1 = (*fields1)[i];
 	BPatch_field * field2 = (*fields2)[i];
 	if( (field1->getValue() != field2->getValue()) ||
@@ -903,7 +903,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       }
     
       //need to compare componment by component to verify compatibility
-      for (int i=0;i<fields1->size();i++) {
+      for (unsigned int i=0;i<fields1->size();i++) {
 	BPatch_field * field1 = (*fields1)[i];
 	BPatch_field * field2 = (*fields2)[i];
 	

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.309 2002/03/04 20:44:59 bernat Exp $
+// $Id: process.C,v 1.310 2002/03/12 18:40:03 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1250,9 +1250,11 @@ void process::saveWorldData(Address address, int size, const void* src){
 	memcpy(newData->value, src, size);
 	dataUpdates.push_back(newData);
 #else /* Get rid of annoying warnings */
+#if !defined(i386_unknown_linux2_0) && !defined(rs6000_ibm_aix4_1)
 	Address tempaddr = address;
 	int tempsize = size;
 	const void *bob = src;
+#endif
 #endif
 #endif
 }
@@ -1811,6 +1813,7 @@ process::process(int iPid, image *iImage, int iTraceLink
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
+  curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -1839,8 +1842,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
 		),
 #endif
-  callBeforeContinue(NULL),
-  curr_lwp(0)
+  callBeforeContinue(NULL)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2001,6 +2003,7 @@ process::process(int iPid, image *iSymbols,
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
+  curr_lwp(0),
   collectSaveWorldData(true),
 #if !defined(BPATCH_LIBRARY)
   cpuTimeMgr(NULL),
@@ -2029,8 +2032,7 @@ process::process(int iPid, image *iSymbols,
 #endif
 		),
 #endif
-  callBeforeContinue(NULL),
-  curr_lwp(0)
+  callBeforeContinue(NULL)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2261,6 +2263,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
+  curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -2280,7 +2283,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
-  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0)
+  ,callBeforeContinue(parentProc.callBeforeContinue)
 
 {
 #ifdef DETACH_ON_THE_FLY
@@ -2957,9 +2960,12 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
       return false;
     }  
 
+
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
     int tid;
     int procHandle;
     int thrHandle;
+#endif    
 
 
 #ifdef BPATCH_LIBRARY
@@ -3042,7 +3048,8 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     //to be visible in Object-nt, and must be taken from process.
     void *cont;
     //DebugBreak();
-    //ccw 10 aug 2000 : ADD thrHandle HERE!
+    //ccw 10 aug 2000 : ADD thrHandle HERE
+    
     cont = ret->GetRegisters(thrHandle);
 
     img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
@@ -5257,7 +5264,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       return false;
    }
 
-   void *theSavedRegs ;
+   void *theSavedRegs = NULL;
 
    // If we're in the middle of a system call, then it's not safe to launch
    // an inferiorRPC on most platforms.  On some platforms, it's safe, but the
@@ -5541,8 +5548,9 @@ Address process::createRPCtempTramp(AstNode *action,
       return 0;
    }
 
-   Address skipBRAddr = 0;
+   
 #if defined(MT_THREAD)
+   Address skipBRAddr = 0;
    // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
    // "no thread" for Paradyn purposes.
    if (thrId != -1) {
@@ -5606,7 +5614,9 @@ Address process::createRPCtempTramp(AstNode *action,
    else
       ; // in this case, we'll call freeRegister() the inferior rpc completes
 
+#if defined(MT_THREAD)
    Address skipOffset = count;
+#endif
 
    // Now, the trailer (restore, TRAP, illegal)
    // (the following is implemented in an arch-specific source file...)   
@@ -5898,10 +5908,10 @@ bool process::handleTrapIfDueToRPC() {
    int the_index = 0;
    vector <Address> currPCs;
    Address currPC = 0;
-   Frame theFrame(this);
 #ifdef rs6000_ibm_aix4_1
    if (!getCurrPCVector(currPCs)) return false;
 #else
+   Frame theFrame(this);
    currPCs.push_back(theFrame.getPC());
 #endif
    // Big assumption: the found address will always be unique. If we ever
@@ -7156,7 +7166,7 @@ BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
     // Find the module that contains the function
     if (bpmod == NULL && pdfunc->file() != NULL) {
 	BPatch_Vector<BPatch_module *> &mods=*thread->getImage()->getModules();
-	for (int i = 0; i < mods.size(); i++) {
+	for (unsigned int i = 0; i < mods.size(); i++) {
 	    if (mods[i]->mod == pdfunc->file()) {
 		bpmod = mods[i];
 		break;

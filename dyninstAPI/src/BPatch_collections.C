@@ -139,31 +139,31 @@ BPatch_typeCollection::BPatch_typeCollection():
  */
 BPatch_typeCollection::~BPatch_typeCollection()
 {
-    dictionary_hash_iter<string, BPatch_type *> ti(typesByName);
-    dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
-    dictionary_hash_iter<string, BPatch_type *> gi(globalVarsByName);
-    
-    string	name;
-    string      gname;
-    int         id;
-    BPatch_type	*type;
-
-    // delete all of the types
-    // This doesn't seem to work - jkh 1/31/00
+ 
+  // delete all of the types
+  // This doesn't seem to work - jkh 1/31/00
 #ifdef notdef
-    while (tid.next(id, type))
-      delete type;
-
-
-    // Underlying types deleted already just need to get rid of pointers
-    while (ti.next(name, type))
-      type = NULL;
-          
-    // delete globalVarsByName collection
-    while (gi.next(name, type))
-	delete type;
+  dictionary_hash_iter<string, BPatch_type *> ti(typesByName);
+  dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
+  dictionary_hash_iter<string, BPatch_type *> gi(globalVarsByName);
+ 
+  string      gname; 
+  string	name;
+  BPatch_type	*type;
+  int         id;
+  while (tid.next(id, type))
+    delete type;
+  
+  
+  // Underlying types deleted already just need to get rid of pointers
+  while (ti.next(name, type))
+    type = NULL;
+  
+  // delete globalVarsByName collection
+  while (gi.next(name, type))
+    delete type;
 #endif
-    
+  
 }
 
 

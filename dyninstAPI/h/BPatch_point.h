@@ -130,7 +130,7 @@ public:
     const BPatch_memoryAccess* getMemoryAccess() const { return memacc; }
 
 #ifdef IBM_BPATCH_COMPAT
-    void *getPointAddress() { getAddress(); }
+    void *getPointAddress() { return getAddress(); }
 
     int	getPointLine() { return -1; }
 

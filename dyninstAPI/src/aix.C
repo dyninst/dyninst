@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.91 2002/02/21 21:47:45 bernat Exp $
+// $Id: aix.C,v 1.92 2002/03/12 18:40:02 jaw Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -637,7 +637,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp_id) {
     perror("changePC: PTT_READ_SPRS failed");
     return false;
   }
-  fprintf(stderr, "PC at 0x%x, changing to 0x%x\n", spr_contents.pt_iar, loc);
+  fprintf(stderr, "PC at 0x%lx, changing to 0x%lx\n", spr_contents.pt_iar, (unsigned long)loc);
   spr_contents.pt_iar = loc;
   
   // Write the registers back in

@@ -474,7 +474,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 		  fields = commonBlock->getComponents();
 		  if (fields) {
-		      for (int i=0; i < fields->size(); i++) {
+		      for (unsigned int i=0; i < fields->size(); i++) {
 			  if (!strcmp((*fields)[i]->getName(), name)) {
 			      found = true;
 			      break;
@@ -702,8 +702,8 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
     char *symdesc;
     int symdescID;
     int elementType;
-    BPatch_type *newType;
-    BPatch_type *ptrType;
+    BPatch_type *newType = NULL;
+    BPatch_type *ptrType = NULL;
     int lowbound, hibound;
 
     // format is ar<indexType>;<lowBound>;<highBound>;<elementType>
@@ -793,7 +793,7 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
 static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
 {
     int cnt, i;
-    int sign = 1;
+    //int sign = 1;
 
     cnt = i = 0;
 
@@ -994,7 +994,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
       if (stabstr[cnt] == 'r') {
 	  // include range at end
 	  cnt++;
-	  includesRange++;
+	  //includesRange++;
       }
 
       int type = parseSymDesc(stabstr, cnt);
@@ -1112,7 +1112,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 		//Get field descriptions of the base type
 		BPatch_Vector<BPatch_field *> *baseClFields = baseCl->getComponents();
-		for(int fieldNum=0; fieldNum < baseClFields->size(); fieldNum++) {
+		for(unsigned int fieldNum=0; fieldNum < baseClFields->size(); fieldNum++) {
 			BPatch_field *field = (*baseClFields)[fieldNum];
 
 			if (field->getVisibility() == BPatch_private)
