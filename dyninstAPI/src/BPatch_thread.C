@@ -761,7 +761,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
     if (!statusIsStopped()) {
         stopExecution();
         if (!statusIsStopped()) {
-            return -1;
+            return NULL;
         }
         needToResume = true;
     }
