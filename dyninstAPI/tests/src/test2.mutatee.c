@@ -81,7 +81,7 @@ void func12_1()
 #define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose]"
 #endif
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int i;
     void *ref;
@@ -139,7 +139,7 @@ void main(int argc, char *argv[])
 
     while(1);
 
-    exit(0);
+    return(0);
 }
 
 

@@ -814,7 +814,7 @@ void fail7aPrint(int tCase, int fCase, char *op)
 #define USAGE "Usage: test1 [-attach <fd>] [-verbose]"
 #endif
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int i;
     int ret17_1;
@@ -1008,5 +1008,5 @@ void main(int argc, char *argv[])
     func19_1();
     func20_1();
 
-    exit(0);
+    return(0);
 }
