@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCwhen.h,v $
- * Revision 1.2  1994/02/03 23:27:04  hollings
+ * Revision 1.3  1994/09/22 01:08:05  markc
+ * Made char* const in timeInterval::timeInterval
+ *
+ * Revision 1.2  1994/02/03  23:27:04  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:22  hollings
@@ -34,7 +37,7 @@ typedef List<timeInterval*> timeIntervalList;
 class timeInterval {
 	friend void doLoad(int, int*);
     public:
-	timeInterval(timeInterval*, timeStamp, timeStamp, char*);
+	timeInterval(timeInterval*, timeStamp, timeStamp, const char*);
 	void print(int);
 	void print(int, char *name);
 	timeStamp start;
