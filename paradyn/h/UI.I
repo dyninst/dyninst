@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.6  1994/07/08 04:04:15  karavan
-/* changed showError function to async
+/* Revision 1.7  1994/08/09 18:14:58  karavan
+/* Expanded GetMetricsandResources to handle retries.
 /*
+# Revision 1.6  1994/07/08  04:04:15  karavan
+# changed showError function to async
+#
 # Revision 1.5  1994/07/07  05:59:02  karavan
 # updated version number (finally!)
 #
@@ -73,11 +76,14 @@ typedef (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 3;
+	$version 4;
 	//
 	// provides user with appropriate choices and passes back selections
 
-	$async void chooseMetricsandResources(chooseMandRCBFunc cb);	
+	$async void chooseMetricsandResources(chooseMandRCBFunc cb,
+		char **metricNames,
+		int numMetrics,
+		resourceList* focusChoice);	
 	
 	$upcall $async void chosenMetricsandResources ( 					chooseMandRCBFunc, 
 		 char **metricNames,
