@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.32  1995/08/01 02:18:50  newhall
-/* changes to support phase interface
+/* Revision 1.33  1995/08/11 21:51:39  newhall
+/* added calls to VMmain to get initial set of visis from parsed PDL entries
 /*
+ * Revision 1.32  1995/08/01  02:18:50  newhall
+ * changes to support phase interface
+ *
  * Revision 1.31  1995/06/02  20:55:10  newhall
  * made code compatable with new DM interface
  * replaced List templates  with STL templates
@@ -124,6 +127,7 @@
 #include "VISIthread.thread.CLNT.h"
 #include "VMtypes.h"
 #include "paradyn/src/pdMain/paradyn.h"
+#include "paradyn/src/met/metParse.h"
 
 /*
 #include "../UIthread/Status.h"
@@ -192,7 +196,7 @@ vector<VM_visiInfo> *VM::VMAvailableVisis(){
 // Note - this may add the visi to the list, or update an entry
 //        in the list
 /////////////////////////////////////////////////////////////
-int VM::VMAddNewVisualization(const char *name,
+int VMAddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
 			      char *matrix,
@@ -268,6 +272,23 @@ int VM::VMAddNewVisualization(const char *name,
   return(VMOK); 
 }
 
+/////////////////////////////////////////////////////////////
+//  VMAddNewVisualization:  VM server routine
+//  name: visualization's name (used in menuing)  
+//  args: the command line arguments for the visualization
+//        argv[0] is the name of the executable
+// Note - this may add the visi to the list, or update an entry
+//        in the list
+/////////////////////////////////////////////////////////////
+int VM::VMAddNewVisualization(const char *name,
+			      vector<string> *arg_str,
+			      int  forceProcessStart,
+			      char *matrix,
+			      int numMatrices){
+
+    return(VMAddNewVisualization(name, arg_str, forceProcessStart,
+				 matrix, numMatrices));
+}
 
 /////////////////////////////////////////////////////////////
 //  VMStringToMetResPair: VM server routine, converts a string
@@ -419,6 +440,9 @@ void myfree(void* ptr) {
     (void) free(ptr);
 }
 
+extern unsigned metVisiSize();
+extern visiMet *metgetVisi(unsigned);
+
 // main loop for visualization manager thread
 void *VMmain(void* varg) {
 
@@ -450,6 +474,17 @@ void *VMmain(void* varg) {
 
   vmp = new VM(MAINtid);
 
+  // Get PDL visi entries
+  for(unsigned u=0; u < metVisiSize(); u++){
+      visiMet *next_visi = metgetVisi(u);
+      if(next_visi){
+	  vector<string> argv;
+	  assert(RPCgetArg(argv, next_visi->command().string_of()));
+	  VMAddNewVisualization(next_visi->name().string_of(), &argv, 
+				next_visi->force(),NULL, 0);
+      }
+
+  }
   // global synchronization
   retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
   mtag   = MSG_TAG_ALL_CHILDREN_READY;
