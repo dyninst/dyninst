@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.31 2000/10/17 17:42:42 schendel Exp $
+# $Id: make.module.tmpl,v 1.32 2001/06/20 20:40:20 schendel Exp $
 #
 
 TARGET	      = libpdutil.a
@@ -31,7 +31,6 @@ SRCS	     += ../../common/src/String.C \
 		../../common/src/Timer.C \
 		../../common/src/Types.C \
 		../../common/src/Ident.C \
-		../src/makenan.C \
 		../../common/src/pathName.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C \
@@ -40,6 +39,7 @@ SRCS	     += ../../common/src/String.C \
 		../../common/src/debugOstream.C \
 		../src/pdDebugOstream.C \
 		../src/pdSample.C \
+		../src/pdRate.C \
 		../../pdutil/src/airtStreambuf.C \
 		../../common/src/Time.C \
 		../../common/src/fraction.C \
