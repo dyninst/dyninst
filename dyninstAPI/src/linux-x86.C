@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.18 2003/03/04 19:16:04 willb Exp $
+// $Id: linux-x86.C,v 1.19 2003/03/06 19:23:00 zandy Exp $
 
 #include <fstream.h>
 
@@ -503,9 +503,9 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	}
 
 	strcat(directoryName, "/");	
-	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
+	char* fullName = new char[strlen(directoryName) + strlen ( (const char*)imageFileName.c_str())+1];
         strcpy(fullName, directoryName);
-        strcat(fullName, (char*)imageFileName.c_str());
+        strcat(fullName, (const char*)imageFileName.c_str());
 
 
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
@@ -538,7 +538,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	
 	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 		
-	writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().c_str(),
+	writeBackElf *newElf = new writeBackElf((const char*) getImage()->file().c_str(),
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
@@ -806,17 +806,11 @@ bool process::loadDYNINSTlib() {
 
   bool libc_21 = true; /* inferior has glibc 2.1-2.x */
   Symbol libc_vers;
-  if( !getSymbolInfo( libc_version_symname, libc_vers ) ) {
-      cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.1.x" << endl;
-  } else {
+  if (getSymbolInfo(libc_version_symname, libc_vers)) {
       char libc_version[ libc_vers.size() + 1 ];
       libc_version[ libc_vers.size() ] = '\0';
       readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
-      if (strncmp(libc_version, "2", 1)) {
-	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
-	       << "\", which doesn't match any known glibc"
-	       << " assuming glibc 2.1." << endl;
-      } else if (!strncmp(libc_version, "2.0", 3))
+      if (!strncmp(libc_version, "2.0", 3))
 	      libc_21 = false;
   }
   // Or should this be readText... it seems like they are identical
