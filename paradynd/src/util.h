@@ -43,6 +43,9 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.13  1996/10/31 08:54:04  tamches
+ * added headers for some time routines and vrbles
+ *
  * Revision 1.12  1996/08/16 21:20:15  tamches
  * updated copyright for release 1.1
  *
@@ -74,6 +77,20 @@
 #define UTIL_H
 
 #include "util/h/String.h"
+
+typedef double timeStamp;
+timeStamp getCurrentTime(bool firstRecordRelative);
+   // Return the current wall time --
+   //    If firstRecordRelative is true, time starts at the arrival of record 0.
+   //    otherwise it starts at 1/1/1970 0:00 GMT.
+
+typedef long long int time64;
+time64 getCurrWallTime();
+unsigned long long getCurrWallTimeULL();
+   // Like the above routine but doesn't return # of seconds as a double; instead,
+   // returns # of microseconds as a long long int
+unsigned long long userAndSysTime2uSecs(const timeval &uTime,
+                                        const timeval &sysTime);
 
 extern void logLine(const char *line);
 extern void statusLine(const char *line);
