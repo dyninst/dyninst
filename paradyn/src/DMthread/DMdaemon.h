@@ -135,6 +135,11 @@ class paradynDaemon: public dynRPCUser {
 	static void setEarliestFirstTime(double f){
             if(!earliestFirstTime) earliestFirstTime = f;
 	}
+        void setTimeFactor(timeStamp timef) {
+            time_factor = timef;
+        }
+        timeStamp getTimeFactor() { return time_factor; }
+        timeStamp getAdjustedTime(timeStamp time) { return time + time_factor; }
 
 	// Not working -- would provide a read that didn't block other threads
 	static int read(const void *handle, char *buf, const int len);
@@ -191,6 +196,9 @@ class paradynDaemon: public dynRPCUser {
         string flavor;
 
         status_line *status;
+
+        timeStamp time_factor; // for adjusting the time to account for 
+                               // clock differences between daemons.
 
 	// all active metrics ids for this daemon.
         dictionary_hash<unsigned, metricInstance*> activeMids;

@@ -1,7 +1,15 @@
 /* $Log: main.C,v $
-/* Revision 1.37  1996/01/09 01:08:27  tamches
-/* added develModeCallback
+/* Revision 1.38  1996/01/29 22:12:59  mjrg
+/* Added metric propagation when new processes start
+/* Adjust time to account for clock differences between machines
+/* Daemons don't enable internal metrics when they are not running any processes
+/* Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+/* the application stops only after it starts the CM5 daemon)
+/* Added -default_host option to paradyn
 /*
+ * Revision 1.37  1996/01/09 01:08:27  tamches
+ * added develModeCallback
+ *
  * Revision 1.36  1995/12/20 20:18:35  newhall
  * removed matherr.h
  *
@@ -188,8 +196,6 @@ char UIStack[327680];
 char UIStack[32768];
 #endif
 
-
-
 // applicationContext *context;
 dataManagerUser *dataMgr;
 performanceConsultantUser *perfConsult;
@@ -197,6 +203,10 @@ UIMUser *uiMgr;
 VMUser  *vmMgr;
 int paradyn_debug;
 char debug_buf[DEBUGBUFSIZE];
+
+// default_host defines the host where programs run when no host is
+// specified in a PCL process definition, or in the process definition window.
+string default_host;
 
 
 #define PRINT_DEBUG_MACRO				\
@@ -299,13 +309,6 @@ main (int argc, char **argv)
   //
   P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
 
-  if ((argc != 1 && argc != 3 && argc != 5) ||
-      ((argc == 3) && strcmp(argv[1],"-f") && strcmp(argv[1],"-s")) ||
-      ((argc == 5) && strcmp(argv[3],"-f") && strcmp(argv[3],"-s"))) {
-    printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]\n", argv[0]);
-    exit(-1);
-  }
-
   // get paradyn_debug environment var PARADYNDEBUG, if its value
   // is > 1, then PARADYN_DEBUG msgs will be printed to stdout
   if((temp = (char *) getenv("PARADYNDEBUG"))){
@@ -316,15 +319,27 @@ main (int argc, char **argv)
   }
 
 // parse the command line arguments
-  int a_ct=0;
+  int a_ct=1;
   char *fname=0, *sname=0;
-  while (argv[a_ct + 1]) {
-    if (!strcmp(argv[a_ct], "-f")) {
-      fname = argv[a_ct+1];
-    } else if (!strcmp(argv[a_ct], "-s")) {
-        sname = argv[a_ct+1];
-      }
+  while (argv[a_ct]) {
+    if (fname == 0 && !strcmp(argv[a_ct], "-f") && argv[a_ct+1]) {
+      fname = argv[++a_ct];
+    } else if (sname == 0 && !strcmp(argv[a_ct], "-s") && argv[a_ct+1]) {
+      sname = argv[++a_ct];
+    } else if (!default_host.length() && (!strcmp(argv[a_ct], "-default_host") || !strcmp(argv[a_ct], "-d")) && argv[a_ct+1]) {
+      default_host = argv[++a_ct];
+    } else {
+      printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>] [-default_host <hostname>]\n", argv[0]);
+      exit(-1);
+    }
     a_ct++;
+  }
+
+  // initialize default host here, if it was not defined in a command line argument
+  if (!default_host.length()) {
+    struct utsname un;
+    P_uname(&un);
+    default_host = un.nodename;
   }
 
 // get tid of parent

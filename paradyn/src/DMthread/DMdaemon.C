@@ -34,7 +34,7 @@ double   quiet_nan();
 #include "paradyn/src/UIthread/Status.h"
 #include "DMmetric.h"
 #include "paradyn/src/met/metricExt.h"
-
+#include "util/h/time.h"
 
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
@@ -60,6 +60,56 @@ bool paradynDaemon::addRunningProgram (int pid,
     executable *exec = new executable (pid, argv, daemon);
     programs += exec;
     ++procRunning;
+
+    // the new program inherint all metrics that are currently enabled
+
+    vector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
+    for (unsigned i = 0; i < allMIHs.size(); i++) {
+      metricInstance *mi = metricInstance::getMI(allMIHs[i]);
+     
+      if (mi->isEnabled()) {
+
+	// first we must find if the daemon already has this metric enabled for
+	// some process. In this case, we don't need to do anything, the
+	// daemon will do the propagation by itself.
+	bool found = false;
+	for (unsigned j = 0; j < mi->components.size(); j++) {
+	  if (mi->components[j]->getDaemon() == daemon) {
+	    found = true;
+	    break;
+	  }
+	}
+	if (!found) {
+	  resourceListHandle r_handle = mi->getFocusHandle();
+	  metricHandle m_handle = mi->getMetricHandle();
+	  resourceList *rl = resourceList::getFocus(r_handle);
+	  metric *m = metric::getMetric(m_handle);
+
+	  vector<u_int> vs;
+	  assert(rl->convertToIDList(vs));
+
+	  int id = daemon->enableDataCollection(vs, (const char *) m->getName(), mi->id);
+
+	  if (id > 0 && !daemon->did_error_occur()) {
+	    component *comp = new component(daemon, id, mi);
+	    if (mi->addComponent(comp)) {
+	      // This is temporary, until aggregateSample is fixed.
+	      comp->sample.firstSampleReceived = true;
+	      comp->sample.lastSampleEnd = mi->sample.lastSampleEnd;
+	      comp->sample.lastSample = 0.0;
+	      mi->addPart(&comp->sample);
+	    }
+	    else {
+	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
+	      abort();
+	    }
+	  }
+	}
+      }
+    }
+
+    // start the program
+
     return true;
 }
 
@@ -121,6 +171,15 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
     msg_unbind(d->get_fd());
 }
 
+// get the current time of a daemon, to adjust for clock differences.
+void getDaemonTime(paradynDaemon *pd) {
+  timeStamp t1 = getCurrentTime();
+  timeStamp dt = pd->getTime(); // daemon time
+  timeStamp t2 = getCurrentTime();
+  timeStamp delay = (t2 - t1) / 2.0;
+  pd->setTimeFactor(t1 - dt + delay);
+}
+
 //
 // add a new daemon
 // check to see if a daemon that matches the function args exists
@@ -150,9 +209,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     string m = machine; 
     // fill in machine name if emtpy
     if (!m.string_of()) {
-        struct utsname un;
-        P_uname(&un);
-        m = un.nodename;
+        m = default_host;
     }
 
     char statusLine[256];
@@ -175,7 +232,13 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     }
 
     paradynDaemon::args.resize(asize);
-    (*DMstatus) << "ready";
+    if (def->getFlavorString() == "cm5") {
+      // if the daemon flavor is cm5, we have to wait until the node
+      // daemon starts 
+       (*DMstatus) << "Waiting for CM5 node daemon ...";
+    }
+     else  
+       (*DMstatus) << "ready";
 
     if (pd->get_fd() < 0) {
         uiMgr->showError (6, "unable to start paradynd");
@@ -189,6 +252,8 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
    unsigned size = info.size();
    for (unsigned u=0; u<size; u++)
 	addMetric(info[u]);
+
+    getDaemonTime(pd);
 
     msg_bind_buffered(pd->get_fd(), true, (int(*)(void*))xdrrec_eof,
 		     (void*) pd->net_obj());
@@ -689,8 +754,14 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
     return ret;
 }
 
-void paradynDaemon::firstSampleCallback(int, double firstTime) {
-  setEarliestFirstTime(firstTime);
+
+void paradynDaemon::firstSampleCallback(int program,
+					double firstTime) {
+  static bool done = false;
+  if (!done) {
+    setEarliestFirstTime(getAdjustedTime(firstTime));
+  }
+  done = true;
 }
 
 
@@ -755,8 +826,11 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	double endTimeStamp   = entry.endTimeStamp ;
 	double value          = entry.value ;
 
-	startTimeStamp -= getEarliestFirstTime();
-	endTimeStamp -= getEarliestFirstTime();
+//	startTimeStamp -= getEarliestFirstTime();
+//	endTimeStamp -= getEarliestFirstTime();
+	startTimeStamp = this->getAdjustedTime(startTimeStamp) - getEarliestFirstTime();
+	endTimeStamp = this->getAdjustedTime(endTimeStamp) - getEarliestFirstTime();
+
 	if (our_print_sample_arrival) {
 	    cout << "mid " << mid << " " << value << " from "
 	         << startTimeStamp << " to " << endTimeStamp 
@@ -909,6 +983,12 @@ paradynDaemon::reportSelf (string m, string p, int pd, string flav)
   for (unsigned u=0; u<size; u++)
       addMetric(info[u]);
 
+  getDaemonTime(this);
+
+  if (machine == "CM5 node daemon") {
+    (*DMstatus) << "ready";
+  }
+
   return;
 }
 
@@ -958,6 +1038,7 @@ paradynDaemon::processStatus(int pid, u_int stat) {
 ***/
 void
 paradynDaemon::nodeDaemonReadyCallback(void) {
+
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
       paradynDaemon *pd = paradynDaemon::allDaemons[i];
       if (pd != this) {

@@ -97,6 +97,7 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*,
 
 // MDL stuff 
 
+template class vector<process *>;
 template class vector<dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;

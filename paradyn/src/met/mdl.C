@@ -91,7 +91,7 @@ bool mdl_data::new_metric(string id, string name, string units,
 }
 
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&focus,
-						      string& flat_name) {
+						      string& flat_name, vector<process *> procs) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
   assert(temp_ctr_);
@@ -725,7 +725,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, NULL) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else
