@@ -1,4 +1,11 @@
 
+/*
+ * $Log: mdl.C,v $
+ * Revision 1.15  1996/03/09 19:53:16  hollings
+ * Fixed a call to apply that was passing NULL where a vector was expected.
+ *
+ *
+ */
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
 #include "paradyn/src/met/metricExt.h"
@@ -785,6 +792,7 @@ bool mdl_apply() {
   // TODO -- use a proper vector
   vector< vector<string> >vs;
   string empty;
+  vector<process*> emptyP;
 
   vector<T_dyninstRPC::mdl_constraint*> ok_cons;
   size = mdl_data::all_constraints.size();
@@ -805,7 +813,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, NULL) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
