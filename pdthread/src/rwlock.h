@@ -55,7 +55,7 @@
  * NB!  This code does not check to see whether you have a lock before 
  * you release it.  Be smart.
  *
- * $Id: rwlock.h,v 1.4 2004/03/23 01:12:40 eli Exp $
+ * $Id: rwlock.h,v 1.5 2005/03/14 21:13:28 gquinn Exp $
 ************************************************************************/
 #ifndef _thread_src_rwlock_h_
 #define _thread_src_rwlock_h_
@@ -94,7 +94,10 @@ public:
         monitor( new XPlat::Monitor ),
         active_readers(0), active_writers(0), 
         waiting_readers(0), waiting_writers(0)
-    { }
+    {
+	monitor->RegisterCondition(READ_CVID);
+	monitor->RegisterCondition(WRITE_CVID);
+    }
     
     int start_reading();
     int start_writing();  
