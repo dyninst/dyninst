@@ -58,16 +58,48 @@ static visi_DataGrid  visi_dataGrid;
 static visi_TraceData visi_traceData;
 static int            visi_LastBucketSent = -1;
 static PDSOCKET visi_fileDesc;
-static int (*visi_fileDescCallbacks)();
 static int (*visi_eventCallbacks[EVENTSIZE])(int);
 static int visi_initDone = 0;
 static visualization *visi_vp;
 
-// TODO -- better error checking here?
-int visi_callback(){
-  return(visi_vp->waitLoop());
+
+int
+visi_callback( void )
+{
+	int ret = 0;
+	bool done = false;
+
+	// handle all available data on the XDR stream
+	//
+	// Note that with this arrangement, the visi hands
+	// control over to the visi library until it has
+	// processed all available data.  If the sender (Paradyn front end)
+	// is producing data at a faster rate than the visi can consume it,
+	// the visi GUI will be unresponsive while it is handling the
+	// data.  However, even in this case, the data will eventually
+	// back up the connection to the front end, and the front end
+	// will block writing data on this synchronous connection.
+	//
+	// The alternative would be to return some indication to the 
+	// caller that more data is available, so that the caller can
+	// decide when to continue consuming XDR records.
+	// 
+	while( !done )
+	{
+		// handle the XDR record
+		ret = visi_vp->waitLoop();
+
+		// check if more data is available on the stream
+		if( xdrrec_eof( visi_vp->net_obj() ) )
+		{
+			done = true;
+		}
+	}
+
+	return ret;
 }
 
+	
 ///////////////////////////////////////////////////////////
 // paradyn initialization routine connects to parent socket,
 // and registers the visualization::mainLoop routine as 
@@ -77,7 +109,6 @@ PDSOCKET visi_Init(){
 
 int i;
 
-  visi_fileDescCallbacks = NULL;
   visi_fileDesc = INVALID_PDSOCKET;
   for(i=0;i<EVENTSIZE;i++){
     visi_eventCallbacks[i] = NULL;
@@ -91,7 +122,6 @@ int i;
 
   visi_vp = new visi_visualization(sock);
   visi_fileDesc = sock;
-  visi_fileDescCallbacks = visi_callback;
   visi_initDone = 1;
  
   // make request for info. about all phases defined so far 
