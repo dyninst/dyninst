@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.16 2003/02/25 21:11:08 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.17 2003/06/10 17:45:36 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -84,7 +84,7 @@
 
 #define IBRANCH_X6		0x00FC000000000000	/* bits 27 - 32 */
 #define IBRANCH_B2		0x0000007000000000	/* bits 13 - 15 */
-#define IBRANCH_BTYPE		0x00000000E0000000	/* btis 06 - 08 */
+#define IBRANCH_BTYPE		0x00000000E0000000	/* bits 06 - 08 */
 
 #define RIGHT_IMM5C		0x00000000001F0000	/* bits 16 - 20 */
 #define RIGHT_IMM9D		0x000000000000FF80	/* bits 07 - 15 */
@@ -649,8 +649,6 @@ IA64_instruction generateRegisterToBranchMove( Register source, Register destina
 	uint64_t generalRegister = ((uint64_t)source) & 0x7F;
 	uint64_t branchRegister = ((uint64_t)destination) & 0x07;
 
-	/* FIXME: Since I'm ignoring the prediction for now anyway, don't set
-	   timm9, the address of the predicted branch insn. */
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x07) << (33 + ALIGN_RIGHT_SHIFT)) |
 			   ( generalRegister << (13 + ALIGN_RIGHT_SHIFT)) |
@@ -740,27 +738,57 @@ IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t mas
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterToPredicatesMove() */
 
-IA64_instruction generateRegisterStore( Register address, Register source ) {
+#define BIT_30_35 0xFC0000000
+#define NOT_BIT_30_35 (~ BIT_30_35)
+IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 ) {
+	IA64_instruction temp = generateRegisterStore( address, source, imm9 );
+	uint64_t rawInsn = temp.getMachineCode();
+	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
+	rawInsn = rawInsn | ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) );
+	return IA64_instruction( rawInsn );
+	} /* end generateSpillTo() */
+
+IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 ) {
+	IA64_instruction temp = generateRegisterLoad( address, destination, imm9 );
+	uint64_t rawInsn = temp.getMachineCode();
+	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
+	rawInsn = rawInsn | ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) );
+	return temp;
+	} /* end generateFillFrom() */
+
+IA64_instruction generateRegisterStore( Register address, Register source, int imm9 ) {
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
+	uint64_t signBit = imm9 < 0 ? 1 : 0;
+	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
 			   ( ((uint64_t)0x33) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) );
+			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( immediate << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterStore() */
 
-IA64_instruction generateRegisterLoad ( Register destination, Register address ) { 
+IA64_instruction generateRegisterLoad ( Register destination, Register address, int imm9 ) { 
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
+	uint64_t signBit = imm9 < 0 ? 1 : 0;
+	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
 			   ( ((uint64_t)0x03) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( immediate << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
@@ -769,11 +797,23 @@ IA64_instruction generateRegisterLoad ( Register destination, Register address )
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination ) {
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	uint64_t rawInsn;
 
-	uint64_t rawInsn = 0x0000000000000000 |
+	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
+	   divide responsibility at the sixty-fourth application register, with an I unit handling
+	   the upper 64. */
+	if( destination <= 63 ) {
+		rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x2A) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (20 + ALIGN_RIGHT_SHIFT) );		
+	} else {
+		rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x2A) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (20 + ALIGN_RIGHT_SHIFT) );
+		} /* end if using I unit */
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterToApplicationMove() */
@@ -781,11 +821,23 @@ IA64_instruction generateRegisterToApplicationMove( Register source, Register de
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination ) {
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	uint64_t rawInsn;
 
-	uint64_t rawInsn = 0x0000000000000000 |
+	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
+	   divide responsibility at the sixty-fourth application register, with an I unit handling
+	   the upper 64. */
+	if( source <= 63 ) {
+		rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x22) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	} else {
+		rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x32) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+		} /* end if using I unit */
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterToApplicationMove() */
@@ -949,3 +1001,23 @@ IA64_instruction generateFixedPointMultiply( Register destination, Register lhs,
 
 	return IA64_instruction( rawInsn );
 	} /* end generateFixedPointMultiply() */
+
+void alterLongMoveAtTo( Address target, Address imm64 ) {
+	ia64_bundle_t rawBundle = *( ia64_bundle_t *)target;
+
+	uint64_t daRegister = rawBundle.high & 
+				( 0x7F << (6 + ALIGN_RIGHT_SHIFT) );
+	rawBundle.high = daRegister | 
+			( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT)) |
+			( (imm64 & RIGHT_IMM_I) << (-63 + 36 + ALIGN_RIGHT_SHIFT)) |
+			( (imm64 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
+			( (imm64 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
+			( (imm64 & RIGHT_IMM_IC) << (-21 + 21 + ALIGN_RIGHT_SHIFT)) |
+			( (imm64 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT));
+			
+	uint64_t daTemplate = rawBundle.low & 0x3F;
+	rawBundle.low = daTemplate |
+			( (imm64 & RIGHT_IMM41) << (-22 + ALIGN_RIGHT_SHIFT) );
+
+	*(ia64_bundle_t *)target = rawBundle;
+	} /* end alterLongMoveAtTo() */
