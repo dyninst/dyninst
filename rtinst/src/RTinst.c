@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.85 2005/01/28 18:12:05 legendre Exp $
+ * $Id: RTinst.c,v 1.86 2005/02/15 17:44:10 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1527,11 +1527,10 @@ void DYNINSTreportNewWindow(const struct DynInstWin_st * WinSt )
   int    dx;
   rawTime64 process_time;
   rawTime64 wall_time;
+  struct _newresource newRes;
 
-    process_time = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWalltime();
-
-    struct _newresource newRes;
+  process_time = DYNINSTgetCPUtime_hw();
+  wall_time = DYNINSTgetWalltime();
 
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/Window/%d-%d",
@@ -1551,6 +1550,7 @@ void DYNINSTnameWindow(unsigned int WindowId, char * name){
   rawTime64 process_time;
   rawTime64 wall_time;  static int warned = 0;
   int WinId;
+  struct _updtresource Res;
 
 // get implementation dependent context id for window
   if(whichMPI == LAM){
@@ -1597,7 +1597,6 @@ void DYNINSTnameWindow(unsigned int WindowId, char * name){
   WinSt->WinName = (char*)malloc(strlen(name) +1);
   strcpy(WinSt->WinName,name);
 
-  struct _updtresource Res;
   memset(&Res, '\0', sizeof(Res));
   sprintf(Res.name, "SyncObject/Window/%d-%d",
              WinSt->WinId, WinSt->WinUniqueId);
@@ -1621,6 +1620,7 @@ void DYNINSTnameGroup(unsigned int gId, char * name){
   rawTime64 wall_time;
   static int warned = 0;
   int groupId;
+  struct _updtresource Res;
 
 //get implementation dependent context id for communicator
   if(whichMPI == LAM){
@@ -1674,7 +1674,6 @@ void DYNINSTnameGroup(unsigned int gId, char * name){
    return;
   }
 //fprintf(stderr,"name for group %d-%d \n", tagSt->TagGroupId, tagSt->TGUniqueId);
-  struct _updtresource Res;
   memset(&Res, '\0', sizeof(Res));
   sprintf(Res.name, "SyncObject/Message/%d-%d",
              tagSt->TagGroupId,tagSt->TGUniqueId );
@@ -1699,6 +1698,8 @@ void DYNINSTretireGroupTag(unsigned int * gId){
   rawTime64 wall_time;
   int groupId;
   int i = 0;
+  struct _updtresource Res;
+  int count = 0;
 
 // get implementation dependent context id for communicator
   if(whichMPI == LAM){ 
@@ -1729,11 +1730,8 @@ void DYNINSTretireGroupTag(unsigned int * gId){
      return;
   }//fprintf(stderr,"found group %u-%d and sending retire request\n",tagSt->TagGroupId, tagSt->TGUniqueId);
   
-  struct _updtresource Res;
-
 /* retire tags first */
   
-  int count = 0;
   for(i = 0 ; i < DYNINSTagsLimit && count < tagSt->NumTags; ++i){
 //fprintf(stderr,"tagSt->NumTags is %d for group %d-%d tag is %d\n",tagSt->NumTags, tagSt->TagGroupId, tagSt->TGUniqueId, tagSt->TagTable[i]);
     if(tagSt->TagTable[i] != DYNINSTGroupUndefinedTag){
@@ -1790,6 +1788,7 @@ void DYNINSTretireWindow(unsigned int * WindowId){
   rawTime64 process_time;
   rawTime64 wall_time;
   int WinId;
+  struct _updtresource Res; 
 
 //get implementation dependent context id for window
   if(whichMPI == LAM){
@@ -1820,7 +1819,6 @@ void DYNINSTretireWindow(unsigned int * WindowId){
      return;
   }                              
 //fprintf(stderr,"found window %u-%d and sending retire request\n",WinSt->WinId, WinSt->WinUniqueId);
-  struct _updtresource Res; 
   memset(&Res, '\0', sizeof(Res));
   sprintf(Res.name, "SyncObject/Window/%u-%d",
              WinSt->WinId, WinSt->WinUniqueId);
@@ -1869,8 +1867,8 @@ void DYNINSTrecordTag(int tagId)
 
 void DYNINSTrecordTagAndGroup(int tagId, unsigned groupId)
 {
-  assert(tagId >= 0);
   int gId = -1;
+  assert(tagId >= 0);
   if(whichMPI == LAM){
     struct LAM_Comm * lc = (struct LAM_Comm*)groupId;
     gId = lc->c_contextid;
