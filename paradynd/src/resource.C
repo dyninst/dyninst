@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.22  1997/01/15 00:30:18  tamches
+ * added some uses of dictionary find() method
+ *
  * Revision 1.21  1996/09/26 18:59:12  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -155,13 +158,22 @@ resource *resource::newResource(resource *parent, void *handle,
   return(ret);
 }
 
-bool resource::foc_to_strings(vector< vector<string> >& string_foc, vector<u_int>& ids) {
+bool resource::foc_to_strings(vector< vector<string> >& string_foc,
+			      const vector<u_int>& ids,
+			      bool print_err_msg) {
   unsigned id_size = ids.size();
   for (unsigned i=0; i<id_size; i++) {
-    if (!res_dict.defines(ids[i])) return false;
-    resource *r = res_dict[ids[i]];
+    resource *r;
+    if (!res_dict.find(ids[i], r)) { // writes to "r" if found
+       if (print_err_msg)
+	  cerr << "resource::foc_to_strings -- could not find resource entry for id " << ids[i] << endl;
+
+       return false;
+    }
+
     string_foc += r->names();
   }
+
   return true;
 }
 
@@ -177,7 +189,6 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     if (focus[f][0] == "Machine") {
       machine = true;
       ret[resource::machine] = focus[f];
-//    } else if (focus[f][0] == "Procedure") {      
     } else if (focus[f][0] == "Code") {      
       procedure = true;
       ret[resource::procedure] = focus[f];
@@ -193,7 +204,6 @@ void resource::make_canonical(const vector< vector<string> >& focus,
   vector<string> temp(1); // 1 entry vector
 
   if (!machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
-//  if (!procedure) ret[resource::procedure] = "Procedure";
   if (!procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
   if (!process) {temp[0]="Process"; ret[resource::process] = temp;}
   if (!sync) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
