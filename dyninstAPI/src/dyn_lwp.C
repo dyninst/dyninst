@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.13 2003/10/07 19:06:01 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.14 2003/10/22 16:00:43 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -50,6 +50,8 @@
 #include <assert.h>
 
 dyn_lwp::dyn_lwp() :
+  changedPCvalue(0),
+  status_(neonatal),
   proc_(NULL),
   lwp_id_(0),
   fd_(0),
@@ -68,6 +70,7 @@ dyn_lwp::dyn_lwp() :
 
 dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   changedPCvalue(0),
+  status_(neonatal),
   proc_(proc),
   lwp_id_(lwp),
   fd_(INVALID_HANDLE_VALUE),
@@ -86,6 +89,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
 
 dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   changedPCvalue(0),
+  status_(neonatal),
   proc_(l.proc_),
   lwp_id_(l.lwp_id_),
   fd_(INVALID_HANDLE_VALUE),
@@ -108,10 +112,51 @@ dyn_lwp::~dyn_lwp()
    detach();
 }
 
+// TODO is this safe here ?
+bool dyn_lwp::continueLWP() {
+   if(status_ == running) {
+      return true;
+   }
+
+   bool ret = continueLWP_();
+   if(ret == false) {
+      perror("continueProc_()");
+   }
+
+   status_ = running;
+   return true;
+}
+
+
+bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
+   // Not checking lwp status_ for neonatal because it breaks attach with the
+   // dyninst tests.  My guess is that somewhere we set the process status to
+   // running.  If we can find this, then we can set the lwp status to
+   // running also.
+   if(status_ == stopped) {
+      return true;
+   }
+
+   if(proc_->status() == neonatal || proc_->status() == stopped) {      
+      return true;
+   }
+
+   bool res = stop_();
+   if(res == false)
+      return false;
+
+   if(shouldWaitUntilStopped) {
+      res = waitUntilStopped();
+   }
+
+   status_ = stopped;
+   return res;
+}
+
 
 // Not sure this is a good idea... when would we be walking the stack
-// (conceptually) of an LWP rather than the thread running on it?
-// For now: non-MT will walk getProcessLWP() since it doesn't understand
+// (conceptually) of an LWP rather than the thread running on it?  For now:
+// non-MT will walk getRepresentativeLWP() since it doesn't understand
 // multithreaded programs
 
 void dyn_lwp::markDoneRunningIRPC() {
@@ -148,12 +193,11 @@ bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
 
 bool dyn_lwp::attach() {
    assert(!is_attached());
-
    bool res;
-   if (lwp_id_)
-      res = threadLWP_attach_();
-   else      // No LWP = representative LWP
-      res = processLWP_attach_();
+   if(this == proc()->getRepresentativeLWP())
+      res = representativeLWP_attach_();
+   else
+      res = realLWP_attach_();
 
    if(res == true)
       is_attached_ = true;
@@ -162,10 +206,15 @@ bool dyn_lwp::attach() {
 }
 
 void dyn_lwp::detach() {
-   if(is_attached()) {
-      detach_();
-      is_attached_ = false;
-   }
+   if(! is_attached())
+      return;
+
+   if(this == proc()->getRepresentativeLWP())
+      representativeLWP_detach_();
+   else
+      realLWP_detach_();
+
+   is_attached_ = false;
 }
 
 int dyn_lwp::getPid() const {

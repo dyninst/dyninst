@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.19 2003/10/07 19:06:02 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.20 2003/10/22 16:00:44 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -153,6 +153,28 @@ class dyn_lwp
   bool walkStack(pdvector<Frame> &stackWalk);
   bool markRunningIRPC();
   void markDoneRunningIRPC();
+  bool waitUntilStopped();
+  processState status_;
+  processState status() const { return status_;}
+  void set_status(processState st) {
+     status_ = st;
+  }
+  bool pauseLWP(bool shouldWaitUntilStopped = true);
+  bool stop_(); // formerly OS::osStop
+  bool continueLWP();
+  bool continueLWP_();
+
+#if defined(i386_unknown_linux2_0)
+  bool deliverPtrace(int req, Address addr, Address data);
+  int deliverPtraceReturn(int req, Address addr, Address data);
+#elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+  bool deliverPtrace(int request, void *addr, int data, void *addr2);
+#endif
+
+#if defined(i386_unknown_linux2_0)
+  bool isRunning() const;
+  bool isStopPending() const;
+#endif
 
 #if defined(AIX_PROC)
   void reopen_fds(); // Re-open whatever FDs might need to be
@@ -164,9 +186,7 @@ class dyn_lwp
   // Implemented where aborting system calls is possible
   bool abortSyscall();
   // Solaris: keep data in the LWP instead of in class process
-  bool pauseLWP();
   // Continue, clearing signals
-  bool continueLWP();
   // Clear signals, leaved paused
   bool clearSignal();
   // Continue, forwarding signals
@@ -251,11 +271,12 @@ class dyn_lwp
 #endif
   
  private:
-  void detach_();   // os specific
-  bool threadLWP_attach_();   // os specific
-  bool processLWP_attach_();  // os specific
+  bool representativeLWP_attach_();  // os specific
+  bool realLWP_attach_();   // os specific
+  void representativeLWP_detach_();   // os specific
+  void realLWP_detach_();   // os specific
   void closeFD_();  // os specific
-  
+
   process *proc_;
   const unsigned lwp_id_;
   handleT fd_;
