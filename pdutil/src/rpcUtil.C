@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.91 2004/03/23 01:12:41 eli Exp $
+// $Id: rpcUtil.C,v 1.92 2004/07/23 20:39:15 tlmiller Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -75,7 +75,7 @@ bool CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock );
 
 int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 {
-    PDSOCKET sock = (PDSOCKET) handle;
+    PDSOCKET sock = (PDSOCKET) (long) handle;
     int ret;
 
 #if defined(i386_unknown_nt4_0)
@@ -109,7 +109,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 {
     /* called when paradyn/xdr detects that it needs to read a message
        from paradynd. */
-    PDSOCKET fd = (PDSOCKET) handle;
+    PDSOCKET fd = (PDSOCKET) (long) handle;
     unsigned header;
     int ret;
     int needCopy = 0;
@@ -239,7 +239,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 
 int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
 {
-    PDSOCKET sock = (PDSOCKET) handle;
+    PDSOCKET sock = (PDSOCKET) (long) handle;
     int ret;
 
 #if defined(i386_unknown_nt4_0)
@@ -269,7 +269,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
     //printf("RPCasyncXDRWrite(handle=%p, buf=%p, len=%d)\n", handle, buf, len);
 
     rpcBuffer *rb = new rpcBuffer;
-    rb -> fd = (int) handle;
+    rb -> fd = (long) handle;
     rb -> len = len+sizeof(int);
     rb -> buf = new char[rb -> len];
 
@@ -436,7 +436,7 @@ XDRrpc::XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRout
 	writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
       }
     }
-    P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine, writeRoutine);
+    P_xdrrec_create(xdrs, 0, 0, (char *) (long) sock, readRoutine, writeRoutine);
 }
 
 //
@@ -471,7 +471,7 @@ XDRrpc::XDRrpc(const pdstring &machine,
 	  writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
 	}
       }
-      P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine, writeRoutine);
+      P_xdrrec_create(xdrs, 0, 0, (char *) (long) sock, readRoutine, writeRoutine);
     }
 }
 
@@ -564,7 +564,7 @@ RPC_setup_socket (PDSOCKET &sock,   // return socket descriptor
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   serv_addr.sin_port = htons(0);
   
-  size_t length = sizeof(serv_addr);
+  socklen_t length = sizeof(serv_addr);
 
   if (P_bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == PDSOCKET_ERROR)
     return -1;
@@ -666,7 +666,7 @@ XDRrpc::XDRrpc(int family,
 	writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
       }
     }
-    P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine,writeRoutine);
+    P_xdrrec_create(xdrs, 0, 0, (char *) (long) sock, readRoutine,writeRoutine);
 } 
 
 //
@@ -1047,7 +1047,7 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
     return INVALID_PDSOCKET;
 
   struct sockaddr cli_addr;
-  size_t clilen = sizeof(cli_addr);
+  socklen_t clilen = sizeof(cli_addr);
   errno = 0;
   PDSOCKET new_sock = P_accept (sock, (struct sockaddr *) &cli_addr, &clilen);
 
@@ -1250,6 +1250,11 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 #if !defined(i386_unknown_nt4_0)
 #include <sys/ioctl.h>
 #include <net/if.h>
+#if ! defined( rs6000_ibm_aix4_1 )
+#define IOCTL_FOR_INTERFACES	SIOCGIFCONF
+#else
+#define IOCTL_FOR_INTERFACES	CSIOCGIFCONF
+#endif /* ! defined( rs6000-ibm-aix4.3 ) */
 #else
 #include <Iphlpapi.h>
 #include <Iptypes.h>
@@ -1274,99 +1279,105 @@ static const pdstring get_local_ip_address()
     }
     first_time_ip_address = 0;
 
-#if !defined(i386_unknown_nt4_0)
-    int sockfd, lastlen, len, firsttime, flags;
-    char *buf, *cptr, *ptr, lastname[IFNAMSIZ];
-    struct ifreq *ifr, ifrcopy;
-    struct ifconf ifc;
+#if ! defined( i386_unknown_nt4_0 )
 
-    //printf("get_local_ip_address() ...\n");
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(sockfd < 0 ){
-        perror("Failed socket()");
-        return ip_address;
-    }
+	int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
+	if( sockfd < 0 ) {
+		fprintf( stderr, "%s[%d]: failed socket():", __FILE__, __LINE__ ); perror( "" );
+		return ip_address;
+		}
+	
+	/* Initialize the loop. */
+	char * unalignedAllocation = (char *)malloc( 1 );
+	if( unalignedAllocation == NULL ) {
+		fprintf( stderr, "%s[%d]: failed malloc():", __FILE__, __LINE__ ); perror( "" );
+		return ip_address;
+		}
+		
+	struct ifconf ifc; ifc.ifc_len = 0;
+	int bufferSize = 0;
+	int length = 0;
+	
+	do {
+		free( unalignedAllocation );
+		length = ifc.ifc_len;
+		bufferSize += 3 * sizeof( struct ifreq );
+		
+		unalignedAllocation = (char *)malloc( bufferSize + sizeof( struct ifreq ) );
+		if( unalignedAllocation == NULL ) {
+			fprintf( stderr, "%s[%d]: failed malloc():", __FILE__, __LINE__ ); perror( "" );
+			return ip_address;
+			}
+			
+		ifc.ifc_buf = unalignedAllocation - ((unsigned long)unalignedAllocation % sizeof( struct ifreq )) + sizeof( struct ifreq );
+		ifc.ifc_len = bufferSize - (ifc.ifc_buf - unalignedAllocation);
+		// /* DEBUG */ fprintf( stderr, "unalignedAllocation: %p, ifc.ifc_buf: %p, ifc.ifc_len = %d\n", unalignedAllocation, ifc.ifc_buf, ifc.ifc_len );
 
-    lastlen = 0; firsttime=1;
-    len = 3 * sizeof(struct ifreq); // initial size guess
-    while(1){
-        buf = (char*)malloc(len); assert(buf);
-        ifc.ifc_len = len;
-        ifc.ifc_buf = buf;
-        //printf("\tCalling ioctl w/ len: %d ...\n", len);
-#if !defined(rs6000_ibm_aix4_1)
-        if( ioctl(sockfd, SIOCGIFCONF, &ifc) < 0 )
-#else
-        if( ioctl(sockfd, CSIOCGIFCONF, &ifc) < 0 )  //use on aix
-#endif /* rs6000-ibm-aix4.3 */
-        {
-            perror("Failed ioctl()");
-            return ip_address;
-        }
-        else{
-            //printf("\tComparing %d and lastlen:%d ... \n", ifc.ifc_len, lastlen);
-            if (ifc.ifc_len == lastlen){
-                //printf("ioctl success\n");
-                break; //success, len has not changed
-            }
-            lastlen = ifc.ifc_len;
-        }
-        if( !firsttime ){
-            firsttime = 0;
-            len += 5 * sizeof(struct ifreq); /* increment size guess */
-        }
-        free(buf);
-    }
-
-    lastname[0] = 0;
-    int i;
-    for( ptr=buf,i=0; ptr < buf + ifc.ifc_len; i++,ptr+= sizeof(ifr->ifr_name)+len ){
-        //printf("Processing interface %d\n", i);
-        ifr = (struct ifreq *) ptr;
-
-        len = sizeof(struct sockaddr);
-
-        if (ifr->ifr_addr.sa_family != AF_INET){
-            //printf("\tIgnoring %s (wrong family)!\n", ifr->ifr_name );
-            continue;  //ignore other address families
-        }
-
-        if( (cptr = strchr(ifr->ifr_name, ':')) != NULL){
-            *cptr = 0; // replace colon with null 
-        }
-        if( strncmp(lastname, ifr->ifr_name, IFNAMSIZ) == 0 ){ 
-            //printf("\tIgnoring %s (alias)!\n", ifr->ifr_name );
-            continue;
-        }
-
-        ifrcopy = *ifr;
-        if( ioctl(sockfd, SIOCGIFFLAGS, &ifrcopy) < 0 ){
-            perror("Failed ioctl()");
-            return ip_address;
-        }
-        flags = ifrcopy.ifr_flags;
-        if( (flags & IFF_UP) == 0){
-            //printf("\tIgnoring %s (Not Up!)\n", ifr->ifr_name);
-            continue;
-        }
+		if( ioctl( sockfd, IOCTL_FOR_INTERFACES, & ifc ) < 0 ) {
+			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); perror( "" );
+			return ip_address;			
+			}
+		
+		// /* DEBUG */ fprintf( stderr, "bufferSize: %d, length: %d, ifc.ifc_len: %d.\n", bufferSize, length, ifc.ifc_len );
+		} while( length != ifc.ifc_len );
+		
+	char * colonPointer = NULL;
+	char lastInterfaceName[ IFNAMSIZ ] = "";
+	for( unsigned int i = 0; i < (length / sizeof( struct ifreq )); i++ ) {
+		struct ifreq * ifr = & ifc.ifc_req[ i ];
+		
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering interface %d (%s)...\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
+		
+		if( ifr->ifr_addr.sa_family != AF_INET ) {
+			/* DEBUG */ fprintf( stderr, "%s[%d]: interface %d (%s) has address family %d, not AF_INET.\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
+			continue;
+			}
+			
+		/* Detect and ignore aliases. */
+		colonPointer = strchr( ifr->ifr_name, ':' );
+		if( colonPointer != NULL ) { * colonPointer = '\0'; }
+		
+		if( strcmp( lastInterfaceName, ifr->ifr_name ) == 0 ) {
+			/* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is an alias.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+			continue;
+			}
+			
+		/* Grab the interface flags: is the interface down? */
+		struct ifreq ifrcopy = * ifr;
+		
+		if( ioctl( sockfd, SIOCGIFFLAGS, & ifrcopy ) < 0 ) {
+			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); perror( "" );
+			return ip_address;
+			}
+			
+		int flags = ifrcopy.ifr_flags;
+		if( flags & IFF_UP == 0 ) {
+			/* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is not up.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+			continue;
+			}
+			
+		/* Is the interface the loopback address? */
+		struct in_addr inetAddress;
+        struct sockaddr_in * socketAddr = (struct sockaddr_in *) & ifr->ifr_addr;
+        memcpy( & inetAddress.s_addr, (void *) & (socketAddr->sin_addr), sizeof( inetAddress.s_addr) );
+        if( inetAddress.s_addr == LOOPBACK_IP ) {
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is a loop-back address.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+			continue;
+			}
         
-        struct in_addr in;
-        struct sockaddr_in *sinptr = (struct sockaddr_in*)&ifr->ifr_addr;
-        memcpy(&in.s_addr, (void*)&(sinptr->sin_addr), sizeof (in.s_addr));
-        if(in.s_addr == LOOPBACK_IP){
-            //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
-            continue;
-        }
-
-        if( inet_ntop(AF_INET, (const void *)&in, ip_address_buf,
-                      sizeof(ip_address_buf) ) == NULL ){
-            perror("Failed inet_ntop()");
-            return ip_address;
-        }
+        /* Otherwise, it's a valid interface, so convert its IP address to a string and return it. */
+        if( inet_ntop( AF_INET, (const void *) & inetAddress, ip_address_buf, sizeof( ip_address_buf ) ) == NULL ) {
+			fprintf( stderr, "%s[%d]: failed inet_ntop():", __FILE__, __LINE__ ); perror( "" );
+			return ip_address;
+        	}
+        
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) has IP %s.\n", __FILE__, __LINE__, i, ifr->ifr_name, ip_address_buf );
         ip_address = ip_address_buf;
-        return ip_address;
-    }
+        return ip_address;		
+		} /* end iteration over interfaces */
+
 #else /* i386_unknown_nt4_0 */
+
     unsigned long num_adapters;
     
     if( GetNumberOfInterfaces( &num_adapters ) != NO_ERROR ){
@@ -1389,6 +1400,7 @@ static const pdstring get_local_ip_address()
             return ip_address;
         }
     }
+    
 #endif
 
     fprintf(stderr, "No network interface seems to be enabled. IP unknown!\n");
