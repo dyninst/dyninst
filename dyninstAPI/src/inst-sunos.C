@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.12  1994/08/17 18:11:59  markc
+ * Revision 1.13  1994/09/20 18:18:25  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.12  1994/08/17  18:11:59  markc
  * Changed the execv to execvp.
  * Changed arglist in forkProcess.
  *
@@ -52,7 +55,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.12 1994/08/17 18:11:59 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.13 1994/09/20 18:18:25 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,15 +140,14 @@ void initPrimitiveCost()
     primitiveCosts.add(16, (void *) "DYNINSTincrementCounter");
     // 240 ns
     primitiveCosts.add(16, (void *) "DYNINSTdecrementCounter");
-    // 2.82 usec * 40 mhz
-    primitiveCosts.add(113, (void *) "DYNINSTstartWallTimer");
-    // 5.22 usec * 40 mhz
-    primitiveCosts.add(208, (void *) "DYNINSTstopWallTimer");
-    // 2.9 usec * 40 mhz
-    // counted instructions == 84 cycles + 2 * 14 for cache miss ???
-    primitiveCosts.add(116, (void *) "DYNINSTstartProcessTimer");
-    // 3.74 usec * 40 mhz
-    primitiveCosts.add(150, (void *) "DYNINSTstopProcessTimer");
+    // 7.4 usec * 70 mhz (SS-5)
+    primitiveCosts.add(518, (void *) "DYNINSTstartWallTimer");
+    // 9.6 usec * 70 mhz (SS-5)
+    primitiveCosts.add(841, (void *) "DYNINSTstopWallTimer");
+    // 1.80 usec * 70 Mhz (measured on a SS-5)
+    primitiveCosts.add(126, (void *) "DYNINSTstartProcessTimer");
+    // 3.46 usec * 70 mhz (measured on a SS-5)
+    primitiveCosts.add(242, (void *) "DYNINSTstopProcessTimer");
 }
 
 

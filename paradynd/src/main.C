@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.22  1994/08/17 18:14:03  markc
+ * Revision 1.23  1994/09/20 18:18:26  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.22  1994/08/17  18:14:03  markc
  * Added extra parameter to reportSelf call.
  *
  * Revision 1.21  1994/07/14  23:30:28  hollings
@@ -162,6 +165,8 @@ main(int argc, char *argv[])
 {
     int i;
     metricList stuff;
+    extern float cyclesPerSecond;
+    extern float getCyclesPerSecond();
 
     programName = argv[0];
 
@@ -209,6 +214,8 @@ main(int argc, char *argv[])
 //	configStdIO(FALSE);
     }
 #endif
+
+    cyclesPerSecond = getCyclesPerSecond();
 
     //
     // tell client about our metrics.

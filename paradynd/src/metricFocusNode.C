@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.37 1994/09/05 20:33:34 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.38 1994/09/20 18:18:28 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.37  1994/09/05 20:33:34  jcargill
+ * Revision 1.38  1994/09/20 18:18:28  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.37  1994/09/05  20:33:34  jcargill
  * Bug fix:  enabling certain metrics could cause no instrumentation to be
  * inserted, but still return a mid; this hosed the PC
  *
@@ -940,16 +943,14 @@ instReqNode::~instReqNode()
     instance = NULL;
 }
 
-// 66Mhz clock for ss10/40.
-#define CYCLES_TO_SEC	66.0/1000000.0
-
 float instReqNode::cost()
 {
     float value;
     float unitCost;
     float frequency;
+    extern float cyclesPerSecond;
 
-    unitCost = ast->cost() / CYCLES_TO_SEC;
+    unitCost = ast->cost() / cyclesPerSecond;
     frequency = getPointFrequency(point);
     value = unitCost * frequency;
 

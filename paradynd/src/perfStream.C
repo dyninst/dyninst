@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.26 1994/08/17 18:17:02 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.27 1994/09/20 18:18:30 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.26  1994/08/17 18:17:02  markc
+ * Revision 1.27  1994/09/20 18:18:30  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.26  1994/08/17  18:17:02  markc
  * Call installDefaultInst when SIGTRAP is seen.
  * Cleaned up error messages.
  *
@@ -221,6 +224,7 @@ Boolean CMMDhostless;
 Boolean synchronousMode;
 Boolean firstSampleReceived;
 
+float cyclesPerSecond;
 time64 firstRecordTime = 0;
 
 
@@ -368,7 +372,7 @@ void processTraceStream(process *curr)
 
 		sprintf(errorLine, "process %d exited\n", curr->pid);
 		logLine(errorLine);
-		printAppStats((struct endStatsRec *) recordData, 60.0);
+		printAppStats((struct endStatsRec *) recordData, cyclesPerSecond);
 		printDyninstStats();
 
 		curr->status = exited;

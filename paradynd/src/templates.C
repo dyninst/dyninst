@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.6  1994/08/08 20:13:48  hollings
+ * Revision 1.7  1994/09/20 18:18:33  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.6  1994/08/08  20:13:48  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.5  1994/08/02  18:25:09  hollings
@@ -34,6 +37,7 @@
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "util/h/aggregateSample.h"
+#include "util/h/tunableConst.h"
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
@@ -51,6 +55,7 @@ typedef List<dataReqNode *>;
 typedef List<instReqNode *>;
 typedef List<metricDefinitionNode *>;
 typedef List<internalMetric *>;
+typedef List<tunableConstant *>;
 
 typedef HTable<metricDefinitionNode *>;
 typedef HTable<_metricRec *>;

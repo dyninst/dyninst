@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.9  1994/08/02 18:24:34  hollings
+ * Revision 1.10  1994/09/20 18:18:31  hollings
+ * added code to use actual clock speed for cost model numbers.
+ *
+ * Revision 1.9  1994/08/02  18:24:34  hollings
  * added clock speed argument to stats.
  *
  * Revision 1.8  1994/07/22  19:21:08  hollings
@@ -113,9 +116,8 @@ void printAppStats(struct endStatsRec *stats, float clockSpeed)
     sprintf(errorLine,"    Raw cycle count = %f\n", (double) stats->instCycles);
     logLine(errorLine);
 
-    // for ss-10 use 60 MHZ clock.
     sprintf(errorLine,"    Total instrumentation (%dMhz clock) cost = %f\n", 
-	(int) clockSpeed, stats->instCycles/(clockSpeed * 1000000.0));
+	(int) (clockSpeed/1000000.0), stats->instCycles/(clockSpeed));
     logLine(errorLine);
     sprintf(errorLine,"    Total handler cost = %f\n", stats->handlerCost);
     logLine(errorLine);
