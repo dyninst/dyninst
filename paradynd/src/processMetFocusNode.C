@@ -618,23 +618,23 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       catchupReq *curCReq = catchupWalk[j];
       // Note: backwards iteration
       if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-	 // What we want to do: build a single big AST then launch it as
-	 // an RPC.
-	 for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-	    AstNode *AST = curCReq->reqNodes[k1]->Ast();
-	    if (!conglomerate) {
-	       conglomerate = AST;
-	    }
-	    else { // Need to combine with a SequenceNode
-	       AstNode *old = conglomerate;
-	       conglomerate = new AstNode(conglomerate, AST);
-	       removeAst(old);
-	    }
-	 }
-	 sideEffect_t side;
-	 side.frame = curCReq->frame;
-	 side.reqNode = curCReq->reqNodes[0];
-	 sideEffectFrameList.push_back(side);
+         // What we want to do: build a single big AST then launch it as
+         // an RPC.
+         for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+            AstNode *AST = curCReq->reqNodes[k1]->Ast();
+            if (!conglomerate) {
+               conglomerate = AST;
+            }
+            else { // Need to combine with a SequenceNode
+               AstNode *old = conglomerate;
+               conglomerate = new AstNode(conglomerate, AST);
+               removeAst(old);
+            }
+         }
+         sideEffect_t side;
+         side.frame = curCReq->frame;
+         side.reqNode = curCReq->reqNodes[0];
+         sideEffectFrameList.push_back(side);
       }
    }
 
@@ -669,37 +669,35 @@ void processMetFocusNode::prepareCatchupInstr() {
 
 bool processMetFocusNode::postCatchupRPCs()
 {
-    // Assume the list of catchup requests is 
-    // sorted
-    bool catchupPosted = false;
+   // Assume the list of catchup requests is 
+   // sorted
+   bool catchupPosted = false;
     
 
-    if (pd_debug_catchup) {
-        cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
-        cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
-    }
+   if (pd_debug_catchup) {
+      cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
+      cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
+   }
     
-    for (unsigned i=0; i < catchupASTList.size(); i++) {
-        if (pd_debug_catchup) {
-            cerr << "metricID: " << getMetricID() << ", posting ast " << i 
-                 << " with tid: " 
-                 << catchupASTList[i].thread->get_tid() << ", lwp_id: " 
-                 << catchupASTList[i].lwp->get_lwp() << ", lwp-fd: "
-                 << catchupASTList[i].lwp->get_fd() << "\n";
-        }
-        catchupPosted = true;
-        proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
-                        getMetricID(), catchupASTList[i].thread,
-                           catchupASTList[i].lwp, false);
-    }
-    
-    catchupASTList.resize(0);
-    for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
-        proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
-                                 sideEffectFrameList[j].reqNode);
-    }
-    sideEffectFrameList.resize(0);
-    return catchupPosted;
+   for (unsigned i=0; i < catchupASTList.size(); i++) {
+      if (pd_debug_catchup) {
+         cerr << "metricID: " << getMetricID() << ", posting ast " << i 
+              << " with lwp: " 
+              << catchupASTList[i].lwp->get_lwp_id() << ", lwp-fd: "
+              << catchupASTList[i].lwp->get_fd() << "\n";
+      }
+      catchupPosted = true;
+      proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+                         getMetricID(), catchupASTList[i].lwp, false);
+   }
+   
+   catchupASTList.resize(0);
+   for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
+      proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
+                               sideEffectFrameList[j].reqNode);
+   }
+   sideEffectFrameList.resize(0);
+   return catchupPosted;
 }
 
 void processMetFocusNode::initializeForSampling(timeStamp startTime, 

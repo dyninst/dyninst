@@ -371,13 +371,10 @@ bool pd_process::loadParadynLib() {
     removeAst(loadLibAstArgs[0]);
 
     // We've built a call to loadLibrary, now run it via inferior RPC
-    postRPCtoDo(loadLib,
-                true, // Don't update cost
+    postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::paradynLibLoadCallback,
                 (void *)this, // User data
-                -1, // Not metric definition
-                NULL, NULL); // No thread or LWP
-
+                -1); // Not metric definition
 
     setLibState(paradynRTState, libLoading);
     // .. run RPC
@@ -651,12 +648,10 @@ bool pd_process::iRPCParadynInit() {
 
     // That's a lot of arguments. Now construct the call to paradyn init
     AstNode *paradyn_init = new AstNode("libparadynRT_init", the_args);
-    postRPCtoDo(paradyn_init,
-                false, // noCost
+    postRPCtoDo(paradyn_init, false, // noCost
                 pd_process::paradynInitCompletionCallback,
                 (void *)this, // User data
-                -1, // Not metric definition
-                NULL, NULL); // No thread targeting
+                -1); // Not metric definition
 
     // And force a flush...
     
@@ -779,12 +774,10 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     removeAst(loadLibAstArgs[0]);
 
     // We've built a call to loadLibrary, now run it via inferior RPC
-    postRPCtoDo(loadLib,
-                true, // Don't update cost
+    postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::loadAuxiliaryLibraryCallback,
                 (void *)this, // User data
-                -1, // Not metric definition
-                NULL, NULL); // No thread or LWP
+                -1); // Not metric definition
 
     setLibState(auxLibState, libLoading);
     // .. run RPC

@@ -188,10 +188,17 @@ class pd_process {
 
    void postRPCtoDo(AstNode *action, bool noCost,
                     inferiorRPCcallbackFunc callbackFunc,
-                    void *userData, int mid, dyn_thread *thr,
-                    dyn_lwp *lwp, bool lowmem = false) {
+                    void *userData, int mid, bool lowmem = false) {
+      dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
+                                   mid, lowmem);      
+   }
+
+   void postRPCtoDo(AstNode *action, bool noCost,
+                    inferiorRPCcallbackFunc callbackFunc,
+                    void *userData, int mid, dyn_lwp *lwp,
+                    bool lowmem = false) {
        dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                    mid, thr, lwp, lowmem);
+                                    mid, lwp, lowmem);
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,

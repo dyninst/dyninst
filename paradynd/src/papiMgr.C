@@ -338,12 +338,8 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-		 &inferiorPapiCallback, 
-		 &ret,
-		 -1, 
-		 NULL, // No thread required 
-		 NULL,    // No lwp in particular
-		 true); // But use reserved memory
+                     &inferiorPapiCallback, &ret, -1,
+                     true); // But use reserved memory
 
   extern void checkProcStatus();
 
@@ -385,12 +381,8 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-		 &inferiorPapiCallback, 
-		 &ret,
-		 -1, 
-		 NULL, // No thread required 
-		 NULL,    // No lwp in particular
-		 true); // But use reserved memory
+                     &inferiorPapiCallback, &ret, -1, 
+                     true); // But use reserved memory
 
   extern void checkProcStatus();
 
@@ -431,12 +423,8 @@ bool papiMgr::inferiorPapiStart()
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-		 &inferiorPapiCallback, 
-		 &ret,
-		 -1, 
-		 NULL, // No thread required 
-		 NULL,    // No lwp in particular
-		 true); // But use reserved memory
+                     &inferiorPapiCallback, &ret, -1, 
+                     true); // But use reserved memory
 
   extern void checkProcStatus();
 
@@ -477,12 +465,8 @@ bool papiMgr::inferiorPapiStop()
 
   /* set lowmem to ensure there is space for inferior malloc */
   proc_->postRPCtoDo(code, true, // noCost
-		 &inferiorPapiCallback, 
-		 &ret,
-		 -1, 
-		 NULL, // No thread required 
-		 NULL,    // No lwp in particular
-		 true); // But use reserved memory
+                     &inferiorPapiCallback, &ret, -1, 
+                     true); // But use reserved memory
 
   extern void checkProcStatus();
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.76 2003/03/10 23:15:26 bernat Exp $
+// $Id: BPatch_thread.C,v 1.77 2003/03/12 01:49:49 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1231,12 +1231,10 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
     OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData);
 
     proc->postRPCtoDo(expr.ast,
-		      false, // XXX = calculate cost - is this what we want?
-		      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
-		      (void *)info, // User data
-		      -1,   // This isn't a metric definition - we shouldn't
-		      NULL, // No particular thread (yet),
-		      0,    // Same -- no kernel thread
+                      false, // XXX = calculate cost - is this what we want?
+                      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
+                      (void *)info, // User data
+                      -1,   // This isn't a metric definition - we shouldn't
                       false);  
 
     if (synchronous) {
