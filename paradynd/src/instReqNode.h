@@ -86,9 +86,8 @@ class instReqNode {
     return *this;
   }
 
-  bool loadInstrIntoApp(process *theProc, 
-			returnInstance *&retInstance,
-			bool *deferred);
+  instInstance* loadInstrIntoApp(process *theProc, 
+				 returnInstance *&retInstance, bool *deferred);
   
   void disable(const vector<Address> &pointsToCheck);
   timeLength cost(process *theProc) const;
@@ -118,6 +117,7 @@ class instReqNode {
   instPoint *Point() {return point;}
   AstNode* Ast()  {return ast;}
   callWhen When() {return when;}
+  callOrder Order() { return order; }
   void friesWithThat(int tid) { fries += tid; }
   
 private:
