@@ -49,6 +49,7 @@
 #include <iostream.h>
 #include "fastInferiorHeapMgr.h"
 #include "dyninstAPI/src/showerror.h"
+#include "rtinst/h/rtinst.h" //MAX_NUMBER_OF_THREADS
 #include "main.h"
 
 unsigned fastInferiorHeapMgr::cookie = 0xabcdefab;
@@ -71,6 +72,10 @@ unsigned fastInferiorHeapMgr::getSubHeapOffset(unsigned subHeapIndex) const {
    result += sizeof(unsigned); // cookie
    result += 2 * sizeof(int);  // process pid, paradynd pid
    result += sizeof(unsigned); // observed cost low
+
+#if defined(MT_THREAD)
+   result += sizeof(RTINSTsharedData) ; //RTsharedData
+#endif
 
    align(result, 8);
 
@@ -220,7 +225,7 @@ fastInferiorHeapMgr::fastInferiorHeapMgr(key_t firstKeyToTry,
                          theHeapStats(iHeapStats) {
    
    const unsigned heapNumBytes = getHeapTotalNumBytes();
-   
+
    // Try to allocate shm segment now...garbage collecting as we go...
    while (true) {
       errno = 0;

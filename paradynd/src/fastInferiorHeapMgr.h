@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapMgr.h,v 1.3 1998/12/25 23:32:23 wylie Exp $
+// $Id: fastInferiorHeapMgr.h,v 1.4 1999/07/07 16:16:03 zhichen Exp $
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
 // Formerly, each fastInferiorHeap would create its own shm-segment.
 // But this created too many segments.  This class creates a single shm segment,
@@ -107,6 +107,25 @@ class fastInferiorHeapMgr {
    key_t getShmKey() const { return theShmKey; }
    unsigned getHeapTotalNumBytes() const;
 
+#if defined(MT_THREAD)
+   void *getRTsharedDataInApplicSpace(){
+      if (applicAttachedAt == NULL) {
+         assert(false);
+         return NULL;
+      }
+
+      return (void *)((char*)applicAttachedAt + 16);
+   }
+
+   void *getRTsharedDataInParadyndSpace(){
+      if (paradyndAttachedAt == NULL) {
+         assert(false);
+         return NULL;
+      }
+
+      return (void *)((char*)paradyndAttachedAt + 16);
+   }
+#endif
    void *getObsCostAddrInApplicSpace() {
       if (applicAttachedAt == NULL) {
          assert(false);
