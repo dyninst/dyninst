@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMtypes.h,v $
-/* Revision 1.4  1994/05/11 17:28:27  newhall
-/* test version 3
+/* Revision 1.5  1994/07/07 17:28:02  newhall
+/* fixed compile warnings
 /*
+ * Revision 1.4  1994/05/11  17:28:27  newhall
+ * test version 3
+ *
  * Revision 1.3  1994/04/29  18:57:56  newhall
  * changed typedefs of structs to deal with g++/gdb bug
  *
@@ -29,6 +32,8 @@
 #ifndef VMtypes_H
 #define VMtypes_H
 #include <stdio.h>
+#include <malloc.h>
+#include <string.h>
 #include "thread/h/thread.h"
 #include "VISIthread.CLNT.h"
 #include "util/h/list.h"
