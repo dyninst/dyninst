@@ -1,7 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.17  1995/08/24 15:03:44  hollings
+ * Revision 1.18  1995/09/26 20:33:02  naim
+ * Adding error messages using function showErrorCallback for paradynd
+ *
+ * Revision 1.17  1995/08/24  15:03:44  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -67,6 +70,7 @@
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
+#include "showerror.h"
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(sparc_tmc_cmost7_3)
 #include "inst-sparc.h"
 #else
@@ -255,7 +259,8 @@ reg AstNode::generateCode(process *proc,
 	    costAddr = (proc->symbols)->findInternalAddress("DYNINSTobsCostLow",
 		true, err);
 	    if (err) {
-		logLine("unable to find addr of DYNINSTobsCostLow\n");
+		logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
+		showErrorCallback(79, "");
 		P_abort();
 	    }
 	    return((unsigned) emit(op, cost, 0, costAddr, insn, base));
@@ -313,8 +318,9 @@ reg AstNode::generateCode(process *proc,
 	  pdFunction *func = (proc->symbols)->findOneFunction(callee);
 	  if (!func) {
 	    ostrstream os(errorLine, 1024, ios::out);
-	    os << "unable to find addr of " << callee << endl;
+	    os << "Internal error: unable to find addr of " << callee << endl;
 	    logLine(errorLine);
+	    showErrorCallback(80, (const char *) errorLine);
 	    P_abort();
 	  }
 	  addr = func->addr();
