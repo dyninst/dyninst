@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.86 1999/03/03 18:03:50 pcroth Exp $
+ * $Id: dataManager.I,v 1.87 1999/03/03 18:21:15 pcroth Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -159,7 +159,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 51;
+    $version 52;
 
     //
     // Start a paradyn daemon

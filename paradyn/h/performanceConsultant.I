@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.33 1999/03/03 18:03:51 pcroth Exp $
+ * $Id: performanceConsultant.I,v 1.34 1999/03/03 18:21:16 pcroth Exp $
  */
 
 #include "dataManager.thread.h"
@@ -43,7 +43,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 20;
+    $version 21;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
