@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.122 2003/12/18 17:15:37 schendel Exp $
+// $Id: linux.C,v 1.123 2004/01/19 21:53:43 schendel Exp $
 
 #include <fstream>
 
@@ -135,6 +135,7 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    bool needToCont = false;
   
    if(request != PT_DETACH  &&  status() == running) {
+      cerr << "  potential performance problem with use of dyn_lwp::deliverPtrace\n";
       if(pauseLWP() == true)
          needToCont = true;
    }
@@ -143,7 +144,7 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
 
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
-   
+         
    return ret;
 }
 
@@ -155,6 +156,8 @@ int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
    bool needToCont = false;
   
    if(request != PT_DETACH  &&  status() == running) {
+      cerr << "  potential performance problem with use of "
+           << "dyn_lwp::deliverPtraceReturn\n";
       if(pauseLWP() == true)
          needToCont = true;
    }
@@ -202,35 +205,18 @@ void OS::osDisconnect(void) {
 // may be needed in the future
 #if defined(DECODEANDHANDLE_EVENT_ON_LWP)
 // returns true if it handled an event
-bool decodeAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
-    procSignalWhy_t why;
-    procSignalWhat_t what;
-    procSignalInfo_t info;
-    process *proc;
-    dyn_lwp *selectedLWP;
-
-    proc = decodeProcessEvent(&selectedLWP, lwp->get_lwp_id(), why, what, info,
-                              block);
-
-    if (!proc) {
-       return false;
-    }
-
-    assert(selectedLWP == lwp);
-
-    if (!handleProcessEvent(proc, selectedLWP, why, what, info)) 
-        fprintf(stderr, "handleProcessEvent failed!\n");
-    return true;
+bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
+   pdvector<procevent *> foundEvents;
+   getSH()->checkForProcessEvents(&foundEvents, lwp->get_lwp_id(), block);
+   getSH()->handleProcessEvents(foundEvents);
+   //assert(selectedLWP == lwp);
+   
+   return true;
 }
 #endif
 
 bool dyn_lwp::stop_() {
    return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
-}
-
-bool process::continueWithForwardSignal( int sig ) {
-   // formerly OS::osForwardSignal
-   return (P_ptrace(PTRACE_CONT, pid, 1, sig) != -1);
 }
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
@@ -270,7 +256,7 @@ int decodeRTSignal(process *proc,
    if (status == 0) {
       return 0; // Nothing to see here
    }
-    
+
    Address arg_addr = proc->findInternalAddress(arg_str, false, err);
    if (err) {
       return 0;
@@ -313,13 +299,11 @@ int decodeRTSignal(process *proc,
 
 }
 
-process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg, 
-                                 procSignalWhy_t &why, procSignalWhat_t &what,
-                                 procSignalInfo_t &info, bool block,
-                                 int wait_options)
+// returns true if got event, false otherwise
+bool checkForEventLinux(procevent *new_event, int wait_arg, 
+                        bool block, int wait_options)
 {
    int result = 0, status = 0;
-   process *pertinantProc = NULL;
 
    if (!block) {
       wait_options |= WNOHANG;
@@ -328,33 +312,31 @@ process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg,
    result = waitpid( wait_arg, &status, wait_options );
 
    if (result < 0 && errno == ECHILD) {
-      return NULL; /* nothing to wait for */
+      return false; /* nothing to wait for */
    } else if (result < 0) {
-      perror("decodeProcessEvent: waitpid failure");
+      perror("checkForEventLinux: waitpid failure");
    } else if(result == 0)
-      return NULL;
+      return false;
 
    int pertinantPid = result;
 
    // Translate the signal into a why/what combo.
    // We can fake results here as well: translate a stop in fork
    // to a (SYSEXIT,fork) pair. Don't do that yet.
-   pertinantProc = process::findProcess(pertinantPid);
+   process *pertinantProc = process::findProcess(pertinantPid);
+   dyn_lwp *pertinantLWP  = NULL;
 
    if(pertinantProc) {
       // Processes' state is saved in preSignalStatus()
       pertinantProc->savePreSignalStatus();
       // Got a signal, process is stopped.
-      dyn_lwp *pertLWP = NULL;
       if(process::IndependentLwpControl() &&
          pertinantProc->getRepresentativeLWP() == NULL) {
-         pertLWP = pertinantProc->getInitialThread()->get_lwp();
+         pertinantLWP = pertinantProc->getInitialThread()->get_lwp();
       } else
-         pertLWP = pertinantProc->getRepresentativeLWP();
+         pertinantLWP = pertinantProc->getRepresentativeLWP();
 
-      pertinantProc->set_lwp_status(pertLWP, stopped);
-      if(pertinantLWP != NULL)
-         (*pertinantLWP) = pertLWP;
+      pertinantProc->set_lwp_status(pertinantLWP, stopped);
    } else {
       extern pdvector<process*> processVec;
       for (unsigned u = 0; u < processVec.size(); u++) {
@@ -364,14 +346,16 @@ process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg,
          dyn_lwp *curlwp = NULL;
          if( (curlwp = curproc->lookupLWP(pertinantPid)) ) {
             pertinantProc = curproc;
-            if(pertinantLWP) {
-               (*pertinantLWP) = curlwp;
-            }
+            pertinantLWP  = curlwp;
             pertinantProc->set_lwp_status(curlwp, stopped);
             break;
          }
       }
    }
+   
+   procSignalWhy_t  why  = procUndefined;
+   procSignalWhat_t what = 0;
+   procSignalInfo_t info = 0;
    
    if (WIFEXITED(status)) {
       // Process exited via signal
@@ -418,14 +402,21 @@ process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg,
            break;
       }
    }
-   
-   return pertinantProc;
+
+   if(! pertinantProc)
+      return false;
+
+   (*new_event).proc = pertinantProc;
+   (*new_event).lwps.push_back(pertinantLWP);
+   (*new_event).why  = why;
+   (*new_event).what = what;
+   (*new_event).info = info;
+   return true;
 }
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block) {
-   process *proc = NULL;
+bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
+                                          int wait_arg, bool block)
+{
    bool wait_on_initial_lwp = false;
    bool wait_on_spawned_lwp = false;
 
@@ -438,25 +429,40 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
       wait_on_spawned_lwp = true;
    }
 
+   procevent *new_event = new procevent;
+   bool gotevent = false;
    while(1) {
       if(wait_on_initial_lwp) {
-         proc = decodeProcessEventLinux(pertinantLWP, wait_arg, why, what,
-                                        info, false, 0);
-         if(proc) {
+         gotevent = checkForEventLinux(new_event, wait_arg, false, 0);
+         if(gotevent)
             break;
-         }
       }
       if(wait_on_spawned_lwp) {
-         proc = decodeProcessEventLinux(pertinantLWP, wait_arg, why, what,
-                                        info, false, __WCLONE);
-         if(proc) {
+         gotevent = checkForEventLinux(new_event, wait_arg, false, 
+                                             __WCLONE);
+         if(gotevent)
             break;
-         }
       }
-      if(! block) break;
+      if(! block) {
+         // no event found
+         delete new_event;
+         break;
+      } else {
+         // a slight delay to lesson impact of spinning.  this is
+         // particularly noticable when traps are hit at instrumentation
+         // points (seems to occur frequently in test1).
+         struct timeval timeout;
+         timeout.tv_sec = 0;
+         timeout.tv_usec = 1;
+         select(0, NULL, NULL, NULL, &timeout);
+      }
    }
 
-   return proc;
+   if(gotevent) {
+      (*events).push_back(new_event);
+      return true;
+   } else
+      return false;
 }
 
 void process::independentLwpControlInit() {
@@ -658,12 +664,19 @@ bool process::isRunning_() const {
 
 
 // TODO is this safe here ?
-bool dyn_lwp::continueLWP_() {
+bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    // we don't want to operate on the process in this state
    ptraceOps++; 
    ptraceOtherOps++;
 
-   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), 0, 0);
+   int arg3 = 0;
+   int arg4 = 0;
+   if(signalToContinueWith != dyn_lwp::NoSignal) {
+      arg3 = 1;
+      arg4 = signalToContinueWith;
+   }
+
+   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
    if (ret == -1) {
       perror("continueProc_()");
       return false;
@@ -674,13 +687,10 @@ bool dyn_lwp::continueLWP_() {
 
 bool process::terminateProc_()
 {
-  if (!checkStatus()) 
-    return false;
-
-  if( kill( getPid(), SIGKILL ) != 0 )
-    return false;
-  else
-    return true;
+   if( kill( getPid(), SIGKILL ) != 0 )
+      return false;
+   else
+      return true;
 }
 
 bool process::waitUntilStopped() {
@@ -709,46 +719,44 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
    // anything else.
    int loopCt = 0;
    while (!haveStopped) {
-      procSignalWhy_t why;
-      procSignalWhat_t what;
-      procSignalInfo_t info;
       if(lwp->proc()->hasExited()) {
          return false;
       }
       ++loopCt;
-      dyn_lwp *chosen_lwp = NULL;
 
       if(loopCt>10000) {
          lwp->stop_();
          loopCt = 0;
       }
 
-      process *proc = decodeProcessEventLinux(&chosen_lwp, lwp->get_lwp_id(),
-                                              why, what, info, false, options);
+      procevent new_event;
+      bool gotevent = checkForEventLinux(&new_event, lwp->get_lwp_id(), false,
+                                         options);
+      getSH()->beginEventHandling(1);
 
-      if (didProcReceiveSignal(why) && what == SIGSTOP) {
-         if(chosen_lwp == lwp) {
-            haveStopped = true;
+      if(gotevent) {
+         if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP) {
+            dyn_lwp *lwp_for_event = NULL;
+            if(new_event.lwps.size() > 0) {
+               assert(new_event.lwps.size() == 1);
+               lwp_for_event = new_event.lwps[0];
+            }
+
+            if(lwp_for_event == lwp) {
+               haveStopped = true;
+            }
+            // Don't call the general handler
          }
-         // Don't call the general handler
-      }
-      else {
-         if(proc)
-            handleProcessEvent(proc, chosen_lwp, why, what, info);
+         else {
+            getSH()->handleProcessEventWithUnlock(new_event);
+         }
       }
    }
-
+   
    return true;
 }
 
 bool dyn_lwp::waitUntilStopped() {
-   while(this->isRunning()==true && this->isStopPending()==true) {
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 40;
-      select(0, NULL, NULL, NULL, &timeout);
-   }
-
    bool res;
    if(proc_->getInitialThread()->get_lwp() == this) {
       res = waitUntilStoppedGeneral(this, 0);
