@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.59 2002/07/30 18:15:36 bernat Exp $
+ * $Id: RTinst.c,v 1.60 2002/08/01 19:59:13 cortes Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -483,12 +483,12 @@ void pDYNINSTinit(int paradyndPid,
   int calledFromAttach = (paradyndPid < 0);
   MAX_NUMBER_OF_THREADS = numThreads;
 
-  /* Not sure if this is ever called
-  if ((theKey < 0) &&(theKey != -1)){
-    calledFromAttachToCreated = 1;
-    theKey *= -1;
-  }
-  */  
+
+   if ((theKey < 0) &&(theKey != -1)){
+      calledFromAttachToCreated = 1;
+     theKey *= -1;
+   }
+    
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -1787,6 +1787,7 @@ int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
 	
 	return 0;
 }
+
 
 
 
