@@ -56,7 +56,7 @@ class threadMetFocusNode_Val;
 
 
 class instrCodeNode_Val {
-  friend instrCodeNode;
+  friend class instrCodeNode;
 
   instrDataNode *sampledDataNode;
   instrDataNode *constraintDataNode;

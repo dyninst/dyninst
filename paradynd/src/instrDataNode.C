@@ -104,6 +104,22 @@ Address instrDataNode::getInferiorPtr() const {
   return varAddr;
 }
 
+unsigned instrDataNode::getSize() const {
+  switch (varType) {
+  case Counter:
+    return sizeof(intCounter);
+    break;
+  case WallTimer:
+  case ProcTimer:
+    return sizeof(tTimer);
+    break;
+  default:
+    assert(0);
+    break;
+  }
+  return 0;
+}
+
 void instrDataNode::print() {
    cerr << "D:" << (void*)this << "\n";
 }

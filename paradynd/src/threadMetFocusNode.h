@@ -55,7 +55,7 @@ template<class ParentType> class parentDataRec {
 };
 
 class threadMetFocusNode_Val {
-  friend threadMetFocusNode;
+  friend class threadMetFocusNode;
 
   enum { NON_THREAD = -1};
   const string &metric_name;

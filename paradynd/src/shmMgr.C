@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.2 2002/05/03 15:50:03 schendel Exp $
+/* $Id: shmMgr.C,v 1.3 2002/05/22 19:03:24 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
  */
 
+#include <iostream.h>
 #include "shmMgr.h"
 #include "shmSegment.h"
 
@@ -77,8 +78,13 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   *ptr++ = (unsigned)proc;
   *ptr++ = (unsigned)getpid();     // paradynd pid
   *ptr++ = 0;            // initialize observed cost
+#if defined(MT_THREAD)
+  // HACK, FIX!
+  ptr += 4096;
+#endif
   Address endAddr = reinterpret_cast<Address>(ptr);
   highWaterMark +=  endAddr - baseAddrInDaemon;
+  
 }
 
 static unsigned align(unsigned num, unsigned alignmentFactor) {

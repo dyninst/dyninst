@@ -72,6 +72,7 @@ class instrDataNode {
 
   bool dontInsertData() { return dontInsertData_; }
   Address getInferiorPtr() const;
+  unsigned getSize() const;
   void print();
   void prepareForSampling(unsigned thrPos, threadMetFocusNode_Val *thrClient);
   void stopSampling(unsigned thrPos);

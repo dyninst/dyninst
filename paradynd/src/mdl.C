@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.112 2002/05/14 19:00:27 schendel Exp $
+// $Id: mdl.C,v 1.113 2002/05/22 19:03:24 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1528,17 +1528,17 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
             fflush(stderr);
             return false;
           }
-  #if defined(MT_THREAD)
+#if defined(MT_THREAD)
           AstNode *tmp_ast;
-          tmp_ast = computeTheAddress((void *)(dn->getInferiorPtr()));
+          tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()), dn->getSize());
           // First we get the address, and now we get the value...
           ast = new AstNode(AstNode::DataIndir,tmp_ast);
           removeAst(tmp_ast);
-  #else
+#else
        // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
 	  ast = new AstNode(AstNode::DataAddr,
                     (void*)(dn->getInferiorPtr()));
-  #endif
+#endif
           return true;
         }
         default:
@@ -1565,7 +1565,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           instrDataNode *dn;
           assert (get_dn.get(dn));
   #if defined(MT_THREAD)
-          ast = computeTheAddress((void *)(dn->getInferiorPtr()));
+          ast = getTimerAddress((void *)(dn->getInferiorPtr()), dn->getSize());
   #else
           // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
           ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
@@ -1973,7 +1973,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
 #if defined(MT_THREAD)
         AstNode *tmp_ast;
-        tmp_ast = computeTheAddress((void *)((inFlags[fi])->getInferiorPtr()));
+        tmp_ast = getCounterAddress((void *)((inFlags[fi])->getInferiorPtr()), inFlags[fi]->getSize());
         AstNode *temp1 = new AstNode(AstNode::DataIndir,tmp_ast);
         removeAst(tmp_ast);
 #else
