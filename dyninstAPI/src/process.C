@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.525 2005/03/01 23:07:43 bernat Exp $
+// $Id: process.C,v 1.526 2005/03/02 19:44:48 bernat Exp $
 
 #include <ctype.h>
 
@@ -623,7 +623,7 @@ bool process::isInSignalHandler(Address addr)
   }
   return false;
 #elif defined( os_linux ) && defined( arch_ia64 )
-  assert( 0 );
+  return false;
 #else
   if (!signal_handler)
       return false;
