@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.61  1996/01/09 01:03:36  tamches
-/* extra error checking in "paradyn shg getNodeInfo"
+/* Revision 1.62  1996/01/09 01:39:57  tamches
+/* added phaseId argument to paradyn shg getNodeInfo
 /*
+ * Revision 1.61  1996/01/09 01:03:36  tamches
+ * extra error checking in "paradyn shg getNodeInfo"
+ *
  * Revision 1.60  1996/01/08 22:09:40  tamches
  * added "paradyn shg getNodeInfo <id>" command, which calls
  * the (not yet implemented) perfConsult->getNodeInfo(id) igen call.
@@ -888,19 +891,24 @@ int ParadynSHGCmd (ClientData,
     else 
       perfConsult->newSearch(CurrentPhase);
     return TCL_OK;
-  } else if (argc == 3 && 0==strcmp(argv[1], "getNodeInfo")) {
-    int node = atoi(argv[2]);
+  } else if (argc == 4 && 0==strcmp(argv[1], "getNodeInfo")) {
+    int phaseId = atoi(argv[2]);
+    int node = atoi(argv[3]);
     // make igen call to the PC now:
     extern shgPhases *theShgPhases;
-    shg_node_info theNodeInfo;
-
-    if (!theShgPhases->existsCurrent()) {
-       cerr << "paradyn shg getNodeInfo failure...no search currently exists" << endl;
+    if (theShgPhases == NULL) {
+       cerr << "paradyn shg getNodeInfo failure...no phases exist yet" << endl;
        return TCL_ERROR;
     }
 
-    int currShgPhaseId = theShgPhases->getCurrentId();
-    bool success = perfConsult->getNodeInfo(currShgPhaseId, node, &theNodeInfo);
+    shg_node_info theNodeInfo;
+
+    if (!theShgPhases->existsById(phaseId)) {
+       cerr << "paradyn shg getNodeInfo failure...phase-id " << phaseId << " does not exist." << endl;
+       return TCL_ERROR;
+    }
+
+    bool success = perfConsult->getNodeInfo(phaseId, node, &theNodeInfo);
     if (!success) {
        cerr << "paradyn shg getNodeInfo failure...probably bad node id" << endl;
        cerr << "the node id was: " << node << endl;
@@ -943,7 +951,7 @@ int ParadynSHGCmd (ClientData,
     cout << "       paradyn shg get" << endl;
     cout << "       paradyn shg reset" << endl;
     cout << "       paradyn shg start <current|global>" << endl;
-    cout << "       paradyn shg getNodeInfo <int>" << endl;
+    cout << "       paradyn shg getNodeInfo <phase-id> <node-id>" << endl;
     return TCL_ERROR;
   }
 }
