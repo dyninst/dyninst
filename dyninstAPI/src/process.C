@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.239 2000/11/21 21:14:22 schendel Exp $
+// $Id: process.C,v 1.240 2001/02/01 01:10:29 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -81,10 +81,7 @@ int pvmendtask();
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
-#endif
-
-#if defined(HRTIME) && !defined(BPATCH_LIBRARY)
-#include "rtinst/h/RThwtimer-x86.h"
+#include "common/h/int64iostream.h"
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
