@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.24 2002/08/04 17:29:54 gaburici Exp $
+# $Id: Makefile,v 1.25 2002/08/06 23:20:54 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,7 @@ NATIVE_FC = g77
 COMMA=,
 
 MINI_PLATFORM = x86
-TEST6_ASFLAGS = -f elf -l test6LS-x86.lst
+TEST6_ASFLAGS = -f elf -l test6LS-x86.lst -dPLATFORM=$(PLATFORM)
 TEST6_ASSUFFIX = asm
 
 # Include the module-specific Makefile, which defines everything about

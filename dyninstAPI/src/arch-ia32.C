@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.7 2002/08/05 23:07:22 gaburici Exp $
+// $Id: arch-ia32.C,v 1.8 2002/08/06 23:20:54 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -2248,7 +2248,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         }
       return rm==6 ? wordSzB : 0;
     case 1:
-      fprintf(stderr, "16bit addr - case1!\n");
+      //fprintf(stderr, "16bit addr - case1!\n");
       if(macadr) {
         const char *pdisp8 = (const char*)addr;
         switch (rm) {
@@ -2280,7 +2280,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       }
       return byteSzB;
     case 2:
-      fprintf(stderr, "16bit addr - case2!\n");
+      //fprintf(stderr, "16bit addr - case2!\n");
       if(macadr) {
         const short int *pdisp16 = (const short int*)addr;
         switch (rm) {

@@ -1,8 +1,16 @@
-; $Id: test6LS-x86.asm,v 1.1 2002/08/04 17:29:54 gaburici Exp $
+; $Id: test6LS-x86.asm,v 1.2 2002/08/06 23:20:54 gaburici Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
-; TODO: use library call this will work on NT
+%ifidn PLATFORM,i386-unknown-linux2.4
+; assuming linux==elf
+%macro global_function 1
+; nasm elf extension for type/size symbol info... there MUST be a blank after "function"!
+    global %1:function (%1.end - %1)
+%endmacro
+%macro global_data 2
+    global %1:data (%2)
+%endmacro
 %macro saymsg 1
 ;write our message to stdout
     mov edx,len_%1
@@ -11,12 +19,39 @@
     mov eax,4      ; sys_write
     int 0x80       ; call linux kernel
 %endmacro
+; assuming nt==win32
+%elifidn PLATFORM,i386-unknown-nt4.0
 
-global divarw:data (4)
-global dfvars:data (4)
-global dfvard:data (8)
-global dfvart:data (10)
-global dlarge:data (512)
+; WARNING! Extremely nasty hack: defines all symbols prefixed with _ for win32 linkage
+%macro global_function 1
+    %define %1 _%1
+    global %1
+%endmacro
+%macro global_data 2
+    %define %1 _%1
+    global %1
+%endmacro
+
+%macro saymsg 1
+;write our message to console
+;call a function that takes all arguments in registers
+;so all those pushes won't get instrumented
+;this generates the same EA sequence as linux
+;write our message to stdout
+    mov edx,msg_%1
+    mov ecx,len_%1
+    call cputs ; our function
+%endmacro
+
+%else
+%error Unsupported platform PLATFORM (or environment variable not set).
+%endif
+
+global_data divarw,4
+global_data dfvars,4
+global_data dfvard,8
+global_data dfvart,10
+global_data dlarge,512
 
 segment .data align=16          ; note: all aligns below are relative to this!!!
 
@@ -29,9 +64,10 @@ segment .data align=16          ; note: all aligns below are relative to this!!!
 ; ten byte fp - x86 specific
     dfvart dt 1.99 ; nasm cannot assemble scientific notation (1e-99)
 
-    features  dd 0x0
-    features2 dd 0x0
-    
+%ifidn PLATFORM,i386-unknown-nt4.0
+    written dd 0 ; NT needs to write the number of characters it printed
+%endif
+
     msg_mmx     db      "Testing MMX instructions...",0xa
     len_mmx     equ     $ - msg_mmx
 
@@ -49,10 +85,30 @@ segment .bss align=16
     
 segment .text
 
-; nasm elf extension for type/size symbol info... there MUST be a blank after "function"!
-global loadsnstores:function (loadsnstores.end - loadsnstores)
-global ia32features:function (ia32features.end - ia32features)
-global amd_features:function (amd_features.end - amd_features)
+global_function loadsnstores
+global_function ia32features
+global_function amd_features
+
+%ifidn PLATFORM,i386-unknown-nt4.0
+
+extern	_ExitProcess@4
+extern	_GetStdHandle@4
+extern	_WriteConsoleA@20
+
+cputs:
+	; eax = GetStdHandle(stdout=-11)
+	push	dword -11
+	call	_GetStdHandle@4
+
+        ; WriteConsole(eax, edx, ecx, written, 0)
+	push	dword 0
+        push    dword written
+	push	ecx
+	push	edx
+	push	eax
+	call	_WriteConsoleA@20
+	ret
+%endif
 
 loadsnstores:
 ; IA32 System V ABI - ebp, ebx, edi, esi, esp "belong" to caller

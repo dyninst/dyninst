@@ -1,7 +1,8 @@
-/* $Id: test6.mutatee.c,v 1.14 2002/08/06 16:42:10 schendel Exp $ */
+/* $Id: test6.mutatee.c,v 1.15 2002/08/06 23:20:54 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
@@ -178,7 +179,7 @@ extern void* getsp();
 }
 #endif
 
-#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
 unsigned int loadExp=60;
 unsigned int storeExp=23;
 unsigned int prefeExp=0;
@@ -225,7 +226,7 @@ extern unsigned char dlarge[512];
 
 void reduce(const struct reduction x)
 {
-  int i;
+  unsigned int i;
 
   loadExp  -= x.loadRed;
   storeExp -= x.storeRed;
@@ -307,6 +308,25 @@ void init_test_data()
 }
 #endif
 
+
+#ifdef ia64_unknown_linux2_4
+#define loadExp 0
+#define storeExp 0
+#define prefeExp 0
+#define accessExp 1
+
+long loadsnstores(long x, long y, long z)
+{
+  return x + y + z;
+}
+
+unsigned int bcExp[] = { 0 };
+
+void init_test_data()
+{
+}
+#endif
+
 #ifdef mips_sgi_irix6_4
 #define loadExp 0
 #define storeExp 0
@@ -342,25 +362,6 @@ void init_test_data()
 {
 }
 #endif
-
-#ifdef i386_unknown_nt4_0
-#define loadExp 0
-#define storeExp 0
-#define prefeExp 0
-#define accessExp 1
-
-long loadsnstores(long x, long y, long z)
-{
-  return x + y + z;
-}
-
-unsigned int bcExp[] = { 0 };
-
-void init_test_data()
-{
-}
-#endif
-
 
 void* eaList[1000];
 unsigned int bcList[1000];
@@ -455,7 +456,7 @@ void check4()
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(5, "instrumentation w/effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList),
@@ -465,9 +466,7 @@ void check5()
 
 void check6()
 {
-  int i;
-
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(6, "instrumentation w/byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList),
@@ -531,7 +530,7 @@ int main(int iargc, char *argv[])
     passedTest [j] = FALSE;
     runTest [j] = FALSE;
   }
-  
+ 
   for (i=1; i < argc; i++) {
     if (!strcmp(argv[i], "-verbose")) {
       debugPrint = TRUE;

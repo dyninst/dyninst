@@ -154,17 +154,17 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 void InstrucIter::init()
 {
   if(!instructionPointers) {
-	unsigned i,t,j;
+	unsigned i=0, j;
 	instructionPointers = new InstrucPos[range];
 	const unsigned char* ptr = addressImage->getPtrToInstruction(baseAddress);
-	for(i=0,t;i<range;t++){
+	while(i<range) {
 		instructionPointers[i++] = ptr;
 		unsigned instructionType;
 		unsigned instructionSize = get_instruction(ptr,instructionType);
 		for(j=1;j<instructionSize;j++){
 			if(i < range)
 				instructionPointers[i++] = NULL;
-			else{
+			else {
 				range -= j;
 				instructionSize = 0;
 				break;

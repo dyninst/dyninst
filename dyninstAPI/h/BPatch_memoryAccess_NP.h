@@ -1,4 +1,4 @@
-/* $Id: BPatch_memoryAccess_NP.h,v 1.8 2002/08/05 23:07:22 gaburici Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.9 2002/08/06 23:20:54 gaburici Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -7,7 +7,7 @@
 #include <BPatch_point.h>
 
 /* This is believed to be machine independent, modulo register numbers of course */
-struct BPatch_addrSpec_NP
+struct BPATCH_DLL_EXPORT BPatch_addrSpec_NP
 {
   // the formula is regs[0] + 2 ^ scale * regs[1] + imm
   int imm;      // immediate
@@ -47,7 +47,7 @@ class BPatch_memoryAccess;
 extern void initOpCodeInfo();
 
 
-class BPatch_memoryAccess
+class BPATCH_DLL_EXPORT BPatch_memoryAccess
 {
   friend class BPatch_function;
   friend class AstNode;
@@ -66,6 +66,10 @@ class BPatch_memoryAccess
 #endif
 #endif
 
+  // Utility function to filter out the points that don't have a 2nd memory access on x86
+  static BPatch_Vector<BPatch_point*>* filterPoints(const BPatch_Vector<BPatch_point*> &points,
+                                                    unsigned int numMAs);
+  
  private:
   unsigned int nacc;
   bool isLoad[nmaxacc_NP];  // can both be true on some arches like x86 (or even SPARC)
@@ -201,9 +205,5 @@ class BPatch_memoryAccess
   short prefetchType_NP(int which = 0) const { return preFcn[which]; }
 
 };
-
-// Utility function to filter out the points that don't have a 2nd memory access on x86
-BPatch_Vector<BPatch_point*>* filterPoints(const BPatch_Vector<BPatch_point*> &points,
-                                           unsigned int numMAs);
 
 #endif

@@ -445,3 +445,5 @@ templates-nt.obj: ../src/templates-nt.C ../../common/src/vectorSet.C \
  ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/FunctionExpansionRecord.h \
  ../../dyninstAPI/src/process.h ../../dyninstAPI/h/BPatch_thread.h
+MemoryAccess.obj: ../src/MemoryAccess.C ../h/BPatch_memoryAccess_NP.h
+
