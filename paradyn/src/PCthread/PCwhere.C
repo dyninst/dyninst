@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.15  1995/02/16 08:19:25  markc
+ * Revision 1.16  1995/03/03 18:12:16  krisna
+ * the _correct_ prototype for strCompare
+ *
+ * Revision 1.15  1995/02/16  08:19:25  markc
  * Changed Boolean to bool
  *
  * Revision 1.14  1994/12/21  00:46:36  tamches
@@ -118,7 +121,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.15 1995/02/16 08:19:25 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.16 1995/03/03 18:12:16 krisna Exp $";
 #endif
 
 #include <stdio.h>
@@ -162,13 +165,13 @@ focus::focus(resourceList *val)
     updateName();
 }
 
-int strCompare(const char **a, const char **b)
+int strCompare(const char * const *a, const char * const *b)
 {
      return(strcmp(*a, *b));
 }
 
 static int stringCompare(const void* p1, const void* p2) {
-  return(strCompare((const char**) p1, (const char**) p2));
+  return(strCompare((const char* const *) p1, (const char* const *) p2));
 }
 
 void focus::updateName()
