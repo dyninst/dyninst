@@ -2,9 +2,12 @@
 // gives dynamic two-dimensional array capabilities to C++
 
 /* $Log: array2d.h,v $
-/* Revision 1.4  1995/06/23 03:14:24  tamches
-/* changed to -fno-implicit-templates
+/* Revision 1.5  1995/08/06 22:09:16  tamches
+/* char * --> const char *
 /*
+ * Revision 1.4  1995/06/23  03:14:24  tamches
+ * changed to -fno-implicit-templates
+ *
  * Revision 1.3  1994/11/06  10:18:41  tamches
  * more descriptive reporting on assertion failures
  *
@@ -34,7 +37,7 @@
 #include <stdlib.h> // exit()
 #include <iostream.h>
 
-void panic(char *);
+void panic(const char *);
 
 template <class T>
 class dynamic1dArray {
