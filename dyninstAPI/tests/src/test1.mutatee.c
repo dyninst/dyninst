@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.73 2001/08/30 18:17:16 beyerj Exp $ */
+/* $Id: test1.mutatee.c,v 1.74 2001/10/10 20:43:07 buck Exp $ */
 
 #ifdef Fortran
 struct struct26_1_ {
@@ -1465,15 +1465,6 @@ int func20_2(int *int_val, double *double_val)
 
 void func20_1()
 {
-#if !defined(rs6000_ibm_aix4_1) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(mips_sgi_irix6_4) && \
-    !defined(sparc_sun_solaris2_4)
-
-    printf("Skipped test #20 (instrument arbitrary points)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[20] = TRUE;
-#else
     int ret;
     int int_val;
     double double_val;
@@ -1505,7 +1496,6 @@ void func20_1()
     	    printf("    ret contained %d, not %d as expected\n",
 		   ret, TEST20_ANSWER);
     }
-#endif
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.9 2001/02/02 21:17:18 gurari Exp $
+// $Id: arch-x86.h,v 1.10 2001/10/10 20:43:05 buck Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -110,11 +110,20 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define JG_R8    (0x7F)
 #define JGE_R8   (0x7D)
 
+#define FSAVE    (0x9BDD)
+#define FSAVE_OP (6)
+
+#define FRSTOR   (0xDD)
+#define FRSTOR_OP (4)
+
 /* limits */
 #define MIN_IMM8 (-128)
 #define MAX_IMM8 (127)
 #define MIN_IMM16 (-32768)
 #define MAX_IMM16 (32767)
+
+// Size of floating point information saved by FSAVE
+#define FSAVE_STATE_SIZE 108
 
 enum dynamic_call_address_mode {
   REGISTER_DIRECT, REGISTER_INDIRECT,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.14 2001/08/20 19:59:09 bernat Exp $
+// $Id: instPoint-x86.h,v 1.15 2001/10/10 20:43:05 buck Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -58,7 +58,8 @@ class instPoint {
 
  public:
 
-  instPoint(pd_Function *f, const image *, Address adr, instruction inst) {
+  instPoint(pd_Function *f, const image *, Address adr, instruction inst,
+	    bool conservative = false) {
     addr_   = adr;
     func_   = f;
     callee_ = NULL;
@@ -69,6 +70,7 @@ class instPoint {
     insnAfterPt_  = 0;
     bonusBytes_   = 0;
     relocated_ = false;    
+    conservative_ = conservative;
   };
 
   ~instPoint() {
@@ -222,6 +224,8 @@ class instPoint {
   bool usesTrap(process *proc) const;
   bool canUseExtraSlot(process *proc) const;
 
+  bool isConservative() const { return conservative_; }
+
  private:
   Address      addr_;    //The address of this instPoint: this is the address
                          // of the actual point (i.e. a function entry point,
@@ -239,7 +243,7 @@ class instPoint {
   bool relocated_;       // true if the function where this instPoint belongs
                          // has been relocated, and this instPoint has been 
                          // updated to reflect that relocation. 
-
+  bool conservative_;    // true for arbitrary inst points
 };
 
 #endif

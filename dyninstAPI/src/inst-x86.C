@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.92 2001/10/04 19:20:59 gurari Exp $
+ * $Id: inst-x86.C,v 1.93 2001/10/10 20:43:05 buck Exp $
  */
 
 #include <iomanip.h>
@@ -122,14 +122,14 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
    TODO: what about far calls?
  */
 
-#define PARAM_OFFSET (8)
+#define PARAM_OFFSET (8+(9*4))
 
 
 // number of virtual registers
 #define NUM_VIRTUAL_REGISTERS (32)
 
 // offset from EBP of the saved EAX for a tramp
-#define SAVED_EAX_OFFSET (-NUM_VIRTUAL_REGISTERS*4-4)
+#define SAVED_EAX_OFFSET (9*4-4)
 
 /****************************************************************************/
 /****************************************************************************/
@@ -482,7 +482,7 @@ bool isRealCall(instruction &insn, Address adr, image *owner, bool &validTarget,
 
 
 /* auxiliary data structures for function findInstPoints */
-enum { EntryPt, CallPt, ReturnPt };
+enum { EntryPt, CallPt, ReturnPt, OtherPt };
 class point_ {
   public:
      point_(): point(0), index(0), type(0) {};
@@ -1086,6 +1086,8 @@ void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
 void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
 void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
+void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
+                 unsigned char *&insn);
 
 
 /*
@@ -1311,31 +1313,31 @@ trampTemplate *installBaseTramp( const instPoint *location,
    0:    <relocated instructions before point>
    a = size of relocated instructions before point
    a+0:   jmp a+30 <skip pre insn>  1
-   a+5:   push ebp                  1
-   a+6:   mov esp, ebp              1
-   a+8:   subl esp, 0x80            1
-   a+14:  pushad                    5
-   a+15:  pushaf                    9
+   a+5:   pushfd                    5
+   a+6:   pushad                    9
+   a+7:   push ebp                  1
+   a+8:   mov esp, ebp              1
+   a+10:  subl esp, 0x80            1
    a+16:  jmp <global pre inst>     1
    a+21:  jmp <local pre inst>      1
-   a+26:  popaf                    14
-   a+27:  popad                     5
-   a+28:  leave                     3
+   a+26:  leave                     3
+   a+27:  popad                    14
+   a+28:  popfd                     5
    a+29:  add costAddr, cost        3
    a+39:  <relocated instructions at point>
 
    b = a +30 + size of relocated instructions at point
    b+0:   jmp b+30 <skip post insn>
-   b+5:   push ebp
-   b+6:   mov esp, ebp
-   b+8:   subl esp, 0x80
-   b+14:  pushad
-   b+15:  pushaf
+   b+5:   pushfd
+   b+6:   pushad
+   b+7:   push ebp
+   b+8:   mov esp, ebp
+   b+10:  subl esp, 0x80
    b+16:  jmp <global post inst>
    b+21:  jmp <local post inst>
-   b+26:  popaf
+   b+26:  leave
    b+27:  popad
-   b+28:  leave
+   b+28:  popfd
    b+29:  <relocated instructions after point>
 
    c:     jmp <return to user code>
@@ -1380,6 +1382,10 @@ trampTemplate *installBaseTramp( const instPoint *location,
 #else
   unsigned trampSize = 73;
 #endif
+
+  if (noCost) trampSize -= 10;
+
+  if (location->isConservative()) trampSize += 13*2;
 
   if( ! trampRecursiveDesired ) {
       trampSize += get_guard_code_size();   // NOTE-131 with Relocation
@@ -1494,6 +1500,9 @@ trampTemplate *installBaseTramp( const instPoint *location,
      origAddr += location->insnAtPoint().size();
   }
 
+  if (location->isConservative() && !noCost)
+    emitSimpleInsn(PUSHFD, insn);    // pushfd
+
   // pre branches
   // skip pre instrumentation
   ret->skipPreInsOffset = insn-code;
@@ -1501,12 +1510,20 @@ trampTemplate *installBaseTramp( const instPoint *location,
 
   // save registers and create a new stack frame for the tramp
   ret->savePreInsOffset = insn-code;
+  if (!location->isConservative() || noCost)
+    emitSimpleInsn(PUSHFD, insn);    // pushfd
+  emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
-  // allocate space for temporaries (virtual registers)
-  emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-  emitSimpleInsn(PUSHAD, insn);    // pushad
-  emitSimpleInsn(PUSHFD, insn);    // pushfd
+  if (location->isConservative()) {
+    // allocate space for temporaries (virtual registers) and floating point state
+    emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
+    // save floating point state
+    emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+  } else {
+    // allocate space for temporaries (virtual registers)
+    emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
+  }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // generate preamble for MT version
@@ -1544,10 +1561,13 @@ trampTemplate *installBaseTramp( const instPoint *location,
     }
 
   // restore registers
-  emitSimpleInsn(POPFD, insn);     // popfd
-  emitSimpleInsn(POPAD, insn);     // popad
-  ret->restorePreInsOffset = insn-code;
+  if (location->isConservative())
+    emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
   emitSimpleInsn(LEAVE, insn);     // leave
+  emitSimpleInsn(POPAD, insn);     // popad
+  if (!location->isConservative() || noCost)
+    emitSimpleInsn(POPFD, insn);     // popfd
+  ret->restorePreInsOffset = insn-code;
 
   // update cost
   // update cost -- a 10-byte instruction
@@ -1556,16 +1576,9 @@ trampTemplate *installBaseTramp( const instPoint *location,
   ret->costAddr = currAddr;
   if (!noCost) {
      emitAddMemImm32(costAddr, 88, insn);  // add (costAddr), cost
+     if (location->isConservative())
+       emitSimpleInsn(POPFD, insn);     // popfd
   }
-  else {
-     // minor hack: we still need to fill up the rest of the 10 bytes, since
-     // assumptions are made about the positioning of instructions that follow.
-     // (This could in theory be fixed)
-     // So, 10 NOP instructions (each 1 byte)
-     for (unsigned foo=0; foo < 10; foo++)
-        emitSimpleInsn(0x90, insn); // NOP
-  }
-
    
   if (!(location->insnAtPoint().type() & IS_JCC)) {
     // emulate the instruction at the point 
@@ -1602,12 +1615,20 @@ trampTemplate *installBaseTramp( const instPoint *location,
 
   // save registers and create a new stack frame for the tramp
   ret->savePostInsOffset = insn-code;
+  emitSimpleInsn(PUSHFD, insn);    // pushfd
+  emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
   // allocate space for temporaries (virtual registers)
-  emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-  emitSimpleInsn(PUSHAD, insn);    // pushad
-  emitSimpleInsn(PUSHFD, insn);    // pushfd
+  if (location->isConservative()) {
+    // allocate space for temporaries (virtual registers) and floating point state
+    emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
+    // save floating point state
+    emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+  } else {
+    // allocate space for temporaries (virtual registers)
+    emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
+  }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // generate preamble for MT version
@@ -1645,10 +1666,12 @@ trampTemplate *installBaseTramp( const instPoint *location,
     }
 
   // restore registers
-  emitSimpleInsn(POPFD, insn);     // popfd
-  emitSimpleInsn(POPAD, insn);     // popad
-  ret->restorePostInsOffset = insn-code;
+  if (location->isConservative())
+    emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
   emitSimpleInsn(LEAVE, insn);     // leave
+  emitSimpleInsn(POPAD, insn);     // popad
+  emitSimpleInsn(POPFD, insn);     // popfd
+  ret->restorePostInsOffset = insn-code;
   
   // emulate the instructions after the point
   ret->returnInsOffset = insn-code;
@@ -2867,12 +2890,12 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes) {
    // pushad
    // pushfd
 
+   emitSimpleInsn(PUSHFD, insnPtr);
+   emitSimpleInsn(PUSHAD, insnPtr);
    emitSimpleInsn(PUSH_EBP, insnPtr);
    emitMovRegToReg(EBP, ESP, insnPtr);
    // allocate space for temporaries (virtual registers)
    emitOpRegImm(5, ESP, 128, insnPtr); // sub esp, 128
-   emitSimpleInsn(PUSHAD, insnPtr);
-   emitSimpleInsn(PUSHFD, insnPtr);
 
    baseBytes += (insnPtr - origInsnPtr);
 
@@ -2901,9 +2924,9 @@ bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 
    // Sequence: popfd, popad, leave (0xc9), call DYNINSTbreakPoint(), illegal
 
-   emitSimpleInsn(POPFD, insnPtr); // popfd
-   emitSimpleInsn(POPAD, insnPtr); // popad
    emitSimpleInsn(LEAVE, insnPtr); // leave
+   emitSimpleInsn(POPAD, insnPtr); // popad
+   emitSimpleInsn(POPFD, insnPtr); // popfd
    baseBytes += 3; // all simple insns are 1 byte
 
    // We can't do a SIGTRAP since SIGTRAP is reserved in x86.
@@ -3209,12 +3232,122 @@ bool deleteBaseTramp(process *proc,instPoint* location,
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process* /* proc */, void *address,
+BPatch_point *createInstructionInstPoint(process* proc, void *address,
                                          BPatch_point** alternative)
 {
-    BPatch_reportError(BPatchSerious, 109,
-	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
-    return NULL;
+    /*
+     * Get some objects we need, such as the enclosing function, image, etc.
+     */
+    pd_Function *func = (pd_Function*)proc->findFuncByAddr((Address)address);
+
+    if (func == NULL) // Should make an error callback here?
+	return NULL;
+
+    const image *image = func->file()->exec();
+
+    Address imageBase;
+    proc->getBaseAddress(image, imageBase);
+    Address relAddr = (Address)address - imageBase;
+
+    BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
+	
+    /*
+     * Check if the address points to the beginning of an instruction.
+     */
+    bool isInstructionStart = false;
+
+    const unsigned char *ptr =
+	(const unsigned char *)image->getPtrToInstruction(func->getAddress(0));
+
+    instruction insn;
+    unsigned insnSize;
+
+    Address funcEnd = func->getAddress(proc) + func->size();
+    for (Address checkAddr = func->getAddress(proc);
+	checkAddr < funcEnd; ptr += insnSize, checkAddr += insnSize) {
+
+	if (checkAddr == (Address)address) {
+	    isInstructionStart = true;
+	    break;
+	} else if (checkAddr > (Address)address) {
+	    break;
+	}
+
+	insnSize = insn.getNextInstruction(ptr);
+	assert(insnSize > 0);
+    }
+
+    if (!isInstructionStart)
+	return NULL; // Should make an error callback as well?
+    
+    /*
+     * Check if the point overlaps an existing instrumentation point.
+     */
+    Address begin_addr, end_addr, curr_addr;
+    int i;
+
+    curr_addr = (Address)address;
+
+    instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
+    assert(entry);
+
+    begin_addr = entry->iPgetAddress();
+    end_addr = begin_addr + entry->size();
+
+    if (curr_addr >= begin_addr && curr_addr < end_addr) { 
+	BPatch_reportError(BPatchSerious, 117,
+			   "instrumentation point conflict");
+	if(alternative)
+	    *alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
+	return NULL;
+    }
+
+    const vector<instPoint*> &exits = func->funcExits(NULL);
+    for (i = 0; i < exits.size(); i++) {
+	assert(exits[i]);
+
+	begin_addr = exits[i]->iPgetAddress();
+	end_addr = begin_addr + exits[i]->size();
+
+	if (curr_addr >= begin_addr && curr_addr < end_addr) {
+	    BPatch_reportError(BPatchSerious, 117,
+			       "instrumentation point conflict");
+	    if(alternative)
+		    *alternative = proc->findOrCreateBPPoint(bpfunc,exits[i],BPatch_exit);
+	    return NULL;
+	}
+    }
+
+    const vector<instPoint*> &calls = func->funcCalls(NULL);
+    for (i = 0; i < calls.size(); i++) {
+	assert(calls[i]);
+
+	begin_addr = calls[i]->iPgetAddress();
+	end_addr = begin_addr + calls[i]->size();
+
+	if (curr_addr >= begin_addr && curr_addr < end_addr) {
+	    BPatch_reportError(BPatchSerious, 117,
+			       "instrumentation point conflict");
+	    if(alternative)
+		    *alternative = proc->findOrCreateBPPoint(bpfunc,calls[i],BPatch_subroutine);
+	    return NULL;
+	}
+    }
+
+    /*
+     * Create the new inst point.
+     */
+
+    ptr = (const unsigned char *)image->getPtrToInstruction(relAddr);
+    insnSize = insn.getNextInstruction(ptr);
+
+    instPoint *newpt = new instPoint(func, image, relAddr, insn, true);
+
+    newpt->checkInstructions();
+
+    func->addArbitraryPoint(newpt, proc);
+
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
 }
 
 /*
@@ -3790,7 +3923,7 @@ bool pd_Function::fillInRelocInstPoints(
     CALC_OFFSETS(arbitraryPoints[arbitraryId]);
 
     point = new instPoint(this, owner, adr-imageBaseAddr,
-			  newCode[newArrayOffset]);
+			  newCode[newArrayOffset], true);
 
     assert(point != NULL);
 
@@ -4512,15 +4645,61 @@ bool instPoint::match(instPoint *p)
 
 void pd_Function::addArbitraryPoint(instPoint* location,
 				    process* proc,
-				    relocatedFuncInfo* reloc_info){
-	/** does nothing as arbitrary inst points are not
-	    supported for x86 archs yet. When it is upported
-	    however it has to have a body to add arbitrary 
-	    point to the pd_Function object */
-
-	/** for the implementation look at the implementation in
-	    sparc version */
-
+				    relocatedFuncInfo* reloc_info)
+{
+    if(!isInstalled(proc))
 	return;
-}
 
+    instPoint *point;
+    int originalOffset, newOffset;
+    int arrayOffset, originalArrayOffset, newArrayOffset;
+
+    Address mutatee,newAdr,mutator;
+    LocalAlterationSet alteration_set(this);
+    int oldJumpOffset, newJumpOffset;
+    Address adr, newJumpAddr;
+
+    instruction *oldCode = NULL, *newCode = NULL;
+
+    const image* owner = location->iPgetOwner();
+
+    findAlterations(owner,proc,oldCode,alteration_set,
+                                    mutator, mutatee);
+    Address imageBaseAddr;
+    if (!proc->getBaseAddress(owner,imageBaseAddr))
+        abort();
+
+    newAdr = reloc_info->address();
+
+    originalOffset = ((location->iPgetAddress() + imageBaseAddr) - mutatee);
+    originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode);
+    assert(originalArrayOffset >= 0);
+    newOffset = originalOffset + alteration_set.getShift(originalOffset);
+    newArrayOffset = originalArrayOffset +
+		  alteration_set.getInstPointShift(originalOffset);
+    oldJumpOffset = (location->jumpAddr() + imageBaseAddr) - mutatee;
+    newJumpOffset = oldJumpOffset + alteration_set.getShift(oldJumpOffset);
+    newJumpAddr = newAdr + newJumpOffset;
+    adr = newAdr + newOffset;
+
+    newCode  = reinterpret_cast<instruction *> (relocatedCode);
+ 
+    point = new instPoint(this,
+			  owner,
+			  newAdr-imageBaseAddr,
+			  newCode[newArrayOffset],
+			  true);
+
+    point->setRelocated();
+
+    point->setJumpAddr(newJumpAddr-imageBaseAddr);
+
+    instrAroundPt(point, newCode, location->insnsBefore(), 
+                  location->insnsAfter() + 
+                  alteration_set.numInstrAddedAfter(originalOffset), 
+                  OtherPt, newArrayOffset);
+
+    reloc_info->addArbitraryPoint(point);
+
+    delete[] oldCode;
+}

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.13 2000/12/04 21:30:29 zandy Exp $
+ * $Id: RTlinux.c,v 1.14 2001/10/10 20:43:08 buck Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -301,12 +301,11 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
 	/* we'll then continue to process the trap */
       }
     }
-    nextpc = lookup(pc);
+    nextpc = lookup(--pc);
 
     if (!nextpc) {
-      /* kludge: maybe the PC was not automatically adjusted after the trap */
-      /* this happens for a forked process */
-      pc--;
+      /* kludge: the PC may have been at or right after the trap */
+      pc++;
       nextpc = lookup(pc);
     }
 

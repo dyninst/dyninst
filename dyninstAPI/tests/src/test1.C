@@ -1847,11 +1847,6 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) || \
-    defined(mips_sgi_irix6_4) || \
-    defined(sparc_sun_solaris2_4)
-
     BPatch_function *call20_1_func;
     if (mutateeFortran)
         call20_1_func = appImage->findFunction("call20_1_");
@@ -1891,7 +1886,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
     BPatchErrorCallback oldError =
 	bpatch->registerErrorCallback(createInstPointError);
 
-    for (unsigned int i = 0; i < f->getSize(); i+= 4) {
+    for (unsigned int i = 0; i < f->getSize(); i+= 1) {
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
 
 	if (p) {
@@ -1903,7 +1898,6 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 		    exit(1);
 		}
 	    }
-    	    delete p;
 	}
     }
 
@@ -1913,7 +1907,6 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
 	exit(1);
     }
-#endif
 }
 
 
