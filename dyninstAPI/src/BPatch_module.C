@@ -228,20 +228,21 @@ string* processDirectories(string* fn){
 		return fn;
 
 	string* ret = NULL;
-	char* suffix = NULL;
-	char* prefix = NULL;
+	char suffix[10] = "";
+	char prefix[10] = "";
 	char* pPath = new char[strlen(fn->c_str())+1];
+
 	strcpy(pPath,fn->c_str());
 
 	if(pPath[0] == '/')
-		prefix = "/";
+           strcpy(prefix, "/");
 	else
-		prefix = "";
+           strcpy(prefix, "");
 
 	if(pPath[strlen(pPath)-1] == '/')
-		suffix = "/";
+           strcpy(suffix, "/");
 	else
-		suffix = "";
+           strcpy(suffix, "");
 
 	int count = 0;
 	char* pPathLocs[1024];
@@ -266,6 +267,7 @@ string* processDirectories(string* fn){
 
 		p = strtok(NULL,"/");
 	}
+
 	ret = new string;
 	*ret += prefix;
 	for(int i=0;i<count;i++){
@@ -613,7 +615,7 @@ void BPatch_module::parseTypes()
   struct stab_entry *stabptr = NULL;
   BPatch_type *commonBlock = NULL;
   BPatch_variableExpr *commonBlockVar = NULL;
-  
+
   //Using pdmodule to get the image Object.
   imgPtr = mod->exec();
   
@@ -643,7 +645,6 @@ void BPatch_module::parseTypes()
 
   for(i=0;i<stab_nsyms;i++){
     // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-
     switch(stabptr[i].type){
 
     case N_UNDF: /* start of object file */
