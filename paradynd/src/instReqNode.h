@@ -53,99 +53,106 @@ class AstNode;
 class instrDataNode;
 class instReqNode;
 class pd_process;
-class process;
 
 class catchupReq {
  public:
-  catchupReq() : frame() {};
-  catchupReq(Frame frame2) :
-    frame(frame2) {};
-  catchupReq(const catchupReq &src) {
-    frame = src.frame;
-    for (unsigned i = 0; i < src.reqNodes.size(); i++)
-      reqNodes.push_back(src.reqNodes[i]);
-  }
-
-  vector<instReqNode *> reqNodes;
-  Frame        frame;
+   catchupReq() : frame() {};
+   catchupReq(Frame frame2) :
+      frame(frame2) {};
+   catchupReq(const catchupReq &src) {
+      frame = src.frame;
+      for (unsigned i = 0; i < src.reqNodes.size(); i++)
+	 reqNodes.push_back(src.reqNodes[i]);
+   }
+   
+   vector<instReqNode*> reqNodes;
+   Frame        frame;
 };
 
 
 class instReqNode {
+ private:
+   // disallow this
+   instReqNode &operator=(const instReqNode &) { return *this; }
+   
  public:
-  instReqNode(instPoint*, AstNode *, callWhen, callOrder order);
-  ~instReqNode();
-  
-  instReqNode() : point(NULL), ast(NULL), loadedIntoApp(false), 
-    trampsHookedUp(false), rinstance(NULL) {
-    // needed by Vector class
-  }
+   instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
+	       callOrder o) : point(iPoint), ast(assignAst(iAst)),
+      when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
+      hasBeenCatchuped_(false), rinstance(NULL), rpcCount(0), 
+      loadInstAttempts(0) 
+   {
+      mtHandle.location = iPoint;
+      mtHandle.when = iWhen;
+   }
+   
+   ~instReqNode();
+   
+   // normal copy constructor, used eg. in vector<instReqNode> expansion
+   instReqNode(const instReqNode &par) : 
+      point(par.point), ast(assignAst(par.ast)), when(par.when), 
+      order(par.order), mtHandle(par.mtHandle), 
+      loadedIntoApp_(par.loadedIntoApp_), trampsHookedUp_(par.trampsHookedUp_),
+      hasBeenCatchuped_(par.hasBeenCatchuped_), rinstance(par.rinstance), 
+      rpcCount(par.rpcCount), loadInstAttempts(par.loadInstAttempts)
+   { }
+   
+   // special copy constructor used for fork handling
+   instReqNode(const instReqNode &par, pd_process *childProc);
 
-  // normal copy constructor, used eg. in vector<instReqNode> expansion
-  instReqNode(const instReqNode &par) : 
-    point(par.point), ast(assignAst(par.ast)), when(par.when), 
-    order(par.order), loadedIntoApp(par.loadedIntoApp), mtHandle(par.mtHandle),
-    trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
-    rpcCount(par.rpcCount)
-  { }
+   bool instrLoaded()      { return loadedIntoApp_;    }
+   bool trampsHookedUp()   { return trampsHookedUp_;   }
+   bool hasBeenCatchuped() { return hasBeenCatchuped_; }
+   
+   loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
+					 returnInstance *&retInstance);
+   void hookupJumps(pd_process *proc);
+   void disable(pd_process *proc);
+   timeLength cost(pd_process *theProc) const;
+   returnInstance *getRInstance() const { return rinstance; }
+   void setAffectedDataNodes(instInstanceFreeCallback cb, 
+			     vector<instrDataNode *> *affectedNodes); 
+   
+   void catchupRPCCallback(void *returnValue);
+   
+   bool triggeredInStackFrame(Frame &frame, pd_process *p);
+   
+   instPoint *Point() {return point;}
+   AstNode* Ast()  {return ast;}
+   callWhen When() {return when;}
+   callOrder Order() { return order; }
+   void markAsHavingBeenCatchuped() { hasBeenCatchuped_ = true; }
 
-  // special copy constructor used for fork handling
-  instReqNode(const instReqNode &par, pd_process *childProc);
+   void changePoint(instPoint *newPt) { point = newPt; }
+   void resetInsertedState() {
+      loadedIntoApp_ = false;
+      trampsHookedUp_ = false;
+      hasBeenCatchuped_ = false;
+      mtHandle.inst = NULL;
+      mtHandle.location = NULL;
+      loadInstAttempts = 0;
+   }
 
-  instReqNode &operator=(const instReqNode &src) {
-    if (this == &src)
-      return *this;
-    
-    point = src.point;
-    ast = assignAst(src.ast);
-    when = src.when;
-    order = src.order;
-    rinstance = src.rinstance;
-    loadedIntoApp = src.loadedIntoApp;
-    mtHandle = src.mtHandle;
-    trampsHookedUp = src.trampsHookedUp;
-    
-    return *this;
-  }
+ private:
+   instPoint *point;
+   AstNode   *ast;
+   callWhen  when;
+   callOrder order;
+   
+   miniTrampHandle mtHandle;
 
-  loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
-					returnInstance *&retInstance);
-  void hookupJumps(pd_process *proc);  
-  void disable(pd_process *proc);
-  timeLength cost(pd_process *theProc) const;
-  returnInstance *getRInstance() const { return rinstance; }
-  void setAffectedDataNodes(instInstanceFreeCallback cb, 
-		            vector<instrDataNode *> *affectedNodes); 
-
-  bool postCatchupRPC(pd_process *theProc, Frame &triggeredFrame, int mid);
-  static void catchupRPCCallbackDispatch(process * /*theProc*/,
-					 void *userData, void *returnValue)
-    { ((instReqNode*)userData)->catchupRPCCallback( returnValue ); }
-  void catchupRPCCallback(void *returnValue);
-  
-  bool triggeredInStackFrame(Frame &frame, pd_process *p);
-  
-  instPoint *Point() {return point;}
-  AstNode* Ast()  {return ast;}
-  callWhen When() {return when;}
-  callOrder Order() { return order; }
-
-private:
-  instPoint	*point;
-  AstNode	*ast;
-  callWhen	when;
-  callOrder	order;
-  bool          loadedIntoApp;
-  miniTrampHandle mtHandle;
-
-  bool          trampsHookedUp;
-
-  returnInstance *rinstance;
-  
-  // Counts the number of rpcs which have successfully completed for this
-  // node.  This is needed because we may need to manually trigger multiple
-  // times for recursive functions.
-  int rpcCount;
+   bool loadedIntoApp_;
+   bool trampsHookedUp_;
+   bool hasBeenCatchuped_;
+   
+   returnInstance *rinstance;
+   
+   // Counts the number of rpcs which have successfully completed for this
+   // node.  This is needed because we may need to manually trigger multiple
+   // times for recursive functions.
+   int rpcCount;
+   
+   int loadInstAttempts;  // count of deferred load instrumentation attempts
 };
 
 
