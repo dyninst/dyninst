@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.13  1994/03/25 22:59:28  hollings
+ * Revision 1.14  1994/03/31 01:42:19  markc
+ * Added pauseProcess, continueProcess member functions.
+ *
+ * Revision 1.13  1994/03/25  22:59:28  hollings
  * Made the data manager tolerate paraynd's dying.
  *
  * Revision 1.12  1994/03/24  16:41:18  hollings
@@ -231,13 +234,31 @@ Boolean applicationContext::startApplication()
 //
 Boolean applicationContext::pauseApplication()
 {
+    List<paradynDaemon*> curr;
+    paradynDaemon *dm;
+
+    for (curr = daemons; dm = *curr; curr++) {
+	dm->pauseApplication();
+    }
+    return(TRUE);
+}
+
+//
+// pause one processes.
+//
+Boolean applicationContext::pauseProcess(int pid)
+{
     executable *exec;
     List<executable*> curr;
 
     for (curr = programs; exec = *curr; curr++) {
-	exec->controlPath->pauseProgram(exec->pid);
+        if (exec->pid == pid) break; 
     }
-    return(TRUE);
+    if (exec) {
+        exec->controlPath->pauseProgram(exec->pid);
+        return(TRUE); 
+    } else
+	return (FALSE);
 }
 
 //
@@ -245,13 +266,31 @@ Boolean applicationContext::pauseApplication()
 //
 Boolean applicationContext::continueApplication()
 {
+    List<paradynDaemon*> curr;
+    paradynDaemon *dm;
+
+    for (curr = daemons; dm = *curr; curr++) {
+	dm->continueApplication();
+    }
+    return(TRUE);
+}
+
+//
+// continue one processes.
+//
+Boolean applicationContext::continueProcess(int pid)
+{
     executable *exec;
     List<executable*> curr;
 
     for (curr = programs; exec = *curr; curr++) {
-	exec->controlPath->continueProgram(exec->pid);
+	if (exec->pid == pid) break;
     }
-    return(TRUE);
+    if (exec) {
+        exec->controlPath->continueProgram(exec->pid);
+        return(TRUE); 
+    } else
+	return (FALSE);
 }
 
 //

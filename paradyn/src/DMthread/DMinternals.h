@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.10  1994/03/25 22:59:31  hollings
+ * Revision 1.11  1994/03/31 01:40:37  markc
+ * Added pauseProcess, continueProcess member functions.
+ *
+ * Revision 1.10  1994/03/25  22:59:31  hollings
  * Made the data manager tolerate paraynd's dying.
  *
  * Revision 1.9  1994/03/24  16:41:19  hollings
@@ -137,6 +140,8 @@ class applicationContext {
 	Boolean startApplication();
   	Boolean pauseApplication();	
 	Boolean continueApplication();
+  	Boolean pauseProcess(int pid);	
+	Boolean continueProcess(int pid);
 	Boolean detachApplication(Boolean);
 	void printStatus();
 	void coreProcess(int pid);
