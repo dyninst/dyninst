@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.71  1996/05/06 13:45:13  naim
-/* Fixing problem with continueProc - naim
+/* Revision 1.72  1996/05/06 17:17:59  newhall
+/* changed call to enableDataRequest
 /*
+ * Revision 1.71  1996/05/06  13:45:13  naim
+ * Fixing problem with continueProc - naim
+ *
  * Revision 1.70  1996/05/01  02:05:36  newhall
  * *** empty log message ***
  *
@@ -736,7 +739,7 @@ int ParadynEnableCmd (ClientData,
     metric_focus_pair new_request_entry(*met,*resList);
     *request += new_request_entry;
     assert(request->size() == 1);
-    dataMgr->enableDataRequest(uim_ps_handle,request,0,GlobalPhase,0,0,0);
+    dataMgr->enableDataRequest(uim_ps_handle,request,0,GlobalPhase,0,0,0,0);
 
     // KLUDGE: wait for async response from DM
     bool ready=false;
