@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.1  1995/10/17 22:08:35  tamches
-/* initial version, for the new search history graph
+/* Revision 1.2  1996/01/09 01:06:17  tamches
+/* changes due to moving phaseId to the shg class
 /*
+ * Revision 1.1  1995/10/17 22:08:35  tamches
+ * initial version, for the new search history graph
+ *
  */
 
 #ifndef _SHG_PHASES_H_
@@ -19,8 +22,8 @@
 #include "util/h/Vector.h"
 #endif
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "shg.h"
 
@@ -28,13 +31,16 @@ class shgPhases {
  private:
    struct shgStruct {
       shg *theShg;
-      int  phaseID;
+      // int  phaseID; (now present in shg.h)
       string phaseName; // what's used in the menu
       
       // Save shg UI-type state when changing phases, so we can restore
       // it later:
       float horizSBfirst, horizSBlast;
       float vertSBfirst, vertSBlast;
+
+      // convenience routine:
+      int getPhaseId() const {return theShg->getPhaseId();}
    };
 
    vector<shgStruct> theShgPhases;
@@ -59,7 +65,8 @@ class shgPhases {
    const string &getVertSBName() const {return vertSBName;}
    const string &getCurrItemLabelName() const {return currItemLabelName;}
 
-   void add(shg *theNewShg, int phaseID, const string &theNewShgPhaseName);
+   //void add(shg *theNewShg, int phaseID, const string &theNewShgPhaseName);
+   void add(shg *theNewShg, const string &theNewShgPhaseName);
    
    shg &getByID(int phaseID);
 
@@ -77,7 +84,7 @@ class shgPhases {
    const shg &getCurrent() const;
    int getCurrentId() const {
       assert(existsCurrent());
-      return theShgPhases[currShgPhaseIndex].phaseID;
+      return theShgPhases[currShgPhaseIndex].getPhaseId();
    }
 
    void resizeEverything();
