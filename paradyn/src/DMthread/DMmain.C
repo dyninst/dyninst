@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.68  1995/08/11 21:50:31  newhall
+ * Revision 1.69  1995/08/12 22:28:22  newhall
+ * Added DM_post_thread_create_init, DM_sequential_init. Changes to DMmain
+ *
+ * Revision 1.68  1995/08/11  21:50:31  newhall
  * Removed DM kludge method function.  Added calls to metDoDaemon,
  * metDoProcess and metDoTunable that were moved out of metMain
  *
@@ -519,32 +522,24 @@ dynRPCUser::reportStatus (string line)
 // this socket will allow paradynd's to connect to paradyn for pvm
 //
 static void
-DMsetupSocket (int &sockfd, int &known_sock)
+DMsetupSocket (int &sockfd)
 {
   // setup "well known" socket for pvm paradynd's to connect to
-  assert ((known_sock =
-	   RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
+  assert ((dataManager::dm->socket =
+       RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
 
-  // this info is needed to create argument list for other paradynds
-  dataManager::dm->socket = known_sock;
-  dataManager::dm->sock_fd = sockfd;
-
-   
   // bind fd for this thread
   msg_bind (sockfd, true);
 }
 
 static void
-DMnewParadynd (int sockfd, dataManager *dm)
+DMnewParadynd ()
 {
-  int new_fd;
-
   // accept the connection
-  new_fd = RPC_getConnect(sockfd);
+  int new_fd = RPC_getConnect(dataManager::dm->sock_fd);
   if (new_fd < 0) {
     uiMgr->showError(4, "unable to connect to new paradynd");
   }
-
   // add new daemon to dictionary of all deamons
   paradynDaemon::addDaemon(new_fd); 
 }
@@ -558,6 +553,43 @@ void DM_eFunction(int errno, char *message)
 extern bool metDoDaemon();
 extern bool metDoProcess();
 extern bool metDoTunable();
+
+
+int dataManager::DM_sequential_init(init_struct* init){
+   // parse PDL file
+   string fname = init->met_file;
+   return(metMain(fname)); 
+}
+
+int dataManager::DM_post_thread_create_init(int tid) {
+
+
+    thr_name("Data Manager");
+    dataManager::dm = new dataManager(tid);
+
+    // supports argv passed to paradynDaemon
+    // new paradynd's may try to connect to well known port
+    DMsetupSocket (dataManager::dm->sock_fd);
+
+    assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
+  	 		     dataManager::dm->socket, 1, 1, "", false));
+
+    // start initial phase
+    string dm_phase0 = "phase_0";
+    phaseInfo::startPhase(0.0,dm_phase0);
+
+    char DMbuff[64];
+    unsigned int msgSize = 64;
+    msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
+    unsigned int tag = MSG_TAG_ALL_CHILDREN_READY;
+    msg_recv (&tag, DMbuff, &msgSize);
+
+    // get the parsed PDL file stuff
+    bool ok = metDoDaemon();
+    ok = metDoProcess();
+    ok = metDoTunable();
+    return 1;
+}
 
 //
 // Main loop for the dataManager thread.
@@ -591,43 +623,13 @@ void *DMmain(void* varg)
 	      newSampleRate, // callback
 	      userConstant);
 
-    init_struct init; memcpy((void*) &init, varg, sizeof(init));
-    string metric_file = init.met_file;
 
-    // int arg; memcpy((void *) &arg, varg, sizeof arg);
+    int tid; memcpy((void*)&tid,varg, sizeof(int));
+    dataManager::DM_post_thread_create_init(tid);
 
     int ret;
     unsigned int tag;
-    int known_sock, sockfd;
-    char DMbuff[64];
-    unsigned int msgSize = 64;
-
-    thr_name("Data Manager");
-
-    dataManager::dm = new dataManager(init.tid);
-
-    // supports argv passed to paradynDaemon
-    // new paradynd's may try to connect to well known port
-    DMsetupSocket (sockfd, known_sock);
-
-    assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
-			     known_sock, 1, 1, "", false));
-
-
-    // start initial phase
-    string dm_phase0 = "phase_0";
-    phaseInfo::startPhase(0.0,dm_phase0);
-    msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
-    tag = MSG_TAG_ALL_CHILDREN_READY;
-    msg_recv (&tag, DMbuff, &msgSize);
     paradynDaemon *pd = NULL;
-
-    // get the parsed PDL file stuff
-    bool ok = metDoDaemon();
-    ok = metDoProcess();
-    ok = metDoTunable();
-
-
     while (1) {
         for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
 	    pd = paradynDaemon::allDaemons[i]; 
@@ -645,8 +647,8 @@ void *DMmain(void* varg)
 
 	if (tag == MSG_TAG_FILE) {
 	    // must be an upcall on something speaking the dynRPC protocol.
-	    if (ret == sockfd){
-	        DMnewParadynd(sockfd, dataManager::dm); // set up a new daemon
+	    if (ret == dataManager::dm->sock_fd){
+	        DMnewParadynd(); // set up a new daemon
             }
 	    else {
                 for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){

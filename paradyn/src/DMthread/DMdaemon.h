@@ -101,6 +101,7 @@ class paradynDaemon: public dynRPCUser {
 	friend void *DMmain(void* varg);
 	friend void newSampleRate(float rate);
 	friend bool metDoDaemon();
+	friend int dataManager::DM_post_thread_create_init(int tid);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
 		      const string &n, const string &flav);
