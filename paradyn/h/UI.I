@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.25  1996/04/13 04:40:24  karavan
-/* new interface for batching edge requests
+/* Revision 1.26  1996/04/16 18:39:05  karavan
+/* changed updateStatusDisplay to take a string
 /*
+ * Revision 1.25  1996/04/13 04:40:24  karavan
+ * new interface for batching edge requests
+ *
  * Revision 1.24  1996/04/09 19:24:22  karavan
  * added back batch mode to cut down on shg redraw time
  *
@@ -152,7 +155,7 @@ typedef struct uiSHGrequest uiSHGrequest;
 
 $remote UIM {
 	$base 3000;
-	$version 14;
+	$version 15;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -181,7 +184,7 @@ $remote UIM {
         //
 
 	// add string to end of PC (scrolling) status display box
-	void updateStatusDisplay (int token, const char *item);
+	void updateStatusDisplay (int token, string *item);
 	// phaseID here is PC/UI version
 	$async void newPhaseNotification (unsigned phaseID, const char *phname, 
 					  bool with_new_pc);
