@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.198 2005/03/11 22:04:12 bernat Exp $
+ * $Id: inst-x86.C,v 1.199 2005/03/15 23:38:47 lharris Exp $
  */
 #include <iomanip>
 
@@ -594,18 +594,19 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
 bool int_function::findInstPoints( pdvector< Address >& callTargets,
 				    const image *i_owner ) 
 {
-    if (parsed_) {
-    fprintf(stderr, "Error: multiple call of findInstPoints\n");
-    return false;
-  }
+    if (parsed_) 
+    {
+        fprintf(stderr, "Error: multiple call of findInstPoints\n");
+        return false;
+    }
     parsed_ = true;
-    
+ 
     //temporary convenience hack.. we don't want to parse the PLT as a function
     //but we need pltMain to show up as a function
     //so we set size to zero and make sure it has no instPoints.    
-    if( prettyName() == "DYNINST_pltMain" || 
-        prettyName() == "__wStart" ||
-        prettyName() == "__wfini" )
+    if( prettyName() == "DYNINST_pltMain" )//|| 
+        //prettyName() == "winStart" ||
+        //prettyName() == "winFini" )
     {
         size_ = 0; 
         return true;
@@ -645,6 +646,12 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
     InstrucIter ah( funcBegin, funcBegin, owner ); 
     if( !checkEntry( ah.getInstruction(), funcBegin, owner ) )
     {
+        if( ah.isAJumpInstruction() || ah.isACallInstruction() )
+        {
+            Address target = ah.getBranchTarget();
+            callTargets.push_back( target );
+        }
+
         size_ = ah.getInstruction().size();
         isInstrumentable_ = false;
         return false;
@@ -685,7 +692,7 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
     leadersToBlock[ funcBegin ]->setRelStart( funcBegin );
     leadersToBlock[ funcBegin ]->isEntryBasicBlock = true;
     blockList->push_back( leadersToBlock[ funcBegin ] );
-    
+
     for( unsigned i = 0; i < jmpTargets.size(); i++ )
     {      
         InstrucIter ah( jmpTargets[ i ], funcBegin, owner );
@@ -697,7 +704,7 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
         {    
             currAddr = *ah;
             insnSize = ah.getInstruction().size();
-            
+                       
             if( visited.contains( currAddr ) )
                 break;
             else 
@@ -1073,7 +1080,7 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
                 bool validTarget = true;
-                 
+                              
                 if ( isRealCall( ah.getInstruction(), currAddr, owner, 
                                  validTarget, this ) ) 
                 {
@@ -1101,8 +1108,12 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
                         
                         if( !owner->funcsByEntryAddr.defines( target ) &&
                             owner->isCode( target ) )
+                        {
                             callTargets.push_back( target );
-                    }		    
+                           };
+                        
+                        
+                    }
                 } 
                 else 
                 {	

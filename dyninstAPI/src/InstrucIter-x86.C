@@ -80,15 +80,14 @@ skip_headers(const unsigned char*,bool&,bool&);
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
-    if((insn.type() & IS_JUMP) &&
-       (insn.type() & INDIR))
+    if((insn.type() & IS_JUMP) && (insn.type() & INDIR))
     {
         /* since there are two is_jump and indirect instructions
            we are looking for the one with the indirect register
            addressing mode one of which ModR/M contains 4 in its
            reg/opcode field */
         bool isWordAddr,isWordOp;
-        const unsigned char* ptr =
+        const unsigned char* ptr = 
             skip_headers(insn.ptr(),isWordAddr,isWordOp);
         assert(*ptr == 0xff);
         ptr++;
@@ -100,36 +99,21 @@ bool InstrucIter::isAIndirectJumpInstruction()
 
 bool InstrucIter::isStackFramePreamble()
 {
-    // test for
-    // one:  push   %ebp
-    // two:  mov    %esp,%ebp
-    
-    instruction next_insn;
-    next_insn.getNextInstruction( insn.ptr() + insn.size() );
-    
-    const unsigned char *p, *q;
-    p = insn.ptr();
-    q = next_insn.ptr();
-    return (insn.size() == 1
-            && p[0] == 0x55
-            && next_insn.size() == 2
-            && q[0] == 0x89
-            && q[1] == 0xe5);    
+    return ::isStackFramePreamble( insn );
 }
 
 bool InstrucIter::isFramePush()
 {
     // test for
     // push %ebp
-    return (insn.size() == 1 && insn.ptr()[0] == 0x55);
+    return (insn.size() == 1 && insn.ptr()[0] == PUSHEBP );
 }
 
 bool InstrucIter::isFrameSetup()
 {
     //test for
-    // movl %esp,%ebp
-    return (insn.size() == 2 && 
-            insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
+    //movl %esp,%ebp
+    return(insn.size() == 2 && insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
 }
 
 /** is the instruction a conditional branch instruction 

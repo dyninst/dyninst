@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.239 2005/03/14 22:32:01 tlmiller Exp $
+ // $Id: symtab.C,v 1.240 2005/03/15 23:38:48 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1587,7 +1587,6 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
             continue;
                
         sprintf(name, "f%lx", callTargets[j] );
-
         //some (rare) compiler generated symbols have 0 for the size.
         //most of these belong to screwy functions and, it seems
         //best to avoid them. to distinguish between these screwy functions
@@ -1733,7 +1732,6 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
 
     pdmodule *mod = func->pdmod();
     // May be NULL if it was an alias.
-
     everyUniqueFunction.push_back(func);
     enterFunctionInTables(func, mod);
   }
@@ -1760,7 +1758,8 @@ void image::analyzeIfNeeded() {
 
 bool image::analyzeImage()
 {
-  // Hold unseen call targets
+  
+ // Hold unseen call targets
   pdvector< Address > callTargets;
   int_function *pdf;
   pdmodule *mod = NULL;
@@ -1782,12 +1781,10 @@ bool image::analyzeImage()
     mod = pdf->pdmod();
     assert(pdf); assert(mod);
     
-    Address addr = pdf->get_address();
     pdstring name = pdf->symTabName();
-    
     parseFunction( pdf, callTargets);
-  }     
-
+  }      
+ 
   // callTargets now holds a big list of target addresses; some are already
   // in functions that we know about, some point to new functions. 
   
@@ -1797,20 +1794,23 @@ bool image::analyzeImage()
   unsigned p = 0;
   // We start over until things converge; hence the goto target
  top:
+  new_functions.clear();
   parseStaticCallTargets( callTargets, new_functions, mod );
   // Any new call destinations show up in new_functions
   callTargets.clear(); 
   // Add all new functions to the big list
+  
   for (unsigned j = 0; j < new_functions.size(); j++) 
   {
-      if( !funcsByEntryAddr.defines( new_functions[j]->get_address() ) )
-          everyUniqueFunction.push_back(new_functions[j]);
+      everyUniqueFunction.push_back(new_functions[j]);
+  }
+   
+  // nothing to do, exit
+  if( everyUniqueFunction.size() <= 0 )
+  {
+      return true;
   }
 
-  // nothing to do, exit
-  if (everyUniqueFunction.size() == 0)
-      return true;
-    
   VECTOR_SORT(everyUniqueFunction, addrfunccmp);
   
   Address lastPos;
@@ -1828,13 +1828,7 @@ bool image::analyzeImage()
       Address gapEnd = func2->get_address();
       Address gap = gapEnd - gapStart;
       
-      //gap should be big enough to accomodate stack frame setup and 
-      //tear down ( at least 5 bytes )
-      
-      //55      push  %ebp
-      //89 35   mov   %esp, %ebp
-      //5d 	  pop   %ebp
-      //c3 	  ret    
+      //gap should be big enough to accomodate a function prologue
       if( gap >= 5 )
       {
           Address pos = gapStart;
@@ -1845,13 +1839,12 @@ bool image::analyzeImage()
               
               instruction insn;
               insn.getNextInstruction( instPtr );
-              
-              if( isStackFramePreamble(insn) && !funcsByEntryAddr.defines(pos))
+              if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
               {
                   char name[20];
                   numIndir++;
                   sprintf( name, "f%lx", pos );
-                  pdf = new int_function( name, pos, 0, mod );
+                  pdf = new int_function( name, pos, UINT_MAX, mod );
                   pdf->addPrettyName( name );
                   
                   everyUniqueFunction.push_back(pdf);
@@ -1908,6 +1901,7 @@ bool image::analyzeImage()
 	  }
     }    
 #endif
+  
   parseState_ = analyzed;
   return true;
 }

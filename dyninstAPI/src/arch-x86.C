@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.28 2005/02/21 22:28:48 legendre Exp $
+// $Id: arch-x86.C,v 1.29 2005/03/15 23:38:45 lharris Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2951,18 +2951,55 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
-bool isStackFramePreamble( instruction& insn1 )
+bool isFunctionPrologue( instruction& insn1 )
 {
-    // look for the following sequences in the gaps
-    // 1.
-    // 55      push  %ebp
-    // 89 35   mov   %esp, %ebp
+    if( insn1.size() != 1 )
+        return false;
+    if( isStackFramePreamble( insn1 ) )
+        return true;
+
+    instruction insn2, insn3;
+    insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
+    insn3.getNextInstruction( insn2.ptr() + insn2.size() );
     
-    // 2.
-    // 55      push  %ebp
-    // xx xx   xxx   xxxx, xxxx  (can be any instruction)
-    // 89 35   mov   %esp, %ebp               
+    const unsigned char* p = insn1.ptr();
+    const unsigned char* q = insn2.ptr();
+    const unsigned char* r = insn3.ptr();
     
+    unsigned Mod1 =  ( q[ 1 ] >> 3 ) & 0x07;
+    unsigned Mod2 =  ( r[ 1 ] >> 3 ) & 0x07;  
+    
+    //Things fall apart; the center cannot hold; Mere anarchy is loosed upon 
+    //the world...
+    //[W.B. Yeats]
+    
+    //<centre>
+    //look for
+    //1. push esi
+    //   move esi, xxx
+    //
+    //2. push esi
+    //   xor  esi, esi
+    if( p[ 0 ] == PUSHESI )
+    {   
+        if( insn2.isMoveRegMemToRegMem() && Mod1 == 0x06 )
+            return true;
+          
+        if( insn3.isMoveRegMemToRegMem() && Mod2 == 0x06 )
+            return true;
+        
+        if( insn2.isXORRegMemRegMem() && Mod1 == 0x06 )
+            return true;
+        
+        if( insn3.isXORRegMemRegMem() && Mod2 == 0x06 )
+            return true;
+    }
+    //</centre>
+    return false;
+}
+
+bool isStackFramePreamble( instruction& insn1 )
+{       
     instruction insn2, insn3;
     insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
     insn3.getNextInstruction( insn2.ptr() + insn2.size() );
@@ -2970,18 +3007,23 @@ bool isStackFramePreamble( instruction& insn1 )
     const unsigned char* p = insn1.ptr();
     const unsigned char* q = insn2.ptr();
     const unsigned char* r = insn3.ptr();
+    
+    unsigned Mod1 =  ( q[ 1 ] >> 3 ) & 0x07;
+    unsigned Mod2 =  ( r[ 1 ] >> 3 ) & 0x07;  
 
     if( insn1.size() != 1 )
-        return false;
+    {
+        return false;  //shouldn't need this, but you never know
+    }
     
-    if( p[ 0 ] != 0x55 )
-        return false;
-       
-    if( insn2.size() == 2 && q[0] == 0x89 && q[1] == 0xe5 )
-        return true;
-
-    if( insn3.size() == 2 && r[0] == 0x89 && r[1] == 0xe5 )
-        return true;
+    if( p[ 0 ] == PUSHEBP  )
+    {   
+        if( insn2.isMoveRegMemToRegMem() && Mod1 == 0x05 )
+            return true;
+          
+        if( insn3.isMoveRegMemToRegMem() && Mod2 == 0x05 )
+            return true;
+    }
     
     return false;
 }

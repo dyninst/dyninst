@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.24 2005/03/11 22:04:12 bernat Exp $
+// $Id: arch-x86.h,v 1.25 2005/03/15 23:38:46 lharris Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -97,11 +97,12 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 
 /* end of instruction type descriptor values */
 
-
+ 
 /* opcodes of some instructions */
 #define PUSHAD   (0x60)
 #define PUSHFD   (0x9C)
 #define PUSHEBP  (0x55)
+#define PUSHESI  (0x56)
 #define PUSHESP  (0x54)
 #define POPAD    (0x61)
 #define POPFD    (0x9D)
@@ -127,7 +128,19 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define FRSTOR   (0xDD)
 #define FRSTOR_OP (4)
 
-#define MOVREGMEM_REG (0x8b)
+#define MOVREGMEM_REG (0x8b) 
+#define MOV_R8_TO_RM8 (0x88)     //move r8 to r/m8
+#define MOV_R16_TO_RM16 (0x89)   //move r16 to r/m16
+#define MOV_R32_TO_RM32 (0x89)   //move r32 to r/m32
+#define MOV_RM8_TO_R8 (0x8A)
+#define MOV_RM16_TO_R16 (0x8b)
+#define MOV_RM32_TO_R32 (0x8b)
+
+#define XOR_RM16_R16 (0x31)
+#define XOR_RM32_R32 (0x31)
+#define XOR_R8_RM8 (0x32)
+#define XOR_R16_RM16 (0x33)
+#define XOR_R32_RM32 (0x33)
 
 /* limits */
 #define MIN_IMM8 (-128)
@@ -396,7 +409,16 @@ class instruction {
   bool isNop() const { return *ptr_ == 0x90; }
   bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
-  bool isLeave() const { return *ptr_ == 0xC9; }
+  bool isLeave() const { return *ptr_ == 0xC9; }  
+  bool isMoveRegMemToRegMem() const 
+    { return *ptr_ == MOV_R8_TO_RM8   || *ptr_ == MOV_R16_TO_RM16 ||
+             *ptr_ == MOV_R32_TO_RM32 || *ptr_ ==  MOV_RM8_TO_R8  ||
+             *ptr_ == MOV_RM16_TO_R16 || *ptr_ == MOV_RM32_TO_R32;   }
+  bool isXORRegMemRegMem() const
+    { return *ptr_ == XOR_RM16_R16 || *ptr_ ==  XOR_RM32_R32 ||
+             *ptr_ ==  XOR_R8_RM8  || *ptr_ ==  XOR_R16_RM16 ||
+             *ptr_ == XOR_R32_RM32; }
+            
 
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
@@ -429,5 +451,7 @@ inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 bool insn_hasDisp8(unsigned ModRM);
 bool insn_hasDisp32(unsigned ModRM);
+bool isFunctionPrologue( instruction& insn1 );
 bool isStackFramePreamble( instruction& insn );
+
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.32 2005/03/15 23:19:15 tlmiller Exp $
+// $Id: Object-nt.C,v 1.33 2005/03/15 23:38:44 lharris Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -647,28 +647,29 @@ Object::ParseDebugInfo( void )
                                             0) );
 
         //main seems to always be the third to last call in 
-        //mainCRTStartup
-        
+        //mainCRTStartup ( we now know that this is not true )
+       
+        //use 'start' for mainCRTStartup.
+        ::Symbol startSym( "start", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
+                           ::Symbol::SL_GLOBAL, eAddr, 0, UINT_MAX );
+        symbols_[ "start" ].push_back( startSym );
+
+        //make up symbol for main
         Address mainAddr = callTargets[ callTargets.size() - 3 ] + baseAddr;
-        
         ::Symbol mainSym( "main", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, mainAddr, 0, UINT_MAX );
-
         symbols_[ "main" ].push_back( mainSym );
 
         //make up a func name for the start of the text section
-        ::Symbol sSym( "__wStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+        ::Symbol sSym( "winStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, code_off_, 0, UINT_MAX );
-    
-        symbols_[ "__wStart" ].push_back( sSym );
+        symbols_[ "winStart" ].push_back( sSym );
         
         //make up one for the end of the text section
-        ::Symbol fSym( "__wfini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+        ::Symbol fSym( "winFini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, code_off_ + code_len_, 
                        0, UINT_MAX );
-         
-        symbols_[ "__wfini" ].push_back( fSym );
-         
+        symbols_[ "winFini" ].push_back( fSym );
     }
     
  
