@@ -5,8 +5,8 @@
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
- * $Log: inst-power.C,v $
- * Revision 1.16  1996/05/12 05:16:45  tamches
+ * inst-power.C,v
+ * Revision 1.16  1996/05/12  05:16:45  tamches
  * (really Jeff)
  * Now works with aix 4.1
  *
@@ -652,10 +652,14 @@ unsigned emitFuncCall(opCode op,
     int i;
     for (i = 0; i < regSpace->getRegisterCount(); i++) {
 	registerSlot *reg = regSpace->getRegSlot(i);
-	// needsSaving -> caller saves register
-	// inUse && !mustRestore -> in use scratch register 
-	//		(i.e. part of an expression being evaluated).
-	if (reg->needsSaving || (reg->inUse && !reg->mustRestore)) {
+	if (reg->needsSaving) {
+	    // needsSaving -> caller saves register
+	    reg->needsSaving = false;
+	    reg->mustRestore = true;
+	    saveRegister(reg->number);
+	} else if (reg->inUse && !reg->mustRestore) {
+	    // inUse && !mustRestore -> in use scratch register 
+	    //		(i.e. part of an expression being evaluated).
 	    saveRegister(reg->number);
 	    savedRegs += reg->number;
 	} else if (reg->inUse) {
@@ -668,7 +672,10 @@ unsigned emitFuncCall(opCode op,
 		// XXXX - caller saves register that is in use.  We have no
 		//    place to save this, but we must save it!!!.  Should
 		//    find a place to push this on the stack - jkh 7/31/95
-		abort();
+	        string msg = "Too many registers required for MDL expression\n";
+	        fprintf(stderr, msg.string_of());
+	        showErrorCallback(94,msg);
+	        cleanUpAndExit(-1);
 	    }
 	}
     }
@@ -811,19 +818,24 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
    	    high = HIGH(dest);
 	}
 
-	// set upper 16 bits of  src2 to be the top high.
-	genImmInsn(insn, ADDISop, src2, 0, high);
+	// temp register to hold base address for store (added 6/26/96 jkh)
+	reg temp = regSpace->allocateRegister((char *)insn, base);
+
+	// set upper 16 bits of  temp to be the top high.
+	genImmInsn(insn, ADDISop, temp, 0, high);
 	base += sizeof(instruction);
         insn++;
 
 	// low == LOW(dest)
-	// generate -- st src1, low(src2)
+	// generate -- st src1, low(temp)
 	insn->dform.op = STWop;
 	insn->dform.rt = src1;
-	insn->dform.ra = src2;
+	insn->dform.ra = temp;
 	insn->dform.d_or_si = LOW(dest);
 	base += sizeof(instruction);
         insn++;
+
+	regSpace->freeRegister(temp);
     } else if (op ==  ifOp) {
 	// cmpi 0,0,src1,0
         insn->raw = 0;
@@ -895,6 +907,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	for (i = 0; i < regSpace->getRegisterCount(); i++) {
 	    registerSlot *reg = regSpace->getRegSlot(i);
 	    if (reg->mustRestore) {
+		// cleanup register space for next trampoline.
+		reg->needsSaving = true;
+		reg->mustRestore = false;
+		// actually restore the regitser.
 		restoreRegister(reg->number);
 	    }
 	}
@@ -1304,8 +1320,31 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 //
 // This is specific to some processors that have info in registers that we
 //   can read, but should not write.
-//   POWER has no such registers.
+//   On power, registers r3-r11 are parameters that must be read only.
+//     However, sometimes we have spilled to paramter registers back to the
+//     stack to use them as scratch registers.  In this case they are writeable.
 //
-bool registerSpace::readOnlyRegister(reg reg_number) {
-  return false;
+bool registerSpace::readOnlyRegister(reg reg_number) 
+{
+    registerSlot *regSlot;
+
+    // it's not a parameter registers so it is read/write
+    if ((reg_number > 11) || (reg_number < 3)) return false;
+
+    // find the registerSlot for this register.
+    for (int i = 0; i < regSpace->getRegisterCount(); i++) {
+	regSlot = regSpace->getRegSlot(i);
+	if (regSlot->number == reg_number) {
+	    break;
+	}
+    }
+
+    if (regSlot->mustRestore) {
+	// we have already wrriten this to the stack so its OK to clobber it.
+	return(false);
+    } else {
+	// its a live parameter register.
+        return true;
+    }
 }
+
