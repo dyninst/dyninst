@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.65 2002/12/05 01:38:38 buck Exp $
+// $Id: BPatch_thread.C,v 1.66 2002/12/14 16:37:28 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -702,11 +702,15 @@ BPatch_variableExpr *BPatch_thread::getInheritedVariable(
  * Function is invoked on the child BPatch_thread (created from a fork in 
  * the application).
  *
- * parentVar   A BPatch_variableExpr created in the parent thread
+ * Allows one to retrieve a snippet which exists in a child process which
+ * was inherited from and originally created in the parent process.
+ * Function is invoked on the child BPatch_thread (created from a fork in
+ * the application).
  *
- * Returns:    The corresponding BPatch_variableExpr from the child thread
- *             or NULL if the variable argument hasn't been malloced
- *             in a parent process.
+ * parentSnippet: A BPatchSnippetHandle created in the parent thread
+ *
+ * Returns:       The corresponding BPatchSnippetHandle from the child thread.
+ *
  */
 BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
 			 	          BPatchSnippetHandle &parentSnippet)
