@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.28  1994/09/30 19:18:45  rbi
-/* Abstraction interface change.
+/* Revision 1.29  1994/09/30 21:21:14  newhall
+/* purify related fixes
 /*
+ * Revision 1.28  1994/09/30  19:18:45  rbi
+ * Abstraction interface change.
+ *
  * Revision 1.27  1994/09/25  01:52:08  newhall
  * updated to support the changes to the  visi, UI and VM interfaces having
  * to do with a new representation of metric/focus lists as a list of
@@ -123,6 +126,7 @@
  * */
 #include <signal.h>
 #include <math.h>
+#include <memory.h>
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
 #include "../VMthread/VMtypes.h"
@@ -403,7 +407,7 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
  metric *currMetric;
  metricInstance *currMetInst;
  metricInstance *newEnabled[numElements];
- metrespair retryList[numElements];
+ metrespair *retryList;
  visi_matrix_Array pairList;
  metricInstance *temp;
  metricInfo *temp2;
@@ -412,7 +416,7 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
  timeStamp binWidth = 0.0;
  int  numEnabled = 0;
  int  numRetry = 0;
- int  i,found;
+ int  i,j,found;
  int  numBins = 0;
  int  howmany;
  stringHandle key;
@@ -438,7 +442,14 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
     return;
   }
 
+  if((retryList  = 
+      (metrespair *)malloc(sizeof(metrespair)*numElements)) == NULL){
+      ERROR_MSG(12,"in VISIthreadchooseMetRes");
+      ptr->quit = 1;
+      return;
+  }
 
+  pairList.data = (visi_matrix *)NULL;
   for(k=0; k < numElements; k++){
 
       key = newMetRes[k].focus->getCanonicalName();
@@ -492,6 +503,8 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	(visi_matrix *)malloc(sizeof(visi_matrix)*pairList.count)) == NULL){
 	ERROR_MSG(12,"in VISIthreadchooseMetRes");
         ptr->quit = 1;
+        free(retryList);
+        free(newMetRes);
         return;
     }
     for(i=0; i < numEnabled; i++){
@@ -505,6 +518,18 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	    AbbreviatedFocus(GetResourceName(newEnabled[i]->focus))) == NULL){
             ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	    ptr->quit = 1;
+            free(retryList);
+            free(newMetRes);
+            if(pairList.data){
+                 for(j=0; j < i-1; j++){
+                        free(pairList.data[j].met.units);
+                        free(pairList.data[j].met.name);
+                        free(pairList.data[j].res.name);
+                }
+            }
+            free(pairList.data[i].met.name);
+            free(pairList.data[i].res.name);
+            free(pairList.data);
 	    return;
         }
     }
@@ -517,6 +542,16 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
           if(ptr->visip->did_error_occur()){
              PARADYN_DEBUG(("igen: visip->Data() in VISIthreadchooseMetRes"));
              ptr->quit = 1;
+             free(retryList);
+             free(newMetRes);
+             if(pairList.data){
+                 for(i=0; i < pairList.count; i++){
+                     free(pairList.data[i].met.units);
+                     free(pairList.data[i].met.name);
+                     free(pairList.data[i].res.name);
+                 }
+                 free(pairList.data);
+             }
              return;
           }
 	  ptr->bufferSize = 0;
@@ -529,6 +564,16 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
     if(ptr->visip->did_error_occur()){
         PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
         ptr->quit = 1;
+        free(retryList);
+        free(newMetRes);
+        if(pairList.data){
+            for(i=0; i < pairList.count; i++){
+                free(pairList.data[i].met.units);
+                free(pairList.data[i].met.name);
+                free(pairList.data[i].res.name);
+            }
+            free(pairList.data);
+        }
         return;
     }
 
@@ -547,6 +592,16 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
             if(ptr->visip->did_error_occur()){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
+                free(retryList);
+                free(newMetRes);
+                if(pairList.data){
+                    for(i=0; i < pairList.count; i++){
+                        free(pairList.data[i].met.units);
+                        free(pairList.data[i].met.name);
+                        free(pairList.data[i].res.name);
+                    }
+                    free(pairList.data);
+                }
                 return;
             }
 	}
@@ -554,12 +609,13 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
     // if remenuFlag is set and retry list is not empty
     // send retry list to UIM to deal with 
     if((ptr->args->remenuFlag) && (numRetry)){
-
+        // don't free retryList since it is passed to UI
     }
     else { // else ignore, and set remenuFlag
         ptr->args->remenuFlag = 1;     
+        free(retryList);
     }
-
+    free(newMetRes);
   }
   else {
 
@@ -579,6 +635,15 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	 ptr->quit = 1;
       }
   }
+  if(pairList.data){
+    for(i=0; i < pairList.count; i++){
+     free(pairList.data[i].met.units);
+     free(pairList.data[i].met.name);
+     free(pairList.data[i].res.name);
+    }
+    free(pairList.data);
+  }
+
 }
 
 
@@ -725,14 +790,14 @@ void *VISIthreadmain(void *vargs){
       globals->dmp->disableDataCollection(globals->perStream, listItem);
   }
 
-/*
+  /*
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
       if (!(globals->mrlist->remove(listItem))) {
           perror("globals->mrlist->remove");
           ERROR_MSG(16,"remove() in VISIthreadmain"); 
       }
   }
-*/
+  */
 
   // kill visi process
   if(!globals->start_up){
@@ -756,6 +821,7 @@ void *VISIthreadmain(void *vargs){
   }
 
   delete globals->mrlist;
+  delete globals->visip;
 
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
@@ -789,24 +855,19 @@ void visiUser::handle_error()
 
     case igen_encode_err:
     case igen_decode_err:
-         fprintf(stderr, "VISIthread: Could not (un)marshall parameters, pid=%d tid=%d\n",
-		 getpid(),thr_self());
-         ERROR_MSG(16,
-	  "IGEN ERROR igen_(d,en)code_err: Could not (un)marshall parameters");
+         fprintf(stderr, "VISIthread: Could not (un)marshall parameters, pid=%d tid=%d\n", getpid(),thr_self());
          ptr->quit = 1;
          break;
 
     case igen_call_err:
          fprintf(stderr, "VISIthread: can't do sync call here, pid = %d tid = %d\n",
 	         getpid(),thr_self());
-         ERROR_MSG(16,"IGEN ERROR igen_call_err: can't do sync call here"); 
          ptr->quit = 1;
          break;
 
     case igen_request_err:
          fprintf(stderr, "VISIthread: unknown message tag pid=%d tid = %d\n",
 	         getpid(),thr_self());
-         ERROR_MSG(16,"IGEN ERROR igen_request_err: unknown message tag"); 
          ptr->quit = 1;
          break;
 
@@ -815,7 +876,6 @@ void visiUser::handle_error()
     default:
          fprintf(stderr, "VISIthread: Error: err_state = %d tid = %d\n", 
 		 get_err_state(),thr_self());
-         ERROR_MSG(16,"IGEN ERROR igen_(send,read)_err"); 
          ptr->quit = 1;
          break;
   }
@@ -824,22 +884,27 @@ void visiUser::handle_error()
 
 char *GetResourceName(resourceList *resource){
 
- stringHandle *y;
+ char **y;
  char *tempName;
- int  where, numRes, totalSize = 0;
+ int  i;
+ int  where, numRes, totalSize = 4;
 
     y = resource->convertToStringList();
     numRes = resource->getCount();
-    for(int i = 0; i < numRes; i++)
-	totalSize += strlen((char *) y[i]);
+    for(i = 0; i < numRes; i++)
+	totalSize += strlen((char *) y[i]) + 1;
     if((tempName =
-	    (char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
+	    (char *)malloc(sizeof(char)*(totalSize))) == NULL){
+	    free(y);
 	    return(NULL);
      }
+     memset(tempName,'\0',totalSize);
      where = 0;
      for(i = 0; i < numRes; i++){
 	 if (!(strncpy(&(tempName[where]),
 	    (char *) y[i],strlen((char *) y[i])))){
+	    free(tempName);
+	    free(y);
 	    return(NULL);
 	 }
 	 where += strlen((char *) y[i]);
@@ -849,8 +914,11 @@ char *GetResourceName(resourceList *resource){
     }
 
     tempName[where] = '\0';
+
+    PARADYN_DEBUG(("tempName = %s size = %d\n",tempName,totalSize));
+    PARADYN_DEBUG(("tempName where = %d\n",where));
+    free(y);
     return(tempName);
-   
 
 }
 
@@ -866,8 +934,9 @@ int first = 0;
   if(longName == NULL)
      return(NULL);
 
-  size = strlen(longName) +1; 
-  newword = (char *)malloc(size);
+  size = strlen(longName); 
+  newword = (char *)malloc((size)+2);
+  memset(newword,'\0',size+2);
 
   for(i = 0; i < size; i++){
       if(longName[i] == '/'){
@@ -905,13 +974,20 @@ int first = 0;
 	   numChars++;
       }
   }
-  if(num == 0) {
+  if(first){
+      num -=numChars;
+  }
+
+  if(num <= 0) {
      free(newword);
      newword = (char *) malloc(strlen(VISI_DEFAULT_FOCUS)+1);
      strcpy(newword,VISI_DEFAULT_FOCUS);
   } else {
      newword[num] = '\0';
   }
+  PARADYN_DEBUG(("abbreviated focus = %s size = %d\n",newword,size));
+  PARADYN_DEBUG(("abbreviated focus num = %d",num));
+  free(longName);
   return(newword);
 }
 
