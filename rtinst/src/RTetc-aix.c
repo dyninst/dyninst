@@ -43,6 +43,12 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.9  1997/02/18 21:34:37  sec
+ * There were some bugs in how the time was accessed, fixed those; I also
+ * removed DYNISTexecvp which is buggy, and is never called (it was called
+ * for MPI stuff, but I replaced it with some modifications for poe/mpi in
+ * paradyn/DMthread).
+ *
  * Revision 1.8  1997/01/27 19:43:31  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -66,18 +72,27 @@
  *
  ************************************************************************/
 
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <malloc.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
+#include <signal.h>
+#include <sys/reg.h>
+#include <sys/ptrace.h>
+#include <sys/ldr.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include "rtinst/h/rtinst.h"
 
 #if defined(MT_THREAD)
 #include <sys/thread.h>
 #endif
 
-static const double NANO_PER_USEC = 1.0e3;
+static const double NANO_PER_USEC   = 1.0e3;
 static const long int MILLION       = 1000000;
 
 /************************************************************************
@@ -97,31 +112,29 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
  * return value is in usec units.
 ************************************************************************/
 
-time64
-DYNINSTgetCPUtime(void) {
-     time64 now;
-     static time64 previous=0;
-     struct rusage ru;
+time64 DYNINSTgetCPUtime(void) 
+{
+  time64        now;
+  static time64 prevTime = 0;
+  struct rusage ru;
 
-try_again:    
+  do {
     if (!getrusage(RUSAGE_SELF, &ru)) {
-      now = (time64)ru.ru_utime.tv_sec + (time64)ru.ru_stime.tv_sec;
-      now *= (time64)1000000;
-      now += (time64)ru.ru_utime.tv_usec + (time64)ru.ru_stime.tv_usec;
-      if (now<previous) {
-        goto try_again;
-      }
-      previous=now;
-      return(now);
-    }
-    else {
+      now = (time64) ru.ru_utime.tv_sec + (time64) ru.ru_stime.tv_sec;
+      now *= (time64) 1000000;
+      now += (time64) ru.ru_utime.tv_usec + (time64) ru.ru_stime.tv_usec;
+    } else {
       perror("getrusage");
       abort();
     }
+  } while(prevTime > now);
+
+  prevTime = now;
+  return(now);
 }
 
 
-
+
 
 
 /************************************************************************
@@ -131,104 +144,37 @@ try_again:
  * return value is in usec units.
 ************************************************************************/
 
-time64 DYNINSTgetWalltime(void) {
-    time64 now;
-    register unsigned int timeSec asm("5");
-    register unsigned int timeNano asm("6");
-    register unsigned int timeSec2 asm("7");
+time64 DYNINSTgetWalltime(void)
+{
+  static time64 prevTime = 0;
+  time64        now;
 
-    /* Need to read the first value twice to make sure it doesn't role
-     *   over while we are reading it.
-     */
-retry:
+  register unsigned int timeSec asm("5");
+  register unsigned int timeNano asm("6");
+  register unsigned int timeSec2 asm("7");
+  
+  /* Need to read the first value twice to make sure it doesn't role
+   *   over while we are reading it.
+   */
+  do {
     asm("mfspr   5,4");		/* read high into register 5 - timeSec */
     asm("mfspr   6,5");		/* read low into register 6 - timeNano */
     asm("mfspr   7,4");		/* read high into register 7 - timeSec2 */
+  } while(timeSec != timeSec2);
+  
+  /* convert to correct form. */
+  now = (time64) timeSec;
+  now *= (time64) MILLION;
+  now += (time64) timeNano/ (time64) 1000;
 
-    if (timeSec != timeSec2) goto retry;
-    /* convert to correct form. */
-    now = (time64)timeSec;
-    now *= (time64)MILLION;
-    now += (time64)timeNano/(time64)1000;
+  if(prevTime > now) {
+    fprintf(stderr, "ERROR:  prevTime (%f) > now (%f)\n", 
+	    (double) prevTime, (double) now);
+    return(prevTime);
+  } else {
+    prevTime = now;
     return(now);
-}
-
-
-/*
- * Code to trap execvp call and munge command (for SP-2).
- *
- */
-void DYNINSTexecvp(char *argv[])
-{
-     int i;
-     int ret;
-     char *ch;
-     char *cmd;
-     int iCount;
-     int acount;
-     char *pdArgs;
-     char **newArgs;
-     static int inExecvp;
-
-     if (inExecvp) return;
-     inExecvp = 1;
-
-     cmd = argv[0];
-
-     /* this only applies to poe on the SP-2 */
-     if (strcmp(cmd, "poe")) return;
-
-     for (iCount=0; argv[iCount]; iCount++);
-
-     pdArgs = (char *) getenv("PARADYN_MASTER_INFO");
-     if (!pdArgs) {
-	 fprintf(stdout, "unable to get PARADYN_MASTER_INFO\n");
-	 fflush(stdout);
-	 return;
-     }
-
-     /* extras for first arg, command, -runme, and null  */
-     for (ch=pdArgs, acount=4; *ch; ch++) if (*ch == ' ') acount++;
-     newArgs = calloc(sizeof(char*), iCount+acount);
-
-     newArgs[0] = "poe";
-     newArgs[1] = "paradynd";
-
-     /* skip white spave at start */
-     while (*pdArgs && *pdArgs == ' ') pdArgs++;
-     newArgs[2] = pdArgs;
-     for (ch=pdArgs, acount=3; *ch; ch++) {
-	 if (*ch == ' ') {
-	     *ch = '\0';
-	     /* skip over null argument -caused by spaces in environment var */
-	     if (!strlen(newArgs[acount-1])) acount--;
-	     newArgs[acount++] = ++ch;
-	 }
-     }
-     /* skip over null argument -caused by space at end of environment var */
-     if (!strlen(newArgs[acount-1])) acount--;
-
-     newArgs[acount++] = "-runme";
-     for (i=1; i < iCount; i++) {
-	 newArgs[acount++] = argv[i];
-     }
-
-     newArgs[acount] = "";
-
-     /* generate an exit record about the process to paradynd */
-     DYNINSTprintCost();
-
-     /* Now call execvp with the correct arguments */
-     ret = execvp(cmd, newArgs);
-
-     fprintf(stderr, "execvp failed\n");
-     perror("execvp");
-     fflush(stderr);
-
-     exit(-1);
-
-     inExecvp = 0;
-     return;
+  }
 }
 
 
@@ -241,6 +187,7 @@ void DYNINSTexecvp(char *argv[])
  */
 int DYNINSTgetRusage(int id)
 {
+
     int ret;
     int value;
     struct rusage rusage;
