@@ -58,6 +58,10 @@ public:
    * without calling this method dominator info is not available
    */
   void fillDominatorInfo();
+
+  /** same as above, but for postdominator/immediate-postdom info 
+   */
+  void fillPostDominatorInfo();
   
   /**
    * Print the loops in this FG with hierarchical names to stderr
@@ -90,6 +94,9 @@ public:
   
   /** flag that keeps whether dominator info is initialized*/
   bool isDominatorInfoReady;
+
+  /** flag that keeps whether postdominator info is initialized*/
+  bool isPostDominatorInfoReady;
   
   /** flag that keeps whether source block info is initialized*/
   bool isSourceBlockInfoReady;

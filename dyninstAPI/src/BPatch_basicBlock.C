@@ -25,6 +25,8 @@ BPatch_basicBlock::BPatch_basicBlock() :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
+		immediatePostDominates(NULL),
+		immediatePostDominator(NULL),
 		sourceBlocks(NULL),
 		instructions(NULL) {}
 
@@ -41,12 +43,16 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
+		immediatePostDominates(NULL),
+		immediatePostDominator(NULL),
 		sourceBlocks(NULL),
 		instructions(NULL) {}
 
 
 //destructor of the class BPatch_basicBlock
 BPatch_basicBlock::~BPatch_basicBlock(){
+	if (immediatePostDominates)
+		delete immediatePostDominates;
 	if (immediateDominates)
 		delete immediateDominates;
 	if (sourceBlocks)
@@ -85,6 +91,20 @@ void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&
 	delete[] elements;
 }
 
+
+void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
+	flowGraph->fillPostDominatorInfo();
+
+	if(!immediatePostDominates)
+		return;
+	BPatch_basicBlock** elements = 
+		new BPatch_basicBlock*[immediatePostDominates->size()];
+	immediatePostDominates->elements(elements);
+	for(int i=0;i<immediatePostDominates->size();i++)
+		imds.push_back(elements[i]);
+	delete[] elements;
+}
+
 //returns the dominates of the basic block in a set 
 void
 BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
@@ -101,11 +121,32 @@ BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 	}
 }
 
+void
+BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
+	flowGraph->fillPostDominatorInfo();
+
+	buffer += (BPatch_basicBlock*)this;
+	if(immediatePostDominates){
+		BPatch_basicBlock** elements = 
+			new BPatch_basicBlock*[immediatePostDominates->size()];
+		immediatePostDominates->elements(elements);
+		for(int i=0;i<immediatePostDominates->size();i++)
+			elements[i]->getAllPostDominates(buffer);
+		delete[] elements;
+	}
+}
+
 //returns the immediate dominator of the basic block
 BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
 	flowGraph->fillDominatorInfo();
 
 	return immediateDominator;
+}
+
+BPatch_basicBlock* BPatch_basicBlock::getImmediatePostDominator(){
+	flowGraph->fillPostDominatorInfo();
+
+	return immediatePostDominator;
 }
 
 //returns whether this basic block dominates the argument
@@ -127,6 +168,28 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 	immediateDominates->elements(elements);
 	for(int i=0;!done && (i<immediateDominates->size());i++)
 		done = done || elements[i]->dominates(bb);
+	delete[] elements;
+	return done;
+}
+
+bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
+	if(!bb)
+		return false;
+
+	if(bb == this)
+		return true;
+
+	flowGraph->fillPostDominatorInfo();
+
+	if(!immediatePostDominates)
+		return false;
+
+	bool done = false;
+	BPatch_basicBlock** elements = 
+		new BPatch_basicBlock*[immediatePostDominates->size()];
+	immediatePostDominates->elements(elements);
+	for(int i=0;!done && (i<immediatePostDominates->size());i++)
+		done = done || elements[i]->postdominates(bb);
 	delete[] elements;
 	return done;
 }

@@ -54,6 +54,11 @@ private:
 	/** basic block which is the immediate dominator of the basic block */
 	BPatch_basicBlock* immediateDominator;
 
+	/** same as previous two fields, but for postdominator tree */
+
+	BPatch_Set<BPatch_basicBlock*>* immediatePostDominates;
+	BPatch_basicBlock* immediatePostDominator;
+
 	/** the set of basic blocks that are predecessors in the CFG */
 	BPatch_Set<BPatch_basicBlock*> sources;
 
@@ -87,6 +92,13 @@ public:
 
 	/** method that returns all basic blocks dominated by the basic block */
 	void getAllDominates(BPatch_Set<BPatch_basicBlock*>&);
+
+	/** the previous four methods, but for postdominators */
+
+	bool postdominates(BPatch_basicBlock*);
+	BPatch_basicBlock* getImmediatePostDominator();
+	void getImmediatePostDominates(BPatch_Vector<BPatch_basicBlock*>&);
+	void getAllPostDominates(BPatch_Set<BPatch_basicBlock*>&);
 	
 	/** returns the source block corresponding to the basic block */
 	void getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>&);

@@ -35,7 +35,7 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
                                    pdmodule *mod, 
                                    bool &valid)
   : func(func), proc(proc), mod(mod), 
-    loops(NULL), isDominatorInfoReady(false), isSourceBlockInfoReady(false) 
+    loops(NULL), isDominatorInfoReady(false), isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
    // fill the information of the basic blocks after creating
    // them. The dominator information will also be filled
@@ -705,6 +705,27 @@ private:
 		}
 		delete[] elements;
 	}
+	void dfsP(int v,int* dfsNo){
+		semi[v] = ++(*dfsNo);
+		vertex[*dfsNo] = v;
+		label[v] = v;
+		ancestor[v] = 0;
+		child[v] = 0;
+		size[v] = 1;
+		BPatch_basicBlock* bb = numberToBlock[v];
+		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
+        	bb->sources.elements(elements);
+        	for(int i=0;i<bb->sources.size();i++){
+			int w = bbToint(elements[i]);
+			if(semi[w] == 0){
+				parent[w] = v;
+				dfsP(w,dfsNo);
+			}
+		}
+		delete[] elements;
+	}
+
+
 	void COMPRESS(int v){
 		if(ancestor[ancestor[v]] != 0){
 			COMPRESS(ancestor[v]);
@@ -839,6 +860,56 @@ public:
                 	}
 		}
 	}
+
+	void findPostDominators(){
+		int i;
+		int dfsNo = 0;
+		dfsP(r,&dfsNo);
+
+		size[0] = 0;
+		label[0] = 0;
+		semi[0] = 0;
+
+		for(i=n;i>1;i--){
+			int w =  vertex[i];
+
+			BPatch_basicBlock* bb = numberToBlock[w];
+			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
+        		bb->targets.elements(elements);
+        		for(int j=0;j<bb->targets.size();j++){
+				int v = bbToint(elements[j]);
+				int u = EVAL(v);
+				if(semi[u] < semi[w])
+					semi[w] = semi[u];
+			}
+			bucket[vertex[semi[w]]]->insert(w);
+			LINK(parent[w],w);
+			int v = 0;
+			BPatch_Set<int>* bs = bucket[parent[w]];
+			while(bs->extract(v)){
+				int u = EVAL(v);
+				dom[v] = ( semi[u] < semi[v] ) ? u : parent[w];
+			}
+		}
+		for(i=2;i<=n;i++){
+			int w = vertex[i];
+			if(dom[w] != vertex[semi[w]])
+				dom[w] = dom[dom[w]];
+		}
+		dom[r] = 0;
+
+		for(i=1;i<=n;i++){
+			int w = vertex[i];
+			BPatch_basicBlock* bb = numberToBlock[w];
+			bb->immediatePostDominator = numberToBlock[dom[w]];
+			if(bb->immediatePostDominator){
+				if(!bb->immediatePostDominator->immediatePostDominates)
+					bb->immediatePostDominator->immediatePostDominates =
+                                        	new BPatch_Set<BPatch_basicBlock*>;
+                        	bb->immediatePostDominator->immediatePostDominates->insert(bb);
+                	}
+		}
+	}
 };
 
 //this method fill the dominator information of each basic block
@@ -850,207 +921,105 @@ public:
 //be called to process dominator related fields and methods.
 void BPatch_flowGraph::fillDominatorInfo(){
 
-	int i,j,k;
-	BPatch_basicBlock* bb;
-	BPatch_Set<BPatch_basicBlock*>* domSet;
-	BPatch_basicBlock** elements = NULL;
+  int i;
+  BPatch_basicBlock* bb, *tempb;
+  BPatch_basicBlock** elements = NULL;
+  
+  if(isDominatorInfoReady)
+    return;
+  isDominatorInfoReady = true;
+  
+  /* Always use Tarjan algorithm, since performance gain is
+     probably minimal for small (<8 block) graphs anyways */
+  
+  elements = new BPatch_basicBlock*[allBlocks.size()+1];
+  allBlocks.elements(elements);
 
-	if(isDominatorInfoReady)
-		return;
-	isDominatorInfoReady = true;
+  int maxBlk = -1;
+  for (i = 0; i < allBlocks.size(); i++)
+    if (maxBlk < elements[i]->blockNumber)
+      maxBlk = elements[i]->blockNumber;
 
-	/* if the number of basic blocks is greater than 8 then use
-	   tarjan's fast dominator algorithm. Otherwise use the 
-	   previous one */
+  tempb = new BPatch_basicBlock(this, maxBlk+1);
+  elements[allBlocks.size()] = tempb;
+  BPatch_Set<BPatch_basicBlock*> entries = entryBlock;
+  while (!entries.empty()) {
+    bb = entries.minimum();
+    tempb->targets.insert(bb);
+    bb->sources.insert(tempb);
+    entries.remove(bb);
+  } 
 
-	if(allBlocks.size() >= 8 ){
-		elements = new BPatch_basicBlock*[allBlocks.size()];
-		allBlocks.elements(elements);
-		TarjanDominator tarjanDominator(allBlocks.size(),
-						entryBlock.minimum(),
-						elements);
-		delete[] elements;
-		tarjanDominator.findDominators();
+  TarjanDominator tarjanDominator(allBlocks.size()+1,
+                                  tempb,
+                                  elements);
+  tarjanDominator.findDominators();
+  /* clean up references to our temp block */
+  while (tempb->immediateDominates->empty()) {
+    bb = tempb->immediateDominates->minimum();
+    bb->immediateDominator = NULL;
+    tempb->immediateDominates->remove(bb);
+  }
+  while (!tempb->targets.empty()) {
+    bb = tempb->targets.minimum();
+    bb->sources.remove(tempb);
+    tempb->targets.remove(bb);
+  }
 
-		return;
-	}
-
-	/* end of the tarjan dominator claculation  if used */
-
-        BPatch_Set<BPatch_basicBlock*>** blockToDominator = 
-			new BPatch_Set<BPatch_basicBlock*>*[allBlocks.size()];
-
-	//for each basic block set the set of dominators to 
-	//all basic blocks in the control flow. For the entry basic blocks
-	//the set contains only the basic block itself initially, and through
-	//the algorithm since they can not be dominated by any other basic 
-	//block.
-
-	int tmp = 0;
-	BPatch_basicBlock** belements = 
-		new BPatch_basicBlock*[allBlocks.size()];
-	int* bbToColor = new int[allBlocks.size()];
-	for(i=0;i<allBlocks.size();i++){
-		bbToColor[i] = WHITE;
-		belements[i] = NULL;
-	}
-
-	//a dfs order of basic blocks
-	elements = new BPatch_basicBlock*[entryBlock.size()];
-	entryBlock.elements(elements);
-	for(i=0;i<entryBlock.size();i++)
-		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisit(elements[i],bbToColor,NULL,&tmp,belements);
-	delete[] elements;
-	delete[] bbToColor;
-
-	for(i=0;i<allBlocks.size();i++){
-		bb = belements[i];
-		domSet = new BPatch_Set<BPatch_basicBlock*>;
-		if(entryBlock.contains(bb))
-			//if enntry basic block then insert itself
-			domSet->insert(bb);
-		else 
-			*domSet |= allBlocks;
-
-		blockToDominator[bb->blockNumber] = domSet; 
-	}
-
-	bool done = true ;
-	//fix-point calculation start here. When the fix point is reached for 
-	//the set then done will be true and no more iterations will be done
-	do{
-		done = true;
-		for(i=0;i<allBlocks.size();i++){
-			bb = belements[i];
-
-			//the processing is done for basic blocks that are not
-			//entry points to the control flow graph. Since
-			//entry basic blocks can not be dominated by other 
-			//basic blocks
-			if(!entryBlock.contains(bb))
-			{
-				BPatch_Set<BPatch_basicBlock*>* oldSet = 
-					blockToDominator[bb->blockNumber];
-				BPatch_Set<BPatch_basicBlock*>* newSet = 
-					new BPatch_Set<BPatch_basicBlock*>;
-
-				//initialize the new set
-				if(bb->sources.size() != 0)
-					*newSet |= allBlocks;
-				assert(bb->sources.size());
-
-				//intersect the dominators of the predecessors
-				//since a block is dominated by the common 
-				//blocks that dominate each predecessor of the
-				//basic block.
-
-				BPatch_basicBlock** selements = 
-					new BPatch_basicBlock*[bb->sources.size()];
-				bb->sources.elements(selements); 
-				for(int j=0;j<bb->sources.size();j++)
-					*newSet &= *blockToDominator[selements[j]->blockNumber];
-				delete[] selements;
-
-				//add the basic block itself. Since every block
-				//is dominated by itself.
-				*newSet += bb;
-				blockToDominator[bb->blockNumber] = newSet;
-	
-				//if the previous set for basic block is the 
-				//same with the new one generated then this
-				//basic blocks dominator set reached the fix 
-				//point. But if at least one basic block did 
-				//not reach the fix point the iteration will
-				//be done once more.
-				if(*oldSet != *newSet)
-					done = false;
-				delete oldSet;
-			}
-		}
-	}while(!done);
-
-	//since the output of the previous set is the set of basic blocks
-	//that dominate a basic block we have to use this information
-	//and change it to the set of basic blocks that the basic block
-	//dominates and using this information we have to fill the
-	//immediate dominates field of each basic block. 
-
-	//at this pointdominator tree construction is easy since
-	//all the necessary information is ready. Finding immediate
-	//dominators is enough for many purposes. To find the
-	//immediate dominator of each block the dominators of basic 
-	//blocks will be used. 
-
-	//initially we initialize a mapping from a basic block to a basic block set
-	//to keep track of the immediate dominators. We initialize sets corresponding
-	//to a basic block with its dominator set except itself
-
-	for(i=0;i<allBlocks.size();i++)
-		blockToDominator[belements[i]->blockNumber]->remove(belements[i]);
-
-	//then for each node we eliminate the unnecessary basic blocks to reach 
-	//the immediate dominator. What we do it we look at the dominators of 
-	//the basic block. Then for each dominator we take an element and iterate 
-	//on the remaining ones. If the dominatos of the 
-	//chosen elemnt contains one of the others then we delete the latter one 
-	//from the set since it can not be immediate dominator. At the end of 
-	//the loops the each set will contain immediate dominator
-
-	for(i=0;i<allBlocks.size();i++)
-		if(!entryBlock.contains(belements[i])){
-			BPatch_basicBlock *currBlock = belements[i];
-
-			BPatch_Set<BPatch_basicBlock*> ts1(*blockToDominator[currBlock->blockNumber]);
-			BPatch_basicBlock** it1 = new BPatch_basicBlock*[ts1.size()];
-			ts1.elements(it1);
-
-			for(j=0;j<ts1.size();j++){
-				BPatch_basicBlock *bb1 = it1[j];
-				BPatch_Set<BPatch_basicBlock*> ts2(*blockToDominator[currBlock->blockNumber]);
-				ts2.remove(bb1);
-				BPatch_basicBlock** it2 = new BPatch_basicBlock*[ts2.size()];
-				ts2.elements(it2);
-				for(k=0;k<ts2.size();k++){
-					BPatch_basicBlock *bb2 = it2[k];
-					if(blockToDominator[bb1->blockNumber]->contains(bb2))
-						blockToDominator[currBlock->blockNumber]->remove(bb2);
-				}
-				delete[] it2;
-			}
-
-			delete[] it1;
-		}
-
-	//using the previous imformation we will initialize the immediateDominator field 
-	//of each basic blocks in control flow graph
-	//if for a basic block another basic blocks dominator set
-	//contains the former one, then we insert the latter to the
-	//dominates field of the first one.
-
-
-	for(i=0;i<allBlocks.size();i++){	
-		bb = belements[i];
-		if(entryBlock.contains(bb) ||
-		  !blockToDominator[bb->blockNumber]->extract(bb->immediateDominator))
-			bb->immediateDominator = NULL;
-		assert(!blockToDominator[bb->blockNumber]->size());
-		delete blockToDominator[bb->blockNumber];
-		if(!entryBlock.contains(bb)){
-			BPatch_basicBlock* dominator = bb->immediateDominator;
-			domSet = dominator->immediateDominates;
-			if(!domSet){
-				domSet = new BPatch_Set<BPatch_basicBlock*>;
-				dominator->immediateDominates = domSet;
-			}
-			domSet->insert(bb);
-		}
-	}
-	delete[] blockToDominator;
-	delete[] belements;
+  delete tempb;
+  delete[] elements;
 }
+ 
+void BPatch_flowGraph::fillPostDominatorInfo(){
+   
+  int i;
+  BPatch_basicBlock* bb, *tempb;
+  BPatch_basicBlock** elements = NULL;
+  
+  if(isPostDominatorInfoReady)
+    return;
+  isPostDominatorInfoReady = true;
+  
+  /* Always use Tarjan algorithm, since performance gain is
+     probably minimal for small (<8 block) graphs anyways */
+  
+  elements = new BPatch_basicBlock*[allBlocks.size()+1];
+  allBlocks.elements(elements);
 
+  int maxBlk = -1;
+  for (i = 0; i < allBlocks.size(); i++)
+    if (maxBlk < elements[i]->blockNumber)
+      maxBlk = elements[i]->blockNumber;
 
+  tempb = new BPatch_basicBlock(this, maxBlk+1);
+  elements[allBlocks.size()] = tempb;
+  BPatch_Set<BPatch_basicBlock*> exits = exitBlock;
+  while (!exits.empty()) {
+    bb = exits.minimum();
+    tempb->sources.insert(bb);
+    bb->targets.insert(tempb);
+    exits.remove(bb);
+  }
+
+  TarjanDominator tarjanDominator(allBlocks.size()+1,
+                                  tempb,
+                                  elements);
+  tarjanDominator.findPostDominators();
+  /* clean up references to our temp block */
+  while (tempb->immediatePostDominates->empty()) {
+    bb = tempb->immediatePostDominates->minimum();
+    bb->immediatePostDominator = NULL;
+    tempb->immediatePostDominates->remove(bb);
+  }
+  while (!tempb->sources.empty()) {
+    bb = tempb->sources.minimum();
+    bb->targets.remove(tempb);
+    tempb->sources.remove(bb);
+  }
+  
+  delete tempb;
+  delete[] elements;
+}
 
 // method that finds the unreachable basic blocks and then deletes
 // the structures allocated for that block. If the argument is 
