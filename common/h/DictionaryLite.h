@@ -2,6 +2,9 @@
 
 /*
  * $Log: DictionaryLite.h,v $
+ * Revision 1.4  1996/05/06 04:38:40  karavan
+ * added new function find() to classes dictionary_hash and dictionary_lite
+ *
  * Revision 1.3  1995/12/26 19:57:05  tamches
  * made (empty) destructor inline.
  * removed unused member function clear()
@@ -69,6 +72,7 @@ public:
     DO_INLINE_F dictionary_lite<K,V>&  operator= (const dictionary_lite<K,V> &);
     DO_INLINE_F unsigned                    size ()                       const;
     DO_INLINE_F V&                    operator[] (const K &);
+    DO_INLINE_F bool                        find (const K &, V &);
     DO_INLINE_F bool                     defines (const K &)              const;
     DO_INLINE_F void                       undef (const K &);
 //    DO_INLINE_F void                       clear ();
