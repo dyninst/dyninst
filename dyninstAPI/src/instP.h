@@ -7,6 +7,9 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.10  1996/04/08 21:24:08  lzheng
+ * added generateToBranch, an HP-specific routine
+ *
  * Revision 1.9  1995/08/24 15:04:10  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -117,6 +120,9 @@ void generateNoOp(process *proc, int addr);
 
 void initTramps();
 void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
+#if defined(hppa1_1_hp_hpux)
+void generateToBranch(process *proc, unsigned fromAddr, unsigned dest);
+#endif
 void removeTramp(process *proc, instPoint *location);
 
 int flushPtrace();
