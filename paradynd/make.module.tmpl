@@ -3,12 +3,15 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.29 1998/04/27 20:55:26 wylie Exp $
+# $Id: make.module.tmpl,v 1.30 1998/09/28 18:02:16 mcheyney Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS)
 CXXFLAGS	     += $(TCLFRIENDLYWARNINGS)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS)
+
+#TEMPORARY, FOR DEBUGGING....
+#CXXFLAGS	+= -DDEBUG_CALL_POINTS
 
 TARGET	      = paradynd
 
