@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.85 2003/04/14 16:33:46 pcroth Exp $
+// $Id: rpcUtil.C,v 1.86 2003/05/06 21:39:21 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -924,17 +924,48 @@ PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			  int portFd)
 {
     PDSOCKET ret;
+    bool useForkExec = false;
 
+
+    // we will just fork/exec or CreateProcess() the process on the 
+    // local host if possible.  First check whether the target host
+    // is local
     if ((hostName == "") ||
-	(hostName == "localhost") ||
-    (hostName == getNetworkName()) ||
-	(getNetworkName(hostName) == getNetworkName()) ||
-	(getNetworkAddr(hostName) == getNetworkAddr()) )
-      ret = execCmd(command, arg_list);
+        (hostName == "localhost") ||
+        (hostName == getNetworkName()) ||
+        (getNetworkName(hostName) == getNetworkName()) ||
+        (getNetworkAddr(hostName) == getNetworkAddr()) )
+    {
+        // The target host is local.
+        // Next check whether we're asked to create the process
+        // as a specific user.
+        // 
+        // Note that the user might've specified a value for "userName"
+        // that is the same as their own user id, in which case we'll
+        // use the more expensive method below.  However, I expect the
+        // common case to be that the user will specify an explicit
+        // username only if they are specifying a different user, in
+        // which case using the "remote" process creation method will
+        // force authentication on the local host if necessary.
+        //
+        if( userName.length() == 0 )
+        {
+            useForkExec = true;
+        }
+    }
+
+    if( useForkExec )
+    {
+        ret = execCmd(command, arg_list);
+    }
     else if (remote_shell.length() > 0)
-      ret = remoteCommand(hostName, userName, command, remote_shell, arg_list, portFd);
+    {
+        ret = remoteCommand(hostName, userName, command, remote_shell, arg_list, portFd);
+    }
     else
-      ret = rshCommand(hostName, userName, command, arg_list, portFd);
+    {
+        ret = rshCommand(hostName, userName, command, arg_list, portFd);
+    }
 
     return(ret);
 }

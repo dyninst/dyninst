@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.124 2003/03/06 19:34:43 mikem Exp $
+ * $Id: DMdaemon.C,v 1.125 2003/05/06 21:39:20 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1352,7 +1352,7 @@ bool writeMPICHWrapper(int fd, const string& buffer )
         perror("Failed to write MPI wrapper (write)");
         return false;
     }
-    if (fchmod(fd, S_IRWXU) == -1) {
+    if (fchmod(fd, S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
         perror("Failed to write MPI wrapper (chmod)");
         return false;
     }
@@ -1500,7 +1500,14 @@ void mpichRemote(const string &machine, const string &login,
 		params += string("-l");
 		params += login;
 	}
-	params += machine;
+    if( machine.length() != 0 )
+    {
+        params += machine;
+    }
+    else
+    {
+        params += "localhost";
+    }
 	params += string("cd");
 	params += string(cwd);
 	params += string(";");
@@ -1520,7 +1527,7 @@ struct known_arguments {
 bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
 		       string& app_name, pdvector<string> &params)
 {
-   const unsigned int NKEYS = 34;
+   const unsigned int NKEYS = 35;
    struct known_arguments known[NKEYS] = {
       {"-arch", true, true},           {"-h", false, false},
       {"-machine", true, true},        {"-machinefile", true, true},
@@ -1534,6 +1541,7 @@ bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
       {"-e", false, true},             {"-pg", false, true},
       {"-leave_pg", false, true},      {"-p4pg", true, false},
       {"-tcppg", true, false},         {"-p4ssport", true, true},
+      {"-p4wd", true, true},
       {"-mvhome", false, false},       {"-mvback", true, false},
       {"-maxtime", true, true},        {"-nopoll", false, true},
       {"-mem", true, true},            {"-cpu", true, true},
@@ -1587,7 +1595,7 @@ bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
       uiMgr->showError(113, "MPICH command line parse error");
       return false;
    }
-   
+
    params += script;
    app_name = argv[i++];
    
@@ -1623,9 +1631,19 @@ static bool startMPICH(const string &machine, const string &login,
 	   getcwd(cwd, PATH_MAX);
 	}
 
-	if (!localMachine) {
-	   // Prepend "rsh ..." to params
-	   mpichRemote(machine, login, cwd, de, params);
+    if( !localMachine || (login.length() > 0) )
+    {
+        // run the mpirun command via rsh/ssh
+        // either because target host is remote, or
+        // because target process' user is likely not us
+        //
+        // Note that this is conservative: the user may have
+        // specified the same login as the one used to create
+        // the front-end process.  We expect the common case
+        // to be that the user explicitly specifies a user name
+        // iff it is different from the one they used to start
+        // the front end.
+        mpichRemote(machine, login, cwd, de, params);
 	}
 
 	string script = mpichNameWrapper( cwd );
@@ -1649,9 +1667,11 @@ static bool startMPICH(const string &machine, const string &login,
 	}
 	s[i] = 0;
 
+
 	if (fork()) {
 	   return true;
 	}
+
 
 	// Close Tk X connection to avoid conflicts with parent
 	uiMgr->CloseTkConnection();
