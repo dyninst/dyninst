@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.17 2002/04/15 21:03:59 schendel Exp $
+// $Id: String.C,v 1.18 2002/05/13 19:51:29 mjbrim Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -189,26 +189,6 @@ string_ll::operator=(const string_ll& s) {
 }
 
 string_ll&
-string_ll::operator=(const char c) {
-    char str[2]; //only need space for one character and '\0'
-     
-    sprintf(str, "%c", c); 
-
-    if (str_ == str) {
-        return *this;
-    }
-
-    delete [] str_; str_ = 0;
-
-    str_ = STRDUP(str);
-    len_ = STRLEN(str);
-
-    key_ = 0; // lazy key define
-
-    return *this;
-}
-
-string_ll&
 string_ll::operator+=(const string_ll& s) {
     unsigned nlen = len_ + s.len_;
     char*    ptr  = new char[nlen+1];
@@ -250,26 +230,6 @@ string_ll::operator+=(const char *ptr) {
    return *this;
 }
 
-string_ll&
-string_ll::operator+=(const char c) { 
-    const unsigned nlen = len_ + 1;
-    char *new_ptr = new char[nlen+1];
-    assert(new_ptr);
-
-    memcpy(new_ptr, str_, len_);
-    new_ptr[len_] = c;
-    new_ptr[nlen] = '\0';
-  
-    delete [] str_;
-    str_ = new_ptr;
-    len_ = nlen;
-
-    key_ = 0; // lazy key define
-
-    return *this;
-}
-
-
 string_ll
 string_ll::operator+(const string_ll& s) const {
     string_ll ret = *this;
@@ -280,18 +240,6 @@ string_ll
 string_ll::operator+(const char *ptr) const {
    string_ll ret = *this;
    return (ret += ptr);
-}
-
-string_ll
-string_ll::operator+(const char c) const {
-   string_ll ret = *this;
-   return (ret += c);
-}
-
-string_ll
-string_ll::operator+(int i) const {
-   string_ll ret = *this;
-   return (ret += string_ll(i));
 }
 
 bool
@@ -591,4 +539,6 @@ void string::free_static_stuff() {
    delete nilptr;
    nilptr = NULL;
 }
+
+
 

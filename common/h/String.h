@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.22 2002/04/15 21:03:58 schendel Exp $
+ * $Id: String.h,v 1.23 2002/05/13 19:51:24 mjbrim Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -64,38 +64,36 @@ const char MULTIPLE_WILDCARD_CHAR = '*';
 
 class string_ll {
 public:
-     string_ll ();
-     string_ll (const char *);
-     string_ll (const char *, unsigned n); // just copy the first n chars
-     string_ll (const string_ll &);
-     string_ll (const char); // convert char to its string_ll represention
-     string_ll (int);      // convert int to its string_ll representation
-     string_ll (long);      // convert int to its string_ll representation
-     string_ll (unsigned); // convert unsigned to its string_ll representation
-     string_ll (unsigned long); // convert unsigned to its string_ll representation
-     string_ll (float);    // convert float to its string_ll representation
-     string_ll (double);   // convert double to its string_ll representation
+    string_ll ();
+    string_ll (const char *);
+    string_ll (const char *, unsigned n); // just copy the first n chars
+    string_ll (const string_ll &);
     ~string_ll ();
+
+    // conversions to string_ll from standard types
+    string_ll (char);
+    string_ll (int);
+    string_ll (unsigned);
+    string_ll (long);
+    string_ll (unsigned long);
+    string_ll (float);
+    string_ll (double);
 
     string_ll& operator= (const char *);
     string_ll& operator= (const string_ll &);
-    string_ll& operator= (const char);
     string_ll& operator+= (const string_ll &);
     string_ll& operator+= (const char *);
-    string_ll& operator+= (const char);
     string_ll  operator+ (const string_ll &) const;
     string_ll  operator+ (const char *) const;
-    string_ll  operator+ (const char) const;
-    string_ll  operator+ (int) const;
 
-	char operator[] (unsigned pos) const {return str_[pos];}
+    char operator[] (unsigned pos) const {return str_[pos];}
 
     bool operator== (const string_ll &) const;
     bool operator== (const char *ptr) const {
-       // This routine exists as an optimization; doesn't need to create a temporary
-       // instance of "string" for "ptr"; hence, doesn't call string::string(char *)
-       // which calls new[].
-       return STREQ(ptr, str_);
+      // This routine exists as an optimization; doesn't need to create 
+      // a temporary instance of "string" for "ptr"; hence, doesn't call
+      // string::string(char *) which calls new[].
+      return STREQ(ptr, str_);
     }
     bool operator!= (const string_ll &) const;
     bool operator<  (const string_ll &s) const {return STRLT(str_, s.str_);}
@@ -135,8 +133,8 @@ public:
 	}
 	bool regexEquiv( const char *, bool ) const;
 
-    const char*   string_of () const {return str_;}
-    unsigned         length () const {return len_;}
+    const char*       c_str() const {return str_;}
+    unsigned         length() const {return len_;}
 
     friend ostream& operator<< (ostream &os, const string_ll &s);
     friend debug_ostream& operator<< (debug_ostream &os, const string_ll &s);
@@ -165,9 +163,9 @@ private:
     static bool          STRLE (const char *, const char *);
     static bool          STRGT (const char *, const char *);
     static bool          STRGE (const char *, const char *);
-	static const char*  STRCHR (const char *, char);
+    static const char*  STRCHR (const char *, char);
 
-	static bool  pattern_match ( const char *, const char *, bool );
+    static bool  pattern_match ( const char *, const char *, bool );
 
     char*    str_;
     unsigned len_;
@@ -193,20 +191,20 @@ class string {
    // objects (or static class members) created with this constructor.
 //   string() : data(string_ll()) {};
    string() : data(nilptr->data) {} // should be more efficient than above
-
    string(const char *str) : data(string_ll(str)) {}
-
    string(const char *str, unsigned n) : data(string_ll(str,n)) {}
-
    string(const string& src) : data(src.data) {}
-   string(const char c) : data(string_ll(c)) {}
-   string(int i) : data(string_ll(i)) {}
-   string(long l) : data(string_ll(l)) {}
-   string(unsigned u) : data(string_ll(u)) {}
-   string(unsigned long ul) : data(string_ll(ul)) {}
-   string(float f) : data(string_ll(f)) {}
-   string(double d) : data(string_ll(d)) {}
-  ~string() {}
+   ~string() {}
+
+   // don't allow implicit conversion to string from standard types;
+   // forces correct usage & removes ambiguities
+   explicit string(char c) : data(string_ll(c)) {}
+   explicit string(int i) : data(string_ll(i)) {}
+   explicit string(long l) : data(string_ll(l)) {}
+   explicit string(unsigned u) : data(string_ll(u)) {}
+   explicit string(unsigned long ul) : data(string_ll(ul)) {}
+   explicit string(float f) : data(string_ll(f)) {}
+   explicit string(double d) : data(string_ll(d)) {}
 
    char operator[] (unsigned pos) const {
 	   return data.getData()[ pos ];
@@ -224,21 +222,12 @@ class string {
       return *this;
    }
 
-   string& operator=(const char c) {
-      string_ll new_str_ll(c);
-      refCounter<string_ll> newRefCtr(new_str_ll);
-
-      data = newRefCtr;
-      return *this;
-   }
-
    string& operator+=(const string &addme) {
       // see comment in next routine as to why we don't modify in-place.
       string_ll newstr = data.getData() + addme.data.getData();
       data = newstr;
       return *this;
    }
-
    string& operator+=(const char *str) {
       // You might wonder why we can't just do:
       // data.getData() += str; return *this;
@@ -255,12 +244,6 @@ class string {
       return *this;
    }
 
-   string& operator+=(const char c) {
-      string_ll newstr = data.getData() + c;
-      data = newstr;
-      return *this;
-   }
-
    string operator+(const string &src) const {
       string result = *this;
       return (result += src);
@@ -269,16 +252,6 @@ class string {
       string result = *this;
       return (result += src);
    }
-
-   string operator+(const char c) const {
-      string result = *this;
-      return (result += c);
-   }
-   string operator+ (int i) const {
-      string result = *this;
-      return (result += string(i));
-   }
-
    friend string operator+(const char *src, const string &str);
       // a syntactical convenience
 
@@ -374,14 +347,10 @@ class string {
      return (me.find(them));
    }
 
-   const char *string_of() const {
-      const string_ll &me = data.getData();
-      return me.string_of();
-   }
 
    const char *c_str() const {
       const string_ll &me = data.getData();
-      return me.string_of();
+      return me.c_str();
    }
 
    unsigned length() const {
