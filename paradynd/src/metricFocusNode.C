@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.211 2001/12/04 18:25:29 gurari Exp $
+// $Id: metricFocusNode.C,v 1.212 2001/12/06 20:57:57 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3938,7 +3938,12 @@ instReqNode::~instReqNode()
 
 timeLength instReqNode::cost(process *theProc) const
 {
-    int unitCostInCycles = ast->cost() + getPointCost(theProc, point) +
+    // Currently the predicted cost represents the maximum possible cost of
+    // the snippet.  For instance, for the statement "if(cond) <stmtA> ..."
+    // the cost of <stmtA> is currently included, even if it's actually not
+    // called.  Feel free to change the maxCost call below to ast->minCost or
+    // ast->avgCost if the semantics need to be changed.
+    int unitCostInCycles = ast->maxCost() + getPointCost(theProc, point) +
                        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
     // printf("unit cost = %d cycles\n", unitCostInCycles);
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
