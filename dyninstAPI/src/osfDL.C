@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.1 1999/05/13 23:08:15 hollings Exp $
+// $Id: osfDL.C,v 1.2 1999/05/21 17:33:12 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -541,7 +541,8 @@ bool process::dlopenDYNINSTlib()
 #endif
   char *libName = getenv(libVar);
   if (!libName) {
-    string msg("DYNINSTAPI_RT_LIB is not defined");
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
+        " should be set to the pathname of the dyninstAPI_RT runtime library.");
     showErrorCallback(101, msg);
     return false;
   }

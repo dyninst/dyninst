@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: irixDL.C,v 1.2 1999/05/21 17:33:11 wylie Exp $
+
 #include <stdio.h>
 #include <sys/ucontext.h> // gregset_t
 #include "util/h/Types.h" // Address
@@ -396,7 +398,8 @@ bool process::dlopenDYNINSTlib()
 #endif
   char *libName = getenv(libVar);
   if (!libName) {
-    string msg("DYNINSTAPI_RT_LIB is not defined");
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
+        " should be set to the pathname of the dyninstAPI_RT runtime library.");
     showErrorCallback(101, msg);
     return false;
   }

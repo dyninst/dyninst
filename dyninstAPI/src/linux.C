@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.11 1999/05/12 15:34:34 nash Exp $
+// $Id: linux.C,v 1.12 1999/05/21 17:33:11 wylie Exp $
 
 #include <fstream.h>
 
@@ -796,7 +796,8 @@ bool process::dlopenDYNINSTlib() {
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
   } else {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined, should be set to the pathname of DynintAPI runtime library");
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
+        " should be set to the pathname of the dyninstAPI_RT runtime library.");
     showErrorCallback(101, msg);
     return false;
   }

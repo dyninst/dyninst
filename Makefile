@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.32 1999/04/27 16:02:22 nash Exp $
+# $Id: Makefile,v 1.33 1999/05/21 17:34:30 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -17,7 +17,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 # "subSystems" is the list of all other pieces which should be built
 # as part of Paradyn.
 #
-# "dynInstAPI" is the list of additional API components (optional).
+# "DyninstAPI" is the list of additional API components (optional).
 
 basicComps	= util igen thread visi hist rtinst
 ParadynD	= paradynd
@@ -27,7 +27,7 @@ ParadynVC	= rthist \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/terrain
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
-dynInstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
+DyninstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 # "Paradyn" itself is just the list of all Paradyn components
 Paradyn		= $(basicComps) $(subSystems)
@@ -39,8 +39,8 @@ fullSystem	+= $(Paradyn)
 Build_list	+= Paradyn
 endif
 ifndef DONT_BUILD_DYNINST
-fullSystem	+= $(dynInstAPI)
-Build_list	+= dynInstAPI
+fullSystem	+= $(DyninstAPI)
+Build_list	+= DyninstAPI
 endif
 
 # Note that the first rule listed ("all") is what gets made by default,
@@ -80,8 +80,8 @@ ready:
 # The "make world" target is set up to build things in the "correct"
 # order for a build from scratch.  It builds and installs things in the
 # "basicComps" list first, then builds and installs the remaining
-# Paradyn "subSystems" (excluding the currently optional dynInstAPI).
-# NB: "make world" has also been set up locally to build the dynInstAPI,
+# Paradyn "subSystems" (excluding the currently optional DyninstAPI).
+# NB: "make world" has also been set up locally to build the DyninstAPI,
 # however, this is optional and can be removed if desired.
 #
 # This make target doesn't go first in the Makefile, though, since we
@@ -105,9 +105,9 @@ world: intro
 	done
 	@echo "Build of $(BUILD_ID) complete for $(PLATFORM)!"
 
-# "make Paradyn" and "make dynInstAPI" are also useful and valid build targets!
+# "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC dynInstAPI basicComps subSystems:
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems:
 	@echo "Building $@ ..."
 	@date
 	+for subsystem in $($@); do				\
@@ -149,7 +149,7 @@ docs install-man:
 nightly:
 	$(MAKE) clean
 	$(MAKE) world
-#	$(MAKE) dynInstAPI
+#	$(MAKE) DyninstAPI
 	$(MAKE) docs
 	$(MAKE) install-man
 	chmod 644 /p/paradyn/man/man?/*
