@@ -234,7 +234,7 @@ static int symbol_compare(const void *x, const void *y) {
 bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrscnp) {
 
-#if defined (i386_unknown_solaris2_5)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
         Elf32_Rel *next_entry = 0;
         Elf32_Rel *entries = 0;
 #else
@@ -252,7 +252,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	const char* strs   = (const char *) strdatap->d_buf;
 	Address next_plt_entry_addr = plt_addr_;
 
-#if defined (i386_unknown_solaris2_5)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
 	entries  = (Elf32_Rel *) reldatap->d_buf;
 	next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
@@ -824,6 +824,8 @@ void Object::fix_global_symbol_modules_static( \
 	case N_SO: /* compilation source or file name */
 	    if (stabsyms[i].desc == N_SO_FORTRAN)
 	      is_fortran = true;
+
+	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
 	    break;
 
         case N_ENTRY: /* fortran alternate subroutine entry point */
@@ -954,15 +956,19 @@ void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, \
     for (i0 = 0; i0 < ehdrp-> e_phnum;i0++) {
 	if ((phdrp[i0].p_vaddr <= txtaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
+	  if (!code_ptr_ && !code_off_ && !code_len_) {
             code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
             code_off_ = (Address) phdrp[i0].p_vaddr;
             code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+	  }
         }
         else if ((phdrp[i0].p_vaddr <= bssaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
+	  if (!data_ptr_ && !data_off_ && !data_len_) {
             data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
             data_off_ = (Address) phdrp[i0].p_vaddr;
             data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+	  }
         }
     }
 }
