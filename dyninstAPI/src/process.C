@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.203 2000/02/25 17:16:04 bernat Exp $
+// $Id: process.C,v 1.204 2000/03/02 18:37:53 chambrea Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -319,7 +319,7 @@ vector<Address> process::walkStack(bool noPause)
       fpOld = fpNew;
 
       Address next_pc = currentFrame.getPC();
-      // printf("currentFrame pc = %d\n",next_pc);
+      // printf("currentFrame pc = %p\n",next_pc);
       pcs += next_pc;
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
@@ -3696,6 +3696,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       // to execute inferior RPCs??? For now, we'll allow it.
       ; 
 
+
    // Do not remove it yet
    inferiorRPCtoDo todo = RPCsWaitingToStart[0] ;
    /* ****************************************************** */
@@ -3797,7 +3798,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    if (RPCs_waiting_for_syscall_to_complete)
       // not any more
       RPCs_waiting_for_syscall_to_complete = false;
-
 
       theSavedRegs = getRegisters(); // machine-specific implementation
       // result is allocated via new[]; we'll delete[] it later.
@@ -4382,6 +4382,10 @@ void process::installBootstrapInst() {
    // Unused by the dyninstAPI library
    the_args[2] = new AstNode(AstNode::Constant, (void *)0);
 #else
+   //  for IRIX MPI, we want to appear to be attaching 
+   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") && traceConnectInfo > 0 )
+       traceConnectInfo *= -1;
+
    the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
 #endif
 
@@ -4599,7 +4603,8 @@ int process::procStopFromDYNINSTinit() {
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
    assert(bs_record.pid == getPid());
 
-   if (bs_record.event != 3) {
+   if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+   {
       // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
       // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
       // completes.
@@ -4642,7 +4647,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
    const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromAttach = fromAttach || bs_record.event == 3;
-   if (calledFromAttach)
+   if (calledFromAttach && !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
       assert(createdViaAttach);
 
 #ifdef SHM_SAMPLING
