@@ -44,6 +44,7 @@
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
 
+#include "common/h/language.h"
 #include "common/h/Vector.h" // takes care of redefining assert as ASSERT for _KERNEL
 #include "common/h/Pair.h"
 
@@ -265,8 +266,8 @@ class dictionary_hash_iter {
  private:
   typedef const V &RET; // RET: type returned by operator*()
   dictionary_hash<K,V> &dict;
-  TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator i;
-  TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator the_end;
+  TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry >::iterator i;
+  TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry >::iterator the_end;
 
   // too bad we need to store the_end (for make_valid_or_end())
    
@@ -293,15 +294,15 @@ class dictionary_hash_iter {
     reset();
   }
   dictionary_hash_iter(dictionary_hash<K,V> &idict,
-		       TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry>::iterator curi) 
+      TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry>::iterator curi) 
     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
   }
   dictionary_hash_iter(const dictionary_hash<K,V> &idict,
-		    TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry>::const_iterator curi) 
+      TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator curi) 
     : dict(const_cast< dictionary_hash<K,V>& >(idict)), 
-    i(const_cast< TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(curi)), 
-    the_end(const_cast< TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(
-						       dict.all_elems.end()))
+    i(const_cast< TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(curi)), 
+    the_end(const_cast< TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(
+                                                                                           dict.all_elems.end()))
   {  }
 
   dictionary_hash_iter(const dictionary_hash_iter<K,V> &src) :
