@@ -190,6 +190,12 @@ Frame Frame::getPreviousStackFrameInfo(process *proc) const {
    return result;
 }
 
+
+#if !defined(i386_unknown_nt4_0)
+// Windows NT has its own version of the walkStack function in pdwinnt.C
+// Note: it may not always be possible to do a correct stack walk.
+// If it can't do a complete walk, the function should return an empty
+// vector, which means that there was an error, and we can't walk the stack.
 vector<Address> process::walkStack(bool noPause)
 {
   vector<Address> pcs;
@@ -244,6 +250,7 @@ vector<Address> process::walkStack(bool noPause)
   }  
   return(pcs);
 }
+#endif
 
 bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) {
   const unsigned disItemPointer = disItem.getPointer();
@@ -414,6 +421,14 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   timeStamp initTime, maxDelTime;
 
   pcs = proc->walkStack();
+
+#if defined(i386_unknown_nt4_0)
+  // It may not always be possible to get a correct stack walk.
+  // If walkStack fails, it returns an empty vector. In this
+  // case, we assume that it is not safe to delete anything
+  if (pcs.size() == 0)
+    return;
+#endif
 
   // this is a while loop since we don't update i if an item is deleted.
   disList = &hp->disabledList;

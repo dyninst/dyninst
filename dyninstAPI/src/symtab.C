@@ -839,6 +839,13 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
   string symString;
   SymbolIter symIter(linkedFile);
 
+  bool is_libdyninstRT = false; // true if this image is libdyninstRT
+#if defined(i386_unknown_nt4_0)
+  if (linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)
+      || linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp))
+    is_libdyninstRT = true;
+#endif
+
   // find the real functions -- those with the correct type in the symbol table
   while (symIter.next(symString, lookUp)) {
 
@@ -857,7 +864,12 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 	return false;
       }
       pd_Function *pdf;
-      if (addOneFunction(mods, lib, dyn, lookUp, pdf)) {
+      if (is_libdyninstRT) {
+	addInternalSymbol(lookUp.name(), lookUp.addr());
+	if (defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf)) {
+	  assert(pdf); mdlLib += pdf;
+	}
+      } else if (addOneFunction(mods, lib, dyn, lookUp, pdf)) {
         assert(pdf); mdlNormal += pdf;
       }
     }

@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.19  1997/05/23 23:01:26  mjrg
+ * Windows NT port
+ * bug fix to inst-x86.C
+ *
  * Revision 1.18  1997/05/16 22:02:27  mjrg
  * Fixed problem with instrumentation of conditional jumps
  *
@@ -1331,7 +1335,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
     // We must generate a jump to the original target here
     assert(jccTarget > 0);
     currAddr = baseAddr + (insn - code);
-    emitJump(jccTarget+imageBaseAddr-(currAddr+JUMP_SZ), insn);
+    emitJump(jccTarget-(currAddr+JUMP_SZ), insn);
     currAddr += JUMP_SZ;
   }
 

@@ -415,6 +415,8 @@ public:
   Address codeLength() { return (codeLen_ << 2);} 
   inline bool isCode(const Address &where) const;
   inline bool isData(const Address &where) const;
+  const Object &getObject() const { return linkedFile; }
+
 
   // functions by address for all modules
   dictionary_hash <Address, pd_Function*> funcsByAddr;
