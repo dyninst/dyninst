@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.92 2005/03/16 20:53:16 bernat Exp $
+// $Id: BPatch.C,v 1.93 2005/03/16 22:59:38 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -810,21 +810,25 @@ void BPatch::registerExec(BPatch_thread *thread)
 
 void BPatch::registerNormalExit(BPatch_thread *thread, int exitcode)
 {
+  if (thread) { // In error conditions thread is null (never made)
     thread->setExitCode(exitcode);
     thread->setExitedNormally();
     if (exitCallback) {
-        //exitCallback(thread, ExitedNormally);
-        event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedNormally);
+      //exitCallback(thread, ExitedNormally);
+      event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedNormally);
     }
+  }
 }
 
 void BPatch::registerSignalExit(BPatch_thread *thread, int signalnum)
 {
+  if (thread) {
     thread->setExitedViaSignal(signalnum);
     if (exitCallback) {
-        //exitCallback(thread, ExitedViaSignal);
+      //exitCallback(thread, ExitedViaSignal);
         event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedViaSignal);
     }
+  }
 }
 
 
