@@ -80,6 +80,8 @@ class performanceStream {
       friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
       friend void addMetric(T_dyninstRPC::metricInfo &info);
       friend resourceHandle createResource(vector<string>&, string&, unsigned);
+      friend resourceHandle createResource_ncb(vector<string>&, string&, unsigned, 
+					       resourceHandle&, bool&);
       friend class dynRPCUser;
       friend void DMenableResponse(DM_enableType&,vector<bool>&);
       friend void dataManager::enableDataRequest(perfStreamHandle,
@@ -96,6 +98,9 @@ class performanceStream {
 			    sampleValue*, int, int, phaseType);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
+	void callMemoryFunc(string data_structure, int start, unsigned mem_size,
+			    unsigned blk_size, resourceHandle p_handle,
+			    vector<resourceHandle> handles);
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
