@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.345 2002/07/30 18:42:26 bernat Exp $
+// $Id: process.C,v 1.346 2002/08/01 19:57:05 cortes Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6799,7 +6799,7 @@ void process::callpDYNINSTinit(){
    // Arguments to pDYNINSTinit:
    // 1) Paradynd's pid (if attaching, -1*pid)
    // 2) # of threads supported
-   // 3) Shared memory key, for attaching to shm segment
+   // 3) Shared memory key, for attaching to shm segment (if attachToCreated -1*key) - Ana
    // 4) Shared memory size, see above
    // 5) Offset to info passed in the shared segment
 #ifndef USE_STL_VECTOR
@@ -6831,7 +6831,13 @@ void process::callpDYNINSTinit(){
    AstNode *arg2 = new AstNode(AstNode::Constant, (void *)maxNumberOfThreads());
 
    // Shared memory key
-   AstNode *arg3 = new AstNode(AstNode::Constant, (void *)getShmKeyUsed());
+   AstNode *arg3;
+    if ( wasCreatedViaAttachToCreated() ) {
+      arg3 = new AstNode(AstNode::Constant, (void *)(-1 * getShmKeyUsed()));
+    }
+    else {
+     arg3 = new AstNode(AstNode::Constant, (void *)(getShmKeyUsed()));
+    }
 
    // Shared memory size
    AstNode *arg4 = new AstNode(AstNode::Constant, (void *)getShmHeapTotalNumBytes());
