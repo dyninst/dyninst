@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.32 2004/04/26 21:34:55 rchen Exp $
+// $Id: arch-ia64.C,v 1.33 2004/07/01 20:11:46 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -608,21 +608,130 @@ Address IA64_instruction_x::getTargetAddress() const {
 	} /* end getTargetAddress() */
 
 #include "instPoint-ia64.h"
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList ) {
-	/* Handy for the second two cases. */
-	Address fnEntryOffset = location->pointFunc()->get_address();
-	Address fnEntryAddress = (Address)location->getOwner()->getPtrToInstruction( fnEntryOffset );
-	assert( fnEntryAddress % 16 == 0 );
-	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
+#include "process.h"
+#include <list>
 
-	/* Zero and one alloc intstruction are easily handled.  Special
-	   case some more complicated common forms, like system calls,
-	   and leave the rest to the dynamic basetramp. */
-	pdvector< Address > allocs = location->pointFunc()->allocs;
-	switch( allocs.size() ) {
+/* private refactoring function, for dBTRSF() */
+BPatch_basicBlock * findBasicBlockInCFG( Address absoluteAddress, BPatch_flowGraph * cfg ) {
+	BPatch_Set< BPatch_basicBlock * > allBlocks;
+	cfg->getAllBasicBlocks( allBlocks );
+	
+	BPatch_Set< BPatch_basicBlock * >::iterator iBegin = allBlocks.begin();
+	BPatch_Set< BPatch_basicBlock * >::iterator iEnd = allBlocks.end();
+	for( ; iBegin != iEnd; iBegin++ ) {
+		if(	(* iBegin)->getStartAddress() <= absoluteAddress &&
+			absoluteAddress <= (* iBegin)->getLastInsnAddress() ) {	return * iBegin; }
+		} /* end iteration over all blocks */
+
+	return NULL;
+	} /* end findBasicBlockInCFG() */
+
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList, process * proc ) {
+	/* If no alloc's definition reaches the instPoint _location_, create a base tramp
+	   register space compatible with any possible leaf function.
+	   
+	   If exactly one alloc's definition reaches the instPoint _location_, create a
+	   base tramp by extending the frame created by that alloc.
+	   
+	   If more than alloc's definition reaches the instPoint _location_, return false,
+	   because we can't statically determine the register frame that will be active
+	   when the instrumentation at _location_ executes. */
+
+	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
+	assert( baseAddress % 16 == 0 );
+
+	pd_Function * pdf = location->pointFunc();
+	assert( pdf != NULL );
+	
+	BPatch_flowGraph * cfg = pdf->getCFG( proc );
+	assert( cfg != NULL );
+	
+	/* Fetch all the basic blocks. */
+	BPatch_Set< BPatch_basicBlock * > allBlocks;
+	cfg->getAllBasicBlocks( allBlocks );
+	
+	/* Initialize the dataflow sets and construct the initial worklist. */
+	std::list< BPatch_basicBlock * > workList;
+	BPatch_Set< BPatch_basicBlock * >::iterator iBegin = allBlocks.begin();
+	BPatch_Set< BPatch_basicBlock * >::iterator iEnd = allBlocks.end();
+	for( ; iBegin != iEnd; iBegin++ ) {
+		BPatch_basicBlock * basicBlock = * iBegin;
+		basicBlock->setDataFlowIn( new BPatch_Set< BPatch_basicBlock * >() );
+		basicBlock->setDataFlowOut( new BPatch_Set< BPatch_basicBlock * >() );
+		basicBlock->setDataFlowGen( NULL );
+		basicBlock->setDataFlowKill( NULL );
+		
+		workList.push_back( basicBlock );
+		} /* end initialization iteration over all basic blocks */
+	
+	/* Initialize the alloc blocks. */
+	for( unsigned int i = 0; i < pdf->allocs.size(); i++ ) {
+		Address absoluteAddress = pdf->allocs[i] + pdf->get_address() + baseAddress;
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of alloc: 0x%lx (in function starting at 0x%lx)\n", __FILE__, __LINE__, absoluteAddress, pdf->get_address() + baseAddress );
+		BPatch_basicBlock * currentAlloc = findBasicBlockInCFG( absoluteAddress, cfg );
+		assert( currentAlloc != NULL );
+		
+		/* Generically, these should be functors from sets to sets. */
+		currentAlloc->setDataFlowGen( currentAlloc );
+		currentAlloc->setDataFlowKill( currentAlloc );
+		} /* end initialization iteration over all allocs. */
+		
+	/* Start running the worklist. */
+	while( ! workList.empty() ) {
+		BPatch_basicBlock * workBlock = workList.front();
+		workList.pop_front();
+		// /* DEBUG */ fprintf( stderr, "Working on basicBlock %p\n", workBlock );
+		
+		/* Construct workBlock's new output set from workBlock's immediate predecessors.  If
+		   it's different from workBlock's old output set, add all of workBlock's successors
+		   to the workList. */
+		BPatch_Set< BPatch_basicBlock * > newOutputSet;
+		BPatch_Vector< BPatch_basicBlock * > predecessors;
+		workBlock->getSources( predecessors );
+		for( unsigned int i = 0; i < predecessors.size(); i++ ) {
+			BPatch_basicBlock * predecessor = predecessors[i];
+			newOutputSet |= * predecessor->getDataFlowOut();
+			} /* end iteration over predecessors */
+			
+		// /* DEBUG */ fprintf( stderr, "From %d predecessors, %d allocs in input set.\n", predecessors.size(), newOutputSet.size() );
+			
+		if( workBlock->getDataFlowKill() != NULL ) {
+			/* Special case for allocs: any non-NULL kill set kills everything.  Otherwise, you'd
+			   have to use an associative set for kill and gen. */
+			newOutputSet = BPatch_Set< BPatch_basicBlock *>();
+			}
+		if( workBlock->getDataFlowGen() != NULL ) {	newOutputSet.insert( workBlock->getDataFlowGen() ); }
+		
+		// /* DEBUG */ fprintf( stderr, "After gen/kill sets, %d in (new) output set.\n", newOutputSet.size() );
+			
+		if( newOutputSet != * workBlock->getDataFlowOut() ) {
+			// /* DEBUG */ fprintf( stderr, "New output set different, adding successors:" );
+			* workBlock->getDataFlowOut() = newOutputSet;
+			
+			BPatch_Vector< BPatch_basicBlock * > successors;
+			workBlock->getTargets( successors );
+			
+			for( unsigned int i = 0; i < successors.size(); i++ ) {
+				// /* DEBUG */ fprintf( stderr, " %p", successors[i] );
+				workList.push_back( successors[i] );
+				} /* end iteration over successors */
+			// /* DEBUG */ fprintf( stderr, "\n" );
+			} /* end if the output set changed. */
+		} /* end iteration over worklist. */
+	
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of location: 0x%lx\n", __FILE__, __LINE__, location->pointAddr() + baseAddress );
+	BPatch_basicBlock * locationBlock = findBasicBlockInCFG( location->pointAddr() + baseAddress, cfg );
+	assert( locationBlock != NULL );
+
+	bool success = true;	
+	BPatch_Set< BPatch_basicBlock * > * reachingAllocs = locationBlock->getDataFlowOut();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %d reaching allocs located.\n", __FILE__, __LINE__, reachingAllocs->size() );
+	switch( reachingAllocs->size() ) {
 		case 0: {
-			/* Since we cannot know the current frame without static analysis,
-			   create ours after the largest frame possible (8 local, 0 output). */
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: no reaching allocs located.\n", __FILE__, __LINE__ );
+			
+			/* The largest possible unallocated frame (by the ABI, for leaf
+			   functions) is 8 input registers. */
 			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
 				deadRegisterList[i] = 32 + 8 + i + NUM_PRESERVED;
 				}
@@ -636,13 +745,21 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			regSpace->originalRotates = 0;
 
 			/* Our static analysis succeeded. */
-			} return true;
-
-		case 1: {
+			} break;
+			
+		case 1: {			
 			/* Where is our alloc instruction?  We need to have a look at it... */
-			Address encodedAddress = (location->pointFunc()->allocs)[0];
+			BPatch_basicBlock * allocBlock = * reachingAllocs->begin();
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: reaching alloc at 0x%lx\n", __FILE__, __LINE__, allocBlock->getStartAddress() );
+			
+			Address encodedAddress = allocBlock->getStartAddress();
 			unsigned short slotNumber = encodedAddress % 16;
-			Address alignedOffset = encodedAddress - slotNumber;
+			Address alignedOffset = encodedAddress - (pdf->get_address() + baseAddress) - slotNumber;
+			
+			Address fnEntryOffset = location->pointFunc()->get_address();
+			Address fnEntryAddress = (Address)location->getOwner()->getPtrToInstruction( fnEntryOffset );
+			assert( fnEntryAddress % 16 == 0 );
+			const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 			IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
 
 			/* ... so we find out what the frame it generates looks like... */
@@ -668,12 +785,24 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			regSpace->originalRotates = allocatedRotates;
 
 			/* Our static analysis succeeded. */
-			} return true;
-
+			} break;
+			
 		default:
-			return false;
-		} /* end #-of-allocs switch. */
-	} /* end dBTRSF() */
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: more than one (%d) allocs reached.\n", __FILE__, __LINE__, reachingAllocs->size() );
+			success = false;
+			break;
+		} /* end #-of-dominating-allocs switch */
+	
+	/* Regardless, clean up. */
+	iBegin = allBlocks.begin();
+	iEnd = allBlocks.end();
+	for( ; iBegin != iEnd; iBegin++ ) {
+		delete (* iBegin)->getDataFlowIn();
+		delete (* iBegin)->getDataFlowOut();
+		} /* end iteration over all blocks. */	
+	
+	return success;
+	} /* end defineBaseTrampRegisterSpace() */
 
 /* For inst-ia64.h */
 IA64_instruction generateIPToRegisterMove( Register destination ) {
