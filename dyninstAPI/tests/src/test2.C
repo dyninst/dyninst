@@ -180,7 +180,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
     if (useAttach) {
 	printf("Attach is not supported on this platform.\n");
 	exit(1);
@@ -227,7 +227,7 @@ main(int argc, char *argv[])
 	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
     }
 
-#if defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
     printf("Skipping test #3 (attach to an invalid pid)\n");
     printf("Skipping test #4 (attach to a protected pid)\n");
     printf("    attach is not supported on this platform\n");

@@ -1103,7 +1103,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
     if (useAttach) {
         printf("Attach is not supported on this platform.\n");
         exit(1);
