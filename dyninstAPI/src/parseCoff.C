@@ -51,6 +51,8 @@
 #include "LineInformation.h"
 #include "BPatch_typePrivate.h"
 #include "util.h"
+#include "Object.h"
+#include "symtab.h"
 #include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
 		    // <ldfcn.h> must be included after "BPatch.h"
 
@@ -1044,14 +1046,30 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 
 	    case stStatic:
 		if (symbol.sym->sc == scCommon) {
-		    BPatch_image *img = (BPatch_image *)mod->getObjParent();
-		    BPatch_Vector<BPatch_field *> *fields;
-		    long baseAddr;
-
 		    typePtr = eCoffParseType(mod, symbol);
-		    baseAddr = (long)img->findVariable(symbol.name.c_str())->getBaseAddr();
+
 		    if (typePtr) {
-			fields = typePtr->getComponents();
+			// Bad hack.  Fortran common blocks have both a module, and a
+			// global variable defined in the symbol table using the same
+			// name.  Since AObject::symbols_ was modified to be a
+			// dictionary_hash< pdstring, pdvector< Symbol > >, the symbol
+			// is no longer correctly found by BPatch_image::findVariable.
+			// 
+			// So, we use the following manual search instead.
+			Object &img =
+			    const_cast<Object &>(mod->getModule()->exec()->getObject());
+			pdvector< Symbol > symbols;
+			img.get_symbols( symbol.name, symbols );
+
+			long baseAddr = 0;
+			for (unsigned int i = 0; i < symbols.size(); ++i) {
+			    if (symbols[i].type() == Symbol::PDST_OBJECT) {
+				baseAddr = symbols[i].addr();
+				break;
+			    }
+			}
+
+			BPatch_Vector<BPatch_field *> *fields = typePtr->getComponents();
 			for (unsigned int i = 0; i < fields->size(); ++i) {
 			    int offset = (*fields)[i]->getOffset() / 8;
 			    local = new BPatch_localVar((*fields)[i]->getName(),
