@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.24 2004/03/15 18:46:10 tlmiller Exp $ */
+/* $Id: test6.mutatee.c,v 1.25 2004/03/15 19:27:33 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -513,13 +513,11 @@ void check0()
 
 void check1()
 {
-  // /* DEBUG */fprintf( stderr, "load: %d == %d\n", loadCnt, loadExp );
   passorfail(1, loadCnt == loadExp, "load instrumentation", "load counter seems wrong.");
 }
 
 void check2()
 {
-  // /* DEBUG */ fprintf( stderr, "store: %d == %d\n", storeCnt, storeExp );
   passorfail(2, storeCnt == storeExp, "store instrumentation", "store counter seems wrong.");
 }
 
@@ -530,7 +528,6 @@ void check3()
 
 void check4()
 {
-  // /* DEBUG */ fprintf( stderr, "access: %d == %d\n", accessCnt, accessExp );
   passorfail(4, accessCnt == accessExp, "access instrumentation", "access counter seems wrong.");
   dprintf("accessCnt = %d    accessExp = %d\n", accessCnt, accessExp);
 }
