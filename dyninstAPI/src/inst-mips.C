@@ -50,7 +50,6 @@
 #include "dyninstAPI/src/process.h"   // process
 #include "dyninstAPI/src/instP.h"     // instWaitingList
 #include "dyninstAPI/src/stats.h"     // accounting
-#include "dyninstAPI/src/dyninstP.h"  // isApplicationPaused()
 #include "util/h/debugOstream.h"
 #include <disassembler.h>
 
@@ -61,6 +60,7 @@
 #include "paradynd/src/perfStream.h" // firstRecordTime
 #include "paradynd/src/context.h"    // elapsedPauseTime, startPause
 //#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/dyninstP.h"  // isApplicationPaused()
 #endif
 
 /****************************************************************************/

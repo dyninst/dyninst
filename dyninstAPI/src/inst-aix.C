@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.12 1999/11/11 00:56:10 wylie Exp $
+/* $Id: inst-aix.C,v 1.13 2000/06/20 22:39:44 wylie Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -49,11 +49,7 @@
  *	computePauseTimeMetric()
  */
 
-#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #include "dyninstAPI/src/os.h"
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/metric.h"
-#endif
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -66,10 +62,12 @@
 #include <sys/ldr.h>
 
 #ifndef BPATCH_LIBRARY
+#include "paradynd/src/metric.h"
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
+#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #endif
 
 string process::getProcessStatus() const {
