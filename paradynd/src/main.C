@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.100 2001/12/06 01:36:57 bernat Exp $
+// $Id: main.C,v 1.101 2002/01/31 17:04:36 cortes Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -77,9 +77,6 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/mdld.h"
 
-// by Ana
-//#include "paradyn/src/DMthread/DMdaemon.h"
-#include "dyninstRPC.xdr.SRVR.h"
 
 
 pdRPC *tp = NULL;
@@ -114,7 +111,7 @@ extern void initDetachOnTheFly();
  * start up other paradynds (such as on the CM5), and need this later.
  */
 string pd_machine;
-static int pd_attpid; // by Ana
+static int pd_attpid;
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 static string pd_flavor;
@@ -724,6 +721,7 @@ extern PDSOCKET connect_Svr(string machine,int port);
 	abort();
       }
     bool startByAttach = false;
+    bool startByCreateAttach = false;
 #ifdef mips_sgi_irix6_4
     struct utsname unameInfo;
     if ( P_uname(&unameInfo) == -1 )
@@ -749,11 +747,16 @@ extern PDSOCKET connect_Svr(string machine,int port);
 	vector<string> envp;
         addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
       } 
-    else if (pd_attpid)
+    else if (pd_attpid && (pd_flag==2))
       {
 	// We attach after doing a last bit of initialization, below
 	startByAttach = true;
-      }
+      }else if (pd_attpid && (pd_flag==3))
+	{
+	  // We attach to a just created application after doing a
+	  // last bit of initialization, below
+	  startByCreateAttach = true;
+	}
 
     // Set up the trace socket. This is needed before we try
     // to attach to a process
@@ -764,7 +767,15 @@ extern PDSOCKET connect_Svr(string machine,int port);
 				   pd_attpid,
 				   1);
       if (!success) return(-1);
-    }
+    } else if (startByCreateAttach)
+      {
+	if (cmdLine.size()){
+	  AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
+	}else{
+	   AttachToCreatedProcess(pd_attpid,"");
+	}
+      }
+   
     controllerMainLoop(true);
     return(0);
 }
