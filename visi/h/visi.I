@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
  *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
@@ -15,72 +14,7 @@
  *
  */
 
-/* $Log: visi.I,v $
-/* Revision 1.17  1997/04/21 16:59:36  hseom
-/* added support for trace data
-/*
- * Revision 1.1.1.2  1996/09/04 23:08:05  hollings
- * Paradyn version 1.1 (plus a few small commits)
- *
- * Revision 1.16  1996/02/23 17:46:10  tamches
- * added 2 bool params to StartPhase
- *
- * Revision 1.15  1995/12/18 23:22:31  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.14  1995/12/15 20:15:11  naim
- * Adding call back function to display error messages from visis - naim
- *
-# Revision 1.13  1995/11/17  17:27:56  newhall
-# added normalized member to Metric class which specifies units type
-# added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
-#
-# Revision 1.12  1995/08/01  01:58:45  newhall
-# changes relating to phase interface stuff
-#
-# Revision 1.11  1995/06/02  21:01:55  newhall
-# changed type of metric and focus handles to u_int
-#
-# Revision 1.10  1995/02/26  01:59:28  newhall
-# added phase interface functions
-#
-# Revision 1.9  1995/02/16  09:32:03  markc
-# Modified to support machines which do not have NaN(x).
-# This code has not been tested, but it compiles.
-#
-# Revision 1.8  1994/09/25  01:58:13  newhall
-# changed interface definitions to work for new version of igen
-# changed AddMetricsResources def. to take array of metric/focus pairs
-#
-# Revision 1.7  1994/09/22  03:12:24  markc
-# declared arrays at start
-# incremented version number
-#
-# Revision 1.6  1994/08/17  18:21:09  markc
-# Incremented the version number because a new version of igen is in place.
-#
-# Revision 1.5  1994/08/03  20:47:28  newhall
-# removed interface routines Enabled and NewMetricsResources
-#
-# Revision 1.4  1994/07/30  03:26:18  newhall
-# added visi interface routines Enabled and BulkDataTransfer
-#
-# Revision 1.3  1994/05/11  17:11:07  newhall
-# changed data values from double to float
-#
-# Revision 1.2  1994/04/13  21:23:09  newhall
-# *** empty log message ***
-#
-# Revision 1.1  1994/03/29  02:42:13  newhall
-# exported services of the visualization process
-#
-# Revision 1.3  1994/03/17  05:20:35  newhall
-# changed bucket width and time value's type to double
-#
-# Revision 1.2  1994/03/14  20:28:52  newhall
-# changed visi subdirectory structure
-#  */ 
+/* $Id: visi.I,v 1.18 1998/04/01 01:28:17 wylie Exp $ */ 
 
 
 $remote struct metricType {
@@ -126,7 +60,7 @@ $remote struct phase_info{
 
 $remote visualization {
   $base  7000;
-  $version  15;
+  $version  16;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  

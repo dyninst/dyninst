@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.34 1998/03/03 23:28:58 wylie Exp $
+ * $Id: UI.I,v 1.35 1998/04/01 01:27:56 wylie Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -50,7 +50,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 21;
+	$version 22;
 	//
 	// provides user with appropriate choices and passes back selections
 

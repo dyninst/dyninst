@@ -1,10 +1,9 @@
-/* $Id: VISIthread.I,v 1.7 1998/03/03 23:28:59 wylie Exp $
- */
+/* $Id: VISIthread.I,v 1.8 1998/04/01 01:27:57 wylie Exp $ */
 
 $remote VISIthread{
 
   $base 9000;
-  $version 4;
+  $version 5;
 
   // called by VM thread when a visualization process is stopped by
   // another thread in the system

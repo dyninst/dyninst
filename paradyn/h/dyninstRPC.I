@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.77 1998/03/03 23:29:00 wylie Exp $
+/* $Id: dyninstRPC.I,v 1.78 1998/04/01 01:28:00 wylie Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -425,7 +425,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 52;
+    $version 53;
 
     //
     // Define a program to run. 
