@@ -23,6 +23,10 @@ proc pdSave {} {
     set saveMessage "Enter name of Directory for Data/Resource Files"
 
     # make sure directory entry is valid
+    if { ! [file exists $saveDirectory]} {
+	#try to create the directory
+	catch {exec mkdir $saveDirectory}
+    }
     if { (! [file isdirectory $saveDirectory]) || \
 	    (![file writable $saveDirectory]) } {
 	set saveMessage "Error: invalid directory name"
@@ -60,18 +64,24 @@ proc drawSaveMenu {} {
     frame $di 
     frame $wh -relief raised -borderwidth 2
     frame $ex -relief raised -borderwidth 2
-    pack $wh $di $ex -side top -fill both -padx 2 -pady 2
+    pack $wh $di $ex -side top -fill both -padx 2 -pady 5
 
     # save what?
-    label $wh.la -text "Save What?"
-    pack $wh.la -side top -padx 10 -pady 5 
+    label $wh.la -text "Save Paradyn Data" \
+	    -foreground white -anchor c \
+	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	    -relief raised \
+	    -background purple
+    pack  $wh.la -side top -fill both -expand true
+
+
     checkbutton $wh.gd -text "Global Data" -variable saveGlobalData 
     $wh.gd select
     checkbutton $wh.pd -text "Phase Data" -variable savePhaseData
 
     checkbutton $wh.re -text "Where Axes" -variable saveResources
     $wh.re select
-    pack $wh.gd $wh.pd $wh.re -side top -padx 10 -pady 5 -anchor w
+    pack $wh.gd $wh.pd $wh.re -side left -padx 25 -pady 5 -anchor w
 
     #directory?
 
