@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.496 2004/04/21 04:04:56 chadd Exp $
+// $Id: process.C,v 1.497 2004/04/21 14:25:49 chadd Exp $
 
 #include <ctype.h>
 
@@ -4001,7 +4001,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 
     new_obj->addImage(img);
 
-#if defined(i386_unknown_linux2_0)
         ///ccw 20 apr 2004 : test4 linux bug hack
         /* what is going on here? If you relocate a function in a shared library,
            then call exec (WITHOUT CALLING FORK) the function will continue to be
@@ -4026,7 +4025,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
                         (*allFuncs)[funcIndex]->unrelocatedByProcess(this);
                 }
         }
-#endif
 
     // TODO: check for "is_elf64" consistency (Object)
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.154 2004/04/21 04:04:56 chadd Exp $
+// $Id: symtab.h,v 1.155 2004/04/21 14:25:49 chadd Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -437,7 +437,6 @@ class pd_Function : public function_base {
       return false;
    }
 
-#if defined(i386_unknown_linux2_0)
         //see the note in process::addASharedObject (process.C) for an
         //explaination, this is part of the test4 exec on linux fix.
    void unrelocatedByProcess(process *p){ //ccw 20 apr 2004
@@ -446,7 +445,6 @@ class pd_Function : public function_base {
                 (relocatedByProcess[i])->setProcess(NULL);
          }
    }
-#endif
 
    bool hasNoStackFrame() const {return noStackFrame;}
    // formerly "isLeafFunc()" but that led to confusion, since people assign two
