@@ -45,9 +45,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.17  1997/10/28 20:37:01  tamches
-/* dictionary_lite --> dictionary_hash
+/* Revision 1.18  1997/12/04 18:28:59  tamches
+/* bug fix to navigate menu
 /*
+ * Revision 1.17  1997/10/28 20:37:01  tamches
+ * dictionary_lite --> dictionary_hash
+ *
  * Revision 1.16  1997/09/24 19:29:05  tamches
  * XFontStruct --> Tk_Font; use of Tk_GetFontMetrics
  * for tcl 8.0
@@ -420,9 +423,11 @@ int whereAxis::readTree(ifstream &is,
 
       rootPtr = newParentNode;
    }
-   else
+   else {
       this->addItem(rootString, parentUniqueId, nextUniqueIdToUse, false, false);
-         // don't redraw; don't resort
+      // don't redraw; don't resort
+   }
+   
 
    if (oneItemTree)
       return 1;
@@ -1162,8 +1167,8 @@ void whereAxis::rethinkNavigateMenu() {
 
 //      cout << "adding " << theString << " to the navigate menu" << endl;
 
-      string commandStr = navigateMenuName + " add command -label \"" + theString +
-                          "\" -command \"whereAxisNavigateTo " + string(itemlcv) + "\"";
+      string commandStr = navigateMenuName + " add command -label {" + theString + "} " +
+                          "-command {whereAxisNavigateTo " + string(itemlcv) + "}";
       myTclEval(interp, commandStr);
 
       if (itemlcv >= lastClickPath.getSize())
