@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.470 2004/02/25 04:36:45 schendel Exp $
+// $Id: process.C,v 1.471 2004/02/25 18:38:29 bernat Exp $
 
 #include <ctype.h>
 
@@ -5985,6 +5985,8 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
              walkIter++) {
             Frame frame = stackWalk[walkIter];
             codeRange *range = findCodeRangeByAddress(frame.getPC());
+            if (range == NULL) // We didn't find a match
+                continue;            
             if (deletedInst->oldBase) {
                 // If we're in the base tramp we can't delete
                 if (range->basetramp_ptr == deletedInst->oldBase)
