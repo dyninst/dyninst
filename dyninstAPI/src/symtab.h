@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.131 2003/07/29 00:32:44 eli Exp $
+// $Id: symtab.h,v 1.132 2003/08/01 22:57:15 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -225,10 +225,10 @@ public:
 
     virtual Address getAddress(const process *p) = 0;
     virtual Address getEffectiveAddress(const process *p) const = 0;
-    virtual const instPoint *funcEntry(process *p) const = 0;
-    virtual const pdvector<instPoint*> &funcExits(process *p) const = 0;
-    virtual const pdvector<instPoint*> &funcCalls(process *p)  = 0; 
-    virtual const pdvector<instPoint*> &funcArbitraryPoints(process *p) const = 0; 
+    virtual const instPoint *funcEntry(const process *p) const = 0;
+    virtual const pdvector<instPoint*> &funcExits(const process *p) const = 0;
+    virtual const pdvector<instPoint*> &funcCalls(const process *p)  = 0; 
+    virtual const pdvector<instPoint*> &funcArbitraryPoints(const process *p) const = 0; 
     virtual bool hasNoStackFrame() const = 0;
        // formerly "isLeafFunc()" but that led to confusion, since people assign two
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
@@ -297,7 +297,7 @@ class pd_Function : public function_base {
 	return addr();
     }
     Address getEffectiveAddress(const process *p) const;
-    const instPoint *funcEntry(process *p) const {
+    const instPoint *funcEntry(const process *p) const {
         if(p && relocatable_) { 
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) {
@@ -306,7 +306,7 @@ class pd_Function : public function_base {
 	} }
 	return funcEntry_;
     }
-    const pdvector<instPoint*> &funcExits(process *p) const {
+    const pdvector<instPoint*> &funcExits(const process *p) const {
         if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
@@ -314,7 +314,7 @@ class pd_Function : public function_base {
 	} }
 	return funcReturns;
     }
-    const pdvector<instPoint*> &funcArbitraryPoints(process *p) const {
+    const pdvector<instPoint*> &funcArbitraryPoints(const process *p) const {
         if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
@@ -352,7 +352,7 @@ class pd_Function : public function_base {
 
 #endif
 
-    const pdvector<instPoint*> &funcCalls(process *p) {
+    const pdvector<instPoint*> &funcCalls(const process *p) {
       if (!call_points_have_been_checked) checkCallPoints();
 
         if(p && relocatable_) {

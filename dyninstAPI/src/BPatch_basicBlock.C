@@ -5,7 +5,17 @@
 #include "common/h/Types.h"
 
 #include "BPatch_flowGraph.h"
+#include "BPatch_collections.h"
 #include "BPatch_basicBlock.h"
+#include "process.h"
+#include "InstrucIter.h"
+#include "BPatch_instruction.h"
+
+extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
+					       InstrucIter &ii, 
+					       process *proc,
+					       BPatch_function *bpf);
+
 
 //constructor that creates the empty sets for 
 //class fields.
@@ -15,7 +25,8 @@ BPatch_basicBlock::BPatch_basicBlock() :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
-		sourceBlocks(NULL) {}
+		sourceBlocks(NULL),
+		instructions(NULL) {}
 
 //The argument is a block number.
 //there is no limitation that two blocks can have 
@@ -30,7 +41,8 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
-		sourceBlocks(NULL) {}
+		sourceBlocks(NULL),
+		instructions(NULL) {}
 
 
 //destructor of the class BPatch_basicBlock
@@ -208,3 +220,53 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 }
 
 
+/*
+ * BPatch_basicBlock::findPoint (based on VG 09/05/01)
+ *
+ * Returns a vector of the instrumentation points from a basic block that is
+ * identified by the parameters, or returns NULL upon failure.
+ * (Points are sorted by address in the vector returned.)
+ *
+ * ops          The points within the basic block to return. A set of op codes
+ *              defined in BPatch_opCode (BPatch_point.h)
+ */
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPatch_opCode>& ops) {
+
+#if defined(BPATCH_LIBRARY)
+  // function is generally uninstrumentable (with current technology)
+  if (flowGraph->getFunction()->funcEntry(flowGraph->getProcess()) == NULL) return NULL;
+
+  // Use an instruction iterator
+  InstrucIter ii(this);
+
+  return ::findPoint(ops, ii, flowGraph->getProcess(), flowGraph->getProcess()->PDFuncToBPFuncMap.get(const_cast<function_base *>(flowGraph->getFunction())));
+
+#else
+
+  return NULL;
+#endif
+}
+
+/*
+ * BPatch_basicBlock::getInstructions
+ *
+ * Returns a vector of the instructions contained within this block
+ *
+ */
+
+BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructions(void) {
+
+  if (!instructions) {
+
+    instructions = new BPatch_Vector<BPatch_instruction*>;
+    InstrucIter ii(this);
+    
+    while(ii.hasMore()) {
+      BPatch_instruction *instr = ii.getBPInstruction();
+      instructions->push_back(instr);
+      ii++;
+    }
+  }
+
+  return instructions;
+}

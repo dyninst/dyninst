@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.35 2003/07/29 00:32:27 eli Exp $
+// $Id: BPatch_function.C,v 1.36 2003/08/01 22:57:15 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -340,25 +340,25 @@ BPatch_point* createInstPointForMemAccess(process *proc,
 }
 #endif
 
+
 /*
- * BPatch_function::findPoint (VG 09/05/01)
+ * findPoint (formerly BPatch_function::findPoint) (VG 09/05/01)
  *
- * Returns a vector of the instrumentation points from a procedure that is
- * identified by the parameters, or returns NULL upon failure.
+ * Returns a vector of the instrumentation points from a procedure or basic
+ * block that is identified by the parameters, or returns NULL upon failure.
  * (Points are sorted by address in the vector returned.)
  *
- * ops          The points within the procedure to return. A set of op codes
- *              defined in BPatch_opCode (BPatch_point.h)
+ * ops          The points within the procedure/basic block to return. A set 
+ *              of op codes defined in BPatch_opCode (BPatch_point.h)
+ * ii           The iterator over the set of instructions to parse
+ * proc         The process object
+ * bpf          The BPatch_function object we are in 
  */
-BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
-        const BPatch_Set<BPatch_opCode>& ops)
-{
-  // function does not exist!
-  if (func == NULL) return NULL;
+BPatch_Vector<BPatch_point*> *::findPoint(const BPatch_Set<BPatch_opCode>& ops,
+					  InstrucIter &ii, 
+					  process *proc,
+					  BPatch_function *bpf) {
 
-  // function is generally uninstrumentable (with current technology)
-  if (func->funcEntry(proc) == NULL) return NULL;
-  
   BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
   int osize = ops.size();
@@ -376,10 +376,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
   }
 
   //Address relativeAddress = (Address)getBaseAddrRelative();
-
-  // Use an instruction iterator
-
-  InstrucIter ii(func,proc,mod->getModule());
 
   //instruction inst;
   //int xx = -1;
@@ -408,7 +404,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //fprintf(stderr, "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr, ma);
+      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
@@ -421,7 +417,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       //fprintf(stderr, "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr, ma);
+      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
@@ -430,12 +426,12 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
       skip = true;
     }
 
-    if(findPrefetch && !skip && ma->hasAPrefetch()) {
+    if(findPrefetch && !skip && ma->hasAPrefetch_NP()) {
       //fprintf(stderr, "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr, ma);
+      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
@@ -446,6 +442,31 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
   }
 
   return result;
+}
+
+/*
+ * BPatch_function::findPoint (VG 09/05/01)
+ *
+ * Returns a vector of the instrumentation points from a procedure that is
+ * identified by the parameters, or returns NULL upon failure.
+ * (Points are sorted by address in the vector returned.)
+ *
+ * ops          The points within the procedure to return. A set of op codes
+ *              defined in BPatch_opCode (BPatch_point.h)
+ */
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
+        const BPatch_Set<BPatch_opCode>& ops)
+{
+  // function does not exist!
+  if (func == NULL) return NULL;
+
+  // function is generally uninstrumentable (with current technology)
+  if (func->funcEntry(proc) == NULL) return NULL;
+  
+  // Use an instruction iterator
+  InstrucIter ii(func, proc, mod->getModule());
+
+  return ::findPoint(ops, ii, proc, this);
 }
 
 /*

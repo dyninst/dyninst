@@ -5,6 +5,8 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 
+#include "BPatch_point.h"
+#include "BPatch_instruction.h"
 
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
@@ -19,6 +21,7 @@
 class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
+	friend class InstrucIter;
 
 	friend ostream& operator<<(ostream&,BPatch_basicBlock&);
 
@@ -60,6 +63,9 @@ private:
 	/** the source block(source lines) that basic block corresponds*/
 	BPatch_Vector<BPatch_sourceBlock*>* sourceBlocks;
 
+	/** the instructions within this block */
+	BPatch_Vector<BPatch_instruction*>* instructions;
+
 public:
 
 	/** method that returns the predecessors of the basic block */
@@ -93,6 +99,13 @@ public:
 
 	/** return the start and end addresses of the basic block */
 	bool getAddressRange(void*& _startAddress, void*& _endAddress);
+
+	/** return a set of points within the basic block */
+	BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops);
+
+	/** return the instructions that belong to the block */
+	BPatch_Vector<BPatch_instruction*> *getInstructions();
+
 private:
 
 // internal use only

@@ -52,6 +52,7 @@
 
 class function_base;
 class process;
+class InstrucIter;
 
 class BPatch_localVarCollection;
 class BPatch_function;
@@ -61,6 +62,11 @@ class BPatch_flowGraph;
 class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     friend class BPatch_flowGraph;
     friend class InstrucIter;
+    friend class BPatch_basicBlock;
+    friend BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
+						   InstrucIter &ii, 
+						   process *proc,
+						   BPatch_function *bpf);
 
     process *proc;
     BPatch_type * retType;
