@@ -39,48 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// tableVisiTcl.C
-// Ariel Tamches
-
-/*
- * $Log: tableVisiTcl.C,v $
- * Revision 1.13  2000/02/09 19:46:14  pcroth
- * Fixed problem in which the table visi does not show values when switching
- * between current, average, and total values after the process has exited.
- *
- * Revision 1.12  1999/07/13 17:16:13  pcroth
- * Fixed ordering problem of destroying GUI and destructing static variable
- * pdLogo::all_logos.  On NT, the static variable is destroyed before the
- * GUI, but a callback for the GUI ends up referencing the variable causing
- * an access violation error.
- *
- * Revision 1.11  1999/03/13 15:24:05  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.10  1996/08/16 21:37:00  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/04/30 20:19:06  tamches
- * Added label with phase name
- *
- * Revision 1.8  1996/01/17 18:31:39  newhall
- * changes due to new visiLib
- *
- * Revision 1.7  1995/12/22 22:44:33  tamches
- * selection
- * deletion
- * sort foci by value
- *
- * Revision 1.6  1995/12/19 00:47:06  tamches
- * call to tableVisi::setSigFigs now resizes if changes occurred.
- *
- * Revision 1.5  1995/12/08 05:52:35  tamches
- * removed some warnings
- *
- * Revision 1.4  1995/12/03 21:09:29  newhall
- * changed units labeling to match type of data being displayed
- *
- */
+// $Id: tableVisiTcl.C,v 1.14 2000/05/12 23:24:31 wylie Exp $
 
 #include <iostream.h>
 
@@ -145,7 +104,9 @@ int Dg2NewDataCallback(int) {
    // pair; hence, it's time to update the screen!
 
    if (theTableVisi == NULL) { 
+#ifdef TABLE_DEBUG
       cout << "Dg2NewDataCallback tableVisi: missed an early sample since not yet initialized" << endl;
+#endif
       return TCL_OK;
    }
 
@@ -185,7 +146,9 @@ int Dg2NewDataCallback(int) {
    if (profileMode)
       if (!theTableVisi->sortFociByValues()) {
          // could not sort because not exactly 1 column/metric was selected
-         //cout << "table visi; cannot sort foci by value (profile mode) when not exactly 1 column is selected" << endl;
+#ifdef TABLE_DEBUG
+         cout << "table visi; cannot sort foci by value (profile mode) when not exactly 1 column is selected" << endl;
+#endif
       }
 
    tableDrawWhenIdle.install(NULL);
@@ -255,7 +218,9 @@ int Dg2AddMetricsCallback(int) {
 	 }
 
       if (!enabled) {
+#ifdef TABLE_DEBUG
          cout << "table: the focus " << visi_ResourceName(focuslcv) << " isn't enabled...not adding" << endl;
+#endif
          continue;
       }
 
@@ -421,9 +386,11 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
       case tableVisi::cell: {
          unsigned theMetId = theTableVisi->getSelectedMetId();
          unsigned theResId = theTableVisi->getSelectedResId();
-         //cout << "tableVisiDeleteSelectionCommand: about to delete a cell..." << endl;
-         //cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
-         //cout << "...and whose metric name is " << visi_MetricName(theMetId) << endl;
+#ifdef TABLE_DEBUG
+         cout << "tableVisiDeleteSelectionCommand: about to delete a cell..." << endl;
+         cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
+         cout << "...and whose metric name is " << visi_MetricName(theMetId) << endl;
+#endif
          visi_StopMetRes(theMetId, theResId);
 
          unsigned theRow = theTableVisi->getSelectedRow();
@@ -433,9 +400,10 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
       }
       case tableVisi::rowOnly: {
          unsigned theResId = theTableVisi->getSelectedResId();
-         //cout << "tableVisiDeleteSelectionCommand: about to delete a row..." << endl;
-         //cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
-
+#ifdef TABLE_DEBUG
+         cout << "tableVisiDeleteSelectionCommand: about to delete a row..." << endl;
+         cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
+#endif
          for (unsigned collcv=0; collcv < theTableVisi->getNumMetrics(); collcv++) {
             unsigned theMetId = theTableVisi->col2MetId(collcv);
             visi_StopMetRes(theMetId, theResId);
@@ -447,8 +415,10 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
       }
       case tableVisi::colOnly: {
          unsigned theMetId = theTableVisi->getSelectedMetId();
-         //cout << "tableVisiDeleteSelectionCommand: about to delete a column..." << endl;
-         //cout << "...whose metric name is " << MetricName(theMetId) << endl;
+#ifdef TABLE_DEBUG
+         cout << "tableVisiDeleteSelectionCommand: about to delete a column..." << endl;
+         cout << "...whose metric name is " << MetricName(theMetId) << endl;
+#endif
          for (unsigned rowlcv=0; rowlcv < theTableVisi->getNumFoci(); rowlcv++) {
             unsigned theResId = theTableVisi->row2ResId(rowlcv);
             visi_StopMetRes(theMetId, theResId);
