@@ -6,10 +6,13 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.3  1995/07/24 21:32:47  tamches
-/* Added getTkWindow(), get*SBName(), and change(string) member
-/* functions.
+/* Revision 1.4  1995/08/07 00:00:51  tamches
+/* Added name2index(), getAbsMenuName()
 /*
+ * Revision 1.3  1995/07/24  21:32:47  tamches
+ * Added getTkWindow(), get*SBName(), and change(string) member
+ * functions.
+ *
  * Revision 1.2  1995/07/18  03:41:16  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -71,6 +74,7 @@ class abstractions {
    Tk_Window getTkWindow() const {return theTkWindow;}
    const string &getHorizSBName() const {return horizSBName;}
    const string &getVertSBName() const {return vertSBName;}
+   const string &getAbsMenuName() const {return absMenuName;}
 
    abstractions(const string &iabsMenuName, const string &iNavMenuName,
 		const string &iHorizSBName, const string &iVertSBName,
@@ -94,6 +98,9 @@ class abstractions {
 	    const string &whereAxisName);
 
    whereAxis<USERNODEDATA> &operator[](string &absName);
+
+   int name2index(const string &name) const;
+      // returns -1 if found found
 
    bool change(unsigned newindex);
    bool change(string &newName);
@@ -126,7 +133,8 @@ class abstractions {
    }
 
    void resizeEverything() {
-      if (!existsCurrent()) return;
+      if (!existsCurrent())
+         return;
 
       for (int i=0; i < theAbstractions.size(); i++) {
          theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren();
