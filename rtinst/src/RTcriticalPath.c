@@ -293,6 +293,7 @@ static void DYNINSTCP_Sample(int cpZero, int id)
     struct cpClock cp;
     struct cpClock ids;
     struct cpInfo *curr;
+    time64 wall_time,process_time;
 
 #ifdef notdef
     fprintf(stdout, "DYNINSTCP_Sample called with flag = %d, id = %d\n", 
@@ -300,7 +301,9 @@ static void DYNINSTCP_Sample(int cpZero, int id)
     fflush(stdout);
 #endif
 
-    now = (double) DYNINSTgetCPUtime();
+    process_time = DYNINSTgetCPUtime();
+    now = process_time;
+    wall_time = DYNINSTgetWalltime(); 
 
     for (curr= allCPData; curr; curr=curr->next) {
 	if (curr->id == id) break;
@@ -332,7 +335,8 @@ static void DYNINSTCP_Sample(int cpZero, int id)
 	sample.share = sample.length;
     }
 
-    DYNINSTgenerateTraceRecord(0, TR_CP_SAMPLE, sizeof(cpSample), &sample);
+    DYNINSTgenerateTraceRecord(0, TR_CP_SAMPLE, sizeof(cpSample), &sample,
+				wall_time,process_time);
 }
 
 /*

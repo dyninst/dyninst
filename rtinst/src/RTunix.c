@@ -3,7 +3,12 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.28  1996/02/15 14:55:51  naim
+ * Revision 1.29  1996/03/08 18:48:21  newhall
+ * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
+ * a bug that occured when the appl. is paused between reading a timer to compute
+ * a metric value and reading a timer again to compute a header value.
+ *
+ * Revision 1.28  1996/02/15  14:55:51  naim
  * Minor changes to timers and cost model - naim
  *
  * Revision 1.27  1996/02/01  17:49:54  naim
@@ -493,21 +498,26 @@ static int pipeGone;
  *
  */
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData, int flush)
+    void *eventData, int flush,time64 wall_time,time64 process_time)
 {
     int ret;
     int count;
-    struct timeval tv;
     char buffer[1024];
     traceHeader header;
+    struct timeval tv;
 
     if (pipeGone) return;
 
+#ifdef ndef
     gettimeofday(&tv, NULL);
     header.wall = tv.tv_sec;
     header.wall *= (time64) MILLION;
     header.wall += tv.tv_usec;
     header.wall -= startWall;
+    header.process = DYNINSTgetCPUtime();
+#endif
+    header.wall = wall_time;
+    header.process = process_time;
 
 #ifdef notdef
     if (DYNINSTmappedUarea) {
@@ -515,9 +525,6 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 	header.process *= MILLION;
 	header.process += *_p_2;
     } else {
-#endif
-	header.process = DYNINSTgetCPUtime();
-#ifdef notdef
     }
 #endif
 
@@ -564,15 +571,20 @@ void DYNINSTreportTimer(tTimer *timer)
     time64 now=0;
     time64 total;
     traceSample sample;
+    time64 process_time;
+    time64 wall_time;
+
+    process_time = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWallTime();
 
     if (timer->mutex) {
 	total = timer->snapShot;
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	    now = DYNINSTgetCPUtime();
+	    now = process_time;
 	} else {
-            now = DYNINSTgetWallTime();
+            now = wall_time;
 	}
 	total = now - timer->start + timer->total;
     } else {
@@ -606,7 +618,10 @@ void DYNINSTreportTimer(tTimer *timer)
     sample.value = ((double) total) / (double) timer->normalize;
     DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
+    wall_time -= startWall;
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+			       wall_time, process_time);
     /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
 }
 
@@ -614,6 +629,12 @@ void DYNINSTfork(void *arg, int pid)
 {
     int sid = 0;
     traceFork forkRec;
+    time64 process_time;
+    time64 wall_time;
+
+    process_time = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWallTime();
+    wall_time -= startWall;
 
     printf("fork called with pid = %d\n", pid);
     fflush(stdout);
@@ -622,7 +643,8 @@ void DYNINSTfork(void *arg, int pid)
 	forkRec.pid = pid;
 	forkRec.npids = 1;
 	forkRec.stride = 0;
-	DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1);
+	DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1,
+				wall_time, process_time);
     } else {
 	/* set up signals and stop at a break point */
 	DYNINSTinit(1);
@@ -638,6 +660,12 @@ void DYNINSTprintCost()
     int64 value;
     struct rusage ru;
     struct endStatsRec stats;
+    time64 process_time;
+    time64 wall_time;
+
+    process_time = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWallTime();
+    wall_time -= startWall;
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
@@ -713,7 +741,8 @@ void DYNINSTprintCost()
     fclose(fp);
 
     /* record that we are done -- should be somewhere better. */
-    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1,
+				wall_time,process_time);
 }
 
 

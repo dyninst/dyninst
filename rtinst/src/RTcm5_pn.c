@@ -4,7 +4,12 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.37  1996/03/01 22:29:06  mjrg
+ * Revision 1.38  1996/03/08 18:48:14  newhall
+ * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
+ * a bug that occured when the appl. is paused between reading a timer to compute
+ * a metric value and reading a timer again to compute a header value.
+ *
+ * Revision 1.37  1996/03/01  22:29:06  mjrg
  * Added type to resources.
  * Added function DYNINSTexit for better support for exit from the application.
  * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
@@ -197,10 +202,15 @@ extern float DYNINSTcyclesToUsec;
 
 time64 getProcessTime();
 time64 DYNINSTgetWallTime();
-extern int DYNINSTtotalSamples;
-extern time64 DYNINSTlastCPUTime;
-extern time64 DYNINSTlastWallTime;
 extern int DYNINSTin_sample;
+
+extern time64 DYNINSTtotalSampleTime;
+float DYNINSTcyclesToUsec;
+int DYNINSTnprocs;
+int DYNINSTtotalSamples;
+time64 DYNINSTlastCPUTime;
+time64 DYNINSTlastWallTime;
+
 
 struct timer_buf {
     unsigned int high;
@@ -224,7 +234,7 @@ typedef union {
 
 volatile unsigned int *ni; /* zxu deleted "static" (unneeded; clashes w/blz) */
 volatile struct timer_buf timerBuffer;
-void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
+void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush,time64 wall_time, time64 process_time) ;
 
 int  must_end_timeslice()      /* changed to return int */
 {
@@ -542,6 +552,8 @@ void set_timer_buf(volatile struct timer_buf *param)
     asm("ta 0x8");
 }
 
+time64 startWall;           /* zxu deleted storage class static for 
+                               blz_RTcm5_pn.c */
 
 
 void DYNINSTreportTimer(tTimer *timer)
@@ -552,21 +564,26 @@ void DYNINSTreportTimer(tTimer *timer)
     time64 now=0;
     time64 total;
     traceSample sample;
+    time64 pTime, wall_time, process_time;
+
+   wall_time = getWallTime();
+   process_time = getProcessTime();
 
 #ifdef COSTTEST
     time64 startT, endT;
     startT = DYNINSTgetCPUtime();
 #endif
 
+
     if (timer->mutex) {
 	total = timer->snapShot;
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	   now = getProcessTime();
+	   now = process_time;
 	   total = now - timer->start;
 	} else {
-           now = getWallTime();   
+           now = wall_time;   
 	   total = now - timer->start;
 	}
 	total += timer->total;
@@ -601,7 +618,12 @@ void DYNINSTreportTimer(tTimer *timer)
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
     DYNINSTtotalSamples++;
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample),&sample,RT_FALSE);
+
+    wall_time += startWall;
+    wall_time /= NI_CLK_USEC;
+    process_time /= NI_CLK_USEC;
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample),&sample,RT_FALSE,
+			wall_time,process_time);
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -611,8 +633,6 @@ void DYNINSTreportTimer(tTimer *timer)
 }
 
 
-time64 startWall;           /* zxu deleted storage class static for 
-                               blz_RTcm5_pn.c */
 int DYNINSTnoHandlers;
 int DYNINSTinitDone;        /* zxu deleted storage class static */
 time64 DYNINSTelapsedTime;
@@ -732,22 +752,16 @@ void DYNINSTexit()
  *
  */
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData, int flush)
+    void *eventData, int flush,time64 wall_time,time64 process_time)
 {
     int count;
-    time64 pTime;
     char buffer[1024];
     traceHeader header;
 
     if (!DYNINSTinitDone) return;
 
-    CMOS_get_time(&header.wall);
-    header.wall += startWall;
-    header.wall /= NI_CLK_USEC;
-
-    CMOS_get_times(&header.process,&pTime);
-    header.process -= pTime;
-    header.process /= NI_CLK_USEC;
+    header.wall = wall_time;
+    header.process = process_time;
 
     length = ALIGN_TO_WORDSIZE(length); 
 
@@ -791,6 +805,14 @@ void DYNINSTprintCost()
     time64 endWall;
     struct endStatsRec stats;
     extern int64 DYNINSTgetObservedCycles(RT_Boolean);
+    time64 pTime, wall_time, process_time;
+
+    wall_time = getWallTime();
+    wall_time += startWall;
+    wall_time /= NI_CLK_USEC;
+
+    process_time = getProcessTime();
+    process_time /= NI_CLK_USEC;
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     CMOS_get_time(&endWall);
@@ -818,7 +840,8 @@ void DYNINSTprintCost()
 
     /* record that we are done -- should be somewhere better. */
     DYNINSTtotalSamples++;
-    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1,
+				wall_time,process_time);
 }
 
 
@@ -877,5 +900,113 @@ void restoreFPUstate(float *base)
 int callFunc(int x)
 {
 	return x ;
+}
+
+void DYNINSTreportCounter(intCounter *counter)
+{
+    traceSample sample;
+    time64 process_time;
+    time64 wall_time;
+
+    wall_time = getWallTime();
+    wall_time += startWall;
+    wall_time /= NI_CLK_USEC;
+
+    process_time = getProcessTime();
+    process_time /= NI_CLK_USEC;
+
+
+    sample.value = counter->value;
+    sample.id = counter->id;
+    DYNINSTtotalSamples++;
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+				wall_time, process_time);
+}
+
+
+void DYNINSTreportBaseTramps()
+{
+    costUpdate sample;
+    time64 currentCPU;
+    time64 currentWall;
+    time64 elapsedWallTime;
+    static time64 elapsedPauseTime = 0;
+    time64 wall_time,process_time;
+
+    sample.slotsExecuted = 0;
+
+    /*
+    // Adding the cost corresponding to the alarm when it goes off.
+    // This value includes the time spent inside the routine (DYNINSTtotal-
+    // sampleTime) plus the time spent during the context switch (106 usecs
+    // for monona, CM-5)
+    */
+
+    sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
+                              (double)DYNINSTcyclesToUsec) + 
+                             DYNINSTtotalSampleTime + 106) / 1000000.0);
+
+    wall_time = getWallTime();
+    currentWall =  wall_time/(time64)NI_CLK_USEC;
+    wall_time += startWall;
+    wall_time /= NI_CLK_USEC;
+
+    process_time = getProcessTime();
+    process_time /= (time64)NI_CLK_USEC;
+
+    currentCPU = process_time;
+    elapsedWallTime = currentWall - DYNINSTlastWallTime;
+    elapsedPauseTime += elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
+    sample.pauseTime = ((double) elapsedPauseTime);
+    sample.pauseTime /= 1000000.0;
+    DYNINSTlastWallTime = currentWall;
+    DYNINSTlastCPUTime = currentCPU;
+
+    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), 
+	&sample, 0,wall_time,process_time);
+}
+
+void DYNINSTreportCost(intCounter *counter)
+{
+    /*
+     *     This should eventually be replaced by the normal code to report
+     *     a mapped counter???
+     */
+
+    double cost;
+    int64 value; 
+    static double prevCost;
+    traceSample sample;
+    time64 process_time;
+    time64 wall_time;
+
+    wall_time = getWallTime();
+    wall_time += startWall;
+    wall_time /= NI_CLK_USEC;
+    process_time = getProcessTime();
+    process_time /= NI_CLK_USEC;
+
+    value = DYNINSTgetObservedCycles(1);
+
+    cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
+
+    if (cost < prevCost) {
+	fprintf(stderr, "Fatal Error Cost counter went backwards\n");
+	fflush(stderr);
+	abort();
+    }
+
+    prevCost = cost;
+
+    /* temporary until CM-5 aggregation code can handle avg operator */
+    if (DYNINSTnprocs) cost /= DYNINSTnprocs;
+
+    sample.value = cost;
+    sample.id = counter->id;
+    DYNINSTtotalSamples++;
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+				wall_time,process_time);
+
 }
 

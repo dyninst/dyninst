@@ -3,7 +3,12 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.27  1996/03/01 22:29:07  mjrg
+ * Revision 1.28  1996/03/08 18:48:17  newhall
+ * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
+ * a bug that occured when the appl. is paused between reading a timer to compute
+ * a metric value and reading a timer again to compute a header value.
+ *
+ * Revision 1.27  1996/03/01  22:29:07  mjrg
  * Added type to resources.
  * Added function DYNINSTexit for better support for exit from the application.
  * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
@@ -121,56 +126,25 @@ extern int *DYNINSTtestN;
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWallTime(void);
 /* zxu added the following */
-extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
+extern void DYNINSTgenerateTraceRecord(traceStream sid,short type,short length,
+				      void *eventData, int flush,
+				      time64 wall_time,time64 process_time) ;
 extern void saveFPUstate(float *base) ;
 void restoreFPUstate(float *base) ;
 void DYNINSTflushTrace() ;
 
 /* see note below - jkh 10/19/94 */
-int DYNINSTnprocs;
 int DYNINSTnumSampled;
 int DYNINSTnumReported;
-int DYNINSTtotalSamples;
 float DYNINSTsamplingRate;
-time64 DYNINSTlastCPUTime;
-time64 DYNINSTlastWallTime;
 int DYNINSTtotalAlaramExpires;
 char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
+time64 DYNINSTtotalSampleTime;
 
 /* Prevents timers from being started-stopped during alarm handling */
 int DYNINSTin_sample = 0;
 
-/*
- * for now costCount is in cycles. 
- */
-float DYNINSTcyclesToUsec;
-time64 DYNINSTtotalSampleTime;
-
-void DYNINSTreportCounter(intCounter *counter)
-/*
- * also total ; i will chage to asynchronous samping anyway.
- */
-{
-    traceSample sample;
-
-#ifdef COSTTEST
-    time64 startT, endT;
-    startT=DYNINSTgetCPUtime();
-#endif
-
-    /* printf("DYNINSTreportCounter ...\n") ;  */
-    sample.value = counter->value;
-    sample.id = counter->id;
-    DYNINSTtotalSamples++;
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[6]+=endT-startT;
-    DYNINSTtestN[6]++;
-#endif 
-}
 
 void DYNINSTsimplePrint()
 {
@@ -258,85 +232,6 @@ int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
     DYNINSTobsCostLow = 0;
     return value;
 }
-void DYNINSTreportBaseTramps()
-{
-    costUpdate sample;
-    time64 currentCPU;
-    time64 currentWall;
-    time64 elapsedWallTime;
-    static time64 elapsedPauseTime = 0;
-
-    sample.slotsExecuted = 0;
-
-    /*
-    // Adding the cost corresponding to the alarm when it goes off.
-    // This value includes the time spent inside the routine (DYNINSTtotal-
-    // sampleTime) plus the time spent during the context switch (106 usecs
-    // for monona, CM-5)
-    */
-
-    sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
-                              (double)DYNINSTcyclesToUsec) + 
-                             DYNINSTtotalSampleTime + 106) / 1000000.0);
-
-    currentCPU = DYNINSTgetCPUtime();
-    currentWall = DYNINSTgetWallTime();
-    elapsedWallTime = currentWall - DYNINSTlastWallTime;
-    elapsedPauseTime += elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
-    sample.pauseTime = ((double) elapsedPauseTime);
-    sample.pauseTime /= 1000000.0;
-    DYNINSTlastWallTime = currentWall;
-    DYNINSTlastCPUTime = currentCPU;
-
-    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), 
-	&sample, 0);
-}
-
-void DYNINSTreportCost(intCounter *counter)
-{
-    /*
-     *     This should eventually be replaced by the normal code to report
-     *     a mapped counter???
-     */
-
-    double cost;
-    int64 value; 
-    static double prevCost;
-    traceSample sample;
-
-#ifdef COSTTEST
-    time64 startT, endT;
-    startT=DYNINSTgetCPUtime();
-#endif
-
-    value = DYNINSTgetObservedCycles(1);
-
-    cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
-
-    if (cost < prevCost) {
-	fprintf(stderr, "Fatal Error Cost counter went backwards\n");
-	fflush(stderr);
-	abort();
-    }
-
-    prevCost = cost;
-
-    /* temporary until CM-5 aggregation code can handle avg operator */
-    if (DYNINSTnprocs) cost /= DYNINSTnprocs;
-
-    sample.value = cost;
-    sample.id = counter->id;
-    DYNINSTtotalSamples++;
-
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[7]+=endT-startT;
-    DYNINSTtestN[7]++;
-#endif 
-}
-
 
 /* This function is called from DYNINSTinit, DYNINSTalarmExpire, and DYNINSTexit,
    to report samples.

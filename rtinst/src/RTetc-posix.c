@@ -534,14 +534,14 @@ DYNINSTflushTrace(void) {
 
 /************************************************************************
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
- *                                 short length, void* data, int flush)
+ *   short length, void* data, int flush,time64 wall_time,time64 process_time)
 ************************************************************************/
 
 static time64 startWall = 0;
 
 void
 DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData, int flush) {
+    void *eventData, int flush,time64 wall_time,time64 process_time) {
     int             ret;
     static unsigned pipe_gone = 0;
     traceHeader     header;
@@ -552,8 +552,17 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
         return;
     }
 
-    header.wall    = DYNINSTgetWalltime() - startWall;
-    header.process = DYNINSTgetCPUtime();
+    header.wall    = wall_time - startWall;
+    header.process = process_time;
+#ifdef ndef
+    if(type == TR_SAMPLE){
+	 traceSample *s = (traceSample*)eventData;
+         printf("wall time = %f processTime = %f value = %f\n",
+		(double)(header.wall/1000000.0), 
+		(double)(header.process/1000000.0),
+		s->value);
+    }
+#endif
 
     length = ALIGN_TO_WORDSIZE(length);
 
@@ -658,7 +667,8 @@ DYNINSTreportBaseTramps() {
     }
 #endif
 
-    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), &sample, 0);
+    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), &sample, 0,
+				currentWall,currentCPU);
 }
 
 
@@ -901,15 +911,18 @@ DYNINSTreportTimer(tTimer *timer) {
     startT = DYNINSTgetCPUtime();
 #endif
 
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+
     if (timer->mutex) {
         total = timer->snapShot;
     }
     else if (timer->counter) {
         /* timer is running */
         if (timer->type == processTime) {
-            now = DYNINSTgetCPUtime();
+            now = process_time;
         } else {
-            now = DYNINSTgetWalltime();
+            now = wall_time;
         }
         total = now - timer->start + timer->total;
     }
@@ -946,8 +959,13 @@ DYNINSTreportTimer(tTimer *timer) {
     sample.value = ((double) total) / (double) timer->normalize;
     DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
-    /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
+#ifdef ndef
+    printf("raw sample %d = %f time = %f\n", sample.id.id, sample.value,
+				(double)(now/1000000.0));  
+#endif
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+				wall_time,process_time);
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
     DYNINSTtest[5]+=endT-startT;
@@ -969,6 +987,8 @@ void
 DYNINSTfork(void* arg, int pid) {
     int sid = 0;
     traceFork forkRec;
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
 
     printf("fork called with pid = %d\n", pid);
     fflush(stdout);
@@ -977,7 +997,8 @@ DYNINSTfork(void* arg, int pid) {
         forkRec.pid    = pid;
         forkRec.npids  = 1;
         forkRec.stride = 0;
-        DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1);
+        DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1,
+				wall_time,process_time);
     } else {
         DYNINSTinit(1);
     }
@@ -999,6 +1020,7 @@ DYNINSTprintCost(void) {
     time64 now;
     int64 value;
     struct endStatsRec stats;
+    time64 wall_time; 
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
@@ -1014,6 +1036,7 @@ DYNINSTprintCost(void) {
     stats.handlerCost = (double)DYNINSTtotalSampleTime/(double)MILLION;
 
     now = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWalltime();
     stats.totalCpuTime  = (double)DYNINSTelapsedCPUTime.total/(double)MILLION;
     stats.totalWallTime = (double)DYNINSTelapsedTime.total/(double)MILLION;
 
@@ -1022,6 +1045,7 @@ DYNINSTprintCost(void) {
 
     stats.userTicks = 0;
     stats.instTicks = 0;
+
 
     fp = fopen("stats.out", "w");
 
@@ -1078,7 +1102,8 @@ DYNINSTprintCost(void) {
 #endif
 
     /* record that we are done -- should be somewhere better. */
-    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1,
+		wall_time,now);
 }
 
 
@@ -1133,6 +1158,9 @@ DYNINSTreportNewTags(void) {
     static int lastTagCount=0;
     struct _newresource newRes;
 
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+
 #ifdef COSTTEST
     time64 startT,endT;
     startT=DYNINSTgetCPUtime();
@@ -1144,7 +1172,7 @@ DYNINSTreportNewTags(void) {
         strcpy(newRes.abstraction, "BASE");
 	newRes.type = RES_TYPE_INT;
         DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
-            sizeof(struct _newresource), &newRes, 1);
+            sizeof(struct _newresource), &newRes, 1,wall_time,process_time);
     }
     lastTagCount = DYNINSTtagCount;
 
@@ -1173,12 +1201,14 @@ DYNINSTreportCounter(intCounter* counter) {
     time64 startT, endT;
     startT=DYNINSTgetCPUtime();
 #endif
-
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
     sample.value = counter->value;
     sample.id    = counter->id;
     DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+			wall_time,process_time);
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -1232,6 +1262,8 @@ DYNINSTreportCost(intCounter *counter) {
     double        cost;
     static double prev_cost = 0;
     traceSample   sample;
+    time64 process_time;
+    time64 wall_time;
 
 #ifdef COSTTEST
     time64 startT, endT;
@@ -1258,7 +1290,11 @@ DYNINSTreportCost(intCounter *counter) {
     sample.id    = counter->id;
     DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof sample, &sample, 0);
+    process_time = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWalltime();
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof sample, &sample, 0,
+				wall_time,process_time);
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -1271,6 +1307,8 @@ DYNINSTreportCost(intCounter *counter) {
 void
 DYNINSTreportObsCostLow(intCounter *counter) {
     traceSample   sample;
+    time64 process_time;
+    time64 wall_time;
 
 #ifdef USE_PROF
     if (DYNINSTprofile) {
@@ -1303,8 +1341,11 @@ DYNINSTreportObsCostLow(intCounter *counter) {
 	sample.value = 0;
 	sample.id    = counter->id;
 	DYNINSTtotalSamples++;
+        process_time = DYNINSTgetCPUtime();
+        wall_time = DYNINSTgetWalltime();
 
-	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof sample, &sample, 0);
+	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof sample, &sample, 0,
+			wall_time,process_time);
     }
 }
 
