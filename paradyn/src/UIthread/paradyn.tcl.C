@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.54  1995/11/07 03:11:31  tamches
-/* allowed blank directory names in paradynProcessCmd, fixing a bug of last commit
+/* Revision 1.55  1995/11/08 05:11:10  tamches
+/* no longer prints a msg when a tunable constant value is changed
 /*
+ * Revision 1.54  1995/11/07 03:11:31  tamches
+ * allowed blank directory names in paradynProcessCmd, fixing a bug of last commit
+ *
  * Revision 1.53  1995/11/07 01:31:45  tamches
  * directory names in the "start a process" dialog box can now begin
  * with ~ or ~some-user-name.  This solution was modeled after
@@ -779,7 +782,7 @@ int ParadynSetCmd (ClientData,
         return TCL_ERROR;
      else {
         tunableConstantRegistry::setBoolTunableConstant(argv[1], (bool)boolVal);
-        cout << "tunable boolean constant " << argv[1] << " set to " << boolVal << endl;
+//        cout << "tunable boolean constant " << argv[1] << " set to " << boolVal << endl;
      }
   }
   else {
@@ -788,7 +791,7 @@ int ParadynSetCmd (ClientData,
         return TCL_ERROR;
      else {
         tunableConstantRegistry::setFloatTunableConstant(argv[1], (float)doubleVal);
-        cout << "tunable float constant " << argv[1] << " set to " << doubleVal << endl;
+//        cout << "tunable float constant " << argv[1] << " set to " << doubleVal << endl;
      }
   }
 
