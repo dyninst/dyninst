@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-mips.S,v 1.5 1999/09/01 15:21:11 wylie Exp $ */
+/* $Id: tramp-mips.S,v 1.6 2000/03/02 23:25:06 mihai Exp $ */
 
 /*  base trampoline template layout: 
  *
@@ -63,7 +63,15 @@
  *  (end of trampoline)      
  */
 
-
+/* mihai Mon Feb 21 14:34:06 CST 2000
+ *
+ * WARNING! WARNING! WARNING! WARNING!
+ *
+ * If you modify the base tramp layout
+ * or contents in any way, make sure you synchronize
+ * the changes with the baseNonRecursiveTramp
+ * below.
+ */
 	
 /* code directives */
 .text
@@ -88,6 +96,7 @@
 .globl baseTramp_restorePostInsn
 .globl baseTramp_returnInsn
 .globl baseTramp_endTramp
+
 .globl _baseTramp
 .globl _baseTramp_savePreInsn
 .globl _baseTramp_skipPreInsn
@@ -185,7 +194,7 @@ _baseTramp_skipPreInsn:
 	nop
 	nop
 	
-baseTramp_globalPreBranch:	
+baseTramp_globalPreBranch:
 _baseTramp_globalPreBranch:	
 /* what is this slot for? */
 
@@ -204,8 +213,8 @@ _baseTramp_localPreBranch:
 baseTramp_localPreReturn:	
 _baseTramp_localPreReturn:	
 
-baseTramp_updateCostInsn:	
-_baseTramp_updateCostInsn:	
+baseTramp_updateCostInsn:
+_baseTramp_updateCostInsn:
 /* must be big enough for emitted "updateCost" code */
 /* worst case: genLoadConst + load + genLoadConst + add + store */
 /* worst case: 6 + 1 + 6 + 1 + 1 = 15 */
@@ -473,3 +482,518 @@ _baseTramp_endTramp:
 /* no code needed here */
 	
 .end baseTramp
+
+/* mihai Mon Feb 21 14:13:00 CST 2000
+ * This base trampoline is a copy of the base trampoling above
+ * with the recursive guard code inserted. Such a trampoline
+ * prevents execution to entry a mini-tramp once inside a
+ * mini-tramp.
+ */
+
+/*  base trampoline with no recursion template layout: 
+ *
+ *  pre-instrumentation
+ *    - save registers
+ *    - [slot to skip pre-instr]
+ *    - turn on recursive guard flag
+ *    - [slot for global pre-instr]
+ *    - [slot for local pre-instr]
+ *    - turn off recursive guard flag
+ *    - update instr cost
+ *    - restore registers
+ *  displaced insns
+ *    - emulate insns
+ *  post-instrumentation
+ *    - [slot to skip post-instr]
+ *    - save registers
+ *    - turn on recursive guard flag
+ *    - [slot for global post-instr]
+ *    - [slot for local post-instr]
+ *    - turn off recursive guard flag
+ *    - restore registers
+ *  return to app
+ *    - jump to user code
+ *  (end of trampoline)      
+ */
+	
+/* code directives */
+.text
+.set noreorder  /* no delay slot scheduling */
+.set nomacro    /* no code expansion */
+
+/* exported symbols */
+.globl baseNonRecursiveTramp
+.globl baseNonRecursiveTramp_savePreInsn
+.globl baseNonRecursiveTramp_skipPreInsn
+.globl baseNonRecursiveTramp_globalPreBranch
+.globl baseNonRecursiveTramp_localPreBranch
+.globl baseNonRecursiveTramp_localPreReturn
+.globl baseNonRecursiveTramp_updateCostInsn
+.globl baseNonRecursiveTramp_restorePreInsn
+.globl baseNonRecursiveTramp_emulateInsn
+.globl baseNonRecursiveTramp_skipPostInsn
+.globl baseNonRecursiveTramp_savePostInsn
+.globl baseNonRecursiveTramp_globalPostBranch
+.globl baseNonRecursiveTramp_localPostBranch
+.globl baseNonRecursiveTramp_localPostReturn
+.globl baseNonRecursiveTramp_restorePostInsn
+.globl baseNonRecursiveTramp_returnInsn
+.globl baseNonRecursiveTramp_endTramp
+
+.globl baseNonRecursiveTramp_guardOnPre_begin
+.globl baseNonRecursiveTramp_guardOffPre_begin
+.globl baseNonRecursiveTramp_guardOnPost_begin
+.globl baseNonRecursiveTramp_guardOffPost_begin
+.globl baseNonRecursiveTramp_guardOnPre_end
+.globl baseNonRecursiveTramp_guardOffPre_end
+.globl baseNonRecursiveTramp_guardOnPost_end
+.globl baseNonRecursiveTramp_guardOffPost_end
+
+.globl _baseNonRecursiveTramp
+.globl _baseNonRecursiveTramp_savePreInsn
+.globl _baseNonRecursiveTramp_skipPreInsn
+.globl _baseNonRecursiveTramp_globalPreBranch
+.globl _baseNonRecursiveTramp_localPreBranch
+.globl _baseNonRecursiveTramp_localPreReturn
+.globl _baseNonRecursiveTramp_updateCostInsn
+.globl _baseNonRecursiveTramp_restorePreInsn
+.globl _baseNonRecursiveTramp_emulateInsn
+.globl _baseNonRecursiveTramp_skipPostInsn
+.globl _baseNonRecursiveTramp_savePostInsn
+.globl _baseNonRecursiveTramp_globalPostBranch
+.globl _baseNonRecursiveTramp_localPostBranch
+.globl _baseNonRecursiveTramp_localPostReturn
+.globl _baseNonRecursiveTramp_restorePostInsn
+.globl _baseNonRecursiveTramp_returnInsn
+.globl _baseNonRecursiveTramp_endTramp
+
+.globl _baseNonRecursiveTramp_guardOnPre_begin
+.globl _baseNonRecursiveTramp_guardOffPre_begin
+.globl _baseNonRecursiveTramp_guardOnPost_begin
+.globl _baseNonRecursiveTramp_guardOffPost_begin
+.globl _baseNonRecursiveTramp_guardOnPre_end
+.globl _baseNonRecursiveTramp_guardOffPre_end
+.globl _baseNonRecursiveTramp_guardOnPost_end
+.globl _baseNonRecursiveTramp_guardOffPost_end
+
+/* function body */
+.ent baseNonRecursiveTramp
+baseNonRecursiveTramp:
+_baseNonRecursiveTramp:	
+
+/* save registers */
+baseNonRecursiveTramp_savePreInsn:	
+_baseNonRecursiveTramp_savePreInsn:
+	daddiu	$sp,$sp,-512
+	sdc1	 $f0,504($sp)
+	sdc1	 $f1,496($sp)
+	sdc1	 $f2,488($sp)
+	sdc1	 $f3,480($sp)
+	sdc1	 $f4,472($sp)
+	sdc1	 $f5,464($sp)
+	sdc1	 $f6,456($sp)
+	sdc1	 $f7,448($sp)
+	sdc1	 $f8,440($sp)
+	sdc1	 $f9,432($sp)
+	sdc1	$f10,424($sp)
+	sdc1	$f11,416($sp)
+	sdc1	$f12,408($sp)
+	sdc1	$f13,400($sp)
+	sdc1	$f14,392($sp)
+	sdc1	$f15,384($sp)
+	sdc1	$f16,376($sp)
+	sdc1	$f17,368($sp)
+	sdc1	$f18,360($sp)
+	sdc1	$f19,352($sp)
+	sdc1	$f20,344($sp)
+	sdc1	$f21,336($sp)
+	sdc1	$f22,328($sp)
+	sdc1	$f23,320($sp)
+	sdc1	$f24,312($sp)
+	sdc1	$f25,304($sp)
+	sdc1	$f26,296($sp)
+	sdc1	$f27,288($sp)
+	sdc1	$f28,280($sp)
+	sdc1	$f29,272($sp)
+	sdc1	$f30,264($sp)
+	sdc1	$f31,256($sp)
+	sd	  $0,248($sp)
+	sd	  $1,240($sp)
+	sd	  $2,232($sp)
+	sd	  $3,224($sp)
+	sd	  $4,216($sp)
+	sd	  $5,208($sp)
+	sd	  $6,200($sp)
+	sd	  $7,192($sp)
+	sd	  $8,184($sp)
+	sd	  $9,176($sp)
+	sd	 $10,168($sp)
+	sd	 $11,160($sp)
+	sd	 $12,152($sp)
+	sd	 $13,144($sp)
+	sd	 $14,136($sp)
+	sd	 $15,128($sp)
+	sd	 $16,120($sp)
+	sd	 $17,112($sp)
+	sd	 $18,104($sp)
+	sd	 $19, 96($sp)
+	sd	 $20, 88($sp)
+	sd	 $21, 80($sp)
+	sd	 $22, 72($sp)
+	sd	 $23, 64($sp)
+	sd	 $24, 56($sp)
+	sd	 $25, 48($sp)
+	sd	 $26, 40($sp)
+	sd	 $27, 32($sp)
+	sd	 $28, 24($sp)
+	sd	 $29, 16($sp)
+	sd	 $30,  8($sp)
+	sd	 $31,  0($sp)
+		
+baseNonRecursiveTramp_skipPreInsn:	
+_baseNonRecursiveTramp_skipPreInsn:
+	nop
+	nop
+	
+baseNonRecursiveTramp_guardOnPre_begin:
+_baseNonRecursiveTramp_guardOnPre_begin:
+	nop			/* lui $t0, bits 63-48 of address      */
+	nop			/* ori $t0, $t0, bits 47-32 of address */
+	nop			/* lui $t1, bits 31-16 of address      */
+	nop			/* ori $t1, $t1, bits 15- 0 of address */
+	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0		       */
+	or $13, $12, $13	/* or $t1, $t0, $t1                    */
+	lw $12, 0($13)		/* lw $t0, 0($t1)                      */
+	nop			/* beq $t0, $zero, guardOffPre_end     */
+	sw $0, 0($13)		/* sw $zero, 0($t1)                    */
+baseNonRecursiveTramp_guardOnPre_end:
+_baseNonRecursiveTramp_guardOnPre_end:
+
+baseNonRecursiveTramp_globalPreBranch:
+_baseNonRecursiveTramp_globalPreBranch:	
+/* what is this slot for? */
+
+baseNonRecursiveTramp_localPreBranch:	
+_baseNonRecursiveTramp_localPreBranch:	
+/* just in case, leave enough room for a long jump (8-insn sequence) */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+baseNonRecursiveTramp_localPreReturn:	
+_baseNonRecursiveTramp_localPreReturn:	
+
+baseNonRecursiveTramp_guardOffPre_begin:
+_baseNonRecursiveTramp_guardOffPre_begin:
+	nop			/* lui $t0, bits 63-48 of address      */
+	nop			/* ori $t0, $t0, bits 47-32 of address */
+	nop			/* lui $t1, bits 31-16 of address      */
+	nop			/* ori $t1, $t1, bits 15- 0 of address */
+	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	or $13, $12, $13	/* or $t1, $t0, $t1                    */
+	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
+	sw $12, 0($13)		/* sw $zero, 0($t1)                    */
+baseNonRecursiveTramp_guardOffPre_end:
+_baseNonRecursiveTramp_guardOffPre_end:
+
+baseNonRecursiveTramp_updateCostInsn:
+_baseNonRecursiveTramp_updateCostInsn:
+/* must be big enough for emitted "updateCost" code */
+/* worst case: genLoadConst + load + genLoadConst + add + store */
+/* worst case: 6 + 1 + 6 + 1 + 1 = 15 */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+/* restore registers */
+	ldc1	 $f0,504($sp)
+	ldc1	 $f1,496($sp)
+	ldc1	 $f2,488($sp)
+	ldc1	 $f3,480($sp)
+	ldc1	 $f4,472($sp)
+	ldc1	 $f5,464($sp)
+	ldc1	 $f6,456($sp)
+	ldc1	 $f7,448($sp)
+	ldc1	 $f8,440($sp)
+	ldc1	 $f9,432($sp)
+	ldc1	$f10,424($sp)
+	ldc1	$f11,416($sp)
+	ldc1	$f12,408($sp)
+	ldc1	$f13,400($sp)
+	ldc1	$f14,392($sp)
+	ldc1	$f15,384($sp)
+	ldc1	$f16,376($sp)
+	ldc1	$f17,368($sp)
+	ldc1	$f18,360($sp)
+	ldc1	$f19,352($sp)
+	ldc1	$f20,344($sp)
+	ldc1	$f21,336($sp)
+	ldc1	$f22,328($sp)
+	ldc1	$f23,320($sp)
+	ldc1	$f24,312($sp)
+	ldc1	$f25,304($sp)
+	ldc1	$f26,296($sp)
+	ldc1	$f27,288($sp)
+	ldc1	$f28,280($sp)
+	ldc1	$f29,272($sp)
+	ldc1	$f30,264($sp)
+	ldc1	$f31,256($sp)
+	ld	  $0,248($sp)
+	ld	  $1,240($sp)
+	ld	  $2,232($sp)
+	ld	  $3,224($sp)
+	ld	  $4,216($sp)
+	ld	  $5,208($sp)
+	ld	  $6,200($sp)
+	ld	  $7,192($sp)
+	ld	  $8,184($sp)
+	ld	  $9,176($sp)
+	ld	 $10,168($sp)
+	ld	 $11,160($sp)
+	ld	 $12,152($sp)
+	ld	 $13,144($sp)
+	ld	 $14,136($sp)
+	ld	 $15,128($sp)
+	ld	 $16,120($sp)
+	ld	 $17,112($sp)
+	ld	 $18,104($sp)
+	ld	 $19, 96($sp)
+	ld	 $20, 88($sp)
+	ld	 $21, 80($sp)
+	ld	 $22, 72($sp)
+	ld	 $23, 64($sp)
+	ld	 $24, 56($sp)
+	ld	 $25, 48($sp)
+	ld	 $26, 40($sp)
+	ld	 $27, 32($sp)
+	ld	 $28, 24($sp)
+	ld	 $29, 16($sp)
+	ld	 $30,  8($sp)
+	ld	 $31,  0($sp)
+baseNonRecursiveTramp_restorePreInsn:	
+_baseNonRecursiveTramp_restorePreInsn:
+	daddiu	$sp,$sp,512
+	
+baseNonRecursiveTramp_emulateInsn:	
+_baseNonRecursiveTramp_emulateInsn:	
+	nop	/* displaced insn (jump) */
+	nop	/* displaced insn (delay slot) */
+/* TODO - this should be big enough to accomodate
+   the largest possible instPoint footprint (= ???) */
+	
+baseNonRecursiveTramp_skipPostInsn:	
+_baseNonRecursiveTramp_skipPostInsn:	
+	nop
+        nop
+
+/* save registers */
+baseNonRecursiveTramp_savePostInsn:	
+_baseNonRecursiveTramp_savePostInsn:
+	daddiu	$sp,$sp,-512
+	sdc1	 $f0,504($sp)
+	sdc1	 $f1,496($sp)
+	sdc1	 $f2,488($sp)
+	sdc1	 $f3,480($sp)
+	sdc1	 $f4,472($sp)
+	sdc1	 $f5,464($sp)
+	sdc1	 $f6,456($sp)
+	sdc1	 $f7,448($sp)
+	sdc1	 $f8,440($sp)
+	sdc1	 $f9,432($sp)
+	sdc1	$f10,424($sp)
+	sdc1	$f11,416($sp)
+	sdc1	$f12,408($sp)
+	sdc1	$f13,400($sp)
+	sdc1	$f14,392($sp)
+	sdc1	$f15,384($sp)
+	sdc1	$f16,376($sp)
+	sdc1	$f17,368($sp)
+	sdc1	$f18,360($sp)
+	sdc1	$f19,352($sp)
+	sdc1	$f20,344($sp)
+	sdc1	$f21,336($sp)
+	sdc1	$f22,328($sp)
+	sdc1	$f23,320($sp)
+	sdc1	$f24,312($sp)
+	sdc1	$f25,304($sp)
+	sdc1	$f26,296($sp)
+	sdc1	$f27,288($sp)
+	sdc1	$f28,280($sp)
+	sdc1	$f29,272($sp)
+	sdc1	$f30,264($sp)
+	sdc1	$f31,256($sp)
+	sd	  $0,248($sp)
+	sd	  $1,240($sp)
+	sd	  $2,232($sp)
+	sd	  $3,224($sp)
+	sd	  $4,216($sp)
+	sd	  $5,208($sp)
+	sd	  $6,200($sp)
+	sd	  $7,192($sp)
+	sd	  $8,184($sp)
+	sd	  $9,176($sp)
+	sd	 $10,168($sp)
+	sd	 $11,160($sp)
+	sd	 $12,152($sp)
+	sd	 $13,144($sp)
+	sd	 $14,136($sp)
+	sd	 $15,128($sp)
+	sd	 $16,120($sp)
+	sd	 $17,112($sp)
+	sd	 $18,104($sp)
+	sd	 $19, 96($sp)
+	sd	 $20, 88($sp)
+	sd	 $21, 80($sp)
+	sd	 $22, 72($sp)
+	sd	 $23, 64($sp)
+	sd	 $24, 56($sp)
+	sd	 $25, 48($sp)
+	sd	 $26, 40($sp)
+	sd	 $27, 32($sp)
+	sd	 $28, 24($sp)
+	sd	 $29, 16($sp)
+	sd	 $30,  8($sp)
+	sd	 $31,  0($sp)
+
+baseNonRecursiveTramp_guardOnPost_begin:
+_baseNonRecursiveTramp_guardOnPost_begin:
+	nop			/* lui $t0,      bits 63-48 of address */
+	nop			/* ori $t0, $t0, bits 47-32 of address */
+	nop			/* lui $t1,      bits 31-16 of address */
+	nop			/* ori $t1, $t1, bits 15- 0 of address */
+	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	or $13, $12, $13	/* or $t1, $t0, $t1                    */
+	lw $12, 0($13)		/* lw $t0, 0($t1)                      */
+	nop			/* beq $t0, $zero, guardOffPost_end    */
+	sw $0, 0($13)		/* sw $zero, 0($t1)                    */
+baseNonRecursiveTramp_guardOnPost_end:
+_baseNonRecursiveTramp_guardOnPost_end:
+
+baseNonRecursiveTramp_globalPostBranch:	
+_baseNonRecursiveTramp_globalPostBranch:	
+/* what is this slot for? */
+
+baseNonRecursiveTramp_localPostBranch:	
+_baseNonRecursiveTramp_localPostBranch:	
+/* just in case, leave enough room for a long jump (8-insn sequence) */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+baseNonRecursiveTramp_localPostReturn:	
+_baseNonRecursiveTramp_localPostReturn:	
+
+baseNonRecursiveTramp_guardOffPost_begin:
+_baseNonRecursiveTramp_guardOffPost_begin:
+	nop			/* lui $t0,      bits 63-48 of address */
+	nop			/* ori $t0, $t0, bits 47-32 of address */
+	nop			/* lui $t1,      bits 31-16 of address */
+	nop			/* ori $t1, $t1, bits 15- 0 of address */
+	dsll32 $12, $12, 0	/* dsll32 $t0, $t0, 0                  */
+	or $13, $12, $13	/* or $t1, $t0, $t1                    */
+	addi $12, $0, 1		/* addi $t0, $zero, 1                  */
+	sw $12, 0($13)		/* sw 1, 0($t1)                        */
+baseNonRecursiveTramp_guardOffPost_end:
+_baseNonRecursiveTramp_guardOffPost_end:
+
+/* restore registers */
+	ldc1	 $f0,504($sp)
+	ldc1	 $f1,496($sp)
+	ldc1	 $f2,488($sp)
+	ldc1	 $f3,480($sp)
+	ldc1	 $f4,472($sp)
+	ldc1	 $f5,464($sp)
+	ldc1	 $f6,456($sp)
+	ldc1	 $f7,448($sp)
+	ldc1	 $f8,440($sp)
+	ldc1	 $f9,432($sp)
+	ldc1	$f10,424($sp)
+	ldc1	$f11,416($sp)
+	ldc1	$f12,408($sp)
+	ldc1	$f13,400($sp)
+	ldc1	$f14,392($sp)
+	ldc1	$f15,384($sp)
+	ldc1	$f16,376($sp)
+	ldc1	$f17,368($sp)
+	ldc1	$f18,360($sp)
+	ldc1	$f19,352($sp)
+	ldc1	$f20,344($sp)
+	ldc1	$f21,336($sp)
+	ldc1	$f22,328($sp)
+	ldc1	$f23,320($sp)
+	ldc1	$f24,312($sp)
+	ldc1	$f25,304($sp)
+	ldc1	$f26,296($sp)
+	ldc1	$f27,288($sp)
+	ldc1	$f28,280($sp)
+	ldc1	$f29,272($sp)
+	ldc1	$f30,264($sp)
+	ldc1	$f31,256($sp)
+	ld	  $0,248($sp)
+	ld	  $1,240($sp)
+	ld	  $2,232($sp)
+	ld	  $3,224($sp)
+	ld	  $4,216($sp)
+	ld	  $5,208($sp)
+	ld	  $6,200($sp)
+	ld	  $7,192($sp)
+	ld	  $8,184($sp)
+	ld	  $9,176($sp)
+	ld	 $10,168($sp)
+	ld	 $11,160($sp)
+	ld	 $12,152($sp)
+	ld	 $13,144($sp)
+	ld	 $14,136($sp)
+	ld	 $15,128($sp)
+	ld	 $16,120($sp)
+	ld	 $17,112($sp)
+	ld	 $18,104($sp)
+	ld	 $19, 96($sp)
+	ld	 $20, 88($sp)
+	ld	 $21, 80($sp)
+	ld	 $22, 72($sp)
+	ld	 $23, 64($sp)
+	ld	 $24, 56($sp)
+	ld	 $25, 48($sp)
+	ld	 $26, 40($sp)
+	ld	 $27, 32($sp)
+	ld	 $28, 24($sp)
+	ld	 $29, 16($sp)
+	ld	 $30,  8($sp)
+	ld	 $31,  0($sp)
+baseNonRecursiveTramp_restorePostInsn:	
+_baseNonRecursiveTramp_restorePostInsn:
+	daddiu	$sp,$sp,512
+	
+baseNonRecursiveTramp_returnInsn:	
+_baseNonRecursiveTramp_returnInsn:	
+	nop
+	nop
+
+baseNonRecursiveTramp_endTramp:	
+_baseNonRecursiveTramp_endTramp:	
+/* no code needed here */
+	
+.end baseNonRecursiveTramp
