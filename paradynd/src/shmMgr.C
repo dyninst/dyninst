@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.1 2002/05/02 21:28:32 schendel Exp $
+/* $Id: shmMgr.C,v 1.2 2002/05/03 15:50:03 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -60,7 +60,7 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
 {
   // Try to allocate shm segment now
   key_t key = shmSegKey;
-  cerr << "ShmSegment::Create(" << key << ", " << shmSize << ")\n";
+
   theShm = ShmSegment::Create( key, shmSize);
   if( theShm == NULL )
   {
@@ -72,7 +72,6 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   // Now, let's initialize some meta-data: cookie, process pid, paradynd pid,
   // cost.
   baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
-  cerr << "  shm base addr in daemon: " << (void*)baseAddrInDaemon << "\n";
   unsigned *ptr = reinterpret_cast<unsigned *>(baseAddrInDaemon);
   *ptr++ = cookie;
   *ptr++ = (unsigned)proc;
@@ -104,7 +103,7 @@ Address shmMgr::malloc(unsigned size) {
 }
 
 void shmMgr::free(Address /* addr */) {
-  cerr << "Free not implemented yet!" << endl;
+  // not implemented yet
 }
  
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.1 2002/05/02 21:28:33 schendel Exp $
+/* $Id: shmMgr.h,v 1.2 2002/05/03 15:50:04 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -97,7 +97,6 @@ class shmMgr {
     return reinterpret_cast<void*>(baseAddrInDaemon + 12);
   }
   void registerInferiorAttachedAt(void *applicAttachedAt) { 
-    cerr << "registering shmSeg at " << applicAttachedAt << "\n";
     baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
   }
 
