@@ -432,7 +432,7 @@ pl_startup(int num, struct hst **hostlist)
 	  fprintf(stderr, "pl_startup() select timeout is %lu.%06lu\n",
 		  tout.tv_sec, tout.tv_usec);
 	}
-      if ((n = select(nfds, &rfds, (fd_set*)0, (fd_set*)0, &tout)) == -1)
+      if ((n = P_select(nfds, &rfds, 0, 0, &tout)) == -1)
 	{
 	  if (errno != EINTR) {
 	    PDYN_goodbye("work() select");
