@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.46  1996/02/23 22:10:01  naim
-/* Adding igen call to display status line (fixes a deadlock situation) - naim
+/* Revision 1.47  1996/03/08 00:15:53  tamches
+/* where appropriate, some more showError() calls pass empty string as 2d arg
 /*
+ * Revision 1.46  1996/02/23 22:10:01  naim
+ * Adding igen call to display status line (fixes a deadlock situation) - naim
+ *
  * Revision 1.45  1996/02/21  22:28:10  tamches
  * correct handling of blank 2d arg to showError
  *
@@ -106,7 +109,7 @@ UIM::readStartupFile(const char *script)
     string tcommand = string("source \"") + string(script) + "\"";
 
     if (Tcl_Eval (interp, tcommand.string_of()) == TCL_ERROR)
-      uiMgr->showError(24, "Error reading tcl startup script");
+      uiMgr->showError(24, "");
   }
 }
 
@@ -122,7 +125,7 @@ UIM::showError(int errCode, const char *errString)
     // routine "showError" directly; no need to call us.
 
     string tcommand = string("showError ") + string(errCode) + string(" ");
-    if (errString[0] == '\0')
+    if (errString == NULL || errString[0] == '\0')
        tcommand += string("\"\"");
     else
        tcommand += string("{") + string(errString) + string("}");
@@ -161,7 +164,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
     Tcl_SetHashValue (entryPtr, reply);
   } 
   else {
-    uiMgr->showError(21, "Tcl command failure - Bad pointer");
+    uiMgr->showError(21, "");
     thr_exit(0);
   }
 
@@ -191,7 +194,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
   int retVal = Tcl_VarEval (interp, P_strdup(tcommand.string_of()), 0);
   if (retVal == TCL_ERROR)  {
-    uiMgr->showError (22, "Tcl command failure");
+    uiMgr->showError (22, "");
     printf ("%s\n", interp->result);
     thr_exit(0);  
   } 
