@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.C,v 1.16 2001/05/24 18:37:25 wxd Exp $ */
+/* $Id: whereAxisTcl.C,v 1.17 2001/10/31 19:35:02 willb Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -524,9 +524,7 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisNavigateTo", whereAxisNavigateToCommand,
 		     NULL, deleteDummyProc);
-   Tcl_CreateCommand(interp, "whereAxisChangeAbstraction",
-		     whereAxisChangeAbstractionCommand,
-		     NULL, deleteDummyProc);
+
    Tcl_CreateCommand(interp, "whereAxisFindHook", whereAxisFindCommand,
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisAltPressHook", whereAxisAltPressCommand,
@@ -541,7 +539,6 @@ void unInstallWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "whereAxisAltReleaseHook");
    Tcl_DeleteCommand(interp, "whereAxisAltPressHook");
    Tcl_DeleteCommand(interp, "whereAxisFindHook");
-   Tcl_DeleteCommand(interp, "whereAxisChangeAbstraction");
    Tcl_DeleteCommand(interp, "whereAxisNavigateTo");
    Tcl_DeleteCommand(interp, "whereAxisClearSelections");
    Tcl_DeleteCommand(interp, "whereAxisNewHorizScrollPosition");
