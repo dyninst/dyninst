@@ -4,6 +4,10 @@
  *        Tcl_AppInit() function.
  *
  *  $Log: tclVisi.C,v $
+ *  Revision 1.5  1995/12/01 06:42:56  tamches
+ *  removed warnings (tclclean.h; tkclean.h)
+ *  included new logo code (pdLogo.h)
+ *
  *  Revision 1.4  1995/11/08 21:16:56  naim
  *  Adding matherr exception handler function to avoid error message when
  *  computing the "not a number" (NaN) value - naim
@@ -20,15 +24,16 @@
  */
 #include <stdio.h>
 #include <signal.h>
-#include <tcl.h>
-#include <tk.h>
+
+#include "tclclean.h"
+#include "tkclean.h"
+
+#include "pdLogo.h"
+#include "paradyn/xbm/logo.xbm"
+
 #include "util/h/matherr.h"
 
 extern Dg_Init(Tcl_Interp *interp);
-
-//extern "C" {
-//  int Blt_Init(Tcl_Interp *interp);
-//}
 
 Tcl_Interp *MainInterp;
 
@@ -52,6 +57,12 @@ int Tcl_AppInit(Tcl_Interp *interp) {
 	return TCL_ERROR;
 
     tcl_RcFileName = "~/.wishrc";
+
+    // now install "makeLogo", etc:
+    pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width,
+			       logo_height);
+    tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
+				   (ClientData)main);
 
     return TCL_OK;
 }
