@@ -127,12 +127,11 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 				assert( * boundString != NULL );
 				snprintf( * boundString, 12, "%lu", (unsigned long)constBoundValue );
 
-				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
 				dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
+				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
 				return true;
 				}
 
-			dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
 			return false;
 			} break;
 
@@ -857,10 +856,18 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				   functions, but confuses the tests.  Since BPatch_type uses vectors
 				   to hold field names, however, duplicate -- demangled names -- are OK. */
 				char * demangledName = P_cplus_demangle( functionName, module->isNativeCompiler() );
-				assert( demangledName != NULL );
-								
-				/* Strip everything left of the rightmost ':' off; see above. */
-				char * leftMost = strrchr( demangledName, ':' );
+
+				char * leftMost = NULL;				
+				if( demangledName == NULL ) {
+					fprintf( stderr, "walkDwarvenTree(): unable to demangle '%s', using mangled name.\n", functionName );
+					demangledName = strdup( functionName );
+					assert( demangledName != NULL );
+					leftMost = demangledName;
+					}
+				else {
+					/* Strip everything left of the rightmost ':' off; see above. */
+					leftMost = strrchr( demangledName, ':' );
+					}
 
 				currentEnclosure->addField( leftMost + 1, BPatch_dataMethod, returnType, 0, 0 );
 				free( demangledName );
