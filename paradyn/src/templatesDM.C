@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.21 2001/08/23 14:43:34 schendel Exp $
+// $Id: templatesDM.C,v 1.22 2002/04/09 18:06:09 mjbrim Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -132,7 +132,7 @@ template class vector<rlNameIdType>;
 template class dictionary_hash<string,metric*>;
 template class vector<dictionary_hash<string,metric*>::entry>;
 
-//template class pair<string, metric*>;
+template class pair<string, metric*>;
 
 template class vector<dataValueType>;
 template class BufferPool<dataValueType>;
@@ -185,12 +185,9 @@ template class List<aggComponent*>;
 template class ListItem<aggComponent*>;
 
 template class vector<T_dyninstRPC::batch_buffer_entry>;
-template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
 
 // trace data streams
 template class vector<T_dyninstRPC::trace_batch_buffer_entry>;
-template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *) ;
-
 
 template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
 
@@ -213,6 +210,4 @@ template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;
 #endif
 
-
 template class vector<paradynDaemon::MPICHWrapperInfo>;
-
