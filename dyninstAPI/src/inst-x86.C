@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.60 2000/05/11 04:52:22 zandy Exp $
+ * $Id: inst-x86.C,v 1.61 2000/05/31 18:58:33 nick Exp $
  */
 
 #include <iomanip.h>
@@ -933,7 +933,7 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
   bool err = false;
   Address addr = proc->findInternalAddress("DYNINSTtrampTable",true, err);
   assert(err==false);
-  return proc->writeTextSpace((caddr_t)addr+u*sizeof(trampTableEntry),
+  return proc->writeDataSpace((caddr_t)addr+u*sizeof(trampTableEntry),
 		       sizeof(trampTableEntry),
 		       (caddr_t)&(proc->trampTable[u]));
 #else
