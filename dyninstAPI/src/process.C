@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.425 2003/05/14 16:52:06 mjbrim Exp $
+// $Id: process.C,v 1.426 2003/05/14 20:46:18 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2083,6 +2083,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     theRpcMgr = new rpcMgr(this);
 
     status_ = neonatal;
+    previousSignalAddr_ = 0;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
 #ifndef BPATCH_LIBRARY
@@ -2266,6 +2267,7 @@ process::process(int iPid, image *iSymbols,
     mainFunction = NULL; // set in platform dependent function heapIsOk
     
     status_ = neonatal;
+    previousSignalAddr_ = 0;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
 
@@ -2521,6 +2523,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    //ioLink = -1; // when does this get set?
 
    status_ = neonatal; // is neonatal right?
+    previousSignalAddr_ = 0;
    exitCode_ = (procSignalWhat_t) -1;
    continueAfterNextStop_ = 0;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.256 2003/05/13 19:55:12 igor Exp $
+/* $Id: process.h,v 1.257 2003/05/14 20:46:19 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -411,6 +411,8 @@ class process {
 #endif
 
   processState status() const { return status_;}
+  Address previousSignalAddr() const { return previousSignalAddr_; }
+  void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
   void savePreSignalStatus() { status_before_signal_ = status_; }
   processState preSignalStatus() const { return status_before_signal_; }
   int exitCode() const { return exitCode_; }
@@ -740,6 +742,8 @@ void saveWorldData(Address address, int size, const void* src);
   procSignalWhat_t exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
   processState status_before_signal_; /* Store the previous proc state */
+
+  Address previousSignalAddr_;
   
   bool continueAfterNextStop_;
 
