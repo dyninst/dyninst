@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.40 2000/04/30 22:52:32 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.41 2000/05/01 14:32:33 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1509,7 +1509,7 @@ void call24_2()
 void call24_1() 
 { 
 #ifdef sparc_sun_solaris2_4
-    unsigned i=0; // hack to prevent g++'s optimizer making func uninstr'uble
+    unsigned i=0; /* hack to prevent g++'s optimizer making func uninstr'uble */
 #else
     unsigned i;
 #endif
