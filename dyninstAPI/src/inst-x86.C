@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.177 2004/05/29 14:30:25 legendre Exp $
+ * $Id: inst-x86.C,v 1.178 2004/06/08 22:03:14 legendre Exp $
  */
 #include <iomanip>
 
@@ -5776,4 +5776,18 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 int getMaxJumpSize()
 {
   return JUMP_REL32_SZ;
+}
+
+bool function_base::setReturnValue(process *p, int val)
+{
+   unsigned char buffer[16];
+   unsigned char *cur = buffer;
+   Address addr = getEffectiveAddress(p);
+   unsigned size;
+
+   emitMovImmToReg(EAX, val, cur);
+   emitSimpleInsn(0xc3, cur); //ret
+
+   size = ((unsigned) cur) - (unsigned) buffer;
+   return p->writeTextSpace((void *) addr, size, buffer);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.156 2004/05/28 22:50:14 legendre Exp $
+// $Id: symtab.h,v 1.157 2004/06/08 22:03:16 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -276,6 +276,11 @@ class function_base : public codeRange {
 
    char *getMangledName(char *s, int len) const;
 
+#if defined(arch_x86)
+   //Replaces the function with a 'return val' statement.
+   // currently needed only on Linux/x86
+   bool setReturnValue(process *p, int val);
+#endif
 #if defined(ia64_unknown_linux2_4)
 	// We need to know where all the alloc instructions in the
 	// function are to do a reasonable job of register allocation

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.50 2004/04/08 21:15:43 legendre Exp $
+// $Id: linux-x86.C,v 1.51 2004/06/08 22:03:15 legendre Exp $
 
 #include <fstream>
 
@@ -1341,8 +1341,8 @@ bool process::loadDYNINSTlib() {
   bool libc_21 = true; /* inferior has glibc 2.1-2.x */
   Symbol libc_vers;
   if (getSymbolInfo(libc_version_symname, libc_vers)) {
-      char libc_version[ libc_vers.size() + 1 ];
-      libc_version[ libc_vers.size() ] = '\0';
+      char libc_version[ sizeof(int)*libc_vers.size() + 1 ];
+      libc_version[ sizeof(int)*libc_vers.size() ] = '\0';
       readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
       if (!strncmp(libc_version, "2.0", 3))
 	      libc_21 = false;
@@ -1470,6 +1470,17 @@ bool process::loadDYNINSTlib() {
                               dyninst_count, true, true);
       writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
       removeAst(dlopenAst);
+  }
+
+  //Libc >= 2.3.3 has security features that prevent _dl_open from being
+  // called from outside libc.  We'll disable those features by finding the
+  // function that implements them and writing 'return 0' over the top of
+  // the function.
+  function_base *dlcheck = findOnlyOneFunctionFromAll("_dl_check_caller");
+  if (dlcheck != NULL)
+  {
+    if (!dlcheck->setReturnValue(this, 0))
+      cerr << "Couldn't set function's return value" << endl;
   }
 
   // save registers
