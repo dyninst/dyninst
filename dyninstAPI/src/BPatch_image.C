@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.56 2004/06/02 20:17:33 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.57 2004/06/08 15:45:56 eli Exp $
 
 #define BPATCH_FILE
 
@@ -252,7 +252,8 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	/* Generate the BPatch_functions for every module before
 	   constructing the BPatch_modules.  This allows us to
 	   parse the debug information once per image.*/
-	for( unsigned int i = 0; i < pdModules->size(); i++ ) {
+	unsigned int i; 
+	for( i = 0; i < pdModules->size(); i++ ) {
 		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
 		pdvector< function_base * > * currentFunctions = currentModule->getFunctions();
 		for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
@@ -264,7 +265,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	/* With all the BPatch_functions created, generate the modules.
 	   The BPatch_module constructor will set its bpfs to point to itself,
 	   and the parser will cache per-image type collections. */
-	for( unsigned int i = 0; i < pdModules->size(); i++ ) {
+	for( i = 0; i < pdModules->size(); i++ ) {
 		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
 		BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
 		modlist->push_back( bpm );
