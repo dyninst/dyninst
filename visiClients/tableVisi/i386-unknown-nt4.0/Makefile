@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/04/09 18:09:45 pcroth Exp $
+# $Id: Makefile,v 1.3 2003/10/28 18:37:07 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,10 +15,10 @@ NO_IMPLICIT_TEMPLATES = true
 include ../../../nmake.config 
 
 # Now make any necessary architecture specific changes to variables:
-CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS
-TFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS
-CFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS
-LDFLAGS		= $(LDFLAGS) -SUBSYSTEM:WINDOWS
+CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS -MT
+TFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS -MT
+CFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS) -D_WINDOWS -MT
+LDFLAGS		= $(LDFLAGS) -SUBSYSTEM:WINDOWS -NODEFAULTLIB:LIBC.LIB
 SYSLIBS		= $(SYSLIBS) ws2_32.lib user32.lib iphlpapi.lib
 
 # Include the module-specific Makefile, which defines everything about
