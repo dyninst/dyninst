@@ -710,9 +710,23 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 
     errno = 0;
 
-    if (!DYNINSTtraceFp || (type == TR_EXIT)) {
-        //DYNINSTtraceFp = fdopen(dup(CONTROLLER_FD), "w"); // why the dup()?
+    if (DYNINSTtraceFp == NULL) {
+       /* a process started via attach or fork should have set this vrble
+	  to non-null in its call to connectToDaemon().  So, this should
+	  only happen for a process started "normally", in which case
+	  we can use the hard-coded fd of 3 for the trace stream. */
+       assert(DYNINST_trace_fd == -1);
+       DYNINST_trace_fd = 3;
+          /* hard-coded value.  pipe was created by paradynd before it forked this
+	     process, so it can guarantee this hardcoded value.  Note that there's
+	     really no reason to have this kludge (if you think it is a kludge) -- why
+	     not call connectToDaemon() in DYNINSTinit, which we currently only do for
+	     a process started via attach or via a forked process? */
+    }
+
+    if (DYNINSTtraceFp==NULL || type == TR_EXIT) {
 	assert(DYNINST_trace_fd != -1);
+
         DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
 	assert(DYNINSTtraceFp);
     }
@@ -1047,12 +1061,6 @@ static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
     abort();
   }
 
-//  if (sock_fd != CONTROLLER_FD) {
-//    fprintf(stderr, "DYNINST: socket error...sock_fd (%d) != CONTROLLER_FD (%d)\n",
-//	    sock_fd, CONTROLLER_FD);
-//    abort();
-//  }
-
   if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
     perror("DYNINST connectToDaemon: connect()");
     abort();
@@ -1221,9 +1229,10 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
    if (calledFromFork)
       DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
    else if (calledFromAttach)
-      DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached process) */
+      DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
    else				   
-      DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when called by exec'd proc) */
+      DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
+					   called by exec'd proc) */
 
 #ifndef SHM_SAMPLING
     /* what good does this do here? */
@@ -1237,13 +1246,10 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int portnum, unsigned hostaddr) {
       unsigned attach_cookie = 0x22222222;
 
       /* portnum and hostaddr are passed in as params */
-      int tracestream_fd = connectToDaemon(portnum, hostaddr);
-      assert(tracestream_fd != -1);
-         // warning: many parts in rtinst assume that it's 3, but that won't
-	 // necessarily be the case for attach (the program is already running and
-         // may have opened dozens of fd's).					       
+      DYNINST_trace_fd = connectToDaemon(portnum, hostaddr);
+      assert(DYNINST_trace_fd != -1);
 
-      DYNINSTtraceFp = fdopen(tracestream_fd, "w");
+      DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
       assert(DYNINSTtraceFp);
 
       fwrite(&attach_cookie, sizeof(attach_cookie), 1, DYNINSTtraceFp);
@@ -1502,15 +1508,19 @@ DYNINSTfork(int pid) {
 	  assert(s1 != s2);
 	}
 
-	/* set up a connection to the daemon for the trace stream */
+	/* set up a connection to the daemon for the trace stream.  (The child proc
+	   gets a different connection from the parent proc) */
 	forkexec_printf("dyninst-fork child closing old connections...\n");
 	assert(DYNINST_trace_fd != -1);
         fclose(DYNINSTtraceFp);
 	(void)close(DYNINST_trace_fd);
-	//close(CONTROLLER_FD);
 
 	forkexec_printf("dyninst-fork child opening new connection.\n");
-	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort, hostAddr), "w");
+	DYNINST_trace_fd = connectToDaemon(tracePort, hostAddr);
+	assert(DYNINST_trace_fd != -1);
+
+	DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w");
+	assert(DYNINSTtraceFp);
 
 	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
 
