@@ -207,6 +207,9 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 
     BPatch_function * bpfunc = proc->findOrCreateBPFunc(func, this);
 
+    if(!new_flag)
+	return bpfunc;
+
 #if defined(sparc_sun_solaris2_4)
     // Adding new BPatch_Function to BPatch_function vector
     if (this->BPfuncs) this->BPfuncs->push_back(bpfunc);
