@@ -371,14 +371,14 @@ private:
 
 extern bool mdl_get_lib_constraints(vector<string> &);
 
-void print_func_vector_by_pretty_name(string prefix, \
+void print_func_vector_by_pretty_name(string prefix,
 				      vector<function_base *>*funcs);
-void print_module_vector_by_short_name(string prefix, \
+void print_module_vector_by_short_name(string prefix,
                                       vector<pdmodule*> *mods);
 string getModuleName(string constraint);
 string getFunctionName(string constraint);
 //used by both sharedobject and pdmodule class....
-bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
+bool filter_excluded_functions(vector<pd_Function*> all_funcs,
     vector<pd_Function*>& some_funcs, string module_name);
 bool function_is_excluded(pd_Function *func, string module_name);
 bool module_is_excluded(pdmodule *module);
@@ -454,11 +454,11 @@ public:
   // find the function by name, address, or the first by name
   // find_if_excluded specifies whether to include "excluded" 
   // functions in search.
-  bool findFunction(const string &name, vector<pd_Function*> &flist, \
+  bool findFunction(const string &name, vector<pd_Function*> &flist,
     bool find_if_excluded = FALSE);
   // find_if_excluded specifies whether to include "excluded" 
   // functions in search.
-  pd_Function *findFunction(const Address &addr, \
+  pd_Function *findFunction(const Address &addr,
     bool find_if_excluded = FALSE);
 
   // return NULL if function is excluded!!!!
@@ -568,8 +568,7 @@ public:
   // Note that notInstruFunctions holds list of functions for which
   //  necessary instrumentation data could NOT be found....
 
-  // includedFunctions + excludedFunctions (but not \
-  //  notInstruFunctions)....
+  // includedFunctions + excludedFunctions (but not notInstruFunctions)....
   vector<pd_Function*> instrumentableFunctions;
 
   dictionary_hash <string, pd_Function*> notInstruFunctions;
@@ -598,7 +597,7 @@ public:
   //   excludedFunctions, excludedFunctionsByName
   // not excluded:
   //   includedFunctions, funcsByPretty, funcsByAddr
-  void addInstruFunction(pd_Function *func, pdmodule *mod, \
+  void addInstruFunction(pd_Function *func, pdmodule *mod,
         const Address addr, bool excluded);
   // Add a function which could not be instrumented.  Sticks it in
   // notInstruFuncs (list), and notInstruFunctionsByName (hash table).
@@ -610,13 +609,13 @@ public:
 
   // private methods for findind an excluded function by name or
   //  address....
-  bool find_excluded_function(const string &name, \
+  bool find_excluded_function(const string &name,
       vector<pd_Function*> &retList);
   pd_Function *find_excluded_function(const Address &addr);
 
   // merged code from shared_object and static executable constructor
   //  versions....
-  void initialize(const string &fileName, bool &err, \
+  void initialize(const string &fileName, bool &err,
 	bool shared_library, u_int baseAddr = 0);
 
   bool newFunc(pdmodule *, const string &name, const Address addr, 
@@ -652,13 +651,13 @@ public:
 		      pd_Function *&retFunc);
 
 
-  void insert_function_internal_static(vector<Symbol> &mods, \
-        const Symbol &lookUp, \
-        const Address boundary_start,  const Address boundary_end, \
-	const Address startAddr, bool startB, const Address endAddr, \
+  void insert_function_internal_static(vector<Symbol> &mods,
+        const Symbol &lookUp,
+        const Address boundary_start,  const Address boundary_end,
+	const Address startAddr, bool startB, const Address endAddr,
         bool endB, pdmodule *dyn, pdmodule *lib);
-  void image::insert_function_internal_dynamic(vector<Symbol>& mods, \
-      const Symbol &lookUp, \
+  void image::insert_function_internal_dynamic(vector<Symbol>& mods,
+      const Symbol &lookUp,
       pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT);
 
   //

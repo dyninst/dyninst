@@ -715,7 +715,7 @@ bool pd_Function::relocateFunction(process *proc,
     u_int ret = 0;
     if(!reloc_info){
         //Allocate the heap for the function to be relocated
-        ret = inferiorMalloc(proc, size()+RELOCATED_FUNC_EXTRA_SPACE, \
+        ret = inferiorMalloc(proc, size()+RELOCATED_FUNC_EXTRA_SPACE,
 			     textHeap);
 	if(!ret)  return false;
         reloc_info = new relocatedFuncInfo(proc,ret);
@@ -724,8 +724,8 @@ bool pd_Function::relocateFunction(process *proc,
     if(!(findNewInstPoints(location->image_ptr, location, ret, proc, 
 			   extra_instrs, reloc_info))){
     }
-    proc->writeDataSpace((caddr_t)ret, size()+RELOCATED_FUNC_EXTRA_SPACE \
-			 ,(caddr_t) newInstr);
+    proc->writeDataSpace((caddr_t)ret, size()+RELOCATED_FUNC_EXTRA_SPACE,
+			 (caddr_t) newInstr);
     return true;
 }
 

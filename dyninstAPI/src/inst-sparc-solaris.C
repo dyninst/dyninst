@@ -232,8 +232,8 @@ void pd_Function::checkCallPoints() {
 	   //cerr << "  pdf (called func) NULL" << endl;
 	   // if this is a call outside the fuction, keep it
 	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
-	        //cerr << "   apparent call outside function, adding p to non_lib" \
-			<< endl;
+	        //cerr << "   apparent call outside function, adding p to non_lib"
+	        //     << endl;
 	        p->callIndirect = true;
                 p->callee = NULL;
                 non_lib += p;
@@ -1820,7 +1820,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            Address call_target = second_adr + (second_instr.call.disp30 << 2);
 	   // if call dest. is outside of function, assume real
 	   //  call site.  Assuming cant deal with this case!!!!
-           if (!(call_target >= adr && call_target <= adr + size()) || \
+           if (!(call_target >= adr && call_target <= adr + size()) ||
 	       (call_target == second_adr)) {
 	       return false;
 	   }
@@ -2144,11 +2144,11 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    bool jmpl_call = isJmplCallInsn(instr);
 	    
 	    if (true_call) {
-	        //cerr << "tail-call opt undo : found CALL call pattern for sym " << \
-		  prettyName().string_of() << endl;
+	        //cerr << "tail-call opt undo : found CALL call pattern for sym " <<
+		//        prettyName().string_of() << endl;
 	    } else {
-	        //cerr << "tail-call opt undo : found JMPL call pattern for sym" << \
-		  prettyName().string_of() << endl;
+	        //cerr << "tail-call opt undo : found JMPL call pattern for sym" <<
+		//        prettyName().string_of() << endl;
 	    }
 
 	    if (!true_call && !jmpl_call) {
@@ -2192,7 +2192,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	        //  the difference is PCs.
 
 	        newInstr[i].raw = owner->get_instruction(adr);
-	        relocateInstruction(&newInstr[i], \
+	        relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
 		        newAdr + (i - orig_call_insn) * 4, proc);
 		//cerr << "adr+baseAddress = " << adr+baseAddress << " (i - orig_call_insn) = " << (i - orig_call_insn) << " newAdr = " << newAdr << endl;

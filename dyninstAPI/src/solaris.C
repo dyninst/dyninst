@@ -1416,7 +1416,7 @@ unsigned process::read_inferiorRPC_result_register(reg) {
 void print_read_error_info(const relocationEntry entry, 
       pd_Function *&target_pdf, Address base_addr) {
 
-    sprintf(errorLine, "  entry      : target_addr 0x%x\n", \
+    sprintf(errorLine, "  entry      : target_addr 0x%x\n",
 	    entry.target_addr());
     logLine(errorLine);
     sprintf(errorLine, "               rel_addr 0x%x\n", entry.rel_addr());
@@ -1424,16 +1424,16 @@ void print_read_error_info(const relocationEntry entry,
     sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
     logLine(errorLine);
 
-    sprintf(errorLine, "  target_pdf : symTabName %s\n", \
+    sprintf(errorLine, "  target_pdf : symTabName %s\n",
 	    (target_pdf->symTabName()).string_of());
     logLine(errorLine);    
-    sprintf(errorLine , "              prettyName %s\n", \
+    sprintf(errorLine , "              prettyName %s\n",
 	    (target_pdf->symTabName()).string_of());
     logLine(errorLine);
-    sprintf(errorLine , "              size %i\n", \
+    sprintf(errorLine , "              size %i\n",
 	    target_pdf->size());
     logLine(errorLine);
-    sprintf(errorLine , "              addr 0x%x\n", \
+    sprintf(errorLine , "              addr 0x%x\n",
 	    target_pdf->addr());
     logLine(errorLine);
 

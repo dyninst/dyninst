@@ -80,9 +80,9 @@ extern "C" char *cplus_demangle(char *, int);
   Debuggering info for function_base....
  */
 ostream & function_base::operator<<(ostream &s) const {
-    s << "symTabName_ = " << symTabName_ << " prettyName_ = " \
-      << prettyName_ \
-      << " line_ = " << line_ << " addr_ = "<< addr_ << " size_ = " << size_ \
+    s << "symTabName_ = " << symTabName_ << " prettyName_ = "
+      << prettyName_
+      << " line_ = " << line_ << " addr_ = "<< addr_ << " size_ = " << size_
       << " tag_ = " << tag_ << endl;
     return s;
 }
@@ -226,7 +226,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
   return true;
 }
 
-void image::addInstruFunction(pd_Function *func, pdmodule *mod, \
+void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 			      const Address addr, bool excluded) {
     vector<pd_Function*> *funcsByPrettyEntry;
 
@@ -448,8 +448,8 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
 {
   unsigned i;
 
-  //cerr << "image::findModule " << name << " , " << find_if_excluded \
-  //       << " called" << endl;
+  //cerr << "image::findModule " << name << " , " << find_if_excluded
+  //     << " called" << endl;
 
   if (modsByFileName.defines(name)) {
     //cerr << " (image::findModule) found module in modsByFileName" << endl;
@@ -465,7 +465,7 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
   //  or FileName....
   if (find_if_excluded) {
       for(i=0;i<excludedMods.size();i++) {
-          if ((excludedMods[i]->fileName() == name) || \
+          if ((excludedMods[i]->fileName() == name) ||
                   (excludedMods[i]->fullName() == name)) {
 	      //cerr << " (image::findModule) found module in excludedMods" << endl;
               return excludedMods[i];
@@ -527,24 +527,24 @@ pd_Function *image::findOneFunctionFromAll(const string &name) {
     if ((ret = findOneFunction(name))) 
 	return ret;
 
-    //cerr << "image::findOneFunctionFromAll " << name << \
-	  " called, unable to find function in hash table" << endl; 
+    //cerr << "image::findOneFunctionFromAll " << name <<
+    //        " called, unable to find function in hash table" << endl; 
 
     if (notInstruFunctions.defines(name)) {
-        //cerr << "  (image::findOneFunctionFromAll) found in notInstruFunctions" \
-	   << endl;
+        //cerr << "  (image::findOneFunctionFromAll) found in notInstruFunctions"
+	//     << endl;
         return notInstruFunctions[name];
     }
 
     if (excludedFunctions.defines(name)) {
-        //cerr << "  (image::findOneFunctionFromAll) found in excludedFunctions" \
-	   << endl;
+        //cerr << "  (image::findOneFunctionFromAll) found in excludedFunctions"
+	//     << endl;
         return excludedFunctions[name];
     }
     return NULL;
 }
 
-bool image::findFunction(const string &name, vector<pd_Function*> &retList, \
+bool image::findFunction(const string &name, vector<pd_Function*> &retList,
         bool find_if_excluded) {
 
     bool found = FALSE;
@@ -592,7 +592,7 @@ pd_Function *image::find_excluded_function(const Address &addr)
 //  Question??  Currently only finding 1 excluded function reference by
 //  name (e.g. findOneFunctionFromAll.  Want to keep multiple copies
 // of same excluded function (as referenced by name)??
-bool image::find_excluded_function(const string &name, \
+bool image::find_excluded_function(const string &name,
         vector<pd_Function*> &retList) {
     bool found = FALSE;
 
@@ -619,8 +619,7 @@ pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const proces
   values = notInstruFunctions.values();
   for (i = 0; i < values.size(); i++) {
       pdf = values[i];
-      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)\
-					      +pdf->size()))) 
+      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size())))
 	  return pdf;
   }
 
@@ -628,8 +627,7 @@ pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const proces
   values = excludedFunctions.values();
   for (i = 0; i < values.size(); i++) {
       pdf = values[i];
-      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)\
-					      +pdf->size()))) 
+      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size())))
 	  return pdf;
   }
 
@@ -653,14 +651,14 @@ pd_Function *image::findFunctionIn(const Address &addr,const process *p) const
   dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
   string str;
   while (ex.next(str, pdf)) {
-     if ((addr>=pdf->getAddress(p)) && \
+     if ((addr>=pdf->getAddress(p)) &&
 	      (addr<=(pdf->getAddress(p)+pdf->size()))) 
 	  return pdf;
   }
 
   dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
   while (ni.next(str, pdf)) {
-      if ((addr>=pdf->getAddress(p)) && \
+      if ((addr>=pdf->getAddress(p)) &&
 	      (addr<=(pdf->getAddress(p)+pdf->size()))) 
 	  return pdf;
   }
@@ -823,7 +821,7 @@ void pdmodule::define() {
   for (unsigned f=0; f<f_size; f++) {
     pd_Function *pdf = funcs[f];
 #ifdef DEBUG_MODS
-    of << fileName << ":  " << pdf->prettyName() <<  "  " \
+    of << fileName << ":  " << pdf->prettyName() <<  "  "
         << pdf->addr() << endl;
 #endif
     // ignore line numbers for now 
@@ -863,8 +861,8 @@ void pdmodule::define() {
 //  mcheyney 970727
 vector<function_base *> *pdmodule::getIncludedFunctions() {
     // laxy construction of some_funcs, as per sharedobject class....
-    // cerr << "pdmodule " << fileName() << " :: getIncludedFunctions called " \
-       << endl;
+    // cerr << "pdmodule " << fileName() << " :: getIncludedFunctions called "
+    //      << endl;
     if (some_funcs_inited == TRUE) {
         //cerr << "  about to return : " << endl;
         print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
@@ -894,14 +892,14 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
 //  mcheyney 970727
 const vector<pd_Function *> &image::getIncludedFunctions() {
     //cerr << "image::getIncludedFunctions() called, about to return includedFunctions = " << endl;
-    //print_func_vector_by_pretty_name(string("  "), \
+    //print_func_vector_by_pretty_name(string("  "),
     //        (vector<function_base*>*)&includedFunctions);
     return includedFunctions;
 }
 
 const vector<pd_Function*> &image::getAllFunctions() {
     //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
-    //print_func_vector_by_pretty_name(string("  "), \
+    //print_func_vector_by_pretty_name(string("  "),
     //        (vector<function_base*>*)&instrumentableFunctions);
     return instrumentableFunctions;
 }
@@ -932,7 +930,7 @@ const vector <pdmodule*> &image::getIncludedModules() {
     return includedMods;
 }
 
-void print_module_vector_by_short_name(string prefix , \
+void print_module_vector_by_short_name(string prefix ,
 				       vector<pdmodule*> *mods) {
     unsigned int i;
     pdmodule *mod;
@@ -942,7 +940,7 @@ void print_module_vector_by_short_name(string prefix , \
     }
 }
 
-void print_func_vector_by_pretty_name(string prefix, \
+void print_func_vector_by_pretty_name(string prefix,
 				      vector<function_base *>*funcs) {
     unsigned int i;
     function_base *func;
@@ -1037,8 +1035,8 @@ bool function_is_excluded(pd_Function *func, string module_name) {
     string constraint_module_name;
     unsigned i;
 
-    //cerr << "function_is_excluded " << function_name << " , " << \
-      module_name << " called" << endl;
+    //cerr << "function_is_excluded " << function_name << " , " <<
+    //        module_name << " called" << endl;
 
     // if unble to get list of excluded functions, assume all functions
     //  are NOT excluded!!!!
@@ -1077,7 +1075,7 @@ bool function_is_excluded(pd_Function *func, string module_name) {
 //  all funcs into some funcs, then runs over excluded funcs
 //  removing any matches, as opposed to doing to checking 
 //  while adding to some_funcs....
-bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
+bool filter_excluded_functions(vector<pd_Function*> all_funcs,
     vector<pd_Function*>& some_funcs, string module_name) {
 
     u_int i, j;
@@ -1101,8 +1099,8 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
     // modifying some_funcs....
     if(mdl_get_lib_constraints(func_constraints) == FALSE) {
         if (0) {
-	    //cerr << " could not mdl_get_lib_constraints, about to return FALSE" \
-	       << endl;
+	    //cerr << " could not mdl_get_lib_constraints, about to return FALSE"
+	    //     << endl;
         }
         return FALSE;
     }
@@ -1113,8 +1111,8 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
     for(i=0;i<func_constraints.size();i++) {
         constraint_module_name = getModuleName(func_constraints[i]);
 	//cerr << "constraint = " << func_constraints[i] << endl;
-	//cerr << " constraint_module_name = " << constraint_module_name \
-	         << endl;
+	//cerr << " constraint_module_name = " << constraint_module_name
+	//     << endl;
 	
 	if (module_name == constraint_module_name) {
 	    constraint_function_name = getFunctionName(func_constraints[i]);
@@ -1191,9 +1189,9 @@ static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
 
 // COMMENTS????
 // 
-bool image::addOneFunction(vector<Symbol> &mods,  \
-			   pdmodule *lib, \
-			   pdmodule *, \
+bool image::addOneFunction(vector<Symbol> &mods,
+			   pdmodule *lib,
+			   pdmodule *,
 			   const Symbol &lookUp, pd_Function  *&retFunc) {
   // TODO mdc
   // find the module
@@ -1267,7 +1265,7 @@ const vector<pd_Function*> &image::getIncludedFunctions() {
     }
 
     //cerr << " (image::getIncludedFunctions) returning : " << endl;
-    //print_func_vector_by_pretty_name(string("  "), \
+    //print_func_vector_by_pretty_name(string("  "),
     //		 (vector<function_base*>*)&includedFunctions);
 
     // what about shared objects????
@@ -1375,7 +1373,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
         //logLine(P_strdup(symString.string_of()));
         // see comment under image::insert_function_internal_static,
         // below....
-        insert_function_internal_static(mods, lookUp, boundary_start, \
+        insert_function_internal_static(mods, lookUp, boundary_start,
               boundary_end, startAddr, startB, endAddr, endB, dyn, lib);
     }
   }
@@ -1414,8 +1412,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
       }
       // see comment under image::insert_functions_internal_dynamic,
       //  below....
-      insert_function_internal_dynamic(mods, lookUp, dyn, lib, \
-				       is_libdyninstRT);
+      insert_function_internal_dynamic(mods, lookUp, dyn, lib, is_libdyninstRT);
     }
   }
 
@@ -1500,8 +1497,8 @@ image::image(const string &fileName, bool &err)
     varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
-    sharedobj_cerr << "image::image for non-sharedobj; file name=" << \
-      file_ << endl;
+    sharedobj_cerr << "image::image for non-sharedobj; file name="
+                   << file_ << endl;
 
     // shared_object and static object (a.out) constructors merged into
     //  common initialize routine.... 
@@ -1527,7 +1524,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
-sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ << endl;
+    sharedobj_cerr << "welcome to image::image for shared obj; file name="
+                   << file_ << endl;
 
     // shared_object and static object (a.out) constructors merged into
     //  common initialize routine.... 
@@ -1567,10 +1565,10 @@ static bool findEndSymbol(Object &lf, Address &adr) {
    	from shared library.
       base_addr - curr. used IFF shared_library == 1.
  */
-void image::initialize(const string &fileName, bool &err, \
+void image::initialize(const string &fileName, bool &err,
 	bool shared_object, u_int) {
 
-    // initialize (data members) codeOffset_, dataOffset_, \
+    // initialize (data members) codeOffset_, dataOffset_,
     //  codeLen_, dataLen_.
     codeOffset_ = linkedFile.code_off();
     dataOffset_ = linkedFile.data_off();
@@ -1709,7 +1707,7 @@ void image::initialize(const string &fileName, bool &err, \
         bool startBound = findStartSymbol(linkedFile, startUserAddr);
         bool endBound = findEndSymbol(linkedFile, endUserAddr);
 
-	if (!addAllFunctions(uniq, libModule, dynModule, startBound, \
+	if (!addAllFunctions(uniq, libModule, dynModule, startBound,
 		startUserAddr, endBound, endUserAddr)) {
             err = true;
             return;
@@ -1741,8 +1739,8 @@ void image::initialize(const string &fileName, bool &err, \
     //  excludedFunctions??
     unsigned f_size = instrumentableFunctions.size(), index;
     for (index=0; index<f_size; index++) {
-        const unsigned the_address = (unsigned)instrumentableFunctions[index]\
-	                                       ->getAddress(0);
+        const unsigned the_address = 
+            (unsigned)instrumentableFunctions[index]->getAddress(0);
         if (!addr_dict.defines(the_address)) {
             addr_dict[the_address] = 1;
             temp_vec += instrumentableFunctions[index];
@@ -1842,10 +1840,10 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
 // image::addAllFunctions dupliactes this section of code.
 // As part of an effort to clean up the code a bit, I merged the
 // duplicates into this 1 function.  
-void image::insert_function_internal_static(vector<Symbol> &mods, \
-	const Symbol &lookUp, \
-        const Address boundary_start,  const Address boundary_end, \
-	const Address startAddr, bool startB, const Address endAddr, \
+void image::insert_function_internal_static(vector<Symbol> &mods,
+	const Symbol &lookUp,
+        const Address boundary_start,  const Address boundary_end,
+	const Address startAddr, bool startB, const Address endAddr,
         bool endB, pdmodule *dyn, pdmodule *lib) {
     pd_Function *pdf;
     //  COMMENTS??
@@ -1863,8 +1861,8 @@ void image::insert_function_internal_static(vector<Symbol> &mods, \
 
 // version of insert_function_internal_static (above) for 
 // shared objects....
-void image::insert_function_internal_dynamic(vector<Symbol> &mods,\
-	const Symbol &lookUp, \
+void image::insert_function_internal_dynamic(vector<Symbol> &mods,
+	const Symbol &lookUp,
         pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT) {
     pd_Function *pdf;
     if (is_libdyninstRT) {
