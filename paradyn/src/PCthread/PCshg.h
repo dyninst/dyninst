@@ -20,6 +20,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.22  1996/04/18 20:43:19  tamches
+ * uiRequestBuff no longer a pointer; numUIrequests no longer needed
+ *
  * Revision 1.21  1996/04/16 18:36:14  karavan
  * BUG FIX.
  *
@@ -192,8 +195,7 @@ class searchHistoryGraph {
   PCsearch *srch;
   int guiToken;      // use in UI calls to select correct search display  
   unsigned nextID;   // used to create unique ids for the nodes
-  vector<uiSHGrequest> *uiRequestBuff;
-  unsigned numUIrequests;
+  vector<uiSHGrequest> uiRequestBuff;
 };
   
 #endif
