@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.493 2004/04/08 21:15:45 legendre Exp $
+// $Id: process.C,v 1.494 2004/04/09 17:23:22 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -3088,12 +3088,24 @@ bool process::finalizeDyninstLib() {
        
        // Install our system call tracing
        tracedSyscalls_ = new syscallNotification(this);
-       // TODO: prefork and pre-exit should depend on whether a callback is defined
-       if (!tracedSyscalls_->installPreFork()) cerr << "Warning: failed pre-fork notification setup" << endl;
-       if (!tracedSyscalls_->installPostFork()) cerr << "Warning: failed post-fork notification setup" << endl;
-       if (!tracedSyscalls_->installPreExec()) cerr << "Warning: failed pre-exec notification setup" << endl;
-       if (!tracedSyscalls_->installPostExec()) cerr << "Warning: failed post-exec notification setup" << endl;
-       if (!tracedSyscalls_->installPreExit()) cerr << "Warning: failed pre-exit notification setup" << endl;
+
+       //#ifdef i386_unknown_linux2_4
+       //if(pdFlavor != "mpi") {
+       //#endif
+          // TODO: prefork and pre-exit should depend on whether a callback is defined
+          if (!tracedSyscalls_->installPreFork()) 
+             cerr << "Warning: failed pre-fork notification setup" << endl;
+          if (!tracedSyscalls_->installPostFork()) 
+             cerr << "Warning: failed post-fork notification setup" << endl;
+          if (!tracedSyscalls_->installPreExec()) 
+             cerr << "Warning: failed pre-exec notification setup" << endl;
+          if (!tracedSyscalls_->installPostExec()) 
+             cerr << "Warning: failed post-exec notification setup" << endl;
+          if (!tracedSyscalls_->installPreExit()) 
+             cerr << "Warning: failed pre-exit notification setup" << endl;
+          //#ifdef i386_unknown_linux2_4
+          //}
+          //#endif
    }
    else { // called from a forking process
        process *parentProcess = process::findProcess(bs_record.ppid);
@@ -4186,7 +4198,7 @@ bool process::getSharedObjects() {
             // for each element in shared_objects list process the 
             // image file to find new instrumentaiton points
             for(u_int j=0; j < shared_objects->size(); j++){
-// 	    pdstring temp2 = pdstring(j);
+	    // pdstring temp2 = pdstring(j);
 // 	    temp2 += pdstring(" ");
 // 	    temp2 += pdstring("the shared obj, addr: ");
 // 	    temp2 += pdstring(((*shared_objects)[j])->getBaseAddress());
@@ -5310,6 +5322,7 @@ void process::triggerSignalExitCallback(int signalnum) {
 }
 
 void process::handleProcessExit() {
+
    // special case where can't wait to continue process
    if (status() == exited) {
       return;
@@ -5338,6 +5351,7 @@ void process::handleProcessExit() {
  */
 
 void process::handleForkEntry() {
+
     // On some platforms we can't tell the fork exit trap, so we 
     // set a flag that is detected
     nextTrapIsFork = true;
@@ -5359,8 +5373,13 @@ void process::handleForkExit(process *child) {
     // do it manually here
     copyDanglingMemory(child);
 #endif
-
-    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
+    
+#if !defined(BPATCH_LIBRARY)
+    if(pdFlavor == "mpi")
+       child->detachProcess(true);
+    else
+#endif
+       BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
 }
 
 void process::handleExecEntry(char *arg0) {
@@ -5563,25 +5582,25 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
         
         if(!multithread_capable() && req->is_MTonly())
             continue;
-        
+
         pdstring func_name;
         pdstring lib_name;
-        pdvector<function_base *>matchingFuncs;
+        pdvector<function_base *> matchingFuncs;
         
         getLibAndFunc(req->func, lib_name, func_name);
-        
+
         if ((lib_name != "*") && (lib_name != "")) {
-         function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
-         if(func2 != NULL)
-            matchingFuncs.push_back(func2);
-         //else
-         //   cerr << "couldn't find initial function " << req->func << "\n";
-      }
-      else {
-         // Wildcard: grab all functions matching this name
-          findAllFuncsByName(func_name, matchingFuncs);
-      }
-      for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
+            function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
+            if(func2 != NULL)
+                matchingFuncs.push_back(func2);
+            //else
+            //cerr << "couldn't find initial function " << req->func << "\n";
+        }
+        else {
+            // Wildcard: grab all functions matching this name
+            findAllFuncsByName(func_name, matchingFuncs);
+        }
+        for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
          function_base *func = matchingFuncs[funcIter];
          
          if (!func) {
@@ -5623,7 +5642,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                         req->when, req->order, false,
                                                         (!req->useTrampGuard));
             assert( opResult == success_res );
-               req->mtHandles.push_back(mtHandle);
+            req->mtHandles.push_back(mtHandle);
          }
          
          if (req->where & FUNC_CALL) {
@@ -5643,7 +5662,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
          }
          
          removeAst(ast);
-      }
+        }
     }
 }
 
