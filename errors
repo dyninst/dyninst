@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.6  1994/04/19 18:50:06  hollings
+# Revision 1.7  1994/04/19 18:54:43  hollings
+# created error #6
+#
+# Revision 1.6  1994/04/19  18:50:06  hollings
 # created error #5
 #
 # Revision 1.5  1994/04/19  18:46:30  hollings
@@ -72,4 +75,17 @@ installed on the remote machine, or a file permission problem.
 %X
 A paradynd process has died somewhere in the system.  This indicates either
 a network failure, a host failure, or a bug in the paradyd process.
+%Y
+
+%N 6
+%E unable to start paradynd
+%A dm
+%S information
+%X
+A request to start a new application process on a machine required that a new
+paradyn daemon process be started on that machine.  The attempt to start that
+new paradyd process failed.  This is a continuable error, but does mean that
+the request application process will NOT be started.  This error can happen
+if the path for the paradynd is incorrect, if the paradynd binary is not
+installed on that machine, or if the machine or network is down.
 %Y
