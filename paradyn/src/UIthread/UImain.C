@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.93 2000/07/28 17:21:44 pcroth Exp $
+// $Id: UImain.C,v 1.94 2000/08/22 17:45:34 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -82,6 +82,26 @@ const Ident V_Uid(V_libpdutil,"Paradyn");
 extern "C" const char V_libpdthread[];
 const Ident V_Tid(V_libpdthread,"Paradyn");
 
+
+//----------------------------------------------------------------------------
+// prototypes of functions used in this file
+//----------------------------------------------------------------------------
+static    void    ShowPrompt( bool continuation );
+static    void    StdinInputHandler( Tcl_Interp* interp );
+static    void    InstallStdinHandler( void );
+static    void    UninstallStdinHandler( void );
+
+
+//----------------------------------------------------------------------------
+// variables used in this file
+//----------------------------------------------------------------------------
+static    Tcl_Obj* stdinCmdObj = NULL;
+static    bool stdinIsTTY = true;
+static    thread_t stdin_tid = THR_TID_UNSPEC;
+
+
+
+
 extern abstractions *theAbstractions; // whereAxisTcl.C
 
 
@@ -100,11 +120,11 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    haveSeenFirstGoodWhereAxisWid = true;
 
    theAbstractions = new abstractions(".whereAxis.top.mbar.abs.m",
-				      ".whereAxis.top.mbar.nav.m",
-				      ".whereAxis.nontop.main.bottsb",
-				      ".whereAxis.nontop.main.leftsb",
-				      ".whereAxis.nontop.find.entry",
-				      interp, theTkWindow);
+                      ".whereAxis.top.mbar.nav.m",
+                      ".whereAxis.nontop.main.bottsb",
+                      ".whereAxis.nontop.main.leftsb",
+                      ".whereAxis.nontop.find.entry",
+                      interp, theTkWindow);
    assert(theAbstractions);
    
    return true;   
@@ -128,11 +148,11 @@ bool tryFirstGoodCallGraphWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    
    theCallGraphPrograms = 
      new callGraphs(".callGraph.titlearea.left.menu.mbar.program.m",
-		    ".callGraph.nontop.main.bottsb",
-		    ".callGraph.nontop.main.leftsb",
-		    ".callGraph.nontop.labelarea.current",
-		    ".callGraph.nontop.currprogramarea.label2",
-		    interp, theTkWindow);
+            ".callGraph.nontop.main.bottsb",
+            ".callGraph.nontop.main.leftsb",
+            ".callGraph.nontop.labelarea.current",
+            ".callGraph.nontop.currprogramarea.label2",
+            interp, theTkWindow);
    
    assert(theCallGraphPrograms);
    initiateCallGraphRedraw(interp, true);
@@ -147,13 +167,8 @@ bool tryFirstGoodCallGraphWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
  * Global variables used by tcl/tk UImain program:
  */
 
-extern Tcl_Interp *interp;	/* Interpreter for this application. */
+extern Tcl_Interp *interp;    /* Interpreter for this application. */
 
-static Tcl_DString command;	/* Used to assemble lines of terminal input
-				 * into Tcl commands. */
-extern int tty;			/* Non-zero means standard input is a
-				 * terminal-like device.  Zero means it's
-				 * a file. */
 
 List<metricInstInfo *> uim_enabled;
 perfStreamHandle          uim_ps_handle;
@@ -175,19 +190,19 @@ status_line *app_status=NULL;
  */
 
 extern int UimpdCmd(ClientData clientData, 
-		    Tcl_Interp *interp, 
-		    int argc, 
-		    char *argv[]);
+            Tcl_Interp *interp, 
+            int argc, 
+            char *argv[]);
 extern int ParadynCmd(ClientData clientData, 
-		      Tcl_Interp *interp, 
-		      int argc, 
-		      char *argv[]);
+              Tcl_Interp *interp, 
+              int argc, 
+              char *argv[]);
 
 extern void resourceAddedCB (perfStreamHandle handle, 
-		      resourceHandle parent, 
-		      resourceHandle newResource, 
-		      const char *name,
-		      const char *abstraction);
+              resourceHandle parent, 
+              resourceHandle newResource, 
+              const char *name,
+              const char *abstraction);
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -217,15 +232,15 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
 
          assert(theAbstractions);
 
-	 theAbstractions->endBatchMode();
-	    // does: resizeEverything(true); (resorts, rethinks layout.  expensive)
+     theAbstractions->endBatchMode();
+        // does: resizeEverything(true); (resorts, rethinks layout.  expensive)
 
          initiateWhereAxisRedraw(interp, true); // true--> double buffer
 
          ui_status->message("ready");
 
          // Shouldn't we also Tcl_Eval(interp, "update"), to process any
-	 // pending idle events?
+     // pending idle events?
       }
     }
     assert(UIM_BatchMode >= 0);
@@ -288,37 +303,39 @@ void processPendingTkEventsNoBlock() {
 
 #define UIMBUFFSIZE 256
 
-void Prompt(Tcl_Interp *, int partial);
-void StdinProc(ClientData, int mask);
 
-void tclPromptCallback(bool newValue) {
+void tclPromptCallback( bool showTclPrompt )
+{
 #if !defined(i386_unknown_nt4_0)
-	static thread_t stdin_tid = THR_TID_UNSPEC;
 
-   // Such a change affects whether or not a prompt is displayed; and,
-   // more importantly, whether or not we should bind to stdin.
-   if (newValue) {
-      //cout << "binding to stdin:" << endl;
-      msg_bind(fileno(stdin),
-	       1, // "special" flag --> libthread leaves it to us to manually
-	         // dequeue messages
-			NULL,
-			NULL,
-			&stdin_tid
-	       );
+
+    if( showTclPrompt )
+    {
+        // install our input handler
+        InstallStdinHandler();
+
+        // bind to stdin so that the thread library responds to input
+        // on the command line
+
+        //cout << "binding to stdin:" << endl;
+        msg_bind(fileno(stdin),
+            1, // we dequeue messages ourselves - we just want notificaton
+            NULL,
+            NULL,
+            &stdin_tid );
    }
-   else {
-      //cout << "unbinding from stdin:" << endl;
-	  assert(stdin_tid != THR_TID_UNSPEC);
-      msg_unbind(stdin_tid);
-
+   else
+   {
       //cout << "deleting file handler:" << endl;
-	  Tcl_DeleteChannelHandler(Tcl_GetStdChannel(TCL_STDIN), StdinProc, (ClientData)0);
+      UninstallStdinHandler();
    }
 #else
-	// TODO - handle this mechanism (or similar) under Windows NT
+    // TODO - handle this mechanism (or similar) under Windows NT
 #endif // !defined(i386_unknown_nt4_0)
 }
+
+
+
 
 extern shgPhases *theShgPhases;
 void tcShgHideGeneric(shg::changeType ct, bool hide) {
@@ -372,7 +389,7 @@ void tcEnableCallGraphCallback(bool enable){
 #endif
 
 void *UImain(void*) {
-	thread_t mtid;
+    thread_t mtid;
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
@@ -390,22 +407,22 @@ void *UImain(void*) {
         true, // default value
         whereAxisDrawTipsCallback,
         userConstant);
-						  
+                          
     tunableBooleanConstantDeclarator tcShgShowKey("showShgKey",
-	"If true, the search history graph will be drawn with a key for"
+    "If true, the search history graph will be drawn with a key for"
         " decoding the meaning of the several background colors, text colors,"
         " italics, etc.  A setting of false saves screen real estate.",
-	true, // default value
-	shgDrawKeyCallback,
-	userConstant);
+    true, // default value
+    shgDrawKeyCallback,
+    userConstant);
 
     tunableBooleanConstantDeclarator tcShgShowTips("showShgTips",
-	"If true, the search history graph will be drawn with reminders"
+    "If true, the search history graph will be drawn with reminders"
         " on shortcuts for expanding, unexpanding, selecting, and scrolling."
         "  A setting of false saves screen real estate.",
-	true, // default value
-	shgDrawTipsCallback,
-	userConstant);
+    true, // default value
+    shgDrawTipsCallback,
+    userConstant);
 
     tunableBooleanConstantDeclarator tcHideTcl("tclPrompt",
         "Allow access to a command-line prompt accepting arbitrary tcl"
@@ -479,12 +496,12 @@ void *UImain(void*) {
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
-		      UimpdCmd, (ClientData) Tk_MainWindow(interp),
-		      (Tcl_CmdDeleteProc *) NULL);
+              UimpdCmd, (ClientData) Tk_MainWindow(interp),
+              (Tcl_CmdDeleteProc *) NULL);
 
     // add Paradyn tcl command to active interpreter
     Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
-		      (Tcl_CmdDeleteProc *) NULL);
+              (Tcl_CmdDeleteProc *) NULL);
 
 /*
  * load all converted Tcl sources into the interpreter.
@@ -494,7 +511,7 @@ void *UImain(void*) {
  */
     extern int initialize_tcl_sources(Tcl_Interp *);
     if (initialize_tcl_sources(interp) != TCL_OK) {
-        fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exiting\n");
+        // we already indicated the error to the user
         exit(-1);
     }
 
@@ -505,7 +522,7 @@ void *UImain(void*) {
     // now install the tcl cmd "createPdLogo" (must be done before anyone
     // tries to create a logo)
     tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
-				   (ClientData)Tk_MainWindow(interp));
+                   (ClientData)Tk_MainWindow(interp));
 
     /* display the paradyn main menu tool bar */
     myTclEval(interp, "drawToolBar");
@@ -521,30 +538,24 @@ void *UImain(void*) {
     Tcl_VarEval (interp, "getNumPdErrors", (char *)NULL);
     uim_maxError = atoi(Tcl_GetStringResult(interp));
 
-    // Initialize "command", an important global variable that accumulates
-    // a typed-in line of data.  It gets updated in StdinProc(), below.
-    Tcl_DStringInit(&command);
-    if (tty)
-      Prompt(interp, 0);
-
     // Initialize UIM thread as UIM server 
     thr_name ("UIM");
     uim_server = new UIM(MAINtid);
 
     // register fd for X events with threadlib as special
-	thread_t xtid;
+    thread_t xtid;
 #if !defined(i386_unknown_nt4_0)
-	Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+    Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
     int xfd = XConnectionNumber (UIMdisplay);
     retVal = msg_bind_socket (xfd,
-		       1, // "special" flag --> libthread leaves it to us to manually
+               1, // "special" flag --> libthread leaves it to us to manually
                          // dequeue these messages
-				NULL,
-				NULL,
-				&xtid
-		       );
+                NULL,
+                NULL,
+                &xtid
+               );
 #else // !defined(i386_unknown_nt4_0)
-	retVal = msg_bind_wmsg( &xtid );
+    retVal = msg_bind_wmsg( &xtid );
 #endif // !defined(i386_unknown_nt4_0)
 
     // initialize hash table for async call replies
@@ -556,9 +567,9 @@ void *UImain(void*) {
 
     retVal = msg_send (MAINtid, MSG_TAG_UIM_READY, (char *) NULL, 0);
     mtag = MSG_TAG_ALL_CHILDREN_READY;
-	mtid = MAINtid;
+    mtid = MAINtid;
     retVal = msg_recv (&mtid, &mtag, UIMbuff, &msgSize);
-	assert( mtid == MAINtid );
+    assert( mtid == MAINtid );
 
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
@@ -585,6 +596,18 @@ void *UImain(void*) {
 
     // New Call Graph --trey
     installCallGraphCommands(interp);
+
+    // set up for reading Tcl commands from the command line, if needed
+#if !defined(i386_unknown_nt4_0)
+    stdinIsTTY = isatty( 0 );
+#else
+    stdinIsTTY = _isatty( _fileno( stdin ) );
+#endif // defined(i386_unknown_nt4_0)
+    tunableBooleanConstant showTclPrompt = tunableConstantRegistry::findBoolTunableConstant("tclPrompt");
+    if( showTclPrompt.getValue() )
+    {
+        InstallStdinHandler();
+    }
 
     //
     // initialize status lines library
@@ -613,7 +636,7 @@ void *UImain(void*) {
       processPendingTkEventsNoBlock();
 
       msgSize = UIMBUFFSIZE;
-	  thread_t pollsender = THR_TID_UNSPEC;
+      thread_t pollsender = THR_TID_UNSPEC;
       mtag = MSG_TAG_ANY;
       int err = msg_poll (&pollsender, &mtag, 1); // 1-->make this a blocking poll
                                             // i.e., not really a poll at all...
@@ -633,55 +656,55 @@ void *UImain(void*) {
          //       responsibility for that.  In other words, a msg_recv()
          //       now would not dequeue anything, so there's no point in doing it...
 
-	 if (pollsender == xtid)
+     if (pollsender == xtid)
             processPendingTkEventsNoBlock();
          else
             cerr << "hmmm...unknown sender of a MSG_TAG_SOCKET message...ignoring" << endl;
 
-	 // The above processing may have created some pending tk DoWhenIdle
-	 // requests.  If so, process them now.
+     // The above processing may have created some pending tk DoWhenIdle
+     // requests.  If so, process them now.
          processPendingTkEventsNoBlock();
       }
 #if defined(i386_unknown_nt4_0)
-		else if( mtag == MSG_TAG_WMSG )
-		{
-			// there are events in the Windows message queue - handle them
-			processPendingTkEventsNoBlock();
-		}
+        else if( mtag == MSG_TAG_WMSG )
+        {
+            // there are events in the Windows message queue - handle them
+            processPendingTkEventsNoBlock();
+        }
 #endif // defined(i386_unknown_nt4_0)
 
 #if !defined(i386_unknown_nt4_0)
-		else if( mtag == MSG_TAG_FILE )
-		{
-			// input should be from our file bound to stdin
-			StdinProc(NULL,0);
+        else if( mtag == MSG_TAG_FILE )
+        {
+            // we only have one file bound - stdin
+            StdinInputHandler( interp );
 
-			// The above processing may have created some pending tk DoWhenIdle
-			// requests.  If so, process them now.
-			processPendingTkEventsNoBlock();
-		}
+            // The above processing may have created some pending tk DoWhenIdle
+            // requests.  If so, process them now.
+            processPendingTkEventsNoBlock();
+        }
 #endif // defined(i386_unknown_nt4_0)
       else  {
          // check for upcalls
          if (dataMgr->isValidTag((T_dataManager::message_tags)mtag)) {
             if (dataMgr->waitLoop(true, (T_dataManager::message_tags)mtag) ==
-		T_dataManager::error) {
+        T_dataManager::error) {
                // TODO
                assert(0);
-	    }
+        }
          }
          else if (uim_server->isValidTag((T_UI::message_tags)mtag)) {
             // check for incoming client requests
             if (uim_server->waitLoop(true, (T_UI::message_tags)mtag) ==
-	       T_UI::error) {
-	      // TODO
-	      assert(0);
+           T_UI::error) {
+          // TODO
+          assert(0);
             }
-	 }
+     }
          else
             panic("ui main loop: neither dataMgr nor uim_server report isValidTag() of true");
-	 // The above processing may have created some pending tk DoWhenIdle
-	 // requests.  If so, process them now.
+     // The above processing may have created some pending tk DoWhenIdle
+     // requests.  If so, process them now.
          processPendingTkEventsNoBlock();
       }
    } 
@@ -702,131 +725,122 @@ void *UImain(void*) {
     
 
 
-/* The two procedures below are taken from the tcl/tk distribution and
- * the following copyright notice applies.
- */
-/* 
- * Copyright (c) 1990-1993 The Regents of the University of California.
- * All rights reserved.
- *
- * Permission is hereby granted, without written agreement and without
- * license or royalty fees, to use, copy, modify, and distribute this
- * software and its documentation for any purpose, provided that the
- * above copyright notice and the following two paragraphs appear in
- * all copies of this software.
- * 
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- */
 
-/*
- *----------------------------------------------------------------------
- *
- * StdinProc--
- *
- *      This procedure is invoked by the event dispatcher whenever
- *      standard input becomes readable.  It grabs the next line of
- *      input characters, adds them to a command being assembled, and
- *      executes the command if it's complete.
- *
- * Results:
- *      None.
- *
- * Side effects:
- *      Could be almost arbitrary, depending on the command that's
- *      typed.
- *
- *----------------------------------------------------------------------
- */
 
-/*
- * 12/10/98: pcr: changed to avoid Tcl_CreateFileHandler and
- * Tcl_DeleteFileHandler due to lack of support on non-UNIX platforms.
- */
+// InstallStdinHandler - install a channel handler for stdin to read
+// commands and execute them when a complete command is recognized
+//
+static
 void
-StdinProc(ClientData, int)
+InstallStdinHandler( void )
 {
-#define BUFFER_SIZE 4000
-    char input[BUFFER_SIZE+1];
-    static int gotPartial = 0;
-    char *cmd;
-    char* resstr;
-    int code, count;
-
-    count = read(fileno(stdin), input, BUFFER_SIZE);
-    if (count <= 0) {
-        if (!gotPartial) {
-            if (tty) {
-                Tcl_Eval(interp, "exit");
-                exit(1);
-            } else {
-				Tcl_DeleteChannelHandler(Tcl_GetStdChannel(TCL_STDIN), StdinProc, (ClientData)0);
-            }
-            return;
-        } else {
-            count = 0;
-        }
+    if( stdinCmdObj != NULL )
+    {
+        Tcl_SetStringObj( stdinCmdObj, "", 0 );
     }
-    cmd = Tcl_DStringAppend(&command, input, count);
-    if (count != 0) {
-        if ((input[count-1] != '\n') && (input[count-1] != ';')) {
-            gotPartial = 1;
-            goto prompt;
-        }
-        if (!Tcl_CommandComplete(cmd)) {
-            gotPartial = 1;
-            goto prompt;
-        }
+    else
+    {
+        stdinCmdObj = Tcl_NewStringObj( "", -1 );
+
+        // we need to hold onto this string object 
+        Tcl_IncrRefCount( stdinCmdObj );
     }
-    gotPartial = 0;
-
-    /*
-     * Disable the stdin file handler while evaluating the command;
-     * otherwise if the command re-enters the event loop we might
-     * process commands from stdin before the current command is
-     * finished.  Among other things, this will trash the text of the
-     * command being evaluated.
-     */
-
-    Tcl_CreateChannelHandler(Tcl_GetStdChannel(TCL_STDIN),
-								0, StdinProc, (ClientData) 0);
-    code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
-    Tcl_CreateChannelHandler(Tcl_GetStdChannel(TCL_STDIN),
-								TK_READABLE, StdinProc, (ClientData) 0);
-    Tcl_DStringFree(&command);
-    resstr = Tcl_GetStringResult(interp);
-    if (*resstr != 0) {
-        if ((code != TCL_OK) || tty)
-            puts(resstr);
+    if( stdinIsTTY )
+    {
+        ShowPrompt( false );
     }
-
-    /*
-     * Output a prompt.
-     */
-
-    prompt:
-    if (tty)
-        Prompt(interp, gotPartial);
-
-    Tcl_ResetResult(interp);
 }
 
-void Prompt(Tcl_Interp *,         /* Interpreter to use for prompting. */
-	    int)                  /* Non-zero means there already
-				   * exists a partial command, so use
-				   * the secondary prompt. */
+
+
+
+// UninstallStdinHandler - remove the channel handler for stdin
+// used on exit or in response to tclPrompt changing to false
+//
+static
+void
+UninstallStdinHandler( void )
 {
-   tunableBooleanConstant showTclPrompt = tunableConstantRegistry::findBoolTunableConstant("tclPrompt");
-   if (showTclPrompt.getValue()) {
-      fputs("pd> ", stdout);
-      fflush(stdout);
-   }
+    Tcl_Channel ochan = Tcl_GetStdChannel( TCL_STDOUT );
+
+
+    // dump something to show that the prompt is no longer valid
+    Tcl_WriteChars( ochan, "<done>", -1 );
+    Tcl_Flush( ochan );
+
+    // unbind thread library from stdin
+    assert( stdin_tid != THR_TID_UNSPEC );
+    msg_unbind( stdin_tid );
 }
+
+
+
+
+
+// StdinInputHandler - channel handler, called when there is input on stdin
+//
+static
+void
+StdinInputHandler( Tcl_Interp* interp )
+{
+    Tcl_Channel ichan = Tcl_GetStdChannel( TCL_STDIN );
+    bool continuation = false;
+
+
+    // read the available input, appending to any existing input
+    Tcl_GetsObj( ichan, stdinCmdObj );
+
+    // check if we have a complete command
+    if( Tcl_GetCharLength( stdinCmdObj ) > 0 )
+    {
+        if( Tcl_CommandComplete( Tcl_GetStringFromObj( stdinCmdObj, NULL )) ) 
+        {
+            // issue the command
+            int evalRes = Tcl_EvalObjEx( interp, stdinCmdObj, TCL_EVAL_DIRECT );
+
+            // output the result
+            Tcl_Channel ochan = Tcl_GetStdChannel( (evalRes == TCL_OK) ? 
+                                                    TCL_STDOUT : TCL_STDERR );
+            Tcl_WriteChars( ochan, Tcl_GetStringResult( interp ), -1 );
+            Tcl_WriteChars( ochan, "\n", -1 );
+            Tcl_Flush( Tcl_GetStdChannel( TCL_STDOUT ) );
+
+            // clear our old command
+            continuation = false;    // we had a complete command
+            Tcl_SetObjLength( stdinCmdObj, 0 );
+        }
+        else
+        {
+            // we've already saved the input for later completion
+            continuation = true;
+        }
+    }
+    else if( Tcl_Eof( ichan ) )
+    {
+        // we've reached EOF on the stdin file - stop looking for input
+        if( !stdinIsTTY )
+        {
+            UninstallStdinHandler();
+        }
+    }
+
+    // show prompt if needed
+    if( stdinIsTTY )
+    {
+        ShowPrompt( continuation );
+    }
+}
+
+
+static
+void
+ShowPrompt( bool continuation )
+{
+    Tcl_Channel ochan = Tcl_GetStdChannel( TCL_STDOUT );
+
+    // issue an appropriate prompt
+    Tcl_WriteChars( ochan, continuation ? " +> " : "pd> ", -1 );
+    Tcl_Flush( ochan );
+}
+
+
