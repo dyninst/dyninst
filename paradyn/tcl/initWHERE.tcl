@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.9  1994/11/01 05:46:19  karavan
+# Revision 1.10  1994/11/02 19:46:03  tamches
+# Fixed a bug in the where axis: now, making the window taller won't put
+# unnecessary space above & below the "CLEAR" button area.
+#
+# Revision 1.9  1994/11/01  05:46:19  karavan
 # changed resource selection to allow multiple focus selection on a
 # single display.
 #
@@ -146,7 +150,6 @@ proc initRDO {rdoID wwindow wtitle} {
     pack $wwindow.sbutts.b2 $wwindow.sbutts.b4 -side left -padx 5
     pack $wwindow.dag.title -side top -fill x -expand 1 
     pack $wwindow.dag -side top -fill both -expand 1
-    pack $wwindow.sbutts -side top -fill x -expand 1
-
+    pack $wwindow.sbutts -side top -fill x -expand 0
 }
 
