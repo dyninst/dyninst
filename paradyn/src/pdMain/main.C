@@ -1,7 +1,12 @@
 /* $Log: main.C,v $
-/* Revision 1.32  1995/11/13 14:54:49  naim
-/* Adding error message #85 - naim
+/* Revision 1.33  1995/11/13 19:59:02  naim
+/* Adding error flag that is turned on when there is an error reading the
+/* paradyn configuration file. The called to showError had to be moved some-
+/* where else because uiMgr has not been initialized yet at this point - naim
 /*
+ * Revision 1.32  1995/11/13  14:54:49  naim
+ * Adding error message #85 - naim
+ *
  * Revision 1.31  1995/11/08  21:17:31  naim
  * Adding matherr exception handler function to avoid error message when
  * computing the "not a number" (NaN) value - naim
@@ -220,6 +225,7 @@ main (int argc, char **argv)
   unsigned int msgsize;
   tag_t mtag;
   char *temp;
+  bool errorConfigFlag=false;
 
   // Initialize tcl/tk
   interp = Tcl_CreateInterp();
@@ -302,7 +308,7 @@ main (int argc, char **argv)
 
 // call sequential initialization routines
   if(!dataManager::DM_sequential_init(fname))
-    uiMgr->showError(85,"");
+    errorConfigFlag = true;
   VM::VM_sequential_init(); 
 
 
@@ -454,6 +460,12 @@ main (int argc, char **argv)
   // move this elsewhere to create a race condition
   if (sname)
     uiMgr->readStartupFile (sname);
+ 
+  // Show an error message if there was a problem reading paradyn configuration
+  // file. showError cannot be called before because uiMgr has not been 
+  // initialized yet.
+  if (errorConfigFlag)
+    uiMgr->showError(85,"");
 
 // wait for UIM thread to exit 
 
