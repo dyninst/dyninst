@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.34 2003/07/15 22:44:38 schendel Exp $
+// $Id: sol_proc.C,v 1.35 2003/09/05 16:28:05 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1094,7 +1094,6 @@ bool process::continueProc_() {
 #endif
 }
 
-#ifdef BPATCH_LIBRARY
 /*
    terminate execution of a process
  */
@@ -1112,11 +1111,11 @@ bool process::terminateProc_()
             perror("terminateProc: PCKILL");
             return false;
         }
-    Exited();
-    
+
+    handleProcessExit(0);
     return true;
 }
-#endif
+
 
 /*
    pause a process that is running

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.107 2003/08/05 21:49:22 hollings Exp $
+// $Id: pdwinnt.C,v 1.108 2003/09/05 16:27:58 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -832,7 +832,7 @@ DWORD handleProcessExit(process *proc, procSignalInfo_t info) {
                 proc->getPid(), info.u.ExitProcess.dwExitCode);
           statusLine(errorLine);
           logLine(errorLine);
-          handleProcessExit(proc, info.u.ExitProcess.dwExitCode);
+          proc->handleProcessExit(info.u.ExitProcess.dwExitCode);
     }
     proc->continueProc();
     return DBG_CONTINUE;
@@ -1161,17 +1161,15 @@ bool process::continueProc_() {
 }
 
 
-#ifdef BPATCH_LIBRARY
 /*
    terminate execution of a process
  */
 bool process::terminateProc_()
 {
     OS::osKill(pid);
-    handleProcessExit(this, -1);
+    this->handleProcessExit(-1);
     return true;
 }
-#endif
 
 
 /*

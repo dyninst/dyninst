@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.54 2003/07/15 22:44:28 schendel Exp $
+// $Id: osf.C,v 1.55 2003/09/05 16:28:00 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -784,7 +784,6 @@ bool process::dumpImage()
     return true;
 }
 
-#ifdef BPATCH_LIBRARY
 /*
    terminate execution of a process
  */
@@ -797,12 +796,10 @@ bool process::terminateProc_()
     // just to make sure it is dead
     kill(getPid(), 9);
 
-    Exited();
+    handleProcessExit(0);
 
     return true;
 }
-#endif
-
 
 
 #if !defined(BPATCH_LIBRARY)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.63 2003/08/03 04:20:23 pcroth Exp $
+// $Id: irix.C,v 1.64 2003/09/05 16:27:59 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -893,7 +893,6 @@ bool process::dumpCore_(const pdstring coreFile)
   return ret;
 }
 
-#ifdef BPATCH_LIBRARY
 bool process::terminateProc_()
 {
   //fprintf(stderr, ">>> process::terminateProc_()\n");
@@ -902,10 +901,10 @@ bool process::terminateProc_()
     // not an error: fd has probably been close()ed already
     return false;
   }  
-  Exited();
+  handleProcessExit(0);
   return true;
 }
-#endif
+
 
 /* API_detach_: detach from the process (clean up /proc state);
    continue process' execution if "cont" is true. */
