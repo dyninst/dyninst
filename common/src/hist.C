@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.8  1994/04/30 21:00:03  hollings
+ * Revision 1.9  1994/05/10 03:56:47  hollings
+ * Changed hist data upcall to return array of buckets not single value.
+ *
+ * Revision 1.8  1994/04/30  21:00:03  hollings
  * Fixed bug in fold callback that caused all fold message to go to the
  * Histogram that caused the fold not the correct ones.
  *
@@ -185,7 +188,7 @@ void Histogram::foldAllHist()
 	if (curr->storageType == HistBucket) {
 	    bins = curr->dataPtr.buckets;
 	    for (i=0; i < numBins/2; i++) {
-		bins[i] = bins[i*2] + bins[i*2+1];
+		bins[i] = (bins[i*2] + bins[i*2+1]) / 2.0;
 	    }
 	    curr->lastBin = i-1;
 	    memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
@@ -200,7 +203,6 @@ void Histogram::bucketValue(timeStamp start_clock,
 			   Boolean smooth)
 {
     register int i;
-    timeStamp start, end;
     int first_bin, last_bin;
     timeStamp elapsed_clock = (timeStamp) 0.0;
     timeStamp first_bin_start, last_bin_start;
@@ -227,12 +229,14 @@ void Histogram::bucketValue(timeStamp start_clock,
 
     if (metricType == SampledFunction) {
 	for (i=first_bin; i <= last_bin; i++) {
-	    dataPtr.buckets[i] = value * bucketSize;
+	    dataPtr.buckets[i] = value;
 	}
     } else {
+	// normalize by bucket size.
+	value /= bucketSize;
 	if (last_bin == first_bin) {
 	    dataPtr.buckets[first_bin] += value;
-	    if (smooth && (dataPtr.buckets[first_bin] > bucketSize)) {
+	    if (smooth && (dataPtr.buckets[first_bin] > 1.0)) {
 		/* value > 100% */
 		smoothBins(dataPtr.buckets, first_bin, bucketSize);
 	    }
@@ -269,13 +273,13 @@ void Histogram::bucketValue(timeStamp start_clock,
     }
 
     // inform users about the data.
-    if (dataFunc) {
-	start = first_bin * bucketSize;
-	for (i=first_bin; i < last_bin; i++) {
-	    end = start + bucketSize;
-	    (dataFunc)(start, end, dataPtr.buckets[i], cData);
-	    start = end;
-	}
+    // make sure they want to hear about it (dataFunc)
+    //  && that we have a full bin (last_bin>first_bin)
+    if (dataFunc && (last_bin-first_bin)) {
+	(dataFunc)(&dataPtr.buckets[first_bin], 
+		   last_bin-first_bin, 
+		   first_bin, 
+		   cData);
     }
 }
 
@@ -380,7 +384,7 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 	    }
 	}
     }
-    return(retVal);
+    return(retVal * bucketSize);
 }
 
 sampleValue Histogram::getValue()

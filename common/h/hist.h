@@ -23,9 +23,9 @@ typedef sampleValue Bin;
 
 typedef void (*foldCallBack)(timeStamp, void* userData);
 
-typedef void (*dataCallBack)(timeStamp st,
-			     timeStamp en,
-			     timeStamp value,
+typedef void (*dataCallBack)(sampleValue *buckets,
+			     int numberOfBuckets,
+			     int first,
 			     void *userData);
 
 class Histogram;
