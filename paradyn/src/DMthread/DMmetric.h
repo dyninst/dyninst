@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.36 2001/08/23 14:43:42 schendel Exp $ 
+// $Id: DMmetric.h,v 1.37 2001/12/15 02:44:19 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -84,6 +84,8 @@ class component {
 	    sample = 0;
 	}
 	~component() {
+	    // don't delete aggComponent, since sampleAggregator will
+	    // keep around to aggregate it's data
 	    daemon->disableDataCollection(id);
             assert(id>=0);
             daemon->disabledMids += (unsigned) id;
