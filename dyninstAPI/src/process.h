@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.214 2002/08/21 19:42:03 schendel Exp $
+/* $Id: process.h,v 1.215 2002/08/29 19:53:32 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -644,6 +644,18 @@ void saveWorldData(Address address, int size, const void* src);
 	void saveWorldloadLibrary(string tmp){ loadLibraryUpdates.push_back(tmp); };
 	
 #endif
+#endif
+#if defined(i386_unknown_nt4_0) 
+	//ccw 28 aug 2002
+	//These variables are used by Windows during the loading of the
+	//runtime libraries.  They are used to save some state inside
+	//process::waitProcs.  These are class members so that loading
+	//two or more mutatees at once will no step on each other's state
+	int secondBkpt;
+	int mungeAddr;
+	char savedOpCode[256];
+	char newOpCode[256];
+	Address mainAddr;
 #endif
 
   bool writeDataSpace(void *inTracedProcess,

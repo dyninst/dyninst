@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.61 2002/08/21 19:42:01 schendel Exp $
+// $Id: pdwinnt.C,v 1.62 2002/08/29 19:53:32 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -571,7 +571,6 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     Symbol sym;
  	//ccw 22 aug 2000 : this function hand codes x86 op codes!!!!
 	//change these to mips instructions!!!
-
 #ifdef mips_unknown_ce2_11 //ccw 14 aug 2000 : 29 mar 2001
 
 	//ccw 2 feb 2001
@@ -751,7 +750,7 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     // int3
     *iptr++ = (char)0xcc;
 
-    if (!process::dyninstName.length())
+    /*if (!process::dyninstName.length()) ccw 28 aug 2002 ALWAYS CHECK ENV VAR*/
         // check for an environment variable
 	// SPLIT ccw 4 jun 2002
 #if defined( BPATCH_LIBRARY ) || 1  // dyninstAPI loads a different run-time library
@@ -909,18 +908,20 @@ void checkProcStatus() {
 // to load the dll, replaces what was overwritten in main() and resets the
 // instruction pointer (EIP) to the beginning of main().
 
+//ccw 28 aug 2002 : the following five vars have moved to Process so
+// we can properly load more than one mutatee
+ 
 //ccw 30 apr 2001 : used to signal-we have seen the first EXCEPTION_DEBUG_EVENT
-int secondBkpt = 0; 
+//int secondBkpt = 0; 
 
 //ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
-int mungeAddr = 0; 
-byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
-byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
+//int mungeAddr = 0; 
+//byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
+//byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
 //ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte
 //does not always cause the instruction cache to be reloaded.
 
-int setParadynVars = 0; //ccw 5 jun 2002 : SPLIT
-Address mainAddr=0 ; //ccw 2 may 2001 : the address of main()
+//Address p->mainAddr=0 ; //ccw 2 may 2001 : the address of main()
 
 //ccw 2 may 2001 : the following function sets the varible name to the value
 //given.  returns true if it is successful.
@@ -1033,7 +1034,7 @@ int process::waitProcs(int *status) {
 #endif
 
 #if !defined(mips_unknown_ce2_11)
-	    	if(!secondBkpt && !p->wasCreatedViaAttach()){
+	    	if(!p->secondBkpt && !p->wasCreatedViaAttach()){
 			// if this was created via attach then
 			// we are not at main() so no reason to
 			// put a breakpoint there, we are already
@@ -1055,19 +1056,19 @@ int process::waitProcs(int *status) {
 				}
 
 			}
-			mainAddr = mainFunc->addr();
+			p->mainAddr = mainFunc->addr();
 			//ccw save what we overwrite for later.
-			p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode);
+			p->readDataSpace_((void*) (p->mainAddr), 256, (void*)p->savedOpCode);
 
 			// insert the breakpoint into the code we just read
-			CopyMemory( newOpCode, savedOpCode, 256 );
-			newOpCode[0] = 0xcc;
+			CopyMemory( p->newOpCode, p->savedOpCode, 256 );
+			p->newOpCode[0] = 0xcc;
 
 			// write the modified code sequence back
-			p->writeDataSpace((void*) (mainAddr), 256, (void*)newOpCode);
-			p->flushInstructionCache_( (void*)mainAddr, 256 );
+			p->writeDataSpace((void*) (p->mainAddr), 256, (void*)p->newOpCode);
+			p->flushInstructionCache_( (void*)p->mainAddr, 256 );
 
-			secondBkpt=1;
+			p->secondBkpt=1;
 			break;
 		}
 #endif
@@ -1092,7 +1093,7 @@ int process::waitProcs(int *status) {
 
 			//printf(" Loading dyninst lib\n");//PRINTF
 		    Address addr = loadDyninstDll(p, p->savedData);
-	   	    mungeAddr = addr; //ccw 15 june 2001
+	   	    p->mungeAddr = addr; //ccw 15 june 2001
 		    p->savedRegs = p->getRegisters();
 		    p->changePC(addr);
 		    //p->LoadDyninstTrapAddr = addr + 0xd;
@@ -1103,7 +1104,7 @@ int process::waitProcs(int *status) {
 			){
 			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
 #else
-			&& ((int) mungeAddr + inst_offset) ==
+			&& ((int) p->mungeAddr + inst_offset) ==
 			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
 #endif
 			//NOTE the above test is different for CE/NT
@@ -1126,9 +1127,9 @@ int process::waitProcs(int *status) {
 			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
 #endif
 
-			if(mainAddr){
+			if(p->mainAddr){
 			    // patch main() back to its original form
-			    p->writeDataSpace((void*) (mainAddr),16,(void*) savedOpCode); //ccw 2 may 2001
+			    p->writeDataSpace((void*) (p->mainAddr),16,(void*) p->savedOpCode); //ccw 2 may 2001
 			    // reset the IP to run what we just inserted.
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
@@ -1139,11 +1140,11 @@ int process::waitProcs(int *status) {
 				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
 #if !defined(mips_unknown_ce2_11)		    
-			if(mainAddr){
+			if(p->mainAddr){
 				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
-				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
-				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+				p->readDataSpace_((void*)(p->mainAddr), 256, (void*) p->newOpCode);
+				p->writeDataSpace((void*) (p->mainAddr),256,(void*) p->savedOpCode); //ccw 2 may 2001
 				//technically, we only need to writeDataSpace once, up at the previous
 				// if statement. BUT writing once does not seem to always flush the 
 				// icache, and neither does FlushInsturctionCache()
@@ -1158,7 +1159,7 @@ int process::waitProcs(int *status) {
 #if !defined(BPATCH_LIBRARY) //SPLIT ccw 4 jun 2002
 
 		}else if(p->isLoadingParadynLib
-			&& ((int) mungeAddr + inst_offset) ==
+			&& ((int) p->mungeAddr + inst_offset) ==
 			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
 			
 		    	p->hasLoadedParadynLib = true;
@@ -1166,9 +1167,9 @@ int process::waitProcs(int *status) {
 			//printf(" caught breakpoint after load of paradyn lib\n");//PRINTF
 	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
-			if(mainAddr){
+			if(p->mainAddr){
 			    // patch main() back to its original form
-			    p->writeDataSpace((void*) (mainAddr),16,(void*) savedOpCode); //ccw 2 may 2001
+			    p->writeDataSpace((void*) (p->mainAddr),16,(void*) p->savedOpCode); //ccw 2 may 2001
 			    // reset the IP to run what we just inserted.
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
@@ -1178,11 +1179,11 @@ int process::waitProcs(int *status) {
 			p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
-			if(mainAddr){
+			if(p->mainAddr){
 				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
 				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
-				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
-				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+				p->readDataSpace_((void*)(p->mainAddr), 256, (void*) p->newOpCode);
+				p->writeDataSpace((void*) (p->mainAddr),256,(void*) p->savedOpCode); //ccw 2 may 2001
 				//technically, we only need to writeDataSpace once, up at the previous
 				// if statement. BUT writing once does not seem to always flush the 
 				// icache, and neither does FlushInsturctionCache()
@@ -1247,8 +1248,8 @@ int process::waitProcs(int *status) {
 	    		p->pause_();
 		    	p->procStopFromDYNINSTinit();
 
-		    	mungeAddr = loadParadynDll(p); 
-			p->changePC(mungeAddr);
+		    	p->mungeAddr = loadParadynDll(p); 
+			p->changePC(p->mungeAddr);
 			p->isLoadingParadynLib = true;
  		        p->status_ = running;
 	        	p->continueProc_();
@@ -1348,8 +1349,8 @@ int process::waitProcs(int *status) {
 	    assert(result >= 0 && result <= 2);
 	    if (result != 0) {
 #if !defined(BPATCH_LIBRARY) //ccw 5 jun 2002 SPLIT
-	    	mungeAddr = loadParadynDll(p); 
-		p->changePC(mungeAddr);
+	    	p->mungeAddr = loadParadynDll(p); 
+		p->changePC(p->mungeAddr);
 		p->isLoadingParadynLib = true;
  	        p->status_ = running;
 	        p->continueProc_();
@@ -1502,7 +1503,7 @@ int process::waitProcs(int *status) {
 	//printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
 	p = findProcess(debugEv.dwProcessId);
 	if (p) {
-	    secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
+	    p->secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
 	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
 	    if (p->threads.size() == 0) {
 		// define the main thread
