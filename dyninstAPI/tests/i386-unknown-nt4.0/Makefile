@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.6 2000/04/24 02:37:32 wylie Exp $
+# $Id: Makefile,v 1.7 2000/07/14 20:37:35 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -31,7 +31,8 @@ NATIVE_CXX = VC++
 !ifdef TARGET2
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CC)")
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR
+COMPILER="Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8168 for 80x86"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -DCOMPILER=\"$(COMPILER)\"
 LDFLAGS = -nologo -debug -pdb:none
 $(TARGET2):
 	cl -TC $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC.exe=.c)
@@ -39,7 +40,8 @@ $(TARGET2):
 !endif
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CXX)")
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -GX
+COMPILER="Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8168 for 80x86"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -GX -DCOMPILER=\"$(COMPILER)\"
 LDFLAGS = -nologo -debug -pdb:none
 $(TARGET2):
 	cl -TP $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC++.exe=.c)
@@ -47,15 +49,17 @@ $(TARGET2):
 !endif
 
 !if ("$(MUTATEE_CC)"=="$(GNU_CC)")
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall
+COMPILER="gcc version egcs-2.91.57 19980901 (egcs-1.1 release)"
+MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_gcc.exe=.c)
-	$(GNU_CC) -o $(TARGET2) $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_gcc.exe=.c)
+	$(GNU_CC) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_gcc.exe=.c)
 !endif
 
 !if ("$(MUTATEE_CC)"=="$(GNU_CXX)")
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall
+COMPILER="gcc version egcs-2.91.57 19980901 (egcs-1.1 release)"
+MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_g++.exe=.c)
-	$(GNU_CXX) -o $(TARGET2) $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_g++.exe=.c)
+	$(GNU_CXX) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_g++.exe=.c)
 !endif
 
 !endif TARGET2
