@@ -253,7 +253,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // First, idiot check. If there aren't any RPCs to run, then
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
-
     if (recursionGuard) {
         // Error case: somehow launchRPCs was entered recursively
         cerr <<  "Error: inferior RPC mechanism was used in an unsafe way!" << endl;
@@ -276,9 +275,12 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // We have a central list of all posted or pending RPCs... if those are empty
     // then don't bother doing work
     if (allPostedRPCs_.size() == 0) {
-        recursionGuard = false;
-        return false;
+      if (wasRunning)
+	proc_->continueProc();
+      recursionGuard = false;
+      return false;
     }
+    
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
