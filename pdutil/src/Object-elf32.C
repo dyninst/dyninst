@@ -217,6 +217,12 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
 	}
 
     }
+    if(!symscnp || !strscnp) {
+      if(dynsym_scnp && dynstr_scnp){
+          symscnp = dynsym_scnp;
+	  strscnp = dynstr_scnp;
+      }
+    }
     if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
         log_elferror(err_func_, "no text/bss/symbol/string section");
         return false;
@@ -467,6 +473,9 @@ Object::load_shared_object() {
 
         /***  ptr, stabscnp, stabstrscnp should NOT be filled in if the parsed
               object was a shared library  ***/
+	/* The above is not necessarily true...if the shared object was 
+	 * compiled with -g then these will be filled in
+	 */
         if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
 			    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
                             rel_plt_scnp, plt_scnp,got_scnp,dynsym_scnp, dynstr_scnp)) {
