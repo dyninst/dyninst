@@ -9,6 +9,7 @@
 
 #include "Topology.h"
 
+namespace MRN {
 class Node{
  private:
     std::string _name;
@@ -59,5 +60,6 @@ class GenericTree: public Tree{
  public:
     GenericTree( std::vector<std::string> &hosts, std::string &topology_spec );
 };
+} /* namespace MRN */
 
 #endif /* __tree_h */

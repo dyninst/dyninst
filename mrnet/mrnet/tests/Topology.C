@@ -1,6 +1,6 @@
 #include "Topology.h"
 
-
+namespace MRN {
 Topology::Topology( std::string & topology_str )
   :num_nodes(0), num_internalnodes(0), num_leaves(0), _error( false )
 {
@@ -34,3 +34,5 @@ Topology::Topology( std::string & topology_str )
 
     num_internalnodes = num_nodes - num_leaves;
 }
+
+} /* namespace MRN */

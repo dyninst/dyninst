@@ -3,7 +3,8 @@
 #include <ctype.h>
 #include "Tree.h"
 
-std::map<std::string, Node *> Tree::NodesByName;
+namespace MRN{
+	std::map<std::string, Node *> Tree::NodesByName;
 
 
 Node::Node( std::string n) : _name(n), visited(false)
@@ -157,13 +158,13 @@ BalancedTree::BalancedTree( std::vector<std::string> &hosts, std::string & topol
     fprintf(stderr, "%d backends, %d fanout, %d nodes\n", _num_leaves,
             _fanout, num_nodes_needed );
 
-    for(unsigned int i=1; i<num_nodes_needed; ){
+    for(unsigned int ii=1; ii<num_nodes_needed; ){
         cur_parent_node = get_Node( hosts[cur_parent++] );
         //fprintf(f, "%s => ", hosts[cur_parent-1]);
 
         for(unsigned int j=0; j<_fanout; j++){
             cur_parent_node->add_Child( get_Node( hosts[next_orphan++] ) );
-            i++;
+            ii++;
             //fprintf(f, "%s ", hosts[next_orphan-1]);
         }
         //fprintf(f, ";\n");
@@ -267,3 +268,5 @@ GenericTree::GenericTree( std::vector<std::string> &hosts,
         }
     }
 }
+
+} /* namespace MRN */

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+namespace MRN {
 class Topology{
  private:
   std::vector< unsigned int > levels;
@@ -21,5 +22,6 @@ class Topology{
   unsigned int get_NumInternalNodes() const { return num_internalnodes; }
   unsigned int get_NumLeaves() const { return num_leaves; }
 };
+} /* namespace MRN */
 
 #endif /* __topology_h */
