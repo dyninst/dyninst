@@ -446,10 +446,10 @@ bool InstrucIter::delayInstructionSupported()
 
 bool InstrucIter::hasMore()
 {
-    if( currentAddress + insn.size() >= range + baseAddress )
-        return false;
-    
+  if((currentAddress < (baseAddress + range )) &&
+     (currentAddress >= baseAddress))
     return true;
+  return false;
 }
 
 bool InstrucIter::hasPrev()
