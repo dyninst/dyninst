@@ -1727,7 +1727,7 @@ void BPatch_module::parseDwarfTypes() {
 		/* Iterate over the tree rooted here. */
 		assert( walkDwarvenTree( dbg, moduleName, moduleDIE, this ) );
 		
-		dwarf_dealloc( dbg, moduleDIE, DW_DLA_ATTR );
+		dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 		} /* end iteration over compilation-unit headers. */
 
