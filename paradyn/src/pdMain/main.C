@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.12  1994/09/22 01:22:48  markc
-/* Gave correct signature for signal
+/* Revision 1.13  1994/11/01 22:27:22  karavan
+/* Changed debugging printfs to PARADYN_DEBUG calls.
 /*
+ * Revision 1.12  1994/09/22  01:22:48  markc
+ * Gave correct signature for signal
+ *
  * Revision 1.11  1994/08/22  15:54:49  markc
  * Added command line argument to specify application config file.
  *
@@ -159,7 +162,7 @@ main (int argc, char *argv[])
   if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
-  fprintf (stderr, "DM thread created\n");
+  PARADYN_DEBUG (("DM thread created\n"));
 
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_DM_READY;
@@ -180,7 +183,7 @@ main (int argc, char *argv[])
 
   if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 0, &UIMtid) == THR_ERR) 
     exit(1);
-  fprintf (stderr, "UI thread created\n");
+  PARADYN_DEBUG (("UI thread created\n"));
 
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_UIM_READY;
@@ -194,7 +197,7 @@ main (int argc, char *argv[])
   if (thr_create(0, 0, PCmain, (void*) &MAINtid, 0, 
 		 (unsigned int *) &PCtid) == THR_ERR)
     exit(1);
-  fprintf (stderr, "PC thread created\n");
+  PARADYN_DEBUG (("PC thread created\n"));
 
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_PC_READY;
@@ -207,7 +210,7 @@ main (int argc, char *argv[])
 		 (unsigned int *) &VMtid) == THR_ERR)
     exit(1);
 
-  fprintf (stderr, "VM thread created\n");
+  PARADYN_DEBUG (("VM thread created\n"));
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_VM_READY;
   msg_recv(&mtag, mbuf, &msgsize);
@@ -219,15 +222,11 @@ main (int argc, char *argv[])
   metDoTunable();
   metDoProcess();
   metDoVisi();
-  printf("past metric parsing\n");
+  PARADYN_DEBUG (("past metric parsing\n"));
 
 
 // wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
-	
-  printf ("finished [test] main\n");
-  thr_trace_off();
-
 }
 
