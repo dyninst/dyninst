@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.48 2002/01/17 16:22:49 schendel Exp $
+ * $Id: RTinst.c,v 1.49 2002/01/31 17:07:52 cortes Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -439,13 +439,23 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 {
   /* If first 2 params are -1 then we're being called by DYNINSTfork(). */
   /* If first 2 params are 0 then it just means we're not shm sampling */
+  /* If first paremeter is < 0, but different than -1 we it means
+     that we are in the unique case called attachToCreated.  */
   /* If 3d param is negative, then we're called from attach
      (and we use -paradyndPid as paradynd's pid).  If 3d param
      is positive, then we're not called from attach (and we use +paradyndPid
      as paradynd's pid). */
   
+ 
+  int calledFromAttachToCreated = 0;
   int calledFromFork = (theKey == -1);
   int calledFromAttach = (paradyndPid < 0);
+
+  if ((theKey < 0) &&(theKey != -1)){
+    calledFromAttachToCreated = 1;
+    theKey *= -1;
+  }
+  
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -555,8 +565,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
   else				   
     DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
-					 called by exec'd proc) */
-  
+					 called by exec'd proc or attachedTocreated case) */
+
   /* If attaching, now's the time where we set up the trace stream connection fd */
   if (calledFromAttach) {
     int pid = getpid();
@@ -581,10 +591,30 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTflushTrace();
   }
   else if (!calledFromFork) {
-    /* either normal startup or startup via a process having exec'd */
+    /* either normal startup or startup via a process having exec'd or attachtoCreated case */
 #if !defined(i386_unknown_nt4_0)
-      /* trace stream is already open */
+    if (calledFromAttachToCreated){
+   /* unique case identified as attachToCreated */
+       int cookie = 0;  /*  not attach, not fork */
+       int pid = getpid();
+       int ppid = paradyndPid; /* paradynd is seen as the father because it is attached
+                                  to the application */
+       int32_t ptr_size;
+
+       DYNINSTinitTrace(paradyndPid);
+       DYNINSTwriteTrace(&cookie, sizeof(cookie));
+       DYNINSTwriteTrace(&pid, sizeof(pid));
+       DYNINSTwriteTrace(&ppid, sizeof(ppid));
+       DYNINSTflushTrace();/* we needed it */
+       DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey)); 
+       ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+       DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+       DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+       DYNINSTflushTrace(); /* we needed it */
+    }
+    else {/* trace stream is already open */ 
       DYNINSTinitTrace(-1);
+    }
 #else
       /* need to get a connection to daemon */
       int cookie = 0;
@@ -1668,3 +1698,6 @@ int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
 	
 	return 0;
 }
+
+
+
