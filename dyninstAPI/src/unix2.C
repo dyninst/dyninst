@@ -44,6 +44,13 @@
  */
 /*
  * $Log: unix2.C,v $
+ * Revision 1.2  1997/05/02 01:43:33  buck
+ * Updated dyninstAPI library-only files to work with recent changes to code
+ * code included in Paradyn.
+ *
+ * Revision 1.1.1.1  1997/04/01 20:25:11  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.1  1997/03/18 19:44:31  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -310,6 +317,11 @@ int dyninstAPI_handleSigChild(int pid, int status)
 		   string buffer = string("PID=") + string(pid);
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
+
+                   // initializes the inferiorHeap
+                   // If libdyninst is dynamically linked, this can only be
+                   // called after libdyninst is loaded
+                   curr->initDyninstLib();
 
 //		   (void)(curr->findDynamicLinkingInfo()); // SHOULD THIS BE HERE???
 

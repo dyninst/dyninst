@@ -42,6 +42,10 @@
 #pragma implementation "BPatch_Vector.h"
 #include "BPatch_Vector.h"
 
+#pragma implementation "refCounter.h"
+#include "util/h/refCounter.h"
+#include "util/h/String.h"
+
 class BPatch_function;
 class BPatch_point;
 class BPatch_snippet;
@@ -54,3 +58,5 @@ template class BPatch_Vector<BPatch_point *>;
 template class BPatch_Vector<BPatch_snippet *>;
 template class BPatch_Vector<BPatch_thread *>;
 template class BPatch_Vector<instInstance *>;
+
+template class  refCounter<string_ll>;

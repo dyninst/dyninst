@@ -188,9 +188,10 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
     string full_name = string("_") + string(name);
 
     Symbol syminfo;
-    if (!proc->getSymbolInfo(full_name, syminfo)) {
+    Address baseAddr;
+    if (!proc->getSymbolInfo(full_name, syminfo, baseAddr)) {
 	string short_name(name);
-	if (!proc->getSymbolInfo(short_name, syminfo)) {
+	if (!proc->getSymbolInfo(short_name, syminfo, baseAddr)) {
 	    return NULL;
 	}
     }

@@ -1420,8 +1420,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
       
       This socket is set up in controllerMainLoop (perfStream.C).
    */
+#ifdef BPATCH_LIBRARY
+   // Unused by dyninstAPI library
+   the_args[2] = new AstNode(AstNode::Constant, (void*)0);
+#else
    the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
    attach_cerr << (-1* getpid()) << endl;
+#endif
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
@@ -2987,7 +2992,12 @@ void process::installBootstrapInst() {
 
    the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
    the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
+#ifdef BPATCH_LIBRARY
+   // Unused by the dyninstAPI library
+   the_args[2] = new AstNode(AstNode::Constant, (void *)0);
+#else
    the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
+#endif
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0; j<the_args.size(); j++) {
