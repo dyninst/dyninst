@@ -4,10 +4,15 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.5  1995/09/20 01:27:10  tamches
-/* constness removed from many prototypes; other changes to correspond
-/* with whereAxis.C
+/* Revision 1.6  1995/10/17 22:18:46  tamches
+/* whereAxis is no longer a templated type; it used where4tree
+/* with a template of whereAxisRootNode.
+/* Added back static members which used to be in whereAxisMisc.
 /*
+ * Revision 1.5  1995/09/20 01:27:10  tamches
+ * constness removed from many prototypes; other changes to correspond
+ * with whereAxis.C
+ *
  * Revision 1.4  1995/08/07  00:02:52  tamches
  * Added selectUnSelectFromFullPathName
  *
@@ -25,12 +30,14 @@
  *
  */
 
-#ifndef _WHEREAXIS_H_
-#define _WHEREAXIS_H_
+#ifndef _WHERE_AXIS_H_
+#define _WHERE_AXIS_H_
 
 #include <fstream.h>
 #include "where4treeConstants.h"
 #include "where4tree.h"
+#include "rootNode.h"
+#include "graphicalPath.h"
 
 #ifndef PARADYN
 #include "Dictionary.h"
@@ -38,16 +45,48 @@
 #include "util/h/Dictionary.h"
 #endif
 
-template <class USERNODEDATA>
+// Note: whereAxis is no longer a templated type.
+// It utilized where4tree<> with a template of rootNode, which
+// itself constains the resourceHandle that we used to template.
+
 class whereAxis {
  private:
+   // these static members are needed by whereAxisRootNode (rootNode.h)
+   static XFontStruct *theRootItemFontStruct;
+   static XFontStruct *theListboxItemFontStruct;
+   static Tk_3DBorder rootItemTk3DBorder;
+   static GC rootItemTextGC;
+   static Tk_3DBorder listboxItem3DBorder;
+   static GC listboxItemGC;
+
+   // this appears to be the WRONG class for the following vrbles:
+   static int listboxBorderPix; // 3
+   static int listboxScrollBarWidth; // 16
+
+   // These ugly variables keep track of a button press (and possible hold-down)
+   // in scrollbar-up/down or pageup/pagedown region.  They are not used for
+   // press (and possible hold-down) on the scrollbar slider
+   bool nonSliderButtonCurrentlyPressed; // init to false
+   whereNodeGraphicalPath<whereAxisRootNode>::pathEndsIn nonSliderButtonPressRegion;
+   Tk_TimerToken buttonAutoRepeatToken;
+   where4tree<whereAxisRootNode> *nonSliderCurrentSubtree;
+   int nonSliderSubtreeCenter;
+   int nonSliderSubtreeTop;
+
+   // Analagous to above; used only for scrollbar slider
+   int slider_scrollbar_left, slider_scrollbar_top, slider_scrollbar_bottom;
+   int slider_initial_yclick, slider_initial_scrollbar_slider_top;
+   where4tree<whereAxisRootNode> *slider_currently_dragging_subtree;
+
+   void initializeStaticsIfNeeded();
+
    where4TreeConstants consts;
       // Each where axis has its own set of constants, so different axis may,
       // for example, have different color configurations.
-   where4tree<USERNODEDATA> *rootPtr;
+   where4tree<whereAxisRootNode> *rootPtr;
 
-   dictionary_hash<USERNODEDATA, where4tree<USERNODEDATA> *> hash;
-      // associative array: USERNODEDATA-->node
+   dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
+      // associative array: resource unique id --> its corresponding node
 
    string horizSBName; // e.g. ".nontop.main.bottsb"
    string vertSBName;  // e.g. ".nontop.main.leftsb"
@@ -55,18 +94,18 @@ class whereAxis {
 
    whereNodePosRawPath lastClickPath;
       // used in the navigate menu
-   where4tree<USERNODEDATA> *beginSearchFromPtr;
+   where4tree<whereAxisRootNode> *beginSearchFromPtr;
       // if NULL, then begin from the top.  Otherwise,
       // find() treats ignores found items until this one is reached.
 
    Tcl_Interp *interp;
 
    int nominal_centerx; // actual centerx = nominal_centerx + horizScrollBarOffset
-   int horizScrollBarOffset; // note: always <= 0
+   int horizScrollBarOffset; // always <= 0
 
    // why isn't there a nominal_topy?  Because it's always at the top of the window
    // (0 or 3)
-   int vertScrollBarOffset; // note: always <= 0
+   int vertScrollBarOffset; // always <= 0
 
    void resizeScrollbars();
 
@@ -76,16 +115,28 @@ class whereAxis {
       // returns true iff any sb changes were made
       // Moves the cursor if warpPointer is true.
 
+   whereNodeGraphicalPath<whereAxisRootNode> point2path(int x, int y) const;
+
+   static void nonSliderButtonRelease(ClientData cd, XEvent *);
+   static void nonSliderButtonAutoRepeatCallback(ClientData cd);
+
+   void processNonSliderButtonPress(whereNodeGraphicalPath<whereAxisRootNode> &thePath);
+
+   static void sliderMouseMotion(ClientData cd, XEvent *eventPtr);
+   static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);
+
  protected:
    void rethink_nominal_centerx();
 
-   static unsigned hashFunc(const USERNODEDATA &und) {return (unsigned)und;}
+   static unsigned hashFunc(resourceHandle &uniqueId) {return uniqueId;}
+      // needed for hash table class...
 
 #ifndef PARADYN
    // only the where axis test program reads from a file
-   int readTree(ifstream &, USERNODEDATA parentUniqueId,
-		USERNODEDATA nextAvailChildId);
-      // returns # of nodes read in
+   int readTree(ifstream &,
+		resourceHandle parentUniqueId,
+		resourceHandle nextAvailChildId);
+      // returns # of nodes read in.  Recursive.
 #endif
 		 
  public:
@@ -96,16 +147,12 @@ class whereAxis {
 
 #ifndef PARADYN
    // only the where axis test program reads from a file
-   whereAxis(ifstream &infile, Tcl_Interp *interp, Tk_Window theWindow,
+   whereAxis(ifstream &infile, Tcl_Interp *interp, Tk_Window theTkWindow,
 	     const char *iHorizSBName, const char *iVertSBName,
 	     const char *iNavigateMenuName);
 #endif
 
-   virtual ~whereAxis() {delete rootPtr;}
-
-   const string &getRootName() const {
-      return rootPtr->getRootName();
-   }
+  ~whereAxis() {delete rootPtr;}
 
    // the return values of the next 2 routines will be <= 0
    int getVertSBOffset() const {return vertScrollBarOffset;}
@@ -118,41 +165,53 @@ class whereAxis {
    int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
 
    void addItem(const string &name,
-		USERNODEDATA parentUniqueId,
-		USERNODEDATA newNodeUniqueId,
+		resourceHandle parentUniqueId,
+		resourceHandle newNodeUniqueId,
 		bool rethinkGraphicsNow,
 		bool resortNow);
 
-   const where4TreeConstants &getConsts() const {
-      return consts;
+   void recursiveDoneAddingChildren(bool resortNow) {
+      rootPtr->recursiveDoneAddingChildren(consts, resortNow);
+   }
+
+   static XFontStruct &getRootItemFontStruct() {
+      assert(theRootItemFontStruct); // a static member vrble
+      return *theRootItemFontStruct;
+   }
+   static XFontStruct &getListboxItemFontStruct() {
+      assert(theListboxItemFontStruct); // a static member vrble
+      return *theListboxItemFontStruct;
+   }
+   static Tk_3DBorder getRootItemTk3DBorder() {
+      return rootItemTk3DBorder;
+   }
+   static GC getRootItemTextGC() {
+      return rootItemTextGC;
+   }
+   static Tk_3DBorder getListboxItem3DBorder() {
+      return listboxItem3DBorder;
+   }
+   static GC getListboxItemGC() {
+      return listboxItemGC;
    }
 
    void draw(bool doubleBuffer, bool isXsynchOn) const;
 
-   void resize(int newWidth, int newHeight);
    void resize(bool rethinkScrollbars);
       // should be true only if we are the currently displayed abstraction
 
-   void recursiveDoneAddingChildren() {
-      rootPtr->recursiveDoneAddingChildren(consts);
-   }
-
-   void processSingleClick(int x, int y, bool redrawNow);
+   void processSingleClick(int x, int y);
    bool processDoubleClick(int x, int y);
       // returns true iff a redraw of everything is still needed
    bool processShiftDoubleClick(int x, int y);
    bool processCtrlDoubleClick (int x, int y);
-
-   void navigateTo(unsigned pathLen);
-      // forcibly scrolls to item #pathLen of "lastClickPath"
 
    int find(const string &str);
       // uses and updates "beginSearchFromPtr"
       // returns 0 if not found; 1 if found & no expansion needed;
       // 2 if found & some expansion is needed
 
-   bool softScrollToPathItem(const whereNodePosRawPath &thePath,
-			     unsigned index);
+   bool softScrollToPathItem(const whereNodePosRawPath &thePath, unsigned index);
       // scrolls s.t. the (centerx, topy) of the path item in question is placed in the
       // middle of the screen.  Returns true iff the scrollbar settings changed.
 
@@ -178,13 +237,15 @@ class whereAxis {
    bool adjustVertSBOffset(); // Obtains FirstPix from actual tk scrollbar
 
    void rethinkNavigateMenu();
+   void navigateTo(unsigned pathLen);
+      // forcibly scrolls to item #pathLen of "lastClickPath"
 
    bool selectUnSelectFromFullPathName(const string &name, bool select);
       // returns true iff the item was found
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.
    
-   vector< vector<USERNODEDATA> > getSelections() const;
+   vector< vector<resourceHandle> > getSelections() const;
    void clearSelections();
 };
 
