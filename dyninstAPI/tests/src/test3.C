@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.2 1999/06/18 22:38:03 wylie Exp $
+// $Id: test3.C,v 1.3 1999/06/18 23:50:44 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -182,7 +182,6 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
 {
     char *child_argv[4];
 
-    int n = 0;
     child_argv[0] = pathname;
     child_argv[1] = "-?";
     child_argv[2] = NULL;
@@ -227,7 +226,7 @@ int readResult(int pid)
 }
 
 //
-// Start Test Case #2 - create two processes and insert differnt code into
+// Start Test Case #2 - create two processes and insert different code into
 //     each one.  The code sets a global variable which the mutatee then
 //     writes to a file.  After both mutatee exit, the mutator reads the
 //     files to verify that the correct code ran in each mutatee.
@@ -238,10 +237,10 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
 {
     char *child_argv[4];
 
-    int n = 0;
     int pid1, pid2;
-    child_argv[n++] = pathname;
-    child_argv[n] = NULL;
+    child_argv[0] = pathname;
+    child_argv[1] = "-?";
+    child_argv[2] = NULL;
     BPatch_thread *appThread1, *appThread2;
 
     child_argv[1] = "2";		// run test2 in mutatee
@@ -292,7 +291,6 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 {
     char *child_argv[4];
 
-    int n = 0;
     child_argv[0] = pathname;
     child_argv[1] = "-?";
     child_argv[2] = NULL;
@@ -327,7 +325,6 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 {
     char *child_argv[4];
 
-    int n = 0;
     child_argv[0] = pathname;
     child_argv[1] = "-?";
     child_argv[2] = NULL;
