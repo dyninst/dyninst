@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.85 1998/04/01 01:27:59 wylie Exp $
+ * $Id: dataManager.I,v 1.86 1999/03/03 18:03:50 pcroth Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -746,10 +746,10 @@ $remote dataManager {
 				     bool);		// with_visis
 
     $signore
-    static int socket;
-    static int sock_fd;
+    static int sock_port;
+    static PDSOCKET sock_desc;
     static bool DM_sequential_init(const char*);
-    static int DM_post_thread_create_init(int);
+    static int DM_post_thread_create_init(thread_t);
     static dataManager *dm;  // need this so can call setTid which is
 			     // not a static function, otherwise could
 			     // just define all DM functions as static

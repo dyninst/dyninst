@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.32 1998/04/28 22:11:55 wylie Exp $
+ * $Id: performanceConsultant.I,v 1.33 1999/03/03 18:03:51 pcroth Exp $
  */
 
 #include "dataManager.thread.h"
@@ -17,13 +17,19 @@ typedef struct int_Array {
   int *data;
 } int_Array;
 
+
+typedef enum testResult
+{
+	tfalse, ttrue, tunknown
+}; 
+
 // Note: the following structure (used by the "getNodeInfo" igen call) is
 //       subject to fairly frequent change, as we think of more goodies.
 struct shg_node_info {
    string why;
    string where;
    bool active;                 // new
-   bool currentConclusion;
+   testResult currentConclusion;
    timeStamp timeTrueFalse;
    sampleValue currentValue;    // changed to reflect "pure" value
    sampleValue adjustedValue;   // what was previously currentValue
