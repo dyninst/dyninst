@@ -45,9 +45,12 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.10  1996/08/16 21:07:48  tamches
-/* updated copyright for release 1.1
+/* Revision 1.11  1997/01/15 00:14:10  tamches
+/* removed references to getCurrent() method of class abstraction
 /*
+ * Revision 1.10  1996/08/16 21:07:48  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.9  1996/08/05 07:31:42  tamches
  * update for tcl 7.5
  *
@@ -113,8 +116,7 @@ void whereAxisWhenIdleDrawRoutine(ClientData cd) {
    const bool isXsynchOn = xsynchronize;
 #endif
 
-   if (theAbstractions->existsCurrent())
-      theAbstractions->getCurrent().draw(doubleBuffer, isXsynchOn);
+   theAbstractions->drawCurrent(doubleBuffer, isXsynchOn);
 }
 tkInstallIdle whereAxisDrawWhenIdle(&whereAxisWhenIdleDrawRoutine);
 
@@ -128,7 +130,7 @@ int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
       return TCL_ERROR;
 
    if (theAbstractions->existsCurrent()) {
-      theAbstractions->getCurrent().resize(true); // true --> we are curr abstraction
+      theAbstractions->resizeCurrent();
       initiateWhereAxisRedraw(interp, true); // true-->use double-buffering
    }
 
@@ -182,7 +184,7 @@ int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent())
-      theAbstractions->getCurrent().processSingleClick(x, y);
+      theAbstractions->processSingleClick(x, y);
 
    return TCL_OK;
 }
@@ -196,7 +198,7 @@ int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent()) {
-      bool needToRedrawAll=theAbstractions->getCurrent().processDoubleClick(x, y);
+      bool needToRedrawAll=theAbstractions->processDoubleClick(x, y);
       if (needToRedrawAll)
          initiateWhereAxisRedraw(interp, true); // true--> use double buffer
    }
@@ -213,7 +215,7 @@ int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent()) {
-      bool needToRedrawAll=theAbstractions->getCurrent().processShiftDoubleClick(x, y);
+      bool needToRedrawAll=theAbstractions->processShiftDoubleClick(x, y);
  
       if (needToRedrawAll)
          initiateWhereAxisRedraw(interp, true);
@@ -231,7 +233,7 @@ int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent()) {
-      bool needToRedrawAll=theAbstractions->getCurrent().processCtrlDoubleClick(x, y);
+      bool needToRedrawAll=theAbstractions->processCtrlDoubleClick(x, y);
  
       if (needToRedrawAll)
          initiateWhereAxisRedraw(interp, true);
@@ -255,13 +257,13 @@ int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
    float newFirst;
    bool anyChanges = processScrollCallback(interp, argc, argv,
 			   theAbstractions->getVertSBName(),
-			   theAbstractions->getCurrent().getVertSBOffset(),  // <= 0
-			   theAbstractions->getCurrent().getTotalVertPixUsed(),
-			   theAbstractions->getCurrent().getVisibleVertPix(),
+			   theAbstractions->getVertSBOffset(),  // <= 0
+			   theAbstractions->getTotalVertPixUsed(),
+			   theAbstractions->getVisibleVertPix(),
 			   newFirst);
 
    if (anyChanges)
-      anyChanges = theAbstractions->getCurrent().adjustVertSBOffset(newFirst);
+      anyChanges = theAbstractions->adjustVertSBOffset(newFirst);
    
    if (anyChanges)
       initiateWhereAxisRedraw(interp, true);
@@ -284,12 +286,12 @@ int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
    float newFirst;
    bool anyChanges = processScrollCallback(interp, argc, argv,
 			   theAbstractions->getHorizSBName(),
-			   theAbstractions->getCurrent().getHorizSBOffset(), // <= 0
-			   theAbstractions->getCurrent().getTotalHorizPixUsed(),
-			   theAbstractions->getCurrent().getVisibleHorizPix(),
+			   theAbstractions->getHorizSBOffset(), // <= 0
+			   theAbstractions->getTotalHorizPixUsed(),
+			   theAbstractions->getVisibleHorizPix(),
 			   newFirst);
    if (anyChanges)
-      anyChanges = theAbstractions->getCurrent().adjustHorizSBOffset(newFirst);
+      anyChanges = theAbstractions->adjustHorizSBOffset(newFirst);
 
    if (anyChanges)
       initiateWhereAxisRedraw(interp, true);   
@@ -303,7 +305,7 @@ int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
 
    assert(argc == 1);
    if (theAbstractions->existsCurrent()) {
-      theAbstractions->getCurrent().clearSelections(); // doesn't redraw
+      theAbstractions->clearSelections(); // doesn't redraw
       initiateWhereAxisRedraw(interp, true);
    }
  
@@ -318,7 +320,7 @@ int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
    const int level = atoi(argv[1]);
 
    if (theAbstractions->existsCurrent()) {   
-      theAbstractions->getCurrent().navigateTo(level);
+      theAbstractions->navigateTo(level);
 
       initiateWhereAxisRedraw(interp, true);
    }
@@ -339,7 +341,7 @@ int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
       // We must assume that the toplevel window has been resized since
       // the newly-displayed-whereAxis was set aside.  In short, we need to
       // simulate a resize right now.
-      theAbstractions->getCurrent().resize(true);
+      theAbstractions->resizeCurrent();
 
       initiateWhereAxisRedraw(interp, true);   
    }
@@ -355,7 +357,7 @@ int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
    const char *str = argv[1];
 
    if (theAbstractions->existsCurrent()) {
-      const int result = theAbstractions->getCurrent().find(str);
+      const int result = theAbstractions->find(str);
          // 0 --> not found
          // 1 --> found, and nothing had to be expanded (i.e. just a pure scroll)
          // 2 --> found, and stuff had to be expanded (i.e. must redraw everything)
@@ -397,8 +399,8 @@ int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
       deltax *= 4;
       deltay *= 4;
 
-      theAbstractions->getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
-      theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
+      theAbstractions->adjustHorizSBOffsetFromDeltaPix(deltax);
+      theAbstractions->adjustVertSBOffsetFromDeltaPix(deltay);
 
       initiateWhereAxisRedraw(interp, true);
 
