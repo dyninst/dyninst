@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.9  1994/11/07 00:32:06  karavan
+# Revision 1.10  1994/11/07 05:41:27  karavan
+# Added clear button
+#
+# Revision 1.9  1994/11/07  00:32:06  karavan
 # eliminated default clearing of the where axis.
 #
 # Revision 1.8  1994/11/01  05:46:20  karavan
@@ -113,6 +116,13 @@ proc endSelection {visiToken rdoToken cancelflag win} {
     }
 } 
 
+proc clearMetSelects {} {
+    global metCount metmenuCB
+    for {set i 0} {$i < $metCount} {incr i} {
+	set metmenuCB([expr $i]) 0
+    }
+}
+
 # getMetsAndRes 
 # called from  UIM::chooseMetricsandResources
 # Metric/Resource selection starts here!
@@ -168,18 +178,19 @@ proc getMetsAndRes {metsAndResID rdo} {
     }
 
     # buttons
+    mkFrame $w.bot {bottom fill expand} -relief raised -borderwidth 4
 
-    mkFrame $w.bot {top fill expand} -relief raised -border 1
-    button $w.bot.b1 -text "CANCEL" -bg red -fg white\
+    button $w.bot.b0 -text "CLEAR" -width 12 \
+	    -command "clearMetSelects"
+
+    button $w.bot.b1 -text "CANCEL" -width 12 \
 	    -command "endSelection $metsAndResID $rdo 1 $w"
 
-    button $w.bot.b2 -text "DONE" -bg white \
+    button $w.bot.b2 -text "DONE" -width 12 \
 	    -command "endSelection $metsAndResID $rdo 0 $w"
 
-    pack $w.bot.b1 -side left -expand yes
-    pack $w.bot.b2 -side right -expand yes
-# initialize focus choice to whole program
-#    uimpd clearResourceSelection rdo $rdo
-}
+    pack $w.bot.b0 $w.bot.b1 $w.bot.b2 -side left -padx 20 -expand 1 \
+	    -pady 4
 
+}
 
