@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.3 1999/07/07 16:12:54 zhichen Exp $
+// $Id: baseTable.C,v 1.4 1999/07/13 17:07:07 zhichen Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -138,9 +138,12 @@ bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
 #if defined(MT_THREAD)
     // if allocated!=UINT_MAX, we will re-use this position because we are
     // trying to enable a counter/timer that has been already allocated - naim
-    if (allocatedLevel == UINT_MAX)
+    if (allocatedLevel == UINT_MAX || allocatedIndex == UINT_MAX) {
       allocatedLevel=levelMap[i];    
-    foundFreeLevel=theBaseTable[i]->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+      foundFreeLevel=theBaseTable[i]->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+    } else if (allocatedLevel == levelMap[i]) {
+      foundFreeLevel=theBaseTable[i]->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+    }
 #else
     allocatedLevel=levelMap[i];    
     foundFreeLevel=theBaseTable[i]->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
