@@ -2,12 +2,15 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.15  1995/10/05 04:46:22  karavan
-/* changes to support future Performance Consultant: multiple searches, one
-/* per phase.  Added PC status window to the interface where it belongs.
-/* Removed statusDisplayObj class.
-/* Deleted obsolete commented code.
+/* Revision 1.16  1995/10/17 03:00:39  karavan
+/* UIstatDisp.h is obsolete
 /*
+# Revision 1.15  1995/10/05  04:46:22  karavan
+# changes to support future Performance Consultant: multiple searches, one
+# per phase.  Added PC status window to the interface where it belongs.
+# Removed statusDisplayObj class.
+# Deleted obsolete commented code.
+#
 # Revision 1.14  1995/07/17  04:25:50  tamches
 # commented out the unused batch calls
 #
@@ -74,10 +77,7 @@
  *
  */
 
-//#include "dataManager.thread.CLNT.h"
-#include "../src/UIthread/UIstatDisp.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
