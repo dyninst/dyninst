@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.114 2004/02/26 20:37:47 bernat Exp $
+// $Id: inst.C,v 1.115 2004/03/08 23:45:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -250,6 +250,7 @@ loadMiniTramp_result addInstFunc(process *proc, miniTrampHandle * &mtHandle,
    if(res == success_res) {
        hookupMiniTramp(proc, mtHandle, order);
    } else {
+       fprintf(stderr, "Failed to install minitramp\n");
        assert(mtHandle == NULL);
    }
    if (retInstance) {
@@ -297,6 +298,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    if (!mtHandle->baseTramp) 
    {
        delete mtHandle;
+       fprintf(stderr, "No base tramp!\n");
        mtHandle = NULL;
 
        if(deferred) return deferred_res;
@@ -383,6 +385,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    other_minis = mtHandle->baseTramp->getMiniTrampList(when);
 
    if (other_minis == NULL) {
+
        // Arbitrary address in the text heap
        near_ = 0x1e000000;
    }
@@ -412,15 +415,22 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
 	//
 	//otherwise just use the arguments given
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
-	if(proc->requestTextMiniTramp || ( (near_ < 0x20000000) && (near_ > 0x0)) ){ 
-		mtHandle->miniTrampBase = proc->inferiorMalloc(count,anyHeap/* htype*/, 0x10000000 /*near_*/, &err);
-	}else{
-		mtHandle->miniTrampBase = proc->inferiorMalloc(count,htype,near_, &err);
-	}   
-#else
-	mtHandle->miniTrampBase = proc->inferiorMalloc(count,htype,near_, &err);
+#if defined(bug_aix_proc_broken_fork)
+       // We need the fork minitramp to go in the data heap
+   if (mtHandle->baseTramp->location->pointFunc()->prettyName() == pdstring("__fork")) {
+       mtHandle->miniTrampBase = proc->inferiorMalloc(count, dataHeap);
+   }
+   else
 #endif
-
+       if(proc->requestTextMiniTramp || ( (near_ < 0x20000000) && (near_ > 0x0)) ){ 
+           mtHandle->miniTrampBase = proc->inferiorMalloc(count,anyHeap/* htype*/, 0x10000000 /*near_*/, &err);
+       }else{
+           mtHandle->miniTrampBase = proc->inferiorMalloc(count,htype,near_, &err);
+       }   
+#else
+   mtHandle->miniTrampBase = proc->inferiorMalloc(count,htype,near_, &err);
+#endif
+   
     //fprintf(stderr, "Got %d bytes at 0x%x, near 0x%x\n", count, mtHandle->trampBase, near_);
    
     if (err) {
@@ -598,6 +608,7 @@ bool getInheritedMiniTramp(const miniTrampHandle *parentMT,
 // or already deleted
 bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
 {
+    
     callWhen when = mtHandle->when;
     miniTramps_list *mtList = mtHandle->baseTramp->getMiniTrampList(when);
    if(mtList == NULL) {
