@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.38  1996/04/14 03:21:13  karavan
+ * bug fix:  added size member to shg class for use in UI batching.
+ *
  * Revision 1.37  1996/04/13 04:42:30  karavan
  * better implementation of batching for new edge requests to UI shg display
  *
@@ -249,10 +252,9 @@ void
 searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID, 
 				 int styleID, const char *label)
 {
-  static unsigned size = 0;
   if (numUIrequests == 0) {
-    size = 10;
-    uiRequestBuff = new vector<uiSHGrequest> (size);
+    uiRequestBuffSize = 10;
+    uiRequestBuff = new vector<uiSHGrequest> (uiRequestBuffSize);
     numUIrequests = 0;
   }
   ((*uiRequestBuff)[numUIrequests]).srcNodeID = srcID;
@@ -260,9 +262,9 @@ searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID,
   (*uiRequestBuff)[numUIrequests].styleID = styleID;
   (*uiRequestBuff)[numUIrequests].label = label;
   numUIrequests++;
-  if (numUIrequests == size) {
-    size = size * 2;
-    uiRequestBuff->resize (size);
+  if (numUIrequests == uiRequestBuffSize) {
+    uiRequestBuffSize *= 2;
+    uiRequestBuff->resize (uiRequestBuffSize);
   }
 }
 
@@ -573,7 +575,8 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  guiToken(phaseToken),
  nextID(0),
  uiRequestBuff(NULL),
- numUIrequests(0)
+ numUIrequests(0),
+ uiRequestBuffSize(0)
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,

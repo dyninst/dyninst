@@ -20,6 +20,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.20  1996/04/14 03:21:16  karavan
+ * bug fix:  added size member to shg class for use in UI batching.
+ *
  * Revision 1.19  1996/04/13 04:42:32  karavan
  * better implementation of batching for new edge requests to UI shg display
  *
@@ -187,6 +190,7 @@ class searchHistoryGraph {
   unsigned nextID;   // used to create unique ids for the nodes
   vector<uiSHGrequest> *uiRequestBuff;
   unsigned numUIrequests;
+  unsigned uiRequestBuffSize;
 };
   
 #endif
