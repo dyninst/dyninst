@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.125 2003/03/14 22:06:51 jodom Exp $
+// $Id: inst-sparc-solaris.C,v 1.126 2003/03/21 20:58:31 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3208,15 +3208,25 @@ bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
   pdvector<instPoint*> ips;
   sorted_ips_vector(ips);
 
+  instPoint *entry = const_cast<instPoint*>(funcEntry_);
+  Address entry_begin, entry_end;
+  entry_begin = entry->iPgetAddress();
+  entry_end = entry_begin + entry->Size();
+
   for (unsigned i = 0; i < ips.size(); i++) {
+    Address curr_addr = ips[i]->iPgetAddress();
+    // Skip inst points inside entry block
+    if (entry_begin <= curr_addr && curr_addr < entry_end)
+      continue;
+
     // We do a special check to see if we're the restore in a tail-call
     // optimization.  This should be probably be addressed in
     // fixOverlappingAlterations
-    if (blockEnds.contains(ips[i]->iPgetAddress()) &&
+    if (blockEnds.contains(curr_addr) &&
 	!isInsnType(ips[i]->insnAtPoint(), RESTOREmask, RESTOREmatch)) {
       
       InsertNops *blockNop = 
-	new InsertNops(this, ips[i]->iPgetAddress() + baseAddress +
+	new InsertNops(this, curr_addr + baseAddress +
 		       sizeof(instruction) - firstAddress, 
 		       sizeof(instruction));
       p->AddAlteration(blockNop);
