@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.31 2001/03/14 14:02:24 pcroth Exp $
+# $Id: make.module.tmpl,v 1.32 2001/03/28 22:57:11 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -75,7 +75,7 @@ MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=$(MUTATEE_SUFFIX))
 
 VPATH	     +=
 
-CXXFLAGS     += -I../../h $(BASICWARNINGS)
+CXXFLAGS     += -I../../h $(BASICWARNINGS) -fno-squangle
 CFLAGS       += -I../../h $(BASICWARNINGS)
 
 LIBS         += -ldyninstAPI
