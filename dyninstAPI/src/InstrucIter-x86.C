@@ -153,7 +153,6 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         else switch(mac.sizehack) { // translation to pseudoregisters
         case 0:
           bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
-					 i.ptr(), i.size(), 
 					 mac.read, mac.write,
                                          mac.size, mac.imm, mac.regs[0], mac.regs[1], mac.scale, 
                                          bmapcond, mac.nt);
