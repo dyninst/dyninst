@@ -39,28 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * arch-x86.h - x86 instruction declarations
- *
- * $Log: arch-x86.h,v $
- * Revision 1.4  1997/12/01 02:27:52  tung
- * For Linux/X86 platform
- *
- * Revision 1.3  1997/02/26 23:42:46  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.2  1996/11/12 17:48:27  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.1  1996/10/18 23:54:12  mjrg
- * Solaris/X86 port
- *
- *
- *
- */
+// $Id: arch-x86.h,v 1.5 1998/12/25 22:34:52 wylie Exp $
+// x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
 #error "invalid architecture-os inclusion"
@@ -69,6 +49,11 @@
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
 
+#if defined(i386_unknown_nt4_0)
+// disable VC++ warning C4800: (performance warning)
+// forcing 'unsigned int' value to bool 'true' or 'false'
+#pragma warning (disable : 4800)
+#endif
 
 /* operand types */
 typedef char byte_t;   /* a byte operand */
@@ -139,7 +124,8 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 unsigned get_instruction(const unsigned char *instr, unsigned &instType);
 
 /* get the target of a jump or call */
-unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, unsigned addr);
+Address get_target(const unsigned char *instr, unsigned type, unsigned size,
+                Address addr);
 
 
 class instruction {

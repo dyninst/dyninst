@@ -39,37 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * arch-x86.C - x86 instruction decoder
- *
- * $Log: arch-x86.C,v $
- * Revision 1.4  1997/02/26 23:42:44  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.3  1997/02/21 20:13:13  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.2  1996/11/12 17:48:25  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.1  1996/10/18 23:54:13  mjrg
- * Solaris/X86 port
- *
- *
- *
- */
-
+// $Id: arch-x86.C,v 1.5 1998/12/25 22:34:51 wylie Exp $
+// x86 instruction decoder
 
 #include <assert.h>
 #include "util/h/Types.h"
 #include "dyninstAPI/src/arch-x86.h"
 
 
-// opcode descriptors (from the Pentiumm manual)
+// opcode descriptors (from the Pentium manual)
 enum {
   Grp1=0, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7, Grp8, Grp9, 
   oneB, twoB, coprocEsc,
@@ -899,10 +877,10 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
   x86_insn *descAux;
   unsigned code;
   unsigned ModRMbyte = 0;
-  unsigned Mod;
-  unsigned Reg;
-  unsigned RM;
-  unsigned SIB;
+  unsigned Mod=0;
+  unsigned Reg=0;
+  unsigned RM=0;
+  unsigned SIB=0;
   bool hasSIB;
 
   insnType = 0;
@@ -1038,9 +1016,10 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
 
 
 // find the target of a jump or call
-unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, unsigned addr) {
-  int disp;
-  unsigned target;
+Address get_target(const unsigned char *instr, unsigned type, unsigned size,
+        Address addr) {
+  int disp=0;
+  Address target;
 
   if (type & IS_JUMP) {
     if (type & REL_B) {
@@ -1065,7 +1044,7 @@ unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, un
       disp = *(const int *)(instr+1);
     }
   }
-  target = (unsigned)((int)(addr + size) + disp);
+  target = (Address)(addr + size + disp);
   return target;
 }
 
