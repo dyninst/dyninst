@@ -1,6 +1,10 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.10  1995/11/29 00:23:12  tamches
+# Revision 1.11  1995/12/21 22:17:48  naim
+# Changing "Paradyn Error #" by "Paradyn Message #", since not every message
+# is an error message - naim
+#
+# Revision 1.10  1995/11/29  00:23:12  tamches
 # removed mkLogo; removed references to PdBitmapDir; added call
 # to makeLogo
 #
@@ -103,7 +107,7 @@ proc explError {errorCode oldwin} {
 
     # title
 ## **** don't forget to use class for this font!!!!
-    label $w.out.top -text "Paradyn Error \#\ $errorCode Explanation" -fg red \
+    label $w.out.top -text "Paradyn Message \#\ $errorCode Explanation" -fg red \
 	-font "-Adobe-times-bold-r-normal--*-120*"    
     pack $w.out.top -pady 5 -padx 5
 
@@ -172,7 +176,7 @@ proc showError {errorCode errorStr} {
 #	    -fg red -height 40 -width 40
 
     ## **** don't forget to use class for this font!!!!
-    label $w.out.top.title -text "Paradyn Error \#\ $errorCode" \
+    label $w.out.top.title -text "Paradyn Message \#\ $errorCode" \
 	    -anchor center \
 	    -fg red -font "-Adobe-times-bold-r-normal--*-120*"
     pack $w.out.top.exclaim $w.out.top.title -side left -pady 5 -padx 10
@@ -185,7 +189,7 @@ proc showError {errorCode errorStr} {
 	-borderwidth 2
     pack $w.out.mid.msg -expand yes -fill both -padx 5 -pady 5
     pack $w.out.mid -expand yes -fill both  -padx 5
-    label $w.out.eclass -text "Error Category: $etype" -anchor center
+    label $w.out.eclass -text "Message Category: $etype" -anchor center
     pack $w.out.eclass -side top -pady 5
 
     # option buttons 

@@ -1,7 +1,11 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.14  1995/12/18 17:19:50  naim
+# Revision 1.15  1995/12/21 22:17:46  naim
+# Changing "Paradyn Error #" by "Paradyn Message #", since not every message
+# is an error message - naim
+#
+# Revision 1.14  1995/12/18  17:19:50  naim
 # Minor change to error message 87 - naim
 #
 # Revision 1.13  1995/12/15  20:13:48  naim
@@ -167,7 +171,7 @@ set pdError(1) {
 
 {Application Process found for machine without paradynd
 } {paradynd
-} {serious
+} {serious error
 } {
 An application process was found to be running on a machine that had no
 paradynd process running.  This is a serious error that indicates either a
@@ -178,7 +182,7 @@ error should be considered an indication of a bug in the tool.
 set pdError(2) {
 {Data for unknown metric id
 } {dm
-} {serious
+} {serious error
 } {
 Data has arrived from a paradynd process for an unknown metric id.  This is
 a serious error that indicates a bug in the paradyn/paradynd interface.
@@ -187,7 +191,7 @@ a serious error that indicates a bug in the paradyn/paradynd interface.
 set pdError(3) {
 {Unable to find metric component for sample.
 } {dm
-} {serious
+} {serious error
 } {
 A sample value has arrive for a metric from a paradynd, but the paradyn 
 process was not expecting a value from this process.  This is a serious internal
@@ -197,7 +201,7 @@ consistency failure of the paradyn/paradynd interface.
 set pdError(4) {
 {Unable to connect to new paradyn daemon process.
 } {paradynd
-} {serious
+} {serious error
 } {
 A request had arrived to start a new paradyn daemon process on a remote 
 machine (either from the user or the system based on adding new hosts), and
@@ -231,7 +235,7 @@ installed on that machine, or if the machine or network is down.
 set pdError(7) {
 {Auto refinement already enabled
 } {pc
-} {serious
+} {serious error
 } {
 An attempt to enable automatic refinement was made will automated refinement
 was already being attempted.
@@ -261,7 +265,7 @@ the root must also be true.
 set pdError(10) {
 {malloc failure
 } {dm
-} {fatal
+} {fatal error
 } {
 Call to malloc failed within a data manager function.
 }} 
@@ -277,7 +281,7 @@ An application process has exited. This situation may be produced, for example, 
 set pdError(12) {
 {malloc failed in VISIthreadchooseMetRes
 } {vi
-} {serious
+} {serious error
 } {
 Call to malloc failed within a visi-thread function.
 }} 
@@ -285,7 +289,7 @@ Call to malloc failed within a visi-thread function.
 set pdError(13) {
 {thr_getspecific failed
 } {vi
-} {serious
+} {serious error
 } {
 Call to thr_getspecific in a visi-thread function failed.
 }} 
@@ -293,7 +297,7 @@ Call to thr_getspecific in a visi-thread function failed.
 set pdError(14) {
 {Unable to start visualization process
 } {vi
-} {serious
+} {serious error
 } {
 A request to start a new visualization process has failed. Some possible
 explanations are: (1) the executable for this visi is not well installed,
@@ -304,7 +308,7 @@ and you should check whether the executable is in the right place;
 set pdError(15) {
 {Unable to create performance stream
 } {vi
-} {serious
+} {serious error
 } {
 An attempt to create a performance stream for a new visualization failed.
 }} 
@@ -312,7 +316,7 @@ An attempt to create a performance stream for a new visualization failed.
 set pdError(16) {
 {Internal error
 } {vi
-} {serious
+} {serious error
 } {
 Possible causes: bufferSize out of range in VISIthreadDataCallback and remove() in VISIthreadmain. Please, report this error to paradyn@cs.wisc.edu
 }} 
@@ -329,7 +333,7 @@ attempting to add metrics and/or foci to a visualization.
 set pdError(18) {
 {malloc failure in visi manager 
 } {vm
-} {fatal
+} {fatal error
 } {
 Call to malloc failed within a visi manager function.
 }} 
@@ -337,7 +341,7 @@ Call to malloc failed within a visi manager function.
 set pdError(19) {
 {strdup failure
 } {vm
-} {fatal
+} {fatal error
 } {
 Call to strdup failed within a visi manager function.
 }} 
@@ -345,7 +349,7 @@ Call to strdup failed within a visi manager function.
 set pdError(20) {
 {Internal error
 } {vm
-} {fatal
+} {fatal error
 } {
 An unrecoverable error occurred within a visi manager function. Please, 
 report this error to paradyn@cs.wisc.edu
@@ -354,7 +358,7 @@ report this error to paradyn@cs.wisc.edu
 set pdError(21) {
 {Tcl Command Failure
 } {ui
-} {fatal
+} {fatal error
 } {
 The tcl interpreter has failed. Bad pointer "newptr". Please, report
 this error to paradyn@cs.wisc.edu
@@ -363,7 +367,7 @@ this error to paradyn@cs.wisc.edu
 set pdError(22) {
 {Tcl Command Failure
 } {ui
-} {fatal
+} {fatal error
 } {
 The tcl interpreter has failed unexpectedly (getMetsAndRes in UIM::chooseMetricsandResources). Please, report this error to paradyn@cs.wisc.edu 
 }} 
@@ -396,7 +400,7 @@ An error occurred while attempting to define an application.
 set pdError(26) {
 {tcl initialization for new resource display object failed.
 } {ui
-} {fatal
+} {fatal error
 } {
 Call to tcl command initRDO failed.
 }} 
@@ -437,7 +441,7 @@ Sorry, no more information available.
 set pdError(31) {
 {Internal symbol DYNINSTfirst not found.
 } {paradynd
-} {serious
+} {serious error
 } {
 You have not properly linked your application with the paradyn dyninst library.
 Please, refer to the manual pages in order to check how to do this.
@@ -446,7 +450,7 @@ Please, refer to the manual pages in order to check how to do this.
 set pdError(32) {
 {Internal symbol DYNINSTend not found.
 } {paradynd
-} {serious
+} {serious error
 } {
 This is an internal error. Please, report it to paradyn@cs.wisc.edu
 }}
@@ -479,7 +483,7 @@ Sorry, no more information available.
 set pdError(36) {
 {Internal error: non-aligned length received on traceStream.
 } {paradynd
-} {serious
+} {serious error
 } {
 Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -487,7 +491,7 @@ Please, report this error to paradyn@cs.wisc.edu
 set pdError(37) {
 {Internal error: wrong record type on sid
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -495,7 +499,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(38) {
 {Error in forwarding signal
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -503,7 +507,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(39) {
 {Internal error: unknown process state 
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -511,7 +515,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(40) {
 {Internal error: unable to detach PID
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -527,7 +531,7 @@ Sorry, no more information available.
 set pdError(42) {
 {Internal error: unable to parse executable.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -535,7 +539,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(43) {
 {Internal error: unable to get loader info about process. 
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -543,7 +547,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(44) {
 {Internal error: error reading header
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -551,7 +555,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(45) {
 {Internal error: problem with executable header file.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -591,7 +595,7 @@ Sorry, no more information available.
 set pdError(50) {
 {Internal error: Cannot find file in inst-power.C
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -599,7 +603,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(51) {
 {Internal error: In forkNodeProcesses, parent id unknown.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -607,7 +611,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(52) {
 {Internal error: Branch too far.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -615,7 +619,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(53) {
 {Internal error: Program text + data is too big for dyninst.
 } {paradynd
-} {fatal
+} {fatal error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -631,7 +635,7 @@ Sorry, no more information available.
 set pdError(55) {
 {Internal error: Unsupported return.
 } {paradynd
-} {fatal
+} {fatal error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -639,7 +643,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(56) {
 {Internal error: exec failed in paradynd to start paradyndCM5.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -647,7 +651,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(57) {
 {Internal error: could not write all bytes.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -655,7 +659,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(58) {
 {Internal error: unable to find process.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -663,7 +667,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(59) {
 {Internal error: there are no processes known to this daemon.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -671,7 +675,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(60) {
 {Internal error: unable to find thread.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -679,7 +683,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(61) {
 {Internal error: disableDataCollection mid not found.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -687,7 +691,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(62) {
 {Internal error: cannot continue PID.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -695,7 +699,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(63) {
 {Internal error: cannot pause PID.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -719,7 +723,7 @@ Sorry, no more information available.
 set pdError(66) {
 {Internal error: inferior heap overflow.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -727,7 +731,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(67) {
 {Internal error: attempt to free already freed heap entry.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -743,7 +747,7 @@ Sorry, no more information available.
 set pdError(69) {
 {Internal error: ptrace error.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -751,7 +755,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(70) {
 {Internal error: execv failed. 
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -759,7 +763,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(71) {
 {Internal error: vfork failed.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -767,7 +771,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(72) {
 {Internal error: unable to stat.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -775,7 +779,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(73) {
 {Internal error: could not (un)marshall parameters, dumping core.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -783,7 +787,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(74) {
 {Internal error: protocol verification failed.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -791,7 +795,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(75) {
 {Internal error: cannot do sync call.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -799,7 +803,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(76) {
 {Internal error: unknown message tag. 
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -807,7 +811,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(77) {
 {Internal error: handle error called for wrong err_state.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -815,7 +819,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(78) {
 {Internal error: problem stopping process.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -823,7 +827,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(79) {
 {Internal error: unable to find addr of DYNINSTobsCostLow.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -831,7 +835,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(80) {
 {Internal error: unable to find addr of callee process.
 } {paradynd
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -857,7 +861,7 @@ and try again.
 set pdError(83) {
 {Internal error: Tcl interpreter failed in routine changeApplicState.
 } {ui
-} {serious
+} {serious error
 } {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
@@ -865,7 +869,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 set pdError(84) {
 {Cannot create new paradyn daemon process.
 } {dm
-} {serious
+} {serious error
 } {
 An error was detected when a paradyn daemon was being created. Possible
 explanations for this problem are: (1) unknown host; (2) it is not possible
