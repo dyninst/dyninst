@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.37 2001/08/30 01:58:51 schendel Exp $
+// $Id: DMmetric.C,v 1.38 2001/12/15 02:44:18 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -689,7 +689,7 @@ void metricInstance::removeComponent(paradynDaemon *daemon) {
 }
 
 void metricInstance::removeComponent(component *comp) {
-  comp->sample->requestRemove();
+  comp->sample->markAsFinished();
   delete (comp);
   
   if (components.size() == 1) {
@@ -697,8 +697,7 @@ void metricInstance::removeComponent(component *comp) {
     // the last component was removed
     // flush aggregate samples
     struct sampleInterval aggSample;
-    while(aggregator.aggregate(&aggSample)) {
-
+    if(aggregator.aggregate(&aggSample)) {
       relTimeStamp relStartTime = relTimeStamp(aggSample.start - 
 					       getEarliestFirstTime());
       relTimeStamp relEndTime = relTimeStamp(aggSample.end - 
