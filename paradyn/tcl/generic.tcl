@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: generic.tcl,v 1.3 2004/03/23 19:12:10 eli Exp $
+# $Id: generic.tcl,v 1.4 2004/04/13 19:56:35 legendre Exp $
 # Routines found useful across all tk4.0 programs
 
 proc resize1Scrollbar {sbname newTotal newVisible} {
@@ -89,7 +89,7 @@ proc resize1Scrollbar {sbname newTotal newVisible} {
    }
    if {$newLast > 1} {
       # This is an assertion failure
-      puts stderr "resize1Scrollbar warning: newLast is $newLast"
+      # puts stderr "resize1Scrollbar warning: newLast is $newLast"
    }
 
    $sbname set $newFirst $newLast
