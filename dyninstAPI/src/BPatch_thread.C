@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.93 2003/09/23 17:28:48 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.94 2003/10/21 17:21:47 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -742,12 +742,14 @@ BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
 
   BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(proc);
   for(unsigned i=0; i<parent_mtHandles.size(); i++) {
-    miniTrampHandle *childMT = new miniTrampHandle;
-    if(! getInheritedMiniTramp(parent_mtHandles[i], childMT, proc)) {
-      // error, couldn't find a snippet
-      return NULL;
-    }
-    childSnippet->add(childMT);
+      miniTrampHandle *childMT = NULL;
+      if(! getInheritedMiniTramp(parent_mtHandles[i], 
+                                 childMT, 
+                                 proc)) {
+          // error, couldn't find a snippet
+          return NULL;
+      }
+      childSnippet->add(childMT);
   }
   return childSnippet;
 }
@@ -764,8 +766,8 @@ BPatchSnippetHandle *BPatch_thread::getInheritedSnippet(
  * point	The point at which to insert it.
  */
 BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
-						  BPatch_point &point,
-						  BPatch_snippetOrder order)
+                                                  BPatch_point &point,
+                                                  BPatch_snippetOrder order)
 {
       BPatch_callWhen when;
 
@@ -791,9 +793,9 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
  * point	The point at which to insert it.
  */
 BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
-						  BPatch_point &point,
-						  BPatch_callWhen when,
-						  BPatch_snippetOrder order)
+                                                  BPatch_point &point,
+                                                  BPatch_callWhen when,
+                                                  BPatch_snippetOrder order)
 {
     // Can't insert code when mutations are not active.
     if (!mutationsActive)
@@ -806,14 +808,14 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
     callOrder	_order;
 
     switch (when) {
-      case BPatch_callBefore:
-	_when = callPreInsn;
-	break;
-      case BPatch_callAfter:
-	_when = callPostInsn;
-	break;
-      default:
-	return NULL;
+  case BPatch_callBefore:
+      _when = callPreInsn;
+      break;
+  case BPatch_callAfter:
+      _when = callPostInsn;
+      break;
+  default:
+      return NULL;
     };
 
     switch (order) {
@@ -877,9 +879,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 
     AstNode *ast = (AstNode *)expr.ast;  /* XXX no const */
 
-    // XXX We just pass false for the "noCost" parameter here - do we want
-    // to make that an option?
-    miniTrampHandle *mtHandle = new miniTrampHandle;
+    
     instPoint *&ip = (instPoint*&) point.point;
 
     if(point.proc != proc) {
@@ -908,28 +908,32 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 
 #endif
 
-    loadMiniTramp_result res = addInstFunc(mtHandle, proc, ip, ast, _when, 
-					   _order, false,
-			// Do we want the base tramp (if any) created allowing
-			// recursion? 
+    // XXX We just pass false for the "noCost" parameter here - do we want
+    // to make that an option?
+    miniTrampHandle *mtHandle;
+    
+    loadMiniTramp_result res = addInstFunc(proc, mtHandle, ip, ast, _when, 
+                                           _order, false,
+                                           // Do we want the base tramp (if any) created allowing
+                                           // recursion? 
 #if defined(mips_sgi_irix6_4)
-			// On MIPS, we can't have recursive guards on arbitrary
-			// inst point.
-			point.getPointType() == BPatch_arbitrary ?  true : 
+                                           // On MIPS, we can't have recursive guards on arbitrary
+                                           // inst point.
+                                           point.getPointType() == BPatch_arbitrary ?  true : 
 #endif
-
+                                           
 #if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
-			(isMain ? true :BPatch::bpatch->isTrampRecursive())
+                                           (isMain ? true :BPatch::bpatch->isTrampRecursive())
 #else
-			BPatch::bpatch->isTrampRecursive()
+                                           BPatch::bpatch->isTrampRecursive()
 #endif
-					   );
-
+                                           );
+    
     if(res == success_res) {
-      handle->add(mtHandle);
+        handle->add(mtHandle);
     } else {
-      delete handle;
-      return NULL;
+        delete handle;
+        return NULL;
     }
     return handle;
 }
@@ -1030,14 +1034,14 @@ bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
     
     if (handle->proc == proc) {
         for (unsigned int i=0; i < handle->mtHandles.size(); i++) {
-            deleteInst(proc, *(handle->mtHandles[i]));
+            deleteInst(proc, handle->mtHandles[i]);
         }
-	delete handle;
-	return true;
+        delete handle;
+        return true;
     } else { // Handle isn't to a snippet instance in this process
         cerr << "Error: wrong process in deleteSnippet" << endl;
         
-	return false;
+        return false;
     }
 }
 
@@ -1416,9 +1420,13 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
 {
     pd_Function *func;
-    
-    if ((func = proc->findFuncByAddr((Address)addr)) == NULL)
-	return NULL;
+
+    codeRange *range = proc->findCodeRangeByAddress((Address) addr);
+    if (!range)
+        return NULL;
+    func = range->function_ptr;
+    if (!func)
+        return NULL;
 
     return proc->findOrCreateBPFunc(func);
 }
