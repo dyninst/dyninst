@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.52  1997/05/23 22:59:18  mjrg
+ * Windows NT port
+ *
  * Revision 1.51  1997/05/20 15:18:57  lzheng
  * Changes made to handle the comminication between different types of
  * machines
@@ -116,8 +119,6 @@
 #endif
 
 #include <limits.h>
-#include <sys/types.h>
-#include <netinet/in.h>
 #include "util/h/rpcUtil.h"
 
 const char *RSH_COMMAND="rsh";
@@ -127,9 +128,13 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
     int fd = (int) handle;
     int ret;
 
+#if defined(i386_unknown_nt4_0)
+    ret = recv(fd, buf, len, 0);
+#else
     do {
 	ret = P_read(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
+#endif
 
     if (ret <= 0) { return(-1); }
     return (ret);
@@ -189,10 +194,15 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 	partialMsgs[i]->buf = NULL;
     }
 
+#if defined(i386_unknown_nt4_0)
+    ret = recv(fd, buffer+partialMsgs[i]->len,
+	       len + sizeof(int) - partialMsgs[i]->len, 0);
+#else
     do {
 	ret = P_read(fd, buffer+partialMsgs[i]->len, 
 		     len + sizeof(int) -partialMsgs[i]->len);
     } while (ret < 0 && errno == EINTR);
+#endif
 
     if (ret <= 0) { return(-1); }
 
@@ -207,6 +217,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     int is_left = ret - sizeof(int);
     while (is_left >= 0) {
 	P_memcpy((char *)&header, buffer, sizeof(int));
+//printf(">> header=%x, header1=%x, len=%x\n", header, ntohl(header));
 	header = ntohl(header);
 	assert(0xf == ((header >> 12)&0xf));
 
@@ -267,10 +278,14 @@ int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
     int fd = (int) handle;
     int ret;
 
+#if defined(i386_unknown_nt4_0)
+    ret = send(fd, buf, len, 0);
+#else
     do {
 
 	ret = P_write(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
+#endif
 
     errno = 0;
     if (ret != (int)len)
@@ -302,6 +317,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 
     // Converting to network order
     header = htonl(header);
+//printf(">> header=%x, counter=%x, len=%x\n", header, counter, len);
     
     P_memcpy(rb -> buf, (char *)&header, sizeof(int));
     P_memcpy(rb -> buf+sizeof(int), buf, len);
@@ -311,6 +327,18 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
     // Write the items to the other end if possible with asynchrous write
     for (int i = 0; (i < (int)rpcBuffers.size()); i++) {
 
+#if defined(i386_unknown_nt4_0)
+        u_long ioctlsock_arg = 1; // set non-blocking
+        if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+            perror("ioctlsocket");
+
+        ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf, 
+			 rpcBuffers[i]->len, 0);
+
+	ioctlsock_arg = 0; // set blocking
+	if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+	    perror("ioctlsocket");
+#else
 	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
 	    perror("fcntl");
 
@@ -319,6 +347,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 
 	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
 	    perror("fcntl");
+#endif
 
 	if (rpcBuffers[i]->len != ret) {
 
@@ -359,6 +388,18 @@ doDeferedRPCasyncXDRWrite() {
     // Write the items to the other end if possible 
     for (int i = 0; (i < (int)rpcBuffers.size()); i++) {
 
+#if defined (i386_unknown_nt4_0)
+        u_long ioctlsock_arg = 1; // set non-blocking
+        if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+	    perror("ioctlsocket");
+
+	ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+			 rpcBuffers[i]->len, 0);
+
+	ioctlsock_arg = 0; // set blocking
+	if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+	    perror("ioctlsocket");
+#else
 	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
 	    perror("fcntl");
 
@@ -367,6 +408,7 @@ doDeferedRPCasyncXDRWrite() {
 
 	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
 	    perror("fcntl");
+#endif
 	
 	if (rpcBuffers[i]->len != ret) {
 
@@ -398,7 +440,9 @@ XDRrpc::~XDRrpc()
 {
   if (fd >= 0)
     {
+#if !defined(i386_unknown_nt4_0)
       P_fcntl (fd, F_SETFL, FNDELAY);
+#endif
       P_close(fd);
       fd = -1;
     }
@@ -566,6 +610,9 @@ bool
 RPC_setup_socket_un (int &sfd,   // return file descriptor
 		     const char *path) // file path socket is bound to
 {
+#if defined(i386_unknown_nt4_0)
+  assert(0); // no unix domain sockets on Windows NT
+#else
   struct sockaddr_un saddr;
 
   if ((sfd = P_socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
@@ -579,6 +626,7 @@ RPC_setup_socket_un (int &sfd,   // return file descriptor
 
   if (P_listen(sfd, 5) < 0)
     return false;
+#endif
 
   return true;
 }
@@ -773,6 +821,11 @@ bool_t xdr_byteArray_pd(XDR *xdrs, byteArray *bArray)
 
 int execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 {
+#if defined(i386_unknown_nt4_0)
+  // TODO
+  assert(0);
+  return 0;
+#else
   int ret;
   int sv[2];
   int execlERROR;
@@ -813,6 +866,7 @@ int execCmd(const string command, const vector<string> &arg_list, int /*portFd*/
   }
   delete(new_al);
   return ret;
+#endif
 }
 
 int handleRemoteConnect(int fd, int portFd) {
@@ -845,6 +899,11 @@ int handleRemoteConnect(int fd, int portFd) {
 int rshCommand(const string hostName, const string userName, 
 	       const string command, const vector<string> &arg_list, int portFd)
 {
+#if defined(i386_unknown_nt4_0)
+    // TODO
+    assert(0);
+    return 0;
+#else
     int fd[2];
     int shellPid;
     int ret;
@@ -894,11 +953,17 @@ int rshCommand(const string hostName, const string userName,
     }
 
     return(handleRemoteConnect(fd[0], portFd));
+#endif
 }
 
 int rexecCommand(const string hostName, const string userName, 
 		 const string command, const vector<string> &arg_list, int portFd)
 {
+#if defined(i386_unknown_nt4_0)
+    // TODO
+    assert(0);
+    return 0;
+#else
     struct servent *inport;
 
     int total = command.length() + 2;
@@ -931,6 +996,7 @@ int rexecCommand(const string hostName, const string userName,
       delete paradyndCommand;
 
     return(handleRemoteConnect(fd, portFd));
+#endif
 }
 
 /*
@@ -945,14 +1011,10 @@ int RPCprocessCreate(const string hostName, const string userName,
 		     int portFd, const bool useRexec)
 {
     int ret;
-    struct utsname unm;
-
-    if (P_uname(&unm) == -1)
-      assert(0);
 
     if ((hostName == "") || 
 	(hostName == "localhost") ||
-	(hostName == unm.nodename))
+	(hostName == getHostName()))
       ret = execCmd(command, arg_list, portFd);
     else if (useRexec)
       ret = rexecCommand(hostName, userName, command, arg_list, portFd);
@@ -966,7 +1028,7 @@ int RPC_getConnect(const int fd) {
   if (fd == -1)
     return -1;
 
-  struct in_addr cli_addr;
+  struct sockaddr cli_addr;
   size_t clilen = sizeof(cli_addr);
   int new_fd = P_accept (fd, (struct sockaddr *) &cli_addr, &clilen);
 
@@ -1030,7 +1092,13 @@ bool RPCgetArg(vector<string> &arg, const char *input)
 
 
 string getHostName() {
+#if defined(i386_unknown_nt4_0)
+    char nameBuf[1000];
+    gethostname(nameBuf,999);
+    return string(nameBuf);
+#else
     struct utsname un;
     P_uname(&un);
     return string(un.nodename);
+#endif
 }

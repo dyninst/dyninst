@@ -1,0 +1,49 @@
+#
+# Common makefile template for igen.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Log: nmake.module.tmpl,v $
+# Revision 1.1  1997/05/23 22:59:52  mjrg
+# Windows NT port
+#
+#
+#
+
+USES_FLEX = true
+
+TARGET	      = igen.exe
+
+#SRCS 	     = $(SRCS) ../src/main.C \
+#		parser.C \
+#		scanner.C \
+#		../src/interface_spec.C \
+#	        ../src/templates.C 
+
+OBJS 		= main.obj parser.obj scanner.obj interface_spec.obj
+
+LIBS 	     = $(LIBS) ..\..\..\lib\$(PLATFORM)\libpdutil.lib
+
+### kludge -- TODO: fix flex to build libfl.lib
+SYSLIBS = c:\gnu\flex-2.5.3\libyywrap.obj
+
+
+all:	$(TARGET)
+
+parser.obj:
+	$(YACC) $(YFLAGS) ../src/$*.y
+	del $*.C
+	move y.tab.c $*.C
+	$(CXX) $(CXXFLAGS) -I../src -c $*.C
+
+scanner.obj:
+	$(LEX) -t $(LFLAGS) ../src/$*.l >scanner.C
+	$(CXX) $(CXXFLAGS) -I../src -c $*.C
+
+
+templates.o: ../src/templates.C 
+	$(CXX) $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates.C
+
+
+
+
