@@ -81,6 +81,7 @@
 #include "util/h/Object.h"
 #include "util/h/Dictionary.h"
 #include "instP.h" // class instInstance
+#include "util/h/pathName.h"
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -431,7 +432,11 @@ while (true) {
    return true;
 }
 
-bool process::changePC(unsigned loc, void *) {
+bool process::changePC(unsigned loc) {
+   return changePC(loc, NULL);
+}
+
+bool process::changePC(unsigned loc, const void *) {
    // compare to write_pc() of gdb (findvar.c)
    // 2d arg (saved regs) of this routine isn't needed for aix, since it
    // has the option to write just 1 register with a ptrace call.
@@ -577,14 +582,28 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
    return true;
 }
 
+// note: the following should be moved to inst-power.C, since it's
+// specific to an instruction set and not an OS, right?
 bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
-				     unsigned &firstPossibBreakOffset,
-				     unsigned &lastPossibBreakOffset) {
+				     unsigned &breakOffset,
+				     bool stopForResult,
+				     unsigned &stopForResultOffset,
+				     unsigned &justAfter_stopForResultOffset) {
    // The sequence we want is: (restore), trap, illegal,
    // where (restore) undoes anything done in emitInferiorRPCheader(), above.
 
    instruction *insn = (instruction *)insnPtr;
    unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   extern void generateBreakPoint(instruction &);
+
+   if (stopForResult) {
+      generateBreakPoint(insn[baseInstruc]);
+      stopForResultOffset = baseInstruc * sizeof(instruction);
+      baseInstruc++;
+
+      justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
+   }
 
    // MT_AIX: restoring previosly saved registers - naim
    instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
@@ -592,9 +611,8 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
    restoreAllRegistersThatNeededSaving(tmp_insn,baseInstruc);
 
    // Trap instruction (breakpoint):
-   extern void generateBreakPoint(instruction &);
    generateBreakPoint(insn[baseInstruc]);
-   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+   breakOffset = baseInstruc * sizeof(instruction);
    baseInstruc++;
 
    // And just to make sure that we don't continue, we put an illegal
@@ -706,6 +724,14 @@ bool process::attach_() {
       ret = ptrace(PT_REATT, getPid(), (int *)0, 0, 0);
 
    return (ret != -1);
+}
+
+bool process::isRunning_() const {
+   // determine if a process is running by doing low-level system checks, as
+   // opposed to checking the 'status_' member vrble.  May assume that attach()
+   // has run, but can't assume anything else.
+
+   assert(false); // not yet implemented!   
 }
 
 // TODO is this safe here ?
@@ -1476,4 +1502,21 @@ bool handleAIXsigTraps(int pid, int status) {
     } //  W_SFWTED (stopped-on-fork)
 
     return false;
+}
+
+string process::tryToFindExecutable(const string &progpath, int pid) {
+   // returns empty string on failure
+
+   if (progpath.length() == 0)
+      return "";
+
+   if (exists_executable(progpath)) // util lib
+      return progpath;
+
+   return ""; // failure
+}
+
+unsigned process::read_inferiorRPC_result_register(reg returnValReg) {
+   assert(false); // not yet implemented!!!
+   return 0;
 }
