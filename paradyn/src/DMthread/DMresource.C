@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.6 1994/06/14 15:25:03 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.7 1994/06/17 00:11:55 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.6  1994/06/14 15:25:03  markc
+ * Revision 1.7  1994/06/17 00:11:55  hollings
+ * Fixed off by one error in string canonical string name code.
+ *
+ * Revision 1.6  1994/06/14  15:25:03  markc
  * Added new call (sameRoot) to the resource class.  This call is used to
  * determine if two resources have the same parent but are not in an
  * ancestor-descendant relationship.  Such a relationship implies a conflict
@@ -191,7 +194,7 @@ char *resourceList::getCanonicalName()
 	}
 	qsort(temp, count, sizeof(char *), strCompare);
 
-	total = 2;
+	total = 3;
 	for (i=0; i < count; i++) total += strlen(temp[i])+2;
 
 	tempName = new(char[total]);
