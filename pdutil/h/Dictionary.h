@@ -175,36 +175,72 @@ class dictionary_hash {
    float max_bin_load, bin_grow_factor;
 };
 
+// Typical way to use an iterator:
+// for (dictionary_hash_iter iter=thedict; iter; iter++) {
+//    ... make use of iter.currkey() and iter.currval() ...
+// }
 template<class K, class V>
 class dictionary_hash_iter {
+ private:
+   bool done() const {return (curr == last);} // works if both are NULL (empty iter)
+   void movetonext() {
+      do {
+         curr++;
+      } while (curr != last && curr->removed);
+   }
+   
  public:
    dictionary_hash_iter(const dictionary_hash<K,V> &idict) : dict(idict) {
       reset();
    }
 
    bool next(K &k, V &v) {
-      for (; ndx < dict.all_elems.size(); ndx++) {
-         if (!dict.all_elems[ndx].removed) {
-            k = dict.all_elems[ndx].key;
-            v = dict.all_elems[ndx].val;
-            ndx++;
+      for (; curr != last; curr++) {
+         if (!curr->removed) {
+            k = curr->key;
+            v = curr->val;
+            curr++;
             return true;
          }
       }
       return false;
    }
-         
+
    void reset() {
-      ndx = 0;
+      // start the iterator off at the first non-removed item now:
+      if (dict.all_elems.size() == 0) {
+         curr = last = NULL;
+      }
+      else {
+         curr = &dict.all_elems[0];
+         last = curr + dict.all_elems.size(); // 1 past the last element
+
+         while (curr < last && curr->removed)
+            curr++;
+      }
+   }
+
+   operator bool() const {return curr < last;} // correct if both NULL
+
+   void operator++(int) { movetonext(); }
+
+   const K &currkey() const {
+      assert(!curr->removed);
+      return curr->key;
+   }
+   const V &currval() const {
+      assert(!curr->removed);
+      return curr->val;
    }
 
  private:
    // private to make sure they're not used:
-   dictionary_hash_iter(const dictionary_hash_iter &);
+   dictionary_hash_iter(const dictionary_hash_iter &src);
    dictionary_hash_iter &operator=(const dictionary_hash_iter &);
 
    const dictionary_hash<K,V> &dict;
-   unsigned ndx;
+   dictionary_hash<K,V>::entry *curr;
+   dictionary_hash<K,V>::entry *last; // one past the last elem, a la STL style
 };
 
 #endif
