@@ -27,10 +27,10 @@ WARNFLAGS = -Wall \
             -Wno-deprecated        \
             -Wwrite-strings        \
             -Wconversion           \
+            -Wshadow               \
+            -Wredundant-decls      \
+            -pedantic              \
             -Wno-non-template-friend
-#           -Wshadow               \
-#           -Wredundant-decls      \
-#           -pedantic              \
 
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
@@ -177,7 +177,7 @@ CLEAN:
 	$(RM) -r bin/*/* lib/*/* obj/*/*
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
-dist-clean: CLEAN
+distclean: CLEAN
 	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
 
 files = mrnet/*/*.[C,h,c,y,l] \

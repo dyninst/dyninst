@@ -33,8 +33,8 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
 {
   std::list <MC_Packet *>::iterator iter;
   MC_DataElement **in, **out;
-  int in_count=packets_in.size(), out_count=0;
-  int i, j;
+  unsigned int in_count=packets_in.size(), out_count=0;
+  unsigned int i, j;
 
   mc_printf(MCFL, stderr, "In aggr.push_packets()\n");
 

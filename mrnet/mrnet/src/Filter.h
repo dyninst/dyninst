@@ -21,7 +21,7 @@ class MC_Aggregator: public MC_Filter{
  public:
   typedef struct{
     std::string format_str;
-    void(*filter)(MC_DataElement **, int, MC_DataElement ***, int*);
+    void(*filter)(MC_DataElement **, unsigned int, MC_DataElement ***, unsigned int*);
   }AggregatorSpec;
 
  private:
@@ -55,15 +55,15 @@ class MC_Synchronizer: public MC_Filter{
 
 #define AGGR_INT_SUM_ID 200
 #define AGGR_INT_SUM_FORMATSTR "%d"
-void aggr_Int_Sum(MC_DataElement **, int, MC_DataElement ***, int*);
+void aggr_Int_Sum(MC_DataElement **, unsigned int, MC_DataElement ***, unsigned int*);
 
 #define AGGR_FLOAT_AVG_ID 201
 #define AGGR_FLOAT_AVG_FORMATSTR "%f"
-void aggr_Float_Avg(MC_DataElement **, int, MC_DataElement ***, int*);
+void aggr_Float_Avg(MC_DataElement **, unsigned int, MC_DataElement ***, unsigned int*);
 
 #define AGGR_CHARARRAY_CONCAT_ID 202
 #define AGGR_CHARARRAY_CONCAT_FORMATSTR "%ac"
-void aggr_CharArray_Concat(MC_DataElement **, int, MC_DataElement ***, int*);
+void aggr_CharArray_Concat(MC_DataElement **, unsigned int, MC_DataElement ***, unsigned int*);
 
 #define SYNC_WAITFORALL 203
 void sync_WaitForAll(std::list <MC_Packet *>&, std::list <MC_Packet *>&,

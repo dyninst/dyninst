@@ -433,7 +433,7 @@ int execCmd(const std::string command, const std::vector<std::string> &args)
   arglist[0] = strdup(basename(cmd));
   free(cmd); //basename may modify!
   arglist[arglist_len+1] = NULL;
-  for (int i=0; i<arglist_len; ++i){
+  for (i=0; i<arglist_len; ++i){
     arglist[i+1] = strdup(args[i].c_str());
   }
 

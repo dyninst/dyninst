@@ -11,8 +11,8 @@ void MC_Message::add_Packet(MC_Packet *packet)
   packets.push_back(packet);
 }
 
-int MC_Message::recv(int sock_fd,
-                        std::list <MC_Packet *> &packets, MC_RemoteNode *remote_node)
+int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
+                     MC_RemoteNode *remote_node)
 {
   int i;
   int32_t buf_len;
@@ -107,7 +107,7 @@ int MC_Message::recv(int sock_fd,
       return -1;
     }
     new_packet->inlet_node = remote_node;
-    packets.push_back(new_packet);
+    packets_in.push_back(new_packet);
   }
 
   mc_printf(MCFL, stderr, "Msg(%p)::recv() succeeded\n", this);
@@ -321,8 +321,8 @@ MC_Packet::MC_Packet(unsigned int _buf_len, char * _buf)
                      "tag:%d, fmt:%s\n", this, src, tag, fmt_str);
 }
 
-MC_Packet::MC_Packet(MC_DataElement *_data_elements, const char * fmt_str){
-  char *cur_fmt, * fmt = strdup(fmt_str), *buf_ptr;
+MC_Packet::MC_Packet(MC_DataElement *_data_elements, const char * _fmt_str){
+  char *cur_fmt, * fmt = strdup(_fmt_str), *buf_ptr;
   int i=0;
   MC_DataElement * cur_elem;
   
@@ -591,17 +591,17 @@ int MC_Packet::ArgList2DataElementArray(va_list arg_list)
     case UNKNOWN_T:
       assert(0);
     case CHAR_T:
-      cur_elem->val.c = (char)va_arg(arg_list, char);
+      cur_elem->val.c = (char)va_arg(arg_list, int);
       break;
     case UCHAR_T:
-      cur_elem->val.c = (char)va_arg(arg_list, unsigned char);
+      cur_elem->val.c = (char)va_arg(arg_list, unsigned int);
       break;
 
     case INT16_T:
-      cur_elem->val.hd = (short int)va_arg(arg_list, short int);
+      cur_elem->val.hd = (short int)va_arg(arg_list, int);
       break;
     case UINT16_T:
-      cur_elem->val.hd = (short int)va_arg(arg_list, unsigned short int);
+      cur_elem->val.hd = (short int)va_arg(arg_list, unsigned int);
       break;
 
     case INT32_T:
@@ -619,7 +619,7 @@ int MC_Packet::ArgList2DataElementArray(va_list arg_list)
       break;
 
     case FLOAT_T:
-      cur_elem->val.f = (float)va_arg(arg_list, float);
+      cur_elem->val.f = (float)va_arg(arg_list, double);
       mc_printf(MCFL, stderr, "floats value: %f\n", cur_elem->val.f);
       break;
     case DOUBLE_T:
