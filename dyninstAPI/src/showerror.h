@@ -48,9 +48,8 @@ extern void showErrorCallback(int num, pdstring msg);
 
 extern void showInfoCallback(pdstring msg);
 
-#ifdef BPATCH_LIBRARY
 #include "BPatch.h"
 #define BPatch_reportError(a,b,c) BPatch::reportError(a,b,c)
-#endif
+
 
 #endif /* SHOWERROR_H */
