@@ -5,20 +5,20 @@ BPatch.obj: ../src/BPatch.C ../h/BPatch.h ../h/BPatch_Vector.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../util/h/Dictionary.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../src/BPatch_libInfo.h \
- ../src/util.h ../../rtinst/h/rtinst.h ../src/process.h \
+ ../src/util.h ../../dyninstAPI_RT/h/rtinst.h ../src/process.h \
  ../../dyninstAPI/src/util.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/src/os.h \
  ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h
 BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI/src/util.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../dyninstAPI/src/util.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/refCounter.h ../../util/h/vectorSet.h \
@@ -27,7 +27,7 @@ BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../dyninstAPI/src/os.h \
  ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
@@ -42,8 +42,8 @@ BPatch_snippet.obj: ../src/BPatch_snippet.C ../src/ast.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../src/symtab.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../h/BPatch.h ../h/BPatch_Vector.h \
@@ -54,7 +54,7 @@ BPatch_templates.obj: ../src/BPatch_templates.C ../h/BPatch_Vector.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h
 BPatch_thread.obj: ../src/BPatch_thread.C ../src/process.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI/src/util.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../dyninstAPI/src/util.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/refCounter.h ../../util/h/vectorSet.h \
@@ -63,7 +63,7 @@ BPatch_thread.obj: ../src/BPatch_thread.C ../src/process.h \
  ../../dyninstAPI/src/os.h \
  ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
@@ -83,18 +83,18 @@ BPatch_init.obj: ../src/BPatch_init.C ../../dyninstAPI/src/dyninstP.h \
  ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
  ../../dyninstAPI/src/inst.h ../../util/h/Dictionary.h \
  ../../util/h/Pair.h ../../dyninstAPI/src/ast.h \
- ../../dyninstAPI/src/util.h ../../rtinst/h/rtinst.h
+ ../../dyninstAPI/src/util.h ../../dyninstAPI_RT/h/rtinst.h
 BPatch_module.obj: ../src/BPatch_module.C ../src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../h/BPatch_module.h ../h/BPatch_snippet.h
 BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../h/BPatch_snippet.h ../h/BPatch_Vector.h ../src/process.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI/src/util.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../dyninstAPI/src/util.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/refCounter.h ../../util/h/vectorSet.h \
@@ -103,7 +103,7 @@ BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../../dyninstAPI/src/os.h \
  ../../paradynd/src/showerror.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
  ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/sharedobject.h \
@@ -123,8 +123,8 @@ api_showerror.obj: ../src/api_showerror.C ../h/BPatch.h \
 ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/pdThread.h \
@@ -144,8 +144,8 @@ ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
 inst.obj: ../src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/process.h \
@@ -159,8 +159,8 @@ process.obj: ../src/process.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/pdThread.h \
@@ -178,8 +178,8 @@ process.obj: ../src/process.C ../../util/h/headers.h \
 stats.obj: ../src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/process.h \
@@ -192,14 +192,14 @@ stats.obj: ../src/stats.C ../../dyninstAPI/src/symtab.h \
 symtab.obj: ../src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../util/h/Pair.h ../../util/h/Vector.h ../../util/h/Dictionary.h \
  ../../util/h/Object.h ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/src/dyninstP.h \
  ../../util/h/Timer.h ../../paradynd/src/showerror.h
 util.obj: ../src/util.C ../../util/h/headers.h \
- ../../util/h/ntHeaders.h ../../rtinst/h/rtinst.h \
+ ../../util/h/ntHeaders.h ../../dyninstAPI_RT/h/rtinst.h \
  ../../dyninstAPI/src/util.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h
 sharedobject.obj: ../src/sharedobject.C \
@@ -209,8 +209,8 @@ sharedobject.obj: ../src/sharedobject.C \
  ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
  ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Object.h \
  ../../util/h/lprintf.h ../../util/h/list.h \
- ../../dyninstAPI/src/dyninst.h ../../rtinst/h/trace.h \
- ../../rtinst/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
+ ../../dyninstAPI/src/dyninst.h ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h ../../util/h/stringDecl.h \
  ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-sparc.h \
  ../../dyninstAPI/src/util.h ../../dyninstAPI/src/inst.h \
  ../../dyninstAPI/src/ast.h

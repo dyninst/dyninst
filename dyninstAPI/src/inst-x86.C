@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.27  1997/09/28 22:22:31  buck
+ * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
+ * library dependencies on files in rtinst.
+ *
  * Revision 1.26  1997/08/19 19:50:38  naim
  * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
  * solaris - naim
@@ -165,7 +169,9 @@
 #include <limits.h>
 #include "util/h/headers.h"
 
+#ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
+#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

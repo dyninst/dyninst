@@ -57,6 +57,7 @@
 
 class process;
 class instInstance;
+class BPatch;
 class BPatch_thread;
 
 
@@ -101,6 +102,7 @@ public:
  * Represents a thread of execution.
  */
 class BPatch_thread {
+    friend class BPatch;
     friend bool pollForStatusChange();
 
     process		*proc;
@@ -109,10 +111,11 @@ class BPatch_thread {
     bool		mutationsActive;
     bool		createdViaAttach;
     bool		detached;
-
-public:
+protected:
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread(char *path, int pid);
+
+public:
     ~BPatch_thread();
 
     BPatch_image *getImage() { return image; }

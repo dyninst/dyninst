@@ -2044,12 +2044,10 @@ bool process::handleIfDueToSharedObjectMapping(){
              // TODO: currently we aren't handling dlopen because  
 	     // we don't have the code in place to modify existing metrics
 	     // This is what we really want to do:
-#ifdef BPATCH_LIBRARY
-	     if (((*changed_objects)[i])->getName() == string(getenv("DYNINSTAPI_RT_LIB"))) 
-#else
+#ifndef BPATCH_LIBRARY
 	     if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB"))) 
-#endif
 	     {
+#endif
 	       if(addASharedObject(*((*changed_objects)[i]))){
 		 *shared_objects += (*changed_objects)[i];
 		 hasLoadedDyninstLib = true;
@@ -2058,10 +2056,12 @@ bool process::handleIfDueToSharedObjectMapping(){
 		 logLine("Error after call to addASharedObject\n");
 		 delete (*changed_objects)[i];
 	       }
+#ifndef BPATCH_LIBRARY
 	     } else {
 	       // for now, just delete shared_objects to avoid memory leeks
 	       delete (*changed_objects)[i];
 	     }
+#endif
 	  }
 	  delete changed_objects;
       } 

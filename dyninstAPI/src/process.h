@@ -51,7 +51,11 @@
 #define PROCESS_H
 
 #include <stdio.h>
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/rtinst.h"
+#else
 #include "rtinst/h/rtinst.h"
+#endif
 #include "dyninstAPI/src/util.h"
 #include "util/h/String.h"
 #include "util/h/vectorSet.h"

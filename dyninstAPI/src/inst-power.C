@@ -72,7 +72,9 @@
 
 #include "util/h/headers.h"
 
+#ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
+#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

@@ -44,6 +44,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
+ * Revision 1.27  1997/09/28 22:22:30  buck
+ * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
+ * library dependencies on files in rtinst.
+ *
  * Revision 1.26  1997/02/21 20:13:28  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -102,7 +106,9 @@ extern "C" {
 }
 
 #include "dyninstAPI/src/dyninst.h"
+#ifndef BPATCH_LIBRARY
 #include "rtinst/h/trace.h"
+#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

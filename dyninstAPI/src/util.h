@@ -43,6 +43,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.20  1997/09/28 22:22:36  buck
+ * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
+ * library dependencies on files in rtinst.
+ *
  * Revision 1.19  1997/08/18 01:34:33  buck
  * Ported the Dyninst API to Windows NT.
  *
@@ -106,7 +110,11 @@
 #define UTIL_H
 
 #include "util/h/headers.h"
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/rtinst.h" // for time64
+#else
 #include "rtinst/h/rtinst.h" // for time64
+#endif
 #include "util/h/String.h"
 
 typedef double timeStamp;

@@ -43,6 +43,10 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.19  1997/09/28 22:22:35  buck
+ * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
+ * library dependencies on files in rtinst.
+ *
  * Revision 1.18  1997/08/19 19:50:55  naim
  * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
  * solaris - naim
@@ -110,7 +114,9 @@
  */
 
 #include "util/h/headers.h"
+#ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h" // for time64
+#endif
 #include "dyninstAPI/src/util.h"
 
 // TIMING code

@@ -62,9 +62,15 @@
 
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #include "dyninstAPI/src/os.h"
+#ifndef BPATCH_LIBRARY
 #include "paradynd/src/metric.h"
+#endif
 #include "dyninstAPI/src/dyninst.h"
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/trace.h"
+#else
 #include "rtinst/h/trace.h"
+#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

@@ -83,9 +83,7 @@ void main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-//We'll put this ifdef back when it works under sparc solaris again
-//#ifdef sparc_sun_solaris2_4
-#if 0
+#ifdef sparc_sun_solaris2_4
     // now use the dlopen interface to force an object to load.
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
     if (!ref) {

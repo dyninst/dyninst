@@ -148,8 +148,10 @@ template class vector<superVector<processTimerHK, tTimer> *>;
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
 
+#ifdef SHM_SAMPLING
 #include "fastInferiorHeapMgr.h"
 template class vector<fastInferiorHeapMgr::oneHeapStats>;
+#endif
 
 #ifdef BPATCH_LIBRARY
 template class dictionary<string, BPatch_type *>;

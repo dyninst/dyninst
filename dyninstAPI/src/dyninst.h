@@ -43,6 +43,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
+ * Revision 1.14  1997/09/28 22:22:28  buck
+ * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
+ * library dependencies on files in rtinst.
+ *
  * Revision 1.13  1996/08/16 21:18:28  tamches
  * updated copyright for release 1.1
  *
@@ -75,7 +79,11 @@
 #ifndef INSTRUMENTATION_H
 #define INSTRUMENTATION_H
 
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI_RT/h/trace.h"
+#else
 #include "rtinst/h/trace.h"
+#endif
 #include "util/h/stringDecl.h"
 
 /* time */

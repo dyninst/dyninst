@@ -172,7 +172,7 @@ main(int argc, char *argv[])
 	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
     }
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_sunos4_1_3) || defined(rs6000_ibm_aix4_1)
     printf("Skipping test #3 (attach to an invalid pid)\n");
     printf("Skipping test #4 (attach to a protected pid)\n");
     printf("    attach is not supported on this platform\n");
@@ -234,9 +234,7 @@ main(int argc, char *argv[])
 
     ret->continueExecution();
 
-// We'll put this ifndef back when it works under sparc solaris again
-//#ifndef sparc_sun_solaris2_4
-#if 1
+#ifndef sparc_sun_solaris2_4
     printf("Skipping test #6 (load a dynamically linked library)\n");
     printf("    feature not implemented on this platform\n");
 #else
