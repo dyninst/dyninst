@@ -86,7 +86,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
     // This is defined as "any time we can't modify the state of the
     // process". In this case we try and set a breakpoint when we leave
     // the system call. If we can't set the breakpoint we poll.
-    
+
     // Check if we're in a system call
     if (lwp_->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
@@ -123,7 +123,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
         }
     }
     
-    // Get the RPC and slap it in the pendingRPC_ pointer
+    // Get the RPC and slap it in the postedRPC_ pointer
     if (!pendingRPC_) {
         pendingRPC_ = new inferiorRPCinProgress;
         if (postedRPCs_.size() > 0) {       
@@ -167,7 +167,7 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     runningRPC_->savedRegs = theSavedRegs;
     runningRPC_->rpcthr = NULL;
     runningRPC_->rpclwp = this;
-    
+
     runningRPC_->rpcStartAddr =
     mgr_->createRPCImage(runningRPC_->rpc->action, // AST tree
                          runningRPC_->rpc->noCost,
@@ -206,8 +206,7 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
       // note that executingSystemCall is always false on this platform.
       if (!lwp_->clearOPC())
       {
-         cerr << "launchRPC failed because clearOPC() failed"
-	      << endl;
+         cerr << "launchRPC failed because clearOPC() failed" << endl;
          return irpcError;
       }
 #endif
@@ -219,17 +218,19 @@ bool rpcLWP::deleteLWPIRPC(int id) {
     // Can remove a queued or pending lwp IRPC
     bool removed = false;
     
-    if (pendingRPC_ && 
-        pendingRPC_->rpc->id == id) {
-        delete pendingRPC_->rpc;
-        delete pendingRPC_;
-        
-        pendingRPC_ = NULL;
-
-        // Should probably also remove a system call trap
-        // if one exists
-
-        return true;
+    if (pendingRPC_ && pendingRPC_->rpc->id == id) {
+       // we don't want to do as we normally do when a exit trap occurs,
+       // that is to run the rpc, which gets triggered by this callback
+       get_lwp()->clearSyscallExitTrapCallback();
+       get_lwp()->clearSyscallExitTrap();
+       delete pendingRPC_->rpc;
+       delete pendingRPC_;
+       pendingRPC_ = NULL;
+       
+       // Should probably also remove a system call trap
+       // if one exists
+       
+       return true;
     }
     
     pdvector<inferiorRPCtoDo *> newPostedRPCs;
