@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.42 2000/10/17 17:30:55 schendel Exp $
+# $Id: Makefile,v 1.43 2000/12/14 22:38:42 schendel Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -20,9 +20,9 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 # "DyninstAPI" is the list of additional API components (optional).
 
 basicComps	= pdutil pdutilOld igen thread visi rtinst
-ParadynD	= pdutil pdutilOld igen rtinst paradynd
-ParadynFE	= pdutil pdutilOld igen thread paradyn
-ParadynVC	= \
+ParadynD	= pdutil igen rtinst paradynd
+ParadynFE	= pdutilOld igen thread paradyn
+ParadynVC	= pdutilOld \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/histVisi visiClients/terrain
@@ -38,13 +38,24 @@ Paradyn		= $(basicComps) $(subSystems)
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
 ifndef DONT_BUILD_PARADYN
-fullSystem	+= $(Paradyn)
-Build_list	+= Paradyn
+ifndef DONT_BUILD_FE
+fullSystem	+= $(ParadynFE)
+Build_list	+= ParadynFE
+endif
+ifndef DONT_BUILD_DAEMON
+fullSystem	+= $(ParadynD)
+Build_list	+= ParadynD
+endif
+ifndef DONT_BUILD_VISIS
+fullSystem	+= $(ParadynVC)
+Build_list	+= ParadynVC
+endif
 ifndef DONT_BUILD_PD_MT
 fullSystem	+= $(threadComps)
 Build_list	+= threadComps
 endif
 endif
+
 ifndef DONT_BUILD_DYNINST
 fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
@@ -101,6 +112,15 @@ intro:
 	@echo "Build of $(BUILD_ID) starting for $(PLATFORM)!"
 ifdef DONT_BUILD_PARADYN
 	@echo "Build of Paradyn components skipped!"
+endif
+ifdef DONT_BUILD_FE
+	@echo "Build of Paradyn front-end components skipped!"
+endif
+ifdef DONT_BUILD_DAEMON
+	@echo "Build of Paradyn daemon components skipped!"
+endif
+ifdef DONT_BUILD_VISIS
+	@echo "Build of Paradyn visi client components skipped!"
 endif
 ifdef DONT_BUILD_PD_MT
 	@echo "Build of ParadynMT components skipped!"
