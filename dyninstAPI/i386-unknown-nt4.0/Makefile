@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2001/07/09 19:34:50 chadd Exp $
+# $Id: Makefile,v 1.12 2001/07/12 20:25:47 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,6 +8,7 @@
 # in the paradyn tree.
 
 include ../../nmake.config 
+DEFCFLAGS = $(DEFCFLAGS) -MD # ccw 12 july 2001
 
 # Now make any necessary architecture specific changes to variables:
 
