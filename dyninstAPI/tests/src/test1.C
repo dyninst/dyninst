@@ -793,7 +793,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(call13_1Expr, *point13_1);
 
     BPatch_nullExpr call13_2Expr;
-    checkCost(call13_1Expr);
+    checkCost(call13_2Expr);
     appThread->insertSnippet(call13_2Expr, *point13_1);
 
     // now test that a return value can be read.
@@ -806,7 +806,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_function *call13_2_func = appImage->findFunction("call13_2");
     if (call13_2_func == NULL) {
-	fprintf(stderr, "Unable to find function \"call13_1.\"\n");
+	fprintf(stderr, "Unable to find function \"call13_2.\"\n");
 	exit(1);
     }
 
