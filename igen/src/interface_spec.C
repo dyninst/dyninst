@@ -624,12 +624,12 @@ bool interface_spec::gen_stl_temps() const {
 			  << Options::ml->bundler_return_type() << " "
 			  << Options::ml->bundler_prefix() << "send_common("
 			  << Options::ml->marshall_obj() << Options::ml->marshall_obj_ptr() 
-			  << ", const " << Options::stl_types[stl_index1].name << "<"
+			  << ", " << Options::stl_types[stl_index1].name << "<"
 			  << Options::stl_types[stl_index1].elements[el_index].name
-			  << ">&, bool (*)(" << Options::ml->marshall_obj() 
+			  << "> const &, bool (*)(" << Options::ml->marshall_obj() 
 			  << Options::ml->marshall_obj_ptr() << ", " 
 			  << Options::stl_types[stl_index1].elements[el_index].name
-			  << "));\n";
+			  << " const &));\n";
       // explicitly instantiate writerfn_noMethod
       Options::temp_dot_c << "template "
 			  << Options::ml->bundler_return_type() << " "
@@ -637,7 +637,7 @@ bool interface_spec::gen_stl_temps() const {
 			  << Options::ml->marshall_obj() << Options::ml->marshall_obj_ptr() 
 			  << ", "
 			  << Options::stl_types[stl_index1].elements[el_index].name 
-			  << ");\n";
+			  << " const &);\n";
     }
   }
 
