@@ -15,7 +15,7 @@ void saveSharedLibrary::openElf(){
 		exit(1);
 	}
 
-	if((newfd = open(newpathname, O_WRONLY|O_CREAT|O_TRUNC)) == -1){
+	if((newfd = (creat(newpathname, 0x1c0)))==-1){
 		printf("cannot open new SO : %s\n",newpathname);
 		perror(" FAIL ");
 		exit(1);
