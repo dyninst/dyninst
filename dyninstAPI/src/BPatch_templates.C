@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.24 2003/08/01 23:02:46 jodom Exp $
+// $Id: BPatch_templates.C,v 1.25 2003/09/11 22:00:22 eli Exp $
 
 #include <sys/types.h>
 
@@ -79,6 +79,8 @@ class BPatch_variableExpr;
 class BPatch_localVar;
 class BPatch_sourceObj;
 class miniTrampHandle;
+class LoopTreeNode;
+class function_base;
 
 /* only define the ones not defined with a vector inside  */
 template class BPatch_Vector<BPatch_point *>;
@@ -91,6 +93,8 @@ template class BPatch_Vector<BPatch_type *>;
 template class BPatch_Vector<BPatch_module *>;
 template class BPatch_Vector<char *>;
 template class BPatch_Vector<BPatch_sourceObj *>;
+template class BPatch_Vector<LoopTreeNode *>;
+template class BPatch_Vector<function_base *>;
 
 //#ifndef USE_STL_VECTOR
 template class BPatch_Vector<BPatch_localVar *>;
