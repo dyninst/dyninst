@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.43  1994/08/05 16:03:57  hollings
+ * Revision 1.44  1994/08/17 17:56:24  markc
+ * Added flavor paramater to paradyn daemon data structure.
+ * Added flavor parameter to reportSelf function call.
+ *
+ * Revision 1.43  1994/08/05  16:03:57  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.42  1994/08/03  19:06:24  hollings
@@ -540,7 +544,7 @@ paradynDaemon::~paradynDaemon() {
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (String m, String p, int pd)
+dynRPCUser::reportSelf (String m, String p, int pd, int flavor)
 {
   assert(0);
   return;
@@ -553,7 +557,6 @@ dynRPCUser::reportSelf (String m, String p, int pd)
 //
 void paradynDaemon::handle_error()
 {
-   abort();
    dm->appContext->removeDaemon(this, TRUE);
 }
 
@@ -562,11 +565,12 @@ void paradynDaemon::handle_error()
 // reports the information for that paradynd to paradyn
 //
 void 
-paradynDaemon::reportSelf (String m, String p, int pd)
+paradynDaemon::reportSelf (String m, String p, int pd, int flav)
 {
   machine = strdup(m);
   program = strdup(p);
   my_pid = pd;
+  flavor = flav;
   printf("paradyn daemon pid %d reported\n", my_pid);
   return;
 }

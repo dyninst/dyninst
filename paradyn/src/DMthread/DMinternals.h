@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.25  1994/08/08 20:15:19  hollings
+ * Revision 1.26  1994/08/17 17:56:20  markc
+ * Added flavor paramater to paradyn daemon data structure.
+ * Added flavor parameter to reportSelf function call.
+ *
+ * Revision 1.25  1994/08/08  20:15:19  hollings
  * added suppress instrumentation command.
  *
  * Revision 1.24  1994/08/05  16:03:56  hollings
@@ -96,6 +100,7 @@
 #include "DMresource.h"
 #include "dataManager.h"
 #include <string.h>
+#include "util/h/machineType.h"
 
 //
 // A handle to a running paradynd* somewhere.
@@ -135,10 +140,11 @@ class paradynDaemon: public dynRPCUser {
 	~paradynDaemon();
 	
 	Boolean dead;			// has there been an error on the link.
-	void reportSelf (String m, String p, int pd);
+	void reportSelf (String m, String p, int pd, int flav);
         char *machine;
         char *login;
  	char *program;
+	int flavor;
 	// these args are passed to the paradynd when started
         // for paradyndPVM these args contain the info to connect to the
         // "well known" socket for new paradynd's
