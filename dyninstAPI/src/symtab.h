@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.102 2001/12/10 21:17:16 chadd Exp $
+// $Id: symtab.h,v 1.103 2002/01/29 16:40:28 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -316,6 +316,7 @@ class pd_Function : public function_base {
 
     bool isTrapFunc() {return isTrap;}
     bool needsRelocation() {return relocatable_;}
+    bool mayNeedRelocation() {return mayNeedRelocation_;}
     void setRelocatable(bool value) { relocatable_ = value; }
 
     bool isInstrumentable() { return isInstrumentable_; }
@@ -332,13 +333,14 @@ class pd_Function : public function_base {
 
     bool checkInstPoints(const image *owner);
     bool findInstPoints(const image *owner, Address adr, process *proc);
-    // Add a new call point to a function that will be, or currently is
-    // being relocated (if location != 0 && reloc_info != 0,  then this is
-    // called when the the function is actually being relocated
-    Address newCallPoint(Address &adr, const instruction code,
-                         const image *owner, bool &err, unsigned &id, 
-			 Address &addr, relocatedFuncInfo *reloc_info,
-			 instPoint *&point, const instPoint *&location);
+
+    // Record a call point in a function that will be, or currently is
+    // being relocated.
+    // (if location != 0 && reloc_info != 0, then this is called when 
+    // the the function is actually being relocated)
+    void addCallPoint(const instruction instr, unsigned &callId,
+                      relocatedFuncInfo *reloc_info, instPoint *&point, 
+                      const instPoint *&location);
 
     bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
 
@@ -544,6 +546,9 @@ class pd_Function : public function_base {
     
     // these are for relocated functions
     bool relocatable_;		   // true if func will be relocated when instr
+    bool mayNeedRelocation_;       // True if func needs to be relocated to
+                                   // enable call sequence transfers to
+                                   // base trampolines 
 
     unsigned char *relocatedCode;  // points to copy of rewritten function    
     unsigned char *originalCode;   // points to copy of original function
