@@ -39,47 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* 
- * $Log: procfs.C,v $
- * Revision 1.1  1998/08/25 19:35:29  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.3  1996/09/04 23:00:36  hollings
- * Paradyn version 1.1 (plus a few small commits)
- *
- * Revision 1.12  1996/08/20 19:17:40  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- *
- * Revision 1.11  1996/08/16 21:19:49  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/05/08 23:55:07  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.9  1996/04/03 14:27:56  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.8  1996/03/12  20:48:39  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.7  1996/02/12 16:46:18  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- * Revision 1.6  1996/02/09  23:53:46  naim
- * Adding new internal metric number_of_nodes - naim
- *
- * Revision 1.5  1995/09/26  20:17:52  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- */
+// $Id: procfs.C,v 1.2 1998/12/25 22:09:17 wylie Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -329,7 +289,7 @@ bool process::continueProc_(Address vaddr)
       && (stat.pr_why == PR_SIGNALLED)
       && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
     flags.pr_flags = PRSTOP || PRSVADDR;
-    flags.pr_vaddr = vaddr;
+    flags.pr_vaddr = (char*)vaddr;
     if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
       fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
       return false;
@@ -563,29 +523,29 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void  *inTracedProcess, int amount,const void *inSelf) {
+bool process::writeTextSpace_(void  *inTracedProcess, u_int amount,const void *inSelf) {
   return writeDataSpace_(inTracedProcess, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, inSelf);
+bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, (void*)inSelf);
 }
 #endif
 
-bool process::writeDataSpace_(void *inTracedProcess, int amount,const void *inSelf) {
+bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess)
     return false;
-  return (write(proc_fd, inSelf, amount) == amount);
+  return (write(proc_fd, inSelf, amount) == (int)amount);
 }
 
-bool process::readDataSpace_(const void *inTracedProcess, int amount, void *inSelf) {
+bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess) {
     return false;
   }
-  return (read(proc_fd, inSelf, amount) == amount);
+  return (read(proc_fd, inSelf, amount) == (int)amount);
 }
 
 bool process::loopUntilStopped() {
