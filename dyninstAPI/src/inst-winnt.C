@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.13 2003/07/15 22:44:15 schendel Exp $
+// $Id: inst-winnt.C,v 1.14 2003/08/22 19:54:24 hollings Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -59,7 +59,6 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"
-#endif
 
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 //defined in inst-mips.C
@@ -86,6 +85,8 @@ pdstring process::getProcessStatus() const {
     }
     return(ret);
 }
+#endif
+
 #endif
 
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sunos.C,v 1.53 2003/07/15 22:44:14 schendel Exp $
+// $Id: inst-sunos.C,v 1.54 2003/08/22 19:54:24 hollings Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -62,7 +62,6 @@
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
-#endif
 
 pdstring process::getProcessStatus() const {
    char ret[80];
@@ -86,6 +85,8 @@ pdstring process::getProcessStatus() const {
     }
     return(ret);
 }
+
+#endif
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.

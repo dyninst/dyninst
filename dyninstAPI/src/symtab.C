@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.183 2003/08/12 20:19:23 tlmiller Exp $
+// $Id: symtab.C,v 1.184 2003/08/22 19:54:24 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -470,6 +470,8 @@ pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
   return func;
 }
 
+#ifndef BPATCH_LIBRARY
+
 //Add an extra pretty name to a known function (needed for handling
 //overloaded functions in paradyn)
 void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
@@ -484,6 +486,7 @@ void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
    (*funcsByPrettyEntry).push_back(func);
 }
 
+#endif
 
 /*
  * Add another name for the current function to the names vector in

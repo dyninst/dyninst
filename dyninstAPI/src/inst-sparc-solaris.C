@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.136 2003/08/05 21:49:22 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.137 2003/08/22 19:54:24 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3756,6 +3756,7 @@ bool InsnRegister::is_o7(){
 	return false;
 }
 
+#ifdef DEBUG
 void InsnRegister::print(){
 	switch(regType){
 		case InsnRegister::GlobalIntReg: 
@@ -3776,6 +3777,7 @@ void InsnRegister::print(){
 			cerr << regNumber+i;
 	cerr << "] ";
 }
+#endif
 
 
 void get_register_operands(const instruction& insn, InsnRegister* rd,

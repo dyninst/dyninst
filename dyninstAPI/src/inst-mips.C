@@ -4740,6 +4740,7 @@ void initPrimitiveCost()
 //
 // paradynd-only methods
 //
+#ifndef BPATCH_LIBRARY
 
 pdstring process::getProcessStatus() const 
 {
@@ -4768,6 +4769,7 @@ pdstring process::getProcessStatus() const
 
   return(ret);
 }
+#endif
 
 /****************************************************************************/
 /****************************************************************************/

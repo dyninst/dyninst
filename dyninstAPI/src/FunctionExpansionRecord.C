@@ -100,6 +100,7 @@ void FunctionExpansionRecord::AddExpansion(int original_offset, int shift) {
 }
 
 
+#ifdef DEBUG
 // Dump state info about FunctionExpansionRecord object....
 ostream &operator<<(ostream &os, const FunctionExpansionRecord &rc) {
     unsigned int i;
@@ -124,6 +125,7 @@ ostream &operator<<(ostream &os, const FERNode &nd) {
      << nd.shift << endl;
   return os;
 }
+#endif
 
 // function used to sort array of fer nodes....
 int sort_fernode_by_offset(const void *a, const void *b) {
