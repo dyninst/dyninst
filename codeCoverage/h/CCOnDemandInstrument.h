@@ -42,10 +42,6 @@ private:
 	  */
 	bool isInstrumented(int i);	
 
-	/** due to need that signal handler has to be non-member
-	  * function it is defined to be friend function
-	  */
-	friend void intervalCallback(int signalNo);
 public:
 
 	/** constructor of the class */

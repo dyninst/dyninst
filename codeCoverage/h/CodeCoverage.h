@@ -86,8 +86,6 @@ protected:
 	char tclStatusBuffer[1024];
 
 protected:
-	/** interval callback function is defined to be friend*/
-	friend void intervalCallback(int signalNo);
 	friend class FunctionCoverage;
 
 	/** method to validate whether function has its 

@@ -25,8 +25,8 @@ CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0
 CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY 
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
-TCLTK_LIBS	= -ltk8.0 -ltcl
-SYSLIBS 	= -lelf -lX11 $(TCLTK_LIBS) -ldl -lsocket -lnsl -lpthread
+TCLTK_LIBS	?= -ltk8.0 -ltcl
+SYSLIBS 	= -lrt -lelf -L/user/gaburici/opt/tcltk-8.3.4/lib $(TCLTK_LIBS) -lpthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
