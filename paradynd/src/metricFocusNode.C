@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.16 1994/05/31 19:16:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.17 1994/05/31 19:53:50 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.16  1994/05/31 19:16:17  markc
+ * Revision 1.17  1994/05/31 19:53:50  markc
+ * Fixed pause time bug which was causing negative values to be reported.  The
+ * fix involved adding an extra test in computePauseTimeMetric that did not
+ * begin reporting pause times until firstSampleReceived is TRUE.
+ *
+ * Revision 1.16  1994/05/31  19:16:17  markc
  * Commented out assert test for elapsed.
  *
  * Revision 1.15  1994/05/31  18:14:18  markc
@@ -857,11 +862,12 @@ void computePauseTimeMetric()
     extern float samplingRate;
     extern timeStamp startPause;
     extern time64 firstRecordTime;
+    extern Boolean firstSampleReceived;
     extern Boolean applicationPaused;
     extern timeStamp elapsedPauseTime;
-    static timeStamp reportedPauseTime;
+    static timeStamp reportedPauseTime = 0;
 
-    if (pauseTimeNode && firstRecordTime) {
+    if (pauseTimeNode && firstRecordTime && firstSampleReceived) {
 	gettimeofday(&tv, NULL);
 	now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
 	if (now < end + samplingRate) 
@@ -873,7 +879,7 @@ void computePauseTimeMetric()
 	if (applicationPaused) {
 	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
 	}
-	/* assert(elapsed >= 0.0); */
+	assert(elapsed >= 0.0); 
 	reportedPauseTime += elapsed;
 	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
     }

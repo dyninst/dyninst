@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.12 1994/05/31 18:00:46 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.13 1994/05/31 19:53:52 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.12  1994/05/31 18:00:46  markc
+ * Revision 1.13  1994/05/31 19:53:52  markc
+ * Fixed pause time bug which was causing negative values to be reported.  The
+ * fix involved adding an extra test in computePauseTimeMetric that did not
+ * begin reporting pause times until firstSampleReceived is TRUE.
+ *
+ * Revision 1.12  1994/05/31  18:00:46  markc
  * Added pvm messages to copy printf messages.
  *
  * Revision 1.11  1994/05/18  00:52:29  hollings
@@ -164,7 +169,7 @@ Boolean synchronousMode;
 Boolean firstSampleReceived;
 
 
-time64 firstRecordTime;
+time64 firstRecordTime = 0.0;
 
 void processAppIO(process *curr)
 {
