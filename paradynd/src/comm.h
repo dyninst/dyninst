@@ -44,6 +44,9 @@
  * defaults.
  * 
  * $Log: comm.h,v $
+ * Revision 1.8  1996/10/31 08:37:14  tamches
+ * removed a warning
+ *
  * Revision 1.7  1996/08/16 21:18:20  tamches
  * updated copyright for release 1.1
  *
@@ -111,8 +114,8 @@ public:
      int num_bytes = 32768;
      int size = sizeof(num_bytes);
 
-     if (setsockopt(this->get_fd(), SOL_SOCKET, SO_SNDBUF,
-                    &num_bytes, size) < 0) {
+     if (P_setsockopt(this->get_fd(), SOL_SOCKET, SO_SNDBUF,
+                      &num_bytes, size) < 0) {
         cerr << "paradynd warning: could not set socket write buffer size" << endl;
      }
 #endif     
