@@ -17,10 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.5  1994/05/23 20:55:21  newhall
-/* To visi_GridCellHisto class: added deleted flag, SumValue
-/* method function, and fixed AggregateValue method function
+/* Revision 1.6  1994/08/13 20:34:07  newhall
+/* removed all code associated with class visi_MRList
 /*
+ * Revision 1.5  1994/05/23  20:55:21  newhall
+ * To visi_GridCellHisto class: added deleted flag, SumValue
+ * method function, and fixed AggregateValue method function
+ *
  * Revision 1.4  1994/05/11  17:11:10  newhall
  * changed data values from double to float
  *
@@ -40,7 +43,6 @@
 /////////////////////////////////////////////////////////
 
 #include "datagrid.h"
-#include "mrlist.h"
 #include "visiTypes.h"
 
 #define FILETABLESIZE  64
@@ -56,8 +58,6 @@
 //             to obtain and modify the parameters to GetMetsRes()
 //   
 extern visi_DataGrid  dataGrid;   
-extern visi_MRList    metricList; 
-extern visi_MRList    resourceList;
 extern int            lastBucketSent;
 
 //
