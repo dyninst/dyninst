@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.32 2002/10/28 04:54:42 schendel Exp $
+// $Id: templatesPD-nt.C,v 
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -49,66 +49,70 @@
  */
 #pragma warning (disable: 4660)
 
-#include "common/src/vectorSet.C"
 #include "common/src/Dictionary.C"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
+#include "common/src/String.C"
+#include "common/h/Vector.h"
+#include "paradyn/src/met/mdl.h"
+#include "paradynd/src/threadMetFocusNode.h"
 
-template class vectorSet<inferiorRPCtoDo>;
-template class vectorSet<inferiorRPCinProgress>;
+class function_base;
+class metricFocusNode;
+struct _cpSample;
+class metricFocusNode;
+class instrCodeNode;
+class instrCodeNode_Val;
+class machineMetFocusNode;
+class threadMetFocusNode_Val;
+class processMetFocusNode;
 
-template class dictionary_hash<unsigned int, unsigned int>;
-template class dictionary_hash<unsigned int, resource *>;
-template class dictionary_hash<unsigned int, heapItem *>;
-template class dictionary_hash<unsigned int, pd_Function *>;
+template class dictionary_hash<unsigned, int>;
+template class vector<dictionary_hash<unsigned, int>::entry>;
 
-template class dictionary_hash<string, unsigned int>;
-template class dictionary_hash<string, string>;
-template class dictionary_hash<string, Symbol>;
-template class dictionary_hash<string, resource *>;
-template class dictionary_hash<string, pdmodule *>;
-template class dictionary_hash<string, pd_Function *>;
-template class dictionary_hash<string, internalSym *>;
+template class dictionary_hash<string, int>;
+template class vector<dictionary_hash<string, int>::entry>;
 
-template class dictionary_hash<string, vector<string> *>;
-template class dictionary_hash<string, vector<pd_Function *> *>;
+template class dictionary_hash<function_base *, function_base *>;
 
-#include "common/src/list.C"
-template class List<instInstance*>;
-template class ListBase<instInstance*, void*>;
-template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
-template class dictionary_hash<instPoint const *, trampTemplate *>;
-template class dictionary_hash<instInstance *, instInstance *>;
+template class dictionary_hash<unsigned int, _cpSample *>;
+template class dictionary_hash<unsigned int, metricFocusNode *>;
+template class dictionary_hash<unsigned int, vector<mdl_type_desc> >;
 
-#ifdef BPATCH_LIBRARY
-#include "common/h/String.h"
-#include "dyninstAPI/h/BPatch_thread.h"
-#include "dyninstAPI/h/BPatch_type.h"
+template class dictionary_hash<string, metricFocusNode *>;
+template class dictionary_hash<string, instrCodeNode *>;
 
-template class dictionary_hash<string, BPatch_type *>;
-template class dictionary_hash<int, BPatch_thread *>;
-template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<string, BPatch_localVar *>;
-template class dictionary_hash<function_base*, BPatch_function*>;
-template class  dictionary_hash <Address, BPatch_variableExpr*>;
-template class dictionary_hash<Address, BPatch_point *>;
+template class  dictionary_hash <unsigned, machineMetFocusNode*>;
+template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
+template class  dictionary_hash <string, instrCodeNode_Val*>;
+template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
+template class  dictionary_hash <string, instrCodeNode*>;
+template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
 
+template class  dictionary_hash <string, threadMetFocusNode_Val*>;
+template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+
+template class parentDataRec<processMetFocusNode>;
+template class vector< parentDataRec<processMetFocusNode> >;
+
+#include "paradynd/src/varTable.h" 
+#include "paradynd/src/varTable.C"
+#include "paradynd/src/varInstanceHKs.h"
+template class varTable<intCounterHK>;
+template class varTable<wallTimerHK>;
+template class varTable<processTimerHK>;
+#ifdef PAPI
+template class varTable<hwTimerHK>;
+template class varTable<hwCounterHK>;
 #endif
+template class vector<baseVarTable *>;
 
-template class dictionary_hash<u_int, Address>;
-template class dictionary_hash<Address, Address>;
-template class dictionary_hash<Address, heapItem *>;
-template class dictionary_hash<Address, pd_Function *>;
-template class dictionary_hash<Address, unsigned>;
-
-#include "dyn_lwp.h"
-template class dictionary_hash<unsigned, dyn_lwp *>;
-
-#if defined(BPATCH_LIBRARY)
-
-class BPatch_basicBlock;
-
-template class  dictionary_hash<Address,BPatch_basicBlock*>;
-template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
-
+#include "paradynd/src/varInstance.h"
+#include "paradynd/src/varInstance.C"
+template class varInstance<intCounterHK>;
+template class varInstance<wallTimerHK>;
+template class varInstance<processTimerHK>;
+#ifdef PAPI
+template class varInstance<hwTimerHK>;
+template class varInstance<hwCounterHK>;
 #endif
+template class vector<baseVarInstance *>;
+
