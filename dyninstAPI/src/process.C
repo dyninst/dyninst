@@ -3567,9 +3567,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // if we had attached to the process, then it will be running even as we speak.
    // While we're parsing the shared libraries, we should pause.  So do that now.
    bool wasRunning;
-   if (needToContinueAfterDYNINSTinit) 
-     wasRunning = true;
-   else 
+#if defined(USES_LIBDYNINSTRT_SO)       //Without the `#if', paradynd on AIX
+   if (needToContinueAfterDYNINSTinit)  //  was not waiting for the "RUN"
+     wasRunning = true;                 //  button to be pressed before
+   else                                 //  letting the application processes
+#endif                                  //  continue after DYNINSTinit().
      wasRunning = status_ == running;
    (void)pause();
 
