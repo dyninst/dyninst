@@ -322,7 +322,7 @@ public:
 		 bool& error);
   ~mdl_constraint();
   bool apply(metricDefinitionNode *mn, dataReqNode *&flag,
-	     vector<string>& resource, process *proc);
+	     vector<string>& resource, process *proc, bool computingCost);
 
 #ifdef NO_MDL_PRINT
    friend ostream& operator<< (ostream& os, const T_dyninstRPC::mdl_constraint& cons) {
@@ -396,9 +396,11 @@ public:
     return os;
   }
 #endif
-  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name,
+  metricDefinitionNode *apply(vector< vector<string> >&focus, 
+			      string& flat_name,
 	                      vector<process *> procs,
-	                      bool replace_components_if_present);
+	                      bool replace_components_if_present,
+			      bool computingCost);
 $ignore
 };
 
