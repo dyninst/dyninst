@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2004/03/05 16:51:08 bernat Exp $
+# $Id: Makefile,v 1.9 2004/03/31 20:37:24 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,6 +7,7 @@ TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
+USES_UNWIND_LIB = true
 
 DEBUG_FLAG = -g
 
@@ -23,7 +24,7 @@ CFLAGS += -Wno-deprecated
 MUTATEE_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
 
-SYSLIBS += -L$(LIBDWARFDIR)/lib -ldwarf -lelf -ldl
+SYSLIBS += -L$(LIBDWARFDIR)/lib -ldwarf -lelf -ldl -L$(LIBUNWINDDIR)/lib -lunwind
 M_GXX = $(GXX)
 M_GCC = $(GCC)
 
