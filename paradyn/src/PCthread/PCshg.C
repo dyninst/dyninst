@@ -45,6 +45,10 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.55  1997/05/14 13:02:46  naim
+ * Making the PC to continue the search even if there is only one child. This
+ * is just a temporal fix - naim
+ *
  * Revision 1.54  1996/12/08 17:36:21  karavan
  * part 1 of 2 part commit to add new searching functionality
  *
@@ -308,7 +312,7 @@ searchHistoryNode::expandWhere()
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
       kids = dataMgr->magnify(currHandle, where);
-      if ( (kids != NULL) && (kids->size() > 1)) {
+      if ( (kids != NULL) && (kids->size() >= 1)) {
 	// note we don't bother refining if there's only a single child, 
 	// because the child would trivially test true.
 	for (unsigned j = 0; j < kids->size(); j++) {
