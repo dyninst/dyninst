@@ -2,11 +2,15 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.12  1994/11/09 02:25:19  tamches
-#  Re-implemented a feature of old: Long Names.  The option
-#  (which is off by default) is found at the bottom of the options menu.
-#  Fixed a bug whereby resourcesAxisWidth stayed unchanged at "1.4i"
-#  forever.
+#  Revision 1.13  1994/11/09 03:26:25  tamches
+#  Clicking in a "neutral" area of the resources axis will now un-select
+#  anything that may have been selected.
+#
+# Revision 1.12  1994/11/09  02:25:19  tamches
+# Re-implemented a feature of old: Long Names.  The option
+# (which is off by default) is found at the bottom of the options menu.
+# Fixed a bug whereby resourcesAxisWidth stayed unchanged at "1.4i"
+# forever.
 #
 # Revision 1.11  1994/11/06  10:36:48  tamches
 # changed title font to 14 point
@@ -95,8 +99,10 @@
 
 # ######################################################
 # TO DO LIST:
-# 1) multiple metrics: allow deletion
-# 2) too much flickering on resize
+# 1) multiple deletions at 1 time
+# 2) multiple metrics: allow deletion
+# 3) too much flickering on resize
+# 4) No room for scrollbar unless needed
 # ######################################################
 
 #  ################### Default options #################
@@ -282,7 +288,6 @@ pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
 # ####################  Barchart Area ($W.body) #################
 
 canvas $W.body -height 2.5i -width 3.5i -relief groove
-#frame $W.body -height 3i -width 2.5i -relief groove
 pack  $W.body -side top -fill both -expand true
    # expand is set to true; if the window is made taller, we want the
    # extra height to go to us
@@ -508,8 +513,7 @@ proc Initialize {} {
 
 # selectResource -- assuming this resource was clicked on, select it
 proc selectResource {widgetName} {
-   global clickedOnResource
-   global clickedOnResourceText
+   global clickedOnResource clickedOnResourceText
    global Wmbar
 
    # if someone else was previous selected, un-select him
@@ -517,13 +521,13 @@ proc selectResource {widgetName} {
       unSelectResource $clickedOnResource
    }
 
-   # select
+   # select this guy
    set clickedOnResource $widgetName
    set clickedOnResourceText [lindex [$widgetName configure -text] 4]
    $widgetName configure -relief sunken
 
    # update "delete resource xxx" menu item s.t. delResourceByName is
-   # called automatically on menu choice selection
+   # called on selection
    $Wmbar.actions.m entryconfigure 4 -state normal \
            -label "Remove Resource \"$clickedOnResourceText\"" \
            -command {delResourceByName $clickedOnResourceText}
@@ -531,8 +535,7 @@ proc selectResource {widgetName} {
 
 # unSelectResource -- pretend we never clicked on this resource
 proc unSelectResource {widgetName} {
-   global clickedOnResource
-   global clickedOnResourceText
+   global clickedOnResource clickedOnResourceText
    global Wmbar
 
    set clickedOnResource ""
@@ -545,8 +548,7 @@ proc unSelectResource {widgetName} {
 
 # processEnterProcess -- routine to handle entry of mouse in a resource name
 proc processEnterResource {widgetName} {
-   global clickedOnResource
-   global clickedOnResourceText
+   global clickedOnResource clickedOnResourceText
 
    # if this widget has already been clicked on, do nothing
    if {$widgetName == $clickedOnResource} {
@@ -559,14 +561,26 @@ proc processEnterResource {widgetName} {
 # processExitResource -- routine to handle mouse leaving resource name area
 #                        we may or may not have done a mouse-click in the meantime
 proc processExitResource {widgetName} {
-   global clickedOnResource
-   global clickedOnResourceText
+   global clickedOnResource clickedOnResourceText
 
    # if we clicked on this guy, then do nothing (keep him selected),
    # otherwise undo the -relief groove
    if {$clickedOnResource != $widgetName} {
       $widgetName configure -relief flat
    }
+}
+
+proc clickNeutralResourceArea {} {
+   global clickedOnResource clickedOnResourceText
+
+#   puts stderr "Welcome to clickNeutralResourceArea"
+
+   # unselect whatever was selected
+   if {$clickedOnResource == ""} {
+      return
+   }
+
+   unSelectResource $clickedOnResource
 }
 
 proc rethinkResourceHeights {screenHeight} {
@@ -727,6 +741,8 @@ proc drawResourcesAxis {theHeight} {
       set top [expr $top + $currResourceHeight]
       incr numResourcesDrawn    
    }
+
+   bind $WresourcesCanvas <ButtonPress> "clickNeutralResourceArea"
 
    # the axis itself--a horizontal line
    $WresourcesCanvas create line $right 0 $right $top -tag resourcesAxisItemTag
@@ -1005,8 +1021,6 @@ proc delResource {delindex} {
    set validResources($delindex) 0
    set numValidResources [expr $numValidResources - 1]
 
-#      puts stderr "new numValidResources=$numValidResources"
-
    if {$numValidResources<0} {
       puts stderr "delResource warning: numValidResources now $numValidResources!"
       return
@@ -1214,7 +1228,6 @@ proc dragAndDropTargetHandler {} {
 
 proc DgFoldCallback {} {
 #   puts stderr "FOLD detected..."
-#   flush stderr
 }
 
 # ########### Called by visi library when metric/resource space changes.
@@ -1231,17 +1244,14 @@ proc DgConfigCallback {} {
 
    global W
 
-   global numMetrics
-   global metricNames
+   global numMetrics metricNames
    global validMetrics
    global metricUnits
-   global metricMinValues
-   global metricMaxValues
+   global metricMinValues metricMaxValues
 
-   global numResources numValidResources
+   global numResources numValidResources resourceNames
    global validResources
    global numResourcesDrawn
-   global resourceNames
    global indirectResources
    global LongNames
 
