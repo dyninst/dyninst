@@ -17,6 +17,7 @@ typedef struct {
 	int NumberOfExpires;
 } TimerBlock;
 
+static TimerBlock time_block ;
 
 extern void *user_timers; 
 extern int CMNA_self_address;  /* ZXU changed node_number to CMNA_self_address*/
@@ -71,33 +72,34 @@ void resolve_iticks(int ticks)
 	}
 }
 
-#include <cm/timers.h> /* know the actual interval only */
-void runHandler_setNextAlarm(TimerBlock *tb) 
-/* 
- */
+#include <cm/timers.h> 
+double  last_alarm=0.0 ;
+double  this_alarm=0.0 ;
+#define SAMPLE_INTERVAL 0.5      /*sec */
+void adapt_num_ticks(TimerBlock *tb)
 {
-	/*
-	int me ;
+	static int IS_first = 1 ;
 	CM_TIME cmtv ;
-	static double  last_alarm=0.0 ;
-	static double  this_alarm=0.0 ;
-	*/
-	
+	double delta ;
+
+	CMOS_get_time(cmtv) ;
+	this_alarm = CM_ni_time_in_sec(cmtv) ;
+	delta = this_alarm - last_alarm ;
+	if (IS_first) /* the first time it makes no sense */
+		IS_first = 0 ;
+	else    /* dynamically adjust the ticks */
+		tb->ticks = (int) ((double) tb->ticks / (delta/SAMPLE_INTERVAL)) ;
+	last_alarm = this_alarm ;
+}
+
+void runHandler_setNextAlarm(TimerBlock *tb) 
+{
 	if(!in_alarm_expire_handler)         /* need atomic */
 	{	/* block out possible nested call -ZXU                      */
 		in_alarm_expire_handler = 1 ;
 		(tb->handler)();            /* run the handler              */
 		tb->NumberOfExpires++;      /* keep track the total expires */
-
-		/*
-                me = blizzard_identify()  ;                                            
-		if(me == 2)
-		{	CMOS_get_time(cmtv) ;
-			this_alarm = CM_ni_time_in_sec(cmtv) ;
-		 	printf("alarm_interval = %g (seconds)\n", (this_alarm - last_alarm)) ; 
-			last_alarm = this_alarm ;
-		}
-		*/
+                /* adapt_num_ticks(tb) ; */
 		TPPI_schedule_timer(tb->ticks, runHandler_setNextAlarm, (void *)tb);
       	}		
 	in_alarm_expire_handler = 0;
@@ -105,17 +107,15 @@ void runHandler_setNextAlarm(TimerBlock *tb)
 
 void RecurringBlizzardAlarm(int interval, void (*handler)()) 
 {
-    TimerBlock *tb;
 
-    tb = (TimerBlock *) malloc(sizeof(TimerBlock));
-    tb->NumberOfExpires = 0;
-    if (interval > 100)               /* why? because guard_interval = 100                       */
-    	interval /= 50000;              /* was originaly 2000, The asynchronousness (50000 worked) */
+    time_block.NumberOfExpires = 0;
+    if (interval  > 100)                /* why? because guard_interval = 100                       */
+    	interval /= 100000;             /* was originaly 2000, The asynchronousness (50000 worked) */
 					/* guard_interval = 100, however it seems that it is round */
 					/* to 10000us by the system                                */
-    tb->ticks = interval;
-    tb->handler = handler;
-    TPPI_schedule_timer(interval, runHandler_setNextAlarm, (void *) tb);
+    time_block.ticks = interval;
+    time_block.handler = handler;
+    TPPI_schedule_timer(interval, runHandler_setNextAlarm, (void *) &time_block);
 }
 
 void clear_out_timers() {
