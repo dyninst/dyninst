@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.102 2002/02/05 18:33:12 schendel Exp $
+// $Id: mdl.C,v 1.103 2002/02/12 23:50:28 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -65,7 +65,6 @@ extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern pdDebug_ostream metric_cerr;
-
 
 // Some global variables
 static string currentMetric;  // name of the metric that is being processed.
@@ -557,7 +556,7 @@ static bool update_environment(process *proc) {
 }
 
 dataReqNode *create_data_object(unsigned mdl_data_type,
-				metricDefinitionNode *mn,
+				threadMetFocusNode *thrmn,
 #if defined(MT_THREAD)
 				bool computingCost,
 				pdThread *thr) {
@@ -567,23 +566,23 @@ dataReqNode *create_data_object(unsigned mdl_data_type,
   switch (mdl_data_type) {
   case MDL_T_COUNTER:
 #if defined(MT_THREAD)
-    return (mn->addSampledIntCounter(thr, 0, computingCost));
+    return (thrmn->addSampledIntCounter(thr, 0, computingCost));
 #else
-    return (mn->addSampledIntCounter(0, computingCost));
+    return (thrmn->addSampledIntCounter(0, computingCost));
 #endif
 
   case MDL_T_WALL_TIMER:
 #if defined(MT_THREAD)
-    return (mn->addWallTimer(computingCost, thr));
+    return (thrmn->addWallTimer(computingCost, thr));
 #else
-    return (mn->addWallTimer(computingCost));
+    return (thrmn->addWallTimer(computingCost));
 #endif
 
   case MDL_T_PROC_TIMER:
 #if defined(MT_THREAD)
-    return (mn->addProcessTimer(computingCost, thr));
+    return (thrmn->addProcessTimer(computingCost, thr));
 #else
-    return (mn->addProcessTimer(computingCost));
+    return (thrmn->addProcessTimer(computingCost));
 #endif
 
   case MDL_T_NONE:
@@ -593,9 +592,9 @@ dataReqNode *create_data_object(unsigned mdl_data_type,
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
 #if defined(MT_THREAD)
-    return (mn->addSampledIntCounter(thr, 0, computingCost, true));
+    return (thrmn->addSampledIntCounter(thr, 0, computingCost, true));
 #else
-    return (mn->addSampledIntCounter(0, computingCost, true));
+    return (thrmn->addSampledIntCounter(0, computingCost, true));
 #endif //MT_THREAD
 
   default:
@@ -691,9 +690,6 @@ bool checkInMIComponents(string flat_name, processMetFocusNode **comp,
 
 extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
 
-extern void recordDRN2MDN_Mapping(dataReqNode *drnode, 
-				  metricDefinitionNode *mdn);
-
 #if !defined(MT_THREAD)
 // this prim should always be a new primitive mdn just constructed
 // that is, not used by any component mdn yet, and not added to
@@ -716,14 +712,15 @@ bool check2MIPrimitives(string flat_name, sampleMetFocusNode **prim,
     metric_cerr << "  matched in miprimitives! " << flat_name << endl;
 
     if (!computingCost) {
-      if (toDeletePrimitiveMDN(*prim)) {  // cleanup_drn
-	delete *prim;  // this is proper, should not be used anywhere else 
-                       // removeComponent then delete
+      (*prim)->cleanup_drn();
+      
+      for (unsigned u=0; u < ((*prim)->getComponents()).size(); u++) {
+	(*prim)->removeComponent(((*prim)->getComponents())[u]);
       }
-      else  
-	metric_cerr << "  ERR: should be able to delete primitive! " << endl;
+      
+      (*prim)->getComponents().resize(0);
+      delete (*prim);
     }
-
     *prim = match_prim;
   }
   else {
@@ -736,19 +733,15 @@ bool check2MIPrimitives(string flat_name, sampleMetFocusNode **prim,
 }
 
 // create metric variable and temp varaibles for metric primitive
-void initDataRequests(sampleMetFocusNode *prim,
+void initDataRequests(threadMetFocusNode *threadNode,
 		      string& id,
 		      unsigned& type,
 		      vector<string> *temp_ctr,
 		      bool computingCost)
 {
   // Create the timer, counter
-  dataReqNode *the_node = create_data_object(type,
-  			            static_cast<metricDefinitionNode*>(prim), 
-					     computingCost);
+  dataReqNode *the_node = create_data_object(type, threadNode, computingCost);
   assert(the_node);
-
-  recordDRN2MDN_Mapping(the_node, static_cast<metricDefinitionNode*>(prim));
 
   // we've pushed it earlier
   mdl_env::set(the_node, id);
@@ -761,13 +754,11 @@ void initDataRequests(sampleMetFocusNode *prim,
       // we are *not* going to sample it, because it is just a temporary
       // counter - naim 4/22/97
       // By default, the last parameter is false - naim 4/23/97
-      dataReqNode *temp_node=prim->addSampledIntCounter(0,computingCost,true);
+      dataReqNode *temp_node = 
+	 threadNode->addSampledIntCounter(0,computingCost,true);
 
       // we've pushed them earlier too
       mdl_env::set(temp_node, (*temp_ctr)[tc]);
-
-      recordDRN2MDN_Mapping(temp_node, 
-			    static_cast<metricDefinitionNode*>(prim));
     }
   }
 }
@@ -796,10 +787,6 @@ bool checkFlagMIPrimitives(string flat_name, sampleMetFocusNode *& prim,
   if (match_prim != NULL) {
     metric_cerr << "  flag matched in miprimitives! " << flat_name << endl;
     
-    // if (toDeletePrimitiveMDN(prim))
-    // delete prim;  // this is proper, should not be used anywhere else
-    // else
-    // metric_cerr << "  ERR: should be able to delete primitive! " << endl;
     if (!computingCost) {
       prim->cleanup_drn();
 
@@ -846,10 +833,6 @@ bool checkMetricMIPrimitives(string metric_flat_name,
     metric_cerr << "  metric matched in miprimitives! " 
                 << metric_flat_name << endl;
     
-    // if (toDeletePrimitiveMDN(metric_prim))
-    // delete metric_prim;  // this is proper, should not be used anywhere else
-    // else
-    // metric_cerr << "  ERR: should be able to delete primitive! " << endl;
     if (!computingCost) {
       metric_prim->cleanup_drn();
 
@@ -895,7 +878,6 @@ metricDefinitionNode *allocateConstraintData(
   }
   
   dataReqNode *drn = thrmn->addSampledIntCounter(thr,0,computingCost,true);
-  recordDRN2MDN_Mapping(drn, static_cast<metricDefinitionNode*>(thrmn));  
 
   // this flag will construct a predicate for the metric -- have to return it
   // flag = drn;
@@ -919,13 +901,9 @@ threadMetFocusNode *allocateMetricData(threadMetFocusNode* thrmn,
   // but did Not set var in mdl_env
   // because we are not going to generate any code for this thread
   
-  dataReqNode *the_node = create_data_object(type, 
-                                    static_cast<metricDefinitionNode*>(thrmn), 
-					     computingCost, thr);
+  dataReqNode *the_node = create_data_object(type, thrmn, computingCost, thr);
   assert(the_node);
   
-  recordDRN2MDN_Mapping(the_node, static_cast<metricDefinitionNode*>(thrmn));
-
   // Create the temporary counters 
   if (temp_ctr) {
     unsigned tc_size = temp_ctr->size();
@@ -933,8 +911,6 @@ threadMetFocusNode *allocateMetricData(threadMetFocusNode* thrmn,
       dataReqNode *temp_node = thrmn->addSampledIntCounter(thr,0,computingCost,
 							   true);
       assert(temp_node);
-      recordDRN2MDN_Mapping(temp_node, 
-			    static_cast<metricDefinitionNode*>(thrmn));
     }
   }
   
@@ -943,7 +919,6 @@ threadMetFocusNode *allocateMetricData(threadMetFocusNode* thrmn,
     if (!computingCost) {
       thrmn->cleanup_drn();
     }
-
     delete thrmn;
     return NULL;
   }
@@ -963,8 +938,7 @@ metricDefinitionNode *allocateConstraintData_and_generateCode(
   dataReqNode *flag = NULL;
 
   // The following calls mdl_constraint::apply():
-  if (!flag_con->apply(static_cast<metricDefinitionNode*>(thrmn), flag, 
-		       focus[flag_dex], proc, thr, computingCost))
+  if (!flag_con->apply(thrmn, flag, focus[flag_dex], proc, thr, computingCost))
   {
 
     // flag not needed, already set in thrmn
@@ -1004,11 +978,8 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
                  bool computingCost) { // "flags" are passed in as an argument
 
   // Create the timer/counter  
-  dataReqNode *the_node = create_data_object(type, 
-                static_cast<metricDefinitionNode*>(thrmn), computingCost, thr);
+  dataReqNode *the_node = create_data_object(type, thrmn, computingCost, thr);
   assert(the_node);
-
-  recordDRN2MDN_Mapping(the_node, static_cast<metricDefinitionNode*>(thrmn));
 
   mdl_env::set(the_node, id);
   
@@ -1019,8 +990,6 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
       dataReqNode *temp_node=thrmn->addSampledIntCounter(thr, 0, computingCost,
 							 true);
       assert(temp_node);
-      recordDRN2MDN_Mapping(temp_node, 
-			    static_cast<metricDefinitionNode*>(thrmn));
       mdl_env::set(temp_node, (*temp_ctr)[tc]);
     }
   }
@@ -1028,15 +997,15 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
   
   // so far, the same as in initDataRequests
   // "flags" are passed in
-  
+  sampleMetFocusNode *primNode = thrmn->getPrimParent();
   if (base_use.size() > 0) {
     // mdl_constraint::apply()
     // metric_cerr << "base_use" <<endl ;
     for (unsigned bs=0; bs<base_use.size(); bs++) {
       dataReqNode *flag = NULL;
 
-      if (!base_use[bs]->apply(static_cast<metricDefinitionNode*>(thrmn), flag,
-			       focus[base_dex[bs]], proc, thr, computingCost))
+      if (!base_use[bs]->apply(thrmn, flag, focus[base_dex[bs]], proc, thr,
+			       computingCost))
       {
 	if (!computingCost) {
           thrmn->cleanup_drn();
@@ -1053,8 +1022,7 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
       for (unsigned u=0; u<size; u++) {
 
         // virtual fn call depending on stmt type
-        if (!(*stmts)[u]->apply(static_cast<metricDefinitionNode*>(thrmn), 
-				flags)) {
+        if (!(*stmts)[u]->apply(primNode, flags)) {
 	  if (!computingCost) {
             thrmn->cleanup_drn();
 	  }
@@ -1134,8 +1102,9 @@ bool allDataGenCode_for_threads(
 
 	 // if (!allMIComponents.find(thr_comp_flat_name,thr_mn)) 
 	 // thread level mn no longer added to allMIComponents
-	 thr_mn = new threadMetFocusNode(proc, name, focus, component_focus,
-				      thr_comp_flat_name, aggregateOp(agg_op));
+	 thr_mn = new indivThreadMetFocusNode(proc, name, focus, 
+ 				         component_focus, thr_comp_flat_name, 
+				         aggregateOp(agg_op));
 	 assert(thr_mn);
 	 
 	 metric_cerr << "+++++++ construct thr_mn <" << thr_comp_flat_name
@@ -1215,15 +1184,6 @@ bool allDataGenCode_for_threads(
 		  return false ;
 	       }
 	    }
-	 }
-	 
-	 // cleanup the instRequests in thr_mn, and copy it to proc_mn check
-	 // in "duplicateInst" that code is generated only once
-	 // instrumentation code is generated when i == 0
-	 if (i == 0) { 
-	    prim_mn->duplicateInst(thr_mn);  // proc_mn
-	    metric_cerr << "  --- " << prim_mn->getSizeOfInstRequests() 
-			<< " instRequests are generated " << endl;
 	 }
       }
    }
@@ -1445,48 +1405,48 @@ apply_to_process(process *proc,
 	 // Allocate the data (timers/counters) in the application and
 	 // generate the astNodes (which lead to the (instrumentation code)
 
-#ifdef MT_THREAD	
-	 vector<dataReqNode*> empty_flags;
-	 unsigned int empty;
-	 
-	 // Create the data objects (timers/counters) and create the astNodes
-	 // which will be used to generate the instrumentation
-	 if ( !allDataGenCode_for_threads(name, component_focus, processIdx, 
-					  agg_op, metric_style, metric_prim, 
-					  proc, id, focus, type, 
-					  NULL /*flag_con*/, base_use,
-					  NULL/*stmts*/, empty, base_dex, 
-					  temp_ctr, empty_flags, 
-					  computingCost)) {
-	    if (!computingCost) metric_prim->cleanup_drn();
-	    //delete metric_prim;
-	    return 0;
-	 }
-#endif
-	 
-#ifndef MT_THREAD
-	 // Create the data object (timer/counter) for instrumentation
-	 initDataRequests(metric_prim, id, type, temp_ctr, computingCost); 
-	 
-	 for (unsigned bs=0; bs<base_use.size(); bs++) {
-	    dataReqNode *flag = NULL;
-	    
-	    // The following calls mdl_constraint::apply() create the
-	    // astNodes which will later be used to generate the
-	    // instrumentation
-	    if (!base_use[bs]->apply(
-			      static_cast<metricDefinitionNode*>(metric_prim),
-			      flag, focus[base_dex[bs]], 
-			      proc, (pdThread*) NULL, computingCost)) {
-
-	       if (!computingCost) {
-		  metric_prim->cleanup_drn();
-	       }
-
-	       delete metric_prim;
+#if defined(MT_THREAD)
+	    vector<dataReqNode*> empty_flags;
+	    unsigned int empty;
+	   
+	    // Create the data objects (timers/counters) and create the
+	    // astNodes which will be used to generate the instrumentation
+	    if ( !allDataGenCode_for_threads(name, component_focus, processIdx,
+					     agg_op, metric_style, metric_prim,
+					     proc, id, focus, type, 
+					     NULL /*flag_con*/, base_use,
+					     NULL/*stmts*/, empty, base_dex, 
+					     temp_ctr, empty_flags, 
+					     computingCost)) {
+	       if (!computingCost) metric_prim->cleanup_drn();
+	       //delete metric_prim;
 	       return 0;
 	    }
-	 }
+#endif
+#if !defined(MT_THREAD)
+	    collectThreadMetFocusNode *collThread = 
+                  new collectThreadMetFocusNode(proc, name, focus, 
+		       component_focus, metric_flat_name, aggregateOp(agg_op));
+	    metric_prim->addPart(collThread);
+	    // Create the data object (timer/counter) for instrumentation
+	    initDataRequests(collThread, id, type, temp_ctr, computingCost); 
+	   
+	    for (unsigned bs=0; bs<base_use.size(); bs++) {
+	       dataReqNode *flag = NULL;
+	     
+	       // The following calls mdl_constraint::apply() create the
+	       // astNodes which will later be used to generate the
+	       // instrumentation
+	       if (!base_use[bs]->apply(collThread, flag, focus[base_dex[bs]], 
+			      proc, (pdThread*) NULL, computingCost)) {
+		  cerr << "base_use[bs]->apply, ret false\n";
+		  if (!computingCost) {
+		     metric_prim->cleanup_drn();
+		  }
+		  delete metric_prim;
+		  return 0;
+	       }
+	    }
 #endif
       } else {
 	 metric_cerr << "  base_use already there, reuse it! " << endl;
@@ -1525,48 +1485,54 @@ apply_to_process(process *proc,
 	       cons_prim = new sampleMetFocusNode(proc, cons_name, focus, 
 				  component_focus, primitive_flat_name, 
 						  aggregateOp(agg_op));
-#ifdef MT_THREAD	    
-	       // allocate data for each thread (into thr prims), generate
-	       // instrumentation code (into proc prim) then check if proc
-	       // prim's code already exist de-allocate data (level and
-	       // index) for thread if already exist (just reuse proc prim
-	       // with its thr prims)	    
-	       vector<dataReqNode*> empty_flags;
+#if defined(MT_THREAD)
+		  // allocate data for each thread (into thr prims), generate
+		  // instrumentation code (into proc prim) then check if proc
+		  // prim's code already exist de-allocate data (level and
+		  // index) for thread if already exist (just reuse proc prim
+		  // with its thr prims)	    
+		  vector<dataReqNode*> empty_flags;
 
-	       // Create the data objects (timers/counters) and create the 
-	       // astNodes which will be used to generate the instrumentation
-	       if (!allDataGenCode_for_threads(cons_name, component_focus, 
+		  // Create the data objects (timers/counters) and create the
+		  // astNodes which will be used to generate the
+		  // instrumentation
+		  if (!allDataGenCode_for_threads(cons_name, component_focus, 
                               processIdx, agg_op, metric_style, cons_prim, 
 			      proc, id, focus, type, flag_cons[fs], base_use,
 			      NULL /*stmt*/, flag_dex[fs], base_dex, 
 			      NULL /*temp_ctr*/, empty_flags, computingCost))
-	       {
-		  if (!computingCost) {
-		     cons_prim->cleanup_drn();
+		  {
+		     if (!computingCost) {
+			cons_prim->cleanup_drn();
+		     }
+		     return 0;
 		  }
-		  return 0;
-	       }
-	       
-	       // needed here and safe here, if flag is different, metric will 
-	       // be different, unless metric is null, but in that case, metric
-	       // will be cleaned up allMIPrimitiveFLAGS should be used here!!
-	       checkFlagMIPrimitives(primitive_flat_name, 
-				     cons_prim, computingCost);
+		  
+		  // needed here and safe here, if flag is different, metric
+		  // will be different, unless metric is null, but in that
+		  // case, metric will be cleaned up allMIPrimitiveFLAGS
+		  // should be used here!!
+		  checkFlagMIPrimitives(primitive_flat_name, 
+					cons_prim, computingCost);
 #endif
-#ifndef MT_THREAD
-	       dataReqNode *flag = NULL;
-	       // The following calls mdl_constraint::apply()
-	       if (!flag_cons[fs]->apply(
-                           static_cast<metricDefinitionNode*>(cons_prim),
-			   flag, focus[flag_dex[fs]], proc, 
-			   (pdThread*) NULL, computingCost)) {
-		  if (!computingCost) cons_prim->cleanup_drn();
-		  // delete cons_prim;
-		  return 0;
-	       }	       
-	       // Create the primitive metricDefinitionNode
-	       check2MIPrimitives(primitive_flat_name, 
-				  &cons_prim, computingCost);
+#if !defined(MT_THREAD)
+		  collectThreadMetFocusNode *collThread = 
+		     new collectThreadMetFocusNode(proc, name, focus, 
+		       component_focus, metric_flat_name, aggregateOp(agg_op));
+		  cons_prim->addPart(collThread);
+		  
+		  dataReqNode *flag = NULL;
+		  // The following calls mdl_constraint::apply()
+		  if (!flag_cons[fs]->apply(collThread, flag, 
+					    focus[flag_dex[fs]], proc, 
+					    (pdThread*) NULL, computingCost)) {
+		     if (!computingCost) cons_prim->cleanup_drn();
+		     // delete cons_prim;
+		     return 0;
+		  }	       
+		  // Create the primitive metricDefinitionNode
+		  check2MIPrimitives(primitive_flat_name, 
+				     &cons_prim, computingCost);
 #endif
 	    } else {
 	       metric_cerr << "  flag already there " << endl;
@@ -1590,47 +1556,51 @@ apply_to_process(process *proc,
 				     component_focus, metric_flat_name,
 					      aggregateOp(agg_op));
 	 
-#ifdef MT_THREAD	
-	 // add allocate data for each thread (into thr prims), generate
-	 // instrument code (into proc prim) then check if proc prim's code
-	 // already exists.  de-allocate data (level and index) for thread if
-	 // already exist (just reuse proc prim with its thr prims)	
-	 unsigned int empty;
+#if defined(MT_THREAD)
+	    // add allocate data for each thread (into thr prims), generate
+	    // instrument code (into proc prim) then check if proc prim's
+	    // code already exists.  de-allocate data (level and index) for
+	    // thread if already exist (just reuse proc prim with its thr
+	    // prims)
+	    unsigned int empty;
 	 
-	 // Create the data objects (timers/counters) and create the 
-	 // astNodes which will be used to generate the instrumentation
-	 if ( !allDataGenCode_for_threads(name, component_focus, processIdx, 
+	    // Create the data objects (timers/counters) and create the 
+	    // astNodes which will be used to generate the instrumentation
+	    if ( !allDataGenCode_for_threads(name, component_focus, processIdx,
 					  agg_op, metric_style, metric_prim, 
 					  proc, id, focus, type, 
 					  NULL /*flag_con*/, base_use, stmts,
 					  empty, base_dex, temp_ctr, flags, 
 					  computingCost)) {
-	    if (!computingCost) {
-	       metric_prim->cleanup_drn();
-	    }
-	    // delete metric_prim;
-	    return 0;
-	 }
-#endif
-#ifndef MT_THREAD
-	 // Create data in application for instrumentation
-	 initDataRequests(metric_prim, id, type, temp_ctr, computingCost);
-	 
-	 unsigned size = stmts->size();
-	 for (unsigned u=0; u<size; u++) {
-            // virtual fn call depending on stmt type
-            // Generates the astNodes which will later be used to generate
-            // the instrumentation that will access the above created data.
-	    if (!(*stmts)[u]->apply(
-			       static_cast<metricDefinitionNode*>(metric_prim),
-			       flags)) {
 	       if (!computingCost) {
 		  metric_prim->cleanup_drn();
 	       }
-	       delete metric_prim;
+	       // delete metric_prim;
 	       return 0;
 	    }
-	 }
+#endif
+#if !defined(MT_THREAD)
+	    collectThreadMetFocusNode *collThread = 
+	       new collectThreadMetFocusNode(proc, name, focus, 
+		      component_focus, metric_flat_name, aggregateOp(agg_op));
+	    metric_prim->addPart(collThread);
+
+	    // Create data in application for instrumentation
+	    initDataRequests(collThread, id, type, temp_ctr, computingCost);
+	 
+	    unsigned size = stmts->size();
+	    for (unsigned u=0; u<size; u++) {
+	       // virtual fn call depending on stmt type
+	       // Generates the astNodes which will later be used to generate
+	       // the instrumentation that will access the above created data.
+	       if (!(*stmts)[u]->apply(metric_prim, flags)) {
+		  if (!computingCost) {
+		     metric_prim->cleanup_drn();
+		  }
+		  delete metric_prim;
+		  return 0;
+	       }
+	    }
 #endif
       } else {
 	 metric_cerr << "  metric already there, reuse it! " << endl;
@@ -2111,7 +2081,7 @@ static bool do_trailing_resources(vector<string>& resource_,
 
 
 // Flag constraints need to return a handle to a data request node -- the flag
-bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_constraint::apply(threadMetFocusNode *thrmn,
 					 dataReqNode *&flag,
 					 vector<string>& resource,
 					 process *proc, pdThread* 
@@ -2119,7 +2089,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
                                          thr
 #endif
                                          , bool computingCost) {
-  assert(mn);
+  assert(thrmn);
   switch (data_type_) {
   case MDL_T_COUNTER:
   case MDL_T_WALL_TIMER:
@@ -2138,14 +2108,13 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
 #if defined(MT_THREAD)
-    dataReqNode *drn = mn->addSampledIntCounter(thr,0,computingCost,true);
+    dataReqNode *drn = thrmn->addSampledIntCounter(thr,0,computingCost,true);
 #else
-    dataReqNode *drn = mn->addSampledIntCounter(0,computingCost,true);
+    dataReqNode *drn = thrmn->addSampledIntCounter(0,computingCost,true);
 #endif
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
-    recordDRN2MDN_Mapping(drn, mn);
     mdl_env::set(drn, id_);
   }
 
@@ -2166,7 +2135,8 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 #endif
   for (unsigned u=0; u<size; u++) {
 
-    if (!(*stmts_)[u]->apply(mn, flags)) { // virtual fn call; several possibilities
+    sampleMetFocusNode *primNode = thrmn->getPrimParent();
+    if (!(*stmts_)[u]->apply(primNode, flags)) { // virtual fn call; several possibilities
       metric_cerr << "apply of constraint " << id_ << " failed\n";
       if (wasRunning) {
 #ifdef DETACH_ON_THE_FLY
@@ -2224,7 +2194,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt()
   delete list_expr_;
 }
 
-bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_for_stmt::apply(sampleMetFocusNode *mn,
 				       vector<dataReqNode*>& flags) {
   mdl_env::push();
   mdl_env::add(index_name_, false);
@@ -2565,7 +2535,6 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 #endif
 
         vector<AstNode *> ast_args;
-
   #if defined(MT_THREAD)
         ast = createTimer(timer_func, (void*)(drn->getAllocatedLevel()),
 			  (void *)(drn->getAllocatedIndex()),
@@ -2733,8 +2702,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           ast = new AstNode(AstNode::DataIndir,tmp_ast);
           removeAst(tmp_ast);
   #else
-	  ast = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
-	  // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
+       // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
+	  ast = new AstNode(AstNode::DataAddr,
                     (void*)(drn->getInferiorPtr(global_proc)));
   #endif
           return true;
@@ -2769,7 +2738,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
   #else
           // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
           ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
-            (void*)(drn->getInferiorPtr(global_proc)));
+			    (void*)(drn->getInferiorPtr(global_proc)));
   #endif
           break;
         }
@@ -2986,7 +2955,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   delete expr_; delete body_;
 }
 
-bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_if_stmt::apply(sampleMetFocusNode *mn,
 				      vector<dataReqNode*>& flags) {
   // An if stmt is comprised of (1) the 'if' expr and (2) the body to
   // execute if true.
@@ -3025,7 +2994,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   }
 }
 
-bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_seq_stmt::apply(sampleMetFocusNode *mn,
 				       vector<dataReqNode*>& flags) {
   // a seq_stmt is simply a sequence of statements; apply them all.
   if (!stmts_)
@@ -3052,7 +3021,7 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() 
 { assert(0); delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
+bool T_dyninstRPC::mdl_list_stmt::apply(sampleMetFocusNode * /*mn*/,
 					vector<dataReqNode*>& /*flags*/) {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
@@ -3129,20 +3098,21 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   }
 }
 
-bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_instr_stmt::apply(sampleMetFocusNode *mn,
 					 vector<dataReqNode*>& inFlags) {
    // An instr statement is like:
    //    append preInsn $constraint[0].entry constrained
    //       (* setCounter(procedureConstraint, 1); *)
    // (note that there are other kinds of statements; i.e. there are other classes
    //  derived from the base class mdl_stmt; see dyninstRPC.I)
-
-  if (icode_reqs_ == NULL)
+   if (icode_reqs_ == NULL) {
     return false; // no instrumentation code to put in!
+   }
 
   mdl_var pointsVar(false);
-  if (!point_expr_->apply(pointsVar)) // process the 'point(s)' e.g. "$start.entry"
+  if (!point_expr_->apply(pointsVar)) { // process the 'point(s)' e.g. "$start.entry"
     return false;
+  }
 
   vector<instPoint *> points;
   if (pointsVar.type() == MDL_T_LIST_POINT) {
@@ -3185,9 +3155,11 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 #else
         // Note: getInferiorPtr could return a NULL pointer here if we are
         // just computing cost - naim 2/18/97
-        AstNode *temp1 = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
-        // AstNode *temp1 = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
-				     (void*)((inFlags[fi])->getInferiorPtr(global_proc)));
+
+	
+	// AstNode *temp1 = new AstNode(AstNode::DataValue,
+        AstNode *temp1 = new AstNode(AstNode::DataAddr, 
+		     (void*)((inFlags[fi])->getInferiorPtr(global_proc)));
 #endif
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
