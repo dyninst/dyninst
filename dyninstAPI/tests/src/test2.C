@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.57 2004/04/20 01:27:55 jaw Exp $
+// $Id: test2.C,v 1.58 2004/05/26 21:29:21 legendre Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -291,7 +291,7 @@ void test6(BPatch_thread *thread, BPatch_image *img)
     for (unsigned i=0; i < m->size(); i++) {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
-	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
+	    if (strstr(name, TEST_DYNAMIC_LIB) == 0 ||
 #ifdef rs6000_ibm_aix4_1
 		strcmp(name, TEST_DYNAMIC_LIB_NOPATH) == 0 ||
 #endif
@@ -341,7 +341,7 @@ void test7(BPatch_thread *thread, BPatch_image *img)
 	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
-		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
+		if (strstr(name, TEST_DYNAMIC_LIB2) == 0 ||
 #ifdef rs6000_ibm_aix4_1
 		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||
 #endif
