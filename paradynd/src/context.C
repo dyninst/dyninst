@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.115 2005/01/21 23:44:56 bernat Exp $ */
+/* $Id: context.C,v 1.116 2005/02/02 17:27:43 bernat Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -174,7 +174,7 @@ void createThread(traceThread *fr) {
    // tell front-end about thread start function for newly created threads
    // We need the module, which could be anywhere (including a library)
    int_function *func = thr->get_start_func();
-   pdmodule *foundMod = func->file();
+   pdmodule *foundMod = func->pdmod();
    assert(foundMod != NULL);
    resource *modRes = foundMod->getResource();
    pdstring start_func_str = thr->get_start_func()->prettyName();

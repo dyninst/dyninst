@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.13 2005/01/21 23:44:38 bernat Exp $
+// $Id: instPoint.h,v 1.14 2005/02/02 17:27:28 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -133,9 +133,7 @@ class instPointBase {
    int_function *pointFunc() const { return func_; }
    virtual int_function *getCallee() const { return callee_; }
 
-   image *getOwner();
-   const image *getOwner() const;
-
+   image *getOwner() const;
    Address absPointAddr(process *proc) const;
    
    // can't set this in the constructor because call points can't be

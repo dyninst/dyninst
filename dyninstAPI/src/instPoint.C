@@ -79,20 +79,9 @@ instPoint *instPointBase::getMatchingInstPoint(process *p) const {
    return NULL;
 }
 
-image *instPointBase::getOwner() { 
+image *instPointBase::getOwner() const { 
    if(pointFunc()) {
-      pdmodule *pdmod = pointFunc()->file();
-      if(pdmod)
-         return pdmod->exec();
-      else 
-         return NULL;
-   } else
-      return NULL;
-}
-
-const image *instPointBase::getOwner() const { 
-   if(pointFunc()) {
-      pdmodule *pdmod = pointFunc()->file();
+      pdmodule *pdmod = pointFunc()->pdmod();
       if(pdmod)
          return pdmod->exec();
       else 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.19 2005/01/24 21:45:04 bernat Exp $
+// $Id: instPoint-mips.h,v 1.20 2005/02/02 17:27:26 bernat Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -72,7 +72,7 @@ class instPoint : public instPointBase {
     flags(info),
     vectorId(-1),
     hint_got_(0),
-    owner_(fn->file()->exec()),
+    owner_(fn->pdmod()->exec()),
     offset_(offset), 
     size_(2*INSN_SIZE),
     origOffset_(offset)

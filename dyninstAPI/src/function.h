@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.2 2005/01/21 23:43:46 bernat Exp $
+// $Id: function.h,v 1.3 2005/02/02 17:27:17 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -79,7 +79,7 @@ class int_function : public codeRange {
    int_function(const pdstring &symbol, 
 		Address offset, 
 		const unsigned size, 
-		pdmodule *f);
+		pdmodule *m);
 
 
    ~int_function();
@@ -114,7 +114,7 @@ class int_function : public codeRange {
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;
    friend ostream &operator<<(ostream &os, int_function &f);
-   pdmodule *file() const { return file_;}
+   pdmodule *pdmod() const { return mod_;}
 
    ////////////////////////////////////////////////
    // CFG and other function body methods
@@ -149,6 +149,9 @@ class int_function : public codeRange {
 
    bool isTrapFunc() {return isTrap;}
    bool isInstrumentable() { return isInstrumentable_; }
+
+   // Hacky way around parsing things -- we can stick things known to be 
+   // unparseable in here.
    bool isInstrumentableByFunctionName();
 
 #if defined(arch_x86)
@@ -333,7 +336,7 @@ class int_function : public codeRange {
 #if defined(arch_sparc)
 
    bool checkInstPoints(const image *owner);
-   bool findInstPoints(const image *owner, Address adr, process *proc);
+   //bool findInstPoints(const image *owner, Address adr, process *proc);
 
    bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
 
@@ -443,7 +446,8 @@ class int_function : public codeRange {
                                   define the function boundaries. This may not
                                   be exact, and may not be used on all 
                                   platforms. */
-   pdmodule *file_;		/* pointer to file that defines func. */
+   pdmodule *mod_;		/* pointer to file that defines func. */
+   bool parsed_;                /* Set to true in findInstPoints */
 
 
    ///////////////////// CFG and function body

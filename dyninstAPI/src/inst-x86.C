@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.187 2005/01/21 23:44:29 bernat Exp $
+ * $Id: inst-x86.C,v 1.188 2005/02/02 17:27:24 bernat Exp $
  */
 #include <iomanip>
 
@@ -367,8 +367,8 @@ void int_function::checkCallPoints() {
 
       if (p->hasInsnAtPoint() && !p->insnAtPoint().isCallIndir()) {
          loc_addr = p->insnAtPoint().getTarget(p->pointAddr());
-         file()->exec()->addJumpTarget(loc_addr);
-         int_function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         pdmod()->exec()->addJumpTarget(loc_addr);
+         int_function *pdf = (pdmod()->exec())->findFuncByOffset(loc_addr);
 
          if (pdf) {
             p->setCallee(pdf);
@@ -593,9 +593,18 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
 bool int_function::findInstPoints( pdvector< Address >& callTargets,
 				    const image *i_owner ) 
 {
+  if (parsed_) {
+    fprintf(stderr, "Error: multiple call of findInstPoints\n");
+    return false;
+  }
+
+  parsed_ = true;
+
     //temporary convenience hack.. we don't want to parse the PLT as a function
     //but we need pltMain to show up as a function
     //so we set size to zero and make sure it has no instPoints.    
+
+
    if( prettyName() == "DYNINST_pltMain" )
     {
         size_ = 0; 
@@ -4776,7 +4785,7 @@ BPatch_point *createInstructionEdgeInstPoint(process* proc,
                                              int_function *func,
                                              BPatch_edge *edge)
 {
-    const image *image = func->file()->exec();
+    const image *image = func->pdmod()->exec();
     
     Address imageBase;
     proc->getBaseAddress(image, imageBase);
@@ -4823,7 +4832,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    if (func == NULL) // Should make an error callback here? 
       return NULL;
 
-   const image *image = func->file()->exec();
+   const image *image = func->pdmod()->exec();
 
    Address imageBase;
    proc->getBaseAddress(image, imageBase);

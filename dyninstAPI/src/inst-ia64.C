@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.67 2005/01/21 23:44:22 bernat Exp $
+ * $Id: inst-ia64.C,v 1.68 2005/02/02 17:27:19 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -473,6 +473,8 @@ void int_function::checkCallPoints() {
    (calls, vector<instPoint *>), and the return(s) (funcReturns, vector<instPoint *>).
  */
 bool int_function::findInstPoints( const image * i_owner ) {
+  parsed_ = true;
+
 	/* We assume the function boundaries are correct.  [Check jump tables, etc.] */
 	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.209 2005/01/27 14:12:56 rutar Exp $
+ * $Id: inst-power.C,v 1.210 2005/02/02 17:27:21 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -320,7 +320,7 @@ void int_function::checkCallPoints() {
   Address loc_addr;
   if (call_points_have_been_checked) return;
 
-  image *owner = file_->exec();
+  image *owner = mod_->exec();
 
   pdvector<instPoint*> non_lib;
 
@@ -1070,7 +1070,7 @@ unsigned saveGPRegisters(instruction *&insn, Address &base, Address offset, regi
   }
   return numRegs;
 }
-
+#
 /*Saves a single general register, wrapper function 
   for saveRegister */
 
@@ -1079,6 +1079,7 @@ unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
   Address offset = TRAMP_GPR_OFFSET;
   instruction *insn = (instruction *) ((void*)&baseInsn[base]);
   saveRegister(insn, base, reg, offset);
+  return 0;
 }
 
 
@@ -1883,7 +1884,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                                       bool trampRecursiveDesired,
                                       bool /*noCost*/,
                                       bool& /*deferred*/,
-                                      bool allowTrap)
+                                      bool /*allowTrap*/)
 {
   trampTemplate *ret = NULL;
   retInstance = NULL;
@@ -2633,7 +2634,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 #ifdef BPATCH_LIBRARY
-void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+void emitJmpMC(int /*condition*/, int /*offset*/, char* /*baseInsn*/, Address &/*base*/)
 {
   // Not needed for memory instrumentation, otherwise TBD
 }
@@ -3426,6 +3427,8 @@ bool isReturnInsnBLR(instruction instr)
 
 bool int_function::findInstPoints(const image *owner) 
 {  
+  parsed_ = true;
+
   Address adr = getAddress(0);
   Address preamble_adr = adr;
   Address canonical_return_address;
@@ -3433,7 +3436,7 @@ bool int_function::findInstPoints(const image *owner)
   bool err;
 
   bool is_in_libc = false;
-  pdstring modname = file_->fileName();
+  pdstring modname = pdmod()->fileName();
   if (modname.suffixed_by("libc.a"))
     is_in_libc = true;
 
@@ -3703,6 +3706,8 @@ bool registerSpace::clobberRegister(Register reg)
       }	
     }
   }
+  assert(0 && "Unreachable");
+  return false;
 }
 
 
@@ -3718,6 +3723,8 @@ bool registerSpace::beenSaved(Register reg)
 	return false;
     }
   }
+  assert(0 && "Unreachable");
+  return false;
 }
 
 
@@ -4132,7 +4139,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
     Address pointImageBase = 0;
-    image* pointImage = func->file()->exec();
+    image* pointImage = func->pdmod()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     instPoint *newpt = new instPoint(func,
@@ -4169,16 +4176,16 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 
 //XXX loop port
 BPatch_point *
-createInstructionEdgeInstPoint(process* proc, 
-			       int_function *func, 
-			       BPatch_edge *edge)
+createInstructionEdgeInstPoint(process* /*proc*/, 
+			       int_function */*func*/, 
+			       BPatch_edge */*edge*/)
 {
     return NULL;
 }
 
 //XXX loop port
 void 
-createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+createEdgeTramp(process */*proc*/, image */*img*/, BPatch_edge */*edge*/)
 {
 
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.81 2005/01/21 23:44:21 bernat Exp $
+// $Id: inst-alpha.C,v 1.82 2005/02/02 17:27:18 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -526,13 +526,13 @@ void int_function::checkCallPoints() {
       } else if (isBsr(p->originalInstruction)) {
          loc_addr = p->pointAddr() + (p->originalInstruction.branch.disp<<2)+4;
          non_lib.push_back(p);
-         int_function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         int_function *pdf = (pdmod()->exec())->findFuncByOffset(loc_addr);
          
          if (pdf == NULL)
          {
             /* Try alternate entry point in the symbol table */
             loc_addr = loc_addr - 8;
-            pdf = (file_->exec())->findFuncByOffset(loc_addr);
+            pdf = (pdmod()->exec())->findFuncByOffset(loc_addr);
          }
          
          if (pdf && 1 /*!pdf->isLibTag()*/)
@@ -1700,6 +1700,8 @@ bool isCallInsn(const instruction i) {
 
 bool int_function::findInstPoints(const image *owner) 
 {  
+  parsed_ = true;
+
    Address adr = get_address();
    instruction instr;
    instruction instr2;
@@ -2255,9 +2257,9 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
-    int_function* pointFunction = (int_function*)func;
+    int_function* pointFunction = func;
     Address pointImageBase = 0;
-    image* pointImage = pointFunction->file()->exec();
+    image* pointImage = pointFunction->pdmod()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
     Address pointAddress = (Address)address-pointImageBase;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.2 2005/01/21 23:43:45 bernat Exp $
+// $Id: function.C,v 1.3 2005/02/02 17:27:16 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -61,11 +61,12 @@ pdstring int_function::emptyString("");
 int_function::int_function(const pdstring &symbol,
 			   Address offset, 
 			   const unsigned size,
-			   pdmodule *f) :
+			   pdmodule *m) :
   line_(0),
   offset_(offset),
   size_(size),
-  file_(f),
+  mod_(m),
+  parsed_(false),
   blockList(NULL),
   flowGraph(NULL),
   noStackFrame(false),
@@ -159,9 +160,10 @@ ostream &operator<<(ostream &os, function_prototype &f) {
 BPatch_flowGraph *
 int_function::getCFG(process * proc)
 {
+  assert(parsed_);
     if (!flowGraph) { 
 	bool valid;
-	flowGraph = new BPatch_flowGraph((int_function *)this, proc, file(), valid);
+	flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
 	assert (valid);
     }
     return flowGraph;
@@ -170,6 +172,7 @@ int_function::getCFG(process * proc)
 BPatch_loopTreeNode * 
 int_function::getLoopTree(process * proc)
 {
+  assert(parsed_);
    BPatch_flowGraph *fg = getCFG(proc);
    return fg->getLoopTree();
 }
@@ -212,6 +215,7 @@ void int_function::addArbitraryPoint(instPoint* insp, process* p) {
 // passing in a value of 0 for p will return the original address
 // otherwise, if the process is relocated it will return the new address
 Address int_function::getAddress(const process *p) const{
+  assert(parsed_);
   if(p && needs_relocation_) { 
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -231,12 +235,13 @@ Address int_function::getAddress(const process *p) const{
 // whether that would boggle any of its 75 callers.  Until that is
 // cleared up, call this method. -zandy, Apr-26-1999
 Address int_function::getEffectiveAddress(const process *p) const {
+  assert(parsed_);
      assert(p);
      // Even if the function has been relocated, call it at its
      // original address since the call will be redirected to the
      // right place anyway.
      Address base;
-     if (!p->getBaseAddress(file()->exec(), base)) {
+     if (!p->getBaseAddress(pdmod()->exec(), base)) {
          cerr << "Error: couldn't find base address for func "
               << prettyName();
      }
@@ -244,6 +249,7 @@ Address int_function::getEffectiveAddress(const process *p) const {
 }
 
 instPoint *int_function::funcEntry(const process *p) const {
+  assert(parsed_);
   if(p && needs_relocation_) { 
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -256,6 +262,7 @@ instPoint *int_function::funcEntry(const process *p) const {
 }
 
 const pdvector<instPoint*> &int_function::funcExits(const process *p) const {
+  assert(parsed_);
   if(p && needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -266,6 +273,7 @@ const pdvector<instPoint*> &int_function::funcExits(const process *p) const {
   return funcReturns;
 }
 const pdvector<instPoint*> &int_function::funcArbitraryPoints(const process *p) const {
+  assert(parsed_);
   if(p && needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -276,6 +284,8 @@ const pdvector<instPoint*> &int_function::funcArbitraryPoints(const process *p) 
 }
 
 const pdvector<instPoint*> &int_function::funcCalls(const process *p) {
+  assert(parsed_);
+
   if (!call_points_have_been_checked) checkCallPoints();  
 
   if(p && needs_relocation_) {
@@ -288,6 +298,8 @@ const pdvector<instPoint*> &int_function::funcCalls(const process *p) {
 }
 
 bool int_function::hasBeenRelocated(const process *p) const{
+  assert(parsed_);
+
   if(p && needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++) {
       if(relocatedByProcess[i] &&

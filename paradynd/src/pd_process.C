@@ -480,7 +480,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
       // tell front-end about thread start function for newly created threads
       // We need the module, which could be anywhere (including a library)
       int_function *func = thr->get_start_func();
-      pdmodule *foundMod = func->file();
+      pdmodule *foundMod = func->pdmod();
       assert(foundMod != NULL);
       resource *modRes = foundMod->getResource();
       pdstring start_func_str = thr->get_start_func()->prettyName();
@@ -1822,7 +1822,7 @@ bool process::triggeredInStackFrame(Frame &frame,
 	    
 	   We'll miss arbitrary instPoints by using the point type instead of the type of the instruction
 	   at the point, but exclusive metrics don't work in the general case anyway. */
-	InstrucIter stepToNext( func_ptr, this, func_ptr->file(), false );
+	InstrucIter stepToNext( func_ptr, this, func_ptr->pdmod(), false );
 	stepToNext.setCurrentAddress( pointAddr );
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: is 0x%lx == 0x%lx?\n", __FILE__, __LINE__, pointAddr, * stepToNext );
 	++stepToNext;

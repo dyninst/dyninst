@@ -575,7 +575,7 @@ Address lookup_fn(process *p, const pdstring &f)
     int_function *pdf = (int_function *)p->findOnlyOneFunction(f);
     if (pdf) {
       Address obj_base;
-      p->getBaseAddress(pdf->file()->exec(), obj_base);
+      p->getBaseAddress(pdf->pdmod()->exec(), obj_base);
       ret = obj_base + pdf->getAddress(p);
       //bperr( "  findOneFunction: 0x%08x\n", ret);
     }
@@ -607,7 +607,7 @@ Address lookup_fn(process *p, const pdstring &f)
 #define UNINSTR(str) \
   bperr( "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
 	  prettyName().c_str(), \
-	  file_->exec()->getObject().get_base_addr() + getAddress(0), \
+	  pdmod()->exec()->getObject().get_base_addr() + getAddress(0), \
 	  get_size() / INSN_SIZE, \
 	  str)
 #else
@@ -616,6 +616,8 @@ Address lookup_fn(process *p, const pdstring &f)
 
 bool int_function::findInstPoints(const image *owner) {
     TRACE_B( "int_function::findInstPoints" );
+
+  parsed_ = true;
 
   //bperr( "\n>>> int_function::findInstPoints()\n");
   //bperr( "%0#10x: %s(%u insns):\n", 
@@ -1219,7 +1221,7 @@ void int_function::checkCallPoints()
 	  prettyName().c_str(), getAddress(0), size() / INSN_SIZE);
 #endif
   //bperr( "%0#10x: %s(%u insns)\n", 
-  //file()->exec()->getObject().get_base_addr() + getAddress(0), 
+  //pdmod()->exec()->getObject().get_base_addr() + getAddress(0), 
   //prettyName().c_str(), 
   //size() / INSN_SIZE);
   
@@ -1231,7 +1233,7 @@ void int_function::checkCallPoints()
     
     Address tgt_addr = findTarget(ip);
     if (tgt_addr) {
-        int_function *tgt_fn = file_->exec()->findFuncByEntry(tgt_addr);
+        int_function *tgt_fn = pdmod()->exec()->findFuncByEntry(tgt_addr);
         ip->setCallee(tgt_fn); // possibly NULL
         // NOTE: (target == fnStart) => optimized recursive call
         if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + get_size()) {
@@ -1428,7 +1430,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   /*
   bperr( ">>> int_function::findIndirectJumpTarget <0x%016lx: %s>\n", 
-	  file_->exec()->getObject().get_base_addr() + ip->pointAddr(), 
+	  pdmod()->exec()->getObject().get_base_addr() + ip->pointAddr(), 
 	  prettyName().c_str());
   */
 
@@ -1453,7 +1455,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   // parse code
   Address start = getAddress(0);
-  image *owner = file_->exec();
+  image *owner = pdmod()->exec();
   int adjust = 0;
   instruction i2;
   // indirect jump insn (debug)
@@ -4130,7 +4132,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
   // resolve new callee
   const int_function *dst2_pdf = newFunc;
   Address dst2_base = 0;
-  getBaseAddress(dst2_pdf->file()->exec(), dst2_base);
+  getBaseAddress(dst2_pdf->pdmod()->exec(), dst2_base);
   Address dst2_addr = dst2_base + dst2_pdf->getAddress(0);
 
   /* NOTE: Calling conventions require that $t9 contain the callee
@@ -4478,7 +4480,7 @@ bool process::findCallee(instPoint &ip, int_function *&target)
       int_function *pdf = (int_function *)findFuncByAddr(tgt_addr);
       if (pdf) {
          Address fn_base;
-         getBaseAddress(pdf->file()->exec(), fn_base);
+         getBaseAddress(pdf->pdmod()->exec(), fn_base);
          assert(fn_base + pdf->getAddress(0) == tgt_addr);
 
          //bperr( "\"%s\" (GOT)\n", pdf->prettyName().c_str());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.154 2005/01/21 23:44:25 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.155 2005/02/02 17:27:22 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -108,7 +108,7 @@ void int_function::checkCallPoints() {
 
       if (isInsnType(p->firstInstruction, CALLmask, CALLmatch)) {
          loc_addr = p->pointAddr() + (p->firstInstruction.call.disp30 << 2);
-         int_function *pdf = (file_->exec())->findFuncByEntry(loc_addr);
+         int_function *pdf = (mod_->exec())->findFuncByEntry(loc_addr);
 
          if (pdf) {
             p->setCallee(pdf);
@@ -2202,6 +2202,7 @@ static enum fuzzyBoolean is_call_outside_function(const instruction instr,
  * Find the instPoints of this function.
  */
 bool int_function::findInstPoints(const image *owner) {
+  parsed_ = true;
 
    Address firstAddress = get_address();
    Address lastAddress = get_address() + get_size();

@@ -145,7 +145,7 @@ BPatch_point *BPatch_flowGraph::createInstPointAtEdge(BPatch_edge *edge)
         // this will set instAddr for this edge and its buddy
         // conditional edge
         if (!edge->instAddr) 
-            createEdgeTramp(proc, pfunc->file()->exec(), edge);
+	  createEdgeTramp(proc, pfunc->pdmod()->exec(), edge);
 
         edge->point = createInstructionEdgeInstPoint(proc, pfunc, edge);
     }

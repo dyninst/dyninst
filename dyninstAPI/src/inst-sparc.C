@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.162 2005/01/21 23:44:26 bernat Exp $
+// $Id: inst-sparc.C,v 1.163 2005/02/02 17:27:23 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1611,7 +1611,7 @@ bool process::replaceFunctionCall(const instPoint *point,
       pdfp = dynamic_cast<int_function *>(point->getBPatch_point()->func->func);
       if (pdfp != NULL) {
          Address base;
-         getBaseAddress(pdfp->file()->exec(), base);
+         getBaseAddress(pdfp->pdmod()->exec(), base);
          addr += base;
       }
    }
@@ -1983,7 +1983,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     int_function* pointFunction = (int_function*)func;
     Address pointImageBase = 0;
-    image* pointImage = pointFunction->file()->exec();
+    image* pointImage = pointFunction->pdmod()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     BPatch_function *bpfunc = proc->findOrCreateBPFunc((int_function*)func);
