@@ -88,12 +88,12 @@ XDRrpc::XDRrpc(char *machine,
 }
 
 int
-RPC_readReady (int fd)
+RPC_readReady (int fd, int timeout)
 {
   fd_set readfds;
   struct timeval tvptr;
 
-  tvptr.tv_sec = 0; tvptr.tv_usec = 0;
+  tvptr.tv_sec = timeout; tvptr.tv_usec = 0;
   if (fd < 0) return -1;
   FD_ZERO(&readfds);
   FD_SET (fd, &readfds);
@@ -362,9 +362,9 @@ XDRrpc::setNonBlock()
 }
 
 int
-XDRrpc::readReady()
+XDRrpc::readReady(int timeout)
 {
-  return RPC_readReady (fd);
+  return RPC_readReady (fd, timeout);
 }
 
 int
