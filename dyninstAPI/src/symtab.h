@@ -10,6 +10,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.23  1996/05/09 19:21:44  lzheng
+ * Minor fix to remove one ifdef for HPUX
+ *
  * Revision 1.22  1996/04/29 22:18:51  mjrg
  * Added size to functions (get size from symbol table)
  * Use size to define function boundary
@@ -192,15 +195,8 @@ class pdFunction {
 
     void checkCallPoints();
     bool defineInstPoint();
-#if defined(hppa1_1_hp_hpux)
-    Address newCallPoint(const Address adr, const instruction code, const 
-                         image *owner, 
-			 bool &err, instPointType pointType=noneType);
-#else 
     Address newCallPoint(const Address adr, const instruction code, const 
                          image *owner, bool &err);
-#endif
-
     string symTabName() const { return symTabName_;}
     string prettyName() const { return prettyName_;}
     const module *file() const { return file_;}
