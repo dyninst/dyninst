@@ -39,29 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.5 1999/02/23 22:13:40 nash Exp $
+// $Id: linux.C,v 1.6 1999/03/02 21:45:49 nash Exp $
 
 #include <fstream.h>
 
 #include "dyninstAPI/src/process.h"
-
-//extern "C" {
-//extern int ioctl(int, int, ...);
-//extern int getrusage(int, struct rusage*);
-//#include <a.out.h>
-//#include <sys/exec.h>
-//#include <stab.h>
-//extern struct rusage *mapUarea();
-
-//#include <machine/reg.h> // for ptrace_getregs call
-//};
 
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <dlfcn.h>
-#include <sys/user.h> // for u-area stuff
+#include <sys/user.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -113,13 +102,13 @@ static int regmap[] =
   UESP, EBP, ESI, EDI,
   EIP, EFL, CS, SS,
   DS, ES, FS, GS,
+//  ORIG_EAX
 };
 
-#define FP0_REGNUM 16
-#define FP7_REGNUM (FP0_REGNUM+7)
+#define NUM_REGS (17 /*+ NUM_FREGS*/)
 #define NUM_FREGS 8
-#define NUM_REGS (16 /*+ NUM_FREGS*/)
-
+#define FP0_REGNUM NUM_REGS
+#define FP7_REGNUM (FP0_REGNUM+7)
 #define INTREGSIZE (sizeof(int))
 #define FPREGSIZE 10
 #define MAX_REGISTER_RAW_SIZE 10
@@ -127,6 +116,9 @@ static int regmap[] =
 #define REGISTER_RAW_SIZE(N) (((N) < FP0_REGNUM) ? INTREGSIZE : FPREGSIZE)
 #define REGS_SIZE ( NUM_REGS * REGISTER_RAW_SIZE(0) + NUM_FREGS * REGISTER_RAW_SIZE(FP0_REGNUM) )
 #define REGS_INTS ( REGS_SIZE / INTREGSIZE )
+
+const int GENREGS_STRUCT_SIZE = sizeof( user::regs );
+const int FPREGS_STRUCT_SIZE = sizeof( user::i387 );
 
 int register_addr (int regno )
 {
@@ -233,8 +225,22 @@ void *process::getRegisters() {
 
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
-   int regaddr, regno;
+
+#ifdef PTRACE_GETREGS
+   char *buffer = new char [ GENREGS_STRUCT_SIZE + FPREGS_STRUCT_SIZE ];
+   if( P_ptrace( PTRACE_GETREGS, pid, 0, (int)(buffer) ) )
+   {
+	   perror("process::getRegisters PTRACE_GETREGS" );
+   }
+
+   if( P_ptrace( PTRACE_GETFPREGS, pid, 0, (int)(buffer + GENREGS_STRUCT_SIZE) ) )
+   {
+	   perror("process::getRegisters PTRACE_GETFPREGS" );
+   }
+#else
    int *buffer = new int[ REGS_INTS ];
+   int regno;
+   Address regaddr;
 
    for (regno = 0; regno < NUM_REGS; regno++) {
      regaddr = register_addr (regno);
@@ -255,6 +261,7 @@ void *process::getRegisters() {
        return NULL;
      }
    }
+#endif
 
    return (void*)buffer;
 }
@@ -309,8 +316,23 @@ bool process::restoreRegisters(void *buffer) {
 
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
-   int regaddr, regno;
+
+#ifdef PTRACE_GETREGS
+   char *buf = (char*)buffer;
+
+   if( P_ptrace( PTRACE_SETREGS, pid, 0, (int)(buf) ) )
+   {
+	   perror("process::restoreRegisters PTRACE_SETREGS" );
+   }
+
+   if( P_ptrace( PTRACE_SETFPREGS, pid, 0, (int)(buf + GENREGS_STRUCT_SIZE) ) )
+   {
+	   perror("process::restoreRegisters PTRACE_SETFPREGS" );
+   }
+#else
    int *buf = (int*)buffer;
+   int regno;
+   Address regaddr;
 
    for (regno = 0; regno < NUM_REGS; regno++) {
      regaddr = register_addr (regno);
@@ -319,6 +341,7 @@ bool process::restoreRegisters(void *buffer) {
        return false;
      }
    }
+   return true;
 
    // Cycle through all 20 words making up the 8 fp registers
    int baddr = register_addr ( FP0_REGNUM );
@@ -327,9 +350,12 @@ bool process::restoreRegisters(void *buffer) {
    for (regaddr=baddr, count=NUM_REGS; regaddr<eaddr; regaddr+= sizeof(int), count++ ) {
      if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[count] ) ) {
        perror("process::restoreRegisters PTRACE_POKEUSER fp");
+	   fprintf( stderr, "PID %d, fp word %d, address %#.8x, value %#.8x\n",
+				pid, count, regaddr, buf[count] );
        return false;
      }
    }
+#endif
 
    return true;
 }
@@ -753,7 +779,7 @@ bool process::isRunning_() const {
 
   char procName[64];
   char sstat[132];
-  char *token;
+  char *token = NULL;
 
   sprintf(procName,"/proc/%d/stat", (int)pid);
   FILE *sfile = P_fopen(procName, "r");
@@ -885,7 +911,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x\n", amount, (int)inSelf, (int)inTraced );
 #endif
   unsigned char buf[sizeof(int)];
-  int count, off, addr = (int)inTraced, dat = (int)inSelf, tmp;
+  u_int count, off, addr = (int)inTraced, dat = (int)inSelf;
 
   off = addr % sizeof(int);
   if( off != 0 || amount < sizeof(int) ) {
@@ -1011,8 +1037,9 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 	fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
 	break;
       }
-      assert( result <= amount );
-      if( result == amount )
+	  u_int res = result;
+      assert( res <= amount );
+      if( res == amount )
 	return true;
       // We weren't able to read atomically, so reseek and reread.
 #ifdef PDYN_DEBUG
@@ -1036,7 +1063,8 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     return false;
   }
 
-  int count, result, *dst = (int*)inSelf;
+  u_int count, result;
+  int *dst = (int*)inSelf;
   const int *addr = (const int*)inTraced;
 
   for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
@@ -1130,10 +1158,10 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
    sprintf(buffer, "/proc/%d/environ", pid);
    int procfd = open(buffer, O_RDONLY, 0);
    if (procfd == -1) {
-     attach_cerr << "tryToFindExecutable failed since open of /proc/* /environ failed" << endl;
+     attach_cerr << "tryToFindExecutable failed since open of /proc/ * /environ failed" << endl;
      return "";
    }
-   attach_cerr << "tryToFindExecutable: opened /proc/* /environ okay" << endl;
+   attach_cerr << "tryToFindExecutable: opened /proc/ * /environ okay" << endl;
 
    int strptr = 0;
    while( true ) {
@@ -1161,10 +1189,10 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
    sprintf(buffer, "/proc/%d/cmdline", pid);
    procfd = open(buffer, O_RDONLY, 0);
    if (procfd == -1) {
-     attach_cerr << "tryToFindExecutable failed since open of /proc/* /cmdline failed" << endl;
+     attach_cerr << "tryToFindExecutable failed since open of /proc/ * /cmdline failed" << endl;
      return "";
    }
-   attach_cerr << "tryToFindExecutable: opened /proc/* /cmdline okay" << endl;
+   attach_cerr << "tryToFindExecutable: opened /proc/ * /cmdline okay" << endl;
 
    argv0 = extract_string( procfd, (char*)0 );
    close( procfd );
@@ -1417,7 +1445,7 @@ bool process::dumpImage(string imageFileName)
 {
     int newFd;
     image *im;
-    int length;
+    int length = 0;
     string command;
 
     im = getImage();
@@ -1440,8 +1468,8 @@ bool process::dumpImage(string imageFileName)
 
     Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
     Elf_Scn *scn = 0;
-    u_int baseAddr;
-    int offset;
+    u_int baseAddr = 0;
+    int offset = 0;
 
     Elf32_Ehdr*	ehdrp;
     Elf_Scn* shstrscnp  = 0;
