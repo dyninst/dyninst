@@ -107,6 +107,7 @@ public:
     BPatch_localVarCollection * funcParameters;
     void setReturnType( BPatch_type * _retType){
       retType = _retType;}
+    void setModule( BPatch_module * module ) { if( this->mod == NULL ) { this->mod = module; } }
     
 // For users of the library:
     char	 *getName(char *s, int len) const;
