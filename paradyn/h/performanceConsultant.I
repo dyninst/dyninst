@@ -3,7 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.6  1994/05/06 06:50:45  karavan
+ * Revision 1.7  1994/05/09 20:53:36  hollings
+ * added changeState to dataManager, and clearSHG to performanceConsultant.
+ *
+ * Revision 1.6  1994/05/06  06:50:45  karavan
  * added startSHG().
  *
  * Revision 1.5  1994/05/02  20:36:50  hollings
@@ -50,6 +53,10 @@ $remote performanceConsultant {
 
     // make PC available to user
     $async void startSHG();
+
+    // destroy any shg state we have
+    $async void clearSHG();
+
     void printSHGNode(searchHistoryNode *);
     void printSHGList();
 

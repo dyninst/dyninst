@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.11  1994/04/21 23:40:28  hollings
+ * Revision 1.12  1994/05/09 20:53:35  hollings
+ * added changeState to dataManager, and clearSHG to performanceConsultant.
+ *
+ * Revision 1.11  1994/04/21  23:40:28  hollings
  * Remoced setParadynd name function.
  *
  * Revision 1.10  1994/04/20  15:30:58  hollings
@@ -147,10 +150,15 @@ typedef void (*resourceInfoCallback)(performanceStream*, resource *parent,
 
 typedef void (*histFoldCallback)(performanceStream*, timeStamp width);
 
+typedef enum appState { appRunning, appPaused };
+
+typedef void (*appStateChangeCallback)(performanceStream*, appState state);
+
 struct controlCallback {
     metricInfoCallback 		mFunc;
     resourceInfoCallback 	rFunc;
     histFoldCallback		fFunc;
+    appStateChangeCallback	sFunc;
 };
 
 typedef struct controlCallback controlCallback;
@@ -408,6 +416,10 @@ $remote dataManager {
     $upcall $async void histFold(histFoldCallback, 
 				 performanceStream *ps, 
 				 timeStamp width);
+
+    $upcall $async void changeState(appStateChangeCallback, 
+				    performanceStream *ps, 
+				    appState state);
 
     $smember applicationContext *appContext;
     $smember int socket;
