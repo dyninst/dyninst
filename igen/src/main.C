@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.13  1994/03/06 20:51:09  markc
+ * Revision 1.14  1994/03/07 02:35:17  markc
+ * Added code to detect failures for xdr code.  Provides member instance
+ * callErr which is set to -1 on failures.
+ *
+ * Revision 1.13  1994/03/06  20:51:09  markc
  * Added float as a basic type.
  *
  * Revision 1.12  1994/03/01  21:39:37  jcargill
@@ -119,7 +123,7 @@ void interfaceSpec::generateThreadLoop()
     printf("  requestingThread = msg_recv(&__tag__, &__recvBuffer__, &__len__);\n");
     printf("  switch (__tag__) {\n");
     for (cf = methods; *cf; cf++) {
-	(*cf)->genSwitch(FALSE);
+	(*cf)->genSwitch(FALSE, "-1");
     }
     printf("    default:\n");
     printf("	    return(__tag__);\n");
@@ -135,10 +139,12 @@ void interfaceSpec::generateXDRLoop()
     printf("int %s::mainLoop(void)\n", name);
     printf("{\n");
     printf("    unsigned int __tag__, __status__;\n");
+    printf("    callErr = 0;\n");
     printf("    __xdrs__->x_op = XDR_DECODE;\n");
-    printf("    xdrrec_skiprecord(__xdrs__);\n");
+    printf("    if (xdrrec_skiprecord(__xdrs__) == FALSE)\n");
+    printf("       {callErr = -1; return -1;}\n");
     printf("    __status__ = xdr_int(__xdrs__, &__tag__);\n");
-    printf("	if (!__status__) return(-1);\n");
+    printf("	if (!__status__) {callErr = -1; return(-1);}\n");
     printf("    switch (__tag__) {\n");
 
     // generate the zero RPC that returns interface name & version.
@@ -147,16 +153,19 @@ void interfaceSpec::generateXDRLoop()
     printf("            int __val__;\n");
     printf("            __xdrs__->x_op = XDR_ENCODE;\n");
     printf("            __val__ = 0;\n");
-    printf("            xdr_int(__xdrs__, &__val__);\n");
-    printf("            xdr_String(__xdrs__, &__ProtocolName__);\n");
+    printf("            if ((xdr_int(__xdrs__, &__val__) == FALSE) ||\n");
+    printf("                (xdr_String(__xdrs__, &__ProtocolName__) == FALSE))\n");
+    printf("               {callErr = -1; return -1;}\n");
     printf("            __val__ = %d;\n", version);
-    printf("            xdr_int(__xdrs__, &__val__);\n");
-    printf("            xdrrec_endofrecord(__xdrs__, TRUE);\n");
+    printf("            if (xdr_int(__xdrs__, &__val__) == FALSE)\n");
+    printf("               {callErr = -1; return -1;}\n");
+    printf("            if (xdrrec_endofrecord(__xdrs__, TRUE) == FALSE)\n");
+    printf("               {callErr = -1; return -1;}\n");
     printf("		__versionVerifyDone__ = TRUE;\n");
     printf("            break;\n");
 
     for (cf = methods; *cf; cf++) {
-	(*cf)->genSwitch(FALSE);
+	(*cf)->genSwitch(FALSE, "-1");
     }
     printf("    default:\n");
     printf("	    return(__tag__);\n");
@@ -195,7 +204,7 @@ void interfaceSpec::generatePVMLoop()
     printf("            break;\n");
 
     for (cf = methods; *cf; cf++) {
-	(*cf)->genSwitch(FALSE);
+	(*cf)->genSwitch(FALSE, "-1");
     }
     printf("    default:\n");
     printf("	    return(__tag__);\n");
@@ -301,6 +310,7 @@ void interfaceSpec::genWaitLoop()
     // generate a loop to wait for a tag, and call upcalls as the arrive.
     printf("void %sUser::awaitResponce(int __targetTag__) {\n", name);
     printf("    unsigned int __tag__;\n");
+    printf("    callErr = 0;\n");
     if (generateTHREAD) {
 	printf("  union %s __recvBuffer__;\n", unionName);
 	printf("  unsigned __len__ = sizeof(__recvBuffer__);\n");
@@ -310,8 +320,10 @@ void interfaceSpec::genWaitLoop()
     printf("  while (1) {\n");
     if (generateXDR) {
 	printf("    __xdrs__->x_op = XDR_DECODE;\n");
-	printf("    xdrrec_skiprecord(__xdrs__);\n");
-	printf("    xdr_int(__xdrs__, &__tag__);\n");
+	printf("    if (xdrrec_skiprecord(__xdrs__) == FALSE)\n");
+	printf("       {callErr = -1; return;}\n");
+	printf("    if (xdr_int(__xdrs__, &__tag__) == FALSE)\n");
+	printf("       {callErr = -1; return;}\n");
     } else if (generatePVM) {
         printf("    int __other__ = get_other_tid();\n");
 	printf("    if (get_error() == -1) abort();\n");
@@ -322,10 +334,12 @@ void interfaceSpec::genWaitLoop()
 	printf("  __tag__ = MSG_TAG_ANY;\n");
 	printf("    requestingThread = msg_recv(&__tag__, (void *) &__recvBuffer__, &__len__); \n");
     }
+    // look for success error message
     printf("    if (__tag__ == __targetTag__) return;\n");
+
     printf("    switch (__tag__) {\n");
     for (cf = methods; *cf; cf++) {
-	(*cf)->genSwitch(TRUE);
+	(*cf)->genSwitch(TRUE, " ");
     }
     printf("	    default: \n        abort();\n");
     printf("    }\n");
@@ -347,11 +361,20 @@ void interfaceSpec::genProtoVerify()
     printf("    int version;\n");
     printf("    __tag__ = 0;\n");
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
-    printf("    xdr_int(__xdrs__, &__tag__);\n");
-    printf("    xdrrec_endofrecord(__xdrs__, TRUE);\n");
+    printf("    callErr = 0;\n");
+    printf("    assert(xdr_int(__xdrs__, &__tag__));\n");
+    printf("    assert(xdrrec_endofrecord(__xdrs__, TRUE));\n");
     printf("    awaitResponce(0);\n");
-    printf("    xdr_String(__xdrs__, &(proto));\n");
-    printf("    xdr_int(__xdrs__, &(version));\n");
+    printf("    if (callErr == -1) {\n");
+    printf("        printf(\"Protocol verify - no response from server\\n\");\n");
+    printf("	    exit(-1);\n");
+    printf("    }\n");
+    printf("    __xdrs__->x_op = XDR_DECODE;\n");
+    printf("    if ((xdr_String(__xdrs__, &(proto)) == FALSE) ||\n");
+    printf("        (xdr_int(__xdrs__, &(version)) == FALSE)) {\n");
+    printf("        printf(\"Protocol verify - bad response from server\\n\");\n");
+    printf("	    exit(-1);\n");
+    printf("    }\n");
     printf("    if ((version != %d) || (strcmp(proto, \"%s\"))) {\n",
 	version, name);
     printf("        printf(\"protocol %s version %d expected\\n\");\n", 
@@ -689,7 +712,7 @@ void remoteFunc::genMethodHeader(char *className, int in_client)
     printf(")");
 }
 
-void remoteFunc::genSwitch(Boolean forUpcalls)
+void remoteFunc::genSwitch(Boolean forUpcalls, char *ret_str)
 {
     int first;
     List <argument *> ca;
@@ -710,8 +733,8 @@ void remoteFunc::genSwitch(Boolean forUpcalls)
 	if (args.count()) {
 	    printf("            %s __recvBuffer__;\n", structName);
 		for (ca = args; *ca; ca++) {
-		printf("            xdr_%s(__xdrs__, &__recvBuffer__.%s);\n", 
-		    (*ca)->type, (*ca)->name);
+		printf("            if (xdr_%s(__xdrs__, &__recvBuffer__.%s) == FALSE)\n", (*ca)->type, (*ca)->name);
+		printf("              {callErr = -1; return %s;}\n", ret_str);
 	    }
 	}
     } else if (generatePVM) {
@@ -756,11 +779,14 @@ void remoteFunc::genSwitch(Boolean forUpcalls)
     } else if (generateXDR && (upcall != asyncUpcall) && (upcall != notUpcallAsync)) {
 	printf("	    __xdrs__->x_op = XDR_ENCODE;\n");
 	printf("            __tag__ = %s_%s_RESP;\n", spec->getName(), name);
-	printf("            xdr_int(__xdrs__, &__tag__);\n");
+	printf("            if (xdr_int(__xdrs__, &__tag__) == FALSE)\n");
+	printf("               {callErr = -1; return %s;}", ret_str);
 	if (strcmp(retType, "void")) {
-	    printf("            xdr_%s(__xdrs__,&__ret__);\n", retType);
+	    printf("            if (xdr_%s(__xdrs__,&__ret__) == FALSE)\n", retType);
+	    printf("               {callErr = -1; return %s;}", ret_str);
 	}
-	printf("	    xdrrec_endofrecord(__xdrs__, TRUE);\n");
+	printf("	    if (xdrrec_endofrecord(__xdrs__, TRUE) == FALSE)\n");
+	printf("               {callErr = -1; return %s;}", ret_str);
     } else if (generatePVM && (upcall != asyncUpcall) && (upcall != notUpcallAsync)) {
 	printf("            __tag__ = %s_%s_RESP;\n", spec->getName(), name);
 	if (strcmp(retType, "void")) {
@@ -821,6 +847,11 @@ void remoteFunc::genThreadStub(char *className)
     if (strcmp(retType, "void")) {
 	printf("    %s %s;\n", retType, retVar);
     }
+
+    // set callErr for non-upcalls
+    if ((upcall == notUpcall) || (upcall == notUpcallAsync))
+      printf("     callErr = 0;\n");
+
     for (lp = args; *lp; lp++) {
 	printf("    %s.%s = %s;  \n",structUseName,
 	    (*lp)->name, (*lp)->name);
@@ -852,6 +883,7 @@ void remoteFunc::genXDRStub(char *className)
 {
     List<argument*> lp;
     char *retVar = spec->genVariable();
+    int retS = 0;
 
     genMethodHeader(className, 0);
     printf(" {\n");
@@ -859,44 +891,70 @@ void remoteFunc::genXDRStub(char *className)
     printf("    unsigned int __tag__;\n");
     if (strcmp(retType, "void")) {
 	printf("    %s %s;\n", retType, retVar);
+	retS = 1;
     }
+
+    // set callErr for non-upcalls
+    if ((upcall == notUpcall) || (upcall == notUpcallAsync))
+      printf("     callErr = 0;\n");
+
     // check to see protocol verify has been done.
     if ((upcall != notUpcall) && (upcall != notUpcallAsync)) {
 	printf("    if (!__versionVerifyDone__) {\n");
 	printf("        char *__ProtocolName__ = \"%s\";\n", spec->getName());
 	printf("	int __status__;\n");
 	printf("        __xdrs__->x_op = XDR_DECODE;\n");
-	printf("        xdrrec_skiprecord(__xdrs__);\n");
+	printf("        if (xdrrec_skiprecord(__xdrs__) == FALSE)\n");
+	printf("          {callErr = -1; return ");
+	if (retS) printf("(%s);}\n", retVar);
+	else printf(";}\n");
 	printf("        __status__ = xdr_int(__xdrs__, &__tag__);\n");
 	printf("	assert(__status__ && (__tag__ == 0));\n");
 	printf("        __xdrs__->x_op = XDR_ENCODE;\n");
-	printf("        xdr_int(__xdrs__, &__tag__);\n");
-	printf("        xdr_String(__xdrs__, &__ProtocolName__);\n");
+	printf("        assert (xdr_int(__xdrs__, &__tag__));\n");
+	printf("        assert (xdr_String(__xdrs__, &__ProtocolName__));\n");
 	printf("        __tag__ = %d;\n", spec->getVersion());
-	printf("        xdr_int(__xdrs__, &__tag__);\n");
-	printf("        xdrrec_endofrecord(__xdrs__, TRUE);\n");
+	printf("        assert (xdr_int(__xdrs__, &__tag__));\n");
+	printf("        assert (xdrrec_endofrecord(__xdrs__, TRUE));\n");
 	printf("	__versionVerifyDone__ = TRUE;\n");
 	printf("    }\n");
     }
     printf("    __tag__ = %s_%s_REQ;\n", spec->getName(), name);
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
-    printf("    xdr_int(__xdrs__, &__tag__);\n");
+    printf("    assert (xdr_int(__xdrs__, &__tag__) == TRUE);\n");
+
     for (lp = args; *lp; lp++) {
-	printf("    xdr_%s(__xdrs__, &%s);\n", (*lp)->type, (*lp)->name);
+      printf("    assert(xdr_%s(__xdrs__, &%s) == TRUE);\n",
+	     (*lp)->type, (*lp)->name);
     }
-    printf("    xdrrec_endofrecord(__xdrs__, TRUE);\n");
+    printf("    assert(xdrrec_endofrecord(__xdrs__, TRUE));\n");
+
     if (upcall != asyncUpcall) {
 	if (upcall == notUpcall) {
 	    printf("    awaitResponce(%s_%s_RESP);\n",spec->getName(), name);
+	    if (retS)
+	      printf("    if (callErr == -1) return(%s);\n", retVar);
 	} else if (upcall == syncUpcall) {
 	    printf("    __xdrs__->x_op = XDR_DECODE;\n");
-	    printf("    xdrrec_skiprecord(__xdrs__);\n");
-	    printf("    xdr_int(__xdrs__, &__tag__);\n");
+	    printf("    if (xdrrec_skiprecord(__xdrs__) == FALSE)\n");
+	    printf("        {callErr = -1; return ");
+	    if (retS)
+	      printf("(%s);}\n", retVar);
+	    else
+	      printf(";}\n");
+	    printf("    if (xdr_int(__xdrs__, &__tag__) == FALSE)\n");
+	    printf("        {callErr = -1; return ");
+	    if (retS)
+	      printf("(%s);}\n", retVar);
+	    else
+	      printf(";}\n");
 	    printf("    assert(__tag__ == %s_%s_RESP);\n", spec->getName(), name);
 	}
 	if (strcmp(retType, "void")) {
-	    printf("    xdr_%s(__xdrs__, &(%s)); \n", retType, retVar);
-	    printf("    return(%s);\n", retVar);
+	  printf("    __xdrs__->x_op = XDR_DECODE;\n");
+	  printf("    if (xdr_%s(__xdrs__, &(%s)) == FALSE)\n", retType, retVar);
+	  printf("       callErr = -1;\n");
+	  printf("    return(%s);\n", retVar);
 	}
     }
     printf("}\n\n");
@@ -915,6 +973,11 @@ void remoteFunc::genPVMStub(char *className)
     if (strcmp(retType, "void")) {
 	printf("    %s %s;\n", retType, retVar);
     }
+
+    // set callErr for non-upcalls
+    if ((upcall == notUpcall) || (upcall == notUpcallAsync))
+      printf("     callErr = 0;\n");
+
     printf("    __tag__ = %s_%s_REQ;\n", spec->getName(), name);
     printf("    assert(pvm_initsend(0) >= 0);\n");
     for (lp = args; *lp; lp++) {
@@ -1041,8 +1104,8 @@ void typeDefn::genBundler()
     if (arrayType) {
       if (generateXDR) {
 	printf("if (__xdrs__->x_op == XDR_DECODE) __ptr__->data = NULL;\n");
-	printf("    xdr_array(__xdrs__, &(__ptr__->data), &__ptr__->count, ~0, sizeof(%s), xdr_%s);\n",
-	    type, type);
+	printf("    if (xdr_array(__xdrs__, &(__ptr__->data), &__ptr__->count, ~0, sizeof(%s), xdr_%s) == FALSE)\n", type, type);
+	printf("      return FALSE;\n");
       } else if (generatePVM) {
 	printf("    IGEN_pvm_Array_of_%s(__dir__, &(__ptr__->data),&(__ptr__->count));\n", type);
       }
@@ -1112,6 +1175,8 @@ void interfaceSpec::genClass()
     printf( "  public:\n");
     client_pass_thru.map(&print_pass_thru);
 
+    printf( "    int callErr;\n");
+
     if (generateXDR) {
       printf( "    virtual void verifyProtocolAndVersion();\n");
       printf( "    %sUser(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n", name);
@@ -1123,6 +1188,7 @@ void interfaceSpec::genClass()
       printf( "    %sUser(int other);\n", name);
       printf( "    %sUser();\n", name);
     }
+      
     printf( "    void awaitResponce(int);\n");
     printf( "    int isValidUpCall(int);\n");
     
@@ -1162,6 +1228,7 @@ void interfaceSpec::genClass()
 	printf("    %s(int tid): THREADrpc(tid) {}\n", name);
       }
     printf("    mainLoop(void);\n");
+    printf("    int callErr;\n");
     for (curr = methods; *curr; curr++) {
 	printf("    ");
 	(*curr)->genMethodHeader(NULL, 0);

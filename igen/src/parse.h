@@ -2,7 +2,11 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.5  1994/02/24 05:14:33  markc
+ * Revision 1.6  1994/03/07 02:35:18  markc
+ * Added code to detect failures for xdr code.  Provides member instance
+ * callErr which is set to -1 on failures.
+ *
+ * Revision 1.5  1994/02/24  05:14:33  markc
  * Man page for igen.
  * Initial version for solaris2.2.
  * Dependencies changed.
@@ -201,7 +205,7 @@ class remoteFunc {
 	  retStructs = rs;
 	  virtual_f = v_f;
       }
-      void genSwitch(Boolean);
+      void genSwitch(Boolean, char*);
       void genStub(char *interfaceName, Boolean forUpcalls);
       void genXDRStub(char *);
       void genPVMStub(char *);
