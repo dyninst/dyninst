@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.5 1999/05/13 23:08:21 hollings Exp $
+// $Id: procfs.C,v 1.6 1999/05/25 20:26:59 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -479,12 +479,12 @@ bool process::API_detach_(const bool cont)
 {
   // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
   long pr_flags = 0;
-    if (ioctl(proc_fd, PIOCGSPCACT, &pr_flags) < 0) {
+  if (ioctl(proc_fd, PIOCSSPCACT, &pr_flags) < 0) {
       sprintf(errorLine, "Cannot get status\n");
       logLine(errorLine);
       close(proc_fd);
       return false;
-    }
+  }
 
   // Set the run-on-last-close-flag if necessary
   if (cont) {

@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.22 1999/05/25 16:35:42 wylie Exp $
+// $Id: test1.C,v 1.23 1999/05/25 20:27:01 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -880,6 +880,17 @@ void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
     appThread->continueExecution();
 }
 
+BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
+{
+    BPatch_Vector<BPatch_snippet *> *ret;
+    
+    ret = new(BPatch_Vector<BPatch_snippet *>);
+    for (int i=0; i < 1000; i++) {
+	ret->push_back(tail);
+    }
+    return *ret;
+}
+
 //
 // Start Test Case #16 - mutator side (if-else)
 //
@@ -889,7 +900,14 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *expr16_2=appImage->findVariable("globalVariable16_2");
     BPatch_variableExpr *expr16_3=appImage->findVariable("globalVariable16_3");
     BPatch_variableExpr *expr16_4=appImage->findVariable("globalVariable16_4");
-    if (!expr16_1 || !expr16_2 || !expr16_3 || !expr16_4) {
+    BPatch_variableExpr *expr16_5=appImage->findVariable("globalVariable16_5");
+    BPatch_variableExpr *expr16_6=appImage->findVariable("globalVariable16_6");
+    BPatch_variableExpr *expr16_7=appImage->findVariable("globalVariable16_7");
+    BPatch_variableExpr *expr16_8=appImage->findVariable("globalVariable16_8");
+    BPatch_variableExpr *expr16_9=appImage->findVariable("globalVariable16_9");
+    BPatch_variableExpr *expr16_10=appImage->findVariable("globalVariable16_10");
+    if (!expr16_1 || !expr16_2 || !expr16_3 || !expr16_4 || !expr16_5 ||
+        !expr16_6 || !expr16_7 || !expr16_8 || !expr16_9 || !expr16_10) {
 	fprintf(stderr, "**Failed** test #16 (if-else)\n");
 	fprintf(stderr, "    Unable to locate one of globalVariable16_?\n");
 	exit(1);
@@ -911,9 +929,45 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 					 BPatch_constExpr(1)),
 			 assign16_3, assign16_4);
 
+    BPatch_arithExpr assign16_5(BPatch_assign, *expr16_5, BPatch_constExpr(1));
+    BPatch_arithExpr assign16_6(BPatch_assign, *expr16_6, BPatch_constExpr(1));
+    BPatch_sequence longExpr16_1(genLongExpr(&assign16_5));
+
+
+    BPatch_ifExpr if16_4(BPatch_boolExpr(BPatch_eq,
+	                                 BPatch_constExpr(0),
+					 BPatch_constExpr(1)),
+			 longExpr16_1, assign16_6);
+
+    BPatch_arithExpr assign16_7(BPatch_assign, *expr16_7, BPatch_constExpr(1));
+    BPatch_arithExpr assign16_8(BPatch_assign, *expr16_8, BPatch_constExpr(1));
+    BPatch_sequence longExpr16_2(genLongExpr(&assign16_8));
+
+    BPatch_ifExpr if16_5(BPatch_boolExpr(BPatch_eq,
+	                                 BPatch_constExpr(0),
+					 BPatch_constExpr(1)),
+			 assign16_7, longExpr16_2);
+
+    BPatch_arithExpr assign16_9(BPatch_assign, *expr16_9, BPatch_constExpr(1));
+    BPatch_arithExpr assign16_10(BPatch_assign, *expr16_10,BPatch_constExpr(1));
+    BPatch_sequence longExpr16_3(genLongExpr(&assign16_9));
+    BPatch_sequence longExpr16_4(genLongExpr(&assign16_10));
+
+    BPatch_ifExpr if16_6(BPatch_boolExpr(BPatch_eq,
+	                                 BPatch_constExpr(0),
+					 BPatch_constExpr(1)),
+			 longExpr16_3, longExpr16_4);
+
     insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
 		    16, "if-else");
     insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
+		    16, "if-else");
+
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_4,
+		    16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_5,
+		    16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_6,
 		    16, "if-else");
 }
 

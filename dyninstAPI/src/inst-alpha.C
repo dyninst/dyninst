@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.9 1999/05/13 23:08:11 hollings Exp $
+// $Id: inst-alpha.C,v 1.10 1999/05/25 20:26:56 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -1599,9 +1599,20 @@ bool pd_Function::findInstPoints(const image *owner)
 {  
   Address adr = addr();
   instruction instr;
+  instruction instr2;
   bool err;
 
-  adr += 8; // On the alphas the actual entry point is two instructions below the advertised entry point
+  // normal linkage on alphas is that the first two instructions load gp.
+  //   In this case, many functions jump past these two instructions, so
+  //   we put the inst point at the third instruction.
+  //   However, system call libs don't always follow this rule, so we
+  //   look for a load of gp in the first two instructions.
+  instr.raw = owner->get_instruction(adr);
+  instr2.raw = owner->get_instruction(adr+4);
+  if ((instr.mem.opcode == OP_LDAH) && (instr.mem.ra == REG_GP) &&
+      (instr2.mem.opcode == OP_LDA) && (instr2.mem.ra == REG_GP)) {
+      adr += 8;
+  }
 
   instr.raw = owner->get_instruction(adr);
   if (!IS_VALID_INSN(instr)) {

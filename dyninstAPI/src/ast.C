@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.62 1999/05/03 20:01:19 zandy Exp $
+// $Id: ast.C,v 1.63 1999/05/25 20:26:55 hollings Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -954,9 +954,8 @@ Address AstNode::generateCode_phase2(process *proc,
 				   insn, base, noCost);
 
 	    // call emit again now with correct offset.
-	    (void) emitA(op, src, 0, (Register)(base-fromAddr), 
+	    (void) emitA(op, src, 0, (Register) (base-fromAddr), 
 			insn, startInsn, noCost);
-            // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
 	   
 	    if (eoperand) {
 		// If there's an else clause, we need to generate code for it.
@@ -966,7 +965,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
 		// We also need to fix up the branch at the end of the "true"
 		// clause to jump around the "else" clause.
-		emitA(branchOp, 0, 0, (Register)(base-else_fromAddr),
+		emitA(branchOp, 0, 0, (Register) (base-else_fromAddr),
 		     insn, else_startInsn, noCost);
 	    }
 	} else if (op == whileOp) {
@@ -984,7 +983,7 @@ Address AstNode::generateCode_phase2(process *proc,
 			insn, base, noCost) ;
 
 	    // call emit again now with correct offset.
-	    (void) emitA(ifOp, src, 0, (Register)(base-fromAddr), 
+	    (void) emitA(ifOp, src, 0, (Register) (base-fromAddr), 
 			insn, startInsn, noCost);
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	} else if (op == doOp) {

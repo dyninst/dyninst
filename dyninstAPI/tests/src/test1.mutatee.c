@@ -130,6 +130,12 @@ int globalVariable16_1 = 0;
 int globalVariable16_2 = 0;
 int globalVariable16_3 = 0;
 int globalVariable16_4 = 0;
+int globalVariable16_5 = 0;
+int globalVariable16_6 = 0;
+int globalVariable16_7 = 0;
+int globalVariable16_8 = 0;
+int globalVariable16_9 = 0;
+int globalVariable16_10 = 0;
 
 int globalVariable17_1 = 0;
 int globalVariable17_2 = 0;
@@ -694,6 +700,7 @@ void func15_1()
 
 void func16_2() { dprintf("func16_2 () called\n"); }
 void func16_3() { dprintf("func16_3 () called\n"); }
+void func16_4() { dprintf("func16_4 () called\n"); }
 
 void func16_1()
 {
@@ -716,6 +723,14 @@ void func16_1()
 	    printf("    True clause of second if should not have been executed but was.\n");
 	if (globalVariable16_4 != 0)
 	    printf("    False clause of second if should have been executed but was not.\n");
+	failed = 1;
+    }
+
+    func16_4();
+    if ((globalVariable16_5 != 0 || globalVariable16_6 != 1) ||
+        (globalVariable16_7 != 0 || globalVariable16_8 != 1) ||
+        (globalVariable16_9 != 0 || globalVariable16_10 != 1)) {
+	    printf("    failed large if clauses tests.\n");
 	failed = 1;
     }
 

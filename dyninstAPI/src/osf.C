@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.5 1999/05/13 23:08:13 hollings Exp $
+// $Id: osf.C,v 1.6 1999/05/25 20:26:57 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -175,21 +175,20 @@ int process::waitforRPC(int *status, bool /* block */)
   static int selected_fds;             // number of selected
   static int curr;                     // the current element of fds
 
-  if (selected_fds == 0)
-    {
+  if (selected_fds == 0) {
       for (unsigned u = 0; u < processVec.size(); u++) {
-	if (processVec[u]->status() == running || processVec[u]->status() == neonatal)
-	  {
+	if (processVec[u]->status() == running || 
+	    processVec[u]->status() == neonatal) {
 	    fds[u].fd = processVec[u]->proc_fd;
 	    selected_fds++;
-	  }
-	else
+	} else {
 	  fds[u].fd = -1;
+	}
 	fds[u].events = 0xffff;
 	fds[u].revents = 0;
       }
       curr = 0;
-    }
+  }
   if (selected_fds > 0)
     {
       while(fds[curr].fd == -1) ++curr;
@@ -238,24 +237,15 @@ int process::waitProcs(int *status, bool block = false)
       
 	if (selected_fds == 0) {
 	    for (unsigned u = 0; u < processVec.size(); u++) {
-#ifdef notdef
-	      if (processVec[u]->status() == running || 
-		  processVec[u]->status() == neonatal) {
-		    fds[u].fd = processVec[u]->proc_fd;
-	      } else {
-		  fds[u].fd = -1;
-	      }
-#endif
-	      if (waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
-		  ret = processVec[u]->getPid();
-		  fds[u].revents = POLLPRI;
-		  skipPoll = true;
-		  break;
-		  printf("found wiating process skipping poll\n");
-	      }
-	      fds[u].fd = processVec[u]->proc_fd;
-	      fds[u].events = POLLPRI | POLLIN;
-	      fds[u].revents = 0;
+	        fds[u].fd = processVec[u]->proc_fd;
+	        fds[u].events = POLLPRI | POLLIN;
+	        fds[u].revents = 0;
+	        if (waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
+		    ret = processVec[u]->getPid();
+		    fds[u].revents = POLLPRI;
+		    skipPoll = true;
+		    break;
+	        }
 	    }
 
 	    if (!skipPoll) {

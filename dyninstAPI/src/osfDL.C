@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.2 1999/05/21 17:33:12 wylie Exp $
+// $Id: osfDL.C,v 1.3 1999/05/25 20:26:57 hollings Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -119,8 +119,14 @@ typedef struct {
 vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     // step 1: figure out if this is a dynamic executable. 
     Object &obj = p->getImage()->getObject();
-    const bool dynamic = obj.isDynamic();
-    if (dynamic) {
+
+
+    // Use the symbol _call_add_pc_range_table as the test for a 
+    // dynamically linked obj
+    string dyn_str = string("_call_add_pc_range_table");
+    internalSym dyn_sym;
+    bool found = p->findInternalSymbol(dyn_str, false, dyn_sym);
+    if (!found) {
 	// static, nothing to do.
 	printf("program is statically linked\n");
 	return 0;
@@ -345,6 +351,7 @@ void process::handleIfDueToDyninstLib()
   char *libName = getenv(libVar);
 
   vector<shared_object *> *new_shared_objs = dyn->getSharedObjects(this);
+  if (!new_shared_objs) return;
 
   // get the address of the new shared objects
   for (unsigned int i=0; i < new_shared_objs->size(); i++) {

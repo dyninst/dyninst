@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.171 1999/05/24 21:42:50 cain Exp $
+// $Id: process.C,v 1.172 1999/05/25 20:26:57 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1011,7 +1011,7 @@ process::process(int iPid, image *iSymbols,
 
     splitHeaps = false;
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
@@ -2848,7 +2848,9 @@ bool process::detach(const bool paused) {
 */
 bool process::API_detach(const bool cont)
 {
-  if (status() != neonatal && status() != stopped)
+  // if (status() != neonatal && status() != stopped)
+  // We should cleanup even if the process is not stopped - jkh 5/21/99
+  if (status() == neonatal)
       return false;
 
   return API_detach_(cont);
