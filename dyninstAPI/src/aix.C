@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.170 2003/09/05 16:27:36 schendel Exp $
+// $Id: aix.C,v 1.171 2003/09/11 18:20:07 chadd Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1158,9 +1158,9 @@ void process::addLib(char* lname){
    BPatch_Vector<BPatch_point *> *mainFunc;
 
 	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
-   BPatch_Vector<BPatch_function *> bpfv;
-   if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) {
+    BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
+    BPatch_Vector<BPatch_function *> bpfv;
+    if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) { 
       fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
       return;
    }
@@ -1287,6 +1287,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 		saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates,
                                      (void*) newXCOFF);
 	}
+	saveWorldAddSharedLibs((void*) newXCOFF);
 
    saveWorldCreateDataSections((void*)newXCOFF);
 
