@@ -3,15 +3,21 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.1  1994/02/25 00:26:17  hollings
+ * Revision 1.2  1994/02/28 23:58:38  hollings
+ * Changed global list to be a pointer to a list because I couldn't rely on
+ * the order of global constructors.
+ *
+ * Revision 1.1  1994/02/25  00:26:17  hollings
  * added tuntable constants
  *
  *
  */
 
+#include "util/h/stringPool.h"
 #include "util/h/tunableConst.h"
 
-List<tunableConstant*> tunableConstant::allConstants;
+List<tunableConstant*> *tunableConstant::allConstants;
+stringPool *tunableConstant::pool;
 
 Boolean tunableConstant::simpleRangeCheck(float val)
 {
@@ -29,9 +35,11 @@ tunableConstant::tunableConstant(float initialValue,
     min = low;
     max = high;
     desc = d;
-    name = n;
+    if (!pool) pool = new(stringPool);
+    name = pool->findAndAdd(n);
     newValueCallBack = cb;
-    allConstants.add(this);
+    if (!allConstants) allConstants = new(List<tunableConstant*>);
+    allConstants->add(this, name);
 }
 
 tunableConstant::tunableConstant(float initialValue, 
@@ -41,9 +49,11 @@ tunableConstant::tunableConstant(float initialValue,
 				 char *d)
 {
     desc = d;
-    name = n;
+    if (!pool) pool = new(stringPool);
+    name = pool->findAndAdd(n);
     isValidValue = func;
     value = initialValue;
     newValueCallBack = cb;
-    allConstants.add(this);
+    if (!allConstants) allConstants = new(List<tunableConstant*>);
+    allConstants->add(this, name);
 }
