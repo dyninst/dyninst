@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.10  1994/02/25 11:41:32  markc
+ * Revision 1.11  1994/03/01 01:50:46  markc
+ * Fixed memory access errors.
+ *
+ * Revision 1.10  1994/02/25  11:41:32  markc
  * Fixed bug.  Igen generated versionVerify tests for client code when async.
  *
  * Revision 1.9  1994/02/24  05:14:32  markc
@@ -541,24 +544,25 @@ int main(int argc, char *argv[])
     }
     *(temp+1) = '\0';
 
-    headerFile = (char *) malloc(strlen(protoFile)+1);
+    headerFile = (char *) malloc(strlen(protoFile)+2);
     sprintf(headerFile, "%sh", protoFile);
 
-    codeFile = (char *) malloc(strlen(protoFile)+1);
+    codeFile = (char *) malloc(strlen(protoFile)+2);
     sprintf(codeFile, "%sC", protoFile);
 
-    serverFile = (char *) malloc(strlen(protoFile)+6);
+    serverFile = (char *) malloc(strlen(protoFile)+7);
     sprintf(serverFile, "%sSRVR.C", protoFile);
 
-    clientFile = (char *) malloc(strlen(protoFile)+6);
+    clientFile = (char *) malloc(strlen(protoFile)+7);
     sprintf(clientFile, "%sCLNT.C", protoFile);
 
     if (emitHeader) {
         char *prefix;
 	int len;
 	len = strlen(protoFile);
-	prefix = new char(len);
+	prefix = new char[len];
 	strncpy (prefix, protoFile, len - 1);
+	prefix[len-1] = '\0';
 	of = fopen(headerFile, "w");
 	dup2(of->_file, 1);
 	printf("#ifndef %sBASE_H\n", prefix);
@@ -568,7 +572,7 @@ int main(int argc, char *argv[])
 	if (generatePVM)
 	  printf("#include \"util/h/rpcUtilPVM.h\"\n");
 	printf("#include <sys/types.h>\n");
-	delete (prefix);
+	delete [] prefix;
 
 	kludgeOut = of;
 	if (generatePVM) 
@@ -1089,7 +1093,7 @@ void interfaceSpec::genClass()
     fflush (stdout);
     fclose(kludgeOut);
 
-    filename = new char(strlen(protoFile) + 7);
+    filename = new char[strlen(protoFile) + 7];
     sprintf (filename, "%sCLNT.h", protoFile);
     tempHeader = fopen (filename, "w");
     dup2(tempHeader->_file, 1);
@@ -1161,7 +1165,7 @@ void interfaceSpec::genClass()
 
     fflush (stdout);
     fclose(tempHeader);
-    delete (filename);
+    delete [] filename;
 
     // must reopen this file since some code may be passed through to it
     kludgeOut = fopen (headerFile, "a");
@@ -1187,7 +1191,7 @@ buildPVMfilters()
   printf ("             buf_id = pvm_getrbuf();\n");
   printf ("             if (buf_id == 0) return (FALSE);\n");
   printf ("             if (pvm_bufinfo(buf_id, &bytes, &msgtag, &tid) < 0) return(FALSE);\n");
-  printf ("             *data = (String) new String(bytes+1);\n");
+  printf ("             *data = (String) new char[bytes+1];\n");
   printf ("             if (!(*data)) return (FALSE);\n");
   printf ("             data[bytes] = '\\0';\n");
   printf ("             if (pvm_upkstr(*data) < 0) return (FALSE);\n");
@@ -1196,7 +1200,7 @@ buildPVMfilters()
   printf ("             if (pvm_pkstr (*data) < 0) return (FALSE);\n");
   printf ("             break;\n");
   printf ("         case IGEN_PVM_FREE:\n");
-  printf ("             delete (*data);\n");
+  printf ("             delete [] (*data);\n");
   printf ("             *data = 0;\n");
   printf ("             break;\n");
   printf ("         default:\n");
@@ -1252,7 +1256,7 @@ templatePVMarray (const pvm_args * the_arg)
   printf ("           if (buf_id == 0) return (FALSE);\n");
   printf ("           if (pvm_bufinfo(buf_id, &bytes, &msgtag, &tid) < 0) return(FALSE);\n");
   printf ("           *count = bytes %s;\n", the_arg->arg);
-  printf ("           *data = (%s *) new char(*count);\n", the_arg->type_name);
+  printf ("           *data = (%s *) new char[*count];\n", the_arg->type_name);
   printf ("           if (!(*data)) return (FALSE);\n");
   printf ("           if (pvm_upk%s(*data, *count, 1) < 0) return (FALSE);\n", the_arg->pvm_name);
   printf ("           break;\n");
@@ -1260,7 +1264,7 @@ templatePVMarray (const pvm_args * the_arg)
   printf ("           if (pvm_pk%s (*data, *count, 1) < 0) return (FALSE);\n", the_arg->pvm_name);
   printf ("           break;\n");
   printf ("        case IGEN_PVM_FREE:\n");
-  printf ("           delete (*data);\n");
+  printf ("           delete [] (*data);\n");
   printf ("           break;\n");
   printf ("        default:\n");
   printf ("           assert(0);\n");
