@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.44 2000/01/11 21:55:37 altinel Exp $
+// $Id: test1.C,v 1.45 2000/03/02 23:49:25 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -296,7 +296,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_point *> *point1_1 =
 	appImage->findProcedurePoint("func1_1", BPatch_entry);
 
-    if ((*point1_1).size() == 0) {
+    if (!point1_1 || ((*point1_1).size() == 0)) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
 	fprintf(stderr, "    Unable to find entry point to \"func1_1.\"\n");
 	exit(1);
@@ -1245,9 +1245,9 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call17_2Expr);
 
     // test interface to call into insertSnippet with only one parameter
-    const BPatch_point aPoint = *(*point17_2)[0];
+    BPatch_point aPoint = *(*point17_2)[0];
     appThread->insertSnippet(call17_2Expr, aPoint, 
-	BPatch_callBefore, BPatch_lastSnippet);
+	BPatch_callAfter, BPatch_lastSnippet);
 }
 
 //

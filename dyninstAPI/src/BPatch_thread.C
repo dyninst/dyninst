@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.29 2000/02/18 20:40:51 bernat Exp $
+// $Id: BPatch_thread.C,v 1.30 2000/03/02 23:49:25 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -538,33 +538,36 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
  * point	The point at which to insert it.
  */
 BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
-						  const BPatch_point &point,
-						  BPatch_callWhen when,
+						  BPatch_point &point,
 						  BPatch_snippetOrder order)
 {
-    BPatch_Vector<BPatch_point *> point_vec;
+      BPatch_callWhen when;
 
-    point_vec.push_back(const_cast<BPatch_point *>(&point));
+      // which one depends on the type of the point
+      // need to cast away const since getPointType isn't const
+      if (((BPatch_point)point).getPointType() == BPatch_exit) {
+	  when = BPatch_callAfter;
+      } else {
+	  when = BPatch_callBefore;
+      }
 
-    return insertSnippet(expr, point_vec, when, order);
+      return insertSnippet(expr, point, when, order);
 }
-
 
 /*
  * BPatch_thread::insertSnippet
  *
- * Insert a code snippet at each of a list of instrumentation points.  Upon
- * success, Returns a handle to the created instances of the snippet, which
- * can be used to delete them (as a unit).  Otherwise returns NULL.
+ * Insert a code snippet at a given instrumentation point.  Upon succes,
+ * returns a handle to the created instance of the snippet, which can be used
+ * to delete it.  Otherwise returns NULL.
  *
  * expr		The snippet to insert.
- * points	The list of points at which to insert it.
+ * point	The point at which to insert it.
  */
-BPatchSnippetHandle *BPatch_thread::insertSnippet(
-				    const BPatch_snippet &expr,
-				    const BPatch_Vector<BPatch_point *> &points,
-				    BPatch_callWhen when,
-				    BPatch_snippetOrder order)
+BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
+						  BPatch_point &point,
+						  BPatch_callWhen when,
+						  BPatch_snippetOrder order)
 {
     // Can't insert code when mutations are not active.
     if (!mutationsActive)
@@ -600,47 +603,158 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 
     assert(BPatch::bpatch != NULL);	// We'll use this later
 
+    //
+    // Check for valid combinations of BPatch_procedureLocation & call*
+    // 	Right now we don't allow
+    //		BPatch_callBefore + BPatch_exit
+    //		BPatch_callAfter + BPatch_entry
+    //
+    //	These combinations are intended to be used to mark the point that
+    //      is the last, first valid point where the local variables are
+    //      valid.  This is deifferent than the first/last instruction of
+    //      a subroutine which is what the other combinations of BPatch_entry
+    //	    and BPatch_exit refer to.
+    //
+    //	jkh 3/1/00 (based on agreement reached at dyninst Jan'00 meeting)
+    //
+    if ((when == BPatch_callBefore) && 
+	(point.getPointType() == BPatch_exit)) {
+	BPatch_reportError(BPatchSerious, 113,
+	       "BPatch_callBefore at BPatch_exit not supported yet");
+	return NULL;
+    } else if ((when == BPatch_callAfter) && 
+	       (point.getPointType() == BPatch_entry)) {
+	BPatch_reportError(BPatchSerious, 113,
+	       "BPatch_callAfter at BPatch_entry not supported yet");
+	return NULL;
+    }
+
+    if ((point.getPointType() == BPatch_exit)) {
+	//  XXX - Hack! 
+	//  The semantics of pre/post insn at exit are setup for the new
+	//  defintion of using this to control before/after stack creation,
+	//  but the lower levels of dyninst don't know about this yet.
+	_when = callPreInsn;
+    }
+
+    // XXX Really only need to type check once per function the snippet is
+    // being inserted into, not necessarily once per point.
+    if (BPatch::bpatch->isTypeChecked()) {
+	assert(expr.ast);
+	if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+	    // XXX Type check error - should call callback
+	    return NULL;
+	}
+    }
+
+    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+
+    AstNode *ast = (AstNode *)expr.ast;  /* XXX no const */
+
+    // XXX We just pass false for the "noCost" parameter here - do we want
+    // to make that an option?
+    instInstance *instance; 
+    instPoint *ip = (instPoint*) point.point;
+    if ((instance = addInstFunc(proc,
+			ip,
+			ast,
+			_when,
+			_order,
+			false,
+			// Do we want the base tramp (if any) created allowing
+			// recursion? 
+			BPatch::bpatch->isTrampRecursive()
+			)) != NULL) {
+	    handle->add(instance);
+    } else {
+	delete handle;
+	return NULL;
+    }
+    return handle;
+}
+
+
+/*
+ * BPatch_thread::insertSnippet
+ *
+ * Insert a code snippet at each of a list of instrumentation points.  Upon
+ * success, Returns a handle to the created instances of the snippet, which
+ * can be used to delete them (as a unit).  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * points	The list of points at which to insert it.
+ */
+BPatchSnippetHandle *BPatch_thread::insertSnippet(
+				    const BPatch_snippet &expr,
+				    const BPatch_Vector<BPatch_point *> &points,
+				    BPatch_callWhen when,
+				    BPatch_snippetOrder order)
+{
     BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
 
     for (int i = 0; i < points.size(); i++) {
-	instPoint *point = (instPoint *)points[i]->point; // Cast away const
+	BPatch_point *point = points[i];
 
-	// XXX Really only need to type check once per function the snippet is
-	// being inserted into, not necessarily once per point.
-	if (BPatch::bpatch->isTypeChecked()) {
-	    assert(expr.ast);
-	    if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
-		// XXX Type check error - should call callback
-		delete handle;
-		return NULL;
+	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
+	if (ret) {
+	    for (int j=0; j < ret->instance.size(); j++) {
+		handle->add(ret->instance[j]);
 	    }
-	}
-
-	AstNode *ast = (AstNode *)expr.ast;  /* XXX no const */
-
-	// XXX We just pass false for the "noCost" parameter here - do we want
-	// to make that an option?
-	instInstance *instance; 
-	if ((instance =
-		addInstFunc(proc,
-			    point,
-			    ast,
-			    _when,
-			    _order,
-			    false,
-			    // Do we want the base tramp (if any) created allowing
-			    // recursion? 
-			    BPatch::bpatch->isTrampRecursive()
-			    )) != NULL) {
-	    handle->add(instance);
+	    delete ret;
 	} else {
 	    delete handle;
 	    return NULL;
 	}
     }
+
     return handle;
 }
 
+
+/*
+ * BPatch_thread::insertSnippet
+ *
+ * Insert a code snippet at each of a list of instrumentation points.  Upon
+ * success, Returns a handle to the created instances of the snippet, which
+ * can be used to delete them (as a unit).  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * points	The list of points at which to insert it.
+ */
+BPatchSnippetHandle *BPatch_thread::insertSnippet(
+				    const BPatch_snippet &expr,
+				    const BPatch_Vector<BPatch_point *> &points,
+				    BPatch_snippetOrder order)
+{
+    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+
+    for (int i = 0; i < points.size(); i++) {
+	BPatch_point *point = points[i]; // Cast away const
+
+        BPatch_callWhen when;
+
+        // which one depends on the type of the point
+        // need to cast away const since getPointType isn't const
+        if (point->getPointType() == BPatch_exit) {
+	    when = BPatch_callAfter;
+        } else {
+	    when = BPatch_callBefore;
+        }
+
+	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
+	if (ret) {
+	    for (int j=0; j < ret->instance.size(); j++) {
+		handle->add(ret->instance[j]);
+	    }
+	    delete ret;
+	} else {
+	    delete handle;
+	    return NULL;
+	}
+    }
+
+    return handle;
+}
 
 /*
  * BPatch_thread::deleteSnippet
@@ -653,6 +767,10 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
     if (handle->proc == proc) {
+	for (int i=0; i < handle->instance.size(); i++) {
+	    deleteInst(handle->instance[i], 
+		getAllTrampsAtPoint(handle->instance[i]));
+	}
 	delete handle;
 	return true;
     } else { // Handle isn't to a snippet instance in this process
@@ -945,6 +1063,5 @@ void BPatchSnippetHandle::add(instInstance *pointInstance)
  */
 BPatchSnippetHandle::~BPatchSnippetHandle()
 {
-    for (int i = 0; i < instance.size(); i++)
-	deleteInst(instance[i], getAllTrampsAtPoint(instance[i]));
+    // don't delete inst instances since they are might have been copied
 }

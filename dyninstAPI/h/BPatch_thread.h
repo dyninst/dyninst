@@ -86,6 +86,7 @@ typedef enum {
  * Bpatch_thread::insertSnippet.
  */
 class BPatchSnippetHandle {
+    friend class BPatch_thread;
 private:
     BPatch_Vector<instInstance *> instance;
 public:
@@ -168,15 +169,27 @@ public:
     BPatch_variableExpr	*malloc(const BPatch_type &type);
     void	free(const BPatch_variableExpr &ptr);
 
+    // to provide backward compatiblity 
     BPatchSnippetHandle *insertSnippet(
 			    const BPatch_snippet &expr,
-			    const BPatch_point &point,
-			    BPatch_callWhen when = BPatch_callBefore,
+			    BPatch_point &point,
 			    BPatch_snippetOrder order = BPatch_firstSnippet);
+
+    BPatchSnippetHandle *insertSnippet(
+			    const BPatch_snippet &expr,
+			    BPatch_point &point,
+			    BPatch_callWhen when,
+			    BPatch_snippetOrder order);
+
     BPatchSnippetHandle *insertSnippet(
 			    const BPatch_snippet &expr,
 			    const BPatch_Vector<BPatch_point *> &points,
-			    BPatch_callWhen when = BPatch_callBefore,
+			    BPatch_snippetOrder order = BPatch_firstSnippet);
+
+    BPatchSnippetHandle *insertSnippet(
+			    const BPatch_snippet &expr,
+			    const BPatch_Vector<BPatch_point *> &points,
+			    BPatch_callWhen when,
 			    BPatch_snippetOrder order = BPatch_firstSnippet);
 
     bool	deleteSnippet(BPatchSnippetHandle *handle);

@@ -77,7 +77,7 @@ class BPatch_point {
 		 BPatch_procedureLocation _pointType) :
 	proc(_proc), func(_func), point(_point), pointType(_pointType) {};
 public:
-    BPatch_procedureLocation getPointType() { return pointType; }
+    const BPatch_procedureLocation getPointType() { return pointType; }
     const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
