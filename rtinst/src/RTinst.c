@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.31 2000/05/11 04:52:31 zandy Exp $
+ * $Id: RTinst.c,v 1.32 2000/05/14 18:36:22 mirg Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1929,4 +1929,36 @@ int DYNINSTCalleeSearch(unsigned int callSiteAddr,
       return 0;
     }
   }
+}
+
+#define KNOWN_MPI_TYPES 34
+
+/*
+  This is an approximation to the real PMPI_Pack_size routine,
+  which may not be present in an MPI application
+  Constants are given for MPICH-1.2.0 on x86/Linux
+*/
+int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
+{
+	const int type_size[KNOWN_MPI_TYPES+1] = {
+		0, 1, 1, 1, 2, 2, 4, 4, 4, 4, 
+		4, 8,12, 8, 1, 0, 0, 8,12, 8, 
+		6, 8,16, 8,16, 4, 4, 8, 4, 8,
+		16,32, 8,16};
+	static int warned = 0;
+
+	if (!warned) {
+		fprintf(stderr, "WARNING: Bogus PMPI_Pack_size: relink "
+			"the application with \"-u PMPI_Pack_size\" "
+			"for accurate results\n");
+		warned = 1;
+	}
+	if (datatype <= 0 || datatype > KNOWN_MPI_TYPES) {
+		fprintf(stderr, "WARNING: Paradyn_Pack_size: unknown type\n");
+		*size = 0;
+		return (-1);
+	}
+	*size = incount * type_size[datatype] + 16;
+	
+	return 0;
 }
