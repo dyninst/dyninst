@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.6  1994/02/24 04:36:29  markc
+ * Revision 1.7  1994/02/25 20:58:10  markc
+ * Added support for storing paradynd's pids.
+ *
+ * Revision 1.6  1994/02/24  04:36:29  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -108,7 +111,9 @@ int applicationContext::addExecutable(char  *machine,
 	}
 	daemons.add(daemon);
 	msg_bind(daemon->fd, TRUE);
+	daemon->my_pid = getpid();
 	paradynDdebug(daemon->pid);
+	
     }
 
     programToRun.count = argc;

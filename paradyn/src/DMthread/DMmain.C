@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.5  1994/02/24 04:36:31  markc
+ * Revision 1.6  1994/02/25 20:58:11  markc
+ * Added support for storing paradynd's pids.
+ *
+ * Revision 1.5  1994/02/24  04:36:31  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -195,6 +198,7 @@ paradynDaemon::reportSelf (String m, String p, int pd)
 {
   machine = strdup(m);
   program = strdup(p);
+  my_pid = pd;
   return;
 }
 
