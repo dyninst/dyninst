@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.52 1999/06/18 21:44:40 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.53 1999/07/07 16:04:21 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -410,7 +410,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 }
 
 /*
- * Given and instruction, relocate it to a new address, patching up
+ * Given an instruction, relocate it to a new address, patching up
  *   any relative addressing that is present.
  * 
  */
@@ -443,6 +443,7 @@ void relocateInstruction(instruction *insn,
 	if (!offsetWithinRangeOfBranchInsn(newOffset)) {
 //	if (ABS(newOffset) > getMaxBranch1Insn()) {
 	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap);
+	    assert(ret);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
 	    instruction insnPlus[3];
@@ -470,18 +471,19 @@ void relocateInstruction(instruction *insn,
  *   - e.g. when instruction in inst point is relocated to tramp)....
  */
 void pd_Function::relocateInstructionWithFunction(instruction *insn, Address origAddr, 
-  Address targetAddr, process *proc, Address oldFunctionAddr) {
+  Address targetAddr, process *proc, Address oldFunctionAddr, int originalCodeSize) {
     // Because the whole function is being relocated, there are a few types of 
     //  instruction which would be altered by relocateInstruction which should
     //  not be altered here. 
     // In particular, branches and calls to locations WITHIN the function should
     //  NOT be altered, because their destinations move also....
     if (branchInsideRange(*insn, origAddr, oldFunctionAddr, \
-						 oldFunctionAddr + size())) {
+						 oldFunctionAddr + originalCodeSize)) {
         return;
     }
     if (trueCallInsideRange(*insn, origAddr, oldFunctionAddr, \
 					     oldFunctionAddr + size())) {
+	// 6/2/99 zhichen, need to revisit this
         return;
     }
         
@@ -808,27 +810,27 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    unsigned offset;
 	    offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
 	    generateBranchInsn(temp,offset);
-
         } else if (temp->raw == SKIP_POST_INSN) {
+
 	    unsigned offset;
 	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
 	    generateBranchInsn(temp,offset);
 
-        } else if (temp->raw == UPDATE_COST_INSN) {
-	    
+        } else if (temp->raw == UPDATE_COST_INSN) {	    
 	    baseTemplate.costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
-                (temp->raw == LOCAL_POST_BRANCH)) {
-                temp -= NUM_INSN_MT_PREAMBLE;
-                unsigned numIns=0;
-                generateMTpreamble((char *)temp, numIns, proc);
-                temp += NUM_INSN_MT_PREAMBLE;
+                (temp->raw == LOCAL_POST_BRANCH)) 
+	    {
+	      temp -= NUM_INSN_MT_PREAMBLE;
+	      Address numIns=0;
+	      generateMTpreamble((char *)temp, numIns, proc);
+	      temp += NUM_INSN_MT_PREAMBLE;
             }
 #endif
 	    /* fill with no-op */
@@ -932,21 +934,22 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
           unsigned offset;
           offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
           generateBranchInsn(temp,offset);
-        } else if (temp->raw == UPDATE_COST_INSN) {
-	    
+        } else if (temp->raw == UPDATE_COST_INSN) {	    
+
 	    baseTemplate.costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
-                (temp->raw == LOCAL_POST_BRANCH)) {
-                temp -= NUM_INSN_MT_PREAMBLE;
-                unsigned numIns=0;
-                generateMTpreamble((char *)temp, numIns, proc);
-		temp += NUM_INSN_MT_PREAMBLE;
+                (temp->raw == LOCAL_POST_BRANCH)) 
+	    {
+	      temp -= NUM_INSN_MT_PREAMBLE;
+	      Address numIns=0;
+	      generateMTpreamble((char *)temp, numIns, proc);
+	      temp += NUM_INSN_MT_PREAMBLE;
             }
 #endif
             /* fill with no-op */
@@ -1035,8 +1038,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
           if (in1BranchInsnRange(adr+baseAddress, location->func->getAddress(proc))) {
             branchSize = 1 ;
             insn = new instruction[branchSize + e_size];
-            generateBranchInsn(insn,(int)(location->func->getAddress(proc)-(adr+
-baseAddress)));
+            generateBranchInsn(insn,(int)(location->func->getAddress(proc)-(adr+baseAddress)));
           } else {
             branchSize = 3 ;
             insn = new instruction[branchSize + e_size];
@@ -1921,7 +1923,7 @@ bool pd_Function::findInstPoints(const image *owner) {
            isTrap = true;
 	   return findInstPoints(owner, getAddress(0), 0);
        }
-       
+
 
        // The function Entry is defined as the first SAVE instruction plus
        // the instructions after this.
@@ -2506,7 +2508,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
     // ATTACH AND APPLY 2ND SET OF PEEPHOLE ALTERATIONS....
     //
     PA_attachOverlappingInstPoints(&alterationSet2, 
-			     baseAddress, firstAddress, oldCode, size());
+			     baseAddress, firstAddress, oldCode, size()
+			     +alterationSet1.sizeChange()); // 6/1/99 zhichen
     alterationSet2.Collapse();
     totalSizeChange = alterationSet1.sizeChange() + alterationSet2.sizeChange();
 
@@ -2524,7 +2527,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
     // ATTACH AND APPLY THIRD SET OF PEEPHOLE ALTERATIONS....
     //
     PA_attachBranchOverlaps(&alterationSet3, 
-			     baseAddress, firstAddress, oldCode, size());
+			     baseAddress, firstAddress, oldCode, size()  // 6/1/99 zhichen
+			     +alterationSet1.sizeChange() + alterationSet2.sizeChange());
 
     alterationSet3.Collapse();
 
@@ -2579,8 +2583,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 //  do {-1, 0, 1} comparison by address....
 int sort_inst_points_by_address(const void *arg1, const void *arg2) {
     const instPoint *a, *b;
-    a = (const instPoint*)arg1;
-    b = (const instPoint*)arg2;
+    a = *(const instPoint**)arg1;
+    b = *(const instPoint**)arg2;
     if (a->iPgetAddress() > b->iPgetAddress()) {
         return 1;
     } else if (a->iPgetAddress() < b->iPgetAddress()) {
@@ -2674,18 +2678,18 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
 
 	        // call %REGISTER is actually a "JMPL" instruction in SPARC arch, 
                 //  although gdb's "disass" will show "call %REGISTER"....
-	        //  This current manner in which this is unwound results in 17 instructions
+	        //  This current manner in which this is unwound results in 18 instructions
 	        //  where the origional had 2 (call + restore)....
 	        if (isJmplCallInsn(instr)) {
 		    fer->AddExpansion(i*sizeof(instruction) + 8,
+				      16 * sizeof(instruction));
+		    total_shift += 16 * sizeof(instruction);
+	        } else if (isTrueCallInsn(instr)) {
+		    // call ADDR results in 17 instructions where origional code
+		    //  had 2 (net increase of 15 instructions).... 
+	 	    fer->AddExpansion(i*sizeof(instruction) + 8,
 				      15 * sizeof(instruction));
 		    total_shift += 15 * sizeof(instruction);
-	        } else if (isTrueCallInsn(instr)) {
-		    // call ADDR results in 16 instructions where origional code
-		    //  had 2 (net increase of 14 instructions).... 
-	 	    fer->AddExpansion(i*sizeof(instruction) + 8,
-				      14 * sizeof(instruction));
-		    total_shift += 14 * sizeof(instruction);
 	        } else {
 		    // relocation code currently does NOT deal with other types of
 		    //  call ; restore sequence (e.g. call %REGISTER + OFFSET; restore).
@@ -2707,7 +2711,8 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
 	}
     }
 
-    *size_change = total_shift;
+    *size_change = total_shift + 4*sizeof(instruction); //ALERT, a hack, --zhichen
+    // can not know the real size until after called findNewInstPoints 
     return TRUE;
 }
 
@@ -3046,7 +3051,7 @@ bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAdd
 // firstAddess - address at which function starts....
 // adr         - address at which instruction is located....
 void pd_Function::patchOffset(LocalAlterationSet *p, instruction& instr, 
-			      Address adr, Address firstAddress) {
+			      Address adr, Address firstAddress, int originalCodeSize) {
     int disp, extra_offset;
 
     // Currently applied to :
@@ -3054,17 +3059,18 @@ void pd_Function::patchOffset(LocalAlterationSet *p, instruction& instr,
     if (isBranchInsn(instr)) {
         // branch to target inside or outside of fn???? 
         if (!branchInsideRange(instr, adr, firstAddress, 
-			      firstAddress + size())) return;
+			      firstAddress + originalCodeSize)) return;
 	// branch inside fn. patch offset....
 	disp = instr.branch.disp22;
 	extra_offset = p->GetShift(adr - firstAddress + disp * sizeof(instruction))
 		     - p->GetShift(adr - firstAddress);
 #ifdef DEBUG_PA_INST 
 	cerr << "  patching offset of (intra-function) branch at offset " 
-	     << (adr - firstAddress) << " : extra offset " << extra_offset << endl; 
+	     << (adr - firstAddress) << " : extra offset " << extra_offset 
+	     << " : disp " << disp << endl; 
 #endif
 	assert(extra_offset % sizeof(instruction) == 0);
-	instr.branch.disp22 += extra_offset >> 2;
+	instr.branch.disp22 += (extra_offset / sizeof(instruction)); // 6/1/99 zhichen
     }
 }
 
@@ -3139,11 +3145,11 @@ bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr,
 	    //  need to be altered for relocation....
 	    newCode[newOffset] = originalCode[oldOffset];
 	    relocateInstructionWithFunction(&newCode[newOffset], oldAdr, newAdr, proc, 
-					    oldAdrSave);
+					    oldAdrSave, originalCodeSize);
 	    // patch offset should change the offset for any PC-relative code
 	    //  to reflect any alterations in the region branched over contained
 	    //  in LocalAlterationSet p....
-	    patchOffset(p, newCode[newOffset], oldAdr, oldAdrSave);
+	    patchOffset(p, newCode[newOffset], oldAdr, oldAdrSave, originalCodeSize);
 	}
 
 	// If the simple copy loop stopped because encountered an alteration, 
@@ -3162,7 +3168,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr,
 int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
 	  int codeSize) {
     assert(offset >= 0 && offset < codeSize);
-    if (IS_DELAYED_INST(loadedCode[offset])) {
+    if (IS_DELAYED_INST(loadedCode[offset/sizeof(instruction)-1])) {
         return offset + sizeof(instruction);
     }
     return offset;
