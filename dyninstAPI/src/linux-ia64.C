@@ -662,8 +662,8 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		/* Initialize it to the active frame. */
 		status = unw_init_remote( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArg );
 		assert( status == 0 );
-                                                                                                                                    
-	    /* Unwind to the current frame. */
+
+		/* Unwind to the current frame. */
 		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), true );
 		while( ! currentFrame.isUppermost() ) {
 			if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
@@ -807,8 +807,27 @@ int dyn_lwp::hasReachedSyscallTrap() {
 	} /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
-bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /* target_pdf */, Address /* base_addr */ ) {
-	assert( 0 );
+bool process::hasBeenBound( const relocationEntry entry, pd_Function * & target_pdf, Address base_addr ) {
+	/* A PLT entry always looks up a function descriptor in the FD table in the .IA_64.pltoff section; if
+	   the function hasn't been bound yet, that FD's function pointer will point to another PLT entry.
+	   (Which will jump to the first, special PLT entry that calls the linker.) 
+	   
+	   The relocation entry points directly to the descriptor, so only a single indirection is necessary. */
+	   
+	Address gotAddress = entry.rel_addr() + base_addr;
+	assert( gotAddress % 16 == 0 );
+	/* DEBUG */ fprintf( stderr, "hasBeenBound(): checking entry at 0x%lx\n", gotAddress );
 
-	return false;
+	Address functionAddress;
+	if( ! this->readDataSpace( (const void *)gotAddress, 8, (void *) & functionAddress, true ) ) {
+		fprintf( stderr, "%s: failed to read from GOT (0x%lx)\n", __FUNCTION__, gotAddress );
+		return false;
+		}
+	/* DEBUG */ fprintf( stderr, "hasBeenBound(): checking function address 0x%lx\n", functionAddress );
+	
+	/* Do the look up.  We're skipping a potential optimization here (checking to see if
+ 	   functionAddress is in the PLT first) for simplicitly. */
+	target_pdf = this->findFuncByAddr( functionAddress );
+	/* DEBUG */ fprintf( stderr, "hasBeenBound(): found pd_Function at %p\n", target_pdf );
+	return ( target_pdf != NULL );
 	} /* end hasBeenBound() */
