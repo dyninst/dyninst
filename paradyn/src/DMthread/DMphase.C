@@ -100,8 +100,7 @@ void phaseInfo::startPhase(const string &name, bool with_new_pc,
     metricInstance::stopAllCurrentDataCollection(lastId);
 
     // invoke newPhaseCallback for all perf. streams
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-			allS(performanceStream::allStreams);
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
     
     // for any outstanding enables for the old current phase
     // remove from outstandingenables list and respond to all clients of

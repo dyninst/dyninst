@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.40 2002/10/28 04:54:14 schendel Exp $
+// $Id: DMmetric.C,v 1.41 2002/11/25 23:52:24 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -557,9 +557,9 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       vector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
 	       assert(mi_focus != NULL);
 
-	       string mi_focus_name=DMcreateRLname(*mi_focus);
+	       string mi_focus_name = resource::DMcreateRLname(*mi_focus);
 	       delete mi_focus;
-	       string focus_name=DMcreateRLname(metfocus.res);
+	       string focus_name = resource::DMcreateRLname(metfocus.res);
 	       char *focus_name_str = P_strdup(focus_name.c_str());
 
 	       string focus_code("/Code");
