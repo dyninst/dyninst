@@ -1,53 +1,41 @@
 #
+# TopLevel Makefile for the Paradyn system.
 #
-# First cut at a topLevel makefile for the paradyn system.
-#
-# $Log: Makefile,v $
-# Revision 1.24  1997/05/12 20:25:03  naim
-# Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
-#
-# Revision 1.23  1996/08/16 18:42:46  newhall
-# removed bininst and paradyndSIM from Makefile
-#
-# Revision 1.22  1995/12/20 00:16:41  tamches
-# removed paradyndPVM, a now-obsolete directory, from the nightly build
-#
-# Revision 1.21  1995/12/15 22:45:39  tamches
-# removed reference to "dag", an obsolete directory.
-# Added visiClients/phaseTable
-#
-# Revision 1.20  1995/11/04 01:14:56  tamches
-# added the new table visi (visiClients/tableVisi) to the nightly build
-#
-# Revision 1.19  1995/01/30 18:08:12  jcargill
-# Major build system reorganization
-#
+# $Id: Makefile,v 1.25 1997/12/22 23:27:51 wylie Exp $
 #
 
-# Standalone is the list of standalone binaries.  These get built
-# first when we "make world", since they include tools for building
-# the rest of the system.
+# "buildFirst" is the list of components which need to be built first
+# with "make world", since they are used building the rest of the system.
 #
-# Subsystems is the list of all other pieces which should be built.
+# "subSystems" is the list of all other pieces which should be built
+# as part of Paradyn.
 #
-buildfirst	= util igen thread visi hist
-subsystems	= paradyn rtinst rthist \
-		paradynd  visiClients/tclVisi visiClients/barchart \
+# "dynInstAPI" is the list of additional API components (optional).
+#
+buildFirst	= util igen thread visi hist
+subSystems	= paradyn rtinst rthist paradynd \
+		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/terrain
+dynInstAPI	= dyninstAPI dyninstAPI_RT
+
+#
+# "fullSystem" is the complete list of all components
+#
+fullSystem	= $(buildFirst) $(subSystems) $(dynInstAPI)
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
-# as a target on the next line:
+# as a target on the first line:
 
 # Note that the first item listed in this rule ("all") is what gets
 # made by default if make is passed no arguments.  Don't add other
-# target before all!
+# targets before all!
 
 all clean install depend:
-	+for subsystem in $(buildfirst) $(subsystems); do 	\
+	+for subsystem in $(fullSystem); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
-	       $(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
+		$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
 	    else						\
 		true;						\
 	    fi							\
@@ -57,9 +45,9 @@ all clean install depend:
 # lower-level Makefiles in the individual "docs" directories.
 
 docs install-man:
-	+for subsystem in $(buildfirst) $(subsystems); do	\
+	+for subsystem in $(fullSystem); do			\
 	    if [ -f $$subsystem/docs/Makefile ]; then		\
-	       $(MAKE) -C $$subsystem/docs $@;			\
+		$(MAKE) -C $$subsystem/docs $@;			\
 	    else						\
 		true;						\
 	    fi							\
@@ -67,9 +55,11 @@ docs install-man:
 
 
 # The "make world" target is set up to build things in the "correct"
-# order for a build from scratch.  It builds things in the
-# "buildfirst" list first, then builds everything, then installs
-# everything.
+# order for a build from scratch.  It builds and installs things in the
+# "buildFirst" list first, then builds and installs the remaining
+# Paradyn "subSystems" (excluding the currently optional dynInstAPI).
+# NB: "make world" currently also builds the dynInstAPI components
+# since the nightly build doesn't seem to use the "nightly" target.
 #
 # This make target doesn't go first in the Makefile, though, since we
 # really only want to make "install" when it's specifically requested.
@@ -78,22 +68,43 @@ docs install-man:
 # unnecessary work.
 
 world:
-	+for subsystem in $(buildfirst); do 			\
+	+for subsystem in $(buildFirst); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
-	       $(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
+		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
 	    else						\
 		true;						\
 	    fi							\
 	done
-	$(MAKE) all
-	$(MAKE) install
+	+for subsystem in $(dynInstAPI); do			\
+	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
+	    else						\
+		true;						\
+	    fi							\
+	done
+	+for subsystem in $(subSystems); do 			\
+	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
+	    else						\
+		true;						\
+	    fi							\
+	done
 
+# Currently optional dynInstAPI build and install
+
+dynInstAPI:
+	+for subsystem in $(dynInstAPI); do			\
+	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
+	    else						\
+		true;						\
+	    fi							\
+	done
 
 # The "make nightly" target is what should get run automatically every
 # night.  It uses "make world" to build things in the right order for
 # a build from scratch.  
 #
-
 # Note that "nightly" should only be run on the primary build site,
 # and does things like building documentation that don't need to be
 # built for each different architecture.  Other "non-primary" build
@@ -102,6 +113,7 @@ world:
 nightly:
 	$(MAKE) clean
 	$(MAKE) world
+#	$(MAKE) dynInstAPI
 	$(MAKE) docs
 	$(MAKE) install-man
 	chmod 644 /p/paradyn/man/man?/*
