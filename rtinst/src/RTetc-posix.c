@@ -131,16 +131,37 @@ DYNINSTbreakPoint(void) {
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
 
+#ifdef COSTTEST
+time64 DYNINSTtest[10]={0,0,0,0,0,0,0,0,0,0};
+int DYNINSTtestN[10]={0,0,0,0,0,0,0,0,0,0};
+#endif
+
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
     /* if "write" is instrumented to start timers, a timer could be started */
     /* when samples are being written back */
+
+#ifdef COSTTEST
+    time64 startT,endT;
+#endif
+   
     if (DYNINSTin_sample) return;       
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
+
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetCPUtime();
         timer->normalize = MILLION;
     }
     timer->counter++;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[0]+=endT-startT;
+    DYNINSTtestN[0]++;
+#endif
 }
 
 
@@ -155,7 +176,16 @@ void
 DYNINSTstopProcessTimer(tTimer* timer) {
     /* if "write" is instrumented to start timers, a timer could be started */
     /* when samples are being written back */
+
+#ifdef COSTTEST
+    time64 startT,endT;
+#endif
+   
     if (DYNINSTin_sample) return;       
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
     if (!timer->counter) {
         return;
@@ -189,6 +219,12 @@ DYNINSTstopProcessTimer(tTimer* timer) {
     else {
       timer->counter--;
     }
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[1]+=endT-startT;
+    DYNINSTtestN[1]++;
+#endif 
 }
 
 
@@ -203,12 +239,28 @@ void
 DYNINSTstartWallTimer(tTimer* timer) {
     /* if "write" is instrumented to start timers, a timer could be started */
     /* when samples are being written back */
+
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
+
     if (DYNINSTin_sample) return;       
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
+
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetWalltime();
         timer->normalize = MILLION;
     }
     timer->counter++;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[2]+=endT-startT;
+    DYNINSTtestN[2]++;
+#endif 
 }
 
 
@@ -223,7 +275,16 @@ void
 DYNINSTstopWallTimer(tTimer* timer) {
     /* if "write" is instrumented to start timers, a timer could be started */
     /* when samples are being written back */
+
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
+
     if (DYNINSTin_sample) return;       
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
     if (!timer->counter) {
         return;
@@ -258,6 +319,11 @@ DYNINSTstopWallTimer(tTimer* timer) {
     else {
         timer->counter--;
     }
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[3]+=endT-startT;
+    DYNINSTtestN[3]++;
+#endif 
 }
 
 
@@ -342,7 +408,7 @@ DYNINSTcyclesPerSecond(void) {
     time64         end_cpu;
     double         elapsed;
     double         speed;
-    const unsigned LOOP_LIMIT = 50000;
+    const unsigned LOOP_LIMIT = 500000;
 
     start_cpu = DYNINSTgetCPUtime();
     for (i = 0; i < LOOP_LIMIT; i++) {
@@ -352,11 +418,8 @@ DYNINSTcyclesPerSecond(void) {
         NOPS_16; NOPS_16; NOPS_16; NOPS_16;
     }
     end_cpu = DYNINSTgetCPUtime();
-    elapsed = (double) end_cpu - start_cpu;
-    speed   = (MILLION*256*LOOP_LIMIT)/elapsed;
-
-    /* printf("elapsed = %f\n", elapsed); */
-    /* printf("speed   = %f\n", speed); */
+    elapsed = (double) (end_cpu - start_cpu);
+    speed   = (double) (MILLION*256*LOOP_LIMIT)/elapsed;
 
     return speed;
 }
@@ -537,6 +600,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 static float DYNINSTcyclesToUsec  = 0;
 static time64 DYNINSTlastWallTime = 0;
 static time64 DYNINSTlastCPUTime  = 0;
+static time64 DYNINSTtotalSampleTime = 0;
 
 void
 DYNINSTreportBaseTramps() {
@@ -547,9 +611,17 @@ DYNINSTreportBaseTramps() {
     time64     currentPauseTime;
 
     sample.slotsExecuted = 0;
-    sample.obsCostIdeal  = ((double) DYNINSTgetObservedCycles(1)) *
-        (DYNINSTcyclesToUsec / MILLION);
 
+    //
+    // Adding the cost corresponding to the alarm when it goes off.
+    // This value includes the time spent inside the routine (DYNINSTtotal-
+    // sampleTime) plus the time spent during the context switch (121 usecs
+    // for SS-10, sunos)
+    //
+
+    sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
+                              (double)DYNINSTcyclesToUsec) + 
+                             DYNINSTtotalSampleTime + 121) / 1000000.0);
 
     currentCPU       = DYNINSTgetCPUtime();
     currentWall      = DYNINSTgetWalltime();
@@ -606,19 +678,25 @@ DYNINSTreportBaseTramps() {
 volatile int DYNINSTsampleMultiple    = 1;
 static int          DYNINSTnumSampled        = 0;
 static int          DYNINSTtotalAlarmExpires = 0;
-static time64       DYNINSTtotalSampleTime   = 0;
 
 void
 DYNINSTalarmExpire(int signo) {
     time64     start_cpu;
     time64     end_cpu;
-    /* static int in_sample = 0; */
     float      fp_context[N_FP_REGS];
+
+#ifdef COSTTEST
+    time64 startT, endT;
+#endif
 
     if (DYNINSTin_sample) {
         return;
     }
     DYNINSTin_sample = 1;
+
+#ifdef COSTTEST
+    startT=DYNINSTgetCPUtime();
+#endif
 
     DYNINSTtotalAlarmExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
@@ -639,6 +717,12 @@ DYNINSTalarmExpire(int signo) {
     }
 
     DYNINSTin_sample = 0;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[4]+=endT-startT;
+    DYNINSTtestN[4]++;
+#endif 
 }
 
 
@@ -770,6 +854,11 @@ DYNINSTreportTimer(tTimer *timer) {
     time64 total;
     traceSample sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT = DYNINSTgetCPUtime();
+#endif
+
     if (timer->mutex) {
         total = timer->snapShot;
     }
@@ -817,6 +906,11 @@ DYNINSTreportTimer(tTimer *timer) {
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
     /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[5]+=endT-startT;
+    DYNINSTtestN[5]++;
+#endif 
 }
 
 
@@ -874,12 +968,12 @@ DYNINSTprintCost(void) {
 
     stats.alarms      = DYNINSTtotalAlarmExpires;
     stats.numReported = DYNINSTnumReported;
-    stats.instTime    = ((double) value)/MILLION;
-    stats.handlerCost = ((double) DYNINSTtotalSampleTime)/MILLION;
+    stats.instTime    = (double)value/(double)MILLION;
+    stats.handlerCost = (double)DYNINSTtotalSampleTime/(double)MILLION;
 
     now = DYNINSTgetCPUtime();
-    stats.totalCpuTime  = ((double) DYNINSTelapsedCPUTime.total)/MILLION;
-    stats.totalWallTime = ((double) DYNINSTelapsedTime.total/MILLION);
+    stats.totalCpuTime  = (double)DYNINSTelapsedCPUTime.total/(double)MILLION;
+    stats.totalWallTime = (double)DYNINSTelapsedTime.total/(double)MILLION;
 
     stats.samplesReported = DYNINSTtotalSamples;
     stats.samplingRate    = DYNINSTsamplingRate;
@@ -888,7 +982,6 @@ DYNINSTprintCost(void) {
     stats.instTicks = 0;
 
     fp = fopen("stats.out", "w");
-
 
 #ifdef USE_PROF
     if (DYNINSTprofile) {
@@ -984,8 +1077,13 @@ DYNINSTrecordTag(int tag) {
 void
 DYNINSTreportNewTags(void) {
     int i;
-    static int lastTagCount;
+    static int lastTagCount=0;
     struct _newresource newRes;
+
+#ifdef COSTTEST
+    time64 startT,endT;
+    startT=DYNINSTgetCPUtime();
+#endif
 
     for (i=lastTagCount; i < DYNINSTtagCount; i++) {
         memset(&newRes, '\0', sizeof(newRes));
@@ -995,6 +1093,12 @@ DYNINSTreportNewTags(void) {
             sizeof(struct _newresource), &newRes, 1);
     }
     lastTagCount = DYNINSTtagCount;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[8]+=endT-startT;
+    DYNINSTtestN[8]++;
+#endif 
 }
 
 
@@ -1011,11 +1115,23 @@ void
 DYNINSTreportCounter(intCounter* counter) {
     traceSample sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+
     sample.value = counter->value;
     sample.id    = counter->id;
     DYNINSTtotalSamples++;
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[6]+=endT-startT;
+    DYNINSTtestN[6]++;
+#endif 
+
 }
 
 
@@ -1063,6 +1179,11 @@ DYNINSTreportCost(intCounter *counter) {
     static double prev_cost = 0;
     traceSample   sample;
 
+#ifdef COSTTEST
+    time64 startT, endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+
     value = DYNINSTgetObservedCycles(1);
     cost  = ((double) value) * (DYNINSTcyclesToUsec / MILLION);
 
@@ -1084,6 +1205,12 @@ DYNINSTreportCost(intCounter *counter) {
     DYNINSTtotalSamples++;
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof sample, &sample, 0);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[7]+=endT-startT;
+    DYNINSTtestN[7]++;
+#endif 
 }
 
 
