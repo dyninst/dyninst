@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-linux.c,v 1.2 2000/05/31 18:01:02 nick Exp $ */
+/* $Id: RTheap-linux.c,v 1.3 2003/06/10 17:45:31 tlmiller Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
@@ -54,11 +54,21 @@
 #include <sys/mman.h>                 /* mmap() */
 #include "RTheap.h"
 
+#if defined( ia64_unknown_linux2_4 )
+/* Align the heap at the IP granularity. */
+int	DYNINSTheap_align = 16;
 
+/* Try to stay away from the mutatee's stack and heap.
+   For now, stash everything in what's supposed to
+   be the shared memory region. */
+Address	DYNINSTheap_loAddr = 0x2000000000000000;
+Address DYNINSTheap_hiAddr = 0x3fffffffffffffff;
+#else
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
 Address DYNINSTheap_loAddr = 0x50000000;
 Address DYNINSTheap_hiAddr = 0xb0000000;
+#endif
 
 int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_PRIVATE;
 
