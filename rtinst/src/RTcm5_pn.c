@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.33  1996/02/01 17:47:54  naim
+ * Revision 1.34  1996/02/01 22:09:34  naim
+ * Minor change - naim
+ *
+ * Revision 1.33  1996/02/01  17:47:54  naim
  * Fixing some problems related to timers and race conditions. I also tried to
  * make a more standard definition of certain procedures (e.g. reportTimer)
  * across all platforms - naim
@@ -441,6 +444,7 @@ void DYNINSTreportTimer(tTimer *timer)
 {
     time64 now=0;
     time64 total;
+    traceSample sample;
 
     if (timer->mutex) {
 	total = timer->snapShot;
