@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.1 2000/03/12 23:28:28 hollings Exp $
+// $Id: test4.C,v 1.2 2000/03/22 01:52:31 wylie Exp $
 //
 
 #include <stdio.h>
@@ -497,7 +497,6 @@ main(unsigned int argc, char *argv[])
 {
     unsigned int i;
     char libname[256];
-    bool useAttach = false;
 
     libname[0]='\0';
 
@@ -532,8 +531,6 @@ main(unsigned int argc, char *argv[])
             fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
             fflush(stdout);
-	} else if (!strcmp(argv[i], "-attach")) {
-	    useAttach = true;
 	} else if (!strcmp(argv[i], "-skip")) {
 	    unsigned int j;
 	    runAllTests = false;
@@ -574,6 +571,10 @@ main(unsigned int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-mutatee")) {
 	    mutateeName = argv[i+1];
 	    i++;
+#if defined(mips_sgi_irix6_4)
+	} else if (!strcmp(argv[i], "-n32")) {
+	    mutateeName = "test4a.mutatee_gcc_n32";
+#endif
 	} else {
 	    fprintf(stderr, "Usage: test4 "
 		    "[-V] [-verbose] "
