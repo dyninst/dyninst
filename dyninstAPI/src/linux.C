@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.149 2005/01/18 18:34:03 bernat Exp $
+// $Id: linux.C,v 1.150 2005/01/19 17:41:01 bernat Exp $
 
 #include <fstream>
 
@@ -62,6 +62,7 @@
 #include <unistd.h> // for sysconf()
 
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "common/h/headers.h"

@@ -40,11 +40,16 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.52 2005/01/18 18:34:08 bernat Exp $
+ * $Id: func-reloc.C,v 1.53 2005/01/19 17:40:57 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/LocalAlteration.h"
+#include "dyninstAPI/src/LocalAlteration-x86.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/instP.h" // generateBranch
 
 extern bool isTrueCallInsn(const instruction insn);
 extern bool isNearBranchInsn(const instruction insn);

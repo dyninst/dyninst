@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.185 2005/01/18 23:57:12 rutar Exp $
+ * $Id: inst-x86.C,v 1.186 2005/01/19 17:40:59 bernat Exp $
  */
 #include <iomanip>
 
@@ -74,6 +74,7 @@
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
 #include "dyninstAPI/src/LocalAlteration.h"
+#include "dyninstAPI/src/LocalAlteration-x86.h"
 
 #include <sstream>
 

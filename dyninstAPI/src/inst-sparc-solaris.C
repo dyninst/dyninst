@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.152 2004/05/21 14:14:45 legendre Exp $
+// $Id: inst-sparc-solaris.C,v 1.153 2005/01/19 17:40:58 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -47,6 +47,9 @@
 
 // Needed for function relocation
 #include "dyninstAPI/src/func-reloc.h"
+#include "dyninstAPI/src/LocalAlteration.h"
+#include "dyninstAPI/src/LocalAlteration-Sparc.h"
+
 
 #include <sys/utsname.h>
 #include <stdlib.h>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.4 2004/08/16 04:34:00 rchen Exp $
+// $Id: codeRange.C,v 1.5 2005/01/19 17:40:56 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -48,6 +48,8 @@
 #include "dyninstAPI/src/trampTemplate.h"
 #include "dyninstAPI/src/miniTrampHandle.h"
 #include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/func-reloc.h"
 
 trampTemplate *codeRange::is_basetramp() {
    return dynamic_cast<trampTemplate *>(this);

@@ -50,6 +50,9 @@
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/pd_image.h"
 
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/func-reloc.h"
+
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"

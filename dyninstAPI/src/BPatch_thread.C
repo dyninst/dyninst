@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.114 2005/01/18 18:34:00 bernat Exp $
+// $Id: BPatch_thread.C,v 1.115 2005/01/19 17:40:54 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -53,10 +53,14 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
+#include "function.h" // pd_Function
+#include "codeRange.h"
+#include "func-reloc.h"
 
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "LineInformation.h"
+
 
 
 /*
@@ -1514,13 +1518,13 @@ BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
         return NULL;
 
     if (range->is_relocated_func())
-       func = range->is_relocated_func()->func();
+      func = range->is_relocated_func()->func();
     else
-       func = range->is_pd_Function();
-
+      func = range->is_pd_Function();
+    
     if (!func)
-       return NULL;
-
+      return NULL;
+    
     return proc->findOrCreateBPFunc(func);
 }
 

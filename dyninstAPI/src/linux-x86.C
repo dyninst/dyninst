@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.55 2004/12/03 21:15:04 legendre Exp $
+// $Id: linux-x86.C,v 1.56 2005/01/19 17:41:00 bernat Exp $
 
 #include <fstream>
 
@@ -61,6 +61,7 @@
 #include "dyninstAPI/src/miniTrampHandle.h"
 #include "dyninstAPI/src/trampTemplate.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
