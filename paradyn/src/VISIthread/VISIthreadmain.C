@@ -22,12 +22,15 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.52  1995/11/21 15:17:25  naim
-/* Changing the way we were displaying error messages when a metric was not
-/* enabled. Currently, if a selected metric has already been enabled, then we
-/* take no action. If the metric cannot be enabled then we display an error
-/* message including the name of the metric and the corresponding focus - naim
+/* Revision 1.53  1995/11/30 16:51:53  naim
+/* Minor fix: abbreviating focusName for error message displaying  - naim
 /*
+ * Revision 1.52  1995/11/21  15:17:25  naim
+ * Changing the way we were displaying error messages when a metric was not
+ * enabled. Currently, if a selected metric has already been enabled, then we
+ * take no action. If the metric cannot be enabled then we display an error
+ * message including the name of the metric and the corresponding focus - naim
+ *
  * Revision 1.51  1995/11/20  03:33:28  tamches
  * Changed buffer variables; optimized code that write to & flushes it.
  * Added flush_buffer_if_full() and flush_buffer_if_nonempty() helper routines.
@@ -781,7 +784,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
 	  if (focusName) {
 	    msg += string("(");
-	    msg += (*focusName);
+	    msg += string(AbbreviatedFocus((*focusName).string_of()));
 	    msg += string(")");
           }
 	  msg += string(" ");
@@ -802,14 +805,14 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       if (ptr->args->remenuFlag) {
 	if (retryList->size()) {
 	  ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
-          string msg("Cannot enable the following metric(s): ");
+          string msg("Cannot enable the following metric/focus pair(s): ");
 	  for (int ii=0;ii<retryList->size();ii++) {
 	    string *focusName=NULL;
 	    focusName = dataMgr->getFocusName(&((*retryList)[ii].res));
 	    msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
 	    if (focusName) {
 	      msg += string("(");
-	      msg += (*focusName);
+	      msg += string(AbbreviatedFocus((*focusName).string_of()));
 	      msg += string(")");
 	    }
 	    msg += string(" ");
@@ -1136,7 +1139,9 @@ int first = 0;
   }
   PARADYN_DEBUG(("abbreviated focus = %s size = %d\n",newword,size));
   PARADYN_DEBUG(("abbreviated focus num = %d",num));
-  free(longName);
+  //TODO: How can we free longName if we are passing this argument as
+  //const char *? I don't quite understand - naim
+  //free(longName);
   return(newword);
 }
 
