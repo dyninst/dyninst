@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.29  1994/10/25 22:08:01  hollings
+ * Revision 1.30  1994/11/04 13:02:46  markc
+ * Moved calculation of the compensationFactor to the inner loop so each hypothesis
+ * will get get a normalization factor for the interval over which it is collected.
+ *
+ * Revision 1.29  1994/10/25  22:08:01  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -180,7 +184,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.29 1994/10/25 22:08:01 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.30 1994/11/04 13:02:46 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -533,12 +537,15 @@ Boolean evalTests()
     extern tunableBooleanConstant pcEvalPrint;
     float fctr;
 
+#ifdef notdef
+    // this is incorrect here.  Each hypothesis has a different time interval
+    // and should get a different compensationFactor.
     factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
-    // printf("factor=%f\n", fctr);
+    // TODO mdc
+    cout << "\n\npaused= " << fctr << "   running=  " << 1.0 - fctr << endl;
     // if (factor < 0.0) factor = 0.01;
     // assert ((factor <= 1.0) && (factor > 0.0));
-    if (factor < 0.0) factor = 0.0;
-    if (factor > 1.0) factor = 1.0;
+#endif
 
     for (curr = *currentTestResults; r=*curr; curr++) {
 	// try the test
@@ -568,16 +575,23 @@ Boolean evalTests()
 		hysteresis = 1.0 + hysteresisRange.getValue();
 	    }
 
-	    // allow for "compensated" time.
-	    normalize = hysteresis * factor;
-
 	    // define the correct time interval.
 	    assert(r->metFociUsed);
 	    getTimes(&PCstartTransTime, &PCendTransTime, r->metFociUsed);
-
 	    if (pcEvalPrint.getValue()) {
 		cout << PCstartTransTime << " to " << PCendTransTime << " ";
 	    }
+
+	    // NEW CODE
+	    factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
+	    if (pcEvalPrint.getValue()) 
+	      cout << "\n\npaused= " << fctr << "   running=  " << 1.0 - fctr << endl;
+	    if (factor < 0.0) factor = 0.00001;
+	    if (factor > 1.0) factor = 0.99999;
+	    // NEW CODE
+
+	    // allow for "compensated" time.
+	    normalize = hysteresis * factor;
 
 	    (r->t->evaluate(&(r->state), normalize));
 	}
