@@ -3,8 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Once-win.C,v 1.2 2004/03/23 01:12:23 eli Exp $
-#include "xplat/src/Once-win.h"
+// $Id: Once-win.C,v 1.3 2005/03/21 18:58:31 darnold Exp $
+#include "Once-win.h"
 
 namespace XPlat
 {

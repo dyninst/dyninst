@@ -3,9 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Mutex-pthread.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Mutex-pthread.C,v 1.3 2005/03/21 18:58:28 darnold Exp $
 #include <assert.h>
-#include "xplat/src/Mutex-pthread.h"
+#include "Mutex-pthread.h"
 
 namespace XPlat
 {

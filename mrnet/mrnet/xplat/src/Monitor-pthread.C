@@ -3,9 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-pthread.C,v 1.4 2005/02/15 20:00:07 tlmiller Exp $
+// $Id: Monitor-pthread.C,v 1.5 2005/03/21 18:58:27 darnold Exp $
 #include <assert.h>
-#include "xplat/src/Monitor-pthread.h"
+#include "Monitor-pthread.h"
 
 namespace XPlat
 {
