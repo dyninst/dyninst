@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.31  1994/07/08 21:56:25  jcargill
+ * Revision 1.32  1994/07/14 23:46:23  hollings
+ * added getCurrentHybridCost, and fixed max for predicted cost.
+ *
+ * Revision 1.31  1994/07/08  21:56:25  jcargill
  * Changed XDR connection to paradynd to a buffered bind
  *
  * Revision 1.30  1994/07/07  03:28:59  markc
@@ -185,8 +188,10 @@ Boolean applicationContext::addDaemon (int new_fd)
 //
 void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 {
+#ifdef notdef
     executable *e;
     List<executable*> progs;
+#endif
 
     if (informUser) {
 	printf("paradynd (pid %d) had died\n", d->pid);
@@ -521,7 +526,22 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
     for (curr = daemons; *curr; curr++) {
 	daemon = *curr;
 	val = daemon->getPredictedDataCost(ra, m->getName());
-	if (val > max) val = max;
+	if (val > max) max = val;
+    }
+    return(max);
+}
+
+float applicationContext::getCurrentHybridCost()
+{
+    double val, max;
+    paradynDaemon *daemon;
+    List<paradynDaemon*> curr;
+
+    max = 0.0;
+    for (curr = daemons; *curr; curr++) {
+	daemon = *curr;
+	val = daemon->getCurrentHybridCost();
+	if (val > max) max = val;
     }
     return(max);
 }
