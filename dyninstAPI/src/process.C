@@ -294,7 +294,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
   logLine(errorLine);
 #endif
 
-  const vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck();
+  vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck(); // can't be const; we're gonna change it
   const unsigned disItemNumPoints = disItemPoints.size();
 
   for (unsigned int j=0;j<disItemNumPoints;j++) {
