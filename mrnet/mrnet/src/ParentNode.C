@@ -762,6 +762,11 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
 {
     int ret = 0;
 
+    if( threaded )
+    {
+        childLeafInfoResponsesLock.lock();
+    }
+
     // add the response to our set of child responses
     childLeafInfoResponses.push_back( pkt );
 
@@ -898,6 +903,10 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
 #endif // READY
         childLeafInfoResponses.clear();
     }
+    if( threaded )
+    {
+        childLeafInfoResponsesLock.unlock();
+    }
 
     return ret;
 }
@@ -1020,6 +1029,10 @@ MC_ParentNode::proc_connectLeavesResponse( MC_Packet* pkt )
 {
     int ret = 0;
 
+    if( threaded )
+    {
+        childConnectedLeafResponsesLock.lock();
+    }
     // add the response to our set of child responses
     childConnectedLeafResponses.push_back( pkt );
 
@@ -1069,6 +1082,10 @@ MC_ParentNode::proc_connectLeavesResponse( MC_Packet* pkt )
         }
 #endif // READY
         childConnectedLeafResponses.clear();
+    }
+    if( threaded )
+    {
+        childConnectedLeafResponsesLock.unlock();
     }
 
     return ret;

@@ -30,7 +30,9 @@ class MC_ParentNode{
 
   bool isLeaf_;             // am I a leaf in the MRNet tree?
   std::vector<MC_Packet*> childLeafInfoResponses;
+  pthread_sync childLeafInfoResponsesLock;
   std::vector<MC_Packet*> childConnectedLeafResponses;
+  pthread_sync childConnectedLeafResponsesLock;
 
   int wait_for_SubTreeReports();
 

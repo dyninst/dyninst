@@ -61,11 +61,11 @@ line: host ARROW hosts SEMI
 	}
     | error {fprintf(stderr, "line parse error on line %d\n", linenum-1); YYABORT}
 
-hosts: host hosts
+hosts: hosts host
          {
 	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
                    //$2->get_HostName().c_str(), $2->get_Port() );
-	   hostlist->push_back($1);
+	   hostlist->push_back($2);
 	 }
      | host
          {
