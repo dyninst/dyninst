@@ -27,6 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.47  1996/05/08 17:04:14  tamches
+ * added comments regarding how we are kludging the internal metric bucket_width
+ * for now
+ *
  * Revision 1.46  1996/05/01 18:07:21  newhall
  * added parameter to predicted cost call
  *
@@ -47,155 +51,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  *
  * Revision 1.40  1996/03/14  14:23:25  naim
  * Batching enable data requests for better performance - naim
- *
- * Revision 1.39  1996/03/11  19:02:08  mjrg
- * Fixed a bug in getTime, the return was missing.
- *
- * Revision 1.38  1996/03/05 16:14:02  naim
- * Making enableDataCollection asynchronous in order to improve performance - naim
- *
- * Revision 1.37  1996/03/01  22:35:52  mjrg
- * Added a type to resources.
- * Changes to the MDL to handle the resource hierarchy better.
- *
- * Revision 1.36  1996/02/27 20:10:08  naim
- * Changing getPredictedDataCost from double to float for consistency (it was
- * double in some places and float in some others) - naim
- *
- * Revision 1.35  1996/02/22  23:41:40  newhall
- * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
- *
- * Revision 1.34  1996/02/13  22:18:04  newhall
- * added test to make sure that currentPredictedCost is never negative
- *
- * Revision 1.33  1996/02/13  06:17:27  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.32  1996/01/29  22:09:22  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.31  1996/01/24 15:34:22  zhichen
- * A little bit cleanup
- *
- * Revision 1.30  1996/01/23 23:42:53  zhichen
- * Added stuff to adjust SAMPLEnodes, see also paradyndCM5/src/main.C
- *
- * Revision 1.29  1996/01/15 16:54:39  zhichen
- * Adjust the value of SAMPLEnodes with the formula "max(t, 1)"
- * A better formula SAMPLEnodes = max(f(t), 1) is underconstruction
- *
- * Revision 1.28  1995/12/15  14:40:49  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.27  1995/12/05  15:59:02  naim
- * Fixing bucket_width metric - naim
- *
- * Revision 1.26  1995/11/30  22:01:08  naim
- * Minor change to bucket_width metric - naim
- *
- * Revision 1.25  1995/11/30  16:53:48  naim
- * Adding bucket_width metric - naim
- *
- * Revision 1.24  1995/11/28  15:56:52  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.23  1995/11/03  00:06:05  newhall
- * changes to support changing the sampling rate: dynRPC::setSampleRate changes
- *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
- * fix so that SIGKILL is not being forwarded to CM5 applications.
- *
- * Revision 1.22  1995/10/19  22:36:39  mjrg
- * Added callback function for paradynd's to report change in status of application.
- * Added Exited status for applications.
- * Removed breakpoints from CM5 applications.
- * Added search for executables in a given directory.
- *
- * Revision 1.21  1995/09/26  20:17:44  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- * Revision 1.20  1995/09/18  22:41:33  mjrg
- * added directory command.
- *
- * Revision 1.19  1995/08/24  15:03:48  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.18  1995/05/18  10:32:35  markc
- * Replaced process dict with process map
- * Get metric definitions from two locations (internal, and mdl)
- *
- * Revision 1.17  1995/02/16  08:53:08  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.16  1995/02/16  08:33:12  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.15  1995/01/26  18:11:54  jcargill
- * Updated igen-generated includes to new naming convention
- *
- * Revision 1.14  1994/11/12  17:28:46  rbi
- * improved status reporting for applications pauses
- *
- * Revision 1.13  1994/11/09  18:39:58  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.12  1994/11/06  09:53:08  jcargill
- * Fixed early paradynd startup problem; resources sent by paradyn were
- * being added incorrectly at the root level.
- *
- * Revision 1.11  1994/11/03  16:12:19  rbi
- * Eliminated argc from addExecutable interface.
- *
- * Revision 1.10  1994/11/02  11:04:44  markc
- * Replaced iterators.
- *
- * Revision 1.9  1994/10/13  07:24:38  krisna
- * solaris porting and updates
- *
- * Revision 1.8  1994/09/22  16:02:25  markc
- * Removed #include "resource.h"
- *
- * Revision 1.7  1994/09/22  01:53:48  markc
- * Made system includes extern "C"
- * added const to char* args to stop compiler warnings
- * changed string to char*
- * declare classes as classes, not structs
- * use igen methods to access igen member vars
- *
- * Revision 1.6  1994/08/08  20:13:36  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.5  1994/07/28  22:40:36  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.4  1994/07/26  19:56:42  hollings
- * commented out print statements.
- *
- * Revision 1.3  1994/07/20  23:22:48  hollings
- * added code to record time spend generating instrumentation.
- *
- * Revision 1.2  1994/07/14  23:30:22  hollings
- * Hybrid cost model added.
- *
- * Revision 1.1  1994/07/14  14:45:48  jcargill
- * Added new file for dynRPC functions, and a default (null) function for
- * processArchDependentTraceStream, and the cm5 version.
  *
  */
 
@@ -380,7 +235,22 @@ void dynRPC::setSampleRate(double sampleInterval)
     // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
     // needs to be made
 
+    // TODO:
     // Update the value of bucket_width, an internal metric.
+    // (Code used to be here to update the value, but it wasn't quite enough.
+    //  In particular, if there were no enabled instances of bucket_width, then
+    //  no updating would be done; thus the update could get lost.
+    //  Example: put up table with active_processes; run program 5 seconds;
+    //           then add bucket_width to the table.  The bucket width will be 0
+    //           because the routine that updated bucket width (i.e. right here)
+    //           was called only after active_processes was added; not after
+    //           bucket_width was added.
+    // In metric.C, we work around the problem by putting in a kludge for reporting
+    // the internal metric bucket_width; we simply ignore the value stored in the
+    // internalMetrics class and instead return the exterm float "sampleInterval" --ari
+    //
+    // We keep the following code because it's harmless; but remember, it's also
+    // not really being used at this time:
     if (bucket_width->num_enabled_instances() > 0)
        bucket_width->getEnabledInstance(0).setValue(sampleInterval);
 
