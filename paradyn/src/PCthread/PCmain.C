@@ -73,7 +73,8 @@ void PCmain(int arg)
 
     // now find about of exhisting metrics.
     mets = dataMgr->getAvailableMetrics(context);
-    for (i==0; i < mets.count; i++) {
+    for (i=0; i < mets.count; i++) {
+	assert(mets.data[i]);
 	met = dataMgr->findMetric(context, mets.data[i]);
 	PCmetricFunc(pcStream, met);
     }

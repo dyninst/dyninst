@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.3  1994/02/03 23:26:58  hollings
+ * Revision 1.4  1994/02/08 21:05:55  hollings
+ * Found a few pointer problems.
+ *
+ * Revision 1.3  1994/02/03  23:26:58  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.2  1994/02/02  00:42:33  hollings
@@ -202,6 +205,7 @@ void addMetric(metricInfo info)
     List<performanceStream *> curr;
 
     iName = metric::names.findAndAdd(info.name);
+    assert(iName);
     met = metric::allMetrics.find(iName);
     if (met) {
 	// check that it is compatible ????

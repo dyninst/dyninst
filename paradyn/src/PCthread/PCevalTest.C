@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.1  1994/02/02 00:38:12  hollings
+ * Revision 1.2  1994/02/08 21:06:03  hollings
+ * Found a few pointer problems.
+ *
+ * Revision 1.1  1994/02/02  00:38:12  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.11  1993/12/15  21:05:21  hollings
@@ -44,7 +47,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.1 1994/02/02 00:38:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.2 1994/02/08 21:06:03 hollings Exp $";
 #endif
 
 
@@ -546,7 +549,8 @@ Boolean verifyPreviousRefinements()
 
 	    // Find the last point down the refinementPath that has all
 	    // previous nodes true.
-	    SearchHistoryGraph->status = TRUE;
+	    SearchHistoryGraph->active = TRUE;
+	    currentSHGNode = SearchHistoryGraph;
 	    for (i=0; i < pathDepth; i++) {
 		if (refinementPath[i]->status == TRUE) {
 		    currentSHGNode = refinementPath[i];

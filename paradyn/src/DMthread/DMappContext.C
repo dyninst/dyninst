@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.3  1994/02/05 23:14:00  hollings
+ * Revision 1.4  1994/02/08 21:05:54  hollings
+ * Found a few pointer problems.
+ *
+ * Revision 1.3  1994/02/05  23:14:00  hollings
  * Made sure we didn't return an mi when the enable failed.
  *
  * Revision 1.2  1994/02/02  00:42:31  hollings
@@ -14,6 +17,7 @@
  *
  *
  */
+#include <assert.h>
 extern "C" {
 #include <math.h>
 double   quiet_nan(int unused);
@@ -193,6 +197,7 @@ String_Array applicationContext::getAvailableMetrics()
     names.data = (String *) malloc(sizeof(String) * names.count);
     for (cm=metric::allMetrics,i=0; *cm; cm++,i++) {
        names.data[i] = (*cm)->getName();
+       assert(names.data[i]);
     }
     return(names);
 }
