@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process.h,v 1.3 2004/06/01 16:57:19 pcroth Exp $
+// $Id: Process.h,v 1.4 2004/06/01 18:23:49 pcroth Exp $
 #ifndef XPLAT_PROCESS_H
 #define XPLAT_PROCESS_H
 
@@ -25,6 +25,7 @@ private:
                                 const std::vector<std::string>& args );
 
 public:
+    static int GetProcessId( void );
 
     // spawn a new process
     // expects args[0] *not* to be cmd

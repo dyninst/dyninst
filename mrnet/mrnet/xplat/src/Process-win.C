@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process-win.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Process-win.C,v 1.3 2004/06/01 18:23:52 pcroth Exp $
 #include <winsock2.h>
 #include <windows.h>
 #include <string.h>
@@ -71,6 +71,12 @@ int
 Process::GetLastError( void )
 {
     return ::GetLastError();
+}
+
+int
+Process::GetProcessId( void )
+{
+    return (int)GetCurrentProcessId();
 }
 
 } // namespace XPlat

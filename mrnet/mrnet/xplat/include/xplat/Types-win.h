@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Types-win.h,v 1.2 2004/03/23 01:12:22 eli Exp $
+// $Id: Types-win.h,v 1.3 2004/06/01 18:23:49 pcroth Exp $
 #ifndef XPLAT_TYPES_WIN_H
 #define XPLAT_TYPES_WIN_H
 
@@ -48,5 +48,9 @@ typedef char* caddr_t;
 
 // length of socket address struct
 typedef int socklen_t;
+
+
+// IPv4 address type
+typedef uint32_t in_addr_t;
 
 #endif // XPLAT_TYPES_WIN_H

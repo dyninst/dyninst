@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils-win.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: NetUtils-win.C,v 1.3 2004/06/01 18:23:52 pcroth Exp $
 #include <winsock2.h>
 #include <windows.h>
 #include <iphlpapi.h>
@@ -13,7 +13,7 @@
 namespace XPlat
 {
 
-std::string
+NetUtils::NetworkAddress
 NetUtils::FindNetworkAddress( void )
 {
     std::string ret;
@@ -40,7 +40,12 @@ NetUtils::FindNetworkAddress( void )
         }
     }
 
-    return ret;
+    if( ret.length() == 0 )
+    {
+        // we only have loopback interface, so return it
+        ret = "127.0.0.1";
+    }
+    return GetAddressOfHost( ret );
 }
 
 int

@@ -3,12 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.h,v 1.3 2004/06/01 16:57:19 pcroth Exp $
+// $Id: NetUtils.h,v 1.4 2004/06/01 18:23:49 pcroth Exp $
 #ifndef XPLAT_NETUTILS_H
 #define XPLAT_NETUTILS_H
 
 #include <string>
-#include <netinet/in.h>
+#include "xplat/Types.h"
 
 namespace XPlat
 {
