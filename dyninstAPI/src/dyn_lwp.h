@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.17 2003/04/23 22:59:46 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.18 2003/06/11 20:05:46 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -59,6 +59,10 @@
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
+#endif
+
+#if defined(AIX_PROC)
+#include <sys/procfs.h>
 #endif
 
 // note: handleT is normally unsigned on unix platforms, void * for 
@@ -150,7 +154,7 @@ class dyn_lwp
   void markDoneRunningIRPC();
 
   // This should be ifdef SOL_PROC or similar
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(AIX_PROC)
   // || defined(rs6000_ibm_aix4_1)
   // Implemented where aborting system calls is possible
   bool abortSyscall();
@@ -225,8 +229,7 @@ class dyn_lwp
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-  //|| defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(AIX_PROC)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
   dyn_saved_regs *syscallreg_; // Registers during sleeping syscall
