@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.12  1994/09/22 02:14:13  markc
+ * Revision 1.13  1994/11/02 11:11:24  markc
+ * Added classes and removed compiler warnings.
+ *
+ * Revision 1.12  1994/09/22  02:14:13  markc
  * Changed structs to classes
  *
  * Revision 1.11  1994/09/05  20:33:43  jcargill
@@ -89,6 +92,8 @@
 #include "util/h/aggregateSample.h"
 #include "process.h"
 #include "dyninstP.h"
+#include <strstream.h>
+#include "inst.h"
 
 /*
  * internal representation of an inst. request.
@@ -109,15 +114,15 @@ class metricListRec {
 
 class dataReqNode {
     public:
-	dataReqNode(dataObjectType, process*, int, Boolean iReport, timerType);
+	dataReqNode(dataObjectType, process*, int, bool iReport, timerType);
 	~dataReqNode();
 	float getMetricValue();
 	float cost();
 	void insertInstrumentation(metricDefinitionNode *mi);
 	void disable();
 
-	// return a pointer in the inferrior address space of this data object.
-	caddr_t getInferriorPtr();
+	// return a pointer in the inferior address space of this data object.
+	unsigned getInferiorPtr();
 	intCounterHandle *returnCounterInstance() { 
 	    return((intCounterHandle *) instance); 
 	}
@@ -131,7 +136,7 @@ class dataReqNode {
 	dataObjectType	type;
 	process		*proc;
 	int		initialValue;
-	Boolean		report;
+	bool		report;
 	timerType	tType;
 	sampleId	id;	// unique id for this sample
 
@@ -143,7 +148,7 @@ class instReqNode {
 	instReqNode(process*, instPoint*, AstNode*, callWhen, callOrder order);
 	~instReqNode();
 
-	Boolean insertInstrumentation();
+	bool insertInstrumentation();
 	void disable();
 	float cost();
 
@@ -166,18 +171,18 @@ class metricDefinitionNode {
 	void updateValue(time64, sampleValue);
 	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
 
-	Boolean match(resourceListRec *l, metric *m) {
+	bool match(resourceListRec *l, metric *m) {
 	    return(resList == l && met == m);
 	}
-	Boolean nonNull() {
+	bool nonNull() {
 	    return(!requests.empty() 
 		   || !data.empty());
 	}
-	Boolean insertInstrumentation();
+	bool insertInstrumentation();
 	float cost();
 	// used by controller.
 	float getMetricValue();
-	dataReqNode *addIntCounter(int inititalValue, Boolean report) {
+	dataReqNode *addIntCounter(int inititalValue, bool report) {
 	    dataReqNode *tp;
 
 	    tp = new dataReqNode(intCounter, proc, inititalValue,
@@ -187,7 +192,7 @@ class metricDefinitionNode {
 	};
 	dataReqNode *addTimer(timerType type) {
 	    dataReqNode *tp;
-	    tp = new dataReqNode(timer,proc,0,True,type);
+	    tp = new dataReqNode(timer,proc,0,true,type);
 	    data.add(tp);
 	    return(tp);
 	};
@@ -204,7 +209,7 @@ class metricDefinitionNode {
 	float originalCost;
 
 	// is this a final value or a component of a larger metric.
-	Boolean inform;
+	bool inform;
 
 	process			*proc;
     private:
@@ -212,8 +217,8 @@ class metricDefinitionNode {
 				      timeStamp time, 
 				      sampleValue value);
 
-	Boolean			aggregate;
-	Boolean			inserted;
+	bool			aggregate;
+	bool			inserted;
 
 	/* for aggregate metrics */
 	List<metricDefinitionNode*>   components;	
@@ -230,7 +235,7 @@ class metricDefinitionNode {
 };
 
 typedef AstNode *(*createPredicateFunc)(metricDefinitionNode *mn, 
-    char *resource, AstNode *trigger);
+					char *resource, AstNode *trigger);
 
 typedef void (*createMetricFunc)(metricDefinitionNode*, AstNode *trigger);
 
@@ -245,75 +250,115 @@ typedef enum { invalidPredicate,
 
 class resourcePredicate {
  public:
-    const char *namePrefix;		/* leading part of resource path */
+    resourcePredicate() : type(invalidPredicate), creator(NULL), more(true) { }
+    resourcePredicate(const string np,
+		      const predicateType pt,
+		      createPredicateFunc creat,
+		      const bool mr=true) 
+      : namePrefix(np), type(pt), creator(creat), more(mr) { }
+
+    void set(const string nm,
+	     const predicateType pt,
+	     createPredicateFunc c,
+	     const bool mr=true)
+      {namePrefix = nm; type = pt; creator = c; more = mr;}
+
+    string namePrefix;		/* leading part of resource path */
     predicateType	type;		
     createPredicateFunc creator;	/* create a metric */
+    bool more;
 }; 
+
+// TODO - this is a hack
+extern resourcePredicate *getDefaultResPred();
 
 class metricDefinition {
  public:
     metricDefinition(createMetricFunc c, resourcePredicate *r) {
-      baseFunc = c; predicates = r;
-    }
-    metricDefinition() {
-      baseFunc = NULL; predicates=NULL;
-    }
+      baseFunc = c; predicates = r; }
+
+    metricDefinition() { baseFunc = NULL; predicates=NULL; }
+
+    void set(createMetricFunc c, resourcePredicate *r) {
+      baseFunc = c; predicates = r;}
+
     createMetricFunc baseFunc;		/* base definition */
     resourcePredicate *predicates;	/* how to handle where refinements */
 };
 
 class dynMetricInfo {
  public:
-  dynMetricInfo(const char *mName, int s, int ag, const char *uName)
-    : style(s), aggregate(ag) {
-    name = pool.findAndAdd(mName);
-    units = pool.findAndAdd(uName);
-  }
-  dynMetricInfo() {
-    name = NULL; units = NULL; style = 0; aggregate=0;
-  }
+  dynMetricInfo(const string &mName, const int s, const int ag,
+		const string &uName)
+    : style(s), aggregate(ag), name(mName), units(uName) { }
+
+  dynMetricInfo() {style = 0; aggregate=0; }
+
+  void set(const string &mName, const int s, const int ag, const string &uName) {
+    name = mName; aggregate = ag; style = s; units = uName; }
+
   metricInfo getMetInfo() {
     metricInfo ret;
+    // TODO - this memory must be deallocated
+    ostrstream nameOS, unitsOS;
+
+    if (nameOS == (char*)NULL)
+      ret.name = (char*)NULL;
+    else {
+      nameOS << name << ends;
+      ret.name = nameOS.str();
+    }
+
+    if (unitsOS == (char*) NULL)
+      ret.units = (char*)NULL;
+    else {
+      unitsOS << units << ends;
+      ret.units = unitsOS.str();
+    }
     ret.style = style;
     ret.aggregate = aggregate;
-    ret.units = (char*) units;
-    ret.name = (char*) name;
     return ret;
   }
-  stringHandle name;
+
+  string name;
   int style;
   int aggregate;
-  stringHandle units;
+  string units;
 };
 
 class metric {
  public:
-    metric(const char *n, int s, int a, const char *u,
+    metric(const string n, const int s, const int a, const string u,
 	   createMetricFunc f, resourcePredicate *r)
-      : info(n, s, a, u), definition(f, r) {
-      ;
-    }
-    metric(dynMetricInfo d, metricDefinition m) {
-      info = d; definition = m;
-    }
-    metric() : info() {
-      ;
-    }
-    metricInfo getMetInfo() {
-      return info.getMetInfo();
-    }
+      : info(n, s, a, u), definition(f, r) { }
+
+    metric() : more(true) { }
+
+    void set(const string n, const int s, const int a, const string u,
+	     createMetricFunc f, resourcePredicate *r, const bool mr=true)
+      { info.set(n, s, a, u); definition.set(f, r); more = mr; }
+
+    metricInfo getMetInfo() { return info.getMetInfo(); }
+
+    // TODO kludge for iteration
+    bool more;
     dynMetricInfo info;
     metricDefinition definition;
 };
 
-extern List<metricDefinitionNode*> allMIs;
+extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
 //
 // Return the current wall time -- 
 //
-//    If firstRecordRelative is TRUE, time starts at the arrival of record 0.
+//    If firstRecordRelative is true, time starts at the arrival of record 0.
 //    otherwise it starts at 1/1/1970 0:00 GMT.
 //
-timeStamp getCurrentTime(Boolean firstRecordRelative);
+timeStamp getCurrentTime(bool firstRecordRelative);
+
+extern double currentHybridValue;
+extern double currentPredictedCost;
+extern void processCost(process *proc, traceHeader *h, costUpdate *s);
+extern void reportInternalMetrics();
 
 #endif
