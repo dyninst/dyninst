@@ -66,7 +66,7 @@ typedef pthread_rwlock_t                  dyninst_rwlock_t;
 #define P_thread_self()                   pthread_self()
 #if defined(i386_unknown_linux2_0)
 #define P_lwp_self()                      syscall(SYS_gettid)
-#else if defined(rs6000_ibm_aix4_1)
+#elif defined(rs6000_ibm_aix4_1)
 #define P_lwp_self()                      thread_self()
 #endif
 #endif
