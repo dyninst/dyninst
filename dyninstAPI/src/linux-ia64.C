@@ -230,7 +230,7 @@ bool process::dlopenDYNINSTlib() {
 		} /* end enviromental variable extraction */
 
 	/* FIXME: Locate the entry point to _dl_open(). */
-	Address dlopenAddr = 0x2000000000a46350; // gdb can find it, why can't dyninst?
+	Address dlopenAddr = 0x20000000003fe350; // gdb can find it, why can't dyninst?
 
 	/* Save the function we're going to hijack. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
@@ -240,6 +240,11 @@ bool process::dlopenDYNINSTlib() {
 	pid_t pid = getPid();
 	savedProcessGP = P_ptrace( PTRACE_PEEKUSER, pid, PT_R1, 0 );
 	if( savedProcessGP == -1 ) { assert( 0 ); }
+
+	/* FIXME: Write _dl_open()'s GP. */
+	Address dlopenGP = getTOCoffsetInfo( dlopenAddr );
+	assert( dlopenGP );
+	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, dlopenGP ) == -1 ) { assert( 0 ); }
         
         /* Write the string into the target's address space.
 	   We can't do the smart thing and write the name-string to
@@ -268,8 +273,8 @@ bool process::dlopenDYNINSTlib() {
 	IA64_instruction setMode = generateShortConstantInRegister( 39, DLOPEN_MODE );
 	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
-fprintf( stderr, "Setting long branch to 0x%lx\n", dlopenAddr - entry );
-	IA64_instruction_x branchLong = generateLongBranchTo( dlopenAddr - entry );
+fprintf( stderr, "Setting long branch to 0x%lx.\n", dlopenAddr );
+	IA64_instruction_x branchLong = generateLongBranchTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 6 );  // 6 is scratch register, so no add'l RSE pressure
 
 	// right-aligned template IDs
 	uint8_t MLXstop = 0x05;
@@ -309,7 +314,10 @@ void process::handleIfDueToDyninstLib() {
 	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) == -1 ) { assert( 0 ); }
 
 	/* Continue execution at the entry point. */
+fprintf( stderr, "Changing PC to %lx\n", entry );
 	changePC( entry );
+
+	fprintf( stderr, "*** Handled trap due to dyninstLib.\n" );
 	} /* end handleIfDueToDyninstLib() */
 
 Frame Frame::getCallerFrame( process * /* p */ ) const {

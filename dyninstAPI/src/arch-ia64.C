@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.6 2002/06/21 19:35:18 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.7 2002/06/21 22:26:55 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -85,6 +85,8 @@
 #define RIGHT_IMM_I		0x8000000000000000	/* bit 63 */
 #define RIGHT_IMM_IC		0x0000000000200000	/* bit 21 */
 #define RIGHT_IMM41		0x7FFFFFFFFFC00000	/* bits 22 - 62 */
+#define RIGHT_IMM20		0x00000000000FFFFF	/* bits 00 - 19 */
+#define RIGHT_IMM39		0x07FFFFFFFFF00000	/* bits 20 - 58 */
 
 #define ALIGN_RIGHT_SHIFT 23
 
@@ -222,11 +224,19 @@ IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long 
 	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generateConstantInRegister( imm64 ) */
 
-IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
-	long long int displacement60 = displacement64 >> 4;
+IA64_instruction_x generateLongBranchTo( long long int displacement64, unsigned int branchRegister ) {
+	int64_t displacement60 = displacement64 >> 4;
+	uint64_t sBranchRegister = (uint64_t)branchRegister;
 
-	/* FIXME */
-	return 0;
+	uint64_t rawInsnHigh = 0x0000000000000000 | 
+			   ( ((uint64_t)0xD) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
+			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sBranchRegister & 0x7 ) << (6 + ALIGN_RIGHT_SHIFT));
+	uint64_t rawInsnLow = 0x0000000000000000 |
+			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generatLongBranchTo( displacement64 ) */
 
 /* --- FIXME LINE --- */
