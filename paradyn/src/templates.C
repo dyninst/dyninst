@@ -5,17 +5,16 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.24  1995/12/09 04:06:51  tamches
+ * added some missing templates
+ *
  * Revision 1.23  1995/12/03 21:32:29  newhall
  * added BufferPool
  *
-<<<<<<< templates.C
- * Revision 1.21  1995/11/20  03:19:08  tamches
-=======
  * Revision 1.22  1995/11/29 00:15:35  tamches
  * added stuff necessary for the new pdLogo.C file
  *
  * Revision 1.21  1995/11/20 03:19:08  tamches
->>>>>>> 1.22
  * changed vector<whereAxisRootNode *> to const
  *
  * Revision 1.20  1995/11/06 19:31:06  tamches
@@ -288,7 +287,12 @@ template class List<metricInstInfo *>;
 template class ListItem<metricInstInfo *>;
 template class vector<VM_activeVisiInfo>;
 template class vector<string*>;
+template class dictionary<unsigned,string*>;
 template class dictionary_hash<unsigned, string*>;
+template class vector< pair<unsigned,string *> >;
+template class pair<unsigned, string*>;
+template class vector< vector<dictionary_hash<unsigned, string *>::hash_pair> >;
+template class vector< dictionary_hash<unsigned, string *>::hash_pair >;
 
 /* *************************************
  * UIthread WhereAxis stuff
@@ -322,6 +326,7 @@ template class vector<abstractions::whereAxisStruct>;
 template class where4tree<shgRootNode>;
 template class vector<where4tree<shgRootNode>::childstruct>;
 template class whereNodeGraphicalPath<shgRootNode>;
+template class vector<const shgRootNode *>;
 
 #include "paradyn/src/UIthread/shgPhases.h"
 template class vector<shgPhases::shgStruct>;
@@ -351,6 +356,10 @@ template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
 template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
 
 template class dictionary_lite<string, pdLogo::logoStruct>;
+template class vector<pdLogo::logoStruct>;
+template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
+template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
+template class pair<string, pdLogo::logoStruct>;
 
 /* *************************************
  * UIthread Misc Stuff
