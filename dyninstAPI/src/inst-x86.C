@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.152 2004/03/11 05:29:18 lharris Exp $
+ * $Id: inst-x86.C,v 1.153 2004/03/12 06:16:25 lharris Exp $
  */
 
 #include <iomanip>
@@ -454,17 +454,17 @@ bool pd_Function::isInstrumentableByFunctionName()
        returns.  If it requires trap-based instrumentation, it can foul
        the handler return mechanism.  So, better exclude it.  */
     if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-	return false;
+        return false;
 #endif /* i386_unknown_solaris2_5 */
     
     if( prettyName() == "__libc_free" )
         return false;
-
+    
     // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
     // they can't be instrumented or we would have an infinite loop
     if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
-	|| prettyName() == "GetProcessTimes")
-	return false;
+        || prettyName() == "GetProcessTimes")
+        return false;
     return true;
 }
 
@@ -473,15 +473,15 @@ void pd_Function::canFuncBeRelocated( bool& canBeRelocated )
 #ifdef BPATCH_LIBRARY
     if (BPatch::bpatch->hasForcedRelocation_NP()) 
     {
-	needs_relocation_ = true;
+        needs_relocation_ = true;
     }
 #endif
-
+    
 // checkJumpTable will set canBeRelocated = false if their is a jump to a 
 // jump table inside this function. 
     if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") 
     {
-	canBeRelocated = false;
+        canBeRelocated = false;
     }
 }
 
@@ -490,26 +490,26 @@ bool checkEntry( instruction insn, Address adr, image* owner )
     // check if the entry point contains another point
     if (insn.isJumpDir()) 
     {
-	Address target = insn.getTarget(adr);
-	owner->addJumpTarget(target);
-	
-	return false;
+        Address target = insn.getTarget(adr);
+        owner->addJumpTarget(target);
+        
+        return false;
     } 
     else if (insn.isReturn()) 
     {
-	// this is an empty function
-	return false;
+        // this is an empty function
+        return false;
     } 
     else if (insn.isCall()) 
     {
-	// TODO: handle calls at entry point
-	// call at entry point
-	//instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
-	//calls += p;
-	//points[npoints++] = point_(p, numInsns, CallPt);
-	//fprintf(stderr,"Function %s, call at entry point\n", 
-	//prettyName().c_str());
-	return false;
+        // TODO: handle calls at entry point
+        // call at entry point
+        //instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
+        //calls += p;
+        //points[npoints++] = point_(p, numInsns, CallPt);
+        //fprintf(stderr,"Function %s, call at entry point\n", 
+        //prettyName().c_str());
+        return false;
     }
     return true;
 }
@@ -518,10 +518,10 @@ bool checkEntry( instruction insn, Address adr, image* owner )
 int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
 {
     if( ip1->pointAddr() > ip2->pointAddr() )
-	return 1;
-
+        return 1;
+    
     if( ip1->pointAddr() < ip2->pointAddr() )
-	return -1;
+        return -1;
  
     return 0;
 } 
@@ -530,9 +530,9 @@ int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
 {
     if( bb1->getStartAddress() > bb2->getStartAddress() )
-	return 1;
+        return 1;
     if( bb1->getStartAddress() < bb2->getStartAddress() )
-	return -1;
+        return -1;
     return 0;
 }
 
@@ -543,8 +543,8 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
                 to parse stripped x86 binaries.  
 ******************************************************************************/
 bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
-				   const image *i_owner, bool reparse,
-				  Address upper ) 
+                                  const image *i_owner, bool reparse,
+                                  Address upper ) 
 {
     // sorry this this hack, but this routine can modify the image passed in,
     // which doesn't occur on other platforms --ari
@@ -574,7 +574,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
         isInstrumentable_ = false;
         return false;
     }  
-
+    
     InstrucIter ah( funcBegin, funcBegin, owner ); 
     if( !checkEntry( ah.getInstruction(), funcBegin, owner ) )
     {
@@ -592,7 +592,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
         funcReturns.clear();
         calls.clear();
     }
-
+    
     //define the entry point
     p = new instPoint( this, owner, funcBegin, functionEntry, 
 		       ah.getInstruction() );
@@ -603,7 +603,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     {
         noStackFrame = false;       
     }
-
+    
     canFuncBeRelocated( canBeRelocated );
     
     // get all the instructions for this function, and define the
@@ -611,7 +611,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     BPatch_Set< Address > visited;
     pdvector< Address > jmpTargets;
     jmpTargets.push_back( funcBegin ); 
-     
+    
     bool entryblock = true;
     
     leaders += funcBegin;
@@ -622,379 +622,358 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     
     for( unsigned i = 0; i < jmpTargets.size(); i++ )
     {
-    
-	if( reparse && jmpTargets[i] >= upper )
-	    continue;
-	
+        
+        if( reparse && jmpTargets[i] >= upper )
+            continue;
+        
         InstrucIter ah( jmpTargets[ i ], funcBegin, owner );
-	window = 0;
- 
+        window = 0;
+        
+        BPatch_basicBlock* currBlk = leadersToBlock[ jmpTargets[ i ] ];
+        
         while( true  )
-	{    
+        {    
             currAddr = *ah;
             insnSize = ah.getInstruction().size();
-	          
-	    if( visited.contains( currAddr ) )
-		break;
-	    else 
-		visited += currAddr;
-
-	    if( reparse && (currAddr + insnSize > upper) )
-	    {       
-                leadersToBlock[ jmpTargets[ i ] ]->setEndAddress( currAddr );
-		leadersToBlock[ jmpTargets[ i ] ]
-                    ->setAbsoluteEndAddr( currAddr + insnSize );
-		funcEnd = currAddr + insnSize;
-		leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
+            
+            if( visited.contains( currAddr ) )
                 break;
-	    }
-	   
-	    
-	    if( ah.isACondBranchInstruction() )
-	    {
-		leadersToBlock[ jmpTargets[ i ] ]->setEndAddress( currAddr );
-		leadersToBlock[ jmpTargets[ i ] ]
-                    ->setAbsoluteEndAddr( currAddr + insnSize );
-		if( currAddr >= funcEnd )
-		    funcEnd = currAddr + insnSize;
+            else 
+                visited += currAddr;
+            
+            if( reparse && (currAddr + insnSize > upper) )
+            {       
+                currBlk->setEndAddress( currAddr );
+                currBlk->setAbsoluteEndAddr( currAddr + insnSize );
+                funcEnd = currAddr + insnSize;
+                currBlk->isExitBasicBlock = true;
+                break;
+            }
+            
+            
+            if( ah.isACondBranchInstruction() )
+            {
+                currBlk->setEndAddress( currAddr );
+                currBlk->setAbsoluteEndAddr( currAddr + insnSize );
+                if( currAddr >= funcEnd )
+                    funcEnd = currAddr + insnSize;
+                
+                Address target = ah.getBranchTarget();
+                allInstructions.push_back( ah.getInstruction() );
+                numInsns++;
+                
+                if( target < funcBegin )
+                    break;
+                
+                Address t2 = currAddr + insnSize;
+                if( reparse && t2 >= upper )
+                {
+                    break;
+                }
+                
+                owner->addJumpTarget( target );
+                if( target >= funcBegin && target <= funcBegin + 5 )
+                    has_jump_to_first_five_bytes = true;
+                
+                jmpTargets.push_back( t2 );
+                jmpTargets.push_back( target );
+                
+                //check if a basicblock object has been created for the target
+                if( !leaders.contains( target ) )
+                {
+                    //if not, then create one
+                    leadersToBlock[ target ] = new BPatch_basicBlock;
+                    leaders += target;
+                    blockList->push_back( leadersToBlock[ target ] );
+                }
+                
+                leadersToBlock[ target ]->setStartAddress( target );	
+                leadersToBlock[ target ]->addSource( currBlk );
+                currBlk->addTarget( leadersToBlock[ target ] );
+                
+                //check if a basicblock object has be created for fall through
+                if( !leaders.contains( t2 ) )
+                {
+                    leadersToBlock[ t2 ] = new BPatch_basicBlock;
+                    leaders += t2;
+                    blockList->push_back( leadersToBlock[ t2 ] );
+                }
 		
-		Address target = ah.getBranchTarget();
-		allInstructions.push_back( ah.getInstruction() );
-		numInsns++;
-
-		if( target < funcBegin )
-		   break;
-
-		Address t2 = currAddr + insnSize;
-		if( reparse && t2 >= upper )
-		{
-		  break;
-		}
-
-		owner->addJumpTarget( target );
-		if( target >= funcBegin && target <= funcBegin + 5 )
-		    has_jump_to_first_five_bytes = true;
-
-		jmpTargets.push_back( t2 );
-		jmpTargets.push_back( target );
-		
-		//check if a basicblock object has been created for the target
-		if( !leaders.contains( target ) )
-		{
-		    //if not, then create one
-		    leadersToBlock[ target ] = new BPatch_basicBlock;
-		    leaders += target;
-		    blockList->push_back( leadersToBlock[ target ] );
-		}
-				
-		leadersToBlock[ target ]->setStartAddress( target );
-		
-		leadersToBlock[ target ]->
-		    addSource( leadersToBlock[ jmpTargets[ i ] ] );
-		
-		leadersToBlock[ jmpTargets[ i ] ]->
-		    addTarget( leadersToBlock[ target ] );
-		
-		//check if a basicblock object has be created for fall through
-		if( !leaders.contains( t2 ) )
-		{
-		    leadersToBlock[ t2 ] = new BPatch_basicBlock;
-		    leaders += t2;
-		    blockList->push_back( leadersToBlock[ t2 ] );
-		}
-		
-		leadersToBlock[ t2 ]->setStartAddress( t2 );
-		
-		leadersToBlock[ t2 ]->
-		    addSource( leadersToBlock[ jmpTargets[ i ] ] );
-		
-		leadersToBlock[ jmpTargets[ i ] ]->
-		    addTarget( leadersToBlock[ t2 ] );
-		
-		break;
-	    }	    
-	
-	    else if( ah.isAIndirectJumpInstruction() ) 
-	    {
-		//if this instructions goes to a jumpTable, 
+                leadersToBlock[ t2 ]->setStartAddress( t2 );
+                leadersToBlock[ t2 ]->addSource( currBlk );
+                currBlk->addTarget( leadersToBlock[ t2 ] );
+                
+                break;
+            }	    
+            
+            else if( ah.isAIndirectJumpInstruction() ) 
+            {
+                //if this instructions goes to a jumpTable, 
                 //we retrieve the addresses from the table
                 checkIfRelocatable( ah.getInstruction(), canBeRelocated );
-
-		if( currAddr >= funcEnd )
-		    funcEnd = currAddr + insnSize;
-
-		//if register indirect then table address will be taken from
-		//previous insn
-		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
-                leadersToBlock[ jmpTargets[ i ] ]
-                    ->setAbsoluteEndAddr( currAddr + insnSize );
-
-		if( *allInstructions[ numInsns -1 ].ptr() == 0x5b
-		    && window )
-		{
-		    break;
-		}
-		
-		instruction tableInsn = ah.getInstruction();
-		instruction maxSwitch;
-		bool isAddInJmp = true;
-		
-		bool foundMaxSwitch = false;
-		int j = allInstructions.size() - 1;
-		
-		const unsigned char* ptr = ah.getInstruction().ptr();
-		assert( *ptr == 0xff );
-		
-		ptr++;
-		if( (*ptr & 0xc7) != 0x04)
-		{
-		    isAddInJmp = false;
-		    for( ; j >= 0; j-- )
-		    {
-			if( *(allInstructions[ j ].ptr()) == 0x8b )
-			{
-			    tableInsn = allInstructions[ j ];
-			    break;    
-			}
-		    }
-		}    
-
-		//now get the instruction to find the maximum switch value 
-		for( ; j >= 0; j-- )
-		{
-		    if( allInstructions[ j ].type() & IS_JCC )
-		    {
-			maxSwitch = allInstructions[ j - 1 ];
-			foundMaxSwitch = true;
-		    }
-		}
-		
-		//found the max switch assume jump table
-		if( foundMaxSwitch )
-		{
-		    pdvector< Address > result;
-		    ah.getMultipleJumpTargets( result, tableInsn, maxSwitch, 
+                
+                if( currAddr >= funcEnd )
+                    funcEnd = currAddr + insnSize;
+                
+                //if register indirect then table address will be taken from
+                //previous insn
+                currBlk->setEndAddress( currAddr );
+                currBlk->setAbsoluteEndAddr( currAddr + insnSize );
+                
+                if( *allInstructions[ numInsns -1 ].ptr() == 0x5b  && window )
+                {
+                    break;
+                }
+                
+                instruction tableInsn = ah.getInstruction();
+                instruction maxSwitch;
+                bool isAddInJmp = true;
+                
+                bool foundMaxSwitch = false;
+                int j = allInstructions.size() - 1;
+                
+                const unsigned char* ptr = ah.getInstruction().ptr();
+                assert( *ptr == 0xff );
+                
+                ptr++;
+                if( (*ptr & 0xc7) != 0x04)
+                {
+                    isAddInJmp = false;
+                    for( ; j >= 0; j-- )
+                    {
+                        if( *(allInstructions[ j ].ptr()) == 0x8b )
+                        {
+                            tableInsn = allInstructions[ j ];
+                            break;    
+                        }
+                    }
+                }    
+                
+                //now get the instruction to find the maximum switch value 
+                for( ; j >= 0; j-- )
+                {
+                    if( allInstructions[ j ].type() & IS_JCC )
+                    {
+                        maxSwitch = allInstructions[ j - 1 ];
+                        foundMaxSwitch = true;
+                    }
+                }
+                
+                //found the max switch assume jump table
+                if( foundMaxSwitch )
+                {
+                    pdvector< Address > result;
+                    ah.getMultipleJumpTargets( result, tableInsn, maxSwitch, 
                                                isAddInJmp );
-		    		    
-		    for( unsigned l = 0; l < result.size(); l++ )
-		    {
+                    
+                    for( unsigned l = 0; l < result.size(); l++ )
+                    {
                         if( !owner->isValidAddress( result[ l ] ) )
                             continue;
-
-			if( result[ l ] >= funcBegin && 
-			    result[ l ] <= funcBegin + 5 )
-			    has_jump_to_first_five_bytes = true;
-			
-			if( !leaders.contains( result[ l ] ) )
-			{
-			    leadersToBlock[ result[ l ] ] =
-				new BPatch_basicBlock;	   
-			    
-			    leadersToBlock[ result[l] ]
-				->setStartAddress( result[l] );
-			    
-			    leaders += result[ l ];
-			    
-			    jmpTargets.push_back( result[ l ] );
-			    blockList->push_back( leadersToBlock[result[l] ]);
-			}
-			
-			leadersToBlock[ jmpTargets[i] ]
-			    ->addTarget( leadersToBlock[result[l]] );
-			
-			leadersToBlock[ result[l] ]
-			    ->addSource( leadersToBlock[jmpTargets[i]]);
-		    }
-		}		
-		break;
-	    } 
-	    else if ( ah.isAJumpInstruction() ) 
-	    {
-		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
-                leadersToBlock[ jmpTargets[ i ] ]
-                    ->setAbsoluteEndAddr( currAddr + insnSize );
-		
-                if( currAddr >= funcEnd )
-		    funcEnd = currAddr + insnSize;
-		
-		Address target = ah.getBranchTarget();
-		
-		if( !owner->isValidAddress( target ) )
-		    break;
-		
-		owner->addJumpTarget( target );
-		if( target >= funcBegin && target <= funcBegin + 5 )
-		    has_jump_to_first_five_bytes = true;
-	
-		if( owner->findFuncByEntry( target ) && target != funcBegin )
-		    break;
-		
-		//check if tailcall
-                //TODO remove magic numbers
-		if( ( *allInstructions[ numInsns - 1 ].ptr() == 0x5d ||
-		    *allInstructions[ numInsns - 1 ].ptr() == 0xc9 )
-		    && window )
-		{
-		    leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
-		    p = new instPoint( this, owner, currAddr, 
-				       functionExit, ah.getInstruction() );
-		    funcReturns.push_back( p );
-		    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
-		    int num = allInstructions.size() - 1;
-		    for( ; window > 0; window-- )
-		    {
-			if( p->size() < 5 )
-			{
-			    p->addInstrBeforePt( allInstructions[ num ] );
-			} 
-			else 
-			    break;
-			num--;
-		    }
-		    break;
-		}
-		else if(  target < funcBegin )  
-		{
-		    p = new instPoint(this, owner, currAddr, 
-				      functionExit, ah.getInstruction() );
-		    funcReturns.push_back( p );
-		    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
-		    int num = numInsns - 1;
-		    for( ; window > 0; window-- )
-		    {
-			if( p->size() < 5 )
-			{
-			    p->addInstrBeforePt( allInstructions[ num ] );
-			} 
-			else 
-			    break;
-			num--;
-		    }
-		    ah++;
-		    for( int i = 0; i < 4; i++ )
-		    {
-			if( ah.isANopInstruction() )
-			{
-			    p->addInstrAfterPt( ah.getInstruction() );
-			    funcEnd += ah.getInstruction().size();
-			    ah++;
-			}
-			else 
-			    break;
-		    }
-		}
-		else
-		{
-		    //assume intra procedural jump
-		    if( !leaders.contains( target ) )
-		    {
-			leadersToBlock[ target ] = new BPatch_basicBlock;
-			leaders += target;
-			blockList->push_back( leadersToBlock[ target ] );
-		    }
-		    
-		    leadersToBlock[ target ]->setStartAddress( target );
-
-		    leadersToBlock[ target ]->
-			addSource( leadersToBlock[ jmpTargets[ i ] ] );
-		    
-		    leadersToBlock[ jmpTargets[ i ] ]->
-			addTarget( leadersToBlock[ target ] ); 
-		    
-		    jmpTargets.push_back( target );
-		}
+                        
+                        if( result[ l ] >= funcBegin && 
+                            result[ l ] <= funcBegin + 5 )
+                            has_jump_to_first_five_bytes = true;
+                        
+                        if( !leaders.contains( result[ l ] ) )
+                        {
+                            leadersToBlock[ result[ l ] ] =
+                                new BPatch_basicBlock;	                      
+                            leadersToBlock[ result[l] ]
+                                ->setStartAddress( result[l] );          
+                            leaders += result[ l ];
+                            
+                            jmpTargets.push_back( result[ l ] );
+                            blockList->push_back( leadersToBlock[result[l] ]);
+                        }
+                        
+                        currBlk->addTarget( leadersToBlock[ result[ l ] ] );
+                        leadersToBlock[ result[ l ] ]->addSource( currBlk );
+                    }
+                }		
                 break;
-	    } 
-	    else if( ah.isAReturnInstruction() ) 
-	    {
-		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
-		leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
-                leadersToBlock[ jmpTargets[ i ] ]
-                    ->setAbsoluteEndAddr( currAddr + insnSize );
-
-		if( currAddr >= funcEnd )
-		    funcEnd = currAddr + insnSize;
-
-		p = new instPoint( this, owner, currAddr, functionExit, 
-				   ah.getInstruction()  );   
+            } 
+            else if ( ah.isAJumpInstruction() ) 
+            {
+                currBlk->setEndAddress( currAddr );
+                currBlk->setAbsoluteEndAddr( currAddr + insnSize );
+                
+                if( currAddr >= funcEnd )
+                    funcEnd = currAddr + insnSize;
+                
+                Address target = ah.getBranchTarget();
+                
+                if( !owner->isValidAddress( target ) )
+                    break;
+                
+                owner->addJumpTarget( target );
+                if( target >= funcBegin && target <= funcBegin + 5 )
+                    has_jump_to_first_five_bytes = true;
+                
+                if( owner->findFuncByEntry( target ) && target != funcBegin )
+                    break;
 		
-		int num = numInsns - 1;
-		for( ; window > 0; window-- )
-		{			    
-		    if( p->size() < JUMP_SZ )
-		    {
-			p->addInstrBeforePt( allInstructions[ num ] );
-		    } 
-		    else 
-			break;
-		    num--;
-		}
-		ah++;
-		for( int i = 0; i < 4; i++ )
-		{
-		    if( ah.isANopInstruction() )
-		    {
-			p->addInstrAfterPt( ah.getInstruction() );
-			funcEnd += ah.getInstruction().size();
-			ah++;
-		    }
-		    else 
-			break;
-		}
-		funcReturns.push_back( p );
-		points_.push_back( point_( p, numInsns, ReturnPt ) );    
-		
-		allInstructions.push_back( ah.getInstruction() );
-		break;
-	    } 
+                //check if tailcall
+                //TODO remove magic numbers
+                if( ( *allInstructions[ numInsns - 1 ].ptr() == 0x5d ||
+                      *allInstructions[ numInsns - 1 ].ptr() == 0xc9 )
+                    && window )
+                {
+                    currBlk->isExitBasicBlock = true;
+                    p = new instPoint( this, owner, currAddr, 
+                                       functionExit, ah.getInstruction() );
+                    funcReturns.push_back( p );
+                    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
+                    int num = allInstructions.size() - 1;
+                    for( ; window > 0; window-- )
+                    {
+                        if( p->size() < 5 )
+                        {
+                            p->addInstrBeforePt( allInstructions[ num ] );
+                        } 
+                        else 
+                            break;
+                        num--;
+                    }
+                    break;
+                }
+                else if(  target < funcBegin )  
+                {
+                    p = new instPoint(this, owner, currAddr, 
+                                      functionExit, ah.getInstruction() );
+                    funcReturns.push_back( p );
+                    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
+                    int num = numInsns - 1;
+                    for( ; window > 0; window-- )
+                    {
+                        if( p->size() < 5 )
+                        {
+                            p->addInstrBeforePt( allInstructions[ num ] );
+                        } 
+                        else 
+                            break;
+                        num--;
+                    }
+                    ah++;
+                    for( int i = 0; i < 4; i++ )
+                    {
+                        if( ah.isANopInstruction() )
+                        {
+                            p->addInstrAfterPt( ah.getInstruction() );
+                            funcEnd += ah.getInstruction().size();
+                            ah++;
+                        }
+                        else 
+                            break;
+                    }
+                }
+                else
+                {
+                    //assume intra procedural jump
+                    if( !leaders.contains( target ) )
+                    {
+                        leadersToBlock[ target ] = new BPatch_basicBlock;
+                        leaders += target;
+                        blockList->push_back( leadersToBlock[ target ] );
+                    }
+                    
+                    leadersToBlock[ target ]->setStartAddress( target );
+                    leadersToBlock[ target ]->addSource( currBlk );	    
+                    currBlk->addTarget( leadersToBlock[ target ] ); 
+                    
+                    jmpTargets.push_back( target );
+                }
+                break;
+            } 
+            else if( ah.isAReturnInstruction() ) 
+            {
+                currBlk->setEndAddress( currAddr );
+                currBlk->isExitBasicBlock = true;
+                currBlk->setAbsoluteEndAddr( currAddr + insnSize );
+
+                if( currAddr >= funcEnd )
+                    funcEnd = currAddr + insnSize;
+                
+                p = new instPoint( this, owner, currAddr, functionExit, 
+                                   ah.getInstruction()  );   
+                
+                int num = numInsns - 1;
+                for( ; window > 0; window-- )
+                {			    
+                    if( p->size() < JUMP_SZ )
+                    {
+                        p->addInstrBeforePt( allInstructions[ num ] );
+                    } 
+                    else 
+                        break;
+                    num--;
+                }
+                ah++;
+                for( int i = 0; i < 4; i++ )
+                {
+                    if( ah.isANopInstruction() )
+                    {
+                        p->addInstrAfterPt( ah.getInstruction() );
+                        funcEnd += ah.getInstruction().size();
+                        ah++;
+                    }
+                    else 
+                        break;
+                }
+                funcReturns.push_back( p );
+                points_.push_back( point_( p, numInsns, ReturnPt ) );    
+                
+                allInstructions.push_back( ah.getInstruction() );
+                break;
+            } 
             else if( ah.isACallInstruction() && !ah.isIndir() ) 
-	    {
+            {
                 entryblock = false;
                 //validTarget is set to false if the call target is not a 
-		//valid address in the applications process space 
-		bool validTarget = true;
-		window = 0;     
-		
-		if ( isRealCall( ah.getInstruction(), currAddr, owner, 
-				 validTarget, this ) ) 
-		{
+                //valid address in the applications process space 
+                bool validTarget = true;
+                window = 0;     
+                
+                if ( isRealCall( ah.getInstruction(), currAddr, owner, 
+                                 validTarget, this ) ) 
+                {
                     Address target = ah.getBranchTarget();
-		    p = new instPoint( this, owner, currAddr, callSite, 
-				       ah.getInstruction() );
-		    calls.push_back( p );		    
-		    points_.push_back( point_( p, numInsns, CallPt ) );
-		    		    
-		    if( !ah.isIndir() && 
-			( target < currAddr || target > currAddr + insnSize ))
-		    {
-			callTargets.push_back( target );
-		    }		    
-		} 
-		else 
-		{	
-		    // Call was to an invalid address, do not instrument func 
-		    if( validTarget == false ) 
-		    {
-			isInstrumentable_ = false;
-			return false;
-		    }
-		    // Force relocation when instrumenting function
-		    needs_relocation_ = true;
-		}
-	    }
-	    else if ( ah.isALeaveInstruction() )
-	    {
-		noStackFrame = false;
-	    }
-	    allInstructions.push_back( ah.getInstruction() );
-	    numInsns++;
-	    
-	    if( !entryblock )
-		window++;
-	
+                    p = new instPoint( this, owner, currAddr, callSite, 
+                                       ah.getInstruction() );
+                    calls.push_back( p );		    
+                    points_.push_back( point_( p, numInsns, CallPt ) );
+                    
+                    if( !ah.isIndir() && 
+                        ( target < currAddr || target > currAddr + insnSize ))
+                    {
+                        callTargets.push_back( target );
+                    }		    
+                } 
+                else 
+                {	
+                    // Call was to an invalid address, do not instrument func 
+                    if( validTarget == false ) 
+                    {
+                        isInstrumentable_ = false;
+                        return false;
+                    }
+                    // Force relocation when instrumenting function
+                    needs_relocation_ = true;
+                }
+            }
+            else if ( ah.isALeaveInstruction() )
+            {
+                noStackFrame = false;
+            }
+            allInstructions.push_back( ah.getInstruction() );
+            numInsns++;
+            
+            if( !entryblock )
+                window++;
+            
             ah++;
-	    if( entryblock && ( funcEntry_->size() < JUMP_SZ ) )
-	    {
+            if( entryblock && ( funcEntry_->size() < JUMP_SZ ) )
+            {
                 //don't add calls to entry point
                 if( ah.isACallInstruction() )
                 {
@@ -1007,124 +986,121 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 window = 0;
             }
         }
-	entryblock = false;
+        entryblock = false;
     }    
-
+    
     size_ = funcEnd - funcBegin;
     
     for ( unsigned u = 0; u < points_.size(); u++ )
     {
-	points_[u].point->checkInstructions();
+        points_[u].point->checkInstructions();
     }
     
     //sorted_ips_vector expects funcReturns and calls to be sorted
     VECTOR_SORT( funcReturns, instPointCompare );
     VECTOR_SORT( calls, instPointCompare );
-
+    
     sorted_ips_vector( foo );
-
+    
     for ( unsigned ii = 0; ii < foo.size() ; ii++ ) 
     {
-	if ( _usesTrap(foo[ii], funcEntry_, funcReturns) && size() >= 5 ) 
-	{
-	    needs_relocation_ = true;
-	}
+        if ( _usesTrap(foo[ii], funcEntry_, funcReturns) && size() >= 5 ) 
+        {
+            needs_relocation_ = true;
+        }
     }
-
+    
     //if the function contains a jump to a jump table, we can't relocate
     if ( !canBeRelocated ) 
     {
-	// Function would have needed relocation 
-       if ( needs_relocation_ == true ) 
-       {
-	   
+        // Function would have needed relocation 
+        if ( needs_relocation_ == true ) 
+        {
+            
 #ifdef DEBUG_FUNC_RELOC      
-	   cerr << prettyName() << endl;
-	   cerr << "Jump Table: Can't relocate function" << endl;
+            cerr << prettyName() << endl;
+            cerr << "Jump Table: Can't relocate function" << endl;
 #endif
-	   needs_relocation_ = false;
-       }
+            needs_relocation_ = false;
+        }
     }
-      
+    
     //check if basic blocks need to be split   
     VECTOR_SORT( (*blockList), basicBlockCompare );
- 
-
+    
+    
     //maybe BPatch_flowGraph.C would be a better home for this bit of code?
     for( unsigned int iii = 0; iii < blockList->size(); iii++ )
     {
-	(*blockList)[iii]->blockNumber = iii;
+        (*blockList)[iii]->blockNumber = iii;
     }
+    
+    for( unsigned q = 0; q + 1 < blockList->size(); q++ )
+    {
+        BPatch_basicBlock* b1 = (*blockList)[ q ];
+        BPatch_basicBlock* b2 = (*blockList)[ q + 1 ];
+        
+        if( b1->getEndAddress() == 0 )
+        {
+            //find the end of this block
+            InstrucIter ah( b1->getStartAddress(), funcBegin, owner );
+            
+            while( *ah + ah.getInstruction().size() < b2->getStartAddress() )
+                ah++;
+            
+            b1->setEndAddress( *ah );
+            b1->setAbsoluteEndAddr( *ah + ah.getInstruction().size() );
+            b1->addTarget( b2 );
+            b2->addSource( b1 );	            
+        }        
+    }
+    
     
     for( unsigned int r = 0; r + 1 < blockList->size(); r++ )
     {
-	if( (*blockList)[r+1]->getStartAddress() < 
-	    (*blockList)[r]->getEndAddress() )
-	{
-	    BPatch_Vector< BPatch_basicBlock* > out;
-	    (*blockList)[r]->getTargets( out );
-	    
-	    for( unsigned j = 0; j < out.size(); j++ )
-	    {
-		out[j]->sources.remove( (*blockList)[r] );
-		out[j]->sources.insert( (*blockList)[r+1] );
-	    }
-	    
+        BPatch_basicBlock* b1 = (*blockList)[ r ];
+        BPatch_basicBlock* b2 = (*blockList)[ r + 1 ];
+        
+        if( b2->getStartAddress() < b1->getEndAddress() )
+        {
+            BPatch_Vector< BPatch_basicBlock* > out;
+            b1->getTargets( out );
+            
+            for( unsigned j = 0; j < out.size(); j++ )
+            {
+                out[j]->sources.remove( b1 );
+                out[j]->sources.insert( b2 );
+            }
+            
             //set end address of higher block
-	    (*blockList)[r+1]->setEndAddress((*blockList)[r]->getEndAddress());
-            (*blockList)[r+1]->
-                setAbsoluteEndAddr((*blockList)[r]->getAbsoluteEndAddr());
-
-            (*blockList)[r+1]->targets = (*blockList)[r]->targets;
-	    
-	    (*blockList)[r+1]->addSource( (*blockList)[r] );
-	    
-	    BPatch_Set< BPatch_basicBlock* > nt;
-	    nt += (*blockList)[r+1];
-	    (*blockList)[r]->targets = nt;
-	    
-	    //find the end of the split block	       
-	    InstrucIter ah( (*blockList)[r]->getStartAddress(), funcBegin,
-			    owner );
-	    
-	    while( *ah + ah.getInstruction().size() < 
-		   (*blockList)[r+1]->getStartAddress() )
-		ah++;
-	    
-	    (*blockList)[r]->setEndAddress( *ah );
-            (*blockList)[r]
-                ->setAbsoluteEndAddr(*ah+ah.getInstruction().size());
-	    
-            (*blockList)[r]->addTarget( (*blockList)[r+1] );
-	    (*blockList)[r+1]->addSource( (*blockList)[r] );
-	    
-	    if( (*blockList)[r]->isExitBasicBlock )
-	    {
-		(*blockList)[r]->isExitBasicBlock = false;
-		(*blockList)[r+1]->isExitBasicBlock = true;
-	    }
-	}
-	
-	if( (*blockList)[r]->targets.size() == 0 && 
-	    !(*blockList)[r]->isExitBasicBlock )
-	{
-	    //find the end of this block
-            InstrucIter ah( (*blockList)[r]->getStartAddress(), funcBegin,
-			    owner );
-	    
-	    while( *ah + ah.getInstruction().size() < 
-		   (*blockList)[r+1]->getStartAddress() )
-		ah++;
-	    
-	    (*blockList)[r]->setEndAddress( *ah );
-             (*blockList)[r]
-                ->setAbsoluteEndAddr(*ah+ah.getInstruction().size());
-
-	    (*blockList)[r]->addTarget( (*blockList)[r+1] );
-	    (*blockList)[r+1]->addSource( (*blockList)[r] );
-	}
+            b2->setEndAddress( b1->getEndAddress());
+            b2->setAbsoluteEndAddr( b1->getAbsoluteEndAddr());
+            b2->targets = b1->targets;	    
+            b2->addSource( b1 );
+            
+            BPatch_Set< BPatch_basicBlock* > nt;
+            nt += b2;
+            b1->targets = nt;
+            
+            //find the end of the split block	       
+            InstrucIter ah( b1->getStartAddress(), funcBegin, owner );
+            
+            while( *ah + ah.getInstruction().size() < b2->getStartAddress() )
+                ah++;
+            
+            b1->setEndAddress( *ah );
+            b1->setAbsoluteEndAddr( *ah + ah.getInstruction().size() );	    
+            b1->addTarget( b2 );
+            b2->addSource( b1 );
+            
+            if( b1->isExitBasicBlock )
+            {
+                b1->isExitBasicBlock = false;
+                b2->isExitBasicBlock = true;
+            }
+        }
     }
-
+    
     isInstrumentable_ = true;
     return true;    
 }
