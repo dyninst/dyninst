@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.515 2005/01/18 21:40:54 tlmiller Exp $
+// $Id: process.C,v 1.516 2005/01/19 17:41:07 bernat Exp $
 
 #include <ctype.h>
 
@@ -47,6 +47,8 @@
 #include <sys/procfs.h>
 #endif
 #include "common/h/headers.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -2171,8 +2173,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    needToContinueAfterDYNINSTinit = true;
 
    symbols = parentProc.symbols->clone();
-   // Iterates through to function level
-   symbols->updateForFork(this, &parentProc);
+
    mainFunction = parentProc.mainFunction;
 
    LWPstoppedFromForkExit = 0;
@@ -2210,6 +2211,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    codeRangesByAddr_ = new codeRangeTree;
    // Add the a.out
    addCodeRange(symbols->codeOffset(), symbols);
+   // Clones relocation entries
+   symbols->updateForFork(this, &parentProc);
    // And all shared libs
 
    // make copy of parent's shared_objects vector
@@ -2221,11 +2224,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 				   new shared_object(*(*parentProc.shared_objects)[u1], this));
      }
    }
-   for (unsigned i = 0; i < shared_objects->size(); i++) 
+   for (unsigned i = 0; i < shared_objects->size(); i++) {
      addCodeRange((*shared_objects)[i]->getBaseAddress() +
 		  (*shared_objects)[i]->getImage()->codeOffset(),
 		  (*shared_objects)[i]);
-
+     (*shared_objects)[i]->updateForFork(this, &parentProc);
+   }
    // Copy over the system call notifications and reinitialize (if necessary)
    tracedSyscalls_ = new syscallNotification(parentProc.tracedSyscalls_, this);
 
@@ -3928,37 +3932,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 
     new_obj->addImage(img);
     img->defineModules(this);
-
-#if 0
-    // NO LONGER REQUIRED -- fixed the problem by removing relocation
-    // records when we exec (or delete the process) -- bernat, 13JAN05
-
-    ///ccw 20 apr 2004 : test4 linux bug hack
-
-    // what is going on here? If you relocate a function in a shared
-    // library, then call exec (WITHOUT CALLING FORK) the function
-    // will continue to be marked as relocated BY THE EXEC'ED PROCESS
-    // even though the shared library will have been reloaded.
-    
-    // So, to fix this, we look to see if each function is marked as
-    // relocated by the exec'ed process and remove the relocation tag
-    // connecting it with the said process.
-    
-    // The function unrelocatedByProcess was added to pd_Function in
-    // symtab.h
-    
-    // This only effects exec and not fork since fork creates a new
-    // process and exec does not.  check to see how
-    // pd_Function::hasBeenRelocated() works for more info.
-                   
-        const pdvector<pd_Function*> *allFuncs = new_obj->getAllFunctions();
-
-        for(unsigned int funcIndex=0; execed_ && funcIndex<allFuncs->size();funcIndex++){
-                if( (*allFuncs)[funcIndex]->hasBeenRelocated(this) ){
-                        (*allFuncs)[funcIndex]->unrelocatedByProcess(this);
-                }
-        }
-#endif
 
     // TODO: check for "is_elf64" consistency (Object)
 
