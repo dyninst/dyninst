@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.29 2002/05/02 21:28:48 schendel Exp $
+// $Id: templates0.C,v 1.30 2002/05/04 21:47:23 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -110,7 +110,7 @@ template class  vector<machineMetFocusNode *>;
 template class  vector<processMetFocusNode *>;
 template class  vector<instrCodeNode *>;
 template class  vector<const instrCodeNode *>;
-template class  vector<instrThrDataNode *>;
+template class  vector<instrDataNode *>;
 template class  vector<threadMetFocusNode *>;
 template class  vector<catchupReq>;
 template class  vector<catchupReq*>;

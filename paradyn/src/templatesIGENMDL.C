@@ -90,7 +90,7 @@ template class vector<instPoint*>;
 
 template class vector<process *>;
 template class vector< vector<pdThread *> >;
-template class vector<const dataReqNode *>;
+template class vector<const instrDataNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
 
