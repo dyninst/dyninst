@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.8  1994/06/29 02:52:27  hollings
+ * Revision 1.9  1994/07/05 03:53:42  hollings
+ * fixed return type of getPrimtiveCost().
+ *
+ * Revision 1.8  1994/06/29  02:52:27  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -38,7 +41,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.8 1994/06/29 02:52:27 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.9 1994/07/05 03:53:42 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,11 +115,11 @@ char *getProcessStatus(process *proc)
  * return the time required to execute the passed primitive.
  *
  */
-float getPrimitiveCost(char *name)
+int getPrimitiveCost(char *name)
 {
-    float ret;
+    int ret;
 
-    ret = 0.0;
+    ret = 0;
     return(ret);
 }
 
