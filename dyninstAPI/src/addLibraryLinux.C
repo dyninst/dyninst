@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.16 2005/03/18 04:34:56 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.17 2005/03/21 16:59:21 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -109,6 +109,14 @@
  * is loaded anywhere except in the text or data segment.
  * I have not been able to find any code to support this,
  * its all experimental evidence
+ *
+ * UPDATE: 21 March 2005
+ * The Program Header Table CANNOT be placed after the text segment
+ * with the version of libelf distributed as part of elfutils.
+ * The PHT MUST be located in the file BEFORE every section of data.
+ * To make this work, the PHT is NOT moved.  The .note section is
+ * moved to the end of the text segment (or beginning of the data segment)
+ * and the .dynstr is expanded upward as before.
  */
 void addLibrary::createNewElf(){
 
@@ -305,12 +313,11 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	Elf_Scn *realScn;
 	Elf32_Shdr *realShdr;
 	Elf_Data *realData, *strTabData;
-	unsigned int dynstrOffset;
-	unsigned int dynsymOffset;
-	unsigned int hashOffset;
-	unsigned int dynstrSize;
+	unsigned int dynstrOffset=0;
+	unsigned int dynsymOffset=0;
+	unsigned int hashOffset=0;
+	unsigned int dynstrSize=0;
 	bool seenDynamic = false;
-	int lastTextSegmentIndex = findEndOfTextSegment();
 	
 	int foundDynstr = 0;
 	
@@ -353,8 +360,6 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	strTabData = newElfFileSec[findSection(".shstrtab")].sec_data; 
 	//section data
 	
-	int pastPhdr = 0;
-
  	updateSymbols(newElfFileSec[findSection(".dynsym")].sec_data,
 		newElfFileSec[findSection(".dynstr")].sec_data, 
 		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
@@ -498,73 +503,6 @@ unsigned int addLibrary::findSizeOfDynamicSection(){
 	return findSizeOfSegmentFromPHT(PT_DYNAMIC);
 }
 
-int addLibrary::expandDynstrUp(char *libname){
-
-	int oldNoteSectionIndex = findSection(".note.ABI-tag");
-	int oldDynstrSectionIndex = findSection(".dynstr");
-	int lastTextSegmentIndex = findEndOfTextSegment();
-	Elf_element noteSection;
-	libnameIndx=-1;
-	int libnameLen = strlen(libname)+1;
-
-	noteSection = newElfFileSec[oldNoteSectionIndex];
-	noteSection.sec_hdr->sh_size = 8;
-	noteSection.sec_data->d_size=8;
-
-	//ok, now change the offset and addr for everything up through .dynstr
-	//change size of .dynstr
-	int currentOffset=noteSection.sec_hdr->sh_offset+8;
-	int currentAddr = noteSection.sec_hdr->sh_addr+8;
-
-	for(int i=oldNoteSectionIndex+1;i<=oldDynstrSectionIndex;i++){
-
-		if(i== (oldDynstrSectionIndex)){
-			//the new .dynstr
-			int oldDynstrSize = newElfFileSec[i].sec_hdr->sh_size;
-
-			//the new size of the new .dynstr section is from the current
-			//offset to the end of the original .dynstr section
-			newElfFileSec[i].sec_hdr->sh_size = (newElfFileSec[i+1].sec_hdr->sh_offset - currentOffset);
-
-			if( newElfFileSec[i].sec_hdr->sh_size - oldDynstrSize	 < strlen(libname)+1){
-				//not enough room
-				return -1;
-			}
-
-			//add the new string
-			char *tmpBuf = (char*)newElfFileSec[i].sec_data->d_buf;
-			int libnameLen = strlen(libname)+1;
-			newElfFileSec[i].sec_data->d_buf = new char[(newElfFileSec[i].sec_hdr->sh_size)];
-			newElfFileSec[i].sec_data->d_size = newElfFileSec[i].sec_hdr->sh_size;
-			memcpy(newElfFileSec[i].sec_data->d_buf,tmpBuf ,oldDynstrSize);
-			delete [] tmpBuf;
-			
-			memcpy(&(((char*) newElfFileSec[i].sec_data->d_buf)[newElfFileSec[i].sec_data->d_size-libnameLen]), 
-				libname, strlen(libname)+1);
-
-			//save the index that points to the new string, the .dynamic table needs it
-			libnameIndx = newElfFileSec[i].sec_data->d_size-libnameLen;
-		}
-
-		newElfFileSec[i].sec_hdr->sh_offset=currentOffset;
-		newElfFileSec[i].sec_hdr->sh_addr = currentAddr; 
-
-		currentOffset += newElfFileSec[i].sec_hdr->sh_size;
-		while(currentOffset %4 !=0){
-			currentOffset++;
-		}
-		currentAddr += newElfFileSec[i].sec_hdr->sh_size;
-		while(currentAddr%4 !=0){
-			currentAddr++;
-		}
-
-		//fprintf(stderr,"NEW OFFSETS AND MEM ADDR AND SIZE AND SIZE \t%x\t\t%x\t\t%x\t\t%x\n",newElfFileSec[i].sec_hdr->sh_offset,newElfFileSec[i].sec_hdr->sh_addr, newElfFileSec[i].sec_hdr->sh_size,newElfFileSec[i].sec_data->d_size);
-	}
-	newTextSegmentSize = newElfFileSec[lastTextSegmentIndex].sec_hdr->sh_offset + newElfFileSec[lastTextSegmentIndex].sec_hdr->sh_size;
-	newNoteOffset = newElfFileSec[oldNoteSectionIndex].sec_hdr->sh_offset;
-
-	return libnameIndx;
-}
 
 //this moves the Note to the gap, and shifts upward
 //everything until .dynstr.  .dynstr is expanded
@@ -742,9 +680,9 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	}
 
 
-	/*if( textSideGap > sizeOfNoteSection ){
+	if( textSideGap > sizeOfNoteSection ){
 		gapFlag = TEXTGAP;
-	}else*/ if (dataSideGap > (sizeOfNoteSection + newElfFileSec[findSection(".dynamic")].sec_hdr->sh_size+sizeof(Elf32_Dyn)) ){
+	}else if (dataSideGap > (sizeOfNoteSection + newElfFileSec[findSection(".dynamic")].sec_hdr->sh_size+sizeof(Elf32_Dyn)) ){
 		//check to see if it fits in the data segment, plus the the dynamic table
 		//with its increased size
 		gapFlag = DATAGAP;
@@ -755,14 +693,10 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 
 
 		
-//	if(gapFlag){
-//		findNewPhdrAddr();
-//		findNewPhdrOffset();
-
 		//this moves the Note to the gap, and shifts upward
 		//everything until .dynstr.  .dynstr is expanded
 		//up, its end remains the same
-		int moved = /*expandDynstrUp(libname);*/moveNoteShiftFollowingSectionsUp(libname); 
+		int moved = moveNoteShiftFollowingSectionsUp(libname); 
 
 		if(moved == -1){
 			//failure;
@@ -775,9 +709,6 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	
 		gapFlag = writeNewElf(newfilename, libname);
 		elf_end(newElf);
-//	}else{
-		//error
-//	}
 	close(newFd); //ccw 6 jul 2003
 	return gapFlag;
 }
@@ -815,41 +746,6 @@ addLibrary::~addLibrary(){
 		delete [] newElfFileSec;
 	}
 
-}
-
-int addLibrary::findNewPhdrAddr(){
-        Elf32_Shdr *tmpShdr;
-
-	if(gapFlag == TEXTGAP){
-		tmpShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
-		newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
-	}else if(gapFlag == DATAGAP){
-		tmpShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
-		newPhdrAddr = tmpShdr->sh_addr - phdrSize;
-	}
-	while(newPhdrAddr %4){
-		newPhdrAddr ++;
-	}	
-
-
-        return 0;		
-}
-
-int addLibrary::findNewPhdrOffset(){
-	Elf32_Shdr *tmpShdr;
-
-	if(gapFlag == TEXTGAP){
-		tmpShdr = newElfFileSec[/*findSection(".rodata")*/textSegEndIndx].sec_hdr;
-		newPhdrOffset = tmpShdr->sh_offset + tmpShdr->sh_size;
-	}else if(gapFlag == DATAGAP){
-		tmpShdr = newElfFileSec[/*findSection(".data")*/dataSegStartIndx].sec_hdr; 
-		newPhdrOffset = tmpShdr->sh_offset - phdrSize + _pageSize;
-	}
-	while(newPhdrOffset %4){
-		newPhdrOffset ++;
-	}	
-
-	return 0;	
 }
 
 int addLibrary::checkFile(){

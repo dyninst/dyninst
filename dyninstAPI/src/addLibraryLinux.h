@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.h,v 1.8 2005/03/18 04:34:56 chadd Exp $ */
+/* $Id: addLibraryLinux.h,v 1.9 2005/03/21 16:59:21 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -113,7 +113,6 @@ class addLibrary {
 	void updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* strData,int oldTextIndex);
 	unsigned int sizeOfNoteSection();
 	void updateSymbolsSectionInfo(Elf_Data* symtabData,Elf_Data* strData);
-	int expandDynstrUp(char* libname);
 
 	unsigned int _pageSize;	
 	public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.12 2005/03/20 19:24:37 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.13 2005/03/21 16:59:21 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -603,17 +603,14 @@ int checkMutatedFile(){
 
 				if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
 					/* this is a heap tramp section */
-				/*	if( sawFirstHeapTrampSection ){
-						result = (int) mmap((void*) shdr->sh_addr, shdr->sh_size, 
-	        	                           PROT_READ|PROT_WRITE|PROT_EXEC,
-                        		           MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
-						fprintf(stderr,"%s mmap res: %d :: %x %x\n",((char *)strData->d_buf + shdr->sh_name),result,shdr->sh_addr,shdr->sh_size);
-					}else{*/
-						elfData = elf_getdata(scn, NULL);
-						memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
-						sawFirstHeapTrampSection = 1;
-						/*fprintf(stderr,"%s memcpy %d\n",((char *)strData->d_buf + shdr->sh_name),shdr->sh_addr);*/
-				/*	}*/
+
+					/* 	the new starting address of the heap is immediately AFTER the last
+						dyninstAPI_### section, so we can ALWAYS memcpy the data into place
+						see the value of newHeapAddr in writeBackElf.C
+					*/
+					elfData = elf_getdata(scn, NULL);
+					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
+					sawFirstHeapTrampSection = 1;
 				}
 			}
 		}
