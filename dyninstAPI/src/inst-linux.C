@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.5 2000/10/27 23:04:18 zandy Exp $
+// $Id: inst-linux.C,v 1.6 2001/02/23 08:03:46 schendel Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -114,19 +114,21 @@ void initPrimitiveCost()
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
 
-    // sparc_sun_sunos4_1_3 - default
-    // The same values are used for sparc_tmc_cmost7_2 and 
-    // sparc_wwt_cm5tempest1_2_3 platforms.
-    // Updated calculation of the cost for the following procedures.
-    // Clock rate = 67Mhz (SS-10) - naim
-	//22.08 usecs * 67Mhz
-	primitiveCosts["DYNINSTstartWallTimer"] = 1479;
-	//52.76 usecs * 67Mhz
-	primitiveCosts["DYNINSTstopWallTimer"] = 3534;
-	//3.78 usecs * 67Mhz
-	primitiveCosts["DYNINSTstartProcessTimer"] = 253;
-	//6.21 usecs * 67Mhz
-	primitiveCosts["DYNINSTstopProcessTimer"] = 416;
+    // Values (in cycles) benchmarked on a Pentium III 700MHz
+    // Level 2 - Software Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 719;
+    primitiveCosts["DYNINSTstopWallTimer"] = 737;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 587;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 607;
+
+    /* Level 1 - Hardware Level
+    // Implementation still needs to be added to handle start/stop
+    // timer costs for multiple levels
+    primitiveCosts["DYNINSTstartWallTimer"] = 145;
+    primitiveCosts["DYNINSTstopWallTimer"] = 163;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 195;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 207;
+    */
 
     // These happen async of the rest of the system.
     // 133.86 usecs * 67Mhz

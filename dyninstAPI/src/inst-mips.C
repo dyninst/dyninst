@@ -4212,21 +4212,21 @@ void initPrimitiveCost()
 
   //fprintf(stderr, ">>> initPrimitiveCost()\n");
 
-  // wall time
-  //primitiveCosts["DYNINSTstartWallTimer"] =     264; // cycle ctr
-  //primitiveCosts["DYNINSTstopWallTimer"] =      253; // cycle ctr
-  primitiveCosts["DYNINSTstartWallTimer"] =    1170; // gettimeofday()
-  primitiveCosts["DYNINSTstopWallTimer"] =     1190; // gettimeofday()
+    // Values (in cycles) benchmarked on an R10000 180MHz
+    // Level 1 - Hardware Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 156;
+    primitiveCosts["DYNINSTstopWallTimer"] = 155;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 4276;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 4210;
 
-  // CPU time
-  //primitiveCosts["DYNINSTstartProcessTimer"] =  3900; // PIOCGETEVCTRS
-  //primitiveCosts["DYNINSTstopProcessTimer"] =   3800; // PIOCGETEVCTRS
-  //primitiveCosts["DYNINSTstartProcessTimer"] = 7760; // PIOCUSAGE
-  //primitiveCosts["DYNINSTstopProcessTimer"] =  7810; // PIOCUSAGE
-  //primitiveCosts["DYNINSTstartProcessTimer"] = 4920; // PIOCACINFO
-  //primitiveCosts["DYNINSTstopProcessTimer"] =  4940; // PIOCACINFO
-  primitiveCosts["DYNINSTstartProcessTimer"] = 5000; // PIOCGETPTIMER
-  primitiveCosts["DYNINSTstopProcessTimer"] =  4950; // PIOCGETPTIMER
+    /* Level 2 - Software Level
+    // Implementation still needs to be added to handle start/stop
+    // timer costs for multiple levels
+    primitiveCosts["DYNINSTstartWallTimer"] = 1423;
+    primitiveCosts["DYNINSTstopWallTimer"] = 1440;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 5590;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 5737;
+    */
 
   // TODO: tricky interactions with DYNINSTinit()
   primitiveCosts["DYNINSTinit"] = 1;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.14 2000/10/17 17:42:15 schendel Exp $
+/* $Id: inst-aix.C,v 1.15 2001/02/23 08:03:44 schendel Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -115,27 +115,15 @@ void initPrimitiveCost()
     // 240 ns
     //primitiveCosts["DYNINSTdecrementCounter"] = 16;
 
-    // 0.8 usec * 66 mhz (measured on a POWER-2 RS600)
-    //primitiveCosts["DYNINSTstartWallTimer"] = 53;
-    // 1.0 usec * 66 mhz (measured on a POWER-2 RS600)
-    //primitiveCosts["DYNINSTstopWallTimer"] = 66;
-    // 2.4 usec * 66 Mhz (measured on a POWER-2 RS600)
-    //primitiveCosts["DYNINSTstartProcessTimer"] = 160;
-    // 4.8 usec * 66 Mhz (measured on a POWER-2 RS600)
-    //primitiveCosts["DYNINSTstopProcessTimer"] = 317;
-
     logLine("IBM platform\n");
     // Updated calculation of the cost for the following procedures.
-    // Clock rate = 64 Mhz (rs6000) - naim
-    // NOTE: These measurements may need some tune up (02-09-96) - naim
-    // 1.5 usecs * 64 Mhz  
-    primitiveCosts["DYNINSTstartWallTimer"] = 96;
-    // 3.01 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstopWallTimer"] = 192;
-    // 10.09 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstartProcessTimer"] = 645;
-    // 20.28 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstopProcessTimer"] = 1297;    
+
+    // Values (in cycles) benchmarked on a PowerPC 604e 332MHz
+    // Level 2 - Software Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 1643;
+    primitiveCosts["DYNINSTstopWallTimer"] = 1672;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 1206;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1220;
 
     // These happen async of the rest of the system.
     // 33.74 usecs * 64 Mhz

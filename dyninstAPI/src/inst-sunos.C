@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sunos.C,v 1.50 2000/10/17 17:42:17 schendel Exp $
+// $Id: inst-sunos.C,v 1.51 2001/02/23 08:03:47 schendel Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -117,10 +117,13 @@ void initPrimitiveCost()
     logLine("Solaris/x86 platform\n");
     // Updated calculation of the cost for the following procedures.
     // cost in cycles
-    primitiveCosts["DYNINSTstartWallTimer"] = 320;
-    primitiveCosts["DYNINSTstopWallTimer"] = 518;
-    primitiveCosts["DYNINSTstartProcessTimer"] = 572;
-    primitiveCosts["DYNINSTstopProcessTimer"] = 1143;
+
+    // Values (in cycles) benchmarked on a Pentium II 400MHz
+    // Level 2 - Software Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 1304;
+    primitiveCosts["DYNINSTstopWallTimer"] = 1321;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 1324;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1350;
 
     // These happen async of the rest of the system.
     primitiveCosts["DYNINSTalarmExpire"] = 3724;
@@ -132,16 +135,13 @@ void initPrimitiveCost()
 
 #elif defined(sparc_sun_solaris2_4)
     logLine("Solaris platform\n");
-    // Updated calculation of the cost for the following procedures.
-    // Clock rate = 37.04 Mhz (shemesh) - naim
-    // 24.11 usecs * 37.04 Mhz  
-    primitiveCosts["DYNINSTstartWallTimer"] = 893;
-    // 29.08 usecs * 37.04 Mhz
-    primitiveCosts["DYNINSTstopWallTimer"] = 1077;
-    // 34.08 usecs * 37.04 Mhz
-    primitiveCosts["DYNINSTstartProcessTimer"] = 1262;
-    // 56.61 usecs * 37.04 Mhz
-    primitiveCosts["DYNINSTstopProcessTimer"] = 2096;    
+
+    // Values (in cycles) benchmarked on an UltraSparcIIi 440MHz
+    // Level 2 - Software Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 248;
+    primitiveCosts["DYNINSTstopWallTimer"] = 277;
+    primitiveCosts["DYNINSTstartProcessTimer"] = 105;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 104;
 
     // These happen async of the rest of the system.
     // 148 usecs * 37.04 Mhz
@@ -156,44 +156,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 156;
     // 1.03 usecs * 37.04 Mhz
     primitiveCosts["DYNINSTreportNewTags"] = 38;
-#else
-    logLine("SunOS platform\n");   
-    // sparc_sun_sunos4_1_3 - default
-    // The same values are used for sparc_tmc_cmost7_2 and 
-    // sparc_wwt_cm5tempest1_2_3 platforms.
-    // Updated calculation of the cost for the following procedures.
-    // Clock rate = 67Mhz (SS-10) - naim
-    if (getenv("DYNINSTuseGetrusage")) {
-      // 22.08 usecs * 67Mhz
-      primitiveCosts["DYNINSTstartWallTimer"] = 1479;
-      // 52.76 * 67Mhz
-      primitiveCosts["DYNINSTstopWallTimer"] = 3534;
-      // 49.88 usecs * 67Mhz
-      primitiveCosts["DYNINSTstartProcessTimer"] = 3341;
-      // 69.26 usecs * 67Mhz
-      primitiveCosts["DYNINSTstopProcessTimer"] = 4640;
-    }
-    else {
-      //22.08 usecs * 67Mhz
-      primitiveCosts["DYNINSTstartWallTimer"] = 1479;
-      //52.76 usecs * 67Mhz
-      primitiveCosts["DYNINSTstopWallTimer"] = 3534;
-      //3.78 usecs * 67Mhz
-      primitiveCosts["DYNINSTstartProcessTimer"] = 253;
-      //6.21 usecs * 67Mhz
-      primitiveCosts["DYNINSTstopProcessTimer"] = 416;
-    }
-
-    // These happen async of the rest of the system.
-    // 133.86 usecs * 67Mhz
-    primitiveCosts["DYNINSTalarmExpire"] = 8968;
-    primitiveCosts["DYNINSTsampleValues"] = 29;
-    // 6.41 usecs * 67Mhz
-    primitiveCosts["DYNINSTreportTimer"] = 429;
-    // 89.85 usecs * 67Mhz
-    primitiveCosts["DYNINSTreportCounter"] = 6019;
-    primitiveCosts["DYNINSTreportCost"] = 167;
-    primitiveCosts["DYNINSTreportNewTags"] = 40; 
 #endif
 }
 

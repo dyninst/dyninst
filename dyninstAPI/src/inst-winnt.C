@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.6 2000/10/17 17:42:18 schendel Exp $
+// $Id: inst-winnt.C,v 1.7 2001/02/23 08:03:47 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -113,10 +113,19 @@ void initPrimitiveCost()
     logLine("WindowsNT platform\n");
     // Updated calculation of the cost for the following procedures.
     // cost in cycles
-    primitiveCosts["DYNINSTstartWallTimer"] = 320;
-    primitiveCosts["DYNINSTstopWallTimer"] = 518;
-    primitiveCosts["DYNINSTstartProcessTimer"] = 572;
-    primitiveCosts["DYNINSTstopProcessTimer"] = 1143;
+    // Values (in cycles) benchmarked on a Pentium II 450MHz
+    // Level 1 - Hardware Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 151;
+    primitiveCosts["DYNINSTstopWallTimer"] = 165;
+
+    // Implementation still needs to be added to handle start/stop
+    // timer costs for multiple levels
+    /* Level 2 - Software Level
+    primitiveCosts["DYNINSTstartWallTimer"] = 797;
+    primitiveCosts["DYNINSTstopWallTimer"] = 807;
+    */
+    primitiveCosts["DYNINSTstartProcessTimer"] = 990;
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1017;
 
     // These happen async of the rest of the system.
     primitiveCosts["DYNINSTalarmExpire"] = 3724;
