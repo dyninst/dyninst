@@ -69,6 +69,7 @@ inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return chdir(path); }
 
+
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}
 inline int P_fflush(FILE *stream) { return (fflush(stream));}
@@ -145,6 +146,8 @@ inline int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp(s1, s2));}
 inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp(S1, S2,N));}
+inline void P_endservent() { endservent(); }
+
 
 /* Ugly */
 inline int P_ptrace(int req, pid_t pid, int addr, int data, int addr2) {

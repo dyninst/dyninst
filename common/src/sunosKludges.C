@@ -152,6 +152,8 @@ int P_strcasecmp(const char *s1, const char *s2) {
 int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp((char*)S1, (char*)S2, N));}
 
+int P_endservent(void) { return endservent(); }
+
 /* SunOS */
 int P_ptrace(enum ptracereq req, int pid, char *addr, int data, char *addr2) {
   return (ptrace(req, pid, addr, data, addr2));}

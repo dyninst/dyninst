@@ -54,15 +54,10 @@ extern "C" {
 
   extern void endpwent(); 
 
-// temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
-// anyway.
-#if defined(hppa1_1_hp_hpux)
-  extern void endservent(void);
-#else
-  extern int endservent(void);
-#endif
+// This functino have moved to util/h/{PLATFORM}headers.h
+// extern int endservent();
 
-  extern int getdtablesize();
+extern int getdtablesize();
 }
 
 
@@ -594,7 +589,7 @@ phase1(struct slot *sp)
 	  }
 	}
       execport = se->s_port;
-      endservent();
+      P_endservent();
     }
 #endif
 

@@ -152,6 +152,8 @@ int P_rexec(char **ahost, u_short inport, char *user,
 	    char *passwd, char *cmd, int *fd2p){
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
 
+int P_endservent(void) { return endservent(); }
+
 void P_xdr_destroy(XDR *xdrs) { xdr_destroy(xdrs); }
 bool_t P_xdr_u_char(XDR *x, u_char *u) { return (xdr_u_char(x, u));}
 bool_t P_xdr_int(XDR *x, int *i) { return (xdr_int(x, i));}

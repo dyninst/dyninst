@@ -113,6 +113,7 @@ extern int P_socketpair(int namesp, int style, int protocol, int filedes[2]);
 extern int P_pipe(int fd[2]);
 extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
+extern int P_endservent(void);
 
 /* Ugly */
 extern int P_ptrace(enum ptracereq, int pid, char *addr, int data, char *addr2);
