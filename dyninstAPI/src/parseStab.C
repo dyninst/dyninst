@@ -577,6 +577,13 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  }
 	      }
 	      break;
+          case 'l':
+	    /* These are string literals, of the form 
+	       name:l(type);value
+	       where type must be predefined, and value of of type type.
+	       It should be safe to ignore these. */
+	    cnt = strlen(stabstr);
+	    break;
 	  default:
 	      fprintf(stderr, "Unknown symbol descriptor: %c\n", stabstr[cnt]);
 	      fprintf(stderr, " : %s\n", stabstr);

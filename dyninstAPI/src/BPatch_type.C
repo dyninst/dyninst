@@ -355,7 +355,7 @@ nullType(false), cblocks(NULL)
   
   ID = _ID;
 
-  if( b_size != _size) {
+  if( b_size != _size && _ptr != BPatch::bpatch->type_Untyped) {
     sprintf(errorLine, "Built-in Type size %d and Stabs record size %d differ"
         " for [%d]%s: Overriding built-in type size!!",
         b_size, _size, _ID, _name);
