@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.17 2003/07/18 15:44:07 schendel Exp $
+# $Id: Makefile,v 1.18 2004/03/05 16:51:09 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -51,12 +51,12 @@ endif
 
 ifeq ($(MUTATEE_CC), $(M_GXX))
 MABI = -mabi=
-MUTATEE_CFLAGS = $(ARCH_DEF) -g
+MUTATEE_CFLAGS = $(UNIFIED_DEF) -g
 endif
 
 ifeq ($(MUTATEE_CC), $(M_GCC))
 MABI = -mabi=
-MUTATEE_CFLAGS = $(ARCH_DEF) -g
+MUTATEE_CFLAGS = $(UNIFIED_DEF) -g
 endif
 
 EMPTY:=

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2003/09/19 19:17:35 jodom Exp $
+# $Id: Makefile,v 1.14 2004/03/05 16:51:16 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,7 +23,7 @@ endif
 
 # if we want to produce a shared object...
 
-CFLAGS          = -g -I. -I../.. -Dsparc_sun_solaris2_4
+CFLAGS          += -I. -I../..
 ifdef USES_NATIVE_CC
 CC		= $(NATIVE_CC)
 LD		= $(NATIVE_CC)

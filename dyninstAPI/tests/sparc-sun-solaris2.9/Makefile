@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.1 2003/09/30 14:20:45 jodom Exp $
+# $Id: Makefile,v 1.2 2004/03/05 16:51:12 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -109,7 +109,7 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) $(NATIVE_DEBUG_FLAG) -Wa,-xarch=v8plus
+MUTATEE_CFLAGS = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -Wa,-xarch=v8plus
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) $(DEBUG_FLAG)
 endif
@@ -120,7 +120,7 @@ ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 # global linkage respectively
 
 # VG(12/02/01): Overriding these to put the right debug flag
-MUTATEE_CFLAGS = $(ARCH_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
+MUTATEE_CFLAGS = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
 
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 endif

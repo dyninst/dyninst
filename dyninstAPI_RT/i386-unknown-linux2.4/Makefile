@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2003/11/05 18:32:52 jaw Exp $
+# $Id: Makefile,v 1.13 2004/03/05 16:51:14 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,9 +23,9 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
-CFLAGS          = -I. -I../.. -I/usr/include/libelf -Di386_unknown_linux2_0 -g -fpic 
-LIBS 		= -lelf -ldl 
-ASFLAGS         = 
+CFLAGS          += -I. -I../.. -I/usr/include/libelf -fpic 
+LIBS 		+= -lelf -ldl 
+ASFLAGS         += 
 
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTlinux.c \

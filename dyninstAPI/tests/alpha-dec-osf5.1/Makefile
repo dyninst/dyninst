@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2003/12/11 21:23:52 rchen Exp $
+# $Id: Makefile,v 1.5 2004/03/05 16:51:04 bernat Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -61,11 +61,11 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) -g
+MUTATEE_CFLAGS = $(UNIFIED_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g -D__USE_STD_IOSTREAM
+MUTATEE_CFLAGS = -x cxx $(UNIFIED_DEF) -g -D__USE_STD_IOSTREAM
 endif
 
 EMPTY:=

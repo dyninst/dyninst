@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.33 2004/01/19 21:54:07 schendel Exp $
+# $Id: Makefile,v 1.34 2004/03/05 16:51:05 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,8 +17,8 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS += 
-CFLAGS +=
+#CXXFLAGS += 
+#CFLAGS +=
 
 MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
@@ -61,7 +61,7 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 endif
 
 # As a test, don't include debug information in the mutatees.
-MUTATEE_CFLAGS = $(ARCH_DEF)
+MUTATEE_CFLAGS = $(UNIFIED_DEF)
 
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2003/05/10 23:53:01 schendel Exp $
+# $Id: Makefile,v 1.4 2004/03/05 16:51:19 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -62,7 +62,7 @@ OBJS	=  RTfirst.o \
 # Don't optimize this module - jkh 6/21/95
 #
 RTrexec.o:
-	$(CC) -c $(ARCH_DEF) -g ../src/RTrexec.c 
+	$(CC) -c $(UNIFIED_DEF) -g ../src/RTrexec.c 
 
 install: $(TARGET3_SO)
 	-$(CP) $(TARGET3_SO) $(DEST)

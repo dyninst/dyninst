@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.1 2003/10/30 00:51:42 rchen Exp $
+# $Id: Makefile,v 1.2 2004/03/05 16:51:07 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -34,7 +34,7 @@ NATIVE_CXX = VC++
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CC)")
 COMPILER="Microsoft_(R)_32-bit_C/C++_Optimizing_Compiler_Version_12.00.8168_for_80x86"
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -DCOMPILER=\"$(COMPILER)\"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -DCOMPILER=\"$(COMPILER)\"
 LDFLAGS = -nologo -debug -pdb:none
 #LDFLAGS = -nologo -debug 
 !ifdef MUTATEE_ASM
@@ -56,7 +56,7 @@ $(TARGET2): ../src/$(TARGET2:_VC.exe=.c) $(MUTATEE_SRC)
 
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CXX)")
 COMPILER="Microsoft_(R)_32-bit_C/C++_Optimizing_Compiler_Version_12.00.8168_for_80x86"
-MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -GX -DCOMPILER=\"$(COMPILER)\"
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(UNIFIED_DEF) -GR -GX -DCOMPILER=\"$(COMPILER)\"
 LDFLAGS = -nologo -debug -pdb:none
 #LDFLAGS = -nologo -debug 
 $(TARGET2): ../src/$(TARGET2:_VC++.exe=.c)
@@ -68,14 +68,14 @@ $(TARGET2): ../src/$(TARGET2:_VC++.exe=.c)
 
 !if ("$(MUTATEE_CC)"=="$(M_GCC)")
 COMPILER="gcc_version_egcs-2.91.57_19980901_(egcs-1.1 release)"
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
+MUTATEE_CFLAGS = -g $(UNIFIED_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_gcc.exe=.c)
 	$(M_GCC) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_gcc.exe=.c)
 !endif
 
 !if ("$(MUTATEE_CC)"=="$(M_GXX)")
 COMPILER="gcc_version_egcs-2.91.57_19980901_(egcs-1.1 release)"
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall -DCOMPILER='$(COMPILER)'
+MUTATEE_CFLAGS = -g $(UNIFIED_DEF) -Wall -DCOMPILER='$(COMPILER)'
 $(TARGET2): ../src/$(TARGET2:_g++.exe=.c)
 	$(M_GXX) -o $(TARGET2) $(MUTATEE_CFLAGS) ../src/$(TARGET2:_g++.exe=.c)
 !endif

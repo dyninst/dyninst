@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2004/01/23 22:36:28 tlmiller Exp $
+# $Id: Makefile,v 1.8 2004/03/05 16:51:08 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -48,7 +48,7 @@ else
 COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 endif
 
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wno-deprecated
+MUTATEE_CFLAGS = -g $(UNIFIED_DEF) -Wno-deprecated
 
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)

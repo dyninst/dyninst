@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2003/09/11 18:20:44 chadd Exp $
+# $Id: Makefile,v 1.7 2004/03/05 16:51:10 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -53,7 +53,7 @@ versionArray = $(word 2,$(c1))
 versionArray += $(word 2,$(c2))
 versionArray += unknown
 COMPILERT = $(MUTATEE_CC) version $(firstword $(versionArray))
-MUTATEE_CFLAGS = $(ARCH_DEF) -bkeepfile:$(MUTATEE_OBJ)
+MUTATEE_CFLAGS = $(UNIFIED_DEF) -bkeepfile:$(MUTATEE_OBJ)
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 MUTATEE_CFLAGS += -+
 endif

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/05/25 01:06:37 rchen Exp $
+# $Id: Makefile,v 1.2 2004/03/05 16:51:13 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,6 @@ SRCS         += ../src/RTposix.c \
 		../src/RTtext-alpha.S
 
 
-CFLAGS	     +=  -Dalpha_dec_osf4_0 -I../.. -I/usr/include/ -I../h/
 LD		= $(GCC)
 LDFLAGS		+= -static -nostdlib -Xlinker -r
 ASFLAGS		+= -I../..
@@ -29,7 +28,7 @@ ASFLAGS		+= -I../..
 CC              = $(GCC)
 AS		= as
 LD              = $(GCC)
-CFLAGS          = -I. -I../.. -Dalpha_dec_osf4_0 -g -Dexternal_templates -fPIC
+CFLAGS          += -I. -I../.. -Dexternal_templates -fPIC
 LDFLAGS         = -msym -shared -taso -lc
 LDFLAGS         = -shared 
 
