@@ -69,7 +69,6 @@ bool rpcThr::isReadyForIRPC() const {
     if (postedRPCs_.size() > 0) {
         return true;
     }
-    
     if (mgr_->postedProcessRPCs_.size() > 0) {
         return true;
     }
@@ -87,10 +86,15 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
     if (runningRPC_ || pendingRPC_) {
         return irpcError;
     }
-    
+
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
+    if (postedRPCs_.size() == 0)
+        return irpcNoIRPC;
+#else
     if (postedRPCs_.size() == 0 &&
         mgr_->postedProcessRPCs_.size() == 0)
         return irpcNoIRPC;
+#endif
 
     // We can run the RPC if we're not currently in a system call.
     // This is defined as "any time we can't modify the state of the
@@ -145,12 +149,14 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             for (unsigned k = 1; k < postedRPCs_.size(); k++)
                 newRPCs.push_back(postedRPCs_[k]);
             postedRPCs_ = newRPCs;
+            pendingRPC_->isProcessRPC = false;
         }
         else {
             // Take a process-wide RPC
             pendingRPC_->rpc = mgr_->getProcessRPC();
             // And it's running on this thread
             pendingRPC_->rpc->thr = thr_;
+            pendingRPC_->isProcessRPC = true;
         }
         pendingRPC_->runProcWhenDone = runProcWhenDone;
         mgr_->addPendingRPC(pendingRPC_);
@@ -162,8 +168,10 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     if (!pendingRPC_) {
         return irpcNoIRPC;
     }
+
     
     dyn_lwp *lwp = thr_->get_lwp();
+
 
     // We passed the system call check, so the thread is in a state
     // where it is possible to run iRPCs.
@@ -195,6 +203,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
                          runningRPC_->rpcContPostResultAddr,
                          runningRPC_->resultRegister,
                          runningRPC_->rpc->lowmem); // Where to allocate
+
     if (!runningRPC_->rpcStartAddr) {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;
@@ -276,6 +285,14 @@ bool rpcThr::handleCompletedIRPC() {
     // started on if the thread was migrated.
     dyn_lwp *lwp = thr_->get_lwp();
     assert(lwp);
+
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)    
+    if (runningRPC_->isProcessRPC) {
+        lwp->proc()->restoreDefaultLWP();
+        mgr_->processingProcessRPC = false;
+    }
+#endif
+
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
         if (!lwp->restoreRegisters(runningRPC_->savedRegs)) {
@@ -363,3 +380,48 @@ void rpcThr::launchThrIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
     // happen)
     thr->runPendingIRPC();
 }
+
+
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
+// Launch an inferior RPC
+// Two cases: 
+// 1) We have a pending RPC (in pendingRPC_) that we already prepped
+//    and we want to run it (and a system call breakpoint was set)
+// 2) We don't have a pending IRPC but there is one on the queue.
+irpcLaunchState_t rpcThr::launchProcIRPC(bool runProcWhenDone) {
+
+    // Most important thing: find a LWP that's not blocked in a system call
+
+    if (runningRPC_ || pendingRPC_) {
+        return irpcError;
+    }
+    
+    if (mgr_->postedProcessRPCs_.size() == 0)
+        return irpcNoIRPC;
+
+    // We can run the RPC if we're not currently in a system call.
+    // This is defined as "any time we can't modify the state of the
+    // process". In this case we try and set a breakpoint when we leave
+    // the system call. If we can't set the breakpoint we poll.
+    dyn_lwp *lwp = thr_->get_lwp();
+
+    // Check if we're in a system call
+    if (lwp->executingSystemCall()) {
+        // No RPCs anyway
+        return irpcError;
+    }
+
+    // Get the RPC and slap it in the pendingRPC_ pointer
+    pendingRPC_ = new inferiorRPCinProgress;
+    // Take a process-wide RPC
+    pendingRPC_->rpc = mgr_->getProcessRPC();
+    // And it's running on this thread
+    pendingRPC_->rpc->thr = thr_;
+    pendingRPC_->isProcessRPC = true;
+    
+    pendingRPC_->runProcWhenDone = runProcWhenDone;
+    mgr_->addPendingRPC(pendingRPC_);
+
+    return runPendingIRPC();
+}
+#endif

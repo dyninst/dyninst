@@ -80,6 +80,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     }
     else {
         postedProcessRPCs_.push_back(theStruct);
+
     }
 
     // Stick it in the global listing as well
@@ -188,6 +189,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
 
     recursionGuard = true;
 
+    bool readyProcessRPC = false;
     bool readyLWPRPC = false;
     bool readyThrRPC = false;
     bool processingLWPRPC = false;
@@ -217,10 +219,17 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
         rpc_iter++;
     }
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
+    if (!readyLWPRPC && !processingLWPRPC) {
+        if (postedProcessRPCs_.size())
+            readyProcessRPC = true;
+    }
+#endif
     
     // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
-    if (!readyLWPRPC && !processingLWPRPC) {
+
+    if (!readyLWPRPC && !processingLWPRPC && !readyProcessRPC && !processingProcessRPC) {
         for (unsigned i = 0; i < thrs_.size(); i++) {
            rpcThr *curThr = thrs_[i];
            if(curThr == NULL)
@@ -233,7 +242,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
     }
     
-    if (!readyLWPRPC && !readyThrRPC) {
+    if (!readyLWPRPC && !readyThrRPC && !readyProcessRPC) {
         if (wasRunning) {
             // the caller expects the process to be running after
             // iRPCs finish, so continue the process here
@@ -268,6 +277,22 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             lwp_iter++;
         }
     }
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
+    else if (readyProcessRPC) {
+        // Loop over all threads until one can run the process RPC
+        for (unsigned iter = 0; iter < thrs_.size(); iter++) {
+            rpcThr *curThr = thrs_[iter];
+            if (curThr == NULL) continue;
+            
+            irpcLaunchState_t thrState = thrs_[iter]->launchProcIRPC(wasRunning);
+            if (thrState == irpcStarted) {
+                proc_->overrideDefaultLWP(thrs_[iter]->get_thr()->get_lwp());
+                processingProcessRPC = true;
+                break;
+            }
+        }
+    }
+#endif
     else if (readyThrRPC) {
         // Loop over all threads and try to run an inferior RPC
         for (unsigned iter = 0; iter < thrs_.size(); iter++) {

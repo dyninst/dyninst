@@ -106,6 +106,8 @@ struct inferiorRPCinProgress {
     
     rpcThr *rpcthr; /* Particular thread to run on */
     rpcLWP *rpclwp; /* Or a particular LWP */
+
+    bool isProcessRPC;
     
     irpcState_t state;
 };
@@ -154,6 +156,9 @@ class rpcThr {
     // Launch an IRPC
     irpcLaunchState_t launchThrIRPC(bool runProcWhenDone);
 
+#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
+    irpcLaunchState_t launchProcIRPC(bool runProcWhenDone);
+#endif
     // Handle the syscall callback
     static void launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
@@ -246,6 +251,9 @@ class rpcMgr {
     friend class rpcLWP;
     
   private:
+
+    bool processingProcessRPC;
+
     process *proc_;
     pdvector<rpcThr *> thrs_;
     dictionary_hash<unsigned, rpcLWP *> lwps_;
@@ -278,7 +286,7 @@ class rpcMgr {
     bool recursionGuard;
     
   public:
-   rpcMgr(process *proc) : proc_(proc), lwps_(rpcLwpHash), recursionGuard(false) { };
+   rpcMgr(process *proc) : processingProcessRPC(false), proc_(proc), lwps_(rpcLwpHash), recursionGuard(false) { };
 
    void addThread(dyn_thread *thr);
    void deleteThread(dyn_thread *thr);
