@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.16  1996/08/16 16:32:47  lzheng
+ * Minor fixing related to the previous commits
+ *
  * Revision 1.15  1996/08/16 04:06:00  lzheng
  * Minor changes for the change of paradyn.rc and bug fixing.
  *
@@ -1408,7 +1411,7 @@ bool pdFunction::findInstPoints(const image *owner) {
   assert(funcEntry_);
   entryPoint = instr;
 
-  if (size() <= 12) return true;
+  if (size() <= 12) return false;
 
   int index = 0; 
 
