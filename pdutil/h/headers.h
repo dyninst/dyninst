@@ -42,7 +42,10 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #include "util/h/sunosHeaders.h"
 
 #elif defined(rs6000_ibm_aix3_2)
-#include "util/h/aixHeaders.h"
+#include "util/h/aixv32Headers.h"
+
+#elif defined(rs6000_ibm_aix4_1)
+#include "util/h/aixv41Headers.h"
 
 #endif  /* architecture specific */
 

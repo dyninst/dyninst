@@ -164,7 +164,10 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
+#ifndef rs6000_ibm_aix4_1
+   // aix 4.1 goesn't need or agree with the following declaration:
 extern "C" gettimeofday(struct timeval *tp, struct timezone *tzp);
+#endif
 
 void
 timer::get_current(double& u, double& s, double& w) {
