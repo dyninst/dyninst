@@ -135,13 +135,16 @@ int remoteCommand( const std::string remoteExecCmd,
     std::string cmd;
 
     mrn_printf( 3, MCFL, stderr, "In remoteCommand()\n" );
-#if defined(DEFAULT_RUNAUTH_COMMAND)
+
     //might be necessary to call runauth to pass credentials
-    cmd = DEFAULT_RUNAUTH_COMMAND;
-    remoteExecArgList.push_back( remoteExecCmd );
-#else
-    cmd = remoteExecCmd;
-#endif
+    const char *runauth = getenv( RUNAUTH_COMMAND_ENV );
+    if( runauth == NULL ) {
+        cmd = remoteExecCmd;
+    }
+    else {
+        cmd = runauth;
+        remoteExecArgList.push_back( remoteExecCmd );
+    }
 
     // add the hostname and username to arglist
     remoteExecArgList.push_back( hostName );

@@ -39,6 +39,10 @@ for the application's back-end processes. When this function returns without
 error, all MRNet internal processes and the application back-end processes
 will have been instantiated using rsh or ssh depending on the setting of
 the environment variable <varname>MRNET_RSH</varname>.
+<note>If it is necessary to run the <command>rsh</command> with a utility
+like <command>runauth </command> to non-interactively authenticate the
+unattended remote process, that command may be specified using the
+<varname>MRNET_RUNAUTH</varname> environment variable.</note>
 </blockquote>
 </funcsynopsis>
 
@@ -312,6 +316,7 @@ to the user.
 <funcsynopsis>
 <funcprototype>
   <funcdef>static bool <function>Event::have_Event</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::have_Event</function> checks the MRNet event queue returning
@@ -322,6 +327,7 @@ true if new events exist and false, otherwise.
 <funcsynopsis>
 <funcprototype>
   <funcdef>static Event * <function>Event::get_NextEvent</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::get_NextEvent</function> returns the next event in the
@@ -334,6 +340,7 @@ it returns from the MRNet event queue.
 <funcsynopsis>
 <funcprototype>
   <funcdef>EventType <function>Event::get_Type</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::get_Type</function> returns the type of the event.
@@ -344,6 +351,7 @@ it returns from the MRNet event queue.
 <funcsynopsis>
 <funcprototype>
   <funcdef>const std::string &amp;<function>Event::get_HostName</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::get_HostName</function> returns the name of the host
@@ -354,6 +362,7 @@ on which the event occured.
 <funcsynopsis>
 <funcprototype>
   <funcdef>unsigned short <function>Event::get_Port</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::get_Port</function> returns the MRNet process identifier
@@ -364,6 +373,7 @@ of the process in which the event occured.
 <funcsynopsis>
 <funcprototype>
   <funcdef>const std::string &amp; <function>Event::get_Description</function></funcdef>
+    <void></void>
 </funcprototype>
 <blockquote>
 <function>Event::get_Description</function> returns a string containing

@@ -74,6 +74,9 @@ The full set of conversions are:
 <row>
 <entry>s</entry><entry>Matches a null-terminated character string.</entry>
 </row>
+<row>
+<entry>as</entry><entry>Matches an array of null-terminated character strings.</entry>
+</row>
 </tbody>
 </tgroup>
 </informaltable>
