@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.41 2003/04/18 22:35:27 tlmiller Exp $
+ * $Id: Object.h,v 1.42 2003/05/08 20:35:06 chadd Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -179,7 +179,7 @@ protected:
     // explicitly protected
     AObject(const string file , void (*err_func)(const char *)): file_(file), 
 	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 
-	data_ptr_(0), data_off_(0), data_len_(0),
+	data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0), loader_len_(0),
     deferredParse(false),
     err_func_(err_func),
         addressWidth_nbytes(4) { }
@@ -188,8 +188,9 @@ protected:
         code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
 	code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
 	data_off_(obj.data_off_), data_len_(obj.data_len_), 
+	loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
     deferredParse(false),
-	err_func_(obj.err_func_), addressWidth_nbytes(4) { }
+	err_func_(obj.err_func_), addressWidth_nbytes(4){ } 
 
     AObject&  operator= (const AObject &obj) {   
 
@@ -199,6 +200,8 @@ protected:
 	 code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
 	 data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
 	 err_func_  = obj.err_func_;
+	 loader_off_ = obj.loader_off_; 
+	 loader_len_ = obj.loader_len_;
 	 return *this;
     }
 
@@ -212,6 +215,9 @@ protected:
     Word*   data_ptr_;
     Address data_off_;
     Address data_len_;
+
+    Address loader_off_; //only used on aix right now.  could be
+    Address loader_len_; //needed on other platforms in the future
 
     bool deferredParse;
 

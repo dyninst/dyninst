@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.20 2003/05/07 19:10:45 bernat Exp $
+// $Id: Object-xcoff.C,v 1.21 2003/05/08 20:35:06 chadd Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -448,6 +448,16 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      text_reloc = 0; code_off_ = 0; // set to illegal
    }
    code_len_ = aout.tsize;
+
+   //FIND LOADER INFO!
+   if( text_org_ != (unsigned) -1 ){
+       loader_off_ =  text_org_ +  sectHdr[aout.o_snloader-1].s_scnptr;
+       loader_len_ = sectHdr[aout.o_snloader-1].s_size; 
+   }else{
+       loader_off_ = 0;
+       loader_len_ = 0;
+   }
+
    if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sntext-1].s_scnptr) + offset,
 		    (void **) &code_ptr_, aout.tsize, true))
      PARSE_AOUT_DIE("Reading text segment", 49);
@@ -760,7 +770,32 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    // Since most of this code is the same, I've unified it.
 
    // Start of the heap
-   heapAddr = code_off_ + code_len_;
+
+   //IF we are in aout (the executable) and we have .loader info
+   //then make the heap start at the end of the loader info.
+   //(ASSUMPTION:) On AIX, the loader info is between the text and data sections. 
+   //The XCOFF header info does not explicitly state that the loader info
+   //is loaded into memory BUT the loader loads it and it is needed upon exit().
+   //if we overwrite it the mutatee will seg fault in __modfini 
+   //(b/c of bad data in find_rtinit)
+
+   //use the end of the .loader section as the start point ONLY IF:
+   //the .loader info is present AND 
+   //this is the executable and not a shared lib AND
+   //the .loader section is loaded at a larger memory address than the end of .text AND
+   //the .loader section is loaded at a smaller memory address than 0x1ffffffc
+
+   //there are no hard and fast rules as to where the .loader section needs
+   //to be. the loader could put it before .text, after .data, before .data
+   //but beyond 0x1ffffffc, somewhere in ohio.
+
+   if( loader_len_ && loader_off_  && is_aout 
+       && ( (loader_off_+ loader_len_) > (code_off_ + code_len_  ))
+       && ((loader_off_+ loader_len_) < 0x1ffffffc) ){
+       heapAddr = loader_off_ + loader_len_;
+   }else{
+       heapAddr = code_off_ + code_len_;
+   }
    // Word-align the heap
    heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
    
