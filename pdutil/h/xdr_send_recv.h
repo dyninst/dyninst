@@ -92,14 +92,6 @@ bool P_xdr_recv(XDR *xdr, double &);
 bool P_xdr_recv(XDR *xdr, byteArray &);
 bool P_xdr_recv(XDR *xdr, string &);
 
-bool read1_bool(XDR *xdr);
-#if !defined(i386_unknown_nt4_0)
-uint16_t read1_uint16(XDR *xdr);
-#endif
-uint32_t read1_uint32(XDR *xdr);
-unsigned read1_unsigned(XDR *xdr);
-string read1_string(XDR *xdr);
-
 //--------------------
 
 // New style XDR send/recv for pointers to objects
