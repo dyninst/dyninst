@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.207 2001/11/10 17:28:04 gurari Exp $
+// $Id: metricFocusNode.C,v 1.208 2001/11/27 17:40:29 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -905,6 +905,15 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
   // assert(0);
 }
 
+// in the future should change it so constraint PRIM MDNs don't have
+// aggComponents tied to them, since they don't have their values
+// sampled or aggregated
+// don't have to worry about 
+void metricDefinitionNode::removePrimAggComps() {
+  for(int i=0; i<samples.size(); i++) {
+    samples[0]->requestRemove();
+  }
+}
 
 // DELETE AND DISABLE AND REMOVE: 
 // start from ~metricDefinitionNode, disable() and removeThisInstance()
@@ -985,15 +994,11 @@ void metricDefinitionNode::removeThisInstance() {
     allMIComponents.undef(flat_name_);
   }
 
-  if (components.size() != 1 &&
-      components.size() != 0)
-    while (1) ;
-  assert(components.size()==1 ||  // ie. the primitive metric, 
-	 components.size()==0);     // in the case of a dummy component
-  if(components.size() == 1) {
-    metricDefinitionNode* primMdn = components[0];
-    primMdn->samples[0]->requestRemove();
+  for(unsigned pi=0; pi<components.size(); pi++) {
+    metricDefinitionNode *primMdn = components[pi];
+    primMdn->removePrimAggComps();
   }
+
   assert(aggregators.size() == samples.size());
 
   for (unsigned u=0; u<samples.size(); u++) {

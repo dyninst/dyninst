@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.82 2001/11/06 19:20:45 bernat Exp $ 
+// $Id: metricFocusNode.h,v 1.83 2001/11/27 17:40:28 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -837,7 +837,7 @@ public:
   void updateAggInterval(timeLength width) {
     aggregator.changeAggIntervalWidth(width);
   }
-
+  void removePrimAggComps();
   // needed
   timeLength cost() const;
   bool checkAndInstallInstrumentation();
