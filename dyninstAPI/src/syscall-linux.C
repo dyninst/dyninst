@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.4 2004/03/23 01:12:10 eli Exp $
+// $Id: syscall-linux.C,v 1.5 2004/03/31 15:52:41 mjbrim Exp $
 
 #define FORK_FUNC "__libc_fork"
-#define EXEC_FUNC "execve"
-#define EXIT_FUNC "exit"
+#define EXEC_FUNC "__execve"
+#define EXIT_FUNC "_exit"
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
