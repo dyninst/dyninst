@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.33 2004/04/20 01:27:55 jaw Exp $
+// $Id: templates2.C,v 1.34 2004/05/11 19:01:46 bernat Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -125,41 +125,6 @@ template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
-
-#ifdef SHM_SAMPLING
-#include "varInstanceHKs.h"
-template class pdvector<intCounterHK*>;
-template class pdvector<wallTimerHK*>;
-template class pdvector<processTimerHK*>;
-#ifdef PAPI
-template class pdvector<hwTimerHK*>;
-template class pdvector<hwCounterHK*>;
-#endif
-
-#ifndef USES_NATIVE_CC
-#include "varInstance.C"
-#endif
-template class varInstance<intCounterHK>;
-template class varInstance<wallTimerHK>;
-template class varInstance<processTimerHK>;
-#ifdef PAPI
-template class varInstance<hwTimerHK>;
-template class varInstance<hwCounterHK>;
-#endif
-template class pdvector<baseVarInstance *>;
-
-#ifndef USES_NATIVE_CC
-#include "varTable.C"
-#endif
-template class varTable<intCounterHK>;
-template class varTable<wallTimerHK>;
-template class varTable<processTimerHK>;
-#ifdef PAPI
-template class varTable<hwTimerHK>;
-template class varTable<hwCounterHK>;
-#endif
-template class pdvector<baseVarTable *>;
-#endif
 
 //#ifdef BPATCH_LIBRARY
 template class dictionary_hash <pdstring, Symbol>;
