@@ -40,77 +40,9 @@
  */
 
 /*
- * PCrules.C
- *
  * The specific metric and hypothesis definitions which will eventually 
- *  be parsed from a configuration file.
- *
- * $Log: PCrules.C,v $
- * Revision 1.43  1997/11/01 05:19:38  tamches
- * removed some warnings
- *
- * Revision 1.42  1996/12/12 20:04:47  karavan
- * removed test hypothesis I accidentally committed
- *
- * Revision 1.41  1996/12/08 17:36:19  karavan
- * part 1 of 2 part commit to add new searching functionality
- *
- * Revision 1.40  1996/08/16 21:03:40  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.39  1996/07/23 20:28:04  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.38  1996/07/22 18:56:21  karavan
- * part one of two-part commit
- *
- * Revision 1.37  1996/05/17 16:19:49  karavan
- * commented out debug print
- *
- * Revision 1.36  1996/05/08 07:35:23  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.35  1996/05/06 04:35:23  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.34  1996/04/30 06:27:05  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.33  1996/03/18 07:13:07  karavan
- * Switched over to cost model for controlling extent of search.
- *
- * Added new TC PCcollectInstrTimings.
- *
+ * be parsed from a configuration file.
+ * $Id: PCrules.C,v 1.44 1998/04/28 22:16:44 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -227,10 +159,10 @@ void initPCmetrics()
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
 
-  specs[0].mname = "io_ops";
+  specs[0].mname = "io_bytes";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
-  specs[1].mname = "io_bytes";
+  specs[1].mname = "io_ops";
   specs[1].whichFocus = cf;
   specs[1].ft = averaging;
   temp = new PCmetric ("IOAvgSize", specs, 2, NULL, DivideEval, 1);
@@ -362,7 +294,7 @@ void initPChypos()
 		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyAndWhere, (void *)NULL, &plumList2, NULL);
+		   gt, whereBeforeWhy, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -371,9 +303,9 @@ void initPChypos()
     addHypothesis ("TooManySmallIOOps", "ExcessiveIOBlockingTime",
 		   "IOAvgSize", "",
 		   "diskBlockSize", 
-		   "PC_IOThreshold",
+		   "PC_IOOpThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyAndWhere, (void *)NULL, &plumList2, NULL);
+		   lt, whyAndWhere, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
