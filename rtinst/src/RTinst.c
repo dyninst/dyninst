@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.25 2000/02/22 23:12:58 pcroth Exp $
+ * $Id: RTinst.c,v 1.26 2000/03/03 22:09:53 mirg Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1078,8 +1078,6 @@ DYNINSTexit(void) {
     DYNINSTprintCost();
 }
 
-
-
 /************************************************************************
  * void DYNINSTfork(void* arg, int pid)
  *
@@ -1119,30 +1117,30 @@ void forkexec_printf(const char *fmt, ...) {
 }
 
 #if !defined(i386_unknown_nt4_0)
+ 
 void
 DYNINSTfork(int pid) {
-  /*forkexec_printf("DYNINSTfork called with pid = %d\n", pid); */
-    printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
-    fflush(stdout);
+    forkexec_printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
 
     if (pid > 0) {
-       /* We used to send TR_FORK trace record here, in the parent.  But shm sampling
-          requires the child to do this, so we moved the code there... */
-       /* See metric.C for an explanation why it's important for the parent to
+       /* We used to send TR_FORK trace record here, in the parent.  
+	  But shm sampling requires the child to do this, so we moved the 
+	  code there... 
+	  See metric.C for an explanation why it's important for the parent to
           be paused (not just the child) while propagating metric instances.
-          Here's the short explanation: to initialize some of the timers and counters,
-	  the child will copy some fields from the parent, and for the child to get
-          values from the parent after the fork would be a bad thing.  --ari */
+          Here's the short explanation: to initialize some of the timers and 
+	  counters, the child will copy some fields from the parent, and for
+	  the child to get values from the parent after the fork would be a 
+	  bad thing.  --ari */
 
        forkexec_printf("DYNINSTfork parent; about to DYNINSTbreakPoint\n");
-       fflush(stderr);
 
        DYNINSTbreakPoint();
     } else if (pid == 0) {
        /* we are the child process */
 	int pid = getpid();
 	int ppid = getppid();
-
+	int ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
         /* char *traceEnv; */
 
 	forkexec_printf("DYNINSTfork CHILD -- welcome\n");
@@ -1188,6 +1186,7 @@ DYNINSTfork(int pid) {
 	DYNINSTwriteTrace(&ppid, sizeof(ppid));
 #ifdef SHM_SAMPLING
 	DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+	DYNINSTwriteTrace(&ptr_size, sizeof(ptr_size));
 	DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
 #endif
 	DYNINSTflushTrace();
@@ -1252,18 +1251,21 @@ DYNINSTexec(char *path) {
 
 void
 DYNINSTexecFailed() {
+    /* DYNINSTgenerateTraceRecord resets errno back to zero */
+    int saved = errno;
     time64 process_time = DYNINSTgetCPUtime();
     time64 wall_time = DYNINSTgetWalltime();
     int pid = getpid();
-
-    forkexec_printf("DYNINSTexecFAILED\n");
-
+    
+    forkexec_printf("DYNINSTexecFAILED errno = %d\n", errno);
+    
     DYNINSTgenerateTraceRecord(0, TR_EXEC_FAILED, sizeof(int), &pid, 1,
 			       process_time, wall_time);
 
 #ifndef SHM_SAMPLING
     DYNINST_install_ualarm(BASESAMPLEINTERVAL);
 #endif
+    errno = saved;
 }
 
 
