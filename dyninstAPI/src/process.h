@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.204 2002/06/25 20:26:20 bernat Exp $
+/* $Id: process.h,v 1.205 2002/06/26 21:14:10 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -69,6 +69,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/installed_miniTramps_list.h"
 
 #if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
 #include <sys/pthdebug.h>
@@ -126,12 +127,12 @@ extern unsigned activeProcesses; // number of active processes
 
 class resource;
 class instPoint;
-class instInstance;
 class trampTemplate;
 class instReqNode;
 class pdThread;
 // TODO a kludge - to prevent recursive includes
 class image;
+class instPoint;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
@@ -626,7 +627,6 @@ void saveWorldData(Address address, int size, const void* src);
   vector<string> loadLibraryCalls;//ccw 14 may 2002 
   vector<string> loadLibraryUpdates;//ccw 14 may 2002
 
-
 	char* saveWorldFindDirectory();
 
 	unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize,
@@ -1056,6 +1056,36 @@ void saveWorldData(Address address, int size, const void* src);
   // mcheyney - should return NULL if function is excluded!!!!
   function_base *findOneFunction(resource *func,resource *mod);
 
+  typedef struct {
+    const instPoint *loc;
+    callWhen when;
+    installed_miniTramps_list *mtList;
+  } mtListInfo;
+  void getMiniTrampLists(vector<mtListInfo> *vecBuf);
+
+  void newMiniTrampList(const instPoint *loc, callWhen when,
+			installed_miniTramps_list **mtList);
+  
+  void getMiniTrampList(const instPoint *loc, callWhen when, 
+			installed_miniTramps_list **mtList);
+
+  void getMiniTrampList(const instPoint *loc, callWhen when, 
+			const installed_miniTramps_list **mtList) const;
+
+  void removeMiniTrampList(const instPoint *loc, callWhen when);
+
+  instPoint *findInstPointFromAddress(Address addr, trampTemplate **bt=NULL,
+				      instInstance **mt=NULL);
+
+  // findAddressInFuncsAndTramps: returns the function which contains this
+  // address.  This checks the a.out image and shared object images for this
+  // function, as well as checking base- and mini-tramps which correspond to
+  // this function.  If the address was in a tramp, the trampTemplate is
+  // returned as well.
+  pd_Function *findAddressInFuncsAndTramps(Address addr, instPoint **ip=NULL,
+					   trampTemplate **bt=NULL, 
+					   instInstance **mt=NULL);
+
 #ifndef BPATCH_LIBRARY
   // returns all the functions in the module "mod" that are not excluded by
   // exclude_lib or exclude_func
@@ -1329,6 +1359,11 @@ bool isLoadingParadynLib;
   const process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
   const image *runtime_lib;           /* shortcut to the runtime library */
+  dictionary_hash<const instPoint *, installed_miniTramps_list*> 
+                                           installedMiniTramps_beforePt;
+  dictionary_hash<const instPoint *, installed_miniTramps_list*> 
+                                           installedMiniTramps_afterPt;
+
   int pid;                      /* id of this process */
 
 #ifdef SHM_SAMPLING
@@ -1618,6 +1653,8 @@ bool attachProcess(const string &progpath, int pid, int afterAttach);
 bool  AttachToCreatedProcess(int pid, const string &progpath);
 
 void handleProcessExit(process *p, int exitStatus);
+
+bool isInferiorAllocated(process *p, Address block);
 
 extern resource *machineResource;
 
