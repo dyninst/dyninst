@@ -3119,7 +3119,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 // Start Test Case #35 - (function relocation)
 void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 
     char * foo_name = "call35_1";
 
@@ -3170,7 +3170,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
     BPatch_point * call_1 = ( (* point35_1)[0] );
     assert( call_1 != 0 );
     
-    BPatch_point * call_2 = ( (* point35_1)[1] );
+    BPatch_point * call_2 = ( (* point35_1)[2] );
     assert( call_2 != 0 );
     
     appThread->insertSnippet( * snippet35_3, * call_2, BPatch_callAfter, BPatch_firstSnippet );

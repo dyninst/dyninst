@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.67 2001/02/02 21:22:14 gurari Exp $ */
+/* $Id: test1.mutatee.c,v 1.68 2001/02/20 21:41:59 gurari Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2339,7 +2339,7 @@ void func34_1()
     printf( "Passed test #34 (loop information)\n" );
 }
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 #ifdef __cplusplus
 extern "C" int call35_1();
 #else
@@ -2349,7 +2349,7 @@ extern int call35_1();
 
 void func35_1() 
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 
     int value;
     value = call35_1();

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2001/02/02 21:21:16 gurari Exp $
+# $Id: Makefile,v 1.13 2001/02/20 21:41:46 gurari Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -74,17 +74,17 @@ endif
 
 # FIXME: If TARGET2 matches test1, then += call35_1.s to MUTATEE_SRC
 
-test1.mutatee_gcc: $(MUTATEE_SRC) ../src/call35_1_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
+test1.mutatee_gcc: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
 
-test1.mutatee_cc: $(MUTATEE_SRC) ../src/call35_1_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
+test1.mutatee_cc: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
 
-test1.mutatee_CC: $(MUTATEE_SRC) ../src/call35_1_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
+test1.mutatee_CC: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
 
-test1.mutatee_g++: $(MUTATEE_SRC) ../src/call35_1_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
+test1.mutatee_g++: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
 
 libtestA.o:
 	$(CC) -g -fpic -c ../src/libtestA.c
