@@ -143,6 +143,11 @@ bool varInstance<HK>::doMinorSample() {
   vector<unsigned>::iterator itr = currentSamplingSet.end();
   while(itr != currentSamplingSet.begin()) {
      --itr;
+     // check that we don't run past the vector when iterating through it,
+     // due to elements being removed (eg. when a thread exits)
+     if(itr - currentSamplingSet.begin() >= (int)currentSamplingSet.size())
+        continue;
+
      unsigned thrPos = *itr;
      void *voidVarAddr = elementAddressInDaemon(thrPos);
      RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
@@ -151,7 +156,6 @@ bool varInstance<HK>::doMinorSample() {
         currentSamplingSet.erase(itr);
      }
   }
-
   return (currentSamplingSet.size() == 0);
 }
 
@@ -162,9 +166,10 @@ varInstance<HK>::~varInstance() {
 
 template <class HK>
 void varInstance<HK>::deleteThread(unsigned thrPos) {
-  void *voidVarAddr = elementAddressInDaemon(thrPos);
-  RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
-  (*shmVarAddr) = initValue;
+   markVarAsNotSampled(thrPos);
+   void *voidVarAddr = elementAddressInDaemon(thrPos);
+   RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
+   (*shmVarAddr) = initValue;
 }
 
 template <class HK>
@@ -174,4 +179,5 @@ void varInstance<HK>::initializeVarsAfterFork(rawTime64 curRawTime) {
     HK::initializeAfterFork(curElem, curRawTime);
   }
 }
+
 
