@@ -156,15 +156,15 @@ bool sampledShmIntCounterReqNode::insertShmVar(pdThread *thr, process *theProc,
    intCounterHK iHKValue(this->theSampleId, NULL);
 
    superTable &theTable = theProc->getTable();
-   int thr_pos = -1;
+   int thr_pos = 0;
    if(theProc->is_multithreaded()) {
      if (thr==NULL) thr = theProc->threads[0]; // default value for thread
      assert(thr!=NULL);
      thr_pos = thr->get_pd_pos();
    }
 
-   if(!theTable.allocIntCounter(iValue, iHKValue, this->allocatedIndex, 
-				this->allocatedLevel, doNotSample, thr_pos))
+   if(!theTable.allocIntCounter(iValue, iHKValue, &this->allocatedIndex, 
+				&this->allocatedLevel, doNotSample, thr_pos))
      return false;  // failure
 
 
@@ -322,7 +322,7 @@ bool sampledShmWallTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
 
    superTable &theTable = theProc->getTable();
 
-   int thr_pos = -1;
+   int thr_pos = 0;
    if(theProc->is_multithreaded()) {
      thr_ = thr;
      if (thr==NULL) thr = theProc->threads[0]; // default value for thread
@@ -330,8 +330,8 @@ bool sampledShmWallTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
      thr_pos = thr->get_pd_pos();
    }
 
-   if(!theTable.allocWallTimer(iValue, iHKValue, this->allocatedIndex, 
-			       this->allocatedLevel, thr_pos))
+   if(!theTable.allocWallTimer(iValue, iHKValue, &this->allocatedIndex, 
+			       &this->allocatedLevel, thr_pos))
      return false;  // failure
 
    return true;
@@ -496,15 +496,15 @@ bool sampledShmProcTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
 
    superTable &theTable = theProc->getTable();
    
-   int thr_pos = -1;
+   int thr_pos = 0;
    if(theProc->is_multithreaded()) {
      if (thr==NULL)  thr = theProc->threads[0]; // default value for thread
      assert(thr!=NULL);
      thr_pos = thr->get_pd_pos();
    }
 
-   if(!theTable.allocProcTimer(iValue, iHKValue, this->allocatedIndex, 
-			       this->allocatedLevel, thr_pos)) {
+   if(!theTable.allocProcTimer(iValue, iHKValue, &this->allocatedIndex, 
+			       &this->allocatedLevel, thr_pos)) {
      return false; // failure
    }
    return true;
