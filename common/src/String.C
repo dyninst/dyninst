@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.24 2003/05/08 19:18:47 tlmiller Exp $
+// $Id: String.C,v 1.25 2003/06/27 20:57:48 tlmiller Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -77,11 +77,19 @@ void dedemangle( const char * demangled, char * result ) {
 		   The only space that matters is the one that's _not_
 		   inside a template, so skip the templates and cut at the
 		   first space.  We can ignore 'operator[<[<]|>[>]]' because
-		   we'll stop before we reach it. */
+		   we'll stop before we reach it.
+		   
+		   Caveat: conversion operators (e.g., "operator bool") have
+		   spaces in the function name.  Right now we deal with this
+		   specifically (is the function "operator *"?).  Could be
+		   altered to after the last template but before the last
+		   left parenthesis.  (Instead of next, for "operator ()".)
+		  */
 
 		resultBegins = demangled;
 		int stack = 0; bool inTemplate = false;
 		unsigned int offset = 0;
+		int lastColon = 0;
 		for( offset = 0; offset < strlen( resultBegins ); offset++ ) {
 			if( resultBegins[offset] == '<' ) {
 				stack++;
@@ -98,10 +106,23 @@ void dedemangle( const char * demangled, char * result ) {
 				break;
 			        }
 			if( !inTemplate && resultBegins[offset] == ' ' ) {
-				offset++;
-				resultBegins = &(resultBegins[offset]);
+				/* FIXME: verify that the space isn't in the function name,
+				   e.g., 'operator bool'.  If the first space we meet _is_
+				   a function name, it doesn't have a(n explicit) return type. */
+				if( strstr( &(resultBegins[ lastColon + 1 ]), "operator " ) == resultBegins + lastColon + 1 ) {
+					resultBegins = demangled;
+					offset = 0;
+					}
+				else{
+					resultBegins = &(resultBegins[offset]);
+					offset++;
+					}
+
 				break;
-				} 
+				}
+			if( !inTemplate && resultBegins[offset] == ':' ) {
+				lastColon = offset;
+				}
 			} /* end template elimination loop */
 
 		/* Scan past the function name; the first left parenthesis
@@ -117,7 +138,7 @@ void dedemangle( const char * demangled, char * result ) {
 				if( stack == 0 ) { inTemplate = false; }
 				}
 			if( !inTemplate && resultBegins[offset] == '(' ) {
-				resultEnds = (char *)&(resultBegins[offset]);
+				resultEnds = const_cast<char *>(&(resultBegins[offset]));
 				* resultEnds = '\0';
 				break;
 				} 
@@ -394,7 +415,7 @@ string_ll::suffixed_by(const string_ll& s) const {
 
 unsigned
 string_ll::find (const char *s, unsigned sl) const {
-  for(int i=0; i<=(len_-sl); i++) {
+  for(unsigned int i=0; i<=(len_-sl); i++) {
     if( STREQN(str_ + i, s, sl) ) return i;
   }
   return len_;
