@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.15 2002/08/12 04:21:44 schendel Exp $
+// $Id: init-linux.C,v 1.16 2002/12/14 16:37:48 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -82,10 +82,12 @@ bool initOS() {
 	  initialRequestsPARADYN += newMapping;
   
 	  tidArg = new AstNode(AstNode::Param, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("__execve", "DYNINSTexec",
-					     FUNC_ENTRY|FUNC_ARG, tidArg);
-	  initialRequestsPARADYN += new instMapping("__execve", "DYNINSTexecFailed", 
-					     FUNC_EXIT);
+
+	  initialRequestsPARADYN += 
+             new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, 
+                             tidArg);
+	  initialRequestsPARADYN += 
+             new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
   }
 
   cmdArg = new AstNode(AstNode::Param, (void *) 4);
