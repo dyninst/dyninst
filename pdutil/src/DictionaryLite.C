@@ -43,6 +43,9 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.7  1996/10/31 07:32:31  tamches
+ * locate() now returns V* instead of bool
+ *
  * Revision 1.6  1996/08/16 21:31:45  tamches
  * updated copyright for release 1.1
  *
@@ -134,10 +137,11 @@ DO_INLINE_F
 V&
 dictionary_lite<K,V>::operator[](const K& key) {
     unsigned hash, chain, i;
-    if (locate(key, hash, chain, i)) {
-        return data_[chain][i].value;
-    }
-    return insert(key, hash, chain);
+    V *value = locate(key, hash, chain, i);
+    if (value != NULL)
+        return *value;
+    else
+        return insert(key, hash, chain);
 }
 
 template<class K, class V>
@@ -145,8 +149,9 @@ DO_INLINE_F
 bool 
 dictionary_lite<K,V>::find(const K& key, V& el) const {
    unsigned hash, chain, i;
-   if (locate(key, hash, chain, i)) {
-      el = data_[chain][i].value;
+   V *value = locate(key, hash, chain, i);
+   if (value != NULL) {
+      el = *value; // makes a copy of type V; don't use this if V::operator=(const V&) is expensive
       return true;
    }
    else
@@ -158,7 +163,7 @@ DO_INLINE_F
 bool
 dictionary_lite<K,V>::defines(const K& key) const {
     unsigned hash, chain, i;
-    return locate(key, hash, chain, i);
+    return (locate(key, hash, chain, i) != NULL);
 }
 
 template<class K, class V>
@@ -166,7 +171,7 @@ DO_INLINE_F
 void
 dictionary_lite<K,V>::undef(const K& key) {
     unsigned hash, chain, i;
-    if (locate(key, hash, chain, i)) {
+    if (locate(key, hash, chain, i) != NULL) {
         remove(chain, i);
     }
 }
@@ -214,26 +219,30 @@ dictionary_lite<K,V>::chain_of(unsigned hash) const {
 
 template<class K, class V>
 DO_INLINE_P
-bool
+V*
 dictionary_lite<K,V>::locate(const K& key, unsigned& hash,
-    unsigned& chain, unsigned& i) const {
+			     unsigned& chain, unsigned& index) const {
+    // returns ptr to value if found; else, returns NULL;
+
     hash           = hashf_(key);
     chain          = chain_of(hash);
-    hash_chain& ch = data_[chain];
 
-    for (i = 0; i < ch.size(); i++) {
-        if ((hash == ch[i].hash_) && (key == ch[i].key)) {
-            return true;
-        }
+    const hash_chain &ch = data_[chain];
+    const unsigned hash_chain_size = ch.size();
+
+    for (index = 0; index < hash_chain_size; index++) {
+        hash_pair &thePair = ch[index];
+
+        if (hash == thePair.hash_ && key == thePair.key)
+            return &thePair.value;
     }
-    return false;
+    return NULL;
 }
 
 template<class K, class V>
 DO_INLINE_P
 V&
 dictionary_lite<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
-//    ((dictionary_lite<K,V> *) this)->data_[chain] += hash_pair(key, hash);
     data_[chain] += hash_pair(key, hash);
     unsigned i      = data_[chain].size()-1;
     unsigned nchain = chain;
@@ -243,7 +252,7 @@ dictionary_lite<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
         split();
         if (chain == onext) {
             unsigned nhash;
-            assert(locate(key, nhash, nchain, i));
+            assert(locate(key, nhash, nchain, i) != NULL);
             assert(hash == nhash);
         }
     }
