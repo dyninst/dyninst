@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.7  1994/07/20 23:23:40  hollings
+ * Revision 1.8  1994/07/22 19:20:40  hollings
+ * added pauseTime and wallTime.
+ *
+ * Revision 1.7  1994/07/20  23:23:40  hollings
  * added insn generated metric.
  *
  * Revision 1.6  1994/07/14  23:30:32  hollings
@@ -89,6 +92,7 @@ struct costRec {
     float totalPredictedCost;
     float currentPredictedCost;
     time64 timeLastTrampSample;
+    time64 wallTimeLastTrampSample;
 };
 
 struct processRec {
@@ -108,6 +112,8 @@ struct processRec {
     int bufStart;
     int bufEnd;
     struct costRec cost;
+    float pauseTime;		/* only used on the CM-5 version for now 
+				   jkh 7/21/94 */
 };
 
 extern List<process*> processList;
