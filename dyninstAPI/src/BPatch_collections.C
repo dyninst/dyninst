@@ -185,6 +185,53 @@ BPatch_type *BPatch_typeCollection::findType(const char *name)
 	return (BPatch_type *)NULL;
 }
 
+BPatch_type * BPatch_typeCollection::findOrCreateType( const int & ID ) {
+    if( typesByID.defines(ID) ) { return typesByID[ID]; }
+
+    BPatch_type * returnType = NULL;
+    if( BPatch::bpatch && BPatch::bpatch->builtInTypes ) {
+        returnType = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
+    }
+
+    if( returnType == NULL ) {
+        /* Create a placeholder type. */
+        returnType = new BPatch_type( NULL, ID, BPatch_dataUnknownType, 0 );
+	assert( returnType != NULL );
+
+        /* Having created the type, add it. */
+        addType( returnType );
+    }
+  
+    return returnType;
+} /* end findOrCreateType() */
+
+BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
+    BPatch_type * existingType = findType( type->getID() );
+    if( existingType == NULL ) {
+        if( type->getName() != NULL ) {
+            typesByName[ type->getName() ] = type;
+        }
+        typesByID[ type->getID() ] = type;
+        return type;
+    } else {
+#if defined( USES_DWARF_DEBUG )
+        /* Replace the existing type wholesale. */
+        // fprintf( stderr, "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
+	memmove( existingType, type, sizeof( BPatch_type ) );
+#else
+	/* Merge the type information. */
+	existingType->merge( type );
+#endif
+    /* The type may have gained a name. */
+    if( existingType->getName() != NULL ) {
+        typesByName[ existingType->getName() ] = existingType;
+    }
+
+    /* Tell the parser to update its type pointer. */
+    return existingType;
+    }
+} /* end addOrUpdateType() */
+
 BPatch_type *BPatch_typeCollection::findType(const int & ID)
 {
     if (typesByID.defines(ID))

@@ -86,6 +86,14 @@ public:
     void        addGlobalVariable(const char *name, BPatch_type *type)
       {globalVarsByName[name] = type;}
 
+    /* Some debug formats allow forward references.  Rather than
+       fill in forward in a second pass, generate placeholder
+       types, and fill them in as we go.  Because we require
+       One True Pointer for each type (in parseStab.C), when
+       updating a type, return that One True Pointer. */
+    BPatch_type * findOrCreateType( const int & ID );
+    BPatch_type * addOrUpdateType( BPatch_type * type );
+
     BPatch_type *findVariableType(const char *name);
    
 };
