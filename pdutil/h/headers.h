@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: headers.h,v 1.11 1999/05/15 20:26:24 wylie Exp $
+// $Id: headers.h,v 1.12 1999/05/15 20:35:39 wylie Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -51,7 +51,7 @@
 typedef int (*xdr_rd_func)(const void *, char *, const int);
 typedef int (*xdr_wr_func)(const void *, const char *, const int);
 
-#elif defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4)
 #include "util/h/solarisHeaders.h"
 
 #elif defined(i386_unknown_solaris2_5)
