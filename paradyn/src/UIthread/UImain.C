@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.74  1996/02/08 01:00:03  tamches
-/* implementing starting a phase w/ pc
+/* Revision 1.75  1996/02/15 23:06:27  tamches
+/* added support for phase 0, the initial current phase
 /*
+ * Revision 1.74  1996/02/08 01:00:03  tamches
+ * implementing starting a phase w/ pc
+ *
  * Revision 1.73  1996/02/07 21:46:38  tamches
  * defineNewSearch returns bool flag
  *
@@ -236,8 +239,13 @@ applicStateChanged (perfStreamHandle, appState state)
   PDapplicState = state;
 }
 
-int latest_detected_new_phase_id = -1;
-const char *latest_detected_new_phase_name = NULL;
+// The following two variables tell the shg which phase to try to
+// activate when _first_ opening the shg window.  We initialize it
+// to the well-known values for the "current phase" which is
+// created on startup.
+int latest_detected_new_phase_id = 1;
+const char *latest_detected_new_phase_name = "phase_0";
+
 void ui_newPhaseDetected(perfStreamHandle,
 			 const char *name, phaseHandle ph,
 			 timeStamp begin, timeStamp end,
