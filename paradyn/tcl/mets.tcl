@@ -5,7 +5,11 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.7  1994/10/25 17:55:11  karavan
+# Revision 1.8  1994/11/01 05:46:20  karavan
+# changed resource selection to allow multiple focus selection on a
+# single display.
+#
+# Revision 1.7  1994/10/25  17:55:11  karavan
 # Implemented Resource Display Objects, which manage display of multiple
 # resource Abstractions.
 #
@@ -29,47 +33,95 @@
 # initial version
 #
 
+#
+# Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+#     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+#     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+# 
+#  This software is furnished under the condition that it may not be
+#  provided or otherwise made available to, or used by, any other
+#  person, except as provided for by the terms of applicable license
+#  agreements.  No title to or ownership of the software is hereby
+#  transferred.  The name of the principals may not be used in any
+#  advertising or publicity related to this software without specific,
+#  written prior authorization.  Any use of this software must include
+#  the above copyright notice.
+#
+
+# acceptMetChoices
+# parse metric selections from checkbuttons to a list of indices into 
+# the current Metrics array
 
 proc acceptMetChoices {} {
-    global tclSelectedMetrics tclSelectionState metCount metmenuCB
-    if {($tclSelectionState == 1) || ($tclSelectionState == 4)} {
-	puts "Please Choose a Focus First"
+    global tclSelectedMetrics metCount metmenuCB
+
+    set tclSelectedMetrics ""
+    for {set i 0} {$i < $metCount} {incr i} {
+	if {[expr $metmenuCB($i)] > 0} {
+	    lappend tclSelectedMetrics $i
+	} 	
+    }
+#    puts "metric choices: $tclSelectedMetrics"
+    
+    return [llength $tclSelectedMetrics]  
+}
+
+# sendAllSelections
+# processes and returns to VISIthread metric and resource selections
+# returns 1 if no metrics selected, 2 if no focus selected, 0 if OK
+
+proc sendAllSelections {visiToken rdoToken} {
+    global tclSelectedMetrics
+#    puts "sendAllSels vTok pTok: $visiToken $rdoToken"
+    if {[acceptMetChoices] == 0} {
+	return 1
+    }
+    if [uimpd processVisiSelection $rdoToken $tclSelectedMetrics] {
+	uimpd sendVisiSelections $visiToken 0
+	return 0
     } else {
-	set tclSelectedMetrics ""
-	for {set i 0} {$i < $metCount} {incr i} {
-	    if {[expr $metmenuCB($i)] > 0} {
-		lappend tclSelectedMetrics $i
-	    } 	
-	}
-	# update state variable to reflect metric choices made; 
-	# if focus already chosen, save metric-focus pairs
-	if {$tclSelectionState == 2} {
-	    incr tclSelectionState 
-	    uimpd processVisiSelection $tclSelectedMetrics
-	} else { 
-	    set tclSelectionState 1
-	}
+	return 2
     }
 }
 
-proc sendAllSelections {visiToken pdoToken cancelFlag} {
-#    acceptMetChoices
-#    puts "sendAllSelections $pdoToken"
-#    uimpd processResourceSelection $pdoToken
-    uimpd sendVisiSelections $visiToken $cancelFlag
-}
-	
+# endSelection
+# handles cancel and done buttons for resource/metric selection
+# note: must still call sendVisiSelections on cancel so reply msg is sent to 
+#       requesting VISI thread
+proc endSelection {visiToken rdoToken cancelflag win} {
+    global metList metCount
+    if $cancelflag {
+	uimpd sendVisiSelections $visiToken 1
+	set x 0
+    } else {
+	set x [sendAllSelections $visiToken $rdoToken]
+    }
+    if {$x == 1} {
+	$win.top.msg configure -text \
+		"Please select one or more metrics or press cancel"
+    } elseif {$x == 2} {
+	$win.top.msg configure -text \
+		"Please select a focus on the where axis or press cancel"
+    } else {
+	unset metList
+	unset metCount
+	set tclSelectionState 0
+	destroy $win
+    }
+} 
+
+# getMetsAndRes 
+# called from  UIM::chooseMetricsandResources
+# Metric/Resource selection starts here!
+
 proc getMetsAndRes {metsAndResID rdo} {
-    global metCount metList w metMenuCtr tclSelectionState selectionPrompt
-    set tclSelectionState 0
+    global metCount metList metMenuCtr tclSelectionState 
+    set tclSelectionState 1
     incr metMenuCtr
     set w .metmenunew$metMenuCtr
     set ret 0
-    set selectionPrompt "Select Visualization Metric(s) and press ACCEPT"
-    set msg2 "Select Visualization Metric(s) and press ACCEPT"
     set msg3 "No Metrics Currently Defined"
-    set msg4 "\"Now Accept a Focus on the Where Axis Display\""
-    puts "getMetsAndRes $rdo"
+#    puts "getMetsAndRes $rdo"
     # toplevel window
     toplevel $w  -bd 0
     wm title $w "Paradyn Metrics Menu"
@@ -79,7 +131,7 @@ proc getMetsAndRes {metsAndResID rdo} {
 
     mkFrame $w.top {top fill expand} -relief raised -border 1
     mkMessage $w.top.msg "" {top expand padx 20 pady 20} \
-	    -aspect 1000 -textvariable selectionPrompt \
+	    -aspect 1000 -text "Select Metrics and Focus(es) below" \
 	    -font -Adobe-times-bold-r-normal--*-120*
     
     if {$metCount == 0} {
@@ -115,20 +167,15 @@ proc getMetsAndRes {metsAndResID rdo} {
 
     mkFrame $w.bot {top fill expand} -relief raised -border 1
     button $w.bot.b1 -text "CANCEL" -bg red -fg white\
-	    -command  \
-	    "sendAllSelections $metsAndResID 1; unset metList; destroy $w"
+	    -command "endSelection $metsAndResID $rdo 1 $w"
 
     button $w.bot.b2 -text "DONE" -bg white \
-	    -command \
-	    "sendAllSelections $metsAndResID $rdo 0; \
-	    unset metList; destroy $w " 
+	    -command "endSelection $metsAndResID $rdo 0 $w"
 
-    button $w.bot.b3 -text "ACCEPT" \
-	    -command "acceptMetChoices; set selectionPrompt $msg4"
-    
     pack $w.bot.b1 -side left -expand yes
-    pack $w.bot.b3 -side left -expand yes
     pack $w.bot.b2 -side right -expand yes
+    # initialize focus choice to whole program
+    uimpd clearResourceSelection rdo $rdo
 }
 
 

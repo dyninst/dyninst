@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.8  1994/10/25 17:55:10  karavan
+# Revision 1.9  1994/11/01 05:46:19  karavan
+# changed resource selection to allow multiple focus selection on a
+# single display.
+#
+# Revision 1.8  1994/10/25  17:55:10  karavan
 # Implemented Resource Display Objects, which manage display of multiple
 # resource Abstractions.
 #
@@ -57,41 +61,21 @@ proc hideCurrentSelection {whoCan dagID} {
     }
 }
 
-# this differs from addSelection in the constraint it adds that only 
-# one node per resource hierarchy may be selected per focus
-
+# get nodeID for mouse click location and highlight the node
+# clicking on a highlighted node unhighlights it
 proc addWhereSelection {whoCan dagID} {
     set nodeID [lindex [$whoCan gettags current] 0]
     if [string match {[nt]*} $nodeID] { 
         set newID [string range $nodeID 1 end]
-        uimpd highlightNode $newID $dagID 1
+        uimpd highlightNode $newID $dagID
         return $newID
     }
 }
 
 
-# Store current focus selection, and batch with metric selection if one 
-# already made; update state variable
-
-proc acceptFocusChoice {token} {
-    global tclSelectionState tclSelectedMetrics
-    if {$tclSelectionState == 2} {
-	puts "CHOOSE METRIC FIRST"
-    } else {
-	uimpd processResourceSelection $token
-	if {$tclSelectionState == 1} {
-	    uimpd processVisiSelection $tclSelectedMetrics
-	    set tclSelectionState 3
-	} else { 
-	    set tclSelectionState 2
-	}
-    }
-}
-
 proc addDefaultWhereSettings {cname token} {
 
-    $cname bind all <1> "updateCurrentSelection $cname $token"
-    $cname bind all <2> "addWhereSelection $cname $token"
+    $cname bind all <1> "addWhereSelection $cname $token"
     $cname bind all <3> "hideCurrentSelection $cname $token"
     $cname bind all <Shift-3> "uimpd showAllNodes $token"
 
@@ -110,35 +94,37 @@ proc addDefaultWhereSettings {cname token} {
 #	              set selectionPrompt \"$mprompt\"" \
 
 proc mapRDOdag {rdoID dagID wwindow abs} {
-    global currentSelection$dagID
+    global currentSelection$dagID tclSelectionState
     set currentSelection$dagID -1    
-    puts "mapRDOdag $wwindow.dag.dag$abs"
-    $wwindow.sbutts.b1 configure \
-	    -command "acceptFocusChoice $rdoID" \
-	    -state normal
+#    puts "mapRDOdag $wwindow.dag.dag$abs"
     $wwindow.sbutts.b2 configure  \
-	    -command "uimpd clearResourceSelection $dagID" \
+	    -command "uimpd clearResourceSelection dag $dagID" \
 	    -state normal
     $wwindow.sbutts.b4 configure \
 	    -command "uimpd switchRDOdag $rdoID $abs" \
 	    -state normal
     $wwindow.dag.title configure -text "Paradyn $abs Where Axis"
+    if $tclSelectionState {
+	uimpd clearResourceSelection dag $dagID
+    }
     pack $wwindow.dag.dag$abs -side top -fill both -expand 1
 }
 
 proc initRDOdag {wwindow abs} {
-    puts "initRDOdag $wwindow.dag.dag$abs"
+#    puts "initRDOdag $wwindow.dag.dag$abs"
     frame $wwindow.dag.dag$abs
 }
 
 proc unmapRDOdag {wwindow abs} {
-    puts "unmap $wwindow.dag.dag$abs"
+#    puts "unmap $wwindow.dag.dag$abs"
     pack forget $wwindow.dag.dag$abs
 }
 
 proc initRDO {rdoID wwindow wtitle} {
     set mprompt "Select Visualization Metric(s) and press ACCEPT"
     set dtitle " "
+#    puts "initRDO:  $rdoID"
+
     toplevel $wwindow
     #allow interactive sizing
     wm minsize $wwindow 200 200      
@@ -151,16 +137,13 @@ proc initRDO {rdoID wwindow wtitle} {
     # selection button window allocated but packed only at time of 
     #  metric/resource selection
     frame $wwindow.sbutts 
-    button $wwindow.sbutts.b1 -text "ACCEPT" \
-	    -state disabled  
     button $wwindow.sbutts.b2 -text "CLEAR" \
 	    -state disabled
-    button $wwindow.sbutts.b3 -text "CLOSE" -width 10 -height 1 \
-	    -command "uimpd closeRDO $rdoID; destroy $wwindow"
+#    button $wwindow.sbutts.b3 -text "CLOSE" -width 10 -height 1 \
+#	    -command "uimpd closeRDO $rdoID; destroy $wwindow"
     button $wwindow.sbutts.b4 -text "SWITCH" \
 	    -state disabled
-    pack $wwindow.sbutts.b1 $wwindow.sbutts.b2 $wwindow.sbutts.b3 \
-	    $wwindow.sbutts.b4 -side left
+    pack $wwindow.sbutts.b2 $wwindow.sbutts.b4 -side left -padx 5
     pack $wwindow.dag.title -side top -fill x -expand 1 
     pack $wwindow.dag -side top -fill both -expand 1
     pack $wwindow.sbutts -side top -fill x -expand 1
