@@ -2606,7 +2606,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 				the_args);
     addInstFunc(this, callSite, func, callPreInsn,
 		orderFirstAtPoint,
-		true);
+		true,
+		false);
   }
   else return false;
  
