@@ -1646,3 +1646,19 @@ bool pd_Function::findNewInstPoints(const image *owner,
    
    return true;
 }
+
+// hasBeenBound: returns false
+// dynamic linking not implemented on this platform
+bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
+    return false;
+}
+
+// findCallee: returns false unless callee is already set in instPoint
+// dynamic linking not implemented on this platform
+bool process::findCallee(instPoint &instr, function_base *&target){
+
+    if((target = (function_base *)instr.iPgetCallee())) {
+       return true;
+    }
+    return false;
+}

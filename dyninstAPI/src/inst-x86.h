@@ -157,9 +157,21 @@ class instPoint {
     return NULL;
   }
 
+  Address getTargetAddress() {
+    if (insnAtPoint().isCall()) {
+      if (insnAtPoint().isCallIndir()) {
+	return 0;
+      }
+      else {
+	return insnAtPoint().getTarget(address());
+      }
+    }
+    return 0;
+  }
+
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function * /*to*/) { /*callee_ = to; */ }
+  void set_callee(pd_Function * to) { callee_ = to;  }
 
 
  private:

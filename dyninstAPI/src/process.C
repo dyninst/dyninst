@@ -2192,8 +2192,53 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
     function_base *pdf = symbols->findOneFunctionFromAll(func_name);
     if(pdf) return pdf;
 
+    // search any shared libraries for the file name 
+    if(dynamiclinking && shared_objects){
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    pdf=((*shared_objects)[j])->findOneFunctionFromAll(func_name,false);
+	    if(pdf){
+	        return(pdf);
+	    }
+    } }
+    return(0);
+
     return(0);
 }
+
+// findpdFunctionIn: returns the function which contains this address
+// This routine checks both the a.out image and any shared object images
+// for this function
+pd_Function *process::findpdFunctionIn(Address adr) {
+
+    // first check a.out for function symbol
+    pd_Function *pdf = symbols->findFunctionIn(adr,this);
+    if(pdf) return pdf;
+    // search any shared libraries for the function 
+    if(dynamiclinking && shared_objects){
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
+	    if(pdf){
+	        return(pdf);
+	    }
+    } }
+
+    if(!all_functions) getAllFunctions();
+
+    // if the function was not found, then see if this addr corresponds
+    // to  a function that was relocated in the heap
+    if(all_functions){
+        for(u_int j=0; j < all_functions->size(); j++){
+	    Address func_adr = ((*all_functions)[j])->getAddress(this);
+            if((adr>=func_adr) && 
+		(adr<=(((*all_functions)[j])->size()+func_adr))){
+		// yes, this is very bad, but too bad
+	        return((pd_Function*)((*all_functions)[j]));
+	    }
+        }
+    }
+    return(0);
+}
+    
 
 // findFunctionIn: returns the function containing the address "adr"
 // this routine checks both the a.out image and any shared object
@@ -2229,6 +2274,7 @@ function_base *process::findFunctionIn(Address adr){
     return(0);
 }
 	
+
 	
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object

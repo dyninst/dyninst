@@ -54,6 +54,12 @@
 #include "util/h/debugOstream.h"
 #include "util/h/solarisKludges.h"
 
+#if defined (sparc_sun_solaris2_4)
+#include "dyninstAPI/src/inst-sparc.h"
+#else
+#include "dyninstAPI/src/inst-x86.h"
+#endif
+
 #include <sys/procfs.h>
 #include <poll.h>
 #include <limits.h>
@@ -961,3 +967,236 @@ unsigned process::read_inferiorRPC_result_register(reg) {
 #endif
 }
 
+// hasBeenBound: returns true if the runtime linker has bound the
+// function symbol corresponding to the relocation entry in at the address
+// specified by entry and base_addr.  If it has been bound, then the callee 
+// function is returned in "target_pdf", else it returns false.
+bool process::hasBeenBound(const relocationEntry entry, 
+			   pd_Function *&target_pdf, Address base_addr) {
+
+// TODO: the x86 and sparc versions should really go in seperate files 
+#if defined(i386_unknown_solaris2_5)
+
+    // if the relocationEntry has not been bound yet, then the value
+    // at rel_addr is the address of the instruction immediately following
+    // the first instruction in the PLT entry (which is at the target_addr) 
+    // The PLT entries are never modified, instead they use an indirrect 
+    // jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the 
+    // function symbol is bound by the runtime linker, it changes the address
+    // in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
+
+    Address got_entry = entry.rel_addr() + base_addr;
+    Address bound_addr = 0;
+    if(!readDataSpace((const void*)got_entry, sizeof(Address), 
+			&bound_addr, true)){
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
+		got_entry);
+	logLine(errorLine);
+        return false;
+    }
+
+    if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
+        // the callee function has been bound by the runtime linker
+	// find the function and return it
+        target_pdf = findpdFunctionIn(bound_addr);
+	if(!target_pdf){
+            return false;
+	}
+        return true;	
+    }
+    return false;
+
+#else
+    // if the relocationEntry has not been bound yet, then the second instr 
+    // in this PLT entry branches to the fist PLT entry.  If it has been   
+    // bound, then second two instructions of the PLT entry have been changed 
+    // by the runtime linker to jump to the address of the function.  
+    // Here is an example:   
+    //     before binding			after binding
+    //	   --------------			-------------
+    //     sethi  %hi(0x15000), %g1		sethi  %hi(0x15000), %g1
+    //     b,a  <_PROCEDURE_LINKAGE_TABLE_>     sethi  %hi(0xef5eb000), %g1
+    //	   nop					jmp  %g1 + 0xbc ! 0xef5eb0bc
+
+    instruction next_insn;
+    Address next_insn_addr = entry.target_addr() + base_addr + 4; 
+    if( !(readDataSpace((caddr_t)next_insn_addr, sizeof(next_insn), 
+		       (char *)&next_insn, true)) ) {
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
+		next_insn_addr);
+	logLine(errorLine);
+    }
+    // if this is a b,a instruction, then the function has not been bound
+    if((next_insn.branch.op == FMT2op)  && (next_insn.branch.op2 == BICCop2) 
+       && (next_insn.branch.anneal == 1) && (next_insn.branch.cond == BAcond)) {
+	return false;
+    } 
+
+    // if this is a sethi instruction, then it has been bound...get target_addr
+    instruction third_insn;
+    Address third_addr = entry.target_addr() + base_addr + 8; 
+    if( !(readDataSpace((caddr_t)third_addr, sizeof(third_insn), 
+		       (char *)&third_insn, true)) ) {
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
+		third_addr);
+	logLine(errorLine);
+    }
+
+    // get address of bound function, and return the corr. pd_Function
+    if((next_insn.sethi.op == FMT2op) && (next_insn.sethi.op2 == SETHIop2)
+	&& (third_insn.rest.op == RESTop) && (third_insn.rest.i == 1)
+	&& (third_insn.rest.op3 == JMPLop3)) {
+        
+	Address new_target = (next_insn.sethi.imm22 << 10) & 0xfffffc00; 
+	new_target |= third_insn.resti.simm13;
+
+        target_pdf = findpdFunctionIn(new_target);
+	if(!target_pdf){
+            return false;
+	}
+	return true;
+    }
+    // this is a messed up entry
+    return false;
+#endif
+
+}
+
+
+
+// findCallee: finds the function called by the instruction corresponding
+// to the instPoint "instr". If the function call has been bound to an
+// address, then the callee function is returned in "target" and the 
+// instPoint "callee" data member is set to pt to callee's function_base.  
+// If the function has not yet been bound, then "target" is set to the 
+// function_base associated with the name of the target function (this is 
+// obtained by the PLT and relocation entries in the image), and the instPoint
+// callee is not set.  If the callee function cannot be found, (ex. function
+// pointers, or other indirect calls), it returns false.
+// Returns false on error (ex. process doesn't contain this instPoint).
+//
+// The assumption here is that for all processes sharing the image containing
+// this instPoint they are going to bind the call target to the same function. 
+// For shared objects this is always true, however this may not be true for
+// dynamic executables.  Two a.outs can be identical except for how they are
+// linked, so a call to fuction foo in one version of the a.out may be bound
+// to function foo in libfoo.so.1, and in the other version it may be bound to 
+// function foo in libfoo.so.2.  We are currently not handling this case, since
+// it is unlikely to happen in practice.
+bool process::findCallee(instPoint &instr, function_base *&target){
+    
+    if((target = (function_base *)instr.iPgetCallee())) {
+ 	return true; // callee already set
+    }
+
+    // find the corresponding image in this process  
+    const image *owner = instr.iPgetOwner();
+    bool found_image = false;
+    Address base_addr = 0;
+    if(symbols == owner) {  found_image = true; } 
+    else if(shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+            if(owner == ((*shared_objects)[i])->getImage()) {
+		found_image = true;
+		base_addr = ((*shared_objects)[i])->getBaseAddress();
+		break;
+            }
+	}
+    } 
+    if(!found_image) {
+        target = 0;
+        return false; // image not found...this is bad
+    }
+
+    // get the target address of this function
+    Address target_addr = 0;
+    Address insn_addr = instr.iPgetAddress(); 
+    target_addr = instr.getTargetAddress();
+
+    if(!target_addr) {  
+	// this is either not a call instruction or an indirect call instr
+	// that we can't get the target address
+        target = 0;
+        return false;
+    }
+
+#if defined(sparc_sun_solaris2_4)
+    // If this instPoint is from a function that was relocated to the heap
+    // then need to get the target address relative to this image   
+    if(target_addr && instr.relocated_) {
+	assert(target_addr > base_addr);
+	target_addr -= base_addr;
+    }
+#endif
+
+    // see if there is a function in this image at this target address
+    // if so return it
+    pd_Function *pdf = 0;
+    if( (pdf = owner->findFunctionIn(target_addr,this)) ) {
+        target = pdf;
+        instr.set_callee(pdf);
+	return true; // target found...target is in this image
+    }
+
+    // else, get the relocation information for this image
+    const Object &obj = owner->getObject();
+    vector<relocationEntry> fbt;
+    if(!obj.get_func_binding_table(fbt)) {
+	target = 0;
+	return false; // target cannot be found...it is an indirect call.
+    }
+
+    // find the target address in the list of relocationEntries
+    for(u_int i=0; i < fbt.size(); i++) {
+	if(fbt[i].target_addr() == target_addr) {
+	    // check to see if this function has been bound yet...if the
+	    // PLT entry for this function has been modified by the runtime
+	    // linker
+	    pd_Function *target_pdf = 0;
+	    if(hasBeenBound(fbt[i], target_pdf, base_addr)) {
+                target = target_pdf;
+                instr.set_callee(target_pdf);
+	        return true;  // target has been bound
+	    } 
+	    else {
+		// just try to find a function with the same name as entry 
+		target = findOneFunctionFromAll(fbt[i].name());
+		if(target){
+	            return true;
+		}
+		else {  
+		    // KLUDGE: this is because we are not keeping more than
+		    // one name for the same function if there is more
+		    // than one.  This occurs when there are weak symbols
+		    // that alias global symbols (ex. libm.so.1: "sin" 
+		    // and "__sin").  In most cases the alias is the same as 
+		    // the global symbol minus one or two leading underscores,
+		    // so here we add one or two leading underscores to search
+		    // for the name to handle the case where this string 
+		    // is the name of the weak symbol...this will not fix 
+		    // every case, since if the weak symbol and global symbol
+		    // differ by more than leading underscores we won't find
+		    // it...when we parse the image we should keep multiple
+		    // names for pd_Functions
+
+		    string s = string("_");
+		    s += fbt[i].name();
+		    target = findOneFunctionFromAll(s);
+		    if(target){
+	                return true;
+		    }
+		    s = string("__");
+		    s += fbt[i].name();
+		    target = findOneFunctionFromAll(s);
+		    if(target){
+	                return true;
+		    }
+		}
+	    }
+	    target = 0;
+	    return false;
+	}
+    }
+    target = 0;
+    return false;  
+}

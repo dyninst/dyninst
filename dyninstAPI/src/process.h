@@ -805,13 +805,6 @@ private:
   // for this function
   pd_Function *findpdFunctionIn(Address adr);
 
-  // hasBeenBound: returns true if the runtime linker has bound the
-  // function symbol corresponding to the relocation entry in the specified 
-  // image.  If it has been bound, then the callee function is returned in 
-  // "target_pdf".  Returns false on error.
-  bool hasBeenBound(const relocationEntry entry, const image *owner,
-		    pd_Function *&target_pdf, Address base_addr);
-
   bool isRunning_() const;
      // needed to initialize the 'wasRunningWhenAttached' member vrble.  Determines
      // whether the process is running by doing a low-level OS check, not by checking

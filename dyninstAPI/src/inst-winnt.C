@@ -41,6 +41,12 @@
 
 /*
  * $Log: inst-winnt.C,v $
+ * Revision 1.2  1997/06/17 20:11:34  newhall
+ * Added support to solaris platforms to find the target of call instructions that
+ * are in dynamic executables and shared objects and that are bound after startup
+ * by the runtime linker (delayed binding).
+ * Added process methods: findpdFunctionIn, hasBeenBound, findCallee
+ *
  * Revision 1.1  1997/05/23 23:01:24  mjrg
  * Windows NT port
  * bug fix to inst-x86.C
@@ -161,3 +167,20 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
     }
 }
 #endif
+
+
+// hasBeenBound: returns false
+// dynamic linking not implemented on this platform
+bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
+    return false;
+}
+
+// findCallee: returns false unless callee is already set in instPoint
+// dynamic linking not implemented on this platform
+bool process::findCallee(instPoint &instr, function_base *&target){
+
+    if((target = (function_base *)instr.iPgetCallee())) {
+       return true;
+    }
+    return false;
+}

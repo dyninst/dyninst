@@ -121,13 +121,45 @@ public:
   // until all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
 
+  const instruction &insnAtPoint() const { return originalInstruction;}
 
   const function_base *iPgetFunction() const { return func;      }
   const function_base *iPgetCallee()   const { return callee;    }
   const image         *iPgetOwner()    const { return image_ptr; }
         Address        iPgetAddress()  const { return addr;      }
 
+  Address getTargetAddress() {
+      if(!isCallInsn(originalInstruction)) return 0;
+       if (!isInsnType(originalInstruction, CALLmask, CALLmatch)) {
+	       return 0;  // can't get target from indirect call instructions
+       }
 
+      Address ta = (originalInstruction.call.disp30 << 2); 
+      return ( addr+ta ); 
+  }
+
+  // These are the instructions corresponding to different instrumentation
+  // points (the instr point is always the "originalInstruction" instruction,
+  // "addr" has the value of the address of "originalInstruction")
+  // 
+  //  entry point	   entry point leaf	  call site 
+  //  -----------	   ----------------       ---------
+  //  saveInstr		   originalInstruction    originalInstruction	
+  //  originalInstruction  otherInstruction	  delaySlotInsn
+  //  delaySlotInsn 	   delaySlotInsn	  aggregateInsn
+  //  isDelayedInsn 	   isDelayedInsn
+  //  aggregateInsn 
+  // 
+  //  return leaf		return non-leaf
+  //  ----------		---------------
+  //  originalInstruction  	originalInstruction
+  //  otherInstruction		delaySlotInsn
+  //  delaySlotInsn
+  //  inDelaySlotInsn
+  //  extraInsn
+  // 
+
+// TODO: These should all be private
   Address addr;                       // address of inst point
   instruction originalInstruction;    // original instruction
   instruction delaySlotInsn;          // original instruction

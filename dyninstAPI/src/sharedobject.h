@@ -106,6 +106,28 @@ public:
 	}
 	return 0;
     }
+
+    pd_Function *findOneFunctionFromAll(string f_name,bool check_excluded){
+	if (f_name.string_of() == 0) return 0;
+        if(objs_image) {
+	    if(check_excluded){
+		// only search the some_funcs list
+		if(!some_funcs) getSomeFunctions();
+		if(some_funcs) {
+		    for(u_int i=0; i < some_funcs->size(); i++){
+			if(((*some_funcs)[i])->prettyName() == f_name){
+			    return (*some_funcs)[i];
+			}
+		    }
+		    return 0;
+		}
+	    }
+            return (objs_image->findOneFunctionFromAll(f_name));
+	}
+	return 0;
+    }
+
+
     pdmodule *findModule(string m_name,bool check_excluded){
         if(objs_image) {
 	    if(check_excluded && !include_funcs){
