@@ -1,6 +1,9 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
+# Revision 1.17  1996/02/23 22:10:31  tamches
+# initial window geometry (in particular, width) should finally be correct
+#
 # Revision 1.16  1995/11/29 00:22:21  tamches
 # removed refs to PdBitmapDir; we now call makeLogo (pdLogo.C)
 #
@@ -20,55 +23,6 @@
 #
 # Revision 1.12  1995/07/02  20:01:08  tamches
 # port to tk4.0
-#
-# Revision 1.11  1995/02/27  18:38:28  tamches
-# Changes to reflect the new TCthread and, as a result, the extensively
-# revised tclTunable.C
-#
-# Revision 1.10  1994/11/11  07:00:16  tamches
-# fixed a bug that would change the background of all future windows
-# to grey.  In other words, the "option add ..." in tcl was affecting
-# more than just tunable windows, which was not nice.
-#
-# Revision 1.9  1994/11/08  06:09:57  tamches
-# An entire float tunable gets "hilited" when the mouse enters, just like
-# a checkbutton.
-# Added numbering information to the left and right of the scale
-# Improved sizing algorithms.  Now have a good minsize.
-#
-# Revision 1.8  1994/11/04  15:57:45  tamches
-# Developmode flag is now read from the "developerMode" tc, and is treated
-# as any other tc.  "Enter Developer Mode" menu removed; only the help
-# menu remains.
-#
-# Centered "dismiss" button in tunable descriptions
-#
-# Revision 1.7  1994/11/02  19:57:45  tamches
-# Improved look by going to helvetica 14 font.
-# Names are now aligned (i.e. bools and floats each have their
-# names on the left).  This required some hacking of checkbuttons
-# for the boolean tunables.
-# Tunable descriptions completed.
-#
-# Revision 1.6  1994/10/31  22:02:30  tamches
-# Typing return/enter/tab in one of the entry widgets for floating
-# tunables is suppresses (return would enter \0x0d which is especially ugly)
-#
-# Revision 1.5  1994/10/31  08:53:04  tamches
-# Eliminated "flicker" window startup.
-# Added tunable descriptions and coordinated with tunable
-# conststants window (e.g. when switch to and from developer
-# mode, descriptions window is updated also, if open).
-# Cleaned up options menu a bit
-#
-# Revision 1.4  1994/10/27  08:48:09  tamches
-# Commented out help menu until a text widget bug is worked out
-#
-# Revision 1.3  1994/10/26  23:15:31  tamches
-# Changed references of "tclTunable" to "uimpd tclTunable"
-#
-# Revision 1.2  1994/10/26  22:45:41  tamches
-# first version
 #
 
 # To do list:
@@ -114,8 +68,6 @@ proc tunableInitialize {} {
 
    toplevel .tune -class Tunable
    wm title .tune "Tunable Constants"
-
-   wm geometry .tune "420x375"
    # one does not pack a toplevel window...
 
    #  ################### Default options #################
@@ -170,7 +122,6 @@ proc tunableInitialize {} {
                -command processShowTunableDescriptions
 
    pack .tune.top.left.mbar.help -side right -padx 4
-   tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.help
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
    label .tune.top.left.titlebar -text "Tunable Constants" -foreground white \
@@ -219,7 +170,7 @@ proc tunableInitialize {} {
    # the following line avoids flickering, but there is a cost: the window won't start off with
    # exactly the right window size.  To be more specific, it won't intelligently
    # set the size of the canvas subwindow to be exactly the sum of sizes of
-   # the children.  Instead, it will go with whatever the initial value is
+   # the children.  Instead, it will go with whatever the initial value is provided.
    pack propagate .tune.middle.canvas false
    pack   .tune.middle.canvas -side left -fill both -expand true
       # expand is true; we want extra height & width is the window is resized
@@ -268,8 +219,8 @@ proc tunableBoolLabelLeave {lcv} {
 }
 
 proc tunableBoolLabelPress {lcv} {
-   set buttonLabelWin .tune.middle.canvas.names.tunable$lcv.label
-   set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
+#   set buttonLabelWin .tune.middle.canvas.names.tunable$lcv.label
+#   set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
 #   $buttonLabelWin configure -relief sunken
@@ -616,8 +567,6 @@ proc drawTunables {newWidth newHeight} {
    
    set allFloatNames [uimpd tclTunable getfloatallnames]
 
-#   puts stderr "welcome to drawTunables1; allFloatNames=$allFloatNames"
-
    set numFloats [llength $allFloatNames]
 
    for {set floatlcv 0} {$floatlcv < $numFloats} {incr floatlcv} {
@@ -683,23 +632,13 @@ proc drawTunables {newWidth newHeight} {
    set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 245]
    wm minsize .tune $goodMinWidth $tunableMinHeight
 
-#   set oldGeometry [wm geometry .tune]
-#   if {$oldGeometry!="1x1+0+0"} {
-#      set numscanned [scan $oldGeometry "%dx%d+%d+%d" oldWidth oldHeight oldx oldy]
-#      if {$numscanned==4} {
-#         if {$oldWidth < $goodMinWidth} {
-#            wm geometry .tune [format "%dx%d" $goodMinWidth $oldHeight]
-#         }
-#      } else {
-#         puts stderr "tclTunable.tcl: could not scan geometry...won't try to resize"
-#      }
-#   }
-
    rethinkScrollBarRegions [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]
 
    global lastVisibleHeight lastVisibleWidth
    set lastVisibleHeight [getWindowHeight .tune.middle.canvas]
    set lastVisibleWidth  [getWindowWidth .tune.middle.canvas]
+
+   return $goodMinWidth
 }
 
 proc rethinkScrollBarRegions {newWidth newHeight} {
@@ -902,8 +841,6 @@ proc draw1TunableDescription {theName theDescription} {
 
    set tunableDescriptionsTotalHeight [expr $tunableDescriptionsTotalHeight + [getWindowHeight .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label]]
 
-#   puts stderr "welcome to draw1TunableDescription1 for $theName"
-
    message .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
 	 -width 3i -justify left -text "$theDescription" \
 	 -font $tunableDescriptionFont
@@ -912,11 +849,7 @@ proc draw1TunableDescription {theName theDescription} {
 	 -side top -fill x -expand false
          # we don't want extra height after resizing
 
-#   puts stderr "welcome to draw1TunableDescription1.2 for $theName"
-
    set tunableDescriptionsTotalHeight [expr $tunableDescriptionsTotalHeight + [getWindowHeight .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg]]
-
-#   puts stderr "welcome to draw1TunableDescription2 for $theName"
 
    .tunableDescriptions.top.canvas create window \
 	      0 $tunableDescriptionsTotalHeight \
@@ -925,8 +858,6 @@ proc draw1TunableDescription {theName theDescription} {
 	      -tag description
 	      
    incr numTunableDescriptionsDrawn
-
-#   puts stderr "welcome to draw1TunableDescription3 for $theName"
 }
 
 proc drawTunableDescriptions {} {
@@ -1062,29 +993,31 @@ proc tunableEntryPoint {} {
    set nextStartY 0
    set integerScaleFactor 20
 
-   drawTunables [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]
+   set goodMinWidth [drawTunables [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]]
+
+   set oldGeometry [wm geometry .tune]
+   if {$oldGeometry!="1x1+0+0"} {
+      set numscanned [scan $oldGeometry "%dx%d+%d+%d" oldWidth oldHeight oldx oldy]
+      if {$numscanned==4} {
+         if {$oldWidth < $goodMinWidth} {
+	    puts stderr "resizing to $goodMinWidth"
+            wm geometry .tune [format "%dx%d" $goodMinWidth $oldHeight]
+         }
+      } else {
+         puts stderr "tclTunable.tcl: could not scan geometry...won't try to resize"
+      }
+   } else {
+      # No geometry has been set yet; we have free reign
+      set defaultHeight 330
+      wm geometry .tune [format "%dx%d" $goodMinWidth $defaultHeight]
+   }
 }
 
 proc tunableExitPoint {} {
-   global numTunablesDrawn
-   global nextStartY
-   global integerScaleFactor
-   global DeveloperModeFlag
-   global boolTunableOldValues boolTunableNewValues
-   global floatTunableOldValues floatTunableNewValues
-   global tunableMinHeight
-   global lastVisibleWidth lastVisibleHeight
-
    # destroy our toplevel windows (and all their subwindows)
    destroy .tune
 
    if {[winfo exists .tunableDescriptions]} {
       destroy .tunableDescriptions
    }
-
-   unset boolTunableOldValues boolTunableNewValues
-   unset floatTunableOldValues floatTunableNewValues
-   unset numTunablesDrawn nextStartY integerScaleFactor
-   unset DeveloperModeFlag tunableMinHeight
-   unset lastVisibleWidth lastVisibleHeight
 }
