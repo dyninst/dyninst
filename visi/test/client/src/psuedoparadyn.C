@@ -1,7 +1,10 @@
 /* $Log: psuedoparadyn.C,v $
-/* Revision 1.2  1995/09/27 16:30:15  newhall
-/* added option for sending user specified data values to a visi
+/* Revision 1.3  1995/10/14 21:01:45  newhall
+/* modified command line args to psuedoparadyn
 /*
+ * Revision 1.2  1995/09/27  16:30:15  newhall
+ * added option for sending user specified data values to a visi
+ *
  * Revision 1.1  1995/09/18  18:26:48  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  * */ 
@@ -13,13 +16,16 @@
 #include "visi.xdr.CLNT.h" 
 
 
-// the ever evil global variables
+#define DEFAULT_BUCKET_WIDTH 0.2    // initial width of each histogram bucket
+#define DEFAULT_NUM_BUCKETS  1000   // number of histogram buckets
+
+// global variables
 visualizationUser *visip;
 int currPhaseId = 0;
 int lastBucketFilled = 0;
-double bucketWidth = 0.2;
-double minbucketWidth = 0.2;
-int numBuckets = 1000;
+double bucketWidth = DEFAULT_BUCKET_WIDTH;
+double minbucketWidth = DEFAULT_BUCKET_WIDTH;
+int numBuckets = DEFAULT_NUM_BUCKETS;
 u_int nextMetId = 0;
 u_int nextResId = 0;
 vector<T_visi::visi_matrix> mrlist;
@@ -64,30 +70,28 @@ void visualizationUser::GetPhaseInfo(){
 
 main(int argc, char *argv[]){
 
+
     if(argc < 2){
-        cerr << "Error: command must be one of following:" << endl; 
-	cerr << "  psuedoparadyn server_executable" << endl;
-	cerr << "        (default values:  numMets = 0 numRes = 0 numBins = 1000 binWidth = 0.2)" << endl;
-        cerr << 
-	  "  psuedoparadyn server_executable numMets numRes numBins binWidth" << endl;
+        cerr << "Error: command must be in following form:" << endl; 
+	cerr << " (1)  psuedoparadyn server_executable <server_args>" << endl;
 	exit(-1);
     }
+
     int pid;
     vector<string> arg_list;
+    
+    if(argc > 2){
+        unsigned index = 2;
+	while(argv[index]){
+	    arg_list += argv[index];
+	    index++;
+        } 
+    }
+
     int fd = RPCprocessCreate(pid, "localhost", "", argv[1], arg_list);
     if(fd < 0) exit(-1);
     visip = new visualizationUser(fd,NULL,NULL,false);
    
-    int numMets = 3;
-    int numRes = 2;
-    if(argc == 6){
-	numMets = atoi(argv[2]);
-	numRes  = atoi(argv[3]);
-	numBuckets  = atoi(argv[4]);
-	bucketWidth  = atof(argv[5]);
-    }
-    minbucketWidth = bucketWidth;
-
     // send initial set of metrics and foci to visi
 
 
@@ -111,8 +115,7 @@ main(int argc, char *argv[]){
  	    while((wch < 0) || (wch > 9)){
 		cerr << endl << "----------------------------------" << endl;
 		cerr << "Enter number of operation to perform:" << endl;
-		cerr << "    0: add random data values (between 0 and 100)" 
-		     << endl;
+		cerr << "    0: add random data values (values are between 0 and 100)" << endl;
 		cerr << "    1: add NULL data values" << endl;
 		cerr << "    2: send ZERO data values   " << endl;
 		cerr << "    3: send user specified data Values"  << endl;    
@@ -120,7 +123,7 @@ main(int argc, char *argv[]){
 		cerr << "    5: start a new phase" << endl;
 		cerr << "    6: add new Met/Res" << endl;
 		cerr << "    7: print all active metrics and resources" << endl;
-		cerr << "    8: continue (do nothing)"   << endl;
+		cerr << "    8: continue (do nothing--useful for receiving upcalls from visi process)"   << endl;
 		cerr << "    9: quit" << endl;
 		cerr << endl << "----------------------------------" << endl;
 		scanf("%d",&wch);

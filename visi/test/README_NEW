@@ -14,12 +14,13 @@ psuedoparadyn:
 
     to run psuedoparadyn:
     --------------------
-    psuedoparadyn server_executable numMetrics numResources numBins binWidth
-    - OR -
-    psuedoparadyn server_executable
-         (default values are: numMetrics = 0, numResources = 0, 
-	  numBins = 1000, binWidth = 0.2)
-    
+    psuedoparadyn server_executable <server_args>
+
+    The default values: numMets = 0 numRes = 0 numBins = 1000 binWidth = 0.2
+
+    By changing the definitions DEFAULT_NUM_BUCKETS, and DEFAULT_BUCKET_WIDTH 
+    in psuedoparadyn.C, the default values for numBins and binWidth can be
+    modified.
 
 
 ##############
@@ -53,13 +54,13 @@ examples of how run test applications:
 ######################################
 psuedoparadyn:  
 
-    psuedoparadyn rthist
+    psuedoparadyn rthist 
 	(starts psuedoparadyn with the default arguments, psuedoparadyn then
 	 will start the real time histogram visualization)
         
-    psuedoparadyn xtext2 1 2 10 1.0
-	(starts psuedoparadyn with 1 metric and 2 resources defined, a histogram
-	 bucket width of 1.0, and each histogram contains 10 buckets)
+    psuedoparadyn tclVisi -f phaseTable.tcl 
+	(starts psuedoparadyn which will start tclVisi with the phaseTable 
+	 tcl application)
 
 
 xtext and xtext2 with paradyn:
