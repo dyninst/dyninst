@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.52 2003/07/15 22:43:47 schendel Exp $
+ * $Id: Object-elf.C,v 1.53 2003/07/29 00:32:33 eli Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1858,7 +1858,7 @@ const char *Object::elf_vaddr_to_ptr(Address vaddr) const
   return ret;
 }
 
-void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr)
+void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr) const
 {
   // check that file has .stab info
   if (!stab_off_) goto fail;

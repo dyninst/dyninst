@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.54 2003/07/15 22:43:48 schendel Exp $
+ * $Id: Object-elf.h,v 1.55 2003/07/29 00:32:34 eli Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -143,7 +143,7 @@ class Object : public AObject {
   const char *elf_vaddr_to_ptr(Address vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  void get_stab_info(void **stabs, int &nstabs, void **stabstr);
+  void get_stab_info(void **stabs, int &nstabs, void **stabstr) const;
   const char * getFileName() const { return fileName; }
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
