@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.258 2001/07/27 19:42:31 gurari Exp $
+// $Id: process.C,v 1.259 2001/07/27 21:02:49 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3740,11 +3740,8 @@ void getLibAndFunc(const string &name, string &lib_name, string &func_name) {
   lib_name = "";
   func_name = "";
 
-  // Locate "/" seperating lib name and func name   
-  string slash = "/";
-
   for (unsigned i = length-1; i > 0 && hasNoLib; i--) {
-    if (name[i] == slash[0]) {
+    if (name[i] == '/') {
       index = i;
       hasNoLib = false; 
     } 
@@ -3773,19 +3770,15 @@ bool matchLibName(string &lib_name, const string &name) {
   // position in string "name" where version information begins
   unsigned n_index = name.length();
 
-
-  // Ignore ".", they are part of version number
-  string dot = ".";
-
   // Walk backwards from end of name, passing over the version number.
   // e.g. isolate the libc.so in libc.so.6
-  while (isdigit(name[n_index-1]) || name[n_index-1] == dot[0]) {
+  while (isdigit(name[n_index-1]) || name[n_index-1] == '.') {
     n_index--;
   }
 
   // Walk backwards from end of lib_name, passing over the version number.
   // e.g. isolate the libc.so in libc.so.6
-  while (isdigit(lib_name[ln_index-1]) || lib_name[ln_index-1] == dot[0]) {
+  while (isdigit(lib_name[ln_index-1]) || lib_name[ln_index-1] == '.') {
     ln_index--;
   }
  
