@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.16  1995/08/24 15:02:11  hollings
+ * Revision 1.17  1995/09/20 01:13:21  tamches
+ * Where axis changes -- added graphicalPath
+ *
+ * Revision 1.16  1995/08/24  15:02:11  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -286,10 +289,11 @@ template class vector<dictionary_hash<resourceHandle,where4tree<resourceHandle>*
 template class vector< vector< dictionary_hash<resourceHandle,where4tree<resourceHandle>*>::hash_pair> >;
 template class pair<resourceHandle, where4tree<resourceHandle>* >;
 
+#include "paradyn/src/UIthread/graphicalPath.C"
+template class whereNodeGraphicalPath<resourceHandle>;
 
 #include "paradyn/src/UIthread/simpSeq.C"
-template class simpSeq<whereNodeRawPathItem>;
-template class simpSeq<whereNodeGraphicalPathItem>;
+template class simpSeq<unsigned>;
 
 #include "paradyn/src/UIthread/whereAxis.C"
 template class whereAxis<resourceHandle>;
@@ -302,6 +306,8 @@ template class abstractions<resourceHandle>;
 #include "paradyn/src/UIthread/minmax.C"
 template int min(int,int);
 template int max(int,int);
+template void ipmin(int &, int);
+template void ipmax(int &, int);
 template float min(float,float);
 template float max(float,float);
 
