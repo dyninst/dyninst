@@ -772,6 +772,16 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   Symbol sym;
   Address baseAddr;
 
+  // find the main function
+  // first look for main or _main
+  if (!((mainFunction = findOneFunction("main")) 
+        || (mainFunction = findOneFunction("_main")))) {
+     string msg = "Cannot find main. Exiting.";
+     statusLine(msg.string_of());
+     showErrorCallback(50, msg);
+     return false;
+  }
+
   for (unsigned i=0; i<find_us.size(); i++) {
     const string &str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {

@@ -782,9 +782,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     createdViaAttach = false;
 
     symbols = iImage;
+    mainFunction = NULL; // set in platform dependent function heapIsOk
 
     status_ = neonatal;
     continueAfterNextStop_ = false;
+    deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
@@ -883,9 +885,11 @@ process::process(int iPid, image *iSymbols,
    createdViaAttach = true;
 
    symbols = iSymbols;
+   mainFunction = NULL; // set in platform dependent function heapIsOk
 
    status_ = neonatal;
    continueAfterNextStop_ = false;
+   deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
@@ -1023,6 +1027,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     needToContinueAfterDYNINSTinit = true;
 
     symbols = parentProc.symbols; // shouldn't a reference count also be bumped?
+    mainFunction = parentProc.mainFunction;
 
     traceLink = iTrace_fd;
 
@@ -1030,6 +1035,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     status_ = neonatal; // is neonatal right?
     continueAfterNextStop_ = false;
+    deferredContinueProc = false;
 
     pid = iPid; 
 
@@ -3004,7 +3010,7 @@ void process::installBootstrapInst() {
        removeAst(the_args[j]);
    }
 
-   function_base *func = findOneFunction("main");
+   function_base *func = getMainFunction();
    assert(func);
 
    instPoint *func_entry = (instPoint *)func->funcEntry(this);

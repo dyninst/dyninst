@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.16  1997/05/02 18:25:36  mjrg
+ * Changes for allowing different main functions on different platforms
+ *
  * Revision 1.15  1997/04/29 23:16:02  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -2030,6 +2033,28 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   Symbol sym;
   string str;
   Address baseAddr;
+
+  // find the main function
+  // first look for main or _main
+#if !defined(i386_unknown_nt4_0)
+  if (!((mainFunction = findOneFunction("main")) 
+        || (mainFunction = findOneFunction("_main")))) {
+     string msg = "Cannot find main. Exiting.";
+     statusLine(msg.string_of());
+     showErrorCallback(50, msg);
+     return false;
+  }
+#else
+  if (!((mainFunction = findOneFunction("main")) 
+        || (mainFunction = findOneFunction("_main"))
+	|| (mainFunction = findOneFunction("WinMain"))
+	|| (mainFunction = findOneFunction("_WinMain")))) {
+     string msg = "Cannot find main or WinMain. Exiting.";
+     statusLine(msg.string_of());
+     showErrorCallback(50, msg);
+     return false;
+  }
+#endif
 
   for (unsigned i=0; i<find_us.size(); i++) {
     str = find_us[i].name;

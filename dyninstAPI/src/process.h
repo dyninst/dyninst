@@ -472,6 +472,9 @@ class process {
   // return the list of dynamically linked libs
   vector<shared_object *> *sharedObjects() { return shared_objects;  } 
 
+  // getMainFunction: returns the main function for this process
+  function_base *getMainFunction() const { return mainFunction; }
+
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any
   // shared object images for this function
@@ -738,6 +741,10 @@ private:
   vector<function_base *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse
   pd_Function *signal_handler;  // signal handler function (for stack walking)
+
+  function_base *mainFunction;  // the main function for this process,
+                              // this is usually, but not always, main
+                                 
 
   // needToAddALeafFrame: returns true if the between the current frame 
   // and the next frame there is a leaf function (this occurs when the 
