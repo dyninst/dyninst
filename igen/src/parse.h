@@ -329,7 +329,7 @@ public:
   typedef enum { Med_xdr, Med_pvm, Med_thread, Med_other, Med_none, Med_rpc } medium;
 
   message_layer() { med_ = Med_none; }
-  message_layer(const string fileName) { }
+  message_layer(const string) { }
   message_layer(const string nm, const medium md, const string bp, const string brt,
 		const string mdp, const string mo, const string mop, const AS as,
 		const string bfail, const string bok, const string dir_f,

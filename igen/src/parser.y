@@ -193,7 +193,7 @@ typeName: tIDENT {
     $$.cp = new string(Options::get_type(tname));
 } | tIDENT tANGLE_L typeName pointers tANGLE_R {
   char str[80];
-  int stl_index;
+  unsigned stl_index;
   bool in_lib = false;
   if (Options::current_interface->are_bundlers_generated()) {
     bool found = false;

@@ -357,7 +357,7 @@ static void init_types() {
 }
 
 static bool set_ml(const string ml_name) {
-  for (int i=0; i<Options::all_ml.size(); i++) {
+  for (unsigned i=0; i<Options::all_ml.size(); i++) {
     if (Options::all_ml[i]->name() == ml_name) {
       Options::ml = Options::all_ml[i];
       return true;
@@ -481,7 +481,7 @@ string Options::make_ptrs(unsigned count) {
   assert(count < 100);
 
   buffer[0] = (char)0;
-  for (int i=0; i<count; i++)
+  for (unsigned i=0; i<count; i++)
     buffer[i] = '*';
   buffer[count] = '\0';
   return buffer;
@@ -585,8 +585,8 @@ bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
   return true;
 }
 
-bool arg::tag_bundle_send_one(ofstream &out_stream, const string bundle_val,
-			  const string tag_val, const string return_value) const 
+bool arg::tag_bundle_send_one(ofstream &, const string,
+			  const string, const string) const 
 {
   
 }
@@ -597,7 +597,7 @@ bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
 			  ofstream &out_stream) const
 {
   assert (alist.size() == arglist_.size());
-  for (int i=0; i<alist.size(); i++) 
+  for (unsigned i=0; i<alist.size(); i++) 
     out_stream << prefix << arglist_[i]->name() << " = " << alist[i]->name() << ";\n";
 }
 
@@ -606,7 +606,7 @@ bool type_defn::is_same_type(vector<arg*> *arglist) const {
   if (arglist_.size() != arglist->size())
     return false;
 
-  for (int i=0; i<arglist_.size(); i++) {
+  for (unsigned i=0; i<arglist_.size(); i++) {
     if (arglist_[i]->type() != (*arglist)[i]->type())
       return false;
   }
@@ -652,7 +652,7 @@ string type_defn::dump_args(const string data_name, const string sep) const {
       ret = data_name;
       break;
     default:
-      for (int i=0; i<arglist_.size(); i++) {
+      for (unsigned i=0; i<arglist_.size(); i++) {
 	ret += string(data_name + sep + arglist_[i]->name());
 	if (i < (arglist_.size() - 1))
 	  ret += string(", ");
@@ -722,7 +722,7 @@ type_defn::type_defn(const string name, const bool is_cl, const bool is_abs,
     bundle_name_ = unqual_name_;
   
   if (arglist) {
-    for (int i=0; i< arglist->size(); i++)
+    for (unsigned i=0; i< arglist->size(); i++)
       arglist_ += (*arglist)[i];
   }
   if (is_derived_) {
@@ -740,7 +740,7 @@ type_defn::type_defn(const string name, const bool is_cl, const bool is_abs,
 
 void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
 
-bool type_defn::gen_class(const string bundler_prefix, ofstream &out_stream) {
+bool type_defn::gen_class(const string, ofstream &out_stream) {
 
   if (is_class())
     out_stream << "class "; 
@@ -755,7 +755,7 @@ bool type_defn::gen_class(const string bundler_prefix, ofstream &out_stream) {
     out_stream << unqual_name() << "();\n";
   }
   
-  for (int i=0; i<arglist_.size(); i++) 
+  for (unsigned i=0; i<arglist_.size(); i++) 
     out_stream << arglist_[i]->type(true) << " " << arglist_[i]->name() << ";\n";
 
   if (ignore_.length())
@@ -910,7 +910,7 @@ bool type_defn::gen_bundler_ptr_class(const string class_prefix, const string bu
 	<< Options::ml->marshall_obj()
 	  << " " << Options::ml->marshall_obj_ptr() << " obj) {\n";
 
-  for (int i=0; i<arglist_.size(); i++) {
+  for (unsigned i=0; i<arglist_.size(); i++) {
     out_c << " if (!";
     arglist_[i]->gen_bundler(out_c, "obj", "&");
     out_c << ")\n";
@@ -924,7 +924,7 @@ bool type_defn::gen_bundler_ptr_class(const string class_prefix, const string bu
     }
     curr_defn = Options::all_types[curr_defn->parent()];
     assert(curr_defn);
-    for (int ui=0; ui<curr_defn->arglist_.size(); ui++) {
+    for (unsigned ui=0; ui<curr_defn->arglist_.size(); ui++) {
       out_c << " if (!";
       arglist_[ui]->gen_bundler(out_c, "obj", "&");
       out_c << ")\n";
@@ -954,7 +954,7 @@ bool type_defn::gen_bundler_body_struct(const string bundler_prefix, const strin
   out_stream << "assert(" << Options::obj_ptr() << " != "
     << Options::ml->free_const() << ");\n";
 
-  for (int i=0; i<arglist_.size(); i++) {
+  for (unsigned i=0; i<arglist_.size(); i++) {
     out_stream << " if (!";
     arglist_[i]->gen_bundler(out_stream, "obj", "&data->");
     out_stream << ")\n";
@@ -1007,7 +1007,7 @@ bool type_defn::gen_bundler_sig(const bool &print_extern, const string class_pre
 
 void type_defn::dump_type() {
   cerr << "Type " << name_ << "  in_lib=" << in_lib_ << endl;
-  for (int i=0; i<arglist_.size(); i++)
+  for (unsigned i=0; i<arglist_.size(); i++)
     cerr << "   " << arglist_[i]->type() << "    "  << arglist_[i]->name() << endl;
 }
 
@@ -1261,7 +1261,7 @@ bool remote_func::save_async_request(ofstream &out_stream, const bool srvr) cons
   return true;
 }
 
-bool remote_func::gen_async_struct(ofstream &out_stream) const { return true; }
+bool remote_func::gen_async_struct(ofstream &) const { return true; }
 
 bool remote_func::gen_signature(ofstream &out_stream, const bool &hdr,
 				const bool server) const
@@ -1406,7 +1406,7 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
 
 signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(false), stars_(0) {
   assert(alist);
-  for (int i=0; i<alist->size(); i++) 
+  for (unsigned i=0; i<alist->size(); i++) 
     args += (*alist)[i];
 
   switch (args.size()) {
@@ -1424,7 +1424,7 @@ signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(fals
       match = td->is_same_type(alist);
     if (match) {
       type_ = td->name();
-      for (int q=0; q<args.size(); ++q)
+      for (unsigned q=0; q<args.size(); ++q)
 	delete args[q];
       args.resize(0);
       args = td->copy_args();
@@ -1463,7 +1463,7 @@ bool signature::tag_bundle_send(ofstream &out_stream, const string return_value,
 }
 
 bool signature::tag_bundle_send_many(ofstream &out_stream, const string return_value,
-				     const string req_tag) const
+				     const string) const
 {
   // set direction encode
   out_stream << Options::set_dir_encode() << ";\n";
@@ -1471,7 +1471,7 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const string return_v
   // bundle individual args
   out_stream << "if (!" << Options::ml->read_tag("net_obj()", "tag") << "\n";
 
-  for (int i=0; i<args.size(); i++) {
+  for (unsigned i=0; i<args.size(); i++) {
     out_stream << " || !";
     args[i]->gen_bundler(out_stream, "net_obj()", "&");
     out_stream << "\n";
@@ -1528,7 +1528,7 @@ string signature::dump_args(const string data_name, const string sep) const {
   case 1:
     return data_name;
   default:
-    for (int i=0; i<args.size(); i++) {
+    for (unsigned i=0; i<args.size(); i++) {
       ret += data_name + sep + args[i]->name();
       if (i < (args.size() - 1))
 	ret += ", ";
@@ -1544,7 +1544,7 @@ bool signature::gen_sig(ofstream &out_stream) const {
     break;
   case 1:
   default:
-    for (int i=0; i<args.size(); i++) {
+    for (unsigned i=0; i<args.size(); i++) {
       out_stream << args[i]->type(true, true) << " " << args[i]->name();
       if (i < (args.size()-1))
 	out_stream << ", ";
@@ -1555,7 +1555,7 @@ bool signature::gen_sig(ofstream &out_stream) const {
 }
 
 bool signature::arg_struct(ofstream &out_stream) const {
-  for (int i=0; i<args.size(); i++)
+  for (unsigned i=0; i<args.size(); i++)
     out_stream << args[i]->type() << " " << args[i]->name() << ";\n";
   return true;
 }
