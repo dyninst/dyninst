@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.48 2000/06/20 21:45:57 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.49 2000/06/26 17:01:20 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -61,10 +61,11 @@ int debugPrint = 0;
 
 int runAllTests = TRUE;
 
+#define MAX_C_TEST 32
 #ifdef __cplusplus
 #define MAX_TEST 44
 #else 
-#define MAX_TEST 32
+#define MAX_TEST MAX_C_TEST
 #endif 
 
 int runTest[MAX_TEST+1];
@@ -2505,7 +2506,7 @@ int main(int iargc, char *argv[])
 #endif
  
     for (j=0; j <= MAX_TEST; j++) {
-	if (j <= 32) {
+	if (j <= MAX_C_TEST) {
 	   passedTest[j] = FALSE;
            if (!useAttach) runTest[j] = TRUE;
 	} else {
@@ -2539,6 +2540,10 @@ int main(int iargc, char *argv[])
                 if ((testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = TRUE;
+#ifndef __cplusplus
+                    } else if (testId > MAX_C_TEST) {
+                        printf("Skipping C++-specific test #%d\n", testId);
+#endif
                     } else {
                         printf("invalid test %d requested\n", testId);
                         exit(-1);
