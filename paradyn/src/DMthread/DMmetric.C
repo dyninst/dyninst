@@ -19,7 +19,7 @@ extern "C" {
 }
 #include "DMmetric.h"
 
-extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*);
+extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, timeStamp);
 
 metric::metric(T_dyninstRPC::metricInfo i){
@@ -428,7 +428,7 @@ void metricInstance::newGlobalDataCollection(metricStyle style,
 	return;  
     }
     // call constructor for start time 0.0 
-    global_data = new Histogram(style, dcb, fcb, this);
+    global_data = new Histogram(style, dcb, fcb, this, 1);
 }
 
 void metricInstance::newCurrDataCollection(metricStyle style, 
@@ -444,13 +444,13 @@ void metricInstance::newCurrDataCollection(metricStyle style,
     // create new histogram
     timeStamp start_time = phaseInfo::GetLastPhaseStart();
     if(start_time == 0.0) {
-        data = new Histogram(style, dcb, fcb, this);
+        data = new Histogram(style, dcb, fcb, this, 0);
 	assert(data);
 	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
 
     }
     else {
-        data = new Histogram(start_time, style, dcb, fcb, this);
+        data = new Histogram(start_time, style, dcb, fcb, this, 0);
 	assert(data);
 	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
     }

@@ -75,7 +75,7 @@ class metric {
 					unsigned, unsigned);
 
     friend void histDataCallBack(sampleValue *, timeStamp , 
-				 int , int , void *);
+				 int , int , void *, bool);
     public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
@@ -117,7 +117,7 @@ class metricInstance {
     friend class metric;
     friend class paradynDaemon;
     friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
-				 int first, void *arg);
+				 int first, void *arg, bool globalFlag);
     friend metricInstance *DMenableData(perfStreamHandle,metricHandle,
 					resourceListHandle,phaseType,
 					unsigned, unsigned);

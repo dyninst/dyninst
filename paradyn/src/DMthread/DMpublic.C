@@ -4,6 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.68  1996/02/12 08:05:59  karavan
+ * Added new parameter, bool globalFlag, to histogram constructor and
+ * to histDataCallback.  This fixes bug resulting in duplicate values being
+ * sent if both global and current phase 0 subscribed to by any two pstreams.
+ *
  * Revision 1.67  1996/02/09 05:32:12  karavan
  * added getFocusNameFromHandle.
  *
@@ -279,7 +284,8 @@ void histDataCallBack(sampleValue *buckets,
                       timeStamp start_time,
 		      int count,
 		      int first,
-		      void *arg)
+		      void *arg,
+		      bool globalFlag)
 {
     metricInstance *mi = (metricInstance *) arg;
     performanceStream *ps = 0;
@@ -293,7 +299,7 @@ void histDataCallBack(sampleValue *buckets,
     }
 #endif
 
-    if(start_time == 0.0) { 
+    if(globalFlag) { 
 	// update global data
         for(unsigned i=0; i < mi->global_users.size(); i++) {
 	    ps = performanceStream::find(mi->global_users[i]); 
@@ -302,17 +308,7 @@ void histDataCallBack(sampleValue *buckets,
 				   buckets, count, first,GlobalPhase);
             }
         }
-	// update curr. phase data if curr. phase started at time 0.0
-	if (phaseInfo::GetLastPhaseStart() == 0.0) {
-            for(unsigned i=0; i < mi->users.size(); i++) {
-	        ps = performanceStream::find(mi->users[i]); 
-	        if(ps) {
-	            ps->callSampleFunc(mi->getHandle(), 
-				       buckets, count, first,CurrentPhase);
-                }
-            }
-	}
-    }
+      }
 
     else {  // update just curr. phase data
         for(unsigned i=0; i < mi->users.size(); i++) {
@@ -321,7 +317,7 @@ void histDataCallBack(sampleValue *buckets,
 	        ps->callSampleFunc(mi->getHandle(), 
 				   buckets, count, first,CurrentPhase);
         }
-    }
+      }
 
     for(int i=first; i < count; i++){
         if(buckets[i] < 0) printf("bucket %d : %f \n",i,buckets[i]);
