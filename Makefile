@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.30 1998/05/21 16:43:11 wylie Exp $
+# $Id: Makefile,v 1.31 1998/09/02 22:03:57 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -19,11 +19,14 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 #
 # "dynInstAPI" is the list of additional API components (optional).
 
-basicComps	= util igen thread visi hist
-subSystems	= paradyn rtinst rthist paradynd \
+basicComps	= util igen thread visi hist rtinst
+ParadynD	= paradynd
+ParadynFE	= paradyn
+ParadynVC	= rthist \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/terrain
+subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 dynInstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 # "Paradyn" itself is just the list of all Paradyn components
@@ -101,7 +104,7 @@ world: intro $(Build_list)
 
 # "make Paradyn" and "make dynInstAPI" are also useful and valid build targets!
 
-Paradyn dynInstAPI basicComps subSystems:
+Paradyn ParadynD ParadynFE ParadynVC dynInstAPI basicComps subSystems:
 	@echo "Building $@ ..."
 	@date
 	+for subsystem in $($@); do			\
