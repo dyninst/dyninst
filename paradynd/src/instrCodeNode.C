@@ -60,8 +60,8 @@ dictionary_hash<string, instrCodeNode_Val*>
 
 
 instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
-				                        pd_process *proc, bool arg_dontInsertData, 
-															  string hw_cntr_str)
+                                   pd_process *proc, bool arg_dontInsertData, 
+                                               string hw_cntr_str)
 {
   instrCodeNode_Val *nodeVal;
   // it's fine to use a code node with data inserted for a code node
