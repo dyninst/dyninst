@@ -41,7 +41,7 @@
 
 /*
  * experiment class
- * $Id: PCexperiment.h,v 1.15 2004/03/23 01:12:27 eli Exp $
+ * $Id: PCexperiment.h,v 1.16 2005/01/11 22:47:18 legendre Exp $
  */
 
 #ifndef PCEXPER_H
@@ -146,8 +146,10 @@ class experiment : public dataSubscriber
   bool minObservationFlag;  
   // use this to flag user changes to thresholds during a search
   pdRate lastThreshold;
-  static timeLength PCminTimeToFalse;
-  static timeLength PCminTimeToTrue;
+
+  //ELI
+  timeLength PCminTimeToFalse;
+  timeLength PCminTimeToTrue;
 };
 
 ostream& operator <<(ostream &os, experiment& ex);

@@ -103,8 +103,8 @@ int machineHierarchy::getThreadID() const {
       begNum += 4;  // bypass "thr_"
       char tempBuf[50];
       char *ts = tempBuf;
-      for(const char *fs = begNum; isdigit(*fs); fs++, ts++) 
-	 *ts = *fs;
+      for(const char *fs = begNum; isdigit(*fs) || *fs == '-'; fs++, ts++) 
+         *ts = *fs;
       *ts = 0;
       thr_id = atoi(tempBuf);
    }
@@ -140,23 +140,31 @@ codeHierarchy::codeHierarchy(const pdvector<pdstring> &setupInfo) {
 
 pdstring codeHierarchy::getName() const {
    pdstring name = "/Code";
-   if(module_defined())   name += ("/" + module);
-   if(function_defined()) name += ("/" + function);
+   if (module_defined())   name += ("/" + module);
+   if (function_defined()) name += ("/" + function);
+   if (loop_defined())     name += ("/" + loop);
    return name;
 }
 
 pdvector<pdstring> codeHierarchy::tokenized() const {
    pdvector<pdstring> retVec;
    retVec.push_back(pdstring("Code"));
-   if(module_defined())   retVec.push_back(pdstring(module));
-   if(function_defined()) retVec.push_back(pdstring(function));
+   if (module_defined())   retVec.push_back(pdstring(module));
+   if (function_defined()) retVec.push_back(pdstring(function));
+   if (loop_defined())     retVec.push_back(pdstring(loop));
    return retVec;
 }
 
-
-// handle matches of form /Code and /Code/*
+// handle matches of form /Code /Code/* and /Code/*/*
 bool codeHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
 {
+//    //fprintf(stderr,"ELI code hierarchy focus_matches ");
+//    for (unsigned k =0; k < match_path.size(); k++) {
+//        fprintf(stderr,"%s ",match_path[k].c_str());
+//    }
+//    fprintf(stderr,"\n");
+
+
    unsigned mp_size = match_path.size();
 
    assert(mp_size > 0);
@@ -166,19 +174,26 @@ bool codeHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
        return false;
 
    if (mp_size == 1) {
-       // the mdl '/Code' specifies that the constraint is applied to
-       // all modules in a program
-       return module_defined() && !function_defined();
+       // moduleConstraint, the mdl /Code specifies that the
+       // constraint matches all modules
+       return module_defined() && !function_defined() && !loop_defined();
    }
    else if (mp_size == 2) {
-       // the mdl '/Code/*' specifies that the constraint applies to
-       // all modules and all functions in a program
+       // procedureConstraint, the mdl /Code/* specifies that the
+       // constraint matches all modules and all functions 
        if (match_path[1] == "*") 
-           return module_defined() && function_defined();
+           return module_defined() && function_defined() && !loop_defined();
+   } 
+   else if (mp_size == 3) {
+       // loopConstraint, the mdl /Code/*/* specifies that the
+       // constraint matches all modules, all functions and all loops
+       if (match_path[1] == "*" && match_path[2] == "*") 
+           return module_defined() && function_defined() && loop_defined();
    } 
 
    return false;
 }
+
 
 syncObjHierarchy::syncObjHierarchy(const pdvector<pdstring> &setupInfo) {
    unsigned setupInfo_size = setupInfo.size();
@@ -333,6 +348,8 @@ bool syncObjHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
       }
    }
    else if(mp_size == 3) {
+       if (match_path[0] == "Code") return false;
+
       assert(match_path[0] == "SyncObject");
       assert(match_path[1] == "Message");
       if(match_path[2] == "*") {

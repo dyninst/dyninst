@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.253 2004/10/07 00:45:58 jaw Exp $
+// $Id: metricFocusNode.C,v 1.254 2005/01/11 22:47:23 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -163,6 +163,8 @@ metFocInstResponse::updateResponse( u_int mi_id,
                                     inst_insert_result_t res,
                                     pdstring emsg )
 {
+    fprintf(stderr,"metFocInstResponse::updateResponse\n");
+
     for( pdvector<T_dyninstRPC::indivInstResponse>::iterator iter = rinfo.begin();
             iter != rinfo.end();
             iter++ )
@@ -266,10 +268,13 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
    bool errFlag = false;
    Focus &focus = *(new Focus(focusData, &errFlag));
    if(errFlag) {
+       //fprintf(stderr,"ELI create metric instance errFlag\n");
       return NULL;
    }
 
    if (mdl_can_do(metric_name)) {
+       //fprintf(stderr,"ELI can do metric\n");
+
       /* select the processes that should be instrumented. We skip process
          that have exited, and processes that have been created but are not
          completely initialized yet.  If we try to insert instrumentation in
@@ -301,44 +306,50 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
          // there are no processes to instrument
       {	    
          //printf("createMetricInstance failed, no processes to instrument\n");
+       //fprintf(stderr,"ELI no procs to instrument\n");
          return NULL;
       }
-      
+
+      //cerr << "makeMachineMetFocusNode START" << endl;
       machineMetFocusNode *machNode = 
          makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
-      
+      //cerr << "makeMachineMetFocusNode END" << endl;
+
       if (machNode == NULL) {
-         metric_cerr << "createMetricInstance failed since mdl_do failed\n";
-         metric_cerr << "metric name was " << metric_name << "; focus was ";
-         metric_cerr << "createMetricInstance failed since mdl_do failed\n";
+//          cerr << "createMetricInstance failed since mdl_do failed\n";
+//          cerr << "metric name was " << metric_name << "; focus was ";
+//          cerr << "createMetricInstance failed since mdl_do failed\n";
       }
       return machNode;
    } else {
+       //fprintf(stderr,"ELI can NOT do metric\n");
+
       bool matched;
+
       machineMetFocusNode *machNode = 
          doInternalMetric(mid, focus, metric_name, enable, matched);
+
       // NULL on serious error; -1 if enable was false; -2 if illegal to
       // instr with given focus [many internal metrics work only for whole
       // program]
 
       if (machNode == (machineMetFocusNode*)-2) {
-         metric_cerr << "createMetricInstance: internal metric " 
-                     << metric_name << " isn't defined for focus: " 
-                     << focus.getName() << "\n";
+//          cerr << "createMetricInstance: internal metric " 
+//                      << metric_name << " isn't defined for focus: " 
+//                      << focus.getName() << "\n";
          machNode = NULL; // straighten up the return value
       }
       else if (machNode == (machineMetFocusNode*)-1) {
-         metric_cerr << " createMetricInstance: internal metric not enable: " 
-                     << metric_name << endl;
+//          cerr << " createMetricInstance: internal metric not enable: " 
+//                      << metric_name << endl;
          assert(!enable); // no error msg needed
          machNode = NULL; // straighten up the return value
       }
       else if (machNode == NULL) {
          // more serious error...do a printout
-         metric_cerr 
-            << "createMetricInstance failed since doInternalMetric failed\n";
-         metric_cerr << "metric name was " << metric_name << "; focus was "
-                     << focus.getName() << "\n";
+//          cerr << "createMetricInstance failed since doInternalMetric failed\n";
+//          cerr << "metric name was " << metric_name << "; focus was "
+//                      << focus.getName() << "\n";
       }
       if(machNode)  machNode->markAsInternalMetric();
       return machNode;
@@ -444,36 +455,51 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
                                         int mid,
                                         metFocInstResponse *cbi)
 {
-   assert( cbi != NULL );
+    pdstring temp = metric_name;
+    for (unsigned i = 0; i < focus.size(); i++) {
+        temp += (pdstring(" ") + pdstring(focus[i]));
+    }
 
+    //fprintf(stderr,"ELI [%s] startCollecting\n",temp.c_str());
+
+   assert( cbi != NULL );
 
    // Make the unique ID for this metric/focus visible in MDL.
    pdstring vname = "$globalId";
    mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
    mdl_data::cur_mdl_data->env->set(mid, vname);
 
+   //   cerr << "ELI startCollecting createMetricInstance " << metric_name << endl;
+
    machineMetFocusNode *machNode = 
      createMetricInstance(mid, metric_name, focus, true);
 
+   //cerr << "ELI startCollecting createMetricInstance END " << metric_name << endl;
+
    if (!machNode) {
-      metric_cerr << "startCollecting for " << metric_name 
-		  << " failed because createMetricInstance failed" << endl;
+//       cerr << "startCollecting for " << metric_name 
+// 		  << " failed because createMetricInstance failed" << endl;
       cbi->addResponse( mid,
                         inst_insert_failure,
                         mdl_data::cur_mdl_data->env->getSavedErrorString() );
       return;
    }
 
+
    //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
    addCurrentPredictedCost(machNode->cost());
    metResPairsEnabled++;
    
    if (machNode->isInternalMetric()) {
+   //fprintf(stderr,"ELI [%s] internal, add response %u. return.\n",temp.c_str(),inst_insert_success );
       cbi->addResponse( mid, inst_insert_success );
       return;
    }
 
    inst_insert_result_t insert_status =  machNode->insertInstrumentation();
+
+   //fprintf(stderr,"ELI [%s] insert status %u\n",temp.c_str(),insert_status);
+
    if(insert_status == inst_insert_deferred) {
       machNode->setMetricFocusResponse(cbi);
       cbi->addResponse( mid, inst_insert_deferred );
@@ -498,6 +524,8 @@ void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
    // we have to use zero).  However, it is possible that in the future we'll
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
+
+   //fprintf(stderr,"ELI [%s] success %u\n",temp.c_str(),inst_insert_success);
 
    cbi->addResponse( mid, inst_insert_success );
 }

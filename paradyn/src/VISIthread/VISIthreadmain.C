@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.109 2004/07/26 02:37:25 pcroth Exp $
+// $Id: VISIthreadmain.C,v 1.110 2005/01/11 22:47:19 legendre Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1063,7 +1063,7 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
     // else if there are more things to enable get the next set
     // else clean up state and if the retryList is non-empty send msgs
     
-    if(ptr->next_to_enable < ptr->request->size()){ // more to enable
+    if((!ptr->request) || ptr->next_to_enable < ptr->request->size()) {
        if((ptr->args->mi_limit > 0) &&  // this visi has a limit 
           ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
            

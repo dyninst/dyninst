@@ -357,11 +357,15 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
   switch (type_) 
   {
     case MDL_EXPR_INT: 
+    {
       ok_ = ret.set(int_literal_);
       return ok_;
+    }
     case MDL_EXPR_STRING:
+    {
       ok_ = ret.set(str_literal_);
       return ok_;
+    }
     case MDL_EXPR_INDEX:
     {
       if (var_ == pdstring("$arg"))
@@ -464,6 +468,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         // build type_walk here
         do_type_walk_ = true;
         mdl_var temp(false);
+
         if (!left_->apply(temp)) return false;
 
         //
@@ -476,33 +481,33 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         unsigned v_index = 0, v_max = fields_.size();
         unsigned current_type = temp.type();
 
-        while (v_index < v_max) 
-        {
-          if (!mdl_data::cur_mdl_data->fields.defines(current_type))
-          {
-            cerr << "Invalid field type." << endl;
-            return false;
-          }
+        while (v_index < v_max) {
+            
+            if (!mdl_data::cur_mdl_data->fields.defines(current_type)) {
+                fprintf(stderr, "Invalid field type %u\n", current_type);
+                return false;
+            }
+
           acceptable_fdlst = mdl_data::cur_mdl_data->fields[current_type];
           pdstring next_field = fields_[v_index];
           bool type_found=false;
           unsigned size = acceptable_fdlst.size();
 
           for (unsigned u=0; u<size; u++) {
-            if (acceptable_fdlst[u].name == next_field) 
-            {
-              type_found = true;
-              type_walk += current_type;
-              type_walk += u;
-              current_type = acceptable_fdlst[u].type;
-              break;
-            }
+              if (acceptable_fdlst[u].name == next_field) {
+                  type_found = true;
+                  type_walk += current_type;
+                  type_walk += u;
+                  current_type = acceptable_fdlst[u].type;
+                  break;
+              }
 	  }
-          if (!type_found)
-          {
-            cerr << "Invalid field type." << endl;
-            return false; 
+
+          if (!type_found) {
+              fprintf(stderr, "No valid field type %u\n", current_type);
+              return false; 
           }
+
           v_index++;
         }
         ret.set_type(current_type);
@@ -521,14 +526,14 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
     }
     case MDL_EXPR_PREUOP:
     {
-      mdl_var lval(false);
+       mdl_var lval(false);
       if (!left_ || !left_->apply (lval)) return false;
       ok_ = do_operation(ret, lval, u_op_, true);
       return ok_;
     }
     case MDL_EXPR_POSTUOP:
     {
-      mdl_var lval(false);
+       mdl_var lval(false);
       if (!left_ || !left_->apply (lval)) return false;
       ok_ = do_operation(ret, lval, u_op_, false);
       return ok_;
@@ -623,6 +628,7 @@ bool T_dyninstRPC::mdl_list_stmt::apply( pdvector<const instrDataNode*>& )
   case MDL_T_MODULE: list_type = MDL_T_LIST_MODULE; break;
   default: 
       // this should only happen if there is a parser error.
+      fprintf(stderr,"XXX none list type\n");
       abort();
       return false;
   }
@@ -756,11 +762,13 @@ T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt()
   where_instr_(0), constrained_(false) { }
 
 T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
-  delete point_expr_;
+    delete point_expr_;
+
   if (icode_reqs_) {
     unsigned size = icode_reqs_->size();
-    for (unsigned u=0; u<size; u++)
-      delete (*icode_reqs_)[u];
+    for (unsigned u=0; u<size; u++) {
+        delete (*icode_reqs_)[u];
+    }
     delete icode_reqs_;
   }
 }
@@ -853,7 +861,14 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(pdstring id, pdvector<pdstring> *ma
     if ((*match_path)[0] == "Code") 
     {
       hierarchy_ = MDL_RES_CODE;
-      type_ = (size == 1) ? MDL_T_MODULE : MDL_T_PROCEDURE;
+      if (size == 1)
+          type_ = MDL_T_MODULE;
+      else if (size == 2)
+          type_ = MDL_T_PROCEDURE;
+      else if (size == 3)
+          type_ = MDL_T_LOOP;
+      else 
+          abort(); 
     }
     else if ((*match_path)[0] == "Process") 
       hierarchy_ = MDL_RES_PROCESS;
@@ -916,6 +931,7 @@ bool T_dyninstRPC::mdl_constraint::apply( void )
   case MDL_T_HW_COUNTER:
     break;
   case MDL_T_NONE:
+      fprintf(stderr,"mdl_constraint::apply MDL_T_NONE \n");
     return true;
   default:
     return false;
@@ -1148,6 +1164,13 @@ bool mdl_init() {
   mdl_data::cur_mdl_data->fields[MDL_T_PROCEDURE_NAME] = field_list;
   field_list.resize(0);
 
+  desc.name = "enter"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "exit"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "start_iter"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "end_iter"; desc.type = MDL_T_POINT; field_list += desc;
+  mdl_data::cur_mdl_data->fields[MDL_T_LOOP] = field_list;
+  field_list.resize(0);
+
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "funcs"; desc.type = MDL_T_LIST_PROCEDURE; field_list += desc;
   mdl_data::cur_mdl_data->fields[MDL_T_MODULE] = field_list;
@@ -1310,7 +1333,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val,
   int ltype = left_val.get_type();
   int rtype = right_val.get_type();
 
-  if (ltype == MDL_T_NONE || rtype == MDL_T_NONE)
+  if (ltype == MDL_T_NONE || rtype == MDL_T_NONE) 
     return true;
 
   switch (bin_op) 

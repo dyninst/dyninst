@@ -133,9 +133,14 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 
     // add callees
     for (unsigned i = 0; i < node->callees.size(); i++) {
-	pd_Function *f = (pd_Function *)(node->callees[i]);
+       pd_Function *f = static_cast<pd_Function *>(node->callees[i]);
         assert(f != NULL);
-	children.push_back(f->ResourceFullName());
+
+        if (f->FuncResourceSet())
+            children.push_back(f->ResourceFullName());
+//         else
+//             fprintf(stderr,"Func %s has no resource set!\n", 
+//                     f->prettyName().c_str());
     }
     
     // add nested loops
@@ -175,8 +180,12 @@ void pd_module::FillInCallGraphStatic(process *proc) {
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
       pd_Function *pdf = (pd_Function *) (*mod_funcs)[f]->PDSEP_pdf();
 
-      if (!pdf->FuncResourceSet()) continue;
-
+      if (!pdf->FuncResourceSet()) {
+	//ELI
+          //fprintf(stderr,"Func resource not set for %s\n",pdf->prettyName().c_str());
+          continue;
+      }
+      
       callees_as_strings.resize(0);
     
       // Translate from function name to resource *.
@@ -202,7 +211,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
          //if the funcResource is not set, then the function must be
          //uninstrumentable, so we don't want to notify the front end
          //of its existence
-         if(callee->FuncResourceSet()){
+         if (callee->FuncResourceSet()){
             pdstring callee_full_name = callee->ResourceFullName();
 	
             // if callee->funcResource has been set, then it should have 
@@ -211,6 +220,10 @@ void pd_module::FillInCallGraphStatic(process *proc) {
                resource::findResource(callee_full_name);
             assert(callee_as_resource);
             callees_as_strings.push_back(callee_full_name);
+         }
+         else {
+             // fprintf(stderr,"CALLEE no res %s\n", callee->().c_str());
+
          }
       
       }//end for
@@ -222,18 +235,15 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       appImage->getProgramFileName(buf, 1024);
       pdstring exe_name = pdstring(buf);
 
-      // if displaying loops as resources for the current module...
-      // add nested loops and function calls
-      //if (resource_full_name == "/Code/mtee.C/main") {
-      char *mname = getenv("PARADYN_LOOPS");
-      if (mname && (0 == strcmp(mname, _name.c_str()))) {
-	  BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
-	  FillInCallGraphNodeNested(exe_name, resource_full_name,
+      if (getenv("PARADYN_LOOPS") != NULL) {
+	  //if (true) {
+          // add nested loops and function calls
+          BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
+          FillInCallGraphNodeNested(exe_name, resource_full_name,
                                     resource_full_name, root);
       }
       else {
           AddCallGraphNodeCallback(exe_name, resource_full_name);
-
           AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
                                              callees_as_strings);
       }

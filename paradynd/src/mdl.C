@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.162 2004/10/07 00:45:58 jaw Exp $
+// $Id: mdl.C,v 1.163 2005/01/11 22:47:22 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -816,6 +816,9 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               if (!timer.get(dn))
                  return false;
 
+              //XXX 
+              // set miss cycle count reader func here
+
               pdstring timer_func;
               if (var_ == "startWallTimer")
                  timer_func = START_WALL_TIMER;
@@ -842,7 +845,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               snip = createTimer(timer_func, base_var, snip_args,
                                 appImage, global_proc->multithread_capable());
               if (!snip) return false;
-
            }
            else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
 
@@ -1120,7 +1122,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
      }
   case MDL_EXPR_POSTUOP:
      {
-        switch (u_op_)
+       switch (u_op_)
         {
           case MDL_PLUSPLUS:
              {
@@ -1158,9 +1160,13 @@ mdld_v_expr::apply_be(mdl_var& ret)
    switch (type_) 
    {
      case MDL_EXPR_INT: 
-        return (ret.set(int_literal_));
+         {
+             return ret.set(int_literal_);
+         }
      case MDL_EXPR_STRING:
-        return (ret.set(str_literal_));
+         {
+             return ret.set(str_literal_);
+         }
      case MDL_EXPR_INDEX: 
         {
            if (var_ == pdstring ("$arg"))
@@ -1173,20 +1179,50 @@ mdld_v_expr::apply_be(mdl_var& ret)
            if (var_ == pdstring ("$constraint"))
            {
               mdl_var ndx(false);
-              if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ndx)) return false;
+
+              if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ndx)) {
+                  return false;
+              }
+
               int x;
-              if (!ndx.get(x)) return false;
-              return (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
+              if (!ndx.get(x)) {
+                  return false;
+              }
+              
+              //XXX
+              // this is executing before do_trailing resources has a chance
+              // to set the buf. 
+
+              bool tmp = (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
+              return tmp;
+              //              return (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
            }
+
            mdl_var array(false);
-           if (!mdl_data::cur_mdl_data->env->get(array, var_)) return false;
-           if (!array.is_list()) return false;  
+
+           if (!mdl_data::cur_mdl_data->env->get(array, var_)) {
+               return false;
+           }
+
+           if (!array.is_list()) {
+               return false;  
+           }
+
            mdl_var index_var;
-           if (!dynamic_cast<mdld_expr*>(left_)->apply_be(index_var)) return false;
+           if (!dynamic_cast<mdld_expr*>(left_)->apply_be(index_var)) {
+               return false;
+           }
+
            int index_value;
-           if (!index_var.get(index_value)) return false;
-           if (index_value >= (int)array.list_size()) return false;
-           return (array.get_ith_element(ret, index_value));
+           if (!index_var.get(index_value)) {
+               return false;
+           }
+
+           if (index_value >= (int)array.list_size()) {
+               return false;
+           }
+
+           return array.get_ith_element(ret, index_value);
         }
      case MDL_EXPR_BINOP:
         {
@@ -1227,7 +1263,10 @@ mdld_v_expr::apply_be(mdl_var& ret)
      }
   case MDL_EXPR_DOT:
      {
-        if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ret)) return false;
+        if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ret)) {
+            //fprintf(stderr,"mdl error left of EXPR dot is false\n");
+            return false;
+        }
 
         if (!do_type_walk_)
            return true;
@@ -1299,7 +1338,9 @@ mdld_v_expr::apply_be(mdl_var& ret)
         return ok_;
      }
   default:
-     return false;
+      {
+         return false;
+      }
 }
 return true;
 }
@@ -1414,7 +1455,7 @@ mdld_icode::apply_be(BPatch_snippet *&mn, bool mn_initialized,
 
 bool
 mdld_list_stmt::apply_be(instrCodeNode * /*mn*/,
-				       pdvector<const instrDataNode*>& /*flags*/)
+                         pdvector<const instrDataNode*>& /*flags*/)
 {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
@@ -1440,6 +1481,8 @@ mdld_list_stmt::apply_be(instrCodeNode * /*mn*/,
       *list_fn += fn;
     }
   } else if (type_ == MDL_T_PROCEDURE) { 
+    assert(0);
+  } else if (type_ == MDL_T_LOOP) { 
     assert(0);
   } else if (type_ == MDL_T_MODULE) {
     assert(0);
@@ -1638,7 +1681,8 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
   }
 
   mdl_var pointsVar(false);
-  if (!dynamic_cast<mdld_expr*>(point_expr_)->apply_be(pointsVar)) { // process the 'point(s)' e.g. "$start.entry"
+  if (!dynamic_cast<mdld_expr*>(point_expr_)->apply_be(pointsVar)) { 
+      // process the 'point(s)' e.g. "$start.entry"
     return false;
   }
 
@@ -1792,9 +1836,10 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
    }
 
    // put $constraint[X] in the environment
-   if(!do_trailing_resources(resource.tokenized(), proc)) {
-      mdl_data::cur_mdl_data->env->pop();
-      return(false);
+   if (!do_trailing_resources(resource.tokenized(), proc)) {
+       mdl_data::cur_mdl_data->env->pop();
+
+        return false;
    }
    
    // Now evaluate the constraint statements
@@ -1803,7 +1848,7 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
 
    for (unsigned u=0; u<size; u++) {
       if (!dynamic_cast<mdld_stmt*>((*stmts_)[u])->apply_be(codeNode, flags)) {
-         return(false);
+          return false;
       }
    }
    mdl_data::cur_mdl_data->env->pop();
@@ -1828,6 +1873,9 @@ bool
 mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
 			    const Focus &focus, pdvector<pd_process *> procs, 
 	                    bool replace_components_if_present, bool enable) {
+
+    //cerr << "\nmdld_metric::apply_be start " << focus.get_loop() << endl;
+
   mdl_data::cur_mdl_data->env->push();
   mdl_data::cur_mdl_data->env->add(id_, false, MDL_T_DATANODE);
   assert(stmts_);
@@ -1852,8 +1900,9 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
   pdvector<pd_process*> instProcess;
   filter_processes(focus, procs, &instProcess);
 
-  if (!instProcess.size())
+  if (!instProcess.size()) {
     return false;
+  }
 
   // build the list of constraints to use
   pdvector<T_dyninstRPC::mdl_constraint*> flag_cons;
@@ -1868,6 +1917,8 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
 				 &repl_cons, &flags_focus_data, &repl_focus)) {
     return false;
   }
+
+  //cerr << "mdld_metric::apply_be picked matched constraints" << endl;
 
   //////////
   /* 
@@ -1931,6 +1982,7 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
 			     stmts_, flags_focus_data, *repl_focus, *temp_ctr_,
 			     replace_components_if_present,
 			     dontInsertData)) {
+
     return false;
   }
 
@@ -2021,6 +2073,7 @@ static bool pick_out_matched_constraints(
 
       for(unsigned j=0; j<cons.size(); j++) {
           T_dyninstRPC::mdl_constraint *curCons = cons[j];
+
           if (! curCons->match_path_) { 
               //like: constraint procedureConstraint;
               T_dyninstRPC::mdl_constraint *mc;
@@ -2035,6 +2088,7 @@ static bool pick_out_matched_constraints(
               }
           } else {
               //like: constraint moduleConstraint /Code is replace processTimer {
+
               if( curHierarchy->focus_matches(*(curCons->match_path_))) {
                   if(aReplConsMatch == true) {
                       cerr << "error in pcl file, (at least) two replace "
@@ -2241,6 +2295,8 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
    instrDataNode *sampledDataNode = 
       new instrDataNode(proc, type, dontInsertData, codeNode->getHwEvent());
 
+   //fprintf(stderr, "'nCode Nnode %x \tData Node %x\n", (&codeNode), (&sampledDataNode));
+
    codeNode->setSampledDataNode(sampledDataNode);
    mdl_data::cur_mdl_data->env->set(sampledDataNode, id);
 
@@ -2255,6 +2311,9 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
    // create the ASTs for the code
    if(repl_cons!=NULL) {
       // mdl_constraint::apply_be()
+
+       //XXX apply_be take a focus
+
       instrDataNode *notAssignedToDataNode;
       if (!((mdld_constraint*)repl_cons)->apply_be(codeNode,
                                 &notAssignedToDataNode, 
@@ -2315,7 +2374,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       
       for(unsigned fs=0; fs<flag_size; fs++) {
          pdstring cons_name(flag_cons[fs]->id());
-         
+
          instrCodeNode *consCodeNode = 
             instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
                                             proc, dontInsertData);
@@ -2335,6 +2394,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
          procNode->addConstraintCodeNode(consCodeNode);	    
       }
    }
+
    instrCodeNode *metCodeNode = 
       instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,
                                       dontInsertData, hw_cntr_str);
@@ -2344,21 +2404,30 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       return false;
    }
     
+   //cerr << "createCodeAndDataNodes: created newInstCodeNode " << 
+   // hw_cntr_str << endl;
     
    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
+
    if(! metCodeNodeComplete) {
-      // Create the data objects (timers/counters) and create the
-      // astNodes which will be used to generate the instrumentation
-      if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
-                                   repl_cons, stmts, temp_ctr,
-                                   repl_focus_data, dontInsertData)) {
-         delete metCodeNode;
-         return false;
-      }
+       //cerr << "createCodeAndDataNodes: setup_sampled_code_node" << endl;
+       
+       // Create the data objects (timers/counters) and create the
+       // astNodes which will be used to generate the instrumentation
+       if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
+                                    repl_cons, stmts, temp_ctr,
+                                    repl_focus_data, dontInsertData)) {
+           delete metCodeNode;
+           return false;
+       }
+       
    } else {
-      //cerr << "  met code node already there, reuse it! " << endl;
+       //XXX sampled data node already set assert breaks
+       //cerr << "Met code node already there, reuse it." << endl;
    }
+   
    procNode->setMetricVarCodeNode(metCodeNode);
+
    return true;
 }
 
@@ -2431,6 +2500,7 @@ apply_to_process(pd_process *proc, pdstring& id, pdstring& name,
                  const Hierarchy &repl_focus_data,
                  const pdvector<pdstring> &temp_ctr,
                  bool replace_component, bool dontInsertData) {
+
    metric_cerr << "apply_to_process()" << endl;
    if (!update_environment(proc)) return NULL;
 
@@ -2445,14 +2515,20 @@ apply_to_process(pd_process *proc, pdstring& id, pdstring& name,
    no_thr_focus.set_thread(pdstring(""));
    // no_thr_focus, has the thr info stripped
 
+
    processMetFocusNode *procNode = 
       processMetFocusNode::newProcessMetFocusNode(proc, name, full_focus, 
 					  aggregateOp(agg_op), dontInsertData);
+
+   //cerr << "apply_to_process: createCodeAndDataNodes START" << endl;
 
    bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
                                      type, hw_cntr_str, flag_cons, repl_cons,
                                      stmts, flags_focus_data, repl_focus_data,
                                      temp_ctr, replace_component);
+
+
+   //cerr << "apply_to_process: createCodeAndDataNodes END" << endl;
 
    if(ret == false) {
       delete procNode;
@@ -2508,14 +2584,15 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
 static bool do_trailing_resources(const pdvector<pdstring>& resource_,
 				  pd_process *proc)
 {
-   pdvector<pdstring>  resPath;
+    pdvector<pdstring>  resPath;
 
-   for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
-      pdstring   caStr = pdstring("$constraint") + 
-                       pdstring(resource_.size()-pLen-1);
-      pdstring   trailingRes = resource_[pLen];
-      resPath += resource_[pLen];
-      assert(resPath.size() == (pLen+1));
+   for (unsigned i = 0; i < resource_.size(); i++) {
+      pdstring consvar = pdstring("$constraint") + 
+          pdstring(resource_.size()-i-1);
+
+      pdstring trailingRes = resource_[i];
+      resPath += resource_[i];
+      assert(resPath.size() == (i+1));
       
       resource *r = resource::findResource(resPath);
       if (!r) assert(0);
@@ -2532,33 +2609,44 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               return(false);
            }
-           mdl_data::cur_mdl_data->env->add(caStr, false, MDL_T_INT);
-           mdl_data::cur_mdl_data->env->set(val, caStr);
+           mdl_data::cur_mdl_data->env->add(consvar, false, MDL_T_INT);
+           mdl_data::cur_mdl_data->env->set(val, consvar);
            break;
         }
         case MDL_T_STRING:
-           mdl_data::cur_mdl_data->env->add(caStr, false, MDL_T_STRING);
-           mdl_data::cur_mdl_data->env->set(trailingRes, caStr);
+           mdl_data::cur_mdl_data->env->add(consvar, false, MDL_T_STRING);
+           mdl_data::cur_mdl_data->env->set(trailingRes, consvar);
            break;
         case MDL_T_PROCEDURE: {
            // find the resource corresponding to this function's module 
            pdvector<pdstring> m_vec;
-           for(u_int i=0; i < resPath.size()-1; i++){
-              m_vec += resPath[i];
+           for(u_int j=0; j < resPath.size()-1; j++){
+              m_vec += resPath[j];
            }
            assert(m_vec.size());
            assert(m_vec.size() == (resPath.size()-1));
            resource *m_resource = resource::findResource(m_vec);
-           if(!m_resource) {
-              return(false);
+           if (!m_resource) {
+              return false;
            }
            
-           BPatch_Vector<BPatch_function *> *func_buf = new BPatch_Vector<BPatch_function*>;
+           BPatch_Vector<BPatch_function *> *func_buf = 
+               new BPatch_Vector<BPatch_function*>;
+
            if ( !proc->findAllFuncsByName(r, m_resource, *func_buf) ) {
               const pdvector<pdstring> &f_names = r->names();
               const pdvector<pdstring> &m_names = m_resource->names();
               pdstring func_name = f_names[f_names.size() -1]; 
               pdstring mod_name = m_names[m_names.size() -1]; 
+
+	      //ELI
+// 	      cerr << "Missing function, " << func_buf->size() << endl;
+// 	      for (int i = 0; i < m_names.size(); i++)
+// 		  cerr << m_names[i] << " ";
+// 	      cerr << endl;
+// 	      for (int i = 0; i < f_names.size(); i++)
+// 		  cerr << f_names[i] << " ";
+// 	      cerr << endl;
               
               pdstring msg = pdstring("For requested metric-focus, ") +
                            pdstring("unable to find  function ") +
@@ -2566,9 +2654,67 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               return false;
            }
+           
+           mdl_data::cur_mdl_data->env->add(consvar, false, MDL_T_PROCEDURE);
+           mdl_data::cur_mdl_data->env->set(func_buf, consvar);
+           break;
+        }
+        case MDL_T_LOOP: {
+           // find the resource corresponding to the loop's function
+           pdvector<pdstring> rvec;
+           for (unsigned j=0; j < resPath.size()-1; j++)
+              rvec += resPath[j];
 
-           mdl_data::cur_mdl_data->env->add(caStr, false, MDL_T_PROCEDURE);
-           mdl_data::cur_mdl_data->env->set(func_buf, caStr);
+           resource *fresource = resource::findResource(rvec);
+
+           if (!fresource) {
+               return false;
+           }
+
+           // find the resource corresponding to the loop's module
+           rvec.pop_back();
+           resource *mresource = resource::findResource(rvec);
+
+           if (!mresource) {
+               return false;
+           }
+           
+           // find func by func and mod resource
+           BPatch_Vector<BPatch_function *> *func_buf = 
+               new BPatch_Vector<BPatch_function*>;
+
+           if (!proc->findAllFuncsByName(fresource, mresource, *func_buf)) {
+              return false;
+           }
+
+           //fprintf(stderr,"ELI  mod %s\n",mresource->full_name().c_str());
+           //fprintf(stderr,"ELI func %s\n",fresource->full_name().c_str());
+
+           //XXX find all funcs? should we only find a single function
+           // and a single loop here, i.e. we don't need a buf
+           pdstring loop_name = resPath[resPath.size()-1];
+           BPatch_basicBlockLoop *loop = NULL;
+
+           //fprintf(stderr,"ELI loop %s\n",loop_name.c_str());
+           for (unsigned j=0; j<(*func_buf).size(); j++) {
+               BPatch_function *f = (*func_buf)[j];
+               //char tmp[80];
+               //f->getName(tmp,80);
+               //fprintf(stderr,"ELI func %s\n",tmp);
+               BPatch_flowGraph *fg = f->getCFG();
+               loop = fg->findLoop(loop_name.c_str());
+               if (loop) break;
+           }
+
+           assert(loop != NULL);
+
+           pdvector<BPatch_basicBlockLoop *> *loop_buf = 
+               new pdvector<BPatch_basicBlockLoop*>;
+           loop_buf->push_back(loop);
+
+           mdl_data::cur_mdl_data->env->add(consvar, false, MDL_T_LOOP);
+           mdl_data::cur_mdl_data->env->set(loop_buf, consvar);
+
            break;
         }
         case MDL_T_MODULE: {
@@ -2581,15 +2727,15 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
               /*
                 pd_image *img = proc->getImage();
                 pdvector<pdmodule *> mods = img->getExcludedModules();
-                for(unsigned i=0; i<mods.size(); i++) {
-                cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
-                << ", fullnm: " << mods[i]->fullName() << "\n";
+                for(unsigned j=0; j<mods.size(); j++) {
+                cerr << "  j: " << j << ", filenm: " << mods[j]->fileName()
+                << ", fullnm: " << mods[j]->fullName() << "\n";
                 }
               */
               return(false);
            }
-           mdl_data::cur_mdl_data->env->add(caStr, false, MDL_T_MODULE);
-           mdl_data::cur_mdl_data->env->set(mod, caStr);
+           mdl_data::cur_mdl_data->env->add(consvar, false, MDL_T_MODULE);
+           mdl_data::cur_mdl_data->env->set(mod, consvar);
            break;
         }
         case MDL_T_MEMORY:
@@ -2599,7 +2745,7 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
            break;
       }
    }
-   return(true);
+   return true;
 }
 
 
@@ -2625,6 +2771,7 @@ bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes,
 	    const pdvector<pd_process *> &procs,
 	    bool replace_components_if_present, bool enable, 
 	    aggregateOp *aggOpToUse) {
+
    currentMetric = met_name;
    unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
    // NOTE: We can do better if there's a dictionary of <metric-name> to
@@ -2634,15 +2781,21 @@ bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes,
       T_dyninstRPC::mdl_metric *curMetric = mdl_data::cur_mdl_data->all_metrics[u];
       if (curMetric->name_ == met_name) {
          // calls mdl_metric::apply_be()
+
+          //cerr << "\nmdl_do calling apply_be" << endl;
+
          bool ret = ((mdld_metric*)curMetric)->apply_be(createdProcNodes,
                                                         focus,
                                                         procs,
                                                 replace_components_if_present,
                                                 enable);
+
          (*aggOpToUse) = aggregateOp(curMetric->agg_op_);
+
          return ret;
       }
    }
+
    return false;
 }
 
@@ -2707,6 +2860,13 @@ bool mdl_init_be(pdstring& flavor) {
   mdl_data::cur_mdl_data->fields[MDL_T_PROCEDURE] = field_list;
   field_list.resize(0);
 
+  desc.name = "enter"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "exit"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "start_iter"; desc.type = MDL_T_POINT; field_list += desc;
+  desc.name = "end_iter"; desc.type = MDL_T_POINT; field_list += desc;
+  mdl_data::cur_mdl_data->fields[MDL_T_LOOP] = field_list;
+  field_list.resize(0);
+  
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "funcs"; desc.type = MDL_T_LIST_PROCEDURE; field_list += desc;
   mdl_data::cur_mdl_data->fields[MDL_T_MODULE] = field_list;
@@ -3016,16 +3176,86 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
   return false;
 }
 
+
+
+
 static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types) 
 {
-   unsigned index=0;
+   unsigned index = 0;
    unsigned max = types.size();
+
    while (index < max) 
    {
       unsigned current_type = types[index++];
       unsigned next_field = types[index++];
       switch (current_type) 
       {
+        case MDL_T_LOOP: {
+            pdvector<BPatch_basicBlockLoop *> *loop_buf_ptr;
+            if (!ret.get(loop_buf_ptr)) {
+                //XXX
+                fprintf(stderr,"no loop buf\n");
+                return false;
+            }
+            
+           pdvector<BPatch_point *> *inst_point_buf = 
+               new pdvector<BPatch_point*>;            
+
+            for (unsigned i=0; i<(*loop_buf_ptr).size(); i++) {
+                BPatch_basicBlockLoop *loop = (*loop_buf_ptr)[i];
+                
+                BPatch_flowGraph *fg = loop->getFlowGraph();
+                BPatch_Vector<BPatch_point*> *pts;
+                
+                switch (next_field) {
+                case 0: { // .enter
+                    pts = fg->findLoopInstPoints(BPatch_locLoopEntry,loop);
+
+		    //ELI
+		    //cerr << (fg->getFunction())->prettyName().c_str() 
+		    // << " loop enter: ";
+		    //for (unsigned i = 0; i < pts->size(); i++)
+			//fprintf(stderr,"0x%x ",(*pts)[i]->getAddress());
+		    //cerr << endl;
+
+                    break;
+                }
+                case 1: {  // .exit
+                    pts = fg->findLoopInstPoints(BPatch_locLoopExit,loop);
+
+		    //ELI
+		    //cerr << (fg->getFunction())->prettyName().c_str() 
+		    //			 << " loop exit: ";
+		    //for (unsigned i = 0; i < pts->size(); i++)
+		    //	fprintf(stderr,"0x%x ",(*pts)[i]->getAddress());
+
+		    //cerr << endl;
+
+                    break;
+                }
+                case 2: {  // .start_iter
+                    pts = fg->findLoopInstPoints(BPatch_locLoopStartIter,loop);
+                    break;
+                }
+                case 3: { // .end_iter
+                    pts = fg->findLoopInstPoints(BPatch_locLoopEndIter,loop);
+                    break;
+                }
+                default: {
+                    assert(0);
+                    break;
+                }
+                }
+                
+                for (unsigned j = 0; j < pts->size(); j++) {
+                    (*inst_point_buf).push_back(pts->operator[](j));
+                }
+            }
+            
+            if (!ret.set(inst_point_buf)) 
+                return false;
+            break;
+        }
         case MDL_T_PROCEDURE_NAME:
         case MDL_T_PROCEDURE: {
            BPatch_Vector<BPatch_function *> *func_buf_ptr;
@@ -3045,7 +3275,8 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 }
                 if (!ret.set(nameBuf)) return false;
                 break;
-                // TODO: should these be passed a process?  yes, they definitely should!
+                // TODO: should these be passed a process?  
+                // yes, they definitely should!
              }
              case 1:  // .calls
              {
@@ -3172,13 +3403,21 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    }
                    assert(entry_pt_hold->size());
                    (*inst_point_buf).push_back((*entry_pt_hold)[0]);
+
+		   //ELI
+		   //cerr << bpf->func->prettyName().c_str() << " entry: ";
+		   //fprintf(stderr,"0x%x ",(*entry_pt_hold)[0]->getAddress());
+		   //cerr << endl;
                 }
+
                 if(! ret.set(inst_point_buf))
                    return false;
                 break;
              }
              case 3:   // .return
              {
+                 //cerr << "\treturn mdl variable " << ret.get_name() << endl;
+
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    BPatch_function *bpf = (*func_buf_ptr)[i];
                    const BPatch_Vector<BPatch_point *> *func_exit_pts = 

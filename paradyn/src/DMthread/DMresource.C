@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.69 2004/07/14 18:24:04 eli Exp $
+// $Id: DMresource.C,v 1.70 2005/01/11 22:47:16 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +52,8 @@
 #include "paradyn/src/met/metricExt.h"
 #include "paradyn/src/DMthread/MagnifyManager.h"
 #include "paradyn/src/DMthread/DMperfstream.h"
+#include "paradyn/src/TCthread/tunableConst.h"
+
 #include "pdutil/h/mdlParse.h"
 // Generate a new resource handle. The daemons generate resources id's (handles)
 // in the range 0..INT_MAX. If there are conflicts between the handles generated
@@ -842,6 +844,8 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
     }
     if(rIndex == not_found_indicator)  return NULL;
 
+    bool useLoops = tunableConstantRegistry::findBoolTunableConstant("useLoops").getValue();
+
     return_list = new pdvector<rlNameId>;
 
     // calls elements[rIndex]->getChildren or CallGraph::getChildren
@@ -856,11 +860,13 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
         MagnifyManager::getChildren(elements[rIndex], type);
 
     if(children.size()){ // for each child create a new focus
+
        pdvector<resourceHandle> new_focus; 
        for(unsigned i=0; i < elements.size(); i++){
             new_focus.push_back( (elements[i])->getHandle() );
        }
        rlNameId temp;
+
        for(unsigned j=0; j < children.size(); j++){
 	  // check to see if this child can be magnified
 	  // if so, create a new focus with this child
@@ -868,7 +874,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
 
 	  if(child_res == NULL || child_res->isMagnifySuppressed())
 	     continue;
-
+        
           // don't search down start functions that don't correspond to the
           // thread that we are currently in (if we are in a thread in the
           // search).  For example, don't search "main" start function if
@@ -886,7 +892,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
 
 		   resourceHandle thrStartFunc_handle = 
 		      thrStartFunc->getHandle();
-		   resourceHandle child_handle = children[j]->getHandle();
+		   resourceHandle child_handle = child_res->getHandle();
 		   if(thrStartFunc_handle != child_handle) {
 		      //skip... a start function for a different thread
 		      continue;  
@@ -904,19 +910,45 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
 	     if(!parent->isMagnifySuppressed()){
 		//Only return resources that are descendents of the current
 		//path
-		if(currentPath->isDescendant(children[j])){
-		   new_focus[rIndex] = children[j]->getHandle();
-		   temp.id = resourceList::getResourceList(new_focus);
-		   temp.res_name = children[j]->getName();
-		   *return_list += temp;
+		if(currentPath->isDescendant(child_res)){
+                    
+                    //ELI
+                    if (!useLoops && (MDL_T_LOOP == child_res->getMDLType())) {
+                        //fprintf(stderr,"%s\n",child_res->getName());
+
+                        pdvector<const resource*> loop_children = 
+                            MagnifyManager::getChildren(child_res, type);
+
+                        for (unsigned k=0; k < loop_children.size(); k++){
+                            if (MDL_T_LOOP != loop_children[k]->getMDLType()) {
+                                //fprintf(stderr,"-- %s\n",loop_children[k]->getName());
+                                
+                                new_focus[rIndex] = loop_children[k]->getHandle();
+                                temp.id = resourceList::getResourceList(new_focus);
+                                temp.res_name = loop_children[k]->getName();
+                                *return_list += temp;
+                            }
+                            
+                        }
+
+
+
+                    }
+                    else {
+                        new_focus[rIndex] = child_res->getHandle();
+                        temp.id = resourceList::getResourceList(new_focus);
+                        temp.res_name = child_res->getName();
+                        *return_list += temp;
+                    }
 		}
 	     }
           } 
+
           
           if(type != CallGraphSearch) {
-             new_focus[rIndex] = children[j]->getHandle();
+             new_focus[rIndex] = child_res->getHandle();
              temp.id = resourceList::getResourceList(new_focus);
-             temp.res_name = children[j]->getName();
+             temp.res_name = child_res->getName();
              return_list->push_back( temp );
           }
        }

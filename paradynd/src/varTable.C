@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.11 2004/05/11 19:02:04 bernat Exp $
+// $Id: varTable.C,v 1.12 2005/01/11 22:47:26 legendre Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -118,6 +118,7 @@ template <class HK>
 void varTable<HK>::markVarAsNotSampled(inst_var_index varIndex,
                                        unsigned thrPos) 
 {
+    if (varInstanceBuf[varIndex] == NULL) return;
   assert(varInstanceBuf[varIndex] != NULL);
   varInstanceBuf[varIndex]->markVarAsNotSampled(thrPos);
 }

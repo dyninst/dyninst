@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.8 2004/09/21 05:33:45 jaw Exp $
+// $Id: mdl.h,v 1.9 2005/01/11 22:47:27 legendre Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -99,8 +99,9 @@ const char RH_SEPARATOR = '/';
 
 #define MDL_T_HW_COUNTER 49
 #define MDL_T_HW_TIMER 50
+#define MDL_T_LOOP 51
 
-#define MDL_T_SCALAR_END 50 
+#define MDL_T_SCALAR_END 51
 
 #define MDL_T_LIST_BASE 52
 #define MDL_T_LIST_PROCEDURE_NAME 52
@@ -108,16 +109,15 @@ const char RH_SEPARATOR = '/';
 #define MDL_T_LIST_FLOAT 54
 #define MDL_T_LIST_STRING 55
 #define MDL_T_LIST_PROCEDURE 56
-#define MDL_T_LIST_MODULE 57
-#define MDL_T_LIST_POINT 58
-#define MDL_T_LIST_END 58
+#define MDL_T_LIST_LOOP 57
+#define MDL_T_LIST_MODULE 58
+#define MDL_T_LIST_POINT 59
+#define MDL_T_LIST_END 60
 
-#define MDL_T_NONE 59
+#define MDL_T_NONE 61
 
-#define MDL_PREPEND 60
-#define MDL_APPEND  61
-
-#define MDL_T_LOOP 62
+#define MDL_PREPEND 62
+#define MDL_APPEND  63
 
 #define MDL_RETURN 110
 #define MDL_ENTER 111
@@ -269,6 +269,7 @@ public:
   mdl_var(const pdstring& nm, const pdstring& s, bool is_remote);
   mdl_var(const pdstring& nm, BPatch_thread *th, bool is_remote);
   mdl_var(const pdstring& nm, BPatch_Vector<BPatch_function*> *vp, bool is_remote);
+  mdl_var(const pdstring& nm, pdvector<BPatch_basicBlockLoop*> *vp, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<functionName*> *vp, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<BPatch_module*> *vm, bool is_remote);
   mdl_var(const pdstring& nm, pdvector<int> *vi, bool is_remote);
@@ -286,6 +287,7 @@ public:
   bool get(pdstring& s);
   bool get(BPatch_thread *&pr);
   bool get(BPatch_Vector<BPatch_function*> *&vp);
+  bool get(pdvector<BPatch_basicBlockLoop*> *&vp);
   bool get(pdvector<functionName*> *&vp);
   bool get(pdvector<BPatch_module*> *&vm);
   bool get(pdvector<int> *&vi);
@@ -303,6 +305,7 @@ public:
   bool set(const pdstring& s);
   bool set(BPatch_thread *pr);
   bool set(BPatch_Vector<BPatch_function*> *vp);
+  bool set(pdvector<BPatch_basicBlockLoop*> *vp);
   bool set(pdvector<functionName*> *vp);
   bool set(pdvector<BPatch_module*> *vm);
   bool set(pdvector<int> *vi);
@@ -335,6 +338,7 @@ private:
     BPatch_thread *the_process;
     BPatch_module *mod;
     BPatch_Vector<BPatch_function*>  *list_pr;
+    pdvector<BPatch_basicBlockLoop*>  *list_loop;
     pdvector<functionName*> *list_fn;
     pdvector<int>          *list_int;
     pdvector<float>        *list_float;
@@ -373,6 +377,7 @@ public:
   bool set(const pdstring& s, const pdstring& var_name);
   bool set(BPatch_thread *pr, const pdstring& var_name);
   bool set(BPatch_Vector<BPatch_function*> *vp, const pdstring& var_name);
+  bool set(pdvector<BPatch_basicBlockLoop*> *vp, const pdstring& var_name);
   bool set(pdvector<functionName*> *vp, const pdstring& var_name);
   bool set(pdvector<BPatch_module*> *vm, const pdstring& var_name);
   bool set(pdvector<int> *vi, const pdstring& var_name);
@@ -426,6 +431,9 @@ inline void mdl_var::dump() {
   case MDL_T_PROCEDURE:
     cout << "MDL_T_PROCEDURE\n";
     break;
+  case MDL_T_LOOP:
+    cout << "MDL_T_LOOP\n";
+    break;
   case MDL_T_PROCEDURE_NAME:
     cout << "MDL_T_PROCEDURE_NAME\n";
     break;
@@ -449,6 +457,9 @@ inline void mdl_var::dump() {
     break;
   case MDL_T_LIST_PROCEDURE:
     cout << "MDL_T_LIST_PROCEDURE\n";
+    break;
+  case MDL_T_LIST_LOOP:
+    cout << "MDL_T_LIST_LOOP\n";
     break;
   case MDL_T_LIST_PROCEDURE_NAME:
     cout << "MDL_T_LIST_PROCEDURE_NAME\n";
@@ -525,6 +536,10 @@ inline mdl_var::mdl_var(const pdstring& nm, BPatch_thread *p, bool is_remote)
 inline mdl_var::mdl_var(const pdstring& nm, BPatch_Vector<BPatch_function*> *vp, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_pr = vp; }
+
+inline mdl_var::mdl_var(const pdstring& nm, pdvector<BPatch_basicBlockLoop*> *vl, bool is_remote) 
+: name_(nm), type_(MDL_T_LIST_LOOP), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_loop = vl; }
      
 inline mdl_var::mdl_var(const pdstring& nm, pdvector<functionName*> *vf, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_PROCEDURE_NAME), remote_(is_remote), string_val_("")
@@ -606,6 +621,12 @@ inline bool mdl_var::get(BPatch_Vector<BPatch_function*> *&vp) {
   vp = vals_.list_pr;
   return true;
 }
+inline bool mdl_var::get(pdvector<BPatch_basicBlockLoop*> *&vl) {
+  if (type_ != MDL_T_LIST_LOOP) return false;
+  vl = vals_.list_loop;
+  return true;
+}
+
 inline bool mdl_var::get(pdvector<functionName*> *&vp) {
   if (type_ != MDL_T_LIST_PROCEDURE_NAME) return false;
   vp = vals_.list_fn;
@@ -698,6 +719,14 @@ inline bool mdl_var::set(BPatch_Vector<BPatch_function*> *vp) {
   vals_.list_pr = vp;
   return true;
 }
+
+inline bool mdl_var::set(pdvector<BPatch_basicBlockLoop*> *vl) {
+  reset();
+  type_ = MDL_T_LIST_LOOP;
+  vals_.list_loop = vl;
+  return true;
+}
+
 inline bool mdl_var::set(pdvector<functionName*> *vp) {
   reset();
   type_ = MDL_T_LIST_PROCEDURE_NAME;
@@ -1032,6 +1061,14 @@ inline bool mdl_env::set(BPatch_Vector<BPatch_function*> *vp, const pdstring& va
     return false;
   return mdl_env::all_vars[index].set(vp);
 }
+
+inline bool mdl_env::set(pdvector<BPatch_basicBlockLoop*> *vl, const pdstring& var_name) {
+  unsigned index;
+  if (!mdl_env::find(index, var_name))
+    return false;
+  return mdl_env::all_vars[index].set(vl);
+}
+
 inline bool mdl_env::set(pdvector<functionName*> *vp, const pdstring& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))

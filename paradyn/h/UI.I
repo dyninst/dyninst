@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.45 2003/09/05 19:14:18 pcroth Exp $
+ * $Id: UI.I,v 1.46 2005/01/11 22:47:15 legendre Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -142,6 +142,7 @@ $remote UIM {
 	// (e.g., in response to programmatic tunable constant changes)
 	$virtual $async void showWhereAxisTips( bool val );
 	$virtual $async void showSHGKey( bool val );
+	$virtual $async void useLoops( bool val );
 	$virtual $async void showSHGTips( bool val );
 	$virtual $async void showSHGTrueNodes( bool val );
 	$virtual $async void showSHGFalseNodes( bool val );

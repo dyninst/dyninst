@@ -47,7 +47,7 @@
 
 ! AIX xlf90 does not insert underscores at end
 
-#if	defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if	defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0)
 #define stop_process_ stop_process
 #endif
 

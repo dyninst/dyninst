@@ -99,8 +99,10 @@ class codeHierarchy : public Hierarchy {
   }
   pdstring get_module()   const { return module;   }
   pdstring get_function() const { return function; }
+  pdstring get_loop() const { return loop; }
   bool module_defined()   const { return (module.length()>0);   }
   bool function_defined() const { return (function.length()>0); }
+  bool loop_defined() const { return (loop.length()>0); }
 
   bool focus_matches(const pdvector<pdstring> &match_path) const;
   pdvector<pdstring> tokenized() const;
@@ -242,9 +244,11 @@ class Focus {
   syncObjHierarchy *syncObjInfo;
   memoryHierarchy  *memoryInfo;
 
-  void operator=(const Focus &);
+
 
  public:
+  void operator=(const Focus &);
+
   Focus(const pdvector<u_int>& ids, bool *errorFlag);
   ~Focus();
   
@@ -276,6 +280,8 @@ class Focus {
 
   pdstring get_module()   const { return codeInfo->get_module();   }
   pdstring get_function() const { return codeInfo->get_function(); }
+  pdstring get_loop() const { return codeInfo->get_loop(); }
+
   bool module_defined() const   { return codeInfo->module_defined();   }
   bool function_defined() const { return codeInfo->function_defined(); }
 
