@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.7 2004/03/23 01:12:38 eli Exp $
+// $Id: varInstanceHKs.h,v 1.8 2004/05/11 19:02:03 bernat Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -49,6 +49,7 @@
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
 #include "common/h/Types.h"    // Address
 #include "common/h/Time.h"
+#include "paradynd/src/papiMgr.h" // HwEvent
 
 class threadMetFocusNode_Val;
 class pd_process;

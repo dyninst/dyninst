@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.10 2004/03/23 01:12:38 eli Exp $
+// $Id: varTable.C,v 1.11 2004/05/11 19:02:04 bernat Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -63,9 +63,9 @@ varTable<HK>::varTable(const varTable<HK> &parent, variableMgr &vMgr) :
   for (unsigned i=0; i<parent.varInstanceBuf.size(); i++) {
     baseVarInstance *varInst = NULL;
     if(parent.varInstanceBuf[i] != NULL) {  // can be holes in varInstanceBuf
-      varInst = new varInstance<HK>(*dynamic_cast<varInstance<HK>*>(
-					     parent.varInstanceBuf[i]),
-			    varMgr.getShmMgr(), varMgr.getApplicProcess());
+        varInst = new varInstance<HK>(*dynamic_cast<varInstance<HK>*>(
+                                          parent.varInstanceBuf[i]),
+                                      varMgr.getShmMgr(), varMgr.getApplicProcess());
     }
     varInstanceBuf.push_back(varInst);
   }
@@ -116,7 +116,7 @@ void varTable<HK>::markVarAsSampled(inst_var_index varIndex, unsigned thrPos,
 
 template <class HK>
 void varTable<HK>::markVarAsNotSampled(inst_var_index varIndex,
-				       unsigned thrPos) 
+                                       unsigned thrPos) 
 {
   assert(varInstanceBuf[varIndex] != NULL);
   varInstanceBuf[varIndex]->markVarAsNotSampled(thrPos);

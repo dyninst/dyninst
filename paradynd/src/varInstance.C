@@ -52,10 +52,10 @@ varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwE
 {
   unsigned mem_amount = sizeof(RAWTYPE) * varMgr.getMaxNumberOfThreads();
   //  Address baseAddrInApp_;
-  baseAddrInDaemon = (void*) theShmMgr.malloc(mem_amount);
-  baseAddrInApplic = theShmMgr.getAddressInApplic(baseAddrInDaemon);
-  //  baseAddrInApplic = (void*) baseAddrInApp_;
-  
+  Address alloced_addr = theShmMgr.malloc(mem_amount);
+  baseAddrInDaemon = (void*) alloced_addr;
+  baseAddrInApplic = (void*) theShmMgr.daemonToApplic(alloced_addr);
+
   if (!baseAddrInDaemon) {
       fprintf(stderr, "Critical error: failed to allocate shared memory variable. Terminating....\n");
       assert(0 && "Failure to allocate in varInstance::varInstance\n");
@@ -67,15 +67,18 @@ varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwE
   }
 }
 
+// Fork constructor!
+
 template <class HK>
 varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr, 
 			     pd_process *p) : 
-  numElems(par.numElems), baseAddrInApplic(par.baseAddrInApplic),
-  // start with not sampling anything, let the sample requests be 
-  // reinitiated, ... so leave hkBuf as empty
-  elementsToBeSampled(false), proc(p), initValue(par.initValue), 
-  theShmMgr(sMgr), hwEvent(par.hwEvent), permanentSamplingSet(), currentSamplingSet() {
-   baseAddrInDaemon = theShmMgr.applicAddrToDaemonAddr(baseAddrInApplic);
+        numElems(par.numElems), baseAddrInApplic(par.baseAddrInApplic),
+        // start with not sampling anything, let the sample requests be 
+        // reinitiated, ... so leave hkBuf as empty
+        elementsToBeSampled(false), proc(p), initValue(par.initValue), 
+        theShmMgr(sMgr), hwEvent(par.hwEvent), permanentSamplingSet(), currentSamplingSet() {
+    baseAddrInDaemon = (void *)theShmMgr.translateFromParentDaemon((Address) par.baseAddrInDaemon,
+                                                                   &par.theShmMgr);
 }
 
 template <class HK>
