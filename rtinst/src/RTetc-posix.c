@@ -1328,18 +1328,14 @@ DYNINSTreportTimer(tTimer *timer) {
 #include <netinet/in.h>
 extern char *sys_errlist[];
 
-static int connectToDaemon(int daemonPort) {
+static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
   struct sockaddr_in sadr;
-  struct in_addr *inadr;
-  struct hostent *hostptr;
   int sock_fd;
 
-  hostptr = gethostbyname("localhost");
-  inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
   memset((void*) &sadr, 0, sizeof(sadr));
   sadr.sin_family = PF_INET;
   sadr.sin_port = htons(daemonPort);
-  sadr.sin_addr = *inadr;
+  sadr.sin_addr.s_addr = hostAddr;
 
   sock_fd = socket(PF_INET, SOCK_STREAM, 0);
   if (sock_fd < 0) {
@@ -1355,6 +1351,7 @@ static int connectToDaemon(int daemonPort) {
     fprintf(stderr, "DYNINST: connect failed: %s\n", sys_errlist[errno]);
     abort();
   }
+
   return sock_fd;
 }
 
@@ -1499,7 +1496,8 @@ DYNINSTfork(int pid) {
 	traceFork forkRec;
 
         char *traceEnv;
-	int tracePort;
+	unsigned long tracePort;
+	unsigned long hostAddr;
 
 	fprintf(stderr, "DYNINSTfork child; welcome.\n");
 	fflush(stderr);
@@ -1529,15 +1527,23 @@ DYNINSTfork(int pid) {
 				   wall_time,process_time);
 	
 	/* get the socket port number for traces from the environment */
-	traceEnv = getenv("PARADYND_TRACE_SOCKET");
-	assert(traceEnv);
-	tracePort = atoi(traceEnv);
-	assert(tracePort);
+	{ 
+	  char *s1 = 0, *s2 = 0;
+	  traceEnv = getenv("PARADYND_TRACE_SOCKET");
+	  assert(traceEnv);
+	  tracePort = strtoul(traceEnv, &s1, 10);
+	  assert(traceEnv != s1);
+	  hostAddr = strtoul(s1, &s2, 10);
+	  assert(s1 != s2);
+	}
 
+#ifndef rs6000_ibm_aix4_1
+	/* this is not needed on AIX since we will get a SIGTRAP on a fork */
 	/* stop here and wait for paradynd to insert the initial instrumentation */
 	fprintf(stderr, "dyninst-fork about to DYNINSTbreakPoint() to wait for daemon to insert initial instrumentation.\n");
 	fflush(stderr);
 	DYNINSTbreakPoint();
+#endif
 
 	/* set up a connection to the daemon for the trace stream */
 	fprintf(stderr, "dyninst-fork closing old connections.\n");
@@ -1547,7 +1553,7 @@ DYNINSTfork(int pid) {
 
 	fprintf(stderr, "dyninst-fork about to open new connection.\n");
 	fflush(stderr);
-	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort), "w");
+	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort, hostAddr), "w");
 
 	fprintf(stderr, "dyninst-fork opened new connection...now sending pid along it\n");
 	fflush(stderr);
