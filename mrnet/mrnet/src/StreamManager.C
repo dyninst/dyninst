@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "mrnet/src/StreamManager.h"
 #include "mrnet/src/StreamImpl.h"
@@ -14,17 +14,18 @@ std::map<unsigned int, StreamManager*> StreamManager::allStreamManagersById;
 XPlat::Mutex StreamManager::all_stream_managers_mutex;
 
 
-StreamManager::StreamManager(int sid, 
-                             const std::list <RemoteNode *> &_downstream,
-                             int sync_id, int ds_agg_id, int us_agg_id)
-    : stream_id(sid),
-      downstream_aggregator( new TransFilter( ds_agg_id ) ),
-      upstream_aggregator ( new TransFilter( us_agg_id ) ),
-      sync( new SyncFilter(sync_id, _downstream)),
-      upstream_node( NULL ),
-      downstream_nodes(_downstream)
+StreamManager::StreamManager(int istream_id,
+                             const RemoteNode * iupstream_node,
+                             const std::list <const RemoteNode *> &idownstream_nodes,
+                             int isync_id, int ids_agg_id, int ius_agg_id)
+    : stream_id(istream_id),
+      downstream_aggregator( new TransFilter( ids_agg_id ) ),
+      upstream_aggregator ( new TransFilter( ius_agg_id ) ),
+      sync( new SyncFilter(isync_id, idownstream_nodes )),
+      upstream_node( iupstream_node ),
+      downstream_nodes( idownstream_nodes )
 {
-    set_StreamManagerById( sid, this);
+    set_StreamManagerById( stream_id, this);
 }
 
 StreamManager::~StreamManager( )
@@ -38,7 +39,9 @@ StreamManager::~StreamManager( )
 
 int StreamManager::push_packet(Packet& packet,
                                std::vector<Packet> & out_packets,
-                               bool going_upstream){
+                               bool going_upstream)
+const
+{
     std::vector<Packet> in_packets;
     
     mrn_dbg(3, mrn_printf(FLF, stderr, "Entering StreamMgr.push_packet()\n"));
