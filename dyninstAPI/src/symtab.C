@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.168 2003/06/16 18:55:18 hollings Exp $
+// $Id: symtab.C,v 1.169 2003/06/16 19:51:53 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,7 +221,13 @@ bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler,
 }
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
-			      const Address addr, bool /* excluded */) {
+			      const Address addr,
+#ifdef BPATCH_LIBRARY
+                  bool /* excluded */
+#else
+                  bool excluded
+#endif // BPATCH_LIBRARY
+                  ) {
   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
   pdvector<pd_Function*> *funcsByMangledEntry = NULL;
   
