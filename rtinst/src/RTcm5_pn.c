@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.8  1993/12/13 19:47:06  hollings
+ * Revision 1.9  1993/12/14 16:35:27  hollings
+ * moved getProcessTime() out of the ifdef notdef.
+ *
+ * Revision 1.8  1993/12/13  19:47:06  hollings
  * use assembly version of clock code.
  *
  * Revision 1.7  1993/10/19  15:29:58  hollings
@@ -106,7 +109,6 @@ typedef union {
 static volatile unsigned int *ni;
 static volatile struct timer_buf timerBuffer;
 
-#ifdef notdef
 time64 inline getProcessTime()
 {
     timeParts end;
@@ -121,6 +123,7 @@ retry:
     return(end.value-ni_end);
 }
 
+#ifdef notdef
 time64 inline getWallTime()
 {
     timeParts end;
