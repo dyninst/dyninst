@@ -452,15 +452,16 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 	while(allS.next(h,ps)){
 	    if(h == (perfStreamHandle)(ps)){
 	        ps->callDataEnableFunc(response,request_Id);
-		return;
+		break;
 	} }
 	delete request;
 	response = 0;
-    }
+	return;
+      }
 
     DMdoEnableData(ps,request,request_Id,type,phaseId, persistent_data,
 		   persistent_collection,phase_persistent_data);    
-
+    
 }
 
 
