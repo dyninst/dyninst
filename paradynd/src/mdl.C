@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.91 2001/06/12 19:39:14 ning Exp $
+// $Id: mdl.C,v 1.92 2001/07/31 19:10:24 gurari Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1714,6 +1714,12 @@ apply_to_process(process *proc,
     if (!metric_prim->nonNull()) {
       metric_cerr << "metric_prim->nonNull()" << endl;
       if (!computingCost) metric_prim->cleanup_drn();
+
+      // Extra cleanup
+      allMIPrimitives.undef(metric_flat_name);
+      allMIComponents.undef(metric_flat_name);
+      (metric_prim->getComponents()).resize(0);
+
       delete metric_prim;
       return NULL;
     }
