@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.6 1999/01/24 00:13:52 wylie Exp $
+ * $Id: Types.h,v 1.7 1999/05/25 20:25:40 hollings Exp $
  * Types.h: commonly used types.
 ************************************************************************/
 
@@ -50,7 +50,9 @@
 typedef unsigned int Word;
 
 typedef long int RegValue;      // register content
-typedef unsigned char Register; // a register number, e.g., [0..31]
+// This needs to be an int since it is sometimes used to pass offsets
+//   to the code generator (i.e. if-statement) - jkh 5/24/99
+typedef unsigned int Register; // a register number, e.g., [0..31]
 const Register Null_Register = (Register)(-1); // '255'
 
 typedef long unsigned int Address;
