@@ -165,6 +165,7 @@ bool_t P_xdr_string(XDR *x, char **c, const u_int maxsize) {
   return (xdr_string(x, c, maxsize));}
 bool_t P_xdrrec_endofrecord(XDR *x, int now) {return (xdrrec_endofrecord(x, now));}
 bool_t P_xdrrec_skiprecord(XDR*x) { return (xdrrec_skiprecord(x));}
+bool_t P_xdrrec_eof(XDR*x) { return (xdrrec_eof(x));}
 void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 		     caddr_t handle, 
 		     xdr_rd_func readit, xdr_wr_func writeit) {

@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.37  1995/02/16 09:28:10  markc
+ * Revision 1.38  1995/05/18 11:12:15  markc
+ * Added flavor arg to RPC_undo_g_list
+ *
+ * Revision 1.37  1995/02/16  09:28:10  markc
  * Removed compiler warnings.
  * Changed Boolean to bool
  *
@@ -217,13 +220,14 @@ RPC_readReady (int fd, int timeout)
 // TODO
 // mdc - I need to clean this up
 bool
-RPC_undo_arg_list (int argc, char **arg_list, string &machine, int &family,
-		   int &type, int &well_known_socket, int &flag, int &firstPVM)
+RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
+		   int &family, int &type, int &well_known_socket, int &flag,
+		   int &firstPVM)
 {
   int loop;
   char *ptr;
   bool b_well_known=false, b_family=false, b_first=false, b_type = false,
-  b_machine = false, b_flag = false;
+  b_machine = false, b_flag = false, b_flavor=false;
 
   for (loop=0; loop < argc; ++loop)
     {
@@ -268,8 +272,15 @@ RPC_undo_arg_list (int argc, char **arg_list, string &machine, int &family,
 	    return(false);
 	  b_flag = true;
 	}
+      else if (!P_strncmp(arg_list[loop], "-z", 2))
+	{
+	  flavor = (arg_list[loop]+2);
+	  if (!flavor.length()) return false;
+	  b_flavor = true;
+	}
     }
-  return (b_flag && b_family && b_first && b_machine && b_type && b_well_known);
+  return (b_flag && b_family && b_first && b_machine &&
+	  b_type && b_well_known && b_flavor);
 }
 
 /*
