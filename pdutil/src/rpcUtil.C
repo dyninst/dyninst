@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.72 2000/04/05 16:29:33 pcroth Exp $
+// $Id: rpcUtil.C,v 1.73 2000/04/07 21:20:37 mirg Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -948,18 +948,13 @@ execCmd(const string command, const vector<string> &arg_list )
 
 void appendParsedString( vector< string > &strList, const string &str )
 {
-    unsigned i, j, l = str.length();
+    unsigned int i = 0, j, len = str.length();
 
-    for( i = 0, j = 0; j < l; ++j )
-        if( str[ j ] == ' ' )
-        {
-            if( i < j )
-                strList += str.substr( i, j-i );
-            i = j + 1;
-        }
-
-    if( i < j )
-        strList += str.substr( i, j-i );
+    while (i < len) {
+	    for (j = i+1; j < len && str[j] != ' '; j++);
+	    strList += str.substr(i, j-i);
+	    i = j + 1;
+    }
 }
 
 
@@ -992,21 +987,17 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
     // build the command line of the remote execution command we will execute
     // note that it must support the "-l" flag to specify a username, like rsh
     vector<string> remoteExecArgList;
+    vector<string> tmp;
+    string rsh;
 
     // first extract any arguments specified with the remote execution command
-    vector<string> tmpArgList;
-    appendParsedString( tmpArgList, remoteExecCmd );
-    if( tmpArgList.size() > 1 )
-    {
-        // skip the remote execution command, but copy all of its
-        // arguments into our argument list
-        for( i = 1; i < tmpArgList.size(); i++ )
-        {
-            remoteExecArgList += tmpArgList[i];
-        }
+    appendParsedString(tmp, remoteExecCmd);
+    assert(tmp.size() > 0);
+    rsh = tmp[0];
+    for (i=1; i < tmp.size(); i++) {
+	    remoteExecArgList += tmp[i];
     }
-
-    // next add the host name and user name arguments to the remote execution command
+    // next add the host name and user name to the remote execution command
     remoteExecArgList += hostName;
     if( userName.length() > 0 )
     {
@@ -1023,7 +1014,7 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
 
 
     // execute the command
-    PDSOCKET s = execCmd( remoteExecCmd, remoteExecArgList );
+    PDSOCKET s = execCmd(rsh, remoteExecArgList );
     if( s != INVALID_PDSOCKET )
     {
         // establish the connection
