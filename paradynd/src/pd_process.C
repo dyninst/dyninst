@@ -742,12 +742,6 @@ void pd_process::execHandler() {
 /********************************************************************
  **** Paradyn runtime library code                               ****    
  ********************************************************************/
-#ifdef NOTDEF //PDSEP
-typedef struct {
-   pd_process *proc;
-   pd_process::load_cause_t load_cause;
-} loadLibCallbackInfo_t;
-#endif
 
 // Load and initialize the paradyn runtime library.
 bool pd_process::loadParadynLib(load_cause_t ldcause) 
@@ -765,13 +759,26 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
     statusLine(buffer.c_str());
 
     setLibState(paradynRTState, libLoading);
+#if defined (i386_unknown_nt4_0)
+     // Another FIXME: NT strips the path from the loaded
+     // library for recognition purposes.
+     char dllFilename[_MAX_FNAME];
+     _splitpath (paradynRTname.c_str(),
+            NULL, NULL, dllFilename, NULL);
+    if (!dyninst_process->loadLibrary(dllFilename)) {
+      fprintf(stderr, "%s[%d]:  failed to load %s, fatal...\n",
+              __FILE__, __LINE__, dllFilename);
+      return false;
+    }
+    fprintf(stderr, "%s[%d]:  loaded %s\n", __FILE__, __LINE__, dllFilename);
+#else
 
     if (!dyninst_process->loadLibrary(paradynRTname.c_str())) {
       fprintf(stderr, "%s[%d]:  failed to load %s, fatal...\n",
               __FILE__, __LINE__, paradynRTname.c_str());
       return false;
     }
-
+#endif
     if (!setParadynLibParams(ldcause)) {
       fprintf(stderr, "%s[%d]:  failed set lib params for %s, fatal...\n",
               __FILE__, __LINE__, paradynRTname.c_str());
@@ -905,13 +912,19 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
         assert(0 && "Failed to allocate required shared metadata variables");
     }
     
-    
+    BPatch_image *appImage = dyninst_process->getImage();
+    assert(appImage); 
 
-    if (!getSymbolInfo("libparadynRT_init_localparadynPid", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localparadynPid", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localparadynPid");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&paradynPid);
+    const char *vname = "libparadynRT_init_localparadynPid";
+    BPatch_variableExpr *v_pid = appImage->findVariable(vname);
+    if (! v_pid) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_pid->writeValue((void *) &paradynPid)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
 
     int creationMethod;
     if(ldcause == create_load)      creationMethod = 0;
@@ -919,26 +932,44 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
     else if(ldcause == exec_load)   creationMethod = 4;
     else assert(0);
 
-    if (!getSymbolInfo("libparadynRT_init_localcreationMethod", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localcreationMethod", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localcreationMethod");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&creationMethod);
+    vname = "libparadynRT_init_localcreationMethod";
+    BPatch_variableExpr *v_cm = appImage->findVariable(vname);
+    if (! v_cm) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_cm->writeValue((void *) &creationMethod)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+
 
     int maxThreads = maxNumberOfThreads();
-    if (!getSymbolInfo("libparadynRT_init_localmaxThreads", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localmaxThreads", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localmaxThreads");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&maxThreads);
-    
+
+    vname = "libparadynRT_init_localmaxThreads";
+    BPatch_variableExpr *v_maxt = appImage->findVariable(vname);
+    if (! v_maxt) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_maxt->writeValue((void *) &maxThreads)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+
     
     Address virtTimers = getSharedMemMgr()->daemonToApplic((Address)shmMetaData->getVirtualTimers());
-    if (!getSymbolInfo("libparadynRT_init_localVirtualTimers", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localVirtualTimers", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localVirtualTimers");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(Address), (void *)&virtTimers);
+
+    vname = "libparadynRT_init_localVirtualTimers";
+    BPatch_variableExpr *v_vts = appImage->findVariable(vname);
+    if (! v_vts) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_vts->writeValue((void *) &virtTimers)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
 
     // And now that we have our new (shared) observed cost address, update the
     // internal process one
@@ -946,12 +977,16 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
 
     dyninst_process->lowlevel_process()->updateObservedCostAddr(obsCostInApplic);
 
-    if (!getSymbolInfo("libparadynRT_init_localObservedCost", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localObservedCost", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localObservedCost");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(Address), (void *)&obsCostInApplic);
-
+    vname = "libparadynRT_init_localObservedCost";
+    BPatch_variableExpr *v_obsCost = appImage->findVariable(vname);
+    if (! v_obsCost) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_obsCost->writeValue((void *) &obsCostInApplic)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
 
     return true;
 }

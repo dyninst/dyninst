@@ -44,6 +44,7 @@
 #include "paradynd/src/instrCodeNode.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/pd_process.h"
+#include "dyninstAPI/src/BPatch_typePrivate.h"
 
 extern unsigned enable_pd_metric_debug;
 
@@ -93,13 +94,15 @@ instrDataNode::instrDataNode(pd_process *proc_, unsigned type,
   variableMgr &varMgr = proc->getVariableMgr();
   varIndex = varMgr.allocateForInstVar(varType, hw_event);
   refCount = 0;
+  varExpr = NULL;
 }
 
 instrDataNode::instrDataNode(const instrDataNode &par, pd_process *childProc) :
   proc(childProc), varType(par.varType), varIndex(par.varIndex),
   thrNodeClientSet(par.thrNodeClientSet), 
   dontInsertData_(par.dontInsertData_), 
-  refCount(0) // has 0 references since it's a new data node
+  refCount(0), // has 0 references since it's a new data node
+  varExpr(NULL)
 {
 }
 
@@ -113,6 +116,7 @@ instrDataNode::~instrDataNode() {
     variableMgr &varMgr = proc->getVariableMgr();
     varMgr.free(varType, varIndex);
   }
+  if (varExpr) delete varExpr;
 }
 
 // obligatory definition of static member vrble:
@@ -136,6 +140,64 @@ Address instrDataNode::getInferiorPtr() const {
     assert(varAddr != 0);
   }
   return varAddr;
+}
+
+BPatch_variableExpr *instrDataNode::getVariableExpr()
+{
+  if (varExpr) return varExpr;
+
+  BPatch_type *base_type = NULL;
+  char *type_str = NULL;
+
+  switch (varType) {
+  case Counter:
+    type_str = "intCounter";
+    break;
+  case WallTimer:
+  case ProcTimer:
+    type_str = "tTimer";
+    break;
+  case HwTimer:
+    type_str = "tHwTimer";
+    break;
+  case HwCounter:
+    type_str = "tHwCounter";
+    break;
+  default:
+    assert(0);
+    break;
+  }
+
+
+  char type_str_ptr_name[128];
+/*  PDSEP -- CLEAN ME
+  base_type = proc->get_dyn_process()->getImage()->findType(type_str);
+  if (!base_type) {
+    fprintf(stderr, "%s[%d]:  FIXME:  cannot find %s data type!\n",
+            __FILE__, __LINE__, type_str);
+    // try making this type up (we really just need a placeholder for its size)
+    base_type = new BPatch_typeScalar(getSize(), type_str);
+  }
+  else {
+*/
+  base_type = new BPatch_typeScalar(getSize(), type_str);
+
+  sprintf(type_str_ptr_name, "%sPtr", type_str);
+
+  //  make a new type that is an array of intCounter (or tTimer, etc)
+  BPatch_type *base_type_ptr_type = new BPatch_typeArray(base_type, 0, 1024,
+                                                          type_str_ptr_name);
+
+  // get address of counter/timer:
+  void *counterAddr = (void *) getInferiorPtr();
+
+  char counterName[128];
+  sprintf(counterName, "%s-%p", type_str, counterAddr);
+
+  // "create" a variable at the counter address.
+  varExpr = new BPatch_variableExpr(counterName, proc->get_dyn_process(),
+                                    counterAddr, base_type_ptr_type);
+  return varExpr;
 }
 
 unsigned instrDataNode::getSize() const {

@@ -323,7 +323,7 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
           continue; // skip it (case 3 above)
       }
       // If it accesses parameters, skip it...
-      if(curInstReq->Ast()->accessesParam()) {
+      if(curInstReq->Snippet()->PDSEP_ast()->accessesParam()) {
           if (pd_debug_catchup)   cerr << "Skipped, accesses parameters\n";
           continue; // Case 2
       }
@@ -385,8 +385,8 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
       switch(res) {
         case deferred_res:
            markAsDeferred();
-           //cerr << "marking " << (void*)this << " " << u1+1 << " / "
-           //     << inst_size << " as deferred\n";
+           cerr << "marking " << (void*)this << " " << u1+1 << " / "
+                << inst_size << " as deferred\n";
            return inst_insert_deferred;
            break;
         case failure_res:
@@ -593,7 +593,7 @@ const instrDataNode *instrCodeNode::getFlagDataNode() const {
   return V.constraintDataNode;
 }
 
-void instrCodeNode::addInst(instPoint *point, AstNode *ast,
+void instrCodeNode::addInst(instPoint *point, BPatch_snippet *snip,
 			    callWhen when, callOrder o)
 {
   if (!point) return;
@@ -601,7 +601,7 @@ void instrCodeNode::addInst(instPoint *point, AstNode *ast,
   //cerr << "codeNode: " << getID() << ", addInst in func: " 
   //     << point->pointFunc()->prettyName() << "\n";
 
-  instReqNode *newInstReqNode = new instReqNode(point, ast, when, o);
+  instReqNode *newInstReqNode = new instReqNode(point, snip, when, o);
   V.instRequests.push_back(newInstReqNode);
 }
 

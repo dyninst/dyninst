@@ -44,6 +44,7 @@
 
 
 #include "common/h/Vector.h"
+#include "dyninstAPI/h/BPatch_snippet.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/frame.h"
 
@@ -76,8 +77,8 @@ class instReqNode {
    instReqNode &operator=(const instReqNode &) { return *this; }
    
  public:
-   instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
-	       callOrder o) : point(iPoint), ast(assignAst(iAst)),
+   instReqNode(instPoint *iPoint, BPatch_snippet *iSnip, callWhen iWhen,
+	       callOrder o) : point(iPoint), snip(iSnip),
       when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
       rinstance(NULL), rpcCount(0), loadInstAttempts(0) 
    {
@@ -87,7 +88,7 @@ class instReqNode {
    
    // normal copy constructor, used eg. in vector<instReqNode> expansion
    instReqNode(const instReqNode &par) : 
-      point(par.point), ast(assignAst(par.ast)), when(par.when), 
+      point(par.point), snip(par.snip), when(par.when), 
       order(par.order), mtHandle(par.mtHandle), 
       loadedIntoApp_(par.loadedIntoApp_), trampsHookedUp_(par.trampsHookedUp_),
       rinstance(par.rinstance), rpcCount(par.rpcCount), 
@@ -115,13 +116,13 @@ class instReqNode {
                               pd_process *p);
    
    instPoint *Point() {return point;}
-   AstNode* Ast()  {return ast;}
+   BPatch_snippet* Snippet()  {return snip;}
    callWhen When() {return when;}
    callOrder Order() { return order; }
 
  private:
    instPoint *point;
-   AstNode   *ast;
+   BPatch_snippet   *snip;
    callWhen  when;
    callOrder order;
    

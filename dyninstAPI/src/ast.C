@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.141 2004/08/16 04:32:20 rchen Exp $
+// $Id: ast.C,v 1.142 2004/09/21 05:33:44 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1889,51 +1889,6 @@ void AstNode::print() const {
       fprintf(stderr,"\n");
     }
   }
-}
-#endif
-
-#ifndef BPATCH_LIBRARY
-// If a process is passed, the returned Ast code will also update the
-// observed cost of the process according to the cost of the if-body when the
-// if-body is executed.  However, it won't add the the update code if it's
-// considered that the if-body code isn't significant.  We consider an
-// if-body not worth updating if (cost-if-body < 5*cost-of-update).  proc ==
-// NULL (the default argument) will mean to not add to the AST's the code
-// which adds this observed cost update code.
-AstNode *createIf(AstNode *expression, AstNode *action, process *proc) 
-{
-  if(proc != NULL) {
-    // add code to the AST to update the global observed cost variable
-    // we want to add the minimum cost of the body.  Observe the following 
-    // example
-    //    if(condA) { if(condB) { STMT-Z; } }
-    // This will generate the following code:
-    //    if(condA) { if(condB) { STMT-Z; <ADD-COSTOF:STMT-Z>; }
-    //               <ADD-COSTOF:if(condB)>;  
-    //              }   
-    // the <ADD-COSTOF: > is what's returned by minCost, which is what
-    // we want.
-    // Each if statement will be constructed by createIf().    
-    int costOfIfBody = action->minCost();
-    void *globalObsCostVar = (void *)proc->getObservedCostAddr();
-    AstNode *globCostVar = new AstNode(AstNode::DataAddr, globalObsCostVar);
-    AstNode *addCostConst = new AstNode(AstNode::Constant, 
-					(void *)costOfIfBody);
-    AstNode *addCode = new AstNode(plusOp, globCostVar, addCostConst);
-    AstNode *updateCode = new AstNode(storeOp, globCostVar, addCode);
-    int updateCost = updateCode->minCost();
-    addCostConst->setOValue(reinterpret_cast<void*>(costOfIfBody+updateCost));
-    AstNode *newAction = new AstNode(action);
-    // eg. if costUpdate=10 cycles, won't do update if bodyCost=40 cycles
-    //                               will do update if bodyCost=60 cycles
-    const int updateThreshFactor = 5;
-    if(costOfIfBody > updateThreshFactor * updateCost)
-      action = new AstNode(newAction, updateCode);
-  }
-
-  AstNode *t = new AstNode(ifOp, expression, action);
-
-  return(t);
 }
 #endif
 

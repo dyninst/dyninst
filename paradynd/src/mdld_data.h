@@ -142,7 +142,7 @@ class mdld_expr : virtual public T_dyninstRPC::mdl_expr
 {
 public:
     virtual bool apply_be( mdl_var& ret ) = 0;
-    virtual bool apply_be( AstNode*& mn ) = 0;
+    virtual bool apply_be( BPatch_snippet*& mn ) = 0;
     virtual bool mk_list( pdvector<pdstring>& funcs ) = 0;
 };
 
@@ -216,7 +216,7 @@ public:
 
     virtual ~mdld_v_expr( void ) { }
     virtual bool apply_be( mdl_var& ret );
-    virtual bool apply_be( AstNode*& mn );
+    virtual bool apply_be( BPatch_snippet*& mn );
     virtual bool mk_list( pdvector<pdstring>& funcs );
 };
 
@@ -230,7 +230,7 @@ public:
     { }
 
     virtual ~mdld_icode( void ) { }
-    virtual bool apply_be( AstNode*& mn,
+    virtual bool apply_be( BPatch_snippet*& mn,
                             bool mn_initialized,
                             pd_process* proc );
 };

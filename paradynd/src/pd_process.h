@@ -355,6 +355,36 @@ class pd_process {
           //        __FILE__, __LINE__, func_name.c_str());
        return false;
      } 
+#ifdef NOTDEF
+     //  kludge this for now -- findFunction is getting matches on both thr_exit
+     //  and _thr_exit(), verify that our vector contains only the explicitly 
+     //  requested function names.
+
+     if ( res.size() > 1) {
+       BPatch_Vector<BPatch_function *> bpfv;
+       for (unsigned int i = 0; i < res.size(); ++i) {
+         char fn[1024];
+         res[i]->getName(fn, 1024);
+         if (pdstring(fn) == func_name) {
+           bpfv.push_back(res[i]);
+         }
+         else {
+           fprintf(stderr, "%s[%d]:  discarding function %s as bad match -- FIXME\n",
+                  __FILE__, __LINE__, fn);
+         }
+       }
+       if (bpfv.size()) {
+         res.clear();
+         for (unsigned int i = 0; i < bpfv.size(); ++i) {
+           res.push_back(bpfv[i]);
+         }
+       }
+       else {
+         fprintf(stderr, "%s[%d]:  no legit matches for %s, keeping bogus ones\n",
+                 __FILE__, __LINE__, func_name.c_str());
+       }
+     }
+#endif
      return true;
 
    }
@@ -379,6 +409,9 @@ class pd_process {
            //       __FILE__, __LINE__, func_name.c_str(), mod_name.c_str());
            return false;
          }
+         if (res.size() > 1)
+           fprintf(stderr, "%s[%d]:  found %d funcs matching '%s'\n", __FILE__, __LINE__,
+                  func_name.c_str());
          return true;
        }
      }
@@ -390,6 +423,11 @@ class pd_process {
           //        __FILE__, __LINE__, func_name.c_str());
        return false;
      }
+     
+     if (res.size() > 1)
+       fprintf(stderr, "%s[%d]:  found %d funcs matching '%s'\n", __FILE__, __LINE__,
+               func_name.c_str());
+
      return true;
    }
 

@@ -1535,7 +1535,7 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 				   But i need to build a variable that points to a specific address, and I can not find
 				   a better way to do it right now
 				 */	
-				var = new BPatch_variableExpr(tmpVar->getName(), appThread->lowlevel_process(),
+				var = new BPatch_variableExpr(tmpVar->getName(), appThread,
 					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), tmpVar->getType() );	
 
 #ifdef sparc_sun_solaris2_4 

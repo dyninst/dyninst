@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.81 2004/07/21 22:46:20 jodom Exp $
+// $Id: BPatch.C,v 1.82 2004/09/21 05:33:44 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -697,7 +697,7 @@ void BPatch::registerForkingThread(int forkingPid, process * /*proc*/)
 void BPatch::registerExec(BPatch_thread *thread)
 {
     // build a new BPatch_image for this one
-    thread->image = new BPatch_image(thread->proc);
+    thread->image = new BPatch_image(thread);
 
     if (execCallback) {
        execCallback(thread);
@@ -901,9 +901,9 @@ bool BPatch::getThreadEventOnly(bool block)
            if (didProcReceiveSignal(why)) {
                thread->lastSignal = what;
 #if defined(os_irix)
-               int stop_sig = SIGEMT;
+               unsigned int stop_sig = SIGEMT;
 #else
-               int stop_sig = SIGSTOP;
+               unsigned int stop_sig = SIGSTOP;
 #endif
                if (what != stop_sig) {
                    forwardSigToProcess(*cur_event);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.72 2004/08/16 04:32:32 rchen Exp $
+// $Id: ast.h,v 1.73 2004/09/21 05:33:44 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -339,15 +339,6 @@ class AstNode {
 AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
-AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
-AstNode *getTimerAddress(void *base, unsigned struct_size);
-AstNode *getCounterAddress(void *base, unsigned struct_size);
-AstNode *createCounter(const pdstring &func, void *, AstNode *arg);
-AstNode *createHwTimer(const pdstring &func, void *, 
-                     pdvector<AstNode *> &arg_args, int hwCntrIndex);
-
-AstNode *createTimer(const pdstring &func, void *, 
-                     pdvector<AstNode *> &arg_args);
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.47 2004/08/16 04:31:05 rchen Exp $
+// $Id: BPatch_function.C,v 1.48 2004/09/21 05:33:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -652,7 +652,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
 	ret = new BPatch_Vector<BPatch_variableExpr *>;
 	BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
 	assert(points->size() == 1);
-	ret->push_back(new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
+        BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+	ret->push_back(new BPatch_variableExpr(imgPtr->getThr(), (void *) lv->getFrameOffset(), 
 	    lv->getRegister(), lv->getType(), lv->getStorageClass(), (*points)[0]));
 	return ret;
     } else {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.160 2004/07/28 07:24:47 jaw Exp $
+// $Id: mdl.C,v 1.161 2004/09/21 05:33:45 jaw Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -58,6 +58,7 @@
 #include "paradynd/src/mdld.h"
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_thread.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "common/h/debugOstream.h"
@@ -314,207 +315,344 @@ private:
   unsigned max_index;
 };
 
+//  A helper wrapper for findFunction to get rid of a bunch of messy looking
+//  error handling, message-printing stuff.
+
+BPatch_function *mdlFindFunction(const char *name, BPatch_image *appImage)
+{
+  BPatch_Vector<BPatch_function *> funcs;
+  BPatch_function *ret = NULL;
+   if (!appImage->findFunction(name, funcs)) {
+     fprintf(stderr, "%s[%d]:  cannot find function %s\n", __FILE__, __LINE__, name);
+     return NULL;
+   }
+   if (!funcs.size()) {
+     fprintf(stderr, "%s[%d]:  cannot find function %s\n", __FILE__, __LINE__, name);
+     return NULL;
+   }
+   if (funcs.size() > 1)
+     fprintf(stderr, "%s[%d]:  warning, found more than one function called '%s'\n",
+             __FILE__, __LINE__, name);
+   ret = funcs[0];
+   return ret;
+}
+
 
 /*
  * Simple: return base + (POS * size). ST: POS==0, so return base
  */
  
-AstNode *getTimerAddressSlow(void *base, unsigned struct_size,
+BPatch_snippet *getTimerSlow(BPatch_variableExpr *base,
+                             BPatch_image *appImage,
+                             bool for_multithreaded)
+{
+   if(! for_multithreaded) {
+      return base;
+      //return new BPatch_constExpr(base->getBaseAddr());
+   }
+
+   static BPatch_function *pthread_self_fn = NULL;
+   static BPatch_function *index_slow_fn = NULL;
+
+   if (!pthread_self_fn)
+     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage)))
+       return NULL;
+
+   if (!index_slow_fn)
+     if (! (index_slow_fn = mdlFindFunction("DYNINSTthreadIndexSLOW", appImage)))
+       return NULL;
+
+   //  construct expr:
+   //  (base) + DYNINSTthreadIndexSLOW(pthread_self()) * struct_size
+
+   BPatch_Vector<BPatch_snippet *> snip_args;
+   BPatch_snippet *get_thr = new BPatch_funcCallExpr(*pthread_self_fn, snip_args);
+   snip_args.push_back(get_thr);
+   BPatch_snippet *get_index = new BPatch_funcCallExpr(*index_slow_fn, snip_args);
+
+   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *get_index);
+   if (var->is_trivial()) {
+     delete var;
+     delete get_index;
+     delete get_thr;
+     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
+     return NULL;
+   }
+   return var;
+}
+
+BPatch_snippet *getTimerFast(BPatch_variableExpr *base,
                              bool for_multithreaded)
 {
    if(! for_multithreaded)
-      return new AstNode(AstNode::DataPtr, base);
+      //return new BPatch_constExpr(base->getBaseAddr());
+      return base;
+      //return new BPatch_snippet(*base);
 
    // Return base + struct_size*POS. Problem is, POS is unknown
    // until we are running the instrumentation
 
-   pdvector<AstNode *> ast_args;
-   AstNode *get_thr    = new AstNode("pthread_self", ast_args);
-   AstNode *get_index  = new AstNode("DYNINSTthreadIndexSLOW", get_thr);
-   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-   
-   AstNode *offset     = new AstNode(timesOp, get_index, increment);
-   AstNode *var        = new AstNode(plusOp, var_base, offset);
+   //  construct expr:
+   //  (base) + register[REG_MT_POS] * struct_size
 
-   removeAst(get_thr);
-   removeAst(get_index);
-   removeAst(increment);
-   removeAst(var_base);
-   removeAst(offset);
+   BPatch_snippet *reg_mt = new BPatch_regExpr(REG_MT_POS);
+   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
+
+   // delete reg_mt;
+   if (var->is_trivial()) {
+     delete reg_mt;
+     delete var;
+     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
+     return NULL;
+   }
+
    return var;
 }
 
-AstNode *getTimerAddressFast(void *base, unsigned struct_size,
-                             bool for_multithreaded)
+BPatch_snippet *getTimerAddress(BPatch_variableExpr *base,
+                                BPatch_image *appImage,
+                                bool for_multithreaded)
 {
-   if(! for_multithreaded)
-      return new AstNode(AstNode::DataPtr, base);
+  BPatch_snippet *temp;
 
-   // Return base + struct_size*POS. Problem is, POS is unknown
-   // until we are running the instrumentation
-   
-   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
-
-   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-   
-   AstNode *offset     = new AstNode(timesOp, pos, increment);
-
-   AstNode *var        = new AstNode(plusOp, var_base, offset);
-
-   removeAst(pos);
-
-
-   removeAst(increment);
-   removeAst(var_base);
-   removeAst(offset);
-   return var;
-}
-
-AstNode *getTimerAddress(void *base, unsigned struct_size,
-                         bool for_multithreaded)
-{
 #if defined(i386_unknown_linux2_0)
-   return getTimerAddressSlow(base, struct_size, for_multithreaded);
+  temp =  getTimerSlow(base, appImage, for_multithreaded);
 #else
-   return getTimerAddressFast(base, struct_size, for_multithreaded);
+  temp =  getTimerFast(base, for_multithreaded);
 #endif
+
+  if (!temp) {
+    fprintf(stderr, "%s[%d]:  Fatal internal error in getTimerAddress()\n",
+           __FILE__, __LINE__);
+    return NULL;
+  }
+
+  BPatch_snippet * ret = new BPatch_arithExpr(BPatch_address, (*temp));
+  //delete temp;
+  return ret;
 }
 
-AstNode *createTimer(const pdstring &func, void *dataPtr, 
-                     pdvector<AstNode *> &ast_args, bool for_multithreaded)
+BPatch_snippet *createTimer(const pdstring &func, BPatch_variableExpr *dataPtr,
+                            BPatch_Vector<BPatch_snippet *> &snip_args,
+                            BPatch_image *appImage,
+                            bool for_multithreaded)
 {
-   AstNode *var_base=NULL,*timer=NULL;
+   BPatch_snippet *var_base = NULL;
 
-   // t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
+   BPatch_function *timer_fn = mdlFindFunction(func.c_str(), appImage);
+   if (NULL == timer_fn)
+     return NULL;
 
-   var_base = getTimerAddress(dataPtr, sizeof(tTimer), for_multithreaded);
-   ast_args.push_back(assignAst(var_base));
-   removeAst(var_base);
-   timer = new AstNode(func, ast_args);
+   if (NULL == (var_base = getTimerAddress(dataPtr, appImage, for_multithreaded))){
+     fprintf(stderr, "%s[%d]:  getTimerAddress() failed\n", __FILE__, __LINE__);
+     return NULL;
+   }
 
-   for(unsigned i=0; i<ast_args.size(); i++)
-      removeAst(ast_args[i]);  
-
-   return timer;
+   snip_args.push_back(var_base);
+   return new BPatch_funcCallExpr(*(timer_fn), snip_args);
 }
 
+// If a process is passed, the returned Ast code will also update the
+// observed cost of the process according to the cost of the if-body when the
+// if-body is executed.  However, it won't add the the update code if it's
+// considered that the if-body code isn't significant.  We consider an
+// if-body not worth updating if (cost-if-body < 5*cost-of-update).  proc ==
+// NULL (the default argument) will mean to not add to the AST's the code
+// which adds this observed cost update code.
 
-AstNode *createHwTimer(const pdstring &func, void *dataPtr, 
-                     pdvector<AstNode *> &ast_args, int hwCntrIndex)
+BPatch_snippet *createIf(BPatch_boolExpr *expression, BPatch_snippet *action,
+                        BPatch_thread *appThread)
 {
-  AstNode *var_base=NULL,*timer=NULL;
-  AstNode *hw_var=NULL;
+  if(appThread != NULL) {
+    // add code to the snippet to update the global observed cost variable
+    // we want to add the minimum cost of the body.  Observe the following
+    // example
+    //    if(condA) { if(condB) { STMT-Z; } }
+    // This will generate the following code:
+    //    if(condA) { if(condB) { STMT-Z; <ADD-COSTOF:STMT-Z>; }
+    //               <ADD-COSTOF:if(condB)>;
+    //              }
+    // the <ADD-COSTOF: > is what's returned by minCost, which is what
+    // we want.
+    // Each if statement will be constructed by createIf().
 
-  var_base = new AstNode(AstNode::DataPtr, dataPtr);
-  hw_var = new AstNode(AstNode::Constant, (void*)hwCntrIndex);
+    //  Var in Dyninst RT:  DYNINSTobsCostLow -- this should be moved!
+    BPatch_variableExpr *obsCostVar;
+    obsCostVar = appThread->getImage()->findVariable("DYNINSTobsCostLow", true);
+    if (!obsCostVar) {
+      fprintf(stderr, "%s[%d]:  cannot find variable: DYNINSTobsCostLow!\n",
+             __FILE__, __LINE__);
+      return NULL;
+    }
 
-  ast_args += assignAst(var_base);
-  ast_args += assignAst(hw_var);
-   
-  removeAst(var_base);
-  removeAst(hw_var);
+    int costOfIfBody = action->PDSEP_astMinCost();
+    BPatch_constExpr *fake_addConstCost = new BPatch_constExpr(costOfIfBody);
+    BPatch_arithExpr *fake_addCode = new BPatch_arithExpr(BPatch_plus,
+                                                          *fake_addConstCost,
+                                                          *obsCostVar);
+    BPatch_arithExpr *fake_updateCode = new BPatch_arithExpr(BPatch_assign,
+                                                             *obsCostVar,
+                                                             *fake_addCode);
 
-  timer = new AstNode(func, ast_args);
-  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+
+    // fake_updateCode is just created to get the cost. "real" snippet generated below
+    int updateCost = fake_updateCode->PDSEP_astMinCost();
+    BPatch_constExpr *addConstCost = new BPatch_constExpr(costOfIfBody + updateCost);
+    BPatch_arithExpr *addCode = new BPatch_arithExpr(BPatch_plus,
+                                                     *addConstCost,
+                                                     *obsCostVar);
+    BPatch_arithExpr *updateCode = new BPatch_arithExpr(BPatch_assign,
+                                                        *obsCostVar,
+                                                        *addCode);
+
+    // eg. if costUpdate=10 cycles, won't do update if bodyCost=40 cycles
+    //                               will do update if bodyCost=60 cycles
+    const int updateThreshFactor = 5;
+    if(costOfIfBody > updateThreshFactor * updateCost) {
+      BPatch_Vector<BPatch_snippet *> seq;
+      seq.push_back(action);
+      seq.push_back(updateCode);
+      BPatch_sequence *act_with_cost_compute = new BPatch_sequence(seq);
+      action = act_with_cost_compute;
+      //  mem leak ?? ...  ssssssssssssss
+    }
+  }
+
+  BPatch_ifExpr *t = new BPatch_ifExpr(*expression, *action);
+  return(t);
+}
+
+BPatch_snippet *createHwTimer(const pdstring &func, void *dataPtr,
+                              BPatch_Vector<BPatch_snippet *> &snip_args,
+                              int hwCntrIndex, BPatch_image *appImage)
+{
+
+  BPatch_function *timer_fn = mdlFindFunction(func.c_str(), appImage);
+  if (NULL == timer_fn) return NULL;
+
+  BPatch_constExpr var_base(dataPtr);
+  BPatch_constExpr hw_var(hwCntrIndex);
+
+  snip_args.push_back(&var_base);
+  snip_args.push_back(&hw_var);
+
+  BPatch_funcCallExpr *timer = new BPatch_funcCallExpr(*timer_fn, snip_args);
+
   return(timer);
 }
 
-AstNode *getCounterAddressSlow(void *base, unsigned struct_size,
-                               bool for_multithreaded)
+BPatch_snippet *getCounterSlow(BPatch_variableExpr *base, BPatch_image *appImage)
 {
-   if(! for_multithreaded)
-      return new AstNode(AstNode::DataAddr, base);
+   static BPatch_function *pthread_self_fn = NULL;
+   static BPatch_function *index_slow_fn = NULL;
 
-   pdvector<AstNode *> ast_args;
-   AstNode *get_thr    = new AstNode("pthread_self", ast_args);
-   AstNode *get_index  = new AstNode("DYNINSTthreadIndexSLOW", get_thr);   
-   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-   
-   AstNode *offset     = new AstNode(timesOp, get_index, increment);
-   AstNode *var        = new AstNode(plusOp, var_base, offset);
+   if (!pthread_self_fn)
+     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage)))
+       return NULL;
 
-   // Hrm... this gives us the base address just fine, but we need a "load"
-   // to actually make it work. 
+   if (!index_slow_fn)
+     if (! (index_slow_fn = mdlFindFunction("DYNINSTthreadIndexSLOW", appImage)))
+       return NULL;
 
-   removeAst(get_thr);
-   removeAst(get_index);
-   removeAst(increment);
-   removeAst(var_base);
-   removeAst(offset);
+   //  construct expr:
+   //  (base) + DYNINSTthreadIndexSLOW(pthread_self()) * struct_size
+
+   BPatch_Vector<BPatch_snippet *> snip_args;
+   BPatch_snippet *get_thr = new BPatch_funcCallExpr(*pthread_self_fn, snip_args);
+   snip_args.push_back(get_thr);
+   BPatch_snippet *get_index = new BPatch_funcCallExpr(*index_slow_fn, snip_args);
+
+   //delete get_thr;
+   //delete get_index;
+
+   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *get_index);
+   if (var->is_trivial()) {
+     delete get_thr;
+     delete var;
+     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
+     return NULL;
+   }
    return var;
 }
 
-AstNode *getCounterAddressFast(void *base, unsigned struct_size,
-                               bool for_multithreaded)
+BPatch_snippet *getCounterFast(BPatch_variableExpr *base)
 {
-   if(! for_multithreaded)
-      return new AstNode(AstNode::DataAddr, base);
-   
-   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
-   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-   
-   AstNode *offset     = new AstNode(timesOp, pos, increment);
-   AstNode *var        = new AstNode(plusOp, var_base, offset);
+   //  construct expr:
+   //  (base) + register[REG_MT_POS] * struct_size
 
-   // Hrm... this gives us the base address just fine, but we need a "load"
-   // to actually make it work. 
+   BPatch_snippet *reg_mt = new BPatch_regExpr(REG_MT_POS);
+   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
 
-   removeAst(pos);
-   removeAst(increment);
-   removeAst(var_base);
-   removeAst(offset);
+   if (var->is_trivial()) {
+     delete reg_mt;
+     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
+     return NULL;
+   }
+
+   //delete reg_mt;
    return var;
 }
 
-AstNode *getCounterAddress(void *base, unsigned struct_size,
+BPatch_snippet *getCounter(BPatch_variableExpr *base,
+                           BPatch_image *appImage,
                            bool for_multithreaded)
 {
+   BPatch_snippet *ret;
+
+   if (!for_multithreaded) {
+     //ret= new BPatch_arithExpr(BPatch_deref, *base);
+     //  try just returning base here -- not sure if copy is necessary
+     return base;
+     //return ret;
+     //return new BPatch_constExpr(base->getBaseAddr());
+   }
+   else {
 #if defined(i386_unknown_linux2_0)
-   return getCounterAddressSlow(base, struct_size, for_multithreaded);
+     ret = getCounterSlow(base, appImage);
 #else
-   return getCounterAddressFast(base, struct_size, for_multithreaded);
+     ret = getCounterFast(base);
 #endif
+   }
+
+   return ret;
 }
 
-
-AstNode *createCounter(const pdstring &func, void *dataPtr, 
-                       AstNode *ast, bool for_multithreaded) 
+BPatch_snippet *createCounter(const pdstring &func,
+                              BPatch_variableExpr *dataPtr,
+                              BPatch_snippet *arg, bool for_multithreaded,
+                              BPatch_image *appImage)
 {
-   AstNode *load=NULL, *calc=NULL, *store=NULL;
+   BPatch_snippet *calc=NULL, *store=NULL;
+   BPatch_snippet *counter_base = NULL;
 
    // We keep the different MT__THREAD code, because otherwise we really
    // de-optimize the singlethread case
-   AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter),
-                                             for_multithreaded);
+
+   counter_base = getCounter(dataPtr, appImage, for_multithreaded);
+   if (!counter_base) {
+     fprintf(stderr, "%s[%d]:  fatal internal error in createCounter()\n",
+             __FILE__, __LINE__);
+     return NULL;
+   }
+
    if (func=="addCounter") {
-      if(for_multithreaded) {
-         load = new AstNode(AstNode::DataIndir,counter_base);
-         calc = new AstNode(plusOp,load,ast);
-      } else {
-         calc = new AstNode(plusOp,counter_base, ast);
-      }
+      // counter = counter + arg;
+      calc = new BPatch_arithExpr(BPatch_plus, *counter_base, *arg);
+      store = new BPatch_arithExpr(BPatch_assign, *counter_base, *calc);
+   }
+   else if (func=="subCounter") {
+      // counter = counter - arg;
+      calc = new BPatch_arithExpr(BPatch_minus, *counter_base, *arg);
+      store = new BPatch_arithExpr(BPatch_assign, *counter_base, *calc);
+   }
+   else if (func=="setCounter") {
+      // counter = arg;
+      store = new BPatch_arithExpr(BPatch_assign, *counter_base, *arg);
+   }
+   else abort();
 
-      store = new AstNode(storeOp,counter_base,calc);
-   } else if (func=="subCounter") {
-      if(for_multithreaded) {
-         load = new AstNode(AstNode::DataIndir,counter_base);
-         calc = new AstNode(minusOp,load,ast);
-      } else {
-         calc = new AstNode(minusOp,counter_base,ast);
-      }
-
-      store = new AstNode(storeOp,counter_base,calc);
-   } else if (func=="setCounter") {
-      store = new AstNode(storeOp,counter_base,ast);
-   } else abort();
-
-   if (counter_base) removeAst(counter_base);
-   if (calc) removeAst(calc);
-   if (load) removeAst(load);
+   //if (counter_base && alloced_counter) delete counter_base;
+   //if (calc) delete calc;
 
    return store;
 }
@@ -533,13 +671,13 @@ AstNode *createCounter(const pdstring &func, void *dataPtr,
 
 
 bool
-mdld_v_expr::apply_be(AstNode*& ast)
+mdld_v_expr::apply_be(BPatch_snippet*& snip)
 {
    switch (type_) 
    {
      case MDL_EXPR_INT: 
         {
-           ast = new AstNode(AstNode::Constant, (void*)int_literal_);
+           snip = new BPatch_constExpr(int_literal_);
            return true;
         }
      case MDL_EXPR_STRING:
@@ -550,7 +688,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
            //
            char* tmp_str = new char[strlen(str_literal_.c_str())+1];
            strcpy (tmp_str, str_literal_.c_str());
-           ast = new AstNode(AstNode::ConstantString, tmp_str);
+           snip = new BPatch_constExpr((const char *)tmp_str);
            delete[] tmp_str;
            return true;
         }
@@ -564,7 +702,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
               return false;
 
            if (var_ == pdstring ("$arg"))
-              ast = new AstNode (AstNode::Param, (void*)index_value);
+              snip = new BPatch_paramExpr ((int)index_value);
            else if (var_ == pdstring ("$constraint"))
            {
               pdstring tmp = pdstring("$constraint") + pdstring(index_value);
@@ -576,7 +714,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
                  fflush(stderr);
                  return false;
               }
-              ast = new AstNode(AstNode::Constant, (void*)value);
+              snip = new BPatch_constExpr((int)value);
            }
            else
            {
@@ -591,7 +729,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
                    {
                       int value;
                       assert (element.get(value));
-                      ast = new AstNode(AstNode::Constant, (void*)value);
+                      snip = new BPatch_constExpr((int)value);
                       break;
                    }
                 case MDL_T_STRING:
@@ -605,7 +743,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
                       //
                       char* tmp_str = new char[strlen(value.c_str())+1];
                       strcpy (tmp_str, value.c_str());
-                      ast = new AstNode(AstNode::ConstantString, tmp_str);
+                      snip = new BPatch_constExpr((const char *)tmp_str);
                       delete[] tmp_str;
 
                       break;
@@ -617,49 +755,53 @@ mdld_v_expr::apply_be(AstNode*& ast)
         }
      case MDL_EXPR_BINOP:
         {
-           AstNode* lnode;
-           AstNode* rnode;
-           if (!dynamic_cast<mdld_expr*>(left_)->apply_be (lnode)) return false;
-           if (!dynamic_cast<mdld_expr*>(right_)->apply_be (rnode)) return false;
+           BPatch_snippet* lnode_p;
+           BPatch_snippet* rnode_p;
+           if (!dynamic_cast<mdld_expr*>(left_)->apply_be (lnode_p)) return false;
+           if (!dynamic_cast<mdld_expr*>(right_)->apply_be (rnode_p)) return false;
+           BPatch_snippet &lnode = *lnode_p;
+           BPatch_snippet &rnode = *rnode_p;
+
            switch (bin_op_) 
            {
              case MDL_PLUS:
-                ast = new AstNode(plusOp, lnode, rnode);
+                snip = new BPatch_arithExpr(BPatch_plus, lnode, rnode);
                 break;
              case MDL_MINUS:
-                ast = new AstNode(minusOp, lnode, rnode);
+                snip = new BPatch_arithExpr(BPatch_minus, lnode, rnode);
                 break;
              case MDL_DIV:
-                ast = new AstNode(divOp, lnode, rnode);
+                snip = new BPatch_arithExpr(BPatch_divide, lnode, rnode);
                 break;
              case MDL_MULT:
-                ast = new AstNode(timesOp, lnode, rnode);
+                snip = new BPatch_arithExpr(BPatch_times, lnode, rnode);
                 break;
              case MDL_LT:
-                ast = new AstNode(lessOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_lt, lnode, rnode);
                 break;
              case MDL_GT:
-                ast = new AstNode(greaterOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_gt, lnode, rnode);
                 break;
              case MDL_LE:
-                ast = new AstNode(leOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_le, lnode, rnode);
                 break;
              case MDL_GE:
-                ast = new AstNode(geOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_ge, lnode, rnode);
                 break;
              case MDL_EQ:
-                ast = new AstNode(eqOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_eq, lnode, rnode);
                 break;
              case MDL_NE:
-                ast = new AstNode(neOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_ne, lnode, rnode);
                 break;
              case MDL_AND:
-                ast = new AstNode(andOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_and, lnode, rnode);
                 break;
              case MDL_OR:
-                ast = new AstNode(orOp, lnode, rnode);
+                snip = new BPatch_boolExpr(BPatch_or, lnode, rnode);
                 break;
-             default: return false;
+             default: 
+                return false;
            }
            return true;
         }
@@ -698,9 +840,15 @@ mdld_v_expr::apply_be(AstNode*& ast)
               } else if (var_ == "destroyProcessTimer")
                  timer_func = DESTROY_PROC_TIMER;
 
-              pdvector<AstNode *> ast_args;
-              ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
-                                ast_args, global_proc->multithread_capable());
+              BPatch_image *appImage = global_proc->getImage()->get_dyn_image();
+              BPatch_variableExpr *base_var = dn->getVariableExpr();
+              if (!base_var) return false;
+
+              BPatch_Vector<BPatch_snippet *> snip_args;
+              snip = createTimer(timer_func, base_var, snip_args,
+                                appImage, global_proc->multithread_capable());
+              if (!snip) return false;
+
            }
            else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
 
@@ -722,8 +870,6 @@ mdld_v_expr::apply_be(AstNode*& ast)
               else if (var_ == "sampleHwCounter")
                  timer_func = "DYNINSTsampleHwCounter";
 
-              pdvector<AstNode *> ast_args;
-
               /* hwCounter can be treated the same way as a hwTimer because
                  both types need to invoke a DYNINST* method 
               */
@@ -732,8 +878,10 @@ mdld_v_expr::apply_be(AstNode*& ast)
               assert(hw != NULL);
               int hwCntrIndex = hw->getIndex();  /* temp */
 
-              ast = createHwTimer(timer_func, (void*)(dn->getInferiorPtr()),
-                                  ast_args, hwCntrIndex);
+              BPatch_Vector<BPatch_snippet *> snip_args;
+              BPatch_image *appImage = global_proc->getImage()->get_dyn_image();
+              snip = createHwTimer(timer_func, (void*)(dn->getInferiorPtr()),
+                                  snip_args, hwCntrIndex, appImage);
 
            }
       
@@ -753,80 +901,82 @@ mdld_v_expr::apply_be(AstNode*& ast)
               // relying on global_proc to be set in mdl_metric::apply
               if (global_proc) 
               {
-                 Symbol info;
-                 Address baseAddr;
-                 if (global_proc->getSymbolInfo(symbol_name, info, baseAddr)) 
-                 {
-                    Address adr = info.addr();
-                    ast = new AstNode(AstNode::DataAddr, (void*)adr);
-                 } 
-                 else 
-                 {
-                    pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
-                       + pdstring("unable to find symbol '") + symbol_name + pdstring("'");
+                 fprintf(stderr, "%s[%d]:  PDSEP:  getSymbolInfo(%s)\n",
+                         __FILE__, __LINE__, symbol_name.c_str());
+
+                 pd_image *pdimg = global_proc->getImage();
+                 BPatch_image *appImage = pdimg->get_dyn_image();
+
+                 snip = appImage->findVariable(symbol_name.c_str(), true);
+                 if (!snip) {
+                    pdstring msg = pdstring("In metric '") + currentMetric
+                                   + pdstring("': ")
+                                   + pdstring("unable to find symbol '")
+                                   + symbol_name + pdstring("'");
                     mdl_data::cur_mdl_data->env->appendErrorString( msg );
                     return false;
                  }
+
               }
            }
            else if (var_ == "readAddress")
            {
-              mdl_var addr_var;
-              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be (addr_var))
-                 return false;
-              int addr;
-              if (!addr_var.get(addr))
-              {
-                 fflush(stderr);
-                 return false;
-              }
-              ast = new AstNode(AstNode::DataAddr, (void*)addr);
+
+             fprintf(stderr, "%s[%d]:  PDSEP -- FIXME -- readAddress()\n",
+                     __FILE__, __LINE__);
+             //  I've never seen this clause executed.  The following
+             //  formulation _should_ work, but its flagged with a warning
+             //  until this can be verified.
+
+             //  The previous ast representation of this was an untyped
+             //  DataAddr ast node, so there might be a loss of generality
+             //  here, as this now assumes that the <addr> points to "int"
+
+             mdl_var addr_var;
+             if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be (addr_var))
+                return false;
+             int addr;
+             if (!addr_var.get(addr))
+             {
+                fflush(stderr);
+                return false;
+             }
+
+             BPatch_image *appImage = global_proc->getImage()->get_dyn_image();
+             BPatch_type *inttype = appImage->findType("int");
+             if (! inttype) {
+               fprintf(stderr, "%s[%d]:  cannot find int type\n", 
+                      __FILE__, __LINE__);
+               return false;
+             }
+
+             // There might be a better way to name this variable using
+             // a mdl name...
+             char addr_name[64];
+             sprintf(addr_name, "addr_%p", (void *)addr);
+             BPatch_thread *appThread = global_proc->get_dyn_process();
+             snip = new BPatch_variableExpr(addr_name, appThread,
+                                           (void *) addr, inttype);
            }
            else
            {
-              pdvector<AstNode *> astargs;
-              for (unsigned u = 0; u < args_->size(); u++) 
+              BPatch_Vector<BPatch_snippet *> snipargs;
+              for (unsigned u = 0; u < args_->size(); u++)
               {
-                 AstNode *tmparg=NULL;
-                 if (!dynamic_cast<mdld_expr*>((*args_)[u])->apply_be(tmparg)) 
-                 {
-                    removeAst(tmparg);
-                    return false;
-                 }
-                 astargs += assignAst(tmparg);
-                 removeAst(tmparg);
+                 BPatch_snippet *tmparg=NULL;
+                 if (!dynamic_cast<mdld_expr*>((*args_)[u])->apply_be(tmparg))
+                   return false;
+                 snipargs.push_back(tmparg);
               }
 
-              BPatch_Vector<BPatch_function *> bpfv;
+
+              BPatch_image *appImage = global_proc->getImage()->get_dyn_image();
               BPatch_function *bpf = NULL;
 
-              if (!global_proc->findAllFuncsByName(var_, bpfv)) {
-                 pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
-                    + pdstring("unable to find procedure '") + var_ + pdstring("'");
-                 mdl_data::cur_mdl_data->env->appendErrorString( msg );
-                 return false;
-              }
-              else {
-                 if (bpfv.size() > 1) {
-                    pdstring msg = 
-                       pdstring("WARNING:  found ") + pdstring(bpfv.size()) +
-                       pdstring(" records of function '") + var_ + pdstring("'") +
-                       pdstring(".  Using the first.(3)");
-                 mdl_data::cur_mdl_data->env->appendErrorString( msg );
-                 }
-                 bpf = bpfv[0];
-              }
+              if (NULL == (bpf = mdlFindFunction(var_.c_str(), appImage)))
+                return false;
 
-              if (!bpf) 
-              {
-                 pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
-                    + pdstring("unable to find procedure '") + var_ + pdstring("'");
-                 mdl_data::cur_mdl_data->env->appendErrorString( msg );
-                 return false;
-              }
-              ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
-              for (unsigned i=0;i<astargs.size();i++)
-                 removeAst(astargs[i]);
+              snip = new BPatch_funcCallExpr(*bpf, snipargs);
               break;
            }
         return true;
@@ -850,8 +1000,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
         instrDataNode* dn;
         if (!mdl_data::cur_mdl_data->env->get(get_dn, var_)) return false;
         if (!get_dn.get(dn)) return false;
-        AstNode* ast_arg;
-        if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ast_arg)) return false;
+        BPatch_snippet* snip_arg;
+        if (!dynamic_cast<mdld_expr*>(left_)->apply_be(snip_arg)) return false;
 
         pdstring func_str;
         switch (bin_op_)
@@ -861,15 +1011,25 @@ mdld_v_expr::apply_be(AstNode*& ast)
           case MDL_MINUSASSIGN: func_str = "subCounter"; break;
           default: return false;
         }
-        ast = createCounter(func_str, (void*)(dn->getInferiorPtr()), ast_arg,
-                            global_proc->multithread_capable());
-        removeAst (ast_arg);
-        return true;
+
+        BPatch_variableExpr *base_var = dn->getVariableExpr();
+        if (!base_var) return false;
+        //BPatch_variableExpr *temp_var = dn->getVariableExpr();
+        //if (!temp_var) return false;
+        //BPatch_snippet *base_var = new BPatch_snippet(*temp_var);
+
+
+        snip = createCounter(func_str, (BPatch_variableExpr *)base_var, snip_arg,
+                             global_proc->multithread_capable(),
+                             global_proc->get_dyn_process()->getImage());
+        if (NULL == snip)
+          fprintf(stderr, "%s[%d]:  createCounter failed!\n", __FILE__, __LINE__);
+        return (snip != NULL);
      }
   case MDL_EXPR_VAR:
      {
         if (var_ == "$return") {
-           ast = new AstNode(AstNode::ReturnVal, (void*)0);
+           snip = new BPatch_retExpr();
            return true;
         }
         mdl_var get_dn;
@@ -886,7 +1046,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
                    return false;
                 }
                 else 
-                   ast = new AstNode(AstNode::Constant, (void*)value);
+                   snip = new BPatch_constExpr(value);
+
                 return true;
              }
              //case MDL_T_COUNTER:
@@ -900,21 +1061,17 @@ mdld_v_expr::apply_be(AstNode*& ast)
                    return false;
                 }
 
-                if(global_proc->multithread_capable()) {
-                   AstNode *tmp_ast;
-                   tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()),
-                                               dn->getSize(),
-                                           global_proc->multithread_capable());
-                   // First we get the address, and now we get the value...
-                   ast = new AstNode(AstNode::DataIndir,tmp_ast);
-                   removeAst(tmp_ast);
-                } else {
-                   // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
-                   ast = new AstNode(AstNode::DataAddr,
-                                     (void*)(dn->getInferiorPtr()));
-                }
+                BPatch_variableExpr *base_var = dn->getVariableExpr();
+                if (!base_var) return false;
 
+                snip = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
+                                  global_proc->multithread_capable());
+                if (!snip) {
+                   fprintf(stderr, "%s[%d]:  getCounter() failed!\n", __FILE__, __LINE__);
+                   return false;
+                }
                 return true;
+
              }
           default:
              fprintf(stderr, "type of variable %s is not known\n", 
@@ -939,15 +1096,15 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 }
                 instrDataNode *dn;
                 assert (get_dn.get(dn));
-                if(global_proc->multithread_capable()) {
-                   ast = getTimerAddress((void *)(dn->getInferiorPtr()),
-                                         dn->getSize(),
-                                         global_proc->multithread_capable());
-                } else {
-                   //ast =new AstNode(AstNode::Constant, //was AstNode::DataPtr
-                   // restore AstNode::DataPtr
-                   ast = new AstNode(AstNode::DataPtr,  
-                                     (void*)(dn->getInferiorPtr()));
+
+                BPatch_variableExpr *base_var = dn->getVariableExpr();
+                if (!base_var) return false;
+
+                snip = getTimerAddress(base_var, global_proc->get_dyn_process()->getImage(),
+                                       global_proc->multithread_capable());
+                if (!snip) {
+                   fprintf(stderr, "%s[%d]: getTimerAddress() failed.\n", __FILE__, __LINE__);
+                   return false;
                 }
 
                 break;
@@ -958,7 +1115,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 if (!dynamic_cast<mdld_expr*>(left_)->apply_be (tmp)) return false;
                 int value;
                 if (!tmp.get(value)) return false;
-                ast = new AstNode(AstNode::Constant, (void*)(-value));
+                snip = new BPatch_constExpr(-value);
+
                 break;
              }
           default:
@@ -978,12 +1136,16 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 if (!dn_var.get(dn)) return false;
 
                 int value = 1;
-                AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
+                BPatch_snippet* snip_arg = new BPatch_constExpr(value);
+                BPatch_variableExpr *base_var = dn->getVariableExpr();
+                snip = createCounter("addCounter",(BPatch_variableExpr *)base_var,
+                                    snip_arg, global_proc->multithread_capable(),
+                                    global_proc->get_dyn_process()->getImage());
+                if (!snip) {
+                   fprintf(stderr, "%s[%d]:  createCounter failed!\n", __FILE__, __LINE__);
+                   return false;
+                }
 
-                ast = createCounter("addCounter",(void*)(dn->getInferiorPtr()),
-                                    ast_arg,
-                                    global_proc->multithread_capable());
-                removeAst(ast_arg);       
                 break;
              }
           default: return false;
@@ -1060,28 +1222,10 @@ mdld_v_expr::apply_be(mdl_var& ret)
            if (!arg0.get(func_name)) return false;
            if (global_proc)
            {
-              // TODO -- what if the function is not found ?
-              BPatch_Vector<BPatch_function *> bpfv;
-              BPatch_function *bpf;
-              
-              if (!global_proc->findAllFuncsByName(func_name, bpfv)) {
-                 pdstring msg = pdstring("In metric '") + currentMetric +
-                              pdstring("': ") + 
-                              pdstring("unable to find procedure '") +
-                              func_name + pdstring("'");
-                 mdl_data::cur_mdl_data->env->appendErrorString( msg );
-                 assert(0);
-              }
-              else {
-                 if (bpfv.size() > 1) {
-                    pdstring msg = pdstring("WARNING:  found ") +pdstring(bpfv.size())
-                               + pdstring(" records of function '") + func_name +
-                                 pdstring("'") + pdstring(".  Using the first.");
-                     mdl_data::cur_mdl_data->env->appendErrorString( msg );
-                 }
-                 bpf = bpfv[0];
-              }
-              if (!bpf) { assert(0); return false; }
+              BPatch_image *appImage = global_proc->get_dyn_process()->getImage();
+              BPatch_function *bpf = mdlFindFunction(func_name.c_str(), appImage);
+              if (!bpf) return false; // mdlFindFunction prints warnings
+
               return (ret.set(bpf));
            }
            else { assert(0); return false; }
@@ -1222,16 +1366,16 @@ mdld_v_expr::mk_list(pdvector<pdstring> &funcs)
 // global variable when if statements are called in some cases.  This is to
 // account for the cost of the body of the if statement in the observed cost.
 bool
-mdld_icode::apply_be(AstNode *&mn, bool mn_initialized,
-				    pd_process *proc) 
+mdld_icode::apply_be(BPatch_snippet *&mn, bool mn_initialized,
+				          pd_process *proc) 
 {
   // a return value of true implies that "mn" has been written to
 
   if (!expr_)
      return false;
 
-  AstNode* pred = NULL;
-  AstNode* ast = NULL;
+  BPatch_snippet* pred = NULL;
+  BPatch_snippet* snip = NULL;
 
   if (if_expr_) {
     if (!dynamic_cast<mdld_expr*>(if_expr_)->apply_be(pred)) {
@@ -1239,32 +1383,32 @@ mdld_icode::apply_be(AstNode *&mn, bool mn_initialized,
     }
   }
 
-  if (!dynamic_cast<mdld_expr*>(expr_)->apply_be(ast)) {
+  if (!dynamic_cast<mdld_expr*>(expr_)->apply_be(snip)) {
     return false;
   }
 
-  AstNode* code = NULL;
-  if (pred) 
+  BPatch_snippet* code = NULL;
+  if (pred)
   {
-    // Note: we don't use assignAst on purpose here
-    code = createIf(pred, ast, proc->get_dyn_process()->lowlevel_process());
-    removeAst(pred);
-    removeAst(ast);
+    code = createIf((BPatch_boolExpr *)pred, snip, proc->get_dyn_process());
+    //delete pred;
+    //delete snip;
   }
   else
-    code = ast;
+    code = snip;
 
-  if (mn_initialized) 
+  if (mn_initialized)
   {
-    // Note: we don't use assignAst on purpose here
-    AstNode *tmp=mn;
-    mn = new AstNode(tmp, code);
-    removeAst(tmp);
+    BPatch_Vector<BPatch_snippet *> seq;
+    BPatch_snippet *tmp = new BPatch_snippet(*mn);
+    seq.push_back(tmp);
+    seq.push_back(code);
+    //delete mn;
+    mn = new BPatch_sequence(seq);
   }
   else
-    mn = assignAst(code);
+    mn = code;
 
-  removeAst(code);
   return true;
 }
 
@@ -1519,12 +1663,11 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
 
   // Let's generate the code now (we used to calculate it in the loop below,
   // which was a waste since the code is the same for all points).
-  AstNode *code = NULL;
+  BPatch_snippet *code = NULL;
   unsigned size = icode_reqs_->size();
   for (unsigned u=0; u<size; u++) {
     if (!((mdld_icode*)(*icode_reqs_)[u])->apply_be(code, u>0, mn->proc())) {
       // when u is 0, code is un-initialized
-      removeAst(code);
       return false;
     }
   }
@@ -1534,40 +1677,42 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
   if (constrained_) {
      unsigned fsize = inFlags.size();
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
-        AstNode *temp1;
-        if(global_proc->multithread_capable()) {
-           AstNode *tmp_ast = getCounterAddress(
-                                  (void *)((inFlags[fi])->getInferiorPtr()),
-                                  inFlags[fi]->getSize(),
-                                  global_proc->multithread_capable());
-           temp1 = new AstNode(AstNode::DataIndir, tmp_ast);
-           removeAst(tmp_ast);
-        } else {
-           // Note: getInferiorPtr could return a NULL pointer here if we are
-           // just computing cost - naim 2/18/97
-                      
-           // AstNode *temp1 = new AstNode(AstNode::DataValue,
-           temp1 = new AstNode(AstNode::DataAddr, 
-                               (void*)((inFlags[fi])->getInferiorPtr()));
+        instrDataNode *idn = const_cast<instrDataNode *> (inFlags[fi]);
+
+        BPatch_variableExpr *base_var = idn->getVariableExpr();
+        if (!base_var) {
+           fprintf(stderr, "%s[%d]:  getVariableExpr() failed for intCounter\n",
+                   __FILE__, __LINE__);
+           return false;
         }
-        // Note: we don't use assignAst on purpose here
-        AstNode *temp2 = code;
-        code = createIf(temp1, temp2,
-                        mn->proc()->get_dyn_process()->lowlevel_process());
-        removeAst(temp1);
-        removeAst(temp2);
+
+        BPatch_snippet *temp1 = NULL;
+        temp1 = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
+                           global_proc->multithread_capable());
+        if (!temp1) {
+          fprintf(stderr, "%s[%d]:  getCounter() failed\n", __FILE__, __LINE__);
+        }
+
+        BPatch_snippet *temp2 = code;
+        code = createIf((BPatch_boolExpr *)temp1, temp2,
+                        mn->proc()->get_dyn_process());
+        // delete temp1;
+        // delete temp2;
      }
   }
 
   if (!code) {
     // we are probably defining an empty metric
-    code = new AstNode();
+    //  --haven't seen this get executed...  this makes me a bit queasy
+    //  not sure if it needs to be "fixed", left as-is, or removed
+    fprintf(stderr, "%s[%d]:  FIXME before null snip\n", __FILE__, __LINE__);
+    code = new BPatch_snippet();
   }
 
-  callOrder corder;
+  callOrder corder = orderFirstAtPoint; // gcc likes this initialized
   switch (position_) {
       case MDL_PREPEND: 
-	  corder = orderFirstAtPoint; 
+	  //corder = orderFirstAtPoint; 
 	  break;
       case MDL_APPEND: 
 	  corder = orderLastAtPoint; 
@@ -1575,10 +1720,10 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
       default: assert(0);
   }
 
-  callWhen cwhen;
+  callWhen cwhen = callPreInsn; // gcc likes this initialized
   switch (where_instr_) {
       case MDL_PRE_INSN: 
-	  cwhen = callPreInsn; 
+	  //cwhen = callPreInsn; 
 	  break;
       case MDL_POST_INSN: 
 	  cwhen = callPostInsn; 
@@ -1595,7 +1740,6 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
      // takes place when mn->loadInstrIntoApp() is later called.
   }
 
-  removeAst(code); 
   return true;
 }
 
@@ -2932,6 +3076,14 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    BPatch_function *bpf = (*func_buf_ptr)[i];
                    BPatch_Vector<BPatch_point*> *calls = bpf->findPoint(BPatch_locSubroutine);
+                   if (!calls) {
+                      char fn[1024];
+                      bpf->getName(fn, 1024);
+                      fprintf(stderr, "%s[%d]:  no call points for %s\n", __FILE__, __LINE__, fn);
+                      continue;
+                   }
+
+                   
 
                    // makes a copy of the return value (on purpose), since we 
                    // may delete some items that shouldn't be a call site for 
@@ -2999,6 +3151,13 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                       // metric_cerr << "nothing was removed -- doing set() now" << endl;
                       const BPatch_Vector<BPatch_point*> *pt_hold = 
                          bpf->findPoint(BPatch_subroutine);
+                      if (!pt_hold) {
+                        char fn[1024];
+                        bpf->getName(fn, 1024);
+                        fprintf(stderr, "%s[%d]:  no call points for %s\n", __FILE__, __LINE__, fn);
+                        continue;
+                      }
+
                       for(unsigned i=0; i<(*pt_hold).size(); i++)
                          (*inst_point_buf).push_back((*pt_hold)[i]);
                    }
@@ -3025,6 +3184,12 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    BPatch_function *bpf = (*func_buf_ptr)[i];
                    const BPatch_Vector<BPatch_point*> *entry_pt_hold =
                        bpf->findPoint(BPatch_entry);
+                   if (!entry_pt_hold) {
+                     char fn[1024];
+                     bpf->getName(fn, 1024);
+                     fprintf(stderr, "%s[%d]:  no entry points for %s\n", __FILE__, __LINE__, fn);
+                     continue;
+                   }
                    assert(entry_pt_hold->size());
                    (*inst_point_buf).push_back((*entry_pt_hold)[0]);
                 }
@@ -3038,6 +3203,12 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    BPatch_function *bpf = (*func_buf_ptr)[i];
                    const BPatch_Vector<BPatch_point *> *func_exit_pts = 
                      bpf->findPoint(BPatch_exit);
+                   if (!func_exit_pts) {
+                     char fn[1024];
+                     bpf->getName(fn, 1024);
+                     fprintf(stderr, "%s[%d]:  no exit points for %s\n", __FILE__, __LINE__, fn);
+                     continue;
+                   }
                    for(unsigned j=0; j<func_exit_pts->size(); j++)
                       (*inst_point_buf).push_back((*func_exit_pts)[j]);
                 }

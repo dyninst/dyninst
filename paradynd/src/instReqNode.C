@@ -41,7 +41,7 @@
 
 #include "paradynd/src/instReqNode.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/h/BPatch_snippet.h"
 #include "common/h/timing.h"
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -63,8 +63,10 @@ const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
  */
 
 // special copy constructor used for fork handling
+
+//  PDSEP -- Question -- should we be doing a hard (not just pointer) copy of snippet?
 instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) : 
-   point(par.point), ast(assignAst(par.ast)), when(par.when), 
+   point(par.point), snip(par.snip), when(par.when), 
    order(par.order), loadedIntoApp_(par.loadedIntoApp_), 
    trampsHookedUp_(par.trampsHookedUp_), 
    rinstance(par.rinstance), rpcCount(par.rpcCount), 
@@ -112,10 +114,15 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    // base tramp at the point (if needed), generates code for the tramp, calls
    // inferiorMalloc() in the text heap to get space for it, and actually
    // inserts the instrumentation.
+
+   //  PDSEP -- eventually need to use insertSnippet here
+   AstNode * l_ast = snip->PDSEP_ast();
+   AstNode * &lr_ast = l_ast;
+
    loadMiniTramp_result res = 
       loadMiniTramp(mtHandle,
                     theProc->get_dyn_process()->lowlevel_process(),
-                    point, ast, when, order,
+                    point, lr_ast, when, order,
                     false, // false --> don't exclude cost
                     retInstance,
                     trampRecursiveDesired,
@@ -160,7 +167,6 @@ void instReqNode::disable(pd_process *proc)
 
 instReqNode::~instReqNode()
 {
-  removeAst(ast);
 }
 
 timeLength instReqNode::cost(pd_process *theProc) const
@@ -171,7 +177,7 @@ timeLength instReqNode::cost(pd_process *theProc) const
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
    process *llproc = theProc->get_dyn_process()->lowlevel_process();
-  int unitCostInCycles = ast->maxCost() + getPointCost(llproc, point) +
+  int unitCostInCycles = snip->PDSEP_ast()->maxCost() + getPointCost(llproc, point) +
                         getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
   timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
   float frequency = getPointFrequency(point);

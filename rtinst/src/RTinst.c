@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.82 2004/07/23 20:39:18 tlmiller Exp $
+ * $Id: RTinst.c,v 1.83 2004/09/21 05:33:45 jaw Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -688,6 +688,7 @@ BOOL WINAPI DllMain(
   DWORD fdwReason,     /* reason for calling function */
   LPVOID lpvReserved   /* reserved */
 ){
+#ifdef NOTDEF // PDSEP
 	if(pDllMainCalledOnce){
 	}else{
 		if(libparadynRT_init_localparadynPid != -1 &&
@@ -700,12 +701,13 @@ BOOL WINAPI DllMain(
 			libparadynRT_init_localObservedCost);
 		}
 	}
+#endif
 	return 1; 
 }
  
 
-#else
-
+//#else
+#endif // windows
 
 #ifdef __GNUC
 __attribute__ ((constructor)) void libparadynRT_init(void);
@@ -730,7 +732,7 @@ void libparadynRT_init() {
 		}
 	}
 }
-#endif
+//#endif
 
 
 

@@ -96,18 +96,35 @@ typedef enum {
 } BPatch_unOp;
 
 class BPATCH_DLL_EXPORT BPatch_snippet {
+    friend class BPatch_thread;
+    friend class BPatch_arithExpr;
+    friend class BPatch_boolExpr;
+    friend class BPatch_funcCallExpr;
+    friend class BPatch_variableExpr;
+    friend class BPatch_ifExpr;
+    friend class BPatch_ifMachineConditionExpr;
+    friend class BPatch_sequence;
+    friend AstNode *generateArrayRef(const BPatch_snippet &lOperand, const BPatch_snippet &rOperand);
+    friend AstNode *generateFieldRef(const BPatch_snippet &lOperand, const BPatch_snippet &rOperand);
+
 public:
-// The following members are for  internal use by the library only:
-    AstNode	*ast; /* XXX It would be better if this was protected */
-// End members for internal use only.
 
     BPatch_snippet() : ast(NULL) {};
     BPatch_snippet(const BPatch_snippet &);
     BPatch_snippet &operator=(const BPatch_snippet &);
 
-    ~BPatch_snippet();
+    virtual ~BPatch_snippet();
 
     float	getCost();
+
+    AstNode *PDSEP_ast() {return ast;} // This will go away
+    int PDSEP_astMinCost();
+
+    bool is_trivial() {return (ast == NULL);} //  allows users to check to see if 
+                                              //  a snippet operation failed (leaving ast NULL)
+protected:
+    AstNode	*ast; 
+
 };
 
 class BPATCH_DLL_EXPORT BPatch_arithExpr: public BPatch_snippet {
@@ -140,6 +157,11 @@ public:
 #endif
     BPatch_constExpr(const char *value);
     BPatch_constExpr(const void *value);
+};
+
+class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
+public:
+    BPatch_regExpr(const unsigned int value);
 };
 
 class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
@@ -183,29 +205,39 @@ public:
 };
 
 class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
+    friend class BPatch_thread;
+    friend class BPatch_image;
+    friend class BPatch_function;
+
     char		*name;
-    process		*proc;
+    BPatch_thread	*appThread;
     void		*address;
     int			size;
     BPatch_point	*scope;
     bool		isLocal;
 
-public:
 // The following functions are for internal use by the library only:
-    BPatch_variableExpr(char *name, process *in_process, void *in_address,
-			const BPatch_type *type);
-    BPatch_variableExpr(process *in_process, void *in_address,
+    BPatch_variableExpr(BPatch_thread *in_process, void *in_address,
 			int in_size);
-    BPatch_variableExpr(char *in_name, process *in_process, AstNode *_ast,
+    BPatch_variableExpr(char *in_name, BPatch_thread *in_process, AstNode *_ast,
 			const BPatch_type *type);
     BPatch_variableExpr(char *in_name,
-                        process *in_process,
+                        BPatch_thread *in_process,
                         AstNode *_ast,
                         const BPatch_type *type,
                         void* in_address);
-    BPatch_variableExpr(process *in_process, void *in_address, int in_register,
+    BPatch_variableExpr(BPatch_thread *in_process, void *in_address, int in_register,
 			const BPatch_type *type, BPatch_storageClass storage = BPatch_storageAddr,
 			BPatch_point *scp = NULL);
+
+public:
+    //  The following constructor _should_ be private, but paradyn needs
+    //  some way of declaring its own variables in its shared memory
+    //  (counters, etc).  Until there is a way to do this in a better way,
+    //  this needs to remain public (consider this a warning, API user,
+    //  avoid using this constructor, it may not be here in the future).
+    BPatch_variableExpr(char *name, BPatch_thread *in_process, void *in_address,
+                        const BPatch_type *type);
 
 // Public functions for use by users of the library:
     bool readValue(void *dst);

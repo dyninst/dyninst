@@ -488,7 +488,7 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
          // What we want to do: build a single big AST then launch it as
          // an RPC.
          for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-            AstNode *AST = curCReq->reqNodes[k1]->Ast();
+            AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
             if (!conglomerate) {
                conglomerate = AST;
             }
@@ -525,7 +525,7 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
            // What we want to do: build a single big AST then launch it as
            // an RPC.
            for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-               AstNode *AST = curCReq->reqNodes[k1]->Ast();
+               AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
                catchup_t catchup;
                catchup.ast = AST;
                catchup.thread = catchupWalk[0]->frame.getThread();

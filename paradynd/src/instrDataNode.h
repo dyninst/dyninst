@@ -43,6 +43,7 @@
 #define INSTR_DATA_NODE
 
 #include "paradynd/src/variableMgrTypes.h"
+#include "dyninstAPI/h/BPatch_type.h"
 #include "common/h/Vector.h"
 
 class instrCodeNode_Val;
@@ -60,6 +61,7 @@ class instrDataNode {
   bool thrNodeClientSet;
   bool dontInsertData_;
   int refCount;
+  BPatch_variableExpr *varExpr;
 
   /* unique id for a counter or timer */
   static int counterId;
@@ -82,6 +84,8 @@ class instrDataNode {
     thrNodeClientSet(par.thrNodeClientSet), 
     dontInsertData_(par.dontInsertData_), refCount(par.refCount) { }
   */
+
+  BPatch_variableExpr *getVariableExpr();
 
   bool dontInsertData() { return dontInsertData_; }
   Address getInferiorPtr() const;

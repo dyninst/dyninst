@@ -196,7 +196,7 @@ class instrCodeNode {
 
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks);
-  void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
+  void addInst(instPoint *point, BPatch_snippet *, callWhen when, callOrder o);
   timeLength cost() const;
   void oldCatchUp(int tid);
   void disable();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.109 2004/08/16 04:32:11 rchen Exp $
+// $Id: BPatch_thread.C,v 1.110 2004/09/21 05:33:44 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -217,7 +217,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerThread(this);
 
-    image = new BPatch_image(proc);
+    image = new BPatch_image(this);
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated())
         BPatch::bpatch->getThreadEvent(false);
@@ -264,7 +264,7 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerThread(this);
 
-    image = new BPatch_image(proc);
+    image = new BPatch_image(this);
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
 	BPatch::bpatch->getThreadEventOnly(false);
@@ -294,7 +294,7 @@ BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerThread(this);
 
-    image = new BPatch_image(proc);
+    image = new BPatch_image(this);
 }
 
 
@@ -630,7 +630,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
     }
 
     BPatch_variableExpr *ret;
-    ret =  new BPatch_variableExpr(proc, ptr, Null_Register, BPatch::bpatch->type_Untyped);
+    ret =  new BPatch_variableExpr(this, ptr, Null_Register, BPatch::bpatch->type_Untyped);
     return ret;
 }
 
@@ -656,7 +656,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
 
     if (!mem) return NULL;
 
-    return new BPatch_variableExpr(proc, mem, Null_Register, &type);
+    return new BPatch_variableExpr(this, mem, Null_Register, &type);
 }
 
 
@@ -695,7 +695,7 @@ BPatch_variableExpr *BPatch_thread::getInheritedVariable(
     // parent process
     return NULL;
   }
-  return new BPatch_variableExpr(proc, parentVar.getBaseAddr(), Null_Register,
+  return new BPatch_variableExpr(this, parentVar.getBaseAddr(), Null_Register,
 				 parentVar.getType());
 }
 

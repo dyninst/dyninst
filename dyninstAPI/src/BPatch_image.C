@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.60 2004/08/16 04:31:54 rchen Exp $
+// $Id: BPatch_image.C,v 1.61 2004/09/21 05:33:44 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -76,8 +76,8 @@ class AddrToVarExprHash {
  * Construct a BPatch_image for the given process.
  */
 
-BPatch_image::BPatch_image(process *_proc) :
-   proc(_proc), defaultNamespacePrefix(NULL)
+BPatch_image::BPatch_image(BPatch_thread *_thr) :
+   proc(_thr->proc), appThread(_thr), defaultNamespacePrefix(NULL)
 {
     modlist = NULL;
 
@@ -180,7 +180,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     }
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
-	var = new BPatch_variableExpr( (char *)name, proc, 
+	var = new BPatch_variableExpr( (char *)name, appThread, 
 	    (void *)syminfo.addr(), (const BPatch_type *) type);
 	AddrToVarExpr->hash[syminfo.addr()] = var;
     }
@@ -279,7 +279,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	dictionary_hash< function_base *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
 	dictionary_hash< function_base *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
 	for( ; iter != end; ++iter ) {
-		char name[255];
+		//char name[255];
 		BPatch_function * bpf = * iter;
 		if( bpf->getModule() == NULL ) {
 			// /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
@@ -429,7 +429,7 @@ void BPatch_image::findFunctionInImage(
       for (unsigned int i = 0; i < pdfv->size(); i++) {
          BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
          funcs->push_back( foo );
-		}
+      }
 
 	
    } else {
@@ -504,7 +504,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
          for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
             const image *obj_image = ((*proc->shared_objects)[j])->getImage();
             if (obj_image) {
-               findFunctionInImage(name, (image*)obj_image, &funcs);
+               findFunctionInImage(name, const_cast<image*>(obj_image), &funcs);
             }
          }
       }
@@ -553,7 +553,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
       for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
          const image *obj_image = ((*proc->shared_objects)[j])->getImage();
          if (obj_image) {
-            findFunctionPatternInImage(&comp_pat, (image*)obj_image, &funcs);
+            findFunctionPatternInImage(&comp_pat, const_cast<image*>(obj_image), &funcs);
             //cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
          }
       }
@@ -702,7 +702,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
     char *nameCopy = strdup(name);
     assert(nameCopy);
     BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
-	proc, (void *)syminfo.addr(), (const BPatch_type *) type);
+	appThread, (void *)syminfo.addr(), (const BPatch_type *) type);
     AddrToVarExpr->hash[syminfo.addr()] = ret;
     return ret;
 }
@@ -733,7 +733,7 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
     if (lv) {
 	// create a local expr with the correct frame offset or absolute
 	//   address if that is what is needed
-	return new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
+	return new BPatch_variableExpr(appThread, (void *) lv->getFrameOffset(), 
 	    lv->getRegister(), lv->getType(), lv->getStorageClass(), &scp);
     }
 

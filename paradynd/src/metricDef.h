@@ -44,6 +44,18 @@
 
 /* 
  * $Log: metricDef.h,v $
+ * Revision 1.10  2004/09/21 05:33:45  jaw
+ * Changes mdl to use BPatch_snippets instead of AstNodes.  These account for
+ * many, but not all AstNodes in paradynd.  Remaining groups of AstNodes
+ * include:  OS specific init calls (ie anything that uses the class
+ * instMapping -- these will have to be dealt with as a group), Anything
+ * related to PAPI, MPI...  probably more.
+ *
+ * Some more (smallish) modifications of the paradynd init including a bugfix
+ * (for a bug introduced by my last commit) for Windows involving the DllMain
+ * function.  Also variables in libparadynRT that are set by paradynd during
+ * the init stages are now dealt with as BPatch_variableExpr's.
+ *
  * Revision 1.9  2004/03/23 01:12:35  eli
  * Updated copyright string
  *
@@ -84,6 +96,8 @@
  *
  */
 
+
+#ifdef NOTDEF // PDSEP
 #include "dyninstAPI/src/ast.h"
 
 // os independent predicate functions
@@ -148,5 +162,5 @@ extern void instAllFunctions(metricFocusNode *nm,
 			     unsigned tag,		/* bit mask to use */
 			     AstNode *enterAst,
 			     AstNode *leaveAst);
-
+#endif // NOTDEF PDSEP
 #endif

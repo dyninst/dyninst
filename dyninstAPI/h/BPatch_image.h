@@ -75,13 +75,14 @@ typedef enum BPatch_LpModel {
 					    
 					  
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
-    process	*proc;
+    process	*proc; // get rid of this in favor of BPatch_thread
+    BPatch_thread *appThread;
 
     char *defaultNamespacePrefix;
 
  public:
 // The following functions are for internal use by  the library only:
-    BPatch_image(process *_proc);
+    BPatch_image(BPatch_thread *_thr);
     BPatch_image();
     virtual ~BPatch_image();
 
@@ -93,6 +94,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     void setDefaultNamespacePrefix(char *name) { defaultNamespacePrefix = name; }
 
 // End functions for internal use only
+    BPatch_thread *getThr() {return appThread;}
 
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
     BPatch_sourceObj *getObjParent();
