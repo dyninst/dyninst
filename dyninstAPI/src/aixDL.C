@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.33 2003/02/21 20:05:54 bernat Exp $
+// $Id: aixDL.C,v 1.34 2003/03/08 01:23:46 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -556,6 +556,7 @@ bool process::loadDYNINSTlibCleanup()
   // But before we go, reset the dyninstlib_brk_addr so we don't
   // accidentally trigger it, eh?
   dyninstlib_brk_addr = 0x0;
+  return true;
 }
 
 /*
