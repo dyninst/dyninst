@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.29 1995/05/18 10:30:58 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.30 1995/09/11 19:19:28 mjrg Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.29  1995/05/18 10:30:58  markc
+ * Revision 1.30  1995/09/11 19:19:28  mjrg
+ * Removed redundant ptrace calls.
+ *
+ * Revision 1.29  1995/05/18  10:30:58  markc
  * Replace process dict with process map
  *
  * Revision 1.28  1995/02/26  22:44:29  markc
@@ -250,7 +253,7 @@ timeStamp startPause = 0.0;
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
 timeStamp elapsedPauseTime = 0.0;
-static bool appPause = false;
+static bool appPause = true;
 
 bool markApplicationPaused()
 {

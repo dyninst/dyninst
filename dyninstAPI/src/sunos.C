@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.5  1995/08/24 15:04:34  hollings
+ * Revision 1.6  1995/09/11 19:19:26  mjrg
+ * Removed redundant ptrace calls.
+ *
+ * Revision 1.5  1995/08/24  15:04:34  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -81,8 +84,7 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, char *addr,
 				 int data, char *addr2) {
   bool halted;
   bool ret;
-  
-  
+
   if (req != PTRACE_DETACH) halted = haltProcess(p);
   if (P_ptrace(req, p->getPid(), addr, data, addr2) == -1)
     ret = false;
@@ -113,8 +115,11 @@ bool OS::osAttach(pid_t process_id) {
 }
 
 bool OS::osStop(pid_t pid) { 
-	osAttach(pid);
-	return (P_kill(pid, SIGSTOP) != -1); 
+/* Choose either one of the following methods for stopping a process, but not both. 
+ * The choice must be consistent with that in process::continueProc_
+ */
+	return (osAttach(pid));
+//	return (P_kill(pid, SIGSTOP) != -1); 
 }
 
 // TODO dump core
@@ -132,14 +137,17 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0, 0); }
 
 // TODO is this safe here ?
 bool process::continueProc_() {
-  int ret1, ret2;
+  int ret;
 
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
-  ret1 = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
-  ret2 = P_ptrace(PTRACE_DETACH, pid, (char*)1, 0, (char*)NULL);
-  return (ret1 != -1 && ret2 != -2);
+/* choose either one of the following ptrace calls, but not both. 
+ * The choice must be consistent with that in OS::osStop.
+ */
+//  ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
+  ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
+  return ret != -1;
 }
 
 // TODO ??
