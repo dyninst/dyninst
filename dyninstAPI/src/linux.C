@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.117 2003/10/23 17:00:29 bernat Exp $
+// $Id: linux.C,v 1.118 2003/10/28 18:57:37 schendel Exp $
 
 #include <fstream>
 
@@ -1034,7 +1034,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   int bufsize = 150, utime, stime;
   char procfn[bufsize], *buf;
 
-  sprintf( procfn, "/proc/%d/stat", proc_->getPid() );
+  sprintf( procfn, "/proc/%d/stat", get_lwp_id());
 
   int fd;
 
