@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.15  1994/08/01 20:26:33  karavan
+# Revision 1.16  1994/09/13 05:07:03  karavan
+# initialize new global: metMenuCtr
+#
+# Revision 1.15  1994/08/01  20:26:33  karavan
 # changes to accommodate new dag design.
 #
 # Revision 1.14  1994/07/25  16:18:59  rbi
@@ -81,13 +84,38 @@ proc changeApplicState {newVal} {
 
 proc drawToolBar {} {
 
-    global PdBitmapDir
+    global PdBitmapDir fmap metMenuCtr
+
+    # setup fontmap for dumping postscript files
+    set fmap(-*-Times-Bold-R-Normal--*-80*)  \
+	    {Times-Bold 10}
+    set fmap(-*-Times-Medium-R-Normal--*-100*) \
+	    {Times-Roman 12}
+    set fmap(-*-Times-Bold-R-Normal--*-140*)  \
+	    {Times-Bold 16}
+    set fmap(-*-Times-Medium-R-Normal--*-140*) \
+	    {Times-Roman 16}
+    set fmap(-*-Times-Medium-R-Normal--*-80*) \
+	    {Times-Roman 10}
+    set fmap(-*-Times-Bold-R-Normal--*-100*) \
+	    {Times-Bold 16}
+    set fmap(-*-Courier-Medium-R-Normal--*-100*) \
+	    {Courier 12}
+    set fmap(-*-Courier-Bold-R-Normal--*-100*) \
+	    {Courier-Bold 12}
+    set fmap(-*-Courier-Medium-R-Normal--*-80*) \
+	    {Courier-Medium 10}
+    set fmap(-*-Courier-Bold-R-Normal--*-80*) \
+	    {Courier-Bold 10}
+
+    # used in metric menu creation code
+    set metMenuCtr 0 
 
     if {[string match [tk colormodel .] color] == 1} {
-      # . seems to be created before the options data base gets loaded.
-      . config -bg grey
+      # . created before options are added
+      . config -bg #e830e830e830
 
-      option add *background grey
+      option add *background #e830e830e830
       option add *Scrollbar*background DimGray
 
       option add *Scrollbar*foreground grey
@@ -141,6 +169,15 @@ proc drawToolBar {} {
 	    -command {showErrorHistory}
     .menub.left.men.b2.m add command -label "Display Where Axis" \
 	    -command {uimpd showWhereAxis}
+    .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
+	    -command ".baseWA.dag._c_ postscript -colormode color \
+	    -file cwhere.ps -pageheight 3.0i"
+    .menub.left.men.b2.m add command -label "Where Axis Postscript Gr" \
+	    -command ".baseWA.dag._c_ postscript -colormode gray \
+	    -file gwhere.ps -pageheight 3.0i"
+    .menub.left.men.b2.m add command -label "Where Axis Postscript BW" \
+	    -command ".baseWA.dag._c_ postscript -colormode mono \
+	    -file mwhere.ps -pageheight 3.0i"
 
     set mb .menub.left.men
     tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
