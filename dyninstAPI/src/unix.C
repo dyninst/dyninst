@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.114 2004/02/07 18:34:23 schendel Exp $
+// $Id: unix.C,v 1.115 2004/03/02 22:46:14 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -799,7 +799,8 @@ int handleForkExit(const procevent &event) {
     } else if (childPid > 0) {
         unsigned int i;
         for (i=0; i < processVec.size(); i++) {
-            if (processVec[i]->getPid() == childPid) break;
+            if (processVec[i] && 
+                (processVec[i]->getPid() == childPid)) break;
         }
         if (i== processVec.size()) {
             // this is a new child, register it with dyninst
@@ -867,70 +868,75 @@ int handleExecExit(const procevent &event) {
         // Failed exec, do nothing
         return 1;
     }
-    else {
-        proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
-        // As of Solaris 2.8, we get multiple exec signals per exec.
-        // My best guess is that the daemon reads the trap into the
-        // kernel as an exec call, since the process is paused
-        // and PR_SYSEXIT is set. We want to ignore all traps 
-        // but the last one.
-        bool isThisAnExecInTheRunningProgram = 
-        proc->reachedBootstrapState(initialized);
-        bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
-        if(isThisAnExecInTheRunningProgram || 
-           areWeInTheProcessOfHandlingAnExec)
-        {
-            // since Solaris causes multiple traps associated with trapping
-            // on exit of exec syscall, we do proper exec handling
-            // (eg. cause process::handleExec to be called) for each trap
-            // so when "real" exec trap occurs, will handle correctly.  I'm
-            // considering the "real" exec trap as the one that occurs when
-            // the execed process has been created and we're paused at the
-            // end of "exec".  The other execs seem to occur at some other
-            // point in the exec process syscall an the "execed" process
-            // hasn't been created yet.
-            
-            // because of these multiple exec exit notices, the sequence
-            // of the process status goes something like this
-            // false exec notice:  boostrapped    =>  unstarted (handleExec)
-            // handleSigChild:     unstarted      =>  begun (trap at main)
-            // false exec notice:  begun          =>  unstarted (handleExec)
-            // handleSigChild:     unstarted      =>  begun (trap at main)
-            // real exec notice:   begun          =>  unstarted (handleExec)
-            // handleSigChild:     unstarted      =>  begun (trap at main)
-            // trap at main:       begun          =>  initialized
-            proc->inExec = true; 
-            proc->set_status(stopped);
-            pdvector<heapItem *> emptyHeap;
-            proc->heap.bufferPool = emptyHeap;
-#ifndef BPATCH_LIBRARY
-            // Mimic bump-up in process constructor
-            tp->resourceBatchMode(true);
+#if defined(mips_sgi_irix6_4)
+    // MIPS returns non-zero if the exec succeeded, not -1
+    if ((int)event.info != 0) {
+        return 1;
+    }
 #endif
-            // Clean out internal data structures for the process
-            // We should have an exec "constructor"
 
-            // Unlike fork, handleExecExit doesn't do all processing required.
-            // We finish up when the trap at main() is reached.
-            proc->handleExecExit();
-            
-            // Note: on Solaris this is called multiple times before anything
-            // actually happens. Therefore handleExec must handle being called
-            // multiple times. We know that we're done when we hit the trap at main.
-            // Oh, and install that here.
-        }
-        proc->setBootstrapState(begun);
-        if (!proc->insertTrapAtEntryPointOfMain()) {
-            proc->continueProc();
-            // We should actually delete any mention of this
-            // process... including (for Paradyn) removing it from the
-            // frontend.
-            proc->triggerNormalExitCallback(0);
-            proc->handleProcessExit();
-        }
-        else {
-           proc->continueProc();
-        }
+    proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
+    // As of Solaris 2.8, we get multiple exec signals per exec.
+    // My best guess is that the daemon reads the trap into the
+    // kernel as an exec call, since the process is paused
+    // and PR_SYSEXIT is set. We want to ignore all traps 
+    // but the last one.
+    bool isThisAnExecInTheRunningProgram = 
+    proc->reachedBootstrapState(initialized);
+    bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
+    if(isThisAnExecInTheRunningProgram || 
+       areWeInTheProcessOfHandlingAnExec)
+    {
+        // since Solaris causes multiple traps associated with trapping
+        // on exit of exec syscall, we do proper exec handling
+        // (eg. cause process::handleExec to be called) for each trap
+        // so when "real" exec trap occurs, will handle correctly.  I'm
+        // considering the "real" exec trap as the one that occurs when
+        // the execed process has been created and we're paused at the
+        // end of "exec".  The other execs seem to occur at some other
+        // point in the exec process syscall an the "execed" process
+        // hasn't been created yet.
+        
+        // because of these multiple exec exit notices, the sequence
+        // of the process status goes something like this
+        // false exec notice:  boostrapped    =>  unstarted (handleExec)
+        // handleSigChild:     unstarted      =>  begun (trap at main)
+        // false exec notice:  begun          =>  unstarted (handleExec)
+        // handleSigChild:     unstarted      =>  begun (trap at main)
+        // real exec notice:   begun          =>  unstarted (handleExec)
+        // handleSigChild:     unstarted      =>  begun (trap at main)
+        // trap at main:       begun          =>  initialized
+        proc->inExec = true; 
+        proc->set_status(stopped);
+        pdvector<heapItem *> emptyHeap;
+        proc->heap.bufferPool = emptyHeap;
+#ifndef BPATCH_LIBRARY
+        // Mimic bump-up in process constructor
+        tp->resourceBatchMode(true);
+#endif
+        // Clean out internal data structures for the process
+        // We should have an exec "constructor"
+        
+        // Unlike fork, handleExecExit doesn't do all processing required.
+        // We finish up when the trap at main() is reached.
+        proc->handleExecExit();
+        
+        // Note: on Solaris this is called multiple times before anything
+        // actually happens. Therefore handleExec must handle being called
+        // multiple times. We know that we're done when we hit the trap at main.
+        // Oh, and install that here.
+    }
+    proc->setBootstrapState(begun);
+    if (!proc->insertTrapAtEntryPointOfMain()) {
+        proc->continueProc();
+        // We should actually delete any mention of this
+        // process... including (for Paradyn) removing it from the
+        // frontend.
+        proc->triggerNormalExitCallback(0);
+        proc->handleProcessExit();
+    }
+    else {
+        proc->continueProc();
     }
     return 1;
 }
