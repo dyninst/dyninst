@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.44 2003/06/11 22:02:45 hollings Exp $
+// $Id: BPatch_image.C,v 1.45 2003/06/17 20:27:51 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -76,7 +76,8 @@ class AddrToVarExprHash {
  * Construct a BPatch_image for the given process.
  */
 
-BPatch_image::BPatch_image(process *_proc) : proc(_proc)
+BPatch_image::BPatch_image(process *_proc) :
+   proc(_proc), defaultNamespacePrefix(NULL)
 {
     modlist = NULL;
 
@@ -90,7 +91,8 @@ BPatch_image::BPatch_image(process *_proc) : proc(_proc)
  *
  * Construct a BPatch_image.
  */
-BPatch_image::BPatch_image() : proc(NULL), modlist(NULL) 
+BPatch_image::BPatch_image() :
+   proc(NULL), modlist(NULL), defaultNamespacePrefix(NULL)
 {
     AddrToVarExpr = new AddrToVarExprHash();
 
