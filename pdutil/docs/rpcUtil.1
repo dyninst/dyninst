@@ -1,0 +1,91 @@
+.\"
+.\" $Log: rpcUtil.1,v $
+.\" Revision 1.1  1994/02/24 07:04:57  markc
+.\" Man page for librpcUtil.a
+.\"
+.\"
+.TH RPCUTIL 1L PARADYN "\\n(mo/\\n(dy/19\\n(yr"
+.SH NAME
+rpcUtil \- Support Library
+.SH SYNOPSIS
+.B rpcUtil
+.SH DESCRIPTION
+.PP
+This library provides utility functions.  It provides:
+.br
+A list class.
+A hash table class.
+Functions to support client-server communications using XDR/pvm/threads.
+.SH "LIST CLASS"
+.PP
+.SH "HASH TABLE CLASS"
+.PP
+.SH LIBRARY CALLS
+.TP 8
+.B int RPCprocessCreate (pid, host, User, command, args)
+.br
+.B int *pid;
+.br
+.B char *host;  
+.br
+.B char *User;           
+.br
+.B char *command; 
+.br
+.B char **args;   
+.TP 8
+.B int RPC_readReady (fd)
+.br
+.B int fd;
+.TP 8
+.B int RPC_setup_socket (socket_fd, family, type)
+.br
+.B int *socket_fd;
+.br
+.B int family;
+.br
+.B int type;
+.TP 8
+.B char **RPC_make_arg_list (program, family, type,
+.B			     port, flag)
+.br
+.B char *program;
+.br
+.B int family;
+.br
+.B int type;
+.br
+.B int port;
+.br
+.B int flag;
+.TP 8
+.B int RPC_undo_arg_list (argc, arg_list, machine,
+.B	                   family, type, socket, flag)
+.br
+.B int argc;
+.br
+.B char **arg_list;
+.br
+.B char **machine;
+.br
+.B int *family;
+.br
+.B int *type;
+.br
+.B int *socket;
+.br
+.B int *flag;
+.TP 8
+.B int RPC_getConnect (fd)
+.br
+.B int fd;
+
+.SH "SEE ALSO"
+Paradyn(1).
+.SH COPYRIGHT
+Copyright 1994, The Paradyn Software Team.
+.SH AUTHOR
+Mark Callaghan     (markc@cs.wisc.edu)
+
+
+
