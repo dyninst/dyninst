@@ -297,6 +297,7 @@ void BPatch_module::parseTypes()
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
       SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
+      // SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * sizeof(struct syment));
 
       if (sym->n_sclass == C_FILE) {
 	 char *moduleName;
@@ -338,8 +339,18 @@ void BPatch_module::parseTypes()
 
       if (sym->n_sclass & DBXMASK) {
 	  if (!sym->n_zeroes) {
-	      // printf("passing by %s\n", &stabstr[sym->n_offset-2]);
-	      parseStabString(this, 0, &stabstr[sym->n_offset-2], sym->n_value);
+	      // see if this is the version of records with the off by
+	      // two bug in stabs
+	      // this assumes there are no strings of length 3 or less, but
+	      //   those are represented inline on AIX
+	      char *nmPtr;
+	      if (!stabstr[sym->n_offset-3]) {
+		  nmPtr = &stabstr[sym->n_offset];
+	      } else {
+		  nmPtr = &stabstr[sym->n_offset-2];
+	      }
+	      // printf("passing by %s\n", nmPtr);
+	      parseStabString(this, 0, nmPtr, sym->n_value);
 	  } else {
 	      // names 8 or less chars on inline, not in stabstr
 	      char tempName[9];

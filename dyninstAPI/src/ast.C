@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.72 1999/10/18 17:32:44 hollings Exp $
+// $Id: ast.C,v 1.73 1999/11/09 17:06:15 hollings Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1797,7 +1797,7 @@ BPatch_type *AstNode::checkType()
 		// expression will be.
 		ret = lType;
 		if (lType != NULL && rType != NULL) {
-		    if (!lType->isCompatible(*rType)) {
+		    if (!lType->isCompatible(rType)) {
 			errorFlag = true;
 		    }
 		}

@@ -637,20 +637,20 @@ nullType(false)
  *
  * oType	The other type to check for compatibility.
  */
-bool BPatch_type::isCompatible(const BPatch_type &otype)
+bool BPatch_type::isCompatible(BPatch_type *otype)
 {
   // simple compare.
-  if (nullType || otype.nullType)
+  if (nullType || otype->nullType)
 	return true;
   
   // name, ID and type are the same them it has to be the same BPatch_type
-  if ((ID == otype.ID) && (type_ == otype.type_)) {
-      if (name && otype.name && !strcmp(name,otype.name)) {
+  if ((ID == otype->ID) && (type_ == otype->type_)) {
+      if (name && otype->name && !strcmp(name,otype->name)) {
 	  return true;
       }
   }
 
-  if ((type_ == BPatch_unknownType) || (otype.type_ == BPatch_unknownType)) {
+  if ((type_ == BPatch_unknownType) || (otype->type_ == BPatch_unknownType)) {
       BPatch_reportError(BPatchWarning, 112,
 		       "One or more unknown BPatch_types");
       return true;
@@ -658,7 +658,7 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
 
   switch(type_){
   case BPatch_scalar:
-      if (!strcmp(name,otype.name) && (size == otype.size)) {
+      if (!strcmp(name,otype->name) && (size == otype->size)) {
 	  return true;
       } else {
 	  BPatch_reportError(BPatchWarning, 112, "scalar's not compatible");
@@ -667,19 +667,19 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
       break;
 
   case BPatchSymTypeRange:
-      if (!(strcmp(name,otype.name))&& (ID == otype.ID)&&(size == otype.size))
+      if (!(strcmp(name,otype->name))&& (ID == otype->ID)&&(size == otype->size))
           return true;
-      if (!(strcmp(name,otype.name))&&(size == otype.size))
+      if (!(strcmp(name,otype->name))&&(size == otype->size))
           return true;
       break;
 
   case BPatch_reference:
-      if (!(strcmp(name,otype.name)) && (size == otype.size))
+      if (!(strcmp(name,otype->name)) && (size == otype->size))
           return true;
       break;
 
   case BPatch_built_inType:
-      if (!(strcmp(name,otype.name))&&(size == otype.size))
+      if (!(strcmp(name,otype->name))&&(size == otype->size))
           return true;
       break;
 
@@ -689,7 +689,7 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
       break;
 
   case BPatch_typeAttrib:
-    if (!(strcmp(name,otype.name))&&(size == otype.size))
+    if (!(strcmp(name,otype->name))&&(size == otype->size))
         return true;
     break;
 
@@ -697,15 +697,15 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
     {
       BPatch_type *pType1, *pType2;
 
-      if (otype.type_ != BPatch_pointer) {
+      if (otype->type_ != BPatch_pointer) {
 	  BPatch_reportError(BPatchWarning, 112, 
 	      "Pointer and non-Pointer are not type compatible");
 	  return false;
       } else {
 	  // verify type that each one points to is compatible
 	  pType1 = this->ptr;
-	  pType2 = otype.ptr;
-	  if (!pType1 || !pType2 || !pType1->isCompatible(*pType2)) {
+	  pType2 = otype->ptr;
+	  if (!pType1 || !pType2 || !pType1->isCompatible(pType2)) {
 	      return false;
 	  } else {
 	      return true;
@@ -715,7 +715,7 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
     break;
 
   case BPatch_func:
-    if (!(strcmp(name,otype.name))&&(ID == otype.ID)) {
+    if (!(strcmp(name,otype->name))&&(ID == otype->ID)) {
 	  return true;
     } else {
 	  BPatch_reportError(BPatchWarning, 112, 
@@ -728,26 +728,26 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
     {
       BPatch_type * arType1, * arType2;
       
-      if (otype.type_ != BPatch_array) {
+      if (otype->type_ != BPatch_array) {
 	  BPatch_reportError(BPatchWarning, 112, 
 	      "Array and non-array are not type compatible");
 	  return false;
       }
 
       // verify that the number of elements is the same
-      if ((this->hi - this->low) != (otype.hi - otype.low)) {
+      if ((this->hi - this->low) != (otype->hi - otype->low)) {
 	  char message[80];
 	  sprintf(message, 
 	      "Incompatible number of elements [%d..%d] vs. [%d..%d]",
-	      this->low, this->hi, otype.low, otype.hi);
+	      this->low, this->hi, otype->low, otype->hi);
 	  BPatch_reportError(BPatchWarning, 112, message);
 	  return false;
       }
 
       // verify that elements of the array are compatible
       arType1 = this->ptr;
-      arType2 = otype.ptr;
-      if (!arType1 || !arType2 || !arType1->isCompatible(*arType2)) {
+      arType2 = otype->ptr;
+      if (!arType1 || !arType2 || !arType1->isCompatible(arType2)) {
 	  // no need to report error, recursive call will
 	  return false;
       } else {
@@ -758,10 +758,11 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
 
   case BPatch_enumerated:
     {
-      if( !strcmp( name, otype.name) && (ID == otype.ID))
+      if( !strcmp( name, otype->name) && (ID == otype->ID))
 	return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-      BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+      // BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = otype->getComponents();
       
       if( fields1->size() != fields2->size()) {
 	BPatch_reportError(BPatchWarning, 112, "enumeriated type mismatch ");
@@ -785,10 +786,11 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
   case BPatch_structure:
   case BPatch_union:
     {
-      if (!strcmp( name, otype.name) && (ID == otype.ID))
+      if (!strcmp( name, otype->name) && (ID == otype->ID))
 	return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-      BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+      // BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = otype->getComponents();
 
       if (fields1->size() != fields2->size()) {
 	  BPatch_reportError(BPatchWarning, 112, 
@@ -804,7 +806,7 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
 	BPatch_type * ftype1 = (BPatch_type *)field1->getType();
 	BPatch_type * ftype2 = (BPatch_type *)field2->getType();
 	
-	if(!(ftype1->isCompatible(*ftype2))) {
+	if(!(ftype1->isCompatible(ftype2))) {
 	     BPatch_reportError(BPatchWarning, 112, 
 	          "struct/union field type mismatch ");
 	     return false;
@@ -819,8 +821,8 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
   }
 
   char message[256];
-  if (name && otype.name) {
-      sprintf(message, "%s is not compatible with %s ", name, otype.name);
+  if (name && otype->name) {
+      sprintf(message, "%s is not compatible with %s ", name, otype->name);
   } else {
       sprintf(message, "unknown type mismatch ");
   }
