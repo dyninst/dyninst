@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.282 2001/12/14 17:12:50 chadd Exp $
+// $Id: process.C,v 1.283 2001/12/18 19:43:19 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -206,14 +206,25 @@ bool waitingPeriodIsOver()
 // Frame(process *): return toplevel (active) stack frame
 // (platform-independent wrapper)
 Frame::Frame(process *p)
-  : uppermost_(true), pc_(0), fp_(0)
+  : uppermost_(true), pc_(0), fp_(0), lwp_id_(0) 
 #if defined(MT_THREAD)
-  , lwp_id_(0), thread_(NULL)
+  ,thread_(NULL)
 #endif
 {
   // platform-dependent implementation
   getActiveFrame(p);
 }
+
+Frame::Frame(process *p, unsigned curr_lwp)
+  : uppermost_(true), pc_(0), fp_(0), lwp_id_(curr_lwp) 
+#if defined(MT_THREAD)
+  ,thread_(NULL)
+#endif
+{
+  // platform-dependent implementation
+  getActiveFrame(p);
+}
+
 
 // getCallerFrame(): return stack frame of caller, 
 // relative to current (callee) stack frame
@@ -308,6 +319,11 @@ vector<Address> process::walkStack(bool noPause)
 // Note: it may not always be possible to do a correct stack walk.
 // If it can't do a complete walk, the function should return an empty
 // vector, which means that there was an error, and we can't walk the stack.
+//
+// Multithreaded AIX addition: in the case when we have a multithreaded program
+// but are only using the standard daemon, use the cached kernel thread ID to
+// do the ptracing. This is contained in the frame class, but bears mentioning
+// because of the main-search behavior.
 vector<Address> process::walkStack(bool noPause)
 {
   vector<Address> pcs;
@@ -341,7 +357,8 @@ vector<Address> process::walkStack(bool noPause)
   }
 
   if (pause()) {
-    Frame currentFrame(this);
+    // The curr_lwp parameter is IGNORED on non-AIX platforms.
+    Frame currentFrame(this, curr_lwp);
     Address fpOld = 0;
     while (!currentFrame.isLastFrame()) {
       Address fpNew = currentFrame.getFP();
@@ -1816,7 +1833,8 @@ process::process(int iPid, image *iImage, int iTraceLink
                         iShmHeapStats[2].maxNumElems)
 #endif
 #endif
-             ,callBeforeContinue(NULL)
+             ,callBeforeContinue(NULL),
+             curr_lwp(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -1993,7 +2011,8 @@ process::process(int iPid, image *iSymbols,
                            iShmHeapStats[2].maxNumElems)
 #endif
 #endif
-             ,callBeforeContinue(NULL)
+             ,callBeforeContinue(NULL),
+             curr_lwp(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2241,7 +2260,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
-  ,callBeforeContinue(parentProc.callBeforeContinue)
+  ,callBeforeContinue(parentProc.callBeforeContinue), curr_lwp(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.13 2001/11/06 00:30:17 gurari Exp $
+// $Id: aixDL.C,v 1.14 2001/12/18 19:43:19 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -330,12 +330,24 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
  * variable
  */
 
-bool checkAllThreadsForBreakpoint(int pid, Address break_addr)
+bool checkAllThreadsForBreakpoint(int pid, Address break_addr, unsigned &curr_lwp)
 {
   // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
   // kernel thread ID. Sheesh.
 
-  // hey. Should we move the getPC part to somewhere else?
+  struct ptsprs spr_contents;
+
+  // Check the current (cached) kernel thread ID
+  if (curr_lwp) {
+    if (P_ptrace(PTT_READ_SPRS, curr_lwp, (int *)&spr_contents,
+	       0, 0) != -1) 
+      {
+	Address prog_counter = (Address) spr_contents.pt_iar;	
+	if ((Address) prog_counter == (Address) break_addr) {
+	  return true;
+	}
+      }
+  }    
   
   // Get the list of kernel threads
   struct procsinfo pb;
@@ -354,21 +366,27 @@ bool checkAllThreadsForBreakpoint(int pid, Address break_addr)
 	   num_thrds);
 
   // Now that we have the correct thread ID, ptrace the sucker
-  struct ptsprs spr_contents;
   for ( int i = 0; i < num_thrds; i++ )
     {
       int kernel_thread = thrd_buf[i].ti_tid;
       
-      if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
+      if (P_ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
 		 0, 0) != -1) 
 	{
 	  Address prog_counter = (Address) spr_contents.pt_iar;
 	  
-	  if ((Address) prog_counter == (Address) break_addr)
+	  if ((Address) prog_counter == (Address) break_addr) {
+	    // Add behavior: if multiple kernel threads, cache the matching one.
+	    // Otherwise go pid-based.
+	    if (num_thrds > 1) {
+	      cerr << "Multiple kernel threads seen. Assuming thread "
+		   << kernel_thread << " is the default kernel thread." << endl;
+	      curr_lwp = kernel_thread;
+	    }
 	    return true;
+	  }
 	}
     }
-
   return false;
 }
 
@@ -376,7 +394,10 @@ bool process::trapDueToDyninstLib()
 {
   // Since this call requires a PTRACE, optimize it slightly
   if (dyninstlib_brk_addr == 0x0) return false;
-  return checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr);
+  // We have multiple threads, right? Well, instead of checking all
+  // of 'em all the time, cache the matching kernel thread ID and
+  // use it as long as it works :)
+  return checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr, curr_lwp);
 }
 
 bool process::trapAtEntryPointOfMain()
@@ -384,8 +405,7 @@ bool process::trapAtEntryPointOfMain()
   // Since this call requires a PTRACE, optimize it slightly
   // This won't trigger (ever) if we are attaching, btw.
   if (main_brk_addr == 0x0) return false;
-
-  return checkAllThreadsForBreakpoint(pid, main_brk_addr);
+  return checkAllThreadsForBreakpoint(pid, main_brk_addr, curr_lwp);
 }
 
 /*

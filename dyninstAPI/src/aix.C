@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.87 2001/11/06 19:20:20 bernat Exp $
+// $Id: aix.C,v 1.88 2001/12/18 19:43:19 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -141,19 +141,43 @@ bool ptraceKludge::haltProcess(process *p) {
 void Frame::getActiveFrame(process *p)
 {
     errno = 0;
-    pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
-    if (errno != 0) return;
-
-    errno = 0;
-    fp_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
-    if (errno != 0) return;
-
-    /* Read the first frame from memory.  The first frame pointer is
-       in the memory location pointed to by $sp.  However, there is no
-       $pc stored there, it's the place to store a $pc if the current
-       function makes a call. */
-    Frame dummy = getCallerFrame(p);
-    fp_ = dummy.fp_;
+    if (lwp_id_) { // We have a kernel thread to target. Nifty, eh?
+      struct ptsprs spr_contents;
+      P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
+      pc_ = spr_contents.pt_iar;
+      if (errno != 0) return;
+      
+      errno = 0;
+      // To get the GPRs we actually get all of them (32*4=128 bytes)
+      // and pick out the one we want.
+      unsigned allRegs[64];
+      P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
+      fp_ = allRegs[1];
+      if (errno != 0) return;
+      
+      /* Read the first frame from memory.  The first frame pointer is
+	 in the memory location pointed to by $sp.  However, there is no
+	 $pc stored there, it's the place to store a $pc if the current
+	 function makes a call. */
+      Frame dummy = getCallerFrame(p);
+      fp_ = dummy.fp_;
+    }
+    else { // Old behavior, pid-based. 
+      pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
+      if (errno != 0) return;
+      
+      errno = 0;
+      fp_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
+      if (errno != 0) return;
+      
+      /* Read the first frame from memory.  The first frame pointer is
+	 in the memory location pointed to by $sp.  However, there is no
+	 $pc stored there, it's the place to store a $pc if the current
+	 function makes a call. */
+      Frame dummy = getCallerFrame(p);
+      fp_ = dummy.fp_;
+    }
+    
 }
 
 bool process::needToAddALeafFrame(Frame, Address &){
@@ -184,18 +208,29 @@ Frame Frame::getCallerFrameNormal(process *p) const
     unsigned binderInfo;
     unsigned savedTOC;
   } linkArea;
-  
+
+  // If we have a curr_lwp stored, then use that as a pointer
   if (p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
 		       (caddr_t)&linkArea, false))
   {
     Frame ret;
+    ret.lwp_id_ = lwp_id_;
     ret.fp_ = linkArea.oldFp;
     ret.pc_ = linkArea.savedLR;
 
     if (uppermost_) {
       // use the value stored in the link register instead.
       errno = 0;
-      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
+      if (lwp_id_) {
+	struct ptsprs spr_contents;
+	if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0) == -1) {
+	  perror("getCallerFrameNormal");
+	  ret.pc_ = -1;
+	}
+	else ret.pc_ = spr_contents.pt_lr;
+      }
+      else
+	ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
       if (errno != 0) return Frame(); // zero frame
     }
 

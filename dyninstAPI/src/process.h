@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.170 2001/12/14 17:12:51 chadd Exp $
+/* $Id: process.h,v 1.171 2001/12/18 19:43:20 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -316,11 +316,11 @@ class Frame {
     Address   pc_;
     Address   fp_;
     Address   sp_;     // NOTE: this is not always populated
+    int       lwp_id_; // kernel-level thread (LWP)
 #if defined(mips_sgi_irix6_4)
     Address   saved_fp;
 #endif
 #if defined(MT_THREAD)
-    int       lwp_id_; // kernel-level thread (LWP)
     pdThread *thread_; // user-level thread
 #endif
 
@@ -330,10 +330,12 @@ class Frame {
 
     // process ctor (toplevel frame)
     Frame(process *);
+    // process ctor (toplevel frame, particular LWP)
+    Frame(process *, unsigned);
     // default ctor (zero frame)
-    Frame() : uppermost_(false), pc_(0), fp_(0) 
+    Frame() : uppermost_(false), pc_(0), fp_(0), lwp_id_(0)
 #if defined(MT_THREAD)
-      ,lwp_id_(0), thread_(NULL) 
+      ,thread_(NULL) 
 #endif
       {}
 
@@ -342,6 +344,7 @@ class Frame {
 #ifdef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
     Address getSP() const { return sp_; }
 #endif
+    int getLWP() const { return lwp_id_;}
 
     // check for zero frame
     bool isLastFrame() const { 
@@ -363,7 +366,6 @@ class Frame {
       : uppermost_(uppermost), pc_(pc), fp_(fp), 
       lwp_id_(lwpid), thread_(NULL)
       {}
-    int getLWP() const { return lwp_id_;}
 #endif
 
  private:
@@ -1507,6 +1509,9 @@ private:
    Address postsyscallpc;  // PC after the syscall is interrupted
 #endif
 
+   // MT_AIX stuff
+   // Keep the current "best guess" of the active kernel thread around
+   unsigned curr_lwp;
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
@@ -1520,6 +1525,7 @@ private:
 
 //   string fullPathToExecutable_;
       // very useful, especially on attach (need this to parse the symbol table)
+
 
  public:
    const string &getArgv0() const {return argv0;}
