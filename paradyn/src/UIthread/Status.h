@@ -96,7 +96,8 @@ void
 status_line::message(const char* msg) {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_message %u {%-*s}", id_, MESG_LENGTH, msg);
+    (void) sprintf(buf, "status_message %u {%-*.*s}",
+		id_, MESG_LENGTH, MESG_LENGTH, msg);
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::message: command `%s' -> `%s'\n",
@@ -138,7 +139,8 @@ void
 status_line::create(const char* title) {
     assert(interp_);
     char buf[BUF_LENGTH];
-    (void) sprintf(buf, "status_create %u {%-*s}", id_, TITLE_LENGTH, title);
+    (void) sprintf(buf, "status_create %u {%-*.*s}",
+		id_, TITLE_LENGTH, TITLE_LENGTH, title);
     int ret = Tcl_VarEval(interp_, buf, 0);
     if (ret != TCL_OK) {
         fprintf(stderr, "status_line::create: command `%s' -> `%s'\n",
