@@ -781,7 +781,6 @@ void DYNINST_ThreadCreate(int pos, int tid) {
 
 int DYNINSTthreadCheckRPC(void) {
   unsigned k ;
-  return 0;
   if (DYNINSTthreadRPC) {
     for (k=0; k<MAX_PENDING_RPC; k++) {
       rpcToDo* p = DYNINSTthreadRPC+k ;
@@ -805,14 +804,10 @@ int DYNINSTthreadCheckRPC2(void) {
     for (k=0; k<MAX_PENDING_RPC; k++) {
       rpcToDo* p = DYNINSTthreadRPC+k ;
       if (p->flag == 1) {
-        if (0 != tc_lock_trylock(&(p->lock)))
-          return ;
- 
         if (p->rpc) {
           (*p->rpc)() ;  /* do the inferiorRPC */
         }
         (p->flag) = 2  ; /* done execution */
-        tc_lock_unlock(&(p->lock)) ; ;
       }
     }
   }

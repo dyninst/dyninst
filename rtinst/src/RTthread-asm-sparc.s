@@ -19,9 +19,10 @@ DYNINSTthreadPos:
           sethi   %hi((_GLOBAL_OFFSET_TABLE_-(.L_DYNINSTthreadPos-.))),%l1
           add     %l1,%lo((_GLOBAL_OFFSET_TABLE_-(.L_DYNINSTthreadPos-.))),%l1
           add     %l1,%o7,%i1
-
+/*
 	  call    DYNINSTthreadCheckRPC
 	  nop
+*/
           call    DYNINST_initialize_once     /* some initialization */     
           nop                                     
 	  call    DYNINSTthreadSelf
