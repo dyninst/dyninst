@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.196 2002/05/04 21:47:17 schendel Exp $
+/* $Id: process.h,v 1.197 2002/05/10 18:37:04 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -782,7 +782,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 #ifndef BPATCH_LIBRARY
   hashTable *threadMap;         /* mapping table for tid->superTable */
-  vector<processMetFocusNode*> allMIComponentsWithThreads;
 #endif
 
   bool continueAfterNextStop_;
