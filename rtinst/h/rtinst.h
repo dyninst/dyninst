@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.50 2002/06/17 21:31:16 chadd Exp $
+ * $Id: rtinst.h,v 1.51 2002/06/24 15:24:59 chadd Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -93,7 +93,9 @@
 #include "common/h/Types.h" /* ccw 22 apr 2002 : SPLIT we used to include dyninstAPI_RT.h 
 				BUT no longer. this is the only necessary thing we carry over*/
 extern int PARADYNdebugPrintRT;  /* declared in RTinst.c */
+#if !defined(RTprintf)
 #define RTprintf                if (PARADYNdebugPrintRT) printf /* ccw 22 apr 2002 : SPLIT */
+#endif
 
 typedef int64_t rawTime64;
 

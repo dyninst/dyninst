@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.13 2002/06/14 22:56:31 tlmiller Exp $
+ * $Id: dyninstAPI_RT.h,v 1.14 2002/06/24 15:25:00 chadd Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -120,9 +120,10 @@ extern unsigned pcAtLastIRPC;
 extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
 
 extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
+#if !defined(RTprintf)
 #define RTprintf                if (DYNINSTdebugPrintRT) printf
                                 /* Yes, this is crude, but this is plain C */
-
+#endif
 
 #endif /* !defined(__ASSEMBLER__) */
 
