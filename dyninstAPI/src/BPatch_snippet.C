@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.38 2002/06/26 21:14:33 schendel Exp $
+// $Id: BPatch_snippet.C,v 1.39 2002/06/27 20:20:31 mirg Exp $
 
 #define BPATCH_FILE
 
@@ -600,8 +600,8 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 
     assert(BPatch::bpatch != NULL);
 
-    ast = new AstNode(items[0]->ast);
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    ast = assignAst(items[0]->ast);
+    // ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     for (unsigned int i = 1; i < items.size(); i++) {
         AstNode *tempAst = new AstNode(ast, items[i]->ast);
