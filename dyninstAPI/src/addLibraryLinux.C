@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.5 2002/03/22 21:55:17 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.6 2002/05/09 19:16:27 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -364,6 +364,11 @@ int addLibrary::findNewPhdrAddr(){
                 tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
                 newPhdrAddr = tmpShdr->sh_addr - phdrSize;
 	}
+	while(newPhdrAddr %4){
+		newPhdrAddr ++;
+	}	
+
+
         return 0;		
 }
 
@@ -377,6 +382,9 @@ int addLibrary::findNewPhdrOffset(){
 		tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
 		newPhdrOffset = tmpShdr->sh_offset - phdrSize + _pageSize;
 	}
+	while(newPhdrOffset %4){
+		newPhdrOffset ++;
+	}	
 
 	return 0;	
 }

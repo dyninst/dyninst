@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.320 2002/05/04 21:47:16 schendel Exp $
+// $Id: process.C,v 1.321 2002/05/09 19:16:27 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1172,7 +1172,7 @@ char* process::saveWorldFindDirectory(){
 unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize, 
 		char* directoryName, unsigned int &count){
 	shared_object *sh_obj;
-	unsigned int dl_debug_statePltEntry=0;
+	unsigned int dl_debug_statePltEntry=0, tmp_dlopen;
 	bool dlopenUsed = false;
 
 	//In the mutated binary we need to catch the dlopen events and
@@ -1262,7 +1262,12 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 			dl_debug_statePltEntry = 
 				sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
 		}
+#if defined(sparc_sun_solaris2_4)
 
+		if( (tmp_dlopen = sh_obj->getImage()->getObject().getPltSlot("dlopen") && !sh_obj->isopenedWithdlopen())){
+                       dl_debug_statePltEntry = tmp_dlopen + sh_obj->getBaseAddress();
+		}
+#endif
 		//this is for the dyninst_SharedLibraries section
 		//we need to find out the length of the names of each of
 		//the shared libraries to create the data buffer for the section
@@ -1272,7 +1277,11 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 		dyninst_SharedLibrariesSize += sizeof(unsigned int);
 	}
 #if defined(sparc_sun_solaris2_4)
-	dl_debug_statePltEntry = getImage()->getObject().getPltSlot("dlopen");
+	if( (tmp_dlopen = getImage()->getObject().getPltSlot("dlopen"))) {
+		dl_debug_statePltEntry = tmp_dlopen;
+	}
+ 
+	//dl_debug_statePltEntry = getImage()->getObject().getPltSlot("dlopen");
 #endif
 	dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
 

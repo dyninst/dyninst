@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary.c,v 1.1 2002/04/15 21:48:43 chadd Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.2 2002/05/09 19:16:28 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -512,6 +512,15 @@ int checkElfFile(){
 				}else{
 					done = 1;
 				}
+			}
+			if( shdr->sh_addr == 0){
+				/* if the addr is zero, then there is 
+					no PLT entry for dlopen.  if there is
+					no entry for dlopen the mutatee must not
+					call it.  -- what about calling it from
+					a shared lib that is statically loaded?
+				*/
+				break;
 			}
 
 			/* WHY IS THERE A POUND DEFINE HERE? 
