@@ -37,10 +37,11 @@ unsigned int prefeCnt = 0;
 unsigned int accessCnt = 0;
 
 #ifdef sparc_sun_solaris2_4
-const unsigned int loadExp = 15;
-const unsigned int storeExp = 13;
-const unsigned int prefeExp = 2;
-const unsigned int accessExp = 26;
+/* Sun Forte/WorkShop cc releases older than 6.2 do not like const... */
+unsigned int loadExp = 15;
+unsigned int storeExp = 13;
+unsigned int prefeExp = 2;
+unsigned int accessExp = 26;
 #endif
 
 #ifdef rs6000_ibm_aix4_1
@@ -98,13 +99,24 @@ int loadsnstores(int x, int y, int z)
 }
 #endif
 
-
+/* Sun Forte/WorkShop cc releases older than 6.2 do not like this define... */
+#if !defined(__SUNPRO_C) || (__SUNPRO_C >= 0x530)
 #define passorfail(i,p,d,r) if((p)) { \
                               printf("Passed test #%d (%s)\n", (i), (d)); \
                               passedTest[(i)] = TRUE; \
                             } else { \
                               printf("\n**Failed** test #%d (%s): %s\n", (i), (d), (r)); \
                             }
+#else
+void passorfail(int i, int p, char* d, char* r) {
+  if(p) {
+    printf("Passed test #%d (%s)\n", (i), (d));
+    passedTest[(i)] = TRUE;
+  } else {
+    printf("\n**Failed** test #%d (%s): %s\n", (i), (d), (r));
+  }
+}
+#endif
 
 void check0()
 {
