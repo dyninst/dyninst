@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.200 2004/02/28 00:26:35 schendel Exp $
+// $Id: symtab.C,v 1.201 2004/03/10 20:25:23 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1005,13 +1005,13 @@ void image::postProcess(const pdstring pifname)
 }
 #endif
 
-void image::defineModules() {
+void image::defineModules(process *proc) {
 
   pdstring pds; pdmodule *mod;
   dictionary_hash_iter<pdstring, pdmodule*> mi(modsByFileName);
 
   while (mi.next(pds, mod)){
-    mod->define();
+    mod->define(proc);
   }
 
 #ifndef BPATCH_LIBRARY
@@ -1019,7 +1019,7 @@ void image::defineModules() {
 
   for(i=0;i<excludedMods.size();i++) {
     mod = excludedMods[i];
-    mod->define();
+    mod->define(proc);
   }
 
 
@@ -1040,7 +1040,28 @@ void image::defineModules() {
 #endif
 }
 
+#ifndef BPATCH_LIBRARY
+void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
+                            pd_Function *pdf)
+{
+    resource *r = res;
 
+    if (n->loop != NULL) {
+        r = resource::newResource(res, pdf,
+                                  nullString, // abstraction
+                                  pdstring(n->name()),
+                                  timeStamp::ts1970(),
+                                  nullString, // uniquifier
+                                  LoopResourceType,
+                                  MDL_T_LOOP,
+                                  false );
+    }
+    
+    for (unsigned i = 0; i < n->children.size(); i++) {
+        dfsCreateLoopResources(n->children[i], r, pdf);
+    }
+}
+#endif
 
 //  Comments on what this does would be nice....
 //  Appears to run over a pdmodule, after all code in it has been processed
@@ -1051,8 +1072,7 @@ void image::defineModules() {
 //   are being defined, because need all resources defined to 
 //   do that....
 
-
-void pdmodule::define() {
+void pdmodule::define(process *proc) {
 #ifdef DEBUG_MODS
    std::ostringstream osb(std::ios::out);
    osb << "MODS_" << exec->name() << "__" << getpid() << std::ends;
@@ -1118,7 +1138,16 @@ void pdmodule::define() {
                                   MDL_T_PROCEDURE,
                                   false );
          pdf->SetFuncResource(res);
-         free( prettyWithTypes );
+
+         // if displaying loops as resources for the current module...
+	 // create a resource for each loop with this func as its parent
+         // if (pdf->prettyName() == "main") {
+         char *mname = getenv("PARADYN_LOOPS");
+         if (mname && (0 == strcmp(mname, fileName().c_str()))) {
+             dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
+	 }
+
+         free(prettyWithTypes);
       }
    }
    
@@ -1567,9 +1596,9 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   tp->resourceBatchMode(true);
 #endif
 
-  statusLine("defining modules");
-
-  ret->defineModules();
+  // XXX callers of parseImage now defineModules
+  //statusLine("defining modules");
+  //ret->defineModules();
 
   statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
