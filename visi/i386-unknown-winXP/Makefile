@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/10/30 00:54:24 rchen Exp $
+# $Id: Makefile,v 1.2 2003/10/30 00:57:56 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,6 +14,8 @@ include ../../nmake.config
 
 #CXXFLAGS	=  $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 # Now make any necessary architecture specific changes to variables:
+
+CXXFLAGS    = $(CXXFLAGS) -MT
 
 # none 
 
