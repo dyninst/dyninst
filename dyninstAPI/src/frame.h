@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.15 2004/03/23 01:12:03 eli Exp $
+// $Id: frame.h,v 1.16 2004/03/31 20:37:18 tlmiller Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -56,7 +56,7 @@ class Frame {
   
   // default ctor (zero frame)
   Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0), isSignalFrame_(false), isTrampoline_(false)
+    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0), isSignalFrame_(false), isTrampoline_(false), unwindCursor_(NULL)
   {}
 
   // I'm keeping the frame class (relatively) stupid,
@@ -69,20 +69,20 @@ class Frame {
   // For all those times you just need to stick in values
   Frame(Address pc, Address fp, 
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf = false, bool isSignalFrame = false, bool isTrampoline = false ) :
+	bool uppermost, bool isLeaf = false, bool isSignalFrame = false, bool isTrampoline = false, void * unwindCursor = NULL ) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
   pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_( isTrampoline )
+  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_( isTrampoline ), unwindCursor_( unwindCursor )
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf=false, bool isSignalFrame = false, bool isTrampoline = false) :
+	bool uppermost, bool isLeaf=false, bool isSignalFrame = false, bool isTrampoline = false, void * unwindCursor = NULL ) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_(isTrampoline)
+  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_(isTrampoline), unwindCursor_( unwindCursor )
     {};
 
   Frame &operator=(const Frame &F) {
@@ -98,6 +98,12 @@ class Frame {
     range_ = F.range_;
     isSignalFrame_ = F.isSignalFrame_;
     isTrampoline_ = F.isTrampoline_;
+
+	/* Don't worry about shallowness; all of the frames in a stack walk
+	   point to the same cursor anyway, so trying to getCallerFrame()
+	   on a frame you've already walked through will break even
+	   if you don't copy the frame away. */
+    unwindCursor_ = F.unwindCursor_;
     return *this;
   }
 
@@ -111,8 +117,9 @@ class Frame {
 	    (lwp_     == F.lwp_) &&
 	    (saved_fp == F.saved_fp) &&
 	    (isLeaf_  == F.isLeaf_) &&
-	    (isSignalFrame_ == F.isSignalFrame_ ) &&
-	    (isTrampoline_ == F.isTrampoline_ ));
+	    (isSignalFrame_ == F.isSignalFrame_) &&
+	    (isTrampoline_ == F.isTrampoline_) &&
+	    (unwindCursor_ == F.unwindCursor_) );
   }
 
   Address  getPC() const { return pc_; }
@@ -151,6 +158,7 @@ class Frame {
                     // keep it here
   bool      isSignalFrame_;
   bool		isTrampoline_;
+  void *	unwindCursor_; // Linux/ia64.
 };
 
 ostream& operator<<(ostream&s, const Frame &m);
