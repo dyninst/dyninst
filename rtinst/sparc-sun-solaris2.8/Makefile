@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2002/07/31 22:07:00 bernat Exp $
+# $Id: Makefile,v 1.5 2003/02/04 14:59:52 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,12 +28,12 @@ ifdef USES_NATIVE_CC
 CC		= $(NATIVE_CC)
 LD		= $(NATIVE_CC)
 CFLAGS		+= -Kpic -O
-LDFLAGS		= -dy -G -z text
+LDFLAGS		= -dy -G -z text -z initarray=libparadynRT_init
 else
 CC		= $(GCC)
 LD		= $(GCC)
 CFLAGS		+= -fpic -O2
-LDFLAGS		= -shared
+LDFLAGS		= -shared -Wl,-z -Wl,initarray=libparadynRT_init
 endif
 
 VPATH        = ../src

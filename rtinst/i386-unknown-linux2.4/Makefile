@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2002/08/31 16:53:48 mikem Exp $
+# $Id: Makefile,v 1.15 2003/02/04 14:59:47 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,14 +22,12 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -static -nostdlib -Xlinker -r
-CFLAGS		+= -O2 
+LDFLAGS         += -shared -ldl -Wl,-init -Wl,libparadynRT_init
 
 # The GNU headers for glibc conflict with RTposix.h
 # CFLAGS		+= -D_SVID_SOURCE
 
 # if we want to produce a shared object...
-LD              = $(GCC)
 CFLAGS          = -Di386_unknown_linux2_0 -g -O2
 # CFLAGS		+= -D_SVID_SOURCE
 CFLAGS		+= -fPIC
@@ -37,7 +35,6 @@ CFLAGS          += -I. -I../..
 ifdef INCLUDE_CP_PROFILING
 CFLAGS          += -I$(PVM_INCDIR)
 endif
-LDFLAGS         = -shared -ldl
 
 VPATH        = ../src
 #:../../dyninstAPI_RT/src

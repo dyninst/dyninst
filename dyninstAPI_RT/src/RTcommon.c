@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.30 2003/01/31 18:55:43 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.31 2003/02/04 14:59:36 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -104,22 +104,9 @@ static void initFPU()
        DYNINSTdummydouble *= x;
 }
 
-#if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
-/* these variables are used by the mutator to pass values to the dll
- they are only used by the win2k/nt40 dyninstAPI*/
-int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 2 may 2001*/
-#endif
-
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 int isMutatedExec = 0;
 #endif
-/*
-extern int isElfFile;
-#endif
-#if  defined(rs6000_ibm_aix4_1)
-extern int isXCOFFfile;
-#endif
-*/
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to
@@ -149,42 +136,35 @@ void DYNINSTinit(int cause, int pid)
 
     DYNINSThasInitialized = 2;
 
-   if (cause == 2) calledByFork = 1;
-   else if (cause == 3) calledByAttach = 1;
-
+    if (cause == 2) calledByFork = 1;
+    else if (cause == 3) calledByAttach = 1;
+    
     /* sanity check */
 #if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
     assert(sizeof(int64_t) == 8);
     assert(sizeof(int32_t) == 4);
 #endif
-
+    
 #ifndef mips_unknown_ce2_11 /*ccw 23 july 2001*/
     RTprintf("%s\n", V_libdyninstAPI_RT);
 #endif
-
+    
     DYNINSTos_init(calledByFork, calledByAttach);
-
+    
 #if !defined(mips_unknown_ce2_11) /*ccw 16 may 2000 : 29 mar 2001*/
     DYNINST_bootstrap_info.pid = getpid();
 #endif
     DYNINST_bootstrap_info.ppid = pid;
     DYNINST_bootstrap_info.event = cause;
-
+    
     DYNINST_mutatorPid = pid;
 
-#ifndef i386_unknown_nt4_0 /*ccw 13 june 2001*/
-
-#ifndef mips_unknown_ce2_11 
-	if(isMutatedExec==0){ /*ccw 19 nov 2001 */
-	   DYNINSTbreakPoint();
-	}
-#else
-	__asm("break 1"); /*ccw 25 oct 2000 : 29 mar 2001*/
-	__asm("nop");
-#endif
-
-#endif
 }
+
+/* These variables are used to pass arguments into DYNINSTinit
+   when it is called as an _init function */
+int libdyninstAPI_RT_init_localCause=-1;
+int libdyninstAPI_RT_init_localPid=-1;
 
 #if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
 #include <windows.h>
@@ -203,17 +183,46 @@ BOOL WINAPI DllMain(
   DWORD fdwReason,     /* reason for calling function */
   LPVOID lpvReserved   /* reserved */
 ){
-
-	if(DllMainCalledOnce){
-	}else{
+	if(DllMainCalledOnce == 0){
 		DllMainCalledOnce++;
-		if(libdyninstAPI_RT_DLL_localPid != -1 || libdyninstAPI_RT_DLL_localCause != -1){
-			DYNINSTinit(libdyninstAPI_RT_DLL_localCause,libdyninstAPI_RT_DLL_localPid);
+		if(libdyninstAPI_RT_init_localPid != -1 || libdyninstAPI_RT_init_localCause != -1){
+			DYNINSTinit(libdyninstAPI_RT_init_localCause,libdyninstAPI_RT_init_localPid);
 		}
 	}
 	return 1; 
 }
  
+
+#else
+
+/* _init table of methods:
+   GCC: link with gcc -shared, and use __attribute__((constructor));
+   AIX: ld with -binitfini:libdyninstAPI_RT_init
+   Solaris: ld with -z initarray=libdyninstAPI_RT_init
+   Linux: ld with -init libdyninstAPI_RT_init
+          gcc with -Wl,-init -Wl,...
+          
+*/
+
+/* Convince GCC to run _init when the library is loaded */
+#ifdef __GNUC
+void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
+#endif
+
+/* UNIX-style initialization through _init */
+int initCalledOnce = 0;
+void libdyninstAPI_RT_init() {
+    if (initCalledOnce) return;
+    initCalledOnce++;
+/* Has its own call-once protection, and so can be called here */
+    RTmutatedBinary_init();
+    
+    if(libdyninstAPI_RT_init_localCause != -1 ||
+       libdyninstAPI_RT_init_localPid != -1) {
+        DYNINSTinit(libdyninstAPI_RT_init_localCause,
+                    libdyninstAPI_RT_init_localPid);
+    }
+}
 
 #endif
 

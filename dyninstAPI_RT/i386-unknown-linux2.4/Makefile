@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2003/01/31 18:55:43 chadd Exp $
+# $Id: Makefile,v 1.11 2003/02/04 14:59:33 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,7 +13,10 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -static -nostdlib -Xlinker -r -nostdlib
+LDFLAGS         += -shared -nostdlib
+
+# Automatic init routine
+LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
 
 CFLAGS		+= -O2 
 
@@ -21,7 +24,6 @@ CFLAGS		+= -O2
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -fpic 
-LDFLAGS         = -shared -nostdlib 
 LIBS 		= -lelf -ldl 
 ASFLAGS         = 
 
