@@ -3,12 +3,18 @@
  *
  */
 
+#ifndef INST_HDR
+#define INST_HDR
+
 /*
  * inst.h - This file contains the insrumentation functions that are provied
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.7  1994/09/22 02:29:18  markc
+ * Revision 1.8  1994/11/02 11:08:52  markc
+ * Added prototypes.
+ *
+ * Revision 1.7  1994/09/22  02:29:18  markc
  * Removed compiler warnings
  *
  * Revision 1.6  1994/08/08  20:13:39  hollings
@@ -61,6 +67,9 @@
  */
 
 class instInstance;
+class process;
+class instPoint;
+class pdFunction;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
@@ -94,14 +103,17 @@ class AstNode;
  * Insert instrumentation a the specificed codeLocation.
  *
  */
-instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast, 
-    callWhen when, callOrder order);
+instInstance *addInstFunc(process *proc,
+			  instPoint *location,
+			  AstNode *ast, 
+			  callWhen when,
+			  callOrder order);
 
 float getPointFrequency(instPoint *point);
 
 void deleteInst(instInstance*);
 
-intCounterHandle *createIntCounter(process *proc, int value, Boolean report);
+intCounterHandle *createIntCounter(process *proc, int value, bool report);
 int getIntCounterValue(intCounterHandle*);
 void freeIntCounter(intCounterHandle*);
 void addToIntCounter(intCounterHandle*, int amount);
@@ -122,7 +134,7 @@ void addToFloatCounter(floatCounter*, float amount);
  *
  *   pid is the thread that the timer will run in.
  */
-timerHandle *createTimer(process*proc,timerType type, Boolean report);
+timerHandle *createTimer(process*proc,timerType type, bool report);
 
 /*
  * return the current value of the timer.
@@ -156,19 +168,31 @@ pdFunction *getFunction(instPoint *point);
 #define FUNC_CALL       0x4             /* subroutines called from func */
 #define FUNC_ARG  	0x8             /* use arg as argument */
 
-class instMaping {
-    public:
-	const char *func;         /* function to instrument */
-	const char *inst;         /* inst. function to place at func */
-	int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-	AstNode *arg;	    /* what to pass as arg0 */
+class instMapping {
+ public:
+  instMapping(const string f, const string i, const int w,
+	      AstNode *a, bool mr=true)
+    : func(f), inst(i), where(w), arg(a), more(mr) { }
+
+  instMapping() : where(0), arg(NULL), more(true) { }
+
+  void set(const string f, const string i, const int w,
+	   AstNode *a=NULL, bool mr=true) {
+    func = f; inst =i; where = w; arg = a; more = mr;}
+
+  // KLUDGE -- TODO fix this -- marks last element in array
+  bool more;
+  string func;         /* function to instrument */
+  string inst;         /* inst. function to place at func */
+  int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+  AstNode *arg;	    /* what to pass as arg0 */
 };
 
 /*
  * Install a list of inst requests in a process.
  *
  */
-void installDefaultInst(process *proc, instMaping *initialRequests);
+void installDefaultInst(process *proc, instMapping *initialReq);
 
 /*
  * get information about the cost of pimitives.
@@ -181,7 +205,7 @@ void initDefaultPointFrequencyTable();
 // Return the expected runtime of the passed function in instruction
 //   times.
 //
-int getPrimitiveCost(char *name);
+unsigned getPrimitiveCost(const string name);
 
 // a register.
 typedef int reg;
@@ -211,7 +235,7 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
-caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *insn, caddr_t *base);
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
 
 /*
  * get the requested parameter into a register.
@@ -219,8 +243,10 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *insn, caddr_t *base)
  */
 reg getParameter(reg dest, int param);
 
-#define INFERRIOR_HEAP_BASE     "DYNINSTdata"
+#define INFERIOR_HEAP_BASE     "DYNINSTdata"
+#define UINFERIOR_HEAP_BASE    "_DYNINSTdata"
 #define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
+#define U_GLOBAL_HEAP_BASE      "_DYNINSTglobalData"
 
 class point {
  public:
@@ -234,3 +260,27 @@ class point {
  */
 
 extern void restore_original_instructions(process *, instPoint *);
+
+extern char *getProcessStatus(process *p);
+
+// TODO - what about mangled names ?
+// expects the symbol name advanced past the underscore
+extern unsigned findTags(const string funcName);
+
+extern float computePauseTimeMetric();
+
+extern process *nodePseudoProcess;
+
+extern void initLibraryFunctions();
+extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
+
+extern unsigned getMaxBranch();
+
+// find these internal functions before finding any other functions
+extern dictionary_hash<string, unsigned> tagDict;
+
+extern dictionary_hash <string, unsigned> primitiveCosts;
+extern dictionary_hash<string, unsigned> tagDict;
+extern process *nodePseudoProcess;
+
+#endif
