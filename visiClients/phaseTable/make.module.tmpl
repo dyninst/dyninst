@@ -1,5 +1,8 @@
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.2  1995/12/20 02:10:56  tamches
+# removed TCL2C and TCL2C_GEN_SRCS (now in make.config)
+#
 # Revision 1.1  1995/12/15 22:01:37  tamches
 # first version of phaseTable
 #
@@ -20,8 +23,6 @@ VPATH 	     += ../../../paradyn/src/UIthread \
 IFLAGS	     += -I../../../util/h \
 		-I../../../paradyn/src/UIthread
 
-TCL2C           = tcl2c
-TCL2C_GEN_SRCS  = tcl2c.C
 TCL_SRCS        = $(wildcard ../tcl/*.tcl)
 SRCS		+= $(TCL2C_GEN_SRCS)
 
