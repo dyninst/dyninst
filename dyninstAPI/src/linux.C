@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.123 2004/01/19 21:53:43 schendel Exp $
+// $Id: linux.C,v 1.124 2004/02/07 18:34:09 schendel Exp $
 
 #include <fstream>
 
@@ -407,7 +407,7 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       return false;
 
    (*new_event).proc = pertinantProc;
-   (*new_event).lwps.push_back(pertinantLWP);
+   (*new_event).lwp  = pertinantLWP;
    (*new_event).why  = why;
    (*new_event).what = what;
    (*new_event).info = info;
@@ -732,14 +732,11 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
       procevent new_event;
       bool gotevent = checkForEventLinux(&new_event, lwp->get_lwp_id(), false,
                                          options);
-      getSH()->beginEventHandling(1);
-
       if(gotevent) {
          if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP) {
             dyn_lwp *lwp_for_event = NULL;
-            if(new_event.lwps.size() > 0) {
-               assert(new_event.lwps.size() == 1);
-               lwp_for_event = new_event.lwps[0];
+            if(new_event.lwp != NULL) {
+               lwp_for_event = new_event.lwp;
             }
 
             if(lwp_for_event == lwp) {
@@ -748,7 +745,7 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
             // Don't call the general handler
          }
          else {
-            getSH()->handleProcessEventWithUnlock(new_event);
+            getSH()->handleProcessEvent(new_event);
          }
       }
    }
