@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.86 1999/05/19 21:16:39 karavan Exp $
+   $Id: paradyn.tcl.C,v 1.87 1999/05/20 21:42:19 pcroth Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -965,6 +965,7 @@ int ParadynSaveCmd (ClientData,
       char *fname = new char [strlen(argv[3])+1];
       strcpy (fname, argv[3]);
       dataMgr->saveAllResources(fname);
+      delete[] fname;
       return TCL_OK;
     } else if (!strcmp(argv[1], "shg")) {
       // "save shg [global|phase]"
@@ -975,6 +976,7 @@ int ParadynSaveCmd (ClientData,
         perfConsult->saveSHG(fname, 0);   // save phase shg(s)
       else
         perfConsult->saveSHG(fname, 1);   // save global shg
+      delete[] fname;
       return TCL_OK;
     }
   }
