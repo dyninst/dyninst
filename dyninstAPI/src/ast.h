@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.49 2001/12/06 20:57:43 schendel Exp $
+// $Id: ast.h,v 1.50 2002/02/27 23:27:09 hollings Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -183,9 +183,9 @@ class AstNode {
 				    const instPoint *location = NULL);
 
 	enum CostStyleType { Min, Avg, Max };
-	int AstNode::minCost() const {  return costHelper(Min);  }
-	int AstNode::avgCost() const {  return costHelper(Avg);  }
-	int AstNode::maxCost() const {  return costHelper(Max);  }
+	int minCost() const {  return costHelper(Min);  }
+	int avgCost() const {  return costHelper(Avg);  }
+	int maxCost() const {  return costHelper(Max);  }
 
 	// return the # of instruction times in the ast.
 	int costHelper(enum CostStyleType costStyle) const;	

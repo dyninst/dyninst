@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.6 2001/09/07 21:15:08 tikir Exp $
+// $Id: inst-mips.h,v 1.7 2002/02/27 23:27:09 hollings Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -51,7 +51,7 @@
 #include "BPatch_point.h"
 #endif
 
-#define REG_MT 0 /* register saved to keep the address */
+#define REG_MT_BASE 0 /* register saved to keep the address */
                  /* of the current vector of           */
                  /* counter/timers for each thread     */
 
