@@ -689,11 +689,44 @@ int process::waitProcs(int *status) {
 // attach to an inferior process.
 bool process::attach() {
   // we only need to attach to a process that is not our direct children.
+#ifdef BPATCH_LIBRARY
+  if (parent != 0 || createdViaAttach) {
+    if (!attach_())
+      return false;
+    // Get the initial trap
+    bool gotTrap = false;
+    while (!gotTrap) {
+      int waitStatus;
+      int ret = waitpid(pid, &waitStatus, WUNTRACED);
+      if ((ret == -1) && (errno == EINTR)) continue;
+      if ((ret == -1) && (errno == ECHILD)) return false;
+      if(WIFEXITED(waitStatus)) {
+        // the child is gone.
+        //status_ = exited;
+        handleProcessExit(this, WEXITSTATUS(waitStatus));
+        return false;
+      }
+      if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus))
+        return false;
+      int sig = WSTOPSIG(waitStatus);
+      if (sig != SIGTRAP) {
+        extern int handleSigChild(int, int);
+        if (handleSigChild(pid, waitStatus) < 0) 
+	  cerr << "handleSigChild failed for pid " << pid << endl; 
+      } else {              //Process stopped by our attach
+	gotTrap = TRUE;
+      }
+    }
+    return true;
+  } else
+    return true;
+#else
   if (parent != 0) {
     return attach_();
   }
   else
     return true;
+#endif
 }
 
 bool process::attach_() {
@@ -1601,8 +1634,7 @@ string process::tryToFindExecutable(const string &progpath, int pid) {
 }
 
 unsigned process::read_inferiorRPC_result_register(reg returnValReg) {
-   assert(false); // not yet implemented!!!
-   return 0;
+   return P_ptrace(PT_READ_GPR, pid, (void *)returnValReg, 0, 0);
 }
 
 bool process::set_breakpoint_for_syscall_completion() {

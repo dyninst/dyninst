@@ -75,7 +75,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
     vector<function_base *> *funcs = mod->getFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++) {
-	BPatch_function *bpfunc = new BPatch_function((*funcs)[f]);
+	BPatch_function *bpfunc = new BPatch_function(proc, (*funcs)[f]);
 	proclist->push_back(bpfunc);
     }
 

@@ -7,6 +7,11 @@ need to go into the appropriate platform subdirectories of these directories
 and type "make install."  If you have built Paradyn, then the util library
 will have already been built.
 
+On Windows NT, before running make in the core/util/i386-unknown-nt4.0
+directory, you will need to obtain and install ONC RPC for Windows NT.   See
+the page http://set.gmd.de/~mfg/oncrpc.html for information about this
+package.  The makefiles expect it to be installed in the directory C:\SUNRPC.
+
 On platforms on which the API dynamically loads a run-time library into an
 application's address space (Sparc Solaris and Windows NT), you must set
 certain values in the environment so that it can locate the run-time library.

@@ -81,7 +81,7 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
     vector<function_base *> *funcs = proc->getAllFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++) {
-	BPatch_function *bpfunc = new BPatch_function((*funcs)[f]);
+	BPatch_function *bpfunc = new BPatch_function(proc, (*funcs)[f]);
 	proclist->push_back(bpfunc);
     }
 
@@ -108,7 +108,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
     vector<module *> *mods = proc->getAllModules();
 
     for (unsigned int m = 0; m < mods->size(); m++) {
-	BPatch_module *bpmod = new BPatch_module((*mods)[m]);
+	BPatch_module *bpmod = new BPatch_module(proc, (*mods)[m]);
 	modlist->push_back(bpmod);
     }
 
@@ -135,53 +135,15 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
 BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
 	const char *name, const BPatch_procedureLocation loc)
 {
-    /*
-     * XXXX We'd like to get a list of the functions with the name:
-    vector<function_base *> flist;
-
-    if (!proc->findFunction(name, flist))
-	return NULL;
-     * but we don't seem to have a way to do that right now.
+    /* XXX Right now this assumes that there's only one function with
+     * the given name.
      */
 
-    function_base *func = proc->findOneFunction(name);
-
-    if (func == NULL) {
-	string fullname = string("_") + string(name);
-	func = proc->findOneFunction(fullname);
-    }
-
+    BPatch_function *func = findFunction(name);
+    
     if (func == NULL) return NULL;
 
-    BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
-
-//    for (unsigned func_num = 0; func_num < flist.size(); func_num++) {
-	if (loc == BPatch_entry || loc == BPatch_allLocations) {
-	    BPatch_point *new_point = new BPatch_point(proc,
-					    (instPoint *)func->funcEntry(proc));
-	    result->push_back(new_point);
-	}
-	if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
-	    const vector<instPoint *> &points = func->funcExits(proc);
-	    for (unsigned i = 0; i < points.size(); i++) {
-	       	BPatch_point *new_point = new BPatch_point(proc, points[i]);
-    		result->push_back(new_point);
-	    }
-	}
-	if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
-	    const vector<instPoint *> &points = func->funcCalls(proc);
-	    for (unsigned i = 0; i < points.size(); i++) {
-	       	BPatch_point *new_point = new BPatch_point(proc, points[i]);
-		result->push_back(new_point);
-	    }
-	}
-	if (loc ==  BPatch_longJump /* || loc == BPatch_allLocations */) {
-	    /* XXX Not yet implemented */
-	    assert( 0 );
-	}
-//    }
-
-    return result;
+    return func->findPoint(loc);
 }
 
 
@@ -208,7 +170,7 @@ BPatch_function *BPatch_image::findFunction(const char *name)
 	return NULL;
     }
 
-    return new BPatch_function(func);
+    return new BPatch_function(proc, func);
 }
 
 

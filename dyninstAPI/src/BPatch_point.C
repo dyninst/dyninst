@@ -75,7 +75,7 @@ BPatch_function *BPatch_point::getCalledFunction()
     	return NULL;
 
     if (func != NULL)
-    	return new BPatch_function(func);
+    	return new BPatch_function(proc, func);
     else
 	return NULL;
 }

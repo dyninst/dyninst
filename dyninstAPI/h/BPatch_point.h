@@ -50,7 +50,7 @@ class BPatch_function;
 
 class BPatch_point {
     friend class BPatch_thread;
-    friend class BPatch_image;
+    friend class BPatch_function;
 
     process	*proc;
     instPoint	*point;

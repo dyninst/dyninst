@@ -48,11 +48,13 @@ class module;
 class BPatch_function;
 
 class BPatch_module {
+    process	*proc;
     module	*mod;
 
 public:
 // The following functions are for internal use by  the library only:
-    BPatch_module(module *_mod) : mod(_mod) {};
+    BPatch_module(process *_proc, module *_mod) :
+	proc(_proc), mod(_mod) {};
     BPatch_module() : mod(NULL) {};
 // End functions for internal use only
   

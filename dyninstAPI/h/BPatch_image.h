@@ -52,19 +52,6 @@ class image;
 class BPatch_type;
 
 
-/*
- * Used with findProcedurePoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum {
-    BPatch_entry,
-    BPatch_exit,
-    BPatch_subroutine,
-    BPatch_longJump,
-    BPatch_allLocations
-} BPatch_procedureLocation;
-
-
 class BPatch_image {
     process	*proc;
 

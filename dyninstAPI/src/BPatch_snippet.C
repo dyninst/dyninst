@@ -466,3 +466,54 @@ char *BPatch_function::getName(char *s, int len)
 
     return s;
 }
+
+
+/*
+ * BPatch_function::findPoint
+ *
+ * Returns a vector of the instrumentation points from a procedure that is
+ * identified by the parameters, or returns NULL upon failure.
+ *
+ * loc		The points within the procedure to return.  The following
+ *		values are valid for this parameter:
+ * 		  BPatch_entry         The function's entry point.
+ * 		  BPatch_exit          The function's exit point(s).
+ * 		  BPatch_subroutine    The points at which the procedure calls
+ * 		                       other procedures.
+ * 		  BPatch_longJump      The points at which the procedure make
+ * 		                       long jump calls.
+ *		  BPatch_allLocations  All of the points described above.
+ */
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
+	const BPatch_procedureLocation loc)
+{
+    if (func == NULL) return NULL;
+
+    BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
+
+    if (loc == BPatch_entry || loc == BPatch_allLocations) {
+	BPatch_point *new_point = new BPatch_point(proc,
+					(instPoint *)func->funcEntry(proc));
+	result->push_back(new_point);
+    }
+    if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
+	const vector<instPoint *> &points = func->funcExits(proc);
+	for (unsigned i = 0; i < points.size(); i++) {
+	    BPatch_point *new_point = new BPatch_point(proc, points[i]);
+	    result->push_back(new_point);
+	}
+    }
+    if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
+	const vector<instPoint *> &points = func->funcCalls(proc);
+	for (unsigned i = 0; i < points.size(); i++) {
+	    BPatch_point *new_point = new BPatch_point(proc, points[i]);
+	    result->push_back(new_point);
+	}
+    }
+    if (loc ==  BPatch_longJump /* || loc == BPatch_allLocations */) {
+	/* XXX Not yet implemented */
+	assert( 0 );
+    }
+
+    return result;
+}

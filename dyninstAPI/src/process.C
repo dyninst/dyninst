@@ -1049,10 +1049,19 @@ process::process(int iPid, image *iSymbols,
       return;
    }
 
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+   wasRunningWhenAttached = false; /* XXX Or should the default be true? */
+#else
    wasRunningWhenAttached = isRunning_();
+#endif
 
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+   // We use ptrace of AIX, which stops the process on attach.
+   status_ = stopped;
+#else
    // Note: we used to pause the program here, but not anymore.
    status_ = running;
+#endif
 
 #ifdef i386_unknown_nt4_0 // Except we still pause on NT.
     if (!pause())
@@ -3315,7 +3324,7 @@ bool process::handleTrapIfDueToRPC() {
         // must be a callback to ever see this match_type
 
       const unsigned returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
-      
+
       extern registerSpace *regSpace;
       regSpace->freeRegister(theStruct.resultRegister);
 

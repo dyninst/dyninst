@@ -142,7 +142,7 @@ void clearBaseBranch(process *proc, instInstance *inst)
 
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static int insn[65536/sizeof(int)]; // Made into array of int so it would be
-				    // aligned correctly on platoforms that
+				    // aligned correctly on platforms that
 				    // need it to be (like SPARC) - BRB
 
 static dictionary_hash<const instPoint*, point*> activePoints(ipHash);

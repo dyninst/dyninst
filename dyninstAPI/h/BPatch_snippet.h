@@ -49,6 +49,7 @@ class function_base;
 class process;
 
 class BPatch_function;
+class BPatch_point;
 class BPatch_type;
 
 typedef enum {
@@ -79,14 +80,32 @@ typedef enum {
 } BPatch_unOp;
 
 
+/*
+ * Used with BPatch_function::findPoint to specify which of the possible
+ * instrumentation points within a procedure should be returned.
+ */
+typedef enum {
+    BPatch_entry,
+    BPatch_exit,
+    BPatch_subroutine,
+    BPatch_longJump,
+    BPatch_allLocations
+} BPatch_procedureLocation;
+
+
 class BPatch_function {
+    process *proc;
 public:
 // The following are for  internal use by the library only:
     function_base *func;
-    BPatch_function(function_base *_func) : func(_func) {};
+    BPatch_function(process *_proc, function_base *_func) :
+	proc(_proc), func(_func) {};
 
 // For users of the library:
     char	*getName(char *s, int len);
+
+    BPatch_Vector<BPatch_point *>
+	*findPoint(const BPatch_procedureLocation loc);
 };
 
 
