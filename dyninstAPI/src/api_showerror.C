@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.15 2005/02/09 03:27:44 jaw Exp $
+// $Id: api_showerror.C,v 1.16 2005/02/25 17:14:44 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -122,6 +122,9 @@ int bperr(const char *format, ...)
 #else
     int syserrlen = snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
 #endif
+    /* reset errno so that future calls to this function don't report same error */
+    errno = 0; 
+
     if ((errbuflen + syserrlen) < ERR_BUF_SIZE)
       strcat(errbuf, syserr);
     else {
