@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.42 2000/05/01 17:35:21 mihai Exp $ */
+/* $Id: test1.mutatee.c,v 1.43 2000/05/02 19:54:39 paradyn Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1998,13 +1998,7 @@ void func31_4( int value )
 
 int func31_1()
 {
-#if !defined( sparc_sun_solaris2_4 ) && \
-    !defined( mips_sgi_irix6_4 ) && \
-    !defined( i386_unknown_solaris2_5 ) && \
-    !defined( i386_unknown_linux2_0 ) && \
-    !defined( i386_unknown_nt4_0 )
-/*   !defined( rs6000_ibm_aix4_1) */
-
+#if defined(alpha_dec_osf4_0)
     printf( "Skipped test #31 (non-recursive base tramp guard)\n" );
     printf( "\t- not implemented on this platform\n" );
     passedTest[ 31 ] = TRUE;
@@ -2333,8 +2327,15 @@ void exception_test::func_cpp()
    }
 }
 
+#ifdef rs6000_ibm_aix4_1
+// xlC's static libC has strangely undefined symbols, so just fake them ...
+int SOMClassClassData;
+int SOMObjectClassData;
+#else
+// xlC also doesn't like these, so just skip them ...
 template class sample_template <int>;
 template class sample_template <double>;
+#endif
 
 template <class T> T sample_template <T>::content()
 {
