@@ -48,7 +48,7 @@
 # actually a custom pdgraph Tk widget.
 #
 #---------------------------------------------------------------------------
-# $Id: histVisi.tcl,v 1.2 1999/11/10 15:11:59 pcroth Exp $
+# $Id: histVisi.tcl,v 1.3 1999/12/17 16:22:36 pcroth Exp $
 #---------------------------------------------------------------------------
 
 
@@ -65,7 +65,6 @@ proc dbg_niy {} {
 namespace eval RTHist {
 
     variable is_kept_on_paradyn_exit 0
-    variable histFont "Helvetica 9"
 
 
     #
@@ -73,7 +72,9 @@ namespace eval RTHist {
     #
     proc init {} \
     {
-        option add *PDMenu*font "{New Century Schoolbook} 12 bold roman"
+		option add *Font "Helvetica 9 roman" widgetDefault
+        option add *Pdheader*Font "{New Century Schoolbook} 12 bold roman" widgetDefault
+		option add *Pdgraph*Font "Helvetica 9 roman" widgetDefault
 
         # set up main window
         wm title . "Histogram"
@@ -115,14 +116,14 @@ namespace eval RTHist {
         # set up our "Pan" and "Zoom" labels by the scroll bars
         frame $wname.labf
         pack $wname.labf -side bottom -fill x
-        label $wname.labf.panlab -text Pan -font $::RTHist::histFont
+        label $wname.labf.panlab -text Pan 
         pack $wname.labf.panlab -fill x
 
-        label $wname.zoomlab -text "Z\no\no\nm" -font $::RTHist::histFont
+        label $wname.zoomlab -text "Z\no\no\nm"
         pack $wname.zoomlab -side right -fill y
 
         # set up our pdgraph widget in the remainder of the area
-        pdgraph $wname.graph -relief sunken -borderwidth 2 -font $::RTHist::histFont
+        pdgraph $wname.graph -relief sunken -borderwidth 2
         pack $wname.graph -side top -fill both -expand true
 
         pack $wname -fill both -expand true
@@ -186,7 +187,7 @@ namespace eval RTHist {
     proc init_header {} {
 
         # frame around header widgets
-        frame .header
+        frame .header -class Pdheader
         pack .header -side top -fill x
 
         # logo
@@ -195,12 +196,11 @@ namespace eval RTHist {
 
         # title bar
         label .header.title -text "Histogram Visualization" \
-            -fg white -bg DarkSlateBlue -relief raised \
-            -font "{New Century Schoolbook} 12 bold roman"
+            -fg white -bg DarkSlateBlue -relief raised
         pack .header.title -side top -fill both -expand true
 
         # menu bar
-        frame .header.menubar -class PDMenu -borderwidth 2 -relief raised
+        frame .header.menubar -borderwidth 2 -relief raised
         pack .header.menubar -side bottom -fill both
         ::RTHist::init_menus .header.menubar
     }

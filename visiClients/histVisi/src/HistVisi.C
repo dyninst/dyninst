@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.1 1999/10/05 22:09:04 pcroth Exp $
+// $Id: HistVisi.C,v 1.2 1999/12/17 16:22:33 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "util/h/headers.h"
@@ -85,13 +85,13 @@ int    initialize_tcl_sources( Tcl_Interp* interp );
 HistVisi::VisiLibEvent HistVisi::libEventInfo[] =
 {
     { ADDMETRICSRESOURCES,    AddMetricsAndResourcesCB },
-    { DATAVALUES,            DataCB },
-    { FOLD,                    FoldCB },
-    { PHASESTART,            PhaseStartCB },
-    { PHASEEND,                PhaseEndCB },
-    { PHASEDATA,            PhaseDataCB },
-    { PARADYNEXITED,        ParadynExitedCB },
-    { (visi_msgTag)0,        NULL }
+    { DATAVALUES,             DataCB },
+    { FOLD,                   FoldCB },
+    { PHASESTART,             PhaseStartCB },
+    { PHASEEND,               PhaseEndCB },
+    { PHASEDATA,              PhaseDataCB },
+    { PARADYNEXITED,          ParadynExitedCB },
+    { (visi_msgTag)0,         NULL }
 };
 
 
@@ -204,6 +204,8 @@ HistVisi::InitUI( void )
 
         return false;
     }
+
+	Tk_SetClass( Tk_MainWindow(interp), Tk_GetUid( "Pdhistvisi" ) );
     
     // set up any Tcl commands that support the UI
     Tcl_Command cmd = Tcl_CreateObjCommand( interp,

@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.1 1999/10/05 22:09:05 pcroth Exp $
+// $Id: main.C,v 1.2 1999/12/17 16:22:33 pcroth Exp $
 //----------------------------------------------------------------------------
 #include "util/h/headers.h"
 
@@ -99,6 +99,7 @@ main( int /* argc */, char* argv[] )
         tclpanic( interp, "Failed to initialize Tk." );
     }
     Tcl_SetVar( interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY );
+	Tk_SetClass( Tk_MainWindow(interp), Tk_GetUid("Pdhistvisi") );
 
 #if defined(DEBUG_PAUSE)
     Tcl_EvalObj( interp,

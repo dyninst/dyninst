@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.6 1999/11/10 15:06:26 pcroth Exp $
+// $Id: PDGraph.C,v 1.7 1999/12/17 16:22:33 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -386,7 +386,7 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin, int argc, char* argv[] )
     {
         return TCL_ERROR;
     }
-    Tk_SetClass( tmpMainW, "Frame" );
+    Tk_SetClass( tmpMainW, "Pdgraph" );
 
 
     // build and arrange subwidgets -
@@ -2077,7 +2077,7 @@ unsigned int PDGraph::Curve::nextLineSpecIdx = 0;
 PDGraph::Curve::Curve( const char* metricName,
                        const char* resourceName,
                        unsigned int maxPoints )
-  : isSmoothed( false ),
+  : isSmoothed( true ),
     nPoints( 0 ),
     pts( NULL ),
     spts( NULL ),
