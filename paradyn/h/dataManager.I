@@ -2,7 +2,12 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.19  1994/06/28 00:15:45  rbi
+ * Revision 1.20  1994/07/02 01:45:22  markc
+ * Removed aggregation operator from enableDataCollection call.
+ * Remove aggregation operator definitions, which are provided by
+ * util/h/aggregation.H
+ *
+ * Revision 1.19  1994/06/28  00:15:45  rbi
  * Increment of version numbers
  *
  * Revision 1.18  1994/06/27  21:21:39  rbi
@@ -197,7 +202,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 9;
+    $version 10;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -291,11 +296,10 @@ $remote dataManager {
     // performanceStream 	- a stream returned by createPerformanceStream
     // resourceList		- a list of resources
     // metric		- what metric to collect data for
-    // aggOp            - how the data should be aggregated (sum, avg, ...)
     metricInstance *enableDataCollection(performanceStream*,
 					 resourceList*,
-					 metric*,
-					 aggregation aggOp);
+					 metric*);
+
 
     //
     // stop collecting data for the named metricInstance.

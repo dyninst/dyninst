@@ -16,7 +16,12 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.13  1994/06/29 02:55:34  hollings
+ * Revision 1.14  1994/07/02 01:45:24  markc
+ * Removed aggregation operator from enableDataCollection call.
+ * Remove aggregation operator definitions, which are provided by
+ * util/h/aggregation.H
+ *
+ * Revision 1.13  1994/06/29  02:55:34  hollings
  * Added copyright and log line.
  *
  *
@@ -25,10 +30,7 @@
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
-#define opSum	0
-#define opAvg	1
-#define opMin	2
-#define opMax	3
+#include "util/h/aggregation.h"
 
 /* descriptive information about a metric */
 $remote typedef struct { 
@@ -51,7 +53,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 11;
+    $version 12;
 
     //
     // Define a program to run. 
