@@ -4,7 +4,12 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.21  1994/07/28 22:21:26  krisna
+ * Revision 1.22  1994/08/17 18:23:53  markc
+ * Added new classes: Cstring KeyList, KList
+ * Added new function: RPCgetArg
+ * Changed typedefs in machineType.h to #defines
+ *
+ * Revision 1.21  1994/07/28  22:21:26  krisna
  * changed declaration of xdrIOFunc to conform to prototypes
  *
  * Revision 1.20  1994/07/19  18:29:59  markc
@@ -138,4 +143,5 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 		   int &type, int &well_known_socket, int &flag);
 extern int RPC_getConnect (int fd);
 
+extern char **RPCgetArg(int &argc, const char *input);
 #endif
