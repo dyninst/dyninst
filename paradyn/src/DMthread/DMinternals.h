@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.19  1994/06/29 02:55:57  hollings
+ * Revision 1.20  1994/07/02 01:43:09  markc
+ * Removed all uses of type aggregation from enableDataCollection.
+ * The metricInfo structure now contains the aggregation operator.
+ *
+ * Revision 1.19  1994/06/29  02:55:57  hollings
  * fixed code to remove instrumenation when done with it.
  *
  * Revision 1.18  1994/06/27  21:23:22  rbi
@@ -181,8 +185,7 @@ class applicationContext {
 	void coreProcess(int pid);
 	String_Array getAvailableMetrics();
 	metric *findMetric(char *name);
-	metricInstance *enableDataCollection(resourceList*, metric*,
-                                             aggregation aggOp); 
+	metricInstance *enableDataCollection(resourceList*, metric*);
 	float getPredictedDataCost(resourceList*, metric*);
 	void disableDataCollection(metricInstance*);
 
@@ -215,8 +218,7 @@ class performanceStream {
         }
 	void setSampleRate(timeStamp rate) { sampleRate = rate; }
 
-	metricInstance *enableDataCollection(resourceList*, metric*,
-                                             aggregation aggOp); 
+	metricInstance *enableDataCollection(resourceList*, metric*);
 	void disableDataCollection(metricInstance*);
 	void enableResourceCreationNotification(resource*);
 	void disableResourceCreationNotification(resource*);
@@ -262,14 +264,15 @@ class metric {
 	  info.style = i.style;
 	  info.units = strdup (i.units);
 	  info.name = strdup (i.name);
+          info.aggregate = i.aggregate;
 	}
 	metricInfo *getInfo() { return(&info); }
 	String getName() { return(info.name); }
 	metricStyle getStyle() { return((metricStyle) info.style); }
+        int getAggregate() { return info.aggregate;}
 	List<metricInstance*> enabledCombos;
 	static stringPool names;
 	static HTable<metric*> allMetrics;
-	aggregation aggOp;
     private:
 	metricInfo info;
 };
@@ -280,13 +283,12 @@ class metricInstance {
 	~metricInstance() {
 	    if (data) delete(data);
 	}
-	metricInstance(resourceList *rl, metric *m, aggregation aOp = Sum) {
+	metricInstance(resourceList *rl, metric *m) {
 	    met = m;
 	    focus = rl;
 	    count = 0;
 	    enabledTime = 0.0;
-            sample.aggOp = aOp;
-	    aggOp = aOp;
+            sample.aggOp = m->getAggregate();
 	    data = NULL;
 	}
 	float getValue() {
@@ -313,7 +315,6 @@ class metricInstance {
 	List<performanceStream*> users;
 	Histogram *data;
 	float enabledTime;
-        aggregation aggOp;
     private:
 };
 

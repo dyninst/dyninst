@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.20  1994/06/27 21:23:29  rbi
+ * Revision 1.21  1994/07/02 01:43:12  markc
+ * Removed all uses of type aggregation from enableDataCollection.
+ * The metricInfo structure now contains the aggregation operator.
+ *
+ * Revision 1.20  1994/06/27  21:23:29  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.19  1994/06/17  22:08:00  hollings
@@ -179,10 +183,9 @@ resource *dataManager::getRootResource()
 
 metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 						  resourceList *rl,
-						  metric *m,
-						  aggregation aggOp)
+						  metric *m)
 {
-    return(ps->enableDataCollection(rl, m, aggOp));
+    return(ps->enableDataCollection(rl, m));
 }
 
 void dataManager::disableDataCollection(performanceStream *ps, 

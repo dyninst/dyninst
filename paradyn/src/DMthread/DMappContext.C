@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.27  1994/06/29 02:55:55  hollings
+ * Revision 1.28  1994/07/02 01:43:08  markc
+ * Removed all uses of type aggregation from enableDataCollection.
+ * The metricInfo structure now contains the aggregation operator.
+ *
+ * Revision 1.27  1994/06/29  02:55:55  hollings
  * fixed code to remove instrumenation when done with it.
  *
  * Revision 1.26  1994/06/23  19:26:20  karavan
@@ -499,8 +503,7 @@ void histFoldCallBack(timeStamp width, void *arg)
 //    metric/focus pair.
 //
 metricInstance *applicationContext::enableDataCollection(resourceList *rl, 
-							 metric *m,
-							 aggregation aggOp)
+							 metric *m)
 {
     int id;
     char *name;
@@ -516,7 +519,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     // 
     // for each daemon request the data to be enabled.
     //
-    mi = new metricInstance(rl, m, aggOp);
+    mi = new metricInstance(rl, m);
     foundOne = FALSE;
     for (curr = daemons; daemon = *curr; curr++) {
 	id = daemon->enableDataCollection(ra, m->getName());

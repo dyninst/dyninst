@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.34  1994/06/29 02:55:59  hollings
+ * Revision 1.35  1994/07/02 01:43:11  markc
+ * Removed all uses of type aggregation from enableDataCollection.
+ * The metricInfo structure now contains the aggregation operator.
+ *
+ * Revision 1.34  1994/06/29  02:55:59  hollings
  * fixed code to remove instrumenation when done with it.
  *
  * Revision 1.33  1994/06/27  21:23:25  rbi
@@ -143,8 +147,7 @@ tunableConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, "samplingRate",
    "how often to sample intermediate performance data (in seconds)");
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
-							metric *m,
-							aggregation aggOp)
+							metric *m)
 {
     char *name;
     metricInstance *mi;
@@ -157,7 +160,7 @@ metricInstance *performanceStream::enableDataCollection(resourceList *rl,
         mi->count++;
 	mi->users.add(this);
     } else {
-	mi = appl->enableDataCollection(rl, m, aggOp);
+	mi = appl->enableDataCollection(rl, m);
 	if (mi) {
 	    mi->users.add(this);
 	}
