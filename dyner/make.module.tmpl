@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.11 2000/08/23 19:18:38 paradyn Exp $
+# $Id: make.module.tmpl,v 1.12 2001/03/22 20:47:02 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -20,6 +20,14 @@ IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h -I../src
 
 CXXFLAGS     += $(BASICWARNINGS)
 CFLAGS       += $(BASICWARNINGS)
+
+# This may cause problems on Alpha
+# GCC has a new mangled name squisher (-fsquangle) which can be 
+# set to "on" by default. This causes linker problems, so we
+# default to "off".
+
+CFLAGS		+= -fno-squangle
+CXXFLAGS	+= -fno-squangle
 
 LIBS         += -ldyninstAPI 
 
