@@ -3,7 +3,11 @@
 
 #
 # $Log: whereAxis.tcl,v $
-# Revision 1.3  1995/07/24 21:38:07  tamches
+# Revision 1.4  1995/09/20 01:37:11  tamches
+# Stupid hack to ensure middle-mouse-button can move scrollbars
+# within the where axis.
+#
+# Revision 1.3  1995/07/24  21:38:07  tamches
 # Implemented alt-freescroll feature
 #
 # Revision 1.2  1995/07/18  03:38:08  tamches
@@ -181,6 +185,7 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Configure> {configureHook %w %h}
    bind .whereAxis.nontop.main.all <Expose>    {exposeHook %c}
    bind .whereAxis.nontop.main.all <Button-1>  {singleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Button-2>  {singleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Double-Button-1> {doubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {shiftDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Control-Double-Button-1> {ctrlDoubleClickHook %x %y}
