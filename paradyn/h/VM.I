@@ -1,9 +1,13 @@
 /* $Log: VM.I,v $
-/* Revision 1.7  1994/09/25 01:49:03  newhall
-/* UI and VM interface changes to support new representation
-/* of metric/focus lists as a list of metric/focus pairs (either
-/* as a string or a list of metric* resourceList* pairs).
+/* Revision 1.8  1994/09/30 21:19:32  newhall
+/* added interface function VMStringToMetResPair
+/* changed parameters to VMCreateVisi to take list of metrespair
 /*
+# Revision 1.7  1994/09/25  01:49:03  newhall
+# UI and VM interface changes to support new representation
+# of metric/focus lists as a list of metric/focus pairs (either
+# as a string or a list of metric* resourceList* pairs).
+#
 # Revision 1.6  1994/09/22  00:42:31  markc
 # Changed "String" to "char*"
 # Declared $array types explicitly
@@ -26,6 +30,7 @@
 # exported services of the Visualization Manager thread
 # */
 
+#include "../src/VMthread/metrespair.h"
 
 $remote typedef struct {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
@@ -40,11 +45,12 @@ $remote typedef struct {
 
 $remote array VM_activeVisiInfo VM_activeVisiInfo_Array;
 $remote array VM_visiInfo VM_visiInfo_Array;
+$remote array metrespair  metrespair_Array; 
 
 $remote VM{
 
   $base 5000;
-  $version 5;
+  $version 6;
 
   VM_activeVisiInfo_Array VMActiveVisis(); 
   VM_visiInfo_Array VMAvailableVisis(); 
@@ -60,6 +66,13 @@ $remote VM{
 			    char *matrix,
 			    int numMatrices);
 
+
+//  converts a string representation of a list of met/focus pairs  
+//  to the internal list of metrespairs representation
+//  returns metrespair_Array values of count = 0, and data = NULL on error
+metrespair_Array  VMStringToMetResPair(char *metresString);
+
+
   // remenuFlag: if set, remenuing request made by visithread when 
   //             a set of metrics and resource choices can't be enabled
   // forceProcessStart: if set, the visi process is started w/o menuing first
@@ -68,7 +81,7 @@ $remote VM{
   int VMCreateVisi(int remenuFlag,  
 		   int forceProcessStart,
 		   int visiTypeId,
-		   char *matrix,
+		   metrespair *matrix,
 		   int numMatrices);
   
   // visiThreadId: thread identifier associated with the  visi to destroy 
