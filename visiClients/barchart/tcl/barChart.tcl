@@ -2,14 +2,17 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.21  1995/08/24 15:15:08  hollings
-#  AIX/SP-2 port (including option for split instruction/data heaps)
-#  Tracing of rexec (correctly spawns a paradynd if needed)
-#  Added rtinst function to read getrusage stats (can now be used in metrics)
-#  Critical Path
-#  Improved Error reporting in MDL sematic checks
-#  Fixed MDL Function call statement
-#  Fixed bugs in TK usage (strings passed where UID expected)
+#  Revision 1.22  1995/11/08 02:15:31  tamches
+#  Changed logo and title bar background from slategray to indianred
+#
+# Revision 1.21  1995/08/24  15:15:08  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
 #
 # Revision 1.20  1995/08/06  22:10:17  tamches
 # Procedure calls metric default changed to 100
@@ -186,7 +189,7 @@ pack $W.top.left -side left -fill both -expand true
 
 label $W.top.logo -relief raised \
 		  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                  -foreground #b3331e1b53c7
+                  -foreground indianred
 
 pack $W.top.logo -side right -expand false
    # we set expand to false; if the window is made wider, we
@@ -195,7 +198,7 @@ pack $W.top.logo -side right -expand false
 
 # #################### Title bar #################
 
-label $W.top.left.titlebar  -text "BarChart Visualization" -foreground white -background lightslategray
+label $W.top.left.titlebar  -text "Barchart Visualization" -foreground white -background indianred -relief raised
 pack $W.top.left.titlebar -side top -fill both -expand true
    # expand is set to true, not because we want more space if the window
    # is made taller (which won't happen, since the expand flag of our
@@ -1132,7 +1135,6 @@ proc delMetric {delIndex} {
 #          Gets called whenever the canvas view changes or gets resized.
 #          This includes every scroll the user makes (yikes!)
 #          Gives us an opportunity to rethink the bounds of the scrollbar.
-#          We get passed: total size, window size, left, right
 proc myYScroll {first last} {
    global W WresourcesCanvas
 
