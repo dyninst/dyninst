@@ -98,7 +98,7 @@ void func2_2()
 
 void func2_1()
 {
-#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined( ia64_unknown_linux2_4 )
     void (*old_handler)(int) = signal(SIGALRM, sigalrm_handler);
 
     globalVariable2_1++;
@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();
 
-    dprintf("Mutatee %s terminating.\n", argv[0]);
+	
+    fprintf( stderr, "Mutatee %s terminating.\n", argv[0] );
     return 0;
 }

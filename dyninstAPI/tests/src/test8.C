@@ -1,4 +1,4 @@
-// $Id: test8.C,v 1.5 2004/03/12 23:18:11 legendre Exp $
+// $Id: test8.C,v 1.6 2004/03/15 18:46:12 tlmiller Exp $
 //
 
 #include <stdio.h>
@@ -59,9 +59,9 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         // conditional reporting of warnings and informational messages
         if (errorPrint) {
             if (level == BPatchInfo)
-              { if (errorPrint > 1) printf("%s\n", params[0]); }
+              { if (errorPrint > 1) fprintf( stderr, "%s\n", params[0]); }
             else
-                printf("%s", params[0]);
+                fprintf( stderr, "%s", params[0]);
         }
     } else {
         // reporting of actual errors
@@ -70,7 +70,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         bpatch->formatErrorString(line, sizeof(line), msg, params);
         
         if (num != expectError) {
-            printf("Error #%d (level %d): %s\n", num, level, line);
+            fprintf(stderr, "Error #%d (level %d): %s\n", num, level, line);
         
             // We consider some errors fatal.
             if (num == 101) {
@@ -173,7 +173,8 @@ bool checkStack(BPatch_thread *appThread,
 
 	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
 		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", j+1, frameTypeString(stack[j].getFrameType()), frameTypeString(correct_frame_info[i].type));
+		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
+		fprintf(stderr, "    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
 		failed = true;
 		break;
 	    }
@@ -246,7 +247,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined( ia64_unknown_linux2_4 )
     static const frameInfo_t correct_frame_info[] = {
 #if !defined(rs6000_ibm_aix4_1)
 	{ false, false, BPatch_frameNormal, NULL },
@@ -341,8 +342,9 @@ int mutatorMAIN(char *pathname)
     // above will be in place before the mutatee begins its tests.
 
     while (!appThread->isTerminated()) {
-       if (appThread->isStopped())
+       if (appThread->isStopped()) {
           appThread->continueExecution();
+          }
        bpatch->waitForStatusChange();
     }
 
