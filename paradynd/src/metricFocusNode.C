@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.91  1996/05/01 14:08:41  naim
+ * Revision 1.92  1996/05/08 15:26:22  naim
+ * Changing buffer size to 1K - naim
+ *
+ * Revision 1.91  1996/05/01  14:08:41  naim
  * Making sure that gettimeofday does not go backwards - naim
  *
  * Revision 1.90  1996/04/29  03:41:29  tamches
@@ -595,7 +598,7 @@ metricDefinitionNode::~metricDefinitionNode()
 //      or, send it when the last sample in the interval has arrived.       //
 //////////////////////////////////////////////////////////////////////////////
 
-const unsigned SAMPLE_BUFFER_SIZE = (2*1024)/sizeof(T_dyninstRPC::batch_buffer_entry);
+const unsigned SAMPLE_BUFFER_SIZE = (1*1024)/sizeof(T_dyninstRPC::batch_buffer_entry);
 bool BURST_HAS_COMPLETED = false;
    // set to true after a burst (after a processTraceStream(), or sampleNodes for
    // the CM5), which will force the buffer to be flushed before it fills up
