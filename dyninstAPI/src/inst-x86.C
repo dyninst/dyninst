@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.175 2004/05/21 14:14:38 legendre Exp $
+ * $Id: inst-x86.C,v 1.176 2004/05/28 22:50:18 legendre Exp $
  */
 #include <iomanip>
 
@@ -683,6 +683,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     // instrumentation points.  
     BPatch_Set< Address > visited;
     pdvector< Address > jmpTargets;
+    pdvector< ExceptionBlock > foundExceptions;
+
     jmpTargets.push_back( funcBegin ); 
     
     bool entryblock = true;
@@ -785,13 +787,13 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 currBlk->setRelEnd( currAddr + insnSize );
 
                 numInsns = allInstructions.size() - 1;
-				if( numInsns == 0 )
-				{
-					// this "function" is a single instruction long
-					// (a jmp to the "real" function)
+                if( numInsns == 0 )
+                {
+                   // this "function" is a single instruction long
+                   // (a jmp to the "real" function)
                     isInstrumentable_ = false;
                     return false;
-				}
+                }
 
                 if( *allInstructions[numInsns - 1].ptr() == POP_EBX && window )
                 {
@@ -922,7 +924,52 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     funcEnd = currAddr + insnSize;
                 
                 Address target = ah.getBranchTarget();
-                
+                Address val = *ah + insnSize;
+
+/*           if( owner->getObject->isCatchAddr( val ) && !leaders.contains( val ) )
+              {
+                   leadersToBlock[ val ] = new BPatch_basicBlock;
+                   leadersToBlock[ val ]->setRelStart( val );
+                   jmpTargets.push_back( val );
+                   //blockList->push_back( leadersToBlock[ val ] );
+                   owner->addJumpTarget( val );
+                   }*/
+                ExceptionBlock b;
+                if (owner->getObject().getCatchBlock(b, val))
+                {
+                   //Create a basic block for the catch block
+                   Address cstart = b.catchStart();
+                   jmpTargets.push_back(cstart);
+                   if (!leaders.contains(cstart))
+                   {
+                      leadersToBlock[cstart] = new BPatch_basicBlock;
+                      leaders += cstart;
+                      blockList->push_back(leadersToBlock[cstart]);
+                   }
+                   leadersToBlock[cstart]->setRelStart(cstart);
+
+                   if (b.hasTry())
+                   {
+                      foundExceptions.push_back(b);
+
+                      /*
+                      Address tstart = b.tryStart();
+                      if (!leaders.contains(tstart))
+                      {
+                         leadersToBlock[tstart] = new BPatch_basicBlock;
+                         leaders += tstart;
+                         blockList->push_back(leadersToBlock[tstart]);
+                      }
+                      leadersToBlock[tstart]->setRelStart(tstart);
+                      */
+                   }
+                   else
+                   {
+                      leadersToBlock[cstart]->addSource(currBlk);
+                      currBlk->addTarget(leadersToBlock[cstart]);
+                   }
+                }                
+
                 if( !owner->isValidAddress( target ) )
                     break;
                 
@@ -1232,6 +1279,28 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             b2->addSource( b1 );	            
         }        
     }    
+    for ( unsigned u = 0; u < foundExceptions.size(); u++ )
+    {
+       Address cur_addr = foundExceptions[u].tryStart();
+       Address try_end = cur_addr + foundExceptions[u].trySize();
+       BPatch_basicBlock *try_bl, *catch_bl;       
+       catch_bl = leadersToBlock.get(foundExceptions[u].catchStart());
+
+       while (!leaders.contains(cur_addr))
+          cur_addr--;
+
+       while (cur_addr < try_end)
+       {          
+          if (!leadersToBlock.find(cur_addr, try_bl))
+          {
+             cur_addr++;
+             continue;
+          }
+          try_bl->addTarget(catch_bl);
+          catch_bl->addSource(try_bl);
+          cur_addr += try_bl->size();
+       }
+    }
 
     isInstrumentable_ = true;
     return true;    
@@ -2301,7 +2370,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       (void*)( location->returnAddr() + imageBaseAddr ) << endl;
 #endif
    
-   if ((insn-code) != trampSize) {
+   if ((insn-code) != (int) trampSize) {
        bperr( "Warning: written size (%d) != allocated size (%d)\n",
                insn-code, trampSize);
        assert(0);
