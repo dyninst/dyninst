@@ -108,8 +108,10 @@ bool paradynDaemon::addDaemon (int new_fd)
 void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 {
 
-    if (informUser)
-        uiMgr->showError (5, "");
+    if (informUser) {
+        string msg = string("paradynd process has died on machine ") + d->machine;
+        uiMgr->showError (5, msg.string_of());
+    }
 
     d->dead = true;
 
@@ -656,7 +658,7 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
 	if (id > 0 && !pd->did_error_occur()) {
 	    component *comp = new component(pd, id, mi);
 	    if(mi->addComponent(comp)){
-		mi->addPart(&comp->sample);
+	      //mi->addPart(&comp->sample);
             }
 	    else {
                cout << "internal error in paradynDaemon::enableData" << endl;
@@ -714,7 +716,7 @@ void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
 	  if (id > 0 && !daemon->did_error_occur()) {
 	    component *comp = new component(daemon, id, mi);
 	    if (mi->addComponent(comp)) {
-	      mi->addPart(&comp->sample);
+	      //mi->addPart(&comp->sample);
 	    }
 	    else {
 	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
@@ -882,7 +884,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	double endTimeStamp   = entry.endTimeStamp ;
 	double value          = entry.value ;
 	u_int  weight	      = entry.weight;
-	bool   internal_metric = entry.internal_met;
+	//bool   internal_metric = entry.internal_met;
 	startTimeStamp = 
 	    this->getAdjustedTime(startTimeStamp) - getEarliestFirstTime();
 	endTimeStamp = 
@@ -937,8 +939,8 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// the daemon clock must be late (or the time adjustment
 	// factor is not good enough), and so we must update
 	// the time adjustment factor for this daemon.
-	if (startTimeStamp < mi->sample.lastSampleEnd) {
-	  timeStamp diff = mi->sample.lastSampleEnd - startTimeStamp;
+	if (startTimeStamp < mi->aggSample.currentTime()) {
+	  timeStamp diff = mi->aggSample.currentTime() - startTimeStamp;
 	  startTimeStamp += diff;
 	  endTimeStamp += diff;
 	  this->setTimeFactor(this->getTimeFactor() + diff);
@@ -960,9 +962,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 		 // weight is the number of processes for this daemon),
 		 // and the weight is changed when the number of processes 
 		 // changes (we are not currently doing this part)
-		 if(!internal_metric){
-	             mi->num_procs_per_part[i] = weight;
-		 }
+		 //if(!internal_metric){
+	         //    mi->num_procs_per_part[i] = weight;
+		 //}
               }
 	   }
 	   if (!part) {
@@ -974,9 +976,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   // update the sampleInfo value associated with 
 	   // the daemon that sent the value 
 	   //
-	   if (!part->sample.firstValueReceived())
-	     part->sample.startTime(startTimeStamp);
-	   part->sample.newValue(endTimeStamp, value);
+	   if (!part->sample->firstValueReceived())
+	     part->sample->startTime(startTimeStamp);
+	   part->sample->newValue(endTimeStamp, value, weight);
 	}
 
 	//
@@ -987,6 +989,8 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// this interval)
 	// newValue will aggregate the parts according to mi's aggOp
 	//
+	ret = mi->aggSample.aggregateValues();
+#ifdef notdef
 	if(internal_metric){  // each part has same weight
     	   ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
 
@@ -995,7 +999,8 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     	   ret = mi->sample.newValue(mi->parts, mi->num_procs_per_part,
 				  endTimeStamp, value);
 	}
-
+#endif
+	
 	if (ret.valid) {  // there is new data from all components 
 	   assert(ret.end >= 0.0);
 	   assert(ret.start >= 0.0);
@@ -1146,5 +1151,9 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
 // (because the processes have exited).
 void
 paradynDaemon::endOfDataCollection(int mid) {
+    metricInstance *mi = activeMids[mid];
+    assert(mi);
+
+    assert(mi->removeComponent(this));
 
 }

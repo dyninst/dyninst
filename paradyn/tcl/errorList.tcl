@@ -1,6 +1,12 @@
 
 #
 # $Log: errorList.tcl,v $
+# Revision 1.20  1996/03/12 20:41:19  mjrg
+# Improved handling of process termination.
+# New version of aggregateSample to support adding and removing components
+# dynamically.
+# Added error messages.
+#
 # Revision 1.19  1996/03/01 22:50:40  mjrg
 # Added MDL error messages
 #
@@ -432,10 +438,12 @@ set pdError(46) {
 }
 
 set pdError(47) {
-{dumpcore not available yet.}
+{Dump core failed.}
 {paradynd}
 {information}
-{Sorry, no more information available.}
+{A paradyn daemon could not dump the core image of a process. This problem
+can happen because paradyn could not open the file, or it could not write
+to the file.}
 }
 
 set pdError(48) {

@@ -45,6 +45,7 @@ class component {
             // Is this add unique?
             assert(i >= 0);
 	    d->activeMids[(unsigned)id] = mi;
+	    sample = 0;
 	}
 	~component() {
 	    daemon->disableDataCollection(id);
@@ -56,7 +57,8 @@ class component {
         paradynDaemon *getDaemon() { return(daemon); }
 
     private:
-	sampleInfo sample;
+        //sampleInfo sample;
+	sampleInfo *sample;
 	paradynDaemon *daemon;
 	int id;
 };
@@ -170,7 +172,8 @@ class metricInstance {
 	bool isCollectionPersistent(){ return persistent_collection;}
 	// returns false if componet was already on list (not added)
 	bool addComponent(component *new_comp);
-	bool addPart(sampleInfo *new_part);
+        bool removeComponent(paradynDaemon *daemon);
+	//bool addPart(sampleInfo *new_part);
 
 	static timeStamp GetGlobalWidth(){return(global_bucket_width);}
 	static timeStamp GetCurrWidth(){return(curr_bucket_width);}
@@ -193,6 +196,15 @@ class metricInstance {
 	bool enabled;    // set if data for mi is currently enabled
 
 	// one component for each daemon contributing to the metric value 
+	// each new component must be added to aggSample, and when
+	// all processes in that component exit, the component should be removed
+	// from aggSample.
+	// When all components have a value, aggSample will return an aggregated
+	// sample, that is bucketed by a histogram.
+	vector<component *> components; 
+	aggregateSample aggSample;
+#ifdef notdef
+	// one component for each daemon contributing to the metric value 
 	// one part for each component
 	// as data arrives from each daemon the appropriate part is updated
 	vector<sampleInfo *> parts;
@@ -206,6 +218,7 @@ class metricInstance {
 	// is updated from its components and the result is bucketed
 	// by a histogram (either data or global_data or both) 
 	sampleInfo sample;
+#endif
 
 	vector<perfStreamHandle> users;  // subscribers to curr. phase data
 	Histogram *data;		 // data corr. to curr. phase

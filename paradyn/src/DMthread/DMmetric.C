@@ -125,12 +125,13 @@ vector<met_name_id> *metric::allMetricNamesIds(bool all){
 
 metricInstance::metricInstance(resourceListHandle rl, 
 			       metricHandle m,
-			       phaseHandle ph){
+			       phaseHandle ph): 
+    aggSample((metric::getMetric(m)->getAggregate())) {
     met = m;
     focus = rl;
     enabledTime = 0.0;
-    metric *mp = metric::getMetric(m);
-    sample.aggOp = mp->getAggregate();
+    //metric *mp = metric::getMetric(m);
+    //sample.aggOp = mp->getAggregate();
     data = 0;
     global_data = 0;
     persistent_data = 0;
@@ -145,9 +146,9 @@ metricInstance::~metricInstance() {
     for(unsigned i=0; i < components.size(); i++){
         delete (components[i]);    
     }
-    for(unsigned j=0; j < parts.size(); j++){
-        delete (parts[j]);    
-    }
+    // for(unsigned j=0; j < parts.size(); j++){
+    //        delete (parts[j]);    
+    // }
     for(unsigned k=0; k < old_data.size(); k++){
         delete (old_data[k]);    
     }
@@ -203,13 +204,13 @@ void metricInstance::dataDisable(){
     }
     components.resize(0);
     // deleteing components deletes parts as well
-    parts.resize(0);
-    num_procs_per_part.resize(0);
+    //    parts.resize(0);
+    //    num_procs_per_part.resize(0);
     enabled = false;
     // if data is persistent this must be cleared 
-    sample.firstSampleReceived = false;  
+    //    sample.firstSampleReceived = false;  
     assert(!components.size());
-    assert(!parts.size());
+    //    assert(!parts.size());
 }
 
 void metricInstance::removeCurrUser(perfStreamHandle ps){
@@ -315,17 +316,52 @@ bool metricInstance::addComponent(component *new_comp){
          if((components[i])->getDaemon() == new_daemon) return false;
     }
     components += new_comp;
+    new_comp->sample = aggSample.newComponent();
     return true;
 }
 
+// remove the component correspondent to daemon
+// If there are no more componets, flush aggregate samples, 
+// and notify clients.
+bool metricInstance::removeComponent(paradynDaemon *daemon) {
+    unsigned size = components.size();
+    for (unsigned u = 0; u < size; u++) {
+      if (components[u]->getDaemon() == daemon) {
+	aggSample.removeComponent(components[u]->sample);
+	delete (components[u]);
+	if (u < size-1) {
+	  components[u] = components[size-1];
+	}
+	components.resize(size-1);
+	if (size == 1) {
+	  // the last component was removed
+	  // flush aggregate samples
+	  struct sampleInterval ret;
+	  ret = aggSample.aggregateValues();
+	  while (ret.valid) {
+	    assert(ret.end >= 0.0);
+	    assert(ret.start >= 0.0);
+	    assert(ret.end >= ret.start);
+	    enabledTime += ret.end - ret.start;
+	    addInterval(ret.start, ret.end, ret.value, false);
+	    ret = aggSample.aggregateValues();
+	  }
+	}
+	return true;
+      }
+    }
+    return false;
+}
+
+#ifdef notdef
 bool metricInstance::addPart(sampleInfo *new_part){
-    
     parts += new_part;
     u_int new_size = num_procs_per_part.size() + 1;
     num_procs_per_part.resize(new_size);
     assert(parts.size() == num_procs_per_part.size());
     return true;
 }
+#endif
 
 // stops currentPhase data collection for all metricInstances
 void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
