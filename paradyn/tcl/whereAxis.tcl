@@ -3,7 +3,10 @@
 
 #
 # $Log: whereAxis.tcl,v $
-# Revision 1.2  1995/07/18 03:38:08  tamches
+# Revision 1.3  1995/07/24 21:38:07  tamches
+# Implemented alt-freescroll feature
+#
+# Revision 1.2  1995/07/18  03:38:08  tamches
 # Added ctrl-double-click to select/unselect an entire subtree (nonrecursive).
 # Added "clear" menu item to clear all selections.
 #
@@ -181,6 +184,8 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Double-Button-1> {doubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {shiftDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Control-Double-Button-1> {ctrlDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Alt-Motion> {altPressHook %x %y}
+   bind .whereAxis.nontop.main.all <Motion> {altReleaseHook}
    
    set currMenuAbstraction 1
 }
