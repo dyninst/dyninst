@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2001/06/04 16:24:17 schendel Exp $
+# $Id: Makefile,v 1.2 2001/06/20 20:42:40 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,6 +17,7 @@ DO_INLINE_ALL		= true
 include ../../make.config 
 
 #CXXFLAGS        +=  -DHIST_DEBUG
+#CXXFLAGS        +=  -DAGGREGATE_DEBUG
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
