@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.42  1995/08/05 17:07:40  krisna
+ * Revision 1.43  1995/08/08 03:10:35  newhall
+ * changed newPerfData and sampleDataCallbackFunc definitions
+ *
+ * Revision 1.42  1995/08/05  17:07:40  krisna
  * `res' is used as a variable name in igen-generated code, YUCK
  *
  * Revision 1.41  1995/08/01 02:17:02  newhall
@@ -185,9 +188,8 @@ typedef void (*errorHandler)(int errno, char *message);
  */
 typedef void (*sampleDataCallbackFunc)(perfStreamHandle handle, 
 				       metricInstanceHandle mi,
-				       sampleValue *buckets,
-				       int count,
-				       int first);
+				       int bucketNum,
+				       sampleValue value);
 
 /*
  * Handler that gets called when new trace data is available.
@@ -275,7 +277,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 19;
+    $version 21;
 
     //
     // Start a paradyn daemon
@@ -418,14 +420,14 @@ $remote dataManager {
     //
     // change the persistent_collection flag value for the assoc. MI
     //
-    $async void setPersistentCollection(metricInstanceHandle);
-    $async void clearPersistentCollection(metricInstanceHandle);
+    // $async void setPersistentCollection(metricInstanceHandle);
+    // $async void clearPersistentCollection(metricInstanceHandle);
 
     //
     // change the persistent_data flag value for the assoc. MI
     //
-    $async void setPersistentData(metricInstanceHandle);
-    $async void clearPersistentData(metricInstanceHandle);
+    // $async void setPersistentData(metricInstanceHandle);
+    // $async void clearPersistentData(metricInstanceHandle);
 
     //
     // Return the expected cost of collecting performance data for a single
@@ -534,25 +536,21 @@ $remote dataManager {
     //
     // looks for a specifc metric instance
     // returns NULL if search is unsuccessful
-    // TODO: when igen supports returning const type* then change to const
     // 
     metricHandle *findMetric(const char *name);
 
     //
     // Metric utility functions.
-    // TODO: when igen supports returning const type* then change to const
     //
     string *getMetricName(metricHandle);
 
     //
     // get the supporting info about a metric.
-    // TODO: when igen supports returning const type* then change to const
     //
     T_dyninstRPC::metricInfo *getMetricInfo(metricHandle);
 
     // TODO: these shouldn't be necessary
     // Get metric out of a metric instance.
-    // TODO: when igen supports returning const type* then change to const
     //
     metricHandle *getMetric(metricInstanceHandle);
     string *getMetricNameFromMI(metricInstanceHandle);
@@ -659,9 +657,15 @@ $remote dataManager {
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    perfStreamHandle,
 				    metricInstanceHandle mi,
-				    sampleValue *buckets,
-				    int total,
-				    int first);
+				    int bucketNum,
+				    sampleValue value);
+
+//    $upcall $async void newPerfData(sampleDataCallbackFunc, 
+//				    perfStreamHandle,
+//				    metricInstanceHandle mi,
+//				    sampleValue *buckets,
+//				    int total,
+//				    int first);
 
     $upcall $async void histFold(histFoldCallback, 
 				 perfStreamHandle, 
@@ -683,12 +687,6 @@ $remote dataManager {
 				     timeStamp,         // end time 
 				     float);            // bucketwidth
 
-
-    // called to establish a base time to allow absolute times to be converted
-    // to relative times, since the program execution is viewed as starting at
-    // time 0
-    // TODO:  check to see if this function should be removed 
-    // double firstSampleTime(int program, double firstTime);
 
     // Called to inform the data manager that it is ok to parse the mdl files
     // This informs the data manager that all igen interfaces have been created
