@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.3 2001/07/02 22:45:18 gurari Exp $
+// $Id: templates2.C,v 1.4 2002/04/09 18:05:03 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -66,6 +66,10 @@ class BPatch_thread;
 class BPatch_field;
 class BPatch_variableExpr;
 #endif
+
+template class vector<string>;
+template class pair<string, vector<string> >;
+template class vector<pair<string, vector<string> > >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <const instPoint*, point*>;
@@ -156,8 +160,11 @@ template class vector<BPatch_localVar *>;
 template class vector<BPatch_field *>;
 #endif
 
-template class dictionary_hash <string, vector<string>*>;
-template class vector<dictionary_hash <string, vector<string>*>::entry>;
+template class pair<string, vector<string> *>;
+template pair<string, vector<string> *> make_pair<string, vector<string> *>(const string &, vector<string> * const &);
+template class vector<pair<string, vector<string> *> >;
+template class dictionary_hash <string, vector<string> *>;
+template class vector<dictionary_hash <string, vector<string> *>::entry>;
 
 template class vector<process::inferiorRPCtoDo>;
 template class vector<process::inferiorRPCinProgress>;
@@ -177,12 +184,3 @@ template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 #ifndef BPATCH_LIBRARY
 template class vector<defInst *>;
 #endif
-
-
-
-
-
-
-
-
-
