@@ -1,7 +1,7 @@
 #
-# TopLevel Makefile for the Paradyn (and DynInstAPI) system.
+# TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.33 1999/05/21 17:34:30 wylie Exp $
+# $Id: Makefile,v 1.34 1999/05/29 22:23:42 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -32,7 +32,7 @@ DyninstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests
 # "Paradyn" itself is just the list of all Paradyn components
 Paradyn		= $(basicComps) $(subSystems)
 
-# "fullSystem" is the list of all Paradyn & DynInstAPI components to build:
+# "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
 ifndef DONT_BUILD_PARADYN
 fullSystem	+= $(Paradyn)
@@ -96,7 +96,7 @@ ifdef DONT_BUILD_PARADYN
 	@echo "Build of Paradyn components skipped!"
 endif
 ifdef DONT_BUILD_DYNINST
-	@echo "Build of DynInstAPI components skipped!"
+	@echo "Build of DyninstAPI components skipped!"
 endif
 
 world: intro
