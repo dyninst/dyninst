@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.50 2000/03/07 00:27:52 wylie Exp $
+// $Id: init.C,v 1.51 2000/03/23 01:41:47 wylie Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -103,7 +103,7 @@ float activeProcessesProc(const metricDefinitionNode *node) {
 
 
 bool init() {
-  string hostName = getHostName();
+  string hostName = getNetworkName();
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      string("Machine"), 0.0, "", MDL_T_STRING,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.81 1999/12/12 17:10:52 zhichen Exp $
+// $Id: main.C,v 1.82 2000/03/23 01:41:47 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -103,8 +103,8 @@ extern bool execIrixMPIProcess(vector<string> &argv);
  * start up other paradynds (such as on the CM5), and need this later.
  */
 static string pd_machine;
-static int pd_known_socket_portnum;
-static int pd_flag;
+static int pd_known_socket_portnum=0;
+static int pd_flag=0;
 static string pd_flavor;
 
 void configStdIO(bool closeStdIn)
@@ -175,12 +175,15 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
   for (unsigned loop=0; loop < argc; ++loop) {
       // stop at the -runme argument since the rest are for the application
       //   process we are about to spawn
-      if (!strcmp(arg_list[loop], "-runme")) break;
+      if (!P_strcmp(arg_list[loop], "-runme")) break;
       if (!P_strncmp(arg_list[loop], "-p", 2)) {
 	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
 	    return(false);
 	  b_well_known = true;
+      }
+      else if (!P_strncmp(arg_list[loop], "-V", 2)) { // optional
+          cout << V_id << endl;
       }
       else if (!P_strncmp(arg_list[loop], "-v", 2)) {
           cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
@@ -280,14 +283,27 @@ int main(unsigned argc, char *argv[]) {
     bool aflag;
     aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
 			       pd_known_socket_portnum, pd_flag);
-    assert(aflag);
+    if (!aflag) {
+        cerr << "Invalid/incomplete command-line args:" << endl;
+        cerr << "   -z<flavor";
+        if (pd_flavor.length()) cerr << "=" << pd_flavor;
+        cerr << "> -l<flag";
+        if (pd_flag) cerr << "=" << pd_flag;
+        cerr << "> -m<hostmachine";
+        if (pd_machine.length()) cerr << "=" << pd_machine;
+        cerr << "> -p<hostport";
+        if (pd_known_socket_portnum) cerr << "=" << pd_known_socket_portnum;
+        cerr << ">" << endl;
+        cleanUpAndExit(-1);
+    }
+
     aflag = RPC_make_arg_list(process::arg_list,
 			      pd_known_socket_portnum, pd_flag, 0,
 			      pd_machine, true);
     assert(aflag);
     string flav_arg(string("-z")+ pd_flavor);
     process::arg_list += flav_arg;
-    machine_name = getHostName();
+    machine_name = getNetworkName();
 
     // kill(getpid(),SIGSTOP);
 
@@ -317,8 +333,10 @@ int main(unsigned argc, char *argv[]) {
     // int pvm_id = pvm_mytid();
     int pvmParent = PvmSysErr;
 
-    cerr << "pd_flavor: " << pd_flavor.string_of() << endl ;
-    process::pdFlavor = pd_flavor ;
+#ifdef PDYN_DEBUG
+    cerr << "pd_flavor: " << pd_flavor.string_of() << endl;
+#endif
+    process::pdFlavor = pd_flavor;
     if (pd_flavor == string("pvm")) {
        pvmParent = pvm_parent();
 
@@ -356,6 +374,12 @@ int main(unsigned argc, char *argv[]) {
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
 		       NULL, NULL, 2);
 	assert(tp);
+        //assert(tp->net_obj()); // shouldn't this be part of pdRPC::pdRPC?
+        if (!tp->net_obj()) {
+            cerr << "Failed to establish connection to Paradyn on "
+                 << pd_machine << " port " << pd_known_socket_portnum << endl;
+	    cleanUpAndExit(-1);
+        }
 	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
 
 	if (pvm_running
@@ -376,7 +400,6 @@ int main(unsigned argc, char *argv[]) {
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
 		       NULL, NULL, 2);
 	assert(tp);
-      
 
 	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
 	    cleanUpAndExit(-1);

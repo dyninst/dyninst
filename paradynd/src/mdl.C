@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.79 2000/03/06 21:41:24 zhichen Exp $
+// $Id: mdl.C,v 1.80 2000/03/23 01:41:47 wylie Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1147,7 +1147,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
-    machine = getHostName();
+    machine = getNetworkName();
   }
 
   if (other_machine_specified(focus, machine)) return NULL;
@@ -2517,7 +2517,7 @@ bool mdl_init(string& flavor) {
 
   string vname = "$machine";
   mdl_env::add(vname, false, MDL_T_STRING);
-  string nodename = getHostName();
+  string nodename = getNetworkName();
   mdl_env::set(nodename, vname);
 
   /* Are these entered by hand at the new scope ? */
