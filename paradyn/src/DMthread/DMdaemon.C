@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.83 1999/11/09 19:24:46 cain Exp $
+ * $Id: DMdaemon.C,v 1.84 1999/12/06 22:52:43 chambrea Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -53,7 +53,9 @@ double   quiet_nan();
 #include <stdio.h>
 }
 
+#include <string.h>
 #include <sys/types.h>
+#include <ctype.h>
 #include "thread/h/thread.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dataManager.thread.h"
@@ -64,6 +66,11 @@ double   quiet_nan();
 #include "DMmetric.h"
 #include "paradyn/src/met/metricExt.h"
 #include "DMtime.h"
+#include "util/h/rpcUtil.h"
+
+#include "../UIthread/tkTools.h"
+extern Tcl_Interp *interp;
+
 
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
@@ -500,155 +507,6 @@ vector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
    return v;
 }
 
-//Tempest
-static int startBlzApp(const string &machine,
-                       const string &login,
-                       const string &, // name
-                       const string &, // dir
-                       const vector<string> &argv)
-{
-#if !defined(i386_unknown_nt4_0)
-        //int firstPVM = 1 ;                   // "-v"   1
-        //int  flag = 2;                       // "-l"   2
-        // flavor == "-z"   cow
-        string localhost ;                     // "-m"   gethostname
-        int  port = dataManager::dm->sock_port ; // "-p"   dataManager::sock_fd
-
-        char temp[256], *p;
-        string hostname = getHostName();
-        strcpy (temp, hostname.string_of());
-        if((p = strchr(temp, '.'))) *p = '\0' ;
-        localhost += temp ;
-
-        int from = 1, to = 4 ;
-        int time= 20, nodes = 4;
-        string   application ;
-        string   directory ;
-        bool     use_range = false ;
-
-        //parse the application commandline
-        for(unsigned i=0; i<argv.size(); i++)
-        {
-                if(strncmp(argv[i].string_of(), "-nodes", 6)==0)
-                        sscanf(argv[i].string_of(), "-nodes%d", &nodes) ;
-                else if(strncmp(argv[i].string_of(), "-range", 6)==0){
-                        sscanf(argv[i].string_of(), "-range%d:%d", &from, &to) ;
-                        use_range = true ;
-                }
-                else if(strncmp(argv[i].string_of(), "-time", 5)==0)
-                        sscanf(argv[i].string_of(), "-time%d", &time) ;
-                else {
-                        if(application.length() > 0)
-                                application += " " ;
-                        application += argv[i] ;
-                }
-
-        }
-
-        // get the directory
-        strcpy(temp, application.string_of()) ;
-        printf("application = [%s]\n", application.string_of()) ;
-        if((p = strchr(temp, ' ')))
-                *p = '\0' ;
-        else if((p = strchr(temp, '<')))
-                *p = '\0' ;
-        else if((p = strchr(temp, '>')))
-                *p = '\0' ;
-        p = strrchr(temp, '/') ; *p = '\0' ;
-        directory += temp ;
-        printf("directory=[%s]\n", directory.string_of()) ;
-
-        //make the scripts
-        string cpScript, pnScript ;
-        cpScript = directory + "/PD_ctrl_script" ;
-        pnScript = directory + "/PD_node_script" ;
-
-        //make  the serverscript
-        FILE *fp = fopen(cpScript.string_of(), "w") ;
-        fprintf(fp, "#!/bin/csh\n") ;
-        fprintf(fp, "crsh all %s\n", pnScript.string_of()) ;
-        fclose(fp) ;
-        system("chmod +x PD_ctrl_script") ;
-
-        //make the pn_script
-        fp = fopen(pnScript.string_of(), "w") ;
-        fprintf (fp, "#!/bin/csh\n") ;
-        fprintf (fp, "setenv LAM_CONFIG /p/wwt/myrinet/configs/lam.conf.master\n") ;
-        fprintf (fp, "cd %s\n", directory.string_of()) ;
-        //paradynd -p36622 -mgoofy -l1 -v1 -zcow -runme ....
-        fprintf (fp, "paradynd -p%d -m%s -l0 -v1 -zcow -runme %s\n",
-                     port,
-                     localhost.string_of(),
-                     application.string_of()) ;
-        fclose  (fp) ;
-        system("chmod +x PD_node_script") ;
-
-        //fork it
-        int shellPid ;
-        int ret ;
-        sprintf(temp, "%d", time) ;
-        string timeFrame  ; timeFrame += temp ;
-
-        string nodeRange ;
-        if(use_range) {
-                char sfrom[64], sto[64] ;
-                sprintf(sfrom, "%d", from) ;
-                sprintf(sto, "%d", to) ;
-                nodeRange += "-range ";
-                nodeRange += sfrom ;
-                nodeRange +=  ":" ;
-                nodeRange += sto ;
-        } else
-        {
-                sprintf(temp, "%d", nodes) ;
-                nodeRange += "-nodes " ;
-                nodeRange += temp ;
-        }
-
-        if(use_range)
-           sprintf(temp, "Starting job on nodes %d-%d, for %d minutes\n", from, to, time)
-;
-        else
-           sprintf(temp, "Starting job on %d nodes, for %d minutes\n", nodes, time) ;
-        uiMgr->updateStatus(DMstatus,P_strdup(temp));
-        shellPid = vfork() ;
-        if(shellPid == 0)
-        {
-                if(login.length())
-                {
-                 ret = execlp("rsh", "rsh", machine.string_of(), "-l",
-                        login.string_of(), "-n",
-                        "/p/cow/bin/crun", cpScript.string_of() ,
-                        "-capture",
-                        "-contig",
-                        "-time",   timeFrame.string_of(),
-                        nodeRange.string_of(),
-                        NULL);
-
-                } else
-                {
-                 ret = execlp("rsh", "rsh", machine.string_of(), "-n",
-                        "/p/cow/bin/crun", cpScript.string_of() ,
-                        "-capture",
-                        "-contig",
-                        "-time",   timeFrame.string_of(),
-                        nodeRange.string_of(),
-                        NULL);
-                }
-                fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
-                _exit(-1) ;
-        } else if( shellPid > 0)
-                ;
-        else    return false; // error situation
-
-        return true ;
-#else // defined(i386_unknown_nt4_0)
-		// TODO - implement this?
-		return false;
-#endif // defined(i386_unknown_nt4_0)
-}
-
-
 static bool execPOE(const string /* &machine*/, const string /* &login */,
                     const string /* &name   */, const string         &dir,
                     const vector<string> &argv, const vector<string>  args,
@@ -683,7 +541,23 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
     cerr << "cannot chdir to " << dir.string_of() << ": " 
          << sys_errlist[errno] << endl;
 
-  return(execvp(s[0], s) != -1);
+  int execRetVal = execvp(s[0], s);
+
+  // Close Tk X connection to avoid conflicts with parent
+  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+  int xfd = XConnectionNumber (UIMdisplay);
+  close(xfd);
+
+  if ( execRetVal == -1 )
+  {
+    if ( errno == ENOENT )
+      cerr << "Could not find executable." << endl;
+    else
+      cerr << "Could not start MPI on local host." << endl;
+  }
+  
+  P__exit(-1);
+  return(false);
 }
 
 
@@ -693,11 +567,19 @@ static bool rshPOE(const string         &machine, const string         &login,
                    const vector<string> &argv,    const vector<string>  args,
                    daemonEntry          *de)
 {
-	unsigned i;
+  unsigned i;
   char *s[6];
   char  t[1024];
+  string appPath;
+  string pathResult;
+  string path = getenv("PATH");
 
-  s[0] = strdup("rsh");
+  //  create rsh command
+  if ( de->getRemoteShellString().length() > 0 )
+    s[0] = strdup(de->getRemoteShell());
+  else
+    s[0] = strdup("rsh");
+
   s[1] = strdup(machine.string_of());
   s[2] = (login.length()) ? strdup("-l"):              strdup("");
   s[3] = (login.length()) ? strdup(login.string_of()): strdup("");
@@ -723,9 +605,24 @@ static bool rshPOE(const string         &machine, const string         &login,
   s[4] = strdup(t);
   s[5] = NULL;
 
-  return(execvp(s[0], s) != -1);
-}
+  int execRetVal = execvp(s[0], s);
 
+  // Close Tk X connection to avoid conflicts with parent
+  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+  int xfd = XConnectionNumber (UIMdisplay);
+  close(xfd);
+
+  if ( execRetVal == -1 )
+  {
+    if ( errno == ENOENT )
+      cerr << "Could not find executable to start remote shell." << endl;
+    else
+      cerr << "Could not start MPI on remote host." << endl;
+  }
+  
+  P__exit(-1);
+  return(false);
+}
 
 
 static bool startPOE(const string         &machine, const string         &login,
@@ -751,6 +648,495 @@ static bool startPOE(const string         &machine, const string         &login,
 }
 
 
+char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
+                            daemonEntry* de, string& programNames)
+{
+  //  This parsing implemented for mpirun IRIX 6.5, SGI MPI 3.2.0.0
+
+  typedef struct arg_entry {
+        
+    char* argFlag;
+    bool hasValue;
+    bool definedBehavior;
+    bool supported;
+    
+  } ArgEntry;
+                
+  const unsigned int globalArgNo = 14;
+        
+  ArgEntry globalArgs[globalArgNo] =
+  {
+    {  "-a", true, true, true },
+    {  "-array", true, true, true },
+    {  "-cpr", false, false, true },
+    {  "-d", true, true, true },
+    {  "-dir", true, true, true },
+    {  "-f", true, false, true },
+    {  "-file", true, false, true },
+    {  "-h", false, false, false },
+    {  "-help", false, false, false },
+    {  "-miser", false, true, true },
+    {  "-p", true, true, true },
+    {  "-prefix", true, true, true },
+    {  "-v", false, true, true },
+    {  "-verbose", false, true, true }
+  };
+        
+        
+  const unsigned int localArgNo = 4;
+        
+  ArgEntry localArgs[localArgNo] =
+  {
+    {  "-f", true, false, true },
+    {  "-file", true, false, true },
+    {  "-np", true, true, true },
+    {  "-nt", true, true, true }
+  };
+
+  unsigned int i = 0, j = 0;
+  char outputBuf[1024];
+  vector<string> progNameVec;
+  
+  outputBuf[0] = '\0';
+
+  //  parse past mpirun
+  bool mpirunFound = false;
+  do 
+  {
+    P_strcat(outputBuf, argv[i].string_of());
+    P_strcat(outputBuf, " ");
+    mpirunFound = (P_strstr(argv[i].string_of(), "mpirun") > 0);
+    i++;
+  }
+  while ( !mpirunFound && i < argv.size());
+
+  if ( !mpirunFound )
+  {
+    uiMgr->showError(113, "Unable to find mpirun command.");
+    return 0;
+  }
+  
+  //  parse global options
+  bool flagFound = true;
+
+  while ( i < argv.size() && flagFound )
+  {
+    flagFound = false;
+
+    for ( j = 0; j < globalArgNo && !flagFound; j++ )
+    {
+      if ( P_strcmp(argv[i].string_of(), globalArgs[j].argFlag) == 0 )
+      {
+        if ( !globalArgs[j].supported )
+        {
+          string message = "Paradyn does not support use of mpirun flag ";
+          message += globalArgs[j].argFlag;
+          uiMgr->showError(113, P_strdup(message.string_of()));
+          
+          return 0;
+        }
+        
+        if ( !globalArgs[j].definedBehavior )
+        {
+          string message = "Behavior undefined with mpirun option ";
+          message += globalArgs[j].argFlag;
+          uiMgr->showError(114, P_strdup(message.string_of()));
+        }
+        
+        flagFound = true;
+        strcat(outputBuf, argv[i].string_of());
+        strcat(outputBuf, " ");
+        i++;
+
+        if ( globalArgs[j].hasValue )
+        {
+          strcat(outputBuf, argv[i].string_of());
+          strcat(outputBuf, " ");
+          i++;
+        }
+      }
+    }
+  }
+
+  while ( i < argv.size() )
+  {
+    //  We have reached the first entry
+    //  The following arguments could be host list, process count, application,
+    //    or application argument
+
+    //  Is the argument of the first entry a number?
+    //  If so, assume that this is a process count and not
+    //    a hostname
+
+    bool isNumber = true;
+    unsigned int len;
+    
+    len = argv[i].length();
+
+    for ( j = 0; j < len && isNumber; j++ )
+    {
+      if ( !isdigit(argv[i][j]) )
+        isNumber = false;
+    }
+
+    if ( isNumber )  
+    {
+      //  this must be a process count
+      strcat(outputBuf, argv[i].string_of());
+      strcat(outputBuf, " ");
+      i++;
+    }
+
+    if ( !isNumber )
+    {
+      //  If not a number, then this argument can either be
+      //  a local flag or a hostname.  If it is a local flag,
+      //  then there is no hostlist for this entry (it is for
+      //  the local host).
+
+      // are there any local options?
+      //  This can consist of:
+      //    -f[ile] filename
+      //    -np number
+      //    -nt number
+        
+      bool flagFound = false;
+
+      for ( j = 0; j < localArgNo && !flagFound; j++ )
+      {
+        if ( strcmp(argv[i].string_of(), localArgs[j].argFlag) == 0 )
+        {
+          if ( !localArgs[j].supported )
+          {
+            string message = "Paradyn does not support use of mpirun flag ";
+            message += globalArgs[j].argFlag;
+            uiMgr->showError(113, P_strdup(message.string_of()));
+            return 0;
+          }
+          
+          if ( !localArgs[j].definedBehavior )
+          {
+            string message = "Behavior undefined with mpirun option ";
+            message += globalArgs[j].argFlag;
+            uiMgr->showError(114, P_strdup(message.string_of()));
+          }
+
+          flagFound = true;
+          
+          strcat(outputBuf, argv[i].string_of());
+          strcat(outputBuf, " ");
+          i++;
+        
+          if ( localArgs[j].hasValue )
+          {
+            strcat(outputBuf, argv[i].string_of());
+            strcat(outputBuf, " ");
+            i++;
+          }
+        }
+      }
+        
+      //  If the first arg in the entry is neither a number or a local flag,
+      //  then this must be a hostlist.
+      //    hostlist can be constructed in the following ways:
+      //      "hostname1," "hostname2"
+      //      "hostname1" ",hostname2"
+      //      "hostname1" "," "hostname2"
+      //      "hostname1,hostname2"
+
+      if ( !flagFound )
+      {
+        bool inHostList = false;
+        char* commaPtr;
+        do
+        {
+          // If curr arg contains ",", then it is a hostname
+          // If last char is ',' or next arg starts with ',', then still in hostlist
+          commaPtr = strrchr(argv[i].string_of(), ',');
+
+          if ( (commaPtr && argv[i][argv[i].length()-1] == ',') ||
+               ( (i+1) < argv.size() && argv[i+1][0] == ',') )
+          {
+            inHostList = true;
+          }
+          else
+            inHostList = false;
+
+          strcat(outputBuf, argv[i].string_of());
+          strcat(outputBuf, " ");
+          i++;
+        
+        } while ( inHostList );
+
+        // If there aren't anymore args, the command is invalid!
+        if ( i >= argv.size() )
+        {
+            uiMgr->showError(113, "Unable to parse mpirun command line.");
+            return 0;
+        }
+        
+        // Now redo the number/flag-checking
+        isNumber = true;
+        len = argv[i].length();
+
+        for ( j = 0; j < len; j++ )
+        {
+          if ( !isdigit(argv[i][j]) )
+            isNumber = false;
+        }
+
+        if ( isNumber )  
+        {
+          //  this must be a process count
+          strcat(outputBuf, argv[i].string_of());
+          strcat(outputBuf, " ");
+          i++;
+        }
+        else
+        {
+          flagFound = false;
+          
+          for ( j = 0; j < localArgNo && !flagFound; j++ )
+          {
+            if ( strcmp(argv[i].string_of(), localArgs[j].argFlag) == 0 )
+            {
+              if ( !localArgs[j].supported )
+              {
+                string message = "Paradyn does not support use of mpirun flag ";
+                message += globalArgs[j].argFlag;
+                uiMgr->showError(113, P_strdup(message.string_of()));
+                return 0;
+              }
+              
+              flagFound = true;
+              strcat(outputBuf, argv[i].string_of());
+              strcat(outputBuf, " ");
+              i++;
+        
+              if ( localArgs[j].hasValue )
+              {
+                strcat(outputBuf, argv[i].string_of());
+                strcat(outputBuf, " ");
+                i++;
+              }
+            }
+          }
+
+          if ( !flagFound )  // No process count!  Error parsing command.
+          {
+            uiMgr->showError(113, "Unable to parse mpirun command line.");
+            return 0;
+          }
+        }
+      }
+    }
+
+    // If there aren't anymore args, the command is invalid!
+    if ( i >= argv.size() )
+    {
+      uiMgr->showError(113, "Unable to determine executable in mpirun command line.");
+      return 0;
+    }
+
+    //  the current argument is an application, so insert daemon command & args
+    strcat(outputBuf, de->getCommand());
+    strcat(outputBuf, " ");
+                
+    for (j = 0; j < args.size(); j++)
+      strcat(strcat(outputBuf, (strcmp(args[j].string_of(), "-l1")) 
+                    ? args[j].string_of() : "-l0"), " ");
+
+    strcat(strcat(strcat(outputBuf, "-z"), de->getFlavor()), " -runme ");
+
+    bool progNameFound = false;
+    for ( j = 0; j < progNameVec.size(); j++ )
+    {
+      if ( progNameVec[j] == argv[i] )
+        progNameFound = true;
+    }
+
+    if ( !progNameFound )
+      progNameVec += argv[i];
+    
+    strcat(outputBuf, argv[i].string_of());
+    strcat(outputBuf, " ");
+    i++;
+
+    //  Go past program arguments to find the next entry
+    while ( i < argv.size() && strcmp(argv[i].string_of(), ":") )
+    {
+      strcat(outputBuf, argv[i].string_of());
+      strcat(outputBuf, " ");
+      i++;
+    }
+
+    if ( i < argv.size() && !strcmp(argv[i].string_of(), ":") )
+    {
+      strcat(outputBuf, argv[i].string_of());
+      strcat(outputBuf, " ");
+      i++;
+    }
+  }
+
+  for ( j = 0; j < progNameVec.size(); j++ )
+  {
+    if ( programNames.length() )
+      programNames += ", ";
+    programNames += progNameVec[j];
+  }
+  
+  char* returnStr = strdup(outputBuf);
+
+  return returnStr;
+}
+
+
+static bool execIrixMPI(const string &dir, char* pdCommandLine)
+{
+  int j = 1, argCount = 0;
+
+  // get arg count
+  for (char* t = pdCommandLine; *t; )
+  {
+    if ( *t++ == ' ' )
+    {
+      ++argCount;          
+      while ( *t++ == ' ' );
+    }
+  }
+
+  char **s = new char*[argCount+3]();
+
+  s[0] = P_strtok(pdCommandLine, " ");
+
+  for ( j = 1; (s[j] = P_strtok(NULL, " ")); j++ );
+  
+  // mpirun cds to "current directory" based on PWD environment variable
+  char* buf = new char[dir.length()+5]();
+  sprintf(buf, "PWD=%s",dir.string_of());
+  putenv(P_strdup(buf));
+
+  int execRetVal = execvp(s[0], s);
+
+  // Close Tk X connection to avoid conflicts with parent
+  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+  int xfd = XConnectionNumber (UIMdisplay);
+  close(xfd);
+
+  if ( execRetVal == -1 )
+  {
+    if ( errno == ENOENT )
+      cerr << "Could not find executable." << endl;
+    else
+      cerr << "Could not start MPI on local host." << endl;
+  }
+  
+  P__exit(-1);
+  return(false);
+}
+
+
+static bool rshIrixMPI(const string &machine, const string &login,
+                       const string &dir, daemonEntry* de,
+                       char* pdCommandLine)
+{
+  char *s[6];
+  char  t[1024];
+  
+  //  create rsh command
+  if ( de->getRemoteShellString().length() > 0 )
+    s[0] = strdup(de->getRemoteShell());
+  else
+    s[0] = strdup("rsh");
+
+  s[1] = strdup(machine.string_of());
+  s[2] = (login.length()) ? strdup("-l"):              strdup("");
+  s[3] = (login.length()) ? strdup(login.string_of()): strdup("");
+
+  strcpy(t, "(");
+
+  if (dir.length())
+  {
+    strcat(t, "cd ");
+    strcat(t, dir.string_of());
+    strcat(t, "; ");
+  }
+
+  if ( pdCommandLine != 0 )
+  {
+    strcat(t, pdCommandLine);
+    delete pdCommandLine;
+  }
+  else
+    P__exit(-1);  //  Error condition should have been reported in startIrixMPI
+  
+  strcat(t, ")");
+
+  s[4] = strdup(t);
+  s[5] = NULL;
+
+  int execRetVal = execvp(s[0], s);
+
+  // Close Tk X connection to avoid conflicts with parent
+  Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+  int xfd = XConnectionNumber (UIMdisplay);
+  close(xfd);
+
+  if ( execRetVal == -1 )
+  {
+    if ( errno == ENOENT )
+      cerr << "Could not find executable to start remote shell." << endl;
+    else
+      cerr << "Could not start MPI on remote host." << endl;
+  }
+  
+  P__exit(-1);
+  return(false);
+}
+
+
+static bool startIrixMPI(const string         &machine, const string         &login,
+                     const string         &name,    const string         &dir,
+                     const vector<string> &argv,    const vector<string>  args,
+		     daemonEntry          *de)
+{
+#if !defined(i386_unknown_nt4_0)
+   if (DMstatus)   uiMgr->updateStatus(DMstatus,   "ready");
+   if (PROCstatus) uiMgr->updateStatus(PROCstatus, "IRIX MPI");
+
+   string programNames;
+   char* pdCommandLine = getIrixMPICommandLine(argv, args, de, programNames);
+
+   if ( pdCommandLine != NULL )
+   {
+      string newStatus;
+      newStatus = string("program: ") + programNames + " ";
+      newStatus += string("machine: ") + machine + " ";
+      newStatus += string("user: ");
+      if ( login.length() )
+         newStatus += login;
+      else
+         newStatus += "(self)";
+      newStatus += " ";
+      newStatus += string("daemon: ") + name + " ";
+
+      extern status_line* app_name;
+      uiMgr->updateStatus(app_name, P_strdup(newStatus.string_of()));
+   }
+   
+   if (fork()) return(true);
+
+   if ((machine.length() == 0) || (machine == "localhost") || 
+       (machine == getHostName()))
+      return(execIrixMPI(dir, pdCommandLine));
+   else
+      return(rshIrixMPI(machine, login, dir, de, pdCommandLine));
+#else // !defined(i386_unknown_nt4_0)
+   // TODO - implement this?
+   return false;
+#endif // !defined(i386_unknown_nt4_0)
+}
+
 
 // TODO: fix this
 //
@@ -762,43 +1148,107 @@ bool paradynDaemon::newExecutable(const string &machine,
 				  const string &dir, 
 				  const vector<string> &argv){
 
-  if (! DMstatus)
+   if (! DMstatus)
       DMstatus = new status_line("Data Manager");
 
-  if (! PROCstatus)
+   if (! PROCstatus)
       PROCstatus = new status_line("Processes");
 
-  //------------------
-  //Added to start blizzard application, Tempest
+   daemonEntry *def = findEntry(machine, name) ;
+   if (!def) {
+      if (name.length()) {
+         string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
+         uiMgr->showError(90,P_strdup(msg.string_of()));
+      }
+      else {
+         uiMgr->showError(91,"");
+      }
+      return false;
+   }
 
-  daemonEntry *def = findEntry(machine, name) ;
-  if (!def) {
-     if (name.length()) {
-	string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
-	uiMgr->showError(90,P_strdup(msg.string_of()));
-     }
-     else {
-        uiMgr->showError(91,"");
-     }
+   if ( def->getFlavorString() == "mpi" )
+   {
+#if defined(i386_unknown_nt4_0)
+     string message = "Paradyn does not yet support MPI applications started from OS WinNT";
+         
+     uiMgr->showError(113, strdup(message.string_of()));
      return false;
-  }
-  if(def->getFlavorString() == "cow")
-        return startBlzApp(machine, login, name, dir, argv) ;
-  //------------
+#else
+      string os;
 
-  if (def->getFlavorString() == "mpi")
-    return(startPOE(machine, login, name, dir, argv, args, def));
+      if ( machine.length() == 0 || machine == "localhost" || machine == getHostName() )
+      {
+          struct utsname unameInfo;
+          if ( P_uname(&unameInfo) == -1 )
+          {
+              perror("uname");
+              return false;
+          }
 
-  paradynDaemon *daemon;
-  if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
+          os = unameInfo.sysname;
+      }
+      else
+      {
+          // get OS name through remote uname
+          
+          char comm[256];
+          FILE* commStream;
+          string remoteShell;
+
+          remoteShell = def->getRemoteShellString();
+
+          sprintf(comm, "%s %s uname -s", remoteShell.length() ? remoteShell.string_of() : "rsh",
+                  machine.string_of());
+
+          commStream = P_popen(comm, "r");
+
+          bool foundOS = false;
+      
+          if ( commStream )
+          {
+              if ( !P_fgets(comm, 256, commStream) )
+                  fclose(commStream);
+              else
+              {
+                  os = comm;
+                  fclose(commStream);
+                  foundOS = true;
+              }
+          }
+      
+          if ( !foundOS )
+          {
+              uiMgr->showError(113, "Could not determine OS on remote host.");
+              return false;
+          }
+      }
+
+      if ( os.prefixed_by("IRIX") )
+      {
+         return(startIrixMPI(machine, login, name, dir, argv, args, def));
+      }
+      else if ( os == "AIX" )
+         return(startPOE(machine, login, name, dir, argv, args, def)); // AIX POE version
+      else
+      {
+         string message = "Paradyn does not yet support MPI on OS " + os;
+         
+         uiMgr->showError(113, strdup(message.string_of()));
+         return false;
+      }
+#endif
+   }
+   
+   paradynDaemon *daemon;
+   if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
       return false;
 
-  performanceStream::ResourceBatchMode(batchStart);
-  int pid = daemon->addExecutable(argv, dir);
-  performanceStream::ResourceBatchMode(batchEnd);
+   performanceStream::ResourceBatchMode(batchStart);
+   int pid = daemon->addExecutable(argv, dir);
+   performanceStream::ResourceBatchMode(batchEnd);
 
-  // did the application get started ok?
-  if (pid > 0 && !daemon->did_error_occur()) {
+   // did the application get started ok?
+   if (pid > 0 && !daemon->did_error_occur()) {
       // TODO
       char tmp_buf[80];
       sprintf (tmp_buf, "PID=%d", pid);
@@ -809,9 +1259,9 @@ bool paradynDaemon::newExecutable(const string &machine,
       ++procRunning;
 #endif
       return (true);
-  } else {
+   } else {
       return(false);
-  }
+   }
 }
 
 bool paradynDaemon::attachStub(const string &machine,
@@ -905,7 +1355,7 @@ bool paradynDaemon::pauseProcess(unsigned pid)
 //sites in function "func_name"
 bool paradynDaemon::AllMonitorDynamicCallSites(string func_name){
   paradynDaemon *pd;
-  for(int i = 0; i < paradynDaemon::allDaemons.size(); i++)
+  for(unsigned int i = 0; i < paradynDaemon::allDaemons.size(); i++)
     {
       pd = paradynDaemon::allDaemons[i];
       pd->MonitorDynamicCallSites(func_name);
