@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.6  1994/02/04 00:35:01  hollings
+ * Revision 1.7  1994/02/04 01:25:46  hollings
+ * *** empty log message ***
+ *
+ * Revision 1.6  1994/02/04  00:35:01  hollings
  * constructor inheritance round two.
  *
  * Revision 1.5  1994/01/31  20:05:57  hollings
@@ -165,6 +168,8 @@ void interfaceSpec::generateServerCode()
 
 	genIncludes();
 
+	// generate verify protocol 
+	printf("void %sUser::verifyProtocolAndVersion() { abort(); }\n", name);
 	generateXDRLoop();
     }
 
