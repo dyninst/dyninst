@@ -21,10 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.32  1995/11/09 02:11:30  tamches
-/* removed some obsolete references (some which had been up till now commented out),
-/* such as initSHGStyles, UIMUser::chooseMenuItemREPLY, etc.
+/* Revision 1.33  1995/11/21 15:17:50  naim
+/* Using string instead of char[300] in showError routine - naim
 /*
+ * Revision 1.32  1995/11/09  02:11:30  tamches
+ * removed some obsolete references (some which had been up till now commented out),
+ * such as initSHGStyles, UIMUser::chooseMenuItemREPLY, etc.
+ *
  * Revision 1.31  1995/11/08 23:43:21  tamches
  * removed code for obsolete ui igen calls chooseMenuItemREPLY,
  * msgChoice, chooseMenuItem, showMsg, uimMsgReplyCmd, showMsgWait
@@ -190,11 +193,14 @@ UIM::readStartupFile(const char *script)
 void
 UIM::showError(int errCode, const char *errString)
 {
-  char tcommand[300];
+  string tcommand;
 
     // custom error info string to be printed
-    sprintf (tcommand, "showError %d {%s}", errCode, errString);
-    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+    tcommand = string("showError ") + string(errCode);
+    tcommand += string(" {");
+    tcommand += string(errString);
+    tcommand += string("}");
+    if (Tcl_VarEval (interp,tcommand.string_of(),(char *) NULL) == TCL_ERROR) {
       printf ("newShowError: Tcl call to showError fails, %s\n", 
 	      interp->result);
       thr_exit(0);
