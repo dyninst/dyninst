@@ -41,6 +41,9 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.14  1996/11/05 20:30:53  tamches
+ * removed dumpProcessImage
+ *
  * Revision 1.13  1996/10/31 08:38:34  tamches
  * changed call interface to osDumpImage
  *
@@ -130,9 +133,4 @@ process *getDefaultProcess()
 {
     if (!defaultProcess) changeDefaultThread(0);
     return(defaultProcess);
-}
-
-void dumpProcessImage(process *proc, bool stopped) {
-  proc->osDumpImage();
-//  OS::osDumpImage(proc->symbols->file(), proc->getPid(), proc->symbols->codeOffset());
 }
