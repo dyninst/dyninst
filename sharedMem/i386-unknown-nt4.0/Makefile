@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2004/05/11 19:02:21 bernat Exp $
+# $Id: Makefile,v 1.2 2004/05/14 16:49:12 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,7 +26,7 @@ LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x70000000 #-debugtype:cv
 
 SRCS		= ../src/RTshared-win.c
 
-OBJS		=  RTshared-nt.obj
+OBJS		=  RTshared-win.obj
 
 CFLAGS		= $(CFLAGS) -Ox -Oy-
 
