@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.18  1994/07/02 01:44:13  markc
-/* Removed aggregation operator from enableDataCollection call.
+/* Revision 1.19  1994/07/03 05:00:24  karavan
+/* bug fix: removed call to delete name returned from getCanonicalName()
 /*
+ * Revision 1.18  1994/07/02  01:44:13  markc
+ * Removed aggregation operator from enableDataCollection call.
+ *
  * Revision 1.17  1994/06/14  15:20:17  markc
  * Added extra arg to enableDataCollection call.  This is probably temporaray
  * since the data manager or configuration language will specify this info.
@@ -431,7 +434,6 @@ int ParadynEnableCmd (ClientData clientData,
   // DEBUG
   name = resList->getCanonicalName();
   printf ("enable request for %s\n", name);
-  delete(name);
 
   // Now check the metric 
   met = dataMgr->findMetric (context, argv[1]);
