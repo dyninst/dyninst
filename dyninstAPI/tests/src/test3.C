@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.14 1999/11/07 21:48:47 wylie Exp $
+// $Id: test3.C,v 1.15 1999/11/07 22:44:13 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -208,8 +208,16 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "1";		// run test1 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread1) {
+	printf("*ERROR*: unable to create handle1 for executable\n");
+        return;
+    }
     child_argv[1] = "1";		// run test1 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread2) {
+	printf("*ERROR*: unable to create handle2 for executable\n");
+        return;
+    }
 
     appThread1->continueExecution();
     appThread2->continueExecution();
@@ -266,9 +274,17 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "2";		// run test2 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread1) {
+	printf("*ERROR*: unable to create handle1 for executable\n");
+        return;
+    }
     pid1 = appThread1->getPid();
     child_argv[1] = "2";		// run test2 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread2) {
+	printf("*ERROR*: unable to create handle2 for executable\n");
+        return;
+    }
     pid2 = appThread2->getPid();
 
     BPatch_image *img1 = appThread1->getImage();
@@ -319,6 +335,10 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "1";		// run test1 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread1) {
+	printf("*ERROR*: unable to create handle1 for executable\n");
+        return;
+    }
 
     appThread1->continueExecution();
 
@@ -327,6 +347,10 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "1";		// run test1 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread2) {
+	printf("*ERROR*: unable to create handle2 for executable\n");
+        return;
+    }
 
     appThread2->continueExecution();
     while (!appThread2->isTerminated())
@@ -353,6 +377,10 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "4";		// run test4 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread1) {
+	printf("*ERROR*: unable to create handle1 for executable\n");
+        return;
+    }
 
     appThread1->continueExecution();
 
@@ -361,6 +389,10 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 
     child_argv[1] = "4";		// run test4 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
+    if (!appThread2) {
+	printf("*ERROR*: unable to create handle2 for executable\n");
+        return;
+    }
 
     appThread2->continueExecution();
     while (!appThread2->isTerminated())
