@@ -108,15 +108,25 @@ int64_t timeParent::getRolloverTime(double dt) {
   return (int64_t) rolloverAmt;
 }
 
-const timeStamp *timeStamp::_ts1970 = NULL;
-const timeStamp *timeStamp::_tsStd  = NULL;
+const timeStamp *timeStamp::_ts1800  = NULL;
+const timeStamp *timeStamp::_ts1970  = NULL;
+const timeStamp *timeStamp::_tsStd   = NULL;
 const timeStamp *timeStamp::_ts2200  = NULL;
-// This 88 quintillion number is some 280 years.  Since a timeStamp is
+// This 88 quintillion number is some 280 years.  For the timeLength class,
+// this amount of time should be safely out of reach.  The timeStamp class is
 // internally based at the year of timeBase::StdBaseMark, ie. year 2000, the
 // uninitialized value represents a timeStamp around year 2280, plenty safe
 // out of range for a long time.  We want the same number, eg. 8, for every
 // digit of this number so it can be easily recognized from a debugger.
-const int64_t    timeStamp::uninitializedValue = I64_C(8888888888888888888);
+const int64_t    timeParent::uninitializedValue = I64_C(8888888888888888888);
+
+const timeStamp *timeStamp::ts1800Help() {
+  timeStamp *p_ts1970 = new timeStamp(0, timeUnit::year(), timeBase::b1970());
+  *p_ts1970 -= 53*timeLength::year() + 17*timeLength::leapYear(); //1900 - 1970
+  // beginning 2000 (leap year) - beg 2100 (no leap year), 25 4 year spans
+  *p_ts1970 -= 76*timeLength::year() + 24*timeLength::leapYear();// 1800 - 1900
+  return p_ts1970;
+}
 
 const timeStamp *timeStamp::ts1970Help() {
   return new timeStamp(0, timeUnit::sec(), timeBase::b1970());
@@ -184,18 +194,10 @@ timeStamp::timeStamp(double dTime, const timeUnit &u, timeBase b): timeParent()
 }
 
 const relTimeStamp *relTimeStamp::_Zero      = NULL;
-// This 88 quintillion number is some 280 years.  For this sentinal value to
-// be incorrectly used as a relTimeStamp, a relTimeStamp of 280 years from
-// the user defined zero mark would have to be defined.  We decided the
-// benefit of having this sentinal value outweighs the risk of this error
-// occuring.  We want the same number, eg. 8, for every digit of this number
-// so it can be easily recognized from a debugger.
-const int64_t relTimeStamp::uninitializedValue = I64_C(8888888888888888888);
 
 const relTimeStamp *relTimeStamp::ZeroHelp() {
   return new relTimeStamp(0, timeUnit::sec());
 }
-
 
 const timeLength *timeLength::_zero = NULL;
 const timeLength *timeLength::ZeroHelp() {
