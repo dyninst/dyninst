@@ -71,8 +71,20 @@ MC_InternalNode::~MC_InternalNode(void)
   }
 }
 
-void MC_InternalNode::waitLoop(){
-  while(1);
+void MC_InternalNode::waitLoop()
+{
+    // TODO what should we base our termination decision on?
+    // * whether we have *any* connections remaining?
+    // * whether we have an upstream connection?
+    // * whether we have any downstream connections?
+    //
+
+    // for now, we base our termination on when we lose our upstream connection
+    int iret = pthread_join( upstream_node->recv_thread_id, NULL );
+    if( iret != 0 )
+    {
+        mc_printf( MCFL, stderr, "comm_node failed to join with upstream internal receive thread: %d\n", iret );
+    }
 }
 
 int MC_InternalNode::send_newSubTreeReport(bool status)
@@ -80,8 +92,7 @@ int MC_InternalNode::send_newSubTreeReport(bool status)
   unsigned int *backends, i;
   mc_printf(MCFL, stderr, "In send_newSubTreeReport()\n");
 
-  backends = (unsigned int*)malloc
-             (sizeof(unsigned int)*backend_descendant_nodes.size());
+  backends = new unsigned int[backend_descendant_nodes.size()];
   assert(backends);
 
   std::list <int>::iterator iter;
@@ -242,6 +253,25 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
       }
       //mc_printf(MCFL, stderr, "proc_delStream() succeded\n");
       break;
+
+    case MC_GET_LEAF_INFO_PROT:
+        //mc_printf(MCFL, stderr, "Calling proc_getLeafInfo()\n");
+        if( proc_getLeafInfo(cur_packet) == -1)
+        {
+            mc_printf(MCFL, stderr, "proc_getLeafInfo() failed\n");
+            retval=-1;
+        }
+        //mc_printf(MCFL, stderr, "proc_getLeafInfo() succeded\n");
+        break;
+
+    case MC_CONNECT_LEAVES_PROT:
+        if( proc_connectLeaves( cur_packet ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "proc_connectLeaves() failed\n" );
+            retval = -1;
+        }
+        break;
+
     default:
       //Any Unrecognized tag is assumed to be data
       //mc_printf(MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",cur_packet->get_Tag());
@@ -279,6 +309,23 @@ int MC_InternalNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
       }
       //mc_printf(MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
       break;
+
+    case MC_GET_LEAF_INFO_PROT:
+        if( proc_getLeafInfoResponse( cur_packet ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "proc_getLeafInfoResponse() failed\n" );
+            retval = -1;
+        }
+        break;
+
+    case MC_CONNECT_LEAVES_PROT:
+        if( proc_connectLeavesResponse( cur_packet ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "proc_connectLeavesResponse() failed\n" );
+            retval = -1;
+        }
+        break;
+
     default:
       //Any unrecognized tag is assumed to be data
       //mc_printf(MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
@@ -296,3 +343,35 @@ int MC_InternalNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_
   packet_list.clear();
   return retval;
 }
+
+
+int
+MC_InternalNode::deliverLeafInfoResponse( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // deliver the aggregated response to our parent
+    if( (upstream_node->send( pkt ) == -1) ||
+        (upstream_node->flush() == -1) )
+    {
+        mc_printf( MCFL, stderr, "failed to deliver response to parent\n" );
+    }
+    return ret;
+}
+
+
+int
+MC_InternalNode::deliverConnectLeavesResponse( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // deliver the aggregated response to our parent
+    if( (upstream_node->send( pkt ) == -1) ||
+        (upstream_node->flush() == -1) )
+    {
+        mc_printf( MCFL, stderr, "failed to deliver response to parent\n" );
+    }
+    return ret;
+}
+
+
