@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.121 2002/02/21 21:47:46 bernat Exp $
+ * $Id: inst-power.C,v 1.122 2002/02/22 00:06:45 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1602,11 +1602,13 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	    location->addr);
     */
   }
+  /*
   fprintf(stderr, "------------\n");
   for (int i = 0; i < (theTemplate->size/4); i++)
     fprintf(stderr, "0x%x,\n", tramp[i].raw);
   fprintf(stderr, "------------\n");
   fprintf(stderr, "\n\n\n");
+  */
   /*
   fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
 	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
@@ -2352,11 +2354,11 @@ Register emitFuncCall(opCode /* ocode */,
   insn->raw = MTLR0raw;
   insn++;
   base += sizeof(instruction);
-
+  /*
   insn = (instruction *) iPtr;
   for (unsigned foo = initBase/4; foo < base/4; foo++)
     fprintf(stderr, "0x%x,\n", insn[foo].raw);
-  
+  */  
   // return value is the register with the return value from the called function
 
   return(retReg);

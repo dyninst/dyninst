@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.15 2002/02/21 21:47:45 bernat Exp $
+// $Id: aixDL.C,v 1.16 2002/02/22 00:06:45 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -436,7 +436,6 @@ void process::handleTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
   assert(f_main);
-  cerr << "handleTrapAtEntryPointofMain" << endl;
   Address addr = f_main->addr();
   // Put back the original insn
   writeDataSpace((void *)addr, sizeof(instruction), 
@@ -456,7 +455,6 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
-  cerr << "insertTrap..." << endl;
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
@@ -561,7 +559,6 @@ bool process::dlopenDYNINSTlib()
   // Round it up to the nearest instruction. 
   codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
 
-  cerr << "dlopenDYNINSTlib" << endl;
 
   int count = 0; // how much we've written
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
