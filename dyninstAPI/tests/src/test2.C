@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.24 1999/07/13 04:31:31 csserra Exp $
+// $Id: test2.C,v 1.25 1999/07/19 23:01:46 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -42,7 +42,8 @@ BPatch_thread *mutatorMAIN(char *path);
 extern "C" const char V_libdyninstAPI[];
 
 bool useAttach = false;
-int debugPrint = 0;
+int debugPrint = 0; // internal "mutator" tracing
+int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 bool expectErrors = false;
 bool gotError = false;
 
@@ -591,18 +592,27 @@ BPatch_thread *mutatorMAIN(char *pathname)
 
 void errorFunc(BPatchErrorLevel level, int num, const char **params)
 {
-    char line[256];
-
-    const char *msg = bpatch->getEnglishErrorString(num);
-    bpatch->formatErrorString(line, sizeof(line), msg, params);
-
-    gotError = true;
-
-    if (expectErrors) {
-	if (debugPrint)
-    	    printf("Error (expected) #%d (level %d): %s\n", num, level, line);
+    if (num == 0) {
+        // conditional reporting of warnings and informational messages
+        if (errorPrint) {
+            if (level == BPatchInfo)
+              { if (errorPrint > 1) printf("%s\n", params[0]); }
+            else
+                printf("%s", params[0]);
+        }
     } else {
-    	printf("Error #%d (level %d): %s\n", num, level, line);
+        // reporting of actual errors
+        char line[256];
+        const char *msg = bpatch->getEnglishErrorString(num);
+        bpatch->formatErrorString(line, sizeof(line), msg, params);
+        
+        gotError = true;
+
+        if (expectErrors) {
+            dprintf("Error (expected) #%d (level %d): %s\n", num, level, line);
+        } else {
+            printf("Error #%d (level %d): %s\n", num, level, line);
+        }
     }
 }
 
@@ -642,7 +652,9 @@ main(unsigned int argc, char *argv[])
     }
 
     for (i=1; i < argc; i++) {
-	if (!strcmp(argv[i], "-verbose")) {
+        if (strncmp(argv[i], "-v+", 3) == 0)    errorPrint++;
+        if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
+	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
@@ -676,21 +688,16 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    mutateeName = "test2.mutatee_n32";
-	} else {
-	    fprintf(stderr, "Usage: test2 "
-		    "[-n32] "
-		    "[-V] [-attach] [-verbose] "
-		    "[-run <test#> <test #> ...]\n");
-	    exit(-1);
-	}
-#else
-	} else {
-	    fprintf(stderr, "Usage: test2 "
-		    "[-V] [-attach] [-verbose] "
-		    "[-run <test#> <test #> ...]\n");
-	    exit(-1);
-	}
 #endif
+	} else {
+	    fprintf(stderr, "Usage: test2 "
+		    "[-V] [-verbose] [-attach] "
+#if defined(mips_sgi_irix6_4)
+		    "[-n32] "
+#endif
+		    "[-run <test#> <test#> ...]\n");
+	    exit(-1);
+	}
     }
 
 #if defined(sparc_sun_sunos4_1_3)

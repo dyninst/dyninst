@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.7 1999/07/13 04:31:32 csserra Exp $
+// $Id: test3.C,v 1.8 1999/07/19 23:01:46 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -34,8 +34,10 @@
 
 extern "C" const char V_libdyninstAPI[];
 
-int debugPrint = 0;
+int debugPrint = 0; // internal "mutator" tracing
+int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
+bool runAllTests = true;
 const unsigned int MAX_TEST = 4;
 bool passedTest[MAX_TEST+1];
 
@@ -62,18 +64,28 @@ int expectError = DYNINST_NO_ERROR;
 
 void errorFunc(BPatchErrorLevel level, int num, const char **params)
 {
-    char line[256];
-
-    const char *msg = bpatch->getEnglishErrorString(num);
-    bpatch->formatErrorString(line, sizeof(line), msg, params);
-
-    if (num != expectError) {
-    	printf("Error #%d (level %d): %s\n", num, level, line);
-
-	// We consider some errors fatal.
-	if (num == 101) {
-	    exit(-1);
-	}
+    if (num == 0) {
+        // conditional reporting of warnings and informational messages
+        if (errorPrint) {
+            if (level == BPatchInfo)
+              { if (errorPrint > 1) printf("%s\n", params[0]); }
+            else
+                printf("%s", params[0]);
+        }
+    } else {
+        // reporting of actual errors
+        char line[256];
+        const char *msg = bpatch->getEnglishErrorString(num);
+        bpatch->formatErrorString(line, sizeof(line), msg, params);
+        
+        if (num != expectError) {
+            printf("Error #%d (level %d): %s\n", num, level, line);
+        
+            // We consider some errors fatal.
+            if (num == 101) {
+               exit(-1);
+            }
+        }
     }
 }
 
@@ -388,7 +400,9 @@ int main(unsigned int argc, char *argv[])
     }
 
     for (i=1; i < argc; i++) {
-	if (!strcmp(argv[i], "-verbose")) {
+        if (strncmp(argv[i], "-v+", 3) == 0)    errorPrint++;
+        if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
+	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
@@ -396,6 +410,7 @@ int main(unsigned int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-run")) {
 	    unsigned int j;
+            runAllTests = false;
 	    for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
 	    for (j=i; j < argc; j++) { 
 		unsigned int testId;
@@ -414,26 +429,25 @@ int main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    mutateeName = "test3.mutatee_n32";
-	} else {
-	    fprintf(stderr, "Usage: test3 "
-		    "[-n32] "
-		    "[-V] [-verbose] [-run #]\n");
-	    exit(-1);
-        }
-#else
-	} else {
-	    fprintf(stderr, "Usage: test3 "
-		    "[-V] [-verbose] [-run #]\n");
-	    exit(-1);
-        }
 #endif
+	} else {
+	    fprintf(stderr, "Usage: test3 "
+		    "[-V] [-verbose] "
+#if defined(mips_sgi_irix6_4)
+		    "[-n32] "
+#endif
+                    "[-run <test#> <test#> ...]\n");
+	    exit(-1);
+        }
     }
 
-    printf("Running Tests: ");
-    for (unsigned int j=1; j <= MAX_TEST; j++) {
-	if (runTest[j]) printf("%d ", j);
+    if (!runAllTests) {
+        printf("Running Tests: ");
+	for (unsigned int j=1; j <= MAX_TEST; j++) {
+	    if (runTest[j]) printf("%d ", j);
+	}
+	printf("\n");
     }
-    printf("\n");
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;
@@ -457,9 +471,13 @@ int main(unsigned int argc, char *argv[])
     }
 
     if (allPassed) {
-	printf("All requested tests passed\n");
+	if (runAllTests) {
+	    printf("All tests passed\n");
+	} else {
+	    printf("All requested tests passed\n");
+	}
     } else {
-	printf("**Some requested tests failed**\n");
+	printf("**Failed** tests\n");
     }
     return 0;
 }
