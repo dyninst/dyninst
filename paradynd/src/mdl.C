@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.170 2005/02/15 17:44:19 legendre Exp $
+// $Id: mdl.C,v 1.171 2005/02/21 22:28:54 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -312,7 +312,8 @@ private:
 //  A helper wrapper for findFunction to get rid of a bunch of messy looking
 //  error handling, message-printing stuff.
 
-BPatch_function *mdlFindFunction(const char *name, BPatch_image *appImage)
+BPatch_function *mdlFindFunction(const char *name, BPatch_image *appImage, 
+				 bool ignore_warnings = false)
 {
   BPatch_Vector<BPatch_function *> funcs;
   BPatch_function *ret = NULL;
@@ -324,7 +325,7 @@ BPatch_function *mdlFindFunction(const char *name, BPatch_image *appImage)
      fprintf(stderr, "%s[%d]:  cannot find function %s\n", __FILE__, __LINE__, name);
      return NULL;
    }
-   if (funcs.size() > 1)
+   if (funcs.size() > 1 && !ignore_warnings)
      fprintf(stderr, "%s[%d]:  warning, found more than one function called '%s'\n",
              __FILE__, __LINE__, name);
    ret = funcs[0];
@@ -349,7 +350,7 @@ BPatch_snippet *getTimerSlow(BPatch_variableExpr *base,
    static BPatch_function *index_slow_fn = NULL;
 
    if (!pthread_self_fn)
-     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage)))
+     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage, true)))
        return NULL;
 
    if (!index_slow_fn)
@@ -541,7 +542,7 @@ BPatch_snippet *getCounterSlow(BPatch_variableExpr *base, BPatch_image *appImage
    static BPatch_function *index_slow_fn = NULL;
 
    if (!pthread_self_fn)
-     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage)))
+     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage, true)))
        return NULL;
 
    if (!index_slow_fn)
