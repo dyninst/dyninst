@@ -14,7 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.68  1996/01/31 19:49:56  newhall
+ * Revision 1.69  1996/02/01 17:42:30  naim
+ * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
+ * and adding a new definition for observed_cost - naim
+ *
+ * Revision 1.68  1996/01/31  19:49:56  newhall
  * changes to do average aggregation correctly
  *
  * Revision 1.67  1996/01/29  22:09:30  mjrg
@@ -905,22 +909,27 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     proc->theCost.timeLastTrampSample = h->process;
 
     //
+    // New definition for observed_cost
+    //
+    new_observed_cost->value=s->obsCostIdeal;
+
+    //
     // build circular buffer of recent values.
     //
-    proc->theCost.past[proc->theCost.currentHist] = 
-        (s->obsCostIdeal - proc->theCost.lastObservedCost);
-    if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist = 0;
+    proc->theCost.past[proc->theCost.currentHist] = s->obsCostIdeal;
+    if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist=0;
 
     // now compute current value of "smooth cost";
+    int c_count=0;
     for (i=0, proc->theCost.smoothObsCost = 0.0; i < HIST_LIMIT; i++) {
+      if (proc->theCost.past[i] != 0.0) {
+        c_count++;
         proc->theCost.smoothObsCost += proc->theCost.past[i];
+      }
     }
-    proc->theCost.smoothObsCost /= HIST_LIMIT;
-
-    proc->theCost.lastObservedCost = s->obsCostIdeal;
+    proc->theCost.smoothObsCost /= c_count;
 
     currentSmoothObsValue = 0.0;
-
     unsigned size = processVec.size();
     for (unsigned u=0; u<size; u++) {
       if (processVec[u]->theCost.smoothObsCost > currentSmoothObsValue) {
@@ -934,7 +943,8 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     //
     totalPredictedCost->value = 0.0;
     for (unsigned u1=0; u1<size; u1++) {
-      if (processVec[u1]->theCost.totalPredictedCost > totalPredictedCost->value) {
+      if (processVec[u1]->theCost.totalPredictedCost > 
+          totalPredictedCost->value) {
         totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
       }
     }

@@ -1,7 +1,11 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.22  1996/01/29 20:16:29  newhall
+ * Revision 1.23  1996/02/01 17:42:20  naim
+ * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
+ * and adding a new definition for observed_cost - naim
+ *
+ * Revision 1.22  1996/01/29  20:16:29  newhall
  * added enum type "daemon_MetUnitsType" for internal metric definition
  * changed bucketWidth internal metric to EventCounter
  *
@@ -94,6 +98,7 @@ internalMetric *totalPredictedCost= NULL;
 internalMetric *smooth_obs_cost = NULL;
 internalMetric *observed_cost = NULL;
 internalMetric *bucket_width = NULL;
+internalMetric *new_observed_cost = NULL;
 
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
@@ -153,20 +158,29 @@ bool init() {
 							 Normalized);
 
   smooth_obs_cost = internalMetric::newInternalMetric("smooth_obs_cost", 
-						      SampledFunction,
+						      EventCounter,
 						      aggMax,
 						      "CPUs",
 						      NULL,
-						      default_im_preds,
+						      obs_cost_preds,
 						      true,
-						      Sampled);
+						      Normalized);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,
 						   aggMax,
 						   "CPUs",
 						   NULL,
-						   default_im_preds,
+						   obs_cost_preds,
+						   false,
+						   Normalized);
+
+  new_observed_cost = internalMetric::newInternalMetric("new_observed_cost",
+						   EventCounter,
+						   aggMax,
+						   "CPUs",
+						   NULL,
+						   obs_cost_preds,
 						   false,
 						   Normalized);
 
@@ -186,7 +200,7 @@ bool init() {
 						  NULL,
 						  obs_cost_preds,
 						  false,
-						  UnNormalized);
+						  Sampled);
 
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
