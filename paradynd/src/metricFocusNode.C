@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.196 2001/08/28 02:48:39 schendel Exp $
+// $Id: metricFocusNode.C,v 1.197 2001/09/04 19:48:47 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -141,7 +141,7 @@ sampleAggregator DummyAggSample(aggregateOp(0), getCurrSamplingRate());
    result.aggregate = costMetric::allCostMetrics[u2]->aggregate();
    result.style = costMetric::allCostMetrics[u2]->style();
    return true;
-   }
+   } 
    }
    
    return (mdl_metric_data(metric_name, result));
@@ -156,13 +156,8 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 					   const vector< vector<string> >& component_foc,
 					   const string& component_flat_name, 
 					   aggregateOp agg_op,
-#if defined(MT_THREAD)
-					   AGG_LEVEL agg_level)
-: aggLevel(agg_level), 
-#else
                                            MDN_TYPE mdntype)
 : mdn_type_(mdntype),
-#endif
   aggOp(agg_op),
   // CM5 metrics need aggOp to be set
   inserted_(false), installed_(false), met_(met_name), focus_(foc), 
@@ -176,19 +171,14 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 #endif
 }
 
-// for AGG_MDN or AGG_LEV metrics
+// for AGG_MDN or AGG_MDN metrics
 metricDefinitionNode::metricDefinitionNode(const string& metric_name,
                                            const vector< vector<string> >& foc,
                                            const string& cat_name, 
                                           vector<metricDefinitionNode*>& parts,
                                            aggregateOp agg_op,
-#if defined(MT_THREAD)
-                                           AGG_LEVEL agg_level)
-: aggLevel(agg_level),
-#else
                                            MDN_TYPE mdntype)
 : mdn_type_(mdntype),
-#endif
   aggOp(agg_op), inserted_(false), installed_(false), met_(metric_name), 
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggregator(aggregateOp(agg_op), getCurrSamplingRate()), 
@@ -259,17 +249,12 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 	return (metricDefinitionNode*)-2;
 
       // it's required that the internal metric's mdn be a "top level node"
-      // (ie. AGG_MDN or AGG_LEV) in order for setInitialActualValue to send
+      // (ie. AGG_MDN or AGG_MDN) in order for setInitialActualValue to send
       // the value the the front-end
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
 				    component_canon_focus, flat_name, 
 				    theIMetric->aggregate(),
-#if defined(MT_THREAD)
-				    AGG_LEV
-#else
-				    AGG_MDN
-#endif
-				    );
+				    AGG_MDN);
       assert(mn);
       
       unsigned instIndex = theIMetric->enableNewInstance(mn);
@@ -292,13 +277,7 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
 				    component_canon_focus, flat_name, 
-				    nc->aggregate(),
-#if defined(MT_THREAD)
-				    AGG_LEV
-#else
-				    AGG_MDN
-#endif
-				    );
+				    nc->aggregate(), AGG_MDN);
       assert(mn);
 
       nc->enable(mn); 
@@ -468,11 +447,11 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	for (unsigned i=0;i<(mi->getComponents()).size();i++) {
 	  metricDefinitionNode *proc_mi = (mi->getComponents())[i];
 	  if (i==0) {
-	    if (proc_mi->getLevel() == PROC_COMP)
+	    if (proc_mi->getMdnType() == COMP_MDN)
 	      logLine("****** PROCESS LEVEL\n");
-	    if (proc_mi->getLevel() == PROC_PRIM)
+	    if (proc_mi->getMdnType() == PRIM_MDN)
 	      logLine("****** PROCESS PRIM LEVEL\n");
-	    if (proc_mi->getLevel() == THR_LEV)
+	    if (proc_mi->getMdnType() == THR_LEV)
 	      logLine("****** THREAD LEVEL\n");
 	  }
 	  sprintf(errorLine,"****** METRIC: %s\n",proc_mi->getMetName().string_of());
@@ -482,11 +461,11 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	  for (unsigned j=0;j<(proc_mi->getComponents()).size();j++) {
 	    metricDefinitionNode *thr_mi = (proc_mi->getComponents())[j];
 	    if (j==0) {
-	      if (thr_mi->getLevel() == PROC_COMP)
+	      if (thr_mi->getMdnType() == COMP_MDN)
 		logLine("********* PROCESS LEVEL\n");
-	      if (thr_mi->getLevel() == PROC_PRIM)
+	      if (thr_mi->getMdnType() == PRIM_MDN)
 		logLine("********* PROCESS PRIM LEVEL\n");
-	      if (thr_mi->getLevel() == THR_LEV)
+	      if (thr_mi->getMdnType() == THR_LEV)
 		logLine("********* THREAD LEVEL\n");
 	    }
 	    sprintf(errorLine,"********* METRIC: %s\n",thr_mi->getMetName().string_of());
@@ -534,7 +513,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 // p is a process that started after the metric instance was created
 // note: don't call this routine for a process started via fork or exec, just
 // for processes started the "normal" way.
-// "this" is an aggregate(AGG_MDN or AGG_LEV) mi, not a component one.
+// "this" is an aggregate(AGG_MDN or AGG_MDN) mi, not a component one.
 
 void metricDefinitionNode::propagateToNewProcess(process *p) {
   unsigned comp_size = components.size();
@@ -620,11 +599,7 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    // so.  Else, remove the component mi from aggregators, etc.  Returns new component
    // mi if successful, NULL otherwise.
 
-#if defined(MT_THREAD)
-   assert(aggLevel == PROC_COMP);
-#else
    assert(mdn_type_ == COMP_MDN);
-#endif
 
    // How can we tell if the mi can be inserted into the "new" (post-exec) process?
    // A component mi is basically a set of instReqNodes and dataReqNodes.  The latter
@@ -656,7 +631,7 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    metricDefinitionNode *aggregateMI = NULL;
    
    for (unsigned u=0; u<aggregators.size(); u++)
-     if (AGG_LEV == aggregators[u]->aggLevel) {
+     if (AGG_MDN == aggregators[u]->mdn_type_) {
        aggregateMI = aggregators[u];
        break;
      }
@@ -723,7 +698,7 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
       metricDefinitionNode *aggMI = aggregators[agglcv];
 
 #if defined(MT_THREAD)
-      if (THR_LEV == aggregators[agglcv]->aggLevel)
+      if (THR_LEV == aggregators[agglcv]->mdn_type_)
 	continue;
 #endif
 
@@ -889,7 +864,7 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
       components[u] = components[size-1];
       components.resize(size-1);
 
-      if (PROC_PRIM == aggLevel) {
+      if (PRIM_MDN == mdn_type_) {
 	assert(size == thr_names.size());
 	thr_names[u] = thr_names[size-1];
 	thr_names.resize(size-1);
@@ -900,7 +875,7 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
       }
 
       if (size == 1 && id_ != -1) {
-	if (aggLevel == AGG_LEV)
+	if (mdn_type_ == AGG_MDN)
 	  endOfDataCollection();
       }
 
@@ -965,7 +940,7 @@ void metricDefinitionNode::removeThisInstance() {
 	      << aggregator << "\n";
 #if defined(MT_THREAD)
 
-  assert(aggLevel == PROC_COMP || aggLevel == THR_LEV);
+  assert(mdn_type_ == COMP_MDN || mdn_type_ == THR_LEV);
   
   unsigned aggr_size = aggregators.size();
   assert(aggr_size == samples.size());
@@ -980,7 +955,7 @@ void metricDefinitionNode::removeThisInstance() {
   aggregators.resize(0);
   samples.resize(0);
 
-  if (PROC_COMP == aggLevel) {
+  if (COMP_MDN == mdn_type_) {
     assert(aggr_size == comp_flat_names.size());
     for (unsigned t=0; t<aggr_size; t++)
       rmCompFlatName(0);
@@ -1115,11 +1090,11 @@ void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex,
   p_allocatedLevel = UINT_MAX;
   unsigned agg_size = aggregators.size();
 
-  assert(aggLevel == THR_LEV);
+  assert(mdn_type_ == THR_LEV);
 
   metricDefinitionNode *proc_mn = NULL;
   for (unsigned uu=0; uu < agg_size; uu++)
-    if (aggregators[uu]->aggLevel == PROC_PRIM) {  // now proc_prim has those thr_lev as components
+    if (aggregators[uu]->mdn_type_ == PRIM_MDN) {  // now proc_prim has those thr_lev as components
       proc_mn = aggregators[uu];
       break;
     }
@@ -1367,12 +1342,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			 newComponentFocus, // this is a change
 			 newComponentFlatName, // this is a change
 			 aggregateOp(aggOp),  // no change
-#if defined(MT_THREAD)
-			 PROC_COMP
-#else
-			 COMP_MDN
-#endif
-			 );
+			 COMP_MDN);
     assert(mi);
 
     metricDefinitionNode::counterId++;
@@ -1544,7 +1514,7 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
 bool metricDefinitionNode::anythingToManuallyTrigger() const {
 
 #if defined(MT_THREAD)
-  if (aggLevel != PROC_PRIM) {
+  if (mdn_type_ != PRIM_MDN) {
 #else
   if ((mdn_type_ == AGG_MDN) || (mdn_type_ == COMP_MDN)) {
 #endif
@@ -1554,11 +1524,8 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
     return false;
   }
   else {
-#if defined(MT_THREAD)
-    assert(aggLevel == PROC_PRIM);
-#else
     assert(mdn_type_ == PRIM_MDN);
-#endif
+
     // Should we do this?
     //
     if( manuallyTriggerNodes.size() > 0 )
@@ -1595,7 +1562,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
   // aggregate metricDefinitionNode - decide whether to manually trigger 
   //  instrumentation corresponding to each component node individually.
 #if defined(MT_THREAD)
-  if (aggLevel == AGG_LEV || aggLevel == THR_LEV)
+  if (mdn_type_ == AGG_MDN || mdn_type_ == THR_LEV)
 #else
   if (mdn_type_ == AGG_MDN)
 #endif
@@ -1605,11 +1572,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
     }
   }
   // non-aggregate:
-#if defined(MT_THREAD)
-  else if (aggLevel == PROC_COMP)
-#else
   else if (mdn_type_ == COMP_MDN)
-#endif
   {
 //
 #if defined(MT_THREAD)
@@ -1628,17 +1591,13 @@ void metricDefinitionNode::adjustManuallyTrigger()
     }
   }
   else {
-    assert(0);  // PROC_PRIM or PRIM_MDN
+    assert(0);  // PRIM_MDN or PRIM_MDN
   }
 }
 
 void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
 {
-#if defined(MT_THREAD)
-  assert(aggLevel == PROC_PRIM);
-#else
   assert(mdn_type_ == PRIM_MDN);
-#endif
 
   vector<instPoint*> instPts;
   unsigned j, k;
@@ -1819,11 +1778,7 @@ void metricDefinitionNode::oldCatchUp() {
 
   unsigned j, k;
 
-#if defined(MT_THREAD)
-  assert(aggLevel == PROC_PRIM);
-#else
   assert(mdn_type_ == PRIM_MDN);
-#endif
   
   assert(proc_); // proc_ should always be correct for non-aggregates
   const function_base *mainFunc = proc_->getMainFunction();
@@ -1886,7 +1841,7 @@ void metricDefinitionNode::adjustManuallyTrigger0()
   
   // aggregate metricDefinitionNode - decide whether to manually trigger 
   //  instrumentation corresponding to each component node individually.
-  if (aggLevel == AGG_LEV || aggLevel == THR_LEV || aggLevel == PROC_COMP)  // ! PROC_COMP
+  if (mdn_type_ == AGG_MDN || mdn_type_ == THR_LEV || mdn_type_ == COMP_MDN)  // ! COMP_MDN
   {
     for (i=0; i < components.size(); i++) {
       components[i]->adjustManuallyTrigger0();
@@ -1894,11 +1849,7 @@ void metricDefinitionNode::adjustManuallyTrigger0()
   } 
   // non-aggregate:
   else {
-#if defined(MT_THREAD)
-    assert(aggLevel == PROC_PRIM);
-#else
     assert(mdn_type_ == PRIM_MDN);
-#endif
     
     // This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
     // have not been set to manjually trigger by the above code.  Look at the 
@@ -1935,13 +1886,8 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
 
    bool aggr = true;
 
-#if defined(MT_THREAD)
-   if (aggLevel == PROC_PRIM)
-     aggr = false;
-#else
    if (mdn_type_ == PRIM_MDN)
      aggr = false;
-#endif
 
    if( aggr ) {
      for ( unsigned i=0; i < components.size(); ++i )
@@ -1956,7 +1902,7 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
        cerr << "manual trigger failed for an inst request" << endl;
      }
 #else
-     if (aggLevel == PROC_COMP) {
+     if (mdn_type_ == COMP_MDN) {
        for( unsigned u=0; u < proc()->threads.size(); ++u ) {
 	 if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId,
 						   proc()->threads[u]->get_tid() )) {
@@ -1984,13 +1930,8 @@ void metricDefinitionNode::manuallyTrigger(int parentMId, int /*thrId*/)
 
    bool aggr = true;
 
-#if defined(MT_THREAD)
-   if (aggLevel == PROC_PRIM)
-     aggr = false;
-#else
    if (mdn_type_ == PRIM_MDN)
      aggr = false;
-#endif
 
    if( aggr ) {
      for ( unsigned i=0; i < components.size(); ++i )
@@ -2009,7 +1950,7 @@ void metricDefinitionNode::manuallyTrigger(int parentMId, int /*thrId*/)
        cerr << "manual trigger failed for an inst request" << endl;
      }
 #else
-     if (aggLevel == PROC_PRIM) {
+     if (mdn_type_ == PRIM_MDN) {
        if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId, thrId)) {
 	 cerr << "manual trigger failed for an inst request" << endl;
 	 // metric_cerr << "manual trigger failed for an inst request" << endl;
@@ -2023,7 +1964,7 @@ void metricDefinitionNode::manuallyTrigger(int parentMId, int /*thrId*/)
 
 #if defined(MT_THREAD)
 void metricDefinitionNode::propagateId(int id) {
-  if (aggLevel != THR_LEV) {
+  if (mdn_type_ != THR_LEV) {
     for (unsigned i=0;i<components.size();i++) 
       if (components[i])
         components[i]->propagateId(id);
@@ -2109,7 +2050,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
 	metricDefinitionNode *inst_mdn = mi;
 #if defined(MT_THREAD)
-	while (inst_mdn->getLevel() != PROC_COMP)    // want to if check inserted and installed
+	while (inst_mdn->getMdnType() != COMP_MDN)    // want to if check inserted and installed
 	  inst_mdn = inst_mdn->components[0];
 #else
 	while (inst_mdn->getMdnType() == AGG_MDN)    // want to if check inserted and installed
@@ -2270,11 +2211,7 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
 
     // instrumentation successfully inserted, so okay to sample this 
     // metric. Only for agg mdn's.
-#if defined(MT_THREAD)
-    if (mi->getLevel() == AGG_LEV) {
-#else
     if (mi->getMdnType() == AGG_MDN) {
-#endif
       mi->okayToSample();
     }
 
@@ -2437,11 +2374,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
 	  return false; // shouldn't we try to undo what's already put in?
 	}
     }
-#if defined(MT_THREAD)
-    else if (aggLevel == PROC_COMP)
-#else
     else if (mdn_type_ == COMP_MDN) 
-#endif
     { // similar to agg case
 
       // PAUSE inferior process ONCE FOR ALL PRIMITIVES
@@ -2472,10 +2405,10 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
     else {
 
 #if defined(MT_THREAD)
-      assert((aggLevel == PROC_PRIM) || (aggLevel == THR_LEV));
-      if (aggLevel == PROC_PRIM)
+      assert((mdn_type_ == PRIM_MDN) || (mdn_type_ == THR_LEV));
+      if (mdn_type_ == PRIM_MDN)
 	assert(dataRequests.size() == 0);
-      if (aggLevel == THR_LEV)
+      if (mdn_type_ == THR_LEV)
 	assert(instRequests.size() == 0);
 #else
       assert(mdn_type_ == PRIM_MDN);
@@ -2548,24 +2481,16 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
 // if all returnInstance's overwrite only 1 instruction, no stack walk necessary
 bool metricDefinitionNode::needToWalkStack() const
 {
-#if defined(MT_THREAD)
-  assert(PROC_COMP == aggLevel || PROC_PRIM == aggLevel);
-  if (PROC_COMP == aggLevel)
-#else
   assert(COMP_MDN == mdn_type_ || PRIM_MDN == mdn_type_);
   if (COMP_MDN == mdn_type_)
-#endif
   {
     for (unsigned u=0; u<components.size(); u++)
       if (components[u]->needToWalkStack())
 	return true;
   }
   else {
-#if defined(MT_THREAD)
-    assert(PROC_PRIM == aggLevel);
-#else
     assert(PRIM_MDN == mdn_type_);
-#endif
+
     for (unsigned u1=0; u1<returnInsts.size(); u1++) {
       if (returnInsts[u1]->needToWalkStack())
 	return true;
@@ -2605,7 +2530,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
     installed_ = true;
 
 #if defined(MT_THREAD)
-    if ((aggLevel == AGG_LEV) || (aggLevel == THR_LEV)) { //if (aggLevel != THR_LEV)
+    if ((mdn_type_ == AGG_MDN) || (mdn_type_ == THR_LEV)) { //if (mdn_type_ != THR_LEV)
 #else
     if (mdn_type_ == AGG_MDN) {
 #endif
@@ -2614,11 +2539,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	components[u1]->checkAndInstallInstrumentation();
       // why no checking of the return value?
     }
-#if defined(MT_THREAD)
-    else if (aggLevel == PROC_COMP) {
-#else
     else if (mdn_type_ == COMP_MDN) {
-#endif
 
       // pause once for all primitives for this component
       needToCont = proc_->status() == running;
@@ -2738,12 +2659,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation(vector<Address>& pc) {
 
     installed_ = true;
 
-#if defined(MT_THREAD)
-    assert(aggLevel == PROC_PRIM);
-#else
     assert(mdn_type_ == PRIM_MDN);
-#endif
-
 
     unsigned rsize = returnInsts.size();
     u_int max_index = 0;  // first frame where it is safe to install instr
@@ -2798,7 +2714,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation(vector<Address>& pc) {
 
 #if defined(MT_THREAD)
     for (unsigned u=0; u<components.size(); u++) {
-      assert(THR_LEV == components[u]->aggLevel);
+      assert(THR_LEV == components[u]->mdn_type_);
       if (!components[u]->installed_)
 	components[u]->installed_ = true;
     }
@@ -2812,8 +2728,8 @@ timeLength metricDefinitionNode::cost() const
 {
   timeLength ret = timeLength::Zero();
 #if defined(MT_THREAD)
-  if (AGG_LEV == aggLevel || THR_LEV == aggLevel) {
-    if (THR_LEV == aggLevel && 2 < aggregators.size())   // 1 of them for thr_lev's proc_prim
+  if (AGG_MDN == mdn_type_ || THR_LEV == mdn_type_) {
+    if (THR_LEV == mdn_type_ && 2 < aggregators.size())   // 1 of them for thr_lev's proc_prim
       return ret;
 #else
   if (AGG_MDN == mdn_type_) {
@@ -2825,30 +2741,20 @@ timeLength metricDefinitionNode::cost() const
     }
   }
   else 
-#if defined (MT_THREAD)
-    if (PROC_COMP == aggLevel) {
-      if (1 < aggregators.size())
-	return ret;
-#else
     if (COMP_MDN == mdn_type_) {
       if (1 < aggregators.size())
 	return ret;
-#endif
+
       unsigned c_size = components.size();
       for (unsigned u1=0; u1<c_size; u1++) {
 	ret += components[u1]->cost();
       }
     }
     else {
-#if defined(MT_THREAD)
-      assert(PROC_PRIM == aggLevel);
-      if (1 < aggregators.size())
-	return ret;
-#else
       assert(PRIM_MDN == mdn_type_);
       if (1 < aggregators.size())
 	return ret;
-#endif
+
       // if (originalCost_ > ret)  // > 0, already computed
       // ret = originalCost_;
       // else {
@@ -2995,7 +2901,7 @@ void metricDefinitionNode::disable()
   }
 
 
-  if (aggLevel == AGG_LEV) {  // case 1: AGG_LEV
+  if (mdn_type_ == AGG_MDN) {  // case 1: AGG_MDN
     /* disable components of aggregate metrics */
     for (unsigned u=0; u<components.size(); u++) {
       metricDefinitionNode *m = components[u];
@@ -3010,7 +2916,7 @@ void metricDefinitionNode::disable()
 	  m->samples[u1] = m->samples[aggr_size-1];
 	  m->samples.resize(aggr_size-1);
 
-	  if (PROC_COMP == m->aggLevel) {  // NEED TO UNDEF HERE
+	  if (COMP_MDN == m->mdn_type_) {  // NEED TO UNDEF HERE
 	    m->rmCompFlatName(u1);
 	  }
 
@@ -3026,10 +2932,10 @@ void metricDefinitionNode::disable()
 	m->disable();
       }
 
-      // the above has removed the AGG_LEV from m's aggregators list
+      // the above has removed the AGG_MDN from m's aggregators list
       // in the case that m is THR_LEV, we want to do the following
-      if ( THR_LEV == m->aggLevel && 
-	   // AGG_LEV == aggLevel    && 
+      if ( THR_LEV == m->mdn_type_ && 
+	   // AGG_MDN == mdn_type_    && 
 	   2       == aggr_size )  // one for this agg_lev mi, one for its proc_prim
 	m->disable();
     }//for u
@@ -3037,7 +2943,7 @@ void metricDefinitionNode::disable()
   }
 
   else {
-    if (aggLevel == PROC_COMP) {  // case 2: PROC_COMP
+    if (mdn_type_ == COMP_MDN) {  // case 2: COMP_MDN
       assert(0 == instRequests.size());
 
       for (unsigned u=0; u<components.size(); u++) {
@@ -3064,7 +2970,7 @@ void metricDefinitionNode::disable()
       components.resize(0);
     }
 
-    if (aggLevel == PROC_PRIM) {  // case 3: PROC_PRIM
+    if (mdn_type_ == PRIM_MDN) {  // case 3: PRIM_MDN
       vector<addrVecType> pointsToCheck;
 
       for (unsigned u1=0; u1<instRequests.size(); u1++) {
@@ -3106,7 +3012,7 @@ void metricDefinitionNode::disable()
       }
     }
 
-    if (aggLevel == THR_LEV) {  // case 4: THR_LEV
+    if (mdn_type_ == THR_LEV) {  // case 4: THR_LEV
       // if disable == false (aggregators size == 1, for proc_prim), delete from agg_lev
       // if disable == true (aggregators size == 0), delete from proc_prim
 
@@ -3124,7 +3030,7 @@ void metricDefinitionNode::disable()
 	    m->samples[u1] = m->samples[aggr_size-1];
 	    m->samples.resize(aggr_size-1);
 
-	    if (PROC_COMP == m->aggLevel) {  // NEED TO UNDEF HERE
+	    if (COMP_MDN == m->mdn_type_) {  // NEED TO UNDEF HERE
 	      m->rmCompFlatName(u1);
 	    }
 
@@ -3179,7 +3085,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     unsigned found = aggr_size;
 
     if (aggr_size == 0) {
-      if (PROC_PRIM == comp->aggLevel)
+      if (PRIM_MDN == comp->mdn_type_)
 	if (allMIPrimitives.defines(comp->flat_name_))
 	  allMIPrimitives.undef(comp->flat_name_);
 
@@ -3213,7 +3119,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     comp->samples[found] = comp->samples[aggr_size-1];
     comp->samples.resize(aggr_size-1);
 
-    if (PROC_COMP == comp->aggLevel) {  // NEED TO UNDEF HERE
+    if (COMP_MDN == comp->mdn_type_) {  // NEED TO UNDEF HERE
       comp->rmCompFlatName(found);
     }
     // metric_cerr << "   --- removeComponent: this removed from component's " << found << "th aggregator " << endl;
@@ -3225,7 +3131,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       (comp->components).resize(0);
 
       // metric_cerr << "   --- removeCompoent: now component's aggr size == 0, delete " << endl;
-      if (PROC_PRIM == comp->aggLevel)
+      if (PRIM_MDN == comp->mdn_type_)
 	if (allMIPrimitives.defines(comp->flat_name_))
 	  allMIPrimitives.undef(comp->flat_name_);
 
@@ -3234,8 +3140,8 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     }
 
     // newly added
-    if (THR_LEV==comp->aggLevel && 2>=aggr_size) {
-      if (AGG_LEV == comp->aggregators[0]->aggLevel) { // first PROC_PRIM has been removed
+    if (THR_LEV==comp->mdn_type_ && 2>=aggr_size) {
+      if (AGG_MDN == comp->aggregators[0]->mdn_type_) { // first PRIM_MDN has been removed
 	metric_cerr << " remove this thr_lev mn's agg_lev aggregators " << endl;
 
 	for (u=0; u<aggr_size-1; u++) {
@@ -3249,7 +3155,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     }
     
     /*
-    if (AGG_LEV==aggLevel && THR_LEV==comp->aggLevel && 2>=aggr_size)
+    if (AGG_MDN==mdn_type_ && THR_LEV==comp->mdn_type_ && 2>=aggr_size)
       {
 	if (comp->components.size()>0) {
 	  metricDefinitionNode *pcomp = comp->components[0];
@@ -3337,10 +3243,10 @@ metricDefinitionNode::~metricDefinitionNode()  // call removeComponent before de
 {
 #if defined(MT_THREAD)
   
-  // sprintf(errorLine, "delete 0x%x:%s: mid=%d, aggLevel=%d", this, flat_name_.string_of(), id_, aggLevel);
+  // sprintf(errorLine, "delete 0x%x:%s: mid=%d, mdn_type_=%d", this, flat_name_.string_of(), id_, mdn_type_);
   // metric_cerr << errorLine << endl;
   
-  if (aggLevel == PROC_COMP && proc_) {
+  if (mdn_type_ == COMP_MDN && proc_) {
     unsigned tSize = proc_->allMIComponentsWithThreads.size();
     for (unsigned u=0; u<tSize; u++) 
       if (proc_->allMIComponentsWithThreads[u] == this) {
@@ -3400,12 +3306,12 @@ void metricDefinitionNode::cleanup_drn()
   // we assume that it is safe to delete a dataReqNode at this point, 
   // otherwise, we would need to do something similar as in the disable
   // method for metricDefinitionNode - naim
-  if (aggLevel == PROC_PRIM) {
+  if (mdn_type_ == PRIM_MDN) {
     for (u=0; u<components.size(); u++) {
       components[u]->cleanup_drn();
     }
   }
-  else if (aggLevel == THR_LEV) {
+  else if (mdn_type_ == THR_LEV) {
     vector<addrVecType> pointsToCheck;
     for (u=0; u<dataRequests.size(); u++) {
       metric_cerr << " clean " << u << "th data request " << endl;
@@ -3707,7 +3613,7 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
     curComp.addSamplePt(sampleTime, value);
 
 #if defined(MT_THREAD)
-    if ( !(aggLevel == PROC_COMP && curParentMdn.aggLevel == THR_LEV) ) {
+    if ( !(mdn_type_ == COMP_MDN && curParentMdn.mdn_type_ == THR_LEV) ) {
 #endif
       curParentMdn.tryAggregation();
 #if defined(MT_THREAD)
@@ -5020,7 +4926,7 @@ void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn1,
 					 metricDefinitionNode *mn2)
 {
   if (mn1 != NULL && mn2 != NULL) {
-    if (mn1->getLevel() == PROC_PRIM && mn2->getLevel() == PROC_PRIM) {
+    if (mn1->getMdnType() == PRIM_MDN && mn2->getMdnType() == PRIM_MDN) {
       mn2->instRequests = mn1->instRequests;
     }
   }
@@ -5040,7 +4946,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 {
   int tid;
   assert(thr);
-  assert(aggLevel == PROC_COMP) ;
+  assert(mdn_type_ == COMP_MDN) ;
   tid = thr->get_tid();
 
   metric_cerr << "+++++ adding thread " << tid << " to component " << flat_name_;
@@ -5083,7 +4989,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
   // component hasn't been defined previously. If it has, then we will have
   // reused it - naim
 
-  // use stuff memorized in PROC_COMP: type_thr, temp_ctr_thr, flag_cons_thr and base_use_thr
+  // use stuff memorized in COMP_MDN: type_thr, temp_ctr_thr, flag_cons_thr and base_use_thr
 
   if ( base_use_thr.size() == 0 ) {
     // allocate constraints that is used as flags
@@ -5239,14 +5145,14 @@ void metricDefinitionNode::addThread(pdThread *thr)
 
 void metricDefinitionNode::deleteThread(pdThread *thr)
 {
-  assert(aggLevel == PROC_COMP);
+  assert(mdn_type_ == COMP_MDN);
   int tid;
   assert(thr);
   tid = thr->get_tid();
 
   for (unsigned u=0; u<components.size(); u++) {
     metricDefinitionNode * prim = components[u];
-    assert(prim->aggLevel == PROC_PRIM);
+    assert(prim->mdn_type_ == PRIM_MDN);
 
     unsigned tsize = prim->components.size();
     assert(tsize == prim->thr_names.size());
@@ -5256,7 +5162,7 @@ void metricDefinitionNode::deleteThread(pdThread *thr)
     metricDefinitionNode *thr_mi = prim->getThrComp(thrName);
 
     if (thr_mi) {
-      assert(thr_mi->aggLevel == THR_LEV);
+      assert(thr_mi->mdn_type_ == THR_LEV);
 
       thr_mi->removeThisInstance();  // removeThisInstance
       // delete thr_mi
@@ -5632,13 +5538,8 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
 				     vector<dataReqNode*> &data_tuple1, // initialization?
 				     vector<dataReqNode*> &data_tuple2) {
 
-#if defined(MT_THREAD)
-  assert(aggLevel  == PROC_PRIM);  // (aggLevel == THR_LEV);
-  assert(mn->aggLevel  == PROC_PRIM);  // (mn->aggLevel == THR_LEV);
-#else
   assert(mdn_type_ == PRIM_MDN);
   assert(mn->mdn_type_ == PRIM_MDN);
-#endif
 
   vector<dataReqNode *> datanodes1, datanodes2;
   datanodes1 = getDataRequests();
@@ -5678,11 +5579,7 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
 // incremental code generation optimization
 // check if match BEFORE add into allMIPrimitives
 metricDefinitionNode* metricDefinitionNode::matchInMIPrimitives() {
-#if defined(MT_THREAD)
-  assert(aggLevel  == PROC_PRIM);  // (aggLevel == THR_LEV);
-#else
   assert(mdn_type_ == PRIM_MDN);
-#endif
 
   // note the two loops; we can't safely combine into one since the second loop modifies
   // the dictionary. probably not necessary here
@@ -5719,7 +5616,7 @@ metricDefinitionNode* metricDefinitionNode::matchInMIPrimitives() {
 dataReqNode* metricDefinitionNode::getFlagDRN(void) 
 { 
 #if defined(MT_THREAD)
-  assert(aggLevel == PROC_PRIM);
+  assert(mdn_type_ == PRIM_MDN);
   assert(components.size() > 0);
   assert(components[0]->dataRequests.size() > 0);
   return components[0]->dataRequests[0];
@@ -5769,11 +5666,11 @@ void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
 vector<dataReqNode *> metricDefinitionNode::getDataRequests()
 {
 #if defined(MT_THREAD)
-  if (PROC_PRIM == aggLevel) {
+  if (PRIM_MDN == mdn_type_) {
     assert(0 < components.size());
     return components[0]->dataRequests;
   }
-  else if (aggLevel == THR_LEV)
+  else if (mdn_type_ == THR_LEV)
     return dataRequests;
   else
     assert(0);

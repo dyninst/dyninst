@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.94 2001/08/23 14:44:15 schendel Exp $
+// $Id: mdl.C,v 1.95 2001/09/04 19:48:47 gurari Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1488,7 +1488,7 @@ apply_to_process(process *proc,
 	
 	if (0 == selected_mn->getComponents().size()) {
 	  metric_cerr << " add proc_mn to selected_mn's comp " << endl;
-	  // for THR_LEV: aggregators[0] is a PROC_PRIM, components[0] is PROC_PROC
+	  // for THR_LEV: aggregators[0] is a PRIM_MDN, components[0] is PROC_PROC
 	  //              could have aggregators[1+], are AGG_LEV's
 	  selected_mn->addPart(proc_mn);
 	  recordName = true;
@@ -1508,7 +1508,7 @@ apply_to_process(process *proc,
 	proc_mn->addCompFlatName(proc_component_flat_name);
       }
       
-      // either THR_LEV or PROC_COMP
+      // either THR_LEV or COMP_MDN
       return selected_mn;
     }
     else
@@ -1526,7 +1526,7 @@ apply_to_process(process *proc,
     
     proc_mn = new metricDefinitionNode(proc, name, focus, component_focus,
 				       proc_component_flat_name, 
-				       aggregateOp(agg_op), PROC_COMP);
+				       aggregateOp(agg_op), COMP_MDN);
     assert(proc_mn);
     
     // memorizing stuff
@@ -1555,7 +1555,7 @@ apply_to_process(process *proc,
 	metric_prim =
 	  new metricDefinitionNode(proc, name, // base_use[0]->id()
 				   focus, component_focus, metric_flat_name,
-				   aggregateOp(agg_op), PROC_PRIM);
+				   aggregateOp(agg_op), PRIM_MDN);
 	
 	vector<dataReqNode*> empty_flags;
 	unsigned int empty;
@@ -1606,7 +1606,7 @@ apply_to_process(process *proc,
 	    cons_prim = 
 	      new metricDefinitionNode(proc, cons_name, focus, component_focus,
 				       primitive_flat_name, 
-				       aggregateOp(agg_op), PROC_PRIM);
+				       aggregateOp(agg_op), PRIM_MDN);
 	    
 	    // add allocate data for each thread (into thr prims), 
 	    // generate instrument code (into proc prim)
@@ -1656,7 +1656,7 @@ apply_to_process(process *proc,
 	  new metricDefinitionNode(proc, name, focus, component_focus, 
 				   metric_flat_name,
 				  // should be NO metric_style and NO agg_style
-				   aggregateOp(agg_op), PROC_PRIM);
+				   aggregateOp(agg_op), PRIM_MDN);
 	
 	// add allocate data for each thread (into thr prims), 
 	// generate instrument code (into proc prim)
@@ -1753,7 +1753,7 @@ apply_to_process(process *proc,
       proc_mn->addCompFlatName(proc_component_flat_name);
 
       // MOVE HERE: after checkMetric is done for its replace prim or metric prim:
-      // the ONLY place to add into allMIComponents in mdl.C, this add PROC_COMP
+      // the ONLY place to add into allMIComponents in mdl.C, this add COMP_MDN
       allMIComponents[proc_component_flat_name] = proc_mn;  // only if name is recorded
     }
 

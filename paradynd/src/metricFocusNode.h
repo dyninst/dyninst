@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.74 2001/08/28 02:48:41 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.75 2001/09/04 19:48:48 gurari Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -681,7 +681,8 @@ void mdnContinueCallback(timeStamp timeOfCont);
 //   because even if we can reuse, constraint var is not sampled
 //   while metric prim is sampled.  or have two separate
 //   allMIPrimitives for them.
-typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN} MDN_TYPE;
+// THR_LEV is for threaded paradyn only
+typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN, THR_LEV} MDN_TYPE;
 
 
 // metricDefinitionNode type for MT_THREAD version:
@@ -701,8 +702,10 @@ typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN} MDN_TYPE;
 //   thr_lev has only one aggregator -- a metric prim;
 //   if it has component, it has only one -- the proc_
 //   comp also for its metric prim.
+#ifdef notdefined
 #if defined(MT_THREAD)
 typedef enum {AGG_LEV, PROC_COMP, PROC_PRIM, THR_LEV} AGG_LEVEL;
+#endif
 #endif
 
 /*
@@ -738,19 +741,12 @@ private:
 public:
 
   // styles are enumerated in aggregation.h
-#if defined(MT_THREAD)
-  metricDefinitionNode(process *p, const string& metric_name, 
-                       const vector< vector<string> >& foc,
-                       const vector< vector<string> >& component_foc,
-		       const string& component_flat_name, 
-                       aggregateOp agg_op, AGG_LEVEL agg_level);
-#else
   metricDefinitionNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
                        const string& component_flat_name, 
 		       aggregateOp agg_op, MDN_TYPE mdntype);
-#endif
+
   // NON_MT_THREAD version:
   // for primitive (real non-aggregate, per constraint var or metric var) mdn's
   // flat name should include process id
@@ -758,19 +754,12 @@ public:
   // for component (per-process) (non-aggregate, now aggregate) mdn's
   // difference: it now has parts too (become aggregate)
 
-#if defined(MT_THREAD)
-  metricDefinitionNode(const string& metric_name, 
-                       const vector< vector<string> >& foc,
-		       const string& cat_name,
-		       vector<metricDefinitionNode*>& parts,
-		       aggregateOp agg_op, AGG_LEVEL agg_level = AGG_LEV);
-#else
   metricDefinitionNode(const string& metric_name, 
 		       const vector< vector<string> >& foc,
 		       const string& cat_name,
 		       vector<metricDefinitionNode*>& parts,
 		       aggregateOp agg_op, MDN_TYPE mdntype = AGG_MDN);
-#endif
+
   // NON_MT_THREAD version:
   // for aggregate (not component) mdn's
 
@@ -784,11 +773,7 @@ public:
   int getMId() const { return id_; }
 
   bool isTopLevelMDN() const {
-#if defined(MT_THREAD)
-    return (aggLevel == AGG_LEV);
-#else
     return (mdn_type_ == AGG_MDN);
-#endif
   }
 
   const string &getMetName() const { return met_; }
@@ -808,7 +793,7 @@ public:
   void reUseIndexAndLevel(unsigned &p_allocatedIndex, unsigned &p_allocatedLevel);
   void addParts(vector<metricDefinitionNode*>& parts);
 
-  AGG_LEVEL getLevel() { return aggLevel; }
+  //AGG_LEVEL getLevel() { return aggLevel; }
   // vector<dataReqNode *> getDataRequests() { return dataRequests; }      
   void addThread(pdThread *thr);
   void deleteThread(pdThread *thr);
@@ -818,7 +803,7 @@ public:
   void setMetricRelated(unsigned type, bool computingCost, vector<string> * temp_ctr, 
 			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
 			vector<T_dyninstRPC::mdl_constraint*> base_use) {
-    assert(PROC_COMP == aggLevel);
+    assert(COMP_MDN == mdn_type_);
 
     type_thr          = type;
     computingCost_thr = computingCost;
@@ -826,10 +811,11 @@ public:
     flag_cons_thr     = flag_cons;
     base_use_thr      = base_use;
   }
-  AGG_LEVEL getMdnType(void) const { return aggLevel; }
-#else
-  MDN_TYPE getMdnType(void) const { return mdn_type_; }
+  //AGG_LEVEL getMdnType(void) const { return aggLevel; }
 #endif
+
+  MDN_TYPE getMdnType(void) const { return mdn_type_; }
+
 
   friend ostream& operator<<(ostream&s, const metricDefinitionNode &m);
 
@@ -948,12 +934,12 @@ public:
 #if defined(MT_THREAD)
   metricDefinitionNode * getMetricPrim() {
     // should be the last of its components
-    assert(aggLevel == PROC_COMP);
+    assert(mdn_type_ == COMP_MDN);
     unsigned csize = components.size();
     return (components[csize-1]);
   }
   metricDefinitionNode * getThrComp(string tname) {
-    assert(aggLevel == PROC_PRIM);
+    assert(mdn_type_ == PRIM_MDN);
     unsigned csize = components.size();
     assert(csize == thr_names.size());
 
@@ -964,13 +950,13 @@ public:
     return NULL;
   }
   metricDefinitionNode * getProcComp() {
-    assert(aggLevel == PROC_PRIM);
+    assert(mdn_type_ == PRIM_MDN);
 
     return aggregators[0];
   }
   // --- ---
   void rmCompFlatName(unsigned u) {
-    assert(PROC_COMP == aggLevel);
+    assert(COMP_MDN == mdn_type_);
     unsigned size = comp_flat_names.size();
     assert(u < size);
     
@@ -984,12 +970,12 @@ public:
   }
 
   void addCompFlatName(string proc_flat_name) {
-    assert(PROC_COMP == aggLevel);
+    assert(COMP_MDN == mdn_type_);
     comp_flat_names += proc_flat_name;
   }
 
   void addThrName(string thr_name) {
-    assert(PROC_PRIM == aggLevel);
+    assert(PRIM_MDN == mdn_type_);
     thr_names += thr_name;
   }
 #endif
@@ -1020,7 +1006,7 @@ private:
 
   // @@ METRIC FIELD STARTS FROM HERE :
 #if defined(MT_THREAD)
-  AGG_LEVEL              aggLevel;// level of aggregation.
+  //  AGG_LEVEL              aggLevel;// level of aggregation.
                                   // AGG_LEV:    top level (aggregate)
                                   // THR_LEV:    same as below, only those for metric are added to allMIComponents
                                   // PROC_COMP:
@@ -1029,9 +1015,9 @@ private:
                                   // THR_LEV:    thread component level. It has no instrumentation associated,
                                   //             only dataReqNodes and sampling data;  for constraint and metric
   bool			needData_ ;
-#else
-  MDN_TYPE              mdn_type_;
 #endif
+  MDN_TYPE              mdn_type_;
+
   aggregateOp           aggOp;
   bool			inserted_;
   bool                  installed_;
