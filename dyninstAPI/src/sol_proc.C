@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.14 2003/03/14 23:18:28 bernat Exp $
+// $Id: sol_proc.C,v 1.15 2003/03/17 03:05:44 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -157,7 +157,7 @@ void OS::osTraceMe(void) {
         perror("osTraceMe: PCSEXIT");
         P__exit(-1); // must use _exit here.
     }
-    
+
     // AIX: do not close file descriptor or all changes are undone (?)
     // My guess is we need to fiddle with the run on close/kill on 
     // close bits. For now, leaving the FD open works.
@@ -1309,28 +1309,32 @@ process *decodeProcessEvent(int pid,
     // The current FD we're processing.
     static int curr = 0;
 
+    bool any_active_procs = false;
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
-            //printf("checking %d\n", processVec[u]->getPid());
+           //printf("checking %d\n", processVec[u]->getPid());
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
-                if (pid == -1 ||
-                    processVec[u]->getPid() == pid)
-                    fds[u].fd = processVec[u]->status_fd();
+               if (pid == -1 || processVec[u]->getPid() == pid) {
+                   fds[u].fd = processVec[u]->status_fd();
+                   any_active_procs = true;
+                }
             } else {
                 fds[u].fd = -1;
             }	
             fds[u].events = POLLPRI;
             fds[u].revents = 0;
         }
-        
+        if(any_active_procs == false) {
+           return NULL;
+        }
         
         int timeout;
         if (block) timeout = -1;
         else timeout = 0;
         selected_fds = poll(fds, processVec.size(), timeout);
-        
+
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
                 perror("decodeProcessEvent: poll failed");
@@ -1351,7 +1355,7 @@ process *decodeProcessEvent(int pid,
     // fds[curr] has an event of interest
     lwpstatus_t procstatus;
     process *currProcess = processVec[curr];
-    
+
     if (fds[curr].revents & POLLHUP) {
         // True if the process exited out from under us
         int status;
@@ -1376,10 +1380,10 @@ process *decodeProcessEvent(int pid,
     } else {
         // Real return from poll
         if (currProcess->getDefaultLWP()->get_status(&procstatus)) {
-            // Check if the process is stopped waiting for us
+           // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
+               if (!decodeProcStatus(currProcess, procstatus, why, what, info))
                     return NULL;
             }
         }
