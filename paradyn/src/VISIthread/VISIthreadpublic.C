@@ -134,7 +134,7 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
 				     NULL);
 }
 
-extern void flush_buffer_if_nonempty(VISIGlobalsStruct *);
+extern void flush_buffer_if_nonempty( VISIthreadGlobals *);
 //////////////////////////////////////////////////////////////////////
 //  StopMetricResource: visualizationUser routine (called by visi process)
 //  input: metric and resource Ids 

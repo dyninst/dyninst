@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.h,v 1.3 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynTkGUI.h,v 1.4 2004/06/21 19:37:42 pcroth Exp $
 #ifndef PARADYNTKGUI_H
 #define PARADYNTKGUI_H
 
@@ -79,6 +79,7 @@ private:
     static void ShowShgActiveCallback( bool show );
     static void ShowShgInactiveCallback( bool show );
     static void ShowShgShadowCallback( bool show );
+    static void UseGUITermWinCallback( bool useGUI );
 
     void DoPendingTkEvents( void );
     void DisablePAUSEandRUN( void );
@@ -194,7 +195,7 @@ protected:
     virtual int ParadynVersionInfoCmd( int argc, TCLCONST char* argv[] );
 
 public:
-    ParadynTkGUI( pdstring progName );
+    ParadynTkGUI( thread_t _mainTid, pdstring _progName );
     virtual ~ParadynTkGUI( void );
 
     bool IsInBatchMode( void ) const        { return (batchModeCounter > 0); }

@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.56 2004/03/23 01:12:33 eli Exp $
+// $Id: metMain.C,v 1.57 2004/06/21 19:37:55 pcroth Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -111,7 +111,7 @@ static int open_N_parse (pdstring& file)
 }
 
 // parse the 3 files (system, user, application)
-bool metMain(pdstring &userFile)
+bool metMain(pdstring userFile)
 {
   int yy1=0, yy2, yy3;
   char *home, *proot, *cwd;

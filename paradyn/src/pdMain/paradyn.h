@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.25 2004/03/23 01:12:33 eli Exp $ */
+/* $Id: paradyn.h,v 1.26 2004/06/21 19:37:58 pcroth Exp $ */
 
 /* some global definitions for main.C */
 
@@ -73,14 +73,8 @@ typedef struct CLargStruct CLargStruct;
 
 #define MSG_TAG_DO_EXIT_CLEANLY MSG_TAG_USER+7
 
-extern thread_t UIMtid;
-extern thread_t MAINtid;
-extern thread_t PCtid;
-extern thread_t DMtid;
-extern thread_t VMtid;
-extern thread_t TCtid; // tunable constant
-// extern applicationContext *context;
-
+// TODO global client-side objects are going away
+// each thread should keep their own
 extern dataManagerUser *dataMgr;
 extern performanceConsultantUser *perfConsult;
 extern UIMUser *uiMgr;
@@ -102,19 +96,6 @@ extern void print_debug_macro(const char* format, ...);
 // specified in a PCL process definition, or in the process definition window.
 extern pdstring default_host;
 extern pdstring local_domain;
-
-// struct for passing arguments to UI thread
-struct UIThreadArgs
-{
-    pdstring progName;
-    int argc;
-    char** argv;
-
-    UIThreadArgs( const char* _progName )
-      : progName( _progName )
-    { }
-};
-
 
 #endif
 

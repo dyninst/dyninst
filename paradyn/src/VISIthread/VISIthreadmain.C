@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.107 2004/04/12 18:37:43 pcroth Exp $
+// $Id: VISIthreadmain.C,v 1.108 2004/06/21 19:37:46 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -81,7 +81,7 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
+void flush_buffer_if_full( VISIthreadGlobals *ptr) {
   sampleVal_cerr << "flush_buffer_if_full-   buffer_next_insert_index: " 
 		 << ptr->buffer_next_insert_index <<",  buffer.size: " 
 		 << ptr->buffer.size() << "\n" << std::flush;
@@ -100,7 +100,7 @@ void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
    ptr->buffer_next_insert_index = 0;
 }
 
-void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
+void flush_buffer_if_nonempty( VISIthreadGlobals *ptr) {
    const unsigned num_to_send = ptr->buffer_next_insert_index;
    sampleVal_cerr << "flush_buffer_if_nonempty - sending " <<num_to_send<<"\n";
    assert(num_to_send <= ptr->buffer.size());
@@ -143,7 +143,7 @@ void VISIthreadForceFlushBufferCallback() {
 }
 
 // trace data streams
-void flush_traceBuffer_if_full(VISIGlobalsStruct *ptr) {
+void flush_traceBuffer_if_full( VISIthreadGlobals *ptr) {
    assert(ptr->buffer_next_insert_index <= ptr->traceBuffer.size());
    if (ptr->buffer_next_insert_index != ptr->traceBuffer.size())
       return;
@@ -159,7 +159,7 @@ void flush_traceBuffer_if_full(VISIGlobalsStruct *ptr) {
 }
 
 // trace data streams
-void flush_traceBuffer_if_nonempty(VISIGlobalsStruct *ptr) {
+void flush_traceBuffer_if_nonempty( VISIthreadGlobals *ptr) {
    const unsigned num_to_send = ptr->buffer_next_insert_index;
    assert(num_to_send <= ptr->traceBuffer.size());
 
@@ -725,14 +725,14 @@ bool VISIMakeEnableRequest(){
   u_int request_size = (u_int)packetSizeTC.getValue();
   if(request_size == 0) request_size = 2;
 #endif
-  u_int request_size = -1;
+  u_int request_size = (u_int)-1;
 
   // there is an enable limit for this visi: adjust the request_size 
   if(ptr->args->mi_limit > 0) {
       request_size = (ptr->args->mi_limit - ptr->mrlist.size()); 
   }
 
-  if((request_size == -1) || 
+  if((request_size == (u_int)-1) || 
      (request_size > (ptr->request->size() - ptr->next_to_enable))) {
       request_size = (ptr->request->size() - ptr->next_to_enable); 
   }
@@ -1147,16 +1147,22 @@ void VISIthreadshowErrorREPLY(int){
 //  and enters main loop
 ///////////////////////////////////////////////////////////////////
 void *VISIthreadmain(void *vargs){ 
+
+    try
+    {
  
+    VISIthreadArgs* targs = (VISIthreadArgs*)vargs;
+    assert( targs != NULL );
+
    //initialize global variables
    VISIthreadGlobals *globals;
    globals = new VISIthreadGlobals;
 
-   VISIthread *vtp = new VISIthread(VMtid);
+   VISIthread *vtp = new VISIthread( targs->vmTid );
    globals->ump = uiMgr;
    globals->vmp = vmMgr;
    globals->dmp = dataMgr;
-   globals->args = (visi_thread_args *) vargs;
+   globals->args = targs;
    globals->visip = NULL;     // assigned value in VISIthreadStartProcess 
    globals->currPhaseHandle = -1;
 
@@ -1389,6 +1395,18 @@ void *VISIthreadmain(void *vargs){
 
    PARADYN_DEBUG(("leaving visithread main"));
    thr_exit((void *)0);
+
+    }
+    catch( std::bad_alloc& ba )
+    {
+        fprintf( stderr, "FE: out of memory in VISI thread\n" );
+        abort();
+    }
+    catch( ... )
+    {
+        fprintf( stderr, "FE: uncaught exception in VISI thread\n" );
+        abort();
+    }
 
    return((void *)0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: VISIthreadTypes.h,v 1.33 2004/03/23 01:12:32 eli Exp $ 
+// $Id: VISIthreadTypes.h,v 1.34 2004/06/21 19:37:46 pcroth Exp $ 
 
 #ifndef VISI_thread_h
 #define VISI_thread_h 
@@ -61,38 +61,38 @@
 ////////////////////////////////////////
 //  for VISIthread local data  
 ///////////////////////////////////////
-struct VISIGlobalsStruct {
+struct VISIthreadGlobals {
 
-  UIMUser *ump;
-  VMUser *vmp;
-  dataManagerUser *dmp;
-  visualizationUser *visip; // where we talk to visi lib of the visi process
-  perfStreamHandle ps_handle;
+    UIMUser *ump;
+    VMUser *vmp;
+    dataManagerUser *dmp;
+    visualizationUser *visip; // where we talk to visi lib of the visi process
+    perfStreamHandle ps_handle;
 
-  pdvector<T_visi::dataValue> buffer;
-  u_int buffer_next_insert_index; // same as old bufferSize
+    pdvector<T_visi::dataValue> buffer;
+    u_int buffer_next_insert_index; // same as old bufferSize
 
-  // trace data streams
-  perfStreamHandle pt_handle;
-  pdvector<T_visi::traceDataValue> traceBuffer;
+    // trace data streams
+    perfStreamHandle pt_handle;
+    pdvector<T_visi::traceDataValue> traceBuffer;
 
-  thread_t vtid;
-  int quit;
-  timeLength bucketWidth;
-  visi_thread_args* args;
-  int start_up;
-  int currPhaseHandle;
-  unsigned fd_first;
-  pdvector<metricInstInfo> mrlist;
+    thread_t vtid;
+    int quit;
+    timeLength bucketWidth;
+    VISIthreadArgs* args;
+    int start_up;
+    int currPhaseHandle;
+    unsigned fd_first;
+    pdvector<metricInstInfo> mrlist;
 
-  // for enable requests
-  pdvector<metric_focus_pair> *request;  // list returned by UI menuing
-  pdvector<metric_focus_pair> *retryList;  // list of unsuccessful enables 
-  u_int num_Enabled;  // number of successful enables in this request
-  u_int next_to_enable;  // which element in request list to try next 
-  u_int first_in_curr_request; // request vector id: start of curr. DM request
+    // for enable requests
+    pdvector<metric_focus_pair> *request;  // list returned by UI menuing
+    pdvector<metric_focus_pair> *retryList;  // list of unsuccessful enables 
+    u_int num_Enabled;  // number of successful enables in this request
+    u_int next_to_enable;  // which element in request list to try next 
+    u_int first_in_curr_request; // request vector id: start of curr. DM request
 };
-typedef struct VISIGlobalsStruct VISIthreadGlobals;
+
 
 // IMPORTANT NOTE: whenever the visiUser constructor is used, it
 // is the user's responsability to check whether the new object have been
@@ -110,5 +110,6 @@ class visiUser : public visualizationUser
 };
 
 extern int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *pairList);
+
 
 #endif

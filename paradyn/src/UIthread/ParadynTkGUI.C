@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.5 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynTkGUI.C,v 1.6 2004/06/21 19:37:42 pcroth Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -84,8 +84,8 @@ metric_name_hash(const unsigned int& metid)
 //----------------------------------------------------------------------------
 // ParadynTkGUI implementation
 
-ParadynTkGUI::ParadynTkGUI( pdstring progName )
-  : ParadynTclUI( progName ),
+ParadynTkGUI::ParadynTkGUI( thread_t _mainTid, pdstring _progName )
+  : ParadynTclUI( _mainTid, _progName ),
     xtid( THR_TID_UNSPEC ),
     haveSeenFirstWhereAxisWindow( false ),
     haveSeenFirstCallGraphWindow( false ),
@@ -231,6 +231,7 @@ ParadynTkGUI::Init( void )
         true, // default value
         ShowShgShadowCallback,
         userConstant);
+
 
     // load the TCL sources into the interpreter
     if(initialize_tcl_sources( interp ) != TCL_OK)
@@ -465,8 +466,6 @@ ParadynTkGUI::ShowShgShadowCallback( bool show )
 {
 	uiMgr->showSHGShadowNodes( show );
 }
-
-
 
 
 

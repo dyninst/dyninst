@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.103 2004/03/23 01:12:30 eli Exp $
+/* $Id: paradyn.tcl.C,v 1.104 2004/06/21 19:37:42 pcroth Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -929,17 +929,17 @@ ParadynTkGUI::ParadynVisiCmd( int argc, TCLCONST char* argv[] )
       delete visi_info;
     } 
   else if (argv[1][0] == 'c') {
-    int ok, i;
+    int i;
     int j;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
     if (Tcl_GetInt (interp, argv[3], &j) != TCL_OK) 
       return TCL_ERROR;
     if(j == 1){
-        ok = vmMgr->VMCreateVisi(1,-1,i,CurrentPhase,NULL); 
+        vmMgr->VMCreateVisi(1,-1,i,CurrentPhase,NULL); 
     }
     else {
-        ok = vmMgr->VMCreateVisi(1,-1,i,GlobalPhase,NULL); 
+        vmMgr->VMCreateVisi(1,-1,i,GlobalPhase,NULL); 
     }
   } 
   else if (argv[1][0] == 'k') {

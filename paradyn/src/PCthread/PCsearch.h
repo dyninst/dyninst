@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.25 2004/03/23 01:12:28 eli Exp $
+ * $Id: PCsearch.h,v 1.26 2004/06/21 19:37:25 pcroth Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -56,100 +56,103 @@ typedef unsigned SearchQKey;
 class costModule;
 
 class PCsearch {
-  friend class performanceConsultant;
-  friend ostream& operator <<(ostream &os, PCsearch& srch);
+    friend class performanceConsultant;
+    friend ostream& operator <<(ostream &os, PCsearch& srch);
 public:
-  PCsearch(unsigned phase, phaseType phase_type);
-  ~PCsearch();
-  void pause(); 
-  void resume();
-  void terminate(relTimeStamp searchEndTime);
-  void printResults();
-  unsigned getPhase() { return phaseToken; }
-  bool paused() {return (searchStatus == schPaused);}
-  bool newbie() {return (searchStatus == schNeverRun);}
-  PCmetricInstServer *getDatabase() {return database;}
-  void startSearching();
-  bool getNodeInfo(int nodeID, shg_node_info *theInfo);
-  void updateDisplayedStatus (pdstring *msg) {
-    shg->updateDisplayedStatus (msg);
-  }
-  void decrNumActiveExperiments() {
-    if (isGlobal())
-      PCsearch::numActiveGlobalExperiments -= 1;
-    else
-      PCsearch::numActiveCurrentExperiments -= 1;
-  }
-
-  void notifyDynamicChild(resourceHandle parent, resourceHandle child){
-    shg->notifyDynamicChild(parent, child);
-  }
-
-  static void updateCurrentPhase (unsigned phaseID, relTimeStamp endTime);
-  static PCsearch *findSearch (phaseType pt);
-  static bool addSearch (unsigned phaseID);
-  static void expandSearch (float observedRecentCost);
-  static void addToQueue(int key, searchHistoryNode *node, unsigned pid) {
-    if (pid == GlobalPhaseID)
-      PCsearch::GlobalSearchQueue.add(key, node);
-    else
-      PCsearch::CurrentSearchQueue.add(key, node);
-  }
-  static void printQueue(unsigned pid) {
-    if (pid == GlobalPhaseID) {
-      cout << "     ++ Global Search Queue ++" << endl;
-      cout << GlobalSearchQueue << endl;
-    } else {
-      cout << "     ++ Current Search Queue ++" << endl;
-      cout << CurrentSearchQueue << endl;
+    PCsearch(unsigned phase, phaseType phase_type);
+    ~PCsearch();
+    void pause(); 
+    void resume();
+    void terminate(relTimeStamp searchEndTime);
+    void printResults();
+    unsigned getPhase() { return phaseToken; }
+    bool paused() {return (searchStatus == schPaused);}
+    bool newbie() {return (searchStatus == schNeverRun);}
+    PCmetricInstServer *getDatabase() {return database;}
+    void startSearching();
+    bool getNodeInfo(int nodeID, shg_node_info *theInfo);
+    void updateDisplayedStatus (pdstring *msg) {
+        shg->updateDisplayedStatus (msg);
     }
-  }
-  static int getNumActiveExperiments() {
-    return PCsearch::numActiveGlobalExperiments + 
-      PCsearch::numActiveCurrentExperiments;
-  }
-  static int getNumPendingSearches() {
-    return PendingCurrentSearches + PendingGlobalSearches;
-  }
-  static float getPendingCost() {
-    return (PendingCurrentCost + PendingGlobalCost); }
-  static void addGlobalActiveExperiment() {
-    PCsearch::numActiveGlobalExperiments += 1;}
-  static void addCurrentActiveExperiment() {
-    PCsearch::numActiveCurrentExperiments += 1;}
-  static void decrNumPendingGlobalSearches() 
-    {PCsearch::PendingGlobalSearches -= 1;}
-  static void decrNumPendingCurrentSearches() 
-    {PCsearch::PendingCurrentSearches -= 1;}
-  static void initCostTracker();
-  static void clearPendingCurrentCost(float val) 
-    { PCsearch::PendingCurrentCost -= val; }
-  static void clearPendingGlobalCost(float val) 
-    { PCsearch::PendingGlobalCost -= val; }
+    void decrNumActiveExperiments() {
+        if (isGlobal())
+            PCsearch::numActiveGlobalExperiments -= 1;
+        else
+            PCsearch::numActiveCurrentExperiments -= 1;
+    }
+
+    void notifyDynamicChild(resourceHandle parent, resourceHandle child){
+        shg->notifyDynamicChild(parent, child);
+    }
+
+    static void updateCurrentPhase (unsigned phaseID, relTimeStamp endTime);
+    static PCsearch *findSearch (phaseType pt);
+    static bool addSearch (unsigned phaseID);
+    static void expandSearch (float observedRecentCost);
+    static void addToQueue(int key, searchHistoryNode *node, unsigned pid) {
+    if (pid == GlobalPhaseID)
+        PCsearch::GlobalSearchQueue.add(key, node);
+    else
+        PCsearch::CurrentSearchQueue.add(key, node);
+    }
+    static void printQueue(unsigned pid) {
+        if (pid == GlobalPhaseID) {
+            cout << "     ++ Global Search Queue ++" << endl;
+            cout << GlobalSearchQueue << endl;
+        } else {
+            cout << "     ++ Current Search Queue ++" << endl;
+            cout << CurrentSearchQueue << endl;
+        }
+    }
+    static int getNumActiveExperiments() {
+        return PCsearch::numActiveGlobalExperiments + 
+            PCsearch::numActiveCurrentExperiments;
+    }
+    static int getNumPendingSearches() {
+        return PendingCurrentSearches + PendingGlobalSearches;
+    }
+    static float getPendingCost() {
+        return (PendingCurrentCost + PendingGlobalCost); }
+    static void addGlobalActiveExperiment() {
+        PCsearch::numActiveGlobalExperiments += 1;}
+    static void addCurrentActiveExperiment() {
+        PCsearch::numActiveCurrentExperiments += 1;}
+    static void decrNumPendingGlobalSearches() 
+        {PCsearch::PendingGlobalSearches -= 1;}
+    static void decrNumPendingCurrentSearches() 
+        {PCsearch::PendingCurrentSearches -= 1;}
+    static void initCostTracker();
+    static void clearPendingCurrentCost(float val) 
+        { PCsearch::PendingCurrentCost -= val; }
+    static void clearPendingGlobalCost(float val) 
+        { PCsearch::PendingGlobalCost -= val; }
+    static bool HasSearchBeenStarted( void )
+        { return (AllPCSearches.size() > 0); }
+
 private:
-  schState searchStatus;        // schNeverRun/schPaused/schRunning/schEnded
-  unsigned phaseToken;          // identifier for phase of this search
-  phaseType phType;             // global or current; need for DM interface
-  PCmetricInstServer *database;
-  searchHistoryGraph *shg;
-  bool isGlobal() {return (phType == GlobalPhase);}
-  static relTimeStamp phaseChangeTime;     // last phase start time
-  static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
-  static unsigned PCactiveCurrentPhase;
-  static costModule *costTracker;
-  static float PendingGlobalCost;
-  static float PendingCurrentCost;
-  static int PendingCurrentSearches;
-  static int PendingGlobalSearches;
-  static int numActiveGlobalExperiments;
-  static int numActiveCurrentExperiments;
-  static PriorityQueue<SearchQKey, searchHistoryNode*> GlobalSearchQueue;
-  static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
-  static bool CurrentSearchPaused;
-  static bool GlobalSearchPaused;
-  static searchHistoryNode *SearchThrottleNode;
-  static bool SearchThrottledBack;
-  static PriorityQueue<SearchQKey, searchHistoryNode*> *q;
+    schState searchStatus;        // schNeverRun/schPaused/schRunning/schEnded
+    unsigned phaseToken;          // identifier for phase of this search
+    phaseType phType;             // global or current; need for DM interface
+    PCmetricInstServer *database;
+    searchHistoryGraph *shg;
+    bool isGlobal() {return (phType == GlobalPhase);}
+    static relTimeStamp phaseChangeTime;     // last phase start time
+    static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
+    static unsigned PCactiveCurrentPhase;
+    static costModule *costTracker;
+    static float PendingGlobalCost;
+    static float PendingCurrentCost;
+    static int PendingCurrentSearches;
+    static int PendingGlobalSearches;
+    static int numActiveGlobalExperiments;
+    static int numActiveCurrentExperiments;
+    static PriorityQueue<SearchQKey, searchHistoryNode*> GlobalSearchQueue;
+    static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
+    static bool CurrentSearchPaused;
+    static bool GlobalSearchPaused;
+    static searchHistoryNode *SearchThrottleNode;
+    static bool SearchThrottledBack;
+    static PriorityQueue<SearchQKey, searchHistoryNode*> *q;
 };
 
 ostream& operator <<(ostream &os, PCsearch& srch);
@@ -157,16 +160,16 @@ ostream& operator <<(ostream &os, PCsearch& srch);
 class costModule : public dataSubscriber 
 {
  public:
-  void newData (PCmetDataID, pdRate newVal, relTimeStamp, relTimeStamp)
+    void newData (PCmetDataID, pdRate newVal, relTimeStamp, relTimeStamp)
     {
 	newVal = (newVal - pdRate(1))/newVal;
 	if (newVal < pdRate(performanceConsultant::predictedCostLimit))
 	    // check search queue and expand search if possible
 	      PCsearch::expandSearch(static_cast<float>(newVal.getValue()));
     }
-  void updateEstimatedCost(float) {;}
-  void enableReply(unsigned, unsigned, unsigned, bool, bool = false, pdstring = "") {;}
-  PCmetInstHandle costFilter;
+    void updateEstimatedCost(float) {;}
+    void enableReply(unsigned, unsigned, unsigned, bool, bool = false, pdstring = "") {;}
+    PCmetInstHandle costFilter;
 };
 
 

@@ -45,9 +45,20 @@
 #ifndef PC_EXTERN_H
 #define PC_EXTERN_H
 
+#include "pdthread/h/thread.h"
+
+
 class PCmetric;
 class testValue;
 class searchHistoryNode;
 
+struct PCthreadArgs
+{
+    thread_t mainTid;
+
+    PCthreadArgs( thread_t _mtid )
+      : mainTid( _mtid )
+    { }
+};
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.h,v 1.3 2004/05/17 00:50:53 pcroth Exp $
+// $Id: ParadynUI.h,v 1.4 2004/06/21 19:37:42 pcroth Exp $
 #ifndef PARADYNUI_H
 #define PARADYNUI_H
 
@@ -105,7 +105,7 @@ protected:
     virtual void DMready( void );
 
 public:
-    ParadynUI( pdstring progName );
+    ParadynUI( thread_t _mainTid, pdstring _progName );
     virtual ~ParadynUI( void );
 
     bool IsInDeveloperMode( void ) const    { return inDeveloperMode; }

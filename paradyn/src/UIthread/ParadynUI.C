@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.C,v 1.2 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynUI.C,v 1.3 2004/06/21 19:37:42 pcroth Exp $
 #include "UIglobals.h"
 #include "common/h/Ident.h"
 #include "../pdMain/paradyn.h"
@@ -56,8 +56,8 @@ const Ident ParadynUI::V_Tid(V_libpdthread,"Paradyn");
 
 
 
-ParadynUI::ParadynUI( pdstring _progName )
-  : UIM( MAINtid ),
+ParadynUI::ParadynUI( thread_t _mainTid, pdstring _progName )
+  : UIM( _mainTid ),
     stdinIsTTY( false ),
     inDeveloperMode( false ),
     ps_handle( 0 ),

@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.78 2004/03/23 01:12:28 eli Exp $ */
+/* $Id: PCmain.C,v 1.79 2004/06/21 19:37:25 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
 
+#include "PCextern.h"
 #include "PCintern.h"
 #include "dataManager.thread.h"
 #include "PCsearch.h"
@@ -54,7 +55,6 @@
 // for thread initialization
 //
 performanceConsultant *pc;   
-extern thread_t MAINtid;
 // 
 extern void initPCconstants();
 const unsigned GlobalPhaseID = 0;
@@ -284,14 +284,17 @@ inline void readTag(unsigned tag)
 
 void* PCmain(void* varg)
 {
-    int arg; memcpy((void *) &arg, varg, sizeof arg);
-
     thread_t from;
     unsigned int tag;
     char PCbuff[64];
     unsigned int msgSize = 64;
 	int err;
 
+    try
+    {
+
+    PCthreadArgs* targs = (PCthreadArgs*)varg;
+    assert( targs != NULL );
 
     // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section
@@ -301,12 +304,12 @@ void* PCmain(void* varg)
 
     // thread startup
     thr_name("PerformanceConsultant");
-    pc = new performanceConsultant(MAINtid);
-    msg_send (MAINtid, MSG_TAG_PC_READY, (char *) NULL, 0);
-	from = MAINtid;
+    pc = new performanceConsultant(targs->mainTid);
+    msg_send (targs->mainTid, MSG_TAG_PC_READY, (char *) NULL, 0);
+	from = targs->mainTid;
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&from, &tag, PCbuff, &msgSize);
-	assert( from == MAINtid );
+	assert( from == targs->mainTid );
 
     // register performance stream with data manager
     union dataCallback dataHandlers;
@@ -387,6 +390,18 @@ void* PCmain(void* varg)
 		assert(err != THR_ERR);
 		readTag(tag);
 #endif
+    }
+
+    }
+    catch( std::bad_alloc& ba )
+    {
+        fprintf( stderr, "FE: out of memory in PC thread\n" );
+        abort();
+    }
+    catch( ... )
+    {
+        fprintf( stderr, "FE: uncaught exception in PC thread\n" );
+        abort();
     }
 	return NULL;
 }

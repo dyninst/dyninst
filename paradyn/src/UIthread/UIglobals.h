@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.32 2004/03/23 01:12:29 eli Exp $ */
+/* $Id: UIglobals.h,v 1.33 2004/06/21 19:37:42 pcroth Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -97,5 +97,17 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
 void shgDevelModeChange( Tcl_Interp* interp, bool value );
 
 extern ParadynUI* pdui;
+
+// struct for passing arguments to UI thread
+struct UIthreadArgs
+{
+    thread_t mainTid;    
+    pdstring progName;
+
+    UIthreadArgs( thread_t _mainTid, const char* _progName )
+      : mainTid( _mainTid ),
+        progName( _progName )
+    { }
+};
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: termWin.I,v 1.2 2004/03/23 01:12:25 eli Exp $
+/* $Id: termWin.I,v 1.3 2004/06/21 19:36:34 pcroth Exp $
  */
 
 
@@ -49,6 +49,6 @@ $remote termWin
     $version 1;
 
     // notify termWin that Paradyn is shutting down gracefully
-    $async void shutdown();
+    $virtual $async void shutdown();
 };
 

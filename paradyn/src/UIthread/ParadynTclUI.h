@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.h,v 1.3 2004/05/17 00:50:53 pcroth Exp $
+// $Id: ParadynTclUI.h,v 1.4 2004/06/21 19:37:42 pcroth Exp $
 #ifndef PARADYNTCLUI_H
 #define PARADYNTCLUI_H
 
@@ -131,7 +131,7 @@ protected:
     virtual int ParadynVersionInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
 
 public:
-    ParadynTclUI( pdstring progName );
+    ParadynTclUI( thread_t _mainTid, pdstring _progName );
     virtual ~ParadynTclUI( void );
 
     virtual bool Init( void );

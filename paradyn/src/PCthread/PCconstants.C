@@ -41,10 +41,11 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.15 2004/03/23 01:12:27 eli Exp $
+ * $Id: PCconstants.C,v 1.16 2004/06/21 19:37:25 pcroth Exp $
  */
 
 #include "PCintern.h"
+#include "PCsearch.h"
 #include "common/h/Time.h"
 
 //
@@ -94,7 +95,14 @@ void TCuseIndividualThresholdsCB (bool newval)
 }
 
 void TCEnableCGSearchesCB (bool newval){
-    performanceConsultant::useCallGraphSearch = newval;
+    if( !PCsearch::HasSearchBeenStarted() )
+    {
+        performanceConsultant::useCallGraphSearch = newval;
+    }
+    else
+    {
+        uiMgr->showError(111,"");
+    }
 }
 
 void initPCconstants ()

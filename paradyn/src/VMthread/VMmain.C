@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.60 2004/03/23 01:12:33 eli Exp $ */
+/* $Id: VMmain.C,v 1.61 2004/06/21 19:37:49 pcroth Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -243,7 +243,7 @@ int VM::VMAddNewVisualization(const char *name,
 // 	    invoked due to a create visi command from the
 // 	    config. file with a list of mets and res ) 
 /////////////////////////////////////////////////////////////
-int  VM::VMCreateVisi(int remenuFlag,
+void  VM::VMCreateVisi(int remenuFlag,
                       int forceProcessStart,
                       int visiTypeId,
                       phaseType phase_type,
@@ -253,13 +253,13 @@ int  VM::VMCreateVisi(int remenuFlag,
    if(visiTypeId >= (int)visiList.size()){
       PARADYN_DEBUG(("in VM::VMCreateVisi"));
       ERROR_MSG(20,"visi Id out of range in VM::VMCreateVisi");
-      return(VMERROR);
+      return;
    }
    VMvisis *visitemp = visiList[visiTypeId];
-   visi_thread_args *temp =  new visi_thread_args;
+   VISIthreadArgs *temp = new VISIthreadArgs;
    temp->argc = visitemp->argc;
    temp->argv = (char **)visitemp->argv;
-   temp->parent_tid = thr_self();
+   temp->vmTid = thr_self();
    temp->phase_type = phase_type;
    if(phase_type == GlobalPhase){
       dataMgr->getGlobalBucketWidth(&temp->bucketWidth);
@@ -400,7 +400,7 @@ int  VM::VMCreateVisi(int remenuFlag,
                pdstring err_msg("invalid metric/focus ");
                err_msg += (*visitemp->matrix)[i].c_str();
                ERROR_MSG(120,P_strdup(err_msg.c_str()));
-               return(VMERROR);
+               return;
             }
          }
       }
@@ -419,15 +419,16 @@ int  VM::VMCreateVisi(int remenuFlag,
 
    temp->mi_limit = visitemp->mi_limit;
    PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
-   // create a visi thread  
-   thread_t tid;
-   thr_create(0,0,&VISIthreadmain,temp,0,&tid);
+
+    // create a visi thread  
+    thread_t tid;
+    thr_create(0,0, &VISIthreadmain, temp, 0, &tid);
 
    // create a new visipointer
    VMactiveVisi *temp2 = new VMactiveVisi;
    if(temp2 == NULL){
       ERROR_MSG(18,"new in VM::VMCreateVisi");
-      return(VMERROR);
+      return;
    }
 
    temp2->visip = new VISIthreadUser(tid);
@@ -439,7 +440,6 @@ int  VM::VMCreateVisi(int remenuFlag,
  
    PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
    currNumActiveVisis++;
-   return(VMOK);
 }
 
 /////////////////////////////////////////////////////////////
@@ -490,10 +490,9 @@ void VM::VMVisiDied(thread_t visiThreadId){
 extern unsigned metVisiSize();
 extern visiMet *metgetVisi(unsigned);
 
-int VM::VM_post_thread_create_init(){
+int VM::VM_post_thread_create_init( VMthreadArgs* targs ){
 
   thr_name("Visualization Manager");
-  VMtid = thr_self();
 
   // create key for VISIthread local storage
   if (thr_keycreate(&visiThrd_key) != THR_OKAY) {
@@ -505,7 +504,7 @@ int VM::VM_post_thread_create_init(){
   // visis are defined in the configuration language and
   // reported using VMAddNewVisualization
 
-  VM::vmp = new VM(MAINtid);
+  VM::vmp = new VM( targs->mainTid );
 
   // Get PDL visi entries
   for(unsigned u=0; u < metVisiSize(); u++){
@@ -524,12 +523,12 @@ int VM::VM_post_thread_create_init(){
 
   char  VMbuff[32];
   // global synchronization
-  int retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
+  int retVal = msg_send (targs->mainTid, MSG_TAG_VM_READY,(char *)NULL,0);
   tag_t mtag   = MSG_TAG_ALL_CHILDREN_READY;
-  thread_t mtid = MAINtid;
+  thread_t mtid = targs->mainTid;
   unsigned msgSize = 0;
   retVal = msg_recv (&mtid, &mtag, VMbuff, &msgSize);
-  assert( mtid == MAINtid );
+  assert( mtid == targs->mainTid );
 
   // register valid visis with the UI
   pdvector<VM_visiInfo> *temp = new pdvector<VM_visiInfo>;
@@ -548,10 +547,13 @@ int VM::VM_post_thread_create_init(){
 // main loop for visualization manager thread
 void *VMmain(void* varg) {
 
-  int arg; memcpy((void *) &arg, varg, sizeof arg);
+    try
+    {
 
-  VM::VM_post_thread_create_init();
+    VMthreadArgs* targs = (VMthreadArgs*)varg;
+    assert( targs != NULL );
 
+    VM::VM_post_thread_create_init( targs );
 
   while(1){
 	  thread_t tid = THR_TID_UNSPEC;
@@ -565,15 +567,6 @@ void *VMmain(void* varg) {
 
       if (uiMgr->isValidTag((T_UI::message_tags)tag)) {
 	if (uiMgr->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
-	  // TODO
-	  cerr << "Error in VMmain.C, needs to be handled\n";
-	  assert(0);
-	}
-      } else if (perfConsult->isValidTag(
-		 (T_performanceConsultant::message_tags)tag)) {
-	if (perfConsult->waitLoop(true, 
-	   (T_performanceConsultant::message_tags)tag) ==
-	   T_performanceConsultant::error) {
 	  // TODO
 	  cerr << "Error in VMmain.C, needs to be handled\n";
 	  assert(0);
@@ -596,5 +589,17 @@ void *VMmain(void* varg) {
           free((*visiList[i]).argv[j]);
       }
   }
+
+    }
+    catch( std::bad_alloc& ba )
+    {
+        fprintf( stderr, "FE: out of memory in VM thread\n" );
+        abort();
+    }
+    catch( ... )
+    {
+        fprintf( stderr, "FE: uncaught exception in VM thread\n" );
+        abort();
+    }
   return((void *)0);
 }

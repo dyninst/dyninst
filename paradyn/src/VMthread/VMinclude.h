@@ -44,10 +44,18 @@
 
 // used to send info about valid visualizations to other threads
 
-typedef struct VM_visiInfo {
+struct VM_visiInfo {
   int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
   pdstring name;
-} VM_visiInfo;
+};
 
+struct VMthreadArgs
+{
+    thread_t mainTid;
+
+    VMthreadArgs( thread_t _mainTid )
+      : mainTid( _mainTid )
+    { }
+};
 
 #endif

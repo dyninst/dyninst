@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.20 2004/03/23 01:12:33 eli Exp $ */
+/* $Id: VMtypes.h,v 1.21 2004/06/21 19:37:49 pcroth Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
@@ -81,19 +81,19 @@ struct VMvisisStruct{
 };
 typedef struct VMvisisStruct VMvisis;
 
-struct visi_thread_argsStruct{
-  int  argc;
-  char **argv;
-  int  parent_tid;
-  int  remenuFlag;
-  int  forceProcessStart;
-  int  mi_limit;
-  phaseType phase_type;
-  timeLength bucketWidth;
-  relTimeStamp start_time;
-  unsigned  my_phaseId;
-  pdvector<metric_focus_pair> *matrix;
+struct VISIthreadArgs
+{
+    thread_t vmTid;
+    int  argc;
+    char **argv;
+    int  remenuFlag;
+    int  forceProcessStart;
+    int  mi_limit;
+    phaseType phase_type;
+    timeLength bucketWidth;
+    relTimeStamp start_time;
+    unsigned  my_phaseId;
+    pdvector<metric_focus_pair> *matrix;
 };
-typedef struct visi_thread_argsStruct visi_thread_args;
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.C,v 1.3 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynTclUI.C,v 1.4 2004/06/21 19:37:42 pcroth Exp $
 #include "tcl.h"
 #include "tkTools.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -98,8 +98,8 @@ struct ParadynTclUI::CmdInfo ParadynTclUI::pd_Cmds[] =
 
 
 
-ParadynTclUI::ParadynTclUI( pdstring progName )
-  : ParadynUI( progName ),
+ParadynTclUI::ParadynTclUI( thread_t _mainTid, pdstring _progName )
+  : ParadynUI( _mainTid, _progName ),
     maxErrorNumber( -1 ),
     stdinCmdObj( NULL ),
     stdin_tid( THR_TID_UNSPEC ),

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.113 2004/03/23 01:12:29 eli Exp $
+// $Id: UImain.C,v 1.114 2004/06/21 19:37:42 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -79,19 +79,19 @@ UImain( void* args )
 {
     PARADYN_DEBUG(("%s\n",V_paradyn));
     thr_name("UIM");
-    UIThreadArgs* uiargs = (UIThreadArgs*)args;
+    UIthreadArgs* uiargs = (UIthreadArgs*)args;
     assert( uiargs != NULL );
 
     // create the UI
 #if READY
     // create actual type of GUI
 #else
-    pdui = new ParadynTkGUI( uiargs->progName );
+    pdui = new ParadynTkGUI( uiargs->mainTid, uiargs->progName );
 #endif // READY
     if( pdui->Init() )
     {
         // let main thread know we're initialized and starting to handle events
-        msg_send( MAINtid, MSG_TAG_UIM_READY, NULL, 0 );
+        msg_send( uiargs->mainTid, MSG_TAG_UIM_READY, NULL, 0 );
 
         // start handling events
         pdui->DoMainLoop();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.69 2004/03/23 01:12:33 eli Exp $
+// $Id: main.C,v 1.70 2004/06/21 19:37:58 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -54,6 +54,8 @@
 #include "VM.thread.SRVR.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+#include "paradyn/src/PCthread/PCextern.h"
+#include "paradyn/src/UIthread/UIglobals.h"
 
 
 // trace data streams
@@ -71,12 +73,6 @@ extern void *VMmain (void *);
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
 
-thread_t UIMtid;
-thread_t MAINtid;
-thread_t PCtid;
-thread_t DMtid;
-thread_t VMtid;
-//thread_t TCtid; // tunable constants
 
 // expanded stack by a factor of 10 to support AIX - jkh 8/14/95
 // wrapped it in an ifdef so others don't pay the price --ari 10/95
@@ -99,6 +95,7 @@ char debug_buf[DEBUGBUFSIZE];
 pdstring pclStartupFileName = "";
 pdstring tclStartupFileName = "";
 pdstring daemonStartupInfoFileName = "";
+bool useGUITermWin = true;
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
@@ -118,9 +115,9 @@ do {							\
 } while (0)
 
 void print_debug_macro(const char* format, ...){
-  if(paradyn_debug > 0)
+    if(paradyn_debug > 0)
      PRINT_DEBUG_MACRO;
-  return;
+    return;
 }
 
 void eFunction(int errno, char *message)
@@ -158,16 +155,15 @@ main(int argc, char* argv[])
 
     // save the tid of the main thread (and, as a side effect,
     // initialize the thread library)
-    MAINtid = thr_self();
+    thread_t MAINtid = thr_self();
 
     // spawn our UI thread early, so we can use it in case there
     // are problems with startup of other threads
-    int cret = thr_create( UIStack,
-                            sizeof(UIStack),
-                            &UImain,
-                            new UIThreadArgs( argv[0] ),
-                            0,
-                            &UIMtid );
+    UIthreadArgs uiArgs( MAINtid, argv[0] );
+    thread_t UIMtid = THR_TID_UNSPEC;
+    int cret = thr_create( UIStack, sizeof(UIStack),
+                            &UImain, &uiArgs,
+                            0, &UIMtid );
     if( cret == THR_ERR )
     {
         // we have no user interface thread -
@@ -188,38 +184,38 @@ main(int argc, char* argv[])
     PARADYN_DEBUG (("UI thread created\n"));
 
 
-  //
-  // We check our own read/write events.
-  //
-  // TODO is this necessary anymore?
+    //
+    // We check our own read/write events.
+    //
+    // TODO is this necessary anymore?
 #if !defined(i386_unknown_nt4_0)
-  P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
+    P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
 #endif // !defined(i386_unknown_nt4_0)
 
 
-  const pdstring localhost = getNetworkName();
-  //cerr << "main: localhost=<" << localhost << ">" << endl;
-  unsigned index=0;
-  while (index<localhost.length() && localhost[index]!='.') index++;
-  if (index == localhost.length())
+    const pdstring localhost = getNetworkName();
+    //cerr << "main: localhost=<" << localhost << ">" << endl;
+    unsigned index=0;
+    while (index<localhost.length() && localhost[index]!='.') index++;
+    if (index == localhost.length())
       cerr << "Failed to determine local machine domain: localhost=<" 
            << localhost << ">" << endl;
-  else
+    else
       local_domain = localhost.substr(index+1,localhost.length());
-  //cerr << "main: local_domain=<" << local_domain << ">" << endl;
+    //cerr << "main: local_domain=<" << local_domain << ">" << endl;
 
-  // enable interaction between thread library and RPC package
-  rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
+    // enable interaction between thread library and RPC package
+    rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
 
 
 // TODO let these threads do this initialization once they are started
 // why do they have to do this initialization as part of the main thread?
 
-  // call sequential initialization routines
-  if(!dataManager::DM_sequential_init( pclStartupFileName.c_str() )) {
+    // call sequential initialization routines
+    if(!dataManager::DM_sequential_init( pclStartupFileName.c_str() )) {
     printf("Error found in Paradyn Configuration File, exiting\n");
     exit(-1);
-  }
+    }
 
 
     // spawn the remaining main threads: data manager, visi manager,
@@ -227,54 +223,72 @@ main(int argc, char* argv[])
     // as-needed basis.
   
     // Spawn data manager thread
-  if (thr_create(DMStack, sizeof(DMStack), DMmain, (void *) &MAINtid, 0, 
-		 (unsigned int *) &DMtid) == THR_ERR)
-    exit(1);
-  PARADYN_DEBUG (("DM thread created\n"));
+    DMthreadArgs dmArgs( MAINtid, useGUITermWin );
+    thread_t DMtid = THR_TID_UNSPEC;
+    cret = thr_create( DMStack, sizeof(DMStack),
+                        DMmain, &dmArgs,
+                        0, &DMtid );
+    if( cret == THR_ERR )
+    {
+        exit( -1 );
+    }
+    PARADYN_DEBUG (("DM thread created\n"));
 
-  msgsize = MBUFSIZE;
-  mtid = THR_TID_UNSPEC;
-  mtag = MSG_TAG_DM_READY;
-  msg_recv(&mtid, &mtag, mbuf, &msgsize);
-  assert( mtid == DMtid );
-  msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-  dataMgr = new dataManagerUser (DMtid);
-  uiMgr->DMready();
-  // context = dataMgr->createApplicationContext(eFunction);
+    msgsize = MBUFSIZE;
+    mtid = THR_TID_UNSPEC;
+    mtag = MSG_TAG_DM_READY;
+    msg_recv(&mtid, &mtag, mbuf, &msgsize);
+    assert( mtid == DMtid );
+    msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+    dataMgr = new dataManagerUser (DMtid);
+    uiMgr->DMready();
+    // context = dataMgr->createApplicationContext(eFunction);
 
 
     // Spawn the Performance Consultant
-  if (thr_create(0, 0, PCmain, (void*) &MAINtid, 0, 
-		 (unsigned int *) &PCtid) == THR_ERR)
-    exit(1);
-  PARADYN_DEBUG (("PC thread created\n"));
+    PCthreadArgs pcArgs( MAINtid );
+    thread_t PCtid = THR_TID_UNSPEC;
+    cret = thr_create(0, 0, 
+            PCmain, &pcArgs,
+            0, (unsigned int *) &PCtid);
+    if( cret == THR_ERR)
+    {
+        exit(1);
+    }
+    PARADYN_DEBUG (("PC thread created\n"));
 
-  msgsize = MBUFSIZE;
-  mtid = THR_TID_UNSPEC;
-  mtag = MSG_TAG_PC_READY;
-  msg_recv(&mtid, &mtag, mbuf, &msgsize);
-  assert( mtid == PCtid );
-  msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-  perfConsult = new performanceConsultantUser (PCtid);
+    msgsize = MBUFSIZE;
+    mtid = THR_TID_UNSPEC;
+    mtag = MSG_TAG_PC_READY;
+    msg_recv(&mtid, &mtag, mbuf, &msgsize);
+    assert( mtid == PCtid );
+    msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+    perfConsult = new performanceConsultantUser (PCtid);
 
     // Spawn the Visi Manager thread
-  if (thr_create(0, 0, VMmain, (void *) &MAINtid, 0, 
-		 (unsigned int *) &VMtid) == THR_ERR)
-    exit(1);
+    VMthreadArgs vmArgs( MAINtid );
+    thread_t VMtid = THR_TID_UNSPEC;
+    cret = thr_create(0, 0,
+                VMmain, &vmArgs,
+                0, (unsigned int *) &VMtid);
+    if( cret == THR_ERR)
+    {
+        exit(1);
+    }
 
-  PARADYN_DEBUG (("VM thread created\n"));
-  msgsize = MBUFSIZE;
-  mtid = THR_TID_UNSPEC;
-  mtag = MSG_TAG_VM_READY;
-  msg_recv(&mtid, &mtag, mbuf, &msgsize);
-  assert( mtid == VMtid );
-  msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-  vmMgr = new VMUser (VMtid);
+    PARADYN_DEBUG (("VM thread created\n"));
+    msgsize = MBUFSIZE;
+    mtid = THR_TID_UNSPEC;
+    mtag = MSG_TAG_VM_READY;
+    msg_recv(&mtid, &mtag, mbuf, &msgsize);
+    assert( mtid == VMtid );
+    msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+    vmMgr = new VMUser(VMtid);
 
-  // execute the commands in the configuration files
-  metDoTunable();
-  metDoDaemon();
-  metDoProcess();
+    // execute the commands in the configuration files
+    metDoTunable();
+    metDoDaemon();
+    metDoProcess();
 
     // keep this here to prevent UI from starting up till everything's 
     // been initialized properly!!
@@ -335,6 +349,11 @@ ParseCommandLine( int /* argc */, char* argv[] )
             daemonStartupInfoFileName = argv[a_ct+1];
             a_ct += 2;
         }
+        else if( !strcmp(argv[a_ct], "-cl") )
+        {
+            useGUITermWin = false;
+            a_ct += 1;
+        }
         else if((!strcmp(argv[a_ct], "-default_host") || 
                     !strcmp(argv[a_ct], "-d")) && argv[a_ct+1] &&
                     (default_host.length() == 0) )
@@ -345,11 +364,14 @@ ParseCommandLine( int /* argc */, char* argv[] )
         else
         {
             // unrecognized command line switch
-            fprintf(stderr,
-                "usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]"
-                " [-x <connect_filename>] [-default_host <hostname>]\n",
-                argv[0]);
-              exit(-1);
+            std::cerr << "usage: " << argv[0]
+                << " [-f <pcl_filename>]"
+                << " [-s <tcl_scriptname>]"
+                << " [-x <connect_filename>]"
+                << " [-cl]"
+                << " [-default_host <hostname>]"
+                << std::endl;
+            exit(-1);
         }
     }
 }
