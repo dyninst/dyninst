@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.12  1994/03/01 21:39:37  jcargill
+ * Revision 1.13  1994/03/06 20:51:09  markc
+ * Added float as a basic type.
+ *
+ * Revision 1.12  1994/03/01  21:39:37  jcargill
  * Rearranged order of includes for igen-generated code, so that it compiles
  * on MIPS.  Some of the Ultrix headers really suck.
  *
@@ -486,6 +489,7 @@ int main(int argc, char *argv[])
     (void) new typeDefn("void");
     (void) new typeDefn("Boolean");
     (void) new typeDefn("u_int");
+    (void) new typeDefn("float");
 
     emitCode = 1;
     emitHeader = 1;
