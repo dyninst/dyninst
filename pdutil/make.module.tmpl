@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.32 2001/06/20 20:40:20 schendel Exp $
+# $Id: make.module.tmpl,v 1.33 2001/08/23 14:44:25 schendel Exp $
 #
 
 TARGET	      = libpdutil.a
@@ -24,7 +24,7 @@ SRCS	     += ../../common/src/String.C \
 		../../common/src/Dictionary.C \
 		../../common/src/lprintf.C \
 		../src/rpcUtil.C \
-		../src/aggregateSample.C \
+		../src/sampleAggregator.C \
 		../src/stringPool.C \
 		../src/hist.C \
 		../../common/src/timing.C \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.19 2000/10/17 17:42:39 schendel Exp $
+// $Id: templatesPD.C,v 1.20 2001/08/23 14:44:24 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -49,7 +49,7 @@
 
 #include "common/h/String.h"
 
-#include "pdutil/h/aggregateSample.h"
+#include "pdutil/h/sampleAggregator.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "dyninstAPI/src/symtab.h"
@@ -82,7 +82,7 @@ template class vector<T_dyninstRPC::mdl_stmt *>;
 template class vector<T_dyninstRPC::metricInfo>;
 template class vector<T_dyninstRPC::focusStruct>;
 template class vector<dataReqNode*>;
-template class vector<sampleInfo*>;
+template class vector<aggComponent*>;
 
 template class vector<instReqNode>;
 
@@ -103,8 +103,8 @@ template class vector<internalMetric::eachInstance>;
 template class dictionary_hash <unsigned, cpSample*>;
 template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
 
-template class dictionary_hash<string, Symbol>;
-template class vector<dictionary_hash<string, Symbol>::entry>;
+//template class dictionary_hash<string, Symbol>;
+//template class vector<dictionary_hash<string, Symbol>::entry>;
 
 template class dictionary_hash<string, string>;
 template class vector<dictionary_hash<string, string>::entry>;

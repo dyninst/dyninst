@@ -45,7 +45,7 @@
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 #include "pdutil/h/pdRate.h"
-#include "pdutil/h/aggregateSample.h"
+#include "pdutil/h/sampleAggregator.h"
 #include "common/h/String.h"
 #include "common/h/int64iostream.h"
 
@@ -172,11 +172,11 @@ pdDebug_ostream& pdDebug_ostream::operator<<(const relTimeStamp rts) {
   return *this;
 }
 
-pdDebug_ostream& pdDebug_ostream::operator<<(const sampleInfo &info) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const aggComponent &info) {
   if(on)  actual_ostream << info;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(const aggregateSample &sm) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const sampleAggregator &sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.16 2001/06/20 20:40:20 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.17 2001/08/23 14:44:26 schendel Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -24,7 +24,7 @@ SRCS	     = $(SRCS) \
                 ../../pdutil/src/templates.C \
                 ../../pdutil/src/ByteArray.C \
                 ../../pdutil/src/rpcUtil.C \
-                ../../pdutil/src/aggregateSample.C \
+                ../../pdutil/src/sampleAggregator.C \
                 ../../pdutil/src/stringPool.C \
                 ../../pdutil/src/hist.C \
                 ../../pdutil/src/Types.C \
@@ -38,10 +38,10 @@ SRCS	     = $(SRCS) \
 		../../pdutil/src/pdRate.C \
 		../../pdutil/src/airtStreambuf.C \
 		../../common/src/Time.C \
-		../../common/src/fraction.C
+		../../common/src/fraction.C \
+		../../pdutil/src/templates.C
 
 OBJS         = $(OBJS) \
-		aggregateSample.obj \
 		ByteArray.obj \
 		CircularBuffer.obj \
 		debugOstream.obj \
@@ -54,6 +54,7 @@ OBJS         = $(OBJS) \
 		pathName.obj \
 		PriorityQueue.obj \
 		rpcUtil.obj \
+		sampleAggregator.obj \
 		String.obj \
 		stringPool.obj \
 		Timer.obj \
@@ -66,8 +67,8 @@ OBJS         = $(OBJS) \
 		pdRate.obj \
 		airtStreambuf.obj \
                 Time.obj \
-                fraction.obj
-
+                fraction.obj \
+                templates.obj 
 
 all: $(TARGET)
 
