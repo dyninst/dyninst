@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.24 1994/11/10 18:57:47 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.25 1994/11/11 23:22:29 rbi Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.24  1994/11/10 18:57:47  jcargill
+ * Revision 1.25  1994/11/11 23:22:29  rbi
+ * added status reporting for process stops
+ *
+ * Revision 1.24  1994/11/10  18:57:47  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.23  1994/11/09  18:39:55  rbi
@@ -293,6 +296,7 @@ bool pauseAllProcesses()
     while (pi.next(i, proc))
       pauseProcess(proc);
     
+    statusLine("application paused");
     return(changed);
 }
 
