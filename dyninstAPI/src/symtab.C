@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.149 2003/03/10 19:53:32 buck Exp $
+// $Id: symtab.C,v 1.150 2003/03/13 00:47:55 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -395,9 +395,15 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
 
   //Checking "main" function names in same order as in the inst-*.C files
   if (linkedFile.get_symbol(symString="main",     lookUp) ||
-      linkedFile.get_symbol(symString="_main",    lookUp) ||
+      linkedFile.get_symbol(symString="_main",    lookUp)
+#if defined(i386_unknown_nt4_0)
+      ||
       linkedFile.get_symbol(symString="WinMain",  lookUp) ||
-      linkedFile.get_symbol(symString="_WinMain", lookUp)) {
+      linkedFile.get_symbol(symString="_WinMain", lookUp) ||
+      linkedFile.get_symbol(symString="wWinMain", lookUp) ||
+      linkedFile.get_symbol(symString="_wWinMain", lookUp)
+#endif
+      ) {
     mainFuncSymbol = lookUp;
     is_a_out = true;
 

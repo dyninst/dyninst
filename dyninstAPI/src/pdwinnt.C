@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.81 2003/03/12 01:49:59 schendel Exp $
+// $Id: pdwinnt.C,v 1.82 2003/03/13 00:47:55 buck Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1714,6 +1714,30 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
     return false;
 }
 
+/*
+ * stripAtSuffix
+ *
+ * Strips off of a string any suffix that consists of an @ sign followed by
+ * decimal digits.
+ *
+ * str	The string to strip the suffix from.  The string is altered in place.
+ */
+static void stripAtSuffix(char *str)
+{
+    // many symbols have a name like foo@4, we must remove the @4
+    // just searching for an @ is not enough,
+    // as it may occur on other positions. We search for the last one
+    // and check that it is followed only by digits.
+    char *p = strrchr(str, '@');
+    if (p) {
+      char *q = p+1;
+      strtoul(p+1, &q, 10);
+      if (q > p+1 && *q == '\0') {
+	*p = '\0';
+      }
+    }
+}
+
 char *cplus_demangle(char *c, int) { 
     char buf[1000];
     if (c[0]=='_') {
@@ -1725,25 +1749,14 @@ char *cplus_demangle(char *c, int) {
         unsigned i;
         for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
            { buf[i-1]=c[i]; }
-        if (i==1) return 0; // avoid null names which seem to annoy Paradyn
         buf[i-1]='\0';
+	stripAtSuffix(buf);
+        if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
         return strdup(buf);
       }
     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
 	//printf("Undecorate: %s = %s\n", c, buf);
-
-        // many symbols have a name like foo@4, we must remove the @4
-        // just searching for an @ is not enough,
-        // as it may occur on other positions. We search for the last one
-        // and check that it is followed only by digits.
-        char *p = strrchr(buf, '@');
-	if (p) {
-	  char *q = p+1;
-	  strtoul(p+1, &q, 10);
-	  if (q > p+1 && *q == '\0') {
-	    *p = '\0';
-	  }
-	}
+	stripAtSuffix(buf);
 	return strdup(buf);
     }
     return 0;
@@ -1834,19 +1847,12 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 		if (!(mainFunction = findOneFunction("main")) &&
 		!(mainFunction = findOneFunction("_main"))) {
 
-			//if (!(mainFunction = findOneFunction("CFrameWnd::OnCreate")) &&
-			//	!(mainFunction = findOneFunction("OnCreate"))) {
+			if (!(mainFunction = findOneFunction("wWinMain")) &&
+				!(mainFunction = findOneFunction("_wWinMain"))) {
 
-				//the following is for MFC apps
-				//what is wrong with M$? all these different names for main()
-				if (!(mainFunction = findOneFunction("wWinMain")) &&
-					!(mainFunction = findOneFunction("_wWinMain"))) {
-
-
-					fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
-					return false;
-				}
-			//}
+				fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
+				return false;
+			}
 	  }	
   }
 
@@ -2153,7 +2159,11 @@ void process::insertTrapAtEntryPointOfMain() {
         if(!(mainFunc = findOneFunction("_main"))){
             if(!(mainFunc = findOneFunction("WinMain"))){
                 if(!(mainFunc = findOneFunction("_WinMain"))){
-                    assert(0);
+		    if(!(mainFunc = findOneFunction("wWinMain"))){
+			if(!(mainFunc = findOneFunction("_wWinMain"))){
+			    assert(0);
+			}
+		    }
                 }
             }
         }

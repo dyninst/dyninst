@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.121 2003/03/06 20:58:59 zandy Exp $
+ * $Id: inst-x86.C,v 1.122 2003/03/13 00:47:55 buck Exp $
  */
 
 #include <iomanip.h>
@@ -3014,7 +3014,9 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   if (!((mainFunction = findOneFunction("main")) 
         || (mainFunction = findOneFunction("_main"))
 	|| (mainFunction = findOneFunction("WinMain"))
-	|| (mainFunction = findOneFunction("_WinMain")))) {
+	|| (mainFunction = findOneFunction("_WinMain"))
+	|| (mainFunction = findOneFunction("wWinMain"))
+	|| (mainFunction = findOneFunction("_wWinMain")))) {
      string msg = "Cannot find main or WinMain. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
