@@ -56,6 +56,7 @@
 #include <fcntl.h> /* O_RDONLY */
 #include <sigcontext.h>
 #include <unistd.h> /* getpid() */
+#include <sys/ptrace.h>
 
 #include "rtinst/h/rtinst.h"
 
