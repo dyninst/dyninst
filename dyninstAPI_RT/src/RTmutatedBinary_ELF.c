@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.2 2003/02/04 15:19:05 bernat Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.3 2003/03/10 15:05:23 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -382,12 +382,18 @@ int checkMutatedFile(){
 			tmpPtr = elfData->d_buf;
 			dataAddress = -1;
 			while( dataAddress != 0 ) { 
-				dataSize = *(int*) tmpPtr;
+				/*tmpPtr may not be aligned on the correct boundry
+				so use memcpy to set dataSize
+				dataSize = *(int*) tmpPtr;*/
+				memcpy((char*) & dataSize, tmpPtr, sizeof(int));
+
 				tmpPtr+=sizeof(int);
-				dataAddress = *(Address*) tmpPtr;
+				memcpy( (char*) & dataAddress, tmpPtr, sizeof(Address));
+
 				tmpPtr += sizeof(Address);
 				if(dataAddress){
 					memcpy((char*) dataAddress, tmpPtr, dataSize);
+
 					tmpPtr += dataSize;
 				}
 			}
