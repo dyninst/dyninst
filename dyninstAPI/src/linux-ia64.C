@@ -660,18 +660,11 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		
 		// /* DEBUG */ fprintf( stderr, "getCallerFrame(): synthetic frame ip = 0x%lx\n", ip );
 		
-		Address fp;
-		assert( this->unwindCursor_ != NULL );
-		int status = unw_step( (unw_cursor_t *)this->unwindCursor_ );
-		assert( status >= 0 );
-		
-		bool isUppermost = false;
-		if( status == 0 ) { isUppermost = true; }
-		
-		status = unw_get_reg( (unw_cursor_t *)this->unwindCursor_, UNW_IA64_SP, & fp );
-		assert( status == 0 );
-			
-		return Frame( ip, fp, this->getSP(), this->getPID(), this->getThread(), this->getLWP(), isUppermost, false, false, false, this->unwindCursor_ );
+		/* The base tramp's frame pointer is the stack pointer of the function which called the instrumented function,
+		   so the instrumented function's synthetic frame has the same frame pointer as the base tramp.  (Because
+		   we did not tell libunwind how we modified the SP in the base tramp, only that we modified it, the instrumented
+		   function's SP is also correct.) */
+		return Frame( ip, this->getFP(), this->getSP(), this->getPID(), this->getThread(), this->getLWP(), false, false, false, false, this->unwindCursor_ );
 		}
 
 	Frame currentFrame;
