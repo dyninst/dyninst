@@ -64,6 +64,8 @@ class debug_ostream {
    debug_ostream(ostream &iActual, bool iOn) : actual_ostream(iActual) {on=iOn;}
   ~debug_ostream() {}
    bool isOn() { return on; }
+   void turnOn()  { on = true;  }
+   void turnOff() { on = false; }
    debug_ostream &operator<<(char c);
    debug_ostream &operator<<(unsigned char c);
    debug_ostream &operator<<(short s);
