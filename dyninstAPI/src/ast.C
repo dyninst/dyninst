@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.76 2000/02/04 21:52:50 zhichen Exp $
+// $Id: ast.C,v 1.77 2000/04/24 02:29:33 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1847,6 +1847,9 @@ BPatch_type *AstNode::checkType()
 	ret = BPatch::bpatch->type_Untyped;
     }
 
+#if defined(ASTDEBUG)
+    // it would be useful to have some indication of what the type applied to
+    // (currently it appears to be copious amounts of contextless junk)
     if (ret) {
 	logLine(" type is ");
 	if (ret->getName()) 
@@ -1855,6 +1858,7 @@ BPatch_type *AstNode::checkType()
 	     logLine(" <NULL Name String>");
 	logLine("\n");
     }
+#endif
 
     // remember what type we are
     setType(ret);
