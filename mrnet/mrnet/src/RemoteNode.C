@@ -24,6 +24,8 @@ namespace MRN
 
 ParentNode * RemoteNode::local_parent_node=NULL;
 ChildNode * RemoteNode::local_child_node=NULL;
+XPlat::Mutex RemoteNode::poll_timeout_mutex;
+int RemoteNode::poll_timeout=0;
 
 void * RemoteNode::recv_thread_main(void * args)
 {
@@ -74,33 +76,32 @@ void * RemoteNode::recv_thread_main(void * args)
     local_data->thread_id = XPlat::Thread::GetId();
     local_data->thread_name = strdup(name.c_str());
     if( (status = tsd_key.Set( local_data)) != 0){
-        mrn_printf(1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
-                   strerror(status)); 
+        mrn_dbg(1, mrn_printf(FLF, stderr, "XPlat::TLSKey::Set(): %s\n",
+                   strerror(status)));
         XPlat::Thread::Exit(args);
     }
-    tsd_initialized = true;
 
-    mrn_printf(3, MCFL, stderr, "In recv_thread_main()\n");
-    while(1){
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In recv_thread_main()\n"));
+    while(true){
         // TODO this only works if the recv on remote_node is blocking recv...
         // is it?
         int rret = remote_node->recv( packet_list );
         if( (rret == -1) || ((rret == 0) && (packet_list.size() == 0)) ) {
             if( rret == -1 ) {
-                mrn_printf(1, MCFL, stderr, 
-                           "RemoteNode recv failed - recv thread exiting\n");
+                mrn_dbg(1, mrn_printf(FLF, stderr, 
+                           "RemoteNode recv failed - recv thread exiting\n"));
             }
             XPlat::Thread::Exit(args);
         }
 
         if( remote_node->is_upstream() ){
             if(local_child_node->proc_PacketsFromUpStream(packet_list) == -1){
-                mrn_printf(1, MCFL, stderr, "proc_PacketsFromUpstream() failed\n");
+                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_PacketsFromUpstream() failed\n"));
             }
         }
         else{
             if(local_parent_node->proc_PacketsFromDownStream(packet_list) == -1){
-                mrn_printf(1, MCFL, stderr, "proc_PacketsFromDownstream() failed\n");
+                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_PacketsFromDownstream() failed\n"));
             }
         }
     }
@@ -140,7 +141,7 @@ void * RemoteNode::send_thread_main(void * args)
         getHostName(local_hostname, local_child_node->get_HostName() );
         getHostName(remote_hostname, remote_node->get_HostName() );
 
-        name = "DOWNSEND";
+        name = "DOWNSEND(";
         name += local_hostname;
         name += ":";
         name += local_port_str;
@@ -156,24 +157,23 @@ void * RemoteNode::send_thread_main(void * args)
     local_data->thread_id = XPlat::Thread::GetId();
     local_data->thread_name = strdup(name.c_str());
     if( (status = tsd_key.Set( local_data)) != 0){
-        mrn_printf(1, 0, 0, stderr, "XPlat::TLSKey::Set(): %s\n",
-                   strerror(status)); 
+        mrn_dbg(1, mrn_printf(0,0,0, stderr, "XPlat::TLSKey::Set(): %s\n",
+                   strerror(status))); 
         XPlat::Thread::Exit(args);
     }
-    tsd_initialized = true;
 
-    while(1){
+    while(true){
         remote_node->msg_out_sync.Lock();
 
         while(remote_node->msg_out.size_Packets() == 0){
-            mrn_printf(3, MCFL, stderr, "send_thread_main() waiting on nonempty ..\n");
+            mrn_dbg(3, mrn_printf(FLF, stderr, "send_thread_main() waiting on nonempty ..\n"));
             remote_node->msg_out_sync.WaitOnCondition(MRN_MESSAGEOUT_NONEMPTY);
         }
 
-        mrn_printf(3, MCFL, stderr, "send_thread_main() sending packets ...\n");
+        mrn_dbg(3, mrn_printf(FLF, stderr, "send_thread_main() sending packets ...\n"));
         if( remote_node->msg_out.send(remote_node->sock_fd) == -1 ){
-            mrn_printf(1, MCFL, stderr, "RN: send_thread_main: send failed\n" );
-            mrn_printf(1, MCFL, stderr, "msg.send() failed. Thread Exiting\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "RN: send_thread_main: send failed\n" ));
+            mrn_dbg(1, mrn_printf(FLF, stderr, "msg.send() failed. Thread Exiting\n"));
             remote_node->msg_out_sync.Unlock();
             XPlat::Thread::Exit(args);
         }
@@ -194,16 +194,16 @@ RemoteNode::RemoteNode(bool _threaded, std::string &_hostname, Port _port)
 
 int RemoteNode::connect()
 {
-    mrn_printf(3, MCFL, stderr, "In connect(%s:%d) ...\n",
-               hostname.c_str(), port);
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In connect(%s:%d) ...\n",
+               hostname.c_str(), port));
     if(connectHost(&sock_fd, hostname.c_str(), port) == -1){
-        mrn_printf(1, MCFL, stderr, "connect_to_host() failed\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "connect_to_host() failed\n"));
         error( MRN_ESYSTEM, "connect(): %s\n", strerror(errno) );
         return -1;
     }
     
-    mrn_printf(3, MCFL, stderr,
-               "connect_to_host() succeeded. new socket = %d\n", sock_fd);
+    mrn_dbg(3, mrn_printf(FLF, stderr,
+               "connect_to_host() succeeded. new socket = %d\n", sock_fd));
     return 0;
 }
 
@@ -213,7 +213,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 
     if( do_connect ) {
         if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
-            mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "get_socket_connection() failed\n"));
             error( MRN_ESYSTEM, "getSocketConnection(): %s\n",
                    strerror(errno) );
             return -1;
@@ -226,23 +226,23 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
     assert( sock_fd != -1 );
 
     if(threaded){
-        mrn_printf(3, MCFL, stderr, "Creating Downstream recv thread ...\n");
+        mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream recv thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
                                         (void *) this,
                                         &recv_thread_id );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
-            mrn_printf(1, MCFL, stderr, "Downstream recv thread creation failed...\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Downstream recv thread creation failed...\n"));
         }
-        mrn_printf(3, MCFL, stderr, "Creating Downstream send thread ...\n");
+        mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream send thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
                                         (void *) this,
                                         &send_thread_id );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
-            mrn_printf(1, MCFL, stderr, "Downstream send thread creation failed...\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Downstream send thread creation failed...\n"));
         }
     }
 
@@ -259,8 +259,8 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
     char port_str[128];
     sprintf(port_str, "%d", port );
 
-    mrn_printf(3, MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
-               hostname.c_str(), port );
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In new_InternalNode(%s:%d) ...\n",
+               hostname.c_str(), port ));
 
     _is_internal_node = true;
 
@@ -277,17 +277,17 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
         error( MRN_ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
                hostname.c_str(), commnode_cmd.c_str(),
                XPlat::Error::GetErrorString( err ).c_str() );
-        mrn_printf(1, MCFL, stderr,
+        mrn_dbg(1, mrn_printf(FLF, stderr,
                    "XPlat::Process::Create(%s %s): %s\n",
                    hostname.c_str(), commnode_cmd.c_str(),
-                   XPlat::Error::GetErrorString( err ).c_str() );
+                   XPlat::Error::GetErrorString( err ).c_str() ));
         return -1;
     }
 
     if( accept_Connection( listening_sock_fd ) == -1 ){
         error( MRN_ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
-        mrn_printf(1, MCFL, stderr,"accept_Connection(): %s\n",
-                   strerror(errno) );
+        mrn_dbg(1, mrn_printf(FLF, stderr,"accept_Connection(): %s\n",
+                   strerror(errno) ));
         return -1;
     }
     return 0;
@@ -299,9 +299,10 @@ int RemoteNode::new_Application(int listening_sock_fd,
                                 Rank be_rank,
                                 std::string &cmd, std::vector <std::string> &args){
 
-    mrn_printf(3, MCFL, stderr, "In new_Application(%s:%d,\n"
-               "                   cmd: %s)\n",
-               hostname.c_str(), port, cmd.c_str());
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In new_Application(\n"
+               "\thost: %s:%d,\n"
+               "\tcmd: %s)\n",
+               hostname.c_str(), port, cmd.c_str()));
   
     char parent_port_str[128];
     sprintf(parent_port_str, "%d", parent_port);
@@ -312,20 +313,34 @@ int RemoteNode::new_Application(int listening_sock_fd,
     getNetworkName( parent_nethost, parent_host );
 
     // set up arguments for new process
-    args.push_back(cmd);
-    args.push_back(parent_nethost);
-    args.push_back(std::string(parent_port_str));
-    args.push_back(std::string(rank_str));
+    // TODO: make more elegant. for now we do a copy to get the cmd in front (darnol)
 
-    if( XPlat::Process::Create( hostname, cmd, args ) != 0 ){
-        mrn_printf(1, MCFL, stderr, "XPlat::Process::Create() failed\n"); 
+    std::vector<std::string> new_args;
+
+    new_args.push_back(cmd);
+    for(unsigned int i=0; i<args.size(); i++){
+        new_args.push_back(args[i]);
+    }
+    new_args.push_back(parent_nethost);
+    new_args.push_back(std::string(parent_port_str));
+    new_args.push_back(std::string(rank_str));
+
+    mrn_dbg(5, mrn_printf(FLF, stderr, "new_Application() calling create ...\n"
+               "\thost: %s:%d,\n"
+               "\tcmd: %s)\n",
+               hostname.c_str(), cmd.c_str()));
+  
+    if( XPlat::Process::Create( hostname, cmd, new_args ) != 0 ){
+        mrn_dbg(1, mrn_printf(FLF, stderr, "XPlat::Process::Create() failed\n");) 
         int err = XPlat::Process::GetLastError();
         error( MRN_ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
                hostname.c_str(), cmd.c_str(),
                XPlat::Error::GetErrorString( err ).c_str() );
         return -1;
     }
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Success\n"));
 
+    mrn_dbg(5, mrn_printf(FLF, stderr, "new_Application() calling connect ...\n"));
     // establish connection with the backend
     // because we created the process and delivered its rank on 
     // the command line, the back-end should know its own rank.
@@ -337,11 +352,13 @@ int RemoteNode::new_Application(int listening_sock_fd,
     }
     rank = be_rank;
 
+    mrn_dbg(5, mrn_printf(FLF, stderr, "success!.\nnew_Application() calling accept()...\n"));
     // finalize the connection
     if( accept_Connection( sock_fd, false ) != 0 ) {
         error( MRN_ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
         return -1;
     }
+    mrn_dbg(5, mrn_printf(FLF, stderr, "success!\n"));
     return 0;
 }
 
@@ -354,7 +371,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     // accept the socket connection
     int sock_fd = getSocketConnection( listening_sock_fd );
     if( sock_fd == -1 ) {
-        mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );
+        mrn_dbg(1, mrn_printf(FLF, stderr, "get_socket_connection() failed\n" ));
         return -1;
     }
 
@@ -364,7 +381,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     int rret = ::recv( sock_fd, (char*)&netrank, sizeof(netrank), 0 );
     if( rret != sizeof(rank) )
     {
-        mrn_printf(1, MCFL, stderr, "failed to receive rank from back-end\n" );
+        mrn_dbg(1, mrn_printf(FLF, stderr, "failed to receive rank from back-end\n" ));
         XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
@@ -375,7 +392,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     if( hostrank == UnknownRank )
     {
         // the backend should've known its own rank
-        mrn_printf( 1, MCFL, stderr, "backend handshake failed: unknown rank\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "backend handshake failed: unknown rank\n" ));
         XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
@@ -386,8 +403,8 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
         {
             // the back-end told us a rank that was different
             // from what we were expecting
-            mrn_printf( 1, MCFL, stderr, 
-                "backend handshake failed: unexpected rank\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, 
+                "backend handshake failed: unexpected rank\n" ));
             XPlat::SocketUtils::Close( sock_fd );
             sock_fd = -1;
             return -1;
@@ -407,7 +424,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
 {
     connect();
     if( fail() ){
-        mrn_printf(1, MCFL, stderr, "connect() failed\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "connect() failed\n"));
         XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
@@ -418,9 +435,9 @@ int RemoteNode::connect_to_leaf( Rank myRank )
     int sret = ::send( sock_fd, (const char*)&netrank, sizeof(netrank), 0 );
     if( sret == -1 ) 
     {
-        mrn_printf(1, MCFL, stderr, 
+        mrn_dbg(1, mrn_printf(FLF, stderr, 
             "leaf handshake failed: send failed: %d: %s \n", 
-            errno, strerror(errno) );
+            errno, strerror(errno) ));
         error( MRN_ESYSTEM, "send(): %s\n", strerror( errno ) );
         XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
@@ -436,7 +453,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
 
 int RemoteNode::send(Packet& packet)
 {
-    mrn_printf(3, MCFL, stderr, "In remotenode.send(). Calling msg.add_packet()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In remotenode.send(). Calling msg.add_packet()\n"));
 
     if(threaded){
         msg_out_sync.Lock();
@@ -449,7 +466,7 @@ int RemoteNode::send(Packet& packet)
     if( msg_out.size_Packets() > 1 ) {
         int sret = msg_out.send( sock_fd );
         if( sret == -1 ) {
-            mrn_printf(1, MCFL, stderr, "Message.send failed\n" );
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Message.send failed\n" ));
         }
     }
 
@@ -458,7 +475,7 @@ int RemoteNode::send(Packet& packet)
         msg_out_sync.Unlock();
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving remotenode.send()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving remotenode.send()\n"));
     return 0;
 }
 
@@ -476,18 +493,18 @@ bool RemoteNode::has_data() const
     // check if data is available
     int sret = select( sock_fd + 1, &rfds, NULL, NULL, &zeroTimeout );
     if( sret == -1 ){
-        mrn_printf(1, MCFL, stderr, "select() failed\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "select() failed\n"));
         return false;
     }
 
     // We only put one descriptor in the read set.  Therefore, if the return 
     // value from select() is 1, that descriptor has data available.
     if( sret == 1 ){
-        mrn_printf(1, MCFL, stderr, "select() says data to be read.\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "select() says data to be read.\n"));
         return true;
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving remotenode.has_data(). No data available\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving remotenode.has_data(). No data available\n"));
     return false;
 }
 
@@ -498,16 +515,14 @@ int RemoteNode::flush()
         return 0;
     }
 
-    mrn_printf(3, MCFL, stderr, "In remotenode.flush(). Calling msg.send()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In remotenode.flush(). Calling msg.send()\n"));
     if( msg_out.send(sock_fd) == -1){
-        mrn_printf(1, MCFL, stderr, "msg.send() failed\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "msg.send() failed\n"));
         return -1;
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving remotenode.flush().\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving remotenode.flush().\n"));
     return 0;
 }
-
-int RemoteNode::poll_timeout=0;
 
 } // namespace MRN

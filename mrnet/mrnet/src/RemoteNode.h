@@ -10,6 +10,7 @@
 #include "mrnet/src/Message.h"
 #include "xplat/Thread.h"
 #include "xplat/Monitor.h"
+#include "xplat/Mutex.h"
 
 
 namespace MRN
@@ -28,6 +29,8 @@ class RemoteNode:public CommunicationNode, public Error {
     Rank rank;              // UnknownRank for all but connections to a BE
 
     int accept_Connection( int sock_fd, bool doConnect = true );
+    static int poll_timeout;
+    static XPlat::Mutex poll_timeout_mutex;
 
  public:
     static ParentNode * local_parent_node;
@@ -60,13 +63,12 @@ class RemoteNode:public CommunicationNode, public Error {
     bool is_internal() const;
     bool is_upstream() const;
 
-    int get_sockfd( void ) const                { return sock_fd; }
+    int get_SocketFd( void ) const { return sock_fd; }
 
-    Rank get_Rank( void ) const                 { return rank; }
+    Rank get_Rank( void ) const { return rank; }
 
     static void set_BlockingTimeOut( int _timeout );
     static int get_BlockingTimeOut( );
-    static int poll_timeout;
 };
 
 inline int RemoteNode::accept_Application( int connected_sock_fd )
@@ -91,14 +93,22 @@ inline bool RemoteNode::is_upstream() const {
     return _is_upstream;
 }
 
-inline void RemoteNode::set_BlockingTimeOut(int _timeout)
+inline void RemoteNode::set_BlockingTimeOut(int itimeout)
 {
-    poll_timeout = _timeout;
+    poll_timeout_mutex.Lock();
+    poll_timeout = itimeout;
+    poll_timeout_mutex.Unlock();
 }
 
 inline int RemoteNode::get_BlockingTimeOut( )
 {
-    return poll_timeout;
+    int ret;
+
+    poll_timeout_mutex.Lock();
+    ret = poll_timeout;
+    poll_timeout_mutex.Unlock();
+
+    return ret;
 }
 
 } // namespace MRN
