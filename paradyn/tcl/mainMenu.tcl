@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.22  1994/11/03 16:10:44  rbi
+# Revision 1.23  1994/11/03 18:06:23  karavan
+# Nasty useless obsolete REPORT button put to death
+#
+# Revision 1.22  1994/11/03  16:10:44  rbi
 # New process definition interface.
 #
 # Revision 1.21  1994/11/03  06:17:56  karavan
@@ -162,7 +165,7 @@ proc drawToolBar {} {
     frame .main
     frame .buttons -relief raised -borderwidth 4
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
-	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
+	    {PAUSE "paradyn pause"} {SAVE ""} \
 	    {EXIT "destroy ."}}
     .buttons.2 configure -state disabled
 
