@@ -588,6 +588,7 @@ bool pd_process::setParadynLibParams()
 // Callback from dyninst's loadLibrary callbacks
 void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
                                              string /*ignored*/,
+                                             shared_object * /*libobj*/,
                                              void *data) {
     pd_process *p = (pd_process *) data;
     p->setParadynLibParams();

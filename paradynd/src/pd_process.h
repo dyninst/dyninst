@@ -340,7 +340,8 @@ class pd_process {
   // Sets the parameters to paradynInit
   bool setParadynLibParams();
   // And associated callback function
-  static void setParadynLibParamsCallback(process *p, string libname, void *data);
+  static void setParadynLibParamsCallback(process *p, string libname, 
+                                          shared_object *libobj, void *data);
 
   // Handles final initialization
   bool finalizeParadynLib();
