@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.386 2003/02/21 20:39:35 bernat Exp $
+// $Id: process.C,v 1.387 2003/02/27 02:45:59 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2856,7 +2856,10 @@ process *attachProcess(const string &progpath, int pid)
   // find the signal handler function
   theProc->findSignalHandler(); // shouldn't this be in the ctor?
 
-  theProc->loadDyninstLib();
+  if (!theProc->loadDyninstLib()) {
+      delete theProc;
+      return NULL;
+  }
     // The process is paused at this point. Run if appropriate.
 
 #if defined(alpha_dec_osf4_0)
