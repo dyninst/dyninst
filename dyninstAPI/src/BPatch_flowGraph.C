@@ -492,7 +492,6 @@ void BPatch_flowGraph::createSourceBlocks(){
 	char functionName[1024];
 	bpFunction->getMangledName(functionName, sizeof(functionName));
 	string fName(functionName);
-	delete[] functionName;
 	int i;
 
 	//get the line information object which contains the information for 
