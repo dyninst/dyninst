@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.53  1996/05/10 13:51:33  naim
+ * Revision 1.54  1996/05/10 21:38:43  naim
+ * Chaning some parameters for instrumentation deletion - naim
+ *
+ * Revision 1.53  1996/05/10  13:51:33  naim
  * Changes to improve the instrumentation deletion process - naim
  *
  * Revision 1.52  1996/05/10  06:55:50  tamches
@@ -134,7 +137,7 @@ int pvmendtask();
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
 static const timeStamp MAX_WAITING_TIME=10.0;
-static const timeStamp MAX_DELETING_TIME=1.0;
+static const timeStamp MAX_DELETING_TIME=2.0;
 
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
@@ -324,7 +327,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   // this is a while loop since we don't update i if an item is deleted.
   disList = &hp->disabledList;
   if (runOutOfMem) {
-    maxDelTime = MAX_DELETING_TIME*10.0;
+    maxDelTime = MAX_DELETING_TIME*2.0;
     sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->pid);
     logLine(errorLine);
 #ifdef FREEDEBUG1
@@ -360,8 +363,8 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
       hp->heapActive.undef(pointer);
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"inferiorFreeDefered: deleting 0x%x from heap\n",pointer);
-    logLine(errorLine);
+   sprintf(errorLine,"inferiorFreeDefered: deleting 0x%x from heap\n",pointer);
+   logLine(errorLine);
 #endif
 
       hp->heapFree += np;
@@ -619,6 +622,9 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
 #ifdef FREEDEBUG
 timeStamp t1,t2;
 static timeStamp t3=0.0;
+static timeStamp totalTime=0.0;
+static timeStamp worst=0.0;
+static int counter=0;
 t1=getCurrentTime(false);
 #endif
 #if !defined(hppa1_1_hp_hpux)
@@ -627,8 +633,11 @@ t1=getCurrentTime(false);
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
 if (!t3) t3=t1;
+counter++;
+totalTime += t2-t1;
+if ((t2-t1) > worst) worst=t2-t1;
 if ((float)(t2-t1) > 1.0) {
-  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->pid,(float) (t2-t1), hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
+  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, avg=%5.2f, worst=%5.2f, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->pid,(float) (t2-t1), (float) (totalTime/counter), (float)worst, hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
   logLine(errorLine);
 }
 t3=t1;
