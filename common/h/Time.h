@@ -42,7 +42,7 @@
 #ifndef __TIME_H
 #define __TIME_H
 
-
+#include <assert.h>
 #include "common/h/Types.h"
 #include "common/h/fraction.h"
 
@@ -276,26 +276,30 @@ class timeStamp : public timeParent {
   static const timeStamp *ts1970Help();
   static const timeStamp *tsStdHelp();
   static const timeStamp *ts2200Help();
+  static const int64_t uninitializedValue;
  public:
   static const timeStamp &ts1970();
   static const timeStamp &tsStd();
   static const timeStamp &ts2200();
+  static const timeStamp &tsLargestTime();
 
   // need this constructor to use in vector container class
-  timeStamp();
+  // value set to a "weird" value to represent uninitialized
+  timeStamp() : timeParent(uninitializedValue) { }
   // eg. to create the time Jan 1, 1995 12:00am you could do this:
   //    timeStamp myTime(25, timeUnit::year(), timeBase::b1970());
   // one way to create July 20, 1976 8:35am:
   //    timeStamp myBirthDay = timeStamp::b1970() + 4*timeLength::year() +
   //                           2*timeStamp::leapYear() +
   //                           202*timeLength::day() + 8*timeLength::hour() +
-  //                           35*timeLength::min();
+  //                           35*timeLength::min();  
   timeStamp(int64_t iTime, const timeUnit &u, timeBase b) : timeParent() {
     initI(iTime, u, b);
   }
   timeStamp(int iTime, const timeUnit &u, timeBase b) : timeParent() {
     initI(iTime, u, b);
   }
+  timeStamp(const timeLength &tl, timeBase b);
   timeStamp(double dTime, const timeUnit &u, timeBase b);
 
   // Selectors
@@ -307,12 +311,17 @@ class timeStamp : public timeParent {
   int64_t getI(const timeUnit &u, timeBase b) const {
     return u.cvtFrom_nsI( b.cvtFrom_bStd(get_ns()));
   }
+  // returns true if the timeStamp is uninitialized
+  bool isInitialized() const {  
+    if(get_ns() == uninitializedValue) return false;
+    else return true;
+  }
 
   // ostream& put(ostream& s) const { return s << *this; }
 
   friend const timeStamp operator+=(timeStamp &ts, timeLength tl);
   friend const timeStamp operator-=(timeStamp &ts, timeLength tl);
-  friend const timeLength operator+(const timeStamp a, const timeStamp b);
+  friend const timeLength operator-(const timeStamp a, const timeStamp b);
   friend const timeStamp operator+(const timeStamp a, const timeLength b);
   friend const timeStamp operator-(const timeStamp a, const timeLength b);
   friend const timeStamp operator+(const timeLength a, const timeStamp b);
@@ -340,9 +349,65 @@ inline const timeStamp &timeStamp::ts2200() {
   return *_ts2200;
 }
 
-// need to define this here since calls inlined ts1970
-inline timeStamp::timeStamp() : timeParent() {
-  *this = timeStamp::ts1970();
+
+// relTimeStamp ---------------------------------------------------
+// A timeStamp that proceeds on a timeline based at "zero"
+// It has no relation to time on the "date" timeline.  There is no
+// map from the "zero" based timeline for the relTimeStamp to the timeline
+// based on "human time" for the timeStamp class.
+
+class relTimeStamp : public timeParent {
+ private:
+  static const relTimeStamp *_Zero;
+  static const relTimeStamp *ZeroHelp();
+  static const int64_t uninitializedValue;
+ public:
+  static const relTimeStamp &Zero();
+
+  // need this constructor to use in vector container class
+  relTimeStamp() : timeParent(uninitializedValue) { }
+  relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
+    initI(iTime, u);
+  }
+  relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
+    initI(iTime, u);
+  }
+  relTimeStamp(const timeLength &tl);
+  relTimeStamp(double dTime, const timeUnit &u);
+
+  // Selectors
+  double getD(const timeUnit &u) const {
+    return u.cvtFrom_nsD(get_ns());
+  }
+  int64_t getI(const timeUnit &u) const {
+    return u.cvtFrom_nsI( get_ns());
+  }
+  // returns true if the relTimeStamp is uninitialized
+  bool isInitialized() const {  
+    if(get_ns() == uninitializedValue) return false;
+    else return true;
+  }
+
+  // ostream& put(ostream& s) const { return s << *this; }
+
+  friend const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
+  friend const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
+  friend const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
+  friend const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
+  friend const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
+  friend const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
+  // non-member ==, !=, >, <, >=, <=  operators also defined for relTimeStamp
+
+ private:
+  void initI(int64_t iTime, const timeUnit &u);
+  relTimeStamp(int64_t ns_) : timeParent(ns_) { }
+};
+
+ostream& operator<<(ostream&s, relTimeStamp z);
+
+inline const relTimeStamp &relTimeStamp::Zero() {
+  if(_Zero == NULL)  _Zero = ZeroHelp();
+  return *_Zero;
 }
 
 // timeLength ---------------------------------------------------
@@ -363,6 +428,8 @@ class timeLength : public timeParent {
   static const timeLength &Zero(), &ns(), &us(), &ms(), &sec();
   static const timeLength &min(), &hour(), &day(), &year(), &leapYear();
 
+  // need this constructor to use in vector container class
+  timeLength() : timeParent(0) { }
   timeLength(int64_t iTime, const timeUnit &u) : timeParent() {
     initI(iTime, u);
   }
@@ -379,7 +446,11 @@ class timeLength : public timeParent {
 
   friend const timeLength operator+=(timeLength &t, timeLength tl);
   friend const timeLength operator-=(timeLength &t, timeLength tl);
+  friend const timeLength operator*=(timeLength &t, double d);
+  friend const timeLength operator/=(timeLength &t, double d);
+  friend const timeLength operator-(const timeLength &t);
   friend const timeLength operator-(const timeStamp a, const timeStamp b);
+  friend const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
   friend const timeStamp operator+(const timeStamp a, const timeLength b);
   friend const timeStamp operator-(const timeStamp a, const timeLength b);
   friend const timeStamp operator+(const timeLength a, const timeStamp b);
@@ -444,10 +515,12 @@ ostream& operator<<(ostream&s, timeLength z);
 
 // timeStamp +=/-= timeLength
 inline const timeStamp operator+=(timeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized());
   ts.assign(ts.get_ns() + tl.get_ns());
   return ts;
 }
 inline const timeStamp operator-=(timeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized());
   ts.assign(ts.get_ns() - tl.get_ns());
   return ts;
 }
@@ -462,21 +535,40 @@ inline const timeLength operator-=(timeLength &t, timeLength tl) {
   return t;
 }
 
+// timeLength *=, /= double
+inline const timeLength operator*=(timeLength &t, double d) {
+  t.assign(static_cast<int64_t>(t.get_ns() * d));
+  return t;
+}
+inline const timeLength operator/=(timeLength &t, double d) {
+  t.assign(static_cast<int64_t>(t.get_ns() / d));
+  return t;
+}
+
+// - timeLength
+inline const timeLength operator-(const timeLength &t) {
+  return timeLength(-t.get_ns());
+}
+
 // timeStamp - timeStamp = timeLength  ;  the length of time between time stamps
 inline const timeLength operator-(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return timeLength(a.get_ns() - b.get_ns());
 }
 
 // timeStamp +/- timeLength = timeStamp
 inline const timeStamp operator+(const timeStamp a, const timeLength b) {
+  assert(a.isInitialized());
   return timeStamp(a.get_ns() + b.get_ns());
 }
 inline const timeStamp operator-(const timeStamp a, const timeLength b) {
+  assert(a.isInitialized());
   return timeStamp(a.get_ns() - b.get_ns());
 }
 
 // timeLength + timeStamp = timeStamp
 inline const timeStamp operator+(const timeLength a, const timeStamp b) {
+  assert(b.isInitialized());
   return timeStamp(a.get_ns() + b.get_ns());
 }
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
@@ -517,22 +609,40 @@ inline const double operator/(const timeLength a, const timeLength b) {
 
 // timeStamp @ timeStamp = bool
 inline bool operator==(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() == b.get_ns());
 }
 inline bool operator!=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() != b.get_ns());
 }
 inline bool operator>(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() > b.get_ns());
 }
 inline bool operator>=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() >= b.get_ns());
 }
 inline bool operator<(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() < b.get_ns());
 }
 inline bool operator<=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
   return (a.get_ns() <= b.get_ns());
+}
+
+inline timeStamp earlier(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a <= b)  return a;
+  else        return b;
+}
+
+inline timeStamp later(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a >= b)  return a;
+  else        return b;
 }
 
 // timeLength @ timeLength = bool
@@ -555,12 +665,104 @@ inline bool operator<=(const timeLength a, const timeLength b) {
   return (a.get_ns() <= b.get_ns());
 }
 
+inline timeLength min(const timeLength a, const timeLength b) {  
+  if(a<=b)  return a;
+  else      return b;
+}
+
+inline timeLength max(const timeLength a, const timeLength b) {  
+  if(a>=b)  return a;
+  else      return b;
+}
+
+inline const timeLength abs(const timeLength a) {  
+  return max(a,-a);
+}
 
 // need to put this here so can get at timeStamp
 inline timeBase::timeBase(timeStamp mark) {
   ns2StdBaseMark = -mark.get_ns();  // in Std base
   // eg. (2001) 1 year of ns's -> -1 year of ns's to internalTimeBaseMark
 }
+
+// relTimeStamp +=/-= timeLength
+inline const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized());
+  ts.assign(ts.get_ns() + tl.get_ns());
+  return ts;
+}
+inline const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized());
+  ts.assign(ts.get_ns() - tl.get_ns());
+  return ts;
+}
+
+// relTimeStamp - relTimeStamp = timeLength  ;  the length of time between time stamps
+inline const timeLength operator-(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeLength(a.get_ns() - b.get_ns());
+}
+
+// relTimeStamp +/- relTimeLength = relTimeStamp
+inline const relTimeStamp operator+(const relTimeStamp a, const timeLength b) {
+  assert(a.isInitialized());
+  return relTimeStamp(a.get_ns() + b.get_ns());
+}
+inline const relTimeStamp operator-(const relTimeStamp a, const timeLength b) {
+  assert(a.isInitialized());
+  return relTimeStamp(a.get_ns() - b.get_ns());
+}
+
+// timeLength + relTimeStamp = relTimeStamp
+inline const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
+  assert(b.isInitialized());
+  return relTimeStamp(a.get_ns() + b.get_ns());
+}
+// timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
+
+
+// Be careful if writing * operators because Time is based at nanosecond
+// level, which can overflow when multiplying times that seem small
+// eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
+
+// relTimeStamp @ relTimeStamp = bool
+inline bool operator==(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() == b.get_ns());
+}
+inline bool operator!=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() != b.get_ns());
+}
+inline bool operator>(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() > b.get_ns());
+}
+inline bool operator>=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() >= b.get_ns());
+}
+inline bool operator<(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() < b.get_ns());
+}
+inline bool operator<=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() <= b.get_ns());
+}
+
+inline relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a <= b)  return a;
+  else        return b;
+}
+
+inline relTimeStamp later(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a >= b)  return a;
+  else        return b;
+}
+
 
 
 #endif
