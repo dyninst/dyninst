@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.2  1996/10/31 08:51:09  tamches
+ * the shm-sampling commit; routines to implement inferiorRPC; removed some
+ * warnings; added noCost param to some fns.
+ *
  * Revision 1.1  1996/10/18 23:54:14  mjrg
  * Solaris/X86 port
  *
@@ -112,7 +116,7 @@ extern bool isPowerOf2(int value, int &result);
 class instPoint {
 
  public:
-  instPoint(pdFunction *f, /*const*/ image *im, Address adr, instruction inst) {
+  instPoint(pdFunction *f, const image *im, Address adr, instruction inst) {
     addr = adr;
     jumpAddr = adr;
     func = f;
@@ -341,7 +345,10 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
 }
 
 
-bool pdFunction::findInstPoints(image *owner) {
+bool pdFunction::findInstPoints(const image *i_owner) {
+   // sorry this this hack, but this routine can modify the image passed in,
+   // which doesn't occur on other platforms --ari
+   image *owner = (image *)i_owner; // const cast
 
    enum { EntryPt, CallPt, ReturnPt };
    class point_ {
@@ -747,7 +754,7 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
   proc->trampTable[u].key = key;
   proc->trampTable[u].val = val;
 
-  internalSym *t = proc->symbols->findInternalSymbol("DYNINSTtrampTable",true);
+  internalSym *t = proc->findInternalSymbol("DYNINSTtrampTable",true);
   assert(t);
   return proc->writeTextSpace((caddr_t)t->getAddr()+u*sizeof(trampTableEntry),
 		       sizeof(trampTableEntry),
@@ -785,7 +792,7 @@ unsigned generateBranchToTramp(process *proc, instPoint *point, unsigned baseAdd
  *
  */
 
-trampTemplate *installBaseTramp(instPoint *location, process *proc) 
+trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost) 
 {
 
 /*
@@ -851,11 +858,19 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
     abort();
   }
 
-  // get address of DYNINSTobsCostLow to update observed cost
-  bool err = false;
-  Address costAddr = (proc->symbols)->findInternalAddress("DYNINSTobsCostLow",
-		true, err);
-  assert(costAddr && !err);
+  Address costAddr = 0; // for now...
+  if (!noCost) {
+#ifdef SHM_SAMPLING
+     costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
+     assert(costAddr);
+#else
+     // get address of DYNINSTobsCostLow to update observed cost
+     bool err = false;
+     costAddr = proc->findInternalAddress("DYNINSTobsCostLow",
+					  true, err);
+     assert(costAddr && !err);
+#endif
+  }
 
   ret->size = trampSize;
   unsigned baseAddr = inferiorMalloc(proc, trampSize, textHeap);
@@ -874,7 +889,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
   for (unsigned u = location->insnsBefore; u > 0; ) {
     --u;
     if (currentPC == origAddr) {
-      //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+      fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
 
@@ -894,8 +909,19 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
-  // update cost
-  emitAddMemImm(costAddr, 41, insn);  // add (costAddr), cost
+
+  // update cost -- a 7 byte instruction
+  if (!noCost) {
+     emitAddMemImm(costAddr, 41, insn);  // add (costAddr), cost
+  }
+  else {
+     // minor hack: we still need to fill up the rest of the 7 bytes, since
+     // assumptions are made about the positioning of instructions that follow.
+     // (This could in theory be fixed)
+     // So, 7 NOP instructions (each 1 byte)
+     for (unsigned foo=0; foo < 7; foo++)
+        emitSimpleInsn(0x90, insn); // NOP
+  }
 
   // global pre branch
   ret->globalPreOffset = insn-code;
@@ -918,7 +944,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
   assert(origAddr == location->addr + imageBaseAddr);
   origAddr = location->addr + imageBaseAddr;
   if (currentPC == origAddr) {
-    //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+    fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
     proc->setNewPC(currAddr);
   }
   unsigned newSize = relocateInstruction(location->insnAtPoint, origAddr, currAddr, insn);
@@ -937,8 +963,19 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
+
   // update cost
-  emitAddMemImm(costAddr, 44, insn);  // add(costAddr), cost
+  if (!noCost) {
+     emitAddMemImm(costAddr, 44, insn);  // add(costAddr), cost
+  }
+  else {
+     // minor hack: we still need to use up 7 bytes, since assumptions are made about
+     // the positioning of instructions that follow.
+     // (This could in theory be fixed)
+     // So, 7 NOP instructions (each 1 byte)
+     for (unsigned foo=0; foo < 7; foo++)
+        emitSimpleInsn(0x90, insn); // NOP
+  }
 
   // global post branch
   ret->globalPostOffset = insn-code; 
@@ -962,7 +999,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
   origAddr = location->addr + imageBaseAddr + location->insnAtPoint.size();
   for (unsigned u = 0; u < location->insnsAfter; u++) {
     if (currentPC == origAddr) {
-      //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+      fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
     unsigned newSize = relocateInstruction(location->insnAfterPt[u], origAddr, currAddr, insn);
@@ -994,14 +1031,15 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 instPoint *location,
-				 returnInstance *&retInstance)
+				       instPoint *location,
+				       returnInstance *&retInstance,
+				       bool noCost)
 {
     trampTemplate *ret;
     retInstance = NULL;
 
     if (!proc->baseMap.defines(location)) {
-	ret = installBaseTramp(location, proc);
+	ret = installBaseTramp(location, proc, noCost);
 	proc->baseMap[location] = ret;
 	// generate branch from instrumentation point to base tramp
 	unsigned imageBaseAddr;
@@ -1317,17 +1355,18 @@ void emitEnter(short imm16, unsigned char *&insn) {
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base,
-		      vector<AstNode> operands, 
-		      string callee, process *proc)
+		      const vector<AstNode> &operands, 
+		      const string &callee, process *proc,
+	              bool noCost)
 {
   assert(op == callOp);
   unsigned addr;
   bool err;
   vector <reg> srcs;
 
-  addr = (proc->symbols)->findInternalAddress(callee, false, err);
+  addr = proc->findInternalAddress(callee, false, err);
   if (err) {
-    pdFunction *func = (proc->symbols)->findOneFunction(callee);
+    pdFunction *func = proc->findOneFunction(callee);
     if (!func) {
       ostrstream os(errorLine, 1024, ios::out);
       os << "Internal error: unable to find addr of " << callee << endl;
@@ -1339,15 +1378,16 @@ unsigned emitFuncCall(opCode op,
   }
 
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u].generateCode(proc, rs, i, base);
+    srcs += operands[u].generateCode(proc, rs, i, base, noCost);
 
   unsigned char *insn = (unsigned char *) ((void*)&i[base]);
   unsigned char *first = insn;
 
   // push arguments in reverse order, last argument first
+  // must use int instead of unsigned to avoid nasty underflow problem:
   for (int i=srcs.size() - 1 ; i >= 0; i--) {
-    emitOpRMReg(PUSH_RM_OPC1, EBP, -(srcs[i]*4), PUSH_RM_OPC2, insn);
-    rs->freeRegister(srcs[i]);
+     emitOpRMReg(PUSH_RM_OPC1, EBP, -(srcs[i]*4), PUSH_RM_OPC2, insn);
+     rs->freeRegister(srcs[i]);
   }
 
   // make the call
@@ -1356,11 +1396,13 @@ unsigned emitFuncCall(opCode op,
   // TODO: change this to use a direct call
   emitMovImmToReg(EAX, addr, insn);       // mov eax, addr
   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, EAX, insn);   // call *(eax)
+
   // reset the stack pointer
-  emitOpRegImm(0, ESP, srcs.size()*4, insn); // add esp, srcs.size()*4
+  if (srcs.size() > 0)
+     emitOpRegImm(0, ESP, srcs.size()*4, insn); // add esp, srcs.size()*4
 
   // allocate a register to store the return value
-  reg ret = rs->allocateRegister((char *)insn, base);
+  reg ret = rs->allocateRegister((char *)insn, base, noCost);
   emitMovRegToRM(EBP, -(ret*4), EAX, insn);
 
   base += insn - first;
@@ -1374,7 +1416,8 @@ unsigned emitFuncCall(opCode op,
  * ibuf is an instruction buffer where instructions are generated
  * base is the next free position on ibuf where code is to be generated
  */
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &base)
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &base,
+	      bool noCost)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -1417,12 +1460,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
     } else if (op ==  trampPreamble) {
       // allocate space for temporaries
       emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-      
-      // update observed cost
-      // dest = address of DYNINSTobsCostLow
-      // src1 = cost
-      emitAddMemImm(dest, src1, insn);  // ADD (dest), src1
 
+      if (!noCost) {
+         // update observed cost
+         // dest = address of DYNINSTobsCostLow
+         // src1 = cost
+         emitAddMemImm(dest, src1, insn);  // ADD (dest), src1
+      }
     } else if (op ==  trampTrailer) {
       // reset the stack pointer
       emitOpRegImm(0, ESP, 128, insn); // add esp, 128
@@ -1528,7 +1572,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
 }
 
 
-unsigned emitImm(opCode op, reg src1, int src2imm, reg dest, char *ibuf, unsigned &base)
+unsigned emitImm(opCode op, reg src1, int src2imm, reg dest, char *ibuf, unsigned &base, bool noCost)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -1879,4 +1923,75 @@ void generateBreakPoint(unsigned char &) {
 
 void instWaitingList::cleanUp(process *, Address ) {
   P_abort();
+}
+
+/* ***************************************************** */
+
+bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &base) {
+   unsigned char *insnPtr = (unsigned char *)void_insnPtr;
+   unsigned char *origInsnPtr = insnPtr;
+   insnPtr += base;
+
+   // We emit the following here (to set up a fresh stack frame):
+   // pushl %ebp        (0x55)
+   // movl  %esp, %ebp  (0x89 0xe5)
+
+   emitSimpleInsn(PUSH_EBP, insnPtr);
+   emitMovRegToReg(EBP, ESP, insnPtr);
+   emitSimpleInsn(PUSHAD, insnPtr);
+   emitSimpleInsn(PUSHFD, insnPtr);
+
+   base += (insnPtr - origInsnPtr);
+
+   return true;
+}
+
+bool process::emitInferiorRPCtrailer(void *void_insnPtr, unsigned &base,
+				     unsigned &firstPossibBreakOffset,
+				     unsigned &lastPossibBreakOffset) {
+   unsigned char *insnPtr = (unsigned char *)void_insnPtr;
+      // unsigned char * is the most natural to work with on x86, since instructions
+      // are always an integral # of bytes.  Besides, it makes the following line easy:
+   insnPtr += base; // start off in the right spot
+   unsigned char *origInsnPtr = insnPtr;
+
+   // Sequence: popfd, popad, leave (0xc9), call DYNINSTbreakPoint(), illegal
+
+   initTramps();
+   extern registerSpace *regSpace;
+   regSpace->resetSpace();
+
+   emitSimpleInsn(POPFD, insnPtr); // popfd
+   emitSimpleInsn(POPAD, insnPtr); // popad
+   emitSimpleInsn(LEAVE, insnPtr); // leave
+
+   base += (insnPtr - origInsnPtr);
+
+   // For now, do an illegal insn instead of DYNINSTbreakPoint()
+   // (received as SIGILL instead of SIGSTOP in paradynd)
+   firstPossibBreakOffset = base;
+   lastPossibBreakOffset = base;
+   *insnPtr++ = 0x0f;
+   *insnPtr++ = 0x0b;
+   base += 2;
+
+//   // Call DYNINSTbreakPoint, with no arguments
+//   vector<AstNode> args; // no arguments to DYNINSTbreakPoint
+//   AstNode ast("DYNINSTbreakPoint", args);
+//
+//   reg resultReg = ast.generateCode(this, regSpace, (char*)insnPtr, base, false);
+//   regSpace->freeRegister(resultReg);
+//
+//   // the actual PC instruction where the call is made will fall somewhere in these bounds:
+//   firstPossibBreakOffset = 0;
+//   lastPossibBreakOffset = base;
+
+   // Here, we should generate an illegal insn, or something.
+   // A two-byte insn, 0x0f0b, should do the trick.  The idea is that
+   // the code should never be executed.
+   *insnPtr++ = 0x0f;
+   *insnPtr++ = 0x0b;
+   base += 2;
+
+   return true;
 }

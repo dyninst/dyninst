@@ -43,6 +43,10 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.8  1996/10/31 08:49:16  tamches
+ * the shm-sampling commit; routines to implement inferiorRPC; removed some
+ * warnings; added noCost param to some fns.
+ *
  * Revision 1.7  1996/10/18 23:52:33  mjrg
  * Changed argument of findInstPoints
  *
@@ -133,7 +137,6 @@
  */
 
 #include "util/h/headers.h"
-
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
 #include "process.h"
@@ -148,7 +151,12 @@
 #include "os.h"
 #include "showerror.h"
 
-#define perror(a) P_abort();
+// NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
+// that case, 2's complement has really changed the bitwise representation!
+// Perhaps an assert should be done!
+#define LOW10(x) ((x) & 0x3ff)
+#define LOW13(x) ((x) & 0x1fff)
+#define HIGH22(x) ((x) >> 10)
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -200,7 +208,7 @@ public:
 
 
 #define ABS(x)		((x) > 0 ? x : -x)
-#define MAX_BRANCH	0x1<<23
+#define MAX_BRANCH	(0x1<<23)
 //#define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
 #define MAX_IMM13       (4095)
 #define MIN_IMM13       (-4096)
@@ -290,7 +298,8 @@ inline void generateJmplInsn(instruction *insn, int rs1, int offset, int rd)
     insn->resti.op3 = JMPLop3;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }    
 
 inline void genBranch(instruction *insn, int offset, unsigned condition, bool annul)
@@ -322,6 +331,14 @@ inline void genSimpleInsn(instruction *insn, int op, reg rs1, reg rs2, reg rd)
     // 	registerNames[rs2], registerNames[rd]);
 }
 
+inline void genBreakpointTrap(instruction *insn) {
+   insn->raw = BREAK_POINT_INSN; // ta (trap always) 1
+}
+
+inline void genUnimplementedInsn(instruction *insn) {
+   insn->raw = 0; // UNIMP 0
+}
+
 inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
 {
     insn->raw = 0;
@@ -330,6 +347,7 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
     insn->resti.op3 = op;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
+    assert(immd >= MIN_IMM13 && immd <= MAX_IMM13);
     insn->resti.simm13 = immd;
 
     // logLine("%s %%%s,%d,%%%s\n", getStrOp(op), registerNames[rs1], immd,
@@ -384,7 +402,7 @@ inline void generateSetHi(instruction *insn, int src1, int dest)
     insn->sethi.op = FMT2op;
     insn->sethi.rd = dest;
     insn->sethi.op2 = SETHIop2;
-    insn->sethi.imm22 = HIGH(src1);
+    insn->sethi.imm22 = HIGH22(src1);
 
     // logLine("sethi  %%hi(0x%x), %%%s\n", HIGH(src1)*1024, 
     // 	registerNames[dest]);
@@ -398,7 +416,8 @@ inline void generateStore(instruction *insn, int rd, int rs1, int offset)
     insn->resti.op3 = STop3;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }
 
 // sll rs1,rs2,rd
@@ -433,7 +452,8 @@ inline void generateLoad(instruction *insn, int rs1, int offset, int rd)
     insn->resti.rd = rd;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }
 
 // swap [rs1 + offset], rd
@@ -444,7 +464,8 @@ inline void generateSwap(instruction *insn, int rs1, int offset, int rd)
     insn->resti.op3 = SWAPop3;
     insn->resti.rs1 = rs1;
     insn->resti.i = 0;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }    
 
 // std rd, [rs1 + offset]
@@ -455,7 +476,8 @@ inline void genStoreD(instruction *insn, int rd, int rs1, int offset)
     insn->resti.op3 = STDop3;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }
 
 // ldd [rs1 + offset], rd
@@ -466,7 +488,8 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
     insn->resti.rd = rd;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
-    insn->resti.simm13 = LOW(offset);
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
 }
 
 
@@ -935,7 +958,8 @@ void initTramps()
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
 
-    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
+    regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,
+				 0, NULL);
 }
 
 /*
@@ -946,14 +970,15 @@ void initTramps()
  */
 trampTemplate *installBaseTramp(instPoint *location, process *proc) 
 {
-    unsigned currAddr;
-    instruction *code;
-    instruction *temp;
-
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
-    code = new instruction[baseTemplate.size];
+
+    instruction *code = new instruction[baseTemplate.size];
+    assert(code);
+
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
 
+    instruction *temp;
+    unsigned currAddr;
     for (temp = code, currAddr = baseAddr; 
 	(currAddr - baseAddr) < (unsigned) baseTemplate.size;
 	temp++, currAddr += sizeof(instruction)) {
@@ -1131,7 +1156,8 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
     }
     // TODO cast
     proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size,(caddr_t) code);
-    free(code);
+
+    delete [] code;
 
     trampTemplate *baseInst = new trampTemplate;
     *baseInst = baseTemplate;
@@ -1155,6 +1181,7 @@ trampTemplate *installBaseTrampSpecial(instPoint *location,
     instruction *temp;
 
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
+
     if (location->func->not_relocating) {
 	location->func->not_relocating = false;
 	location->func->relocateFunction(proc,location,extra_instrs);
@@ -1237,7 +1264,9 @@ trampTemplate *installBaseTrampSpecial(instPoint *location,
     }
     // TODO cast
     proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size,(caddr_t) code);
-    free(code);
+
+    delete [] code;
+
     trampTemplate *baseInst = new trampTemplate;
     *baseInst = baseTemplate;
     baseInst->baseAddr = baseAddr;
@@ -1255,7 +1284,6 @@ void generateNoOp(process *proc, int addr)
 
     // TODO cast
     proc->writeTextWord((caddr_t)addr, insn.raw);
-    // (void) PCptrace(PTRACE_POKETEXT, proc, (char*)addr, insn.raw, NULL);
 }
 
 void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr, 
@@ -1284,21 +1312,20 @@ void AstNode::sysFlag(instPoint *location)
  *
  */
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 instPoint *location,
-				 returnInstance *&retInstance)
+				       instPoint *location,
+				       returnInstance *&retInstance,
+				       bool noCost)
 {
     Address adr = location->addr;
-    trampTemplate *ret;
-    process *globalProc;
 
-    if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
-	globalProc = nodePseudoProcess;
-    } else {
-	globalProc = proc;
-    }
+    process *globalProc = proc;
 
     retInstance = NULL;
+
+    trampTemplate *ret;
     if (!globalProc->baseMap.defines(location)) {
+        // There is no base tramp at this location, so create one:
+
 	if (location->func->isTrap) {
 	    // get the base Address of this function if it is a 
 	    // shared object
@@ -1341,6 +1368,9 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 					 (3+e_size)*sizeof(instruction), 
 					 adr+baseAddress, 
 					 location->func->size());
+                assert(retInstance);
+
+                //cerr << "created a new return instance (relocated fn)!" << endl;
 	    }
 
 	} else {
@@ -1363,6 +1393,9 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 		retInstance = new returnInstance((instructUnion *)insn, 
 						 3*sizeof(instruction), adr, 
 						 3*sizeof(instruction));
+                assert(retInstance);
+
+                //cerr << "created a new return instance (leaf)!" << endl;
 	    } else {
 		// Otherwise,
 		// Generate branch instruction from the application to the
@@ -1373,6 +1406,9 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 		retInstance = new returnInstance((instructUnion *)insn, 
 						 2*sizeof(instruction), adr, 
 						 2*sizeof(instruction));
+                assert(retInstance);
+
+                //cerr << "created a new return instance (normal)!" << endl;
 	    }
 	}
 
@@ -1421,7 +1457,6 @@ void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr)
 
     // TODO cast
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-    // (void) PCptrace(PTRACE_POKETEXT, proc, (char*)fromAddr, insn.raw, NULL);
 }
 
 void generateCall(process *proc, unsigned fromAddr,unsigned newAddr)
@@ -1490,17 +1525,19 @@ pdFunction *getFunction(instPoint *point)
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base, 
-		      vector<AstNode> operands, 
-		      string callee, process *proc)
+		      const vector<AstNode> &operands, 
+		      const string &callee, process *proc,
+		      bool noCost)
 {
         assert(op == callOp);
         unsigned addr;
 	bool err;
 	vector <reg> srcs;
 
-        addr = (proc->symbols)->findInternalAddress(callee, false, err);
+        addr = proc->findInternalAddress(callee, false, err);
+
         if (err) {
-	    pdFunction *func = (proc->symbols)->findOneFunction(callee);
+	    pdFunction *func = proc->findOneFunction(callee);
 	    if (!func) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of " << callee << endl;
@@ -1512,8 +1549,7 @@ unsigned emitFuncCall(opCode op,
 	}
 	
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u].generateCode(proc, rs, i, base);
-        
+	    srcs += operands[u].generateCode(proc, rs, i, base, noCost);
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1529,8 +1565,15 @@ unsigned emitFuncCall(opCode op,
 	    rs->freeRegister(srcs[u]);
         }
 
+        // As Ling pointed out to me, the following is rather inefficient.  It does:
+        //   sethi %hi(addr), %o5
+        //   jmpl %o5 + %lo(addr), %o7   ('call' pseudo-instr)
+        //   nop
+        // We can do better:
+        //   call <addr>    (but note that the call true-instr is pc-relative jump)
+        //   nop
         generateSetHi(insn, addr, 13); insn++;
-        genImmInsn(insn, JMPLop3, 13, LOW(addr), 15); insn++;
+        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 15); insn++;
         generateNOOP(insn);
 
         base += 3 * sizeof(instruction);
@@ -1541,8 +1584,48 @@ unsigned emitFuncCall(opCode op,
         return(8);
 }
  
+bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
+   instruction *insn = (instruction *)insnPtr;
+   unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   genImmInsn(&insn[baseInstruc++], SAVEop3, 14, -112, 14);
+
+   baseBytes = baseInstruc * sizeof(instruction); // convert back
+   return true;
+}
+
+
+bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+				     unsigned &firstPossibBreakOffset,
+				     unsigned &lastPossibBreakOffset) {
+   // Sequence: restore, trap, illegal
+
+   instruction *insn = (instruction *)insnPtr;
+
+   unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
+
+   // Now that the inferior has executed the 'restore' instruction, the %in and
+   // %local registers have been restored.  We mustn't modify them after this point!!
+   // (reminder: the %in and %local registers aren't saved and set with ptrace
+   //  GETREGS/SETREGS call)
+
+   // Trap instruction:
+   genBreakpointTrap(&insn[baseInstruc]); // ta 1
+   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+   baseInstruc++;
+
+   // And just to make sure that we don't continue from the trap:
+   genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
+
+   baseBytes = baseInstruc * sizeof(instruction); // convert back
+
+   return true; // success
+}
+
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base)
+                 unsigned &base, bool noCost)
 {
         instruction *insn = (instruction *) ((void*)&i[base]);
         int op3=-1;
@@ -1633,7 +1716,8 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
         return(0);
 }
 
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
+	      bool noCost)
 {
     // TODO cast
     instruction *insn = (instruction *) ((void*)&i[base]);
@@ -1641,12 +1725,18 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
     if (op == loadConstOp) {
       // dest = src1:imm    TODO
       if (src1 > MAX_IMM13 || src1 < MIN_IMM13) {
+            // src1 is out of range of imm13, so we need an extra instruction
 	    generateSetHi(insn, src1, dest);
 	    base += sizeof(instruction);
 	    insn++;
 
 	    // or regd,imm,regd
-	    genImmInsn(insn, ORop3, dest, LOW(src1), dest);
+
+            // Chance for optimization: we should check for LOW10(src1)==0, and
+            // if so, don't generate the following bitwise-or instruction, since
+            // in that case nothing would be done.
+
+	    genImmInsn(insn, ORop3, dest, LOW10(src1), dest);
 	    base += sizeof(instruction);
 	} else {
 	    // really or %g0,imm,regd
@@ -1659,7 +1749,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateSetHi(insn, src1, dest);
 	insn++;
 
-	generateLoad(insn, dest, src1, dest);
+	generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
     } else if (op ==  shiftOp) {
@@ -1669,10 +1759,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	insn->sethi.op = FMT2op;
 	insn->sethi.rd = src2;
 	insn->sethi.op2 = SETHIop2;
-	insn->sethi.imm22 = HIGH(dest);
+	insn->sethi.imm22 = HIGH22(dest);
 	insn++;
 
-	generateStore(insn, src1, src2, dest);
+	generateStore(insn, src1, src2, LOW10(dest));
 
 	base += sizeof(instruction)*2;
     } else if (op ==  ifOp) {
@@ -1704,42 +1794,44 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	}
 #endif
         // generate code to update the observed cost.
-	// sethi %hi(dest), %l0
-        generateSetHi(insn, dest, REG_L0);
-	base += sizeof(instruction);
-        insn++;
+	if (!noCost) {
+	   // sethi %hi(dest), %l0
+	   generateSetHi(insn, dest, REG_L0);
+	   base += sizeof(instruction);
+	   insn++;
   
-	// ld [%l0+ lo(dest)], %l1
-        generateLoad(insn, REG_L0, dest, REG_L1);
-	base += sizeof(instruction);
-        insn++;
+	   // ld [%l0+ lo(dest)], %l1
+	   generateLoad(insn, REG_L0, LOW10(dest), REG_L1);
+	   base += sizeof(instruction);
+	   insn++;
   
-        // update value
-	if (src1 <= MAX_IMM13) {
-	    genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
-	    base += sizeof(instruction);
-	    insn++;
-	} else {
-	    // load in two parts
-            generateSetHi(insn, src1, REG_L2);
-            base += sizeof(instruction);
-            insn++;
+	   // update value (src1 holds the cost, in cycles; e.g. 19)
+	   if (src1 <= MAX_IMM13) {
+	      genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
+	      base += sizeof(instruction);
+	      insn++;
+	   } else {
+	      // load in two parts
+	      generateSetHi(insn, src1, REG_L2);
+	      base += sizeof(instruction);
+	      insn++;
 
-            // or regd,imm,regd
-            genImmInsn(insn, ORop3, REG_L2, LOW(src1), REG_L2);
-            base += sizeof(instruction);
-            insn++;
+	      // or regd,imm,regd
+	      genImmInsn(insn, ORop3, REG_L2, LOW10(src1), REG_L2);
+	      base += sizeof(instruction);
+	      insn++;
 
-            // now add it
-            genSimpleInsn(insn, ADDop3, REG_L1, REG_L2, REG_L1);
-            base += sizeof(instruction);
-            insn++;
-	}
+	      // now add it
+	      genSimpleInsn(insn, ADDop3, REG_L1, REG_L2, REG_L1);
+	      base += sizeof(instruction);
+	      insn++;
+	   }
   
-        // store result st %l1, [%l0+ lo(dest)];
-        generateStore(insn, REG_L1, REG_L0, dest);
-	base += sizeof(instruction);
-	insn++;
+	   // store result st %l1, [%l0+ lo(dest)];
+	   generateStore(insn, REG_L1, REG_L0, LOW10(dest));
+	   base += sizeof(instruction);
+	   insn++;
+	} // if (!noCost)
     } else if (op ==  trampTrailer) {
 #ifdef ndef
         // save and restore are done inthe base tramp now
@@ -1750,6 +1842,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	  insn++;
 	}
 
+        // sequence: restore; nop; b,a back to base tramp; nop
+        // we can do better.  How about putting the restore in
+        // the delay slot of the branch instruction, as in:
+        // b <back to base tramp>; restore
         genSimpleInsn(insn, RESTOREop3, 0, 0, 0); 
 	base += sizeof(instruction);
 	insn++;
@@ -2004,7 +2100,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 /*
  * Find the instPoints of this function.
  */
-bool pdFunction::findInstPoints(image *owner) {
+bool pdFunction::findInstPoints(const image *owner) {
 
    if (size() == 0) {
      return false;
@@ -2702,17 +2798,10 @@ bool pdFunction::findNewInstPoints(const image *owner,
 bool pdFunction::relocateFunction(process *proc, instPoint *location,
 				 vector<instruction> &extra_instrs) {
 
-    unsigned ret;
-    process *globalProc;
-
-    if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
-        globalProc = nodePseudoProcess;
-    } else {
-        globalProc = proc;
-    }   
+    process *globalProc = proc;
 
     //Allocate the heap for the function to be relocated
-    ret = inferiorMalloc(globalProc, size()+32, textHeap);
+    int ret = inferiorMalloc(globalProc, size()+32, textHeap);
     newAddr = ret;
 
     findNewInstPoints(location->image_ptr, ret, proc, extra_instrs);
@@ -2726,12 +2815,10 @@ bool pdFunction::relocateFunction(process *proc, instPoint *location,
 // find all DYNINST symbols that are data symbols
 //
 bool image::heapIsOk(const vector<sym_data> &find_us) {
-  Address curr, instHeapEnd;
   Symbol sym;
-  string str;
 
   for (unsigned i=0; i<find_us.size(); i++) {
-    str = find_us[i].name;
+    const string &str = find_us[i].name;
     if (!linkedFile.get_symbol(str, sym)) {
       string str1 = string("_") + str.string_of();
       if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
@@ -2750,28 +2837,28 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     ghb = U_GLOBAL_HEAP_BASE;
     if (!linkedFile.get_symbol(ghb, sym)) {
       string msg;
-      msg = string("Cannot find ") + str + string(". Exiting");
+      msg = string("Cannot find ") + ghb + string(". Exiting");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
     }
   }
-  instHeapEnd = sym.addr();
+  Address instHeapEnd = sym.addr();
   addInternalSymbol(ghb, instHeapEnd);
-  ghb = INFERIOR_HEAP_BASE;
+  string ihb = INFERIOR_HEAP_BASE;
 
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = UINFERIOR_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
+  if (!linkedFile.get_symbol(ihb, sym)) {
+    ihb = UINFERIOR_HEAP_BASE;
+    if (!linkedFile.get_symbol(ihb, sym)) {
       string msg;
-      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      msg = string("Cannot find ") + ihb + string(". Cannot use this application");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
     }
   }
-  curr = sym.addr();
-  addInternalSymbol(ghb, curr);
+  Address curr = sym.addr();
+  addInternalSymbol(ihb, curr);
   if (curr > instHeapEnd) instHeapEnd = curr;
 
   // check that we can get to our heap.
@@ -2798,15 +2885,21 @@ bool registerSpace::readOnlyRegister(reg reg_number) {
 }
 
 bool returnInstance::checkReturnInstance(const Address adr) {
-    if ((adr > addr_) && ( adr <= addr_+size_))
-	return false;
-    else 
-	return true;
+    if ((adr > addr_) && ( adr <= addr_+size_)) {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
- 
+
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, 
 			 (caddr_t) instructionSeq); 
+}
+
+void generateBreakPoint(instruction &insn) {
+    insn.raw = BREAK_POINT_INSN;
 }
 
 void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
@@ -2826,10 +2919,6 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
     instW->relocatedInsnAddr = pc;
 
     instWList.add(instW, (void *)pc);
-}
-
-void generateBreakPoint(instruction &insn) {
-    insn.raw = BREAK_POINT_INSN;
 }
 
 bool doNotOverflow(int value)
