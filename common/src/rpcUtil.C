@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.60  1998/05/22 15:52:56  tamches
+ * fixed 2 purify FMM hits in execCommand
+ *
  * Revision 1.59  1998/03/01 03:24:43  ssuen
  * Stopped using obsolete -v option to paradynd
  *
@@ -902,10 +905,10 @@ int execCmd(const string command, const vector<string> &arg_list, int /*portFd*/
 
   al_len=0;
   while (new_al[al_len]) {
-    delete (new_al[al_len]);
+    free(new_al[al_len]);
     al_len++;
   }
-  delete(new_al);
+  delete [] new_al;
   return ret;
 #endif
 }
