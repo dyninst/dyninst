@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.9  1995/11/30 22:01:11  naim
+ * Revision 1.10  1995/12/15 14:40:52  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.9  1995/11/30  22:01:11  naim
  * Minor change to bucket_width metric - naim
  *
  * Revision 1.8  1995/11/30  16:53:51  naim
@@ -49,7 +52,7 @@ extern internalMetric *activeProcs;
 extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
-extern internalMetric *hybridPredictedCost;
+extern internalMetric *smooth_obs_cost;
 
 extern internalMetric *cpu_daemon;
 extern internalMetric *sys_daemon;

@@ -585,7 +585,7 @@ $remote dynRPC {
     //
     // Current best guess about the cost of instrumentation.
     //
-    double getCurrentHybridCost();
+    double getCurrentSmoothObsCost();
 
     //
     // Get the static configuration information.

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.60  1995/12/13 03:18:35  newhall
+ * Revision 1.61  1995/12/15 14:40:00  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.60  1995/12/13  03:18:35  newhall
  * changed some DM interface return values to const char*
  *
  * Revision 1.59  1995/12/11 02:25:08  newhall
@@ -987,9 +990,9 @@ float dataManager::getPredictedDataCost(resourceListHandle rl_handle,
     return(ret);
 }
 
-float dataManager::getCurrentHybridCost() 
+float dataManager::getCurrentSmoothObsCost() 
 {
-    return(paradynDaemon::currentHybridCost());
+    return(paradynDaemon::currentSmoothObsCost());
 }
 
 // caller provides array of sampleValue to be filled

@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.58  1995/12/13 03:17:44  newhall
+ * Revision 1.59  1995/12/15 14:38:48  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.58  1995/12/13  03:17:44  newhall
  * changed return values from string* to const char*
  *
  * Revision 1.57  1995/12/11 02:23:20  newhall
@@ -150,7 +153,7 @@
  * Revision 1.20  1994/07/02  01:45:22  markc
  * Removed aggregation operator from enableDataCollection call.
  * Remove aggregation operator definitions, which are provided by
- * util/h/aggregation.H
+ * util/h/aggregation.
  *
  * Revision 1.19  1994/06/28  00:15:45  rbi
  * Increment of version numbers
@@ -551,7 +554,7 @@ $remote dataManager {
     //
     // Current best guess of the cost of inst in the system.
     //
-    float getCurrentHybridCost();
+    float getCurrentSmoothObsCost();
 
     // 
     // Histogram/timebase information

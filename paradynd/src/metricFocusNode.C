@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.61  1995/11/30 16:55:04  naim
+ * Revision 1.62  1995/12/15 14:40:54  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.61  1995/11/30  16:55:04  naim
  * Fixing bug related to SampledFunction for internal metrics - naim
  *
  * Revision 1.60  1995/11/29  00:27:42  tamches
@@ -324,7 +327,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "showerror.h"
 
 double currentPredictedCost = 0.0;
-double currentHybridValue= 0.0;
+double currentSmoothObsValue= 0.0;
 
 dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
 
@@ -758,23 +761,23 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 	(s->obsCostIdeal - proc->theCost.lastObservedCost);
     if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist = 0;
 
-    // now compute current value of hybrid;
-    for (i=0, proc->theCost.hybrid = 0.0; i < HIST_LIMIT; i++) {
-	proc->theCost.hybrid += proc->theCost.past[i];
+    // now compute current value of "smooth cost";
+    for (i=0, proc->theCost.smoothObsCost = 0.0; i < HIST_LIMIT; i++) {
+	proc->theCost.smoothObsCost += proc->theCost.past[i];
     }
-    proc->theCost.hybrid /= HIST_LIMIT;
+    proc->theCost.smoothObsCost /= HIST_LIMIT;
 
     proc->theCost.lastObservedCost = s->obsCostIdeal;
 
-    currentHybridValue = 0.0;
+    currentSmoothObsValue = 0.0;
 
     unsigned size = processVec.size();
     for (unsigned u=0; u<size; u++) {
-      if (processVec[u]->theCost.hybrid > currentHybridValue) {
-	currentHybridValue = processVec[u]->theCost.hybrid;
+      if (processVec[u]->theCost.smoothObsCost > currentSmoothObsValue) {
+	currentSmoothObsValue = processVec[u]->theCost.smoothObsCost;
       }
     }
-    hybridPredictedCost->value = currentHybridValue;
+    smooth_obs_cost->value = currentSmoothObsValue;
 
     //
     // update total predicted cost.

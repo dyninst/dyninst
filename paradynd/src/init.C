@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.17  1995/11/30 23:09:03  naim
+ * Revision 1.18  1995/12/15 14:40:51  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.17  1995/11/30  23:09:03  naim
  * Changed the units of bucket_width - naim
  *
  * Revision 1.16  1995/11/30  22:01:10  naim
@@ -75,7 +78,7 @@ extern pdRPC *tp;
 internalMetric *activeProcs = NULL;
 internalMetric *pauseTime = NULL;
 internalMetric *totalPredictedCost= NULL;
-internalMetric *hybridPredictedCost = NULL;
+internalMetric *smooth_obs_cost = NULL;
 internalMetric *observed_cost = NULL;
 
 internalMetric *cpu_daemon = NULL;
@@ -151,14 +154,14 @@ bool init() {
 							 false, 
 							 true);
 
-  hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
-							  SampledFunction,
-							  aggMax,
-							  "CPUs",
-							  NULL,
-							  default_im_preds,
-							  true,
-							  true);
+  smooth_obs_cost = internalMetric::newInternalMetric("smooth_obs_cost", 
+						      SampledFunction,
+						      aggMax,
+						      "CPUs",
+						      NULL,
+						      default_im_preds,
+						      true,
+						      true);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,

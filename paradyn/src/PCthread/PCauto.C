@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.23  1995/10/05 04:38:40  karavan
+ * Revision 1.24  1995/12/15 14:40:16  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.23  1995/10/05  04:38:40  karavan
  * changed igen calls to accommodate new PC|UI interface.
  *
  * Revision 1.22  1995/06/02  20:50:04  newhall
@@ -311,7 +314,7 @@ void autoChangeRefineList()
        cout << "TRYING: " << endl;
 
 //** why??    UIM_BatchMode++;
-    totalCost = dataMgr->getCurrentHybridCost();
+    totalCost = dataMgr->getCurrentSmoothObsCost();
 
     if (currentRefinementBase) {
 	// some number of tests just expired.

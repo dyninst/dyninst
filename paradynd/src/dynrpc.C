@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.27  1995/12/05 15:59:02  naim
+ * Revision 1.28  1995/12/15 14:40:49  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.27  1995/12/05  15:59:02  naim
  * Fixing bucket_width metric - naim
  *
  * Revision 1.26  1995/11/30  22:01:08  naim
@@ -205,10 +208,10 @@ double dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
     return (guessCost(metName, focus));
 }
 
-double dynRPC::getCurrentHybridCost(void)
+double dynRPC::getCurrentSmoothObsCost(void)
 {
     statusLine("returning cost measurements");
-    return(currentHybridValue);
+    return(currentSmoothObsValue);
 }
 
 void dynRPC::disableDataCollection(int mid)

@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.21  1995/11/29 18:45:23  krisna
+ * Revision 1.22  1995/12/15 14:40:57  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.21  1995/11/29  18:45:23  krisna
  * added inlines for compiler. added templates
  *
  * Revision 1.20  1995/08/24 15:04:20  hollings
@@ -296,7 +299,7 @@ extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 //
 timeStamp getCurrentTime(bool firstRecordRelative);
 
-extern double currentHybridValue;
+extern double currentSmoothObsValue;
 extern double currentPredictedCost;
 extern void processCost(process *proc, traceHeader *h, costUpdate *s);
 extern void reportInternalMetrics();

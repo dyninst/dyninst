@@ -176,7 +176,7 @@ class paradynDaemon: public dynRPCUser {
         static bool applicationDefined(){return(programs.size() != 0);}
 	static vector<string> *getAvailableDaemons();
 	static float predictedDataCost(resourceList*, metric*);
-	static float currentHybridCost();
+	static float currentSmoothObsCost();
 
     private:
         bool   dead;	// has there been an error on the link.

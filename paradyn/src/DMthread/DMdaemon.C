@@ -536,13 +536,13 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
     return(max);
 }
 
-float paradynDaemon::currentHybridCost()
+float paradynDaemon::currentSmoothObsCost()
 {
     double val, max = 0.0;
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        val = pd->getCurrentHybridCost();
+        val = pd->getCurrentSmoothObsCost();
         if (val > max) max = val;
     }
     return(max);

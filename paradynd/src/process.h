@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.25  1995/11/29 18:45:24  krisna
+ * Revision 1.26  1995/12/15 14:40:58  naim
+ * Changing "hybrid_cost" by "smooth_obs_cost" - naim
+ *
+ * Revision 1.25  1995/11/29  18:45:24  krisna
  * added inlines for compiler. added templates
  *
  * Revision 1.24  1995/10/26 21:07:09  tamches
@@ -166,13 +169,13 @@ class costC {
  public:
     costC() {
       currentHist=0; lastObservedCost = 0.0; totalPredictedCost=0.0;
-      currentPredictedCost=0.0; timeLastTrampSample = 0; hybrid = 0.0;
+      currentPredictedCost=0.0; timeLastTrampSample = 0; smoothObsCost = 0.0;
       wallTimeLastTrampSample = 0;
       int i;
       for (i=0; i<HIST_LIMIT; ++i)
 	past[i] = 0.0;
     }
-    float hybrid;
+    float smoothObsCost;
     int currentHist;
     float lastObservedCost;
     float past[HIST_LIMIT];
