@@ -1,6 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.43  1995/11/06 02:56:07  tamches
+# removed ugly borderwidth for .parent.menub, .parent.status, and
+# .parent.buttons
+# removed .parent.where, which no longer exists
+#
 # Revision 1.42  1995/11/03 21:19:22  naim
 # Changing exit option - naim
 #
@@ -239,12 +244,13 @@ proc drawToolBar {} {
     wm resizable . 1 0
 
     frame .parent 
-    frame .parent.menub -relief raised -borderwidth 2
-    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 
-    frame .parent.status  -relief raised -borderwidth 4
+#    frame .parent.menub -relief raised -borderwidth 2
+    frame .parent.menub -relief raised
+#    frame .parent.status  -relief raised -borderwidth 4
+    frame .parent.status
     frame .parent.main
-    frame .parent.buttons -relief raised -borderwidth 4 \
-	    -height 20
+#    frame .parent.buttons -relief raised -borderwidth 4 -height 20
+    frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
 	    {EXIT "paradyn exit"}}
@@ -257,7 +263,7 @@ proc drawToolBar {} {
     frame .parent.menub.left
     label .parent.menub.left.title -text "Paradyn Main Control" \
           -font *-New*Century*Schoolbook-Bold-R-*-14-* \
-          -relief raised -background #b3331e1b53c7 -foreground white
+          -relief raised -background #b3331e1b53c7 -foreground white -anchor c
 
     frame .parent.menub.left.men -class TopMenu -borderwidth 2 -relief raised
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
@@ -286,10 +292,10 @@ proc drawToolBar {} {
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
 	    -command {set shgHack 1; shgInitialize}
 #	    -command {paradyn shg start global}
-    .parent.menub.left.men.b1.m add command -label "Tunable Constants Control" \
+    .parent.menub.left.men.b1.m add command -label "Tunable Constants" \
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Where Axis" \
-	    -command {wm deiconify .whereAxis}
+	    -command {wm deiconify .whereAxis; raise .whereAxis}
     .parent.menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
 #
@@ -329,12 +335,13 @@ proc drawToolBar {} {
     pack .parent.menub.left -side left -fill both -expand 1
     mkLogo .parent.menub.logobox right
 
-    pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
+#    pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
+    pack .parent.menub.left.title -side top -fill both -expand true
+    pack .parent.menub.left.men -side top -fill x -expand false
 
     pack .parent.menub -side top -fill x -expand 0
     pack .parent.buttons -side bottom -fill x -expand 0
     pack .parent.status -side bottom -fill x -expand 0
-    pack .parent.where -side top -fill both -expand 1
 
     pack .parent -fill both -expand 1
 
