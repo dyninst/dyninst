@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.88 2000/10/17 17:27:54 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.89 2001/04/05 18:36:25 wxd Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1237,7 +1237,7 @@ int first = 0;
 	    numChars = 0;
 	  }
 	  else {
-	    newword[num] = ',';
+	    newword[num] = '.';
 	    num++;
 	  }
       }
