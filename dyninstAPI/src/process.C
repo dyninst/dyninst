@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.156 1998/08/26 21:01:17 zhichen Exp $
+// $Id: process.C,v 1.157 1998/08/28 02:40:34 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3467,6 +3467,8 @@ void process::installBootstrapInst() {
    the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
+   removeAst(the_args[0]) ;
+   removeAst(the_args[1]) ;
 #else
    vector<AstNode *> the_args(3);
 
