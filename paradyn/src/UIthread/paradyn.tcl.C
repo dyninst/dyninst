@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.69  1996/04/30 18:56:32  newhall
-/* changes to support the asynchrounous enable data calls to the DM
-/* this code contains a kludge to make the UI wait for the DM's async response
+/* Revision 1.70  1996/05/01 02:05:36  newhall
+/* *** empty log message ***
 /*
+ * Revision 1.69  1996/04/30  18:56:32  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the UI wait for the DM's async response
+ *
  * Revision 1.68  1996/02/21  18:17:13  tamches
  * ParadynPauseCmd and ParadynContCmd disable related tk buttons _before_
  * making the dataMgr igen call.  No bool reentrancy protection flag used
@@ -1055,7 +1058,7 @@ int ParadynExitCmd (ClientData,
 		    Tcl_Interp *,
 		    int, char **)
 {
-  exit(1);
+  exit(0);
 }
 
 static struct cmdTabEntry Pd_Cmds[] = {
