@@ -2,6 +2,10 @@
 
 /*
  * $Log: DictionaryLite.h,v $
+ * Revision 1.3  1995/12/26 19:57:05  tamches
+ * made (empty) destructor inline.
+ * removed unused member function clear()
+ *
  * Revision 1.2  1995/12/16 00:23:37  tamches
  * removed keys() member function which in turn removes the need for vector<KEY>
  * template instantiation.
@@ -25,6 +29,7 @@
  * example: no keys() or values() members anymore so no need for vector<K>
  *             or for vector<V> to be instantiated.
  *             (this is still being worked on; so far, values() is needed in TC)
+ * example: no map(), app, revapp() etc. fluff member functions anymore
 ************************************************************************/
 
 #if defined(external_templates)
@@ -59,14 +64,14 @@ public:
     DO_INLINE_F  dictionary_lite (unsigned (*)(const K &));
     DO_INLINE_F  dictionary_lite (unsigned (*)(const K &), unsigned);
     DO_INLINE_F  dictionary_lite (const dictionary_lite<K,V> &);
-    DO_INLINE_F ~dictionary_lite ();
+    DO_INLINE_F ~dictionary_lite () {}
 
     DO_INLINE_F dictionary_lite<K,V>&  operator= (const dictionary_lite<K,V> &);
     DO_INLINE_F unsigned                    size ()                       const;
     DO_INLINE_F V&                    operator[] (const K &);
     DO_INLINE_F bool                     defines (const K &)              const;
     DO_INLINE_F void                       undef (const K &);
-    DO_INLINE_F void                       clear ();
+//    DO_INLINE_F void                       clear ();
 //    DO_INLINE_F vector<K>                   keys ()                       const;
     DO_INLINE_F vector<V>                 values ()                       const;
 
@@ -92,18 +97,6 @@ private:
           return (hash_ == other.hash_ && key == other.key && value == other.value);
        }
     };
-//    struct hash_pair : public pair<K,V> {
-//        unsigned hash_;
-//
-//        hash_pair()                                   : pair<K,V>(),    hash_(0) {}
-//        hash_pair(const K& k, unsigned h)             : pair<K,V>(k),   hash_(h) {}
-//        hash_pair(const K& k, unsigned h, const V& v) : pair<K,V>(k,v), hash_(h) {}
-//
-//	unsigned operator==(const hash_pair& p) const {
-//	  return ((hash_ == p.hash_) && pair<K,V>::operator==(p));
-//	  // ((*((pair<K,V> *) ((void*)this))) == p));
-//	}
-//    };
     typedef vector<hash_pair> hash_chain;
 
     unsigned           (*hashf_)(const K &);

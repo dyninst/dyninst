@@ -2,6 +2,10 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.3  1995/12/26 19:57:17  tamches
+ * made (empty) destructor inline.
+ * removed unused member function clear()
+ *
  * Revision 1.2  1995/12/16 00:24:12  tamches
  * commented out keys()
  *
@@ -43,11 +47,6 @@ dictionary_lite<K,V>::dictionary_lite(const dictionary_lite<K,V>& d)
     : hashf_(d.hashf_), data_(d.data_), chain_size_(d.chain_size_),
     nbuckets_(d.nbuckets_), llevel_(d.llevel_), glevel_(d.glevel_),
     next_(d.next_) {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_lite<K,V>::~dictionary_lite() {
 }
 
 template<class K, class V>
@@ -109,14 +108,14 @@ dictionary_lite<K,V>::undef(const K& key) {
     }
 }
 
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_lite<K,V>::clear() {
-    for (unsigned i = 0; i < data_.size(); i++) {
-        data_[i].resize(0);
-    }
-}
+//template<class K, class V>
+//DO_INLINE_F
+//void
+//dictionary_lite<K,V>::clear() {
+//    for (unsigned i = 0; i < data_.size(); i++) {
+//        data_[i].resize(0);
+//    }
+//}
 
 //template<class K, class V>
 //DO_INLINE_F
@@ -184,7 +183,8 @@ template<class K, class V>
 DO_INLINE_P
 V&
 dictionary_lite<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
-    ((dictionary_lite<K,V> *) this)->data_[chain] += hash_pair(key, hash);
+//    ((dictionary_lite<K,V> *) this)->data_[chain] += hash_pair(key, hash);
+    data_[chain] += hash_pair(key, hash);
     unsigned i      = data_[chain].size()-1;
     unsigned nchain = chain;
 
