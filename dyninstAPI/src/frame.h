@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.8 2003/04/14 16:00:21 jodom Exp $
+// $Id: frame.h,v 1.9 2003/05/30 21:32:33 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -119,8 +119,15 @@ class Frame {
 
   // check for zero frame
   bool isLastFrame() const { 
-    if (pc_ == 0) return true;
+      // AIX MT: we see 0 PCs in the middle of a stack walk, which
+      // confuses us. This is a side effect of the syscall trap code,
+      // and will be REMOVED when /proc is available.
+#if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
     if (fp_ == 0) return true;
+#else
+    if (fp_ == 0) return true;
+    if (pc_ == 0) return true;
+#endif
     return false;
   }
   
