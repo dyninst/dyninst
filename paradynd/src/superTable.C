@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.2 1998/12/25 23:33:38 wylie Exp $
+// $Id: superTable.C,v 1.3 1999/01/21 20:57:24 wylie Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -201,6 +201,7 @@ void *superTable::index2LocalAddr(unsigned type,
     default:
       assert(0);
   }  
+  return ((void*)0);
 }
 
 void *superTable::index2InferiorAddr(unsigned type, 
@@ -224,6 +225,7 @@ void *superTable::index2InferiorAddr(unsigned type,
     default:
       assert(0);
   }  
+  return ((void*)0);
 }
 
 void superTable::makePendingFree(unsigned type,
