@@ -43,46 +43,7 @@
  * Igen derived class.  Used to provide virtual functions to replace the
  * defaults.
  * 
- * $Log: comm.h,v $
- * Revision 1.10  1999/03/03 18:01:08  pcroth
- * Updated to support changes in igen output,
- * Updated to support automatic startup from Paradyn front end
- *
- * Revision 1.9  1997/05/17 19:59:30  lzheng
- * Changes made for nonblocking write
- *
- * Revision 1.8  1996/10/31 08:37:14  tamches
- * removed a warning
- *
- * Revision 1.7  1996/08/16 21:18:20  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.6  1996/05/31 23:54:05  tamches
- * added alterSendSocketBufferSize
- *
- * Revision 1.5  1995/02/16 08:53:02  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.4  1995/02/16  08:32:55  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.3  1995/01/26  18:11:52  jcargill
- * Updated igen-generated includes to new naming convention
- *
- * Revision 1.2  1994/08/17  18:03:41  markc
- * Changed variable names to remove compiler warnings.
- *
- * Revision 1.1  1994/06/02  23:26:55  markc
- * Files to implement error handling for igen generated class.
- *
- *
+ * $Id: comm.h,v 1.11 2003/06/19 18:46:09 pcroth Exp $
  */
 
 #ifndef _COMM_H_IGEN_
@@ -128,6 +89,12 @@ public:
 #endif     
   }
 
+  virtual void send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs );
+  void send_metrics( pdvector<T_dyninstRPC::mdl_metric*>* mv );
+  void send_constraints( pdvector<T_dyninstRPC::mdl_constraint*>* cv );
+  void send_stmts( pdvector<T_dyninstRPC::mdl_stmt*>* sv );
+  void send_libs( pdvector<string>* libs );
+  void send_no_libs( void );
 };
 
 #endif

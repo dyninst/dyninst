@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.62 2003/06/09 21:47:14 pcroth Exp $
+// $Id: DMresource.C,v 1.63 2003/06/19 18:46:08 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +52,7 @@
 #include "paradyn/src/met/metricExt.h"
 #include "paradyn/src/DMthread/MagnifyManager.h"
 #include "paradyn/src/DMthread/DMperfstream.h"
-#include "mdl/h/mdlParse.h"
+#include "pdutil/h/mdlParse.h"
 // Generate a new resource handle. The daemons generate resources id's (handles)
 // in the range 0..INT_MAX. If there are conflicts between the handles generated
 // by two daemons, paradyn generates a new id in the range INT_MAX..UINT_MAX

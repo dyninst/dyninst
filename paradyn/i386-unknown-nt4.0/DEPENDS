@@ -236,7 +236,7 @@ VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
  performanceConsultant.thread.CLNT.h VISIthread.thread.CLNT.h \
  VISIthread.thread.h ../src/VMthread/VMtypes.h dyninstRPC.xdr.CLNT.h \
  ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
- VM.thread.CLNT.h ../../mdl/h/mdlParse.h \
+ VM.thread.CLNT.h ../../pdutil/h/mdlParse.h \
  ../../common/h/machineType.h ../../paradyn/src/met/globals.h
 VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
@@ -895,7 +895,7 @@ tunableConst.obj: ../src/TCthread/tunableConst.C \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h
-metMain.obj: ../src/met/metMain.C ../../mdl/h/mdlParse.h \
+metMain.obj: ../src/met/metMain.C ../../pdutil/h/mdlParse.h \
  ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
@@ -931,7 +931,7 @@ templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../common/h/String.h \
  ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
- ../../paradyn/src/met/mdl.h visi.xdr.h ../../mdl/h/mdlParse.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h ../../pdutil/h/mdlParse.h \
  ../../common/h/machineType.h ../../paradyn/src/met/globals.h
 templatesDM.obj: ../src/templatesDM.C ../../common/h/list.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \

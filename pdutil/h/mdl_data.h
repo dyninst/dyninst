@@ -46,37 +46,127 @@
 
 
 #include "dyninstRPC.xdr.h"
+#include "pdutil/h/mdl.h"
+
+inline unsigned int ui_hash( const unsigned int &u) { return u; }
+
 
 class mdl_data {
 public:
-  static dictionary_hash<unsigned, pdvector<mdl_type_desc> > fields;
-  static pdvector<mdl_focus_element> foci;
-  static pdvector<T_dyninstRPC::mdl_stmt*> stmts;
-  static pdvector<T_dyninstRPC::mdl_constraint*> all_constraints;
-  static pdvector<string> lib_constraints;
-  static pdvector<unsigned> lib_constraint_flags;
-
-  static T_dyninstRPC::mdl_constraint *new_constraint(string id, pdvector<string> *path,
-					       pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
-					       bool replace, u_int data_type);
-
-  static pdvector<T_dyninstRPC::mdl_metric*> all_metrics;
-  static bool new_metric(string id, string name, string units,
-			 u_int agg, u_int style, u_int type, string hwcntr, 
-			 pdvector<T_dyninstRPC::mdl_stmt*> *stmts, 
-			 pdvector<string> *flavs,
-			 pdvector<T_dyninstRPC::mdl_constraint*> *cons,
-		 pdvector<string> *temp_counters,
-			 bool developerMode,
-			 int normalized);
+  dictionary_hash<unsigned, pdvector<mdl_type_desc> > fields;
+  pdvector<mdl_focus_element> foci;
+  pdvector<T_dyninstRPC::mdl_stmt*> stmts;
+  pdvector<T_dyninstRPC::mdl_constraint*> all_constraints;
+  pdvector<string> lib_constraints;
+  pdvector<unsigned> lib_constraint_flags;
+  pdvector<T_dyninstRPC::mdl_metric*> all_metrics;
+  mdl_env* env;
 
 
-  // unique_name: prepares for the declaration of a new mdl object,
-  // by deleting all objects previously declared that have the same
-  // name.
-  static void unique_name(string name);
+    mdl_data( void )
+    : fields( ui_hash ),
+      env( new mdl_env )
+    { }
+
+    virtual ~mdl_data( void )
+    {
+        delete env;
+        env = NULL;
+    }
 
 
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( int int_literal );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string a_str,
+                                                    bool is_literal );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( T_dyninstRPC::mdl_expr* expr,
+                                             pdvector<string> fields );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string func_name,
+                                     pdvector<T_dyninstRPC::mdl_expr*>* args );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int bin_op,
+                                             T_dyninstRPC::mdl_expr* left,
+                                             T_dyninstRPC::mdl_expr* right );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string var,
+                                            u_int assign_op,
+                                            T_dyninstRPC::mdl_expr* expr );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int u_op,
+                                            T_dyninstRPC::mdl_expr* expr,
+                                            bool is_preop );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string var,
+                                        T_dyninstRPC::mdl_expr* index_expr );
+#if READY
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int type,
+                                        int intLiteral,
+                                        string strLiteral,
+                                        string var,
+                                        u_int binOp,
+                                        u_int unOp,
+                                        T_dyninstRPC::mdl_expr* leftExpr,
+                                        T_dyninstRPC::mdl_expr* rightExpr,
+                                        pdvector<T_dyninstRPC::mdl_expr*>* args,
+                                        const pdvector<string>& fields,
+                                        const pdvector<u_int>& type_walk,
+                                        bool useTypeWalk,
+                                        bool isOK );
+#endif // READY
+
+    virtual T_dyninstRPC::mdl_icode* new_icode( T_dyninstRPC::mdl_expr* if_expr,
+                                        T_dyninstRPC::mdl_expr* expr );
+
+    virtual T_dyninstRPC::mdl_list_stmt* new_list_stmt( u_int type,
+                                                string ident,
+                                                pdvector<string>* elems,
+                                                bool is_lib,
+                                                pdvector<string>* flavor );
+
+    virtual T_dyninstRPC::mdl_for_stmt* new_for_stmt( string index_name,
+                                            T_dyninstRPC::mdl_expr* list_exp,
+                                            T_dyninstRPC::mdl_stmt* body );
+
+
+    virtual T_dyninstRPC::mdl_if_stmt* new_if_stmt(
+                                            T_dyninstRPC::mdl_expr* expr,
+                                            T_dyninstRPC::mdl_stmt* body );
+
+    virtual T_dyninstRPC::mdl_seq_stmt* new_seq_stmt( 
+                                    pdvector<T_dyninstRPC::mdl_stmt*>* stmts );
+
+    virtual T_dyninstRPC::mdl_instr_stmt* new_instr_stmt( u_int pos,
+                                    T_dyninstRPC::mdl_expr* point_expr,
+                                    pdvector<T_dyninstRPC::mdl_icode*>* i_reqs,
+                                    unsigned where_instr,
+                                    bool constrained );
+
+
+    virtual T_dyninstRPC::mdl_constraint* new_constraint(
+                            string id,
+                            pdvector<string>* path,
+                            pdvector<T_dyninstRPC::mdl_stmt*>* stmts,
+                            bool replace,
+                            u_int data_type);
+
+    virtual bool new_metric(string id,
+                        string name,
+                        string units,
+			            u_int agg,
+                        u_int style,
+                        u_int type,
+                        string hwcntr, 
+			            pdvector<T_dyninstRPC::mdl_stmt*>* stmts, 
+			            pdvector<string>* flavs,
+			            pdvector<T_dyninstRPC::mdl_constraint*>* cons,
+		                pdvector<string>* temp_counters,
+			            bool developerMode,
+			            int normalized);
+
+
+
+
+    // unique_name: prepares for the declaration of a new mdl object,
+    // by deleting all objects previously declared that have the same
+    // name.
+    void unique_name(string name);
+
+    static mdl_data* cur_mdl_data;
 };
 
 

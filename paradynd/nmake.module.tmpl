@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.29 2003/06/18 20:31:59 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.30 2003/06/19 18:46:09 pcroth Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -148,7 +148,7 @@ OBJS	= $(OBJS) \
 !endif
 
 
-LIBS		= $(LIBS) libmdl.lib libpdutil.lib
+LIBS		= $(LIBS) libpdutil.lib
 
 SYSLIBS		= $(SYSLIBS) oncrpc.lib wsock32.lib dbghelp.lib
 

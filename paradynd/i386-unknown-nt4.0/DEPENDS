@@ -676,7 +676,7 @@ metricFocusNode.obj: ../src/metricFocusNode.C ../../common/h/headers.h \
  ../../paradynd/src/pd_thread.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../pdutil/h/pdDebugOstream.h ../../common/h/timing.h \
- ../../mdl/h/mdl_data.h ../../paradynd/src/processMgr.h \
+ ../../pdutil/h/mdl_data.h ../../paradynd/src/processMgr.h \
  ../../paradynd/src/pd_process.h ../../paradynd/src/threadMgr.h \
  ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h
 machineMetFocusNode.obj: ../src/machineMetFocusNode.C \
@@ -1239,7 +1239,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../common/h/language.h ../../pdutil/h/ByteArray.h \
  ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
  ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h \
- ../../mdl/h/mdl_data.h \
+ ../../pdutil/h/mdl_data.h \
  ../../paradynd/src/machineMetFocusNode.h \
  ../../paradynd/src/metricFocusNode.h \
  ../../pdutil/h/sampleAggregator.h ../../common/h/Time.h \

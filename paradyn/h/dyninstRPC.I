@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.108 2003/06/17 17:54:49 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.109 2003/06/19 18:46:07 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
 #include "common/h/Types.h"
-#include "mdl/h/mdl.h"
+#include "pdutil/h/mdl.h"
 
 $remote
 struct batch_buffer_entry {
@@ -536,7 +536,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 61;
+    $version 62;
 
     //
     // Define a program to run. 
@@ -874,13 +874,7 @@ $remote dynRPC {
    void printStats();
 
    // MDL methods
-   $async void send_mdl( pdvector<rawMDL> );
-
-   $async void send_metrics(pdvector<mdl_metric*> *);
-   $async void send_constraints(pdvector<mdl_constraint*>*);
-   $async void send_stmts(pdvector<mdl_stmt*> *);
-   $async void send_libs(pdvector<string>*);
-   $async void send_no_libs();
+   $virtual $async void send_mdl( pdvector<rawMDL> );
 
    // get the current wall clock time of the daemon to adjust for clock differences
    double getTime();

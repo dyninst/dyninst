@@ -41,6 +41,11 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.13  2003/06/19 18:46:08  pcroth
+ * Moves shared MDL parser back into the pdutil library.  Separate
+ * MDL library is no longer needed to avoid link problems with other
+ * components that use pdutil but not MDL parser (e.g., visis and termWin).
+ *
  * Revision 1.12  2002/12/20 07:50:06  jaw
  * This commit fully changes the class name of "vector" to "pdvector".
  *
@@ -107,11 +112,7 @@
 #include "dyninstRPC.xdr.CLNT.h"
 
 extern bool metMain(string &file);
-extern bool mdl_init();
-extern bool mdl_send(dynRPCUser *du);
 extern void mdl_destroy();
-extern bool mdl_apply();
-extern bool mdl_check_node_constraints();
 
 extern bool mdl_get_lib_constraints(pdvector<string> &, pdvector<unsigned> &);
 

@@ -42,7 +42,7 @@
 #ifndef _MDLD_DATA_H
 #define _MDLD_DATA_H
 
-#include "mdl/h/mdl_data.h"
+#include "pdutil/h/mdl_data.h"
 
 
 class mdld_data : public mdl_data

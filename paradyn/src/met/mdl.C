@@ -39,29 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.58 2003/06/17 17:54:50 pcroth Exp $
+// $Id: mdl.C,v 1.59 2003/06/19 18:46:08 pcroth Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
 #include "paradyn/src/met/metricExt.h"
-#include "mdl/h/mdl.h"
+#include "pdutil/h/mdl.h"
 
 #include <iostream.h>
-
-
-bool mdl_send(dynRPCUser *remote) {
-  remote->send_stmts(&(mdl_data::cur_mdl_data->stmts));
-  remote->send_constraints(&(mdl_data::cur_mdl_data->all_constraints));
-  remote->send_metrics(&(mdl_data::cur_mdl_data->all_metrics));
-  if(mdl_data::cur_mdl_data->lib_constraints.size()){
-      remote->send_libs(&(mdl_data::cur_mdl_data->lib_constraints));
-  }
-  else {
-      remote->send_no_libs();
-  }
-
-  return true;
-}
 
 
 bool mdl_get_lib_constraints(pdvector<string> &lc, pdvector<unsigned> &lcf){

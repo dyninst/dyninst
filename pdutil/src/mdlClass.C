@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlClass.C,v 1.1 2003/06/07 12:39:44 pcroth Exp $
+// $Id: mdlClass.C,v 1.2 2003/06/19 18:46:14 pcroth Exp $
 
 // Implements classes used for metric description language
 

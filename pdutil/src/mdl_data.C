@@ -39,65 +39,223 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //
-// $Id: mdl_data.C,v 1.1 2003/06/07 12:39:45 pcroth Exp $
+// $Id: mdl_data.C,v 1.2 2003/06/19 18:46:14 pcroth Exp $
 //
 #include "pdutil/h/mdl_data.h"
 
-inline unsigned ui_hash(const unsigned &u) { return u; }
 
-// static members of mdl_env
-pdvector<mdl_env::Frame> mdl_env::frames;
-pdvector<mdl_var> mdl_env::all_vars;
-string mdl_env::savedMsg;
-
-// static members of mdl_data
-pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
-pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
-dictionary_hash<unsigned, pdvector<mdl_type_desc> > mdl_data::fields(ui_hash);
-pdvector<mdl_focus_element> mdl_data::foci;
-pdvector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
-pdvector<string> mdl_data::lib_constraints;
-pdvector<unsigned int> mdl_data::lib_constraint_flags;
+// The "current" mdl_data object
+// relies on the fact that Paradyn only accesses one set of MDL 
+// objects (front-end or back-end) at any time.
+//
+mdl_data* mdl_data::cur_mdl_data = NULL;
 
 
 void mdl_data::unique_name(string name) {
   unsigned u, v;
     
-  unsigned sz = mdl_data::stmts.size();
+  unsigned sz = stmts.size();
   for (u = 0; u < sz; u++) {
-    T_dyninstRPC::mdl_list_stmt *lstmt = (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
+    T_dyninstRPC::mdl_list_stmt *lstmt = dynamic_cast<T_dyninstRPC::mdl_list_stmt*>( stmts[u] );
     if (lstmt->id_ == name) {
-      delete mdl_data::stmts[u];
+      delete stmts[u];
       for (v = u; v < sz-1; v++) {
-    mdl_data::stmts[v] = mdl_data::stmts[v+1];
+        stmts[v] = stmts[v+1];
       }
-      mdl_data::stmts.resize(sz-1);
+      stmts.resize(sz-1);
       break;
     }
   }
 
-  sz = mdl_data::all_constraints.size();
+  sz = all_constraints.size();
   for (u = 0; u < sz; u++) {
-    if (mdl_data::all_constraints[u]->id_ == name) {
-      delete mdl_data::all_constraints[u];
+    if (all_constraints[u]->id_ == name) {
+      delete all_constraints[u];
       for (v = u; v < sz-1; v++) {
-    mdl_data::all_constraints[v] = mdl_data::all_constraints[v+1];
+    all_constraints[v] = all_constraints[v+1];
       }
-      mdl_data::all_constraints.resize(sz-1);
+      all_constraints.resize(sz-1);
       break;
     }
   }
 
-  sz = mdl_data::all_metrics.size();
+  sz = all_metrics.size();
   for (u = 0; u < sz; u++) {
-    if (mdl_data::all_metrics[u]->id_ == name) {
-      delete mdl_data::all_metrics[u];
+    if (all_metrics[u]->id_ == name) {
+      delete all_metrics[u];
       for (v = u; v < sz-1; v++) {
-        mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
+        all_metrics[v] = all_metrics[v+1];
       }
-      mdl_data::all_metrics.resize(sz-1);
+      all_metrics.resize(sz-1);
       break;
     }
   }
 }
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( int int_literal )
+{
+    return new T_dyninstRPC::mdl_v_expr( int_literal );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( string a_str, bool is_literal )
+{
+    return new T_dyninstRPC::mdl_v_expr( a_str, is_literal );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( T_dyninstRPC::mdl_expr* expr, pdvector<string> fields )
+{
+    return new T_dyninstRPC::mdl_v_expr( expr, fields );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( string func_name,
+                        pdvector<T_dyninstRPC::mdl_expr*>* args )
+{
+    return new T_dyninstRPC::mdl_v_expr( func_name, args );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( u_int bin_op,
+                        T_dyninstRPC::mdl_expr* left,
+                        T_dyninstRPC::mdl_expr* right )
+{
+    return new T_dyninstRPC::mdl_v_expr( bin_op, left, right );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( string var,
+                        u_int assign_op,
+                        T_dyninstRPC::mdl_expr* expr )
+{
+    return new T_dyninstRPC::mdl_v_expr( var, assign_op, expr );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( u_int u_op,
+                        T_dyninstRPC::mdl_expr* expr,
+                        bool is_preop )
+{
+    return new T_dyninstRPC::mdl_v_expr( u_op, expr, is_preop );
+}
+
+
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( string var, T_dyninstRPC::mdl_expr* index_expr )
+{
+    return new T_dyninstRPC::mdl_v_expr( var, index_expr );
+}
+
+
+#if READY
+T_dyninstRPC::mdl_v_expr*
+mdl_data::new_v_expr( u_int type,
+                        int intLiteral,
+                        string strLiteral,
+                        string var,
+                        u_int binOp,
+                        u_int unOp,
+                        T_dyninstRPC::mdl_expr* leftExpr,
+                        T_dyninstRPC::mdl_expr* rightExpr,
+                        pdvector<T_dyninstRPC::mdl_expr*>* args,
+                        const pdvector<string>& fields,
+                        const pdvector<u_int>& type_walk,
+                        bool useTypeWalk,
+                        bool isOK )
+{
+    return new T_dyninstRPC::mdl_v_expr( type,
+                                        intLiteral,
+                                        strLiteral,
+                                        var,
+                                        binOp,
+                                        unOp,
+                                        leftExpr,
+                                        rightExpr,
+                                        args,
+                                        fields,
+                                        type_walk,
+                                        useTypeWalk,
+                                        isOK );
+}
+#endif // READY
+
+
+T_dyninstRPC::mdl_icode*
+mdl_data::new_icode( T_dyninstRPC::mdl_expr* if_expr,
+                                        T_dyninstRPC::mdl_expr* expr )
+{
+    return new T_dyninstRPC::mdl_icode( if_expr, expr );
+}
+
+
+
+T_dyninstRPC::mdl_list_stmt*
+mdl_data::new_list_stmt( u_int type,
+                            string ident,
+                            pdvector<string>* elems,
+                            bool is_lib,
+                            pdvector<string>* flavor )
+{
+    return new T_dyninstRPC::mdl_list_stmt( type,
+                                            ident,
+                                            elems,
+                                            is_lib,
+                                            flavor );
+}
+
+
+
+T_dyninstRPC::mdl_for_stmt*
+mdl_data::new_for_stmt( string index_name,
+                        T_dyninstRPC::mdl_expr* list_exp,
+                        T_dyninstRPC::mdl_stmt* body )
+{
+    return new T_dyninstRPC::mdl_for_stmt( index_name, list_exp, body );
+}
+
+
+
+
+T_dyninstRPC::mdl_if_stmt*
+mdl_data::new_if_stmt( T_dyninstRPC::mdl_expr* expr,
+                        T_dyninstRPC::mdl_stmt* body )
+{
+    return new T_dyninstRPC::mdl_if_stmt( expr, body );
+}
+
+
+
+T_dyninstRPC::mdl_seq_stmt*
+mdl_data::new_seq_stmt( pdvector<T_dyninstRPC::mdl_stmt*>* stmts )
+{
+    return new T_dyninstRPC::mdl_seq_stmt( stmts );
+}
+
+
+
+T_dyninstRPC::mdl_instr_stmt*
+mdl_data::new_instr_stmt( u_int pos,
+                            T_dyninstRPC::mdl_expr* point_expr,
+                            pdvector<T_dyninstRPC::mdl_icode*>* i_reqs,
+                            unsigned where_instr,
+                            bool constrained )
+{
+    return new T_dyninstRPC::mdl_instr_stmt( pos, 
+                                            point_expr,
+                                            i_reqs,
+                                            where_instr,
+                                            constrained );
+}
+
+
+
 

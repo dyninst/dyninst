@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.55 2003/06/18 20:31:58 schendel Exp $
+# $Id: make.module.tmpl,v 1.56 2003/06/19 18:46:09 pcroth Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -98,7 +98,7 @@ IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 
 IGEN_ISRCS    = dyninstRPC.I
 
-LIBS		+= -lmdl -lpdutil
+LIBS		+= -lpdutil
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm

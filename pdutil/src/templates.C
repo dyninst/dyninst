@@ -41,9 +41,11 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.20 2003/06/09 21:47:16 pcroth Exp $
+ * $Id: templates.C,v 1.21 2003/06/19 18:46:14 pcroth Exp $
  */
 
+#include "common/src/Dictionary.C"
+#include "common/h/Vector.h"
 #include "pdutil/src/PriorityQueue.C"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
@@ -56,4 +58,35 @@ template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, ch
 #endif
 template class PriorityQueue<timeStamp, pdSample>;
 template class pdvector<RPCSockCallbackFunc>;
+
+// MDL template support
+#include "common/h/Vector.h"
+#include "pdutil/h/mdlParse.h"
+#include "dyninstRPC.xdr.h"
+
+class daemonMet;
+class processMet;
+class visiMet;
+class tunableMet;
+class string_list;
+
+template class pdvector<functionName*>;
+template class pdvector<processMet *>;
+template class pdvector<daemonMet*>;
+template class pdvector<visiMet*>;
+template class pdvector<tunableMet*>;
+template class pdvector<string_list*>;
+template class pdvector<T_dyninstRPC::mdl_metric*>;
+
+
+#if defined(rs6000_ibm_aix4_1)
+// AIX seems to need explicit instantiations of these to link
+// progmams like the visis and termWin that use pdutil but don't
+// use the MDL parser
+template class pdvector<mdl_type_desc>;
+template class dictionary_hash<unsigned int, pdvector<mdl_type_desc> >;
+template class pdvector<dictionary_hash<unsigned int, pdvector<mdl_type_desc> >::entry>;
+template pdpair<unsigned int, pdvector<mdl_type_desc> > make_pdpair( const unsigned&, const pdvector<mdl_type_desc>& );
+
+#endif // defined(rs6000_ibm_aix4_1)
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.35 2003/06/18 20:32:09 schendel Exp $
+// $Id: templatesPD.C,v 1.36 2003/06/19 18:46:11 pcroth Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -68,7 +68,7 @@
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 #include "paradynd/src/timeMgr.h"
-#include "mdl/h/mdl.h"
+#include "pdutil/h/mdl.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
 

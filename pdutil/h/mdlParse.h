@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParse.h,v 1.1 2003/06/07 12:39:43 pcroth Exp $
+// $Id: mdlParse.h,v 1.2 2003/06/19 18:46:12 pcroth Exp $
 
 #ifndef _MDL_PARSE_H
 #define _MDL_PARSE_H
@@ -50,6 +50,7 @@
 #include "common/h/Vector.h"
 #include "dyninstRPC.xdr.h"
 #include "pdutil/h/mdl_data.h"
+
 
 #define SET_NAME 1
 #define SET_COMMAND 2
@@ -184,7 +185,7 @@ public:
       ok=false;
     }
     if (ok)
-      return(mdl_data::new_metric(ident,
+      return(mdl_data::cur_mdl_data->new_metric(ident,
 	     			  name_,
 				  units_,
 				  agg_,

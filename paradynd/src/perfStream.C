@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.155 2003/06/17 17:54:54 pcroth Exp $
+// $Id: perfStream.C,v 1.156 2003/06/19 18:46:10 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -77,7 +77,7 @@ extern "C" {
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "pdutil/h/airtStreambuf.h"
-#include "mdl/h/mdl_data.h"
+#include "pdutil/h/mdl_data.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"

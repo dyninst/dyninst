@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.145 2003/06/18 20:32:02 schendel Exp $
+// $Id: mdl.C,v 1.146 2003/06/19 18:46:10 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
-#include "mdl/h/mdl_data.h"
+#include "pdutil/h/mdl_data.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
@@ -2362,7 +2362,7 @@ bool mdl_init_be(string& flavor) {
   return true;
 }
 
-void dynRPC::send_metrics(pdvector<T_dyninstRPC::mdl_metric*>* var_0) {
+void pdRPC::send_metrics(pdvector<T_dyninstRPC::mdl_metric*>* var_0) {
   mdl_met = true;
 
   if (var_0) {
@@ -2399,7 +2399,7 @@ void dynRPC::send_metrics(pdvector<T_dyninstRPC::mdl_metric*>* var_0) {
   }
 }
 
-void dynRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
+void pdRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
 
   mdl_cons = true;
   if (cv) {
@@ -2422,7 +2422,7 @@ void dynRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
 
 
 // TODO -- are these executed immediately ?
-void dynRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
+void pdRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
   mdl_stmt = true;
   if (vs) {
     // ofstream of("other_out", (been_here ? ios::app : ios::out));
@@ -2455,10 +2455,10 @@ void dynRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
 }
 
 // recieves the list of shared libraries to exclude 
-void dynRPC::send_libs(pdvector<string> *libs) {
+void pdRPC::send_libs(pdvector<string> *libs) {
 
     mdl_libs = true;
-    //metric_cerr << "void dynRPC::send_libs(pdvector<string> *libs) called" << endl;
+    //metric_cerr << "void pdRPC::send_libs(pdvector<string> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::cur_mdl_data->lib_constraints += (*libs)[i]; 
 	//metric_cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::cur_mdl_data->lib_constraints" << endl;
@@ -2467,7 +2467,7 @@ void dynRPC::send_libs(pdvector<string> *libs) {
 }
 
 // recieves notification that there are no excluded libraries 
-void dynRPC::send_no_libs() {
+void pdRPC::send_no_libs() {
     mdl_libs = true;
 }
 

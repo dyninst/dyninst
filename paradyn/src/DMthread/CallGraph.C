@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.14 2003/06/17 17:54:50 pcroth Exp $
+// $Id: CallGraph.C,v 1.15 2003/06/19 18:46:08 pcroth Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
-#include "mdl/h/mdl.h"
+#include "pdutil/h/mdl.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "common/h/Types.h" // Address
 

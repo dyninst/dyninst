@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: mdlScanner.l,v 1.1 2003/06/07 12:39:45 pcroth Exp $
+ * $Id: mdlScanner.l,v 1.2 2003/06/19 18:46:14 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -94,13 +94,7 @@ mdlGetInput( char* buf, unsigned int max_size )
 {
     int ret;
 
-    if( yyin != NULL )
-    {
-        // we're reading from a file
-        int c = getScanChar(yyin);
-        ret = (c == EOF) ? YY_NULL : (buf[0] = c, 1);
-    }
-    else
+    if( mdlBufPtr != NULL )
     {
         // we're parsing MDL from a buffer in memory
         // we assume mdlBufPtr and mdlBufRemaining are valid
@@ -110,6 +104,14 @@ mdlGetInput( char* buf, unsigned int max_size )
         mdlBufPtr += nConsumed;
         mdlBufRemaining -= nConsumed;
         ret = nConsumed;
+    }
+    else
+    {
+        assert( mdlin != NULL );
+
+        // we're reading from a file
+        int c = getScanChar(mdlin);
+        ret = (c == EOF) ? YY_NULL : (buf[0] = c, 1);
     }
     return ret;
 }

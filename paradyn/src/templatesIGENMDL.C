@@ -67,8 +67,8 @@ template class refCounter<string_ll>;
 /* ***********************************
  * met stuff
  */
-#include "mdl/h/mdlParse.h" 
-#include "mdl/h/mdl.h" 
+#include "pdutil/h/mdlParse.h" 
+#include "pdutil/h/mdl.h" 
 
 class stringList;
 class daemonMet;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.106 2003/06/17 17:54:53 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.107 2003/06/19 18:46:09 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -64,7 +64,7 @@
 #include "dyninstAPI/src/process.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMgr.h"
-#include "mdl/h/mdlParse.h"
+#include "pdutil/h/mdlParse.h"
 #include "paradynd/src/mdld_data.h"
 
 // The following were defined in process.C
@@ -530,8 +530,15 @@ dynRPC::reportSelfDone( void )
 }
 
 
-void
+void 
 dynRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
+{
+    // should never be called; pdRPC::send_mdl should be called instead.
+    assert( false );
+}
+
+void
+pdRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
 {
     assert( !saw_mdl );
 

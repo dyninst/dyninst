@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParser.y,v 1.1 2003/06/07 12:39:45 pcroth Exp $
+// $Id: mdlParser.y,v 1.2 2003/06/19 18:46:14 pcroth Exp $
 
 #include "pdutil/h/mdlParse.h"
 #include "pdutil/h/metricStyle.h"
@@ -104,7 +104,7 @@ definition: daemonDef
   | metric_definition
   | ext_constraint_definition 
   | def_constraint_definition
-  | metric_stmt { mdl_data::stmts += $1.m_stmt; }
+  | metric_stmt { mdl_data::cur_mdl_data->stmts += $1.m_stmt; }
   ;
 
 list_type: tT_STRING       { $$.u = MDL_T_STRING; }
@@ -131,17 +131,17 @@ resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDEN
         *temp += *$8.sp;
 
         metParseError = ERR_NO_ERROR;
-        T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt(
+        T_dyninstRPC::mdl_stmt* s = mdl_data::cur_mdl_data->new_list_stmt(
             $3.u, *$4.sp, $5.vs, $6.b, temp);
-        if (s) mdl_data::stmts += s;
+        if (s) mdl_data::cur_mdl_data->stmts += s;
         delete $4.sp; delete $8.sp;
     }
     | tRES_LIST tIDENT tIS list_type tLBLOCK resListItems tRBLOCK 
     {
-        T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt(
+        T_dyninstRPC::mdl_stmt* s = mdl_data::cur_mdl_data->new_list_stmt(
             $4.u, *$2.sp, $6.vs, $6.b, $6.vsf);
-        mdl_data::unique_name(*$2.sp);
-        if (s) mdl_data::stmts += s; 
+        mdl_data::cur_mdl_data->unique_name(*$2.sp);
+        if (s) mdl_data::cur_mdl_data->stmts += s; 
     }
     | tRES_LIST error
     ;
@@ -254,34 +254,34 @@ exlibs: tEXLIB exlibItem
 exlibItem: tNOCASE tLITERAL tSEMI
 	    {
 		metParseError = ERR_NO_ERROR;
-		mdl_data::lib_constraints += *$2.sp;
-		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_NOCASE_FLAG;
+		mdl_data::cur_mdl_data->lib_constraints += *$2.sp;
+		mdl_data::cur_mdl_data->lib_constraint_flags += LIB_CONSTRAINT_NOCASE_FLAG;
 	    }
 	| tREGEX tLITERAL tSEMI
 	    {
 		metParseError = ERR_NO_ERROR;
-		mdl_data::lib_constraints += *$2.sp;
-		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_REGEX_FLAG;
+		mdl_data::cur_mdl_data->lib_constraints += *$2.sp;
+		mdl_data::cur_mdl_data->lib_constraint_flags += LIB_CONSTRAINT_REGEX_FLAG;
 	    }
 	| tNOCASE tREGEX tLITERAL tSEMI
 	    {
 		metParseError = ERR_NO_ERROR;
-		mdl_data::lib_constraints += *$3.sp;
-		mdl_data::lib_constraint_flags += 
+		mdl_data::cur_mdl_data->lib_constraints += *$3.sp;
+		mdl_data::cur_mdl_data->lib_constraint_flags += 
 		    LIB_CONSTRAINT_NOCASE_FLAG | LIB_CONSTRAINT_REGEX_FLAG;
 	    }
 	| tREGEX tNOCASE tLITERAL tSEMI
 	    {
 		metParseError = ERR_NO_ERROR;
-		mdl_data::lib_constraints += *$3.sp;
-		mdl_data::lib_constraint_flags += 
+		mdl_data::cur_mdl_data->lib_constraints += *$3.sp;
+		mdl_data::cur_mdl_data->lib_constraint_flags += 
 		    LIB_CONSTRAINT_NOCASE_FLAG | LIB_CONSTRAINT_REGEX_FLAG;
 	    }
 	| tLITERAL tSEMI 
 	    {
 		metParseError = ERR_NO_ERROR;
-		mdl_data::lib_constraints += *$1.sp;
-		mdl_data::lib_constraint_flags += 0;
+		mdl_data::cur_mdl_data->lib_constraints += *$1.sp;
+		mdl_data::cur_mdl_data->lib_constraint_flags += 0;
 	    }
 	;
 
@@ -401,11 +401,11 @@ position: tAPPEND { $$.u = MDL_APPEND; }
 
 instr_code: tIF tLPAREN metric_expr tRPAREN metric_expr tSEMI
 	{
-		$$.i_code = new T_dyninstRPC::mdl_icode ($3.m_expr, $5.m_expr);
+		$$.i_code = mdl_data::cur_mdl_data->new_icode($3.m_expr, $5.m_expr);
 	}
 	| metric_expr tSEMI
 	{ 
-		$$.i_code = new T_dyninstRPC::mdl_icode(0, $1.m_expr);
+		$$.i_code = mdl_data::cur_mdl_data->new_icode(0, $1.m_expr);
 	}
 	;
 
@@ -433,62 +433,67 @@ metric_expr_list: { $$.m_expr_v = new pdvector<T_dyninstRPC::mdl_expr*>; }
     { $$.m_expr_v = $1.m_expr_v; (*$$.m_expr_v) += $3.m_expr; }
   ;
 
-metric_expr: tUNS { $$.m_expr = new T_dyninstRPC::mdl_v_expr($1.u); }
+metric_expr: tUNS 
+  {
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr($1.u);
+  }
   | tLITERAL 
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, true); delete $1.sp;
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(*$1.sp, true);
+    delete $1.sp;
   }
   | tRETURN
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr ("$return", false);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr ("$return", false);
   }
   | tIDENT
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr (*$1.sp, false); delete $1.sp;
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr (*$1.sp, false);
+    delete $1.sp;
   }
   | tIDENT assign_op metric_expr
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr (*$1.sp, $2.u, $3.m_expr);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(*$1.sp, $2.u, $3.m_expr);
     delete $1.sp;
   }
   | tAMPERSAND metric_expr %prec tADDRESS
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(MDL_ADDRESS, $2.m_expr, true);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(MDL_ADDRESS, $2.m_expr, true);
   }
   | tMINUS metric_expr %prec tNEG
   { 
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(MDL_MINUS, $2.m_expr, true);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(MDL_MINUS, $2.m_expr, true);
   }
   | metric_expr tDOT fields
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr($1.m_expr, *$3.vs);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr($1.m_expr, *$3.vs);
     delete $3.vs;
   } 
   | metric_expr bin_op metric_expr 
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr($2.u, $1.m_expr, $3.m_expr);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr($2.u, $1.m_expr, $3.m_expr);
   }
   | metric_expr u_op
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr($2.u, $1.m_expr, false);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr($2.u, $1.m_expr, false);
   }
   | tFUNCTION_CALL tLPAREN tLITERAL tCOMMA metric_expr_list tRPAREN 
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$3.sp, $5.m_expr_v); 
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(*$3.sp, $5.m_expr_v); 
     delete $3.sp;
   } 
   | tIDENT tLPAREN metric_expr_list tRPAREN
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, $3.m_expr_v); 
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(*$1.sp, $3.m_expr_v); 
     delete $1.sp;
   } 
   | tARG tLSQUARE metric_expr tRSQUARE 
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr("$arg", $3.m_expr);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr("$arg", $3.m_expr);
   }
   | tIDENT tLSQUARE metric_expr tRSQUARE 
   {
-    $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, $3.m_expr);
+    $$.m_expr = mdl_data::cur_mdl_data->new_v_expr(*$1.sp, $3.m_expr);
     delete $1.sp;
   }
   | tLPAREN metric_expr tRPAREN { $$.m_expr = $2.m_expr; }
@@ -500,7 +505,7 @@ where_instr: tPRE_INSN   { $$.u = MDL_PRE_INSN; }
 
 instr_request: position where_instr metric_expr opt_constrained tLC instr_code_list tRC 
   {
-    $$.m_stmt = new T_dyninstRPC::mdl_instr_stmt(
+    $$.m_stmt = mdl_data::cur_mdl_data->new_instr_stmt(
       $1.u, $3.m_expr, $6.icode_v, $2.u, $4.b);
   }
   ;
@@ -511,14 +516,18 @@ metric_stmts: { $$.m_stmt_v = new pdvector<T_dyninstRPC::mdl_stmt*>;}
   ;
 
 metric_stmt: tLBLOCK metric_stmts tRBLOCK 
-    { $$.m_stmt = new T_dyninstRPC::mdl_seq_stmt($2.m_stmt_v); }
+  {
+    $$.m_stmt = mdl_data::cur_mdl_data->new_seq_stmt($2.m_stmt_v);
+  }
   | tFOREACH tIDENT tIN metric_expr metric_stmt 
   { 
-    $$.m_stmt = new T_dyninstRPC::mdl_for_stmt(*$2.sp, $4.m_expr, $5.m_stmt);
+    $$.m_stmt = mdl_data::cur_mdl_data->new_for_stmt(*$2.sp, $4.m_expr, $5.m_stmt);
     delete $2.sp; 
   }
   | tIF tLPAREN metric_expr tRPAREN metric_stmt 
-    { $$.m_stmt = new T_dyninstRPC::mdl_if_stmt($3.m_expr, $5.m_stmt); }
+  {
+    $$.m_stmt = mdl_data::cur_mdl_data->new_if_stmt($3.m_expr, $5.m_stmt);
+  }
   | instr_request { $$.m_stmt = $1.m_stmt; }
   ;
 
@@ -589,7 +598,7 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK
 constraint_list: tCONSTRAINT tIDENT tSEMI 
 	{
 		T_dyninstRPC::mdl_constraint *c =
-			mdl_data::new_constraint(*$2.sp, NULL, NULL, false, MDL_T_COUNTER);
+			mdl_data::cur_mdl_data->new_constraint(*$2.sp, NULL, NULL, false, MDL_T_COUNTER);
 		delete $2.sp;
 		$$.mfld = new metricFld;
 		$$.mfld->constraint = c; 
@@ -699,15 +708,15 @@ match_path: {$$.vs = new pdvector<string>; }
 
 def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI 
   {
-    T_dyninstRPC::mdl_constraint *c = mdl_data::new_constraint(
+    T_dyninstRPC::mdl_constraint *c = mdl_data::cur_mdl_data->new_constraint(
       *$2.sp, $3.vs, NULL, false, MDL_T_NONE);
     if (!c) {
       string msg = string("Error, did not new mdl_constraint\n");
       yyerror(P_strdup(msg.c_str()));
       exit(-1);
     } else {
-      mdl_data::unique_name(*$2.sp);
-      mdl_data::all_constraints += c;
+      mdl_data::cur_mdl_data->unique_name(*$2.sp);
+      mdl_data::cur_mdl_data->all_constraints += c;
       delete $2.sp; 
     }
   }
@@ -715,14 +724,14 @@ def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI
 
 ext_constraint_definition: tCONSTRAINT tIDENT match_path tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK 
   {
-    T_dyninstRPC::mdl_constraint *c = mdl_data::new_constraint(
+    T_dyninstRPC::mdl_constraint *c = mdl_data::cur_mdl_data->new_constraint(
       *$2.sp, $3.vs, $7.m_stmt_v, false, MDL_T_COUNTER);
     if (!c) {
       yyerror("Error, did not new mdl_constraint\n");
       exit(-1);
     } else {
-      mdl_data::unique_name(*$2.sp);
-      mdl_data::all_constraints += c;
+      mdl_data::cur_mdl_data->unique_name(*$2.sp);
+      mdl_data::cur_mdl_data->all_constraints += c;
       delete $2.sp; 
     }
   }
@@ -737,7 +746,7 @@ cons_type: tCOUNTER  { $$.u = MDL_T_COUNTER; }
 
 int_constraint_definition: tCONSTRAINT tIDENT match_path tIS tREPLACE cons_type tLBLOCK metric_stmts tRBLOCK 
   {
-    $$.constraint = mdl_data::new_constraint(
+    $$.constraint = mdl_data::cur_mdl_data->new_constraint(
       *$2.sp, $3.vs, $8.m_stmt_v, true, $6.u);
     if (!$$.constraint) {
       string msg = string("Error, did not new mdl_constraint\n");
