@@ -3,10 +3,14 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.13  1995/08/04 19:13:56  tamches
-/* Added a status line for 'rethinking' after receiving data (whethere batch
-/* mode or not)
+/* Revision 1.14  1995/10/17 20:49:12  tamches
+/* Where axis changes, e.g. abstractions* instead of
+/* abstractions<resourceHandle>*.
 /*
+ * Revision 1.13  1995/08/04 19:13:56  tamches
+ * Added a status line for 'rethinking' after receiving data (whethere batch
+ * mode or not)
+ *
  * Revision 1.12  1995/07/24  21:31:30  tamches
  * removed some obsolete code related to the old where axis
  *
@@ -101,12 +105,12 @@ void resourceAddedCB (perfStreamHandle handle,
      ui_status->message("receiving where axis item");
   }
 
-  extern abstractions<resourceHandle> *theAbstractions;
+  extern abstractions *theAbstractions;
   assert(theAbstractions);
 
-  abstractions<resourceHandle> &theAbs = *theAbstractions;
+  abstractions &theAbs = *theAbstractions;
   string theAbstractionName = abs;
-  whereAxis<resourceHandle> &theWhereAxis = theAbs[theAbstractionName];
+  whereAxis &theWhereAxis = theAbs[theAbstractionName];
      // may create a where axis!
 
   char *nameLastPart = strrchr(name, '/');
@@ -122,7 +126,7 @@ void resourceAddedCB (perfStreamHandle handle,
   if (!inBatchMode) {
      ui_status->message("Rethinking after a non-batch receive");
 
-     theWhereAxis.recursiveDoneAddingChildren();
+     theWhereAxis.recursiveDoneAddingChildren(true); // true --> resort
      theWhereAxis.resize(true);
         // super-expensive operation...rethinks EVERY node's
         // listbox & children dimensions.  Actually, this only needs
