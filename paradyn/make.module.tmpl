@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.12  1995/07/18 19:14:12  krisna
+# changes to convert Tcl sources to C
+#
 # Revision 1.11  1995/07/17 05:02:52  tamches
 # Additions for new where axis code (actually, certain files, such as
 # where4tree.C, have been left out, since templates.C 'compiles' them
@@ -122,6 +125,13 @@ IGEN_ISRCS    = dataManager.I \
 		UI.I \
 		VM.I
 
+
+TCL2C		= tcl2c
+TCL2C_GEN_SRCS	= tcl2c.C
+TCL_SRCS	= $(wildcard ../tcl/*.tcl)
+SRCS		+= $(TCL2C_GEN_SRCS)
+
+
 IFLAGS       += -DPARADYN
 LIBDIR	     += -L/usr/psup/lib
 
@@ -140,3 +150,6 @@ metTester: metParser.o metTester.o metScanner.o metTemplates.o metClass.o
 
 templates.o: ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C
+
+$(TCL2C_GEN_SRCS):	$(TCL_SRCS)
+	$(TCL2C) $^ > $@

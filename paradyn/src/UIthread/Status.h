@@ -57,7 +57,7 @@ public:
     status_line& operator<< (const char *);
     void              state (State);
 
-    static int status_init (Tcl_Interp *);
+    static void status_init (Tcl_Interp *);
 
 private:
     void             create (const char *);
@@ -66,7 +66,6 @@ private:
 
     static unsigned    n_lines_;
     static Tcl_Interp* interp_;
-    static const char* init_cmd_;
 
     status_line            (const status_line &); // explicitly private
     status_line& operator= (const status_line &); // explicitly private
@@ -128,10 +127,9 @@ status_line::state(State st) {
 }
 
 inline
-int
+void
 status_line::status_init(Tcl_Interp* interp) {
     interp_ = interp;
-    return Tcl_VarEval(interp_, init_cmd_, 0);
 }
 
 inline
