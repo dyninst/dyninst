@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.187 2001/05/23 21:59:06 ning Exp $
+// $Id: metricFocusNode.C,v 1.188 2001/06/20 20:39:54 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3396,8 +3396,8 @@ void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
   // TODO -- is this ok?
   // TODO -- do sampledFuncs work ?
   if (style_ == EventCounter) { 
-    sampleVal_cerr << "EventCounter mdn::updateValue() - value: " << value
-	  	   << ", cumVal: " << cumulativeValue << "\n";
+    sampleVal_cerr << "mdn::updateValue() - " << getFullName() << "value: " 
+		   << value << ", cumVal: " << cumulativeValue << "\n";
 
     // only use delta from last sample.
     if (value < cumulativeValue) {
@@ -4737,7 +4737,7 @@ void reportInternalMetrics(bool force)
     const timeStamp now = getWallTime();
 
     //  check if it is time for a sample
-    if (!force && now < end + timeLength(samplingRate, timeUnit::sec()))  {
+    if (!force && now < end + getCurrSamplingRate())  {
 //        cerr << "reportInternalMetrics: no because now < end + samplingRate (end=" << end << "; samplingRate=" << samplingRate << "; now=" << now << ")" << endl;
 //	cerr << "difference is " << (end+samplingRate-now) << endl;
 	return;
@@ -4804,12 +4804,11 @@ void reportInternalMetrics(bool force)
 	  // I would prefer to use (end-start) * theInstance.getValue(); however,
 	  // we've had some problems getting setValue() called in time, thus
 	  // leaving us with getValues() of 0 sometimes.  See longer comment in dynrpc.C --ari
-	  extern float currSamplingRate;
 	  // we'll transfer bucket width as milliseconds, instead of seconds
 	  // because we can't represent fractional second bucket widths
 	  // (eg. .2 seconds) now that our sample value type (pdSample) is
 	  // an int64_t when it used to be a double
-	  value.assign(static_cast<int64_t>(currSamplingRate*1000));
+	  value.assign(getCurrSamplingRate().getI(timeUnit::ms()));
         } else if (theIMetric->name() == "number_of_cpus") {
           value.assign(numberOfCPUs);
         } else if (theIMetric->name() == "numOfActCounters") {

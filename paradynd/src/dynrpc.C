@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.81 2001/06/04 18:42:39 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.82 2001/06/20 20:39:54 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -59,7 +59,6 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
-#include "pdutil/h/sys.h" 
 #include "common/h/debugOstream.h"
 
 // The following were defined in process.C
@@ -69,10 +68,30 @@ extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream signal_cerr;
 
-#define ONEMILLION 1000000
-// default to once a second.
-float samplingRate = 1.0;
-float currSamplingRate = BASEBUCKETWIDTH;
+timeLength *imetricSamplingRate = NULL;
+timeLength *currSamplingRate = NULL;
+
+const timeLength &getIMetricSamplingRate() {
+  if(imetricSamplingRate == NULL) {
+    // default to once a second.
+    imetricSamplingRate = new timeLength(timeLength::sec());
+  }
+  return *imetricSamplingRate;
+}
+
+void setCurrSamplingRate(timeLength tl) {
+  if(currSamplingRate == NULL) {
+    currSamplingRate = new timeLength(BASEBUCKETWIDTH_SECS, timeUnit::sec());
+  }
+  *currSamplingRate = tl;
+}
+
+const timeLength &getCurrSamplingRate() {
+  if(currSamplingRate == NULL) {
+    currSamplingRate = new timeLength(BASEBUCKETWIDTH_SECS, timeUnit::ms());
+  }
+  return *currSamplingRate;
+}
 
 void dynRPC::printStats(void)
 {
@@ -132,8 +151,8 @@ void dynRPC::getPredictedDataCost(u_int id,
          // note: returns 0.0 in a variety of situations (if metric cannot be
          //       enabled, etc.)  Would we rather have a more explicit error
          //       return value?
-      getPredictedDataCostCallback(id, req_id, cost.getD(timeUnit::sec()),
-				   clientID);
+      getPredictedDataCostCallback(id, req_id, 
+       	             static_cast<float>(cost.getD(timeUnit::sec())), clientID);
     }
 }
 
@@ -318,12 +337,16 @@ void dynRPC::setSampleRate(double sampleInterval)
     //
     // We keep the following code because it's harmless; but remember, it's also
     // not really being used at this time:
+    timeLength newSampleRate(timeLength(sampleInterval, timeUnit::sec()));  
     if (bucket_width->num_enabled_instances() > 0) {
-       pdSample newInterv(timeLength(sampleInterval, timeUnit::sec()));
+       pdSample newInterv(newSampleRate);
        bucket_width->getEnabledInstance(0).setValue(newInterv);
     }
-    if(sampleInterval != currSamplingRate){
-         int sample_multiple = (int)((sampleInterval*ONEMILLION)/BASESAMPLEINTERVAL);
+    
+    if(newSampleRate != getCurrSamplingRate()){
+      // sample_multiple:  .2 sec  => 1 ;  .4 sec => 2 ;  .8 sec => 4
+         int sample_multiple = static_cast<int>(
+	   ((newSampleRate.getD(timeUnit::sec())+.01) / BASEBUCKETWIDTH_SECS));
 
 //	 char buffer[200];
 //	 sprintf(buffer, "ari fold; sampleInterval=%g so sample_multiple now %d\n",
@@ -348,7 +371,7 @@ void dynRPC::setSampleRate(double sampleInterval)
 	  }
         }
 
-        currSamplingRate = sampleInterval;
+	setCurrSamplingRate(newSampleRate);
     }
     return;
 }

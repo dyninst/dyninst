@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.117 2001/05/12 21:29:54 ning Exp $
+// $Id: perfStream.C,v 1.118 2001/06/20 20:39:55 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -66,6 +66,7 @@ extern "C" {
 #include "paradynd/src/init.h"
 #include "paradynd/src/context.h"
 #include "paradynd/src/perfStream.h"
+#include "paradynd/src/dynrpc.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/mdld.h"
 #include "dyninstAPI/src/showerror.h"
@@ -617,9 +618,8 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 
    // Take currSamplingRate (which has values such as 0.2, 0.4, 0.8, 1.6, etc.)
    // and multiply by a million to get the # of usecs per sample.
-   extern float currSamplingRate; // dynrpc.C
-   assert(currSamplingRate > 0);
-   timeLength shmSamplingInterval(currSamplingRate, timeUnit::sec());
+   assert(getCurrSamplingRate() > timeLength::Zero());
+   timeLength shmSamplingInterval = getCurrSamplingRate();
 
    if (doMajorSample) {
       // If we just did a major sample, then we schedule the next major sample,

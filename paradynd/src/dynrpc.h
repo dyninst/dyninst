@@ -44,6 +44,12 @@
 
 /* 
  * $Log: dynrpc.h,v $
+ * Revision 1.3  2001/06/20 20:39:54  schendel
+ * Add selector and mutator methods to wrap the global current and internal
+ *   metric sampling rate variables.  Use pdutil instead of pdutilOld.  Update
+ *   to use new time and sample value types (ie. timeStamp, relTimeStamp,
+ *   timeLength, pdSample, pdRate).
+ *
  * Revision 1.2  1996/08/16 21:18:35  tamches
  * updated copyright for release 1.1
  *
@@ -52,6 +58,10 @@
  *
  */
 
-extern float samplingRate;
+class timeLength;
+
+const timeLength &getIMetricSamplingRate();
+void setCurrSamplingRate(timeLength tl);
+const timeLength &getCurrSamplingRate();
 
 #endif
