@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.26 2003/07/29 00:32:46 eli Exp $
+// $Id: templates2.C,v 1.27 2003/08/11 11:58:01 tlmiller Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -209,3 +209,7 @@ template class std::stack< long int >;
 #include <map>
 template class std::map< unsigned int, char * >;
 #endif
+
+/* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
+template class pdvector< pdpair< pdstring, pd_Function *> >;
+template class pdvector< pdpair< pdstring, pdvector< pd_Function * > * > >;
