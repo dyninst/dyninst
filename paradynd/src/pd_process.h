@@ -204,6 +204,9 @@ class pd_process {
    bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res) {
      return dyninst_process->findAllFuncsByName(func_name, res);
    }
+   bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res) {
+     return dyninst_process->findAllFuncsByName(func, mod, res);
+   }
 
    bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const {
       return dyninst_process->getSymbolInfo(n, info, baseAddr);
