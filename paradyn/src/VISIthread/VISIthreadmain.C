@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.31  1994/10/10 21:41:15  newhall
-/* more changes to support new UI metric/focus selections
+/* Revision 1.32  1994/11/03 05:17:43  newhall
+/* removed trailing comma in AbbreviatedFocus
 /*
+ * Revision 1.31  1994/10/10  21:41:15  newhall
+ * more changes to support new UI metric/focus selections
+ *
  * Revision 1.30  1994/10/10  02:51:15  newhall
  * purify fixes, fixes to support new metric/focus choices
  *
@@ -992,6 +995,9 @@ int first = 0;
      newword = (char *) malloc(strlen(VISI_DEFAULT_FOCUS)+1);
      strcpy(newword,VISI_DEFAULT_FOCUS);
   } else {
+     if(newword[num-1] == ','){
+	newword[num-1] = '\0';
+     }
      newword[num] = '\0';
   }
   PARADYN_DEBUG(("abbreviated focus = %s size = %d\n",newword,size));
