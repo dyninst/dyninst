@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.2 1999/08/09 05:55:19 csserra Exp $ */
+/* $Id: RTheap.c,v 1.3 2000/03/04 01:30:26 zandy Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -48,8 +48,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
-#include <sys/procfs.h>               /* ioctl() */
-#include <unistd.h>                   /* ioctl(), sbrk() */
 #include <sys/mman.h>                 /* mmap() */
 #include "rtinst/h/rtinst.h"          /* RT_Boolean, Address */
 #include "rtinst/src/RTheap.h"
@@ -80,12 +78,12 @@ static heapList_t *Heaps = NULL;
 static int psize = -1;
 
 
-static void heap_printMappings(int nmaps, prmap_t *maps)
+static void heap_printMappings(int nmaps, dyninstmm_t *maps)
 {
   int i;
   fprintf(stderr, "memory mappings:\n");
   for(i = 0; i < nmaps; i++) {
-    prmap_t *map = &maps[i];
+    dyninstmm_t *map = &maps[i];
     Address addr = (Address)map->pr_vaddr;
     fprintf(stderr, "  heap %2i: 0x%016lx-0x%016lx (%3i pages, %.2fkB)\n", 
 	    i, addr, addr + map->pr_size - 1, 
@@ -93,39 +91,7 @@ static void heap_printMappings(int nmaps, prmap_t *maps)
   }
 }
 
-static void heap_getMappings(int *nmaps, prmap_t **maps)
-{
-  int proc_fd;
-  char proc_name[256];
-  /*fprintf(stderr, "*** heap_getMappings()\n");*/
-
-  sprintf(proc_name, "/proc/%05d", (int)getpid());
-  *maps = NULL;
-  if ((proc_fd = open(proc_name, O_RDONLY)) == -1) {
-    perror("heap_getMappings(open)");
-    return;
-  } 
-  if (ioctl(proc_fd, PIOCNMAP, nmaps) == -1) {
-    perror("heap_getMappings(PIOCNMAP)");
-    close(proc_fd);
-    return;
-  } 
-  if ((*maps = (prmap_t *)malloc(((*nmaps) + 1) * sizeof(prmap_t))) == NULL) {
-    fprintf(stderr, "heap_getMappings(): out of memory\n");
-    close(proc_fd);
-    return;
-  } 
-  if (ioctl(proc_fd, PIOCMAP, *maps) == -1) {
-    perror("heap_getMappings(PIOCMAP)");
-    close(proc_fd);
-    free(*maps);
-    *maps = NULL;
-    return;
-  }    
-  close(proc_fd);
-}
-
-static void heap_checkMappings(int nmaps, prmap_t *maps)
+static void heap_checkMappings(int nmaps, dyninstmm_t *maps)
 {
   int i;
   for (i = 0; i < nmaps-1; i++) {
@@ -148,62 +114,124 @@ static Address heap_alignDown(Address addr, int align)
   return ((addr / align) + 0) * align;
 }
 
-static Address heap_findHole(size_t len, 
-			     Address lo, 
-			     Address hi,
-			     prmap_t *maps, 
-			     int nmaps)
+#define BEG(x) ((Address)(x)->pr_vaddr)
+#define END(x) ((Address)(x)->pr_vaddr + (x)->pr_size)
+
+static Address
+trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
-  Address try2;
-  int n, n_lo, n_hi;
-  
-  /* sanity check */
-  if (hi < len-1) return 0;
-
-  /* platform-specific range constraints */
-  if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
-  if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;
-  /*fprintf(stderr, "*** heap_findHole(0x%08x, 0x%08x, %i)\n", lo, hi, len);*/
-
-  /* find relevant mappings for target range */
-  for (n_lo = 0; n_lo < nmaps; n_lo++) {
-    if (((Address)maps[n_lo].pr_vaddr) + maps[n_lo].pr_size > lo) break;
-  }
-  for (n_hi = nmaps-1; n_hi > n_lo; n_hi--) {
-    if (((Address)maps[n_hi].pr_vaddr) <= hi) break;
-  }
-
-  /* find hole in memory */
-  n = n_hi;
-  try2 = heap_alignDown(hi-len+1, psize);
-  while (try2 >= lo) {
-    Address pr_vaddr = (Address)maps[n].pr_vaddr;
-    Address pr_size = (Address)maps[n].pr_size;
-    /* skip over any conflicting mappings */
-    /* DEF: m1 and m2 conflict iff 
-       ((m1.start < m2.end) && (m1.end > m2.start)) */
-    if (n >= n_lo &&
-	try2 < pr_vaddr + pr_size &&
-	try2 + len > pr_vaddr) 
-    {      
-      /* find next eligible address */
-      Address skip = pr_vaddr - len;
-      if (len > pr_vaddr) return 0; /* underflow */
-      try2 = heap_alignDown(pr_vaddr - len, psize);
-      n--;
-      continue;
-    }
-
-    return try2;
-  }
-
-  return 0;
+     Address try;
+     try = beg;
+     while (try + len <= end) {
+	  /* We assume MAP_FIXED is set in mmapFlags. */
+	  if (MAP_FAILED != mmap((void*)try, len, PROT_READ|PROT_WRITE|PROT_EXEC,
+				 DYNINSTheap_mmapFlags, fd, 0))
+	       return try;
+	  perror("mmap");
+	  try += inc;
+     }
+     return 0;
 }
 
-static int heap_prmapCompare(const void *A, const void *B)
+/* Attempt to mmap a region of memory of size LEN bytes somewhere
+   between LO and HI.  Returns the address of the region on success, 0
+   otherwise.  MAPS is the current address space map, with NMAPS
+   elements.  FD is the mmap file descriptor argument. */
+static Address
+constrained_mmap(size_t len, Address lo, Address hi,
+		 const dyninstmm_t *maps, int nmaps, int fd)
 {
-  prmap_t *a = (prmap_t *)A;
-  prmap_t *b = (prmap_t *)B;
+     const dyninstmm_t *mlo, *mhi, *p;
+     Address beg, end, try;
+
+     if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
+     if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;
+
+     /* Round down to nearest page boundary */
+     lo = lo & ~(psize-1);
+     hi = hi & ~(psize-1);
+
+     /* Round up to nearest page boundary */
+     if (len % psize) {
+	  len += psize;
+	  len = len & ~(psize-1);
+     }
+     assert(lo < hi);     
+
+     /* Find lowest (mlo) and highest (mhi) segments between lo and
+	hi.  If either lo or hi occurs within a segment, they are
+	shifted out of it toward the other bound. */
+     mlo = maps;
+     mhi = &maps[nmaps-1];
+     while (mlo <= mhi) {
+	  beg = BEG(mlo);
+	  end = END(mlo);
+
+	  if (lo < beg)
+	       break;
+
+	  if (lo >= beg && lo < end)
+	       /* lo occurs in this segment.  Shift lo to end of segment. */
+	       lo = end; /* still a page boundary */
+
+	  ++mlo;
+     }
+     while (mhi >= mlo) {
+	  beg = BEG(mhi);
+	  end = END(mhi);
+
+	  if (hi > end)
+	       break;
+	  if (hi >= beg && hi <= end)
+	       /* hi occurs in this segment (or just after it).  Shift
+	          hi to beginning of segment. */
+	       hi = beg; /* still a page boundary */
+
+	  --mhi;
+     }
+     if (lo >= hi)
+	  return 0;
+
+     /* We've set the bounds of the search, now go find some free space. */
+
+     /* Pathological cases in which the range (lo,hi) is entirely
+	above or below the rest of the address space, or there are no
+	segments between lo and hi.  Return no matter what from
+	here. */
+     if (BEG(mlo) >= hi || END(mhi) <= lo)
+	  return trymmap(len, lo, hi, psize, fd);
+
+     assert(lo < BEG(mlo) && hi > END(mhi));
+
+     /* Try to mmap in space before mlo */
+     try = trymmap(len, lo, BEG(mlo), psize, fd);
+     if (try)
+	  return try;
+
+     /* Try to mmap in space between mlo and mhi.  Try nothing here if
+	mlo and mhi are the same. */
+     for (p = mlo; p > mhi; p++) {
+	  try = trymmap(len, END(p), BEG(p+1), psize, fd);
+	  if (try)
+	       return try;
+     }
+
+     /* Try to mmap in space between mhi and hi */
+     try = trymmap(len, END(mhi), hi, psize, fd);
+     if (try)
+	  return try;
+
+     /* We've tried everything */
+     return 0;
+#undef BEG
+#undef END
+
+}
+
+static int heap_memmapCompare(const void *A, const void *B)
+{
+  dyninstmm_t *a = (dyninstmm_t *)A;
+  dyninstmm_t *b = (dyninstmm_t *)B;
   if (a->pr_vaddr < b->pr_vaddr) return -1;
   if (a->pr_vaddr > b->pr_vaddr) return 1;
   return 0;
@@ -254,42 +282,29 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     node->heap.type = HEAP_TYPE_MALLOC;
 
   } else { /* use mmap() for allocation */
+    Address lo = (Address) lo_addr;
+    Address hi = (Address) hi_addr;
+    int fd, nmaps;
+    dyninstmm_t *maps;
 
-    int mmap_fd;
-    int nmaps;
-    prmap_t *maps;
-
-    /* get sorted list of memory mappings */
-    heap_getMappings(&nmaps, &maps);
-    if (maps == NULL) {
+    /* Get memory map and sort it.  maps will point to malloc'd memory
+       that we must free. */
+    if (0 > DYNINSTgetMemoryMap(&nmaps, &maps)) {
       free(node);
       return NULL;
     }
-    qsort(maps, (size_t)nmaps, (size_t)sizeof(prmap_t), &heap_prmapCompare);
+    qsort(maps, (size_t)nmaps, (size_t)sizeof(dyninstmm_t), &heap_memmapCompare);
     heap_checkMappings(nmaps, maps); /* sanity check */
 
     /*DYNINSTheap_printMappings(nmaps, maps);*/
 
-    { /* find hole in target region and mmap */
-      int mmap_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
-      Address hi = (Address)hi_addr;
-      Address try2 = (Address)lo_addr - psize;
-
-      mmap_fd = DYNINSTheap_mmapFdOpen();
-      for (heap = (void *)MAP_FAILED; heap == (void *)MAP_FAILED; ) {
-	try2 = heap_findHole(size, try2 + psize, hi, maps, nmaps);
-	if (try2 == 0) {
-	  free(node);
-	  free(maps);
-	  DYNINSTheap_mmapFdClose(mmap_fd);
-	  return NULL;
-	}
-
-	heap = mmap((void *)try2, size, mmap_prot, DYNINSTheap_mmapFlags, mmap_fd, 0);
-	if (heap == (void *)MAP_FAILED) {
-	  perror("mmap");
-	}
-      }
+    fd = DYNINSTheap_mmapFdOpen();
+    heap = (void*) constrained_mmap(size, lo, hi, maps, nmaps, fd);
+    free(maps);
+    DYNINSTheap_mmapFdClose(fd);
+    if (!heap) {
+	 free(node);
+	 return NULL;
     }
 
     /* define new heap */
@@ -297,10 +312,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     node->heap.addr = heap;
     node->heap.len = size;
     node->heap.type = HEAP_TYPE_MMAP;
-
-    /* cleanup */
-    free(maps);
-    DYNINSTheap_mmapFdClose(mmap_fd);
   }
 
   /* insert new heap into heap list */
@@ -308,7 +319,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
-
   return node->heap.ret_addr;
 }
 

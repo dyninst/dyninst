@@ -39,54 +39,51 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.2 2000/03/04 01:30:26 zandy Exp $ */
+/* $Id: RTheap-svr4.c,v 1.1 2000/03/04 01:30:26 zandy Exp $ */
+/* RTheap-svr4.c: heap management for SVR4 platforms */
 
-#ifndef _RT_HEAP_H
-#define _RT_HEAP_H
+#include <stdio.h>
+#include <sys/stat.h>   /* open */
+#include <fcntl.h>      /* open */
+#include <sys/types.h>  /* getpid, open */
+#include <unistd.h>     /* getpid, ioctl */
+#include "RTheap.h"     /* dyninstmm_t */
 
+int
+DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
+{
+     int fd;
+     char buf[1024];
+     dyninstmm_t *ms;
+     unsigned num;
 
-#include <sys/types.h>
-#include <sys/procfs.h>
-#include "rtinst/h/rtinst.h"        /* RT_Boolean, Address */
+     sprintf(buf, "/proc/%d", getpid());
+     fd = open(buf, O_RDONLY);
+     if (0 > fd) {
+	  perror("open /proc");
+	  return -1;
+     }
+     if (0 > ioctl(fd, PIOCNMAP, &num)) {
+	  perror("getMemoryMap (PIOCNMAP)");
+	  close(fd);
+	  return -1;
+     }
+     ms = (dyninstmm_t *) malloc((num+1) * sizeof(dyninstmm_t));
+     if (!ms) {
+	  fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
+	  close(fd);
+	  return -1;
+     }
+     if (0 > ioctl(fd, PIOCMAP, ms)) {
+	  perror("getMemoryMap (PIOCMAP)");
+	  free(ms);
+	  close(fd);
+	  return -1;
+     }
 
-#if defined(sparc_sun_solaris2_4)    \
- || defined(i386_unknown_solaris2_5) \
- || defined(mips_sgi_irix6_4)        \
- || defined(alpha_dec_osf4_0)
-
-/* SVR4 */
-#include <sys/procfs.h>
-typedef prmap_t dyninstmm_t;
-
-#elif defined(i386_unknown_linux2_0)
-
-/* LINUX */
-typedef struct {
-     Address pr_vaddr;
-     unsigned long pr_size;
-} dyninstmm_t;
-
-#else
-#error Dynamic heaps are not implemented on this platform
-#endif
-
-/* 
- * platform-specific variables
- */
-
-extern int     DYNINSTheap_align;
-extern Address DYNINSTheap_loAddr;
-extern Address DYNINSTheap_hiAddr;
-extern int     DYNINSTheap_mmapFlags;
-
-
-/* 
- * platform-specific functions
- */
-
-RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
-int        DYNINSTheap_mmapFdOpen();
-void       DYNINSTheap_mmapFdClose(int fd);
-int        DYNINSTheap_getMemoryMap(unsigned *, dyninstmm_t **mmap);
-
-#endif /* _RT_HEAP_H */
+     /* success */
+     close(fd);
+     *nump = num;
+     *mapp = ms;
+     return 0;
+}

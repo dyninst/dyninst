@@ -62,9 +62,7 @@ extern void perror(const char *);
 
 
 
-#if defined(sparc_sun_solaris2_4)
 extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
-#endif
 
 /************************************************************************
  * symbolic constants.
@@ -122,9 +120,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
     }
 #endif
 
-#if defined(sparc_sun_solaris2_4)
     DYNINSTheap_setbounds();
-#endif
+
     /* It is necessary to call DYNINSTgetCPUtimeInitialize here to make sure
        that it is called again for a child process during a fork - naim */
     DYNINSTgetCPUtimeInitialize();

@@ -39,43 +39,34 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.4 2000/03/04 01:30:26 zandy Exp $ */
-/* RTheap-solaris.c: Solaris-specific heap components */
+/* $Id: RTheap-linux.c,v 1.1 2000/03/04 01:30:26 zandy Exp $ */
+/* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>                   /* str* */
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/uio.h>                  /* read() */
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
-#include <procfs.h>
-#include <unistd.h>                   /* ioctl(), sbrk(), read() */
+#include <unistd.h>                   /* sbrk(), read(), mmap */
 #include <sys/mman.h>                 /* mmap() */
-#include "rtinst/h/rtinst.h"          /* RT_Boolean, Address */
-#include "rtinst/src/RTheap.h"
+#include "RTheap.h"
 
 
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
-Address DYNINSTheap_loAddr;
-Address DYNINSTheap_hiAddr;
+Address DYNINSTheap_loAddr = 0x50000000;
+Address DYNINSTheap_hiAddr = 0xb0000000;
 
-int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_SHARED;
+int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_PRIVATE;
 
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
 {
-  Address lo_addr = (Address)lo;
-  Address hi_addr = (Address)hi;
-  Address sbrk_addr = (Address)sbrk(0);
-
-#if defined(i386_unknown_solaris2_5)
   /* We do not save footprint space by allocating in
      the user's heap on this platform, so we stay out of it. */
-  return RT_FALSE;
-#endif
-  if (lo_addr <= sbrk_addr + 0x800000) return RT_TRUE;
   return RT_FALSE;
 }
 
@@ -90,44 +81,89 @@ void DYNINSTheap_mmapFdClose(int fd)
   close(fd);
 }
 
-/* 
-   [NOTE: This is currently not called on x86 because x86 does not yet
-   use dynamic heaps.  When it does, make sure this is called from
-   RTsolaris.c.]
+/* Linux /proc/PID/maps is unreliable when it is read with more than one
+read call (it can show pages that are not actually allocated).  We
+read it all in one call into this buffer. */
+static char procAsciiMap[1<<15];
 
-   Set the bounds for heap allocations.  Currently we ensure that heap
-   space is not allocated ON the stack on x86, or ABOVE the stack on
-   SPARC.  */
-void DYNINSTheap_setbounds()
+int
+DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 {
      int fd;
-     pstatus_t ps;
      ssize_t ret;
+     char *p;
+     dyninstmm_t *ms;
+     unsigned i, num;
 
-     fd = open("/proc/self/status", O_RDONLY);
+/* 
+    Here are two lines from 'cat /proc/self/maps' on Linux 2.2.  Each
+    describes a segment of the address space.  We parse out the first
+    two addresses for the start address and length of the segment.  We
+    throw away the rest.
+
+|SADDR-| |EADDR-|
+0804a000-0804c000 rw-p 00001000 08:09 12089      /bin/cat
+0804c000-0804f000 rwxp 00000000 00:00 0
+*/
+
+     fd = open("/proc/self/maps", O_RDONLY);
      if (0 > fd) {
-	  perror("open /proc/self/status");
-	  return;
+	  perror("open /proc");
+	  return -1;
      }
-     ret = read(fd, &ps, sizeof(ps));
-     if (0 > ret) {
-	  perror("read /proc/self/status");
-	  return;
-     }
-     if (ret != sizeof(ps)) {
-	  fprintf(stderr, "Unexpected structure size in /proc/self/status\n");
-	  return;
-     }
+     ret = read(fd, procAsciiMap, sizeof(procAsciiMap));
      close(fd);
+     if (0 > ret) {
+	  perror("read /proc");
+	  return -1;
+     }
+     if (ret >= sizeof(procAsciiMap)) {
+	  fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer overflow\n");
+	  return -1;
+     }
+     procAsciiMap[ret] = '\0'; /* Now string processing works */
 
-#if defined(sparc_sun_solaris2_4)
-     DYNINSTheap_loAddr = 0;
-     DYNINSTheap_hiAddr = (Address)ps.pr_stkbase;
-#elif defined(i386_unknown_solaris2_5)
-     DYNINSTheap_loAddr = (Address)ps.pr_stkbase;
-     DYNINSTheap_hiAddr = (Address)0xdfffffff;
-#else
-/* To date these bounds work on 32-bit x86 and SPARC Solaris through 2.7. */
-#error unknown architecture
-#endif
+     /* Count lines, which is the same as the number of segments.
+	Newline characters separating lines are converted to nulls. */
+     for (num = 0, p = strtok(procAsciiMap, "\n");
+	  p != NULL;
+	  num++, p = strtok(NULL, "\n"))
+	  ;
+     
+     ms = (dyninstmm_t *) malloc(num * sizeof(dyninstmm_t));
+     if (! ms) {
+	  fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
+	  return -1;
+     }
+
+     p = procAsciiMap;
+     for (i = 0; i < num; i++) {
+	  char *next = p + strlen(p) + 1; /* start of next line */
+	  Address saddr, eaddr;
+	  unsigned long size;
+
+	  /* parse start address */
+	  p = strtok(p, "-");
+	  if (! p) goto parseerr;
+	  saddr = strtoul(p, &p, 16);
+	  ++p; /* skip '-' */
+
+	  /* parse end address */
+	  p = strtok(NULL, " ");
+	  if (! p) goto parseerr;
+	  eaddr = strtoul(p, NULL, 16);
+
+	  ms[i].pr_vaddr = saddr;
+	  ms[i].pr_size = eaddr - saddr;
+
+	  p = next;
+     }
+
+     *nump = num;
+     *mapp = ms;
+     return 0;
+parseerr:
+     free(ms);
+     fprintf(stderr, "DYNINSTgetMemoryMap: /proc/self/maps parse error\n");
+     return -1;
 }
