@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.16 2003/03/17 21:16:46 bernat Exp $
+// $Id: sol_proc.C,v 1.17 2003/03/21 21:19:01 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -694,7 +694,11 @@ bool process::installSyscallTracing()
     command[0] = PCSET;
 
     long flags = PR_BPTADJ | PR_FORK | PR_MSACCT;
-    // PR_ASYNC removed, PR_RLC removed
+    if (!wasCreatedViaAttach()) {
+        // Kill the child when the mutator/daemon exits
+        flags |= PR_KLC;
+    }
+
     command[1] = flags;
 
     if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
@@ -817,6 +821,7 @@ bool process::attach_() {
     }
     
     if (!get_ps_info(getPid(), this->argv0, this->cwdenv, this->pathenv)) return false;
+
     return true;
 }
 
@@ -917,13 +922,15 @@ bool process::detach_() {
    return true;
 }
 
-#ifdef BPATCH_LIBRARY
+
 /*
    detach from thr process, continuing its execution if the parameter "cont"
    is true.
  */
 bool process::API_detach_(const bool cont)
 {
+#if defined(BPATCH_LIBRARY)
+    // TODO: port to Paradyn
   // Remove the breakpoint that we put in to detect loading and unloading of
   // shared libraries.
   // XXX We might want to move this into some general cleanup routine for the
@@ -1004,13 +1011,13 @@ bool process::API_detach_(const bool cont)
       perror("apiDetach: PCSEXIT");
       return false;
   }
-
+#endif
   // Close all file descriptors
   detach(false);
   
   return true;
 }
-#endif
+
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
 //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
@@ -1517,37 +1524,7 @@ bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv)
 
 
 string process::tryToFindExecutable(const string &iprogpath, int pid) {
-   // returns empty string on failure.
-   // Otherwise, returns a full-path-name for the file.  Tries every
-   // trick to determine the full-path-name, even though "progpath" may be
-   // unspecified (empty string).
-   
-   // Remember, we can always return the empty string...no need to
-   // go nuts writing the world's most complex algorithm.
-
-   const string progpath = expand_tilde_pathname(iprogpath);
-
-   // Trivial case: if "progpath" is specified and the file exists then nothing needed
-   if (exists_executable(progpath)) {
-      return progpath;
-   }
-
-   // Finding by name didn't work, so try option 2: the PID. 
-   // We need to open a fresh file pointer, as the PID we were given may not
-   // be the PID of this process object (this whole routine is more properly
-   // a utility function)
-   string result;
-   string argv0;
-   string cwdenv;
-   string pathenv;
-   if (!get_ps_info(pid, argv0, cwdenv, pathenv))
-       return "";
-   //cerr << "Argv 0: " << argv0 << " cwd: " << cwdenv << " path: " << pathenv << endl;
-   
-   if (executableFromArgv0AndPathAndCwd(result, argv0, pathenv, cwdenv)) {
-       return result;
-   }
-   return "";
+    return string("/proc/") + string(pid) + string("/object/a.out");
 }
 
 
