@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.2 1997/11/05 01:01:13 wylie Exp $
+ * $Id: templates-nt.C,v 1.3 1997/11/05 02:30:57 wylie Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -55,6 +55,7 @@
 #include "util/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
+#include "paradyn/src/met/mdl.h"
 
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
