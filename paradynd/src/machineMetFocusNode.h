@@ -42,14 +42,14 @@
 #ifndef MACHINE_MET_FOCUS_NODE
 #define MACHINE_MET_FOCUS_NODE
 
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
 #include "paradynd/src/focus.h"
 
 class processMetFocusNode_Val;
 class threadMetFocusNode_Val;
 
-class machineMetFocusNode : public metricDefinitionNode {
+class machineMetFocusNode : public metricFocusNode {
  private:
   bool partsNeedingInitializing;
   vector<processMetFocusNode*> procNodes;
@@ -73,6 +73,9 @@ class machineMetFocusNode : public metricDefinitionNode {
 
   static dictionary_hash<unsigned, machineMetFocusNode*> allMachNodes;
 
+  void initAggInfoObjects(timeStamp startTime, pdSample initValue);
+  void prepareForSampling();
+
  public:
   static void getMachineNodes(vector<machineMetFocusNode*> *machNodes);
   static machineMetFocusNode *lookupMachNode(int mid) {
@@ -93,7 +96,6 @@ class machineMetFocusNode : public metricDefinitionNode {
   vector<processMetFocusNode*> getProcNodes() { return procNodes; }
   static void updateAllAggInterval(timeLength width);
   void updateAggInterval(timeLength width);
-  void mapSampledDRNs2ThrNodes();
   aggregateOp getAggOp() { return aggOp; }
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
   void sendInitialActualValue(pdSample s);
