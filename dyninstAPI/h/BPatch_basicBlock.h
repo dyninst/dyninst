@@ -106,6 +106,10 @@ public:
 	/** returns the block id */
 	int getBlockNumber();
 
+	unsigned long getStartAddress() { return startAddress; }
+
+	unsigned long getEndAddress() { return endAddress; }
+
 	/** destructor of class */
 	~BPatch_basicBlock();
 
