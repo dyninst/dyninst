@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.11 2002/04/09 18:06:20 mjbrim Exp $
-// The superTable class consists of an array of baseTable elements (superVectors)
-// and it represents the ThreadTable in paradynd. For more info, please look at
-// the .h file for this class. 
+// $Id: superTable.C,v 1.12 2002/04/11 19:30:33 schendel Exp $
+// The superTable class consists of an array of baseTable elements
+// (superVectors) and it represents the ThreadTable in paradynd. For more
+// info, please look at the .h file for this class.
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -139,15 +139,11 @@ superTable::~superTable()
   delete theProcTimerSuperTable;
 }
 
-#if defined(MT_THREAD)
-bool superTable::allocIntCounter(unsigned thr_pos, const intCounter &iRawValue,
-#else
 bool superTable::allocIntCounter(const intCounter &iRawValue,
-#endif
 				 const intCounterHK &iHouseKeepingValue,
 				 unsigned &allocatedIndex,
 				 unsigned &allocatedLevel,
-				 bool doNotSample)
+				 bool doNotSample, int thr_pos)
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
@@ -186,14 +182,10 @@ bool superTable::allocIntCounter(const intCounter &iRawValue,
   else  return(true);
 }
 
-#if defined(MT_THREAD)
-bool superTable::allocWallTimer(unsigned thr_pos, const tTimer &iRawValue,
-#else
 bool superTable::allocWallTimer(const tTimer &iRawValue,
-#endif
 				const wallTimerHK &iHouseKeepingValue,
 				unsigned &allocatedIndex,
-				unsigned &allocatedLevel)
+				unsigned &allocatedLevel, int thr_pos)
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
@@ -226,14 +218,10 @@ bool superTable::allocWallTimer(const tTimer &iRawValue,
 }
 
 
-#if defined(MT_THREAD)
-bool superTable::allocProcTimer(unsigned thr_pos, const tTimer &iRawValue,
-#else
 bool superTable::allocProcTimer(const tTimer &iRawValue,
-#endif
 				const processTimerHK &iHouseKeepingValue,
 				unsigned &allocatedIndex,
-				unsigned &allocatedLevel)
+				unsigned &allocatedLevel, int thr_pos)
 {
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
@@ -333,10 +321,7 @@ void *superTable::index2InferiorAddr(unsigned type,
   return ((void*)0);
 }
 
-void *superTable::getHouseKeeping(unsigned type, 
-#if defined(MT_THREAD)
-				  pdThread *thr,
-#endif
+void *superTable::getHouseKeeping(unsigned type, pdThread *thr,
 				  unsigned allocatedIndex,
 				  unsigned allocatedLevel)
 {
@@ -368,11 +353,7 @@ void *superTable::getHouseKeeping(unsigned type,
   return ((void*)0);
 }
 
-#if defined(MT_THREAD)
 void superTable::makePendingFree(pdThread *thr, unsigned type,
-#else
-void superTable::makePendingFree(unsigned type,
-#endif
 				 unsigned allocatedIndex,
 				 unsigned allocatedLevel, 
 				 const vector<Address> &trampsUsing)

@@ -39,24 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.7 2002/04/09 18:06:21 mjbrim Exp $
-// The superTable class consists of an array of baseTable elements (superVectors)
-// and it represents the ThreadTable in paradynd. The superTable class is the class
-// that has contact with the outside world. Rows on this table are represented by
-// superVectors. Each superVector has one entry for each thread (although we could have
-// more entries than threads, in which case we call these entries "reserved"). In order
-// to know what entry correspond to what thread, we use a hash table (which has a 
-// counter part in the application). The superTable has also different "levels". Each
-// level is used to store a different kind of dataReqNode (i.e. counters, wall timers
-// and process timers). When we add a new counter, we need to find first on which level
-// or levels are we storing counters. Then we need to find an empty position in the
-// fastInferiorHeap. Each entry of the superVector has a fastInferiorHeap associated
-// with it. This structure has the mapping of data elements to locations in the shared 
-// memory segment. This mapping is the same for every entry in the superVector (i.e. for
-// every thread), which means that when we add a new data element, we are adding it
-// to every thread. The reason for this is that having the same offset for counters of
-// different threads will make the instrumentation code a lot easier and faster.
-// - naim 3/26/97
+// $Id: superTable.h,v 1.8 2002/04/11 19:30:34 schendel Exp $
+// The superTable class consists of an array of baseTable elements
+// (superVectors) and it represents the ThreadTable in paradynd. The
+// superTable class is the class that has contact with the outside
+// world. Rows on this table are represented by superVectors. Each
+// superVector has one entry for each thread (although we could have more
+// entries than threads, in which case we call these entries "reserved"). In
+// order to know what entry correspond to what thread, we use a hash table
+// (which has a counter part in the application). The superTable has also
+// different "levels". Each level is used to store a different kind of
+// dataReqNode (i.e. counters, wall timers and process timers). When we add a
+// new counter, we need to find first on which level or levels are we storing
+// counters. Then we need to find an empty position in the
+// fastInferiorHeap. Each entry of the superVector has a fastInferiorHeap
+// associated with it. This structure has the mapping of data elements to
+// locations in the shared memory segment. This mapping is the same for every
+// entry in the superVector (i.e. for every thread), which means that when we
+// add a new data element, we are adding it to every thread. The reason for
+// this is that having the same offset for counters of different threads will
+// make the instrumentation code a lot easier and faster.  - naim 3/26/97
 
 #ifndef _SUPER_TABLE_H_
 #define _SUPER_TABLE_H_
@@ -109,40 +111,24 @@ class superTable {
 
     ~superTable();
 
-#if defined(MT_THREAD)
-    bool allocIntCounter(unsigned thr_pos, const intCounter &iRawValue,
-#else
     bool allocIntCounter(const intCounter &iRawValue,
-#endif
 			 const intCounterHK &iHouseKeepingValue,
 			 unsigned &allocatedIndex,
 			 unsigned &allocatedLevel,
-			 bool doNotSample);
+			 bool doNotSample, int thr_pos = -1);
 
-#if defined(MT_THREAD)
-    bool allocWallTimer(unsigned thr_pos, const tTimer &iRawValue,
-#else
     bool allocWallTimer(const tTimer &iRawValue,
-#endif
 			const wallTimerHK &iHouseKeepingValue,
 			unsigned &allocatedIndex,
-			unsigned &allocatedLevel);
+			unsigned &allocatedLevel, int thr_pos = -1);
 
-#if defined(MT_THREAD)
-    bool allocProcTimer(unsigned thr_pos, const tTimer &iRawValue,
-#else
     bool allocProcTimer(const tTimer &iRawValue,
-#endif
 			const processTimerHK &iHouseKeepingValue,
 			unsigned &allocatedIndex,
-			unsigned &allocatedLevel);
+			unsigned &allocatedLevel, int thr_pos = -1);
 
-#if defined(MT_THREAD)
     void makePendingFree(pdThread *thr,
 			 unsigned type,
-#else
-    void makePendingFree(unsigned type,
-#endif
 			 unsigned allocatedIndex,
 			 unsigned allocatedLevel, 
 			 const vector<Address> &trampsUsing);
@@ -159,10 +145,7 @@ class superTable {
 			     unsigned allocatedIndex,
 			     unsigned allocatedLevel) const;
 
-    void *getHouseKeeping(unsigned type, 
-#if defined(MT_THREAD)
-			  pdThread *thr, 
-#endif
+    void *getHouseKeeping(unsigned type, pdThread *thr, 
 			  unsigned allocatedIndex, 
 			  unsigned allocatedLevel);
 
