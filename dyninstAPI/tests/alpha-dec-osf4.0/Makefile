@@ -1,10 +1,11 @@
-# $Id: Makefile,v 1.11 2000/06/20 21:51:58 paradyn Exp $
+# $Id: Makefile,v 1.12 2000/06/21 03:26:25 paradyn Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
+NO_IMPLICIT_TEMPLATES=true
 NO_OPT_FLAG=true
 
 # Include standard make configuration stuff that applies to everything
