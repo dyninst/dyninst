@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.15 2004/03/23 01:12:43 eli Exp $
+ * $Id: RTetc-winnt.c,v 1.16 2004/05/11 19:02:10 bernat Exp $
  *
  ************************************************************************/
 
@@ -383,109 +383,3 @@ static void printSysError(unsigned errNo) {
 		buf, 1000, NULL);
   printf("*** System error [%d]: %s\n", errNo, buf);
 }
-
-
-/**********************************************************************
- * Shared memory sampling functions 
-***********************************************************************/
-#ifdef SHM_SAMPLING
-
-static
-HANDLE
-shm_create_existing(int theKey, int theSize)
-{
-    HANDLE hMap;
-    TCHAR strName[128];
-
-
-    /* attach to shared memory segment - 
-     * note we assume it has been created by the daemon
-     */
-    sprintf( strName, "ParadynD_%d_%d", theKey, theSize );
-    hMap = OpenFileMapping( FILE_MAP_ALL_ACCESS,
-                                    TRUE,
-                                    strName );
-    if( hMap == NULL )
-    {
-        fprintf( stderr, "OpenFileMapping failed: %d\n", GetLastError() );
-    }
-
-    return hMap;
-}
-
-
-void*
-shm_attach(HANDLE hMapping)
-{
-    void* result = MapViewOfFile( hMapping,
-                                    FILE_MAP_ALL_ACCESS,
-                                    0, 0,
-                                    0 );
-    if( result == NULL )
-    {
-        fprintf( stderr, "MapViewOfFile failed: %d\n", GetLastError() );
-    }
-    return result;
-}
-
-
-void
-shm_detach( HANDLE hMapping, void* shmSegPtr )
-{
-    UnmapViewOfFile( shmSegPtr );
-    CloseHandle( hMapping );
-}
-
-
-void*
-DYNINST_shm_init(int theKey, int shmSegNumBytes, int *the_id)
-{
-  HANDLE the_shmSegShmHandle;
-  void* the_shmSegAttachedPtr;
-
-  /* note: error checking needs to be beefed up here: */
-   
-  the_shmSegShmHandle = shm_create_existing(theKey, shmSegNumBytes);
-  if (the_shmSegShmHandle == NULL) {
-     /* note: in theory, when we get a shm error on startup, it would be nice
-              to automatically "downshift" into the SIGALRM non-shm-sampling
-              code.  Not yet implemented. */
-     fprintf(stderr, "DYNINSTinit failed because shm_create_existing failed.\n");
-     fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
-     abort();
-  }
-
-  the_shmSegAttachedPtr = shm_attach(the_shmSegShmHandle); /* NULL on error */
-  if (the_shmSegAttachedPtr == NULL) {
-     /* see above note... */
-     fprintf(stderr, "DYNINSTinit failed because shm_attach failed.\n");
-     fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
-     abort();
-  }
-  *the_id = (int)the_shmSegShmHandle;
-
-  return the_shmSegAttachedPtr;
-
-}
-
-extern int DYNINST_shmSegKey;
-extern int DYNINST_shmSegNumBytes;
-extern int DYNINST_shmSegShmId;
-extern void *DYNINST_shmSegAttachedPtr;
-
-void shmsampling_printf(const char *fmt, ...) {
-#ifdef SHM_SAMPLING_DEBUG
-   va_list args;
-   va_start(args, fmt);
-
-   vfprintf(stderr, fmt, args);
-
-   va_end(args);
-
-   fflush(stderr);
-#endif
-}
-
-#endif /* SHM_SAMPLING */
-
-
