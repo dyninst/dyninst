@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.70 2003/05/23 07:27:44 pcroth Exp $
+ * $Id: PCshg.C,v 1.71 2003/05/29 19:24:58 schendel Exp $
  */
 
 #include "PCintern.h"
@@ -229,16 +229,16 @@ searchHistoryNode::enableReply (bool successful, bool deferred, string msg)
 #ifdef PCDEBUG
         cout << "unable to start experiment for node: " << nodeID << endl;
 #endif
-        if( msg.length() > 0 )
-        {
-            string statusMsg = "Unable to start experiment for ";
-            statusMsg += getHypoName();
-            statusMsg += " at focus ";
-            statusMsg += string(dataMgr->getFocusNameFromHandle(where));
-            statusMsg += ": ";
-            statusMsg += msg;
-            mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
-        }
+
+        string statusMsg = "Unable to start experiment for ";
+        statusMsg += getHypoName();
+        statusMsg += " at focus ";
+        statusMsg += string(dataMgr->getFocusNameFromHandle(where));
+        if( msg.length() > 0 ) {
+           statusMsg += ": ";
+           statusMsg += msg;
+        }        
+        mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
     }
 
     if( !deferred )
