@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.54  1994/11/11 23:06:49  markc
+ * Revision 1.55  1994/12/15 07:38:22  markc
+ * Initialized count used to track resourceBatch requests.
+ *
+ * Revision 1.54  1994/11/11  23:06:49  markc
  * Check to see if status is non-null
  *
  * Revision 1.53  1994/11/11  07:08:51  markc
@@ -347,7 +350,7 @@ extern status_line *DMstatus;
 void dynRPCUser::resourceBatchMode(Boolean onNow)
 {
     int prev;
-    static int count;
+    static int count=0;
     List<performanceStream*> curr;
 
     prev = count;
