@@ -2,6 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.87  1996/01/29 00:54:54  newhall
+ * Chaged clearPersistentData so that histograms (and possibly metricInstances)
+ * with no data collection are deleted.  Changed metricInstanceHandles and
+ * perfStreamHandles to be unique over paradyn's execution (this does not mean
+ * that perfStream or MI objects are persistent over paradyn's execution).
+ *
  * Revision 1.86  1996/01/05 20:00:46  newhall
  * removed warnings
  *
@@ -374,8 +380,8 @@ vector<executable*> paradynDaemon::programs;
 unsigned paradynDaemon::procRunning;
 vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
-vector<bool> metricInstance::nextId;
-vector<bool> performanceStream::nextId;
+u_int metricInstance::next_id = 0;
+u_int performanceStream::next_id = 0;
 
 resource *resource::rootResource = new resource();
 timeStamp metricInstance::curr_bucket_width;

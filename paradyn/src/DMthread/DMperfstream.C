@@ -39,25 +39,12 @@ performanceStream::performanceStream(dataType t,
     my_buffer_size = 0;
     next_buffer_loc = 0;
     my_buffer = 0;
-
-    //  check for reuse of existing handle
-    for(unsigned i=0; i < nextId.size(); i++){
-        if((!nextId[i])){
-	    handle = i;
-            nextId[i] = true;
-            allStreams[handle] = this;
-	    return;
-    }}
-    // if not found, add a new element to the id array
-    handle = nextId.size();
-    nextId += true;
-    assert(handle < nextId.size());
+    handle = next_id++;
     allStreams[handle] = this;
 }
 
 performanceStream::~performanceStream(){
     // indicate that handle is free for reuse
-    nextId[handle] = false;
     allStreams.undef(handle);
     datavalues_bufferpool.dealloc(my_buffer);
     my_buffer = 0;

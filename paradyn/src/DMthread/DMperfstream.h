@@ -84,7 +84,7 @@ class performanceStream {
 	u_int			my_buffer_size;  // total number of MI's enabled
  	u_int			next_buffer_loc;  // next buffer loc. to fill
 	vector<dataValueType>	*my_buffer;	// buffer of dataValues
-	static vector<bool>     nextId;
+	static u_int 		next_id;
 	// dictionary rather than vector since perfStreams can be destroyed
 	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
 	bool			reallocBuffer();

@@ -177,7 +177,8 @@ class metricInstance {
 	void clearEnabled(){ enabled = false;}
 	void setPersistentData(){ persistent_data = true; } 
 	void setPersistentCollection(){ persistent_collection = true; } 
-	void clearPersistentData(){ persistent_data = false; } 
+	// returns true if the metric instance can be deleted 
+	bool clearPersistentData();  
 	void clearPersistentCollection(){ persistent_collection = false; } 
 	bool isDataPersistent(){ return persistent_data;}
 	bool isCollectionPersistent(){ return persistent_collection;}
@@ -204,8 +205,18 @@ class metricInstance {
 	resourceListHandle focus;
 	float enabledTime;
 	bool enabled;    // set if data for mi is currently enabled
+
+	// one component for each daemon contributing to the metric value 
+	// one part for each component
+	// as data arrives from each daemon the appropriate part is updated
 	vector<sampleInfo *> parts;
-	vector<component *> components;
+	vector<component *> components; 
+
+	// when each part of the component has a value for a new interval
+	// (starting from the last time sample was updated) this value
+	// is updated from its components and the result is bucketed
+	// by a histogram (either data or global_data or both) 
+	sampleInfo sample;
 
 	vector<perfStreamHandle> users;  // subscribers to curr. phase data
 	Histogram *data;		 // data corr. to curr. phase
@@ -219,17 +230,18 @@ class metricInstance {
 	bool persistent_collection; 
 
 	unsigned id;
-	sampleInfo sample;
 	static dictionary_hash<metricInstanceHandle,metricInstance *> 
 	    allMetricInstances;
 
-        // vector of ids...reuse ids of deleted metricInstances
-	static vector<bool> nextId;
-
+	static u_int next_id;
         // info. about phase data
 	static phaseHandle curr_phase_id;  // TODO: set this on Startphase
 	static timeStamp global_bucket_width;  // updated on fold
 	static timeStamp curr_bucket_width;    // updated on fold
+
+	// these values only change on enable, disable, and phase start events
+	// they count the number of active histograms (active means that data
+	// is currently being collected for the histogram)
 	static u_int num_curr_hists; // num of curr. phase active histograms 
 	static u_int num_global_hists; // num of global phase active histograms 
 

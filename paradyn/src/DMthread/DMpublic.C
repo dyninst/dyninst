@@ -4,6 +4,12 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.64  1996/01/29 00:55:00  newhall
+ * Chaged clearPersistentData so that histograms (and possibly metricInstances)
+ * with no data collection are deleted.  Changed metricInstanceHandles and
+ * perfStreamHandles to be unique over paradyn's execution (this does not mean
+ * that perfStream or MI objects are persistent over paradyn's execution).
+ *
  * Revision 1.63  1996/01/05 20:00:49  newhall
  * removed warnings
  *
@@ -256,6 +262,7 @@ extern "C" {
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
+extern bool our_print_sample_arrival;
 
 void histDataCallBack(sampleValue *buckets,
                       timeStamp start_time,
@@ -265,6 +272,15 @@ void histDataCallBack(sampleValue *buckets,
 {
     metricInstance *mi = (metricInstance *) arg;
     performanceStream *ps = 0;
+
+#ifdef n_def
+    // debug code that uses tunable constant printSampleArrival
+    if (our_print_sample_arrival){
+        cout << "bucket:  " << first << "value: "
+	     << buckets[0] << "   bucketwidth " 
+	     << metricInstance::GetGlobalWidth() <<  endl;
+    }
+#endif
 
     if(start_time == 0.0) { 
 	// update global data
@@ -598,8 +614,8 @@ metricInstance *DMenableData(perfStreamHandle ps_handle,
 	mi->setPersistentCollection();
     }
 
-//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
+    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
     return mi;
 }
 
@@ -670,7 +686,7 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 					phaseType type)
 {
 
-//    cout << " in dataManager::disableDataCollection: mh = " << mh << endl;
+    // cout << " in dataManager::disableDataCollection: mh = " << mh << endl;
     metricInstance *mi = metricInstance::getMI(mh);
     if (!mi) return;
 
@@ -736,8 +752,8 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
             newSampleRate(rate);
         }
     }
-//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
+    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
     return;
 }
 
@@ -850,7 +866,7 @@ void dataManager::setPersistentData(metricInstanceHandle mh){
 void dataManager::clearPersistentData(metricInstanceHandle mh){
     metricInstance *mi = metricInstance::getMI(mh);
     if(!mi) return;
-    mi->clearPersistentData();
+    if(mi->clearPersistentData()) delete mi;
 }
 
 metricHandle *dataManager::getMetric(metricInstanceHandle mh)
@@ -1052,7 +1068,7 @@ void dataManager::StartPhase(timeStamp start_Time, const char *name)
 {
     string n = name;
     phaseInfo::startPhase(start_Time,n);
-//    cout << "in dataManager::StartPhase " << endl;
+    // cout << "in dataManager::StartPhase " << endl;
     // change the sampling rate
     if(metricInstance::numCurrHists()){
        // set sampling rate to curr phase histogram bucket width 
@@ -1064,8 +1080,8 @@ void dataManager::StartPhase(timeStamp start_Time, const char *name)
        float rate = Histogram::getGlobalBucketWidth();
        newSampleRate(rate);
     }
-//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
+    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
 
 }
 

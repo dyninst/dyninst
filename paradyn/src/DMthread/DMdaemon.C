@@ -742,15 +742,15 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     // daemon to use as the base (0) time
     assert(getEarliestFirstTime());
 
-    // Just for debugging:
-    //fprintf(stderr, "in DMdaemon.C, burst size = %d\n", theBatchBuffer.size()) ;
+  // Just for debugging:
+  //fprintf(stderr, "in DMdaemon.C, burst size = %d\n", theBatchBuffer.size()) ;
 
     // Go through every item in the batch buffer we've just received and
     // process it.
     for (unsigned index =0; index < theBatchBuffer.size(); index++) {
 	T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
 
-	unsigned mid               = entry.mid ;
+	unsigned mid          = entry.mid ;
 	double startTimeStamp = entry.startTimeStamp ;
 	double endTimeStamp   = entry.endTimeStamp ;
 	double value          = entry.value ;
@@ -758,8 +758,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	startTimeStamp -= getEarliestFirstTime();
 	endTimeStamp -= getEarliestFirstTime();
 	if (our_print_sample_arrival) {
-		cout << "mid " << mid << " " << value << " from " 
-                     << startTimeStamp << " to " << endTimeStamp << "\n";
+	    cout << "mid " << mid << " " << value << " from "
+	         << startTimeStamp << " to " << endTimeStamp 
+		 << " machine " << machine.string_of() << "\n";
 	}
 
 	if (!activeMids.defines(mid)) {
@@ -800,25 +801,39 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   component *part = 0;
 
 	   for(unsigned i=0; i < mi->components.size(); i++) {
-	      if((unsigned)mi->components[i]->daemon == (unsigned)this)
+	      if((unsigned)mi->components[i]->daemon == (unsigned)this){
 		 part = mi->components[i];
+              }
 	   }
 	   if (!part) {
 	      uiMgr->showError(3, "Unable to find component!!!");
 	      exit(-1);
 	   }
+           
 
+	   // update the sampleInfo value associated with 
+	   // the daemon that sent the value 
+	   //
 	   ret = part->sample.newValue(endTimeStamp, value);
 	}
 
+        //
+	// update the metric instance sample value if there is a new
+	// interval with data for all parts, otherwise this routine
+	// returns false for ret.valid and the data cannot be bucketed
+	// by the histograms yet (not all components have sent data for
+	// this interval)
+	// newValue will aggregate the parts according to mi's aggOp
+	//
     	ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
 
-	if (ret.valid) {
+	if (ret.valid) {  // there is new data from all components 
 	   assert(ret.end >= 0.0);
 	   assert(ret.start >= 0.0);
 	   assert(ret.end >= ret.start);
 	   mi->enabledTime += ret.end - ret.start;
 
+	   // bucket the value
 	   mi->addInterval(ret.start, ret.end, ret.value, false);
 	}
     } // the main for loop

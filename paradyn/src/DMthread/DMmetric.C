@@ -137,19 +137,7 @@ metricInstance::metricInstance(resourceListHandle rl,
     persistent_collection = 0;
     enabled = false;
     metricInstance::curr_phase_id = ph;
-
-    // find an Id for this metricInstance
-    for(unsigned i=0; i < nextId.size(); i++){
-        if((!nextId[i])){
-	    id = i;
-	    nextId[i] = true;
-	    allMetricInstances[id] = this;
-	    return;
-    }}
-    // if not found, add a new element to the id array
-    id = nextId.size();
-    nextId += true;
-    assert(id < nextId.size());
+    id = next_id++;
     allMetricInstances[id] = this;
 }
 
@@ -165,7 +153,6 @@ metricInstance::~metricInstance() {
     }
     if (data) delete(data);
     if (global_data) delete(global_data);
-    nextId[id] = false;
     // remove metricInstace from list of allMetricsInstances
     allMetricInstances.undef(id);
 }
@@ -216,9 +203,6 @@ void metricInstance::dataDisable(){
     }
     components.resize(0);
     // deleteing components deletes parts as well
-    // for(unsigned j=0; j < parts.size(); j++){
-    //   delete (parts[j]);    
-    // } 
     parts.resize(0);
     enabled = false;
     // if data is persistent this must be cleared 
@@ -260,7 +244,7 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
 // returns true if histogram really was deleted
 bool metricInstance::deleteCurrHistogram(){
 
-    // if curr histogram exists and ther are no users delete
+    // if curr histogram exists and there are no users delete
     if(!(users.size()) && data) {
         delete data;
         data = 0;
@@ -282,6 +266,45 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
 	}
     }
     return 0;
+}
+
+//
+// clears the persistent_data flag and deletes any histograms without 
+// subscribers
+// returns true if the metric instance can be deleted
+//
+bool metricInstance::clearPersistentData(){
+
+    if(persistent_data){  // if this flag was set
+       // if persistent collection is false then may need to delete data
+       if(!persistent_collection){
+	   // if there are no current subscribers delete curr. hist and 
+	   // archieved histograms
+	   if(users.size() == 0){
+	       if(data){
+	           delete data;
+	           data = 0;
+	       }
+	       // delete any archived histograms
+               for(unsigned k=0; k < old_data.size(); k++){
+                   delete (old_data[k]);    
+		   old_data.resize(0);
+               }
+	   }
+           // if there are no curr. or global data subscribers and if
+           // persistent_collection is false then delete the metric instance
+	   if(!enabled){
+               if((global_users.size() == 0) && global_data){ 
+		   delete global_data;
+		   global_data = 0;
+                   persistent_data = false;
+		   return true;
+	       }
+	   }
+       }
+    }
+    persistent_data = false;
+    return false;
 }
 
 bool metricInstance::addComponent(component *new_comp){
