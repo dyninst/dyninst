@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/04/07 15:08:13  jcargill
+# Revision 1.6  1995/11/12 23:28:55  newhall
+# removed warnings
+#
+# Revision 1.5  1995/04/07  15:08:13  jcargill
 # Moved setting of INSTANTIATE_TEMPLATES down into arch-specific Makefiles,
 # since it must be set before make.config is read.
 #
@@ -28,7 +31,6 @@ VPATH        += ../../visi/h
 
 SRCS	     += ../src/templates.C \
 		../src/datagrid.C \
-		../src/error.C \
 		../src/visualization.C 
 
 IGEN_GEN_SRCS =	visi.xdr.SRVR.C \
