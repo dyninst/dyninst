@@ -239,6 +239,11 @@ Object::load_object() {
         string      module = "DEFAULT_MODULE";
         string      name   = "DEFAULT_NAME";
         for (unsigned i1 = 0; i1 < nsyms; i1++) {
+	  // First, we must check st_shndx. 
+	  // if st_shndx == SHN_UNDEF, this is an undefined symbol,
+	  // probably defined in a shared object that will be dynamically
+	  // linked with the executable. We just ignore it for now.
+	  if (syms[i1].st_shndx != SHN_UNDEF) {
             Symbol::SymbolLinkage linkage =
                 ((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL)
                 ? Symbol::SL_LOCAL
@@ -267,6 +272,7 @@ Object::load_object() {
             name = string(&strs[syms[i1].st_name]);
             symbols_[name] = Symbol(name, module, type, linkage,
                                     syms[i1].st_value, st_kludge);
+	  }
         }
     }
 
