@@ -48,6 +48,11 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.20  1997/12/04 18:49:36  mcheyney
+ * Added functions to differentiate between 'true' call instructions
+ * (CALL - Opcode 01), and 'jmpl' call instructions (show up under
+ * gdb disass as call, but really jmpl instructions, opcode != 01)....
+ *
  * Revision 1.19  1997/06/23 17:05:44  tamches
  * instPointType moved to another file
  *
@@ -315,6 +320,29 @@ inline bool isInsnType(const instruction i,
 inline bool isCallInsn(const instruction i) {
   return (isInsnType(i, CALLmask, CALLmatch) ||
 	  isInsnType(i, CALLImask, CALLImatch));
+}
+
+//  is instruction i a "true" call?
+//  2 types of call insn in sparc:
+//    true call - call to fixed address (really pc rel addr, but disass will show
+//     fixed addr - for your convenience)....
+//    jmpl (jump & link) - call to register | register + const |
+//       register + register, and stick return address in some 
+//       register.  If dest register is 07, a disassembler should
+//       show a "call" insn.
+inline bool isTrueCallInsn(const instruction i) {
+    return (i.call.op == 0x1);
+}
+
+inline bool isJmplCallInsn(const instruction i) {
+    // condition for jmpl insn
+    if (i.resti.op == 0x2 && i.resti.op3 == 0x38) {
+        // condition for dest register == 07
+	if (i.resti.rd == 15) {
+	    return true;
+	}
+    }
+    return false;
 }
 
 inline bool isCondBranch(const instruction i){
