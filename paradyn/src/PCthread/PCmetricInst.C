@@ -20,6 +20,20 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.9  1996/05/02 19:46:41  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.8  1996/05/01 14:06:59  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
@@ -93,6 +107,7 @@
 #include "PCmetric.h"
 #include "PCexperiment.h"
 #include "PCmetricInst.h"
+#include "PCcostServer.h"
 
 typedef experiment* PCmiSubscriber;
 
@@ -110,7 +125,7 @@ ostream& operator <<(ostream &os, PCmetricInst &pcm)
       << "TimesAligned: " << pcm.TimesAligned << endl;
   inPort *currPort;
   for (int i = 0; i < pcm.numInPorts; i++) {
-    currPort = pcm.AllData[i];
+    currPort = &(pcm.AllData[i]);
     os << " Port# " << currPort->portID << " mih: " << currPort->mih 
       << " mh: " << currPort->met << " foc: " << currPort->foc 
 	<< " size: " << (currPort->indataQ).getSize() << endl;
@@ -128,7 +143,8 @@ ostream& operator <<(ostream &os, Interval &i)
 
 PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f, 
 			    filteredDataServer *db, bool *err):
-foc(f), met(pcMet), currentValue(0.0), startTime(-1), endTime(0.0),
+foc(f), met(pcMet), currentValue(0.0), costEstimate(0.0), 
+numCostEstimates(0), startTime(-1), endTime(0.0),
 totalTime (0.0), AllDataReady(0), DataStatus(0), AllCurrentValues(NULL), 
 TimesAligned(0), active(false), costFlag(*err), db(db)
 {
@@ -142,53 +158,42 @@ TimesAligned(0), active(false), costFlag(*err), db(db)
     numInPorts++;
   }
   int pauseOffset = 0;
-  inPort *newRec;
-
+  inPort newRec;
+  newRec.mih = 0;
+  newRec.ft = averaging;
   if (pcMet->InstWithPause) {
     // create pause_time queue as 0;
-    newRec = new inPort;
-    //** check for needed metrics all at once and handle gracefully.
-    metricHandle *tmpmh = dataMgr->findMetric("pause_time");
-    assert (tmpmh);
-    newRec->met = *tmpmh;
-    delete tmpmh;
-    newRec->foc = topLevelFocus;
+    newRec.met = performanceConsultant::normalMetric;
+    newRec.foc = topLevelFocus;
+    newRec.portID = 0;
     AllData += newRec;
     pauseOffset = 1;
   } 
   // create remaining queues
   PCMetInfo *currInfo;
   for (int j = 0; j < numInPorts-pauseOffset; j++) {
-    newRec = new inPort;
     currInfo = (*(pcMet->DMmetrics))[j]; 
     if (currInfo->fType == tlf)
-      newRec->foc = topLevelFocus;
+      newRec.foc = topLevelFocus;
     else
-      newRec->foc = f;
-    newRec->met = currInfo->mh;
-    newRec->ft = currInfo->ft;
+      newRec.foc = f;
+    newRec.met = currInfo->mh;
+    newRec.ft = currInfo->ft;
+    newRec.portID = j+pauseOffset;
     AllData += newRec;
   }
 
-  if (pcMet->setup != NULL)
-    pcMet->setup(foc);
+//  if (pcMet->setup != NULL)
+//    pcMet->setup(foc);
+  getEstimatedCost();
 }
 
-float 
+void
 PCmetricInst::getEstimatedCost()
 {
-  int i;
-  float retVal = 0.0;
-  if (active) {
-    for (i = 0; i < numInPorts; i++) {
-      retVal += db->getEstimatedCost(AllData[i]->mih);
-    }
-  } else {
-    for (i = 0; i < numInPorts; i++) {
-      retVal += db->getEstimatedCost(AllData[i]->met, AllData[i]->foc);
-    }
+  for (int i = 0; i < numInPorts; i++) {
+    costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
   }
-  return retVal;
 }
 
 bool
@@ -204,12 +209,12 @@ PCmetricInst::activate()
   int newnumPorts = numInPorts;
   int i, j;
   for (i = 0, j = 0; i < numInPorts; i++) {
-    curr = AllData[j];
+    curr = &(AllData[j]);
     curr->mih = db->addSubscription (this, curr->met, curr->foc, 
 				     curr->ft, &err); 
     if (err) {
       for (int m = 0; m < j; m++) {
-	db->endSubscription (this, AllData[m]->mih);
+	db->endSubscription (this, AllData[m].mih);
       }
       return false;
       // ** this must change when metrics using eg "all children" 
@@ -242,10 +247,8 @@ PCmetricInst::activate()
 void
 PCmetricInst::deactivate()
 {
-  inPort *curr;
   for (int j = 0; j < numInPorts; j++) {
-    curr = AllData[j];
-    db->endSubscription (this, curr->mih);
+    db->endSubscription (this, AllData[j].mih);
   }
   active = false;
 }
@@ -286,9 +289,9 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 
   // find queue for this metricInstanceHandle
   for (unsigned k = 0; k < AllData.size(); k++)
-    if (AllData[k]->mih == whichData) {
-      queueGrew = (AllData[k]->indataQ).add(&newInterval);
-      portNum = AllData[k]->portID;
+    if (AllData[k].mih == whichData) {
+      queueGrew = (AllData[k].indataQ).add(&newInterval);
+      portNum = AllData[k].portID;
       found = true;
       break;
     }
@@ -324,7 +327,7 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     inPort *curr;
     Interval thisInt;
     for (int m = 0; m < numInPorts; m++) {
-      curr = AllData[m];
+      curr = &(AllData[m]);
       thisInt = (curr->indataQ).remove ();
       // reset DataStatus
       if ((curr->indataQ).isEmpty()) {
@@ -373,12 +376,12 @@ PCmetricInst::alignTimes()
   const Interval *thisInt;
   Interval toss;
 
-  thisInt = (AllData[0]->indataQ).peek ();
+  thisInt = (AllData[0].indataQ).peek ();
   assert (thisInt);
   intervalEnd = thisInt->end;
 
   for (int i = 1; i < numInPorts; i++) {
-      thisInt = (AllData[i]->indataQ).peek ();
+      thisInt = (AllData[i].indataQ).peek ();
       if (thisInt->end > intervalEnd) {
 	// we're changing intervalEnd to later time and we've already
 	// processed some queues, so we will need a second pass to 
@@ -386,13 +389,13 @@ PCmetricInst::alignTimes()
 	intervalEnd = thisInt->end;
 	needSecondPass = true;
       } else {
-	while (!(AllData[i]->indataQ).isEmpty() 
+	while (!(AllData[i].indataQ).isEmpty() 
 	       && (thisInt->end < intervalEnd)) {
 	  // toss old data like smelly garbage
-	  toss = (AllData[i]->indataQ).remove ();
-	  thisInt = (AllData[i]->indataQ).peek ();
+	  toss = (AllData[i].indataQ).remove ();
+	  thisInt = (AllData[i].indataQ).peek ();
 	}
-	if ((AllData[i]->indataQ).isEmpty())  {
+	if ((AllData[i].indataQ).isEmpty())  {
 	  // we ran out of data before we got this one aligned; align 
 	  // whatever else possible but return false
 	  allLinedUp = false;
@@ -402,14 +405,14 @@ PCmetricInst::alignTimes()
     }
   if (needSecondPass && allLinedUp) 
     for (int j = 0; j < numInPorts; j++) {
-      thisInt = (AllData[j]->indataQ).peek ();
-      while ((!(AllData[j]->indataQ).isEmpty()) &&
+      thisInt = (AllData[j].indataQ).peek ();
+      while ((!(AllData[j].indataQ).isEmpty()) &&
 	     (thisInt->end < intervalEnd)) {
 	// toss old data like smelly garbage
-	toss = (AllData[j]->indataQ).remove ();
-      	thisInt = (AllData[j]->indataQ).peek ();
+	toss = (AllData[j].indataQ).remove ();
+      	thisInt = (AllData[j].indataQ).peek ();
       }
-      if ((AllData[j]->indataQ).isEmpty()) {
+      if ((AllData[j].indataQ).isEmpty()) {
 	// we ran out of data before we got this one aligned; align 
 	// whatever else possible but return false
 	allLinedUp = false;
@@ -446,20 +449,22 @@ PCmetricInstServer::addPersistentMI (PCmetric *pcm,
   PCmetricInst *newsub = NULL;
   // PCmetric instance may already exist
   
-  PCMRec *tmpRec = NULL;
-  for (unsigned i = 0; i < AllData.size(); i++) {
-    if (((AllData[i])->f == f) && ((AllData[i])->pcm == pcm)) {
-      newsub = (AllData[i])->pcmi;
+  PCMRec *curr;
+  unsigned sz = AllData.size();
+  for (unsigned i = 0; i < sz; i++) {
+    curr = AllData[i];
+    if ((curr->f == f) && (curr->pcm == pcm)) {
+      newsub = curr->pcmi;
       break;
     }
   }
   if (newsub == NULL) {
     newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-    tmpRec = new PCMRec;
-    tmpRec->pcm = pcm;
-    tmpRec->f = f;
-    tmpRec->pcmi = newsub;
-    AllData += tmpRec;
+    curr = new PCMRec;
+    curr->pcm = pcm;
+    curr->f = f;
+    curr->pcmi = newsub;
+    AllData += curr;
   }
   return (PCmetInstHandle) newsub;
 }
@@ -473,7 +478,6 @@ PCmetricInstServer::addSubscription(dataSubscriber *sub,
   PCmetricInst *newsub = NULL;
   // PCmetric instance may already exist
 
-  PCMRec *tmpRec = NULL;
   for (unsigned i = 0; i < AllData.size(); i++) {
     if (((AllData[i])->f == f) && ((AllData[i])->pcm == pcm)) {
       newsub = (AllData[i])->pcmi;
@@ -484,7 +488,7 @@ PCmetricInstServer::addSubscription(dataSubscriber *sub,
     newsub = new PCmetricInst(pcm, f, datasource, errFlag);
     if (*errFlag)
       return 0;
-    tmpRec = new PCMRec;
+    PCMRec *tmpRec = new PCMRec;
     tmpRec->pcm = pcm;
     tmpRec->f = f;
     tmpRec->pcmi = newsub;

@@ -20,6 +20,20 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.C,v $
+ * Revision 1.3  1996/05/02 19:46:26  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.2  1996/05/01 14:06:53  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
@@ -46,11 +60,11 @@ dataProvider::~dataProvider()
   ;
 }
 
-//** in progress
 void
 dataProvider::sendUpdatedEstimatedCost(float costDiff)
 {
-  for (unsigned i = 0; i < allConsumers.size(); i++) {
+  unsigned size = allConsumers.size();
+  for (unsigned i = 0; i < size; i++) {
     if (allConsumers[i] != NULL) 
       allConsumers[i] -> updateEstimatedCost (costDiff);
   }

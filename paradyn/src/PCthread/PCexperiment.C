@@ -20,6 +20,20 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.7  1996/05/02 19:46:29  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.6  1996/04/30 06:26:46  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -76,7 +90,6 @@
 #include "PCintern.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
-
 //**
 #define PCminTimeToFalse 15
 #define PCminTimeToTrue 10
@@ -105,6 +118,13 @@ experiment::drawConclusion (testResult newConclusion)
 	    << "         concl= " << currentConclusion << endl;
   }
 #endif
+}
+
+void 
+experiment::updateEstimatedCost(float costDiff) 
+{
+  estimatedCost += costDiff;
+  papaNode->estimatedCostNotification();
 }
 
 void 
@@ -221,7 +241,7 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   bool errf = false;
   // **here, need to check if pause_time if so, set flag to true instead
   pcmih = db->addSubscription ((PCmetSubscriber)this, why->getPcMet(amFlag), 
-			       where, &errf);
+	     	       where, &errf);
   // error here if pcmetric couldn't be enabled 
   *err = ((pcmih == NULL) || errf);
   if (*err) return;
@@ -234,8 +254,6 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   // constant.
   hysConstant = 1 + performanceConsultant::hysteresisRange;
   
-  // get an initial estimate of the cost
-  estimatedCost = pcmih->getEstimatedCost();
 #ifdef PCDEBUG
   // debug print 
   if (performanceConsultant::printTestResults) {

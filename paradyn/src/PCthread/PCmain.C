@@ -16,9 +16,23 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.58  1996/05/01 18:11:45  newhall
-/* fixed some purify errors, added clientId parameter to predicted cost calls
+/* Revision 1.59  1996/05/02 19:46:39  karavan
+/* changed predicted data cost to be fully asynchronous within the pc.
 /*
+/* added predicted cost server which caches predicted cost values, minimizing
+/* the number of calls to the data manager.
+/*
+/* added new batch version of ui->DAGconfigNode
+/*
+/* added hysteresis factor to cost threshold
+/*
+/* eliminated calls to dm->enable wherever possible
+/*
+/* general cleanup
+/*
+ * Revision 1.58  1996/05/01 18:11:45  newhall
+ * fixed some purify errors, added clientId parameter to predicted cost calls
+ *
  * Revision 1.57  1996/05/01  14:06:57  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
@@ -116,6 +130,7 @@
 #include "dataManager.thread.h"
 #include "PCsearch.h"
 #include "PCfilter.h"
+#include "PCcostServer.h"
 
 //
 // for thread initialization
@@ -150,6 +165,9 @@ unsigned performanceConsultant::DMcurrentPhaseToken = 0;
 filteredDataServer *performanceConsultant::globalRawDataServer = NULL;
 filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
 PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
+perfStreamHandle performanceConsultant::pstream = 0;
+metricHandle performanceConsultant::normalMetric = 0;
+costServer cs;
 
 //**
 struct pcglobals perfConsultant = {
@@ -180,80 +198,15 @@ void PCfold(perfStreamHandle,
   }
 }
 
-// Currently this routine never executes because of a kludge in 
-// getPredictedDataCostAsync that receives the response message from the
-// DM before a call to this routine is made.  This routine must still be
-// registered with the DM on createPerformanceStream, otherwise the DM
-// will not send the response message.  If the PC is changed so that
-// the call to getPredictedDataCost is handled in a truely asynchronous
-// manner, then this routine should contain the code to handle the upcall
-// from the DM
-void PCpredData(metricHandle ,resourceListHandle ,float,u_int ){
-    cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+//
+// handle async reply from data manager providing predicted data cost
+// for a requested metric/focus pair
+//
+void PCpredData(u_int tok, float f){
+  costServer::newPredictedCostData(tok, f);			 
 }
-// Currently this routine never executes because of a kludge 
-// that receives the response message from the DM before a call to this
-// routine is made.  This routine must still be registered with the DM on
-// createPerformanceStream, otherwise the DM will not send the response
-// message.  If the PC is changed so that the call to enableDataRequest
-// is handled in a truely asynchronous manner, then this routine should
-// contain the code to handle the upcall from the DM
 void PCenableDataCallback(vector<metricInstInfo> *,  u_int){
     cout << "PCenableDataCallback: THIS SHOULD NEVER EXECUTE" << endl;
-}
-//
-// here's the kludge for above...
-//
-float getPredictedDataCostAsync(perfStreamHandle pstream, 
-				resourceListHandle foc, 
-				metricHandle metric,
-				u_int clientID) {
-
-#ifdef MYPCDEBUG
-  double t1,t2;
-  static double worstTime=0.0;
-  static double totTime=0.0;
-  static int TESTcounter=0;
-  t1=TESTgetTime();
-#endif
-
-  dataMgr->getPredictedDataCost(pstream,metric,foc,clientID);
-
-  // KLUDGE: make the PC wait for the async response from the DM
-  T_dataManager::message_tags tagPC = T_dataManager::predictedDataCost_REQ;
-  T_dataManager::msg_buf buffer;
-  T_dataManager::message_tags waitTag;
-  bool ready=false;
-  float result=0.0;
-  while (!ready) {
-      u_int tag = (u_int) T_dataManager::predictedDataCost_REQ;
-      int from = msg_poll(&tag, true);
-      assert(from != THR_ERR);
-      if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-          waitTag = dataMgr->waitLoop(true,
-		    (T_dataManager::message_tags)tag,&buffer);
-          if (waitTag==tagPC) {
-              ready=true;
-              result = buffer.predictedDataCost_call.cost;
-          }
-          else {
-	      cerr << "Error in PCfilter.C, tag not valid\n";
-              assert(0);
-          }
-      }
-      else {
-          cerr << "Error in PCfilter.C, tag not valid\n";
-          assert(0);
-      }
-  }
-#ifdef MYPCDEBUG
-  t2=TESTgetTime();
-  totTime += t2-t1;
-  TESTcounter++;
-  if ((t2-t1) > worstTime) worstTime = t2-t1;
-  if ((t2-t1) > 1.0) printf("=======> getPredictedDataCostAsync took %5.2f seconds, avg=%5.2f, worst=%5.2f\n",t2-t1,totTime/TESTcounter,worstTime);
-#endif
-  return(result);
 }
 
 //
@@ -344,7 +297,7 @@ void PCphase (perfStreamHandle,
   uiMgr->newPhaseNotification ( phase+1, name, searchFlag);
 }
 
-void readTag(unsigned tag)
+inline void readTag(unsigned tag)
 {
   if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
     if (dataMgr->waitLoop(true, (T_dataManager::message_tags)tag) ==
@@ -406,11 +359,13 @@ void PCmain(void* varg)
 
     // The PC has to register a callback routine for enableDataRequest callbacks
     // even though there is a kludge in the PC to receive the msg before the
-    // callback routine is called (PCnewDataCallback will never execute).  
+    // callback routine is called (PCenableDataCallback will never execute).  
     controlHandlers.eFunc  = PCenableDataCallback;
     dataHandlers.sample = PCnewDataCallback;
-    filteredDataServer::initPStoken(dataMgr->createPerformanceStream(Sample,
-					       dataHandlers, controlHandlers));
+    // the performance stream is used to identify this thread to the 
+    // data manager
+    performanceConsultant::pstream = dataMgr->createPerformanceStream
+      (Sample, dataHandlers, controlHandlers);
 
     // Note: remaining initialization is application- and/or phase-specific and
     // is done after the user requests a search.

@@ -21,6 +21,20 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.5  1996/05/02 19:46:35  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.4  1996/04/30 06:26:51  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -101,10 +115,10 @@ class filter : public dataProvider
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
   focus getFocus() {return foc;}
-  float getNewEstimatedCost();
   // active just means has at least one consumer; may not be 
   // instrumented i.e. if PC is paused
   bool pausable() {return (numConsumers > 0 && !costFlag);}
+  void setcostFlag() {costFlag = true;}
  protected:  
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
@@ -127,7 +141,8 @@ class filter : public dataProvider
   metricHandle metric;
   focus foc;
  private:
-  float estimatedCost;    
+  // if set, this data is not disabled for a pause because it is used in 
+  // cost observation by all phases
   bool costFlag;
   // collector for these filters
   filteredDataServer *server;          
@@ -168,6 +183,14 @@ public:
   void newData(sampleValue newVal, timeStamp start, timeStamp end);
 };
   
+//**
+const unsigned NumMetrics = 25;
+struct ffstr {
+  focus f;
+  fdsDataID mih;
+};
+typedef struct ffstr ff;
+
 // contains variable number of filters; maintains subscribers to each
 // filter; new subscription -> dm->enable() request and add filter; 
 // end subscription -> if numSubscribers == 0, dm->disable request.
@@ -187,29 +210,25 @@ public:
   void endSubscription(fdsSubscriber sub, fdsDataID subID);
   void unsubscribeAllData();
   void resubscribeAllData();
-  float getEstimatedCost(metricHandle mh, focus f);
-  float getEstimatedCost(fdsDataID mih);
   // interface to raw data source (consumer role)
-  static void initPStoken(perfStreamHandle psh) {pstream = psh;}
   void newBinSize(timeStamp newSize);
   void newData(metricInstanceHandle mih, sampleValue value, int bin);
   // 
   timeStamp getCurrentBinSize () {return currentBinSize;}
  private:
-  static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val;} 
+  static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
   // size of dm histogram bucket; used to convert data bin number into interval
   timeStamp currentBinSize;  
   // current size of each interval of output
   timeStamp intervalSize;
   // used by filters to align send times across filters
   timeStamp nextSendTime;
-  static perfStreamHandle pstream;
   phaseType phType;
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
   dictionary_hash<fdsDataID, filter*>DataFilters;
-  dictionary_hash<metricHandle, dictionary_hash<focus, filter*>*> DataByMetFocus;
+  vector<ff> miIndex [NumMetrics];
   vector<filter*> AllDataFilters;
 };
 

@@ -20,6 +20,20 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.3  1996/05/02 19:46:31  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.2  1996/04/30 06:26:47  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -86,10 +100,10 @@ class experiment : public dataSubscriber
   // value  
   void newData(PCmetDataID, float, double, double, float);
   //
-  // this call invoked by lower levels after a resource update has 
-  // resulted in a change to the specific metric-focus pairs being 
-  // used by this experiment.
-  void updateEstimatedCost(float costDiff) {estimatedCost += costDiff;}
+  // return cost value either in response to initialization async request
+  // or when a resource update has resulted in a change to the specific 
+  // metric-focus pairs being used by this experiment.
+  void updateEstimatedCost(float costDiff); 
  private:
   // a true/false guess has held for the appropriate minimum interval
   void drawConclusion(testResult newConclusion);

@@ -20,6 +20,20 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.12  1996/05/02 19:46:48  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.11  1996/05/01 14:07:03  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
@@ -119,6 +133,9 @@ bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
 bool PChyposDefined = false;
 
+//** this is currently being studied!!
+const float costFudge = 0.2;
+
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
@@ -160,8 +177,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     }
     curr = q->peek_first_data();
     float newCost = curr->getEstimatedCost();
-    if ((estimatedCost + newCost) > 
-	performanceConsultant::predictedCostLimit) {
+    if ((estimatedCost + newCost) > (1-costFudge)*performanceConsultant::predictedCostLimit) {
       costLimitReached = true;
     } else {
       if (curr->startExperiment()) {

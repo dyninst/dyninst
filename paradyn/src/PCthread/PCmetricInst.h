@@ -20,6 +20,20 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.6  1996/05/02 19:46:44  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.5  1996/04/30 06:27:02  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -97,7 +111,9 @@ public:
 
   // these services part of dataProvider role
   sampleValue getCurrentValue () {return currentValue;}
-  float getEstimatedCost();
+  // this asynchronous call makes a request for cost data; cost server returns
+  // result via a call to updateEstimatedCost() 
+  void getEstimatedCost();
 
   // returns false if no dm data was subscribed; true otherwise.
   // at the current time, we simply try to subscribe to all data, and 
@@ -110,10 +126,16 @@ public:
   // resubscribing to the data.
   void deactivate();
 
-  // these are called by filtered data source -- subscriber role
+  // these are called by filtered data source and cost server -- subscriber role
   void newData(PCmetDataID whichData, sampleValue newVal, 
 	       timeStamp start, timeStamp end, sampleValue);
-  void updateEstimatedCost(float costDiff) {estimatedCost += costDiff;}
+  void updateEstimatedCost(float costDiff) 
+    {
+      costEstimate += costDiff;
+      numCostEstimates++;
+      if (numCostEstimates == numInPorts)
+	sendUpdatedEstimatedCost(costDiff);
+    }
 private:
   bool alignTimes();
   void setDataReady(int portNum);
@@ -122,6 +144,8 @@ private:
   focus foc;
   PCmetric *met;
   sampleValue currentValue;
+  float costEstimate;
+  int numCostEstimates;
   timeStamp startTime;    // time first value calculated
   timeStamp endTime;      // time most recent value calculated
   timeStamp totalTime;    // sum of time over which value is collected
@@ -129,7 +153,7 @@ private:
   unsigned AllDataReady;  // compare this with DataStatus mask for all data in
   unsigned DataStatus;    // updated by data arriving on each port
   int numInPorts;       // how many IN ports?
-  vector<inPort*> AllData;
+  vector<inPort> AllData;
   sampleValue *AllCurrentValues;
   unsigned TimesAligned;  // flag that beginning stage has passed
   bool active;            // is data collection active for this PCmetInst?

@@ -20,6 +20,20 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.24  1996/05/02 19:46:54  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.23  1996/04/30 06:27:11  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -142,9 +156,9 @@ public:
   unsigned getNodeId() {return nodeID;}
   void getInfo (shg_node_info *theInfo);
   void setExpanded () {expanded = true;}
-  void inActivateAll();
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
+  void estimatedCostNotification(); 
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);
@@ -202,7 +216,7 @@ class searchHistoryGraph {
   void updateDisplayedStatus (string *newmsg);
   void updateDisplayedStatus (char *newmsg);
   void finalizeSearch(timeStamp searchEndTime);
-  unsigned getPhase() {return guiToken;}
+  unsigned getPhase() {return (unsigned)guiToken;}
   void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);
   void flushUIbuffer();
  private:

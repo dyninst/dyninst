@@ -20,6 +20,20 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.44  1996/05/02 19:46:52  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.43  1996/05/02 12:59:08  naim
  * Deleting debugging info for DAGaddBatchOfEdges - naim
  *
@@ -392,12 +406,6 @@ searchHistoryNode::expand ()
     delete hypokids;
   }
   mamaGraph->flushUIbuffer();
-
-#ifdef PCDEBUG
-  if (performanceConsultant::printSearchChanges) {
-    PCsearch::printQueue(getPhase());
-  }
-#endif
 }
 
 void
@@ -541,7 +549,7 @@ searchHistoryNode::getEstimatedCost()
 
 unsigned 
 searchHistoryNode::getPhase() {
-  return mamaGraph->getPhase();
+  return (mamaGraph->getPhase());
 }
 
 void 
@@ -567,6 +575,18 @@ searchHistoryNode::getInfo (shg_node_info *theInfo)
   }
 }
 
+void 
+searchHistoryNode::estimatedCostNotification() 
+{
+  if (!active) {
+    //** this will be replaced with more rational priority calculation
+    if (axis == refineWhyAxis)
+      PCsearch::addToQueue(5, this, getPhase());
+    else
+      PCsearch::addToQueue(10, this, getPhase());
+  }
+}
+  
 //
 //  ******  searchHistoryGraph ********
 //
@@ -608,14 +628,6 @@ searchHistoryGraph::updateDisplayedStatus (string *newmsg)
   // note: UI will call 'delete' on newmsg
   uiMgr->updateStatusDisplay(guiToken, newmsg);
 }
-  
-void
-searchHistoryNode::inActivateAll()
-{
-  this->changeActive(false);
-  for (unsigned i = 0; i < children.size(); i++)
-    children[i]->inActivateAll();
-}
 
 //
 // Any cleanup associated with search termination.
@@ -634,7 +646,7 @@ searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
   updateDisplayedStatus(status);
   // change display of all nodes to indicate "inactive"; no 
   // change to truth value displayed
-  root->inActivateAll();
+  uiMgr->DAGinactivateEntireSearch(guiToken);
 }
 
 searchHistoryNode* 
@@ -669,12 +681,6 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
 			     shortName, nextID++, amFlag);
   *foclist += newkid;
   newkid->setupExperiment();
-  //
-  //** this will be replaced with more rational priority calculation
-  if (axis == refineWhyAxis)
-    PCsearch::addToQueue(5, newkid, getPhase());
-  else
-    PCsearch::addToQueue(10, newkid, getPhase());
   Nodes += newkid;
   NodeIndex [(newkid->getNodeId())] = newkid;
   return newkid;

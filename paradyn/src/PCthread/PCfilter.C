@@ -21,6 +21,20 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.18  1996/05/02 19:46:33  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.17  1996/05/01 18:38:22  newhall
  * bug fix in enable data response
  *
@@ -118,9 +132,6 @@ static int enableCounter=0;
 #endif
 
 extern performanceConsultant *pc;
-extern float getPredictedDataCostAsync(perfStreamHandle, resourceListHandle, 
-				       metricHandle,u_int);
-perfStreamHandle filteredDataServer::pstream = 0;
 
 ostream& operator <<(ostream &os, filter& f)
 {
@@ -146,19 +157,11 @@ filter::filter(filteredDataServer *keeper,
 : intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
   workingInterval(0), mi(mih), metric(met), foc (focs), 
-  estimatedCost(0.0), costFlag(cf), server(keeper)
+  costFlag(cf), server(keeper)
 {
   ;
 }
  
-float
-filter::getNewEstimatedCost()
-{
-  estimatedCost = getPredictedDataCostAsync(filteredDataServer::pstream,
-					    foc, metric,0);
-  return estimatedCost;
-}
-
 void 
 filter::updateNextSendTime(timeStamp startTime) 
 {
@@ -392,8 +395,7 @@ valFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 
 filteredDataServer::filteredDataServer(unsigned phID)
 : nextSendTime(0.0), 
-  DataFilters(filteredDataServer::fdid_hash),
-  DataByMetFocus(filteredDataServer::fdid_hash)
+  DataFilters(filteredDataServer::fdid_hash)
 {
   dmPhaseID = phID - 1;
   if (phID == GlobalPhaseID) {
@@ -431,6 +433,66 @@ filteredDataServer::newBinSize (timeStamp bs)
     intervalSize = bs;
 }
 
+metricInstanceHandle *DMenableDataRequestAsync (perfStreamHandle ps_handle,
+					       u_int request_Id,
+					       metricHandle met,
+					       focus foc,
+					       phaseType type,
+					       u_int phaseId,
+					       u_int persistent_data,
+					       u_int persistent_collection)
+{
+  vector<metricRLType> *request = new vector<metricRLType>;
+  metricRLType request_entry(met, foc);
+  *request += request_entry;
+  assert(request->size() == 1);
+  metricInstanceHandle *curr = NULL;
+
+  // make async request to enable data
+  dataMgr->enableDataRequest2(ps_handle, request, request_Id,
+			      type, phaseId, persistent_data,
+			      persistent_collection);
+  
+  // KLUDGE wait for DM's async response
+  bool ready=false;
+  vector<metricInstInfo> *response= 0;
+  // wait for response from DM
+  while(!ready){
+    T_dataManager::msg_buf buffer; 
+    T_dataManager::message_tags waitTag;
+    tag_t tag = T_dataManager::enableDataCallback_REQ;
+    int from = msg_poll(&tag, true);
+    assert(from != THR_ERR);
+    if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+      waitTag = dataMgr->waitLoop(true,
+				  (T_dataManager::message_tags)tag,&buffer);
+      if(waitTag == T_dataManager::enableDataCallback_REQ){
+	ready = true;
+	response = buffer.enableDataCallback_call.response;
+	buffer.enableDataCallback_call.response = 0;
+      }
+      else {
+	cout << "error PC wait data enable resp:tag invalid" << endl;
+	assert(0);
+      }
+    }
+    else{
+      cout << "error PC wait data enable resp:tag invalid" << endl;
+      assert(0);
+    }
+  } // while(!ready)
+
+  // if this MI was successfully enabled
+  if(response && response->size() && (*response)[0].successfully_enabled) {
+    curr = new metricInstanceHandle;
+    *curr = (*response)[0].mi_id; 
+  }
+  delete response;
+  response = 0;
+  cout << "enable REPLY for m=" << met << " f=" << foc << endl;
+  return curr;
+}
+
 //
 // restart PC after PC-pause (not application-level pause)
 //
@@ -438,61 +500,18 @@ void
 filteredDataServer::resubscribeAllData() 
 {
   metricInstanceHandle *curr;
-#ifdef MYPCDEBUG
-  double t1,t2;
-#endif
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
+
 #ifdef MYPCDEBUG
+      double t1,t2;
       t1=TESTgetTime(); 
 #endif
-      
-      vector<metricRLType> *request = new vector<metricRLType>;
-      metricRLType request_entry(AllDataFilters[i]->getMetric(),
-		                 AllDataFilters[i]->getFocus());
-      *request += request_entry;
-      assert(request->size() == 1);
-      // make async request to enable data
-      dataMgr->enableDataRequest2(filteredDataServer::pstream,request,
-				  0,phType,dmPhaseID,1,0);
 
-      // KLUDGE wait for DM's async response
-      bool ready=false;
-      vector<metricInstInfo> *response= 0;
-      // wait for response from DM
-      while(!ready){
-	  T_dataManager::msg_buf buffer; 
-	  T_dataManager::message_tags waitTag;
-	  tag_t tag = T_dataManager::enableDataCallback_REQ;
-	  int from = msg_poll(&tag, true);
-	  assert(from != THR_ERR);
-	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-	      waitTag = dataMgr->waitLoop(true,
-			(T_dataManager::message_tags)tag,&buffer);
-              if(waitTag == T_dataManager::enableDataCallback_REQ){
-		  ready = true;
-		  response = buffer.enableDataCallback_call.response;
-		  buffer.enableDataCallback_call.response = 0;
-	      }
-	      else {
-		  cout << "error PC wait data enable resp:tag invalid" << endl;
-		  assert(0);
-	      }
-	  }
-	  else{
-	      cout << "error PC wait data enable resp:tag invalid" << endl;
-	      assert(0);
-	  }
-      } // while(!ready)
-      curr = 0;
-      // if this MI was successfully enabled
-      if(response && response->size() && (*response)[0].successfully_enabled) {
-	  curr = new metricInstanceHandle;
-	  *curr = (*response)[0].mi_id; 
-      }
-      delete response;
-      response = 0;
-
+      curr = DMenableDataRequestAsync (performanceConsultant::pstream, 0, 
+				       AllDataFilters[i]->getMetric(),
+				       AllDataFilters[i]->getFocus(), 
+				       phType, dmPhaseID, 1, 0);
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
       t2=TESTgetTime();
@@ -522,7 +541,7 @@ filteredDataServer::unsubscribeAllData()
       double t1,t2;
       t1=TESTgetTime(); 
 #endif
-      dataMgr->disableDataCollection(filteredDataServer::pstream, 
+      dataMgr->disableDataCollection(performanceConsultant::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
@@ -556,124 +575,71 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 				    bool *flag)
 {
   filter *subfilter;
-  metricInstanceHandle *index;
-  metricInstanceHandle indexCopy;
+  fdsDataID index;
+  metricInstanceHandle *curr;
 #ifdef MYPCDEBUG
   double t1,t2;
-#endif
-  // does filter already exist?
-#ifdef MYPCDEBUG
   t1=TESTgetTime(); 
 #endif
-
-      vector<metricRLType> *request = new vector<metricRLType>;
-      metricRLType request_entry(mh,f);
-      *request += request_entry;
-      assert(request->size() == 1);
-      // make async request to enable data
-      dataMgr->enableDataRequest2(filteredDataServer::pstream,request,
-				  0,phType,dmPhaseID,1,0);
-
-      // KLUDGE wait for DM's async response
-      bool ready=false;
-      vector<metricInstInfo> *response=0;
-
-      // wait for response from DM
-      while(!ready){
-	  T_dataManager::msg_buf buffer; 
-	  T_dataManager::message_tags waitTag;
-	  tag_t tag = T_dataManager::enableDataCallback_REQ;
-	  int from = msg_poll(&tag, true);
-	  assert(from != THR_ERR);
-	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-	      waitTag = dataMgr->waitLoop(true,
-			(T_dataManager::message_tags)tag,&buffer);
-              if(waitTag == T_dataManager::enableDataCallback_REQ){
-		  ready = true;
-		  response = buffer.enableDataCallback_call.response;
-		  buffer.enableDataCallback_call.response = 0;
-	      }
-	      else {
-		  cout << "error PC wait data enable resp:tag invalid" << endl;
-		  assert(0);
-	      }
-	  }
-	  else{
-	      cout << "error PC wait data enable resp:tag invalid" << endl;
-	      assert(0);
-	  }
-      } // while(!ready)
-      index = 0;
-      // if this MI was successfully enabled
-      if(response && response->size() && (*response)[0].successfully_enabled){
-	  index = new metricInstanceHandle;
-	  *index = (*response)[0].mi_id; 
-      }
-      delete response;
-      response = 0;
-
+  vector<ff> *currMetric = &(miIndex[mh]);
+  bool found = false;
+  for (unsigned i = 0; i < currMetric->size(); i++)
+    if ((*currMetric)[i].f == f) {
+      index = (*currMetric)[i].mih;
+      found = true;
+      subfilter = DataFilters[index];
+      if (flag) subfilter->setcostFlag();
+      break;
+    }
+  if (!found) {
+    curr = DMenableDataRequestAsync (performanceConsultant::pstream, 0, 
+				     mh, f, phType, dmPhaseID, 1, 0);
 #ifdef MYPCDEBUG
   t2=TESTgetTime();
   enableTotTime += t2-t1;
   enableCounter++;
   if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
-  if (performanceConsultant::collectInstrTimings) {
-    if ((t2-t1) > 1.0)
-      printf("=-=-=-=> PCfilter 2, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime);
-  }
 #endif
-  if (index == NULL) {
-    // unable to collect this data
-    *flag = true;
-    return 0;
-  }
-  indexCopy = *index;
-  delete index;
-  if (!DataFilters.defines((fdsDataID) indexCopy)) {
+
+    if (curr == NULL) {
+      // unable to collect this data
+      *flag = true;
+      return 0;
+    }
+    index = *curr;
+    delete curr;
     if (ft == nonfiltering)
-      subfilter = new valFilter (this, indexCopy, mh, f, *flag);
+      subfilter = new valFilter (this, index, mh, f, *flag);
     else
-      subfilter = new avgFilter (this, indexCopy, mh, f, *flag);
+      subfilter = new avgFilter (this, index, mh, f, *flag);
     AllDataFilters += subfilter;
-    DataFilters[(fdsDataID) indexCopy] = subfilter;
-  } else
-    subfilter = DataFilters[indexCopy];
+    DataFilters[(fdsDataID) index] = subfilter;
+    ff tempff;
+    tempff.f = f;
+    tempff.mih = index;
+    miIndex[mh] += tempff;
+  }
+
   // add subscriber
   subfilter->addConsumer (sub);
 #ifdef PCDEBUG
   // ---------------------  debug printing ----------------------------
   if (performanceConsultant::printDataCollection) {
-    cout << "FDS: " << sub << " subscribed to " << indexCopy << " met=" 
-      << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
-	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
+    cout << "FDS: " << sub << " subscribed to " << index << " met=" 
+      << dataMgr->getMetricNameFromMI(index) << " methandle=" << mh << endl
+	<< "foc=" << dataMgr->getFocusNameFromMI(index) << endl;
   }
 #endif
 
 #ifdef MYPCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     if ((t2-t1) > 1.0) 
-      printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
+      printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(index),dataMgr->getFocusNameFromMI(index)); 
   }
   // ---------------------  debug printing  ----------------------------
 #endif
   *flag = false;
-  return indexCopy;
-}
-
-float
-filteredDataServer::getEstimatedCost(metricHandle mh,
-				     focus f)
-{
-  return(getPredictedDataCostAsync(filteredDataServer::pstream,f, mh,0));
-}
-
-float
-filteredDataServer::getEstimatedCost(fdsDataID mih)
-{
-  if (DataFilters.defines(mih))
-    return (DataFilters[mih]->getNewEstimatedCost());
-  else
-    return 0.0;
+  return index;
 }
 
 // all filters live until end of Search, although no subscribers may remain
@@ -693,16 +659,15 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
       t1=TESTgetTime();
 #endif
       dataMgr->clearPersistentData(subID);
-      dataMgr->disableDataCollection (pstream, subID, phType);
+      dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
+    }
 #ifdef MYPCDEBUG
       t2=TESTgetTime();
-      if (performanceConsultant::collectInstrTimings) {
-        if ((t2-t1) > 1.0) 
-	  printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
-      }
+      if ((t2-t1) > 1.0) 
+	printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
 #endif
-    }
   }
+
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printDataCollection) {

@@ -20,6 +20,20 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.7  1996/05/02 19:46:36  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.6  1996/04/30 06:26:53  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -113,6 +127,7 @@ extern focus topLevelFocus;
 
 class hypothesis;
 class whyAxis;
+class costServer;
 
 extern whyAxis *PCWhyAxis;
 extern hypothesis *const topLevelHypothesis;

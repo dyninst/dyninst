@@ -21,6 +21,20 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.35  1996/05/02 19:46:46  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.34  1996/05/01 14:07:01  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
@@ -71,7 +85,14 @@ performanceConsultant::activateSearch(unsigned phaseID)
       performanceConsultant::DMcurrentPhaseToken = phaseID-1;
     }
     // initialize known/base resources and top level focus once only
-    if (!PChyposDefined) initResources();
+    if (!PChyposDefined) {
+      initResources();
+      // this is used to normalize data throughout the PC
+      metricHandle *tmpmh = dataMgr->findMetric("pause_time");
+      assert (tmpmh);
+      performanceConsultant::normalMetric = *tmpmh;
+      delete tmpmh;
+    }
 
     // create new search 
     bool sflag = PCsearch::addSearch(phaseID);
