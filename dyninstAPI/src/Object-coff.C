@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.4 2000/01/11 21:57:16 altinel Exp $
+// $Id: Object-coff.C,v 1.5 2000/02/15 23:53:09 hollings Exp $
 
-#include "util/h/Object.h"
-#include "util/h/Object-coff.h"
-#include "util/src/Dictionary.C"
+#include "util/h/Dictionary.h"
+#include "dyninstAPI/src/Object.h"
+#include "dyninstAPI/src/Object-coff.h"
 
 char *ScName(int sc) {
 static char scBuf[20];

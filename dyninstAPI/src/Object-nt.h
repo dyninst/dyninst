@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.7 1999/07/08 19:26:27 pcroth Exp $
+ * $Id: Object-nt.h,v 1.8 2000/02/15 23:53:10 hollings Exp $
 ************************************************************************/
 
 
@@ -216,6 +216,5 @@ Object::operator=(const Object& obj)
 	}
     return *this;
 }
-
 
 #endif /* !defined(_Object_nt_h_) */

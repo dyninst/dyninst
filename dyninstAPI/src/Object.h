@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.28 1999/07/13 04:22:38 csserra Exp $
+ * $Id: Object.h,v 1.29 2000/02/15 23:53:10 hollings Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -180,25 +180,25 @@ private:
 ************************************************************************/
 
 #if defined(sparc_sun_solaris2_4)
-#include "util/h/Object-elf.h"
+#include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(i386_unknown_solaris2_5)
-#include "util/h/Object-elf.h"
+#include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(i386_unknown_linux2_0)
-#include "util/h/Object-elf.h"
+#include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(mips_sgi_irix6_4)
-#include "util/h/Object-elf.h"
+#include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(rs6000_ibm_aix4_1)
-#include "util/h/Object-aix.h"
+#include "dyninstAPI/src/Object-aix.h"
 
 #elif defined(i386_unknown_nt4_0)
-#include "util/h/Object-nt.h"
+#include "dyninstAPI/src/Object-nt.h"
 
 #elif defined(alpha_dec_osf4_0)
-#include "util/h/Object-coff.h"
+#include "dyninstAPI/src/Object-coff.h"
 
 #else
 #error "unknown platform"

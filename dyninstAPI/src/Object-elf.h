@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.37 1999/08/09 05:52:30 csserra Exp $
+ * $Id: Object-elf.h,v 1.38 2000/02/15 23:53:10 hollings Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -283,9 +283,3 @@ public:
 const char *pdelf_get_shnames(Elf *elfp, bool is64);
 
 #endif /* !defined(_Object_elf_h_) */
-
-
-
-
-
-

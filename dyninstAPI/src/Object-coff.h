@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.6 2000/01/11 21:57:16 altinel Exp $
+ * $Id: Object-coff.h,v 1.7 2000/02/15 23:53:09 hollings Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -128,6 +128,5 @@ Object::operator=(const Object& obj) {
 }
 
 
-
 
 #endif /* !defined(_Object_bsd_h_) */

@@ -40,12 +40,12 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.16 2000/01/11 21:57:16 altinel Exp $
+ * $Id: Object-elf.C,v 1.17 2000/02/15 23:53:09 hollings Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
 
-#include "util/h/Object.h"
+#include "dyninstAPI/src/Object.h"
 #if !defined(_Object_elf_h_)
 #error "Object-elf.h not #included"
 #endif

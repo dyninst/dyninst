@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.3 1999/07/14 17:36:02 paradyn Exp $
+// $Id: Object-nt.C,v 1.4 2000/02/15 23:53:10 hollings Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -48,8 +48,8 @@
 #include "util/h/String.h"
 #include "util/h/Vector.h"
 #include "util/h/CodeView.h"
-#include "util/h/Object.h"
-#include "util/h/Object-nt.h"
+#include "dyninstAPI/src/Object.h"
+#include "dyninstAPI/src/Object-nt.h"
 
 
 

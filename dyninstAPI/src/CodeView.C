@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.2 1999/07/14 17:33:49 paradyn Exp $
+// $Id: CodeView.C,v 1.3 2000/02/15 23:53:09 hollings Exp $
 
 #include <assert.h>
 
@@ -439,5 +439,3 @@ CodeView::Module::GetTextBounds( DWORD& offset, DWORD& cb ) const
     }
     return ret;
 }
-
-
