@@ -41,6 +41,7 @@
 
 #include <iostream.h>
 #include <stdio.h>
+#include <strstream.h>
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradyn/src/met/globals.h"
 #include "paradynd/src/metric.h"
@@ -49,9 +50,9 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/symtab.h"
 #include "util/h/Timer.h"
-#include <strstream.h>
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
+#include "process.h"
 
 #ifdef paradyndCM5_blizzard
 // START_NAME corresponds some routine with $start of your mdl
@@ -232,8 +233,8 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-static inline bool other_machine_specified(vector< vector<string> > &focus,
-					   string& machine) {
+static bool other_machine_specified(vector< vector<string> > &focus,
+				    string& machine) {
   assert(focus[resource::machine][0] == "Machine");
 
   switch (focus[resource::machine].size()) {
@@ -247,7 +248,7 @@ static inline bool other_machine_specified(vector< vector<string> > &focus,
   return false;
 }
 
-static inline void add_processes(vector< vector<string> > &focus,
+static void add_processes(vector< vector<string> > &focus,
 				 vector<process*> procs,
 				 vector<process*> &ip) {
   assert(focus[resource::process][0] == "Process");
@@ -275,7 +276,7 @@ static inline void add_processes(vector< vector<string> > &focus,
   }
 }
 
-static inline bool focus_matches(vector<string>& focus, vector<string> *match_path) {
+static bool focus_matches(vector<string>& focus, vector<string> *match_path) {
   unsigned mp_size = match_path->size();
   unsigned f_size = focus.size();
   if (mp_size < 1 || f_size < 2 || mp_size != f_size - 1)
@@ -295,9 +296,9 @@ static inline bool focus_matches(vector<string>& focus, vector<string> *match_pa
 
 // Global constraints are specified by giving their name within a metric def
 // Find the real constraint by searching the dictionary using this name
-static inline T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus, 
-							 T_dyninstRPC::mdl_constraint *match_me,
-							 bool& is_default) {
+static T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus, 
+						  T_dyninstRPC::mdl_constraint *match_me,
+						  bool& is_default) {
   unsigned c_size = mdl_data::all_constraints.size();
   for (unsigned cs=0; cs<c_size; cs++) 
     if (mdl_data::all_constraints[cs]->id_ == match_me->id_) {
@@ -318,11 +319,11 @@ static inline T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus,
 // Global constraints that are applicable are put on flag_cons
 // base_used returns the ONE replace constraint that matches
 
-static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
-				     T_dyninstRPC::mdl_constraint *&base_used,
-				     vector< vector<string> >& focus,
-				     vector<T_dyninstRPC::mdl_constraint*> *cons,
-				     vector<unsigned>& flag_dex, unsigned& base_dex) {
+static bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+			      T_dyninstRPC::mdl_constraint *&base_used,
+			      vector< vector<string> >& focus,
+			      vector<T_dyninstRPC::mdl_constraint*> *cons,
+			      vector<unsigned>& flag_dex, unsigned& base_dex) {
   unsigned size = cons->size();
 
   unsigned foc_size = focus.size();
@@ -376,7 +377,8 @@ static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag
 // set, then this routine includes procedures and modlues from the a.out and 
 // from any shared libraries that are included in foci that are not refined
 // on the Code heirarcy (ex. WholeProgram). 
-static inline bool update_environment(process *proc, bool get_all) {
+
+static bool update_environment(process *proc, bool get_all) {
 
   // for cases when libc is dynamically linked, the exit symbol is not
   // correct
@@ -390,6 +392,8 @@ static inline bool update_environment(process *proc, bool get_all) {
   vname = "$start";
   pdf = proc->findOneFunction(string(START_NAME));
   if (!pdf) return false;
+
+  vname = "$start";
   mdl_env::add(vname, false, MDL_T_PROCEDURE);
   mdl_env::set(pdf, vname);
 
@@ -403,6 +407,7 @@ static inline bool update_environment(process *proc, bool get_all) {
   else {
       mdl_env::set(proc->getIncludedFunctions(), vname);
   }
+
   vname = "$modules";
   mdl_env::add(vname, false, MDL_T_LIST_MODULE);
   // if get_all is set, get all the modules in the executable
@@ -417,18 +422,22 @@ static inline bool update_environment(process *proc, bool get_all) {
   return true;
 }
 
-inline dataReqNode *create_data_object(unsigned mdl_data_type,
-				       metricDefinitionNode *mn) {
+dataReqNode *create_data_object(unsigned mdl_data_type,
+				metricDefinitionNode *mn) {
   switch (mdl_data_type) {
   case MDL_T_COUNTER:
-    return (mn->addIntCounter(0, true));
+    return (mn->addSampledIntCounter(0));
+
   case MDL_T_WALL_TIMER:
-    return (mn->addTimer(wallTime));
+    return (mn->addWallTimer());
+
   case MDL_T_PROC_TIMER:
-    return (mn->addTimer(processTime));
+    return (mn->addProcessTimer());
+
   case MDL_T_NONE:
     // just to keep mdl apply allocate a dummy un-sampled counter.
-    return (mn->addIntCounter(0, false));
+    return (mn->addUnSampledIntCounter(0));
+
   default:
     assert(0);
     return NULL;
@@ -436,7 +445,7 @@ inline dataReqNode *create_data_object(unsigned mdl_data_type,
 }
 
 
-static metricDefinitionNode *
+metricDefinitionNode *
 apply_to_process(process *proc, 
 		 string& id, string& name,
 		 vector< vector<string> >& focus,
@@ -478,17 +487,20 @@ apply_to_process(process *proc,
 	  flat_name += focus[u1][u2];
     }
 
-    if (allMIComponents.defines(flat_name)) {
+    metricDefinitionNode *existingMI;
+    if (allMIComponents.find(flat_name, existingMI)) {
       //sprintf(errorLine,"Found component for %s\n", flat_name.string_of());
       //logLine(errorLine);
-      return allMIComponents[flat_name];
+
+      return existingMI;
     }
 
     // TODO -- Using aggOp value for this metric -- what about folds
     metricDefinitionNode *mn = new metricDefinitionNode(proc, name,
 							focus, flat_name, agg_op);
-    allMIComponents[flat_name] = mn;
+    assert(mn);
 
+    allMIComponents[flat_name] = mn;
 
     // Create the timer, counter
     dataReqNode *the_node = create_data_object(type, mn);
@@ -499,8 +511,7 @@ apply_to_process(process *proc,
     if (temp_ctr) {
       unsigned tc_size = temp_ctr->size();
       for (unsigned tc=0; tc<tc_size; tc++) {
-	dataReqNode *temp_node;
-	temp_node = mn->addIntCounter(0, false);
+	dataReqNode *temp_node = mn->addUnSampledIntCounter(0);
 	mdl_env::set(temp_node, (*temp_ctr)[tc]);
       }
     }
@@ -531,7 +542,7 @@ apply_to_process(process *proc,
     } else {
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
-	if (!(*stmts)[u]->apply(mn, flags)) {
+	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on the statement type
 	  // cout << "apply of " << name << " failed\n";
 	  delete mn;
 	  return NULL;
@@ -586,9 +597,9 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     // skip neonatal and exited processes.
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
-    metricDefinitionNode *mn;
-    mn = apply_to_process(proc, id, name, focus, agg_op, type,
-			  flag_cons, base_use, stmts, flag_dex, base_dex, temp_ctr);
+    metricDefinitionNode *mn = apply_to_process(proc, id, name, focus, agg_op, type,
+						flag_cons, base_use, stmts, flag_dex,
+						base_dex, temp_ctr);
     if (mn)
       parts += mn;
 
@@ -685,7 +696,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   if (parts.size())
     ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
 
-  if (ret) ret->set_inform(true);
+//  if (ret) ret->set_inform(true);
 
   // cout << "apply of " << name_ << " ok\n";
   mdl_env::pop();
@@ -795,7 +806,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   if (!replace_) {
     // create the counter used as a flag
     mdl_env::add(id_, false, MDL_T_DRN);
-    dataReqNode *drn = mn->addIntCounter(0, false);
+    dataReqNode *drn = mn->addUnSampledIntCounter(0);
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
@@ -865,26 +876,25 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 	  fflush(stderr);
 	  return false;
       } else {
-	  ast = AstNode(Constant, (void*) value);
+	  ast = AstNode(AstNode::Constant, (void*) value);
       }
     } else {
-      ast = AstNode(Constant, (void*) val_);
+      ast = AstNode(AstNode::Constant, (void*) val_);
     }
     break;
   case MDL_ARG:
-    ast = AstNode(Param, (void*) val_);
+    ast = AstNode(AstNode::Param, (void*) val_);
     break;
   case MDL_RETURN:
-    ast = AstNode(ReturnVal, 0);
+    ast = AstNode(AstNode::ReturnVal, 0);
     break;
   case MDL_READ_SYMBOL:
     // TODO -- I am relying on global_proc to be set in mdl_metric::apply
     if (global_proc) {
       Symbol info;
-      // if (global_proc->symbols->symbol_info(name_, info)) 
       if (global_proc->getSymbolInfo(name_, info)) {
 	Address adr = info.addr();
-	ast = AstNode(DataAddr, (void*) adr);
+	ast = AstNode(AstNode::DataAddr, (void*) adr);
       } else {
 	string msg = string("In metric '") + currentMetric + string("': ") +
 	  string("unable to find symbol '") + name_ + string("'");
@@ -895,19 +905,18 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
     break;
   case MDL_READ_ADDRESS:
     // TODO -- check on the range of this address!
-    ast = AstNode(DataAddr, (void*) val_);
+    ast = AstNode(AstNode::DataAddr, (void*) val_);
     break;
   case MDL_CALL_FUNC: {
     // don't confuse 'args' with 'args_' here!
     vector<AstNode> args;
-    AstNode arg;
     for (unsigned u = 0; u < args_.size(); u++) {
-      if (!args_[u]->apply(arg))
+      AstNode arg;
+      if (!args_[u]->apply(arg)) // fills in 'arg'
 	return false;
 
       args += arg;
     }
-    // pdf = global_proc->symbols->findOneFunction(string(name_));
     string temp = string(name_);
     pdf = global_proc->findOneFunction(temp);
     if (!pdf) {
@@ -929,7 +938,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 	return false;
       }
       assert(get_drn.get(drn));
-      ast = AstNode(DataPtr, drn);      
+      ast = AstNode(AstNode::DataPtr, drn);      
     }
     break;
   case MDL_T_COUNTER:
@@ -954,7 +963,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ast = AstNode(Constant, (void*) value);
+		  ast = AstNode(AstNode::Constant, (void*) value);
 	      }
 	      break;
 	  case MDL_T_COUNTER:	// is MDL_T_COUNTER used here ??? jkh 7/31/95
@@ -965,7 +974,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ast = AstNode(DataValue, (void*) drn);
+		  ast = AstNode(AstNode::DataValue, (void*) drn);
 	      }
 	      break;
 	  default:
@@ -1050,7 +1059,7 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    ast_args += AstNode(DataPtr, (void *) drn);
+    ast_args += AstNode(AstNode::DataPtr, (void *) drn);
     code = AstNode(timer_fun, ast_args);
     break;
   case MDL_CALL_FUNC:
@@ -1264,7 +1273,6 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(func_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  // pdFunction *pdf = global_proc->symbols->findOneFunction(func_name);
 	  pdFunction *pdf = global_proc->findOneFunction(func_name);
 	  return (ret.set(pdf));
 	} else {
@@ -1280,7 +1288,6 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(mod_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  // module *mod = global_proc->symbols->findModule(mod_name);
 	  module *mod = global_proc->findModule(mod_name);
 	  if (!mod) { assert(0); return false; }
 	  return (ret.set(mod));
@@ -1320,9 +1327,13 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
 
 bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
 				      vector<dataReqNode*>& flags) {
-  mdl_var res(false); int iv;
+  // An if stmt is comprised of (1) the 'if' expr and (2) the body to
+  // execute if true.
+  mdl_var res(false);
   if (!expr_->apply(res))
     return false;
+
+  int iv;
   switch (res.type()) {
   case MDL_T_INT:
     if (!res.get(iv))
@@ -1333,8 +1344,8 @@ bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
   default:
     return false;
   }
-  bool ret = body_->apply(mn, flags);
-  return ret;
+
+  return body_->apply(mn, flags);
 }
 
 T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) : stmts_(stmts) { }
@@ -1350,12 +1361,15 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
 
 bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
 				       vector<dataReqNode*>& flags) {
+  // a seq_stmt is simply a sequence of statements; apply them all.
   if (!stmts_)
     return true;
+
   unsigned size = stmts_->size();
   for (unsigned index=0; index<size; index++)
-    if (!(*stmts_)[index]->apply(mn, flags))
+    if (!(*stmts_)[index]->apply(mn, flags)) // virtual fn call
       return false;
+
   return true;
 }
 
@@ -1431,38 +1445,51 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
-                                        vector<dataReqNode*>& inFlags) {
-  
-   vector<instPoint *> points;
-   vector<dataReqNode*> flags;
-   if (constrained_) {
-       // we are constrained so use the flags (boolean constraint variables
-       flags = inFlags;
-   }
+					 vector<dataReqNode*>& inFlags) {
+   // An instr statement is like:
+   //    append preInsn $start.entry constrained (* startWallTimer(a_wallTime); *)
+   // (note that there are other kinds of statements; i.e. there are other classes
+   //  derived from the base class mdl_stmt; see dyninstRPC.I)
+
+  if (icode_reqs_ == NULL)
+    return false; // no instrumentation code to put in!
+
   mdl_var temp(false);
-  if (!icode_reqs_)
+  if (!point_expr_->apply(temp)) // process the 'point(s)' e.g. "$start.entry"
     return false;
-  if (!point_expr_->apply(temp))
-    return false;
+
+  vector<instPoint *> points;
   if (temp.type() == MDL_T_LIST_POINT) {
     vector<instPoint *> *pts;
     if (!temp.get(pts)) return false;
     points = *pts;
   } else if (temp.type() == MDL_T_POINT) {
     instPoint *p;
-    if (!temp.get(p)) return false;
+    if (!temp.get(p)) return false; // where the point is located...
       points += p;
   } else {
     return false;
   }
-  unsigned size = icode_reqs_->size();
 
+  // Let's generate the code now (we used to calculate it in the loop below,
+  // which was a waste since the code is the same for all points).
   AstNode code;
+  unsigned size = icode_reqs_->size();
   for (unsigned u=0; u<size; u++)
     if (!(*icode_reqs_)[u]->apply(code, u>0)) // when u is 0, code is un-initialized
       return false;
 
-  enum callWhen cwhen; enum callOrder corder;
+  // Instantiate all constraints (flags) here (if any)
+  // (if !constrained_ then don't do the following)
+  if (constrained_) {
+     unsigned fsize = inFlags.size();
+     for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
+        AstNode temp(AstNode::DataValue, inFlags[fi]);
+	code = createIf(temp, code);
+     }
+  }
+
+  enum callOrder corder;
   switch (position_) {
       case MDL_PREPEND: 
 	  corder = orderFirstAtPoint; 
@@ -1472,6 +1499,8 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 	  break;
       default: assert(0);
   }
+
+  enum callWhen cwhen;
   switch (where_instr_) {
       case MDL_PRE_INSN: 
 	  cwhen = callPreInsn; 
@@ -1482,29 +1511,54 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
       default: assert(0);
   }
 
+  // Here is where auto-activate should occur.
+  // If there is 1 point and it is $start.entry then
+  // do an inferiorRPC right now (of the ast 'code').
+  // In this way, we can get metrics like cpu and exec-time for whole program
+  // to work correctly even when the metrics are instantiated after
+  // the entrypoint of main() is in execution.
+
+  bool manuallyTrigger = false; // for now
+
+  if (points.size() == 1) {
+     // now look at the mdl variable to check for $start.entry.
+     if (temp.name() == "$start" && temp.type()==MDL_T_POINT) {
+        // having a type of MDL_T_POINT should mean $start.entry as opposed to
+        // $start.exit, since $start.exit would yield a type of MDL_T_LIST_POINT,
+        // since exit locations are always a list-of-points.  Sorry for the kludge.
+
+        instPoint *theVrbleInstPoint; // NOTE: instPoint is defined in arch-specific files!!!
+	assert(temp.get(theVrbleInstPoint)); // theVrbleInstPoint set to equiv of points[0]
+
+	assert(theVrbleInstPoint == points[0]); // just a sanity check
+
+	mdl_var theVar;
+	assert(mdl_env::get(theVar, temp.name()));
+
+	pdFunction *theFunction;
+	assert(theVar.get(theFunction));
+
+	// Make a note to do an inferiorRPC to manually execute this code.
+	if (!manuallyTrigger)
+	   cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
+
+	manuallyTrigger = true;
+     }
+  }
+
   // for all of the inst points, insert the predicates and the code itself.
-  for (int i = 0; i < (int)points.size(); i++) {
-      instPoint *p = points[i];
-      AstNode code;
-
-      for (unsigned u=0; u<size; u++)
-	if (!(*icode_reqs_)[u]->apply(code, u > 0)) // code is initialized when u > 0
-	  return false;
-
-      // Instantiate all constraints (flags) here
-      unsigned fsize = flags.size();
-      for (int fi=fsize-1; fi>=0; fi--) {
-        AstNode temp(DataValue, flags[fi]);
-        code = createIf(temp, code);
-      }
-
-      mn->addInst(p, code, cwhen, corder);
+  for (unsigned i = 0; i < points.size(); i++) {
+      mn->addInst(points[i], code, cwhen, corder,
+		  manuallyTrigger && (i==0)); // manually trigger at most once
+         // appends an instReqNode to mn's instRequests; actual instrumentation only
+         // takes place when mn->insertInstrumentation() is later called.
   }
 
   return true;
 }
 
 bool mdl_can_do(string& met_name) {
+  // NOTE: We can do better if there's a dictionary of <metric-name> to <anything>
   unsigned size = mdl_data::all_metrics.size();
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name)
@@ -1517,6 +1571,7 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, string& met_
 			     string& flat_name, vector<process *> procs) {
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
+  // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name) {
       return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs));
@@ -1593,23 +1648,6 @@ bool mdl_init(string& flavor) {
 
 void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   mdl_met = true;
-
-//
-// Old definition of observed_cost
-//
-// This code is not necessary if we define observed_cost as an internal
-// metric -- naim
-//
-//  static bool been_here = false;
-//  if (!been_here) {
-//    been_here = true;
-//      // Kludge -- declare observed cost
-//      // I don't want to attempt to define this using the current mdl
-//    string obs_cost = "observed_cost";
-//    assert(mdl_data::new_metric("observedCost", obs_cost, "CPUs",
-//				aggMax, EventCounter, 0,
-// 			        NULL, NULL, NULL, NULL, true, true));
-//  }
 
   if (var_0) {
     unsigned var_size = var_0->size();
