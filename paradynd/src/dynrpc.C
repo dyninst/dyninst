@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.84 2001/08/23 14:44:04 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.85 2002/04/05 19:39:17 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/metric.h"
+#include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -159,21 +160,14 @@ void dynRPC::getPredictedDataCost(u_int id,
 
 void dynRPC::disableDataCollection(int mid)
 {
-    metricDefinitionNode *mi;
-
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
     begin_timing(1);
 #endif
 
-    if (!allMIs.defines(mid)) {
-      // sprintf(errorLine, "Internal error: disableDataCollection mid %d not found\n", mid);
-      // logLine(errorLine);
-      // showErrorCallback(61,(const char *) errorLine);
-      // because of async enables this can happen, so ignore it
-      return;
-    }
-
-    mi = allMIs[mid];
+    machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(mid);
+    if(mi == NULL)
+       return;
+    
     // cout << "disable of " << mi->getFullName() << endl; 
     // timeLength cost = mi->originalCost();
     timeLength cost = mi->cost();
@@ -200,7 +194,6 @@ void dynRPC::disableDataCollection(int mid)
       }
     }
 
-    mi->disable();
     for (unsigned p=0;p<procsToCont.size();p++) {
 #ifdef DETACH_ON_THE_FLY
       procsToCont[p]->detachAndContinue();
@@ -208,8 +201,7 @@ void dynRPC::disableDataCollection(int mid)
       procsToCont[p]->continueProc();
 #endif
     }
-    allMIs.undef(mid);
-    delete(mi);
+    delete mi;
 
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
     end_timing(1,"disable");
@@ -256,31 +248,10 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
     return_id.resize(metric.size());
     totalInstTime.start();
 
-    vector<process *>procsToContinue;
-
-#if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
-    begin_timing(0);
-#endif
-
     for (u_int i=0;i<metric.size();i++) {
-        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i], 
-                                       procsToContinue);
+        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i]);
     }
 
-#if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
-    end_timing(0,"enable");
-#endif
-    
-    // continue the processes that were stopped in start collecting
-    for (unsigned u = 0; u < procsToContinue.size(); u++) {
-#ifdef DETACH_ON_THE_FLY
-      procsToContinue[u]->detachAndContinue();
-#else
-      procsToContinue[u]->continueProc();
-#endif
-      // uncomment next line for debugging purposes on AIX
-      // procsToContinue[u]->detach(false);
-    }
     totalInstTime.stop();
 
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
@@ -292,17 +263,8 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
   int id;
 
   totalInstTime.start();
-  vector<process *>procsToContinue;
+  id = startCollecting(met, focus, gid);
 
-  id = startCollecting(met, focus, gid, procsToContinue);
-
-  for (unsigned u = 0; u < procsToContinue.size(); u++) {
-#ifdef DETACH_ON_THE_FLY
-    procsToContinue[u]->detachAndContinue();
-#else
-    procsToContinue[u]->continueProc();
-#endif
-  }
   totalInstTime.stop();
   // cout << "Enabled " << met << " = " << id << endl;
   return(id);
@@ -351,7 +313,7 @@ void dynRPC::setSampleRate(double sampleInterval)
 	  }
         }
 	setCurrSamplingRate(newSampleRate);
-	metricDefinitionNode::updateAllAggInterval(newSampleRate);
+	machineMetFocusNode::updateAllAggInterval(newSampleRate);
     }
     return;
 }
