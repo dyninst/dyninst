@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.107 1999/05/25 22:35:43 nash Exp $
+// $Id: DMpublic.C,v 1.108 1999/05/26 22:49:53 cain Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -912,7 +912,8 @@ vector<rlNameId> *dataManager::magnify(resourceHandle rh,
 
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-	return(rl->magnify(rh, eCallGraph));
+      //return(rl->magnify(rh, eCallGraph));
+      return(rl->magnify(rh, eOriginal));
     }
     return 0;
 }
@@ -927,7 +928,8 @@ vector<rlNameId> *dataManager::magnify(resourceHandle rh,
 vector<rlNameId> *dataManager::magnify2(resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-	return (rl->magnify(eCallGraph));
+      //return (rl->magnify(eCallGraph));
+      return (rl->magnify(eOriginal));
     }
     return 0;
 }
