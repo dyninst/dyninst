@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.153 1998/07/24 17:16:44 wylie Exp $
+// $Id: process.C,v 1.154 1998/08/16 23:36:29 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2720,7 +2720,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
        baseAddr = get_dlopen_addr();
-       if (baseAddr != NULL) {
+       if (baseAddr != 0) { // check for NULL
          err = false;
          return baseAddr;
        } else {
@@ -3211,7 +3211,7 @@ unsigned process::createRPCtempTramp(AstNode *action,
    if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
-      return NULL;
+      return 0; // NULL
    }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
@@ -3237,7 +3237,7 @@ unsigned process::createRPCtempTramp(AstNode *action,
 			       justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
       cerr << "createRPCtempTramp failed because emitInferiorRPCtrailer failed." << endl;
-      return NULL;
+      return 0; // NULL
    }
 
    unsigned tempTrampBase = inferiorMalloc(this, count, textHeap);
@@ -3270,7 +3270,7 @@ unsigned process::createRPCtempTramp(AstNode *action,
    if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return NULL;
+      return 0; // NULL
    }
 
    extern int trampBytes; // stats.h
