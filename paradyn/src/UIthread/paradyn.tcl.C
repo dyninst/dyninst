@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.92 2000/10/17 17:27:53 schendel Exp $
+/* $Id: paradyn.tcl.C,v 1.93 2001/06/20 20:38:34 schendel Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -62,7 +62,7 @@
 #include "common/h/pathName.h" // expand_tilde_pathname
 
 #include "Status.h"
-#include "pdutilOld/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 extern bool detachApplication(bool);
 
@@ -151,7 +151,7 @@ int ParadynMetricsCmd(ClientData,
 {
   vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
-    Tcl_AppendElement(interp, (char*)(*ml)[i].string_of());
+    Tcl_AppendElement(interp, const_cast<char*>((*ml)[i].string_of()));
   delete ml;
   return TCL_OK;
 }
@@ -164,7 +164,7 @@ int ParadynDaemonsCmd(ClientData,
 {
   vector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
-    Tcl_AppendElement(interp, (char*)(*dl)[i].string_of());
+    Tcl_AppendElement(interp, const_cast<char*>((*dl)[i].string_of()));
   delete dl;
   return TCL_OK;
 }
@@ -210,7 +210,9 @@ int ParadynListCmd(ClientData,
      cout << tfc.getName() << " = " << tfc.getValue() << endl;
   }
 
-  cout << "bucketWidth " << dataMgr->getCurrentBucketWidth() << endl;
+  timeLength bwidth;
+  dataMgr->getCurrentBucketWidth(&bwidth);
+  cout << "bucketWidth = " << bwidth << endl;
   cout << "number of buckets = " << dataMgr->getMaxBins() << endl;
   dataMgr->printDaemons();
   return TCL_OK;
@@ -251,7 +253,7 @@ int ParadynGetTotalCmd (ClientData,
 {
   metricHandle *met;
   metricInstInfo *mi;
-  float val;
+  pdSample val;
 
   if (argc < 2) {
     Tcl_SetObjResult(interp,
@@ -273,8 +275,7 @@ int ParadynGetTotalCmd (ClientData,
   }
   else {
     ostrstream resstr;
-
-    val = dataMgr->getTotValue(mi->mi_id);
+    dataMgr->getTotValue(mi->mi_id, &val);
     resstr << val << ends;
     SetInterpResult(interp, resstr);
     delete met;
@@ -290,7 +291,7 @@ int ParadynPrintCmd (ClientData,
   ostrstream resstr;
 
   if (argv[1][0] == 'm') {   // print metric
-    float val;
+    pdSample val;
     metricInstInfo *mi;
     metricHandle *met;
 
@@ -306,9 +307,9 @@ int ParadynPrintCmd (ClientData,
       delete met;
       return TCL_ERROR;
      } else {
-      val = dataMgr->getMetricValue(mi->mi_id);
-      printf ("metric %s, val = %f\n", 
-	       dataMgr->getMetricName(*met), val);
+      dataMgr->getMetricValue(mi->mi_id, &val);
+      cout << "metric " << dataMgr->getMetricName(*met) << ", val = " 
+	   << val << endl;
     }
   } else {
     resstr << "Unknown option: paradyn print " << argv[1] << "\n" << ends;
@@ -773,7 +774,7 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
                        string(menuIndex);
    cout << "invoking menu item " << menuIndex << endl;
 
-   if (TCL_OK != Tcl_Eval(interp, (char*)commandStr.string_of())) {
+   if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(commandStr.string_of()))) {
       cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }

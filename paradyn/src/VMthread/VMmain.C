@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.48 2001/05/24 18:37:25 wxd Exp $ */
+/* $Id: VMmain.C,v 1.49 2001/06/20 20:38:36 schendel Exp $ */
 
+#include "paradyn/src/pdMain/paradyn.h"
 #include "thread/h/thread.h"
 #include "VM.thread.SRVR.h"
 #include "UI.thread.CLNT.h"
 #include "performanceConsultant.thread.CLNT.h"
 #include "VISIthread.thread.CLNT.h"
 #include "VMtypes.h"
-#include "paradyn/src/pdMain/paradyn.h"
 #include "paradyn/src/met/metParse.h"
 #include "../DMthread/DMmetric.h"
 /*
@@ -263,19 +263,19 @@ int  VM::VMCreateVisi(int remenuFlag,
   temp->parent_tid = thr_self();
   temp->phase_type = phase_type;
   if(phase_type == GlobalPhase){
-      temp->bucketWidth = dataMgr->getGlobalBucketWidth();
-      temp->start_time = 0.0;
+      dataMgr->getGlobalBucketWidth(&temp->bucketWidth);
+      temp->start_time = relTimeStamp::Zero();
       temp->my_phaseId = 0;
   }
   else {
-      temp->bucketWidth = dataMgr->getCurrentBucketWidth();
-      temp->start_time = dataMgr->getCurrentStartTime();
+      dataMgr->getCurrentBucketWidth(&temp->bucketWidth);
+      dataMgr->getCurrentStartTime(&temp->start_time);
       temp->my_phaseId = dataMgr->getCurrentPhaseId();
    }
   // make sure bucket width is positive 
-  if(temp->bucketWidth <= 0.0) {
+  if(temp->bucketWidth <= timeLength::Zero()) {
       PARADYN_DEBUG(("bucketWidth is <= 0.0\n"));
-      temp->bucketWidth = 0.1; 
+      temp->bucketWidth = timeLength::ms() * 100; 
   }
       
   if(matrix != NULL){
@@ -311,8 +311,8 @@ int  VM::VMCreateVisi(int remenuFlag,
 		metricHandle metric_h=UNUSED_METRIC_HANDLE;
 		
 		string metfocus_item((*visitemp->matrix)[i].string_of());
-		char	*metfocus_str=P_strdup(metfocus_item.string_of());
-
+		char *metfocus_str=const_cast<char *>(
+					 P_strdup(metfocus_item.string_of()));
 		string *metric_name=NULL;
 		string *code_name=NULL;
 		string *machine_name=NULL;

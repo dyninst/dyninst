@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.19 2000/10/17 17:27:53 schendel Exp $ */
+/* $Id: tclTunable.C,v 1.20 2001/06/20 20:38:34 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -53,7 +53,7 @@
 #include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
-#include "pdutilOld/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 struct cmdTabEntry {
    const char *cmdName;
@@ -226,7 +226,9 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 	     }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-	     resstr << (char*)((tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of()) << ends;
+	     resstr << const_cast<char*>((tcb.getDesc().string_of()==NULL) ? 
+					 tcb.getName().string_of() : 
+					 tcb.getDesc().string_of()) << ends;
          break;
       }
 
