@@ -1773,7 +1773,14 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		    printf("unexpected non character array %s\n", stabstr);
 		} else {
 		    cnt++; // skip ';'
-		    int size = parseSymDesc(stabstr, cnt);
+		    int size;
+		    if (stabstr[cnt] == 'T') {
+		      /* Fortran stack-based array bounds */
+		      size = 0;
+		      cnt++; // skip ';'
+		      (void) parseSymDesc(stabstr, cnt);
+		    } else
+		      size = parseSymDesc(stabstr, cnt);
 
 		    ptrType = mod->moduleTypes->findOrCreateType(baseType);
 		    newType = new BPatch_type(name, ID, BPatch_dataArray, ptrType,
