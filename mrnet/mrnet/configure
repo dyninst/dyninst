@@ -271,6 +271,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="src/Network.C"
+ac_unique_file="src/Network.C"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -1259,6 +1260,7 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 
 
@@ -2577,7 +2579,7 @@ MRNET_OSVER=`echo $host_os | sed 's/[-|.]/_/g'`
 #MRNET_OS=$host_os
 #echo $MRNET_OS $MRNET_OSVER
 MRNET_ROOT=`pwd`
-MRNET_VERSION="`cat $(srcdir)/VERSION`"
+MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 
 cat >>confdefs.h <<_ACEOF
 #define COMMNODE_EXE "$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode"
