@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.72 2001/08/23 14:43:49 schendel Exp $ */
+/* $Id: PCmain.C,v 1.73 2002/11/25 23:52:27 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -198,6 +198,20 @@ void PCnewDataCallback(vector<dataValueType> *values,
     datavalues_bufferpool.dealloc(values);
 }
 
+/* // At this time, don't need to to receive notice of retired resources
+void PCresourceRetiredCallback(perfStreamHandle handle, 
+                               resourceHandle uniqueID, 
+                               const char *name, const char *abs) {
+   // cerr << "PC: resourceRetiredCallback, " << name << "\n";
+   // When expanding shg nodes, we're ignoring retired resources.  This is
+   // done in the MagnifyManager (in DMthread/src).  Perhaps in this function
+   // we'd want to disable any experiments which have resources that have
+   // retired.  Or perhaps the front-end should receive a message from the
+   // daemon about when a metric-focus has ended due to a necessary resource
+   // being retired.
+}
+*/
+
 //
 // If a new phase is announced by the data manager, the CurrentPhase search
 // is ended, if one exists.  We don't automatically start searching the new 
@@ -295,6 +309,9 @@ void* PCmain(void* varg)
     memset(&controlHandlers, '\0', sizeof(controlHandlers));
     controlHandlers.fFunc = PCfold;
     controlHandlers.pFunc = PCphase;
+
+    // At this time, don't need to to receive notice of retired resources
+    //controlHandlers.retireFunc = PCresourceRetiredCallback;
 
     // will wait to implement this
     controlHandlers.avFunc = PCinitialActualValue;
