@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.71  1996/02/05 18:51:47  newhall
-/* Change to DM interface: StartPhase and newPhaseCallback
+/* Revision 1.72  1996/02/07 19:04:37  tamches
+/* added deferred-phase-adding features
 /*
+ * Revision 1.71  1996/02/05 18:51:47  newhall
+ * Change to DM interface: StartPhase and newPhaseCallback
+ *
  * Revision 1.70  1996/02/02  18:39:18  tamches
  * added prelim version of ui_newPhaseDetected
  * added shgShowKey, shgShowTips tunables
@@ -78,6 +81,7 @@
 
 #include "abstractions.h"
 #include "whereAxisTcl.h"
+#include "shgPhases.h"
 #include "shgTcl.h"
 #include "tkTools.h"
 
@@ -226,23 +230,36 @@ applicStateChanged (perfStreamHandle, appState state)
   PDapplicState = state;
 }
 
-int latest_detected_new_phase_id = 0;
+int latest_detected_new_phase_id = -1;
+const char *latest_detected_new_phase_name = NULL;
 void ui_newPhaseDetected(perfStreamHandle,
 			 const char *name, phaseHandle ph,
 			 timeStamp begin, timeStamp end,
 			 float bucketwidth,
 			 bool with_new_pc,
 			 bool with_visis) {
-   cout << "welcome to new_phase_detected" << endl;
-   cout << "name=" << name << endl;
-   cout << "begin=" << begin << "; end=" << end << endl;
-   cout << "bucketwidth=" << bucketwidth << endl;
-   cout << "bye." << endl;
+//   cout << "welcome to new_phase_detected" << endl;
+//   cout << "id=" << ph + 1 << endl;
+//   cout << "name=" << name << endl;
+//   cout << "begin=" << begin << "; end=" << end << endl;
+//   cout << "bucketwidth=" << bucketwidth << endl;
 
    // For the benefit of the shg, in the event that the shg window
    // has not yet been opened, with the result that "theShgPhases"
    // hasn't yet been constructed:
-   latest_detected_new_phase_id = ph + 1;
+   extern shgPhases *theShgPhases;
+   if (theShgPhases == NULL) {
+      latest_detected_new_phase_id = ph + 1;
+      latest_detected_new_phase_name = name;
+      cout << "ui_newPhaseDetected: deferring phase " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
+   }
+   else {
+      cout << "ui_newPhaseDetected: adding the phase now" << endl;
+      theShgPhases->defineNewSearch(ph+1, name);
+      perfConsult->newSearch(CurrentPhase);
+
+      initiateShgRedraw(interp, true);
+   }
 }
 
 /*
