@@ -122,21 +122,47 @@ void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
 
 
 // Called whenever a program is ready to run (both programs started by paradyn
-// and programs forked by other programs).
+// and programs forked by other programs). QUESTION: What about when a program does
+// an exec syscall?
+//
 // The new program inherits all enabled metrics, and if the application is 
 // running the new program must run too.
 // 
 bool paradynDaemon::addRunningProgram (int pid,
 				       const vector<string> &argv,
-				       paradynDaemon *daemon)
+				       paradynDaemon *daemon,
+				       bool calledFromExec
+				       )
 {
-    executable *exec = new executable (pid, argv, daemon);
-    programs += exec;
-    ++procRunning;
+    executable *exec = NULL;
 
-    daemon->propagateMetrics();
+    if (calledFromExec) {
+       for (unsigned i=0; i < programs.size(); i++) {
+	  if (programs[i]->pid == pid && programs[i]->controlPath == daemon) {
+	     exec = programs[i];
+	     break;
+	  }
+       }
+       assert(exec);
+
+       // exec() doesn't change the pid, but argv changes (big deal).
+       exec->argv = argv;
+    }
+    else {
+       // the non-exec (the normal) case follows:
+       exec = new executable (pid, argv, daemon);
+       programs += exec;
+       ++procRunning;
+
+       // the following propagates mi's to the new process IF it's the only
+       // process on the daemon.  Otherwise, the daemon can and does propagate
+       // on its own.  We don't call it in the exec case (above) since we know it
+       // wouldn't do anything.
+       daemon->propagateMetrics();
+    }
 
     if (applicationState == appRunning) {
+      //cerr << "paradyn: calling daemon->continueProcess off of addRunningProgram (machine " << daemon->getDaemonMachineName() << "; pid=" << pid << ") !" << endl;
       daemon->continueProcess(pid);
     }
 
@@ -490,12 +516,11 @@ bool paradynDaemon::newExecutable(const string &machine,
 
   static char tmp_buf[256];
 
-  if (! DMstatus) {
+  if (! DMstatus)
       DMstatus = new status_line("Data Manager");
-  }
-  if (! PROCstatus) {
+
+  if (! PROCstatus)
       PROCstatus = new status_line("Processes");
-  }
 
   paradynDaemon *daemon;
   if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
@@ -509,7 +534,7 @@ bool paradynDaemon::newExecutable(const string &machine,
   if (pid > 0 && !daemon->did_error_occur()) {
       // TODO
       sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
-      uiMgr->updateStatus(PROCstatus,P_strdup(tmp_buf));
+      uiMgr->updateStatus(PROCstatus, tmp_buf);
 #ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
@@ -519,6 +544,36 @@ bool paradynDaemon::newExecutable(const string &machine,
   } else {
       return(false);
   }
+}
+
+bool paradynDaemon::attachStub(const string &machine,
+			       const string &userName,
+			       const string &daemonName,
+			       int the_pid) {
+  if (! DMstatus)
+      DMstatus = new status_line("Data Manager");
+
+  if (! PROCstatus)
+      PROCstatus = new status_line("Processes");
+
+  paradynDaemon *daemon = getDaemonHelper(machine, userName, daemonName);
+  if (daemon == NULL)
+      return false;
+
+  performanceStream::ResourceBatchMode(batchStart);
+  bool success = daemon->attach(the_pid);
+  performanceStream::ResourceBatchMode(batchEnd);
+
+  if (daemon->did_error_occur())
+     return false;
+
+  if (!success)
+     return false;
+
+  char tmp_buf[128];
+  sprintf (tmp_buf, "%sPID=%d ", tmp_buf, the_pid);
+  uiMgr->updateStatus(PROCstatus, tmp_buf);
+  return true; // success
 }
 
 //
@@ -576,8 +631,10 @@ bool paradynDaemon::continueAll()
 {
     paradynDaemon *pd;
 
-    if (programs.size() == 0 || procRunning == 0)
-	// no program to continue
+    if (programs.size() == 0)
+       return false; // no program to pause
+
+    if (procRunning == 0)
        return false;
 
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
@@ -672,7 +729,6 @@ bool paradynDaemon::setInstSuppress(resource *res, bool newValue)
 // of new resource definitions
 //
 void paradynDaemon::resourceBatchMode(bool onNow){
-
     int prev = count;
     if (onNow) {
 	count++;
@@ -680,6 +736,7 @@ void paradynDaemon::resourceBatchMode(bool onNow){
 	assert(count > 0);
 	count--;
     }
+
     if (count == 0) {
 	for(u_int i=0; i < allDaemons.size(); i++){
             (allDaemons[i])->reportResources();
@@ -695,9 +752,11 @@ void paradynDaemon::resourceBatchMode(bool onNow){
 //
 void  paradynDaemon::reportResources(){
     assert(newResourcesDefined.size() == newResourceHandles.size());
+
     for(u_int i=0; i < newResourceHandles.size(); i++){
 	 resourceInfoResponse(newResourcesDefined[i], newResourceHandles[i]);
     }
+
     newResourceHandles.resize(0);
     newResourcesDefined.resize(0);
     assert(newResourcesDefined.size() == newResourceHandles.size());
@@ -713,9 +772,11 @@ void paradynDaemon::resourceInfoCallback(int,
 
     resourceHandle r = createResource(resource_name, abstr, type);
     if(!count){
+        //cerr << "paradyn: got resourceInfoCallback and !count, so sending resourceInfoResponse now" << endl;
 	resourceInfoResponse(resource_name, r);
     }
     else {
+        //cerr << "paradyn: got resourceInfoCallback and count, so deferring resourceInfoResponse for now" << endl;
         newResourcesDefined += resource_name;
 	newResourceHandles += r;
         assert(newResourcesDefined.size() == newResourceHandles.size());
@@ -854,7 +915,8 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 
 // propagateMetrics:
 // called when a new process is started, to propagate all enabled metrics to
-// the new process.
+// the new process.  (QUESTION: should this include when a process makes
+// an exec syscall, thus 'starting' another process?)
 // Metrics are propagated only if the new process is the only process running 
 // on a daemon (this is why we don't need the pid here). If there are already
 // other processes running on a daemon, than it is up to the daemon to do the
@@ -867,40 +929,41 @@ void paradynDaemon::propagateMetrics() {
     for (unsigned i = 0; i < allMIHs.size(); i++) {
 
       metricInstance *mi = metricInstance::getMI(allMIHs[i]);
-     
-      if (mi->isEnabled()) {
 
-	// first we must find if the daemon already has this metric enabled for
-	// some process. In this case, we don't need to do anything, the
-	// daemon will do the propagation by itself.
-	bool found = false;
-	for (unsigned j = 0; j < mi->components.size(); j++) {
-	  if (mi->components[j]->getDaemon() == this) {
+      if (!mi->isEnabled())
+	 continue;
+
+      // first we must find if the daemon already has this metric enabled for
+      // some process. In this case, we don't need to do anything, the
+      // daemon will do the propagation by itself.
+      bool found = false;
+      for (unsigned j = 0; j < mi->components.size(); j++) {
+	 if (mi->components[j]->getDaemon() == this) {
 	    found = true;
 	    break;
-	  }
-	}
-	if (!found) {
-	  resourceListHandle r_handle = mi->getFocusHandle();
-	  metricHandle m_handle = mi->getMetricHandle();
-	  resourceList *rl = resourceList::getFocus(r_handle);
-	  metric *m = metric::getMetric(m_handle);
+	 }
+      }
 
-	  vector<u_int> vs;
-	  bool aflag;
-	  aflag=(rl->convertToIDList(vs));
-	  assert(aflag);
+      if (found)
+	 continue; // we don't enable this mi; let paradynd do it
 
-	  int id = enableDataCollection2(vs, (const char *) m->getName(), mi->id);
+      resourceListHandle r_handle = mi->getFocusHandle();
+      metricHandle m_handle = mi->getMetricHandle();
+      resourceList *rl = resourceList::getFocus(r_handle);
+      metric *m = metric::getMetric(m_handle);
 
-	  if (id > 0 && !did_error_occur()) {
-	    component *comp = new component(this, id, mi);
-	    if (!mi->addComponent(comp)) {
-	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
-	      abort();
-	    }
-	  }
-	}
+      vector<u_int> vs;
+      bool aflag = rl->convertToIDList(vs);
+      assert(aflag);
+
+      int id = enableDataCollection2(vs, (const char *) m->getName(), mi->id);
+
+      if (id > 0 && !did_error_occur()) {
+	 component *comp = new component(this, id, mi);
+	 if (!mi->addComponent(comp)) {
+	    cout << "internal error in paradynDaemon::addRunningProgram" << endl;
+	    abort();
+	 }
       }
     }
 }
@@ -993,6 +1056,8 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
 void paradynDaemon::firstSampleCallback(int, double firstTime) {
   static bool done = false;
   if (!done) {
+//  cerr << "paradyn: welcome to firstSampleCallback; firstTime=" << firstTime << "; adjusted time=" << getAdjustedTime(firstTime) << endl;
+
     setEarliestFirstTime(getAdjustedTime(firstTime));
   }
   done = true;
