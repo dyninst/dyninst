@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.227 2005/02/02 17:27:36 bernat Exp $
+ // $Id: symtab.C,v 1.228 2005/02/03 23:46:53 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,10 +213,9 @@ int_function *image::makeOneFunction(pdvector<Symbol> &mods,
     pdstring modName_3 = modName;
     findModByAddr(lookUp, mods, modName, modAddr, modName_3);
   }
-  
+
   pdmodule *use = getOrCreateModule(modName, modAddr);
   assert(use);
-
 
   int_function *func = new int_function(lookUp.name(), lookUp.addr(), lookUp.size(), use);
   assert(func);
@@ -735,13 +734,10 @@ void pdmodule::define(process *proc) {
 #endif
 
 #ifndef BPATCH_LIBRARY
-   FunctionsByMangledNameIterator iter = 
-      allFunctionsByMangledName.begin();
-   FunctionsByMangledNameIterator end = 
-      allFunctionsByMangledName.end();
-   
-   for( ; iter != end; ++iter) {
-      int_function * pdf = * iter; 
+   for(unsigned i = 0; 
+       i < allUniqueFunctions.size();
+       i++) {
+      int_function * pdf = allUniqueFunctions[i]; 
 #ifdef DEBUG_MODS
       of << fileName << ":  " << pdf->prettyName() <<  "  "
          << pdf->addr() << endl;
@@ -767,15 +763,21 @@ void pdmodule::define(process *proc) {
          //between overloaded functions in the paradyn front-end.
          bool useTyped = false;
          pdvector<int_function *> *pdfv =
-            exec()->findFuncVectorByPretty(pdf->prettyName());
+	   allFunctionsByPrettyName[pdf->prettyName()];
+	   //exec()->findFuncVectorByPretty(pdf->prettyName());
          char * prettyWithTypes = NULL;
 
          if(pdfv != NULL && pdfv->size() > 1) {
             prettyWithTypes = P_cplus_demangle(pdf->symTabName().c_str(), 
                                              exec()->isNativeCompiler(), true);
             if( prettyWithTypes != NULL ) {
+	      
                useTyped = true;
+	       // Add to image...
                exec()->addTypedPrettyName(pdf, prettyWithTypes);
+	       // And module...
+	       addTypedPrettyName(pdf, prettyWithTypes);
+	       // And function
                pdf->addPrettyName(pdstring(prettyWithTypes));
             } else {
                prettyWithTypes = strdup( pdf->prettyName().c_str() );
@@ -1650,13 +1652,24 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
 			    nativeCompiler, rawmod->language())) {
       pretty_name = working_name;
     }
+
     // Now, we see if there's already a function object for this
     // address. If so, add a new name; 
     int_function *possiblyExistingFunction = NULL;
     funcsByEntryAddr.find(raw->get_address(), 
 			  possiblyExistingFunction);
-
     if (possiblyExistingFunction) {
+      // On some platforms we see two symbols, one in a real module
+      // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+      // the real one
+      if (rawmod != possiblyExistingFunction->pdmod()) {
+	if (rawmod->fileName() == "DEFAULT_MODULE")
+	  rawmod = possiblyExistingFunction->pdmod();
+	if (possiblyExistingFunction->pdmod()->fileName() == "DEFAULT_MODULE") {
+	  possiblyExistingFunction->changeModule(rawmod);
+	}
+      }
+
       assert(rawmod == possiblyExistingFunction->pdmod());
       // Keep the new mangled name
       possiblyExistingFunction->addSymTabName(mangled_name);
@@ -1715,7 +1728,6 @@ bool image::analyzeImage()
 
   assert(parseState_ < analyzed);
   // Prevent recursion: with this set we can call findFoo as often as we want
-  
   parseState_ = analyzing;
 
   if (parseState_ < symtab) {
@@ -2005,12 +2017,15 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
          if (!tmods[loop].kludge())
             tmods[loop+1] = tmods[loop];
       } 
-      else
+      else {
          uniq.push_back(tmods[loop]);
+      }
    }
    // avoid case where all (ELF) module symbols have address zero
-   if (num_zeros == tmods.size()) uniq.resize(0);
-
+   
+   if (num_zeros == tmods.size()) { 
+     uniq.resize(0);
+   }
   
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(rs6000_ibm_aix4_1)
@@ -2086,11 +2101,9 @@ image::~image()
 void pdmodule::updateForFork(process *childProcess, 
 			     const process *parentProcess) {
   /* Mangled names are unique, so we don't have to nest our loops. */
-  FunctionsByMangledNameIterator iiter = allFunctionsByMangledName.begin();
-  FunctionsByMangledNameIterator iend = allFunctionsByMangledName.end();
-  for( ; iiter != iend; ++ iiter ) {
-	(*iiter)->updateForFork( childProcess, parentProcess );
-    } 
+  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
+    allUniqueFunctions[i]->updateForFork(childProcess, parentProcess);
+  }
 }
 
 #ifdef CHECK_ALL_CALL_POINTS
@@ -2100,11 +2113,9 @@ void pdmodule::checkAllCallPoints() {
   gettimeofday(&starttime, NULL);
 #endif
 
-	FunctionsByMangledNameIterator begin = allFunctionsByMangledName.begin();
-	FunctionsByMangledNameIterator end = allFunctionsByMangledName.end();
-	for( ; begin != end; ++begin ) {
-		(*begin)->checkCallPoints();
-		}
+  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
+    allUniqueFunctions[i]->checkCallPoints();
+  }
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -2121,6 +2132,7 @@ void pdmodule::checkAllCallPoints() {
 pdvector<int_function *> *
 pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found ) {
   assert( found != NULL );
+  
   if( allFunctionsByPrettyName.defines( name ) ) {
     pdvector< int_function * > * prettilyNamedFunctions =
       allFunctionsByPrettyName.get( name );
@@ -2132,11 +2144,10 @@ pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found )
   }
   
   if( allFunctionsByMangledName.defines( name ) ) {
-    found->push_back( allFunctionsByMangledName.get( name ) );
+    found->push_back(allFunctionsByMangledName[name]);
     exec()->analyzeIfNeeded();
     return found;
   }
-  
   return NULL;
 } /* end findFunction() */
 
@@ -2162,7 +2173,7 @@ void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > *
 		found->push_back( (*nameToFunctionMap)[i].second );
 		}
 	} /* end runCompiledRegexOn() */
-	
+
 void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< int_function * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionListMap->size(); i++ ) {
@@ -2250,12 +2261,12 @@ pdmodule::findFunctionFromAll(const pdstring &name,
 
 int_function *pdmodule::findFunctionByMangled( const pdstring &name )
 {
-
+  
   /* By inference from the previous version, we're not interested
      in the uninstrumentable functions. */
   if( allFunctionsByMangledName.defines( name ) ) {
     exec()->analyzeIfNeeded();
-    return allFunctionsByMangledName.get( name );
+    return allFunctionsByMangledName[name];
   }
   else {
     return NULL;
@@ -2266,23 +2277,20 @@ void pdmodule::dumpMangled(char * prefix)
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
   
-  FunctionsByMangledNameIterator iter = allFunctionsByMangledName.begin();
-  FunctionsByMangledNameIterator end = allFunctionsByMangledName.end();
-  
-  for( ; iter != end; ++ iter ) {
-    int_function * pdf = *iter;
+  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
+    int_function * pdf = allUniqueFunctions[i];
     if( prefix ) {
       if( ! strncmp( pdf->symTabName().c_str(), prefix, strlen( prefix ) ) ) {
         cerr << pdf->symTabName() << " ";
-        }
+      }
       else {
         // bperr( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
-        }
-      }
-    else {
-      cerr << pdf->symTabName() << " ";
       }
     }
+    else {
+      cerr << pdf->symTabName() << " ";
+    }
+  }
   cerr << endl;
 }
 
@@ -2299,7 +2307,6 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
   const char *str = modName.c_str();
   int len = modName.length();
   assert(len>0);
-
   // TODO ignore directory definitions for now
   if (str[len-1] == '/') 
     return NULL;
@@ -2657,27 +2664,79 @@ bool pdmodule::isShared() const {
 pdvector< int_function * > * pdmodule::getFunctions() {
   static pdvector< int_function * > pleaseDontGoAwayAndLeaveMeHanging;
   /* Is this going to call the destructor on the previous version? */
-  pleaseDontGoAwayAndLeaveMeHanging = allFunctionsByMangledName.values();
+  pleaseDontGoAwayAndLeaveMeHanging = allUniqueFunctions;
   exec()->analyzeIfNeeded();
   /* Warning: hack.  Why doesn't this conversion work normally? */
-  return (pdvector< int_function * > *) & pleaseDontGoAwayAndLeaveMeHanging;
+  return &pleaseDontGoAwayAndLeaveMeHanging;
 } /* end getFunctions() */
 
-void pdmodule::addFunction( int_function * function ) {
-  pdvector< int_function * > * prettilyNamedFunctions;
-  
-  if( allFunctionsByPrettyName.defines( function->prettyName() ) ) {
-    prettilyNamedFunctions = allFunctionsByPrettyName.get( function->prettyName() );
-  } 
-  else {
-    prettilyNamedFunctions = new pdvector< int_function * >();
+void pdmodule::addFunction( int_function * func ) {
+  allUniqueFunctions.push_back(func);
+
+  for (unsigned pretty_iter = 0; 
+       pretty_iter < func->prettyNameVector().size();
+       pretty_iter++) {
+    pdstring pretty_name = func->prettyNameVector()[pretty_iter];
+    pdvector<int_function *> *funcsByPrettyEntry = NULL;
+    // Ensure a vector exists
+    if (!allFunctionsByPrettyName.find(pretty_name,			      
+				       funcsByPrettyEntry)) {
+      funcsByPrettyEntry = new pdvector<int_function*>;
+      allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
+    }
+    (*funcsByPrettyEntry).push_back(func);
   }
-  prettilyNamedFunctions->push_back( function );
-  allFunctionsByPrettyName[ function->prettyName() ] = prettilyNamedFunctions;
   
-  allFunctionsByMangledName[ function->symTabName() ] = function;
+  // And multiple symtab names...
+  for (unsigned symtab_iter = 0; 
+       symtab_iter < func->symTabNameVector().size();
+       symtab_iter++) {
+    pdstring symtab_name = func->symTabNameVector()[symtab_iter];
+    int_function *scratch;
+    // Mangled names need to be unique!
+    if (allFunctionsByMangledName.find(symtab_name, scratch)) {
+      scratch = allFunctionsByMangledName[symtab_name];
+      fprintf(stderr, "ERROR: new function %s (%d, %p) overlapping (%d, %p)\n",
+	      symtab_name.c_str(),
+	      func->getOffset(),
+	      func,
+	      scratch->getOffset(),
+	      scratch);
+      fprintf(stderr, "... in module %s\n", fileName().c_str());
+      fprintf(stderr, "... %d symtab names\n",
+	      func->symTabNameVector().size());
+      assert(0 && "Multiple identical symtab names");
+    }
+    allFunctionsByMangledName[symtab_name] = func;
+  }
 } /* end addFunction() */
 
+void pdmodule::removeFunction(int_function *func) {
+  pdvector <int_function *> newUniqueFuncs;
+  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
+    if (allUniqueFunctions[i] != func)
+      newUniqueFuncs.push_back(allUniqueFunctions[i]);
+  }
+  allUniqueFunctions = newUniqueFuncs;
+
+  for (unsigned j = 0; j < func->symTabNameVector().size(); j++) {
+    allFunctionsByMangledName.undef(func->symTabNameVector()[j]);
+  }
+  
+  for (unsigned l = 0; l < func->prettyNameVector().size(); l++) {
+    pdvector<int_function *> *temp_vec;
+    if (allFunctionsByPrettyName.find(func->prettyNameVector()[l],
+				      temp_vec)) {
+      pdvector<int_function *> *new_vec = new pdvector<int_function *>;
+      for (unsigned k = 0; k < temp_vec->size(); k++) {
+	if ((*temp_vec)[k] != func)
+	  new_vec->push_back((*temp_vec)[k]);
+      }
+      allFunctionsByPrettyName[func->prettyNameVector()[l]] = new_vec;
+      delete temp_vec;
+    }
+  }
+}
 
 pdstring* pdmodule::processDirectories(pdstring* fn){
 	if(!fn)
@@ -2770,11 +2829,8 @@ void pdmodule::cleanupLineInformation()
 void pdmodule::cleanProcessSpecific(process *p) {
 
   /* Mangled names are unique, so we don't have to nest our loops. */
-  FunctionsByMangledNameIterator iiter = allFunctionsByMangledName.begin();
-  FunctionsByMangledNameIterator iend = allFunctionsByMangledName.end();
-  for( ; iiter != iend; ++ iiter ) {
-    (*iiter)->cleanProcessSpecific(p);
-  }
+  for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
+    allUniqueFunctions[i]->cleanProcessSpecific(p);
 }
 
 pdmodule::~pdmodule()

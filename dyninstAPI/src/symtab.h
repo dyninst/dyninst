@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.170 2005/02/02 17:27:38 bernat Exp $
+// $Id: symtab.h,v 1.171 2005/02/03 23:46:53 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -198,8 +198,8 @@ class pdmodule: public module {
 #endif
       exec_(e), 
 
-      allFunctionsByPrettyName( pdstring::hash ),
-      allFunctionsByMangledName( pdstring::hash )
+     allFunctionsByMangledName( pdstring::hash ),
+     allFunctionsByPrettyName( pdstring::hash )
       {
       }
 
@@ -232,6 +232,7 @@ void cleanProcessSpecific(process *p);
                                                   pdvector<int_function *> *found, 
                                                   bool regex_case_sensitive=true);
 
+   // Only one -- otherwise you can't distinguish between them at link time.
    int_function *findFunctionByMangled(const pdstring &name);
 
    bool isShared() const;
@@ -275,15 +276,18 @@ void cleanProcessSpecific(process *p);
 
  public:
 
-   void addFunction( int_function * function );
+   void addFunction( int_function * func );
+   void addTypedPrettyName(int_function *func, const char *prettyName);
+   void removeFunction(int_function *func);
 
  private:
 
    typedef dictionary_hash< pdstring, int_function * >::iterator FunctionsByMangledNameIterator;
    typedef dictionary_hash< pdstring, pdvector< int_function * > * >::iterator FunctionsByPrettyNameIterator;
+   dictionary_hash< pdstring, int_function *> allFunctionsByMangledName;
    dictionary_hash< pdstring, pdvector< int_function * > * > allFunctionsByPrettyName;
-   dictionary_hash< pdstring, int_function * > allFunctionsByMangledName;
 
+   pdvector <int_function *> allUniqueFunctions;
 };
 
 
