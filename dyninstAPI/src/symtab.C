@@ -704,38 +704,41 @@ static inline bool notInUserRange(const Address adr,
   return ((start && (adr < startAdr)) || (end && (adr >= endAdr)));
 }
 
-static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
-		       string &modName, Address &modAddr, const string &def) {
-  int start=0, end=mods.size()-1, index;
-  bool found=false;
+// I commented this out since gcc says it ain't used --ari 10/97
+// static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
+// 		       string &modName, Address &modAddr, const string &def) {
+//   int start=0, end=mods.size()-1, index;
+//   bool found=false;
 
-  if (!mods.size()) {
-    modAddr = 0;
-    modName = def;
-    return;
-  }
+//   if (!mods.size()) {
+//     modAddr = 0;
+//     modName = def;
+//     return;
+//   }
 
-  while ((start <= end) && !found) {
-    index = (start+end)/2;
+//   while ((start <= end) && !found) {
+//     index = (start+end)/2;
 
-    if ((index == (((int)mods.size())-1)) ||
-	((mods[index].addr() <= lookUp.addr()) && (mods[index+1].addr() > lookUp.addr()))) {
-      modName = mods[index].name();
-      modAddr = mods[index].addr();      
-      found = true;
-    } else if (lookUp.addr() < mods[index].addr()) {
-      end = index - 1;
-    } else {
-      start = index + 1;
-    }
-  }
-  if (!found) {
-    modName = mods[0].name();
-    modAddr = mods[0].addr();
-  }
-}
+//     if ((index == (((int)mods.size())-1)) ||
+// 	((mods[index].addr() <= lookUp.addr()) && (mods[index+1].addr() > lookUp.addr()))) {
+//       modName = mods[index].name();
+//       modAddr = mods[index].addr();      
+//       found = true;
+//     } else if (lookUp.addr() < mods[index].addr()) {
+//       end = index - 1;
+//     } else {
+//       start = index + 1;
+//     }
+//   }
+//   if (!found) {
+//     modName = mods[0].name();
+//     modAddr = mods[0].addr();
+//   }
+// }
 
-bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
+bool image::addOneFunction(vector<Symbol> &, // mods
+                           pdmodule *lib,
+                           pdmodule *, // dyn
 			   const Symbol &lookUp, pd_Function  *&retFunc) {
   // TODO mdc
   // find the module
