@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.115 2002/10/15 15:26:41 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.116 2002/12/12 20:19:43 mirg Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1526,32 +1526,31 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	generateStore(insn, REG_MT_POS, REG_FPTR, -40);
         insn++; base += sizeof(instruction);
 #endif
-	// first 8 parameters are in register bank I (24..31)
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	// We have managed to emit two saves since the entry point of
+	// the function, so the first 6 parameters are in the previous
+	// frame's I registers, and we need to pick them off the stack
+
+	// generate the FLUSHW instruction to make sure that previous
+	// windows are written to the register save area on the stack
+	if (isUltraSparc()) {
+	    generateFlushw(insn);
+	}
+	else {
+	    generateTrapRegisterSpill(insn);
+	}
 	insn++; base += sizeof(instruction);
-
+	
 	if (src1 < 6) {
-	    // The arg is in an I register. Pass it through the register save
-	    // area
-	    generateStore(insn, REG_I(src1), REG_SPTR, 64+4*src1); 
-	    insn++; base += sizeof(instruction);
-
-	    genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
-	    insn++; base += sizeof(instruction);
-
-	    generateLoad(insn, REG_FPTR, 64+4*src1, dest);
+	    // The arg is in a previous frame's I register. Get it from
+	    // the register save area
+	    generateLoad(insn, REG_FPTR, 4*8 + 4*src1, dest);
 	    insn++; base += sizeof(instruction);
 	}
 	else {
-	    // The arg is on the stack. Pass FP (i6) through the register
-	    // save area to be able to pick the arg off the stack later
-	    generateStore(insn, REG_FPTR, REG_SPTR, 64+4*6); 
-	    insn++; base += sizeof(instruction);
-
-	    genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
-	    insn++; base += sizeof(instruction);
-
-	    generateLoad(insn, REG_FPTR, 64+4*6, dest); //old fp is in dest now
+	    // The arg is on the stack, two frames above us. Get the previous
+	    // FP (i6) from the register save area
+	    generateLoad(insn, REG_FPTR, 4*8 + 4*6, dest);
+            // old fp is in dest now
 	    insn++; base += sizeof(instruction);
 
 	    // Finally, load the arg from the stack
@@ -1568,6 +1567,9 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	return dest;
       }
     case getSysParamOp: {
+	// We have emitted one save since the entry point of
+	// the function, so the first 6 parameters are in this
+	// frame's I registers
 	if (src1 < 6) {
 	    // Param is in an I register
 	    return(REG_I(src1));
@@ -1580,23 +1582,25 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	}
     }
     case getRetValOp: {
-	// return value is in register REG_I(0)==24
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
-	insn++;
+	// We have emitted one save since the exit point of
+	// the function, so the return value is in the previous frame's
+	// I0, and we need to pick it from the stack
 
-	generateStore(insn, REG_I(0), REG_SPTR, 68); 
-	insn++;
-	      
-	genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
-	insn++;
+	// generate the FLUSHW instruction to make sure that previous
+	// windows are written to the register save area on the stack
+	if (isUltraSparc()) {
+	    generateFlushw(insn);
+	}
+	else {
+	    generateTrapRegisterSpill(insn);
+	}
+	insn++; base += sizeof(instruction);
 
-	generateLoad(insn, REG_SPTR, 112+68, REG_I(0)); 
-	insn++;
+	generateLoad(insn, REG_FPTR, 4*8, dest); 
+	insn++; base += sizeof(instruction);
 
-	base += 4*sizeof(instruction);
-
-	return(REG_I(0));
-      }
+	return dest;
+    }
     case getSysRetValOp:
 	return(REG_I(0));
     default:
