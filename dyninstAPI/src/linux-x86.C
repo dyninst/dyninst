@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.27 2003/04/23 22:59:49 bernat Exp $
+// $Id: linux-x86.C,v 1.28 2003/05/08 15:00:16 chadd Exp $
 
 #include <fstream.h>
 
@@ -511,7 +511,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	shared_object *sh_obj;
 
 	if(!collectSaveWorldData){
-                BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
+                BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::enableDumpPatchedImage() not called.  No mutated binary saved\n");
                 return NULL;
         }
 

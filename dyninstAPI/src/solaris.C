@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.144 2003/04/22 21:55:08 mjbrim Exp $
+// $Id: solaris.C,v 1.145 2003/05/08 15:00:17 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -185,7 +185,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	char *directoryName = 0;
 	shared_object *sh_obj;
 	if(!collectSaveWorldData){
-		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
+		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::enableDumpPatchedImage() not called.  No mutated binary saved\n");
 		return NULL;
 	}
 

@@ -743,7 +743,7 @@ int saveStart(ClientData, Tcl_Interp *, int argc, char **argv){
 
 
 	saveWorldStart=true;
-	appThread->startSaveWorld();
+	appThread->enableDumpPatchedImage();
 	return TCL_OK;
 
 }

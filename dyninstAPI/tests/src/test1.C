@@ -4171,7 +4171,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	save the world functionality
 	*/	
 	if(saveWorld){
-		appThread->startSaveWorld();
+		appThread->enableDumpPatchedImage();
 	}	
 #endif
 

@@ -272,7 +272,7 @@ public:
 
     void getCallStack(BPatch_Vector<BPatch_frame>& stack);
 
-	void startSaveWorld();//ccw 23 jan 2002
+	void enableDumpPatchedImage();//ccw 23 jan 2002
 #ifdef IBM_BPATCH_COMPAT
     bool isThreaded() { return false; }
     bool addSharedObject(const char *name, const unsigned long loadaddr);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.86 2003/04/25 22:31:12 jaw Exp $
+// $Id: BPatch_thread.C,v 1.87 2003/05/08 15:00:16 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -468,9 +468,10 @@ int BPatch_thread::stopSignal()
  */
 int BPatch_thread::terminationStatus()
 {
-    if (proc->status() != exited)
+    if (proc->status() != exited){
+	//cerr<<" terminationStatus HAS NOT EXITED YET"<<endl;
 	return -1;
-    else
+    }else
 	return exitCode;
 }
 
@@ -1410,7 +1411,7 @@ BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
 	this function sets a flag in process that 
 	forces the collection of data for saveworld. //ccw 23 jan 2002
 */
-void BPatch_thread::startSaveWorld(){
+void BPatch_thread::enableDumpPatchedImage(){
 	proc->collectSaveWorldData=true;
 }
 
