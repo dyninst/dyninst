@@ -21,11 +21,16 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.40  1996/02/02 18:42:17  tamches
-/* Global search initialized when the shg window is
-/* UIM::initShg should now be unused
-/* new cleaner shgPhases routines corresponding to the PC-->UI igen calls
+/* Revision 1.41  1996/02/07 19:06:13  tamches
+/* initSHG gone
+/* root node now TopLevelHypothesis instead of Whole Program
+/* deferred phase adding features
 /*
+ * Revision 1.40  1996/02/02 18:42:17  tamches
+ * Global search initialized when the shg window is
+ * UIM::initShg should now be unused
+ * new cleaner shgPhases routines corresponding to the PC-->UI igen calls
+ *
  * Revision 1.39  1996/02/02 01:01:28  karavan
  * Changes to support the new PC/UI interface
  *
@@ -44,125 +49,6 @@
  * added phaseID argument in call to "new shg"; removed it from call to
  * theShgPhases->add
  *
- * Revision 1.34  1995/11/28 15:50:02  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.33  1995/11/21  15:17:50  naim
- * Using string instead of char[300] in showError routine - naim
- *
- * Revision 1.32  1995/11/09  02:11:30  tamches
- * removed some obsolete references (some which had been up till now commented out),
- * such as initSHGStyles, UIMUser::chooseMenuItemREPLY, etc.
- *
- * Revision 1.31  1995/11/08 23:43:21  tamches
- * removed code for obsolete ui igen calls chooseMenuItemREPLY,
- * msgChoice, chooseMenuItem, showMsg, uimMsgReplyCmd, showMsgWait
- *
- * Revision 1.30  1995/11/08 06:25:03  tamches
- * removed some warnings by including tclclean.h and tkclean.h
- *
- * Revision 1.29  1995/11/08 05:10:26  tamches
- * removed reference to obsolete file dag.h
- *
- * Revision 1.28  1995/11/06 18:02:56  tamches
- * changed nodeIdType to unsigned (nodeIdType is no longer used)
- * Added an shg hack s.t. the root node appears as "Whole Program" instead of "1"
- *
- * Revision 1.27  1995/10/17 20:48:24  tamches
- * New search history graph:
- * Commented out StrNodeIdType (no longer needed w/ new shg).
- * Commented out references to class shgDisplay (obsoleted class).
- * Added tryFirstGoodShgWid
- * DAGaddNode, DAGaddEdge, DAGconfigNode adapted for use with new shg.
- *
- * Revision 1.26  1995/10/05 04:28:03  karavan
- * added ActiveDags to dag class.
- * removed globals formerly used for search display to move to multiple-display
- * model.
- * removed ui::DAGaddEStyle and ui::DAGaddNStyle from interface (obsolete).
- * added dagID creation to dag constructor.
- * Added shgDisplay class.
- * removed UIstatDisp class.
- * removed obsolete commented code.
- *
- * Revision 1.25  1995/09/26  20:27:05  naim
- * Minor warning fixes and some other minor error messages fixes
- *
- * Revision 1.24  1995/07/24  21:31:03  tamches
- * removed some obsolete code related to the old where axis
- *
- * Revision 1.23  1995/07/17  05:06:20  tamches
- * Changes for the new version of the where axis
- *
- * Revision 1.22  1995/06/02  20:50:37  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.21  1995/01/26  17:59:00  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.20  1994/11/08  07:50:47  karavan
- * Purified code; narrowed side margins for dag nodes.
- *
- * Revision 1.19  1994/11/02  23:44:12  karavan
- * added error service call for startup script error.
- *
- * Revision 1.18  1994/11/02  04:40:44  karavan
- * added new interface function UIM::readStartupFile which implements
- * the new -s commandline option to read in a tcl script after initialization
- * but before any other UI functions.
- *
- * Revision 1.17  1994/11/01  05:43:39  karavan
- * changed window pathname in call to dag::createDisplay() to match
- * update to createDisplay(); minor performance and warning fixes
- *
- * Revision 1.16  1994/10/25  17:57:34  karavan
- * added Resource Display Objects, which support display of multiple resource
- * abstractions.
- *
- * Revision 1.15  1994/10/09  01:24:49  karavan
- * A large number of changes related to the new UIM/visiThread metric&resource
- * selection interface and also to direct selection of resources on the
- * Where axis.
- *
- * Revision 1.14  1994/09/25  01:54:10  newhall
- * updated to support changes in VM, and UI interface
- *
- * Revision 1.13  1994/09/22  01:16:53  markc
- * Added const to char* arg in UIM::showError()
- *
- * Revision 1.12  1994/09/13  05:07:29  karavan
- * improved error handling
- *
- * Revision 1.11  1994/08/10  17:21:35  newhall
- * added parameters to chooseMetricsandResources
- *
- * Revision 1.10  1994/08/01  20:24:40  karavan
- * new version of dag; new dag support commands
- *
- * Revision 1.9  1994/07/08  04:03:18  karavan
- * changed showMsg to async function
- *
- * Revision 1.8  1994/07/07  05:58:05  karavan
- * added UI error service function
- *
- * Revision 1.7  1994/06/12  22:38:27  karavan
- * implemented status display service.
- *
- * Revision 1.6  1994/05/12  23:34:15  hollings
- * made path to paradyn.h relative.
- *
- * Revision 1.5  1994/05/07  23:26:30  karavan
- * added short explanation feature to SHG.
- *
- * Revision 1.4  1994/05/05  19:52:46  karavan
- * changed chooseMetricsandResources
- *
- * Revision 1.3  1994/04/21  05:18:17  karavan
- * Implemented DAG functions.
- *
- * Revision 1.2  1994/04/06  17:41:19  karavan
- * added working versions of getMetricsandResources, showError, showMessage
  * */
 
 #include <stdio.h>
@@ -297,9 +183,9 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 extern shgPhases *theShgPhases;
 
 void
-UIM::updateStatusDisplay (int shgToken, const char *info)
+UIM::updateStatusDisplay (int dagid, const char *info)
 {
-   theShgPhases->addToStatusDisplay(shgToken, info);
+   theShgPhases->addToStatusDisplay(dagid, info);
 }
 
 bool haveSeenFirstGoodShgWid = false;
@@ -342,45 +228,20 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    // ...and inform the performance consultant:
    perfConsult->newSearch(GlobalPhase);
 
+   // Also add the "current phase", if applicable.
+   // We check "latest_detected_new_phase_id", set by ui_newPhaseDetected (UImain.C)
+   extern int latest_detected_new_phase_id;
+   extern const char *latest_detected_new_phase_name;
+   if (latest_detected_new_phase_id >= 0) {
+      theShgPhases->defineNewSearch(latest_detected_new_phase_id,
+				    latest_detected_new_phase_name);
+      perfConsult->newSearch(CurrentPhase); // as opposed to Global Phase
+   }
+
    initiateShgRedraw(interp, true);
 
    return true;
 }
-
-
-//
-// called from Paradyn Search Command when search requested; returns SHG token
-// if successful, -1 for error
-//
-
-int 
-UIM::initSHG(const char *phaseName, int phaseID) 
-{
-   // This routine is mostly obsolete.  But until the new pc commit,
-   // we use it for a single purpose: to assign a name and an id to the 
-   // most recent shg creation which up till now is "incomplete".
-   assert(theShgPhases);
-
-   theShgPhases->defineNewSearch(phaseID,
-				 phaseName);
-//   shg *theNewShg = new shg(phaseID, interp,
-//			    theShgPhases->getTkWindow(), // _not_ the main window!
-//			    theShgPhases->getHorizSBName(),
-//			    theShgPhases->getVertSBName(),
-//			    theShgPhases->getCurrItemLabelName());
-//   assert(theNewShg);
-//
-//   //theShgPhases->add(theNewShg, phaseID, phaseName);
-//   theShgPhases->add(theNewShg, phaseName);
-
-   assert(theShgPhases->existsCurrent());
-   theShgPhases->getCurrent().resize(theShgPhases->getCurrentId()==phaseID);
-
-   initiateShgRedraw(interp, true); // true --> double buffer
-
-   return phaseID;
-}
-
 
 void int2style(int styleid, bool &active, shgRootNode::evaluationState &theEvalState) {
    if (styleid == 0) {
@@ -431,8 +292,11 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
    int2style(styleID, active, theEvalState);
 
    // A temporary hack for the mysterious "1" that appears for the root node:
+//   if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
+//			     isRootNode ? "Whole Program" : label,
+//			     shgname, isRootNode))
    if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
-			     isRootNode ? "Whole Program" : label,
+			     label,
 			     shgname, isRootNode))
       // we should only be redrawing for a root node...
       initiateShgRedraw(interp, true);
