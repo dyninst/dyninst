@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.52 2003/06/24 19:41:33 schendel Exp $
+// $Id: osf.C,v 1.53 2003/06/30 14:31:07 hollings Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -884,8 +884,3 @@ void dyn_lwp::closeFD_()
 
 
 void loadNativeDemangler() {}
-
-Frame dyn_thread::getActiveFrameMT() {
-   return Frame();
-}  // not used until MT supported
-
