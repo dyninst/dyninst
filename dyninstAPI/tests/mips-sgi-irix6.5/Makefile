@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2000/08/20 20:43:29 wylie Exp $
+# $Id: Makefile,v 1.9 2001/06/08 19:42:52 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,16 +25,16 @@ NATIVE_CXX	= CC
 
 include ../make.module.tmpl
 
-COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC)) 
-COMPILER = $(shell $(MUTATEE_CC) -version 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -version 2>&1 | head -1)
 MABI = -
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-COMPILER = $(shell $(MUTATEE_CC) -version 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -version 2>&1 | head -1)
 MABI = -
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
@@ -49,6 +49,9 @@ MABI = -mabi=
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 # 64-bit mutatee

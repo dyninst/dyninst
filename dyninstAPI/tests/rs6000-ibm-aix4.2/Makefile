@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2001/06/04 18:42:28 bernat Exp $
+# $Id: Makefile,v 1.15 2001/06/08 19:42:52 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -40,16 +40,19 @@ c2 = $(shell lslpp -l 'xlC.C' | grep COMMITTED | head -1)
 versionArray = $(word 2,$(c1))
 versionArray += $(word 2,$(c2))
 versionArray += unknown
-COMPILER = $(MUTATEE_CC) version $(firstword $(versionArray))
+COMPILERT = $(MUTATEE_CC) version $(firstword $(versionArray))
 MUTATEE_CFLAGS = $(ARCH_DEF) -bkeepfile:$(MUTATEE_OBJ)
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 MUTATEE_CFLAGS += -+
 endif
 else
-COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 MUTATEE_CFLAGS = $(MODCFLAGS) -Wl,-bgcbypass:3 
 endif
 
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 $(TARGET2): $(MUTATEE_SRC)

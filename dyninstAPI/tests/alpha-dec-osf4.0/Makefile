@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.15 2001/06/04 18:42:25 bernat Exp $
+# $Id: Makefile,v 1.16 2001/06/08 19:42:46 schendel Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -27,18 +27,21 @@ GNU_CXX = g++
 
 include ../make.module.tmpl
 
-COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
-COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g
 endif
 
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef GCC_2_95

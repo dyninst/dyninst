@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.2 2001/06/04 19:26:05 bernat Exp $
+# $Id: Makefile,v 1.3 2001/06/08 19:42:52 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -43,10 +43,10 @@ endif
 
 include ../make.module.tmpl
 
-COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
-COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
@@ -57,9 +57,12 @@ ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 # instantiations being in the current object file and gives them static and
 # global linkage respectively
 CXXFLAGS        +=  -instances=static
-COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 endif
 
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 $(TARGET2):  $(MUTATEE_SRC)

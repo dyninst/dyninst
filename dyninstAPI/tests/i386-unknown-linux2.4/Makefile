@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2001/06/04 18:42:27 bernat Exp $
+# $Id: Makefile,v 1.16 2001/06/08 19:42:51 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -40,14 +40,16 @@ MUTATEE_LIBS = -ldl
 include ../make.module.tmpl
 
 ifeq (pg,$(findstring pg,$(MUTATEE_CC)))
-COMPILER = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1 \
-                                                | sed -e 's/ /_/g')
+COMPILERT = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1)
 else
-COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 endif
 
 MUTATEE_CFLAGS = -g $(ARCH_DEF)
 
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef DETACH_ON_THE_FLY
