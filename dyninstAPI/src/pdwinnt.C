@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.114 2003/12/18 17:15:34 schendel Exp $
+// $Id: pdwinnt.C,v 1.115 2004/01/19 21:53:45 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -692,23 +692,23 @@ DWORD handleViolation(process *proc, procSignalInfo_t info) {
 
 
 // Exception dispatcher
-DWORD handleException(process *proc, procSignalWhat_t what, procSignalInfo_t info) {
-    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
+DWORD handleException(const procevent &event) {
+   DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
 
-    switch (what) {
-  case EXCEPTION_BREAKPOINT: 
-      ret = handleBreakpoint(proc, info);
-      break;
-  case EXCEPTION_ILLEGAL_INSTRUCTION:
-      ret = handleIllegal(proc, info);
-      break;
-  case EXCEPTION_ACCESS_VIOLATION:
-      ret = handleViolation(proc, info);
-      break;
-  default:
-      break;
-    }
-    return ret;
+   switch (event.what) {
+     case EXCEPTION_BREAKPOINT: 
+        ret = handleBreakpoint(event.proc, event.info);
+        break;
+     case EXCEPTION_ILLEGAL_INSTRUCTION:
+        ret = handleIllegal(event.proc, event.info);
+        break;
+     case EXCEPTION_ACCESS_VIOLATION:
+        ret = handleViolation(event.proc, event.info);
+        break;
+     default:
+        break;
+   }
+   return ret;
 }
 
 dyn_lwp *process::createRepresentativeLWP() {
@@ -723,11 +723,12 @@ dyn_lwp *process::createRepresentativeLWP() {
 }
 
 // Thread creation
-DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
-   dyn_lwp *l = proc->createFictionalLWP(info.dwThreadId);
-   l->setFileHandle(info.u.CreateThread.hThread);
+DWORD handleThreadCreate(const procevent &event) {
+   process *proc = event.proc;
+   dyn_lwp *l = proc->createFictionalLWP(event.info.dwThreadId);
+   l->setFileHandle(event.info.u.CreateThread.hThread);
    l->attach();
-   dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
+   dyn_thread *t = new dyn_thread(proc, event.info.dwThreadId, // thread ID
                                   proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
                                   l); // dyn_lwp object for thread handle
    proc->threads.push_back(t);
@@ -736,7 +737,10 @@ DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
 }
 
 // Process creation
-DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
+DWORD handleProcessCreate(const procevent &event) {
+   process *proc = event.proc;
+   const procSignalInfo_t &info = event.info;
+
    if(! proc)
       return DBG_CONTINUE;
 
@@ -797,100 +801,121 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
    return DBG_CONTINUE;
 }
 
-DWORD handleThreadExit(process *proc, procSignalInfo_t info) {
-    printf("exit thread, tid = %d\n", info.dwThreadId);
-    unsigned nThreads = proc->threads.size();
-    // start from one to skip main thread
-    for (unsigned u = 1; u < nThreads; u++) {
-        if ((unsigned)proc->threads[u]->get_tid() == info.dwThreadId) {
-            delete proc->threads[u];
-            proc->threads[u] = proc->threads[nThreads-1];
-            proc->threads.resize(nThreads-1);
-            break;
-        }
-    }
-    proc->continueProc();
-    return DBG_CONTINUE;
+DWORD handleThreadExit(const procevent &event) {
+   process *proc = event.proc;
+   printf("exit thread, tid = %d\n", event.info.dwThreadId);
+   unsigned nThreads = proc->threads.size();
+   // start from one to skip main thread
+   for (unsigned u = 1; u < nThreads; u++) {
+      if ((unsigned)proc->threads[u]->get_tid() == event.info.dwThreadId) {
+         delete proc->threads[u];
+         proc->threads[u] = proc->threads[nThreads-1];
+         proc->threads.resize(nThreads-1);
+         break;
+      }
+   }
+   proc->continueProc();
+   return DBG_CONTINUE;
 }
 
-DWORD handleProcessExit(process *proc, procSignalInfo_t info) {
-    if (proc) {
-        char errorLine[1024];
-        sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-                proc->getPid(), info.u.ExitProcess.dwExitCode);
-          statusLine(errorLine);
-          logLine(errorLine);
-          proc->handleProcessExit(info.u.ExitProcess.dwExitCode);
-    }
-    proc->continueProc();
-    return DBG_CONTINUE;
+DWORD handleProcessExitWin(const procevent &event) {
+   process *proc = event.proc;
+   const procSignalInfo_t &info = event.info;
+   if (proc) {
+      char errorLine[1024];
+      sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
+              proc->getPid(), info.u.ExitProcess.dwExitCode);
+      statusLine(errorLine);
+      logLine(errorLine);
+      proc->triggerNormalExitCallback(info.u.ExitProcess.dwExitCode);
+      proc->handleProcessExit();
+   }
+   proc->continueProc();
+   return DBG_CONTINUE;
 }
 
-DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
-/*
-      printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
-      info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
-      info.u.LoadDll.dwDebugInfoFileOffset,
-      info.u.LoadDll.nDebugInfoSize,
-      info.u.LoadDll.lpImageName,
-             info.u.LoadDll.fUnicode,
-      GetFileSize(info.u.LoadDll.hFile,NULL));
-*/
-    // This is NT's version of handleIfDueToSharedObjectMapping
-    
-    // Hacky hacky: after the Paradyn RT lib is loaded, skip further
-    // parsings. 
-    
-    // obtain the name of the DLL
-    pdstring imageName = GetLoadedDllImageName( proc, info );
-    
-    handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
+DWORD handleProcessSelfTermination(const procevent &event) {
+   process *proc = event.proc;
 
-    fileDescriptor* desc =
-       new fileDescriptor_Win(imageName, (HANDLE)procHandle,
-                              (Address)info.u.LoadDll.lpBaseOfDll,
-                              info.u.LoadDll.hFile );
-    
-    // discover structure of new DLL, and incorporate into our
-    // list of known DLLs
-    if (imageName.length() > 0) {
-        shared_object *so = new shared_object( desc,
-                                                false,
-                                                true,
-                                                true,
-                                                0 );
-        assert(proc->dyn);
-        proc->dyn->sharedObjects.push_back(so);
-        if (!proc->shared_objects) {
-            proc->shared_objects = new pdvector<shared_object *>;
-        }
-        (*(proc->shared_objects)).push_back(so);
-        proc->addCodeRange((Address) info.u.LoadDll.lpBaseOfDll,
-                           so);
-        
+   if (proc) {
+      char errorLine[1024];
+      sprintf(errorLine, "Process %d was terminated by itself\n");
+      statusLine(errorLine);
+      logLine(errorLine);
+      proc->triggerSignalExitCallback(event.what);
+      proc->handleProcessExit();
+   }
+   proc->continueProc();
+   return DBG_CONTINUE;
+}
+
+DWORD handleDllLoad(const procevent &event) {
+   process *proc = event.proc;
+   const procSignalInfo_t &info = event.info;
+   /*
+     printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
+     info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
+     info.u.LoadDll.dwDebugInfoFileOffset,
+     info.u.LoadDll.nDebugInfoSize,
+     info.u.LoadDll.lpImageName,
+     info.u.LoadDll.fUnicode,
+     GetFileSize(info.u.LoadDll.hFile,NULL));
+   */
+   // This is NT's version of handleIfDueToSharedObjectMapping
+   
+   // Hacky hacky: after the Paradyn RT lib is loaded, skip further
+   // parsings. 
+   
+   // obtain the name of the DLL
+   pdstring imageName = GetLoadedDllImageName( proc, info );
+   
+   handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
+   
+   fileDescriptor* desc =
+      new fileDescriptor_Win(imageName, (HANDLE)procHandle,
+                             (Address)info.u.LoadDll.lpBaseOfDll,
+                             info.u.LoadDll.hFile );
+   
+   // discover structure of new DLL, and incorporate into our
+   // list of known DLLs
+   if (imageName.length() > 0) {
+      shared_object *so = new shared_object( desc,
+                                             false,
+                                             true,
+                                             true,
+                                             0 );
+      assert(proc->dyn);
+      proc->dyn->sharedObjects.push_back(so);
+      if (!proc->shared_objects) {
+         proc->shared_objects = new pdvector<shared_object *>;
+      }
+      (*(proc->shared_objects)).push_back(so);
+      proc->addCodeRange((Address) info.u.LoadDll.lpBaseOfDll,
+                         so);
+      
 #ifndef BPATCH_LIBRARY
-        tp->resourceBatchMode(true);
+      tp->resourceBatchMode(true);
 #endif 
-        proc->addASharedObject(so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
+      proc->addASharedObject(so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
-        tp->resourceBatchMode(false);
+      tp->resourceBatchMode(false);
 #endif 
-        proc->setDynamicLinking();
+      proc->setDynamicLinking();
         
-        char dllFilename[_MAX_FNAME];
-        _splitpath(imageName.c_str(),
-                   NULL, NULL, dllFilename, NULL);
-        
-        // See if there is a callback registered for this library
-        proc->runLibraryCallback(pdstring(dllFilename), so);
-        
-    }
-    
-    // WinCE used to check for "coredll.dll" here to see if the process
-    // was initialized, this should have been fixed by inserting a trap
-    // at the entry of main -- bernat, JAN03
-    proc->continueProc();
-    return DBG_CONTINUE;
+      char dllFilename[_MAX_FNAME];
+      _splitpath(imageName.c_str(),
+                 NULL, NULL, dllFilename, NULL);
+      
+      // See if there is a callback registered for this library
+      proc->runLibraryCallback(pdstring(dllFilename), so);
+      
+   }
+   
+   // WinCE used to check for "coredll.dll" here to see if the process
+   // was initialized, this should have been fixed by inserting a trap
+   // at the entry of main -- bernat, JAN03
+   proc->continueProc();
+   return DBG_CONTINUE;
 }
 
 // ccw 2 may 2001 win2k fixes
@@ -938,150 +963,157 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
 int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 #endif
 
-int handleProcessEvent(process *proc,
-                       dyn_lwp *relevantLWP,
-                       procSignalWhy_t why,
-                       procSignalWhat_t what,
-                       procSignalInfo_t info) {
-    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
-    // Process is paused
-    // Make sure pause does something...
-    proc->savePreSignalStatus();
-    // Due to NT's odd method, we have to call pause_
-    // directly (a call to pause returns without doing anything
-    // pre-initialization)
-    proc->getRepresentativeLWP()->stop_();
-    proc->set_status(stopped);
+int signalHandler::handleProcessEventInternal(const procevent &event) {
+   DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
+   // Process is paused
+   // Make sure pause does something...
+   process *proc = event.proc;
 
-    switch(why) {
-  case procException:
-      ret = handleException(proc, what, info);
-      break;
-  case procThreadCreate:
-      ret = handleThreadCreate(proc, info);
-      break;
-  case procProcessCreate:
-      ret = handleProcessCreate(proc, info);
-      break;
-  case procThreadExit:
-      ret = handleThreadExit(proc, info);
-      break;
-  case procProcessExit:
-      ret = handleProcessExit(proc, info);
-      break;
-  case procDllLoad:
-      
-      ret = handleDllLoad(proc, info);
-      break;
-  default:
-      break;
-    }
-    // Continue the process after the debug event
-    
-#if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
-                                                           ret))
-#else
-    if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, ret))
-#endif
-    {
+   /*
+   cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
+        << event.why << ", what: " << event.what << ", lwps: ";
+
+   for(unsigned i=0; i<event.lwps.size(); i++) {
+      if(i>0) cerr << ", ";
+      cerr << event.lwps[i]->get_lwp_id();
+   }
+   cerr << endl;
+   */
+
+   const procSignalInfo_t &info = event.info;
+   proc->savePreSignalStatus();
+   // Due to NT's odd method, we have to call pause_
+   // directly (a call to pause returns without doing anything
+   // pre-initialization)
+   proc->getRepresentativeLWP()->stop_();
+   proc->set_status(stopped);
+   
+   switch(event.why) {
+     case procException:
+        ret = handleException(event);
+        break;
+     case procThreadCreate:
+        ret = handleThreadCreate(event);
+        break;
+     case procProcessCreate:
+        ret = handleProcessCreate(event);
+        break;
+     case procThreadExit:
+        ret = handleThreadExit(event);
+        break;
+     case procProcessExit:
+        ret = handleProcessExitWin(event);
+        break;
+     case procProcessSelfTermination:
+        ret = handleProcessSelfTermination(event);
+        break;
+     case procDllLoad:
         
-        DebugBreak();
-        printf("ContinueDebugEvent failed\n");
-        printSysError(GetLastError());
-    }
-    return (ret == DBG_CONTINUE);
+        ret = handleDllLoad(event);
+        break;
+     default:
+        break;
+   }
+   // Continue the process after the debug event
+   
+#if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
+   if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId,
+                                                          info.dwThreadId, 
+                                                          ret))
+#else
+      if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, ret))
+#endif
+      {
+         DebugBreak();
+         printf("ContinueDebugEvent failed\n");
+         printSysError(GetLastError());
+      }
+   return (ret == DBG_CONTINUE);
 }
 
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block)
+bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
+                                          int wait_arg, bool block)
 {
-    process *proc;
-    
-    // We wait for 1 millisecond here. On the Unix platforms, the wait
-    // happens on the select in controllerMainLoop. But on NT, because
-    // we have to handle traps, we set the timeout on the select as 0,
-    // so that we can check for traps quickly
+   // We wait for 1 millisecond here. On the Unix platforms, the wait
+   // happens on the select in controllerMainLoop. But on NT, because
+   // we have to handle traps, we set the timeout on the select as 0,
+   // so that we can check for traps quickly
 
-    DWORD milliseconds;
-    if (block) milliseconds = INFINITE;
-    else milliseconds = 1;
+   DWORD milliseconds;
+   if (block) milliseconds = INFINITE;
+   else milliseconds = 1;
+
+   procSignalInfo_t info;
+   procSignalWhy_t  why;
+   procSignalWhat_t what;
 
 #if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&info, milliseconds))
+   if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&info, milliseconds))
 #else
-    if (!WaitForDebugEvent(&info, milliseconds))
+   if (!WaitForDebugEvent(&info, milliseconds))
 #endif    
-        return NULL;
+      return false;
    
-    proc = process::findProcess(info.dwProcessId);
-    if (proc == NULL) {
-        /* 
-           this case can happen when we create a process, but then are
-           unable to parse the symbol table, and so don't complete the
-           creation of the process. We just ignore the event here.  
-        */
+   process *proc = process::findProcess(info.dwProcessId);
+   if (proc == NULL) {
+      /* this case can happen when we create a process, but then are unable
+         to parse the symbol table, and so don't complete the creation of the
+         process. We just ignore the event here.  */
         
 #if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-        BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
-                                                          DBG_CONTINUE);
+      BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId,
+                                                        info.dwThreadId, 
+                                                        DBG_CONTINUE);
 #else
 		ContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
-                           DBG_CONTINUE);
+                         DBG_CONTINUE);
         
 #endif
-        return NULL; 
-    }
+      return false;
+   }
     
-    switch (info.dwDebugEventCode) {
-  case EXCEPTION_DEBUG_EVENT:
-      why = procException;
-      what = info.u.Exception.ExceptionRecord.ExceptionCode;
-      break;
-  case CREATE_THREAD_DEBUG_EVENT:
-      
-      why = procThreadCreate;
-      break;
-  case CREATE_PROCESS_DEBUG_EVENT:
-      
-      why = procProcessCreate;
-      break;
-  case EXIT_THREAD_DEBUG_EVENT:
-      why = procThreadExit;
-      break;
-  case EXIT_PROCESS_DEBUG_EVENT:
-      why = procProcessExit;
-      what = info.u.ExitProcess.dwExitCode;
-      break;
-  case LOAD_DLL_DEBUG_EVENT:
-      why = procDllLoad;
-      break;
-  default:
-      procUndefined;
-      break;
-    }
-    
-    return proc;
-    
+   switch (info.dwDebugEventCode) {
+     case EXCEPTION_DEBUG_EVENT:
+        why = procException;
+        what = info.u.Exception.ExceptionRecord.ExceptionCode;
+        break;
+     case CREATE_THREAD_DEBUG_EVENT:
+        why = procThreadCreate;
+        break;
+     case CREATE_PROCESS_DEBUG_EVENT:        
+        why = procProcessCreate;
+        break;
+     case EXIT_THREAD_DEBUG_EVENT:
+        why = procThreadExit;
+        break;
+     case EXIT_PROCESS_DEBUG_EVENT:
+        if(proc->get_windows_termination_requested()) {
+           why = procProcessSelfTermination;
+           what = 0;
+           proc->set_windows_termination_requested(false);
+        } else {
+           why = procProcessExit;
+           what = info.u.ExitProcess.dwExitCode;
+        }
+        break;
+     case LOAD_DLL_DEBUG_EVENT:
+        why = procDllLoad;
+        break;
+     default:
+        procUndefined;
+        break;
+   }
+
+   procevent *new_event = new procevent;
+   new_event->proc = proc;
+   new_event->why  = why;
+   new_event->what = what;
+   new_event->info = info;   
+   (*events).push_back(new_event);
+   return true;    
 }    
-
-// Global interface
-void decodeAndHandleProcessEvent(bool block) {
-    procSignalWhy_t why;
-    procSignalWhat_t what;
-    procSignalInfo_t info;
-    process *proc;
-    dyn_lwp *selectedLWP;
-
-    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block);
-    if (!proc) return;
-    handleProcessEvent(proc, selectedLWP, why, what, info);
-}
-
-
 
 // already setup on this FD.
 // disconnect from controlling terminal 
@@ -1099,7 +1131,7 @@ bool process::installSyscallTracing()
 }
 
 /* continue a process that is stopped */
-bool dyn_lwp::continueLWP_() {
+bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
    unsigned count = 0;
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
    count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)get_fd());
@@ -1120,8 +1152,8 @@ bool dyn_lwp::continueLWP_() {
  */
 bool process::terminateProc_()
 {
+    windows_termination_requested = true;
     OS::osKill(pid);
-    this->handleProcessExit(-1);
     return true;
 }
 
