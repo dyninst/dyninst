@@ -59,6 +59,19 @@ extern int vfork();
 extern int fork();
 extern int strcasecmp(char *s1, char *s2);
 extern int strncasecmp(char *s1, char *s2, int n);
+
+/* 
+ * Warning this next ifdef may not be correct on all platforms.  We have
+ *   noticed that the xdrrec_endofrecord protoype is missing for gcc295.1 on
+ *   the UMD AIX 4.2 systems, but seems fine on the Wisconsin gcc295.2 AIX
+ *   4.3 systems.  The need for this prototype may be different elsewhere.
+ *   jkh (hollings@cs.umd.edu) 3/21/00
+ *
+ */
+#ifndef _AIX43
+extern bool_t xdrrec_endofrecord (XDR *xdrs, bool_t sendnow);
+#endif
+
 };
 
 /* Non standard (even from sunos4 to sunos5 -- blech */
