@@ -324,7 +324,7 @@ class BPATCH_DLL_EXPORT BPatch_localVar{
   char * name;
   BPatch_type * type;
   int lineNum;
-  int frameOffset;
+  long frameOffset;
 
   //USed only in XCOFF/COFF format, can be 
   //   scAbs=5, 
@@ -339,13 +339,13 @@ class BPATCH_DLL_EXPORT BPatch_localVar{
 public:
   
   BPatch_localVar(const char * _name,  BPatch_type * _type, int _lineNum,
-		  int _frameOffset, int _sc = 5 /* scAbs */, bool fr=true);
+		  long _frameOffset, int _sc = 5 /* scAbs */, bool fr=true);
   ~BPatch_localVar();
 
   const char *  getName()        { return name; }
   BPatch_type * getType()        { return type; }
   int           getLineNum()     { return lineNum; }
-  int           getFrameOffset() { return frameOffset; }
+  long          getFrameOffset() { return frameOffset; }
   int 		getFrameRelative() { return frameRelative; }
   int 		getSc()		 { return storageClass; }
   

@@ -1241,7 +1241,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
  *
  */
 BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
-			     int _lineNum,int _frameOffset, int _sc, bool fr)
+				 int _lineNum, long _frameOffset, int _sc, bool fr)
 {
   if( _name)
     name = strdup(_name);
