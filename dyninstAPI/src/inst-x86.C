@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.148 2003/11/24 17:37:50 schendel Exp $
+ * $Id: inst-x86.C,v 1.149 2004/01/23 22:01:20 tlmiller Exp $
  */
 
 #include <iomanip>
@@ -2766,7 +2766,9 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
-             char *ibuf, Address &base, bool /*noCost*/, int /* size */)
+			char *ibuf, Address &base, bool /*noCost*/, int /* size */,
+			const instPoint * /* location */, process * /* proc */,
+			registerSpace * /* rs */ )                                 
 {
    unsigned char *insn = (unsigned char *) (&ibuf[base]);
    unsigned char *first = insn;
@@ -2808,7 +2810,9 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-             char *ibuf, Address &base, bool /*noCost*/, int /* size */)
+			char *ibuf, Address &base, bool /*noCost*/, int /* size */,
+			const instPoint * /* location */, process * /* proc */,
+			registerSpace * /* rs */ )                                 
 {
    unsigned char *insn = (unsigned char *) (&ibuf[base]);
    unsigned char *first = insn;

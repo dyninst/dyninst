@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.134 2003/11/01 20:56:32 mirg Exp $
+// $Id: ast.C,v 1.135 2004/01/23 22:01:14 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1215,7 +1215,7 @@ Address AstNode::generateCode_phase2(process *proc,
             Register temp = rs->allocateRegister(insn, base, noCost);
             addr = (Address) loperand->oValue;
             emitVload(loadFrameAddr, addr, temp, dest, insn, 
-                      base, noCost);
+                      base, noCost, size, location, proc, rs );
             rs->freeRegister(temp);
          } else if (loperand->oType == DataIndir) {	
             // taking address of pointer de-ref returns the original
@@ -1251,9 +1251,16 @@ Address AstNode::generateCode_phase2(process *proc,
               break;
            case FrameAddr:
               addr = (Address) loperand->oValue;
+#if !defined( ia64_unknown_linux2_4 )
+              /* This is really checking if the offset from the frame pointer
+                 is zero.  On the IA-64, this is certainly someplace the compiler
+                 might stash a local; this check is probably bogus on other
+                 platforms as well, but hidden by their prediliction for storing
+                 important things, like the return address, on the stack. */
               assert(addr != 0); // check for NULL
+#endif              
               emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-                         base, noCost, size);
+                         base, noCost, size, location, proc, rs);
               loperand->decUseCount(rs);
               break;
            case DataIndir: {
@@ -1553,7 +1560,7 @@ Address AstNode::generateCode_phase2(process *proc,
         case FrameAddr:
            addr = (Address) oValue;
            temp = rs->allocateRegister(insn, base, noCost);
-           emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost);
+           emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost, size, location, proc, rs );
            rs->freeRegister(temp);
            break;
         case EffectiveAddr:
@@ -1633,7 +1640,7 @@ Address AstNode::generateCode_phase2(process *proc,
      // VG(11/06/01): This platform independent fn calls a platfrom
      // dependent fn which calls it back for each operand... Have to
      // fix those as well to pass location...
-     Address callee_addr = NULL;
+     Address callee_addr = (Address)NULL;
      bool err = false;
 
      if (calleefunc)

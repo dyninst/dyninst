@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.142 2004/01/15 20:40:12 eli Exp $
+// $Id: inst-sparc-solaris.C,v 1.143 2004/01/23 22:01:19 tlmiller Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1660,7 +1660,9 @@ int getFP(instruction *insn, Register dest)
 /****************************************************************************/
 
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
-              char *i, Address &base, bool /*noCost*/, int /* size */)
+				char *i, Address &base, bool /*noCost*/, int /* size */,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1766,7 +1768,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 /****************************************************************************/
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest, 
-              char *i, Address &base, bool /*noCost*/, int /* size */)
+				char *i, Address &base, bool /*noCost*/, int /* size */,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.71 2003/12/11 21:23:17 rchen Exp $
+// $Id: inst-alpha.C,v 1.72 2004/01/23 22:01:16 tlmiller Exp $
 
 #include "common/h/headers.h"
 
@@ -1283,7 +1283,9 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 
 void emitVload(opCode op, Address src1, Register, Register dest,
-	     char *i, Address &base, bool, int size)
+				char *i, Address &base, bool, int size,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1389,7 +1391,9 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-	     char *i, Address &base, bool /* noCost */, int size)
+				char *i, Address &base, bool /* noCost */, int size,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));

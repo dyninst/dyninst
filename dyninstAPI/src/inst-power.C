@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.188 2003/10/24 21:25:53 jaw Exp $
+ * $Id: inst-power.C,v 1.189 2004/01/23 22:01:18 tlmiller Exp $
  */
 
 #include "common/h/headers.h"
@@ -2639,7 +2639,9 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 #endif
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
-	       char *baseInsn, Address &base, bool /*noCost*/, int /*size*/)
+				char *baseInsn, Address &base, bool /*noCost*/, int /*size*/,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
@@ -2712,7 +2714,9 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-	      char *baseInsn, Address &base, bool noCost, int /* size */)
+	      char *baseInsn, Address &base, bool noCost, int /* size */,
+				const instPoint * /* location */, process * /* proc */,
+				registerSpace * /* rs */ )	      
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
