@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2000/08/19 02:41:44 buck Exp $
+# $Id: Makefile,v 1.8 2000/08/20 20:43:29 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -106,7 +106,7 @@ endif
 
 ifdef NATIVE_CXX 
 TARGETS += test1.mutatee_CC_n32  test2.mutatee_CC_n32 test3.mutatee_CC_n32 \
-           test4a.mutatee_CC_n32 test4b.mutatee_CC_n32
+           test4a.mutatee_CC_n32 test4b.mutatee_CC_n32 test5.mutatee_CC_n32
 endif
 
 TARGETS += test1.mutatee_gcc_n32  test2.mutatee_gcc_n32 test3.mutatee_gcc_n32 \
