@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.191 2005/02/17 21:10:33 bernat Exp $
+// $Id: aix.C,v 1.192 2005/02/18 23:41:08 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -276,17 +276,14 @@ Frame Frame::getCallerFrame()
           ret.fp_ = thisStackFrame.oldFp;
   }
 
-  //#ifdef DEBUG_STACKWALK
+#ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
-  //#endif
+#endif
 
   return ret;
 }
 
 bool Frame::setPC(Address newpc) {
-
-  fprintf(stderr, "Resetting pc from %x to %x\n",
-	  pc_, newpc);
 
   // Encapsulate all the logic necessary to set a new PC in a frame
   // If the function is a leaf function, we need to overwrite the LR directly.
@@ -360,7 +357,6 @@ bool Frame::setPC(Address newpc) {
     
     getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
 			      &newpc);
-    fprintf(stderr, "Replaced old return addr with 0x%x\n", newpc);
   }
   
   pc_ = newpc;
@@ -372,17 +368,12 @@ bool Frame::setPC(Address newpc) {
 // into the compiler info word on the stack, and a trigger
 // "We've modified the LR" for stackwalking into the binder info word.
 bool Frame::setRealReturnAddr(Address retaddr) {
-  fprintf(stderr, "Resetting real ret addr to %x\n",
-	  retaddr);
-
   // And write the actual LR into an unused word.
-  fprintf(stderr, "Writing 0x%x to 0x%x\n", retaddr, getFP()+12);
   if (!getProc()->writeDataSpace((void*)(getFP()+12), sizeof(Address), &retaddr))
     return false;
 
   // And write the "we've modified the LR" trigger value
   Address trigger = MODIFIED_LR;
-  fprintf(stderr, "Writing 0x%x to 0x%x\n", trigger, getFP()+16);
   if (!getProc()->writeDataSpace((void*)(getFP()+16), sizeof(Address), &trigger))
     return false;
   return true;
@@ -793,9 +784,6 @@ bool process::instrSideEffect(Frame &frame, instPoint *inst)
   if (inst->getPointType() == callSite) {
     Address insnAfterPoint = inst->absPointAddr(this) + sizeof(instruction);
     if (frame.getPC() == insnAfterPoint) {
-      fprintf(stderr, "Should be changing frame PC 0x%x to 0x%x\n",
-	      insnAfterPoint,
-	      baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
       if (!frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset))
 	return false;
     }
