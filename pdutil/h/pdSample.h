@@ -58,13 +58,15 @@ class pdSample {
   int64_t data;
   static const pdSample *_zero;
   static const pdSample *_nan;
-  static const int64_t MaxValue;
+  static const pdSample *_maxSample;
  public:
   static const pdSample &Zero();
   static const pdSample &NaN();  //returns the not-a-number element of pdSample
+  static const pdSample &maxSample();
 
   // Constructors
-  pdSample() : data(0) {  }
+  // currently a pdSample gets initialized to a NaN
+  pdSample() { setNaN(); }
   explicit pdSample(const int64_t v) : data(v) { }
   //  explicit pdSample(const pdCount v) : data(v.getValue()) {  }
   explicit pdSample(const timeLength &o) : data(o.get_ns()) {  }
@@ -89,7 +91,7 @@ class pdSample {
   // the not-a-number element of pdSample is represented as the sentinal
   // value of the lowest possible (negative) value, ie. I64_MIN
   bool isNaN() const {  return (getValue() == NaN_value);  }
-  void setNaN() {  assign(NaN_value); }
+  void setNaN() {  assign(NaN()); }
 
   const pdSample& operator+=(const pdSample &a) {
     assert(!isNaN() && !a.isNaN());
@@ -111,6 +113,11 @@ inline const pdSample &pdSample::Zero() {
 inline const pdSample &pdSample::NaN() {
   if(_nan == NULL) {  _nan = new pdSample(NaN_value);  }
   return *_nan;
+}
+
+inline const pdSample &pdSample::maxSample() {
+  if(_maxSample == NULL) {  _maxSample = new pdSample(I64_MAX);  }
+  return *_maxSample;
 }
 
 // pdSample @ pdSample operators ----------------------------------
