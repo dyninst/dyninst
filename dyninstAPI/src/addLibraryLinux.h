@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.h,v 1.2 2002/03/18 19:17:47 chadd Exp $ */
+/* $Id: addLibraryLinux.h,v 1.3 2002/05/21 17:40:30 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -37,7 +37,9 @@ class addLibrary {
 	int libnameLen;
 	unsigned int phdrSize;
 	int libnameIndx;
-	
+	unsigned int textSegEndIndx;
+ 	unsigned int dataSegStartIndx;
+
 	void createNewElf();
 	int findSection(char *name);
 	void updateDynamic(Elf_Data*newData);
@@ -48,6 +50,16 @@ class addLibrary {
 	int findNewPhdrAddr();
 	int findNewPhdrOffset();
 	int checkFile();
+
+
+	unsigned int findEndOfTextSegment();
+ 	unsigned int findStartOfDataSegment();
+	void fixUpPhdrForDynamic();
+ 	void moveDynamic();
+ 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned int dynAddr);
+
+
+
 	unsigned int _pageSize;	
 	public:
 	int driver(Elf *elf, char *newfilename, char *libname);

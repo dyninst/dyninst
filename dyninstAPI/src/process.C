@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.326 2002/05/14 20:20:50 chadd Exp $
+// $Id: process.C,v 1.327 2002/05/21 17:40:31 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1146,9 +1146,22 @@ char* process::saveWorldFindDirectory(){
 
 	char* directoryNameExt = "_dyninstsaved";
 	int dirNo = 0;
-        char* directoryName = new char[strlen(( char*) getImage()->file().c_str()) +
+/* ccw */
+	char cwd[1024];
+        char* directoryName;
+	int lastChar;
+	getcwd(cwd, 1024);
+	lastChar = strlen(cwd);
+
+	if( cwd[lastChar] != '/' && lastChar != 1023){
+		cwd[lastChar] = '/';
+		cwd[++lastChar] ='\0';
+	}
+
+	directoryName = new char[strlen(cwd) +
                         strlen(directoryNameExt) + 3+1+1];
-	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().c_str(), directoryNameExt,dirNo);
+/* ccw */
+	sprintf(directoryName,"%s%s%x",cwd, directoryNameExt,dirNo);
         while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
                  if(errno == EEXIST){
                          dirNo ++;
@@ -1157,7 +1170,7 @@ char* process::saveWorldFindDirectory(){
                          delete [] directoryName;
                          return NULL;
                  }
-                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().c_str(),
+                 sprintf(directoryName, "%s%s%x",cwd,
                          directoryNameExt,dirNo);
         }
 	if(dirNo == 0x1000){

@@ -1,4 +1,4 @@
-/* $Id: addLibrary.h,v 1.2 2002/03/22 21:55:17 chadd Exp $ */
+/* $Id: addLibrary.h,v 1.3 2002/05/21 17:40:30 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -32,6 +32,7 @@ class addLibrary {
 	int newFd;
 	Elf_Data *strTabData;
 
+
 	int numberExtraSegs;
 	int gapFlag;
 	unsigned int newPhdrAddr;
@@ -39,6 +40,9 @@ class addLibrary {
 	int libnameLen;
 	unsigned int phdrSize;
 	int libnameIndx;
+	unsigned int textSegEndIndx; 
+	unsigned int dataSegStartIndx;
+
 	
 	void createNewElf();
 	int findSection(char *name);
@@ -46,10 +50,18 @@ class addLibrary {
 	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset, Elf32_Shdr**newSegs);
 	void addStr(Elf_Data* newData, Elf_Data* oldData, char *str);
 	int writeNewElf(char* filename, char* libname);
+	unsigned int findEndOfTextSegment();
+	unsigned int findStartOfDataSegment();
 
 	int findNewPhdrAddr();
 	int findNewPhdrOffset();
 	int checkFile();
+
+	void fixUpPhdrForDynamic();
+	void moveDynamic();
+	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned int dynAddr);
+
+
 	unsigned int _pageSize, realPageSize;	
 	public:
 	int driver(Elf *elf, char *newfilename, char *libname);

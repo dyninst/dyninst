@@ -1,16 +1,12 @@
-/* $Id: addLibrary.C,v 1.4 2002/03/22 21:55:17 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.5 2002/05/21 17:40:30 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 #include "addLibrary.h"
 #define BASEADDR 0x10000
 
-/*
- * this is the addLibraryLinux.C file, i am trying to
- * turn it into the solaris version.
- */
 
 /* 
- * This class will add a library to an existing Linux ELF binary
+ * This class will add a library to an existing Sparc ELF binary
  * You must pass it an open Elf * (from libelf) pointer and a library
  * name, and a name for the new file.
  *
@@ -52,6 +48,17 @@
  * Note that all the assumptions except the placement of the
  * ELF Header are merely convention, not a standard.  But they are 
  * followed by gcc and the like.
+ *
+ * UPDATE: 17 may 2002
+ * Previously it was assumed there would be a DT_CHECKSUM entry
+ * in the dynamic table.  this is not always the case. some
+ * compilers done put this entry in.  If it is not present there
+ * is no place to put the link to the dyninstAPI runtime shared
+ * library and everything fails.  
+ * NOW: The dynamic section is moved to the start of the data 
+ * segment.  This lets the dynamic table be expanded and the 
+ * dyninstAPI library gets its own entry without overwriting a 
+ * slot in the dynamic table. 
  *
  * (*) The Program Header Table should be able to be located
  * anywhere in the file and loaded to any place in memory.
@@ -124,6 +131,17 @@ void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned
 	//this reorders the load of the SO and moves it! once i get the
 	//dlopen problem fixed then this will be handled ok.
 */	
+
+	char *d_buf = new char[newData->d_size +sizeof(Elf32_Dyn) ];
+
+	memset(d_buf, '\0', newData->d_size +sizeof(Elf32_Dyn) ); // make them all DT_NULL
+	memcpy(d_buf, newData->d_buf, newData->d_size );
+
+//	delete [] newData;
+	delete [] newData->d_buf;
+	newData->d_buf = d_buf;
+	newData->d_size += sizeof(Elf32_Dyn);
+	
         for(unsigned int counter=0;counter<newData->d_size/sizeof(Elf32_Dyn);counter++){
 
 		if( 	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_HASH ){
@@ -144,13 +162,12 @@ void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned
                     	((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
 
 		}
-		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_CHECKSUM) {
+		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_NULL) { /* was DT_CHECKSUM */
 		       	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag = DT_NEEDED;
         		((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = libnameIndx;
-			//counter = newData->d_size/sizeof(Elf32_Dyn)+ 1;
+			counter = newData->d_size/sizeof(Elf32_Dyn)+ 1;
 		}
 	}
-
 
 }
 
@@ -239,6 +256,7 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	Elf32_Shdr *realShdr;
 	Elf_Data *realData, *strTabData;
 	unsigned int dynstrOffset;
+	bool seenDynamic = false;
 
 	Elf32_Shdr **newSegments;
 
@@ -268,6 +286,7 @@ int addLibrary::writeNewElf(char* filename, char* libname){
         }
 
 	elf_flagelf(newElf,ELF_C_SET, ELF_F_LAYOUT);
+ 
 
 	// ehdr
 	realEhdr = elf32_newehdr(newElf);
@@ -318,6 +337,14 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 
 	unsigned int foundExtraSegment=0, extraSegmentPad=0;
 
+	updateSymbols(newElfFileSec[findSection(".dynsym")].sec_data,newElfFileSec[findSection(".dynstr")].sec_data,
+		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
+
+	updateSymbols(newElfFileSec[findSection(".symtab")].sec_data,newElfFileSec[findSection(".strtab")].sec_data,
+		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
+
+
+	
 	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * numberExtraSegs];
 	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
 		realScn = elf_newscn(newElf);
@@ -344,9 +371,19 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 			}
 		}
 
-		if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) ) {
-			updateDynamic(realData, hashOffset+BASEADDR, dynsymOffset+BASEADDR, dynstrOffsetNEW+BASEADDR);
+		if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) && !seenDynamic) {
+			seenDynamic = true; 
+			updateDynamic(realData, hashOffset+BASEADDR, dynsymOffset+BASEADDR, 
+				dynstrOffsetNEW+BASEADDR);
+			realShdr->sh_size += sizeof(Elf32_Dyn);  // i added a shared library
+			
+
+		}else if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) && seenDynamic) {
+			realShdr->sh_name = 0;
+			realShdr->sh_type = 1;
+			realData->d_size = realShdr->sh_size;
 		}
+
 		
 		if( !strcmp(".dynstr", (char *)strTabData->d_buf+realShdr->sh_name) ){
 			dynstrOffset = realShdr->sh_offset;
@@ -411,17 +448,127 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	
 	createNewElf();
 	elf_end(elf);
+	textSegEndIndx = findEndOfTextSegment();
+	dataSegStartIndx = findStartOfDataSegment();
+	
 	checkFile();
 	if(gapFlag){
+		
 		findNewPhdrAddr();
 		findNewPhdrOffset();
-		
+	
+		moveDynamic();
+	
 		gapFlag = writeNewElf(newfilename, libname);
 		elf_end(newElf);
 	}else{
 		//error
 	}
 	return gapFlag;
+}
+
+
+void addLibrary::fixUpPhdrForDynamic(){
+
+//change data segment
+//change dynamic ptr
+	unsigned int dataSegSizeChange;
+	int dataSegIndex=0, dynSegIndex=0;
+
+
+	while( newElfFilePhdr[dataSegIndex].p_offset != newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_offset){
+		dataSegIndex++;	
+	}
+		
+	dataSegSizeChange = newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_offset - 
+			newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
+	/* change data segment*/
+	newElfFilePhdr[dataSegIndex].p_offset = newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
+	newElfFilePhdr[dataSegIndex].p_filesz += dataSegSizeChange;
+	newElfFilePhdr[dataSegIndex].p_memsz += dataSegSizeChange;
+	newElfFilePhdr[dataSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
+
+	while( newElfFilePhdr[dynSegIndex].p_type != PT_DYNAMIC){
+		dynSegIndex ++;
+	}
+	newElfFilePhdr[dynSegIndex].p_offset = newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
+	newElfFilePhdr[dynSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
+	newElfFilePhdr[dynSegIndex].p_filesz += sizeof(Elf32_Dyn);
+	
+
+}
+
+
+void addLibrary::moveDynamic(){
+
+	int newIndex;
+	int oldDynamicIndex;
+	int newDynamicIndex;
+	Elf_element *updatedElfFile;
+	Elf32_Shdr tmpShdr;
+
+	oldDynamicIndex = findSection(".dynamic");
+
+	newDynamicIndex = dataSegStartIndx;
+
+	updatedElfFile = (Elf_element*) new char[sizeof(Elf_element) * (newElfFileEhdr->e_shnum+1)]; 
+
+	arraySize ++;
+		
+	for(int cnt = 0, newIndex = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++, newIndex++){
+	
+		if( cnt == newDynamicIndex ){
+			//copy in dynamic here
+
+			//save original info for later.
+			memcpy( &tmpShdr, newElfFileSec[oldDynamicIndex].sec_hdr, sizeof(Elf32_Shdr));
+
+			memcpy( &(updatedElfFile[newIndex]), &(newElfFileSec[oldDynamicIndex]), sizeof(Elf_element));
+
+			updatedElfFile[newIndex].sec_hdr->sh_offset = newElfFileSec[cnt].sec_hdr->sh_offset - 
+				updatedElfFile[newIndex].sec_hdr->sh_size - sizeof(Elf32_Dyn); /* increase in size */
+
+			while(updatedElfFile[newIndex].sec_hdr->sh_offset  % 0x10){
+				 updatedElfFile[newIndex].sec_hdr->sh_offset --;
+			}
+			updatedElfFile[newIndex].sec_hdr->sh_addr = newElfFileSec[cnt].sec_hdr->sh_addr - 
+				 newElfFileSec[cnt].sec_hdr->sh_offset +updatedElfFile[newIndex].sec_hdr->sh_offset;
+
+			newIndex++;
+			//copy old entry to to next slot
+		} 
+		memcpy( &(updatedElfFile[newIndex]), &(newElfFileSec[cnt]), sizeof(Elf_element));
+		if(cnt == oldDynamicIndex){
+			//reset name to zero
+			//allocat new secHdr
+			updatedElfFile[newIndex].sec_hdr = new Elf32_Shdr;//(Elf32_Shdr*) new char[sizeof(Elf32_Shdr)];
+
+
+			//updatedElfFile[newIndex].sec_data = new Elf_Data;//(Elf_Data*) new char[sizeof(Elf_Data)];
+			//updatedElfFile[newIndex].sec_data->d_size = newElfFileSec[cnt].sec_data->d_size;
+			//updatedElfFile[newIndex].sec_data->d_buf = new char[newElfFileSec[cnt].sec_data->d_size];
+
+			memcpy( updatedElfFile[newIndex].sec_hdr, &tmpShdr, sizeof(Elf32_Shdr));
+			
+		}	
+
+		if(updatedElfFile[newIndex].sec_hdr->sh_link >= newDynamicIndex){
+			updatedElfFile[newIndex].sec_hdr->sh_link++;
+		}
+		if(updatedElfFile[newIndex].sec_hdr->sh_info >= newDynamicIndex){
+			updatedElfFile[newIndex].sec_hdr->sh_info++;
+		}
+
+	}
+
+	newElfFileEhdr->e_shnum++;
+	if(newElfFileEhdr->e_shstrndx >= newDynamicIndex){
+		newElfFileEhdr->e_shstrndx++;
+	}
+	delete [] newElfFileSec;
+	newElfFileSec = updatedElfFile;
+
+	fixUpPhdrForDynamic();
 }
 
 addLibrary::addLibrary(){
@@ -453,14 +600,72 @@ addLibrary::~addLibrary(){
 	}
 
 }
+
+unsigned int addLibrary::findEndOfTextSegment(){
+//newElfFilePhdr
+	Elf32_Phdr *tmpPhdr = newElfFilePhdr;
+	unsigned int lastOffset;
+	unsigned int retVal=0;
+
+	while(tmpPhdr->p_type != PT_LOAD){	
+		//find first loadable segment
+		//it should be the text segment
+		tmpPhdr++;
+	}
+	lastOffset = tmpPhdr->p_offset + tmpPhdr->p_filesz;
+
+	for(int i=0;i<arraySize && !retVal; i++){
+
+		if( lastOffset == newElfFileSec[i].sec_hdr->sh_offset + newElfFileSec[i].sec_hdr->sh_size){
+			//found it!
+			retVal = i;
+		}
+	}
+	
+
+	return retVal;
+	
+	
+}
+
+unsigned int addLibrary::findStartOfDataSegment(){
+	Elf32_Phdr *tmpPhdr = newElfFilePhdr;
+	unsigned int firstOffset;
+	unsigned int retVal=0;
+
+	while(tmpPhdr->p_type != PT_LOAD){	
+		//find first loadable segment
+		//it should be the text segment
+		tmpPhdr++;
+	}
+	tmpPhdr++;
+	while(tmpPhdr->p_type != PT_LOAD){	
+		//find second loadable segment
+		//it should be the data segment
+		tmpPhdr++;
+	}
+
+	firstOffset = tmpPhdr->p_offset;
+
+	for(int i=0;i<arraySize && !retVal; i++){
+
+		if( firstOffset == newElfFileSec[i].sec_hdr->sh_offset){
+			//found it!
+			retVal = i;
+		}
+	}
+	return retVal;
+}
+
+
 int addLibrary::findNewPhdrAddr(){
         Elf32_Shdr *tmpShdr;
 
         if(gapFlag == TEXTGAP){
-                tmpShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
+                tmpShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
                 newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
         }else if(gapFlag == DATAGAP){
-                tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
+                tmpShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
                 newPhdrAddr = tmpShdr->sh_addr - phdrSize;
 	}
 
@@ -475,10 +680,10 @@ int addLibrary::findNewPhdrOffset(){
 	Elf32_Shdr *tmpShdr;
 
 	if(gapFlag == TEXTGAP){
-		tmpShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
+		tmpShdr = newElfFileSec[/*findSection(".rodata")*/textSegEndIndx].sec_hdr;
 		newPhdrOffset = tmpShdr->sh_offset + tmpShdr->sh_size;
 	}else if(gapFlag == DATAGAP){
-		tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
+		tmpShdr = newElfFileSec[/*findSection(".data")*/dataSegStartIndx].sec_hdr; 
 		newPhdrOffset = tmpShdr->sh_offset - phdrSize + _pageSize;
 	}
 	while(newPhdrOffset %4){
@@ -507,8 +712,8 @@ int addLibrary::checkFile(){
 		return 0;
 	}
 
-        roDataShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
-        dataShdr = newElfFileSec[findSection(".data")].sec_hdr;
+        roDataShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
+        dataShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
 
 	numberExtraSegs = 0;
 	sprintf(extraSegName,"dyninstAPI_%08x", numberExtraSegs);
@@ -553,6 +758,23 @@ int addLibrary::checkFile(){
 
 }
 
+//This method updates the symbol table,
+//it updates the address of _DYNAMIC
+void addLibrary::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned int dynAddr){
+
+	if( symtabData && strData){
+	
+       		Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
+
+	        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
+
+	
+        	        if( !(strcmp("_DYNAMIC", (char*) strData->d_buf + symPtr->st_name))){
+                	        symPtr->st_value = dynAddr;
+	                }
+        	}
+	}
+}
 
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.9 2002/05/14 20:20:51 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.10 2002/05/21 17:40:31 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -141,6 +141,8 @@ int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSiz
 //sets _end and _END_ to move the heap
 void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
 
+	if( symtabData && strData){
+
         Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
 
         for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
@@ -155,6 +157,7 @@ void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
                 }
 
         }
+	}
 }
 
 unsigned int writeBackElf::findAddressOf(char *objName){
