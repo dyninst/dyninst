@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.6 1994/03/31 02:03:21 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.7 1994/04/09 18:34:55 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.6  1994/03/31 02:03:21  markc
+ * Revision 1.7  1994/04/09 18:34:55  hollings
+ * Changed {pause,continue}Application to {pause,continue}AllProceses, and
+ * made the RPC interfaces use these.  This makes the computation of pause
+ * Time correct.
+ *
+ * Revision 1.6  1994/03/31  02:03:21  markc
  * paradyndPVM keeps a process at neonatal until the first breakpoint is
  * reached.  Moved PDYN_reportSIGCHLD to correct location.
  *
@@ -294,7 +299,7 @@ int handleSigChild(int pid, int status)
 		// since it's blocked on ptrace and we didn't forward
 		// received the SIGSTOP...
 		// But we need to pause the rest of the application
-		pauseApplication(); 
+		pauseAllProcesses(); 
 
 		/* force it into the stoped signal handler */
 		// ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);

@@ -7,7 +7,12 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.5  1994/03/31 01:48:32  markc
+ * Revision 1.6  1994/04/09 18:34:52  hollings
+ * Changed {pause,continue}Application to {pause,continue}AllProceses, and
+ * made the RPC interfaces use these.  This makes the computation of pause
+ * Time correct.
+ *
+ * Revision 1.5  1994/03/31  01:48:32  markc
  * Added default args to addProcess definition.
  *
  * Revision 1.4  1994/03/24  16:41:58  hollings
@@ -108,13 +113,13 @@ Boolean startApplication();
  *      - Does this force buffered data to be delivered?
  *	- Does a paused application respond to enable/disable commands?
  */
-Boolean pauseApplication();
+Boolean pauseAllProcesses();
 
 /*
  * Continue a paused application.
  *    app - an application context from createPerformanceConext.
  */
-Boolean continueApplication();
+Boolean continueAllProcesses();
 
 
 /*

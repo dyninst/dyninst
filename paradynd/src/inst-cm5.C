@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.3 1994/03/26 20:50:41 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.4 1994/04/09 18:34:53 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.3  1994/03/26 20:50:41  jcargill
+ * Revision 1.4  1994/04/09 18:34:53  hollings
+ * Changed {pause,continue}Application to {pause,continue}AllProceses, and
+ * made the RPC interfaces use these.  This makes the computation of pause
+ * Time correct.
+ *
+ * Revision 1.3  1994/03/26  20:50:41  jcargill
  * Changed the pause/continue code.  Now it really stops, instead of
  * spin looping.
  *
@@ -369,10 +374,10 @@ retry:
 	  /* pause the rest of the application */
 	  /*
 	   * or, that is, we would, but then the nodes wouldn't be able to run
-	   * our initializaiton code...  Perhaps we should pauseApplication at
+	   * our initializaiton code...  Perhaps we should pauseAllProcesses at
 	   * the end of this routine, instead...
 	   */
-	  /*       pauseApplication(curr->appl); */   
+	  /*       pauseAllProcesses(curr->appl); */   
 	  break;
 
 	default:
@@ -487,7 +492,7 @@ retry:
      */
     installDefaultInst(nodePseudoProcess, defaultInst);
 
-    pauseApplication();
+    pauseAllProcesses();
     
 }
 

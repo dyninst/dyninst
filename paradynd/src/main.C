@@ -2,7 +2,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.9  1994/04/06 21:35:39  markc
+ * Revision 1.10  1994/04/09 18:34:54  hollings
+ * Changed {pause,continue}Application to {pause,continue}AllProceses, and
+ * made the RPC interfaces use these.  This makes the computation of pause
+ * Time correct.
+ *
+ * Revision 1.9  1994/04/06  21:35:39  markc
  * Added correct machine name reporting.
  *
  * Revision 1.8  1994/04/01  20:06:41  hollings
@@ -239,11 +244,7 @@ Boolean dynRPC::detachProgram(int program,Boolean pause)
 //
 void dynRPC::continueApplication()
 {
-    struct List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-        continueProcess(*curr);
-    }
+    continueAllProcesses();
 }
 
 //
@@ -267,12 +268,7 @@ void dynRPC::continueProgram(int program)
 //
 Boolean dynRPC::pauseApplication()
 {
-    struct List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-        pauseProcess(*curr);
-    }
-    flushPtrace();
+    pauseAllProcesses();
     return TRUE;
 }
 
@@ -297,7 +293,7 @@ Boolean dynRPC::pauseProgram(int program)
 
 Boolean dynRPC::startProgram(int program)
 {
-    continueApplication();
+    continueAllProcesses();
     return(False);
 }
 

@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.4 1994/03/31 01:47:54 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.5 1994/04/09 18:34:51 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.4  1994/03/31 01:47:54  markc
+ * Revision 1.5  1994/04/09 18:34:51  hollings
+ * Changed {pause,continue}Application to {pause,continue}AllProceses, and
+ * made the RPC interfaces use these.  This makes the computation of pause
+ * Time correct.
+ *
+ * Revision 1.4  1994/03/31  01:47:54  markc
  * Extended parameters for addProcess, which default to NULL and 0.
  *
  * Revision 1.3  1994/03/22  21:03:12  hollings
@@ -217,7 +222,7 @@ Boolean addDataSource(char *name, char *machine,
 
 Boolean startApplication()
 {
-    continueApplication();
+    continueAllProcesses();
     return(False);
 }
 
@@ -251,7 +256,7 @@ Boolean isApplicationPaused()
     return(applicationPaused);
 }
 
-Boolean continueApplication()
+Boolean continueAllProcesses()
 {
     struct timeval tv;
     struct List<process *> curr;
@@ -274,7 +279,7 @@ Boolean continueApplication()
     return(False);
 }
 
-Boolean pauseApplication()
+Boolean pauseAllProcesses()
 {
     Boolean changed;
     struct List<process *> curr;
