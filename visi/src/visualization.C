@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.9  1994/06/16 18:24:53  newhall
-/* fix to visualization::Data
+/* Revision 1.10  1994/07/07 22:40:31  newhall
+/* fixed compile warnings
 /*
+ * Revision 1.9  1994/06/16  18:24:53  newhall
+ * fix to visualization::Data
+ *
  * Revision 1.8  1994/06/07  17:48:49  newhall
  * support for adding metrics and resources to existing visualization
  *
@@ -115,7 +118,7 @@ int StartVisi(int argc,
 int RegistrationCallback(msgTag event,
 			 int (*callBack)(int)){
 
-  if((event >= 0) && (event < EVENTSIZE)){
+  if((event < EVENTSIZE)){
     eventCallbacks[event] = callBack;
     return(OK);
   }
@@ -143,6 +146,8 @@ void GetMetsRes(char *metrics,
 		char *resource,
 		int type){
 
+  if(!initDone)
+    VisiInit();
   vp->GetMetricResource(NULL,NULL,0);
 }
 
@@ -154,6 +159,8 @@ void GetMetsRes(char *metrics,
 void StopMetRes(int metricIndex,
 		int resourceIndex){
 
+  if(!initDone)
+    VisiInit();
   if((metricIndex < dataGrid.NumMetrics()) 
       && (metricIndex >= 0)
       && (resourceIndex >= 0)
@@ -173,6 +180,8 @@ void NamePhase(timeType begin,
 	       timeType end,
 	       char *name){
 
+  if(!initDone)
+    VisiInit();
   vp->PhaseName((double)begin,(double)end,name);
 }
 

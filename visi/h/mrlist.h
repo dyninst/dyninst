@@ -17,9 +17,12 @@
  */
 
 /* $Log: mrlist.h,v $
-/* Revision 1.3  1994/06/07 17:46:53  newhall
-/* added InList method function
+/* Revision 1.4  1994/07/07 22:40:23  newhall
+/* fixed compile warnings
 /*
+ * Revision 1.3  1994/06/07  17:46:53  newhall
+ * added InList method function
+ *
  * Revision 1.2  1994/05/11  17:11:06  newhall
  * changed data values from double to float
  *
@@ -36,6 +39,8 @@
  //   the contents of the data grid
  /////////////////////////////////////////////
 
+#include <malloc.h>
+#include <string.h>
 #include "visiTypes.h"
 
 

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.8  1994/06/16 18:24:50  newhall
-/* fix to visualization::Data
+/* Revision 1.9  1994/07/07 22:40:30  newhall
+/* fixed compile warnings
 /*
+ * Revision 1.8  1994/06/16  18:24:50  newhall
+ * fix to visualization::Data
+ *
  * Revision 1.7  1994/06/07  17:48:46  newhall
  * support for adding metrics and resources to existing visualization
  *
@@ -426,7 +429,7 @@ int visi_DataGrid::AddNewMetrics(int howmany,visi_metricType *mlist){
 
 visi_GridHistoArray *tempdata;
 Metric *temp;
-int i,ok;
+int i;
 
   // add new values to metric list
   temp = metrics;
