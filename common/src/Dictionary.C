@@ -253,9 +253,9 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
       // have been UINT_MAX.  So we truly need to add an item.
 
       // before the insert, we should have enough bins to fit everything nicely...
-      assert( (bins.size() * max_bin_load) >= (size() * 100) );
+      assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );
       
-      if ( (bins.size() * max_bin_load) < ((size() + 1) * 100) ) {
+      if ( (bins.size() * max_bin_load) < ((all_elems.size() + 1) * 100) ) {
          // ...but adding 1 more element would make things too big.  So, grow (add
          // some new bins) before adding.
          
@@ -263,12 +263,12 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
          assert(new_numbins > bins.size() && "grow factor negative or barely > 1.00?");
 
          // ... after the grow, we should have enough bins:
-         assert(new_numbins * max_bin_load >= ((size() + 1) * 100));
+         assert(new_numbins * max_bin_load >= ((all_elems.size() + 1) * 100));
 
          grow_numbins(new_numbins);
 
          // ...verify that we have enough bins after the grow:
-         assert( (bins.size() * max_bin_load) >= ((size() + 1) * 100));
+         assert( (bins.size() * max_bin_load) >= ((all_elems.size() + 1) * 100));
 
          // fall through...
       }
@@ -288,14 +288,14 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
 
 //      assert(defines(key)); // WARNING: expensive assert()
 
-      assert( (bins.size() * max_bin_load) >= (size() * 100) );  // Check invariant again
+      assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );  // Check invariant again
 
       return new_entry_ndx;
    }
    else {
       // found the item.
      
-      assert( (bins.size() * max_bin_load) >= (size() * 100) );  // Check invariant first
+      assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );  // Check invariant first
 
       entry &e = all_elems[result];
       if (e.removed) {
@@ -309,7 +309,7 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
          e.val = V();
          num_removed_elems--;
 
-         if (! ( (bins.size() * max_bin_load) >= (size() * 100) )) {
+         if (! ( (bins.size() * max_bin_load) >= (all_elems.size() * 100) )) {
            // Oops, the un-remove just broke the invariant!
            // Grow some bins to re-establish the invariant.
 
@@ -317,12 +317,12 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
            assert(new_numbins > bins.size() && "grow factor negative or barely > 1.00?");
 
            // ... after the grow, we should have enough bins:
-           assert( (new_numbins * max_bin_load) >= (size() * 100) );
+           assert( (new_numbins * max_bin_load) >= (all_elems.size() * 100) );
 
            grow_numbins(new_numbins);
 
            // ...verify that we have enough bins after the grow:
-           assert( (bins.size() * max_bin_load) >= (size() * 100) );
+           assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );
 
            result = locate(key, true); // true --> find even if 'removed' flag set
            assert(result != UINT_MAX); // should exist
@@ -331,7 +331,7 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
 
 //      assert(defines(key)); // WARNING: expensive assert
 
-      assert( (bins.size() * max_bin_load) >= (size() * 100) );  // Check invariant again
+      assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );  // Check invariant again
 
       return result;
    }
@@ -391,5 +391,5 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
    }
 
    // the invariant should now hold
-   assert( (bins.size() * max_bin_load) >= (size() * 100) );
+   assert( (bins.size() * max_bin_load) >= (all_elems.size() * 100) );
 }
