@@ -2,11 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.4  1995/07/27 23:27:48  tamches
-/* Crash upon sorting huge CMF application mysteriously
-/* goes away when quicksort is altered slightly to remove
-/* tail recursion.
+/* Revision 1.5  1995/08/01 23:16:23  tamches
+/* Used Tk_3DBorderGC() (newly available tk4.0 routine) for clipping (when scrolling
+/* a listbox) instead of peeking into the Border structure.
 /*
+ * Revision 1.4  1995/07/27  23:27:48  tamches
+ * Crash upon sorting huge CMF application mysteriously
+ * goes away when quicksort is altered slightly to remove
+ * tail recursion.
+ *
  * Revision 1.3  1995/07/24  21:35:00  tamches
  * Added sorting.
  * Removed member function addChildren()
@@ -170,43 +174,6 @@ void where4tree<USERNODEDATA>::drawTriangle(const where4TreeConstants &tc,
                 );
 }
 
-// You can thank tk's piece-o-shit header files for this hack
-typedef struct {
-    Screen *screen;             /* Screen on which the border will be used. */
-    Visual *visual;             /* Visual for all windows and pixmaps using
-                                 * the border. */
-    int depth;                  /* Number of bits per pixel of drawables where
-                                 * the border will be used. */
-    Colormap colormap;          /* Colormap out of which pixels are
-                                 * allocated. */
-    int refCount;               /* Number of different users of
-                                 * this border.  */
-    XColor *bgColorPtr;         /* Background color (intensity
-                                 * between lightColorPtr and
-                                 * darkColorPtr). */
-    XColor *darkColorPtr;       /* Color for darker areas (must free when
-                                 * deleting structure). NULL means shadows
-                                 * haven't been allocated yet.*/
-    XColor *lightColorPtr;      /* Color used for lighter areas of border
-                                 * (must free this when deleting structure).
-                                 * NULL means shadows haven't been allocated
-                                 * yet. */
-    Pixmap shadow;              /* Stipple pattern to use for drawing
-                                 * shadows areas.  Used for displays with
-                                 * <= 64 colors or where colormap has filled
-                                 * up. */
-    GC bgGC;                    /* Used (if necessary) to draw areas in
-                                 * the background color. */
-    GC darkGC;                  /* Used to draw darker parts of the
-                                 * border. None means the shadow colors
-                                 * haven't been allocated yet.*/
-    GC lightGC;                 /* Used to draw lighter parts of
-                                 * the border. None means the shadow colors
-                                 * haven't been allocated yet. */
-    Tcl_HashEntry *hashPtr;     /* Entry in borderTable (needed in
-                                 * order to delete structure). */
-} Border;
-
 template <class USERNODEDATA>
 void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
                                             int theDrawable,
@@ -298,13 +265,17 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
                         datapart_finishy - datapart_starty + 1
                         };
 
-   XSetClipRectangles(tc.display, ((Border *)(tc.listboxBorder))->lightGC,
+   GC lightGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_LIGHT_GC);
+   GC darkGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_DARK_GC);
+   GC flatGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_FLAT_GC);
+			      
+   XSetClipRectangles(tc.display, lightGC,
                       0, 0, // clip origin
                       &clipRect, 1, YXBanded);
-   XSetClipRectangles(tc.display, ((Border *)tc.listboxBorder)->darkGC,
+   XSetClipRectangles(tc.display, darkGC,
                       0, 0, // clip origin
                       &clipRect, 1, YXBanded);
-   XSetClipRectangles(tc.display, ((Border *)tc.listboxBorder)->bgGC,
+   XSetClipRectangles(tc.display, flatGC,
                       0, 0, // clip origin
                       &clipRect, 1, YXBanded);
 
@@ -372,9 +343,9 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
    }
 
    // Undo the XSetClipRectangles():
-   XSetClipMask(tc.display, ((Border *)tc.listboxBorder)->lightGC, None);
-   XSetClipMask(tc.display, ((Border *)tc.listboxBorder)->darkGC, None);
-   XSetClipMask(tc.display, ((Border *)tc.listboxBorder)->bgGC, None);
+   XSetClipMask(tc.display, flatGC, None);
+   XSetClipMask(tc.display, darkGC, None);
+   XSetClipMask(tc.display, lightGC, None);
 
    XSetClipMask(tc.display, tc.listboxTextGC, None);
    XSetClipMask(tc.display, tc.listboxTriangleGC, None);
@@ -2214,7 +2185,6 @@ void where4tree<USERNODEDATA>::sortChildren() {
 template <class USERNODEDATA>
 void where4tree<USERNODEDATA>::sortChildren(int left, int right) {
    // quicksort
-//   cout << "welcome to sortchildren (" << left << "," << right << ")" << endl;
 
 //   if (left < right) {
 //      int partitionIndex = partitionChildren(left, right);
