@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.14  1996/02/22 18:39:13  karavan
+# added circularBuffer class
+#
 # Revision 1.13  1996/02/16 20:09:08  tamches
 # added pathName
 #
@@ -62,13 +65,14 @@ SRCS	     += ../src/String.C \
 		../src/makenan.C \
 		../src/pathName.C \
 		../src/PriorityQueue.C \
-		../src/odometer.C
+		../src/odometer.C \
+		../src/CircularBuffer.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o \
 		makenan.o pathName.o \
-		PriorityQueue.C
+		PriorityQueue.o CircularBuffer.o
 
 SRCS2	     += rpcUtilPVM.C
 OBJS2	     += rpcUtilPVM.o
