@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.11  1995/11/22 00:10:05  mjrg
+ * Revision 1.12  1995/11/28 15:55:45  naim
+ * Minor fix - naim
+ *
+ * Revision 1.11  1995/11/22  00:10:05  mjrg
  * Fixed "constrained" feature of MDL (fixed by Jeff, commited by mjrg)
  *
  * Revision 1.10  1995/11/21 15:14:27  naim
@@ -151,9 +154,10 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 				    vector<string> *temp_counters,
 				    bool developerMode,
 				    bool normalized)
-: id_(id), name_(name), units_(units), agg_op_(agg), 
-  style_(sty), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters),
-  developerMode_(developerMode), normalized_(normalized) {}
+: id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
+  type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
+  temp_ctr_(temp_counters), developerMode_(developerMode),
+  normalized_(normalized) { }
 
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
