@@ -323,6 +323,7 @@ class process {
       // see para above for reason why this 'vector' can have at most 1 elem!
 
  public:
+  bool deferredContinueProc;
   void postRPCtoDo(AstNode *, bool noCost,
 		   void (*)(process *, void *, unsigned), void *);
   bool existsRPCreadyToLaunch() const;

@@ -1269,6 +1269,10 @@ tp->resourceBatchMode(true);
         // same process
         ret->threads += new Thread(ret);
 
+        // we use this flag to solve race condition between inferiorRPC and 
+        // continueProc message from paradyn - naim
+        ret->deferredContinueProc = false;
+
 	close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
 
@@ -2893,6 +2897,14 @@ bool process::handleTrapIfDueToRPC() {
       assert(false);
    }
    currRunningRPCs.removeByIndex(0);
+
+   if (currRunningRPCs.empty() && deferredContinueProc) {
+     // We have a pending continueProc that we had to delay because
+     // there was an inferior RPC in progress at that time, but now
+     // we are ready to execute it - naim
+     deferredContinueProc=false;
+     if (continueProc()) statusLine("application running");
+   }
 
    delete [] theStruct.savedRegs;
 

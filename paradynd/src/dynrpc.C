@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.61  1997/01/31 15:59:24  naim
+ * Fixing race condition between continueProc and inferiorRPC in progress - naim
+ *
  * Revision 1.60  1997/01/30 18:18:22  tamches
  * attach no longer takes in a dir; takes in afterAttach
  *
@@ -407,8 +410,14 @@ void dynRPC::continueProgram(int program)
       logLine(errorLine);
       showErrorCallback(62,(const char *) errorLine);
     }
-    proc->continueProc();
-    statusLine("application running");
+    if (proc->existsRPCinProgress())  {
+      // An RPC is in progress, so we delay the continueProc until the RPC
+      // finishes - naim
+      proc->deferredContinueProc=true;
+    } else {
+      proc->continueProc();
+      statusLine("application running");
+    }
 }
 
 //
