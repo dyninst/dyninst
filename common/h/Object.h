@@ -41,8 +41,8 @@ public:
     unsigned          nsymbols ()                         const;
     unsigned            nlines ()                         const;
 
-    bool            get_symbol (const string &, Symbol &) const;
-    bool              get_line (Address, Line &)          const;
+    bool            get_symbol (const string &, Symbol &);
+    bool              get_line (Address, Line &);
 
     const Word*       code_ptr ()                         const;
     unsigned          code_off ()                         const;
@@ -53,7 +53,7 @@ public:
     unsigned          data_len ()                         const;
 
 protected:
-    AObject (const char *, void (*)(const char *)); // explicitly protected
+    AObject (const string, void (*)(const char *)); // explicitly protected
     AObject                    (const AObject &);   // explicitly protected
     virtual AObject& operator= (const AObject &);   // explicitly protected
 
@@ -69,7 +69,7 @@ protected:
     unsigned data_off_;
     unsigned data_len_;
 
-    void (*err_func_)(const char *);
+    void (*err_func_)(const char*);
 
 private:
     friend class SymbolIter;
@@ -77,7 +77,7 @@ private:
 };
 
 inline
-AObject::AObject(const char* file, void (*err_func)(const char *))
+AObject::AObject(const string file, void (*err_func)(const char*))
     : file_(file), symbols_(string::hash), lines_(hash_address),
     code_ptr_(0), code_off_(0), code_len_(0),
     data_ptr_(0), data_off_(0), data_len_(0),
@@ -133,7 +133,7 @@ AObject::nlines() const {
 
 inline
 bool
-AObject::get_symbol(const string& name, Symbol& symbol) const {
+AObject::get_symbol(const string& name, Symbol& symbol) {
     if (!symbols_.defines(name)) {
         return false;
     }
@@ -143,7 +143,7 @@ AObject::get_symbol(const string& name, Symbol& symbol) const {
 
 inline
 bool
-AObject::get_line(Address addr, Line& line) const {
+AObject::get_line(Address addr, Line& line) {
     if (!lines_.defines(addr)) {
         return false;
     }

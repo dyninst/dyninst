@@ -18,7 +18,7 @@
 ************************************************************************/
 
 #include <iostream.h>
-#include <unistd.h>
+#include "util/h/headers.h"
 
 
 
@@ -48,11 +48,16 @@ public:
 
     bool      is_running ()                             const;
 
-    friend
-    ostream&  operator<< (ostream &, const timer &);
+    double CYCLES_PER_SEC() const { return CYCLES_PER_SEC_;}
+    double NANOSECS_PER_SEC() const { return NANOSECS_PER_SEC_;}
+    double MICROSECS_PER_SEC() const { return MICROSECS_PER_SEC_;}
+
+     // friend
+     // ostream&  operator<< (ostream &os, const timer &t) {
+     // t.print(os); return os;}
 
 private:
-    void           print (ostream &)                    const;
+     // void           print (ostream &);
 
     static
     void     get_current (double &, double &, double &);
@@ -63,21 +68,27 @@ private:
     double      cu_, cs_, cw_;
     timer_state state_;
 
-    static const double CYCLES_PER_SEC;
-    static const double MICROSECS_PER_SEC;
-    static const double NANOSECS_PER_SEC;
+     const double CYCLES_PER_SEC_;
+     const double MICROSECS_PER_SEC_;
+     const double NANOSECS_PER_SEC_;
 };
 
 inline
 timer::timer()
-    : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
-    state_(STOPPED) {
+: usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
+  state_(STOPPED),
+  CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), MICROSECS_PER_SEC_(1.0e6),
+  NANOSECS_PER_SEC_(1.0e9)
+{
 }
 
 inline
 timer::timer(const timer& t)
     : usecs_(t.usecs_), ssecs_(t.ssecs_), wsecs_(t.wsecs_),
-    cu_(t.cu_), cs_(t.cs_), cw_(t.cw_), state_(t.state_) {
+    cu_(t.cu_), cs_(t.cs_), cw_(t.cw_), state_(t.state_),
+    CYCLES_PER_SEC_(t.CYCLES_PER_SEC_), MICROSECS_PER_SEC_(t.MICROSECS_PER_SEC_),
+    NANOSECS_PER_SEC_(t.NANOSECS_PER_SEC_)
+{
 }
 
 inline
@@ -165,18 +176,13 @@ timer::is_running() const {
     return (state_ == RUNNING);
 }
 
-inline
-ostream&
-operator<<(ostream& os, const timer& t) {
-    t.print(os); return os;
-}
-
+#if defined(notdef)
 inline
 void
-timer::print(ostream& os) const {
+timer::print(ostream& os) {
     timer_state ostate = state_;
     if (ostate == RUNNING) {
-        ((timer *) this)->stop();
+        stop();
     }
 
     os << "{"
@@ -186,10 +192,10 @@ timer::print(ostream& os) const {
        << " }";
 
     if (ostate == RUNNING) {
-        ((timer *) this)->start();
+        start();
     }
 }
-
+#endif
 
 
 
@@ -203,10 +209,6 @@ timer::print(ostream& os) const {
 
 
 #undef HAVE_GET_CURRENT_DEFINITION
-
-const double timer::CYCLES_PER_SEC    = sysconf(_SC_CLK_TCK);
-const double timer::MICROSECS_PER_SEC = 1.0e6;
-const double timer::NANOSECS_PER_SEC  = 1.0e9;
 
 
 
@@ -222,16 +224,17 @@ const double timer::NANOSECS_PER_SEC  = 1.0e9;
 inline
 void
 timer::get_current(double& u, double& s, double& w) {
-    u = gethrvtime() / NANOSECS_PER_SEC;
+    timer t;
+    u = gethrvtime() / t.NANOSECS_PER_SEC();
 
     struct tms tb;
     if (times(&tb) == -1) {
-        perror("times");
-        abort();
+      P_perror("times");
+      P_abort();
     }
-    s = tb.tms_stime / CYCLES_PER_SEC;
+    s = tb.tms_stime / t.CYCLES_PER_SEC();
 
-    w = gethrtime() / NANOSECS_PER_SEC;
+    w = gethrtime() / t.NANOSECS_PER_SEC();
 }
 
 #endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
@@ -248,6 +251,8 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
+extern "C" gettimeofday(struct timeval *tp, struct timezone *tzp);
+
 inline
 void
 timer::get_current(double& u, double& s, double& w) {
@@ -258,13 +263,14 @@ timer::get_current(double& u, double& s, double& w) {
         abort();
     }
     if (gettimeofday(&tv, 0) == -1) {
-        perror("gettimeofday");
-        abort();
+      P_perror("gettimeofday");
+      P_abort();
     }
 
-    u = tb.tms_utime / CYCLES_PER_SEC;
-    s = tb.tms_stime / CYCLES_PER_SEC;
-    w = (tv.tv_sec + tv.tv_usec/MICROSECS_PER_SEC);
+    timer t;
+    u = tb.tms_utime / t.CYCLES_PER_SEC();
+    s = tb.tms_stime / t.CYCLES_PER_SEC();
+    w = (tv.tv_sec + tv.tv_usec/t.MICROSECS_PER_SEC());
 }
 #endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
 

@@ -4,7 +4,12 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.26  1994/11/11 06:59:09  markc
+ * Revision 1.27  1995/02/16 09:27:11  markc
+ * Modified code to remove compiler warnings.
+ * Added #defines to simplify inlining.
+ * Cleaned up Object file classes.
+ *
+ * Revision 1.26  1994/11/11  06:59:09  markc
  * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
  * support remote executition for paradyndPVM.
  *
@@ -58,66 +63,43 @@
  *
  */
 
-extern "C" {
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-#include <fcntl.h>
-}
+#include "util/h/headers.h"
+#include "util/h/String.h"
+#include "util/h/Vector.h"
 
-#define xdr_Boolean xdr_char
-typedef XDR *XDRptr;
-typedef int (*xdrIOFunc)(const void *, char *, int);
+// Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
+// typedef bool Boolean;
 
-typedef char Boolean;
-
-extern int RPC_readReady (int fd, int timeout=0);
-
+extern bool RPC_readReady (int fd, int timeout=0);
 
 //
 // Functions common to server and client side.
 //
 class XDRrpc {
 public:
-  XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc, 
-	 char **arg_list=0, int nblock=0, int wellKnownPortFd = 0);
-  XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
-  XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
-	 xdrIOFunc writeFunc, int nblock=0);
+  XDRrpc(const string m, const string u, const string p, xdr_rd_func r, xdr_wr_func w,
+	 const vector<string> &arg_list, const bool nblock, const wellKnownPortFd);
+  XDRrpc(const int use_fd, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
+	 const bool nblock);
+  XDRrpc(int family, int port, int type, const string machine,
+	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const bool block);
   ~XDRrpc();
-  inline void setNonBlock() {
-    if (fd >= 0)
-      fcntl (fd, F_SETFL, O_NONBLOCK);
-  }
-  inline void closeConnect() {
-    if (fd >= 0) close(fd); fd = -1;
-  }
-  inline int get_fd() {
-    return fd;
-  }
-  inline int readReady(int timeout=0) {
-    return RPC_readReady (fd, timeout);
-  }
-  inline int getFd() {
-    return fd;
-  }
-  inline int getPid() {
-    return pid;
-  }
-  inline void setPid(int to) {
-    pid = to;
-  }
-  inline XDR *getXdrs() {
-    return __xdrs__;
-  }
-  inline void setDir(xdr_op d) {__xdrs__->x_op = d;}
+  void setNonBlock() { if (fd >= 0) fcntl (fd, F_SETFL, O_NONBLOCK); }
+  void closeConnect() {if (fd >= 0) close(fd); fd = -1; }
+  int get_fd() const { return fd; }
+  int readReady(const int timeout=0) { return RPC_readReady (fd, timeout); }
+  int getPid() const { return pid; }
+  void setPid(const int to) { pid = to;  }
+  void setDirEncode() {xdrs->x_op = XDR_ENCODE;}
+  void setDirDecode() {xdrs->x_op = XDR_DECODE;}
+  XDR *net_obj() { return xdrs;}
+  bool opened() const { return (xdrs && (fd >= 0));}
+
  private:
-  XDR *__xdrs__;
+  //XDR *getXdrs() { return xdrs; }
+  XDR *xdrs;
   int fd;
   int pid;		// pid of child;
-  static int __wellKnownPortFd__;
 };
 
 //
@@ -125,54 +107,71 @@ public:
 //
 class RPCBase {
 public:
-  inline RPCBase(int st=0, int v=0) { err_state = st; versionVerifyDone = v;}
+  RPCBase(const int st=0, const int v=0) { err_state = st; versionVerifyDone = v;}
   // ~RPCBase() { }
-  inline int get_err_state() { return err_state;}
-  inline void clear_err_state() {err_state = 0;}
-  inline int did_error_occur() {return (err_state != 0);}
-  inline int getVersionVerifyDone() { return versionVerifyDone;}
-  inline void setVersionVerifyDone() { versionVerifyDone = 1;}
-  inline void set_err_state(int s) { err_state = s;}
+  int get_err_state() const { return err_state;}
+  void clear_err_state() {err_state = 0;}
+  int did_error_occur() const {return (err_state != 0);}
+  bool getVersionVerifyDone() const { return versionVerifyDone;}
+  void setVersionVerifyDone() { versionVerifyDone = true;}
+  void set_err_state(const int s) { err_state = s;}
+
  private:
-  int versionVerifyDone;
+  bool versionVerifyDone;
   int err_state;
 };
 
 class THREADrpc {
 public:
-  inline THREADrpc(int t) { tid = t; }
+  THREADrpc(const unsigned t) { tid = t; }
   // ~THREADrpc() { }
-  inline void setTid(int id) { tid = id; }
-  inline int getTid() { return tid;}
+  void setTid(const unsigned id) { tid = id; }
+  unsigned getTid() const { return tid;}
 
   // see not on requestingThread, the use of this may be unsafe
-  inline unsigned int getRequestingThread() { return requestingThread; }
-  inline void setRequestingThread(int t) { requestingThread = t;}
+  unsigned getRequestingThread() const { return requestingThread; }
+  void setRequestingThread(const unsigned t) { requestingThread = t;}
+  unsigned net_obj() const { return tid;}
+
  private:
-  int tid;
+  unsigned tid;
   // these are only to be used by implmentors of thread RPCs.
   //   the value is only valid during a thread RPC.
-  unsigned int requestingThread;
+  unsigned requestingThread;
 };
 
-extern int RPC_setup_socket (int *sfd,   // return file descriptor
-			     int family, // AF_INET ...
-			     int type);   // SOCK_STREAM ...
-extern int xdr_char_PTR (XDR*, char**);
-extern int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
-			    const char *commandLine, char **arg_list = 0,
-			    int wellKnownPort = 0);
+extern int RPC_setup_socket (int &sfd,   // return file descriptor
+			     const int family, // AF_INET ...
+			     const int type);   // SOCK_STREAM ...
 
-extern char **RPC_make_arg_list (int family, int type, 
-				 int port, 
-				 int flag,
-				 int firstPVM,
-				 char *machienName = (char*) 0);
 
-extern int 
-RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
+extern bool_t xdr_string_pd(XDR*, string*);
+extern bool_t xdr_Boolean(XDR*, bool*);   
+
+inline bool_t P_xdr_string_pd(XDR *x, string *s) {
+  return (xdr_string_pd(x, s));}
+inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
+  return (xdr_Boolean(x, b));}
+
+extern int RPCprocessCreate(int &pid, const string hostName, const string userName,
+			    const string commandLine,
+			    const vector<string> &arg_list,
+			    int wellKnownPort = 0,
+			    const bool useRexec=false);
+
+extern bool RPC_make_arg_list (vector<string> &list, const int family,
+			       const int type, const int port, 
+			       const int flag, const int firstPVM,
+			       const string machineName, const bool useMachine);
+
+extern bool
+RPC_undo_arg_list (int argc, char **arg_list, string &machine, int &family,
 		   int &type, int &well_known_socket, int &flag, int &firstPVM);
-extern int RPC_getConnect (int fd);
+extern int RPC_getConnect (const int fd);
 
-extern char **RPCgetArg(int &argc, const char *input);
+extern bool RPCgetArg(vector<string> &ret, const char *input);
+
+extern double timing_loop(const unsigned TRIES=1,
+			  const unsigned LOOP_LIMIT=100000);
+
 #endif

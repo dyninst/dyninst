@@ -45,7 +45,7 @@ extern "C" {
 
 class Object : public AObject {
 public:
-             Object (const char *, void (*)(const char *) = log_msg);
+             Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
     virtual ~Object ();
 
@@ -61,7 +61,7 @@ private:
 };
 
 inline
-Object::Object(const char* file, void (*err_func)(const char *))
+Object::Object(const string file, void (*err_func)(const char *))
     : AObject(file, err_func) {
     load_object();
 }
@@ -201,7 +201,7 @@ Object::load_object() {
         for (unsigned i = 0; i < ehdrp->e_phnum; i++) {
             if ((phdrp[i].p_vaddr <= txtaddr)
                 && ((phdrp[i].p_vaddr+phdrp[i].p_memsz) >= txtaddr)) {
-                code_ptr_ = (Word *) &ptr[phdrp[i].p_offset];
+                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i].p_offset]);
                 code_off_ = (Address) phdrp[i].p_vaddr;
                 code_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
             }
@@ -229,6 +229,7 @@ Object::load_object() {
                 ? Symbol::SL_LOCAL
                 : Symbol::SL_GLOBAL);
 
+	    bool st_kludge = false;
             Symbol::SymbolType type = Symbol::ST_UNKNOWN;
             switch (ELF32_ST_TYPE(syms[i].st_info)) {
             case STT_FILE:
@@ -250,7 +251,7 @@ Object::load_object() {
 
             name = string(&strs[syms[i].st_name]);
             symbols_[name] = Symbol(name, module, type, linkage,
-                                    syms[i].st_value);
+                                    syms[i].st_value, st_kludge);
         }
     }
 

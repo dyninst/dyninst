@@ -4,7 +4,9 @@
 
 
 
+#if defined(external_templates)
 #pragma interface
+#endif
 
 
 #if !defined(_Pair_h_)
@@ -22,7 +24,7 @@ struct pair {
     K key;
     V value;
 
-    bool operator== (const pair<K,V>& p) {
+    bool operator== (const pair<K,V>& p) const {
         return ((key == p.key) && (value == p.value));
     }
 

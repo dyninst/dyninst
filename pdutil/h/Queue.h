@@ -9,6 +9,9 @@
 #if !defined(_Queue_h_)
 #define _Queue_h_
 
+#if defined(external_templates)
+#pragma interface
+#endif
 
 
 
@@ -22,6 +25,14 @@
 
 
 
+#if !defined(DO_INLINE_P)
+#define DO_INLINE_P
+#endif
+
+#if !defined(DO_INLINE_F)
+#define DO_INLINE_F
+#endif
+
 
 /************************************************************************
  * template<class T> class queue
@@ -30,51 +41,52 @@
 template<class T>
 class queue {
 public:
-             queue ();
-             queue (const queue<T> &);
-    virtual ~queue ();
+    DO_INLINE_F         queue ();
+    DO_INLINE_F         queue (const queue<T> &);
+    DO_INLINE_F virtual ~queue ();
 
-    queue<T>&  operator= (const queue<T> &);
-    bool      operator== (const queue<T> &) const;
-    queue<T>& operator+= (const queue<T> &);
-    queue<T>   operator+ (const queue<T> &) const;
-    queue<T>   operator- ()                 const;
-    unsigned        size ()                 const;
-    void         enqueue (const T &);
-    T            dequeue ();
-    T&              head ()                 const;
-    T&              tail ()                 const;
-    void           clear ();
-    void           write (ostream &)        const;
+    DO_INLINE_F queue<T>&  operator= (const queue<T> &);
+    DO_INLINE_F bool      operator== (const queue<T> &) const;
+    DO_INLINE_F queue<T>& operator+= (const queue<T> &);
+    DO_INLINE_F queue<T>   operator+ (const queue<T> &) const;
+    DO_INLINE_F queue<T>   operator- ()                 const;
+    DO_INLINE_F unsigned        size ()                 const;
+    DO_INLINE_F void         enqueue (const T &);
+    DO_INLINE_F T            dequeue ();
+    DO_INLINE_F T&              head ()                 const;
+    DO_INLINE_F T&              tail ()                 const;
+    DO_INLINE_F void           clear ();
+#if defined(notdef)
+    DO_INLINE_F void           write (ostream &)        const;
 
-    friend ostream& operator<< (ostream &, const queue<T> &);
-
+    DO_INLINE_F friend ostream& operator<< (ostream &, const queue<T> &);
+#endif
 private:
-    void         reverse ();
+    DO_INLINE_P void         reverse ();
 
     stack<T> in_;
     stack<T> out_;
 };
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>::queue()
     : in_(), out_() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>::queue(const queue<T>& q)
     : in_(q.in_), out_(q.out_) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>::~queue() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>&
 queue<T>::operator=(const queue<T>& q) {
     if (this == &q) {
@@ -86,7 +98,7 @@ queue<T>::operator=(const queue<T>& q) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 bool
 queue<T>::operator==(const queue<T>& q) const {
     if (this == &q) {
@@ -107,7 +119,7 @@ queue<T>::operator==(const queue<T>& q) const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>&
 queue<T>::operator+=(const queue<T>& q) {
     in_ += (-q.out_ + q.in_);
@@ -115,7 +127,7 @@ queue<T>::operator+=(const queue<T>& q) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>
 queue<T>::operator+(const queue<T>& q) const {
     queue<T> n = *this;
@@ -124,7 +136,7 @@ queue<T>::operator+(const queue<T>& q) const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 queue<T>
 queue<T>::operator-() const {
     queue<T> t;
@@ -134,21 +146,21 @@ queue<T>::operator-() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 unsigned
 queue<T>::size() const {
     return (in_.size() + out_.size());
 }
 
 template<class T>
-inline
+DO_INLINE_F
 void
 queue<T>::enqueue(const T& t) {
     in_.push(t);
 }
 
 template<class T>
-inline
+DO_INLINE_P
 T
 queue<T>::dequeue() {
     reverse();
@@ -157,7 +169,7 @@ queue<T>::dequeue() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 T&
 queue<T>::head() const {
     assert(size() != 0);
@@ -165,7 +177,7 @@ queue<T>::head() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 T&
 queue<T>::tail() const {
     assert(size() != 0);
@@ -173,15 +185,15 @@ queue<T>::tail() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 void
 queue<T>::clear() {
     in_.clear();
     out_.clear();
 }
-
+#if defined(notdef)
 template<class T>
-inline
+DO_INLINE_F
 void
 queue<T>::write(ostream& os) const {
     stack<T> t = out_ + (-in_);
@@ -189,14 +201,14 @@ queue<T>::write(ostream& os) const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 ostream&
 operator<<(ostream& os, const queue<T>& q) {
     return os << "[ head: "; q.write(os); return os << " :tail ]";
 }
-
+#endif
 template<class T>
-inline
+DO_INLINE_F
 void
 queue<T>::reverse() {
     if (out_.size() != 0) {

@@ -16,7 +16,7 @@
 //
 // What gets returned when a newValue is called in sampleInfo;
 struct sampleInterval {
-    Boolean	valid;
+    bool valid;
     timeStamp	start;
     timeStamp	end;
     sampleValue	value;
@@ -29,14 +29,14 @@ class sampleInfo {
 				   timeStamp wallTime, 
 				   sampleValue value);
     sampleInfo( int aOp = aggSum) {
-        firstSampleReceived = FALSE;
+        firstSampleReceived = false;
 	value = 0.0;
 	lastSampleStart = 0.0;
 	lastSampleEnd = 0.0;
 	lastSample = 0.0;
 	aggOp = aOp;
     }
-    Boolean firstSampleReceived;        // has first sample been recorded
+    bool firstSampleReceived;        // has first sample been recorded
     sampleValue value;                  // cumlative value
     timeStamp   lastSampleStart;        // start time for last sample
     timeStamp   lastSampleEnd;          // end time for last sample

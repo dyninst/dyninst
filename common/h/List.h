@@ -7,7 +7,12 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.21  1994/09/22 03:17:22  markc
+ * Revision 1.22  1995/02/16 09:27:07  markc
+ * Modified code to remove compiler warnings.
+ * Added #defines to simplify inlining.
+ * Cleaned up Object file classes.
+ *
+ * Revision 1.21  1994/09/22  03:17:22  markc
  * added postfix ++ operator
  *
  * Revision 1.20  1994/08/17  18:22:54  markc
@@ -90,14 +95,17 @@
 
 #include <iostream.h>
 
-typedef char Boolean;
-
-#ifndef FALSE
-#define FALSE 0
-#define TRUE  1
+#if defined(external_templates)
+#pragma interface
 #endif
 
-#pragma interface
+#if !defined(DO_INLINE_P)
+#define DO_INLINE_P
+#endif
+
+#if !defined(DO_INLINE_F)
+#define DO_INLINE_F
+#endif
 
 #define ListHash(ptr, size) (((unsigned int)(ptr) % (unsigned int)(size)))
 
@@ -116,7 +124,7 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
-	List() { head = NULL; }
+        List() { head = NULL; }
 	int  empty() { return (head == NULL);}
 	friend ostream &operator<<(ostream &os, List<Type> &data) {
 	  List<Type> curr;
@@ -125,23 +133,23 @@ template <class Type> class List {
 	  }
 	  return os;
 	}
-	void add(Type data, void *key);
-	void add(Type data);
-	Boolean addUnique(Type data);
-	Boolean addUnique(Type data, void *key) {
+	DO_INLINE_F void add(Type data, void *key);
+	DO_INLINE_F void add(Type data);
+	DO_INLINE_F bool addUnique(Type data);
+	bool addUnique(Type data, void *key) {
 	    Type temp;
 
 	    temp = find(key);
 	    if (!temp) {
 		add(data, key);
-		return(TRUE);
+		return(true);
 	    } else {
-		return(FALSE);
+		return(false);
 	    }
 	}
-	Type find(void *key);
-	Boolean remove(void *key);
-	void removeAll();
+	DO_INLINE_F Type find(void *key);
+	DO_INLINE_F bool remove(void *key);
+	DO_INLINE_F void removeAll();
 	int count()	{
 	    int c;
 	    ListItem<Type> *curr;
@@ -191,7 +199,7 @@ template <class Type> class List {
 	ListItem<Type>	*head;
 };
 
-template <class Type> void List<Type>::add(Type data, void *key)
+template <class Type> DO_INLINE_F void List<Type>::add(Type data, void *key)
 {
     ListItem<Type> *ni;
 
@@ -203,17 +211,17 @@ template <class Type> void List<Type>::add(Type data, void *key)
     head = ni;
 }
 
-template <class Type> void List<Type>::add(Type data) 
+template <class Type> DO_INLINE_F  void List<Type>::add(Type data) 
 { 
     add(data, (void *) data); 
 }
 
-template <class Type> Boolean List<Type>::addUnique(Type data) 
+template <class Type> DO_INLINE_F  bool List<Type>::addUnique(Type data) 
 { 
     return(addUnique(data, (void *) data)); 
 }
 
-template <class Type> void List<Type>::removeAll()
+template <class Type> DO_INLINE_F  void List<Type>::removeAll()
 {
   ListItem<Type> *curr, *nx;
 
@@ -226,7 +234,7 @@ template <class Type> void List<Type>::removeAll()
   head = 0;
 }
 
-template <class Type> Boolean List<Type>::remove(void *key)
+template <class Type> DO_INLINE_F  bool List<Type>::remove(void *key)
 {
     ListItem<Type> *lag;
     ListItem<Type> *curr;
@@ -245,13 +253,13 @@ template <class Type> Boolean List<Type>::remove(void *key)
 	    head = curr->next;
 	}
 	delete(curr);
-	return(TRUE);
+	return(true);
     } else {
-	return(FALSE);
+	return(false);
     }
 }
 
-template <class Type> Type List<Type>::find(void *data)
+template <class Type> DO_INLINE_F  Type List<Type>::find(void *data)
 {
     ListItem<Type> *curr;
 
@@ -280,21 +288,21 @@ template <class Type> class HTable {
             return os;
           }
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
-	void add(Type data, void *key);
-	HTable(); 
-	Boolean addUnique(Type data, void *key) {
+	DO_INLINE_F void add(Type data, void *key);
+	DO_INLINE_F HTable(); 
+	bool addUnique(Type data, void *key) {
 	    Type temp;
 
 	    temp = find(key);
 	    if (temp ) {
-		return(0);
+		return(false);
 	    } else {
 		add(data, key);
-		return(1);
+		return(true);
 	    }
 	}
-	Type find(void *key);
-	Boolean remove(void *key);
+	DO_INLINE_F Type find(void *key);
+	DO_INLINE_F bool remove(void *key);
         HTable<Type> operator =(HTable<Type> arg) {
 	    table = arg.table;
 	    tableSize = arg.tableSize;
@@ -359,14 +367,14 @@ template <class Type> class HTable {
 };
 
 
-template <class Type> HTable<Type>::HTable()
+template <class Type> DO_INLINE_F  HTable<Type>::HTable()
 { 
     table = NULL;
     currHid = 0;
     tableSize = 0;
 }
 
-template <class Type> Type HTable<Type>::find(void *key)
+template <class Type> DO_INLINE_F  Type HTable<Type>::find(void *key)
 {
     int hid;
 
@@ -380,7 +388,7 @@ template <class Type> Type HTable<Type>::find(void *key)
     }
 }
 
-template <class Type> void HTable<Type>::add(Type data, void *key)
+template <class Type> DO_INLINE_F  void HTable<Type>::add(Type data, void *key)
 {
     int hid;
 
@@ -397,7 +405,7 @@ template <class Type> void HTable<Type>::add(Type data, void *key)
 }
 
 
-template <class Type> Boolean HTable<Type>::remove(void *key)
+template <class Type> DO_INLINE_F  bool HTable<Type>::remove(void *key)
 {
     int hid;
 
@@ -406,15 +414,15 @@ template <class Type> Boolean HTable<Type>::remove(void *key)
     if (table[hid]) {
 	return(table[hid]->remove(key));
     }
-    return(FALSE);
+    return(false);
 }
 
 template <class Type> class StringList: public List<Type> {
     public:
-	Type find(void *key);
+	DO_INLINE_F Type find(void *key);
 };
 
-template <class Type> Type StringList<Type>::find(void *data) 
+template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
     ListItem<Type> *curr;
 

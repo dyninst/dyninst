@@ -9,6 +9,9 @@
 #if !defined(_Stack_h_)
 #define _Stack_h_
 
+#if defined(external_templates)
+#pragma interface
+#endif
 
 
 
@@ -21,7 +24,13 @@
 
 
 
+#if !defined(DO_INLINE_P)
+#define DO_INLINE_P
+#endif
 
+#if !defined(DO_INLINE_F)
+#define DO_INLINE_F
+#endif
 
 /************************************************************************
  * template<class T> class stack
@@ -30,48 +39,49 @@
 template<class T>
 class stack {
 public:
-             stack ();
-             stack (const stack<T> &);
-    virtual ~stack ();
+    DO_INLINE_F         stack ();
+    DO_INLINE_F         stack (const stack<T> &);
+    DO_INLINE_F virtual ~stack ();
 
-    stack<T>&  operator= (const stack<T> &);
-    bool      operator== (const stack<T> &) const;
-    stack<T>& operator+= (const stack<T> &);
-    stack<T>   operator+ (const stack<T> &) const;
-    stack<T>   operator- ()                 const;
-    unsigned        size ()                 const;
-    void            push (const T &);
-    T                pop ();
-    T&               top ()                 const;
-    T&            bottom ()                 const;
-    void           clear ();
-    void           write (ostream &)        const;
+    DO_INLINE_F stack<T>&  operator= (const stack<T> &);
+    DO_INLINE_F bool      operator== (const stack<T> &) const;
+    DO_INLINE_F stack<T>& operator+= (const stack<T> &);
+    DO_INLINE_F stack<T>   operator+ (const stack<T> &) const;
+    DO_INLINE_F stack<T>   operator- ()                 const;
+    DO_INLINE_F unsigned        size ()                 const;
+    DO_INLINE_F void            push (const T &);
+    DO_INLINE_F T                pop ();
+    DO_INLINE_F T&               top ()                 const;
+    DO_INLINE_F T&            bottom ()                 const;
+    DO_INLINE_F void           clear ();
+#if defined(notdef)
+    DO_INLINE_F void           write (ostream &)        const;
 
-    friend ostream& operator<< (ostream &, const stack<T> &);
-
+    DO_INLINE_F friend ostream& operator<< (ostream &, const stack<T> &);
+#endif
 private:
     vector<T> data_;
 };
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>::stack()
     : data_() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>::stack(const stack<T>& s)
     : data_(s.data_) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>::~stack() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>&
 stack<T>::operator=(const stack<T>& s) {
     if (this == &s) {
@@ -82,7 +92,7 @@ stack<T>::operator=(const stack<T>& s) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 bool
 stack<T>::operator==(const stack<T>& s) const {
     if (this == &s) {
@@ -92,7 +102,7 @@ stack<T>::operator==(const stack<T>& s) const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>&
 stack<T>::operator+=(const stack<T>& s) {
     data_ += s.data_;
@@ -100,7 +110,7 @@ stack<T>::operator+=(const stack<T>& s) {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>
 stack<T>::operator+(const stack<T>& s) const {
     stack<T> n = *this;
@@ -109,7 +119,7 @@ stack<T>::operator+(const stack<T>& s) const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 stack<T>
 stack<T>::operator-() const {
     stack<T> n = *this;
@@ -118,21 +128,21 @@ stack<T>::operator-() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 unsigned
 stack<T>::size() const {
     return data_.size();
 }
 
 template<class T>
-inline
+DO_INLINE_F
 void
 stack<T>::push(const T& t) {
     data_ += t;
 }
 
 template<class T>
-inline
+DO_INLINE_F
 T
 stack<T>::pop() {
     unsigned sz = data_.size();
@@ -144,7 +154,7 @@ stack<T>::pop() {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 T&
 stack<T>::top() const {
     assert(data_.size() != 0);
@@ -152,7 +162,7 @@ stack<T>::top() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 T&
 stack<T>::bottom() const {
     assert(data_.size() != 0);
@@ -160,26 +170,26 @@ stack<T>::bottom() const {
 }
 
 template<class T>
-inline
+DO_INLINE_F
 void
 stack<T>::clear() {
     data_.resize(0);
 }
-
+#if defined(notdef)
 template<class T>
-inline
+DO_INLINE_F
 void
 stack<T>::write(ostream& os) const {
     (-data_).write(os);
 }
 
 template<class T>
-inline
+DO_INLINE_F
 ostream&
 operator<<(ostream& os, const stack<T>& s) {
     os << "[ top: "; s.write(os); return os << " :bottom ]";
 }
-
+#endif
 
 
 

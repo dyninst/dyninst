@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: stringPool.h,v $
- * Revision 1.4  1994/09/22 03:17:00  markc
+ * Revision 1.5  1995/02/16 09:27:14  markc
+ * Modified code to remove compiler warnings.
+ * Added #defines to simplify inlining.
+ * Cleaned up Object file classes.
+ *
+ * Revision 1.4  1994/09/22  03:17:00  markc
  * Changed private pointers to char* from void* since void* math is
  * illegal for ANSI
  *
@@ -26,7 +31,6 @@
 #include "util/h/stringDecl.h"
 
 #define TAB_SIZE 10004
-#define PAGE_SIZE 4090
 
 typedef struct _stringEntry {
     char *data;

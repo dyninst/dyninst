@@ -5,7 +5,9 @@
 
 
 
+#if defined(external_templates)
 #pragma interface
+#endif
 
 #if !defined(_Dictionary_h_)
 #define _Dictionary_h_
@@ -22,8 +24,12 @@
 
 
 
-#ifndef DO_INLINE
-#define DO_INLINE
+#if !defined(DO_INLINE_P)
+#define DO_INLINE_P 
+#endif
+
+#if !defined(DO_INLINE_F)
+#define DO_INLINE_F
 #endif
 
 
@@ -34,34 +40,34 @@
 template<class K, class V>
 class dictionary {
 public:
-             dictionary ();
-    virtual ~dictionary ();
+    DO_INLINE_F         dictionary ();
+    DO_INLINE_F virtual ~dictionary ();
 
-    virtual unsigned                  size ()                                                  const =0;
-    virtual V&                  operator[] (const K &)                                         const =0;
-    virtual bool                   defines (const K &)                                         const =0;
-    virtual void                     undef (const K &)                                               =0;
-    virtual void                     clear ()                                                        =0;
-    virtual vector<K>                 keys ()                                                  const =0;
-    virtual vector<V>               values ()                                                  const =0;
-    virtual vector< pair<K,V> >      items ()                                                  const =0;
-    virtual void                       app (void (*)(const K &, V &))                                =0;
-    virtual void                    revapp (void (*)(const K &, V &))                                =0;
-    virtual V                         fold (V (*)(const K &, const V &, const V &), const V &) const =0;
-    virtual V                      revfold (V (*)(const K &, const V &, const V &), const V &) const =0;
+    virtual unsigned                  size ()                        const =0;
+    virtual V&                  operator[] (const K &)                     =0;
+    virtual bool                   defines (const K &)               const =0;
+    virtual void                     undef (const K &)                     =0;
+    virtual void                     clear ()                              =0;
+    virtual vector<K>                 keys ()                        const =0;
+    virtual vector<V>               values ()                        const =0;
+    virtual vector< pair<K,V> >      items ()                        const =0;
+    virtual void                       app (void (*)(const K &, V &))      =0;
+    virtual void                    revapp (void (*)(const K &, V &))      =0;
+    virtual V  fold (V (*)(const K &, const V &, const V &), const V &) const =0;
+    virtual V revfold (V (*)(const K &, const V &, const V &), const V &) const =0;
 
 private:
-    dictionary                 (const dictionary<K,V> &); // not allowed
-    dictionary<K,V>& operator= (const dictionary<K,V> &); // not allowed
+    DO_INLINE_F dictionary                 (const dictionary<K,V> &); // not allowed
+    DO_INLINE_F dictionary<K,V>& operator= (const dictionary<K,V> &); // not allowed
 };
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary<K,V>::dictionary() {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary<K,V>::~dictionary() {
 }
 
@@ -79,33 +85,33 @@ template<class K, class V>
 class dictionary_hash : public dictionary<K,V> {
 
 public:
-             dictionary_hash (unsigned (*)(const K &));
-             dictionary_hash (unsigned (*)(const K &), unsigned);
-             dictionary_hash (const dictionary_hash<K,V> &);
-    virtual ~dictionary_hash ();
+    DO_INLINE_F         dictionary_hash (unsigned (*)(const K &));
+    DO_INLINE_F         dictionary_hash (unsigned (*)(const K &), unsigned);
+    DO_INLINE_F         dictionary_hash (const dictionary_hash<K,V> &);
+    DO_INLINE_F virtual ~dictionary_hash ();
 
-    dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
-    unsigned                    size ()                                                  const;
-    V&                    operator[] (const K &)                                         const;
-    bool                     defines (const K &)                                         const;
-    void                       undef (const K &);
-    void                       clear ();
-    vector<K>                   keys ()                                                  const;
-    vector<V>                 values ()                                                  const;
-    vector< pair<K,V> >        items ()                                                  const;
-    void                         app (void (*)(const K &, V &));
-    void                      revapp (void (*)(const K &, V &));
-    V                           fold (V (*)(const K &, const V &, const V &), const V &) const;
-    V                        revfold (V (*)(const K &, const V &, const V &), const V &) const;
+    DO_INLINE_F dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
+    DO_INLINE_F unsigned                    size ()                       const;
+    DO_INLINE_F V&                    operator[] (const K &);
+    DO_INLINE_F bool                     defines (const K &)              const;
+    DO_INLINE_F void                       undef (const K &);
+    DO_INLINE_F void                       clear ();
+    DO_INLINE_F vector<K>                   keys ()                       const;
+    DO_INLINE_F vector<V>                 values ()                       const;
+    DO_INLINE_F vector< pair<K,V> >        items ()                       const;
+    DO_INLINE_F void                         app (void (*)(const K &, V &));
+    DO_INLINE_F void                      revapp (void (*)(const K &, V &));
+    DO_INLINE_F V                           fold (V (*)(const K &, const V &, const V &), const V &) const;
+    DO_INLINE_F V                        revfold (V (*)(const K &, const V &, const V &), const V &) const;
 
     unsigned (*hashf () const) (const K &);
 
 private:
-    unsigned chain_of (unsigned)                                      const;
-    bool       locate (const K &, unsigned &, unsigned &, unsigned &) const;
-    V&         insert (const K &, unsigned, unsigned)                 const;
-    void       remove (unsigned, unsigned);
-    void        split ();
+    DO_INLINE_P unsigned chain_of (unsigned)                                      const;
+    DO_INLINE_P bool       locate (const K &, unsigned &, unsigned &, unsigned &) const;
+    DO_INLINE_P V&         insert (const K &, unsigned, unsigned);
+    DO_INLINE_P void       remove (unsigned, unsigned);
+    DO_INLINE_P void        split ();
 
     struct hash_pair : public pair<K,V> {
         unsigned hash_;
@@ -114,9 +120,14 @@ private:
         hash_pair(const K& k, unsigned h)             : pair<K,V>(k),   hash_(h) {}
         hash_pair(const K& k, unsigned h, const V& v) : pair<K,V>(k,v), hash_(h) {}
 
-        unsigned operator==(const hash_pair& p) const {
-            return ((hash_ == p.hash_) && ((*((pair<K,V> *) this)) == p));
-        }
+	unsigned operator==(const hash_pair& p) const {
+	  return ((hash_ == p.hash_) && pair<K,V>::operator==(p));
+	  // ((*((pair<K,V> *) ((void*)this))) == p));
+	}
+        // unsigned operator==(const hash_pair& p) const {
+	// return ((hash_ == p.hash_) &&
+	// ((*((pair<K,V> *) ((void*)this))) == p));
+        // }
     };
     typedef vector<hash_pair> hash_chain;
 
@@ -132,7 +143,7 @@ private:
 };
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &))
     : hashf_(hf), data_(1), chain_size_(DEFAULT_CHAIN_SIZE),
     nbuckets_(data_.size()), llevel_(data_.size(), 0),
@@ -140,7 +151,7 @@ dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &))
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &), unsigned s1)
     : hashf_(hf), data_(s1), chain_size_(s1), nbuckets_(data_.size()),
     llevel_(data_.size(), 0), glevel_(0), next_(0) {
@@ -148,7 +159,7 @@ dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &), unsigned s1)
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash<K,V>::dictionary_hash(const dictionary_hash<K,V>& d)
     : hashf_(d.hashf_), data_(d.data_), chain_size_(d.chain_size_),
     nbuckets_(d.nbuckets_), llevel_(d.llevel_), glevel_(d.glevel_),
@@ -156,12 +167,12 @@ dictionary_hash<K,V>::dictionary_hash(const dictionary_hash<K,V>& d)
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash<K,V>::~dictionary_hash() {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash<K,V>&
 dictionary_hash<K,V>::operator=(const dictionary_hash<K,V>& d) {
     if (this == &d) {
@@ -180,7 +191,7 @@ dictionary_hash<K,V>::operator=(const dictionary_hash<K,V>& d) {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 unsigned
 dictionary_hash<K,V>::size() const {
     unsigned sz = 0;
@@ -191,9 +202,9 @@ dictionary_hash<K,V>::size() const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 V&
-dictionary_hash<K,V>::operator[](const K& key) const {
+dictionary_hash<K,V>::operator[](const K& key) {
     unsigned hash, chain, i;
     if (locate(key, hash, chain, i)) {
         return data_[chain][i].value;
@@ -202,7 +213,7 @@ dictionary_hash<K,V>::operator[](const K& key) const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 bool
 dictionary_hash<K,V>::defines(const K& key) const {
     unsigned hash, chain, i;
@@ -210,7 +221,7 @@ dictionary_hash<K,V>::defines(const K& key) const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 void
 dictionary_hash<K,V>::undef(const K& key) {
     unsigned hash, chain, i;
@@ -220,7 +231,7 @@ dictionary_hash<K,V>::undef(const K& key) {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 void
 dictionary_hash<K,V>::clear() {
     for (unsigned i = 0; i < data_.size(); i++) {
@@ -229,7 +240,7 @@ dictionary_hash<K,V>::clear() {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 vector<K>
 dictionary_hash<K,V>::keys() const {
     vector<K> k;
@@ -242,7 +253,7 @@ dictionary_hash<K,V>::keys() const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 vector<V>
 dictionary_hash<K,V>::values() const {
     vector<V> v;
@@ -255,7 +266,7 @@ dictionary_hash<K,V>::values() const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 vector< pair<K,V> >
 dictionary_hash<K,V>::items() const {
     vector< pair<K,V> > p;
@@ -268,7 +279,7 @@ dictionary_hash<K,V>::items() const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 void
 dictionary_hash<K,V>::app(void (*f)(const K &, V &)) {
     for (unsigned i = 0; i < data_.size(); i++) {
@@ -279,14 +290,14 @@ dictionary_hash<K,V>::app(void (*f)(const K &, V &)) {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 void
 dictionary_hash<K,V>::revapp(void (*f)(const K &, V &)) {
     app(f);
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 V
 dictionary_hash<K,V>::fold(V (*f)(const K &, const V &, const V &),
     const V& arg0) const {
@@ -300,7 +311,7 @@ dictionary_hash<K,V>::fold(V (*f)(const K &, const V &, const V &),
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 V
 dictionary_hash<K,V>::revfold(V (*f)(const K &, const V &, const V &),
     const V& arg0) const {
@@ -308,14 +319,14 @@ dictionary_hash<K,V>::revfold(V (*f)(const K &, const V &, const V &),
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 unsigned
 (*dictionary_hash<K,V>::hashf() const)(const K &) {
     return hashf_;
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_P
 unsigned
 dictionary_hash<K,V>::chain_of(unsigned hash) const {
     unsigned chain = hash % nbuckets_;
@@ -327,7 +338,7 @@ dictionary_hash<K,V>::chain_of(unsigned hash) const {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_P
 bool
 dictionary_hash<K,V>::locate(const K& key, unsigned& hash,
     unsigned& chain, unsigned& i) const {
@@ -344,16 +355,16 @@ dictionary_hash<K,V>::locate(const K& key, unsigned& hash,
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_P
 V&
-dictionary_hash<K,V>::insert(const K& key, unsigned hash, unsigned chain) const {
+dictionary_hash<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
     ((dictionary_hash<K,V> *) this)->data_[chain] += hash_pair(key, hash);
     unsigned i      = data_[chain].size()-1;
     unsigned nchain = chain;
 
     if (data_[chain].size() > chain_size_) {
         unsigned onext = next_;
-        ((dictionary_hash<K,V> *) this)->split();
+        split();
         if (chain == onext) {
             unsigned nhash;
             assert(locate(key, nhash, nchain, i));
@@ -364,7 +375,7 @@ dictionary_hash<K,V>::insert(const K& key, unsigned hash, unsigned chain) const 
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_P
 void
 dictionary_hash<K,V>::remove(unsigned chain, unsigned i) {
     hash_chain&   ch   = data_[chain];
@@ -376,7 +387,7 @@ dictionary_hash<K,V>::remove(unsigned chain, unsigned i) {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_P
 void
 dictionary_hash<K,V>::split() {
     unsigned nch = data_.size();
@@ -416,24 +427,24 @@ dictionary_hash<K,V>::split() {
 template<class K, class V>
 class dictionary_iter {
 public:
-             dictionary_iter ();
-    virtual ~dictionary_iter ();
+    DO_INLINE_F          dictionary_iter ();
+    DO_INLINE_F virtual ~dictionary_iter ();
 
     virtual bool  next (K &, V &) =0;
     virtual void reset ()         =0;
 
 private:
-    dictionary_iter                 (const dictionary_iter<K,V> &); // not allowed
-    dictionary_iter<K,V>& operator= (const dictionary_iter<K,V> &); // not allowed
+    DO_INLINE_P dictionary_iter                 (const dictionary_iter<K,V> &); // not allowed
+    DO_INLINE_P dictionary_iter<K,V>& operator= (const dictionary_iter<K,V> &); // not allowed
 };
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_iter<K,V>::dictionary_iter() {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_iter<K,V>::~dictionary_iter() {
 }
 
@@ -448,23 +459,23 @@ dictionary_iter<K,V>::~dictionary_iter() {
 template<class K, class V>
 class dictionary_hash_iter : public dictionary_iter<K,V> {
 public:
-             dictionary_hash_iter (const dictionary_hash<K,V> &);
-    virtual ~dictionary_hash_iter ();
+    DO_INLINE_F          dictionary_hash_iter (const dictionary_hash<K,V> &);
+    DO_INLINE_F virtual ~dictionary_hash_iter ();
 
-    bool  next (K &, V &);
-    void reset ();
+    DO_INLINE_F bool  next (K &, V &);
+    DO_INLINE_F void reset ();
 
 private:
     const dictionary_hash<K,V>& dict_;
     unsigned                    chain_;
     unsigned                    curr_;
 
-    dictionary_hash_iter                 (const dictionary_hash_iter<K,V> &); // not allowed
-    dictionary_hash_iter<K,V>& operator= (const dictionary_hash_iter<K,V> &); // not allowed
+    DO_INLINE_P dictionary_hash_iter                 (const dictionary_hash_iter<K,V> &); // not allowed
+    DO_INLINE_P dictionary_hash_iter<K,V>& operator= (const dictionary_hash_iter<K,V> &); // not allowed
 };
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 bool
 dictionary_hash_iter<K,V>::next(K& a, V& b) {
     while (chain_ < dict_.data_.size()) {
@@ -483,19 +494,20 @@ dictionary_hash_iter<K,V>::next(K& a, V& b) {
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 void
 dictionary_hash_iter<K,V>::reset() {
     chain_ = curr_ = 0;
 }
 
 template<class K, class V>
-DO_INLINE
+DO_INLINE_F
 dictionary_hash_iter<K,V>::dictionary_hash_iter(const dictionary_hash<K,V>& d)
     : dict_(d), chain_(0), curr_(0) {
 }
 
 template<class K, class V>
+DO_INLINE_F
 dictionary_hash_iter<K,V>::~dictionary_hash_iter() {
 }
 
@@ -508,6 +520,7 @@ dictionary_hash_iter<K,V>::~dictionary_hash_iter() {
 ************************************************************************/
 
 template<class K, class V1, class V2>
+DO_INLINE_F
 dictionary_hash<K,V2>
 map(V2 (*f)(const V1 &), const dictionary_hash<K,V1>& d) {
     dictionary_hash<K,V2>      nd(d.hashf());
@@ -521,6 +534,7 @@ map(V2 (*f)(const V1 &), const dictionary_hash<K,V1>& d) {
 }
 
 template<class K, class V1, class V2>
+DO_INLINE_F
 V2
 fold(V2 (*f)(const K &, const V1 &, const V2 &), const dictionary_hash<K,V1>& d, const V2& arg0) {
     dictionary_hash_iter<K,V1> di(d);
@@ -534,6 +548,7 @@ fold(V2 (*f)(const K &, const V1 &, const V2 &), const dictionary_hash<K,V1>& d,
 }
 
 template<class K, class V1, class V2>
+DO_INLINE_F
 V2
 revfold(V2 (*f)(const K &, const V1 &, const V2 &), const dictionary_hash<K,V1>& d, const V2& arg0) {
     return fold(f, d, arg0);

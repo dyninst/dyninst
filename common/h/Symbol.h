@@ -53,7 +53,7 @@ public:
      Symbol ();
      Symbol (unsigned);
      Symbol (const string &, const string &, SymbolType, SymbolLinkage,
-             Address);
+             Address, const bool);
      Symbol (const Symbol &);
     ~Symbol ();
 
@@ -65,7 +65,7 @@ public:
     SymbolType          type ()               const;
     SymbolLinkage    linkage ()               const;
     Address             addr ()               const;
-
+    bool              kludge ()               const;
     SymbolTag&           tag ()               const;
 
     friend
@@ -77,6 +77,7 @@ public:
 	<< " linkage=" << (unsigned) s.linkage_
 	<< " addr="    << s.addr_
 	<< " tag="     << (unsigned) s.tag_
+	<< " kludge="  << s.kludge_
         << " }" << endl;
     }
 
@@ -88,37 +89,37 @@ private:
     SymbolType    type_;
     SymbolLinkage linkage_;
     Address       addr_;
-
     SymbolTag     tag_;
+    bool          kludge_;
 };
 
 inline
 Symbol::Symbol()
     : name_("*bad-symbol*"), module_("*bad-module*"),
     type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
-    tag_(TAG_UNKNOWN) {
+    tag_(TAG_UNKNOWN), kludge_(false) {
 }
 
 inline
 Symbol::Symbol(unsigned dummy)
     : name_("*bad-symbol*"), module_("*bad-module*"),
     type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
-    tag_(TAG_UNKNOWN) {
+    tag_(TAG_UNKNOWN), kludge_(false) {
 }
 
 inline
 Symbol::Symbol(const string& name, const string& module,
-    SymbolType type, SymbolLinkage linkage, Address addr)
+    SymbolType type, SymbolLinkage linkage, Address addr, const bool kl)
     : name_(name), module_(module),
     type_(type), linkage_(linkage), addr_(addr),
-    tag_(TAG_UNKNOWN) {
+    tag_(TAG_UNKNOWN), kludge_(kl) {
 }
 
 inline
 Symbol::Symbol(const Symbol& s)
     : name_(s.name_), module_(s.module_),
     type_(s.type_), linkage_(s.linkage_), addr_(s.addr_),
-    tag_(s.tag_) {
+    tag_(s.tag_), kludge_(s.kludge_) {
 }
 
 inline
@@ -134,6 +135,7 @@ Symbol::operator=(const Symbol& s) {
     linkage_ = s.linkage_;
     addr_    = s.addr_;
     tag_     = s.tag_;
+    kludge_  = s.kludge_;
 
     return *this;
 }
@@ -146,7 +148,8 @@ Symbol::operator==(const Symbol& s) const {
         && (module_  == s.module_)
         && (type_    == s.type_)
         && (linkage_ == s.linkage_)
-        && (addr_    == s.addr_));
+        && (addr_    == s.addr_)
+	&& (kludge_  == s.kludge_));
 }
 
 inline
@@ -185,6 +188,11 @@ Symbol::tag() const {
     return (SymbolTag &) tag_;
 }
 
+inline
+bool
+Symbol::kludge() const {
+    return kludge_;
+}
 
 
 

@@ -4,11 +4,6 @@
 #include "util/h/list.h"
 #include "rtinst/h/trace.h"
 
-#ifndef False
-#define False	0
-#define True	1
-#endif
-
 typedef double timeStamp;
 
 typedef struct {
@@ -46,9 +41,9 @@ class Histogram {
 	sampleValue getValue(timeStamp start, timeStamp end);
 	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
 	void addInterval(timeStamp start, timeStamp end, 
-	    sampleValue value, Boolean smooth);
+	    sampleValue value, bool smooth);
 	void addPoint(timeStamp start, sampleValue value) {
-	    addInterval(start, start, value, False);
+	    addInterval(start, start, value, false);
 	}
 	timeStamp currentTime() { 
 		return((timeStamp)(lastGlobalBin*bucketSize)); 
@@ -59,7 +54,7 @@ class Histogram {
 	void foldAllHist();
 	void convertToBins();
 	void bucketValue(timeStamp start, timeStamp end, 
-		sampleValue value, Boolean smooth);
+		sampleValue value, bool smooth);
 
 	static timeStamp total_time;	/* numBins * bucketSize */
 	static int lastGlobalBin;	/* global point we have data from */
@@ -69,7 +64,7 @@ class Histogram {
 	int lastBin;			/* current (for this hist) last bin */
 
 	histType storageType;	
-	Boolean smooth;		/* prevent values greater than binWidth */
+	bool smooth;		/* prevent values greater than binWidth */
 	metricStyle metricType; /* sampled function or event counter */
 	int intervalCount;	/* # of intervals in use */
 	int intervalLimit;	/* # of intervals in use */

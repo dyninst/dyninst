@@ -18,8 +18,7 @@
 ************************************************************************/
 
 #include <iostream.h>
-#include "util/h/kludges.h"
-
+#include "util/h/headers.h"
 
 
 
@@ -272,7 +271,7 @@ string::hashs(const char* str) {
 inline
 unsigned
 string::STRLEN(const char* str) {
-    return ((str)?(strlen(str)):(0));
+    return ((str)?(P_strlen(str)):(0));
 }
 
 inline
@@ -282,53 +281,53 @@ string::STRDUP(const char* str) {
         return 0;
     }
 
-    unsigned size = strlen(str)+1;
+    unsigned size = P_strlen(str)+1;
     char*    p    = new char[size];
 
-    (void) memcpy(p, str, size);
+    (void) P_memcpy(p, str, size);
     return p;
 }
 
 inline
 bool
 string::STREQ(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)==0):(!(s1||s2)));
+    return ((s1&&s2)?(P_strcmp(s1,s2)==0):(!(s1||s2)));
 }
 
 inline
 bool
 string::STREQN(const char* s1, const char* s2, unsigned len) {
-    return ((s1&&s2)?(strncmp(s1,s2,len)==0):(!(s1||s2)));
+    return ((s1&&s2)?(P_strncmp(s1,s2,len)==0):(!(s1||s2)));
 }
 
 inline
 bool
 string::STRNE(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)!=0):(false));
+    return ((s1&&s2)?(P_strcmp(s1,s2)!=0):(false));
 }
 
 inline
 bool
 string::STRLT(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)<0):(false));
+    return ((s1&&s2)?(P_strcmp(s1,s2)<0):(false));
 }
 
 inline
 bool
 string::STRLE(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)<=0):(!(s1||s2)));
+    return ((s1&&s2)?(P_strcmp(s1,s2)<=0):(!(s1||s2)));
 }
 
 inline
 bool
 string::STRGT(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)>0):(false));
+    return ((s1&&s2)?(P_strcmp(s1,s2)>0):(false));
 }
 
 inline
 bool
 string::STRGE(const char* s1, const char* s2) {
-    return ((s1&&s2)?(strcmp(s1,s2)>=0):(!(s1||s2)));
+    return ((s1&&s2)?(P_strcmp(s1,s2)>=0):(!(s1||s2)));
 }
 
 

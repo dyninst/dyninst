@@ -39,9 +39,7 @@
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>
 #include <util/h/Vector.h>
-#include "util/h/kludges.h"
 
-extern "C" {
 #include <a.out.h>
 #include <fcntl.h>
 #include <stab.h>
@@ -51,6 +49,8 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+extern "C" {
 #include <cmsys/cm_a.out.h>
 }
 
@@ -64,7 +64,7 @@ extern "C" {
 
 class Object : public AObject {
 public:
-             Object (const char *, void (*)(const char *) = log_msg);
+             Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
     virtual ~Object ();
 
@@ -76,7 +76,7 @@ private:
 };
 
 inline
-Object::Object(const char* file, void (*err_func)(const char *))
+Object::Object(const string file, void (*err_func)(const char *))
     : AObject(file, err_func), nodeFileOffset_(0) {
     load_object();
 }
@@ -158,6 +158,7 @@ Object::load_object() {
                     ? Symbol::SL_GLOBAL
                     : Symbol::SL_LOCAL);
             Symbol::SymbolType type = Symbol::ST_UNKNOWN;
+	    bool st_kludge = false;
 
             switch (sstab) {
             // we do not want header files to become modules
@@ -175,9 +176,31 @@ Object::load_object() {
                 type = Symbol::ST_OBJECT;
                 break;
 
+            case N_TEXT:
+		// KLUDGE: <file>.o entries have a nasty habit of showing up in
+		// symbol tables as N_TEXT when debugging info is not
+		// in the symbol table
+		int len = strlen(&strs[syms[i].n_un.n_strx]);
+		type = Symbol::ST_OBJECT;
+		if ((len > 2) &&
+		    ((&strs[syms[i].n_un.n_strx])[len-2] == '.') &&
+		    (linkage == Symbol::SL_LOCAL) &&
+		    (!(0x3 & syms[i].n_value))) {
+		  type = Symbol::ST_MODULE;
+		  st_kludge = true;
+		  break;
+		} else if (linkage != Symbol::SL_GLOBAL) {
+		  break;
+		} else if (0x3 & syms[i].n_value) {
+		  break;
+		} else {
+		  // this may be a function
+		  st_kludge = true;
+		}
+		break;
+
             case N_FNAME:
             case N_FUN:
-            case N_TEXT:
                 type = Symbol::ST_FUNCTION;
                 break;
 
@@ -186,12 +209,11 @@ Object::load_object() {
 
             default:
                 continue;
-                break;
             }
 
             name = string(&strs[syms[i].n_un.n_strx]);
             symbols_[name] = Symbol(name, module, type, linkage,
-                                    syms[i].n_value);
+                                    syms[i].n_value, st_kludge);
         }
     }
 

@@ -5,11 +5,13 @@
 
 
 
-#pragma interface
 
 #if !defined(_Vector_h_)
 #define _Vector_h_
 
+#if defined(external_templates)
+#pragma interface
+#endif
 
 
 
@@ -17,7 +19,6 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/kludges.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -28,42 +29,48 @@
  * template<class T> class Vector
 ************************************************************************/
 
-#ifndef DO_INLINE
-#define DO_INLINE
+#if !defined(DO_INLINE_P)
+#define DO_INLINE_P
+#endif
+
+#if !defined(DO_INLINE_F)
+#define DO_INLINE_F
 #endif
 
 template<class T>
 class vector {
 public:
-     vector (unsigned =0);
-     vector (unsigned, const T &);
-     vector (const vector<T> &);
-    ~vector ();
+    DO_INLINE_F vector (unsigned =0);
+    DO_INLINE_F vector (unsigned, const T &);
+    DO_INLINE_F vector (const vector<T> &);
+    DO_INLINE_F ~vector ();
 
-    vector<T>&  operator= (const vector<T> &);
-    vector<T>&  operator= (const T &);
-    vector<T>& operator+= (const vector<T> &);
-    vector<T>& operator+= (const T &);
-    vector<T>   operator+ (const vector<T> &)                      const;
-    vector<T>   operator- ()                                       const;
+    DO_INLINE_F vector<T>&  operator= (const vector<T> &);
+    DO_INLINE_F vector<T>&  operator= (const T &);
+    DO_INLINE_F vector<T>& operator+= (const vector<T> &);
+    DO_INLINE_F vector<T>& operator+= (const T &);
+    DO_INLINE_F vector<T>   operator+ (const vector<T> &)                      const;
+    DO_INLINE_F vector<T>   operator- ()                                       const;
 
-    T&         operator[] (unsigned)                               const;
-    bool       operator== (const vector<T> &)                      const;
-    unsigned         size ()                                       const;
-    void           resize (unsigned);
+    DO_INLINE_F T&         operator[] (unsigned)                               const;
+    DO_INLINE_F bool       operator== (const vector<T> &)                      const;
+    DO_INLINE_F unsigned         size ()                                       const;
+    DO_INLINE_F void           resize (unsigned);
 
-    void             sort (int (*)(const void *, const void *));
-    bool           sorted (int (*)(const void *, const void *))    const;
-    void              app (void (*)(T &));
-    void           revapp (void (*)(T &));
-    T                fold (T (*)(const T &, const T &), const T &) const;
-    T             revfold (T (*)(const T &, const T &), const T &) const;
+    DO_INLINE_F void       extract(const unsigned index);
+
+    DO_INLINE_F void             sort (int (*)(const void *, const void *));
+    DO_INLINE_F bool           sorted (int (*)(const void *, const void *))    const;
+    DO_INLINE_F void              app (void (*)(T &));
+    DO_INLINE_F void           revapp (void (*)(T &));
+    DO_INLINE_F T                fold (T (*)(const T &, const T &), const T &) const;
+    DO_INLINE_F T             revfold (T (*)(const T &, const T &), const T &) const;
 
 private:
-    void  create (unsigned);
-    void    init (const T &);
-    void    copy (unsigned, const T *);
-    void destroy ();
+    DO_INLINE_P void  create (unsigned);
+    DO_INLINE_P void    init (const T &);
+    DO_INLINE_P void    copy (unsigned, const T *);
+    DO_INLINE_P void destroy ();
 
     T*       data_;
     unsigned sz_;
@@ -71,14 +78,14 @@ private:
 };
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>::vector(unsigned sz)
     : data_(0), sz_(0), tsz_(0) {
     create(sz);
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>::vector(unsigned sz, const T& v0)
     : data_(0), sz_(0), tsz_(0) {
     create(sz);
@@ -87,7 +94,7 @@ vector<T>::vector(unsigned sz, const T& v0)
 
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>::vector(const vector<T>& v)
     : data_(0), sz_(0), tsz_(0) {
     create(v.sz_);
@@ -95,13 +102,13 @@ vector<T>::vector(const vector<T>& v)
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>::~vector() {
     destroy();
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>&
 vector<T>::operator=(const vector<T>& v) {
     if (this == &v) {
@@ -114,7 +121,7 @@ vector<T>::operator=(const vector<T>& v) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>&
 vector<T>::operator=(const T& v0) {
     init(v0);
@@ -122,7 +129,7 @@ vector<T>::operator=(const T& v0) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>&
 vector<T>::operator+=(const vector<T>& v) {
     unsigned osz = sz_;
@@ -134,7 +141,7 @@ vector<T>::operator+=(const vector<T>& v) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>&
 vector<T>::operator+=(const T& v0) {
     resize(sz_+1);
@@ -143,7 +150,7 @@ vector<T>::operator+=(const T& v0) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>
 vector<T>::operator+(const vector<T>& v) const {
     vector<T> ret = *this;
@@ -151,7 +158,7 @@ vector<T>::operator+(const vector<T>& v) const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 vector<T>
 vector<T>::operator-() const {
     vector<T> ret(sz_);
@@ -162,7 +169,7 @@ vector<T>::operator-() const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 T&
 vector<T>::operator[](unsigned i) const {
     assert(i < sz_);
@@ -170,29 +177,32 @@ vector<T>::operator[](unsigned i) const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 bool
 vector<T>::operator==(const vector<T>& v) const {
     if (sz_ != v.sz_) {
         return false;
     }
+// TODO
+#if defined(notdef)
     for (unsigned i = 0; i < sz_; i++) {
         if (!(data_[i] == v.data_[i])) {
             return false;
         }
     }
+#endif
     return true;
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 unsigned
 vector<T>::size() const {
     return sz_;
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 void
 vector<T>::resize(unsigned sz) {
     if (tsz_ == 0) {
@@ -220,14 +230,26 @@ vector<T>::resize(unsigned sz) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
+void
+vector<T>::extract(const unsigned index) {
+  if (index < (sz_ - 1)) {
+    data_[index] = data_[sz_ - 1];
+  } else if (index >= sz_)
+    return;
+
+  resize(sz_ - 1);
+}
+
+template<class T>
+DO_INLINE_F
 void
 vector<T>::sort(int (*cmpfunc)(const void *, const void *)) {
     qsort((void *) data_, sz_, sizeof(T), cmpfunc);
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 bool
 vector<T>::sorted(int (*cmpfunc)(const void *, const void *)) const {
     if (sz_ <= 1) {
@@ -242,7 +264,7 @@ vector<T>::sorted(int (*cmpfunc)(const void *, const void *)) const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 void
 vector<T>::app(void (*f)(T &)) {
     for (unsigned i = 0; i < sz_; ++i) {
@@ -251,7 +273,7 @@ vector<T>::app(void (*f)(T &)) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 void
 vector<T>::revapp(void (*f)(T &)) {
     for (int i = sz_-1; i >= 0; --i) {
@@ -260,7 +282,7 @@ vector<T>::revapp(void (*f)(T &)) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 T
 vector<T>::fold(T (*f)(const T &, const T &), const T& arg0) const {
     T ret = arg0;
@@ -271,7 +293,7 @@ vector<T>::fold(T (*f)(const T &, const T &), const T& arg0) const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_F
 T
 vector<T>::revfold(T (*f)(const T &, const T &), const T& arg0) const {
     T ret = arg0;
@@ -282,7 +304,7 @@ vector<T>::revfold(T (*f)(const T &, const T &), const T& arg0) const {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_P
 void
 vector<T>::create(unsigned sz) {
     if (sz > 0) {
@@ -292,7 +314,7 @@ vector<T>::create(unsigned sz) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_P
 void
 vector<T>::init(const T& v0) {
     for (unsigned i = 0; i < sz_; ++i) {
@@ -301,7 +323,7 @@ vector<T>::init(const T& v0) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_P
 void
 vector<T>::copy(unsigned sz, const T* data) {
     for (unsigned i = 0; i < sz; ++i) {
@@ -310,7 +332,7 @@ vector<T>::copy(unsigned sz, const T* data) {
 }
 
 template<class T>
-DO_INLINE
+DO_INLINE_P
 void
 vector<T>::destroy() {
     delete[] data_; data_ = 0;
@@ -318,7 +340,7 @@ vector<T>::destroy() {
 }
 
 template<class T, class U>
-DO_INLINE
+DO_INLINE_F
 vector<U>
 map(U (*f)(const T &), const vector<T>& v) {
     vector<U> ret(sz_);
@@ -329,7 +351,7 @@ map(U (*f)(const T &), const vector<T>& v) {
 }
 
 template<class T, class U>
-DO_INLINE
+DO_INLINE_F
 U
 fold(U (*f)(const T &, const U &), const vector<T>& v, const U& arg0) {
     U ret = arg0;
@@ -340,7 +362,7 @@ fold(U (*f)(const T &, const U &), const vector<T>& v, const U& arg0) {
 }
 
 template<class T, class U>
-DO_INLINE
+DO_INLINE_F
 U
 revfold(U (*f)(const U &, const T &), const vector<T>& v, const U& arg0) {
     U ret = arg0;
