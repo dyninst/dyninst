@@ -99,7 +99,7 @@ string::string(const string& s)
 
 inline
 string::~string() {
-    delete str_; str_ = 0;
+    delete [] str_; str_ = 0;
 }
 
 inline
@@ -109,7 +109,7 @@ string::operator=(const char* str) {
         return *this;
     }
 
-    delete str_; str_ = 0;
+    delete [] str_; str_ = 0;
 
     str_ = STRDUP(str);
     len_ = STRLEN(str);
@@ -125,7 +125,7 @@ string::operator=(const string& s) {
         return *this;
     }
 
-    delete str_; str_ = 0;
+    delete [] str_; str_ = 0;
 
     str_ = STRDUP(s.str_);
     len_ = s.len_;
