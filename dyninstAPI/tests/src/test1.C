@@ -26,6 +26,9 @@
 #include <unistd.h>
 #endif
 
+#include <iostream>
+using namespace std;
+
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"

@@ -18,7 +18,7 @@ class BPatch_variableExpr;
 
 class BPATCH_DLL_EXPORT BPatch_basicBlockLoop  {
 	friend class BPatch_flowGraph;
-	friend ostream& operator<<(ostream&,BPatch_basicBlockLoop&);
+	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 
 private:
 	/** head basic block which dominates all basic blocks in the loop */

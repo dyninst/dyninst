@@ -23,7 +23,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class TarjanDominator;
 	friend class InstrucIter;
 
-	friend ostream& operator<<(ostream&,BPatch_basicBlock&);
+	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
 private:
 	/** the flow graph that contains this basic block */

@@ -57,7 +57,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
   */
 class BPATCH_DLL_EXPORT BPatch_flowGraph {
   friend class BPatch_basicBlock;
-  friend ostream& operator<<(ostream&,BPatch_flowGraph&);
+  friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
 
 public:
  
