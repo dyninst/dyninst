@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.7  1994/03/31 01:39:01  markc
+ * Revision 1.8  1994/04/01 20:45:05  hollings
+ * Added calls to query bucketWidth and max number of bins.
+ *
+ * Revision 1.7  1994/03/31  01:39:01  markc
  * Added dataManager continue/pause Process.
  *
  * Revision 1.6  1994/03/20  01:49:49  markc
@@ -353,4 +356,14 @@ resource *dataManager::newResource(applicationContext *app,
     child = createResource(res, name);
     app->tellDaemonsOfResource(res->getFullName(), name);
     return(child);
+}
+
+timeStamp dataManager::getCurrentBucketWidth()
+{
+    return(Histogram::bucketSize);
+}
+
+int dataManager::getMaxBins()
+{
+    return(Histogram::numBins);
 }

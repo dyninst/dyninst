@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.7  1994/03/31 01:37:21  markc
+ * Revision 1.8  1994/04/01 20:44:59  hollings
+ * Added calls to query bucketWidth and max number of bins.
+ *
+ * Revision 1.7  1994/03/31  01:37:21  markc
  * added pause/continue Process.
  *
  * Revision 1.6  1994/03/20  01:48:51  markc
@@ -146,7 +149,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 3;
+    $version 4;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -273,6 +276,13 @@ $remote dataManager {
     //
     //
     void disableResourceCreationNotification(performanceStream*, resource*);
+
+    // 
+    // Histogram/timebase information
+    //
+    timeStamp getCurrentBucketWidth();
+
+    int getMaxBins();
 
     //
     // Resource utility functions.
