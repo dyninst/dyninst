@@ -10,7 +10,12 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.4  1994/05/18 00:52:32  hollings
+ * Revision 1.5  1994/07/12 19:43:18  jcargill
+ * Changed order of processState defn, so that initial (==0) state is neonatal.
+ * Otherwise there is a small time-window at startup when it looks like it's
+ * running, but hasn't been initialized.
+ *
+ * Revision 1.4  1994/05/18  00:52:32  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -55,7 +60,7 @@
 
 typedef struct processRec process;
 
-typedef enum { running, neonatal, stopped, exited } processState;
+typedef enum { neonatal, running, stopped, exited } processState;
 
 typedef struct freeListRec freeListEntry;
 
