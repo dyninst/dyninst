@@ -16,12 +16,12 @@ class dag;
 #ifndef TRUE
 #define FALSE   0
 #define TRUE    1
-#endif TRUE
+#endif 
 #ifndef __GNUC__
 #ifndef inline
 #define inline  /* nothing */
-#endif inline
-#endif __GNUC__
+#endif 
+#endif 
 #define MAXINT		((int)((unsigned)-1 >> 1))
 #define DONT_CARE	NULL	/* use NULL to avoid pointer casting */
 
@@ -49,7 +49,6 @@ typedef enum {
 typedef struct _graph *rGraph;
 typedef struct _node *rNode;
 typedef struct _row *Row;
-typedef int ApplNode;			/* defined by application module */
 struct eStyle;
 struct nStyle;
 
@@ -78,8 +77,9 @@ struct _node {
   int place1, place2;		/* range of non-dummy children to place */
   rNode leftNext;		/* leftmost relative child */
   
-  ApplNode root;		/* root of application node */
-  ApplNode aNode;		/* handle for application node */
+  int root;		/* root of application node */
+  int aNode;		/* token for application node */
+  void *aObject;        /* storage for application-specific data */
   char string[DAGNODEMAXSTR];	/* string to be displayed */
   StringType strType;		/* default is ABBREVIATED */
   int sWidth, sHeight;	        /* string display parameters */
@@ -106,7 +106,7 @@ struct _graph {
 
  /* function prototypes */
 
-rNode NewNode(rGraph g, int type, rNode ancestor, ApplNode aNode,
+rNode NewNode(rGraph g, int type, rNode ancestor, int aNode,
 		     char *style, char label[]); 
 void PrintNode(FILE *f, rGraph g, rNode me);
 void AppendRow(rGraph g, int r, rNode me, rNode parent);
@@ -115,7 +115,7 @@ void AbsoluteSweep(rGraph g);
 void EdgePositions(rGraph g);
 void LayoutDummy(rGraph g, rNode src, rNode dst, eStyle *edge_style); 
 
-#endif _dagLayout_h
+#endif 
 
 
 

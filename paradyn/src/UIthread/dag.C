@@ -72,11 +72,11 @@ inline static void FreeNull(void *p) {
 	delete p;
 }
 
-inline static int HashValue(ApplNode node) {
+inline static int HashValue(int node) {
     return((unsigned)node % HASH_SIZE);
 }
 
-static rNode FindHash(rNode ht[HASH_SIZE], ApplNode node) {
+static rNode FindHash(rNode ht[HASH_SIZE], int node) {
 rNode h;
     for (h = ht[HashValue(node)]; h != NULL; h = h->hash)
 	if (h->aNode == node)
@@ -142,6 +142,7 @@ dag::createDisplay (char *parentWindow)
 
   RePaintDag(this);
   flags = 0;
+  return 1;
 }
 
 char *
@@ -372,6 +373,13 @@ dag::tagExceptSubgraph (rNode root)
   }
 }
 
+rNode 
+dag::getNodePtr (int nodeID) 
+{
+  return FindHash(graph->hash, nodeID);
+}    
+
+
 class displayOption;
   
 /****************
@@ -383,8 +391,7 @@ dag::addDisplayOption (optionType opt, int rootID)
   displayOption *currOpt;
   rNode root;
 
-  root = FindHash(graph->hash, rootID);
-  if (root == NULL)
+  if ((root = getNodePtr(rootID)) == NULL)
     return ERR_NCONFIG_BADNODE;
   
   ClearAllTags (graph);
@@ -470,7 +477,8 @@ dag::getNStyle (int style)
  *  Returns errorcode or AOK
  */
 int
-dag::CreateNode (ApplNode nodeID, int root, char *nodeLabel, int style)
+dag::CreateNode (int nodeID, int root, char *nodeLabel, int style, 
+		 void *appRecPtr)
 {
   rNode me;
   nStyle *newStyle;
@@ -488,6 +496,7 @@ dag::CreateNode (ApplNode nodeID, int root, char *nodeLabel, int style)
   me = new _node;
   me->nType = APPL_NODE;
   me->aNode = nodeID;
+  me->aObject = appRecPtr;
   AddHash(graph->hash, me);
   me->ancestor = NULL;
   me->nodeStyle = newStyle;
@@ -541,18 +550,16 @@ dag::getEStyle (int style)
  *      ERR_ADDE_BADDST      requested dest'n node not found
  */
 int 
-dag::AddEdge(ApplNode src, ApplNode dst, int styleID)
+dag::AddEdge(int src, int dst, int styleID)
 {
   rNode srcNode, dstNode;
   eStyle *style;
 
   if (src == dst) 
     return ERR_ADDE_BADDST;
-  srcNode = FindHash(graph->hash, src);
-  if (srcNode == NULL)
+  if ((srcNode = getNodePtr(src)) == NULL)
     return ERR_ADDE_BADSRC;
-  dstNode = FindHash (graph->hash, dst);
-  if (dstNode == NULL) 
+  if ((dstNode = getNodePtr(dst)) == NULL) 
     return ERR_ADDE_BADDST;
 
   style = getEStyle (styleID);
@@ -824,7 +831,7 @@ dag::calcLabelSize (_node *node)
 
 /********
  * configureNode
- * Change the label and/or style for an existing node.  Schedules redraw if 
+ * Cange the label and/or style for an existing node.  Schedules redraw if 
  *  change succeeds.
  * Returns:
  *      ERR_NCONFIG_BADNODE   nodeID not found
@@ -863,21 +870,35 @@ dag::configureNode (int nodeID, char *label, int styleID)
   }
   return AOK;
 }
- 
+
+/* 
+ * NOTE: this version with existing node pointer and NO REDRAW SCHEDULED
+ */
 int
-dag::highlightNode (int nodeID)
+dag::configureNode (rNode me, char *label, int styleID)
+{
+  nStyle *newStyle;
+
+  newStyle = getNStyle (styleID);
+  if (newStyle == NULL)
+    return ERR_NCONFIG_BADSTYLE;
+  me->nodeStyle = newStyle;
+  if (label != NULL) {
+    strncpy (me->string, label, DAGNODEMAXSTR);
+  }    
+  calcLabelSize (me);         // record new label size
+  return AOK;
+}
+
+int
+dag::highlightAllRootNodes ()
 {
   rNode me;
 
-     /* verify valid nodeID */
-  me = FindHash(graph->hash, nodeID);
-  if (me == NULL) 
-    return ERR_NCONFIG_BADNODE;
-
-  if (me->nodeStyle->styleID < 1000) 
-    configureNode (nodeID, NULL, me->nodeStyle->styleID + 1000);
-  else
-    configureNode (nodeID, NULL, me->nodeStyle->styleID - 1000);
+  for (me = graph->row[0].first; me; me = me->forw) {
+    if (me->nodeStyle->styleID < 1000) 
+      configureNode (me, NULL, me->nodeStyle->styleID + 1000);
+  }
 
     // flush redraw request from idle queue, if one exists  -- 
     // we need to redraw dag immediately for selection effect
@@ -886,6 +907,68 @@ dag::highlightNode (int nodeID)
       Tk_CancelIdleCall (RePaintDag, (ClientData) this);
     }
   RePaintDag (this);
+  return AOK;
+}
+  
+int
+dag::clearAllHighlighting ()
+{
+  rNode me;
+  int r;
+  for (r = 0; r < graph->rSize; r++) {
+    me = graph->row[r].first;
+    while (me != NULL) {
+      if (me->nodeStyle->styleID >= 1000) 
+	configureNode (me, NULL, me->nodeStyle->styleID - 1000);
+      me = me->forw;
+    }
+  }
+    // flush redraw request from idle queue, if one exists  -- 
+    // we need to redraw dag immediately for selection effect
+  if (flags & REDRAW_PENDING) {
+      flags &= ~REDRAW_PENDING;
+      Tk_CancelIdleCall (RePaintDag, (ClientData) this);
+    }
+  RePaintDag (this);
+  return AOK;
+}
+
+int
+dag::isHighlighted (rNode curr)
+{
+  if (curr->nodeStyle->styleID > 1000)
+    return 1;
+  else
+    return 0;
+}
+
+int
+dag::highlightNode (int nodeID)
+{
+  rNode me;
+  nStyle *newStyle;
+  int newStyleID;
+
+     /* verify valid nodeID */
+  me = FindHash(graph->hash, nodeID);
+  if (me == NULL) 
+    return ERR_NCONFIG_BADNODE;
+
+  /* store new style in node record */
+  if (me->nodeStyle->styleID < 1000)  
+    newStyleID = me->nodeStyle->styleID + 1000;
+  else
+    newStyleID = me->nodeStyle->styleID - 1000;
+  newStyle = getNStyle (newStyleID);
+  me->nodeStyle = newStyle;
+
+  /* directly change display using canvas configure */
+  sprintf (tcommand, "%s itemconfigure n%d -fill %s",
+	   dcanvas, nodeID, newStyle->bg);
+  Tcl_VarEval (interp, tcommand, 0);
+  sprintf (tcommand, "%s itemconfigure t%d -fill %s",
+	   dcanvas, nodeID, newStyle->text);
+  Tcl_VarEval (interp, tcommand, 0);
   return AOK;
 }
  
@@ -893,25 +976,65 @@ int
 dag::unhighlightNode (int nodeID)
 {
   rNode me;
+  nStyle *newStyle;
 
      /* verify valid nodeID */
   me = FindHash(graph->hash, nodeID);
   if (me == NULL)
     return ERR_NCONFIG_BADNODE;
 
-  if (me->nodeStyle->styleID >= 1000) 
-    configureNode (nodeID, NULL, me->nodeStyle->styleID - 1000);
+  if (me->nodeStyle->styleID >= 1000) {
 
-    // flush redraw request from idle queue, if one exists  -- 
-    // we need to redraw dag immediately for selection effect
-  if (flags & REDRAW_PENDING) {
-      flags &= ~REDRAW_PENDING;
-      Tk_CancelIdleCall (RePaintDag, (ClientData) this);
-    }
-  RePaintDag (this);
+    newStyle = getNStyle (me->nodeStyle->styleID - 1000);
+    me->nodeStyle = newStyle;
+
+    /* directly change display using canvas configure */
+    sprintf (tcommand, "%s itemconfigure n%d -fill %s",
+	     dcanvas, nodeID, newStyle->bg);
+    Tcl_VarEval (interp, tcommand, 0);
+    sprintf (tcommand, "%s itemconfigure t%d -fill %s",
+	     dcanvas, nodeID, newStyle->text);
+    Tcl_VarEval (interp, tcommand, 0);
+  }
   return AOK;
 }
  
+/* don't forget this is a dag; all this routine does is grab one ancestor
+ * from row 0 without being particular.  Used in resource selection.
+ */
+rNode
+findaroot (rNode x)
+{
+  rNode tptr;
+  for (tptr = x; tptr->row > 0; tptr = tptr->upList->dest) 
+    ;
+  return tptr;
+}
+    
+void 
+dag::unHighlightchildren (rNode curr) 
+{
+  if (isHighlighted (curr))
+    unhighlightNode (curr->aNode);
+  for (int i = 0; i < curr->downSize; i++)
+    unHighlightchildren (curr->downList[i].dest);
+}
+
+int
+dag::constrHighlightNode (int nodeID)
+{
+  rNode hnode, rnode;
+  if ( (hnode = getNodePtr(nodeID)) == NULL)
+    return 0;
+  if ( (rnode = findaroot (hnode)) == NULL)
+    return 0;
+  unHighlightchildren (rnode);
+  if (highlightNode (nodeID))
+    return 1;
+  else
+    return 0;
+}
+
 int
 dag::configureEdge (int srcID, int dstID, int styleID)
 {
@@ -1065,7 +1188,7 @@ dag::PaintNode(nStyle *styleRec,
   fprintf (stderr, "    font: %s nodeID: %d\n", styleRec->font, node->aNode);
 #endif
   sprintf (tcommand,
-    "%s create text %d %d -text {%s} -anchor n -fill %s -font %s -tags \"n%d text\"",
+    "%s create text %d %d -text {%s} -anchor n -fill %s -font %s -tags \"t%d text\"",
 	   dcanvas,
 	   x + width/2, y + node_internal_height, 
 	   node->string,

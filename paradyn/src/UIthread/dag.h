@@ -113,6 +113,10 @@ class dag {
     Tk_Window tkwin;
 
     friend void RePaintDag (dag *dagInst);
+    friend int processResourceSelectionCmd (ClientData clientData, 
+					Tcl_Interp *interp, 
+					int argc, 
+					char *argv[]);
     int centeringOffset (); 
     void PaintEdges(rNode me, int offset); 
     int PaintNode(nStyle *styleRec, 
@@ -124,6 +128,8 @@ class dag {
     void scheduleRedraw();
     int tagExceptSubgraph (rNode root);
     void PaintDag();
+    rNode getNodePtr (int nodeID);
+
   public:
     dag(Tcl_Interp *nterp);
     ~dag();
@@ -135,18 +141,25 @@ class dag {
 		   float width);
     int AddNStyle (int styleID, char *bg, char *outline, char *stipple,
 		   char *font, char *text, char shape, float width);
-    int CreateNode (int nodeID, int root, char *nodeLabel, int style);
-    int AddEdge (ApplNode src, ApplNode dst, int edge_style);
+    int CreateNode (int nodeID, int root, char *nodeLabel, int style,
+		    void *appRecPtr);
+    int AddEdge (int src, int dst, int edge_style);
     eStyle *getEStyle (int style);
     nStyle *getNStyle (int style);
     int configureNode (int nodeID, char *label, int styleID);
+    int configureNode (rNode me, char *label, int styleID);
     int configureEdge (int srcID, int dstID, int styleID);
     int highlightNode (int nodeID);
     int unhighlightNode (int nodeID);
+    int clearAllHighlighting();
+    int highlightAllRootNodes();
     int addTkBinding (char *bindCmd);
     int addDisplayOption (optionType opt, int rootID);
     void clearAllDisplayOptions ();
     char *getCanvasName ();
+    int isHighlighted (rNode curr);
+    int constrHighlightNode (int nodeID);
+    void unHighlightchildren (rNode curr); 
   };
 
 /*
