@@ -1,6 +1,26 @@
+
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.2  1994/05/18 00:48:57  hollings
+ * Revision 1.3  1994/06/22 22:58:25  hollings
+ * Compiler warnings and copyrights.
+ *
+ * Revision 1.2  1994/05/18  00:48:57  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -27,12 +47,15 @@
  * Implementation of then when axis (temporal).
  *
  */
-#ifndef lint
-static char Copyright[] =
-    "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.2 1994/05/18 00:48:57 hollings Exp $";
+#ifndef lint
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
+
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.3 1994/06/22 22:58:25 hollings Exp $";
 #endif
+
 
 #include <assert.h> 
 #include <stdio.h>

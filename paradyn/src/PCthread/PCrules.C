@@ -1,7 +1,27 @@
+
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.12  1994/06/14 17:18:59  markc
+ * Revision 1.13  1994/06/22 22:58:22  hollings
+ * Compiler warnings and copyrights.
+ *
+ * Revision 1.12  1994/06/14  17:18:59  markc
  * Modified highVariation test.  Changed threshold.
  *
  * Revision 1.11  1994/06/14  15:32:42  markc
@@ -70,12 +90,12 @@
  *
  */
 
-
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
-    All rights reserved.";
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.12 1994/06/14 17:18:59 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.13 1994/06/22 22:58:22 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -301,7 +321,8 @@ Boolean highVariation_ENABLE(collectMode newMode)
     focusList newFoci;
     focus *i;
 
-    newFoci = currentFocus->magnify(SyncObject);
+    // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+    (void) (newFoci = currentFocus->magnify(SyncObject));
     for (; i = *newFoci; newFoci++)
       status = SyncTime.changeCollection(i, newMode) && status;
 
@@ -320,7 +341,8 @@ void highVariation_TEST(testValue *result, float normalize)
 
   result->status = FALSE;
   
-  allSO = currentFocus->magnify(SyncObject);
+  // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+  (void) (allSO = currentFocus->magnify(SyncObject));
   total = SyncTime.value(whereAxis);
 
   for (; i = *allSO; allSO++)
@@ -347,7 +369,8 @@ Boolean highSyncRate_ENABLE(collectMode newMode)
     Boolean syncObjStatus = FALSE;
     focus *i;
 
-    newFoci = currentFocus->magnify(SyncObject);
+    // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+    (void) (newFoci = currentFocus->magnify(SyncObject));
     for (; i = *newFoci; newFoci++)
       syncObjStatus = SyncOps.changeCollection(i, newMode) || syncObjStatus;
 
@@ -598,8 +621,9 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
     PCstatusDisplay->updateStatusDisplay
       (PC_STATUSDISPLAY, 
        "your program is cpu bound, the top procedures by CPU time are:\n");
-    // allProcedures = whereAxis->magnify(Procedures);
-    allProcedures = currentFocus->magnify(Procedures);
+
+    // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+    (void) (allProcedures = currentFocus->magnify(Procedures));
     totalCpu = CPUtime.value(whereAxis);
     elapsed = elapsedTime.value(whereAxis);
     for (; i=*allProcedures; allProcedures++) {

@@ -1,8 +1,27 @@
 
-/* $Log: PCmain.C,v $
-/* Revision 1.14  1994/06/17 00:12:28  hollings
-/* fixed the init of the control callback structure.
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/* $Log: PCmain.C,v $
+/* Revision 1.15  1994/06/22 22:58:19  hollings
+/* Compiler warnings and copyrights.
+/*
+ * Revision 1.14  1994/06/17  00:12:28  hollings
+ * fixed the init of the control callback structure.
+ *
  * Revision 1.13  1994/06/12  22:40:49  karavan
  * changed printf's to calls to status display service.
  *
@@ -30,8 +49,17 @@
  * First log message.
  * */
 
+#ifndef lint
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
+
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.15 1994/06/22 22:58:19 hollings Exp $";
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
+#include <memory.h>
 
 
 #include "thread/h/thread.h"

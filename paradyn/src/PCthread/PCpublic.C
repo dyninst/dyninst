@@ -1,7 +1,27 @@
+
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.10  1994/05/19 00:00:29  hollings
+ * Revision 1.11  1994/06/22 22:58:21  hollings
+ * Compiler warnings and copyrights.
+ *
+ * Revision 1.10  1994/05/19  00:00:29  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -72,10 +92,11 @@
  */
 
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
-    All rights reserved.";
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.10 1994/05/19 00:00:29 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.11 1994/06/22 22:58:21 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -230,7 +251,9 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 
     if (!of) return(ret);
 
-    for (newFoci = of->where->enumerateRefinements(); *newFoci; newFoci++){
+    // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+    (void) (newFoci = of->where->enumerateRefinements());
+    for (; *newFoci; newFoci++){
 	f = *newFoci;
 	newNode = findAndAddSHG(of, of->why, f, of->when);
 

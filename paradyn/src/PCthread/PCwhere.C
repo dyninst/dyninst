@@ -1,7 +1,27 @@
+
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.6  1994/06/14 17:20:39  markc
+ * Revision 1.7  1994/06/22 22:58:26  hollings
+ * Compiler warnings and copyrights.
+ *
+ * Revision 1.6  1994/06/14  17:20:39  markc
  * Modified PCwhere.C to see if the magnification is an ancestor of the
  * current focus.
  *
@@ -55,12 +75,12 @@
  *
  */
 
-
 #ifndef lint
-static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
-    All rights reserved.";
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.6 1994/06/14 17:20:39 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.7 1994/06/22 22:58:26 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -187,7 +207,8 @@ void printCurrentFocus()
 {
     focusList curr;
 
-    for (curr=globalFocus; *curr; curr++) {
+    // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
+    for ((void) (curr=globalFocus); *curr; curr++) {
        (*curr)->print();
     }
 }
