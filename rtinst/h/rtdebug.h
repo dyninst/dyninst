@@ -58,7 +58,7 @@
 
    DAEMON
    -  include rtinst/h/rtdebug.h in process.C
-   -  call db_attach(db_shmKey) in the handleCompletionOfpDYNINSTinit function
+   -  call db_attach(db_shmKey) in the finalizePARADYNinit function
    -  call db_showTrace(char *) in the daemon at some place you want
       to see the history
    -  update daemon make.module.tmpl to build ../../../rtinst/src/RTdebug.c
@@ -66,7 +66,7 @@
 
    RTINST
    -  call db_init(db_shmKey, sizeof(db_shmArea_t)) from within
-      pDYNINSTinit() in RTinst.c (also need to include rtdebug.h)
+      PARADYNinit() in RTinst.c (also need to include rtdebug.h)
    -  call the following code at the beginning of DYNINSTstartThreadTimer
       and DYNINSTstopThreadTimer in RTthread-timer.c (for MT apps) and
       include rtdebug.h
