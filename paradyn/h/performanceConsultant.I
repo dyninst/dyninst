@@ -3,7 +3,11 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.7  1994/05/09 20:53:36  hollings
+ * Revision 1.8  1994/08/17 17:55:29  markc
+ * Incremented version numbers because a new version of igen has been
+ * committed.
+ *
+ * Revision 1.7  1994/05/09  20:53:36  hollings
  * added changeState to dataManager, and clearSHG to performanceConsultant.
  *
  * Revision 1.6  1994/05/06  06:50:45  karavan
@@ -35,7 +39,7 @@ typedef searchHistoryNode *SHNptr;
 
 $remote performanceConsultant {
     $base 6000;
-    $version 2;
+    $version 3;
 
     // for all of the configured tests print their status.
     //  This is intended for debugging only.

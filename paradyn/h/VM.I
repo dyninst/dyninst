@@ -1,7 +1,11 @@
 /* $Log: VM.I,v $
-/* Revision 1.4  1994/08/13 20:49:57  newhall
-/* changed parameters to VMCreateVisi
+/* Revision 1.5  1994/08/17 17:55:25  markc
+/* Incremented version numbers because a new version of igen has been
+/* committed.
 /*
+# Revision 1.4  1994/08/13  20:49:57  newhall
+# changed parameters to VMCreateVisi
+#
 # Revision 1.3  1994/06/16  18:28:57  newhall
 # *** empty log message ***
 #
@@ -27,7 +31,7 @@ $remote typedef struct {
 $remote VM{
 
   $base 5000;
-  $version 2;
+  $version 3;
 
   // for comm. with PC and UIM 
   $array VM_activeVisiInfo VMActiveVisis(); 

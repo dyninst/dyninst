@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.27  1994/08/11 02:22:06  newhall
+ * Revision 1.28  1994/08/17 17:55:26  markc
+ * Incremented version numbers because a new version of igen has been
+ * committed.
+ *
+ * Revision 1.27  1994/08/11  02:22:06  newhall
  * increment version number
  *
  * Revision 1.26  1994/08/11  02:18:05  newhall
@@ -224,7 +228,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 13;
+    $version 14;
 
     //
     // Create an applicationContext (an application to be studied)

@@ -16,7 +16,11 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.18  1994/08/08 20:14:56  hollings
+ * Revision 1.19  1994/08/17 17:55:27  markc
+ * Incremented version numbers because a new version of igen has been
+ * committed.
+ *
+ * Revision 1.18  1994/08/08  20:14:56  hollings
  * added suppress instrumentation command.
  *
  * Revision 1.17  1994/07/20  16:30:40  hollings
@@ -65,7 +69,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 15;
+    $version 16;
 
     //
     // Define a program to run. 
@@ -231,9 +235,11 @@ $remote dynRPC {
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
+    // flavor = programming environment {metPVM, metCM5}
     $virtual $upcall $async void reportSelf(String machine, 
 					    String program, 
-					    int pid);
+					    int pid,
+					    int flavor);
 
     //
     // For timing and other measurements of paradynd
