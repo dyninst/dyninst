@@ -48,36 +48,13 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
-    virtual ~Object ();
+    ~Object ();
 
     Object&   operator= (const Object &);
 
 private:
     void    load_object ();
 };
-
-inline
-Object::Object(const string file, void (*err_func)(const char *))
-    : AObject(file, err_func) {
-    load_object();
-}
-
-inline
-Object::Object(const Object& obj)
-    : AObject(obj) {
-    load_object();
-}
-
-inline
-Object::~Object() {
-}
-
-inline
-Object&
-Object::operator=(const Object& obj) {
-    (void) AObject::operator=(obj);
-    return *this;
-}
 
 
 
