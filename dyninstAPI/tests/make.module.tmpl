@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.12 1999/06/18 22:21:08 wylie Exp $
+# $Id: make.module.tmpl,v 1.13 1999/06/30 23:16:54 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -27,8 +27,8 @@ endif
 
 VPATH	     +=
 
-CXXFLAGS     += -I../../h
-CFLAGS       += -I../../h
+CXXFLAGS     += -I../../h $(BASICWARNINGS)
+CFLAGS       += -I../../h $(BASICWARNINGS)
 
 LIBS         += -ldyninstAPI
 ifndef USES_LIBDYNINST_SO
