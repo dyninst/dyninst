@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.78 2001/09/14 16:02:06 gurari Exp $ 
+// $Id: metricFocusNode.h,v 1.79 2001/10/12 20:47:14 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -603,7 +603,7 @@ public:
 
   bool insertInstrumentation(process *theProc, 
                              returnInstance *&retInstance,
-                             bool &deferred);
+                             bool *deferred);
 
   void disable(const vector<Address> &pointsToCheck);
   timeLength cost(process *theProc) const;
@@ -825,7 +825,7 @@ public:
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   int getSizeOfInstRequests() const { return instRequests.size(); }
   void setStartTime(timeStamp t, bool resetCompStartTime = false);
-  bool insertInstrumentation(pd_Function *&func, bool &deferred);
+  bool insertInstrumentation(pd_Function **func);
 
   void setInitialActualValue(pdSample s);
   void sendInitialActualValue(pdSample s);
@@ -923,8 +923,12 @@ public:
   bool& needData(void) { return needData_; }
 #endif
   bool inserted(void)     { return inserted_; }
+  bool hasDeferredInstr();
   bool installed(void)    { return installed_; }
-
+  void markAsDeferred() {  
+    assert(getMdnType()==PRIM_MDN);
+    instrDeferred_ = true;
+  }
   bool isInitialActualValueSet() { return !mdnInitActualVal.isNaN(); }
   bool isStartTimeSet()    { return mdnStartTime.isInitialized(); }
   timeStamp getStartTime() { return mdnStartTime; }
@@ -1027,6 +1031,7 @@ private:
 
   aggregateOp           aggOp;
   bool			inserted_;
+  bool                  instrDeferred_;    // for PROC_PRIM or THR_LEV
   bool                  installed_;
 
   string met_;			     // what type of metric

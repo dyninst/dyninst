@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.201 2001/10/08 20:51:43 zandy Exp $
+// $Id: metricFocusNode.C,v 1.202 2001/10/12 20:47:16 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -160,8 +160,8 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 : mdn_type_(mdntype),
   aggOp(agg_op),
   // CM5 metrics need aggOp to be set
-  inserted_(false), installed_(false), met_(met_name), focus_(foc), 
-  component_focus(component_foc), flat_name_(component_flat_name),
+  inserted_(false), instrDeferred_(false), installed_(false), met_(met_name), 
+  focus_(foc), component_focus(component_foc), flat_name_(component_flat_name),
   aggregator(agg_op, getCurrSamplingRate()), _sentInitialActualValue(false),
   cumulativeValue(pdSample::Zero()), okayedToSample(false),
   partsNeedingInitializing(true),
@@ -180,14 +180,13 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
                                            aggregateOp agg_op,
                                            MDN_TYPE mdntype)
 : mdn_type_(mdntype),
-  aggOp(agg_op), inserted_(false), installed_(false), met_(metric_name), 
-  focus_(foc), flat_name_(cat_name), components(parts), 
+  aggOp(agg_op), inserted_(false), instrDeferred_(false), installed_(false), 
+  met_(metric_name), focus_(foc), flat_name_(cat_name), components(parts), 
   aggregator(aggregateOp(agg_op), getCurrSamplingRate()), 
   _sentInitialActualValue(false), cumulativeValue(pdSample::Zero()), 
   okayedToSample(false), partsNeedingInitializing(true),
   id_(-1), originalCost_(timeLength::Zero()), proc_(NULL)
 {
-/*
   unsigned p_size = parts.size();
   metric_cerr << " [MDN constructor:  part size = " << p_size << "]" << endl;
   for (unsigned u=0; u<p_size; u++) {
@@ -196,7 +195,6 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
     mi->samples += aggregator.newComponent();
     // mi's comp_flat_names is updated in apply_to_process in mdl.C
   }
-*/
 #if defined(MT_THREAD)
   needData_ = true ;
 #endif
@@ -204,21 +202,6 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   // as before, only have fields:
   //     components, aggregator
 }
-
-  // called after instrumentation has been successfully inserted, so that
-  // metric will be sampled. I moved this out of the constructor so that we
-  // could first verify that the instrumentation was successfully inserted,
-  // before okaying the sampling - itai
-void metricDefinitionNode::okayToSample() {
-  unsigned c_size = components.size();
-  for (unsigned u=0; u<c_size; u++) {
-    metricDefinitionNode *mi = components[u];
-    mi->aggregators.push_back(this);
-    mi->samples.push_back(aggregator.newComponent());
-  }
-  okayedToSample = true;
-}
-
 
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
@@ -575,9 +558,7 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
     if (!internal) {
       // dummy parameters for insertInstrumentation
       pd_Function *func = NULL;
-      bool deferred = false;
-
-      theNewComponent->insertInstrumentation(func, deferred);
+      theNewComponent->insertInstrumentation(&func);
       theNewComponent->checkAndInstallInstrumentation();
     }
 
@@ -728,10 +709,8 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    // Now let's actually insert the instrumentation:
    if (!internal) {
       // dummy parameters for insertInstrumentation 
-      bool deferred = false;
       pd_Function *func = NULL;
-
-      resultCompMI->insertInstrumentation(func, deferred);
+      resultCompMI->insertInstrumentation(&func);
       resultCompMI->checkAndInstallInstrumentation();
    }
 
@@ -2063,23 +2042,19 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	bool alreadyThere = inst_mdn->inserted() && inst_mdn->installed(); 
 	// shouldn't manually trigger if already there
 
-        bool deferred = false;
         int ret = 0;
 
         pd_Function *func = NULL;
-	bool inserted = mi->insertInstrumentation(func, deferred);
+	bool inserted = mi->insertInstrumentation(&func);
 
         // Silence warnings
-        assert(deferred || true);
         assert(ret || true);
         assert(inserted || true);
  
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
         if(inserted == false) {
-
           // instrumentation was deferred
-          if (deferred) {
-
+          if (mi->hasDeferredInstr()) {
             ret = mi->id_;            
          
             // Check if we have already created the defInst object for 
@@ -2116,27 +2091,11 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
           allMIs.undef(mi->id_);
           assert(!allMIs.defines(mi->id_));
 
-          int c_size = mi->components.size();
-          for (int u=0 ;  u < c_size ; u++) {
-            mi->components[u]->inserted_ = true;
-            mi->components[u]->disable();
-            delete mi->components[u];
-	  }
- 
-          mi->inserted_ = true;
           mi->disable();
-
           delete mi;
           return ret;
 	}
 #endif
-
-        // instrumentation successfully inserted, so okay to sample this 
-        // metric. Only for agg mdn's.
-	if(mi->isTopLevelMDN()) {
-	  sampleVal_cerr << "calling okayToSample for " << mi << "\n";
-          mi->okayToSample();
-	}
 
 	// calls pause and unpause (this could be a bug, since the next line should be allowed to execute before the unpause!!!)
 
@@ -2208,12 +2167,6 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
     if (!mi) {
        metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
        return timeLength::Zero();
-    }
-
-    // instrumentation successfully inserted, so okay to sample this 
-    // metric. Only for agg mdn's.
-    if (mi->getMdnType() == AGG_MDN) {
-      mi->okayToSample();
     }
 
     timeLength cost = mi->cost();
@@ -2301,14 +2254,12 @@ void mdnContinueCallback(timeStamp timeOfCont) {
     metricDefinitionNode *mdn = iter.currval();
 
     sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn 
-		   << ", okayToSample: " << mdn->isOkayedToSample()
+		   << ", inserted: " << mdn->inserted()
 		   << ", partsNeedingInit: " 
 		   << mdn->childrenMdnNeedingInitializing()
     		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
-    // if not okayed for sampling, ie. the aggComponents have not yet been
-    // installed, then don't set initial values yet
-    if(!mdn->isOkayedToSample())
-      continue;
+    if(! mdn->inserted())   // only want to setup initialization times
+      continue;               // if the instrumentation code has been inserted
     if(! mdn->isStartTimeSet())
       mdn->setStartTime(timeOfCont);
 
@@ -2428,23 +2379,24 @@ void metricDefinitionNode::updateAllAggInterval(timeLength width) {
   }
 }
 
-bool metricDefinitionNode::insertInstrumentation(pd_Function *&func, 
-                                                 bool &deferred)
+bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 {
     // returns true iff successful
-    if (inserted_)
+    if (inserted_) {
        return true;
-
-    inserted_ = true;
+    }
     unsigned u, u1;
 
     if(isTopLevelMDN()) {
       unsigned c_size = components.size();
+      bool aCompFailedToInsert = false;
       for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation(func, deferred)) {
-          assert (func != NULL);
-	  return false; // shouldn't we try to undo what's already put in?
+	if (!components[u]->insertInstrumentation(func)) {
+          assert (*func != NULL);
+	  aCompFailedToInsert = true;
 	}
+      if(aCompFailedToInsert) return false;
+      inserted_ = true;
     }
     else if (mdn_type_ == COMP_MDN) 
     { // similar to agg case
@@ -2456,23 +2408,39 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
 #else
       bool res = proc_->pause();
 #endif
-      if (!res)
+      if (!res) {
+	cerr << "returning since pause failed\n";
 	return false;
+      }
 
       unsigned c_size = components.size();
-      for (u1=0; u1<c_size; u1++)
-	if (!components[u1]->insertInstrumentation(func, deferred)) {
-          assert (func != NULL);
-	  return false; // shouldn't we try to undo what's already put in?
+      // mark remaining prim. components as deferred if we come upon
+      // one deferred component
+      bool aCompWasDeferred = false;
+      for (u1=0; u1<c_size; u1++) {
+	metricDefinitionNode *thisComp = components[u1];
+        if(aCompWasDeferred == true)
+	  thisComp->markAsDeferred();
+	else {
+	  if (!thisComp->insertInstrumentation(func)) {
+	    assert (*func != NULL);
+	    if(thisComp->hasDeferredInstr()) {
+	      aCompWasDeferred = true;
+	    }
+	  }
 	}
-
+      }
+      if(aCompWasDeferred) {
+	return false;
+      }
+      inserted_ = true;
       if (needToCont) {
 #ifdef DETACH_ON_THE_FLY
 	proc_->detachAndContinue();
 #else
 	proc_->continueProc();
 #endif
-      }
+      }      
     }
     else {
 
@@ -2494,23 +2462,16 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
       // Here we allocate ctrs/timers in the inferior heap but don't
       // stick in any code, except (if appropriate) that we'll instrument the
       // application's alarm-handler when not shm sampling.
-      unsigned size = dataRequests.size();
-      for (u=0; u<size; u++) {
-	// the following allocs an object in inferior heap and arranges for
+      //unsigned size = dataRequests.size();
+      //for (u=0; u<size; u++) {
+        // the following allocs an object in inferior heap and arranges for
         // it to be alarm sampled, if appropriate.
         // Note: this is not necessary anymore because we are allocating the
         // space when the constructor for dataReqNode is called. This was
         // done for the dyninstAPI - naim 2/18/97
         //if (!dataRequests[u]->insertInstrumentation(proc_, this))
         //  return false; // shouldn't we try to undo what's already put in?
-	unsigned mid = dataRequests[u]->getSampleId();
-	if (midToMiMap.defines(mid)) {
-	  assert(midToMiMap[mid] == this);
-	}
-	else {
-	  midToMiMap[mid] = this;
-	}
-      }
+        //}
 
       // Loop thru "instRequests", an array of instReqNode:
       // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
@@ -2519,33 +2480,32 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
 	  // code executed later (adjustManuallyTrigger) may also manually trigger 
 	  // the instrumentation via inferiorRPC.
 	  returnInstance *retInst=NULL;
-	  if (!instRequests[u1].insertInstrumentation(proc_, 
-                                                      retInst, 
-                                                      deferred)) {
-
-            if (deferred) {
-	      func = dynamic_cast<pd_Function *>(
-                      const_cast<function_base *>(
+	  bool deferredFlag = false;
+	  if (!instRequests[u1].insertInstrumentation(proc_, retInst, 
+                                                      &deferredFlag)) {
+            if (deferredFlag == true) {
+	      *func = dynamic_cast<pd_Function *>(
+                       const_cast<function_base *>(
                        instRequests[u1].Point()->iPgetFunction()));
+	      markAsDeferred();
 	    }
 
-            assert (func != NULL);
+            assert (*func != NULL);
 	    return false; // shouldn't we try to undo what's already put in?
 	  }
-
 	  if (retInst) {
 	    returnInsts += retInst;
 	  }
       }
-      
+      inserted_ = true;
 #if defined(MT_THREAD)
       unsigned c_size = components.size();
       for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation(func, deferred))
+	if (!components[u]->insertInstrumentation(func)) {
 	  return false; // shouldn't we try to undo what's already put in?
+	}
 #endif
     }
-
     return(true);
 }
 
@@ -2842,6 +2802,7 @@ timeLength metricDefinitionNode::cost() const
 #if !defined(MT_THREAD)
 void metricDefinitionNode::disable()
 {
+  //cerr << "mdn::disable- " << this << "(" << typeStr(getMdnType()) << ")\n";
   // check for internal metrics
   unsigned ai_size = internalMetric::allInternalMetrics.size();
   for (unsigned t=0; t<ai_size; t++) {
@@ -2860,9 +2821,15 @@ void metricDefinitionNode::disable()
       return;
     }
   }
+  //cerr << "hasDeferredInstr: " << hasDeferredInstr() << ", inserted_: "
+  //   << inserted_ << "\n";
 
-  if (!inserted_) return;
-  
+  if(!hasDeferredInstr())
+    if (!inserted_) {
+      //cerr << "returning since !inserted, (only for non-deferred instr)\n";
+      return;
+    }
+
   if (aggregators.size() == 0)
     inserted_ = false;
 
@@ -2928,7 +2895,7 @@ void metricDefinitionNode::disable()
     for (u=0; u<dataRequests.size(); u++) {
       unsigned mid = dataRequests[u]->getSampleId();
       dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-      assert(midToMiMap.defines(mid));
+      if(!hasDeferredInstr())  assert(midToMiMap.defines(mid));
       midToMiMap.undef(mid);
     }
 
@@ -2945,7 +2912,6 @@ void metricDefinitionNode::disable()
 void metricDefinitionNode::disable()
 {
   // check for internal metrics
-
   unsigned ai_size = internalMetric::allInternalMetrics.size();
   for (unsigned t=0; t<ai_size; t++) {
     internalMetric *theIMetric = internalMetric::allInternalMetrics[t];
@@ -2964,7 +2930,11 @@ void metricDefinitionNode::disable()
     }
   }
 
-  if (!inserted_) return;
+  if(!hasDeferredInstr())
+    if (!inserted_) {
+      //cerr << "returning since !inserted, (only for non-deferred instr)\n";
+      return;
+    }
 
   bool disable = false ;
   if (aggregators.size()==0) {
@@ -3124,7 +3094,7 @@ void metricDefinitionNode::disable()
 	for (unsigned u=0; u<dataRequests.size(); u++) {
 	  unsigned mid = dataRequests[u]->getSampleId();
 	  dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-	  assert(midToMiMap.defines(mid));
+	  if(!hasDeferredInstr())  assert(midToMiMap.defines(mid));
 	  midToMiMap.undef(mid);
 	}
       }
@@ -3313,6 +3283,10 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 
 metricDefinitionNode::~metricDefinitionNode()  // call removeComponent before delete
 {
+  //cerr << "~mdn - " << this << ", type: " << typeStr(this->getMdnType())
+  //   << ", numAggr: " << aggregators.size() << ", numComp: "
+  //   << ", numComp: " << components.size() << "\n";
+
 #if defined(MT_THREAD)
   
   // sprintf(errorLine, "delete 0x%x:%s: mid=%d, mdn_type_=%d", this, flat_name_.string_of(), id_, mdn_type_);
@@ -3629,6 +3603,10 @@ void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
   sampleVal_cerr << "updateValue() - mdn: " << this << ", " 
 		 << getFullName() << "value: " << value << ", cumVal: " 
 		 << cumulativeValue << "\n";
+  if(hasDeferredInstr()) {
+    sampleVal_cerr << "returning since has deferred instrumentation\n";
+    return;
+  }
 
   if (value < cumulativeValue) {
   // only use delta from last sample.
@@ -3836,7 +3814,7 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map) cons
 
 bool instReqNode::insertInstrumentation(process *theProc,
 					returnInstance *&retInstance,
-                                        bool &deferred) 
+                                        bool *deferred) 
 {
     // NEW: We may manually trigger the instrumentation, via a call to postRPCtoDo()
 
@@ -3847,7 +3825,7 @@ bool instReqNode::insertInstrumentation(process *theProc,
     instance = addInstFunc(theProc, point, ast, when, order,
 			   false, // false --> don't exclude cost
 			   retInstance,
-                           deferred,
+                           *deferred,
 			   false // false --> do not allow recursion
 			   );
 
@@ -4984,6 +4962,24 @@ void metricDefinitionNode::notifyMdnsOfNewParts() {
       curParentMdn.notifyMdnsOfNewParts();
     }
   }
+}
+
+bool metricDefinitionNode::hasDeferredInstr() {
+  bool retVal = false;
+  if(getMdnType() == AGG_MDN || getMdnType() == COMP_MDN) {
+    unsigned csize = components.size();
+    bool hasDeferredComp = false;
+    for(unsigned i=0; i<csize; i++) {
+      if(components[i]->hasDeferredInstr()) {
+	hasDeferredComp = true;
+	break;
+      }
+    }
+    retVal = hasDeferredComp;
+  } else if(getMdnType() == PRIM_MDN || getMdnType() == THR_LEV) {
+    retVal = instrDeferred_;
+  }
+  return retVal;
 }
 
 // ======================
