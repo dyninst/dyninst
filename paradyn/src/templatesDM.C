@@ -188,6 +188,17 @@ template class vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair 
 template class vector< vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair > >;
 template class dictionary_iter<unsigned, metricInstance *>;
 
+//Blizzard
+template class dictionary<string, unsigned>;
+template class pair<string, unsigned> ;
+template class vector< pair<string, unsigned> >;
+template class dictionary_hash<string,unsigned>;
+template class dictionary_hash_iter<string,unsigned>;
+template class vector< dictionary_hash<string, unsigned> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, unsigned> :: hash_pair > >;
+template class dictionary_iter<string, unsigned>;
+//
+
 template class List<sampleInfo*>;
 template class ListItem<sampleInfo*>;
 
