@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.5 1994/09/22 02:22:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.6 1994/11/02 11:14:55 markc Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.5  1994/09/22 02:22:17  markc
+ * Revision 1.6  1994/11/02 11:14:55  markc
+ * Added suppport for process classes.
+ * Fixed typos.
+ *
+ * Revision 1.5  1994/09/22  02:22:17  markc
  * changed *allocs to news
  * cast args to memset
  *
@@ -61,11 +65,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+#include "util/h/kludges.h"
+
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <memory.h>
 }
 
 #include "rtinst/h/trace.h"
@@ -79,9 +83,7 @@ extern "C" {
 #include "util.h"
 
 /* unique id for a counter */
-static int counterId;
-
-extern process *nodePseudoProcess;
+static int counterId=0;
 
 /*
  * Define the insturmentation primitives.
@@ -89,7 +91,7 @@ extern process *nodePseudoProcess;
  *    This is the creation/deletion, and read functions.   
  *    The actual primitives are in the runtime library.
  */
-intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
+intCounterHandle *createIntCounter(process *proc, int value, bool report)
 {
     AstNode *ast;
     intCounterHandle *ret;
@@ -99,15 +101,18 @@ intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
     ret->proc = proc;
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
-    ret->counterPtr = (intCounter *) inferriorMalloc(proc, sizeof(intCounter));
+    ret->counterPtr = (intCounter *) inferiorMalloc(proc, sizeof(intCounter));
     ret->data.value = value;
-    copyToProcess(proc, &ret->data, ret->counterPtr, sizeof(intCounter));
+    copyToProcess(proc, (char*) &ret->data, (char*) ret->counterPtr, sizeof(intCounter));
 
     /*
      * add code to sample value.
      */
     if (report) {
-	sampleFunction = findFunction(proc->symbols, "DYNINSTsampleValues");
+      sampleFunction = (proc->symbols)->findOneFunction("DYNINSTsampleValues");
+      if (!sampleFunction)
+	abort();
+
 	ast = new AstNode("DYNINSTreportCounter", 
 			  new AstNode(Constant, ret->counterPtr), NULL);
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, 
@@ -122,7 +127,7 @@ intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
 int getIntCounterValue(intCounterHandle *handle)
 {
 
-    copyFromProcess(handle->proc, handle->counterPtr, &handle->data,
+    copyFromProcess(handle->proc, (char*)handle->counterPtr, (char*)&handle->data,
 	sizeof(intCounter));
     return(handle->data.value);
 }
@@ -130,12 +135,12 @@ int getIntCounterValue(intCounterHandle *handle)
 void freeIntCounter(intCounterHandle *handle)
 {
     if (handle->sampler) deleteInst(handle->sampler);
-    inferriorFree(handle->proc, (int) handle->counterPtr);
+    inferiorFree(handle->proc, (unsigned) handle->counterPtr);
     free(handle);
 }
 
 
-timerHandle *createTimer(process *proc, timerType type, Boolean report)
+timerHandle *createTimer(process *proc, timerType type, bool report)
 {
     AstNode *ast;
     timerHandle *ret;
@@ -143,7 +148,7 @@ timerHandle *createTimer(process *proc, timerType type, Boolean report)
 
     ret = new timerHandle;
     ret->proc = proc;
-    ret->timerPtr = (tTimer *) inferriorMalloc(proc, sizeof(tTimer));
+    ret->timerPtr = (tTimer *) inferiorMalloc(proc, sizeof(tTimer));
 
     memset((char*)&ret->data, '\0', sizeof(tTimer));
     ret->data.id.aggregate = proc->aggregate;
@@ -151,13 +156,16 @@ timerHandle *createTimer(process *proc, timerType type, Boolean report)
     ret->data.type = type;
     ret->data.normalize = 1;
 
-    copyToProcess(proc, &ret->data, ret->timerPtr, sizeof(tTimer));
+    copyToProcess(proc, (char*)&ret->data, (char*)ret->timerPtr, sizeof(tTimer));
 
     /*
      * add code to sample value.
      */
     if (report) {
-	sampleFunction = findFunction(proc->symbols, "DYNINSTsampleValues");
+	sampleFunction = (proc->symbols)->findOneFunction("DYNINSTsampleValues");
+	if (!sampleFunction)
+	  abort();
+
 	ast = new AstNode("DYNINSTreportTimer",
 			  new AstNode(Constant, ret->timerPtr), NULL);
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, ast,
@@ -173,8 +181,8 @@ float getTimerValue(timerHandle *handle)
 {
     float value;
 
-    copyFromProcess(handle->proc, handle->timerPtr, 
-	&handle->data,sizeof(tTimer));
+    copyFromProcess(handle->proc, (char*)handle->timerPtr, 
+	(char*)&handle->data,sizeof(tTimer));
 
     value = (double)handle->data.total/(double)handle->data.normalize;
 
@@ -184,6 +192,6 @@ float getTimerValue(timerHandle *handle)
 void freeTimer(timerHandle *handle)
 {
     deleteInst(handle->sampler);
-    inferriorFree(handle->proc, (int) handle->timerPtr);
+    inferiorFree(handle->proc, (unsigned) handle->timerPtr);
     free(handle);
 }
