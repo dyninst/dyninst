@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.12 2001/02/01 01:09:58 schendel Exp $
+ * $Id: Types.h,v 1.13 2001/07/18 20:35:07 bernat Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -171,6 +171,8 @@ typedef long unsigned int Address;
    that of an address (void*) on every supported Paradyn/Dyninst system!
    (This can be checked with Address_chk().)
 */
+/* Gives a name for the NULL equivalent */
+static const Address ADDR_NULL = (Address)(0);
 
 typedef unsigned int Word;
 
