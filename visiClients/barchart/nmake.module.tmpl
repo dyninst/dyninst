@@ -3,27 +3,27 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2002/02/15 18:35:19 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.6 2003/04/09 18:09:08 pcroth Exp $
 #
 
 TARGET	= barChart.exe
 
 IFLAGS	= $(IFLAGS) \
 			-I.. \
-			-I$(TO_CORE)/paradyn/src/UIthread
+			-I$(TO_CORE)\paradyn\src\UIthread
 
-PD_SRCS	= $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
-			$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
-			$(TO_CORE)/paradyn/src/UIthread/minmax.C
+PD_SRCS	= $(TO_CORE)\paradyn\src\UIthread\tkTools.C \
+			$(TO_CORE)\paradyn\src\UIthread\pdLogo.C \
+			$(TO_CORE)\paradyn\src\UIthread\minmax.C
 
-AUX_SRCS = $(TO_CORE)/visiClients/auxiliary/src/Export.C
+AUX_SRCS = $(TO_CORE)\visiClients\auxiliary\src\Export.C
 
-MY_SRCS	= ../src/barChart.C \
-			../src/barChartTcl.C \
-			../src/barChartDriver.C \
-			../src/main-nt.C \
-			../src/dg2.C \
-			../src/templates.C
+MY_SRCS	= ..\src\barChart.C \
+			..\src\barChartTcl.C \
+			..\src\barChartDriver.C \
+			..\src\main-nt.C \
+			..\src\dg2.C \
+			..\src\templates.C
 TCL_SRCS	= ../tcl/barchart.tcl ../../auxiliary/tcl/Export.tcl
 
 SRCS	= $(SRCS) $(AUX_SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL_SRCS)
@@ -31,9 +31,9 @@ SRCS	= $(SRCS) $(AUX_SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL_SRCS)
 
 # note: we cannot use TO_CORE here, since nmake does not 
 # expand variables in macro substitutions
-PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
-MY_TMPO	= $(MY_SRCS:../src/=)
-AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
+PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
+MY_TMPO	= $(MY_SRCS:..\src\=)
+AUX_TMPO = $(AUX_SRCS:..\..\..\visiClients\auxiliary\src\=)
 
 OBJS	= $(OBJS) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(AUX_TMPO:.C=.obj) $(TCL2C_GEN_SRCS:.C=.obj)
 

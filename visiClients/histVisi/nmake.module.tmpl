@@ -4,44 +4,44 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2002/02/15 18:35:22 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.7 2003/04/09 18:09:45 pcroth Exp $
 #
 
 TARGET	= rthist.exe
 
 IFLAGS	= $(IFLAGS) \
 			-I.. \
-			-I$(TO_CORE)/paradyn/src/UIthread
+			-I$(TO_CORE)\paradyn\src\UIthread
 
-PD_SRCS	= $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
-			$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
-			$(TO_CORE)/paradyn/src/UIthread/minmax.C
+PD_SRCS	= $(TO_CORE)\paradyn\src\UIthread\tkTools.C \
+			$(TO_CORE)\paradyn\src\UIthread\pdLogo.C \
+			$(TO_CORE)\paradyn\src\UIthread\minmax.C
 
-AUX_SRCS = ../../../visiClients/auxiliary/src/Export.C
+AUX_SRCS = ..\..\..\visiClients\auxiliary\src\Export.C
 
-MY_SRCS	= ../src/DGClient.C \
-			../src/HistVisi.C \
-			../src/init-nt.C \
-			../src/init.C \
-			../src/main-nt.C \
-			../src/main.C \
-			../src/PDGData.C \
-			../src/PDGraph.C \
-			../src/PDGTimeAxis.C \
-			../src/PDGValueAxis.C \
-			../src/templates.C
+MY_SRCS	= ..\src\DGClient.C \
+			..\src\HistVisi.C \
+			..\src\init-nt.C \
+			..\src\init.C \
+			..\src\main-nt.C \
+			..\src\main.C \
+			..\src\PDGData.C \
+			..\src\PDGraph.C \
+			..\src\PDGTimeAxis.C \
+			..\src\PDGValueAxis.C \
+			..\src\templates.C
 
 TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl \
-                  $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
+                  ../../auxiliary/tcl/Export.tcl
 
 SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(AUX_SRCS) $(TCL_SRCS)
 			
 
 # note: we cannot use TO_CORE here, since nmake does not 
 # expand variables in macro substitutions
-PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
-MY_TMPO	= $(MY_SRCS:../src/=)
-AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
+PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
+MY_TMPO	= $(MY_SRCS:..\src\=)
+AUX_TMPO = $(AUX_SRCS:..\..\..\visiClients\auxiliary\src\=)
 
 OBJS	= $(OBJS) $(AUX_TMPO:.C=.obj) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)  $(TCL2C_GEN_SRCS:.C=.obj)
 

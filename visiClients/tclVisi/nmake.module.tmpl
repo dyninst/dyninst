@@ -3,27 +3,27 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.3 2002/02/15 18:35:31 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.4 2003/04/09 18:09:45 pcroth Exp $
 #
 
 TARGET	= tclVisi.exe
 
 
-IFLAGS	= $(IFLAGS) -I../../../paradyn/src/UIthread
+IFLAGS	= $(IFLAGS) -I..\..\..\paradyn\src\UIthread
 
 
-PD_SRCS	= ../../../paradyn/src/UIthread/pdLogo.C \
-		../../../paradyn/src/UIthread/tkTools.C \
-		../../../paradyn/src/UIthread/minmax.C
-MY_SRCS	= ../src/tclVisi.C \
-		../src/templates.C \
-		../src/DGclient.C \
-		../src/main-nt.C
+PD_SRCS	= ..\..\..\paradyn\src\UIthread\pdLogo.C \
+		..\..\..\paradyn\src\UIthread\tkTools.C \
+		..\..\..\paradyn\src\UIthread\minmax.C
+MY_SRCS	= ..\src\tclVisi.C \
+		..\src\templates.C \
+		..\src\DGclient.C \
+		..\src\main-nt.C
 SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS)
 	
 
-PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
-MY_TMPO	= $(MY_SRCS:../src/=)
+PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
+MY_TMPO	= $(MY_SRCS:..\src\=)
 OBJS	= $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)
 
 

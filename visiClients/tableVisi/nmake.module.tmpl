@@ -3,39 +3,39 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2002/02/15 18:35:28 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.6 2003/04/09 18:09:45 pcroth Exp $
 #
 
 CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS) 
 TFLAGS		= $(TFLAGS) $(TCLFRIENDLYWARNINGS)
-IFLAGS 		= $(IFLAGS) -I../../../paradyn/src/UIthread
+IFLAGS 		= $(IFLAGS) -I..\..\..\paradyn\src\UIthread
 
 
 TARGET	= tableVisi.exe
 
-PD_SRCS	= ../../../paradyn/src/UIthread/minmax.C \
-		../../../paradyn/src/UIthread/tkTools.C \
-		../../../paradyn/src/UIthread/pdLogo.C
+PD_SRCS	= ..\..\..\paradyn\src\UIthread\minmax.C \
+		..\..\..\paradyn\src\UIthread\tkTools.C \
+		..\..\..\paradyn\src\UIthread\pdLogo.C
 
-AUX_SRCS = ../../../visiClients/auxiliary/src/Export.C
+AUX_SRCS = ..\..\..\visiClients\auxiliary\src\Export.C
 
-MY_SRCS	= ../src/tableVisi.C \
-		../src/tvMetric.C \
-		../src/tvFocus.C \
-		../src/tvCell.C \
-		../src/dg2.C \
-		../src/tableVisiTcl.C \
-		../src/main.C \
-		../src/main-nt.C \
-		../src/templates.C
+MY_SRCS	= ..\src\tableVisi.C \
+		..\src\tvMetric.C \
+		..\src\tvFocus.C \
+		..\src\tvCell.C \
+		..\src\dg2.C \
+		..\src\tableVisiTcl.C \
+		..\src\main.C \
+		..\src\main-nt.C \
+		..\src\templates.C
 TCL_SRCS	= ../tcl/tableVisi.tcl ../../auxiliary/tcl/Export.tcl
 
 SRCS	= $(SRCS) $(MY_SRCS) $(PD_SRCS) $(AUX_SRCS) $(TCL2C_GEN_SRCS)
 
-MY_TMPO	= $(MY_SRCS:../src/=)
-PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
-AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
+MY_TMPO	= $(MY_SRCS:..\src\=)
+PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
+AUX_TMPO = $(AUX_SRCS:..\..\..\visiClients\auxiliary\src\=)
 
 OBJS	= $(OBJS) \
 			$(MY_TMPO:.C=.obj) \
