@@ -499,6 +499,14 @@ class process {
   //  in handleExec()
   bool wasExeced(){ return execed_;}
 
+  //  receivedMysteryTrap: returns true if paradynd has received a SIGTRAP 
+  //  from this process before it receives a trace record telling it what 
+  //  the SIGTRAP is for (this is a kludge to get rid of a race condition
+  //  that can occur when a process does an exec).
+  bool  receivedMysteryTrap(){ return mysteryTrap_;}
+  void  setMysteryTrap(){ mysteryTrap_ = true;}
+  void  clearMysteryTrap(){ mysteryTrap_ = false;}
+
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning);
   bool inExec;
@@ -627,6 +635,8 @@ private:
 
   int costAddr_; 
   bool execed_;  // true if this process does an exec...set in handleExec
+  bool mysteryTrap_; // true if paradynd receives a trap before a trace record 
+		    // when the trace record tells paradynd the trap's purpose
 
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, int amount, const void *inSelf);

@@ -739,6 +739,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     waiting_for_resources = false;
     signal_handler = 0;
     execed_ = false;
+    mysteryTrap_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -909,6 +910,7 @@ process::process(const process &parentProc, int iPid
     waiting_for_resources = false;
     signal_handler = parentProc.signal_handler;
     execed_ = false;
+    mysteryTrap_ = false;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -2090,14 +2092,14 @@ void process::handleExec() {
        return;
     }
 
-    // see if new image contains the signal handler function
-    this->findSignalHandler();
-
     // delete proc->symbols ???  No, the image can be shared by more
     // than one process...images and instPoints can not be deleted...TODO
     // add some sort of reference count to these classes so that they can
     // be deleted
     symbols = img;
+
+    // see if new image contains the signal handler function
+    this->findSignalHandler();
 
     // initInferiorHeap can only be called after symbols is set!
     initInferiorHeap(false);
@@ -2110,6 +2112,7 @@ void process::handleExec() {
     hasBootstrapped = false;
     status_ = stopped;
     execed_ = true;
+    mysteryTrap_ = false;
 }
 
 /* 

@@ -286,7 +286,9 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_EXEC:
-		{ traceExec *execData = (traceExec *) recordData;
+		{ 
+		  // cerr << "in TR_EXEC\n";
+		  traceExec *execData = (traceExec *) recordData;
 		  if (execData->pid == curr->getPid()) {
 		    curr->inExec = true;
 		    curr->execFilePath = string(execData->path);
@@ -294,6 +296,39 @@ void processTraceStream(process *curr)
 		  else {
 		    sprintf(errorLine, "Received inconsistent trace data from process %d", curr->getPid());
 		    showErrorCallback(37, (const char *) errorLine);
+		  }
+
+		  // kludge: this process has received a SIGTRAP that it 
+		  // didn't know how to handle...we are assuming that this
+		  // SIGTRAP was from the exec
+		  if(curr->receivedMysteryTrap()){
+		    // the process has executed a succesful exec, and is now
+		    // stopped at the exit of the exec call.
+		    // cerr << "TR_EXEC: processing the mysteryTrap case!\n";
+		    curr->handleExec();
+		    curr->inExec = false;
+		    tp->resourceBatchMode(true);
+		    curr->clearMysteryTrap();
+
+	            // cerr << "!reachedFirstBreak" << endl;
+		    string buffer = string("passed trap at start of program");
+		    statusLine(buffer.string_of());
+		    curr->clearMysteryTrap();
+
+		    (void)(curr->findDynamicLinkingInfo());
+		    curr->reachedFirstBreak = true;
+		    buffer=string("installing call to DYNINSTinit()");
+		    statusLine(buffer.string_of());
+		    installBootstrapInst(curr);
+		    if (!curr->continueProc()) {
+		      // cerr << "continueProc after installBootstrapInst() "
+	              //      << "failed, so DYNINSTinit() isn't being invoked "
+		      //      << "yet, which it should!" << endl;
+		    }
+		    else {
+		      buffer=string("running DYNINSTinit()...");
+		      statusLine(buffer.string_of());
+		    }
 		  }
 		}
 		break;
@@ -375,21 +410,27 @@ int handleSigChild(int pid, int status)
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
 
-	        //cerr << "welcome to SIGTRAP" << endl;
+	        // cerr << "welcome to SIGTRAP" << endl;
 
 		const bool wasRunning = (curr->status() == running);
 		curr->status_ = stopped; // probably was 'neonatal'
+
+		curr->setMysteryTrap();
 		    
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
 		if (instWList.size() != 0) {
+	            // cerr << "instWList is full" << endl;
 		    if(curr -> cleanUpInstrumentation(wasRunning)){
+			curr->clearMysteryTrap();
 		        break; // successfully processed the SIGTRAP
                     }
 		}
 
 		if (curr->handleTrapIfDueToRPC()) {
+	            //cerr << "processed RPC response in SIGTRAP" << endl;
 		   //logLine("processed RPC response in SIGTRAP\n");
+		   curr->clearMysteryTrap();
 		   break;
 		}
 		    
@@ -409,6 +450,7 @@ int handleSigChild(int pid, int status)
 		   // the code below, and insert the initial instrumentation
 		   // in the new image.
 		   curr->reachedFirstBreak = false;
+		   curr->clearMysteryTrap();
 		}
 
                 // Now we expect that the TRAP is due to the fact that a TRAP
@@ -417,9 +459,11 @@ int handleSigChild(int pid, int status)
                 // we use ptrace detach (on continuing), a TRAP is generated on a
                 // pause.
 		if (!curr->reachedFirstBreak) {
+	           // cerr << "!reachedFirstBreak" << endl;
 		   string buffer = string("PID=") + string(pid);
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
+		   curr->clearMysteryTrap();
 
 		   (void)(curr->findDynamicLinkingInfo());
 
@@ -449,7 +493,7 @@ int handleSigChild(int pid, int status)
 	    case SIGSTOP:
 	    case SIGINT: {
 	        //logLine("welcome to SIGSTOP/SIGINT\n");
-
+		// cerr << "SIGSTOP/SIGINT\n" << endl;
 		const bool wasRunning = (curr->status_ == running);
 		const bool wasNeonatal = (curr->status_ == neonatal);
 		curr->status_ = stopped;
@@ -458,11 +502,13 @@ int handleSigChild(int pid, int status)
 		   // grab data from DYNINST_bootstrap_info
 		   tp->processStatus(curr->getPid(), procPaused);
 		   //logLine("read & processed bootstrap in SIGSTOP\n");
+		   // cerr << "read & processed bootstrap in SIGSTOP\n";
 		   break;
 		}
 
 		if (curr->handleTrapIfDueToRPC()) {
 		   //logLine("processed RPC response in SIGSTOP\n");
+		   // cerr << "processed RPC response in SIGSTOP\n";
 		   break;
 		}
 
