@@ -45,6 +45,11 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.44  1996/08/20 19:00:21  lzheng
+ * Implementation of moving multiple instructions sequence
+ * Added a Function findFunctionIn(addr) to look for the functions which
+ * contains the instruction at this address
+ *
  * Revision 1.43  1996/08/16 21:19:59  tamches
  * updated copyright for release 1.1
  *
@@ -176,7 +181,9 @@ bool image::newFunc(module *mod, const string name, const Address addr, const un
   delete out;
 
   bool err;
+
   func = new pdFunction(name, demangled, mod, addr, size, tag, this, err);
+  //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
   retFunc = func;
   if (err) {
     delete func;
@@ -422,6 +429,20 @@ pdFunction *image::findFunction(const Address &addr)
     return NULL;
 }
   
+pdFunction *image::findFunctionIn(const Address &addr) 
+{
+  pdFunction *pdf;
+
+  dictionary_hash_iter<Address, pdFunction*> mi(funcsByAddr);
+  Address adr;
+  while (mi.next(adr, pdf)) {
+      if ((addr >= pdf->addr())&&(addr <= (pdf->addr() + pdf->size()))) 
+	  return pdf;
+  }
+  
+  return NULL; 
+}
+
 void image::changeLibFlag(resource *res, const bool setSuppress)
 {
   image *ret;
@@ -1054,8 +1075,12 @@ bool image::defineFunction(module *use, const Symbol &sym, const unsigned tags,
   const char *str = (sym.name()).string_of();
 
   // TODO - skip the underscore
+  // todo - Why is this "_" be treated special and caused many problems.
+  //        Ahh, Ahh, AAAhhhhhhhhhhhhhhhhhhhhh!   
+#if !(defined(sparc_sun_solaris2_4)) 
   if (*str == '_') 
     str++;
+#endif
 
   unsigned dictTags = findTags(str);
   return (newFunc(use, str, sym.addr(), sym.size(), tags | dictTags, retFunc));
