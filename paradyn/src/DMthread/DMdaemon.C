@@ -339,7 +339,7 @@ bool paradynDaemon::newExecutable(const string &machine,
       return false;
 
   performanceStream::ResourceBatchMode(batchStart);
-  int pid = daemon->addExecutable(argv);
+  int pid = daemon->addExecutable(argv, dir);
   performanceStream::ResourceBatchMode(batchEnd);
 
   // did the application get started ok?

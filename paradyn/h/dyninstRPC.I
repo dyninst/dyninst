@@ -415,7 +415,7 @@ $remote dynRPC {
 
     //
     // Define a program to run. 
-    int addExecutable(vector<string> argv);
+    int addExecutable(vector<string> argv, string dir);
 
     //
     // Connect up with a running program (not possible on all platforms).

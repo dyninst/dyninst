@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.44  1995/08/07 00:01:31  tamches
-/* Added waSetAbstraction, waSelect, and waUnselect
+/* Revision 1.45  1995/09/18 22:32:45  mjrg
+/* Added directory command.
 /*
+ * Revision 1.44  1995/08/07  00:01:31  tamches
+ * Added waSetAbstraction, waSelect, and waUnselect
+ *
  * Revision 1.43  1995/08/01  02:18:31  newhall
  * changes to support phase interface
  *
@@ -398,7 +401,7 @@ int ParadynPrintCmd (ClientData clientData,
 
 void processUsage()
 {
-  printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> \"command\"\n");
+  printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> <-dir> directory \"command\"\n");
 }
 
 /****
@@ -415,6 +418,7 @@ int ParadynProcessCmd(ClientData clientData,
   char *user = NULL;
   char *machine = NULL;
   char *paradynd = NULL;
+  char *dir = NULL;
   
   for (i=1; i < argc-1; i++) {
     if (!strcmp("-user", argv[i])) {
@@ -435,6 +439,12 @@ int ParadynProcessCmd(ClientData clientData,
 	return TCL_ERROR;
       }
       paradynd = argv[++i];
+    } else if (!strcmp("-dir", argv[i])) {
+      if (i+1 == argc) {
+	processUsage();
+	return TCL_ERROR;
+      }
+      dir = argv[++i];
     } else if (argv[i][0] != '-') {
       break;
     } else {
@@ -456,7 +466,7 @@ int ParadynProcessCmd(ClientData clientData,
     av += argv[ve];
     ve++;
   }
-  if (dataMgr->addExecutable(machine, user, paradynd, (char*)0,
+  if (dataMgr->addExecutable(machine, user, paradynd, dir,
 			     &av) == false)
     return TCL_ERROR;
   else
