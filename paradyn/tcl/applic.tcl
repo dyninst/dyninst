@@ -1,6 +1,9 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
+# Revision 1.20  1997/01/16 21:58:31  tamches
+# added "dir" and "command" boxes to attach dialog box
+#
 # Revision 1.19  1997/01/15 00:14:58  tamches
 # added attach
 #
@@ -123,15 +126,37 @@ proc AttachProcess {} {
   pack $D.machine.ent -side right -fill x -expand true
   bind $D.machine.ent <Return> "$B.1 invoke"
 
-  # Does a directory entry make any sense for attach???  Might have some use...
-#  frame $D.directory -border 2
-#  pack $D.directory -side top -expand yes -fill x
-#  label $D.directory.lbl -text "Directory: " -anchor e -width 12
-#  pack $D.directory.lbl -side left -expand false
-#  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
-#  pack $D.directory.ent -side right -fill x -expand true
-#  bind $D.directory.ent <Return> "$B.1 invoke"
+  # Does a directory entry make any sense for attach???  Definitely, if we have
+  # to enter a file name.
+  frame $D.directory -border 2
+  pack  $D.directory -side top -expand yes -fill x
+  label $D.directory.lbl -text "Directory: " -anchor e -width 12
+  pack  $D.directory.lbl -side left -expand false
+  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
+  pack  $D.directory.ent -side right -fill x -expand true
+  bind  $D.directory.ent <Return> "$B.1 invoke"
   
+
+  frame $D.command -border 2
+  pack  $D.command -side top -fill x -expand false
+  entry $D.command.entry -textvariable applicCommand -relief sunken
+  pack  $D.command.entry -side right -fill x -expand true
+  bind  $D.command.entry <Return> "$B.1 invoke"
+
+  label $D.command.label -text "Command: " -anchor e -width 12
+  pack  $D.command.label -side left -expand false
+  
+
+  frame $D.pid -border 2
+  pack  $D.pid -side top -fill x -expand false
+  entry $D.pid.entry -textvariable applicPid -relief sunken
+  pack  $D.pid.entry -side right -fill x -expand true
+  bind  $D.pid.entry <Return> "$B.1 invoke"
+
+  label $D.pid.label -text "Pid: " -anchor e -width 12
+  pack  $D.pid.label -side left -expand false
+  
+
   set daemons [paradyn daemons]
   frame $D.daemon -border 2
   label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
@@ -144,19 +169,10 @@ proc AttachProcess {} {
   }
   $D.daemon.$applicDaemon invoke
 
-  frame $D.pid -border 2
-  pack  $D.pid -side top -fill x -expand false
-  entry $D.pid.entry -textvariable applicPid -relief sunken
-  pack  $D.pid.entry -side right -fill x -expand true
-  bind  $D.pid.entry <Return> "$B.1 invoke"
-
-  label $D.pid.label -text "pid: " -anchor e -width 12
-  pack  $D.pid.label -side left -expand false
-  
 
   mkButtonBar $B {} retVal \
   {{"ATTACH" {AcceptAttachDefn $applicUser $applicMachine \
-	  $applicDaemon $applicPid}} \
+	  $applicDir $applicCommand $applicPid $applicDaemon}} \
   {"CANCEL" {destroy .attachDefn}}}
 
   focus $D.machine.ent
@@ -311,12 +327,16 @@ proc AcceptNewApplicDefn {user machine daemon directory cmd} {
   }
 }
 
-proc AcceptAttachDefn {user machine daemon pid} {
+proc AcceptAttachDefn {user machine dir cmd pid daemon} {
   set W .attachDefn
-  set D $W.data
 
+  if {[string length $cmd] == 0} {
+      # user forgot to enter a program name; ring bell
+      puts "\a"
+      return
+  }
   if {[string length $pid] == 0} {
-      # user forgot to enter a command (program name + args); ring bell
+      # user forgot to enter a pid; ring bell
       puts "\a"
       return
   }
@@ -330,12 +350,18 @@ proc AcceptAttachDefn {user machine daemon pid} {
     lappend pcmd "-machine" $machine
   }
 
+  if {[string length $dir] > 0} {
+    lappend pcmd "-dir" $dir
+  }
+
+  lappend pcmd "-command" $cmd
+
+  lappend pcmd "-pid" $pid
+ 
   if {[string length $daemon] > 0} {
     lappend pcmd "-daemon" $daemon
   }
 
-  lappend pcmd "-pid" $pid
- 
   destroy $W
 
 puts stderr $pcmd
