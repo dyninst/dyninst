@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2002/07/31 22:06:41 bernat Exp $
+# $Id: Makefile,v 1.4 2003/01/23 17:05:12 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,7 +7,7 @@ TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 
-DEBUG_FLAG = -gstabs+
+DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -16,8 +16,8 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS += 
-CFLAGS +=
+CXXFLAGS += -Wno-deprecated
+CFLAGS += -Wno-deprecated
 
 MUTATEE_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
@@ -56,7 +56,7 @@ else
 COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 endif
 
-MUTATEE_CFLAGS = -g $(ARCH_DEF)
+MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wno-deprecated
 
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
@@ -79,13 +79,11 @@ endif
 ifeq (test1,$(findstring test1,$(TARGET2)))
 # test1.mutatee loads libtestA.so & libtestB.so for tests 21 & 22
 # and these libraries need access to global variables in test1.mutatee
-#MUTATEE_CFLAGS += -rdynamic
 MUTATEE_CFLAGS += -Wl,-export-dynamic
 endif
 
 ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 
-# FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
@@ -99,10 +97,6 @@ $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
 else
 $(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $@ $(MUTLIBS)
-endif
-
-ifeq (test1,$(findstring test1,$(TARGET2)))
-MUTATEE_SRC	+=	../src/call35_1_ia64_linux.s
 endif
 
 libtestA.o:
@@ -120,21 +114,6 @@ libtestB.so: libtestB.o
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 
+NASM = $(AS)
+
 include $(TO_CORE)/make.program.tmpl
-
-IA64_TEST_COMPILE_FLAGS = -I. -I../../.. -Dia64_unknown_linux2_4 \
-	-DUSES_DYNAMIC_INF_HEAP -DDETACH_ON_THE_FLY \
-	-g -fno-implicit-templates -g -I../../h -W -Wall
-IA64_TEST_LINK_FLAGS = -L../../../../lib/ia64-unknown-linux2.4 \
-	-ldyninstAPI -lelf -ldl -liberty
-
-ia64_tests :
-	g++3 $(IA64_TEST_COMPILE_FLAGS) -c -o test_ia64_01.o ../src/test_ia64_01.C
-	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/mutatee_ia64_01.C -S
-	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/mutatee_ia64_01.C -o mutatee_ia64_01
-	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/test_ia64_02.C -o test_ia64_02
-	g++3 test_ia64_01.o -o test_ia64_01 $(IA64_TEST_LINK_FLAGS)
-
-tests_clean :
-	rm -f mutatee_ia64_01 test_ia64_01 test_ia64_02
-
