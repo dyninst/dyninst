@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.364 2002/10/14 21:02:25 bernat Exp $
+// $Id: process.C,v 1.365 2002/10/15 17:11:21 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -55,7 +55,7 @@ int pvmendtask();
 #endif
 #include "common/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
@@ -1934,7 +1934,6 @@ process::~process()
 #ifndef BPATCH_LIBRARY
     // the varMgr needs to be deleted before the shmMgr because the varMgr
     // needs to free the memory it's allocated from the sharedMemoryMgr
-    delete theVariableMgr;
     delete shMetaOffsetData;
     delete shmMetaData;    // needs to occur before shmMgr is deleted
     delete theSharedMemMgr;
@@ -2060,8 +2059,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
 
-    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-				     maxNumberOfThreads());
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2266,8 +2263,6 @@ process::process(int iPid, image *iSymbols,
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
 
-    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-				     maxNumberOfThreads());
     initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
@@ -2543,8 +2538,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				     *theSharedMemMgr);
     shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
 					       *(parentProc.shMetaOffsetData));
-    theVariableMgr = new variableMgr(*parentProc.theVariableMgr, this,
-				     theSharedMemMgr);
     initCpuTimeMgr();
 
     shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
@@ -2646,9 +2639,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #if !defined(BPATCH_LIBRARY)
    // threads... // 6/2/99 zhichen
    for (unsigned i=0; i<parentProc.threads.size(); i++) {
-     threads += new pdThread(this,parentProc.threads[i]);
+     threads += new dyn_thread(this,parentProc.threads[i]);
 #if defined(MT_THREAD)
-     pdThread *thr = threads[i] ;
+     dyn_thread *thr = threads[i] ;
      string buffer;
      string pretty_name=string(thr->get_start_func()->prettyName().c_str());
      buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
@@ -2836,14 +2829,6 @@ process *createProcess(const string File, vector<string> argv,
     if (!desc)
       return NULL;
 
-#ifndef BPATCH_LIBRARY
-// NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
-//      are processed (after receiving the SIGSTOP indicating the end of running
-//      DYNINSTinit; more specifically, procStopFromDYNINSTinit().
-//      Prevents a diabolical w/w deadlock on solaris --ari
-    tp->resourceBatchMode(true);
-#endif /* BPATCH_LIBRARY */
-
     image *img = image::parseImage(desc);
     if (!img) {
       // For better error reporting, two failure return values would be
@@ -2883,10 +2868,6 @@ process *createProcess(const string File, vector<string> argv,
     processVec.push_back(ret);
     activeProcesses++;
     
-#ifndef BPATCH_LIBRARY
-    if (!costMetric::addProcessToAll(ret))
-      assert(false);
-#endif
     // find the signal handler function
     ret->findSignalHandler(); // should this be in the ctor?
     
@@ -2895,20 +2876,14 @@ process *createProcess(const string File, vector<string> argv,
     
 #ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    /*
-    dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, ret);
-    ret->threads += new pdThread(ret, tid, 0, lwp);
-    ret->lwps[tid] = lwp;
-    */
+	 dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, ret);
+	 ret->threads += new dyn_thread(ret, tid, 0, lwp);
+	 ret->lwps[0] = lwp;
 #else
-    ret->threads += new pdThread(ret);
+    ret->threads += new dyn_thread(ret);
 #endif
 #endif
-    
-    ret->numOfActCounters_is=0;
-    ret->numOfActProcTimers_is=0;
-    ret->numOfActWallTimers_is=0;
-    
+
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
     //    the TRAP signal.
@@ -2985,11 +2960,8 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 }
 
 
-bool attachProcess(const string &progpath, int pid, int afterAttach
-#if defined(BPATCH_LIBRARY)  //ccw 28 apr 2002 : SPLIT2
-                   , process *&newProcess
-#endif
-                   ) 
+bool attachProcess(const string &progpath, int pid, int afterAttach, 
+						 process **newProcess) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -3017,13 +2989,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
   if (!fullPathToExecutable.length())
     return false;
-  
-#ifndef BPATCH_LIBRARY
-  tp->resourceBatchMode(true);
-  // matching bump-down occurs in procStopFromDYNINSTinit().
-#endif
-  
-  
+      
   int status = pid;
   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 					       status, false);
@@ -3040,9 +3006,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   
   // NOTE: the actual attach happens in the process "attach" constructor:
   bool success=false;
-#if defined(i386_unknown_nt4_0)//ccw 7 jun 2002
-//  printf("");//ccw 7 jun 2002
-#endif
   process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
 				 ,7000 // shm seg key to try first
@@ -3068,7 +3031,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   processVec.push_back(theProc);
   activeProcesses++;
 #ifndef BPATCH_LIBRARY
-  theProc->threads += new pdThread(theProc);
+  theProc->threads += new dyn_thread(theProc);
 #endif
 #if !(defined i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   // we now need to dynamically load libdyninstRT.so.1 - naim
@@ -3102,10 +3065,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   }
 #endif
   theProc->initDyninstLib();
-#ifndef BPATCH_LIBRARY
-  if (!costMetric::addProcessToAll(theProc))
-    assert(false);
-#endif
 
    // find the signal handler function
    theProc->findSignalHandler(); // shouldn't this be in the ctor?
@@ -3118,10 +3077,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 	/* we always want to do the DYNINST stuff BUT if we are paradyn dont
 	bother with the following */
 
-#if defined(BPATCH_LIBRARY)
-   newProcess = theProc; //ccw 28 apr 2002 : SPLIT2
-  
-#endif
+   *newProcess = theProc; //ccw 28 apr 2002 : SPLIT2
    
 #if !defined(i386_unknown_nt4_0) //ccw 6 jun 2002 SPLIT
    //DYNINSTinit is called by DllMain now....
@@ -3347,22 +3303,16 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 #ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
     //ccw 20 july 2000 : 29 mar 2001
-    /*
     dyn_lwp *lwp = new dyn_lwp(0, 0, ret);
-    ret->threads += new pdThread(ret, 0, 0, lwp);
+    ret->threads += new dyn_thread(ret, 0, 0, lwp);
     ret->lwps[0] = lwp;
-    */
 #else
-    ret->threads += new pdThread(ret);     
+    ret->threads += new dyn_thread(ret);     
 #endif
 #endif
 
     // initializing hash table for threads. This table maps threads to
     // positions in the superTable - naim 4/14/97
-
-    ret->numOfActCounters_is   = 0;
-    ret->numOfActProcTimers_is = 0;
-    ret->numOfActWallTimers_is = 0;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
@@ -3429,7 +3379,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
    processVec += theProc;
    activeProcesses++;
 
-   theProc->threads += new pdThread(theProc);
+   theProc->threads += new dyn_thread(theProc);
 
    if (!costMetric::addProcessToAll(theProc))
       assert(false);
@@ -3441,47 +3391,10 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
 }
 #endif  // #ifndef BPATCH_LIBRARY
 
-
-#ifdef SHM_SAMPLING
-bool process::doMajorShmSample() {
-
-	if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) { //SPLIT ccw 4 jun 2002
-		return false;
-	}
-
-	bool result = true; // will be set to false if any processAll() doesn't complete
-                       // successfully.
-   if (!theVariableMgr->doMajorSample())
-      result = false;
-      // inferiorProcessTimers used to take in a non-dummy process time as the
-      // 2d arg, but it looks like that we need to re-read the process time for
-      // each proc timer, at the time of sampling the timer's value, to avoid
-      // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled 
-      // values).  Come to think of it: the same may have to be done for the 
-      // wall time too!!!
-   const timeStamp theProcTime = getCpuTime(0);
-   const timeStamp curWallTime = getWallTime();
-   // Now sample the observed cost.
-   unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
-   const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
-   this->processCost(theCost, curWallTime, theProcTime);
-   return result;
-}
-
-bool process::doMinorShmSample() {
-   // Returns true if the minor sample has successfully completed all outstanding
-   // samplings.
-   bool result = true; // so far...
-
-   if (!theVariableMgr->doMinorSample())
-      result = false;
-
-   return result;
-}
-#endif
-
-extern void removeFromMetricInstances(process *);
+#ifndef BPATCH_LIBRARY
 extern void disableAllInternalMetrics();
+void paradyn_handleProcessExit(process *proc);
+#endif
 
 void handleProcessExit(process *proc, int exitStatus) {
 
@@ -3495,6 +3408,8 @@ void handleProcessExit(process *proc, int exitStatus) {
   proc->Exited(); // updates status line
 
 #ifndef BPATCH_LIBRARY
+  paradyn_handleProcessExit(proc);
+
   if (activeProcesses == 0)
     disableAllInternalMetrics();
 #endif
@@ -5280,15 +5195,6 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      return 0;
 }
 
-pdThread *process::getThread(unsigned tid) {
-  pdThread *foundThr = NULL;
-  for(unsigned i=0; i<threads.size(); i++) {
-    if(threads[i]->get_tid() == tid)
-      foundThr = threads[i];
-  }
-  return foundThr;
-}
-
 bool process::continueProc() {
   if (status_ == exited) return false;
 
@@ -5468,7 +5374,7 @@ void process::handleExec() {
       // reuses the shm seg (paradynd's already attached to it); resets applic-attached-
       // at to NULL.  Quite similar to the (non-fork) ctor, really.
 
-   theVariableMgr->handleExec();
+   //theVariableMgr->handleExec();
 #endif
 
    inExec = false;
@@ -5539,8 +5445,8 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc,
                           void *userData,
                           int mid, 
-                          pdThread *thr,
-			  dyn_lwp *lwp,
+                          dyn_thread *thr,
+								  dyn_lwp *lwp,
                           bool lowmem)
 {
   static int sequence_num = 0;
@@ -5586,7 +5492,7 @@ bool process::existsRPCinProgress() {
 }
 
 
-pdThread *process::STpdThread() { 
+dyn_thread *process::STdyn_thread() { 
   assert(! multithread_capable());
   assert(threads.size()>0);
   return threads[0];
@@ -5868,7 +5774,7 @@ Address process::createRPCImage(AstNode *action,
 				Address &justAfter_stopForResultAddr,
 				Register &resultReg,
 				bool lowmem,
-				pdThread * /*thr*/,
+				dyn_thread * /*thr*/,
 				dyn_lwp * /*lwp*/,
 				bool isFunclet)
 {
@@ -6105,7 +6011,7 @@ bool process::handleTrapIfDueToRPC() {
   for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++) {
     // Get the thread for this stack walk. 
     if (haveFoundIRPC) break;
-    pdThread *thr = activeFrames[frame_iter].getThread();
+    dyn_thread *thr = activeFrames[frame_iter].getThread();
     dyn_lwp *lwp = activeFrames[frame_iter].getLWP();
 
     inferiorRPCinProgress runningIRPC;
@@ -7101,7 +7007,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
             parentProcess->continueAfterNextStop();
 #endif
       }
-      theVariableMgr->initializeVarsAfterFork();
    }
 
    if (!calledFromAttach || !createdViaAttach) {
@@ -7297,47 +7202,14 @@ void process::Exited() {
   }
 
   // snag the last shared-memory sample:
-#ifdef SHM_SAMPLING
-  (void)doMajorShmSample();
-#endif
-  status_ = exited;  // referenced in a callee of reportInternalMetrics,
-                     // so needs to occur before call to reportInternalMetrics
-#ifndef BPATCH_LIBRARY
-  reportInternalMetrics(true);
-
-  // close down the trace stream:
-  if (traceLink >= 0) {
-     //processTraceStream(proc); // can't do this since it's a blocking read (deadlock)
-     P_close(traceLink);
-     traceLink = -1;
-  }
-  
-/*removed for output redirection
-// Should not close the ioLink if a child is alive. Hope that 
-// the operating system will close this link when no processes are left around
-#if 0 
-  // close down the ioLink:
-  if (ioLink >= 0) {
-     //processAppIO(proc); // can't do this since it's a blocking read (deadlock)
-     P_close(ioLink);
-     ioLink = -1;
-  }
-#endif  
-*/
-// for each component mi of this process, remove it from all aggregate mi's it
-  // belongs to.  (And if the agg mi now has no components, fry it too.)
-  // Also removes this proc from all cost metrics (but what about internal metrics?)
-  removeFromMetricInstances(this);
-#endif
+  status_ = exited;
 
   detach(false);
-     // the process will continue to run (presumably, it will finish _very_ soon)
+  // the process will continue to run (presumably, it will finish _very_
+  // soon)
 
 //  status_ = exited;
 
-#ifndef BPATCH_LIBRARY
-  tp->processStatus(pid, procExited);
-#endif
 }
 
 string process::getStatusAsString() const {
@@ -7904,7 +7776,7 @@ dyn_lwp *process::getDefaultLWP() const
 #if defined(MT_THREAD)
 // Called for new threads
 
-pdThread *process::createThread(
+dyn_thread *process::createThread(
   int tid, 
   unsigned pos, 
   unsigned stackbase, 
@@ -7912,10 +7784,10 @@ pdThread *process::createThread(
   void* resumestate_p,  
   bool bySelf)
 {
-  pdThread *thr;
+  dyn_thread *thr;
   fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
-  thr = new pdThread(this, tid, pos, NULL);
+  thr = new dyn_thread(this, tid, pos, NULL);
   threads += thr;
 
   thr->update_resumestate_p(resumestate_p);
@@ -7936,10 +7808,6 @@ pdThread *process::createThread(
     thr->update_stack_addr(stackbase);
   }
 
-  cerr << "aix.C: adding thread...";
-  metricFocusNode::handleNewThread(thr);
-  cerr << " done." << endl;
-
   sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
 	  pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
   logLine(errorLine);
@@ -7950,7 +7818,7 @@ pdThread *process::createThread(
 //
 // CALLED for mainThread
 //
-void process::updateThread(pdThread *thr, int tid, 
+void process::updateThread(dyn_thread *thr, int tid, 
 			   unsigned pos, void* resumestate_p, 
 			   resource *rid)
 {
@@ -7978,7 +7846,7 @@ void process::updateThread(pdThread *thr, int tid,
 // CALLED from Attach
 //
 void process::updateThread(
-  pdThread *thr, 
+  dyn_thread *thr, 
   int tid, 
   unsigned pos, 
   unsigned stackbase, 
@@ -8018,7 +7886,7 @@ void process::updateThread(
 
 void process::deleteThread(int tid)
 {
-  pdThread *thr=NULL;
+  dyn_thread *thr=NULL;
   unsigned i;
 
   for (i=0;i<threads.size();i++) {
@@ -8028,7 +7896,6 @@ void process::deleteThread(int tid)
     }   
   }
   if (thr != NULL) {
-    getVariableMgr().deleteThread(thr);
     unsigned theSize = threads.size();
     threads[i] = threads[theSize-1];
     threads.resize(theSize-1);
