@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.2 1999/10/08 18:39:42 pcroth Exp $
+// $Id: PDGraph.C,v 1.3 1999/10/12 20:49:35 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -606,7 +606,15 @@ PDGraph::PanTo( double position )
     int ret = TCL_OK;
 
 
-    assert( (position >= 0.0) && ((position + visScopeInfo.focus) <= 1.0) );
+    // guard against going outside the bounds for Tk's scrollbar positions
+    if( position < 0.0 )
+    {
+        position = 0.0;
+    }
+    if( (position + visScopeInfo.focus) > 1.0 )
+    {
+        visScopeInfo.focus = (1.0 - position);
+    }
 
     // update the focus and start to reflect the new visible configuration
     visScopeInfo.start = position;
@@ -1771,11 +1779,11 @@ PDGraph::SetCurveData( CurveID cid,
 
             // determine the maxmimum number of ticks we
             // can support in the given axis height
-			//
-			// Note that we go to great lengths to be sure
-			// that we do our "max ticks" calculation as
-			// signed integer arithmetic, so we can recognize
-			// the case when the window is too short.
+            //
+            // Note that we go to great lengths to be sure
+            // that we do our "max ticks" calculation as
+            // signed integer arithmetic, so we can recognize
+            // the case when the window is too short.
             int valAxisHeight = (Tk_IsMapped( valAxis->GetWindow() ) ? 
                                     Tk_Height( valAxis->GetWindow() ) : 
                                     Tk_ReqHeight( valAxis->GetWindow() ));
@@ -1786,7 +1794,7 @@ PDGraph::SetCurveData( CurveID cid,
             {
                 // this could happen if we've not yet mapped the
                 // value axis window, or if the window has
-				// become too short
+                // become too short
                 //
                 // we still want to compute an interval layout,
                 // so we force the max number of ticks to a 
