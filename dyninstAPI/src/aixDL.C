@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.47 2004/02/07 18:34:01 schendel Exp $
+// $Id: aixDL.C,v 1.48 2004/03/05 16:51:23 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
-#include "dyninstAPI/src/aixDL.h"
+#include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
@@ -51,541 +51,28 @@
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>
-#include <dlfcn.h> // dlopen constants
-
-/* Getprocs() should be defined in procinfo.h, but it's not */
-extern "C" {
-extern int getprocs(struct procsinfo *ProcessBuffer,
-		    int ProcessSize,
-		    struct fdsinfo *FileBuffer,
-		    int FileSize,
-		    pid_t *IndexPointer,
-		    int Count);
-extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t *, int);
-}
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-extern void generateBreakPoint(instruction &);
-
-#if !defined(AIX_PROC)
-
-/* Parse a binary to extract all shared objects it
-   contains, and create shared object objects for each
-   of them */
-pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
-{
-  // First things first, get a list of all loader info structures.
-  int pid;
-  int ret;
-  struct ld_info *ld_info_array, *ptr;
-  struct stat ld_stat;
-  // We hope that we don't get more than 1024 libraries loaded.
-  ld_info_array = (struct ld_info *) malloc (1024*sizeof(*ptr));
-  ptr = ld_info_array;
-  pid = p->getPid();
-  /* It seems that AIX has some timing problems and
-     when the user stack grows, the kernel doesn't update the stack info in time
-     and ptrace calls step on user stack. This is the reason why call sleep 
-     here, giving the kernel some time to update its internals. */
-  usleep (36000);
-
-  ret = 0;
-  ret = ptrace(PT_LDINFO, pid, 
-	       (int *) ptr, 1024 * sizeof(*ptr), (int *)ptr);
-  
-  if (ret != 0) {
-    perror("PT_LDINFO");
-    fprintf(stderr, "For process %d\n", pid);
-    statusLine("Unable to get loader info about process, application aborted");
-    showErrorCallback(43, "Unable to get loader info about process, application aborted");
-    free(ld_info_array);
-    return 0;
-  }
-
-  if (!ptr->ldinfo_next)
-    {
-      // Non-shared object, return 0
-      free(ld_info_array);
-      return 0;
-    }
-
-  // Skip the first element, which appears to be the executable file.
-  close(ptr->ldinfo_fd);
-  ptr = (struct ld_info *)(ptr->ldinfo_next + (char *)ptr);
-
-  // We want to fill in this pdvector.
-  pdvector<shared_object *> *result = new(pdvector<shared_object *>);
-
-  // So we have this list of ldinfo structures. This will include the executable and
-  // all shared objects it has loaded. Parse it.
-  do
-    {
-      // Gripe if the shared object we have loaded has been deleted
-      // If this is so, the file descriptor has been set to -1
-      // This can be a problem, since we expect to find symbol table
-      // information from the file.
-      if (fstat (ptr->ldinfo_fd, &ld_stat) < 0) {
-	// We were given a file handle that is invalid. We get this
-	// behavior if there's a library that's been loaded into memory,
-	// but it's disk equivalent is no longer there. Examples:
-	// loaded a library and deleted it, loaded a library and then
-	// copied in a fresh copy of that library, i.e. the nightly build.
-	// Solution: take the pathname we have and construct a new
-	// handle.
-	ptr->ldinfo_fd = open(ptr->ldinfo_filename, O_RDONLY);
-	if (ptr->ldinfo_fd == -1) {
-	  // Sucks to be us
-	  //fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
-	  perror("aixDL.C:getSharedObjects");
-	  // Set the memory offsets to -1 so we don't try to parse it.
-	  ptr->ldinfo_textorg = (void *)-1;
-	  ptr->ldinfo_dataorg = (void *)-1;
-	}
-      }
-
-      pdstring obj_name = pdstring(ptr->ldinfo_filename);
-      pdstring member = pdstring(ptr->ldinfo_filename + 
-			     (strlen(ptr->ldinfo_filename) + 1));
-      Address text_org =(Address) ptr->ldinfo_textorg;
-      Address data_org =(Address) ptr->ldinfo_dataorg;
-#if defined(DEBUG)
-      fprintf(stderr, "%s:%s (%x/%x)\n",
-	      obj_name.c_str(), member.c_str(),
-	      text_org, data_org);
-#endif
-
-      // I believe that we need to pass this as a pointer so that
-      // subclassing will work
-      // "false" == shared library, not exec file
-      fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
-                                                       text_org, data_org,
-                                                       pid, false);
-      shared_object *newobj = new shared_object(fda,
-                                                false,true,true,0);
-      (*result).push_back(newobj);      
-
-      // Close the file descriptor we're given
-      close(ptr->ldinfo_fd);
-    }
-  while ((ptr->ldinfo_next) &&
-	 // Pointer arithmetic -- the ldinfo_next data is all relative.
-	 (ptr = (struct ld_info *)(ptr->ldinfo_next + (char *)ptr))); 
-
-  p->setDynamicLinking();
-  dynlinked = true;
-
-  free(ld_info_array);
-  return result;
-
-}
-
-// handleIfDueToSharedObjectMapping: returns true if the trap was caused
-// by a change to the link maps
-// p - process we're dealing with
-// changed_objects -- set to list of new objects
-// change_type -- set to 1 if added, 2 if removed
-// error_occurred -- duh
-// return value: true if there was a change to the link map,
-// false otherwise
-bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
-						       pdvector<shared_object *> **changed_objects,
-						       u_int &change_type, 
-						       bool &error_occurred) {
-   // Well, this is easy, ain't it?
-   // List of current shared objects
-   pdvector <shared_object *> *curr_list = p->sharedObjects();
-   // List of new shared objects (since we cache parsed objects, we
-   // can go overboard safely)
-   pdvector <shared_object *> *new_list = getSharedObjects(p);
-
-   error_occurred = false; // Boy, we're optimistic.
-   change_type = 0; // Assume no change
-
-   // I've seen behavior where curr_list should be null, but instead has zero size
-   if (!curr_list || (curr_list->size() == 0)) {
-      change_type = 0;
-      return false;
-   }
-
-   // Check to see if something was returned by getSharedObjects
-   // They all went away? That's odd
-   if (!new_list) {
-      error_occurred = true;
-      change_type = 2;
-      return false;
-   }
-
-   if (new_list->size() == curr_list->size())
-      change_type = 0;
-   else if (new_list->size() > curr_list->size())
-      change_type = 1; // Something added
-   else
-      change_type = 2; // Something removed
 
 
-   *changed_objects = new(pdvector<shared_object *>);
+bool dynamic_linking::initialize() {
+    // Since we read out of /proc/.../map, there is nothing to do here
 
-   // if change_type is add, figure out what is new
-   if (change_type == 1) {
-      // Compare the two lists, and stick anything new on
-      // the added_list vector (should only be one, but be general)
-      bool found_object = false;
-      for (u_int i = 0; i < new_list->size(); i++) {
-         for (u_int j = 0; j < curr_list->size(); j++) {
-            // Check for equality -- file descriptor equality, nothing
-            // else is good enough.
-            shared_object *sh1 = (*new_list)[i];
-            shared_object *sh2 = (*curr_list)[j];
-            fileDescriptor *fd1 = sh1->getFileDesc();
-            fileDescriptor *fd2 = sh2->getFileDesc();
-           
-            if (*fd1 == *fd2) {
-               found_object = true;
-               break;
-            }
-         }
-         // So if found_object is true, we don't care. Set it to false and
-         // loop. Otherwise, add this to the new list of objects
-         if (!found_object) {
-            (**changed_objects).push_back(((*new_list)[i]));
-         }
-         else found_object = false; // reset
-      }
-   }
-   else if (change_type == 2) {
-      // Compare the two lists, and stick anything deleted on
-      // the removed_list vector (should only be one, but be general)
-      bool found_object = false;
-      // Yes, this almost identical to the previous case. The for loops
-      // are reversed, but that's it. Basically, find items in the larger
-      // list that aren't in the smaller. 
-      for (u_int j = 0; j < curr_list->size(); j++) {
-         for (u_int i = 0; i < new_list->size(); i++) {
-            // Check for equality -- file descriptor equality, nothing
-            // else is good enough.
-            shared_object *sh1 = (*new_list)[i];
-            shared_object *sh2 = (*curr_list)[j];
-            fileDescriptor *fd1 = sh1->getFileDesc();
-            fileDescriptor *fd2 = sh2->getFileDesc();
-           
-            if (*fd1 == *fd2) {
-               found_object = true;
-               break;
-            }
-         }
-         // So if found_object is true, we don't care. Set it to false and
-         // loop. Otherwise, add this to the new list of objects
-         if (!found_object) {
-            (**changed_objects).push_back((*curr_list)[j]);
-         }
-         else found_object = false; // reset
-      }
-   }
+   proc->setDynamicLinking();
+   dynlinked = true;
 
-   // Check to see that there is something in the new list
-   if ((*changed_objects)->size() == 0) {
-      change_type = 0; // no change after all
-      delete changed_objects; // Save memory
-      changed_objects = 0;
-      return false;
-   }
-
-   return true;
-}
-
-
-#endif
-
-/*************************************************************************/
-/***  Code to handle dlopen()ing the runtime library                   ***/
-/***                                                                   ***/
-/***  get_dlopen_addr() -- return the address of the dlopen function   ***/
-/***  Address dyninstlib_brk_addr -- address of the breakpoint at the  ***/
-/***                                 end of the RT init function       ***/
-/***  Address main_brk_addr -- address when we switch to dlopen()ing   ***/
-/***                           the RT lib                              ***/
-/***  loadDYNINSTlib() -- Write the (string) name of the RT lib,     ***/
-/***                        set up and execute a call to dlopen()      ***/
-/***  trapDueToDyninstLib() -- returns true if trap addr is at         ***/
-/***                          dyninstlib_brk_addr                      ***/
-/***  trapAtEntryPointOfMain() -- see above                            ***/
-/***  handleIfDueToDyninstLib -- cleanup function                      ***/
-/***  handleTrapAtEntryPointOfMain -- cleanup function                 ***/
-/***  insertTrapAtEntryPointOfMain -- insert a breakpoint at the start ***/
-/***                                  of main                          ***/
-/*************************************************************************/
-
-
-/* Auxiliary function */
-
-bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
-{
-  pdvector<Frame> activeFrames;
-  if (!proc->getAllActiveFrames(activeFrames)) return false;
-  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
-    if (activeFrames[frame_iter].getPC() == break_addr) {
-      return true;
-    }
-  return false;
-}
-
-bool process::trapDueToDyninstLib()
-{
-  // Since this call requires a PTRACE, optimize it slightly
-  if (dyninstlib_brk_addr == 0x0) return false;
-
-  bool result = checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
-  if(result){ 
-    dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
-    //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
-    //if they are we dont want to get them mixed up. once we
-    //see this trap is due to dyninst, reset the addr so
-    //we can now catch the paradyn trap
-  }
-  return result;
-  
-}
-
-bool process::trapAtEntryPointOfMain(Address)
-{
-  // Since this call requires a PTRACE, optimize it slightly
-  // This won't trigger (ever) if we are attaching, btw.
-  if (main_brk_addr == 0x0) return false;
-  return checkAllThreadsForBreakpoint(this, main_brk_addr);
-}
-
-/*
- * Restore "the original instruction" written into main so that
- * we can proceed after the trap. Saved in "savedCodeBuffer",
- * which is a chunk of space we use for dlopening the RT library.
- */
-
-bool process::handleTrapAtEntryPointOfMain()
-{
-    
-    if (!main_brk_addr) return false;
-    // Put back the original insn
-    if (!writeDataSpace((void *)main_brk_addr, 
-                        sizeof(instruction), (char *)savedCodeBuffer))
-        return false;
-    
-    // And zero out the main_brk_addr so we don't accidentally
-    // trigger on it.
-    main_brk_addr = 0x0;
     return true;
 }
 
-/*
- * Stick a trap at the entry point of main. At this point,
- * libraries are mapped into the proc's address space, and
- * we can dlopen the RT library.
- */
-
-bool process::insertTrapAtEntryPointOfMain()
-{
-  pd_Function *f_main = (pd_Function *) findOnlyOneFunction("main");
-  if (!f_main) {
-    // we can't instrument main - naim
-    showErrorCallback(108,"main() uninstrumentable");
-    return false;
-  }
-  assert(f_main);
-  Address addr = f_main->getEffectiveAddress(this);
-  // save original instruction first
-  readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
-  // and now, insert trap
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
-  main_brk_addr = addr;
-  
-  return true;
-}
-
-bool process::getDyninstRTLibName() {
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-           pdstring msg = pdstring("Environment variable ")
-              + pdstring("DYNINSTAPI_RT_LIB")
-              + pdstring(" has not been defined for process ")
-              + pdstring(pid);
-           showErrorCallback(101, msg);
-           return false;
-        }
-    }
-    // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK)) {
-        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
-        + pdstring(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        return false;
-    }
-    return true;
-}
-
-
-  
-
-/*
- * loadDYNINSTlib()
- *
- * The evil black magic function. What we want: for the runtime
- * library to show up in the process' address space. Magically.
- * No such luck. What we do: patch in a call to dlopen(DYNINSTRT_NAME)
- * at the entry of main, then restore the original instruction
- * and continue.
- */
-
-extern void pushStack(char *i, Address &base);
-extern void popStack(char *i, Address &base);
-
-bool process::loadDYNINSTlib()
-{
-  // This is actually much easier than on other platforms, since
-  // by now we have the DYNINSTstaticHeap symbol to work with.
-  // Basically, we can ptrace() anywhere in the text heap we want to,
-  // so go somewhere untouched. Unfortunately, we haven't initialized
-  // the tramp space yet (no point except on AIX) so we can't simply
-  // call inferiorMalloc(). 
-
-  // However, if we can get code_len_ + code_off_ from the object file,
-  // then we can use the area above that point freely.
-
-  // Steps: Get the library name (command line or ENV)
-  //        Get the address for dlopen()
-  //        Write in a call to dlopen()
-  //        Write in a trap after the call
-  //        Write the library name somewhere where dlopen can find it.
-  // Actually, why not write the library name first?
-
-  const Object binaryFile = symbols->getObject();
-  Address codeBase = binaryFile.code_off() + binaryFile.code_len();
-  // Round it up to the nearest instruction. 
-  codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
-
-
-  int count = 0; // how much we've written
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
-  Address dyninstlib_addr;
-  Address dlopencall_addr;
-  Address dlopentrap_addr;
-
-  // Do we want to save whatever is there? Can't see a reason why...
-
-  // write library name...
-  dyninstlib_addr = (Address) (codeBase + count);
-  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
-  count += dyninstRT_name.length()+sizeof(instruction); // a little padding
-
-  // Actually, we need to bump count up to a multiple of insnsize
-  count += sizeof(instruction) - (count % sizeof(instruction));
-
-  // Need a register space
-  // make sure this syncs with inst-power.C
-  Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
-  Register deadRegList[] = {11, 12};
-  unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
-  unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
-
-  registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
-						    liveRegListSize, liveRegList);
-  dlopenRegSpace->resetSpace();
-
-  Address dyninst_count = 0; // size of generated code
-  pdvector<AstNode*> dlopenAstArgs(2);
-  AstNode *dlopenAst;
-
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode("dlopen", dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  // We need to push down the stack before we call this
-  pushStack((char *)scratchCodeBuffer, dyninst_count);
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  popStack((char *)scratchCodeBuffer, dyninst_count);
-  dlopencall_addr = codeBase + count;
-  writeDataSpace((void *)dlopencall_addr, dyninst_count, 
-		 (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  dlopentrap_addr = codeBase + count;
-  writeDataSpace((void *)dlopentrap_addr, sizeof(instruction),
-		 (void *)(&insnTrap.raw));
-  count += sizeof(instruction);
-
-  dyninstlib_brk_addr = dlopentrap_addr;
-
-  // save registers
-  assert(savedRegs == NULL);
-  savedRegs = new dyn_saved_regs;
-  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
-  assert((status!=false) && (savedRegs!=(void *)-1));
-
-  if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
-    logLine("WARNING: changePC failed in loadDYNINSTlib\n");
-    assert(0);
-  }
-
-  setBootstrapState(loadingRT);
-  return true;
-}
-
-/*
- * Cleanup after dlopen()ing the runtime library. Since we don't overwrite
- * any existing functions, just restore saved registers. Cool, eh?
- */
-
-bool process::loadDYNINSTlibCleanup()
-{
-  getRepresentativeLWP()->restoreRegisters(*savedRegs);
-  delete savedRegs;
-  savedRegs = NULL;
-  // We was never here.... 
-  
-  // But before we go, reset the dyninstlib_brk_addr so we don't
-  // accidentally trigger it, eh?
-  dyninstlib_brk_addr = 0x0;
-  return true;
-}
-
-/*
- * Return the entry point of dlopen(). Used (I think) when we generate
- * a call to dlopen in an AST
- */
-
-Address process::get_dlopen_addr() const {
-
-  pd_Function *pdf = (pd_Function *) findOnlyOneFunction("dlopen");
-
-  if (pdf) {
-      return pdf->getEffectiveAddress(this);
-  }
-  
-  return 0;
-
-}
-
-#if defined(AIX_PROC)
-
-bool dynamic_linking::setLibBreakpoint(process *p,
-                                       pdvector<shared_object *> *objs)
-{
-    // Set the breakpoint in load (load1, the internal function)
-    // to catch library load events
+bool dynamic_linking::installTracing() {
+    // We capture dlopen/dlclose by overwriting the return address
+    // of their worker functions (load1 for dlopen, dlclose is TODO).
+    // We get this from the (already-parsed) listing of libc.
     
+    pdvector<shared_object *> *objs = proc->sharedObjects();
+
     // Get libc
     shared_object *libc = NULL;
     fileDescriptor *libc_desc = NULL;
-    for (int i = 0; i < objs->size(); i++) {
+    for (unsigned i = 0; i < objs->size(); i++) {
         fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
         if (((*objs)[i]->getName() == "/usr/lib/libc.a") &&
             (desc->member() == "shr.o")) {
@@ -594,55 +81,58 @@ bool dynamic_linking::setLibBreakpoint(process *p,
         }
     }
     assert(libc);
-    
-    // Now we have libc... but it hasn't been parsed yet (oy!)
-    image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
 
-    pdvector<pd_Function *> *loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
+    // Now, libc may have been parsed... in which case we pull the function vector
+    // from it. If not, we parse it manually.
+    
+    pdvector<pd_Function *> *loadFuncs;
+    if (libc->isProcessed()) {
+        loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
+    }
+    else {
+        image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
+        assert(libc_image);
+        loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
+    }
     assert(loadFuncs);
     assert(loadFuncs->size() > 0);
-
+    
     pd_Function *loadfunc = (*loadFuncs)[0];
     assert(loadfunc);
     // There is no explicit place to put a trap, so we'll replace
     // the final instruction (brl) with a trap, and emulate the branch
     // mutator-side
-
+    
     // Note: the libc func addr we have via addr() (only one that
     // works) is an offset. Add the addr from the file descriptor
-    Address ret_addr = loadfunc->addr() + loadfunc->size() 
-                       + libc_desc->addr() - sizeof(instruction);
+    Address load_ret_addr = loadfunc->addr() + loadfunc->size() 
+                            + libc_desc->addr() - sizeof(instruction);
     
-    r_brk_addr = ret_addr;
-    instruction breakpoint;
-    breakpoint.raw = BREAK_POINT_INSN;
 
-    instruction ret;
-    p->readDataSpace((void *)ret_addr, sizeof(instruction), (void *)&ret, false);
-    assert(ret.raw == BRraw);
-    p->writeDataSpace((void *)ret_addr, sizeof(instruction), (void *)&breakpoint);
+    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, // not used
+                                                  load_ret_addr);
+    sharedLibHooks_.push_back(sharedHook);
+
     return true;
+    // TODO: handle dlclose as well
 }
 
 /* Parse a binary to extract all shared objects it
    contains, and create shared object objects for each
    of them */
-pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
+pdvector< shared_object *> *dynamic_linking::getSharedObjects()
 {
-    p->setDynamicLinking();
-    dynlinked = true;
-    pdvector <shared_object *> *new_list = processSharedObjects(p);
-    setLibBreakpoint(p, new_list);
+    pdvector <shared_object *> *new_list = processLinkMaps();
     return new_list;
 }
 
-pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
+pdvector <shared_object *> *dynamic_linking::processLinkMaps()
 {
     // First things first, get a list of all loader info structures.
     int pid;
     int ret;
 
-    pid = p->getPid();
+    pid = proc->getPid();
     
     prmap_t mapEntry;
     int iter = 2; // We start off with the third entry. The first two are
@@ -650,7 +140,7 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
     
     // We want to fill in this vector.
     pdvector<shared_object *> *result = new(pdvector<shared_object *>);
-    int mapfd = p->getRepresentativeLWP()->map_fd();
+    int mapfd = proc->getRepresentativeLWP()->map_fd();
     do {
         pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t));
         if (mapEntry.pr_size != 0) {
@@ -708,33 +198,35 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
 // error_occurred -- duh
 // return value: true if there was a change to the link map,
 // false otherwise
-bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
-						       pdvector<shared_object *> **changed_objects,
-						       u_int &change_type, 
-						       bool &error_occurred) {
+bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *> **changed_objects,
+                                                       u_int &change_type, 
+                                                       bool &error_occurred) {
     // Check to see if any thread hit the breakpoint we inserted
     pdvector<Frame> activeFrames;
-    if (!p->getAllActiveFrames(activeFrames)) {
+    if (!proc->getAllActiveFrames(activeFrames)) {
         return false;
     }
     
     dyn_lwp *brk_lwp = NULL;
+    sharedLibHook *hook;
     
     for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
     {
-        if (activeFrames[frame_iter].getPC() == r_brk_addr) {
+        hook = reachedLibHook(activeFrames[frame_iter].getPC());
+        if (hook) {
             brk_lwp = activeFrames[frame_iter].getLWP();
             break;
         }
     }
-  
-    if (brk_lwp) {
+    
+    if (brk_lwp ||
+        force_library_load) {
         // A thread hit the breakpoint, so process a change in the dynamic objects
         // List of current shared objects
-        pdvector <shared_object *> *curr_list = p->sharedObjects();
+        pdvector <shared_object *> *curr_list = proc->sharedObjects();
         // List of new shared objects (since we cache parsed objects, we
         // can go overboard safely)
-        pdvector <shared_object *> *new_list = processSharedObjects(p);
+        pdvector <shared_object *> *new_list = processLinkMaps();
         
         error_occurred = false; // Boy, we're optimistic.
         change_type = 0; // Assume no change
@@ -819,20 +311,38 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
                 else found_object = false; // reset
             }
         }
-
-        // Now we need to fix the PC. We overwrote the return instruction,
-        // so grab the value in the link register and set the PC to it.
-
-        dyn_saved_regs regs;
-        bool status = brk_lwp->getRegisters(&regs);
-        assert(status == true);
-        brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
-        
-        return true;
-    
+        if (force_library_load)
+            return true;
+        else {
+            // Now we need to fix the PC. We overwrote the return instruction,
+            // so grab the value in the link register and set the PC to it.
+            dyn_saved_regs regs;
+            bool status = brk_lwp->getRegisters(&regs);
+            assert(status == true);
+            brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
+            return true;
+        }
     }
     return false;
 }
 
+sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
+        : proc_(p), type_(t), breakAddr_(b) {
 
-#endif
+
+    // Before putting in the breakpoint, save what is currently at the
+    // location that will be overwritten.
+    proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
+                         (void *)saved_, true);
+
+    instruction trap_insn;
+    trap_insn.raw = BREAK_POINT_INSN;
+
+    proc_->writeDataSpace((caddr_t)breakAddr_,
+                         sizeof(instruction),&trap_insn.raw);
+    
+}
+
+sharedLibHook::~sharedLibHook() {
+    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+}

@@ -40,7 +40,7 @@
  */
 
 #include "dyninstAPI/src/sharedobject.h"
-#include "dyninstAPI/src/linuxDL.h"
+#include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
@@ -71,10 +71,11 @@ static int scandir_select_ld( const struct dirent * entry ) {
 
 const char ldlibpath[] = "/lib";
 
+
 // get_ld_base_addr: This routine returns the base address of ld.so.x
 // and a path to the particular ld.so.x this process is using
 // it returns true on success, and false on error
-bool dynamic_linking::get_ld_info(Address &addr, char **path, process *proc ){
+bool dynamic_linking::get_ld_info(Address &addr, char **path){
 
   // Allow the user to specify the directory to search for the ld library
   // within, otherwise, follow the standard /lib (from the filesystem spec)
@@ -260,98 +261,64 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path, process *proc ){
     return false;
 }
 
-#if defined( ia64_unknown_linux2_4 )
-bool dynamic_linking::set_r_brk_point( process * proc ) {
-	/* Verify that we can get to work. */
-	if( brkpoint_set ) { return true; }
-	if( !r_brk_addr ) { return false; }
-	
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( r_brk_addr, proc );
-#if defined(BPATCH_LIBRARY)
+
+#if defined(arch_ia64)
+
+////////////// IA-64 breakpoint routines
+
+sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
+        : proc_(p), type_(t), breakAddr_(b) {
+
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
 	/* Save the original instructions. */
-	iAddr.saveMyBundleTo( (uint8_t *)r_brk_save );
-#endif
+	iAddr.saveMyBundleTo( (uint8_t *)saved_ );
+
 	IA64_bundle trapBundle = generateTrapBundle();
 	iAddr.replaceBundleWith( trapBundle );
+}
 
-	/* Insert a return bundle for use in the handler. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction returnToBZero = generateReturnTo( 0 );
-	IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
 
-	bool err = false; r_brk_target_addr = proc->findInternalAddress( "R_BRK_TARGET", true, err );
-	assert( ! err ); assert( r_brk_target_addr );
+sharedLibHook::~sharedLibHook() {
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
+    iAddr.writeMyBundleFrom((uint8_t *)saved_);
+}
 
-	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( r_brk_target_addr, proc );
-	jAddr.replaceBundleWith( returnBundle );
-	brkpoint_set = true;
 
-	// /* DEBUG */ fprintf( stderr, "* Inserted r_brk trap at 0x%lx (target at 0x%lx)\n", r_brk_addr, r_brk_target_addr );
-	return true;
-	} /* end set_r_brk_point() */
 #else
-// set_r_brk_point: this routine instruments the code pointed to by
-// the r_debug.r_brk (the linkmap update routine).  Currently this code  
-// corresponds to no function in the symbol table and consists of only
-// 2 instructions on sparc-solaris (retl nop).  Also, the library that 
-// contains these instrs is the runtime linker which is not parsed like
-// other shared objects, so adding instrumentation here is ugly. 
-bool dynamic_linking::set_r_brk_point(process *proc) {
 
-    if(brkpoint_set) return true;
-    if(!r_brk_addr) return false;
+/////////////// x86-linux breakpoint insertion routines
+sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
+        : proc_(p), type_(t), breakAddr_(b) {
 
-#if defined(BPATCH_LIBRARY)
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.
-    if (!proc->readDataSpace((void *)r_brk_addr, R_BRK_SAVE_BYTES,
-			     (void *)r_brk_save, true)) {
-	return false;
-    }
-#endif
+    proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
+                         (void *)saved_, true);
 
     instruction trap_insn = generateTrapInstruction();
-    if (!proc->writeDataSpace((void*)r_brk_addr, trap_insn.size(), trap_insn.ptr())) {
-	return false;
-	}
+    
+    proc_->writeDataSpace((void*)breakAddr_, trap_insn.size(), trap_insn.ptr());
 
-    brkpoint_set = true;
-    return true;
+}
+
+sharedLibHook::~sharedLibHook() {
+    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
 }
 #endif
-
-#if defined(BPATCH_LIBRARY)
-bool dynamic_linking::unset_r_brk_point(process *proc) {
-    return proc->writeDataSpace((caddr_t)r_brk_addr, R_BRK_SAVE_BYTES,
-				(caddr_t)r_brk_save);
-}
-#endif
-
 
 // processLinkMaps: This routine is called by getSharedObjects to  
 // process all shared objects that have been mapped into the process's
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
-pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
+pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
+    assert(r_debug_addr); // needs to be set before we're called
+
    r_debug debug_elm;
-   if(!p->readDataSpace((caddr_t)(r_debug_addr),
+   if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
       return 0;
    }
    
-   r_brk_addr = debug_elm.r_brk;
-   
-#if defined(ia64_unknown_linux2_4)
-	/* The IA-64's function pointers don't actually point at the function,
-	   because you also need to know the GP to call it.  Hence, another
-	   indirection. */
-	if(! p->readDataSpace( (void *)r_brk_addr, 8, (void *)&r_brk_addr, true ) )
-   {
-		fprintf( stderr, "Failed to read r_brk_addr.\n" );
-		return 0;
-   }
-#endif
-
    // get each link_map object
    bool first_time = true;
    link_map *next_link_map = debug_elm.r_map;
@@ -359,7 +326,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
    pdvector<shared_object*> *shared_objects = new pdvector<shared_object*>;
    while(next_addr != 0) {
       link_map link_elm;
-      if(!p->readDataSpace((caddr_t)(next_addr),
+      if(!proc->readDataSpace((caddr_t)(next_addr),
                            sizeof(link_map),(caddr_t)&(link_elm),true)) {
          logLine("read next_link_map failed\n");
          return 0;
@@ -371,7 +338,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
       u_int f_amount = 256;
       bool done = false;
       for(u_int i=0; (i<256) && (!done); i++) {
-         if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
+         if(!proc->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
                               sizeof(char),(caddr_t)(&(f_name[i])),true)){
          }
          if(f_name[i] == '\0'){
@@ -388,8 +355,8 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
       // create a shared_object and add it to the list
       // kludge: ignore the entry if it has the same name as the
       // executable file...this seems to be the first link-map entry
-      if(obj_name != p->getImage()->file() && 
-         obj_name != p->getImage()->name()) {
+      if(obj_name != proc->getImage()->file() && 
+         obj_name != proc->getImage()->name()) {
           
          sharedobj_cerr << "file name doesn't match image, so not ignoring "
                         << "it...firsttime=" << (int)first_time << endl;
@@ -397,7 +364,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
          // kludge for when an exec occurs...the first element
          // in the link maps is the file name of the parent process
          // so in this case, we ignore the first entry
-         if((!(p->wasExeced())) || (p->wasExeced() && !first_time)) { 
+         if((!(proc->wasExeced())) || (proc->wasExeced() && !first_time)) { 
             shared_object *newobj =
                new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
             (*shared_objects).push_back(newobj);
@@ -417,8 +384,6 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
       first_time = false;
       next_addr = (Address)link_elm.l_next;
    }
-   p->setDynamicLinking();
-   dynlinked = true;
    return shared_objects;
    shared_objects = 0;
 }
@@ -426,10 +391,10 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 
 // getLinkMapAddrs: returns a vector of addresses corresponding to all 
 // base addresses in the link maps.  Returns 0 on error.
-pdvector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
+pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 
     r_debug debug_elm;
-    if(!p->readDataSpace((caddr_t)(r_debug_addr),
+    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
         return 0;
     }
@@ -440,7 +405,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
     pdvector<Address> *link_addresses = new pdvector<Address>;
     while(next_addr != 0) {
 	link_map link_elm;
-        if(!p->readDataSpace((caddr_t)(next_addr),
+        if(!proc->readDataSpace((caddr_t)(next_addr),
             sizeof(link_map),(caddr_t)&(link_elm),true)) {
             logLine("read next_link_map failed\n");
 	    return 0;
@@ -463,12 +428,11 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
 // newly mapped shared object.  old_addrs contains the addresses of the
 // currently mapped shared objects. Sets error_occured to true, and 
 // returns 0 on error.
-pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
-						pdvector<Address> *old_addrs,
-						bool &error_occured)
+pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address> *old_addrs,
+                                                                bool &error_occured)
 {
    r_debug debug_elm;
-   if(!p->readDataSpace((caddr_t)(r_debug_addr),
+   if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
       error_occured = true;
       return 0;
@@ -481,7 +445,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
    pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
    while(next_addr != 0) {
       link_map link_elm;
-      if(!p->readDataSpace((caddr_t)(next_addr),
+      if(!proc->readDataSpace((caddr_t)(next_addr),
                            sizeof(link_map),(caddr_t)&(link_elm),true)) {
          logLine("read next_link_map failed\n");
          delete new_shared_objects;
@@ -507,7 +471,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
             u_int f_amount = 256;
             bool done = false;
             for(u_int i=0; (i<256) && (!done); i++){
-               if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
+               if(!proc->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
                                     sizeof(char),(caddr_t)(&(f_name[i])),true))
                { }
 	            if(f_name[i] == '\0'){
@@ -531,58 +495,58 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 }
 
 
-// getSharedObjects: This routine is called after attaching to
-// an already running process p, or when a process reaches the breakpoint at
-// the entry point of main().  It gets all shared objects that have been
-// mapped into the process's address space, and returns 0 on error or if 
-// there are no shared objects.
-// The assumptions are that the dynamic linker has already run, and that
-// a /proc file descriptor has been opened for the application process.
-// This is a very kludgy way to get this stuff, but it is the only way to
-// do it until verision 2.6 of Solaris is released.
-// TODO: this should also set a breakpoint in the r_brk routine that will
-// catch future changes to the linkmaps (from dlopen and dlclose)
-// dlopen events should result in a call to addSharedObject
-// dlclose events should result in a call to removeASharedObject
-pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
+// initialize: perform initialization tasks on a platform-specific level
+bool dynamic_linking::initialize() {
+    r_debug_addr = 0;
+    r_brk_target_addr = 0;
+    r_state = 0;
 
 	/* Is this a dynamic executable? */
 	pdstring dyn_str = pdstring("DYNAMIC");
 	internalSym dyn_sym;
-	if( ! p->findInternalSymbol( dyn_str, true, dyn_sym ) ) { return 0; }
+	if( ! proc->findInternalSymbol( dyn_str, true, dyn_sym ) ) { return false; }
 
 	/* Find the base address of ld.so.1, since the entries we get
 	   from its Object won't be right, otherwise. */
 	Address ld_base = 0;
 	char * ld_path;
-	if( ! get_ld_info( ld_base, & ld_path, p ) ) { return 0; }
+	if( ! get_ld_info( ld_base, & ld_path) ) { return 0; }
 
 	/* Generate its Object and set r_debug_addr ("_r_debug"/STT_OBJECT) */
+    // We haven't parsed libraries at this point, so do it by hand.
 	Object ldsoOne( ld_path, ld_base );
 	Symbol rDebugSym;
 	if( ! ldsoOne.get_symbol( "_r_debug", rDebugSym ) ) { return 0; }
 	if( ! (rDebugSym.type() == Symbol::PDST_OBJECT) ) { return 0; }
+
+    // Set r_debug_addr
 	r_debug_addr = rDebugSym.addr() + ld_base;
 	assert( r_debug_addr );
-
-	/* process the link maps */
-	pdvector<shared_object *> *result = this->processLinkMaps(p);
-
-#if defined(ia64_unknown_linux2_4)
-	/* Do NOT set r_brk_point now.  Wait until after DYNINSTlib has
-	   loaded, so that we can make use of its shared memory. */  
-#else
-	set_r_brk_point( p );
-#endif
-
 
 	/* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
 	if( ! ldsoOne.get_symbol( "_dl_map_object", rDebugSym ) ) { ; }
 	if( ! (rDebugSym.type() == Symbol::PDST_FUNCTION) ) { ; } 
 	dlopen_addr = rDebugSym.addr() + ld_base;
 	assert( dlopen_addr );
-	
-	delete ld_path;		// allocated by gd_ld_info
+
+	delete ld_path;
+
+    proc->setDynamicLinking();
+    dynlinked = true;
+
+    return true;
+}
+
+
+// getSharedObjects: gets a complete list of shared objects in the
+// process. Normally used to initialize the process-level shared objects list.
+
+pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
+    
+    assert(r_debug_addr);
+
+	pdvector<shared_object *> *result = this->processLinkMaps();
+
 	return (result);
 } /* end getSharedObjects() */
 
@@ -590,12 +554,11 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 // findChangeToLinkMaps: This routine returns a vector of shared objects
 // that have been deleted or added to the link maps as indicated by
 // change_type.  If an error occurs it sets error_occured to true.
-pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p, 
-						   u_int change_type,
-						   bool &error_occured) {
-
+pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_type,
+                                                                  bool &error_occured) {
+    
     // get list of current shared objects
-    pdvector<shared_object *> *curr_list = p->sharedObjects();
+    pdvector<shared_object *> *curr_list = proc->sharedObjects();
     if((change_type == 2) && !curr_list) {
 	error_occured = true;
 	return 0;
@@ -604,24 +567,25 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
     // if change_type is add then figure out what has been added
     if(change_type == r_debug::RT_ADD){
         // create a vector of addresses of the current set of shared objects
-	pdvector<Address> *addr_list =  new pdvector<Address>;
-	for (Address i=0; i < curr_list->size(); i++) {
-	    (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
-	}
-	pdvector <shared_object *> *new_shared_objs = 
-				getNewSharedObjects(p, addr_list,error_occured);
+        pdvector<Address> *addr_list =  new pdvector<Address>;
+        for (Address i=0; i < curr_list->size(); i++) {
+            (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
+        }
+        pdvector <shared_object *> *new_shared_objs = 
+        getNewSharedObjects(addr_list,error_occured);
         if(!error_occured){
-	    delete addr_list;
-	    return new_shared_objs; 
-	    new_shared_objs = 0;
-	}
+            delete addr_list;
+            return new_shared_objs; 
+            new_shared_objs = 0;
+        }
     }
     // if change_type is remove then figure out what has been removed
     else if((change_type == r_debug::RT_DELETE) && curr_list) {
 	// create a list of base addresses from the linkmaps and
 	// compare them to the addr in vector of shared object to see
 	// what has been removed
-	pdvector<Address> *addr_list = getLinkMapAddrs(p);
+        pdvector<Address> *addr_list = getLinkMapAddrs();
+        
 	if(addr_list) {
 	    pdvector <shared_object *> *remove_list = new pdvector<shared_object*>;
 	    // find all shared objects that have been removed
@@ -655,25 +619,31 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 // The added or removed shared objects are returned in changed_objects
 // the change_type value is set to indicate if the objects have been added 
 // or removed
-bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
-				pdvector<shared_object*>  **changed_objects,
+bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*>  **changed_objects,
 				u_int &change_type,
 				bool &error_occured){ 
+    
   error_occured = false;
   Address pc = getPC( proc->getPid() );
 
-  // is the trap instr at r_brk_addr?
-  if(pc == (Address)r_brk_addr){ 
-    // find out what has changed in the link map
-    // and process it
-    r_debug debug_elm;
-    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
-			    sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-      // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
-      error_occured = true;
-      return true;
-    }
+  sharedLibHook *hook = reachedLibHook(pc);
 
+  // is the trap instr at at the breakpoint?
+  if (force_library_load ||
+      hook != NULL) {
+      // We can force this manually, even if we aren't at
+      // the correct address.
+      // dlclose_brk_addr would be the same if it was set, so we need to 
+      // compare link maps to find what has changed
+      // find out what has changed in the link map
+      // and process it
+      r_debug debug_elm;
+      if(!proc->readDataSpace((caddr_t)(r_debug_addr),
+                              sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+          // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+          error_occured = true;
+          return true;
+      }
     // if the state of the link maps is consistent then we can read
     // the link maps, otherwise just set the r_state value
     change_type = r_state;   // previous state of link maps 
@@ -686,8 +656,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       // kludge: the state of the first add can get screwed up
       // so if both change_type and r_state are 0 set change_type to 1
       if( change_type == 0 ) change_type = 1;
-      *changed_objects = findChangeToLinkMaps(proc, change_type,
-					      error_occured);
+      *changed_objects = findChangeToLinkMaps(change_type,
+                                              error_occured);
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
 		if(change_type == r_debug::RT_ADD) {
@@ -696,7 +666,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 				strcpy(tmpStr,(*(*changed_objects))[index]->getName().c_str());
 				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
 			    		!strstr(tmpStr, "libelf.so")){
-					//printf(" dlopen: %s \n", tmpStr);
 					(*(*changed_objects))[index]->openedWithdlopen();
 				}
 				setlowestSObaseaddr((*(*changed_objects))[index]->getBaseAddress());
@@ -705,64 +674,100 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 		}
 #endif
 #endif
-
-    } 
-
-    dyn_lwp *lwp_to_use = NULL;
-    lwp_to_use = proc->getRepresentativeLWP();
-    if(lwp_to_use == NULL)
-    if(process::IndependentLwpControl() && lwp_to_use == NULL)
-       lwp_to_use = proc->getInitialThread()->get_lwp();
-
-#if defined(i386_unknown_linux2_0)
-    // Return from the function.  We used to do this by setting the program
-    // counter to the end of the function, but we don't necessarily know
-    // how long it is, so now we emulate a ret instruction by changing the
-    // PC to the return value from the stack and incrementing the stack
-    // pointer.
-    Address sp = getSP(proc->getPid());
-
-    Address ret_addr;
-    if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
-			    (caddr_t)&ret_addr, true)) {
-      // printf("read failed sp = 0x%x\n", sp);
-      error_occured = true;
-      return true;
+        
     }
 
-    if (!changeSP(proc->getPid(), sp + sizeof(Address))) {
-      error_occured = true;
-      return true;
-    }
-
-    if (! lwp_to_use->changePC(ret_addr, NULL))
-      error_occured = true;
-
-    return true;
-  }
+    if (force_library_load) return true;
+    else {
+        dyn_lwp *lwp_to_use = NULL;
+        lwp_to_use = proc->getRepresentativeLWP();
+        if(lwp_to_use == NULL)
+            if(process::IndependentLwpControl() && lwp_to_use == NULL)
+                lwp_to_use = proc->getInitialThread()->get_lwp();
+        
+#if defined(arch_x86)
+        // Return from the function.  We used to do this by setting the program
+        // counter to the end of the function, but we don't necessarily know
+        // how long it is, so now we emulate a ret instruction by changing the
+        // PC to the return value from the stack and incrementing the stack
+        // pointer.
+        Address sp = getSP(proc->getPid());
+        
+        Address ret_addr;
+        if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
+                                (caddr_t)&ret_addr, true)) {
+            // printf("read failed sp = 0x%x\n", sp);
+            error_occured = true;
+            return true;
+        }
+        
+        if (!changeSP(proc->getPid(), sp + sizeof(Address))) {
+            error_occured = true;
+            return true;
+        }
+        
+        if (! lwp_to_use->changePC(ret_addr, NULL))
+            error_occured = true;
+        
 #else
-	if( brkpoint_set ) {
-		/* We've inserted a return statement at r_brk_target_addr
-		   for our use here. */
-		lwp_to_use->changePC( r_brk_target_addr, NULL );
-   } else {
-		// /* DEBUG */ fprintf( stderr,
-      //                      "* Not changing PC on dyninst library load.\n" );
-   }
-
-	return true;
-	} /* end if r_brk occurred. */
+        /* We've inserted a return statement at r_brk_target_addr
+           for our use here. */
+        lwp_to_use->changePC( r_brk_target_addr, NULL );
 #endif
+        return true;
+    } // non-forced, clean up for breakpoint
+  } // Not a library load (!forced && pc != breakpoint)
   return false; 
 }
 
-void dynamic_linking::handleDYNINSTlibLoad( process * p ) {
-	/* Handle DYNINSTlib's load. */
-	Address tmp = r_brk_addr;
-	r_brk_addr = getPC( p->getPid() );
-	p->handleIfDueToSharedObjectMapping();
-	r_brk_addr = tmp;
+// This function performs all initialization necessary to catch shared object
+// loads and unloads (symbol lookups and trap setting)
+bool dynamic_linking::installTracing()
+{
+    assert(r_debug_addr);
+    
+    r_debug debug_elm;
+    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
+                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+        fprintf(stderr, "Failed data read\n");
+        return 0;
+    }
+    Address breakAddr = debug_elm.r_brk;
+    
+#if defined(arch_ia64)    
+	/* The IA-64's function pointers don't actually point at the function,
+	   because you also need to know the GP to call it.  Hence, another
+	   indirection. */
+    if(! proc->readDataSpace( (void *)breakAddr, 8, (void *)&breakAddr, true ) )
+    {
+        fprintf( stderr, "Failed to read breakAddr_.\n" );
+        return 0;
+    }
+#endif
 
-	/* Install shared object handler. */
-	set_r_brk_point( p );
-	} /* end handleDYNINSTlibLoad() */
+#if defined(arch_ia64)
+    // We don't handle the trap directly, rather inserting a sequence of instructions
+    // in the runtime library that patch it up
+	/* Insert a return bundle for use in the handler. */
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_instruction returnToBZero = generateReturnTo( 0 );
+	IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
+    
+	bool err = false; r_brk_target_addr = proc->findInternalAddress( "R_BRK_TARGET", true, err );
+	assert( ! err ); assert( r_brk_target_addr );
+    
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( r_brk_target_addr, proc );
+	jAddr.replaceBundleWith( returnBundle );
+#endif
+
+    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, // not used
+                                                  breakAddr);
+    sharedLibHooks_.push_back(sharedHook);
+    
+    return true;
+}
+
+
+    
+    
+    

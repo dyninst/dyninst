@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.117 2004/03/02 22:46:05 bernat Exp $
+// $Id: pdwinnt.C,v 1.118 2004/03/05 16:51:30 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -878,7 +878,6 @@ DWORD handleDllLoad(const procevent &event) {
                                              true,
                                              0 );
       assert(proc->dyn);
-      proc->dyn->sharedObjects.push_back(so);
       if (!proc->shared_objects) {
          proc->shared_objects = new pdvector<shared_object *>;
       }

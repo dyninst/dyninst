@@ -46,7 +46,6 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
-#include "dyninstAPI/src/dynamiclinking.h"
 class process;
 
 
@@ -73,43 +72,6 @@ class pdDsoEvent {
   Address        brk;
   instruction    buf[2];
   process       *proc;
-};
-
-class pdElfObjInfo;
-
-class dynamic_linking {
- public:
-  dynamic_linking();
-  ~dynamic_linking();
-    
-  /* getSharedObjects(): called before main() to process all
-     currently loaded shared objects; also sets hooks for future
-     calls to dlopen() and dlclose() */
-  pdvector<shared_object *> *getSharedObjects(process *);
-
-  /* isDynamic(): returns true if the executable is dynamically linked */
-  bool isDynamic();
-  
-  /* handleIfDueToSharedObjectMapping(): if $pc corresponds to a
-     shared object event (i.e. dlopen() or dlclose()), returns true
-     and handles event */
-  bool handleIfDueToSharedObjectMapping(process *, 
-					pdvector<shared_object *> **,
-					u_int &, bool &);
-
-  void unsetMappingHooks(process *p);
-  Address get_r_brk_addr() const;
-  Address get_dlopen_addr() const;
-
- private:
-  pdvector<pdElfObjInfo *> getRldMap(process *p);
-  bool setMappingHooks(process *p, pdElfObjInfo *libc_obj);
-  
-  bool dynlinked;
-  Address dlopen_addr;
-  Address r_brk_addr;
-  pdvector<pdDsoEvent *> dso_events;
-  pdvector<pdElfObjInfo *> rld_map;
 };
 
 // ABI-generic wrapper class for "ElfXX_Obj_Info"
