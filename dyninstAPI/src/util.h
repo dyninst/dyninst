@@ -7,7 +7,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
- * Revision 1.8  1995/02/16 08:54:30  markc
+ * Revision 1.9  1996/05/09 22:46:51  karavan
+ * changed uiHash.
+ *
+ * Revision 1.8  1995/02/16  08:54:30  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.7  1995/02/16  08:35:05  markc
@@ -55,7 +58,7 @@ extern void statusLine(const char *line);
 extern char errorLine[];
 
 inline unsigned uiHash(const unsigned &val) {
-  return val;
+  return val % 23;
 }
 
 inline unsigned intHash(const int &val) {
