@@ -40,7 +40,7 @@
  */
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
 
 #pragma implementation "list.h"
 #include "util/h/list.h"
@@ -56,22 +56,5 @@
 #include "dyninstAPI/src/util.h"
 #include "util/h/Object.h"
 
-template class  dictionary<string, pd_Function *>;
-template class  dictionary<instPoint *, point *>;
-template class  dictionary<unsigned int, Symbol *>;
-template class  dictionary<unsigned int, metricDefinitionNode *>;
-template class  dictionary<string, unsigned int>;
-template class  dictionary<instPoint *, unsigned int>;
-template class  dictionary<unsigned int, heapItem *>;
-template class  dictionary<string, vector<pd_Function *> *>;
-template class  dictionary<string, internalSym *>;
-template class  dictionary<string, pdmodule *>;
-template class  dictionary<unsigned int, pd_Function *>;
-template class  dictionary<unsigned int, unsigned int>;
-template class  dictionary<unsigned int, resource *>;
-template class  dictionary<string, resource *>;
-template class  dictionary_iter<string, Symbol>;
-template class  dictionary<string, Symbol>;
-template class  dictionary <string, metricDefinitionNode*>;
 template class  vector< instWaitingList *>;
 
