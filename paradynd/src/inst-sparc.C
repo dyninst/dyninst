@@ -19,13 +19,16 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.36 1996/04/29 22:18:46 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.37 1996/05/08 23:51:41 mjrg Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.37  1996/05/08 23:51:41  mjrg
+ * included instructions to save registers in cost
+ *
  * Revision 1.36  1996/04/29 22:18:46  mjrg
  * Added size to functions (get size from symbol table)
  * Use size to define function boundary
@@ -437,7 +440,7 @@ inline void generateLoad(instruction *insn, int rs1, int offset, int rd)
     insn->resti.simm13 = LOW(offset);
 }
 
-// st rd, [rs1 + offset]
+// std rd, [rs1 + offset]
 inline void genStoreD(instruction *insn, int rd, int rs1, int offset)
 {
     insn->resti.op = STop;
@@ -448,7 +451,7 @@ inline void genStoreD(instruction *insn, int rd, int rs1, int offset)
     insn->resti.simm13 = LOW(offset);
 }
 
-// load [rs1 + offset], rd
+// ldd [rs1 + offset], rd
 inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
 {
     insn->resti.op = LOADop;
@@ -458,8 +461,6 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
     insn->resti.i = 1;
     insn->resti.simm13 = LOW(offset);
 }
-
-
 
 
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
@@ -1034,7 +1035,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction);
         insn++;
 
-	// generate code to save global and FP registers
+	// generate code to save global registers
 	for (unsigned u = 0; u < 4; u++) {
 	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
 	  base += sizeof(instruction);
@@ -1080,7 +1081,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	insn++;
     } else if (op ==  trampTrailer) {
 
-	// generate code to save global and FP registers
+	// generate code to restore global registers
 	for (unsigned u = 0; u < 4; u++) {
 	  genLoadD(insn, REG_FP, - (8 + 8*u), 2*u);
 	  base += sizeof(instruction);
@@ -1246,12 +1247,12 @@ int getInsnCost(opCode op)
         // add %l1, <cost>, %l1
         // st %l1, [%lo + %lo(obsCost)]
         // return(1+1+2+1+3);
-	return(1+1+1+1+2);
+	return(1+1+1+1+2 + 4);
     } else if (op ==  trampTrailer) {
 	// restore
 	// noop
 	// retl
-	return(1+1+1);
+	return(1+1+1 + 4);
     } else if (op == noOp) {
 	// noop
 	return(1);
