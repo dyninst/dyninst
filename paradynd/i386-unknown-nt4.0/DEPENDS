@@ -679,7 +679,7 @@ processMetFocusNode.obj: ../src/processMetFocusNode.C \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
- ../../dyninstAPI/src/frame.h ../../paradynd/src/instrThrDataNode.h \
+ ../../dyninstAPI/src/frame.h ../../paradynd/src/instrDataNode.h \
  ../../paradynd/src/dynrpc.h ../../dyninstAPI/src/process.h \
  ../../paradynd/src/timeMgr.h ../../paradynd/src/timeMechanism.h \
  ../../dyninstAPI/src/Object.h ../../common/h/Symbol.h \
@@ -717,7 +717,24 @@ threadMetFocusNode.obj: ../src/threadMetFocusNode.C \
  ../../paradynd/src/variableMgr.h \
  ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/processMetFocusNode.h \
- ../../pdutil/h/pdDebugOstream.h
+ ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/pdThread.h \
+ ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
+ ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
+ ../../common/h/Symbol.h ../../common/h/lprintf.h \
+ ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
+ ../../common/h/vectorSet.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
+ ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
+ ../../common/h/stringDecl.h ../../dyninstAPI/src/arch.h \
+ ../../dyninstAPI/src/arch-x86.h ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/FunctionExpansionRecord.h \
+ ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
+ ../../paradynd/src/shmMgr.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
+ ../../dyninstAPI/src/ntDL.h
 instrCodeNode.obj: ../src/instrCodeNode.C \
  ../../paradynd/src/instrCodeNode.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/Types.h \
@@ -737,7 +754,7 @@ instrCodeNode.obj: ../src/instrCodeNode.C \
  ../../paradynd/src/variableMgr.h \
  ../../paradynd/src/variableMgrTypes.h \
  ../../paradynd/src/instReqNode.h ../../dyninstAPI/src/frame.h \
- ../../paradynd/src/instrThrDataNode.h \
+ ../../paradynd/src/instrDataNode.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
@@ -759,8 +776,8 @@ instrCodeNode.obj: ../src/instrCodeNode.C \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
  ../../pdutil/h/pdDebugOstream.h ../../dyninstAPI/src/pdThread.h
-instrThrDataNode.obj: ../src/instrThrDataNode.C ../../common/h/Types.h \
- ../../paradynd/src/instrThrDataNode.h ../../paradynd/src/metric.h \
+instrDataNode.obj: ../src/instrDataNode.C ../../common/h/Types.h \
+ ../../paradynd/src/instrDataNode.h ../../paradynd/src/metric.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
@@ -794,42 +811,7 @@ instrThrDataNode.obj: ../src/instrThrDataNode.C ../../common/h/Types.h \
  ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
  ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../pdutil/h/pdDebugOstream.h \
- ../../dyninstAPI/src/pdThread.h ../../paradynd/src/dataReqNode.h
-dataReqNode.obj: ../src/dataReqNode.C ../../paradynd/src/dataReqNode.h \
- ../../common/h/Types.h ../../common/h/Vector.h \
- ../../common/h/Dictionary.h ../../common/h/Pair.h \
- ../../rtinst/h/rtinst.h ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../paradynd/src/variableMgrTypes.h ../../dyninstAPI/src/process.h \
- ../../paradynd/src/timeMgr.h ../../common/h/Time.h \
- ../../common/h/fraction.h ../../paradynd/src/timeMechanism.h \
- ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../common/h/refCounter.h ../../dyninstAPI/src/Object.h \
- ../../common/h/Symbol.h ../../common/h/lprintf.h \
- ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
- ../../dyninstAPI/src/util.h ../../common/h/vectorSet.h \
- ../../common/h/Timer.h ../../dyninstAPI/src/ast.h \
- ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
- ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
- ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/symtab.h \
- ../../common/h/list.h ../../dyninstAPI/src/dyninst.h \
- ../../rtinst/h/trace.h ../../common/h/stringDecl.h \
- ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
- ../../paradynd/src/resource.h ../../dyninstAPI/src/inst.h \
- ../../pdutil/h/pdSample.h \
- ../../dyninstAPI/src/FunctionExpansionRecord.h \
- ../../dyninstAPI/src/imageUpdate.h ../../paradynd/src/shmSegment.h \
- ../../paradynd/src/shmMgr.h ../../paradynd/src/variableMgr.h \
- ../../paradynd/src/hashTable.h ../../dyninstAPI/src/sharedobject.h \
- ../../paradynd/src/mdld.h ../../paradynd/src/metric.h \
- ../../pdutil/h/sampleAggregator.h ../../pdutil/h/aggregationDefines.h \
- ../../pdutil/h/PriorityQueue.h dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../pdutil/h/xdr_send_recv.h ../../pdutil/h/ByteArray.h \
- ../../paradyn/src/met/mdl.h ../../pdutil/h/metricStyle.h \
- ../../paradynd/src/comm.h ../../dyninstAPI/src/dynamiclinking.h \
- ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/pdThread.h \
- ../../paradynd/src/init.h
+ ../../dyninstAPI/src/pdThread.h
 instReqNode.obj: ../src/instReqNode.C ../../paradynd/src/instReqNode.h \
  ../../common/h/Vector.h ../../dyninstAPI/src/inst.h \
  ../../common/h/Dictionary.h ../../common/h/Pair.h \
@@ -1117,7 +1099,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../paradynd/src/processMetFocusNode.h \
  ../../paradynd/src/threadMetFocusNode.h \
  ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
- ../../dyninstAPI/src/frame.h ../../paradynd/src/instrThrDataNode.h \
+ ../../dyninstAPI/src/frame.h ../../paradynd/src/instrDataNode.h \
  ../../paradynd/src/main.h ../../paradynd/src/comm.h \
  ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
  ../../paradynd/src/timeMechanism.h ../../dyninstAPI/src/Object.h \
@@ -1136,8 +1118,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
  ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
  ../../dyninstAPI/src/pdThread.h ../../pdutil/h/pdDebugOstream.h \
- ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
- ../../paradynd/src/dataReqNode.h
+ ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h
 showerror.obj: ../src/showerror.C ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/Types.h \
@@ -1286,6 +1267,46 @@ templatesIGEN.obj: ../src/templatesIGEN.C ../../pdutil/h/xdr_send_recv.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
  ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
  ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h
+templates-nt.obj: ../../dyninstAPI/src/templates-nt.C \
+ ../../common/src/vectorSet.C ../../common/h/vectorSet.h \
+ ../../common/h/Vector.h ../../common/src/Dictionary.C \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h \
+ ../../dyninstAPI/src/symtab.h ../../common/h/list.h \
+ ../../dyninstAPI/src/Object.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../common/h/refCounter.h ../../common/h/Symbol.h \
+ ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
+ ../../dyninstAPI/src/CodeView.h ../../dyninstAPI/src/dyninst.h \
+ ../../rtinst/h/trace.h ../../rtinst/h/rtinst.h \
+ ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/stringDecl.h \
+ ../../dyninstAPI/src/arch.h ../../dyninstAPI/src/arch-x86.h \
+ ../../dyninstAPI/src/util.h ../../common/h/Time.h \
+ ../../common/h/fraction.h ../../paradynd/src/resource.h \
+ ../../dyninstAPI/src/inst.h ../../dyninstAPI/src/ast.h \
+ ../../pdutil/h/pdSample.h \
+ ../../dyninstAPI/src/FunctionExpansionRecord.h \
+ ../../dyninstAPI/src/process.h ../../paradynd/src/timeMgr.h \
+ ../../paradynd/src/timeMechanism.h ../../common/h/Timer.h \
+ ../../dyninstAPI/src/os.h ../../dyninstAPI/src/pdwinnt.h \
+ ../../dyninstAPI/src/w32CONTEXT.h ../../dyninstAPI/src/frame.h \
+ ../../dyninstAPI/src/showerror.h ../../dyninstAPI/src/imageUpdate.h \
+ ../../paradynd/src/shmSegment.h ../../paradynd/src/shmMgr.h \
+ ../../paradynd/src/variableMgr.h \
+ ../../paradynd/src/variableMgrTypes.h ../../paradynd/src/hashTable.h \
+ ../../dyninstAPI/src/sharedobject.h ../../paradynd/src/mdld.h \
+ ../../paradynd/src/metric.h ../../pdutil/h/sampleAggregator.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
+ ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+ ../../pdutil/h/metricStyle.h ../../paradynd/src/comm.h \
+ ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
+ ../../paradynd/src/machineMetFocusNode.h \
+ ../../paradynd/src/instrCodeNode.h ../../paradynd/src/instReqNode.h \
+ ../../paradynd/src/threadMetFocusNode.h ../../paradynd/src/varTable.h \
+ ../../paradynd/src/varTable.C ../../paradynd/src/varInstance.h \
+ ../../paradynd/src/varInstanceHKs.h ../../paradynd/src/varInstance.C
 varInstanceHKs.obj: ../src/varInstanceHKs.C \
  ../../dyninstAPI/src/process.h ../../rtinst/h/rtinst.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
