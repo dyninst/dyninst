@@ -47,4 +47,6 @@
 // the prefix FIH stands for fast-inferior-heap
 enum states {FIHallocated, FIHfree, FIHpendingfree, FIHmaybeAllocatedByFork, FIHallocatedButDoNotSample, FIHmaybeAllocatedByForkButDoNotSample};
 
+enum sampling_states {FIHactive, FIHinactive};
+
 #endif
