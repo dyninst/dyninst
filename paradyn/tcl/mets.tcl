@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.4  1994/07/21 01:53:33  rbi
+# Revision 1.5  1994/09/13 05:06:36  karavan
+# changes to accommodate multiple simultaneous menus.
+#
+# Revision 1.4  1994/07/21  01:53:33  rbi
 # YANS -- Yet another new style
 #
 # Revision 1.3  1994/07/15  04:16:25  hollings
@@ -33,20 +36,26 @@ proc bldMetResult { msgID mList mCount resList} {
        uimpd gotMetrics $msgID $newList $i $resList
 }
 
-proc getMetsAndRes {} {
-	global metCount metsAndResID metList w
+proc getMetsAndRes {metsAndResID} {
+	global metCount metList w metMenuCtr
 	set resList ""
-
-	set w .new
+    incr metMenuCtr
+	set w .metmenunew$metMenuCtr
 	set ret 0
 	set msg1 "Select Visualization Metric(s)"
 	set msg2 "Enter Focus:"
 	set msg3 "No Metrics Currently Defined"
-        mkDialogWindow $w
 
-        mkFrame $w.top {top fill expand} -relief raised -border 1
-        mkMessage $w.top.msg $msg1 {top expand padx 20 pady 20} \
-	          -aspect 1000 -font -Adobe-times-bold-r-normal--*-120*
+    # toplevel window
+    toplevel $w  -bd 0
+    wm title $w "Paradyn Metrics Menu"
+    wm iconname $w "PD Metrics Menu"
+    wm geometry $w +425+300
+    focus $w
+
+    mkFrame $w.top {top fill expand} -relief raised -border 1
+    mkMessage $w.top.msg $msg1 {top expand padx 20 pady 20} \
+	    -aspect 1000 -font -Adobe-times-bold-r-normal--*-120*
 
 	if {$metCount == 0} {
 	  mkMessage $w.top.nometsmsg $msg3 {top expand} \
@@ -60,6 +69,7 @@ proc getMetsAndRes {} {
          }
         }
 
+	# typed, text focus selection
         mkFrame $w.mid {top fill expand} -relief raised -border 1
         mkMessage $w.mid.msg $msg2 {top expand padx 20 pady 20} \
                 -aspect 1000 -font -Adobe-times-medium-r-normal--*-140*
@@ -70,9 +80,10 @@ proc getMetsAndRes {} {
         mkFrame $w.bot {top fill expand} -relief raised -border 1
 	button $w.bot.b1 -text "Cancel" -command {destroy $w} -bg red -fg white
 
+	# buttons
      button $w.bot.b2 -text "Accept" \
        -command \
-       {bldMetResult $metsAndResID $metList $metCount $resList; destroy $w} \
+       "bldMetResult $metsAndResID \$metList \$metCount \$resList; destroy $w" \
 	-bg white
 	pack $w.bot.b1 -side left -expand yes
 	pack $w.bot.b2 -side right -expand yes
