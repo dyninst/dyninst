@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.39 2000/04/20 20:16:52 jasonxie Exp $ */
+/* $Id: test1.mutatee.c,v 1.40 2000/04/30 22:52:32 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1508,7 +1508,11 @@ void call24_2()
 
 void call24_1() 
 { 
-    int i;
+#ifdef sparc_sun_solaris2_4
+    unsigned i=0; // hack to prevent g++'s optimizer making func uninstr'uble
+#else
+    unsigned i;
+#endif
     int localVariable24_1[100];
 
     for (i=0; i < 100; i++) localVariable24_1[i] = 2400000;
@@ -2354,14 +2358,6 @@ void template_test_call_cpp(int test)
 
 void decl_test::func_cpp()
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0)
-  passedTest[40] = TRUE;
-  cout << "Skipped test #40 (declaration)" << endl;
-  cout << "        - not tested until fixing getComponents core dump problem"
-       << endl;
-#else
    int CPP_DEFLT_ARG = 40;
 
    if ( 40 != CPP_DEFLT_ARG )
@@ -2370,7 +2366,6 @@ void decl_test::func_cpp()
      cout <<"::CPP_DEFLT_ARG init value wrong"<<endl;
    if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
      cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
-#endif
 }
 
 void decl_test::call_cpp(int test)
@@ -2386,14 +2381,6 @@ void decl_test::call_cpp(int test)
 
 void derivation_test::func_cpp()
 {
-#if defined(sparc_sun_solaris2_4) || \
-    defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0)
-  passedTest[41] = TRUE;
-  cout << "Skipped test #41 (derivation)" << endl;
-  cout << "        - not tested until fixing getComponents core dump problem"
-       << endl;
-#endif 
   DUMMY_FN_BODY;
 }
 
