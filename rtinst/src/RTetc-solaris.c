@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.38 2002/08/21 19:42:13 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.39 2002/09/18 21:18:23 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -126,7 +126,7 @@ DYNINSTgetCPUtime_LWP(int lwp_id) {
   rawTime64 now = 0;
   prusage_t theUsage;
   int lwp_fd;
-  if (lwp_id != -1) {
+  if (lwp_id > 0) {
     lwp_fd = ioctl(procfd, PIOCOPENLWP, &(lwp_id));
     if (lwp_fd != -1) {
       if (ioctl(lwp_fd, PIOCUSAGE, &theUsage) == -1) {

@@ -32,8 +32,8 @@ typedef sema_t                           dyninst_sema_t;
 extern void *P_thread_getspecific(dyninst_key_t);
 #define P_thread_setspecific(key, val)    thr_setspecific(key,val)
 #define P_thread_key_create(key,dest)     thr_keycreate(key,dest)
-#define P_thread_self()                   thr_self()
-#define P_lwp_self()                      lwp_self()
+#define P_thread_self()                   pthread_self()
+#define P_lwp_self()                      _lwp_self()
 
 #endif
 

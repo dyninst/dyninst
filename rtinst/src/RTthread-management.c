@@ -73,6 +73,8 @@ int DYNINST_reportThreadUpdate(int flag) {
     traceRec.start_pc = (unsigned) startpc ;
     traceRec.resumestate_p = resumestate_p ;
     traceRec.context = flag ;
+    fprintf(stderr, "Reporting MAIN thread, tid %d pos %d stack 0x%x pc 0x%x\n",
+	    traceRec.tid, traceRec.pos, traceRec.stack_addr, traceRec.start_pc);
     DYNINSTgenerateTraceRecord(0,
 			       TR_THR_SELF,
 			       sizeof(traceRec),
@@ -138,7 +140,7 @@ void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
 
 void DYNINSTthreadDelete(void) {
   unsigned pos = DYNINSTthreadPosFAST();
-  int tid = DYNINSTthreadSelf();
+  int tid = P_thread_self();
 
   /* Order: set the POS to "awaiting deletion",
      report deletion, then destroy the timer */

@@ -86,6 +86,9 @@ void _VirtualTimerStart(tTimer *timer, int context){
   timer->counter++;
   
   timer->protector2++;
+
+  fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer, timer->pos);
+
   assert(timer->protector1 == timer->protector2);
 }
 
@@ -169,17 +172,20 @@ void DYNINSTstartThreadTimer(tTimer* timer)
   rawTime64 start, old_start ;
   int valid = 0;  
   int i;
+  unsigned pos = DYNINSTthreadPosSLOW(P_thread_self()) ; /* in mini, so could use POS (maybe) */
+  fprintf(stderr, "DYNINSTstartThreadTimer, timer 0x%x, tid %d, lwp %d, pos %d\n",
+	  timer, P_thread_self(), P_lwp_self(), pos);
   if (!timer)
     i = *((int *)0);
+
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
   if (timer->counter == 0) {
     if (!(timer->pos)) { /* No POS associated with this timer yet */
       /* POS could be set in the daemon, which would make this all much easier */
-      unsigned pos;
-      pos = DYNINSTthreadPosFAST() ; /* in mini, so could use POS (maybe) */
       timer->pos = pos;
+      fprintf(stderr, "Setting timer POS to %d, tid %d\n", timer->pos, P_thread_self());
     }
     /* We sample the virtual timer, so we may need to retry */
     while (!valid) {
@@ -189,6 +195,7 @@ void DYNINSTstartThreadTimer(tTimer* timer)
   }
   timer->counter++;
   timer->protector2++;
+  PRINTOUT_TIMER(timer);
   assert(timer->protector1 == timer->protector2);
 }
 
@@ -206,13 +213,16 @@ void DYNINSTstopThreadTimer(tTimer* timer)
     while (!valid) 
       now = getThreadCPUTime(timer->pos, &valid);
     if (now < timer->start) {
+      fprintf(stderr, "%lld < %lld\n", now, timer->start);
       assert(0 && "Rollback in DYNINSTstopThreadTimer");
     }
     timer->total += (now - timer->start);
   }
-  timer->counter--;
+  
+  timer->counter--; 
   timer->protector2++;
 
+  PRINTOUT_TIMER(timer);
   assert(timer->protector1 == timer->protector2);
 }
 
