@@ -361,6 +361,11 @@ int handleSigChild(int pid, int status)
 	  forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
        }
        forkexec_cerr << endl << flush;
+#ifdef rs6000_ibm_aix4_1
+       cerr << "handleSigChild:  Detaching process " << pid 
+            << " and continuing." << endl;
+       return ptrace(PT_DETACH, pid, (int *)0, SIGCONT, 0);   //Set process free
+#endif
        return -1;
     }
 
