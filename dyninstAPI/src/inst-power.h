@@ -45,6 +45,14 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.7  1997/06/15 00:02:41  ssuen
+ * Included following new public access functions in class instPoint.
+ *
+ *         function_base *iPgetFunction() const { ... }
+ *         function_base *iPgetCallee()   const { ... }
+ *         const image   *iPgetOwner()    const { ... }
+ *         Address        iPgetAddress()  const { ... }
+ *
  * Revision 1.6  1997/04/14 00:21:53  newhall
  * removed class pdFunction and replaced it with base class function_base and
  * derived class pd_Function
@@ -117,6 +125,13 @@ public:
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
+
+
+  function_base *iPgetFunction() const { return func;   }
+  function_base *iPgetCallee()   const { return callee; }
+  const image   *iPgetOwner()    const { 
+    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
+  Address        iPgetAddress()  const { return addr;   }
 
 
   Address addr;                   /* address of inst point */
