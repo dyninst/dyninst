@@ -16,6 +16,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.15  1995/08/01 01:56:32  newhall
+ * fix to how global time is computed
+ *
  * Revision 1.14  1995/07/20 22:30:13  rbi
  * Fixed a folding bug
  *
@@ -230,12 +233,31 @@ void Histogram::addInterval(timeStamp start,
 
     lastBin = (int) ((end - startTime) / bucketWidth);
 
+#ifdef n_def
     // update global info. if this histogram started at time 0
     if(startTime == 0.0){
         lastGlobalBin = lastBin;
         for (unsigned i=0; i < allHist.size(); i++) {
 	    if((allHist[i])->startTime == 0.0){
 	        if (((allHist[i])->lastBin < lastGlobalBin)) {
+	            lastGlobalBin = (allHist[i])->lastBin;
+	    }}
+	}
+    }
+#endif
+
+    // TODO: this should be replaced with the above code when
+    // the performance consultant is changed to correctly
+    // delete histograms that it is no longer collection 
+    // data values for
+    // change this so that lastGlobalbin is max of all lastBins
+    if(startTime == 0.0){
+	if(lastBin > lastGlobalBin)
+            lastGlobalBin = lastBin;
+        for (unsigned i=0; i < allHist.size(); i++) {
+	    if(((allHist[i])->startTime == 0.0)
+	       && ((allHist[i])->isActive())){
+	        if (((allHist[i])->lastBin > lastGlobalBin)) {
 	            lastGlobalBin = (allHist[i])->lastBin;
 	    }}
 	}
@@ -295,7 +317,8 @@ void Histogram::foldAllHist()
 				       numBins*(allHist[i])->bucketWidth;
 	    if((allHist[i])->foldFunc) 
 		((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
-					(allHist[i])->cData);
+					(allHist[i])->cData,
+					(allHist[i])->startTime);
 	}
     }
 }
@@ -314,13 +337,17 @@ void Histogram::bucketValue(timeStamp start_clock,
 
     /* set starting and ending bins */
     int first_bin = (int) ((start_clock - startTime )/ bucketWidth);
-    assert(first_bin >= 0);
-    assert(first_bin <= numBins);
+    // ignore bad values
+    if((first_bin < 0) || (first_bin > numBins)) return;
+    //assert(first_bin >= 0);
+    //assert(first_bin <= numBins);
     if (first_bin == numBins)
 	first_bin = numBins-1;
     int last_bin = (int) ((end_clock - startTime) / bucketWidth);
-    assert(last_bin >= 0);
-    assert(last_bin <= numBins);
+    // ignore bad values
+    if((last_bin < 0) || (last_bin > numBins)) return;
+    // assert(last_bin >= 0);
+    // assert(last_bin <= numBins);
     if (last_bin == numBins)
 	last_bin = numBins-1;
     /* set starting times for first & last bins */
@@ -345,10 +372,15 @@ void Histogram::bucketValue(timeStamp start_clock,
 
 	/* determine how much of the first & last bins were in this interval */
 	timeStamp time_in_first_bin = 
-			bucketWidth - (start_clock - first_bin_start);
-	timeStamp time_in_last_bin = end_clock - last_bin_start;
+			bucketWidth - ((start_clock - startTime)- first_bin_start);
+	timeStamp time_in_last_bin = (end_clock- startTime) - last_bin_start;
 	timeStamp time_in_other_bins = 
 	    MAX(elapsed_clock - (time_in_first_bin + time_in_last_bin), 0);
+        // ignore bad values
+        if((time_in_first_bin < 0) || 
+	   (time_in_last_bin < 0) || 
+	   (time_in_other_bins < 0)) 
+	    return;
 
 	/* determine how much of value should be in each bin in the interval */
 	sampleValue amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
@@ -379,6 +411,7 @@ void Histogram::bucketValue(timeStamp start_clock,
     //  && that we have a full bin (last_bin>first_bin)
     if (dataFunc && (last_bin-first_bin)) {
 	(dataFunc)(&dataPtr.buckets[first_bin], 
+		   startTime,
 		   last_bin-first_bin, 
 		   first_bin, 
 		   cData);

@@ -9,9 +9,10 @@ typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
 typedef sampleValue Bin;
 
-typedef void (*foldCallBack)(timeStamp, void* userData);
+typedef void (*foldCallBack)(timeStamp, void* userData,timeStamp);
 
 typedef void (*dataCallBack)(sampleValue *buckets,
+			     timeStamp start_time,
 			     int numberOfBuckets,
 			     int first,
 			     void *userData);
@@ -53,6 +54,7 @@ class Histogram {
 	timeStamp getBucketWidth(){ return(bucketWidth);}
 	void setActive(){ active = true;}
 	void clearActive(){ active = false;}
+	bool isActive(){ return active;}
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, bool smooth);
 	void addPoint(timeStamp start, sampleValue value) {
