@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.33  1996/02/13 06:17:27  newhall
+ * Revision 1.34  1996/02/13 22:18:04  newhall
+ * added test to make sure that currentPredictedCost is never negative
+ *
+ * Revision 1.33  1996/02/13  06:17:27  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
  * Revision 1.32  1996/01/29  22:09:22  mjrg
@@ -252,9 +255,16 @@ void dynRPC::disableDataCollection(int mid)
     // cout << "disable of " << mi->getFullName() << endl; 
 
     cost = mi->originalCost();
+    
+    if(cost > currentPredictedCost)
+	currentPredictedCost = 0.0;
+    else 
+        currentPredictedCost -= cost;
 
-    currentPredictedCost -= cost;
-
+    // char buffer[200];
+    // sprintf(buffer, "disableDataCollection: currentPredictedCost = %f\n",
+    // 	    currentPredictedCost);
+    // logLine(buffer);
     mi->disable();
     allMIs.undef(mid);
     delete(mi);
