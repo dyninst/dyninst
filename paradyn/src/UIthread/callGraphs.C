@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.1 1999/05/24 16:58:48 cain Exp $
+// $Id: callGraphs.C,v 1.2 1999/06/03 19:40:45 paradyn Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -73,16 +73,17 @@ callGraphs::~callGraphs() {
 
    currCallGraphProgramIndex = UINT_MAX;
 }
+
 void callGraphs::changeNameStyle(bool fullName){
   assert(existsCurrent());
   getCurrent().changeNameStyle(fullName);
   getCurrent().rethinkEntireLayout();
   initiateCallGraphRedraw(interp, true);
 }
+
 callGraphs::callGraphStruct &callGraphs::getByIDLL(int programID) {
   
-  for (unsigned i=0; i < theCallGraphPrograms.size(); i++) {
-
+   for (unsigned i=0; i < theCallGraphPrograms.size(); i++) {
       if (theCallGraphPrograms[i].getProgramId() == programID)
          return theCallGraphPrograms[i];
    }
@@ -90,7 +91,8 @@ callGraphs::callGraphStruct &callGraphs::getByIDLL(int programID) {
    cerr << "call graph program: program id " << programID 
 	<< " doesn't exist." << endl;
    assert(false);
-   abort(); // placate compiler
+   abort();
+   return theCallGraphPrograms[0]; // placate VC++5.0 compiler
 }
 
 callGraphDisplay &callGraphs::getByID(int programID) {
@@ -109,8 +111,11 @@ const string &callGraphs::id2name(int id) const {
    for (unsigned lcv=0; lcv < theCallGraphPrograms.size(); lcv++)
       if (theCallGraphPrograms[lcv].getProgramId() == id)
          return theCallGraphPrograms[lcv].fullName;
+   cerr << "call graph program: program id " << id
+	<< " doesn't exist." << endl;
    assert(false);
    abort();
+   return ""; // placate VC++5.0 compiler (somewhat)
 }
 
 bool callGraphs::changeLL(unsigned newIndex) {
