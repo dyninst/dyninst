@@ -89,11 +89,13 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
       return;
    }
    
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if !defined(i386_unknown_linux2_0) &&\
+    !defined(i386_unknown_solaris2_5) &&\
+    !defined(i386_unknown_nt4_0) 
    
    findAndDeleteUnreachable();
+
+#endif
 
    // this may be a leaf function - if so, we won't have figure out what
    // the exit blocks are.  But we can assume that all blocks that don't
@@ -110,7 +112,92 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
      }
      delete[] blocks;
    }
-#endif
+
+   // if are not still bale to find an exit block yet
+   // then we do special handling and assign an exit basic block
+   // to the CFG. This is common for functions composed of infinite
+   // loops which no loop-breakers or returns from the function.
+
+   if (exitBlock.empty()) {
+	 assignAnExitBlockIfNoneExists();
+   }
+}
+
+// This function tries to assign an exit block to a CFG
+// that originally does not have eny exit blocks.
+// Common for functions with infinite loops and no returns.
+// this function should be used as the last resort
+// for asssigning an exit block to CFG for later post dominator
+// calculations to proceed.
+// The implementation of this function can be changed.
+// Currently we chose the basic block which has the lowest
+// id and the target of a backedge. Sort of approximating the
+// outermost loop.
+
+void BPatch_flowGraph::assignAnExitBlockIfNoneExists(){
+	fillDominatorInfo();
+
+	/** processedBlocks entries show ; 
+	  -1 ==> not processed
+	  n >= 0 ==> depth in dominator tree
+	  */
+
+	int* processedBlocks = new int[allBlocks.size()];
+	BPatch_basicBlock** depthMinimums = new BPatch_basicBlock*[allBlocks.size()];
+	for(unsigned i=0;i<allBlocks.size();i++){
+		processedBlocks[i] = -1;
+		depthMinimums[i] = NULL;
+	}
+
+	int depth = 0;
+
+	BPatch_Set<BPatch_basicBlock*> currentDepth;
+
+	currentDepth |= entryBlock;
+
+	while(!currentDepth.empty()){
+		BPatch_Set<BPatch_basicBlock*> nextDepth;
+		BPatch_Set<BPatch_basicBlock*> tmpSet;
+		while(!currentDepth.empty()){
+			BPatch_basicBlock* bb = NULL;
+			currentDepth.extract(bb);
+			if(processedBlocks[bb->blockNumber] > -1)
+				continue;
+			processedBlocks[bb->blockNumber] =  depth;
+			if(bb->immediateDominates)
+				nextDepth |= *(bb->immediateDominates);
+			tmpSet += bb;
+		}
+
+		int minDepth = allBlocks.size();
+		while(!tmpSet.empty()){
+			BPatch_basicBlock* bb = NULL;
+			tmpSet.extract(bb);
+			BPatch_Set<BPatch_basicBlock*> bbtargets = bb->targets;
+			while(!bbtargets.empty()){
+				BPatch_basicBlock* tobb = NULL;
+				bbtargets.extract(tobb);
+				if(processedBlocks[tobb->blockNumber] == -1)
+					continue;
+				if(minDepth > processedBlocks[tobb->blockNumber]){
+					minDepth = processedBlocks[tobb->blockNumber];
+					depthMinimums[depth] = tobb;
+				}
+			}
+		}
+		depth++;
+		currentDepth |= nextDepth;
+	}
+
+	for(int i=(int)(allBlocks.size())-1;i>=0;i--)
+		if(depthMinimums[i]){
+			exitBlock += depthMinimums[i];
+			depthMinimums[i]->isExitBasicBlock = true;
+			break;
+		}
+
+	delete[] processedBlocks;
+	delete[] depthMinimums;
 }
 
 BPatch_flowGraph::~BPatch_flowGraph()
@@ -1026,7 +1113,7 @@ public:
 		}
 	}
 };
-
+	
 //this method fill the dominator information of each basic block
 //looking at the control flow edges. It uses a fixed point calculation
 //to find the immediate dominator of the basic blocks and the set of
@@ -1098,8 +1185,41 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
   /* Always use Tarjan algorithm, since performance gain is
      probably minimal for small (<8 block) graphs anyways */
   
+  /* First find basic blocks that are not reachable from 
+     one of the exit block. their color are white after
+     the following DFS with sources
+   */
+
+  int* bbToColor = new int[allBlocks.size()];
+  for(i=0;i<allBlocks.size();i++)
+    bbToColor[i] = WHITE;
+
+  elements = new BPatch_basicBlock*[exitBlock.size()];
+  exitBlock.elements(elements);
+  for(i=0;i<exitBlock.size();i++)
+    if(bbToColor[elements[i]->blockNumber] == WHITE)
+       dfsVisitWithSources(elements[i],bbToColor);
+
+  delete[] elements;
+
   elements = new BPatch_basicBlock*[allBlocks.size()+1];
   allBlocks.elements(elements);
+
+  BPatch_Set<BPatch_basicBlock*> extraBlockSet;	
+  for (i = 0; i < allBlocks.size(); i++){
+	if(exitBlock.contains(elements[i]))
+		continue;
+	if(bbToColor[elements[i]->blockNumber] == WHITE){
+		/** a block that does not reach the exit block
+          * root of the forest so include this 
+          * for processing for post dom calculation
+          */
+		dfsVisitWithSources(elements[i],bbToColor);
+		extraBlockSet += elements[i];
+	}
+  }
+
+  delete[] bbToColor;
 
   int maxBlk = -1;
   for (i = 0; i < allBlocks.size(); i++)
@@ -1109,6 +1229,12 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
   tempb = new BPatch_basicBlock(this, maxBlk+1);
   elements[allBlocks.size()] = tempb;
   BPatch_Set<BPatch_basicBlock*> exits = exitBlock;
+
+  /** add the basic blocks that do not reach exit blocks 
+	to the exit list */
+
+  exits |= extraBlockSet;
+
   while (!exits.empty()) {
     bb = exits.minimum();
     tempb->sources.insert(bb);
@@ -1180,7 +1306,7 @@ void BPatch_flowGraph::findBackEdges(BPatch_Set<BPatch_basicBlock*>** backEdges)
 // Perform a dfs of the graph of blocks bb starting at bbToColor. A 
 // condition of this function is that the blocks are marked as not yet visited
 // (WHITE). This function marks blocks as pre- (GRAY) and post-visited (BLACK).
-void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb, int* bbToColor)
+void BPatch_flowGraph::dfsVisitWithTargets(BPatch_basicBlock* bb, int* bbToColor)
 {
     // pre-visit this block
     bbToColor[bb->blockNumber] = GRAY;
@@ -1194,7 +1320,31 @@ void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb, int* bbToColor)
     for (unsigned int i=0; i < bb->targets.size(); i++) {
 	// if sucessor not yet visited then pre-visit it
 	if (bbToColor[elements[i]->blockNumber] == WHITE) {
-	    dfsVisit(elements[i], bbToColor);
+	    dfsVisitWithTargets(elements[i], bbToColor);
+	}
+    }
+
+    // post-visit this block
+    bbToColor[bb->blockNumber] = BLACK;
+
+    delete[] elements;
+}
+
+void BPatch_flowGraph::dfsVisitWithSources(BPatch_basicBlock* bb, int* bbToColor)
+{
+    // pre-visit this block
+    bbToColor[bb->blockNumber] = GRAY;
+
+    BPatch_basicBlock** elements =  
+	new BPatch_basicBlock*[bb->sources.size()];
+
+    bb->sources.elements(elements);
+
+    // for each of the block's sucessors 
+    for (unsigned int i=0; i < bb->sources.size(); i++) {
+	// if sucessor not yet visited then pre-visit it
+	if (bbToColor[elements[i]->blockNumber] == WHITE) {
+	    dfsVisitWithSources(elements[i], bbToColor);
 	}
     }
 
@@ -1242,7 +1392,7 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 	entryBlock.elements(elements);
 	for(i=0;i<entryBlock.size();i++)
 		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisit(elements[i],bbToColor);
+			dfsVisitWithTargets(elements[i],bbToColor);
 
 	delete[] elements;
 
