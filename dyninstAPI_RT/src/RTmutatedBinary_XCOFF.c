@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.2 2003/02/04 15:19:06 bernat Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.3 2003/08/11 17:33:25 chadd Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -86,7 +86,7 @@ int checkMutatedFile(){
 	struct xcoffhdr *XCOFFhdr;
 	char *data;
 	void *XCOFFfile;
-	sprintf(execStr,"./dyninst_mutatedBinary");
+	sprintf(execStr,"%s/dyninst_mutatedBinary",getenv("PWD"));
 
 
 	XCOFFfile = loadFile(execStr, &fd);
