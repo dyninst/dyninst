@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.9  1996/11/26 16:06:55  naim
-/* Fixing asserts - naim
+/* Revision 1.10  1997/01/15 00:12:55  tamches
+/* added batch mode support
 /*
+ * Revision 1.9  1996/11/26 16:06:55  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.8  1996/08/16 21:06:51  tamches
  * updated copyright for release 1.1
  *
@@ -206,4 +209,32 @@ bool abstractions::change(const string &newName) {
    }
 
    return false; // could not find any abstraction with that name
+}
+
+void abstractions::drawCurrent(bool doubleBuffer, bool xsynchOn) {
+   // checks batch mode; if true, rethinks before the redraw
+   if (!existsCurrent()) return;
+
+   if (inBatchMode) {
+      //cerr << "rethinking before redraw since batch mode is true!" << endl;
+      resizeEverything(true); // resorts, rethinks layout...expensive!
+   }
+
+   getCurrent().draw(doubleBuffer, xsynchOn);
+}
+
+void abstractions::startBatchMode() {
+   inBatchMode = true;
+      // when true, draw() can draw garbage, so in such cases, we rethink
+      // before drawing.  (expensive, of course)
+}
+
+void abstractions::endBatchMode() {
+   inBatchMode = false;
+   resizeEverything(true); // resorts, rethinks layout.  expensive.
+}
+
+bool abstractions::selectUnSelectFromFullPathName(const string &name, bool select) {
+   assert(existsCurrent());
+   return getCurrent().selectUnSelectFromFullPathName(name, select);
 }
