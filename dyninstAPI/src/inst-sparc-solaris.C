@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.144 2004/02/25 04:36:23 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.145 2004/02/28 00:26:22 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -161,60 +161,60 @@ void pd_Function::addCallPoint(const instruction instr,
 {
  
 #ifdef DEBUG_CALL_POINTS
-    cerr << "pd_Function::addCallPoint called " << endl;
-    cerr << " this " << *this << endl;
-    cerr << " adr = " << adr << endl;
-    cerr << " relocatable_ = " << relocatable_ << endl;
-    cerr << " reloc_info = " << reloc_info << endl;
+   cerr << "pd_Function::addCallPoint called " << endl;
+   cerr << " this " << *this << endl;
+   cerr << " adr = " << adr << endl;
+   cerr << " relocatable_ = " << needsRelocation() << endl;
+   cerr << " reloc_info = " << reloc_info << endl;
 #endif
 
-    if (!isInsnType(instr, CALLmask, CALLmatch)) {
+   if (!isInsnType(instr, CALLmask, CALLmatch)) {
       point->callIndirect = true;
       point->setCallee(NULL);
-    } else{
+   } else{
       point->callIndirect = false;
-    }
+   }
 
-    if (relocatable_) {
+   if (needsRelocation()) {
 
-	if (!reloc_info) {
-	    calls.push_back(point);
-	    calls[callId] -> instId = callId; 
-            callId++;
+      if (!reloc_info) {
+         calls.push_back(point);
+         calls[callId] -> instId = callId; 
+         callId++;
 
-	} else {
+      } else {
 
 #ifdef DEBUG_CALL_POINTS
-	    cerr << " *this = " << *this;
-	    cerr << " callId = " << callId;
-	    cerr << " (u_int)callId = " << (u_int)callId;
-	    cerr << " calls.size() = " << calls.size() << endl;
-	    cerr << " calls = " << endl;
-	    for(unsigned un=0;un<calls.size();un++) {
-	        cerr << calls[un] << " , ";
-	    }
-	    cerr << endl;
+         cerr << " *this = " << *this;
+         cerr << " callId = " << callId;
+         cerr << " (u_int)callId = " << (u_int)callId;
+         cerr << " calls.size() = " << calls.size() << endl;
+         cerr << " calls = " << endl;
+         for(unsigned un=0;un<calls.size();un++) {
+            cerr << calls[un] << " , ";
+         }
+         cerr << endl;
 #endif
 
-	    assert((callId) < calls.size());
+         assert((callId) < calls.size());
 	  
-	    if(location && (calls[callId] == location)) { 
-		assert(calls[callId]->instId  == location->instId);
-		location = point; 
-	    } 
+         if(location && (calls[callId] == location)) { 
+            assert(calls[callId]->instId  == location->instId);
+            location = point; 
+         } 
 	   
-	    point->instId = callId++;
-	    reloc_info->addFuncCall(point);
-	}
+         point->instId = callId++;
+         reloc_info->addFuncCall(point);
+      }
 
-    } else {
+   } else {
 
-	if (!reloc_info) {
-	    calls.push_back(point);
-	} else {
-	    reloc_info->addFuncCall(point);
-	}
-    }
+      if (!reloc_info) {
+         calls.push_back(point);
+      } else {
+         reloc_info->addFuncCall(point);
+      }
+   }
 }
 
 /****************************************************************************/
@@ -886,6 +886,11 @@ trampTemplate * installBaseTramp( instPoint * & location,
 }
 
 
+bool can_do_relocation(process *, const pdvector<pdvector<Frame> > &,
+                       pd_Function *) {
+   return true;
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -904,21 +909,25 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                                       bool /*noCost*/, 
                                        bool &deferred)
 {
-   Address baseAddress;
-   Address ipAddr;
-   Address baseTrampAddress = 0;
-
+   //=======================================================================
+   // DUPLICATE CODE IN inst-x86.C in findOrInstallBaseTramp
+   // merge these into platform independent code in the (near) future
+   trampTemplate *ret;
    retInstance = NULL;
 
-   const instPoint *&cLocation = const_cast<const instPoint *&>(location);
- 
-   trampTemplate *ret;
+   pd_Function *ptFunc = location->pointFunc();
 
-   if (proc->baseMap.find(cLocation, ret)) {
+   // location may not have been updated since relocation of function
+   if(ptFunc->hasBeenRelocated(proc) && !location->isRelocatedPointType()) {
+      instPoint *reloc_inst_pt = location->getMatchingRelocInstPoint(proc);
+      location = reloc_inst_pt;
+   }
 
+   if (proc->baseMap.find(location, ret)) {
       // This base tramp already exists; nothing to do.
       return ret;
    }
+   //=======================================================================
 
 
    // Generate the template for the trampoline
@@ -927,11 +936,11 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
       current_template = &conservativeBaseTemplate;
    }
 
+   Address baseAddress;
+   Address baseTrampAddress = 0;
+
    // Get the base address of the shared object 
    proc->getBaseAddress( location->getOwner(), baseAddress );
-
-   // Determine the address of the instPoint
-   ipAddr = location->pointAddr() + baseAddress;
 
 
    // For functions that MAY need relocation, check to see if the 
@@ -939,7 +948,9 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
    // If the base tramp is too far away, force relocation, and rewrite
    // the function so that a save; call; restore; sequence can be used
    // to transfer to the base trampoline.
-   if ( location->pointFunc()->mayNeedRelocation() ) { 
+   if ( ptFunc->mayNeedRelocation() ) { 
+      // Determine the address of the instPoint
+      Address ipAddr = location->pointAddr() + baseAddress;
         
       // Allocate space for the base trampoline
       baseTrampAddress = proc->inferiorMalloc(current_template->size, 
@@ -952,7 +963,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
       // as how many instructions get copied to the base trampoline
       if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
          // The function needs to be relocated to be instrumentable
-         location->pointFunc()->setRelocatable(true);
+         ptFunc->markAsNeedingRelocation(true);
             
          // Free up the space allocated for the base tramp
          // (Since we are relocating the function, we want to allocate
@@ -963,36 +974,49 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
       }
    }
 
-   pd_Function *ptFunc = location->pointFunc();
-   // Relocate the function if needed 
-   if(ptFunc->needsRelocation()) {
-      const BPatch_point *old_bppoint = location->getBPatch_point();
-      if(! ptFunc->hasBeenRelocated(proc)) {
-         // Relocate the function
-         bool relocated = ptFunc->relocateFunction(proc, location, 
-                                                   deferred);
-            
-         // Unable to relocate function
-         if (relocated == false) {
-            fprintf(stderr, "Unable to relocate\n");
-                
-            return NULL;
-         }
-         location->setBPatch_point(old_bppoint);            
-      } else {
-         if(! location->isRelocatedPointType()) {
-            // need to find new instPoint for location...
-            // it has the pre-relocated address of the instPoint
-            ptFunc->modifyInstPoint(cLocation,proc);
-            location->setBPatch_point(old_bppoint);
-         }
-      }
+
+   //=======================================================================
+   // DUPLICATE CODE IN inst-sparc-solaris.C in findOrInstallBaseTramp
+   // merge these into platform independent code in the (near) future
+   const BPatch_point *old_bppoint = location->getBPatch_point();
+   pdvector<pdvector<Frame> > stackWalks;
+   bool relocated;
+
+   if((! ptFunc->needsRelocation()) || ptFunc->hasBeenRelocated(proc))
+      goto install_base_tramp;
+
+   if (!proc->walkStacks(stackWalks)) return false;
+
+   if(! can_do_relocation(proc, stackWalks, ptFunc)) {
+      deferred = true;
+#ifdef BPATCH_LIBRARY   
+      goto install_base_tramp;  // Dyninst
+#else                   
+      return NULL;              // Paradyn
+#endif
    }
 
+   // instrumenting relocated functions that are long running causes catchup
+   // to not start timer of these functions instrument original function
+   // instead in this case
+   if(ptFunc->is_on_stack(proc, stackWalks) && 
+      ptFunc->think_is_long_running(proc, stackWalks)) {
+      goto install_base_tramp;
+   }
+   
+   relocated = ptFunc->relocateFunction(proc, location);
+   if(! relocated) { // try to install original func
+   }
+
+   location->setBPatch_point(old_bppoint);
+   //=======================================================================
+
+
+ install_base_tramp:
 
    // Grab the address of the instPoint (this may have changed if the
    // function was relocated).
-   ipAddr = location->pointAddr() + baseAddress;
+   Address ipAddr = location->pointAddr() + baseAddress;
 
 
    // Allocate space for the base tramp if it has not been allocated yet
@@ -2182,8 +2206,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    instPoint *point = 0;
 
-   // For determining if function needs relocation to be instrumented
-   relocatable_ = false;
+   needs_relocation_ = false;
    mayNeedRelocation_ = false;
    canBeRelocated_ = true;
 
@@ -2218,7 +2241,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       // If there's an TRAP instruction in the function, we assume
       // that it is an system call and will relocate it to the heap
       if (isInsnType(instr, TRAPmask, TRAPmatch)) {
-         relocatable_ = true;
+         needs_relocation_ = true;
       } 
 
       // TODO: This is a hacking for the solaris(solaris2.5 actually)
@@ -2239,7 +2262,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       if (CallRestoreTC(instr, nexti) || 
           JmpNopTC(instr, nexti, adr, this) ||
           MovCallMovTC(instr, nexti)) {
-         relocatable_ = true;
+         needs_relocation_ = true;
       }
 
       // if call is directly to a retl, this is not a real call, but
@@ -2308,13 +2331,13 @@ bool pd_Function::findInstPoints(const image *owner) {
 
 
    // Can't handle function
-   if (canBeRelocated_ == false && relocatable_ == true) 
+   if (canBeRelocated_ == false && needs_relocation_ == true) 
       goto set_uninstrumentable;
     
 #ifdef BPATCH_LIBRARY
    if (BPatch::bpatch->hasForcedRelocation_NP()) {
       if (canBeRelocated_ == true) {
-         relocatable_ = true;
+         needs_relocation_ = true;
       }
    }
 #endif
@@ -2595,7 +2618,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    checkPoints = checkInstPoints(owner);
 
-   if ( (checkPoints == false) || (!canBeRelocated_ && relocatable_) ){
+   if ( (checkPoints == false) || (!canBeRelocated_ && needs_relocation_) ){
       goto set_uninstrumentable;
    }
 
@@ -2657,7 +2680,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
                 
                // function can be instrumented if we relocate it
                 
-               relocatable_ = true;
+               needs_relocation_ = true;
             }
          }
         
@@ -2671,7 +2694,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
                     
                   // function can be instrumented if we relocate it
                     
-                  relocatable_ = true; 
+                  needs_relocation_ = true; 
                }
             }
          }
@@ -2695,14 +2718,14 @@ bool pd_Function::checkInstPoints(const image *owner) {
       if(func_entry >= funcReturns[i]->pointAddr()){
 
          // function can be instrumented if we relocate it 
-         relocatable_ = true; 
+         needs_relocation_ = true; 
       }
       if(i >= 1) { // check if return points overlap
          Address prev_exit = funcReturns[i-1]->pointAddr() +
                              funcReturns[i-1]->size;  
          if(funcReturns[i]->pointAddr() < prev_exit) {
             // function can be instrumented if we relocate it 
-            relocatable_ = true;
+            needs_relocation_ = true;
          } 
       }
    }
