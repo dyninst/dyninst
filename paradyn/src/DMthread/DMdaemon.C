@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.88 2000/03/15 17:42:56 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.89 2000/03/23 01:36:40 wylie Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -285,19 +285,37 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 					      const string &login, 
 					      const string &name) {
 
+  //cerr << "paradynDaemon::getDaemonHelper(machine=" << machine << ")" << endl;
+
+    string m = machine; 
+    // fill in machine name to default_host if empty
+    if (!m.length()) {
+        if (default_host.length()) {
+            m = getNetworkName(default_host);
+            //cerr << "Using default host <" << m << ">" << endl;
+        } else {
+            m = getNetworkName();
+            //cerr << "Using local host <" << m << ">" << endl;
+        }
+    } else {
+            m = getNetworkName(m);
+            //cerr << "Using given host <" << m << ">" << endl;
+    }
+
     // find out if we have a paradynd on this machine+login+paradynd
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        if ((!machine.string_of() || (pd->machine == machine)) && 
+        if ((!m.string_of() || (pd->machine == m)) && 
            (!login.string_of() || (pd->login == login))  &&
 	   (name.string_of() && (pd->name == name))) {
+            //cerr << "Returning an existing daemon match!" << endl;
 	    return (pd);     
         }
     }
   
     // find a matching entry in the dictionary, and start it
-    daemonEntry *def = findEntry(machine, name);
+    daemonEntry *def = findEntry(m, name);
     if (!def) {
 	if (name.length()) {
 	  string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
@@ -307,12 +325,6 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 	  uiMgr->showError(91,"");
         }
 	return ((paradynDaemon*) 0);
-    }
-
-    string m = machine; 
-    // fill in machine name if empty
-    if (!m.string_of()) {
-        m = default_host;
     }
 
     char statusLine[256];
@@ -563,7 +575,6 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
 }
 
 
-
 static bool rshPOE(const string         &machine, const string         &login,
                    const string      /* &name*/,  const string         &dir,
                    const vector<string> &argv,    const vector<string>  args,
@@ -641,7 +652,7 @@ static bool startPOE(const string         &machine, const string         &login,
   if (fork()) return(true);
 
   if ((machine.length() == 0) || (machine == "localhost") || 
-      (machine == getHostName()))
+      (machine == getHostName()) || (machine == getNetworkName()))
     return(execPOE(machine, login, name, dir, argv, args, de));
   else
     return( rshPOE(machine, login, name, dir, argv, args, de));
@@ -1180,7 +1191,10 @@ bool paradynDaemon::newExecutable(const string &machine,
 
           remoteShell = def->getRemoteShellString();
 
-          sprintf(comm, "%s %s uname -s", remoteShell.length() ? remoteShell.string_of() : "rsh",
+          sprintf(comm, "%s%s%s %s uname -s", 
+                  remoteShell.length() ? remoteShell.string_of() : "rsh",
+                  login.length() ? " -l " : "",
+                  login.length() ? login.string_of() : "",
                   machine.string_of());
 
           commStream = P_popen(comm, "r");
@@ -1821,13 +1835,18 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
       command = loc;
     }
   
-    status = new status_line(machine.string_of(), status_line::PROCESS);
+    if (machine.suffixed_by(local_domain)) {
+        const unsigned namelength = machine.length()-local_domain.length()-1;
+        const string localname = machine.substr(0,namelength);
+        status = new status_line(localname.string_of(), status_line::PROCESS);
+    } else
+        status = new status_line(machine.string_of(), status_line::PROCESS);
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons+=pd;
     id = paradynDaemon::allDaemons.size()-1;
     assert(paradynDaemon::allDaemons.size() > id); 
 
-	metCheckDaemonProcess( machine );
+    metCheckDaemonProcess(machine);
   }
   // else...we leave "errorConditionFound" for the caller to check...
   //        don't forget to check!
@@ -1858,7 +1877,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     // get the earliest first time that had been reported by any paradyn
     // daemon to use as the base (0) time
     bool aflag;
-    aflag=getEarliestFirstTime();
+    aflag=(getEarliestFirstTime()>0);
     assert(aflag);
 
   // Just for debugging:
@@ -1866,7 +1885,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 
     // Go through every item in the batch buffer we've just received and
     // process it.
-    for (unsigned index =0; index < theBatchBuffer.size(); index++) {
+    for (unsigned index=0; index < theBatchBuffer.size(); index++) {
 	const T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
 
 	unsigned mid          = entry.mid ;
@@ -2071,7 +2090,13 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
   } else {
     machine = m.string_of();
     command = p.string_of();
-    status = new status_line(machine.string_of(), status_line::PROCESS);
+
+    if (machine.suffixed_by(local_domain)) {
+        const unsigned namelength = machine.length()-local_domain.length()-1;
+        const string localname = machine.substr(0,namelength);
+        status = new status_line(localname.string_of(), status_line::PROCESS);
+    } else
+        status = new status_line(machine.string_of(), status_line::PROCESS);
 
     if(flavor == "pvm") {
       name = "pvmd";

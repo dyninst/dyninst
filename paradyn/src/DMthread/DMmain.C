@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.128 2000/02/09 19:49:58 pcroth Exp $
+// $Id: DMmain.C,v 1.129 2000/03/23 01:36:40 wylie Exp $
 
 #include <assert.h>
 extern "C" {
@@ -712,10 +712,10 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
     }
 
     // for now, abort if there is no paradynd, this should not happen
-    printf("process started on %s, can't find paradynd there\n",
+    fprintf(stderr,"process started on %s, can't find paradynd there\n",
 	   machine_name.string_of());
-    printf("paradyn error #1 encountered\n");
-    exit(-1);
+    fprintf(stderr,"paradyn error #1 encountered\n");
+    //exit(-1);
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
@@ -824,7 +824,7 @@ void dataManager::displayParadynVersionInfo()
 
 void dataManager::displayDaemonStartInfo() 
 {
-    const string machine = getHostName();
+    const string machine = getNetworkName();
     const string port    = string(dataManager::dm->sock_port);
     const string command = string("paradynd -z<flavor> -l2")
                          + string(" -m") + machine + string(" -p") + port;
@@ -848,7 +848,7 @@ void dataManager::displayDaemonStartInfo()
 
 void dataManager::printDaemonStartInfo(const char *filename)
 {
-    const string machine = getHostName();
+    const string machine = getNetworkName();
     const string port  = string(dataManager::dm->sock_port);
     const string command = string("paradynd -z<flavor> -l2")
                          + string(" -m") + machine + string(" -p") + port;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.52 1999/12/17 16:24:58 pcroth Exp $
+// $Id: main.C,v 1.53 2000/03/23 01:35:31 wylie Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -104,8 +104,8 @@ char debug_buf[DEBUGBUFSIZE];
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
-string default_host;
-
+string default_host="";
+string local_domain="";
 
 #define PRINT_DEBUG_MACRO				\
 do {							\
@@ -254,10 +254,21 @@ main (int argc, char **argv)
     a_ct++;
   }
 
-  // initialize default host here, if it was not defined in a command line argument
-  if (!default_host.length()) {
-    default_host = getHostName();
-  }
+#ifdef notdef // this isn't relevant here as default_host is defined later
+              // when required (in paradynDaemon::getDaemonHelper)
+  default_host = getNetworkName(default_host);
+#endif
+
+  const string localhost = getNetworkName();
+  //cerr << "main: localhost=<" << localhost << ">" << endl;
+  unsigned index=0;
+  while (index<localhost.length() && localhost[index]!='.') index++;
+  if (index == localhost.length())
+      cerr << "Failed to determine local machine domain: localhost=<" 
+           << localhost << ">" << endl;
+  else
+      local_domain = localhost.substr(index+1,localhost.length());
+  //cerr << "main: local_domain=<" << local_domain << ">" << endl;
 
 // get tid of parent
   MAINtid = thr_self();
