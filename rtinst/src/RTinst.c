@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.47 2001/10/11 23:58:14 schendel Exp $
+ * $Id: RTinst.c,v 1.48 2002/01/17 16:22:49 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -71,9 +71,7 @@
 /* #include <mpi.h> */
 #endif
 
-#if defined(SHM_SAMPLING)
 extern void makeNewShmSegCopy();
-#endif
 
 #if defined(MT_THREAD)
 extern const char V_libdyninstRT_MT[];
@@ -126,19 +124,14 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 
 /************************************************************************/
 
-#ifdef SHM_SAMPLING
 /* these vrbles are global so that fork() knows the attributes of the
    shm segs we've been using */
 int DYNINST_shmSegKey;
 int DYNINST_shmSegNumBytes;
 int DYNINST_shmSegShmId; /* needed? */
 void *DYNINST_shmSegAttachedPtr;
-#endif
 int DYNINST_mutatorPid = -1; /* set in DYNINSTinit(); pass to connectToDaemon();
 				 needed if we fork */
-#ifndef SHM_SAMPLING
-static int DYNINSTin_sample = 0;
-#endif
 
 #ifdef USE_PROF
 int DYNINSTbufsiz;
@@ -175,25 +168,11 @@ double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 struct PARADYN_bootstrapStruct PARADYN_bootstrap_info;
 
-
-#ifndef SHM_SAMPLING
-/* This could be static, but gdb has can't find them if they are.  
-   jkh 5/8/95 */
-int64_t  DYNINSTvalue = 0;
-unsigned DYNINSTlastLow;
-unsigned DYNINSTobsCostLow;
-#endif
-
 #define N_FP_REGS 33
 
 volatile int DYNINSTsampleMultiple    = 1;
    /* written to by dynRPC::setSampleRate() (paradynd/dynrpc.C)
       (presumably, upon a fold) */
-
-#ifndef SHM_SAMPLING
-static int          DYNINSTnumSampled        = 0;
-static int          DYNINSTtotalAlarmExpires = 0;
-#endif
 
 /* Written to by daemon just before launching an inferior RPC */
 rpcInfo curRPC = { 0, 0, 0 };
@@ -229,47 +208,37 @@ timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
 timeQueryFuncPtr_t pDYNINSTgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
 
+#if defined(rs6000_ibm_aix4_1)
+/* sync on powerPC is actually more general than just a memory barrier,
+   more like a total execution barrier, but the general use we are concerned
+   of here is as a memory barrier 
+*/
+#define MEMORY_BARRIER     asm volatile ("sync")
+#else
+#define MEMORY_BARRIER
+#endif
+
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
-    /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might directly
-       or indirectly call write() in this routine; e.g. printf()!!!!! */
+/* For shared-mem sampling only: bump protector1, do work, then bump
+   protector2 */
+  assert(timer->protector1 == timer->protector2);
+  timer->protector1++;
+  MEMORY_BARRIER;
+    /* How about some kind of inline asm that flushes writes when the
+       architecture is using some kind of relaxed multiprocessor
+       consistency? */
 
-#ifndef SHM_SAMPLING
-    /* if "write" is instrumented to start/stop timers, then a timer could be
-       (incorrectly) started/stopped every time a sample is written back */
-
-    if (DYNINSTin_sample)
-       return;
-#endif
-
-/* For shared-mem sampling only: bump protector1, do work, then bump protector2 */
-#ifdef SHM_SAMPLING
-
-    assert(timer->protector1 == timer->protector2);
-    timer->protector1++;
-    /* How about some kind of inline asm that flushes writes when the architecture
-       is using some kind of relaxed multiprocessor consistency? */
-#endif
-
-    /* Note that among the data vrbles, counter is incremented last; in particular,
-       after start has been written.  This avoids a nasty little race condition in
-       sampling where count is 1 yet start is undefined (or using an old value) when
-       read, which usually leads to a rollback.  --ari */
-    if (timer->counter == 0) {
-      timer->start     =  DYNINSTgetCPUtime();
-    }
-    timer->counter++;
-
-#ifdef SHM_SAMPLING
-    timer->protector2++; /* alternatively, timer->protector2 = timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
-#else
-    timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
-#endif
+  if (timer->counter == 0) {
+    timer->start     =  DYNINSTgetCPUtime();
+  }
+  timer->counter++;
+  MEMORY_BARRIER;
+  timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
+  assert(timer->protector1 == timer->protector2);
 }
 
 
@@ -278,76 +247,28 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopProcessTimer(tTimer* timer) {
-    /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might directly
-       or indirectly call write() in this routine; e.g. printf()!!!!! */
-
-#ifndef SHM_SAMPLING
-    /* if "write" is instrumented to start/stop timers, then a timer could be
-       (incorrectly) started/stopped every time a sample is written back */
-
-    if (DYNINSTin_sample)
-       return;       
-#endif
-
-#ifdef SHM_SAMPLING
-    assert(timer->protector1 == timer->protector2);
-    timer->protector1++;
-
-    if (timer->counter == 0) {
-	   /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
+  assert(timer->protector1 == timer->protector2);
+  timer->protector1++;
+  MEMORY_BARRIER;
+  if (timer->counter == 0) {
+    /* a strange condition; shouldn't happen.  Should we make it an assert
+       fail? */
+  }
+  else {
+    if (timer->counter == 1) {
+      const rawTime64 now = DYNINSTgetCPUtime();
+      timer->total += (now - timer->start);
+      
+      if (now < timer->start) {
+	fprintf(stderr, "rtinst: cpu timer rollback.\n");
+	abort();
+      }
     }
-    else {
-		if (timer->counter == 1) {
-		        const rawTime64 now = DYNINSTgetCPUtime();
-			timer->total += (now - timer->start);
-			
-			if (now < timer->start) {
-				fprintf(stderr, "rtinst: cpu timer rollback.\n");
-				abort();
-			}
-		}
-		timer->counter--;
-    }
-
-    timer->protector2++; /* alternatively, timer->protector2=timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
-#else
-    if (timer->counter == 0)
-       ; /* should we make this an assert fail? */
-    else if (timer->counter == 1) {
-        time64 now = DYNINSTgetCPUtime();
-
-        timer->snapShot = timer->total + (now - timer->start);
-
-        timer->mutex    = 1;
-        /*                 
-         * The reason why we do the following line in that way is because
-         * a small race condition: If the sampling alarm goes off
-         * at this point (before timer->mutex=1), then time will go backwards 
-         * the next time a sample is take (if the {wall,process} timer has not
-         * been restarted).
-	 *
-         */
-
-        timer->total = DYNINSTgetCPUtime() - timer->start + timer->total; 
-
-        if (now < timer->start) {
-            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
-                   timer->id.id, (double)timer->snapShot,
-                   (double)timer->total, 
-                   (double)timer->start, (double)now);
-            printf("process timer rollback\n"); fflush(stdout);
-
-            abort();
-        }
-        timer->counter = 0;
-        timer->mutex = 0;
-    }
-    else {
-      timer->counter--;
-    }
-#endif
+    timer->counter--;
+  }
+  MEMORY_BARRIER;
+  timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
+  assert(timer->protector1 == timer->protector2);
 }
 
 /************************************************************************
@@ -356,41 +277,16 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 
 void
 DYNINSTstartWallTimer(tTimer* timer) {
-  /* WARNING: write() could be instrumented to call this routine, so to avoid
-     some serious infinite recursion, avoid calling anything that might directly
-     or indirectly call write() in this routine; e.g. printf()!!!!! */
-  /* In addition, avoid assert() which makes a printf call. If you use assert,
-     wrap it with a (DYNINST_local_write = 1; assert(); DYNINST_local_write = 0) */
-     
-#ifndef SHM_SAMPLING
-    /* if "write" is instrumented to start/stop timers, then a timer could be
-       (incorrectly) started/stopped every time a sample is written back */
-
-    if (DYNINSTin_sample) {
-       return;
-    }
-#endif
-
-#ifdef SHM_SAMPLING
-    assert(timer->protector1 == timer->protector2);
-    timer->protector1++;
-#endif
-
-    /* Note that among the data vrbles, counter is incremented last; in particular,
-       after start has been written.  This avoids a nasty little race condition in
-       sampling where count is 1 yet start is undefined (or using an old value) when
-       read, which usually leads to a rollback.  --ari */
-    if (timer->counter == 0) {
-        timer->start = DYNINSTgetWalltime();
-    }
-    timer->counter++;
-
-#ifdef SHM_SAMPLING
-    timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
-#else
-    timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
-#endif
+  assert(timer->protector1 == timer->protector2);
+  timer->protector1++;
+  MEMORY_BARRIER;
+  if (timer->counter == 0) {
+    timer->start = DYNINSTgetWalltime();
+  }
+  timer->counter++;
+  MEMORY_BARRIER;
+  timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
+  assert(timer->protector1 == timer->protector2);
 }
 
 
@@ -399,52 +295,20 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
-#ifndef SHM_SAMPLING
-  /* if "write" is instrumented to start timers, a timer could be started */
-  /* when samples are being written back */
-  
-  if (DYNINSTin_sample)
-    return;
-#endif
-
-#ifdef SHM_SAMPLING
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
-
-    if (timer->counter == 0)
-      /* a strange condition; should we make it an assert fail? */
-      fprintf(stderr, "Timer counter 0 in stopWallTimer\n");
-    else if (--timer->counter == 0) {
-       const rawTime64 now = DYNINSTgetWalltime();
-
-       timer->total += (now - timer->start);
-    }
+  MEMORY_BARRIER;
+  if (timer->counter == 0)
+    /* a strange condition; should we make it an assert fail? */
+    fprintf(stderr, "Timer counter 0 in stopWallTimer\n");
+  else if (--timer->counter == 0) {
+    const rawTime64 now = DYNINSTgetWalltime();
     
-    timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    assert(timer->protector1 == timer->protector2);
-#else
-    if (timer->counter == 0)
-       ; /* a strange condition; should we make it an assert fail? */
-    else if (timer->counter == 1) {
-        time64 now = DYNINSTgetWalltime();
-
-        timer->snapShot = now - timer->start + timer->total;
-        timer->mutex    = 1;
-        /*                 
-         * The reason why we do the following line in that way is because
-         * a small race condition: If the sampling alarm goes off
-         * at this point (before timer->mutex=1), then time will go backwards 
-         * the next time a sample is take (if the {wall,process} timer has not
-         * been restarted).
-         */
-        timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
-        timer->counter  = 0;
-        timer->mutex    = 0;
-    }
-    else {
-        timer->counter--;
-    }
-#endif
+    timer->total += (now - timer->start);
+  }
+  MEMORY_BARRIER;
+  timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
+  assert(timer->protector1 == timer->protector2);
 }
 
 /************************************************************************
@@ -467,64 +331,6 @@ saveFPUstate(float* base) {
 static void
 restoreFPUstate(float* base) {
 }
-
-
-
-/* The current observed cost since the last call to 
- *      DYNINSTgetObservedCycles(false) 
- */
-/************************************************************************
- * int64_t DYNINSTgetObservedCycles(RT_Boolean in_signal)
- *
- * report the observed cost of instrumentation in machine cycles.
- *
- * We keep cost as a 64 bit int, but the code generated by dyninst is
- *   a 32 bit counter (for speed).  So this function also converts the
- *   cost into a 64 bit value.
- *
- * We can't reset the low part of the counter since there might be an
- *   update of the counter going on while we are checking it.  So instead,
- *   we keep track of the last value of the low counter we saw, and update
- *   the high counter by the diference.  We also need to check that the
- *   delta is not negative (which happens when the low counter roles over).
- ************************************************************************/
-#ifndef SHM_SAMPLING
-int64_t DYNINSTgetObservedCycles(RT_Boolean in_signal) 
-{
-    if (in_signal) {
-        return DYNINSTvalue;
-    }
-
-    /* update the 64 bit version of the counter */
-    if (DYNINSTobsCostLow < DYNINSTlastLow) {
-        /* counter wrap around */
-        /* note the calc here assume 32 bit int, but if ints are 64bit, then
-           it won't wrap in the first place */
-        DYNINSTvalue += (((unsigned) 0xffffffff) - DYNINSTlastLow) + 
- 	    DYNINSTobsCostLow + 1;
-    } else {
-        DYNINSTvalue += (DYNINSTobsCostLow - DYNINSTlastLow);
-    }
-
-    DYNINSTlastLow = DYNINSTobsCostLow;
-    return DYNINSTvalue;
-}
-#endif
-
-
-/************************************************************************
- * void DYNINSTsampleValues(void)
- *
- * dummy function for sampling timers and counters.  the actual code
- * is added by dynamic instrumentation from the paradyn daemon.
-************************************************************************/
-#ifndef SHM_SAMPLING
-void
-DYNINSTsampleValues(void) {
-    DYNINSTnumReported++;
-}
-#endif
-
 
 /************************************************************************
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
@@ -596,136 +402,6 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 #endif /*MT_THRAED*/
 
 }
-/************************************************************************
- * void DYNINSTreportBaseTramps(void)
- *
- * report the cost of base trampolines.
-************************************************************************/
-#ifndef SHM_SAMPLING
-void
-DYNINSTreportBaseTramps() {
-  /* NOTE: this routine has a misleading name; how about 
-     DYNINSTsampleObsCost(). */
-
-    costUpdate sample;
-
-    /*
-       Adding the cost corresponding to the alarm when it goes off.
-       This value includes the time spent inside the routine (DYNINSTtotal-
-       sampleTime) plus the time spent during the context switch (121 usecs
-       for SS-10, sunos)
-    */
-
-    sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
-                              (double)DYNINSTcyclesToUsec) + 
-                             DYNINSTtotalSampleTime + 121) / 1000000.0);
-
-#ifdef notdef
-    if (DYNINSTprofile) {
-	int i;
-	int limit;
-	int pageSize;
-	int startInst;
-	extern void DYNINSTfirst();
-
-
-	limit = DYNINSTbufsiz;
-	/* first inst code - assumes data area above code space in virtual
-	 * address */
-	startInst = (int) &DYNINSTfirst;
-	for (i=0; i < limit; i ++) {
-	    if (i * DYNINSTtoAddr > startInst) {
-		instTicks += DYNINSTprofBuffer[i];
-	    }
-	}
-
-	sample.obsCostLow  = ((double) instTicks ) /100.0;
-	sample.obsCostHigh = sample.obsCostLow + sample.obsCostIdeal;
-    }
-#endif
-
-    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), &sample, 0,
-			       DYNINSTgetWalltime(), DYNINSTgetCPUtime());
-}
-#endif
-
-
-/************************************************************************
- * static void DYNINSTreportSamples(void)
- *
- * report samples to paradyn daemons. Called by DYNINSTinit, DYNINSTexit,
- * and DYNINSTalarmExpires.
-************************************************************************/
-#ifndef SHM_SAMPLING
-static void 
-DYNINSTreportSamples(void) {
-    time64     start_cpu;
-    float      fp_context[N_FP_REGS];
-
-    ++DYNINSTin_sample;
-
-    saveFPUstate(fp_context);
-    start_cpu = DYNINSTgetCPUtime();
-
-    /* to keep observed cost accurate due to 32-cycle rollover */
-    (void) DYNINSTgetObservedCycles(0);
-
-    DYNINSTsampleValues();
-    DYNINSTreportBaseTramps();
-    DYNINSTflushTrace();
-
-    DYNINSTtotalSampleTime += (DYNINSTgetCPUtime() - start_cpu);
-    restoreFPUstate(fp_context);
-    --DYNINSTin_sample;
-}
-#endif
-
-
-/************************************************************************
- * void DYNINSTalarmExpire(void)
- *
- * called periodically by signal handlers.  report sampled data back
- * to the paradyn daemons.  when the program exits, DYNINSTsampleValues
- * should be called directly.
-************************************************************************/
-/************************************************************************
- * DYNINSTalarmExpire is changed so that it will restart the sytem call
- * if that called is interrupted on HP
- * Duplicated for the same reason above.
- ************************************************************************/
-#ifndef SHM_SAMPLING
-void
-#if !defined(hppa1_1_hp_hpux)
-DYNINSTalarmExpire(int signo) {
-#else 
-DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
-#endif
-
-    if (DYNINSTin_sample) {
-        return;
-    }
-    DYNINSTin_sample = 1;
-
-    DYNINSTtotalAlarmExpires++;
-
-    /* This piece of code is needed because DYNINSTalarmExpire's are always called
-       at the initial pace (every .2 secs, I believe), whereas we only want to do
-       stuff at the current pace (initially every .2 secs but less frequently after
-       "folds").  We could just adjust the rate of SIGALRM, so this isn't
-       needed. */
-
-    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
-      DYNINSTreportSamples();
-    }
-
-    DYNINSTin_sample = 0;
-
-#if defined(hppa1_1_hp_hpux)
-    scp->sc_syscall_action = SIG_RESTART;
-#endif
-}
-#endif
-
 
 static void shmsampling_printf(const char *fmt, ...) {
 #ifdef SHM_SAMPLING_DEBUG
@@ -770,11 +446,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   int calledFromFork = (theKey == -1);
   int calledFromAttach = (paradyndPid < 0);
-
-#ifndef SHM_SAMPLING
-  unsigned         val;
-#endif
-  
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -805,7 +476,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   /* initialize the tag and group info */
   DYNINSTtagGroupInfo_Init();
 
-#ifdef SHM_SAMPLING
   if (!calledFromFork) {
     DYNINST_shmSegKey = theKey;
     DYNINST_shmSegNumBytes = shmSegNumBytes;
@@ -813,16 +483,16 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegNumBytes, 
 						 &DYNINST_shmSegShmId);
   }
-#endif
   
   /*
-     In accordance with usual stdio rules, stdout is line-buffered and stderr is
-     non-buffered.  Unfortunately, stdio is a little clever and when it detects
-     stdout/stderr redirected to a pipe/file/whatever, it changes to fully-buffered.
-     This indeed occurs with us (see paradynd/src/process.C to see how a program's
-     stdout/stderr are redirected to a pipe). So we reset back to the desired
-     "bufferedness" here.  See stdio.h for these calls.  When attaching, stdio
-     isn't under paradynd control, so we don't do this stuff.
+     In accordance with usual stdio rules, stdout is line-buffered and stderr
+     is non-buffered.  Unfortunately, stdio is a little clever and when it
+     detects stdout/stderr redirected to a pipe/file/whatever, it changes to
+     fully-buffered.  This indeed occurs with us (see paradynd/src/process.C
+     to see how a program's stdout/stderr are redirected to a pipe). So we
+     reset back to the desired "bufferedness" here.  See stdio.h for these
+     calls.  When attaching, stdio isn't under paradynd control, so we don't
+     do this stuff.
 
      Note! Since we are messing with stdio stuff here, it should go without
      saying that DYNINSTinit() (or at least this part of it) shouldn't be
@@ -846,14 +516,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINSTos_init(calledFromFork, calledFromAttach);
   PARADYNos_init(calledFromFork, calledFromAttach);
 
-#ifndef SHM_SAMPLING
-  /* assign sampling rate to be default value in pdutil/h/sys.h */
-  val = BASESAMPLEINTERVAL;
-  
-  DYNINSTsamplingRate = val/MILLION;
-  
-#endif
-  
 #ifdef USE_PROF
   {
     extern int end;
@@ -872,11 +534,9 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINST_bootstrap_info.ppid = -1; /* not needed really */
   
   if (!calledFromFork) {
-#ifdef SHM_SAMPLING
     shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
                        " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
     PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
-#endif
   }
   
   DYNINST_bootstrap_info.pid = getpid();
@@ -914,12 +574,10 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
     DYNINSTwriteTrace(&pid, sizeof(pid));
     DYNINSTwriteTrace(&ppid, sizeof(ppid));
-#ifdef SHM_SAMPLING
     DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
     ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
     DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
     DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
-#endif
     DYNINSTflushTrace();
   }
   else if (!calledFromFork) {
@@ -938,12 +596,10 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
       DYNINSTwriteTrace(&cookie, sizeof(cookie));
       DYNINSTwriteTrace(&pid, sizeof(pid));
       DYNINSTwriteTrace(&ppid, sizeof(ppid));
-#ifdef SHM_SAMPLING
       DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
 	  ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
 	  DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
 	  DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
-#endif /* SHM_SAMPLING */
 #endif
   }
   else
@@ -987,28 +643,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
   
   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
-   
-#ifndef SHM_SAMPLING
-  /* what good does this do here? */
-  /* We report samples here to set the starting time for metrics that were
-     enabled before the user press run, so we don't loose any samples - mjrg
-     */
-  DYNINSTreportSamples();
-
-  /* Install alarm only when exiting DYNINSTinit to avoid alarm going off
-     before DYNINSTinit is done */
-  /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
-  DYNINST_install_ualarm(val);
-
-#endif
-
 }
 
-#ifdef SHM_SAMPLING
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
 static struct PARADYN_bootstrapStruct _bs_dummy;
 int32_t PARADYN_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
-#endif /* SHM_SAMPLING */
 
 
 /************************************************************************
@@ -1025,9 +664,6 @@ DYNINSTexit(void) {
 
 #ifdef PROFILE_CONTEXT_SWITCH
     report_context_prof() ;
-#endif
-#ifndef SHM_SAMPLING
-    DYNINSTreportSamples();
 #endif
 
     /* NOTE: For shm sampling, we should do more here.  For example, we should
@@ -1116,12 +752,10 @@ DYNINSTfork(int pid) {
 	forkexec_printf("DYNINSTfork CHILD -- welcome\n");
 	fflush(stderr);
 
-#ifdef SHM_SAMPLING
 	/* Here, we need to detach from the old shm segment, create a new one
 	   (in the same virtual memory location as the old one), and attach 
            to it */
 	makeNewShmSegCopy();
-#endif
 
 	/* Here is where we used to send a TR_FORK trace record.  But we've found
 	   that sending a trace record followed by a DYNINSTbreakPoint had unpredictable
@@ -1154,11 +788,9 @@ DYNINSTfork(int pid) {
 
 	DYNINSTwriteTrace(&pid, sizeof(pid));
 	DYNINSTwriteTrace(&ppid, sizeof(ppid));
-#ifdef SHM_SAMPLING
 	DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
 	DYNINSTwriteTrace(&ptr_size, sizeof(ptr_size));
 	DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
-#endif
 	DYNINSTflushTrace();
 
 	forkexec_printf("dyninst-fork child pid %d sent pid;"
@@ -1221,9 +853,6 @@ DYNINSTexec(char *path) {
        DYNINSTinit() runs again for the exec'd process, it'll be turned back on.  This
        stuff is necessary to avoid the process dying on an uncaught sigalarm while
        processing the exec */
-#ifndef SHM_SAMPLING
-    DYNINST_install_ualarm(0);
-#endif
 
     forkexec_printf("DYNINSTexec before breakpoint\n");
 
@@ -1248,10 +877,6 @@ DYNINSTexecFailed() {
     
     DYNINSTgenerateTraceRecord(0, TR_EXEC_FAILED, sizeof(int), &pid, 1,
 			       process_time, wall_time);
-
-#ifndef SHM_SAMPLING
-    DYNINST_install_ualarm(BASESAMPLEINTERVAL);
-#endif
     errno = saved;
 }
 
@@ -1271,18 +896,9 @@ DYNINSTprintCost(void) {
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
 
-#ifndef SHM_SAMPLING
-    value = DYNINSTgetObservedCycles(0);
-#else
     value = *(unsigned*)((char*)PARADYN_bootstrap_info.appl_attachedAtPtr.ptr + 12);
-#endif
     stats.instCycles = value;
-
-#ifndef SHM_SAMPLING
-    stats.alarms      = DYNINSTtotalAlarmExpires;
-#else
     stats.alarms      = 0;
-#endif
     stats.numReported = DYNINSTnumReported;
     /* used only by alarm sampling */
     stats.handlerCost = 0;
@@ -1748,10 +1364,8 @@ void DYNINSTrecordTagGroupInfo(int tagId, int groupId)
   TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].isNewGroup = newGroup;
   TagGroupInfo.NumNewTags++;
 
-#ifdef SHM_SAMPLING
   /* report new tag and/or group to our daemon */
   DYNINSTreportNewTags();
-#endif    
 }
 
 
@@ -1789,115 +1403,6 @@ void DYNINSTrecordGroup(int groupId)
   TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
   DYNINSTrecordTagGroupInfo(-1, groupId);
 }
-
-
-/************************************************************************
- * void DYNINSTreportCounter(intCounter* counter)
- *
- * report value of counter to paradynd.
-************************************************************************/
-#ifndef SHM_SAMPLING
-void
-DYNINSTreportCounter(intCounter* counter) {
-    traceSample sample;
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
-    sample.value = counter->value;
-       /* WARNING: changes "int" to "float", with the associated problems of
-	            normalized number gaps; hence, the value has likely changed
-		    a bit (more for higher integers, say in the millions). */
-    sample.id    = counter->id;
-    DYNINSTtotalSamples++;
-
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
-			       wall_time, process_time);
-}
-#endif
-
-
-/************************************************************************
- * void DYNINSTreportTimer(tTimer* timer)
- *
- * report the timer `timer' to the paradyn daemon.
-************************************************************************/
-#ifndef SHM_SAMPLING
-void
-DYNINSTreportTimer(tTimer *timer) {
-    time64 total;
-    traceSample sample;
-
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
-    if (timer->mutex) {
-        total = timer->snapShot;
-	/* printf("id %d using snapshot value of %f\n", timer->id.id, (double)total); */
-    }
-    else if (timer->counter) {
-        /* timer is running */
-        time64 now;
-        if (timer->type == processTime) {
-            now = process_time;
-        } else {
-            now = wall_time;
-        }
-        total = now - timer->start + timer->total;
-	/* printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total); */
-    }
-    else {
-        total = timer->total;
-	/* printf("using %d total value of %f\n", timer->id.id, (double)total); */
-    }
-
-    if (total < timer->lastValue) {
-        if (timer->type == processTime) {
-            printf("process ");
-        }
-        else {
-            printf("wall ");
-        }
-        printf("time regressed timer %d, total = %f, last = %f\n",
-            timer->id.id, (float) total, (float) timer->lastValue);
-        if (timer->counter) {
-            printf("timer was active\n");
-        } else {
-            printf("timer was inactive\n");
-        }
-        printf("mutex=%d, counter=%d, snapShot=%f\n",
-            (int) timer->mutex, (int) timer->counter,
-            (double) timer->snapShot);
-        printf("start = %f, total = %f\n",
-	       (double) timer->start, (double) timer->total);
-        fflush(stdout);
-        abort();
-    }
-
-    timer->lastValue = total;
-
-    sample.id = timer->id;
-    if (timer->normalize == 0) {
-       fprintf(stderr, "DYNINSTreportTimer WARNING: timer->normalize is 0!!\n");
-    }
-
-    sample.value = ((double) total) / (double) timer->normalize;
-    /* check for nan now?
-       // NOTE: The type of sample.value is float, not double, so some precision
-       //       is lost here.  Besides, wouldn't it be better to send the raw
-       //       "total", with no loss in precision; especially since timer->normalize
-       //       always seems to be 1 million? (Well, it differs for cm5)
-       */
-    DYNINSTtotalSamples++;
-
-#ifdef ndef
-    printf("raw sample %d = %f time = %f\n", sample.id.id, sample.value,
-				(double)(now/1000000.0));  
-#endif
-
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
-				wall_time,process_time);
-}
-#endif
-
-
 
 /************************************************************************
  * DYNINST test functions.
