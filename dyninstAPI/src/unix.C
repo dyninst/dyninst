@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.95 2003/05/13 13:53:34 chadd Exp $
+// $Id: unix.C,v 1.96 2003/05/14 17:15:21 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -597,13 +597,6 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // MT AIX is getting spurious trap instructions. I can't figure out where
     // they are coming from (and they're not at all deterministic) so 
     // we're ignoring them for now. 
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-    // Check to see if this is a syscall exit
-    proc->handleSyscallExit(0);
-    
-    proc->continueProc();
-    return 1;
-#else
 
     // On Linux we see a trap when the process execs. However,
     // there is no way to distinguish this trap from any other,
@@ -622,11 +615,20 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     if(proc->nextTrapIsFork){
 	    proc->continueProc();
 	    proc->nextTrapIsFork = false;
+        return 1;
     }
-    return 1;
 #endif
+    
+#if defined(MT_THREAD)
+    // Check to see if this is a syscall exit
+    proc->handleSyscallExit(0);
+    
+    proc->continueProc();
+    return 1;
+#else
+    
     // Forward the trap to the process
-
+    
     return 0;
 #endif
 }
