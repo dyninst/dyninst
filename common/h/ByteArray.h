@@ -70,7 +70,8 @@ extern bool_t P_xdr_byteArray(XDR*, char **, u_int *, const u_int maxsize);
 class byteArray {
 public:
      byteArray ();
-     byteArray (const void *, unsigned n); // just copy the first n chars
+     byteArray (const void *, unsigned); // just copy the first n chars
+     byteArray (const byteArray &);      // copy constructor
     ~byteArray ();
 
     byteArray& operator= (const byteArray &);

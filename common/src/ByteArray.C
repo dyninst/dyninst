@@ -58,6 +58,12 @@ byteArray::byteArray(const void *bArray, unsigned len) {
    (void) P_memcpy(bArray_, bArray, len);
 }
 
+byteArray::byteArray(const byteArray& s) {
+   len_ = s.len_;
+   bArray_ = new char[len_];
+   (void) P_memcpy(bArray_, s.bArray_, len_);
+}
+
 byteArray::~byteArray() {
     delete [] bArray_; bArray_ = 0;
 }
