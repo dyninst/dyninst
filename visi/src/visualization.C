@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.11  1994/07/20 22:41:11  rbi
-/* Small arguments fix to make identification of wildcards easier.
+/* Revision 1.12  1994/07/30 03:27:27  newhall
+/* added visi interface functions Enabled and BulkDataTransfer
 /*
+ * Revision 1.11  1994/07/20  22:41:11  rbi
+ * Small arguments fix to make identification of wildcards easier.
+ *
  * Revision 1.10  1994/07/07  22:40:31  newhall
  * fixed compile warnings
  *
@@ -170,6 +173,7 @@ void StopMetRes(int metricIndex,
       && (resourceIndex <dataGrid.NumResources())){
     dataGrid[metricIndex][resourceIndex].SetDeleted(); 
     dataGrid[metricIndex][resourceIndex].Invalidate();
+    dataGrid[metricIndex][resourceIndex].ClearEnabled();
     vp->StopMetricResource(dataGrid.MetricId(metricIndex),
 			   dataGrid.ResourceId(resourceIndex));
   }
@@ -248,9 +252,10 @@ int flag = 0;
 		         (float)data.data[i].data);
 #ifdef DEBUG
     if(flag){
-      fprintf(stderr,"datagrid[%d][%d]: deleted %d valid %d userdata %d\n",
+      fprintf(stderr,"datag[%d][%d]:deleted %d valid %d userdata %d fvb = %d\n",
 	    metric,j,dataGrid[metric][j].Deleted(),dataGrid[metric][j].Valid(),
-	    (int)dataGrid[metric][j].userdata);
+	    (int)dataGrid[metric][j].userdata,
+	    dataGrid[metric][j].FirstValidBucket());
       flag = 0;
     }
 #endif
@@ -437,6 +442,98 @@ void visualization::AddMetricsResources(metricType_Array metrics,
      ok = eventCallbacks[ADDMETRICSRESOURCES](0);
   }
 }
+
+///////////////////////////////////////////////////////////
+// Visi interface routine.   Receives an array of histogram 
+// values for the datagrid cell indicated by metricId and 
+// resourceId 
+///////////////////////////////////////////////////////////
+void visualization::BulkDataTransfer(float_Array values,
+				     int metricId,
+				     int resourceId){
+int i, lastBucket, temp, j;
+int noMetrics, noResources;
+int met = -1, res = -1;
+
+
+    // find datagrid indicies associated with metricId, resourceId 
+    noMetrics = dataGrid.NumMetrics();
+    noResources = dataGrid.NumResources();
+    for(i = 0; i < noMetrics; i++){
+        if(dataGrid.MetricId(i) == metricId)
+	    met = i;
+    }
+    for(i = 0; i < noResources; i++){
+        if(dataGrid.ResourceId(i) == resourceId)
+	    res = i;
+    }
+    if((met == -1) || (res == -1))  return; 
+
+    // add new data values to datagrid
+    for(i = 0; i < values.count; i++){
+       if(!isnan(values.data[i])){
+           dataGrid.AddValue(met, res, i, (float)values.data[i]);
+       }
+    }
+   
+    // find last full cross section for new dataGrid 
+    lastBucket = dataGrid.NumBins()+1;
+    for(i=0; i < noMetrics; i++){
+        for(j=0; j < noResources; j++){
+            if(dataGrid.Valid(i,j)){
+                temp = dataGrid.LastBucketFilled(i,j);  
+                if((temp > -1) && (temp < lastBucket))
+                lastBucket = temp; 
+            }
+        }
+    }
+
+    // call DATAVALUES callback routine
+    if(eventCallbacks[DATAVALUES] !=  NULL){
+       i = eventCallbacks[DATAVALUES](lastBucket);
+    }
+
+}
+
+///////////////////////////////////////////////////////////
+// Visi interface routine.   Receives a list of successfully
+// enabled metrics for a given focus.  This routine is used
+// to set the enabled flag on datagrid cells, which indicates
+// that a particular cell will be receiving data values
+///////////////////////////////////////////////////////////
+void visualization::Enabled(int_Array metricIds,  
+		            int resourceId){
+
+int metId, resId, max, i;
+
+    // find the datagrid index associated with resourceId
+    max = dataGrid.NumResources();
+    for(resId = 0; 
+	(resId < max) && (dataGrid.ResourceId(resId) != resourceId); 
+	resId++) ;
+
+    // find and enable all grid cells   
+    // if an invalid metric or resource id exists ignore it 
+    if(resId < max){
+        max = dataGrid.NumMetrics();
+        for(i = 0; i < metricIds.count; i++){
+	    for(metId = 0; 
+		(metId < max) && 
+		(dataGrid.MetricId(metId) != metricIds.data[i]);
+	         metId++) ;
+            if(metId < max){
+		dataGrid[metId][resId].SetEnabled();
+	    }
+        }
+    }
+
+    // call the ENABLED callback routine
+    if(eventCallbacks[ENABLED] !=  NULL){
+       i = eventCallbacks[ENABLED](0);
+    }
+
+}
+
 
 ///////////////////////////////////////////////////////////
 // Visi interface routine.  Visualization recieves notification
