@@ -38,6 +38,7 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/linuxDL.h"
 #include "dyninstAPI/src/process.h"
@@ -53,7 +54,13 @@ extern debug_ostream sharedobj_cerr;
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
+#if defined(i386_unknown_linux2_4)
 #include <sys/reg.h>
+#else
+// From Intel's Software Conventions and Runtime Architecture Guide, sp = r12
+#define	UESP	13
+#endif
 
 static int scandir_select_ld( const struct dirent * entry ) {
   // Select files which could be ld.so, they must start with "ld", and must
