@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 1999/03/03 23:12:29 pcroth Exp $
+# $Id: Makefile,v 1.9 2000/08/08 15:06:19 wylie Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,6 +19,9 @@ LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000
 SRCS		= $(SRCS) ../src/RTwinnt.c
 
 OBJS		= RTwinnt.obj
+
+# enable debug/trace messages from library
+#CFLAGS		= $(CFLAGS) -DDEBUG_PRINT_RT
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
