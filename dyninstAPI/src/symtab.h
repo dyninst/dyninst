@@ -38,8 +38,8 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-// $Id: symtab.h,v 1.160 2004/08/05 23:29:47 lharris Exp $
+ 
+// $Id: symtab.h,v 1.161 2004/08/08 21:46:14 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -947,7 +947,7 @@ class image : public codeRange {
    static void removeImage(const pdstring file);
    static void removeImage(fileDescriptor *desc);
    void parseStaticCallTargets( pdvector< Address >& callTargets,
-                                BPatch_Set<pd_Function*, pdFuncCmp>& raw_funcs,
+                                pdvector< pd_Function* > *raw_funcs,
                                 pdmodule* mod );
 
    bool parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
@@ -1172,14 +1172,13 @@ class image : public codeRange {
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
 
-   bool addAllFunctions( pdvector<Symbol> &mods, 
-                         BPatch_Set<pd_Function*, pdFuncCmp >& raw_funcs);
+   bool addAllFunctions(pdvector<Symbol> &mods, pdvector<pd_Function *> *raw_funcs);
 
    bool addAllVariables();
    void getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
-   bool buildFunctionMaps( BPatch_Set<pd_Function*, pdFuncCmp>& );
+   bool buildFunctionMaps(pdvector<pd_Function *> *);
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
