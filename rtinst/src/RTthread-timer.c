@@ -82,18 +82,18 @@ void _VirtualTimerStart(virtualTimer *timer, int context){
   timer->protector1++;
 
   if (timer->counter ==0) {
-    timer->lwp = P_lwp_self();
-    timer->rt_fd = PARADYNgetFD(timer->lwp);
-    timer->start = DYNINSTgetCPUtime_LWP(timer->lwp, timer->rt_fd);
-    timer->rt_previous = timer->start;
+      timer->lwp = P_lwp_self();
+      timer->rt_fd = PARADYNgetFD(timer->lwp);
+      timer->start = DYNINSTgetCPUtime_LWP(timer->lwp, timer->rt_fd);
+      timer->rt_previous = timer->start;
   }
   timer->counter++;
-
+  
   timer->protector2++;
-
-  /* fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer,
-     timer->lwp); */
-
+/*  
+  fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer,
+          timer->lwp);
+*/
   assert(timer->protector1 == timer->protector2);
 }
 
@@ -161,8 +161,6 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
     
     /* Check against rollback value */
     if (now < vt->rt_previous) {
-      fprintf(stderr, "Rollback in virtual timer sampling (%lld < %lld)\n",
-	      now, vt->rt_previous);
       now = vt->rt_previous;
     }
     else {
@@ -195,7 +193,6 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    unsigned pos = DYNINSTthreadPosFAST();
    
    if (RTsharedData.posToThread[pos] != P_thread_self()) {
-       fprintf(stderr, "POS and thread don't match, exiting\n");
        return;
    }
    
@@ -232,7 +229,6 @@ void DYNINSTstopThreadTimer(tTimer* timer)
     unsigned pos = DYNINSTthreadPosFAST();
     
     if (RTsharedData.posToThread[pos] != P_thread_self()) {
-        fprintf(stderr, "Thread and POS don't match, exiting\n");
         return;
     }
     
@@ -250,7 +246,6 @@ void DYNINSTstopThreadTimer(tTimer* timer)
          now = getThreadCPUTime(timer->pos, &valid);
       }
       if (now < timer->start) {
-         fprintf(stderr, "%lld < %lld\n", now, timer->start);
          assert(0 && "Rollback in DYNINSTstopThreadTimer");
       }
       timer->total += (now - timer->start);

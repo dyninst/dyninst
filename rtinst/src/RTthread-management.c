@@ -100,25 +100,25 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
   void*  resumestate_p ;
   extern int pipeOK(void); /* RTposix.c */
   if (pipeOK())
-    if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
-      traceThread traceRec ;
-      traceRec.ppid   = getpid();
-      traceRec.tid    = tid;
-      traceRec.ntids  = 1;
-      traceRec.stride = 0;
-      traceRec.stack_addr = (unsigned) stackbase;
-      traceRec.start_pc = (unsigned) startpc ;
-      traceRec.resumestate_p = resumestate_p ;
-      traceRec.pos=pos ;
-      traceRec.context = FLAG_SELF ;
-      
-      DYNINSTgenerateTraceRecord(0,
-				 TR_THR_CREATE,sizeof(traceRec),
-				 &traceRec,
-				 1,
-				 DYNINSTgetWalltime(),
-				 DYNINSTgetCPUtime());
-    }
+      if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
+          traceThread traceRec ;
+          traceRec.ppid   = getpid();
+          traceRec.tid    = tid;
+          traceRec.ntids  = 1;
+          traceRec.stride = 0;
+          traceRec.stack_addr = (unsigned) stackbase;
+          traceRec.start_pc = (unsigned) startpc ;
+          traceRec.resumestate_p = resumestate_p ;
+          traceRec.pos=pos ;
+          traceRec.context = FLAG_SELF ;
+          
+          DYNINSTgenerateTraceRecord(0,
+                                     TR_THR_CREATE,sizeof(traceRec),
+                                     &traceRec,
+                                     1,
+                                     DYNINSTgetWalltime(),
+                                     DYNINSTgetCPUtime());
+      }
 }
 
 void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
