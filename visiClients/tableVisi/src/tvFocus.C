@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvFocus.C,v $
+ * Revision 1.3  1995/12/22 22:39:41  tamches
+ * added visiLibId
+ *
  * Revision 1.2  1995/11/08 21:48:13  tamches
  * moved implementation of constructor to .C file
  *
@@ -13,8 +16,11 @@
 
 #include "tvFocus.h"
 
-tvFocus::tvFocus(const string &iLongName, XFontStruct *nameFontStruct) :
+tvFocus::tvFocus(unsigned iVisiLibId,
+		 const string &iLongName, XFontStruct *nameFontStruct) :
                                                    longName(iLongName) {
+   visiLibId = iVisiLibId;
+
    longNamePixWidth = XTextWidth(nameFontStruct, longName.string_of(),
 				 longName.length());
       

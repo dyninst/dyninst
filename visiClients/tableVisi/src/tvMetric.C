@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvMetric.C,v $
+ * Revision 1.3  1995/12/22 22:39:12  tamches
+ * added visiLibId
+ *
  * Revision 1.2  1995/12/19 00:53:34  tamches
  * new args to tvMetric; it calls changeNumSigFigs
  * changeNumSigFigs written to update valuesPixWidth & numSigFigs
@@ -16,11 +19,13 @@
 #include "minmax.h"
 #include "tvMetric.h"
 
-tvMetric::tvMetric(const string &iName, const string &iUnitsName,
+tvMetric::tvMetric(unsigned iVisiLibId,
+		   const string &iName, const string &iUnitsName,
 		   XFontStruct *nameFontStruct, XFontStruct *unitsNameFontStruct,
 		   XFontStruct *valuesFontStruct,
 		   unsigned iNumSigFigs) :
 		      name(iName), unitsName(iUnitsName) {
+   visiLibId = iVisiLibId;
    namePixWidth = XTextWidth(nameFontStruct, name.string_of(), name.length());
    unitsPixWidth = XTextWidth(unitsNameFontStruct, iUnitsName.string_of(),
 			      iUnitsName.length());

@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvFocus.h,v $
+ * Revision 1.3  1995/12/22 22:39:28  tamches
+ * added visiLibId
+ *
  * Revision 1.2  1995/11/08 21:48:12  tamches
  * moved implementation of constructor to .C file
  *
@@ -19,18 +22,22 @@
 
 class tvFocus {
  private:
+   unsigned visiLibId; // what unique-id has the visi-lib assigned to us?
    string longName, shortName;
    unsigned longNamePixWidth, shortNamePixWidth;
 
  public:
    tvFocus(){} // needed by class Vector (nuts)
-   tvFocus(const string &iLongName, XFontStruct *nameFontStruct);
+   tvFocus(unsigned iVisiLibId, const string &iLongName, XFontStruct *nameFontStruct);
 
    tvFocus(const tvFocus &src) : longName(src.longName), shortName(src.shortName) {
+      visiLibId = src.visiLibId;
       longNamePixWidth = src.longNamePixWidth;
       shortNamePixWidth = src.shortNamePixWidth;
    }
   ~tvFocus() {}
+
+   unsigned getVisiLibId() const {return visiLibId;}
 
    bool less_than(const tvFocus &other, bool useLongName) {
       if (useLongName)

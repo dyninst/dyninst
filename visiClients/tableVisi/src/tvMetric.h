@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvMetric.h,v $
+ * Revision 1.4  1995/12/22 22:38:56  tamches
+ * added visiLibId
+ *
  * Revision 1.3  1995/12/19 00:52:49  tamches
  * added numSigFigs and valuesPixWidth member variables.
  * Constructor takes in 2 new params, accordingly.
@@ -24,6 +27,7 @@
 
 class tvMetric {
  private:
+   unsigned visiLibId; // what unique-id has the visi-lib assigned to us?
    string name;
    string unitsName;
    unsigned namePixWidth;
@@ -33,16 +37,20 @@ class tvMetric {
 
  public:
    tvMetric() {} // needed by class Vector (nuts)
-   tvMetric(const string &iName, const string &iUnitsName,
+   tvMetric(unsigned iVisiLibId,
+	    const string &iName, const string &iUnitsName,
 	    XFontStruct *nameFontStruct,
 	    XFontStruct *unitsNameFontStruct,
 	    XFontStruct *valuesFontStruct,
 	    unsigned numSigFigs);
    tvMetric(const tvMetric &src) : name(src.name), unitsName(src.unitsName) {
+      visiLibId = src.visiLibId;
       namePixWidth = src.namePixWidth;
       unitsPixWidth = src.unitsPixWidth;
    }
   ~tvMetric() {}
+
+   unsigned getVisiLibId() const {return visiLibId;}
 
    bool operator<(const tvMetric &other) const {
       return name < other.name;
