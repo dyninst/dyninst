@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2002/07/31 22:06:57 bernat Exp $
+# $Id: Makefile,v 1.14 2002/08/31 16:53:48 mikem Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,6 +13,7 @@ USES_SHM_SAMPLING = true
 #  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
 #  this path is adjusted.
 #USES_LIBHRTIME = true
+#USES_PAPI = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -45,7 +46,9 @@ SRCS	     += ../src/RTfirst.c \
 		../src/RTetc-posix.c \
 		../src/RTetc-linux.c \
 		../src/RThwtimer-linux.c \
-		../src/RTrexec.c 
+		../src/RTrexec.c \
+		../src/RTpapi.c 
+              
 
 #                ../../dyninstAPI_RT/src/RTheap.c \
 #		../../dyninstAPI_RT/src/RTheap-linux.c \
@@ -61,6 +64,16 @@ endif
 ifdef USES_LIBHRTIME
 CFLAGS  += -I$(HRTIME_INCDIR) -DHRTIME
 LIBS	+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
+endif
+
+ifdef USES_PAPI
+CFLAGS += -I$(PAPI_INCDIR) -DPAPI
+LIBS += -L$(PAPI_LIBDIR) $(PAPI_LIB)
+endif
+
+ifdef USES_LIBPERFCTR
+CFLAGS  += -I$(PERFCTR_INCDIR) -DPERFCTR
+LIBS	+= -L$(PERFCTR_LIBDIR) $(PERFCTR_LIB)
 endif
 
 #CFLAGS += -DSHM_SAMPLING_DEBUG
