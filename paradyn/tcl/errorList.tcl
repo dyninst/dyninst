@@ -1,6 +1,9 @@
 #
 # $Log: errorList.tcl,v $
-# Revision 1.25  1996/04/29 03:29:53  tamches
+# Revision 1.26  1996/04/30 19:02:23  newhall
+# added more info. to error #86
+#
+# Revision 1.25  1996/04/29  03:29:53  tamches
 # Removed newlines from description of error msgs
 #
 # Revision 1.24  1996/04/04 21:56:40  newhall
@@ -680,7 +683,7 @@ set pdError(86) {
 {Cannot enable metric}
 {dm}
 {information}
-{Paradyn cannot enable this particular metric. This might be due to constraints in the definition of the metric (e.g. the metric is restricted to the whole program and we have selected a particular process).}
+{Paradyn cannot enable this particular metric. This might be due to constraints in the definition of the metric (e.g. the metric is restricted to the whole program and we have selected a particular process).  Another cause could be if the enable request is for the current phase, and if a new phase was started in the middle of the enable request, then some metric/focus pairs may not have been enabled for the old phase.}
 }
 
 set pdError(87) {
