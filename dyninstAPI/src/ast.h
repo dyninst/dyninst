@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.53 2002/05/28 02:19:12 bernat Exp $
+// $Id: ast.h,v 1.54 2002/06/13 19:52:15 mirg Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -177,6 +177,7 @@ class AstNode {
 			     const instPoint *location = NULL);
 	Address generateCode_phase2(process *proc, registerSpace *rs, char *i, 
 				    Address &base, bool noCost,
+				    const vector<AstNode*> &ifForks,
 				    const instPoint *location = NULL);
 
 	enum CostStyleType { Min, Avg, Max };
@@ -195,6 +196,23 @@ class AstNode {
         bool checkUseCount(registerSpace*, bool&);
         void printUseCount(void);
         Register kept_register; // Use when generating code for shared nodes
+
+	// Path from the root to this node which resulted in computing the
+	// kept_register. It contains only the nodes where the control flow
+	// forks (e.g., "then" or "else" clauses of an if statement)
+	vector<AstNode*> kept_path;
+
+	// Record the register to share as well as the path that lead
+	// to its computation
+	void keepRegister(Register r, vector<AstNode*> path);
+
+	// Free the kept register
+	void unkeepRegister();
+
+	// Check to see if path1 is a subpath of path2
+	bool subpath(const vector<AstNode*> &path1, 
+		     const vector<AstNode*> &path2) const;
+
         void updateOperandsRC(bool flag); // Update operand's referenceCount
                                           // if "flag" is true, increments the
                                           // counter, otherwise it decrements 

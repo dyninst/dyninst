@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.103 2002/06/10 19:24:41 bernat Exp $
+// $Id: ast.C,v 1.104 2002/06/13 19:52:15 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1027,8 +1027,12 @@ Address AstNode::generateCode(process *proc,
 #endif
   }
 
+  // Create an empty vector to keep track of if statements
+  vector<AstNode*> ifForks;
+
   // note: this could return the value "(Address)(-1)" -- csserra
-  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost, location);
+  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost, 
+				    ifForks, location);
 
 #if defined(ASTDEBUG)
   if (root) {
@@ -1044,6 +1048,7 @@ Address AstNode::generateCode_phase2(process *proc,
 				     registerSpace *rs,
 				     char *insn, 
 				     Address &base, bool noCost,
+				     const vector<AstNode*> &ifForks,
 				     const instPoint *location) {
   // Note: MIPSPro compiler complains about redefinition of default argument
     Address addr;
@@ -1059,7 +1064,9 @@ Address AstNode::generateCode_phase2(process *proc,
     sprintf(errorLine,"### location: %p ###\n", location);
     logLine(errorLine);
 #endif
-    if (kept_register!=Null_Register) { 
+    // Before using kept_register we need to make sure it was computed
+    // on the same path as we are right now
+    if (kept_register!=Null_Register && subpath(kept_path, ifForks)) { 
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
       logLine(errorLine);
@@ -1067,7 +1074,7 @@ Address AstNode::generateCode_phase2(process *proc,
       if (useCount==0) { 
           rs->unkeep_register(kept_register);
           Register tmp=kept_register;
-          kept_register=Null_Register;
+          unkeepRegister();
 #ifdef BPATCH_LIBRARY_F
 	  assert(!rs->isFreeRegister(tmp));
 #endif
@@ -1081,15 +1088,20 @@ Address AstNode::generateCode_phase2(process *proc,
 	    assert(loperand->oType == Constant);
 	    unsigned offset = (RegValue)loperand->oValue;
 	    loperand->useCount--;
-	    loperand->kept_register = Null_Register ;
+	    loperand->unkeepRegister();
             (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
         } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 	    startInsn = base;
 	    fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
-            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+
+	    // The flow of control forks. We need to add the forked node to 
+	    // the path
+	    vector<AstNode*> thenFork = ifForks;
+	    thenFork.push_back(roperand);
+            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, thenFork, location);
             rs->freeRegister(tmp);
 
 	    // Is there and else clause?  If yes, generate branch over it
@@ -1105,8 +1117,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	   
 	    if (eoperand) {
 		// If there's an else clause, we need to generate code for it.
+		vector<AstNode*> elseFork = ifForks;
+		elseFork.push_back(eoperand);// Add the forked node to the path
 		tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
-						    base, noCost, location);
+							      base, noCost, 
+							      elseFork,
+							      location);
 		rs->freeRegister(tmp);
 
 		// We also need to fix up the branch at the end of the "true"
@@ -1116,12 +1132,18 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	} else if (op == whileOp) {
 	    Address top = base ;
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 	    startInsn = base;
 	    fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
 	    if (roperand) {
-                Register tmp=(Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+		vector<AstNode*> whileFork = ifForks;
+		whileFork.push_back(eoperand);//Add the forked node to the path
+                Register tmp = 
+		    (Register)roperand->generateCode_phase2(proc, rs, insn, 
+							    base, noCost, 
+							    whileFork, 
+							    location);
                 rs->freeRegister(tmp);
 	    }
 	    //jump back
@@ -1153,14 +1175,14 @@ Address AstNode::generateCode_phase2(process *proc,
 		//    expression, so we simple generate the left child's 
 		//    code to get the address 
 		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-		     rs, insn, base, noCost, location);
+		     rs, insn, base, noCost, ifForks, location);
 	    } else {
 		// error condition
 		assert(0);
 	    }
 	} else if (op == storeOp) {
             // This ast cannot be shared because it doesn't return a register
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 	    src2 = rs->allocateRegister(insn, base, noCost);
 	    switch (loperand->oType) {
 	    case DataAddr:
@@ -1179,8 +1201,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	    case DataIndir:
 	      // store to a an expression (e.g. an array or field use)
 	      // *(+ base offset) = src1
-	      dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-								       rs, insn, base, noCost, location);
+	      dest = 
+		  (Register)loperand->loperand->generateCode_phase2(proc, rs, 
+								    insn, base,
+								    noCost,
+								    ifForks,
+								    location);
 	      // dest now contains address to store into
 	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
 	      loperand->useCount--;
@@ -1189,7 +1215,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	      // Could be an error, could be an attempt to load based on an arithmetic expression
 	      if (type == opCodeNode) {
 		// Generate the left hand side, store the right to that address
-		dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+		dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
 	      }
 	      else {
@@ -1207,13 +1233,13 @@ Address AstNode::generateCode_phase2(process *proc,
 		// We are keeping a stale value in the register
                 rs->unkeep_register(loperand->kept_register);
 		rs->freeRegister(loperand->kept_register);
-                loperand->kept_register = Null_Register;
+                loperand->unkeepRegister();
 	    }
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
 	} else if (op == storeIndirOp) {
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
-            dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+            dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
             emitV(op, src1, 0, dest, insn, base, noCost);          
 	    rs->freeRegister(src1);
             rs->freeRegister(dest);
@@ -1285,7 +1311,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	    right_dest = Null_Register;
 	    if (left) {
 		src = (Register)left->generateCode_phase2(proc, rs, insn, base,
-							  noCost, location);
+							  noCost, ifForks,
+							  location);
 	    }
 
             if (right && (right->type == operandNode) &&
@@ -1319,12 +1346,12 @@ Address AstNode::generateCode_phase2(process *proc,
               if (right->useCount==0 && right->kept_register!=Null_Register) {
                 rs->unkeep_register(right->kept_register);
 		rs->freeRegister(right->kept_register);
-                right->kept_register=Null_Register;
+                right->unkeepRegister();
 	      }
 	    }
 	    else {
 	      if (right)
-		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, location);
+		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 	      dest = shareDestWithSrc(src, right_dest, kept_state,
 				      rs, insn, base, noCost);
 	      
@@ -1355,7 +1382,9 @@ Address AstNode::generateCode_phase2(process *proc,
 		rs->freeRegister(src);
 	    }
 	    if (useCount > 0) {
-		kept_register = dest;
+		// Cache the computed value and the path along which is
+		// was computed
+		keepRegister(dest, ifForks);
 		rs->keep_register(dest);
 	    }
             removeAst(left);
@@ -1366,7 +1395,7 @@ Address AstNode::generateCode_phase2(process *proc,
         if (useCount>0) {
 #if !defined(rs6000_ibm_aix4_1)
 	  /* TODO: this code is BROKEN on aix. Kept registers are not saved properly */
-          kept_register=dest;
+          keepRegister(dest, ifForks);
           rs->keep_register(dest);
 #endif
         }
@@ -1394,7 +1423,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	  break;
 	case DataIndir:
-	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 #ifdef BPATCH_LIBRARY
 	  Type = const_cast<BPatch_type *> (getType());
 	  assert(Type);
@@ -1522,20 +1551,23 @@ Address AstNode::generateCode_phase2(process *proc,
       // VG(11/06/01): This platform independent fn calls a platfrom
       // dependent fn which calls it back for each operand... Have to
       // fix those as well to pass location...
-      dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost,
-			  calleefunc, location);
+      dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, 
+			  noCost, calleefunc, ifForks, location);
       if (useCount>0) {
-	kept_register=dest;
+	keepRegister(dest, ifForks);
 	rs->keep_register(dest);
       }
     } else if (type == sequenceNode) {
 #if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
-	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, 
+					     ifForks, location);
 #else
-	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, 
+						     noCost, ifForks,location);
 	rs->freeRegister(tmp);
 #endif
- 	return roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+ 	return roperand->generateCode_phase2(proc, rs, insn, base, 
+					     noCost, ifForks);
     }
 
     // assert (dest != Null_Register); // oh dear, it seems this happens!
@@ -2099,4 +2131,33 @@ bool AstNode::accessesParam(void)
   }
 
   return ret;
+}
+
+// Record the register to share as well as the path that lead
+// to its computation
+void AstNode::keepRegister(Register r, vector<AstNode*> path)
+{
+    kept_register = r;
+    kept_path = path;
+}
+
+// Free the kept register
+void AstNode::unkeepRegister()
+{
+    kept_register = Null_Register;
+}
+
+// Check to see if path1 is a subpath of path2
+bool AstNode::subpath(const vector<AstNode*> &path1, 
+		      const vector<AstNode*> &path2) const
+{
+    if (path1.size() > path2.size()) {
+	return false;
+    }
+    for (unsigned i=0; i<path1.size(); i++) {
+	if (path1[i] != path2[i]) {
+	    return false;
+	}
+    }
+    return true;
 }
