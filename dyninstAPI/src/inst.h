@@ -8,7 +8,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.6  1994/08/08 20:13:39  hollings
+ * Revision 1.7  1994/09/22 02:29:18  markc
+ * Removed compiler warnings
+ *
+ * Revision 1.6  1994/08/08  20:13:39  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.5  1994/07/28  22:40:41  krisna
@@ -56,30 +59,34 @@
  *
  *
  */
+
+class instInstance;
+
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-/* handle to an installed instruementation point */
-typedef struct instInstanceRec instInstance;	
-
-struct _intCounterHandle {
+class intCounterHandle {
+ public:
+    intCounterHandle() {
+      proc = NULL; sampler = NULL; counterPtr = NULL;
+    }
     process *proc;
     intCounter *counterPtr;		/* NOT in our address space !!!! */
     intCounter data;			/* a copy in our address space */
     instInstance *sampler;		/* function to sample value */
 };
 
-typedef struct _intCounterHandle intCounterHandle;
-
-struct _timerHandle {
+class timerHandle {
+ public:
+    timerHandle() {
+      proc = NULL; timerPtr = NULL; sampler = NULL;
+    }
     process *proc;
     tTimer *timerPtr;			/* NOT in our address space !!!! */
     tTimer data;			/* a copy in our address space !!!! */
     instInstance *sampler;		/* function to sample value */
 };
-
-typedef struct _timerHandle timerHandle;
 
 class AstNode;
 
@@ -138,7 +145,7 @@ void freeTimer(timerHandle*);
 int callsTrackedFuncP(instPoint *);
 
 /* return the function asociated with a point. */
-function *getFunction(instPoint *point);
+pdFunction *getFunction(instPoint *point);
 
 /*
  * struct to define a list of inst requests 
@@ -151,8 +158,8 @@ function *getFunction(instPoint *point);
 
 class instMaping {
     public:
-	char *func;         /* function to instrument */
-	char *inst;         /* inst. function to place at func */
+	const char *func;         /* function to instrument */
+	const char *inst;         /* inst. function to place at func */
 	int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
 	AstNode *arg;	    /* what to pass as arg0 */
 };
@@ -215,8 +222,10 @@ reg getParameter(reg dest, int param);
 #define INFERRIOR_HEAP_BASE     "DYNINSTdata"
 #define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
 
-struct _pointRec {
-    instInstance *inst;
+class point {
+ public:
+  point() { inst = NULL; }
+  instInstance *inst;
 };
 
 /*
@@ -225,4 +234,3 @@ struct _pointRec {
  */
 
 extern void restore_original_instructions(process *, instPoint *);
-typedef struct _pointRec pointRec;
