@@ -14,24 +14,28 @@ executable:
         igen            - interface generator
         paradyn         - Paradyn GUI/controller
         paradynd        - Paradyn daemon (i.e. instrumentation manager)
-        rthist          - real-time histogram visualization
-        visiClients     - Paradyn visi clients:
-                          tclVisi, barchart, phaseTable, tableVisi, terrain
+        visiClients     - Paradyn visi clients (and tclVisi):
+                          barchart, histVisi, phaseTable, tableVisi, terrain
 
 There are also several libraries that get used in building the executables:
 
-        rtinst          - runtime instrumentation (linked into the application) 
+        pdutil          - Paradyn utility library (see also "common")
+        rtinst          - runtime instrumentation (loaded into the application) 
         thread          - the thread package used by Paradyn
-        util            - general utility library
         visi            - external visualization interface
-        hist            - histogram library used by rthist
+
+One directory contains source for utilities common to both Paradyn & DyninstAPI.
+
+        common          - common utilities (e.g., Vector, String, Dictionary)
 
 Two more directories contain the libraries that make up the DyninstAPI:
 
         dyninstAPI      - the DyninstAPI library
-        dyninstAPI_RT   - runtime instrumentation (linked into the application)
+        dyninstAPI_RT   - runtime instrumentation (loaded into the application)
 
-The only Paradyn module required by the DyninstAPI is the util directory.
+An additional directory contains the "dyner" DyninstAPI-based scripting tool:
+
+        dyner           - the dyner Tcl-scripting interface to DyninstAPI.
 
 There is also a Makefile and several make configuration files at this level:
         
@@ -43,6 +47,7 @@ There is also a Makefile and several make configuration files at this level:
                           are included into all other Makefiles in the system.
         make.library.tmpl - make configuration rules for libraries
         make.program.tmpl - make configuration rules for executables
+        make.platform.tmpl - platform-specific make customizations
 
         nmake.config    - These three files are for WindowsNT nmake, and
                           they mimic the GNU make configuration files
@@ -85,4 +90,4 @@ Each directory contains the following files:
                   files (.o's).
 
 ==============================================================================
-$Id: README,v 1.6 1999/05/29 22:23:05 wylie Exp $
+$Id: README,v 1.7 2000/07/30 21:39:59 paradyn Exp $
