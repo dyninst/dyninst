@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.168 2005/01/24 20:44:20 tlmiller Exp $
+// $Id: mdl.C,v 1.169 2005/01/25 22:00:18 tlmiller Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -3329,7 +3329,8 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                       	// /* DEBUG */ fprintf( stderr, "%s[%d]: calleeName[%d] = %s\n", __FILE__, __LINE__, i, calleeName.c_str() );
                       	for( unsigned int j = 0; j < global_excluded_funcs.size(); j++ ) {
                       		/* Assumes we overload comparison. */
-                      		if( global_excluded_funcs[i] == calleeName ) {
+                      		if( global_excluded_funcs[j] == calleeName ) {
+                      		   // /* DEBUG */ fprintf( stderr, "%s[%d]: removed callee %s from list of calls.\n", __FILE__, __LINE__, calleeName.c_str() );
                                anythingRemoved = true;
                                
                                // remove calls[u] from calls.  To do this, swap
