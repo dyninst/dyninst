@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.269 2003/08/05 21:49:23 hollings Exp $
+/* $Id: process.h,v 1.270 2003/09/05 16:28:01 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -311,9 +311,6 @@ class process {
  friend class ptraceKludge;
  friend class dyn_thread;
  friend class dyn_lwp;
-#ifdef BPATCH_LIBRARY
- friend class BPatch_image;
-#endif
  friend Address loadDyninstDll(process *, char Buffer[]);
  
   //  
@@ -401,7 +398,6 @@ class process {
   }
                   
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
-  void Exited();
   bool hasExited() { return (status_ == exited); }
   static process *findProcess(int pid);
   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
@@ -412,12 +408,10 @@ class process {
   bool installSyscallTracing();
   pdvector<instMapping*> tracingRequests;
 
-#ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
 #else
   char* dumpPatchedImage(pdstring outFile) { return NULL; } 
-#endif
 #endif
 
   bool dumpImage(pdstring outFile);
@@ -509,44 +503,46 @@ class process {
     }
 #endif
 
-void saveWorldData(Address address, int size, const void* src);
+  void saveWorldData(Address address, int size, const void* src);
 
-#ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-
+  
   pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
   pdvector<pdstring> loadLibraryCalls;//ccw 14 may 2002 
   pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
 
-	char* saveWorldFindDirectory();
+  char* saveWorldFindDirectory();
 
-	unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize,
-		 char* directoryName, unsigned int &count);
-	char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
+  unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
+                                   unsigned int &dyninst_SharedLibrariesSize,
+                                   char* directoryName, unsigned int &count);
+  char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
 
-	void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
-		pdvector<imageUpdate*> &highmemUpdates, void *newElf);
-	void saveWorldCreateDataSections(void* ptr);
-	void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-	void saveWorldloadLibrary(pdstring tmp){ loadLibraryUpdates.push_back(tmp); };
-
+  void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
+                                      pdvector<imageUpdate*> &highmemUpdates,
+                                      void *newElf);
+  void saveWorldCreateDataSections(void* ptr);
+  void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
+  void saveWorldloadLibrary(pdstring tmp) {
+     loadLibraryUpdates.push_back(tmp);
+  };
+  
 #if defined(rs6000_ibm_aix4_1)
-	void addLib(char *lname);//ccw 30 jul 2002
-	int requestTextMiniTramp; //ccw 20 jul 2002
+  void addLib(char *lname);//ccw 30 jul 2002
+  int requestTextMiniTramp; //ccw 20 jul 2002
 #endif
 
-#endif
 #endif
 
 #if !defined(i386_unknown_nt4_0) 
-	//ccw 3 sep 2002
-	//These variables are used by UNIX.C during the loading
-	//of the runtime libraries.
-	//
-	bool finishedDYNINSTinit;
-	int RPCafterDYNINSTinit;
+  //ccw 3 sep 2002
+  //These variables are used by UNIX.C during the loading
+  //of the runtime libraries.
+  //
+  bool finishedDYNINSTinit;
+  int RPCafterDYNINSTinit;
 #endif
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);
@@ -561,9 +557,7 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool continueProc();
   
-#ifdef BPATCH_LIBRARY
   bool terminateProc() { return terminateProc_(); }
-#endif
   ~process();
   bool pause();
 
@@ -591,19 +585,16 @@ void saveWorldData(Address address, int size, const void* src);
   Address trampGuardAddr(void) { return trampGuardAddr_; }
   void setTrampGuardAddr(Address addr) { trampGuardAddr_ = addr; }
   
-#ifdef BPATCH_LIBRARY
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 				    BPatch_procedureLocation pointType);
   BPatch_function *findOrCreateBPFunc(pd_Function* pdfunc, BPatch_module* bpmod = NULL);
-#endif
 
   //  
   //  PUBLIC DATA MEMBERS
   //  
 
-#if defined(BPATCH_LIBRARY)
-  BPatch_thread *thread; // The BPatch_thread associated with this process
-#endif
+  // The BPatch_thread associated with this process
+  BPatch_thread *bpatch_thread; 
 
   // the following 2 vrbles probably belong in a different class:
   static pdstring programName; // the name of paradynd (specifically, argv[0])
@@ -631,13 +622,11 @@ void saveWorldData(Address address, int size, const void* src);
   /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
 
-#ifdef BPATCH_LIBRARY
   /* map a dyninst internal function back to a BPatch_function(per proc) */
   dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFuncMap;
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
-#endif
 
   private:
   bootstrapState_t bootstrapState;
@@ -955,7 +944,7 @@ void saveWorldData(Address address, int size, const void* src);
   pdvector<module *> *getIncludedModules();
 #endif
 
-
+  void handleProcessExit(int exitCode);
 
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped
@@ -1004,37 +993,11 @@ void saveWorldData(Address address, int size, const void* src);
       waiting_for_resources = false;
   }
 
-  /////////////////////////////////////////////////////////////////////
-  // Fork, Exec, and Exit callbacks
-  /////////////////////////////////////////////////////////////////////
-
-  // The callback functions are public because the signal handling code is
-  // not a friend of the process class
-  public:
-  void registerPreForkCallback(forkEntryCallback_t callback, void *data);
-  void registerPostForkCallback(forkExitCallback_t callback, void *data);
-  void registerPreExecCallback(execEntryCallback_t callback, void *data);
-  void registerPostExecCallback(execExitCallback_t callback, void *data);
-  void registerPreExitCallback(exitEntryCallback_t callback, void *data);
-
-  private:
-  void *preForkData_;
-  void *postForkData_;
-  void *preExecData_;
-  void *postExecData_;
-  void *preExitData_;
-  forkEntryCallback_t preForkCallback_;
-  forkExitCallback_t postForkCallback_;
-  execEntryCallback_t preExecCallback_;
-  execExitCallback_t postExecCallback_;
-  exitEntryCallback_t preExitCallback_;
-  
-  public:
   void handleForkEntry();
   void handleForkExit(process *child);
   void handleExecEntry(char *arg0);
   void handleExecExit();
-  void handleExitEntry(int code);
+
   // Generic handler for anything else waiting on a system call
   // Returns true if handling was done
   bool handleSyscallExit(procSignalWhat_t syscall);
@@ -1245,9 +1208,7 @@ private:
   private:
 #endif
   
-#ifdef BPATCH_LIBRARY
   bool terminateProc_();
-#endif
   bool dumpCore_(const pdstring coreFile);
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
   bool detach_();
@@ -1430,15 +1391,13 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 };
 
 
-process *createProcess(const pdstring file, pdvector<pdstring> argv, 
-                       const pdstring dir, int stdin_fd, int stdout_fd,
-                       int stderr_fd);
+process *ll_createProcess(const pdstring file, pdvector<pdstring> argv, 
+                          const pdstring dir, int stdin_fd, int stdout_fd,
+                          int stderr_fd);
 
-process *attachProcess(const pdstring &progpath, int pid);
+process *ll_attachProcess(const pdstring &progpath, int pid);
 
 bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
-
-void handleProcessExit(process *p, int exitStatus);
 
 bool isInferiorAllocated(process *p, Address block);
 
