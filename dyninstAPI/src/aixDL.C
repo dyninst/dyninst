@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.43 2003/10/07 19:05:59 schendel Exp $
+// $Id: aixDL.C,v 1.44 2003/10/21 17:21:55 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -157,10 +157,12 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       // subclassing will work
       // "false" == shared library, not exec file
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
-						       text_org, data_org,
-						       pid, false);
+                                                       text_org, data_org,
+                                                       pid, false);
+      fprintf(stderr, "Making new shared_object\n");
+      
       shared_object *newobj = new shared_object(fda,
-						false,true,true,0);
+                                                false,true,true,0);
       (*result).push_back(newobj);      
 
       // Close the file descriptor we're given
@@ -382,15 +384,14 @@ bool process::handleTrapAtEntryPointOfMain()
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-  function_base *f_main = findOnlyOneFunction("main");
+  pd_Function *f_main = (pd_Function *) findOnlyOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
     return false;
   }
   assert(f_main);
-  Address addr = f_main->addr();
-  
+  Address addr = f_main->getEffectiveAddress(this);
   // save original instruction first
   readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
   // and now, insert trap
@@ -528,7 +529,7 @@ bool process::loadDYNINSTlib()
   // save registers
   savedRegs = getProcessLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
-
+  
   if (!getProcessLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
@@ -563,11 +564,14 @@ bool process::loadDYNINSTlibCleanup()
 
 Address process::get_dlopen_addr() const {
 
-  function_base *pdf = findOnlyOneFunction("dlopen");
+  pd_Function *pdf = (pd_Function *) findOnlyOneFunction("dlopen");
 
-  if (pdf)
-    return pdf->addr();
-
+  if (pdf) {
+      fprintf(stderr, "dlopen address: 0x%x\n",
+              pdf->getEffectiveAddress(this));
+      return pdf->getEffectiveAddress(this);
+  }
+  
   return 0;
 
 }
@@ -594,7 +598,7 @@ bool dynamic_linking::setLibBreakpoint(process *p,
     assert(libc);
     
     // Now we have libc... but it hasn't been parsed yet (oy!)
-    image *libc_image = image::parseImage(libc_desc, 0);
+    image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
 
     pdvector<pd_Function *> *loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
     assert(loadFuncs);
@@ -606,7 +610,10 @@ bool dynamic_linking::setLibBreakpoint(process *p,
     // the final instruction (brl) with a trap, and emulate the branch
     // mutator-side
 
-    Address ret_addr = (loadfunc->addr()) + (loadfunc->size()) - sizeof(instruction);
+    // Note: the libc func addr we have via addr() (only one that
+    // works) is an offset. Add the addr from the file descriptor
+    Address ret_addr = loadfunc->addr() + loadfunc->size() 
+                       + libc_desc->addr() - sizeof(instruction);
     
     r_brk_addr = ret_addr;
     instruction breakpoint;
