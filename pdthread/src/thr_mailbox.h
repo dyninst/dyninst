@@ -52,7 +52,7 @@ class thr_mailbox : public mailbox {
     virtual int put(message* m);
 
     /* put_sock() delivers socket message m into this mailbox */
-//    virtual int put_sock(message* m);
+    virtual int put_sock(message* m);
 
     /* recv() receives mail from this mailbox into buf;
        see the libthread documentation for the full

@@ -212,7 +212,7 @@ ready_socks_populator::visit(PDSOCKET desc)
 
 			message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
 			
-			owner->put(m);
+			owner->put_sock(m);
 			populate_to->put(desc);
 		} 
 #if READY
@@ -308,6 +308,7 @@ thr_mailbox::thr_mailbox(thread_t owner)
     assert(owned_by == owner);
 
     messages = new dllist<message*,dummy_sync>;
+    sock_messages = new dllist<message*,dummy_sync>;
     
     ready_fds = new dllist<PDDESC,dummy_sync>;
     bound_fds = new dllist<PDDESC,dummy_sync>;
@@ -375,12 +376,19 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
 
     message* msg_from_special = NULL;
     match_message_pred criterion(*sender,*type);
-
+    dllist<message*,dummy_sync> *yank_from = NULL;
+    
   find_msg:
     actual_sender = 0;
     actual_type = 0;
 
-    found = messages->contains(&criterion);
+    if(io_first)
+        found = (messages->contains(&criterion) && (yank_from = messages)) ||
+            (sock_messages->contains(&criterion) && (yank_from = sock_messages));
+    else 
+        found = (sock_messages->contains(&criterion) && (yank_from = sock_messages))
+            || (messages->contains(&criterion) && (yank_from = messages));
+    
     actual_sender = criterion.actual_sender;
     actual_type = criterion.actual_type;
 
@@ -390,7 +398,7 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
     
     if(found) {
         if(do_yank && m) {
-            *m = messages->yank(&criterion);
+            *m = yank_from->yank(&criterion);
         } else if( !do_yank &&
                  thrtab::is_io_entity(actual_sender) &&
                  ((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
@@ -398,7 +406,7 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             // we're telling the caller about input on
             // their special file, and we expect them to
             // consume it
-            msg_from_special = messages->yank(&criterion);
+            msg_from_special = yank_from->yank(&criterion);
             m = &msg_from_special;
         }
 
@@ -445,6 +453,17 @@ int thr_mailbox::put(message* m) {
     monitor->lock();
 
     messages->put(m);
+    
+    monitor->unlock();
+    monitor->signal(RECV_AVAIL);
+
+    return THR_OKAY;
+}
+
+int thr_mailbox::put_sock(message* m) {
+    monitor->lock();
+
+    sock_messages->put(m);
     
     monitor->unlock();
     monitor->signal(RECV_AVAIL);
