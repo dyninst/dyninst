@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2000/10/17 17:42:45 schendel Exp $
+# $Id: Makefile,v 1.8 2000/10/20 17:49:38 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,6 @@ DO_INLINE_ALL           = true
 # Now make any necessary architecture specific changes to variables:
 
 CXXFLAGS		= $(CXXFLAGS) -D_WINDOWS
-CXXFLAGS		= $(CXXFLAGS) -GX   #for exceptions
 #CXXFLAGS		= $(CXXFLAGS) -DHIST_DEBUG
 
 # Include the "standard library template".  This defines all the

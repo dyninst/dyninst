@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2000/10/17 17:42:31 schendel Exp $
+# $Id: Makefile,v 1.6 2000/10/20 17:49:38 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,6 @@ OBJS = 		pdwinnt.obj \
 
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT 
-CXXFLAGS	= $(CXXFLAGS) -GX   #for exceptions
 
 #CXXFLAGS 	= $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 
