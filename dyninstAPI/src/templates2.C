@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.41 2005/02/25 07:04:47 jaw Exp $
+// $Id: templates2.C,v 1.42 2005/03/14 22:32:03 tlmiller Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -202,3 +202,6 @@ template class pdvector<BPatch_eventMailbox::mb_callback_t>;
 #include <list>
 template class std::list< BPatch_basicBlock *>;
 #endif /* defined( arch_ia64 ) */
+
+template class pdvector< Symbol >;
+template class dictionary_hash< pdstring, pdvector< Symbol > >;
