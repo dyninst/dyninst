@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.20 2003/04/02 07:12:26 jaw Exp $
+// $Id: templates2.C,v 1.21 2003/04/16 21:07:27 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -55,7 +55,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
-#include "dyninstAPI/src/inferiorRPC.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 
@@ -117,15 +116,9 @@ template class  dictionary_hash_iter <unsigned long, pd_Function*>;
 template class  pdvector<shared_object *> ;
 
 
-#include "common/src/vectorSet.C"
-
-template class vectorSet<inferiorRPCtoDo>;
-template class vectorSet<inferiorRPCinProgress>;
-
 template class dictionary_hash<string, libraryCallback *>;
 template class pdvector<dictionary_hash <string, libraryCallback *>::entry>;
 
-template class vectorSet<syscallTrap *>;
 template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */

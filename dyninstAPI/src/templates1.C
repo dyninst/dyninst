@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.51 2003/04/02 07:12:26 jaw Exp $
+//$Id: templates1.C,v 1.52 2003/04/16 21:07:26 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -94,8 +94,14 @@ template class  pdvector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
 template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
-template class  dictionary_hash<dyn_lwp *, rpcLwp *>;
-template class  pdvector<dictionary_hash <dyn_lwp *, rpcLwp *>::entry>;
+template class  dictionary_hash<unsigned, rpcLWP *>;
+template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
+template class pdvector<rpcThr *>;
+
+template class pdvector<inferiorRPCtoDo *>;
+template class pdvector<inferiorRPCinProgress *>;
+
+
 
 #include "common/src/List.C"
 template class  List<instInstance*>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.39 2003/04/04 16:36:18 pcroth Exp $
+// $Id: templates-nt.C,v 1.40 2003/04/16 21:07:25 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -58,9 +58,6 @@
 #include "dyninstAPI/src/LineInformation.h"
 #endif // defined(BPATCH_LIBRARY)
 
-template class vectorSet<inferiorRPCtoDo>;
-template class vectorSet<inferiorRPCinProgress>;
-
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, resource *>;
 template class dictionary_hash<unsigned int, heapItem *>;
@@ -78,8 +75,11 @@ template class dictionary_hash<string, pdvector<string> *>;
 template class dictionary_hash<string, pdvector<pd_Function *> *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
-template class  dictionary_hash<dyn_lwp *, rpcLwp *>;
-template class  pdvector<dictionary_hash <dyn_lwp *, rpcLwp *>::entry>;
+template class  dictionary_hash<unsigned, rpcLWP *>;
+template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
+template class  pdvector<rpcThr *>;
+template class pdvector<inferiorRPCtoDo *>;
+template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
 template class List<instInstance*>;
