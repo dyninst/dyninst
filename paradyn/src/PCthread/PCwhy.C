@@ -18,7 +18,12 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.5  1994/10/25 22:08:24  hollings
+ * Revision 1.6  1994/12/21 00:46:37  tamches
+ * Minor changes that reduced the number of compiler warnings; e.g.
+ * Boolean to bool.  operator<< routines now return their ostream
+ * argument properly.
+ *
+ * Revision 1.5  1994/10/25  22:08:24  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -67,7 +72,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.5 1994/10/25 22:08:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.6 1994/12/21 00:46:37 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -161,6 +166,7 @@ float hypothesis::cost()
 ostream& operator <<(ostream &os, hypothesis& hyp)
 {
      os << hyp.name;
+     return os; // added AT 12/8/94
 }
 
 void hypothesis::unLabel()

@@ -17,7 +17,12 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.20  1994/10/25 22:08:11  hollings
+ * Revision 1.21  1994/12/21 00:46:34  tamches
+ * Minor changes that reduced the number of compiler warnings; e.g.
+ * Boolean to bool.  operator<< routines now return their ostream
+ * argument properly.
+ *
+ * Revision 1.20  1994/10/25  22:08:11  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -142,7 +147,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.20 1994/10/25 22:08:11 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.21 1994/12/21 00:46:34 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -165,6 +170,8 @@ ostream& operator <<(ostream &os, hint& h)
     if (h.where) os << *h.where;
     if (h.when) os << *h.when;
     os << endl;
+
+    return os; // added AT 12/9/94
 }
 
 stringPool searchHistoryNode::shgNames;
@@ -220,7 +227,9 @@ ostream& operator <<(ostream &os, searchHistoryNode& shg)
     else
 	os << " suppressed = FALSE";
 	
-     os << endl;
+    os << endl;
+
+    return os; // added AT 12/8/94
 }
 
 Boolean searchHistoryNode::print(int parent, FILE *fp)
@@ -280,7 +289,7 @@ inline void searchHistoryNode::changeColor()
   }
 }
 
-tunableBooleanConstant supressSHG(False, NULL, userConstant, "supressSHG",
+tunableBooleanConstant supressSHG(false, NULL, userConstant, "supressSHG",
     "Don't print the SHG");
 
 void searchHistoryNode::changeActive(Boolean newact)

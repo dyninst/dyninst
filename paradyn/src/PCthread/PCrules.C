@@ -18,7 +18,12 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.21  1994/11/09 18:39:46  rbi
+ * Revision 1.22  1994/12/21 00:46:33  tamches
+ * Minor changes that reduced the number of compiler warnings; e.g.
+ * Boolean to bool.  operator<< routines now return their ostream
+ * argument properly.
+ *
+ * Revision 1.21  1994/11/09  18:39:46  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.20  1994/10/25  22:08:10  hollings
@@ -135,7 +140,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.21 1994/11/09 18:39:46 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.22 1994/12/21 00:46:33 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -164,7 +169,7 @@ testList allTests;
 //
 testList activeTests;
 
-tunableBooleanConstant pcEvalPrint(False, NULL, developerConstant,
+tunableBooleanConstant pcEvalPrint(false, NULL, developerConstant,
     "pcEvalPrint", "Print out the values of tests each time they are evaluated");
 
 //

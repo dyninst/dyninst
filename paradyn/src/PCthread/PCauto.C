@@ -19,7 +19,12 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.17  1994/10/26 23:21:26  tamches
+ * Revision 1.18  1994/12/21 00:46:27  tamches
+ * Minor changes that reduced the number of compiler warnings; e.g.
+ * Boolean to bool.  operator<< routines now return their ostream
+ * argument properly.
+ *
+ * Revision 1.17  1994/10/26  23:21:26  tamches
  * Removed min/max for tunable constant "predictedCostLimit", replacing it
  * with a simple validation-function "predictedCostLimitValidChecker", after
  * consulting w/ Jeff & Jon
@@ -126,7 +131,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.17 1994/10/26 23:21:26 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.18 1994/12/21 00:46:27 tamches Exp $";
 #endif
 
 #include <stdlib.h>
@@ -142,7 +147,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 
 // 25% to start
-Boolean predictedCostLimitValidChecker(float newVal) { // checker function for the below tunable float const
+bool predictedCostLimitValidChecker(float newVal) {
+   // checker function for the below tunable float const
    if (newVal < 0.0)
       return false; // no good
    else
@@ -152,7 +158,7 @@ tunableFloatConstant predictedCostLimit(100.0, // initial value
 			predictedCostLimitValidChecker, // validation function (above)
 			NULL, // callback function
 			userConstant,
-  "predictedCostLimit", "Max. allowable perturbation of the application.");
+			"predictedCostLimit", "Max. allowable perturbation of the application.");
 
 searchHistoryNode *PCbaseSHGNode;
 extern int PCautoRefinementLimit;

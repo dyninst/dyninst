@@ -17,7 +17,12 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.32  1994/11/11 10:46:26  markc
+ * Revision 1.33  1994/12/21 00:46:29  tamches
+ * Minor changes that reduced the number of compiler warnings; e.g.
+ * Boolean to bool.  operator<< routines now return their ostream
+ * argument properly.
+ *
+ * Revision 1.32  1994/11/11  10:46:26  markc
  * Used status line to print status
  *
  * Revision 1.31  1994/11/09  18:39:40  rbi
@@ -190,7 +195,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.32 1994/11/11 10:46:26 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.33 1994/12/21 00:46:29 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -227,11 +232,11 @@ tunableFloatConstant sufficientTime(6.0, 0.0, 1000.0, NULL, userConstant,
   "sufficientTime",
   "How long to wait (in seconds) before we can conclude a hypothesis is false.");
 
-tunableBooleanConstant printNodes(False, NULL, developerConstant,
+tunableBooleanConstant printNodes(false, NULL, developerConstant,
     "printNodes", 
     "Print out changes to the state of SHG nodes");
 
-tunableBooleanConstant printTestResults(False, NULL, developerConstant,
+tunableBooleanConstant printTestResults(false, NULL, developerConstant,
     "printTestResults", 
     "Print out the result of each test as it is computed");
 // Boolean printTestResults = FALSE;
@@ -265,6 +270,8 @@ ostream& operator <<(ostream &os, testResult & tr)
     } else {
 	cout << "FALSE";
     }
+
+    return os; // added AT 12/8/94
 }
 
 //
