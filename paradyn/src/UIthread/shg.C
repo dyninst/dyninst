@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.8  1996/02/02 01:08:31  karavan
-/* changes to support new PC/UI interface
+/* Revision 1.9  1996/02/02 18:44:16  tamches
+/* Displaying extra information about an shg node has changed from a mouse-move
+/* to a middle-click
 /*
+ * Revision 1.8  1996/02/02 01:08:31  karavan
+ * changes to support new PC/UI interface
+ *
  * Revision 1.7  1996/01/23 07:02:20  tamches
  * added shadow node features
  *
@@ -46,6 +50,7 @@
 #include "performanceConsultant.thread.CLNT.h" // for class performanceConsultantUser
 #endif
 
+// Define static member vrbles:
 XFontStruct *shg::theRootItemFontStruct, *shg::theRootItemShadowFontStruct;
 XFontStruct *shg::theListboxItemFontStruct, *shg::theListboxItemShadowFontStruct;
 
@@ -58,8 +63,8 @@ GC shg::rootItemInactiveShadowTextGC, shg::rootItemActiveShadowTextGC;
 GC shg::listboxInactiveItemGC, shg::listboxActiveItemGC;
 GC shg::listboxInactiveShadowItemGC, shg::listboxActiveShadowItemGC;
 
-int          shg::listboxBorderPix = 3;
-int          shg::listboxScrollBarWidth = 16;
+int shg::listboxBorderPix = 3;
+int shg::listboxScrollBarWidth = 16;
 
 void shg::initializeStaticsIfNeeded() {
    if (rootItemTk3DBordersByStyle.size() > 0)
@@ -112,7 +117,7 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 
 void shg::rethink_nominal_centerx() {
    // similar to where axis
-   const int horizSpaceUsedByAll = rootPtr==NULL ? 0 : rootPtr->entire_width(consts);
+   const int horizSpaceUsedByAll = (rootPtr==NULL) ? 0 : rootPtr->entire_width(consts);
 
    if (horizSpaceUsedByAll <= Tk_Width(consts.theTkWindow))
       nominal_centerx = Tk_Width(consts.theTkWindow) / 2;
@@ -513,6 +518,105 @@ void shg::processSingleClick(int x, int y) {
    }
 }
 
+void shg::processMiddleClick(int x, int y) {
+   // obtain information about a node...or, if the press was on
+   // a scrollbar, treat it as a normal left-button press
+   if (rootPtr == NULL)
+      return;
+
+   whereNodeGraphicalPath<shgRootNode> thePath = point2path(x, y);
+
+   switch (thePath.whatDoesPathEndIn()) {
+      case whereNodeGraphicalPath<shgRootNode>::Nothing:
+         return;
+      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarUpArrow:
+      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarDownArrow:
+      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPageup:
+      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPagedown:
+         processNonSliderButtonPress(thePath);
+         return;
+      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarSlider: {
+         where4tree<shgRootNode> *parentPtr = thePath.getLastPathNode(rootPtr);
+
+         slider_initial_yclick = y;
+         slider_currently_dragging_subtree = parentPtr;
+         slider_scrollbar_path = thePath.getPath();
+
+         const int lbTop = thePath.get_endpath_topy() +
+                           parentPtr->getNodeData().getHeightAsRoot() +
+                           consts.vertPixParent2ChildTop;
+
+         int dummyint;
+         parentPtr->getScrollbar().getSliderCoords(lbTop,
+                     lbTop + parentPtr->getListboxActualPixHeight() - 1,
+                     parentPtr->getListboxActualPixHeight() - 2*listboxBorderPix,
+                     parentPtr->getListboxFullPixHeight() - 2*listboxBorderPix,
+                     slider_initial_scrollbar_slider_top, // filled in
+                     dummyint);
+
+         Tk_CreateEventHandler(consts.theTkWindow,
+                               ButtonReleaseMask,
+                               sliderButtonRelease,
+                               this);
+         Tk_CreateEventHandler(consts.theTkWindow,
+                               PointerMotionMask,
+                               sliderMouseMotion,
+                               this);
+         
+         return;
+      }
+      default: break;
+   }
+
+   string commandStr = currItemLabelName + " config -state normal";
+   myTclEval(interp, commandStr);
+
+   commandStr = currItemLabelName + " delete @0,0 end";
+   myTclEval(interp, commandStr);
+
+   // Note that we write different stuff if we are in devel mode, so
+   // we need to check the tunable const:
+   const shgRootNode &theNode = thePath.getLastPathNode(rootPtr)->getNodeData();
+
+   string dataString;
+         
+#ifdef PARADYN
+   // the shg test program doesn't have a developer mode
+   extern bool inDeveloperMode;
+   if (inDeveloperMode)
+      dataString += string(theNode.getId()) + " ";
+#endif
+
+   dataString += theNode.getLongName();
+
+#ifdef PARADYN
+   // the igen call isn't implemented in the shg axis test program
+   if (inDeveloperMode) {
+      dataString += "\n";
+      // make an igen call to the performance consultant to get more information
+      // about this node:
+      extern performanceConsultantUser *perfConsult;
+      shg_node_info theNodeInfo;
+      assert(perfConsult->getNodeInfo(thePhaseId, theNode.getId(), &theNodeInfo));
+      dataString += "curr concl: ";
+      dataString += theNodeInfo.currentConclusion ? "true" : "false";
+      dataString += " made at time ";
+      dataString += string(theNodeInfo.timeTrueFalse) + "\n";
+      dataString += string("curr value: ") + string(theNodeInfo.currentValue);
+      dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
+      dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
+	                                 string(theNodeInfo.endTime) + "\n";
+      dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
+   }
+#endif
+
+   commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
+   myTclEval(interp, commandStr);
+
+   commandStr = currItemLabelName + " config -state disabled";
+   myTclEval(interp, commandStr);
+}
+
 bool shg::processDoubleClick(int x, int y) {
    if (rootPtr==NULL)
       return false;
@@ -747,9 +851,8 @@ bool shg::configNode(unsigned id, bool newActive,
       vector< where4tree<shgRootNode>* > &shadowList = shadowNodeHash[id];
       for (unsigned i=0; i < shadowList.size(); i++) {
          where4tree<shgRootNode>* shadowNode = shadowList[i];
-         const bool changed = shadowNode->getNodeData().configStyle(newActive,
-								    newEvalState);
-         if (changed) anyChanges = true;
+         if (shadowNode->getNodeData().configStyle(newActive, newEvalState))
+            anyChanges = true;
       }
    }
    
@@ -837,6 +940,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
    bool addingShadowNode = false;
    if (hash2[childPtr] == NULL) {
+      // We are _not_ adding a shadow node.
       hash2[childPtr] = parentPtr;
       assert(label==NULL);
    }
@@ -873,130 +977,10 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
 void shg::addToStatusDisplay(const string &str) {
    string commandStr = string(".shg.nontop.textarea.text insert end ") +
-                       "{" + str + "}";
+                       "{" + str + "}\n";
    myTclEval(interp, commandStr);
 
    commandStr = ".shg.nontop.textarea.text yview -pickplace end";
    myTclEval(interp, commandStr);
 }
 
-void shg::possibleMouseMoveIntoItem(int x, int y) {
-   // fill a tk label widget with long name of item under (x,y)
-   if (x==lastItemUnderMouseX && y==lastItemUnderMouseY) {
-      // WARNING: Now that the status line displays more than just the
-      // node's name (it also displays lots of juicy status information
-      // which can _change_ over time), I'm not sure this is right:
-      return; // no changes
-   }
-
-   lastItemUnderMouseX = x;
-   lastItemUnderMouseY = y;
-
-   whereNodeGraphicalPath<shgRootNode> newItemUnderMousePath = point2path(x, y);
-   if (newItemUnderMousePath == lastItemUnderMousePath) {
-      // cout << "x/y changes, but the path didn't change" << endl;
-
-      // WARNING: Now that the status line displays more than just the
-      // node's name (it also displays lots of juicy status information
-      // which can _change_ over time), I'm not sure this is right:
-      return; // no changes to the label
-   }
-
-   // check for blank-to-blank changes:
-   switch (lastItemUnderMousePath.whatDoesPathEndIn()) {
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarUpArrow:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarDownArrow:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPageup:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPagedown:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarSlider:
-      case whereNodeGraphicalPath<shgRootNode>::Nothing:
-         switch (newItemUnderMousePath.whatDoesPathEndIn()) {
-            case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarUpArrow:
-            case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarDownArrow:
-            case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPageup:
-            case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPagedown:
-            case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarSlider:
-            case whereNodeGraphicalPath<shgRootNode>::Nothing: {
-//               cout << "blank to blank" << endl;
-               return; // no substantive changes
-            }
-            default: break;
-	 }
-      default: break;
-   }
-
-   // Only remaining possibilities are substantive-to-blank, blank-to-substantive, or
-   // substantive-to-substantive path changes.  In the first two cases, we obviously
-   // want to make changes to the text widget.  Consider the second case now:
-   // Since the paths are not equal (such a check was done earlier), we can
-   // assume that the label text really should be different
-   lastItemUnderMousePath = newItemUnderMousePath;
-
-//   string commandStr = currItemLabelName + " config -text \"" +
-//                       newItemUnderMousePath.getLastPathNode(rootPtr)->getNodeData().getLongName() +
-//		       "\"";
-
-   string commandStr = currItemLabelName + " config -state normal";
-   myTclEval(interp, commandStr);
-
-   commandStr = currItemLabelName + " delete @0,0 end";
-   myTclEval(interp, commandStr);
-
-   // Should we fill the label with the longname-of-endpath-item, or leave it blank?
-   // The former is undefined for many instances of whatDoesPathEndIn(); hence:
-   switch (lastItemUnderMousePath.whatDoesPathEndIn()) {
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarUpArrow:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarDownArrow:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPageup:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarPagedown:
-      case whereNodeGraphicalPath<shgRootNode>::ListboxScrollbarSlider:
-      case whereNodeGraphicalPath<shgRootNode>::Nothing:
-         break;
-      default: {
-         // Note that we write different stuff if we are in devel mode, so
-         // we need to check the tunable const:
-         const shgRootNode &theNode = newItemUnderMousePath.getLastPathNode(rootPtr)->getNodeData();
-
-         string dataString;
-         
-#ifdef PARADYN
-	 // the shg test program doesn't have a developer mode
-         extern bool inDeveloperMode;
-         if (inDeveloperMode)
-            dataString += string(theNode.getId()) + " ";
-#endif
-
-         dataString += theNode.getLongName();
-
-#ifdef PARADYN
-	 // the igen call isn't implemented in the shg axis test program
-         if (inDeveloperMode) {
-            dataString += "\n";
-            // make an igen call to the performance consultant to get more information
-            // about this node:
-            extern performanceConsultantUser *perfConsult;
-            shg_node_info theNodeInfo;
-            assert(perfConsult->getNodeInfo((unsigned)thePhaseId, theNode.getId(), 
-					    &theNodeInfo));
-            dataString += "curr concl: ";
-	    dataString += theNodeInfo.currentConclusion ? "true" : "false";
-	    dataString += " made at time ";
-	    dataString += string(theNodeInfo.timeTrueFalse) + "\n";
-	    dataString += string("curr value: ") + string(theNodeInfo.currentValue);
-	    dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
-	    dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
-	                                 string(theNodeInfo.endTime) + "\n";
-	    dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
-         }
-#endif
-
-         string commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
-         myTclEval(interp, commandStr);
-      }
-   }
-
-   commandStr = currItemLabelName + " config -state disabled";
-   myTclEval(interp, commandStr);
-
-   return;
-}
