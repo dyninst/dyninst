@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.24 2002/10/14 21:02:07 bernat Exp $
+// $Id: aixDL.C,v 1.25 2002/11/14 20:26:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -386,7 +386,7 @@ bool process::trapAtEntryPointOfMain()
 void process::handleIfDueToDyninstLib()
 {
   getDefaultLWP()->restoreRegisters(savedRegs);
-  delete[] (char *)savedRegs;
+  delete savedRegs;
   savedRegs = NULL;
   // We was never here.... 
   
@@ -708,7 +708,6 @@ bool process::dlopenPARADYNlib()
   // save registers
   savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
-
   isLoadingParadynLib = true; //ccw 30 apr 2002 : SPLIT4
   if (!getDefaultLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in dlopenPARADYNlib\n");
