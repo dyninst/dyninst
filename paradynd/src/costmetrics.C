@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.23 2002/05/09 21:42:44 schendel Exp $
+// $Id: costmetrics.C,v 1.24 2002/08/12 04:21:39 schendel Exp $
 
 #include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
@@ -175,7 +175,7 @@ void costMetric::updateValue(process *proc, timeStamp timeOfSample,
 			     pdSample value, timeStamp processTime) 
 {
   int proc_num = -1;
-  sampleVal_cerr << "costMetric::updateValue- val: " << value << "\n";
+  //sampleVal_cerr << "costMetric::updateValue- val: " << value << "\n";
   for(unsigned i=0; i < components.size(); i++) {
     if(proc == components[i]) proc_num = i;
   }
