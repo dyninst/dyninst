@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.28  1994/09/22 00:54:06  markc
+ * Revision 1.29  1994/09/25 01:56:25  newhall
+ * added #ifndef's
+ *
+ * Revision 1.28  1994/09/22  00:54:06  markc
  * Changed daemonEntry class to remove purify errors, provide access methods
  * for member variables, copy args to constructor
  * Change "String" to "char*"
@@ -103,6 +106,8 @@
  *
  *
  */
+#ifndef dminternals_H
+#define dminternals_H
 #include "util/h/list.h"
 #include "util/h/hist.h"
 #include "util/h/aggregateSample.h"
@@ -439,4 +444,5 @@ class metricInstance {
 	float enabledTime;
     private:
 };
+#endif
 

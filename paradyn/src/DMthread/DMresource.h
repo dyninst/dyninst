@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.9  1994/09/22 00:58:02  markc
+ * Revision 1.10  1994/09/25 01:56:27  newhall
+ * added #ifndef's
+ *
+ * Revision 1.9  1994/09/22  00:58:02  markc
  * Added const to const char* for createResource()
  *
  * Revision 1.8  1994/08/05  16:04:01  hollings
@@ -35,6 +38,8 @@
  *
  *
  */
+#ifndef DMresource_H 
+#define DMresource_H
 #ifndef NULL
 #define NULL 0
 #endif
@@ -151,4 +156,5 @@ class resource {
 
     Boolean suppressSearch;		// user want's to ignore this one.
 };
+#endif
 
