@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
+# Revision 1.11  1996/08/05 07:08:53  tamches
+# used BACKUP_CORE to remove a /p/paradyn dependency in VPATH
+#
 # Revision 1.10  1996/04/29 03:27:55  tamches
 # added APP_PURE_OPTIONS for application-specific purify options
 #
@@ -84,7 +87,8 @@ ifndef DEST
 DEST		= $(TO_CORE)/../bin/$(PLATFORM)
 endif
 
-VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
+#VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
+VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
 
 
 echo:
