@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.32  1994/11/07 08:25:14  jcargill
-/* Added ability to suppress search on children of a resource, rather than
-/* the resource itself.
+/* Revision 1.33  1994/11/10 17:35:57  rbi
+/* physical illness and possible death in the family
 /*
+ * Revision 1.32  1994/11/07  08:25:14  jcargill
+ * Added ability to suppress search on children of a resource, rather than
+ * the resource itself.
+ *
  * Revision 1.31  1994/11/04  16:29:08  rbi
  * Added paradyn daemon command
  *
@@ -594,7 +597,12 @@ int ParadynSetCmd (ClientData clientData,
 	  sprintf (interp->result, "value %f not valid.\n", f);
 	  return TCL_ERROR;
       } else {
-	  printf ("%s set to %f\n", (char*) fConst->getName(), fConst->getValue());
+//
+//   this printf was preventing the demonstation of vital computer
+//   science research.  i was ordered to remove it, and i have done so.
+//                                     -rbi  11/10/94
+//
+//	  printf ("%s set to %f\n", (char*) fConst->getName(), fConst->getValue());
       }
   } else if (curr->getType() == tunableBoolean) {
       bConst = (tunableBooleanConstant *) curr;
@@ -604,10 +612,15 @@ int ParadynSetCmd (ClientData clientData,
 
       if (val) {
 	  bConst->setValue(True);
-	  printf ("%s set to True\n", (char*)bConst->getName());
+//
+//   these printfs were preventing the demonstation of vital computer
+//   science research.  i was ordered to remove them, and i have done so.
+//                                     -rbi  11/10/94
+//
+//	  printf ("%s set to True\n", (char*)bConst->getName());
       } else {
 	  bConst->setValue(False);
-	  printf ("%s set to False\n", (char*)bConst->getName());
+//	  printf ("%s set to False\n", (char*)bConst->getName());
       }
   }
   return TCL_OK;
@@ -718,7 +731,12 @@ int ParadynSuppressCmd (ClientData clientData,
 	// DEBUG
 	r = resList->getNth(i);
 	name = r->getName();
-	printf ("suppress request for %s\n", (char*)name);
+//
+//   this printf just pushed me over the edge.  it too stood in the way
+//   of demonstrating vital computer science research.  i was ordered
+//   to remove it, and i have done so.  it may be my last.
+//                                     -rbi  11/10/94
+//	printf ("suppress request for %s\n", (char*)name);
 
 	if (suppressInst) {
 	    dataMgr->setResourceInstSuppress(context, r, TRUE);
