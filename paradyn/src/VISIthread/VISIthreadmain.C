@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.70  1996/05/01 18:08:03  newhall
-/* purify fixes
+/* Revision 1.71  1996/05/01 18:56:03  newhall
+/* bug fix: check size of partPair after call to VISIthreadWaitForEnableResponse
 /*
+ * Revision 1.70  1996/05/01  18:08:03  newhall
+ * purify fixes
+ *
  * Revision 1.69  1996/04/30  18:55:31  newhall
  * changes to support the asynchrounous enable data calls to the DM
  * this code contains a kludge to make the VISIthread wait for the DM's
@@ -835,7 +838,7 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
        // wait for DM response
        VISIthreadWaitForEnableResponse(partPair,requestId);
 
-	if(partPair){
+	if(partPair && partPair->size()){
             for (unsigned int k=0;k<(*partPair).size();k++) {
               (*newPair)[k+current].successfully_enabled = 
 				 (*partPair)[k].successfully_enabled;
@@ -932,7 +935,8 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
        // wait for DM response
        VISIthreadWaitForEnableResponse(partPair,requestId);
       
-      for (u_int m=0;m<(*partPair).size();m++){
+      if(partPair && partPair->size()){
+        for (u_int m=0;m<(*partPair).size();m++){
           (*newPair)[m+current].successfully_enabled = 
 				 (*partPair)[m].successfully_enabled;
           (*newPair)[m+current].mi_id = (*partPair)[m].mi_id;
@@ -942,9 +946,9 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
           (*newPair)[m+current].metric_units = (*partPair)[m].metric_units;
           (*newPair)[m+current].focus_name = (*partPair)[m].focus_name;
           (*newPair)[m+current].units_type = (*partPair)[m].units_type;
-      }
+      } }
 
-      if (partPair) {
+      if (partPair && partPair->size()) {
           for (unsigned int j=current;j<((*partPair).size()+ current);j++) {
               if ((*newPair)[j].successfully_enabled) {
                   // check to see if this pair has already been enabled
