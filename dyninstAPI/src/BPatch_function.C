@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.4 2000/03/18 21:53:59 tikir Exp $
+// $Id: BPatch_function.C,v 1.5 2000/03/21 21:45:06 altinel Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -379,5 +379,9 @@ BPatch_flowGraph* BPatch_function::getCFG(){
 #endif
 
 	return cfg;
+}
+
+BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() {
+      return localVariables->getAllVars(); 
 }
 

@@ -12,7 +12,7 @@
 // XXXX
 // This is a hack to deal with the fact that the gnu compiler uses a differnt 
 //   style of array records in the coff debug format.  It should be removed
-//   once we understand what/why the difference is. - memhat & jkh 3/10/00
+//   once we understand what/why the difference is. - mehmet & jkh 3/10/00
 //
 extern bool GCC_COMPILED; //True if mutater is compiled with a GNU compiler
 
@@ -198,9 +198,8 @@ BPatch_type *ExploreType(BPatch_module *mod, LDFILE *ldptr, char *name, int inde
 	return NULL; //Invalid index or ldptr is sent
 
   if (st_type == stProc || st_type == stStaticProc) {
-	auxInfo++; //Ignore isym
-	index = GetRndxIndex(auxInfo);
-	auxInfo.GetAuxInfo(index); //Find main TIR
+	auxInfo++; //Ignore isym, move to next aux record
+	index++;
   }
 
   newType = mod->moduleTypes->findType(index);
