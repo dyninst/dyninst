@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.108 2002/06/28 15:23:18 mirg Exp $
+// $Id: ast.C,v 1.109 2002/07/03 22:19:56 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1867,7 +1867,7 @@ AstNode *getTimerAddress(void *base, unsigned struct_size)
   // Return base + struct_size*POS. Problem is, POS is unknown
   // until we are running the instrumentation
 
-  fprintf(stderr, "Called handleMT with base of 0x%x, structure size %d\n",
+  fprintf(stderr, "Called MT timer with base of 0x%x, structure size %d\n",
 	  (unsigned) base, struct_size);
   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
@@ -1931,7 +1931,6 @@ AstNode *createCounter(const string &func, void *dataPtr,
 
    // We keep the different MT_THREAD code, because otherwise we really
    // de-optimize the singlethread case
-
    AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter));
    if (func=="addCounter") {
 #if defined(MT_THREAD)
