@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.110 1999/06/28 19:13:07 karavan Exp $
+// $Id: DMpublic.C,v 1.111 1999/07/26 21:47:33 cain Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -271,8 +271,7 @@ bool dataManager::pauseApplication()
 }
 
 void dataManager::createCallGraph(){
-  CallGraph *cg = CallGraph::GetCallGraph(0);
-  cg->displayCallGraph();
+  CallGraph::displayAllCallGraphs();
 }
 
 bool dataManager::pauseProcess(int pid)

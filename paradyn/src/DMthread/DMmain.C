@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.123 1999/06/28 19:13:06 karavan Exp $
+// $Id: DMmain.C,v 1.124 1999/07/26 21:47:33 cain Exp $
 
 #include <assert.h>
 extern "C" {
@@ -141,20 +141,27 @@ extern void histFoldCallBack(timeStamp, void*, bool);
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
-void dynRPCUser::CallGraphFillDone(int program){
+void dynRPCUser::CallGraphFillDone(string exe_name){
   CallGraph *cg;
-  cg = CallGraph::FindCallGraph(program);
+  cg = CallGraph::FindCallGraph(exe_name);
   cg->callGraphInitialized = true;
 }
 
+void dynRPCUser::CallGraphAddProgramCallback(string exe_name){
+  CallGraph::AddProgram(exe_name);
+}
+
 // upcall from paradynd to register the entry function for a given
-//  call graph....
-void dynRPCUser::CallGraphSetEntryFuncCallback(int program, string entry_func) {
+//  call graph.... 
+//This function is called with a previously unseen program ID to create a new
+// call graph.
+void dynRPCUser::CallGraphSetEntryFuncCallback(string exe_name, 
+					       string entry_func) {
     CallGraph *cg;
     resource *r;
 
     // get/create call graph corresponding to program....
-    cg = CallGraph::GetCallGraph(program);
+    cg = CallGraph::FindCallGraph(exe_name);
     assert(cg);
 
     // resource whose name is passed in <resource> should have been previously
@@ -167,12 +174,12 @@ void dynRPCUser::CallGraphSetEntryFuncCallback(int program, string entry_func) {
 // upcall from paradynd to register new function resource with call graph....
 // parameters are an integer corresponding to the program to which a node
 // is being added, and a string that is the name of the function being added
-void dynRPCUser::AddCallGraphNodeCallback(int program, string r_name) {
+void dynRPCUser::AddCallGraphNodeCallback(string exe_name, string r_name) {
     CallGraph *cg;
     resource *r;
 
     // get (or create) call graph corresponding to program....
-    cg = CallGraph::GetCallGraph(program);
+    cg = CallGraph::FindCallGraph(exe_name);
     assert(cg);
 
     // resource whose name is passed in <resource> should have been previously
@@ -184,15 +191,16 @@ void dynRPCUser::AddCallGraphNodeCallback(int program, string r_name) {
 
 //Same as AddCallGraphNodeCallback, only adds multiple children at once,
 //and associates these children with a give parent (r_name)
-void dynRPCUser::AddCallGraphStaticChildrenCallback(int program, string 
-                        r_name, vector<string>children) {
+void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name, 
+						    string r_name, 
+						    vector<string>children) {
     unsigned u;
     CallGraph *cg;
     resource *r, *child;
     vector <resource *> children_as_resources;
 
     // call graph for program <program> should have been previously defined....
-    cg = CallGraph::FindCallGraph(program);
+    cg = CallGraph::FindCallGraph(exe_name);
     assert(cg);
     // resource whose name is passed in <resource> should have been previously
     //  registered w/ data manager....

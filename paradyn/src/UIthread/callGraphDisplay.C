@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.2 1999/06/29 15:52:53 cain Exp $
+// $Id: callGraphDisplay.C,v 1.3 1999/07/26 21:48:00 cain Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -103,27 +103,28 @@ void callGraphDisplay::initializeStaticsIfNeeded() {
   nonListboxRayGC = consts.subchildRayGC;
 }
 
-callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, Tcl_Interp *in_interp, Tk_Window theTkWindow, const string &shortName,
-		     const string &fullName,
-		     const string &iHorizSBName,
-		     const string &iVertSBName) :
+callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, 
+				   Tcl_Interp *in_interp, 
+				   Tk_Window theTkWindow, 
+				   const string &exe_name,
+				   const string &shortName,
+				   const string &fullName,
+				   const string &iHorizSBName,
+				   const string &iVertSBName) :
   programId(pid),
   consts(in_interp, theTkWindow),
   theCallGraphConsts(in_interp, theTkWindow),
   hash(&callGraphDisplay::hashFunc),
+  executable_name(exe_name),
   horizSBName(iHorizSBName),
   vertSBName(iVertSBName){
 
   initializeStaticsIfNeeded();
-  
   const resourceHandle rootResHandle = rootId;
-  
   callGraphRootNode tempRootNode(rootResHandle, shortName, fullName,
 				 false, false);
-
   rootPtr = new where4tree<callGraphRootNode>(tempRootNode);
   assert(rootPtr);
-  
   hash[rootResHandle] = rootPtr;
 
   beginSearchFromPtr = NULL;
@@ -131,7 +132,6 @@ callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, Tcl_Interp *i
   interp = in_interp;
   
   horizScrollBarOffset = vertScrollBarOffset = 0;
-      
   rethink_nominal_centerx();
 
   nonSliderButtonCurrentlyPressed = false;

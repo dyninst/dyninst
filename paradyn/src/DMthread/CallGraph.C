@@ -39,20 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.2 1999/06/29 15:50:04 cain Exp $
+// $Id: CallGraph.C,v 1.3 1999/07/26 21:47:33 cain Exp $
 
 #include "CallGraph.h"
 #include "paradyn/src/met/mdl.h"
 #include "dyninstAPI/src/util.h"
 #include "paradyn/src/pdMain/paradyn.h"
-
 // constructors for static data members in call graph class....
 dictionary_hash<int, CallGraph *> CallGraph::directory(intHash);
 resource *CallGraph::rootResource = NULL;
+int CallGraph::last_id_issued = 0;
 
 // simple function to convert from resource * to unsigned for use w/
 //  hashing....
-static inline unsigned int hash_dummy(resource * const &r) {
+static inline unsigned hash_dummy(resource * const &r) {
     const resource *p = r;
     unsigned int u = (unsigned int)p;
     return u;
@@ -70,25 +70,73 @@ static char *stripCodeFromName(const char *c){
   return newc;
 }
 
-CallGraph::CallGraph(int program) : 
-    children(hash_dummy), parents(hash_dummy), visited(hash_dummy)
-{
-  rootResource = NULL;
-  program_id = program;
-  callGraphInitialized = false;
+static string stripPathFromExecutableName(string exe_name){
+  unsigned i;
+  const char *array = exe_name.string_of();
+  char *last_slash = const_cast<char *>(array);
+  for(i = 0; i < exe_name.length(); i++){
+    if(array[i] == '/' || array[i] == '\\')
+      last_slash = const_cast<char *>(&array[i]);
+  }
+  last_slash += sizeof(char);
+  return string(last_slash);
 }
 
-CallGraph::CallGraph(int program, resource *nroot) : 
-    children(hash_dummy), parents(hash_dummy), visited(hash_dummy)
+int CallGraph::name2id(string exe_name){
+  unsigned u;
+  for(u = 0; u < directory.size(); u++){
+    if(directory[u]->getExeAndPathName() == exe_name)
+      return directory[u]->getId();
+  }
+  return -1;
+}
+
+CallGraph::CallGraph(string exe_name) : 
+    children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
+    executableAndPathName(exe_name)
 {
-    rootResource = nroot;
-    program_id = program;
-    callGraphInitialized = false;
+  resourceHandle h;
+  program_id = last_id_issued;
+  last_id_issued++;
+  callGraphInitialized = false;
+  assert(resource::string_to_handle("/Code", &h));
+  rootResource = resource::handle_to_resource(h);
+  assert(rootResource != NULL);
+  executableName =stripPathFromExecutableName(executableAndPathName);
+  // all call graph should be aware of the root resource, so that they 
+  //  know to magnify from it to the entryFunction (specified in 
+  //  SetEntryFunc)....
+  this->AddResource(rootResource);
+}
+
+CallGraph::CallGraph(string exe_name, 
+		     resource *nroot) : 
+  children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
+  executableAndPathName(exe_name)
+{
+  program_id = last_id_issued;
+  last_id_issued++;
+  rootResource = nroot;
+  callGraphInitialized = false;
+  executableName =stripPathFromExecutableName(executableAndPathName);
+  // all call graph should be aware of the root resource, so that they 
+  //  know to magnify from it to the entryFunction (specified in 
+  //  SetEntryFunc)....
+  this->AddResource(rootResource); 
 }
 
 CallGraph::~CallGraph() {
   // DO NOT DELETE RESOURCES....
 }
+
+void CallGraph::AddProgram(string exe_name){
+  CallGraph *cg;
+  if(name2id(exe_name) == -1){
+    cg = new CallGraph(exe_name);
+    directory[cg->getId()] = cg;
+  }
+}
+
 
 bool CallGraph::AddResource(resource *r) {
     vector <resource *> empty;
@@ -107,26 +155,25 @@ bool CallGraph::AddResource(resource *r) {
 
 
 int CallGraph::SetChildren(resource *r, const vector <resource *>rchildren) {
-    unsigned u;
+    unsigned u,i;
     resource *rchild;
-    
+    bool already_added;
     // assert(r previously seen by call graph)....
     assert(children.defines(r) && parents.defines(r));
 
-    //This assert was removed in order to deal with overloaded function
-    //calls. It makes sure that when we add children to a function, 
-    //that function doesn't already have children, which is the common case
-    //because SetChildren() is called once per function. We run into problems
-    //when there are multiple functions with the same name...the call
-    //Graph doesn't distinguish between them.
-    //assert(children[r].size() == 0);
-
     for(u=0;u<rchildren.size();u++) {
-
       rchild = rchildren[u];
-      AddResource(rchild);
-      children[r] += rchild;
-      parents[rchild] += r;
+      already_added = false;
+      for(i=0; i < children[r].size(); i++)
+	if(children[r][i] == rchild){
+	  already_added = true;
+	  break;
+	}
+      if(!already_added){
+	AddResource(rchild);
+	children[r] += rchild;
+	parents[rchild] += r;
+      }
     }
 
     return (int)u;
@@ -136,7 +183,10 @@ int CallGraph::SetChild(resource *p, resource *c) {
     // assert (p previously seen by call graph) 
     assert(children.defines(p) && parents.defines(p));
     // assert (p had no previously defined children)
-    //assert(children[p].size() == 0);
+
+    //Don't add duplicate children to this resource
+    if(children[p].size() != 0)
+      return 0;
     AddResource(c);
     children[p] += c;
     parents[c] += p;
@@ -150,41 +200,6 @@ bool CallGraph::AddDynamicallyDeterminedChild(resource *r, resource *c) {
     return false;
 }
 
-
-CallGraph* CallGraph::GetCallGraph(int program) {
-    CallGraph *n;
-    resourceHandle h;
-
-    if (directory.defines(program)) {
-        return directory[program];
-    }
-
-    // would like to throw MemFullErr if n is NULL, but paradyd doesn't
-    //  define or use error hierarchies....
-    n = new CallGraph(program);
-    assert(n);
-
-    directory[program] = n;
-    // If rootResource is previously defined,
-    //  define now (static data member)....
-    // In current version, 1st call graph should be created AFTER function 
-    //  resources have been defined.  Thus the assert that rootResource 
-    //  is defined.  Probably safe to remove if start creating
-    //  call graphs before sreources are defined in paradyn....
-    if (rootResource == NULL) {
-        assert(resource::string_to_handle("/Code", &h));
-        rootResource = resource::handle_to_resource(h);
-	assert(rootResource != NULL);
-    }
-
-    // all call graph should be aware of the root resource, so that they 
-    //  know to magnify from it to the entryFunction (specified in 
-    //  SetEntryFunc)....    
-    n->AddResource(rootResource);
-
-    return n;
-}
-
 void CallGraph::SetEntryFunc(resource *r) {
     assert(r != NULL);
     assert(r->getType() == MDL_T_PROCEDURE);
@@ -195,17 +210,25 @@ void CallGraph::SetEntryFunc(resource *r) {
     //  graph.  Instead, the request to magnify /Code should return a single
     //  function - the entry function....
     AddResource(entryFunction);
-    
 
     SetChild(rootResource, entryFunction);
 }
 
-CallGraph*CallGraph::FindCallGraph(int program) {
-
-    if (directory.defines(program)) {
-        return directory[program];
-    }
+CallGraph *CallGraph::FindCallGraph(string exe_name) {
+  int pid = name2id(exe_name);
+  if(pid == -1)
     return NULL;
+  if (directory.defines(pid)) {
+    return directory[pid];
+  }
+  //If name2id returns a valid pd, we should always be able to find a CG
+  assert(false);
+  return NULL;
+}
+
+CallGraph *CallGraph::FindCallGraph(){
+  assert(directory.size() == 1);
+  return directory[0];
 }
 
 void CallGraph::displayCallGraph(){
@@ -217,13 +240,22 @@ void CallGraph::displayCallGraph(){
   //add program function to display, which is probably 
   //rooted by the function "main"
 
-  uiMgr->callGraphProgramAddedCB(0,entryFunction->getHandle(), 
-		     entryFunction->getName(),
-		     stripCodeFromName(entryFunction->getFullName())); 
+  uiMgr->callGraphProgramAddedCB(0, entryFunction->getHandle(), 
+				 executableName.string_of(),
+				 entryFunction->getName(),
+			     stripCodeFromName(entryFunction->getFullName())); 
   
   callPath[entryFunction] = 1;
   addChildrenToDisplay(entryFunction,callPath);
   uiMgr->CGDoneAddingNodesForNow(0);
+}
+
+//Add Displays for all of the CallGraphs known to the DM
+void CallGraph::displayAllCallGraphs(){
+  unsigned u;
+  vector<CallGraph*> cgs = directory.values();
+  for(u = 0; u < directory.size(); u++)
+    cgs[u]->displayCallGraph();
 }
 
 //This function adds all of the children of resource specified by r
@@ -293,3 +325,19 @@ vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
 
     return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

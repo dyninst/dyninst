@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.4 1999/07/13 16:50:27 cain Exp $
+// $Id: callGraphs.C,v 1.5 1999/07/26 21:48:01 cain Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -102,7 +102,7 @@ callGraphDisplay &callGraphs::getByID(int programID) {
 int callGraphs::name2id(const string &programName) const {
    // returns -1 if not found
    for (unsigned i=0; i < theCallGraphPrograms.size(); i++)
-      if (programName == theCallGraphPrograms[i].fullName)
+      if (programName == theCallGraphPrograms[i].executable_name)
          return theCallGraphPrograms[i].getProgramId();
    return -1;
 }
@@ -110,7 +110,7 @@ int callGraphs::name2id(const string &programName) const {
 const string &callGraphs::id2name(int id) const {
    for (unsigned lcv=0; lcv < theCallGraphPrograms.size(); lcv++)
       if (theCallGraphPrograms[lcv].getProgramId() == id)
-         return theCallGraphPrograms[lcv].fullName;
+         return theCallGraphPrograms[lcv].executable_name;
    cerr << "call graph program: program id " << id
 	<< " doesn't exist." << endl;
    assert(false);
@@ -167,7 +167,7 @@ bool callGraphs::changeLL(unsigned newIndex) {
 
    // Update the label containing the current phase name:
    commandStr = currProgramLabelName + " config -text \"" +
-                theNewCallGraphStruct.fullName + "\"";
+                theNewCallGraphStruct.executable_name + "\"";
    myTclEval(interp, commandStr);
 
    theNewCallGraphStruct.theCallGraphDisplay->resize(true);
@@ -186,14 +186,13 @@ bool callGraphs::changeByProgramId(int id) {
    return false; // could not find any phase with that name
 }
 
-bool callGraphs::change(const string &newProgramName) {
+bool callGraphs::change(const string &exe_name) {
    // returns true iff successful, in which case you should redraw
    for (unsigned i=0; i < theCallGraphPrograms.size(); i++) {
       callGraphStruct &theCallGraphStruct = theCallGraphPrograms[i];
-      if (theCallGraphStruct.fullName == newProgramName)
+      if (theCallGraphStruct.executable_name == exe_name)
          return changeLL(i);
    }
-
    return false; // could not find any phase with that name
 }
 
@@ -262,7 +261,7 @@ bool callGraphs::newVertScrollPosition(int argc, char **argv) {
    float newFirst;
    bool anyChanges = processScrollCallback(interp, argc, argv,
 					   getVertSBName(),
-					   getCurrent().getVertSBOffset(), // <= 0
+					   getCurrent().getVertSBOffset(),
 					   getCurrent().getTotalVertPixUsed(),
 					   getCurrent().getVisibleVertPix(),
 					   newFirst);
@@ -279,7 +278,7 @@ bool callGraphs::newHorizScrollPosition(int argc, char **argv) {
    float newFirst;
    bool anyChanges = processScrollCallback(interp, argc, argv,
 					   getHorizSBName(),
-					   getCurrent().getHorizSBOffset(), // <= 0
+					   getCurrent().getHorizSBOffset(), 
 					   getCurrent().getTotalHorizPixUsed(),
 					   getCurrent().getVisibleHorizPix(),
 					   newFirst);
@@ -304,7 +303,8 @@ bool callGraphs::altPress(int x, int y) {
       int deltax = x - callGraphAltAnchorX;
       int deltay = y - callGraphAltAnchorY;
 
-      // add some extra speedup juice as an incentive to use alt-mousemove scrolling
+      // add some extra speedup juice as an incentive to use 
+      // alt-mousemove scrolling
       deltax *= 4;
       deltay *= 4;
 
@@ -341,21 +341,26 @@ void callGraphs::altRelease() {
 
 //This should be called when a new call graph root node is created
 
-bool callGraphs::addNewProgram(int programId, resourceHandle rootId, const string &shortName, const string &fullName) {
+bool callGraphs::addNewProgram(int programId, resourceHandle rootId, 
+			       const string &executableName,
+			       const string &shortName,const string &fullName)
+{
   assert(!existsById(programId));
-
-    callGraphStruct theStruct(programId, rootId, shortName,fullName,
-		      interp, theTkWindow,
-		      horizSBName, vertSBName);
+  
+  callGraphStruct theStruct(programId, rootId, executableName, shortName,
+			    fullName, interp, theTkWindow,
+			    horizSBName, vertSBName);
   
   bool result = false; // so far, nothing has changed
   
   // possibly pull off the last phase...
   if (theCallGraphPrograms.size() > 1) // never touch the "Global Search"
     {
-      callGraphStruct &victimStruct = theCallGraphPrograms[theCallGraphPrograms.size()-1];
+      callGraphStruct &victimStruct = 
+	theCallGraphPrograms[theCallGraphPrograms.size()-1];
   
-      string commandStr = menuName + " delete " + string(theCallGraphPrograms.size());
+      string commandStr = menuName + " delete " + 
+	string(theCallGraphPrograms.size());
       myTclEval(interp, commandStr);
       
       victimStruct.fryDag();
@@ -376,7 +381,7 @@ bool callGraphs::addNewProgram(int programId, resourceHandle rootId, const strin
   theCallGraphPrograms += theStruct;
   
   string commandStr = menuName + " add radiobutton -label " +
-    "\"" + fullName + "\"" +
+    "\"" + executableName + "\"" +
     " -command " + "\"" + "callGraphChangeProgram " +
     string(programId) + "\"" +
     " -variable currCallGraphProgram -value " +
@@ -385,7 +390,7 @@ bool callGraphs::addNewProgram(int programId, resourceHandle rootId, const strin
   
   const bool changeTo = (theCallGraphPrograms.size()==1);
   if (changeTo)
-    if (change(fullName))
+    if (change(executableName))
       result = true; // indicates Size redraw is called for
   
     return result;

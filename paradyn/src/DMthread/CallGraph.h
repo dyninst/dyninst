@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.2 1999/06/29 15:50:04 cain Exp $
+// $Id: CallGraph.h,v 1.3 1999/07/26 21:47:33 cain Exp $
 
 /**********************************************************
  *
@@ -98,22 +98,34 @@ class CallGraph {
     // Typically, "/Code/some_module/main" function....
     resource *entryFunction;
 
-    int program_id;
+    //Name of executable as it appears in call graph display window
+    string executableName;
+    
+    //Unique name of executable used to construct the call graph
+    string executableAndPathName;
 
-    // holds known call graphs, indexed by (?machine name? and) program id....
+    //program_id- identifies call graph to user interface
+    int program_id;
+    
+    // holds known call graphs, indexed by program id....
     static dictionary_hash<int, CallGraph *> directory;
 
-    void addChildrenToDisplay(resource *parent, dictionary_hash <resource *, int>);
+    void addChildrenToDisplay(resource *parent, 
+			      dictionary_hash <resource *, int>);
+
+    //Used for issuing new program ids to new call graphs
+    static int last_id_issued;
 
  public:
     bool callGraphInitialized;
 
-    // creators for call graph....
-    CallGraph(int program);
-    CallGraph(int program, resource *nroot);
+    CallGraph(string exe_name);
+    CallGraph(string exe_name, resource *nroot);
 
     // Destructor for call graph.  DO NOT DELETE COMPONENT RESOURCES!!!!
     ~CallGraph();
+
+    static void AddProgram(string exe_name);
 
     // Specify the entry function for a given call graph - the place at
     //  which searches of the call graph should start - generally  
@@ -129,7 +141,6 @@ class CallGraph {
     // Return integer value indicating how many of the children were
     //  added....
     // assert(r previously seen by call graph).....
-    // assert(r did not previously have specified children)....
     // registers resources in <children> not previously seen....
     int SetChildren(resource *r, const vector <resource *>children);
 
@@ -156,16 +167,34 @@ class CallGraph {
     //  by program id.  This function should return a pointer to the call
     //  graph representing program <program>, or create a new one if
     //  one has not previously been registered for <program>....
-    static CallGraph *GetCallGraph(int program);
+    static CallGraph *GetCallGraph(string exe_name);
 
     // as GetCallGraph, but does not create new one if matching item not found.
-    static CallGraph *FindCallGraph(int program);
+    static CallGraph *FindCallGraph(string exe_name);
+
+    //Temporary. This call is used when the PC wants to find the children
+    // of a particular call graph node. This call should be replaced
+    //with the other "FindCallGraph" call above, but the PC will have to 
+    //be aware of which call graph it is requesting the children of.
+    static CallGraph *FindCallGraph();
 
     //Builds the call graph display once all of the static functions have been
     //registered, and the user selects the callGraph menu item from the
     //main paradyn display
     void displayCallGraph();
     
+    //Calls displayCallGraph() for each of the known call graphs.
+    static void displayAllCallGraphs();
+
+    //requires an exe_name WITH the full path name of the executable
+    //attached.
+    static int name2id(string exe_name);
+
+    string getName(){ return executableName;} 
+    
+    string getExeAndPathName(){ return executableAndPathName;}
+
+    int getId() {return program_id;}
 };
 
 

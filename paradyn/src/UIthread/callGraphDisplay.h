@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.2 1999/06/29 15:52:53 cain Exp $
+// $Id: callGraphDisplay.h,v 1.3 1999/07/26 21:48:00 cain Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -106,6 +106,8 @@ class callGraphDisplay {
    string horizSBName; // e.g. ".nontop.main.bottsb"
    string vertSBName;  // e.g. ".nontop.main.leftsb"
    
+   const string executable_name;
+   
    whereNodePosRawPath lastClickPath;
    // used in the navigate menu
    where4tree<callGraphRootNode> *beginSearchFromPtr;
@@ -153,7 +155,8 @@ class callGraphDisplay {
    // needed for hash table class...
    
  public:
-   callGraphDisplay(int pid, resourceHandle rootId,  Tcl_Interp *in_interp, Tk_Window theTkWindow,
+   callGraphDisplay(int pid, resourceHandle rootId,  Tcl_Interp *in_interp, 
+		    Tk_Window theTkWindow, const string &exe_name,
 		    const string &shortName, const string &fullName,
 		    const string &iHorizSBName, const string &iVertSBName);
 
@@ -161,44 +164,45 @@ class callGraphDisplay {
   ~callGraphDisplay() {delete rootPtr;}
 
   void changeNameStyle(bool fullName);
-   int getProgramId() {return programId;}
+  int getProgramId() {return programId;}
+  const string &getName(){return executable_name;}
 
-   // the return values of the next 2 routines will be <= 0
-   int getVertSBOffset() const {return vertScrollBarOffset;}
-   int getHorizSBOffset() const {return horizScrollBarOffset;}
-
-   int getTotalVertPixUsed() const {return rootPtr->entire_height(consts);}
-   int getTotalHorizPixUsed() const {return rootPtr->entire_width(consts);}
-
-   int getVisibleVertPix() const {return Tk_Height(consts.theTkWindow);}
-   int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
-
-   void addItem(const string &shortName, const string &fullName,
-		resourceHandle parentUniqueId,
-		resourceHandle newNodeUniqueId,
-		bool recursiveFlag,
-		bool isShadowNode,
-		bool rethinkGraphicsNow,
+  // the return values of the next 2 routines will be <= 0
+  int getVertSBOffset() const {return vertScrollBarOffset;}
+  int getHorizSBOffset() const {return horizScrollBarOffset;}
+  
+  int getTotalVertPixUsed() const {return rootPtr->entire_height(consts);}
+  int getTotalHorizPixUsed() const {return rootPtr->entire_width(consts);}
+  
+  int getVisibleVertPix() const {return Tk_Height(consts.theTkWindow);}
+  int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
+  
+  void addItem(const string &shortName, const string &fullName,
+	       resourceHandle parentUniqueId,
+	       resourceHandle newNodeUniqueId,
+	       bool recursiveFlag,
+	       bool isShadowNode,
+	       bool rethinkGraphicsNow,
 		bool resortNow);
-   void rethinkEntireLayout();
-
-   void recursiveDoneAddingChildren(bool resortNow) {
-      rootPtr->recursiveDoneAddingChildren(consts, resortNow);
-   }
-
+  void rethinkEntireLayout();
+  
+  void recursiveDoneAddingChildren(bool resortNow) {
+    rootPtr->recursiveDoneAddingChildren(consts, resortNow);
+  }
+  
    static Tk_Font &getRootItemFontStruct(bool shadow) {
-      assert(theRootItemFontStruct); // a static member vrble
-      if(shadow)
-	return theRootItemShadowFontStruct;
+     assert(theRootItemFontStruct); // a static member vrble
+     if(shadow)
+       return theRootItemShadowFontStruct;
       else 
 	return theRootItemFontStruct;
    }
    static Tk_Font &getListboxItemFontStruct(bool shadow) {
-      assert(theListboxItemFontStruct); // a static member vrble
-      if(shadow)
-	return theListboxItemShadowFontStruct;
-      else 
-	return theListboxItemFontStruct;
+     assert(theListboxItemFontStruct); // a static member vrble
+     if(shadow)
+       return theListboxItemShadowFontStruct;
+     else 
+       return theListboxItemFontStruct;
    }
    static Tk_3DBorder getRootItemTk3DBorder(bool isRecursive) {
      unsigned index = (int) isRecursive;
@@ -221,69 +225,84 @@ class callGraphDisplay {
        return listboxItemGC;
    }
    static GC getGCforListboxRay() {
-      return listboxRayGC;
+     return listboxRayGC;
    }
    static GC getGCforNonListboxRay() {
-      return nonListboxRayGC;
+     return nonListboxRayGC;
    }
-
+   
    void draw(bool doubleBuffer, bool isXsynchOn) const;
-
+   
    void resize(bool rethinkScrollbars);
-      // should be true only if we are the currently displayed abstraction
-
+   // should be true only if we are the currently displayed abstraction
+   
    void makeVisibilityUnobscured() {consts.makeVisibilityUnobscured();}
-   void makeVisibilityPartiallyObscured() {consts.makeVisibilityPartiallyObscured();}
+   void makeVisibilityPartiallyObscured() {
+     consts.makeVisibilityPartiallyObscured();}
    void makeVisibilityFullyObscured() {consts.makeVisibilityFullyObscured();}
-
+   
    void processSingleClick(int x, int y);
    bool processDoubleClick(int x, int y);
-      // returns true iff a redraw of everything is still needed
+   // returns true iff a redraw of everything is still needed
    bool processShiftDoubleClick(int x, int y);
    bool processCtrlDoubleClick (int x, int y);
-
+   
    int find(const string &str);
-      // uses and updates "beginSearchFromPtr"
-      // returns 0 if not found; 1 if found & no expansion needed;
-      // 2 if found & some expansion is needed
-
-   bool softScrollToPathItem(const whereNodePosRawPath &thePath, unsigned index);
-      // scrolls s.t. the (centerx, topy) of the path item in question is placed in the
-      // middle of the screen.  Returns true iff the scrollbar settings changed.
-
+   // uses and updates "beginSearchFromPtr"
+   // returns 0 if not found; 1 if found & no expansion needed;
+   // 2 if found & some expansion is needed
+   
+   bool softScrollToPathItem(const whereNodePosRawPath &thePath, 
+			     unsigned index);
+   // scrolls s.t. the (centerx, topy) of the path item in question 
+   // is placed in the middle of the screen.  Returns true iff the 
+   //scrollbar settings changed.
+   
    bool softScrollToEndOfPath(const whereNodePosRawPath &thePath);
-      // Like the above routine, but always scrolls to the last item in the path.
-
+   // Like the above routine, but always scrolls to the last item in the path.
+   
    bool forciblyScrollToEndOfPath(const whereNodePosRawPath &thePath);
-      // Like the above routine, but explicitly expands any un-expanded children
-      // along the path.
-   bool forciblyScrollToPathItem(const whereNodePosRawPath &thePath, unsigned pathLen);
-
-   // Noe of these scrollbar adjustment routines redraw anything
+   // Like the above routine, but explicitly expands any un-expanded children
+   // along the path.
+   bool forciblyScrollToPathItem(const whereNodePosRawPath &thePath, 
+				 unsigned pathLen);
+   
+   // None of these scrollbar adjustment routines redraw anything
    bool adjustHorizSBOffset(float newFirstFrac);
    bool adjustHorizSBOffsetFromDeltaPix(int deltapix);
-      // needed for alt-mousemove
-//   bool adjustHorizSBOffsetFromDeltaPages(int deltapages);
+   
+   // needed for alt-mousemove
+   // bool adjustHorizSBOffsetFromDeltaPages(int deltapages);
    bool adjustHorizSBOffset(); // Obtains FirstPix from actual tk scrollbar
 
    bool adjustVertSBOffset (float newFirstFrac);
    bool adjustVertSBOffsetFromDeltaPix(int deltapix);
-      // needed for alt-mousemove
-//   bool adjustVertSBOffsetFromDeltaPages(int deltapages);
+   // needed for alt-mousemove
+   // bool adjustVertSBOffsetFromDeltaPages(int deltapages);
    bool adjustVertSBOffset(); // Obtains FirstPix from actual tk scrollbar
 
    void navigateTo(unsigned pathLen);
-      // forcibly scrolls to item #pathLen of "lastClickPath"
-
-   bool selectUnSelectFromFullPathName(const string &name, bool select);
-      // returns true iff the item was found
-      // pass true for the 2nd param iff you want to select it; false
-      // if you want to unselect it.
+   // forcibly scrolls to item #pathLen of "lastClickPath"
    
-   vector< vector<resourceHandle> > getSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const;
+   bool selectUnSelectFromFullPathName(const string &name, bool select);
+   // returns true iff the item was found
+   // pass true for the 2nd param iff you want to select it; false
+   // if you want to unselect it.
+   
+   vector< vector <resourceHandle> >getSelections(bool &wholeProgram, 
+				   vector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 };
 
 #endif
+
+
+
+
+
+
+
+
+
 
 

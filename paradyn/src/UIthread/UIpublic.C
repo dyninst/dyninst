@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.69 1999/06/29 15:52:52 cain Exp $
+/* $Id: UIpublic.C,v 1.70 1999/07/26 21:48:00 cain Exp $
  */
 
 #include <stdio.h>
@@ -299,8 +299,9 @@ void UIM::newPhaseNotification (unsigned ph, const char *name, bool with_new_pc)
 extern callGraphs *theCallGraphPrograms;
 //Adds a new program to the call graph display
 void UIM::callGraphProgramAddedCB(unsigned programId, resourceHandle newId, 
+				  const char *executableName, 
 				  const char *shortName, const char *longName){
-  theCallGraphPrograms->addNewProgram(programId, newId, shortName, longName);
+  theCallGraphPrograms->addNewProgram(programId, newId, executableName, shortName, longName);
 }
 
 void

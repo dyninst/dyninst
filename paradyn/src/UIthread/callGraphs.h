@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.3 1999/07/13 16:50:27 cain Exp $
+// $Id: callGraphs.h,v 1.4 1999/07/26 21:48:01 cain Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -69,9 +69,10 @@ class callGraphs {
       callGraphDisplay *theCallGraphDisplay; 
      // note: destructor must not fry (since constructor
      //       does not copy)
-     
+     string executable_name;
      string shortName;
      string fullName;
+     
       // Save shg UI-type state when changing phases, so we can restore
       // it later:
       float horizSBfirst, horizSBlast;
@@ -82,55 +83,58 @@ class callGraphs {
       
       callGraphStruct() {theCallGraphDisplay=NULL;} // needed by Vector class
 
-      callGraphStruct(unsigned programId, resourceHandle rootId, const string &ishortName, const string &ifullName,
-		Tcl_Interp *interp, Tk_Window theTkWindow,
-		const string &horizSBName, const string &vertSBName
-		) : shortName(ishortName), fullName(ifullName) {
+      callGraphStruct(unsigned programId, resourceHandle rootId, 
+		      const string &exe_name, const string &ishortName, 
+		      const string &ifullName, Tcl_Interp *interp, 
+		      Tk_Window theTkWindow, const string &horizSBName, 
+		      const string &vertSBName) : executable_name(exe_name),
+	shortName(ishortName), 
+	fullName(ifullName) {
+	
 	callGraphDisplay *theNewCallGraphDisplay = 
 	  new callGraphDisplay(programId, rootId, interp, theTkWindow,
-			       shortName, fullName, 
- //This need to be changed, so that the CallGraph
- //will have the correct program name, as well as the correct root node name
+			       executable_name, shortName, fullName,
 			       horizSBName, vertSBName);
-         assert(theNewCallGraphDisplay);
-
-         this->theCallGraphDisplay = theNewCallGraphDisplay;
-         this->horizSBfirst = this->vertSBfirst = 0.0;
-         this->horizSBlast = this->vertSBlast = 1.0;
-
+	assert(theNewCallGraphDisplay);
+	
+	this->theCallGraphDisplay = theNewCallGraphDisplay;
+	this->horizSBfirst = this->vertSBfirst = 0.0;
+	this->horizSBlast = this->vertSBlast = 1.0;
       }
-      callGraphStruct(const callGraphStruct &src) : shortName(src.shortName),
-	 fullName(src.fullName)
+      callGraphStruct(const callGraphStruct &src) : 
+	executable_name(src.executable_name), shortName(src.shortName),
+	  fullName(src.fullName)
        {
          theCallGraphDisplay = src.theCallGraphDisplay;
          horizSBfirst = src.horizSBfirst;
          horizSBlast = src.horizSBlast;
          vertSBfirst = src.vertSBfirst;
          vertSBlast = src.vertSBlast;
-
-      }
+	 
+       }
       void fryDag() {delete theCallGraphDisplay;}
      ~callGraphStruct() {}
-
-      callGraphStruct &operator=(const callGraphStruct &src) {
-         theCallGraphDisplay = src.theCallGraphDisplay; // is this right?
-         shortName = src.shortName;
-	 fullName = src.fullName;
-         horizSBfirst = src.horizSBfirst;
-         horizSBlast = src.horizSBlast;
-         vertSBfirst = src.vertSBfirst;
-         vertSBlast = src.vertSBlast;
-	 return *this;
-      }
+     
+     callGraphStruct &operator=(const callGraphStruct &src) {
+       theCallGraphDisplay = src.theCallGraphDisplay; // is this right?
+       executable_name = src.executable_name;
+       shortName = src.shortName;
+       fullName = src.fullName;
+       horizSBfirst = src.horizSBfirst;
+       horizSBlast = src.horizSBlast;
+       vertSBfirst = src.vertSBfirst;
+       vertSBlast = src.vertSBlast;
+       return *this;
+     }
    };
-
+   
    vector<callGraphStruct> theCallGraphPrograms;
    unsigned currCallGraphProgramIndex;
       // NOTE: An index into the above array
-
+   
    Tcl_Interp *interp;
    Tk_Window theTkWindow;   
-
+   
    string menuName, horizSBName, vertSBName;
    string currItemLabelName;
    string currProgramLabelName;
@@ -172,7 +176,7 @@ class callGraphs {
    void changeNameStyle(bool fullName);
    bool changeByProgramId(int newIndex);
       // returns true iff any changes
-   bool change(const string &fullName);
+   bool change(const string &exe_name);
       // returns true iff any changes
 
    bool existsCurrent() const {return currCallGraphProgramIndex < theCallGraphPrograms.size();}
@@ -198,7 +202,7 @@ class callGraphs {
    bool altPress(int x, int y);
    void altRelease();
 
-   bool addNewProgram(int programId, resourceHandle rootId,
+   bool addNewProgram(int programId, resourceHandle rootId, const string &executableName,
 		      const string &shortName, const string &longName);
          
    bool addNode(int programId, resourceHandle parent,
