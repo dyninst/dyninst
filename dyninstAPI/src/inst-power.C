@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.149 2002/09/18 14:54:04 bernat Exp $
+ * $Id: inst-power.C,v 1.150 2002/09/21 05:18:37 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -943,10 +943,9 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
  *   returnIns
  */
 
-unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
+unsigned generateMTpreamble(char *insn, Address &base, process *proc)
 {
   AstNode *threadPOS;
-  Address scratchBase = 0;
   Address returnVal;
   vector<AstNode *> dummy;
   bool err;
@@ -957,26 +956,23 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
 
   /* Get the hashed value of the thread */
   threadPOS = new AstNode("DYNINSTthreadPos", dummy);
-  src = threadPOS->generateCode(proc, regSpace, (char *)insn,
-				scratchBase, 
+  src = threadPOS->generateCode(proc, regSpace, insn,
+				base, 
 				false, // noCost 
 				true); // root node
-  instruction *tmp_insn = (instruction *) ((void*)&insn[scratchBase/4]);
+  instruction *tmp_insn = (instruction *) &(insn[base]);
   if ((src) != REG_MT_POS) {
     // This is always going to happen... we reserve REG_MT_POS, so the
     // code generator will never use it as a destination
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
-    tmp_insn++; scratchBase+=sizeof(instruction);
+    tmp_insn++; base+=sizeof(instruction);
   }
 
   // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
   genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
   tmp_insn++;
-  scratchBase += sizeof(instruction);
-
-  base += scratchBase;
-
+  base += sizeof(instruction);
   return returnVal;
 }
 
@@ -1270,8 +1266,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     //be found
     
     // MT: thread POS calculation. If not, stick a 0 here
-    generateMTTrampCode(insn, currAddr, proc);
+    Address scratch = 0;
+    generateMTpreamble((char *)insn, scratch, proc);
     // GenerateMT will push forward the currAddr, but not insn
+    currAddr += scratch;
     insn = &tramp[currAddr/4];
   }
 #endif
@@ -1403,10 +1401,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
     //at this point we may have not yet loaded the
     //paradyn lib, so the DYNINSTthreadPos symbols may not
-    //be found   
-    generateMTTrampCode(insn, currAddr, proc);
+    //be found 
+    Address scratch = 0;
+    generateMTpreamble((char *)insn, scratch, proc);
     // GenerateMT will push forward the currAddr, but not insn
-    insn = &tramp[currAddr/4];
+    insn = &tramp[scratch/4];
   }
 #endif
   
