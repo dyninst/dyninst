@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.96 2000/08/21 01:22:33 buck Exp $
+// $Id: inst-sparc.C,v 1.97 2001/02/20 21:46:37 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1031,101 +1031,6 @@ bool isBranchInsn(instruction instr) {
                 && (instr.branch.op2 == 2 || instr.branch.op2 == 6)) 
           return true;
     return false;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// Does specified branch instruction <instr> located at address <branchAddress>
-//  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
-bool branchInsideRange(instruction instr, Address branchAddress, 
-      Address firstAddress, Address lastAddress) {
-    int disp;
-    Address target;
-
-    if (!isBranchInsn(instr)) return false;
-
-    disp = instr.branch.disp22;
-    target = branchAddress + (disp << 2);
-    if (target < firstAddress) return false;
-    if (target >= lastAddress) return false;
-    return true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// Does specified call instruction <instr> located at address <callAddress>
-//  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
-bool trueCallInsideRange(instruction instr, Address callAddress, 
-        Address firstAddress, Address lastAddress) {
-    Address callTarget;
-    int disp;
-
-    if (!isCallInsn(instr)) return false;
-    if (!isTrueCallInsn(instr)) return false;
-    
-    disp = (instr.call.disp30 << 2);
-    callTarget = callAddress + disp;
-
-    if (callTarget < firstAddress) return false;
-    if (callTarget >= lastAddress) return false;
-
-    return true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-//
-// called to relocate a function: when a request is made to instrument
-// a system call we relocate the entire function into the heap
-//
-bool pd_Function::relocateFunction(process *proc, 
-                                 const instPoint *&location,
-                                 vector<instruction> &extra_instrs) {
-
-    relocatedFuncInfo *reloc_info = 0;
-    FunctionExpansionRecord fer;
-    int size_change;
-
-    // check to see if this process already has a relocation record 
-    // for this function
-    for(u_int i=0; i < relocatedByProcess.size(); i++){
-        if((relocatedByProcess[i])->getProcess() == proc){
-            reloc_info = relocatedByProcess[i];
-        }
-    }
-
-    u_int ret = 0;
-    // try to compute how much function will need to be expanded....
-    if (!calcRelocationExpansions(location->image_ptr, &fer, &size_change)) {
-       return false;
-    }
-
-    if(!reloc_info){
-        //Allocate the heap for the function to be relocated
-        Address ipAddr = 0;
-        proc->getBaseAddress(location->image_ptr,ipAddr);
-        ipAddr += location -> addr;
-        ret = inferiorMalloc(proc, size() + size_change, textHeap, ipAddr);
-        if(!ret)  return false;
-        reloc_info = new relocatedFuncInfo(proc,ret);
-        relocatedByProcess += reloc_info;
-    }
-
-    // tell fer to compute total expansions for regions based on the individual
-    //  expansions its seen....
-    fer.Collapse();
-    if(!(findNewInstPoints(location->image_ptr, location, ret, proc, 
-                           extra_instrs, reloc_info, &fer, size_change))){
-    }
-    proc->writeDataSpace((caddr_t)ret, size()+ size_change,
-                         (caddr_t) newInstr);
-    return true;
 }
 
 /****************************************************************************/
