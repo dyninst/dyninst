@@ -50,7 +50,6 @@
 #if !defined(_Object_nt_h_)
 #define _Object_nt_h_
 
-
 
 
 
@@ -306,19 +305,29 @@ Object::load_object() {
 
         header = &ntHdrs->FileHeader;
 
-	//printf("Machine = %x\n", header->Machine);
-	//printf("Num sections = %d\n", header->NumberOfSections);
-	//printf("Time/date = %x\n", header->TimeDateStamp);
-	//printf("symbol table = %x\n", header->PointerToSymbolTable);
-	//printf("Num syms = %d\n", header->NumberOfSymbols);
-	//printf("Optional = %d\n", header->SizeOfOptionalHeader);
-	//printf("Chararc = %x\n", header->Characteristics);
-	//printf("BC: %x\n", ntHdrs->OptionalHeader.BaseOfCode);
-	//printf("BD: %x\n", ntHdrs->OptionalHeader.BaseOfData);
+#ifdef DEBUG_LOAD_OBJECT
+	printf("Machine = %x\n", header->Machine);
+	printf("Num sections = %d\n", header->NumberOfSections);
+	printf("Time/date = %x\n", header->TimeDateStamp);
+	printf("symbol table = %x\n", header->PointerToSymbolTable);
+	printf("Num syms = %d\n", header->NumberOfSymbols);
+	printf("Optional = %d\n", header->SizeOfOptionalHeader);
+	printf("Chararc = %x\n", header->Characteristics);
+	printf("BC: %x\n", ntHdrs->OptionalHeader.BaseOfCode);
+	printf("BD: %x\n", ntHdrs->OptionalHeader.BaseOfData);
+#endif
 
         isDll = header->Characteristics & IMAGE_FILE_DLL;
 
+#ifdef DEBUG_LOAD_OBJECT
+	if (isDll) printf("Object is a dll.\n");
+	else printf("Object is not a dll.\n");
+#endif
+
 	imageBase = ntHdrs->OptionalHeader.ImageBase;
+#ifdef DEBUG_LOAD_OBJECT
+	printf("Image base: %lx\n", (unsigned long)imageBase);
+#endif
 
 	/* read the sections */
 	sections = (IMAGE_SECTION_HEADER *) (&baseAddr[dosHdr->e_lfanew +
@@ -329,12 +338,34 @@ Object::load_object() {
 	  char sname[9];
 	  strncpy(sname, (const char *) &sections[u1].Name[0], 8);
 	  sname[8] = 0;
+#ifdef DEBUG_LOAD_OBJECT
+	  printf("Section name: %s\n", sname);
+	  printf("  VirtualAddress = %x\n",
+		  (unsigned)sections[u1].VirtualAddress);
+	  printf("  SizeOfRawData = %d\n",
+		  (unsigned)sections[u1].SizeOfRawData);
+	  printf("  PointerToRawData = %x\n",
+		  (unsigned)sections[u1].PointerToRawData);
+	  printf(  "PointerToRelocations = %x\n",
+		  (unsigned)sections[u1].PointerToRelocations);
+	  printf("  PointerToLinenumbers = %x\n",
+		  (unsigned)sections[u1].PointerToLinenumbers);
+	  printf("  NumberOfRelocations = %d\n",
+		  (unsigned)sections[u1].NumberOfRelocations);
+	  printf("  NumberOfLinenumbers = %d\n",
+		  sections[u1].NumberOfLinenumbers);
+	  printf("  Characteristics = %x\n", sections[u1].Characteristics);
+#endif
 	  if (strcmp(sname, ".text") == 0) {
 	    code_ptr_ = (Word*)&baseAddr[sections[u1].PointerToRawData];
 	    code_off_ = (Word)(imageBase +
 	                ntHdrs->OptionalHeader.BaseOfCode);
 	    code_len_ = (unsigned)(sections[u1].Misc.VirtualSize/sizeof(Word));
-            //fprintf(stderr,"codeoff: %x, codelen: %d\n", code_off_, code_len_);
+#ifdef DEBUG_LOAD_OBJECT
+	    printf("codeoff = imageBase(%x) + ntHdrs->Optionalheader.BaseOfCode(%x)\n", (unsigned)imageBase, (unsigned)ntHdrs->OptionalHeader.BaseOfCode);
+            printf("codeoff: %x, codelen: %d (to %x)\n",
+		    code_off_, code_len_, code_off_ + (code_len_ << 2));
+#endif
 	  }
 	  if (strcmp(sname, ".data") == 0) {
 	    data_ptr_ = (Word*)&baseAddr[sections[u1].PointerToRawData];
@@ -342,7 +373,9 @@ Object::load_object() {
 			       sections[u1].VirtualAddress
 			       /*ntHdrs->OptionalHeader.BaseOfData*/);
 	    data_len_ = (unsigned)(sections[u1].Misc.VirtualSize/sizeof(Word));
-            //printf("dataoff: %x, datalen: %d\n", data_off_, data_len_);
+#ifdef DEBUG_LOAD_OBJECT
+            printf("dataoff: %x, datalen: %d\n", data_off_, data_len_);
+#endif
 	  }
 
 	  //if (strcmp(sname, ".rdata") == 0) {
@@ -357,14 +390,22 @@ Object::load_object() {
 	  nsyms = ntHdrs->FileHeader.NumberOfSymbols;
 	  strs = (char *)(&baseAddr[ntHdrs->FileHeader.PointerToSymbolTable
 			    + nsyms * sizeof(IMAGE_SYMBOL)]);
+#ifdef DEBUG_LOAD_OBJECT
+	  printf("Found symbol table in file.\n");
+#endif
 	} else {
 	  // no symbol table
 	  if (findDbgFile(file, header->TimeDateStamp, dbgFile, dbgMapping,
 	                  dbgAddr, syms, nsyms, strs)) {
 	    useDbgFile = true;
+#ifdef DEBUG_LOAD_OBJECT
+	    printf("Found symbol table in separate dbg file.\n");
+#endif
 	  }
 	  else {
-	    //printf("File %s has no symbol table\n", file);
+#ifdef DEBUG_LOAD_OBJECT
+	    printf("File %s has no symbol table\n", file);
+#endif
 	    nsyms = 0;
 	  }
 	}
@@ -375,7 +416,7 @@ Object::load_object() {
 	// does not give some information we need. In particular,
 	// it does not give the type of symbols, so we don't known
         // which symbols are functions and which are not.
-       
+      
 	if (nsyms == 0) {
 	  // object file has no COFF debug info. We use the imagehelp
 	  // library to read symbol table in other formats
@@ -423,6 +464,7 @@ Object::load_object() {
 	}
 #endif
 
+	bool cygwin_dll = false;
 	if (isDll) {
 	  // for dynamic linked libraries, we have a single module, with
 	  // the same name as the library
@@ -433,8 +475,15 @@ Object::load_object() {
 				Symbol::SL_GLOBAL, imageBase, false);
 	}
 
+	/* 
+	 * We need this flag (which is set if the object was compiled with
+	 * gcc) because we need it to know how to interpret the addresses in
+	 * the symbols table.  Gcc stores absolute addresses for symbols,
+	 * whereas Microsoft compilers store addresses relative to imageBase.
+	 */
+	bool gcc_compiled = false;
 	for (unsigned v = 0; v < nsyms; v++) {
-	  
+	 
 	  if (syms[v].N.Name.Short != 0) {
 	      char sname[9];
 	      strncpy(sname, (char *)(&syms[v].N.ShortName), 8);
@@ -444,8 +493,27 @@ Object::load_object() {
 	      name = &strs[syms[v].N.Name.Long];
 	  }
 
+#ifdef DEBUG_LOAD_OBJECT
+	  printf("syms[%d] name = <%s>\n", v, name.string_of());
+	  printf(" syms[%d].Value = %u\n", v, (unsigned int)syms[v].Value);
+	  printf(" syms[%d].SectionNumber = %d\n", v,
+		  (int)syms[v].SectionNumber);
+	  printf(" syms[%d].Type = %d\n", v, (int)syms[v].Type);
+	  printf(" syms[%d].StorageClass = %u\n", v,
+		  (unsigned int)syms[v].StorageClass);
+	  printf(" syms[%d].NumberOfAuxSymbols = %d\n", v,
+		  (int)syms[v].NumberOfAuxSymbols);
+#endif
+
+
 	  if (name.prefixed_by("_$$$") || name.prefixed_by("$$$")) {
 	    v += syms[v].NumberOfAuxSymbols;
+	  } else if (syms[v].StorageClass == IMAGE_SYM_CLASS_LABEL &&
+	      (name == "gcc2_compiled." || name == "___gnu_compiled_c")) {
+	    gcc_compiled = true;
+#ifdef DEBUG_LOAD_OBJECT
+	    printf("This module is gcc_compiled.\n");
+#endif
 	  } else if (syms[v].StorageClass == IMAGE_SYM_CLASS_FILE) {
 	    // a file name. The name of the file is a zero terminated
 	    // string in one or more auxiliar entries following this one
@@ -466,7 +534,16 @@ Object::load_object() {
 	      allSymbols += Symbol(name, "", Symbol::PDST_MODULE,
 				Symbol::SL_GLOBAL, imageBase+addr, false);
 
-	  } else if (ISFCN(syms[v].Type)) {
+	  /* XXX Checking for "exit" below is hack to make things work for gcc
+	     for the time being.  We need to be able to instrument exit, but
+	     we don't parse the dll cygwin32.dll (which contains exit)
+	     correctly and we can't tell what's a function and what's not.
+	     So, we make exit a funtion no matter what it seems to be. */
+	  } else if ((syms[v].StorageClass != IMAGE_SYM_CLASS_TYPE_DEFINITION
+		      && ISFCN(syms[v].Type))
+	             || (gcc_compiled &&
+			 (name == "__exit" || name == "_exit"
+			 || name == "exit"))) {
 	    if (syms[v].N.Name.Short != 0) {
 	      char sname[9];
 	      strncpy(sname, (char *)(&syms[v].N.ShortName), 8);
@@ -476,14 +553,24 @@ Object::load_object() {
 	      name = &strs[syms[v].N.Name.Long];
 	    }
 
+	    Address fcn_addr;
+	    if (gcc_compiled)
+		fcn_addr = syms[v].Value;
+	    else
+		fcn_addr = imageBase+syms[v].Value;
+#ifdef DEBUG_LOAD_OBJECT
+	    if (gcc_compiled)
+		printf("Got function, address is %x\n", fcn_addr);
+	    else
+    		printf("Got function, address is %x + %x = %x\n",
+       		    imageBase, syms[v].Value, fcn_addr);
+#endif
 	    if (syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL)
 	      allSymbols += Symbol(name, "", Symbol::PDST_FUNCTION,
-				   Symbol::SL_GLOBAL,
-				   imageBase+syms[v].Value, false);
+				   Symbol::SL_GLOBAL, fcn_addr, false);
 	    else
 	      allSymbols += Symbol(name, "", Symbol::PDST_FUNCTION,
-				   Symbol::SL_LOCAL,
-				   imageBase+syms[v].Value, false);
+				   Symbol::SL_LOCAL, fcn_addr, false);
 
 	    v += syms[v].NumberOfAuxSymbols;
 	  } else if (syms[v].SectionNumber > 0) {
@@ -495,21 +582,39 @@ Object::load_object() {
 	    } else {
 	      name = &strs[syms[v].N.Name.Long];
 	    }
+	    Address sym_addr;
+	    if (gcc_compiled)
+	      sym_addr = syms[v].Value;
+	    else
+    	      sym_addr = imageBase+syms[v].Value;
+#ifdef DEBUG_LOAD_OBJECT
+	      printf( "%s: gcc_compiled = %d, imageBase = %lx, syms[v].Value = %lx, sym_addr = %lx\n",
+		name.string_of(),
+		(int)gcc_compiled,
+		(unsigned long)imageBase,
+		(unsigned long)syms[v].Value, (unsigned long)sym_addr);
+#endif
 	    if (name == ".text") {
 
 	    }
 	    else if (syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL)
 	      allSymbols += Symbol(name, "", Symbol::PDST_OBJECT,
 				   Symbol::SL_GLOBAL,
-				   imageBase+syms[v].Value, false);
+				   sym_addr, false);
 	    else
 	      allSymbols += Symbol(name, "", Symbol::PDST_OBJECT,
 				   Symbol::SL_LOCAL,
-				   imageBase+syms[v].Value, false);
+				   sym_addr, false);
+	    v += syms[v].NumberOfAuxSymbols;
+	  } else {
 	    v += syms[v].NumberOfAuxSymbols;
 	  }
 
 	}
+
+#ifdef DEBUG_LOAD_OBJECT
+	printf("All symbols found.\n");
+#endif
 
 	const string emptyStr = "";
 	// add an extra symbol to mark the end of the text segment
@@ -536,16 +641,27 @@ static const unsigned funcspermod = 500;
             modName = string("Mod") + string(++modnumber);
             symbols_[modName] = Symbol(modName, "", Symbol::PDST_MODULE,
 			 Symbol::SL_GLOBAL, allSymbols[u].addr(), false);
-}
+	  }
 #endif
-	    unsigned v = u+1;
-	    while (v < nsymbols 
-		   && allSymbols[v].addr() == allSymbols[u].addr())
-              v++;
             unsigned size = 0;
-            if (v < nsymbols)
-              size = (unsigned)allSymbols[v].addr() 
-		     - (unsigned)allSymbols[u].addr();
+	    if (allSymbols[u].type() == Symbol::PDST_FUNCTION) {
+		unsigned v = u+1;
+		while (v < nsymbols) {
+		  // The .ef below is a special symbol that gcc puts in to
+		  // mark the end of a function.
+		  if (allSymbols[v].addr() != allSymbols[u].addr() &&
+		      (allSymbols[v].type() == Symbol::PDST_FUNCTION ||
+		       allSymbols[v].name() == ".ef"))
+		    break;
+		  v++;
+		}
+		if (v < nsymbols)
+		  size = (unsigned)allSymbols[v].addr() 
+			 - (unsigned)allSymbols[u].addr();
+		else
+		  size = (unsigned)(code_off_+code_len_*sizeof(Word))
+		         - (unsigned)allSymbols[u].addr();
+	    }
 
             if (allSymbols[u].name() != "")
 	      symbols_[allSymbols[u].name()] =
@@ -570,7 +686,6 @@ cleanup: {
         }
 	*/
     }
-
 }
 
 
