@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.9 2002/08/23 01:56:03 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.10 2002/09/26 21:03:35 rchen Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -138,6 +138,9 @@ class IA64_bundle {
 		IA64_instruction getInstruction1() { return instruction1; }
 		IA64_instruction getInstruction2() { return instruction2; }
 		IA64_instruction * getInstruction( unsigned int slot );
+
+		bool setInstruction( IA64_instruction &newInst );
+		bool setInstruction( IA64_instruction_x &newInst );
 
 		bool hasLongInstruction() { return templateID == 0x05 || templateID == 0x04; }
 		IA64_instruction_x * getLongInstruction();

@@ -12,6 +12,8 @@
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>			// DLOPEN_MODE
 
+extern debug_ostream inferiorrpc_cerr;
+
 /* Required by linuxDL.C */
 Address getSP( int /* pid */ ) {
 	assert( 0 );
@@ -41,10 +43,46 @@ IA64_bundle generateTrapBundle() {
 	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
 	} /* end generateBreakBundle() */
 
-void *process::getRegisters( unsigned /* lwp */ ) {
-	assert( 0 );
-	return NULL;
-	} /* end getRegisters() */
+/* process::getRegisters()
+ * 
+ * Entire user state can be described by struct pt_regs
+ * and struct switch_stack.  It's tempting to try and use
+ * pt_regs only, but only syscalls are that well behaved.
+ * We must support running arbitrary code.
+ */
+void *process::getRegisters( unsigned /* lwp */ )
+{
+    int i;
+    long int *memptr, stateSize = 0;
+    void *membuf;
+
+    // Bad things happen if you use ptrace on a running process.
+    assert(status_ == stopped);
+
+    //
+    // Insure the structure sizes are multiples of 8 bytes.
+    // stateSize should probably be a calculated constant.
+    //
+    stateSize += (PT_F9 + 16) - PT_CR_IPSR;
+    stateSize += (PT_AR_LC + 8) - PT_NAT_BITS;
+
+    //
+    // Allocate memory and copy user state.
+    //
+    membuf = malloc(stateSize);
+    assert(membuf);
+
+    memptr = (long int *)membuf;
+    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
+	*memptr = P_ptrace(PTRACE_PEEKUSER, pid, i, 0);
+	++memptr;
+    }
+    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
+	*memptr = P_ptrace(PTRACE_PEEKUSER, pid, i, 0);
+	++memptr;
+    }
+    return membuf;
+} /* end getRegisters() */
 
 bool changePC( int pid, Address loc ) {
 	/* We assume until further notice that all of our jumps
@@ -58,15 +96,80 @@ void printRegs( void * /* save */ ) {
 	assert( 0 );
 	} /* end printReg[isters, should be]() */
 
-bool process::executingSystemCall( unsigned /* lwp */ ) { 
-	assert( 0 );
-	return false;
-	} /* end executingSystemCall() */
+/* process::executingSystemCall()
+ *
+ * For now, this function simply reads the previous instruction
+ * (in the previous bundle if necessary) and returns true if
+ * it is a break 0x100000.
+ *
+ * This is a slow and terrible hack, so if there is a better way, please
+ * re-write this function.  Otherwise, it seems to work pretty well.
+ */
+bool process::executingSystemCall( unsigned /* lwp */ )
+{
+    const uint64_t SYSCALL_MASK = 0x01000000000 >> 5;
+    uint64_t iip, instruction, rawBundle[2];
+    int64_t ipsr_ri, pr;
+    IA64_bundle origBundle;
 
-bool process::restoreRegisters( void * /* buffer */, unsigned /* lwp */ ) {
-	assert( 0 );
+    // Bad things happen if you use ptrace on a running process.
+    assert(status_ == stopped);
+    errno = 0;
+
+    // Find the correct bundle.
+    iip = getPC(pid);
+    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
+    if (errno && (ipsr_ri == -1)) {
+	// Error reading process information.  Should we assert here?
+	assert(0);
+    }
+    ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
+    if (ipsr_ri == 0) iip -= 16;  // Get previous bundle, if necessary.
+
+    // Read bundle data
+    if (!readDataSpace((void *)iip, 16, (void *)rawBundle, true)) {
+	// Could have gotten here because the mutatee stopped right
+	// after a jump to the beginning of a memory segment (aka,
+	// no previous bundle).  But, that can't happen from a syscall.
 	return false;
-	} /* end restoreRegisters() */
+    }
+
+    // Isolate previous instruction.
+    origBundle = IA64_bundle(rawBundle[0], rawBundle[1]);
+    ipsr_ri = (ipsr_ri + 2) % 3;
+    instruction = origBundle.getInstruction(ipsr_ri)->getMachineCode();
+    instruction = instruction >> ALIGN_RIGHT_SHIFT;
+
+    // Determine predicate register and remove it from instruction.
+    pr = P_ptrace(PTRACE_PEEKUSER, pid, PT_PR, 0);
+    if (errno && pr == -1) assert(0);
+    pr = (pr >> (0x1F & instruction)) & 0x1;
+    instruction = instruction >> 5;
+
+    return (pr && instruction == SYSCALL_MASK);
+} /* end executingSystemCall() */
+
+bool process::restoreRegisters( void *buffer, unsigned /* lwp */ )
+{
+    int i;
+    long int *memptr;
+
+    // Bad things happen if you use ptrace on a running process.
+    assert(status_ == stopped);
+
+    memptr = (long int *)buffer;
+    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
+	P_ptrace(PTRACE_POKEUSER, pid, i, *memptr);
+	++memptr;
+    }
+    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
+	P_ptrace(PTRACE_POKEUSER, pid, i, *memptr);
+	++memptr;
+    }
+    free(buffer);
+
+    return true;
+} /* end restoreRegisters() */
 
 Address getPC( int pid ) {
 	
@@ -319,16 +422,45 @@ Frame Frame::getCallerFrame( process * /* p */ ) const {
 
 /* Required by process.C */
 bool process::set_breakpoint_for_syscall_completion() {
-	assert( 0 );
+    uint64_t codeBase, savedBundle[2];
+    int64_t ipsr_ri;
+    IA64_bundle trapBundle;
+    IA64_instruction newInst;
 
+    // Determine exact interruption point (IIP and IPSR.ri)
+    codeBase = getPC(pid);
+    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
+    if (errno && (ipsr_ri == -1)) return false;
+    ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
+
+    // Save current bundle
+    if (!readDataSpace((void *)codeBase, 16, (void *)savedBundle, true))
 	return false;
-	} /* end set_breakpoint_for_syscall_completion() */
+    memcpy(savedCodeBuffer, savedBundle, 16);
+
+    // Modify current bundle
+    trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
+    newInst = IA64_instruction(0x0, 0, NULL, ipsr_ri);
+    trapBundle.setInstruction(newInst);
+
+    // Write modified bundle
+    if (!writeDataSpace((void *)codeBase, 16, trapBundle.getMachineCodePtr()))
+	return false;
+
+    inferiorrpc_cerr << "Set breakpoint at " << (void*)codeBase
+		     << "[" << ipsr_ri << "]" << endl;
+    return true;
+} /* end set_breakpoint_for_syscall_completion() */
 
 /* Required by process.C */
 void process::clear_breakpoint_for_syscall_completion() {
-	assert( 0 );
+    uint64_t codeBase = getPC(pid);
 
-	} /* end clear_breakpoint_for_syscall_completion() */
+    if (writeDataSpace((void *)codeBase, 16, savedCodeBuffer))
+	inferiorrpc_cerr << "Cleared breakpoint at " << (void*)codeBase << endl;
+    else
+	inferiorrpc_cerr << "Error clearing breakpoint at " << (void*)codeBase << endl;
+} /* end clear_breakpoint_for_syscall_completion() */
 
 /* Required by linux.C */
 bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /* target_pdf */, Address /* base_addr */ ) {
@@ -336,4 +468,3 @@ bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /
 
 	return false;
 	} /* end hasBeenBound() */
-

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.12 2002/08/23 01:56:03 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.13 2002/09/26 21:03:35 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -296,6 +296,48 @@ IA64_instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 		default: fprintf( stderr, "Request of invalid instruction (%d), aborting.\n", slot ); abort();
 		}
 	} /* end getInstruction() */
+
+// Aids bundle modification.  Used by set_breakpoint_for_syscall_completion().
+bool IA64_bundle::setInstruction(IA64_instruction &newInst)
+{
+    if ( (templateID == 0x04 || templateID == 0x05) && newInst.slotNumber != 0)
+	return false;
+
+    switch (newInst.slotNumber) {
+    case 0:
+	instruction0 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	myBundle.low &= ~INSTRUCTION0_MASK | (newInst.instruction << (ALIGN_RIGHT_SHIFT - 5));
+	break;
+    case 1:
+	instruction1 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
+	myBundle.high &= ~INSTRUCTION1_HIGH_MASK | (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18));
+	break;
+    case 2:
+	instruction2 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	myBundle.high &= ~INSTRUCTION2_MASK | newInst.instruction;
+	break;
+    default:
+	return false;
+	break;
+    }
+    return true;
+} /* end setInstruction() */
+
+// Aids bundle modification.  Added for completion.
+bool IA64_bundle::setInstruction(IA64_instruction_x &newInst)
+{
+    if (templateID != 0x04 && templateID != 0x05)
+	return false;
+
+    instruction1 = IA64_instruction(newInst.instruction, templateID, this, 1);
+    instruction2 = IA64_instruction(newInst.instruction_x, templateID, this, 2);
+
+    myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
+    myBundle.high = ( ( (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
+		      ( newInst.instruction_x & INSTRUCTION2_MASK ) );
+    return true;
+} /* end setInstruction(x) */
 
 /* Used by generateAlteredAlloc(), defineBaseTrampRegisterSpaceFor(), and dlopenDYNINSTlib(). */
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate ) {
