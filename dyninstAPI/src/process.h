@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.209 2002/07/25 22:46:50 bernat Exp $
+/* $Id: process.h,v 1.210 2002/07/30 18:42:27 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1060,7 +1060,7 @@ void saveWorldData(Address address, int size, const void* src);
     return MAX_NUMBER_OF_THREADS;
 #else
     return 1;
-#endif;
+#endif
   }
   
   pdThread *STpdThread() { 

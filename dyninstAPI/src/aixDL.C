@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.21 2002/07/03 22:18:31 bernat Exp $
+// $Id: aixDL.C,v 1.22 2002/07/30 18:42:26 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -637,7 +637,7 @@ bool process::dlopenDYNINSTlib()
   dyninstlib_brk_addr = dlopentrap_addr;
 
   // save registers
-  savedRegs = getRegisters(0);
+  savedRegs = getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
   isLoadingDyninstLib = true;

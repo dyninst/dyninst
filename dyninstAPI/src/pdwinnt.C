@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.58 2002/07/25 22:46:45 bernat Exp $
+// $Id: pdwinnt.C,v 1.59 2002/07/30 18:42:26 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1394,7 +1394,7 @@ int process::waitProcs(int *status) {
             // pending instrumentation is executed.  (I.e., instrumentation
             // put off so we could be sure to execute inferior RPC code is
             // now executed.)
-            if( p->currRunningRPCs.size() == 0 )
+            if( !p->isRunningIRPC() )
             {
                 // we finished the inferior RPC, so we can now execute
                 // any pending instrumentation

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.344 2002/07/25 22:46:49 bernat Exp $
+// $Id: process.C,v 1.345 2002/07/30 18:42:26 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1713,6 +1713,8 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 #endif
     checkProcStatus();
   } while (!ret.ready); // Loop until callback has fired.
+  fprintf(stderr, "InferiorMallocDynamic returned addr of 0x%x", 
+	  ret.result);
   switch ((int)(Address)ret.result) {
   case 0:
 #ifdef DEBUG
@@ -1769,6 +1771,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    /* align to cache line size (32 bytes on SPARC) */
    size = (size + 0x1f) & ~0x1f; 
 #endif /* USES_DYNAMIC_INF_HEAP */
+
    // find free memory block (7 attempts)
    // attempt 0: as is
    // attempt 1: deferred free, compact free blocks
@@ -1818,7 +1821,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   
 	default: // error - out of memory
 	   sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
-		   "freed, %d bytes requested\n", hp->freed, size);
+		   "freed, %d bytes requested \n", hp->freed, size);
 	   logLine(errorLine);
 	   showErrorCallback(66, (const char *) errorLine);    
 #if defined(BPATCH_LIBRARY)
@@ -2001,7 +2004,6 @@ bool process::initDyninstLib() {
 //
 process::~process()
 {
-   cerr << "calling process destructor\n";
     // remove inst points for this process
     dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
       befList = installedMiniTramps_beforePt;
@@ -3100,13 +3102,11 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #if defined(i386_unknown_nt4_0)//ccw 7 jun 2002
 //  printf("");//ccw 7 jun 2002
 #endif
-  cerr << "Creating new process" << endl;
   process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
 				 ,7000 // shm seg key to try first
 #endif                            
 				 );
-  cerr << "Done creating new process" << endl;
   assert(theProc);
   if (!success) {
     // XXX Do we need to do something to get rid of theImage, too?
@@ -3250,7 +3250,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
 #endif
   for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
- 
   theProc->postRPCtoDo(the_ast,
 		       true, // true --> don't try to update cost yet
 		       process::DYNINSTinitCompletionCallback, // callback
@@ -5692,12 +5691,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
   bool thrInSyscall = false;
   bool thrRunningRPC = false;
-
   // Must return thread-specific RPCs before non-specific RPCs
   if (!getReadyRPCs(readyRPCs)) {
     return false; // Either no RPCs to run, or RPCs are currently running
   }
-
   if (status_ == exited)
     {
       inferiorrpc_cerr << "Inferior process exited!" << endl;
@@ -5711,14 +5708,11 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
   // I've seen problems where one IRPC finishes while we try to pause the process.
   // Result: we get confused. So let's try this...
-  void checkProcStatus();
-  checkProcStatus();
 
   if (!pause()) {
     cerr << "launchRPCifAppropriate failed because pause failed" << endl;
     return false;
   }
-
   for (unsigned i = 0; i < readyRPCs.size(); i++) {
     /////////////////////////////////////////////////////////////////////////
     // Determine if it is safe to run the RPC (ie not in syscall)
@@ -6233,33 +6227,37 @@ bool process::handleTrapIfDueToRPC() {
   
   // We handle stops for results first -- they're easier.
   if (haveResultIRPC) {
-    inferiorRPCinProgress stoppedIRPC = foundIRPC;
-    assert(stoppedIRPC.callbackFunc);
+    assert(foundIRPC.callbackFunc);
     
     Address returnValue = 0;
-    if (stoppedIRPC.resultRegister != Null_Register) {
+    if (foundIRPC.resultRegister != Null_Register) {
       // In other words, if we actually have a result other than
       // "We're done with the RPC"
-      returnValue = readRegister(stoppedIRPC.lwp, stoppedIRPC.resultRegister);
+      returnValue = readRegister(foundIRPC.lwp, foundIRPC.resultRegister);
       // Okay, this bit I don't understand. 
       // Oh, crud... we should have a register space for each thread.
       // Or not do this at all. 
       extern registerSpace *regSpace;
-      regSpace->freeRegister(stoppedIRPC.resultRegister);
+      regSpace->freeRegister(foundIRPC.resultRegister);
     }
-    stoppedIRPC.resultValue = (void *)returnValue;
-
+    foundIRPC.resultValue = (void *)returnValue;
     // we continue the process...but not quite at the PC where we left off, since
     // that will just re-do the trap!  Instead, we need to continue at the location
     // of the next instruction.
-    if (!changePC(stoppedIRPC.justAfter_stopForResultAddr, NULL, stoppedIRPC.lwp))
+    if (!changePC(foundIRPC.justAfter_stopForResultAddr, NULL, foundIRPC.lwp))
       assert(false);
     // Want to start running this guy again.
     wasRunning = true;
+
+    // And copy back any changes
+    if (foundIRPC.thr)
+      foundIRPC.thr->runIRPC(foundIRPC);
+    else
+      currRunningIRPC = foundIRPC;
+
   }
 
   if (haveFinishedIRPC) {
-    inferiorRPCinProgress finishedIRPC = foundIRPC;
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If the application was paused when it was at a trap, reset the rt library
        flag which indicated this. */
@@ -6270,21 +6268,21 @@ bool process::handleTrapIfDueToRPC() {
     // step 1) restore registers:
     // Assumption: LWP has not changed. 
     if (rpcSavesRegs()) {
-      if (!restoreRegisters(finishedIRPC.savedRegs, finishedIRPC.lwp)) {
+      if (!restoreRegisters(foundIRPC.savedRegs, foundIRPC.lwp)) {
 	cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
 	assert(false);
       }
     // The above implicitly must restore the PC.
     }
     else
-      if (!changePC(finishedIRPC.origPC, finishedIRPC.savedRegs, finishedIRPC.lwp)) 
+      if (!changePC(foundIRPC.origPC, foundIRPC.savedRegs, foundIRPC.lwp)) 
 	assert(0 && "Failed to reset PC");
     
     // step 2) delete temp tramp
-    inferiorFree(finishedIRPC.firstInstrAddr);
+    inferiorFree(foundIRPC.firstInstrAddr);
     
     // step 3) continue process, if appropriate
-    if (finishedIRPC.wasRunning) {
+    if (foundIRPC.wasRunning) {
       wasRunning = true;
     }
     // step 4) invoke user callback, if any
@@ -6298,20 +6296,20 @@ bool process::handleTrapIfDueToRPC() {
     // Erm... right.
     
     // save enough information to call the callback function, if needed
-    inferiorRPCcallbackFunc cb = finishedIRPC.callbackFunc;
-    void* userData = finishedIRPC.userData;
-    void* resultValue = finishedIRPC.resultValue;
+    inferiorRPCcallbackFunc cb = foundIRPC.callbackFunc;
+    void* userData = foundIRPC.userData;
+    void* resultValue = foundIRPC.resultValue;
     
     // release the RPC struct
 #if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    delete    finishedIRPC.savedRegs;       // not an array on WindowsNT
+    delete    foundIRPC.savedRegs;       // not an array on WindowsNT
 #else
-    delete [] static_cast<char *>(finishedIRPC.savedRegs);
+    delete [] static_cast<char *>(foundIRPC.savedRegs);
 #endif
     
     // Delete from the appropriate list
-    if (finishedIRPC.thr)
-      finishedIRPC.thr->clearRunningIRPC();
+    if (foundIRPC.thr)
+      foundIRPC.thr->clearRunningIRPC();
     else
       clearRunningIRPC();
     
@@ -6320,7 +6318,6 @@ bool process::handleTrapIfDueToRPC() {
       (*cb)(this, userData, resultValue);
     }
   }
-
   // Here's the thing... we can run multiple IRPCs in parallel, right? 
   // So if there's any still outstanding we need to restart the process,
   // no matter what the wasRunning flag says. Sigh.
@@ -6865,7 +6862,7 @@ void process::callpDYNINSTinit(){
    //  is being used more than once.
    //  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) ) //FIX THIS !!! ccw
    for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-   
+   cerr << "Posting RPC for pDyninstINIT" << endl;
    postRPCtoDo(the_ast,
 	       true, // true --> don't try to update cost yet
 	       process::pDYNINSTinitCompletionCallback, // callback
@@ -6991,7 +6988,7 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
                                             void* userData, // user data
                                             void* /*ret*/ // return value from DYNINSTinit
                                             ) {
-   attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
+   attach_cerr << "Welcome to pDYNINSTinitCompletionCallback" << endl;
    if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
      theProc->handleCompletionOfpDYNINSTinit(false);
    else
@@ -7191,7 +7188,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
-
+  cerr << "handleCompletionOfDyninstInit" << endl;
    inferiorrpc_cerr << "handleCompletionOfDYNINSTinit..." << endl ;
    DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
