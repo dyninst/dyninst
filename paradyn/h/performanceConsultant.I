@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.27  1996/05/02 19:52:37  karavan
+ * added some class data members
+ *
  * Revision 1.26  1996/05/01 14:04:28  naim
  * Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
  * and PC - naim
@@ -127,7 +130,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 15;
+    $version 16;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
@@ -164,6 +167,8 @@ $remote performanceConsultant {
     // other PC-globals
     static unsigned DMcurrentPhaseToken;
     static unsigned currentPhase;
+    static perfStreamHandle pstream;
+    static metricHandle normalMetric;
     // for quick handling of new data
     static filteredDataServer *globalRawDataServer;
     static filteredDataServer *currentRawDataServer;
