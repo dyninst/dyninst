@@ -93,10 +93,15 @@ bool dyn_thread::savePreRPCStack()
     
     walkStack(RPCstack_);
     useRPCStack_ = true;
+    inferiorrpc_printf("Thread %d saving stack for RPC:\n", get_tid());
+    for (unsigned i = 0; i < RPCstack_.size(); i++)
+      inferiorrpc_cerr << i << ": " << RPCstack_[i] << endl;
     return true;
 }
 
 void dyn_thread::clearPreRPCStack() {
+  inferiorrpc_printf("Thread %d clearing saved stack\n", get_tid());
+  RPCstack_.clear();
     useRPCStack_ = false;
 }
 
