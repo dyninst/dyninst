@@ -193,7 +193,8 @@ class paradynDaemon: public dynRPCUser {
 
         static bool applicationDefined(){return(programs.size() != 0);}
 	static vector<string> *getAvailableDaemons();
-	static void predictedDataCost(resourceList*, metric*);
+	static void getPredictedDataCostCall(perfStreamHandle,metricHandle,
+				      resourceListHandle,resourceList*,metric*);
 	static float currentSmoothObsCost();
         string getDaemonMachineName() {return machine;};
 

@@ -33,14 +33,26 @@
 class metricInstance;
 class metric;
 class resourceList;
+
+struct pred_Cost_Type {
+    metricHandle m_handle;
+    resourceListHandle rl_handle;
+    float max;
+    int howmany;
+    u_int requestId;
+};
+
+typedef struct pred_Cost_Type predCostType;
+
 //
 // A consumer of performance data.
 //
 class performanceStream {
-	friend class paradynDaemon;
-	friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
-	friend void addMetric(T_dyninstRPC::metricInfo &info);
-	friend resourceHandle createResource(vector<string>&, string&, unsigned);
+      friend class paradynDaemon;
+      friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
+      friend void addMetric(T_dyninstRPC::metricInfo &info);
+      friend resourceHandle createResource(vector<string>&, string&, unsigned);
+      friend class dynRPCUser;
     public:
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 
@@ -53,8 +65,10 @@ class performanceStream {
 	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
+	void callPredictedCostFuc(metricHandle,resourceListHandle,float);
 	perfStreamHandle Handle(){return(handle);}
 	void flushBuffer();   // send data to client thread
+	void predictedDataCostCallback(u_int,float);
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);
 	static void foldAll(timeStamp width, phaseType phase_type); 
@@ -66,6 +80,8 @@ class performanceStream {
 	static void removeCurrentUser(perfStreamHandle psh);
 	static void removeGlobalUser(perfStreamHandle psh);
 	static void removeAllCurrUsers();
+	static bool addPredCostRequest(perfStreamHandle,u_int&,
+				       metricHandle,resourceListHandle,u_int);
 
 	// send data to client thread
 	// static flushBuffer(perfStreamHandle psh);
@@ -83,7 +99,9 @@ class performanceStream {
 	u_int 			num_curr_mis;    // num MI's for curr phase
 	u_int			my_buffer_size;  // total number of MI's enabled
  	u_int			next_buffer_loc;  // next buffer loc. to fill
+	u_int		        nextpredCostReqestId;    
 	vector<dataValueType>	*my_buffer;	// buffer of dataValues
+	vector<predCostType*>   pred_Cost_buff; // outstanding predCost events
 	static u_int 		next_id;
 	// dictionary rather than vector since perfStreams can be destroyed
 	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;

@@ -1,284 +1,3 @@
-
-/*
- * dataManagerImpl.C - provide the interface methods for the dataManager thread
- *   remote class.
- *
- * $Log: DMpublic.C,v $
- * Revision 1.76  1996/04/19 21:38:32  newhall
- * change to paradynDaemon::endOfDataCollection to check for disabled mid case
- * replaced msg_poll with msg_poll_pref in DMmain
- *
- * Revision 1.75  1996/04/18  22:01:19  naim
- * Changes to make getPredictedDataCost asynchronous - naim
- *
- * Revision 1.74  1996/04/10  19:07:54  newhall
- * fixed bug with disableDataCollection when persistent_data flag is set
- *
- * Revision 1.73  1996/04/07  21:21:36  karavan
- * added check for valid phase in enableDataCollection2
- *
- * Revision 1.72  1996/03/14 14:22:02  naim
- * Batching enable data requests for better performance - naim
- *
- * Revision 1.71  1996/03/01  22:47:02  mjrg
- * Added type to resources.
- *
- * Revision 1.70  1996/02/22 23:38:37  newhall
- * removed DM and dyninst interface func getCurrentSmoothObsCost
- *
- * Revision 1.69  1996/02/12  19:55:30  karavan
- * Bug fix: changed arguments to histFoldCallBack
- *
- * Revision 1.68  1996/02/12 08:05:59  karavan
- * Added new parameter, bool globalFlag, to histogram constructor and
- * to histDataCallback.  This fixes bug resulting in duplicate values being
- * sent if both global and current phase 0 subscribed to by any two pstreams.
- *
- * Revision 1.67  1996/02/09 05:32:12  karavan
- * added getFocusNameFromHandle.
- *
- * Revision 1.66  1996/02/05 18:51:01  newhall
- * StartPhase and newPhaseCallback to take 2 more parameters indicating if the
- * new phase is with new visi and/or a new PC.  The new_visis option is not
- * currently supported.  Removed PC friend members from DM classes.
- *
- * Revision 1.65  1996/02/02  02:13:55  karavan
- * changed dataManager::magnify() to return struct like magnify2()
- *
- * Revision 1.64  1996/01/29 00:55:00  newhall
- * Chaged clearPersistentData so that histograms (and possibly metricInstances)
- * with no data collection are deleted.  Changed metricInstanceHandles and
- * perfStreamHandles to be unique over paradyn's execution (this does not mean
- * that perfStream or MI objects are persistent over paradyn's execution).
- *
- * Revision 1.63  1996/01/05 20:00:49  newhall
- * removed warnings
- *
- * Revision 1.62  1995/12/18 23:21:31  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.61  1995/12/15 14:40:00  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.60  1995/12/13  03:18:35  newhall
- * changed some DM interface return values to const char*
- *
- * Revision 1.59  1995/12/11 02:25:08  newhall
- * changed magnify2 to return the resourceList label with each
- * magnified focus
- *
- * Revision 1.58  1995/12/05  15:58:32  naim
- * Fixing bucket_width metric - naim
- *
- * Revision 1.57  1995/12/03  21:31:48  newhall
- * added buffering of data values between DM and client threads based on
- * the number of metric/focus pairs a client thread has enabled
- * DM allocs buffers and the client threads dealloc them
- *
- * Revision 1.56  1995/11/30 21:59:16  naim
- * Minor change to bucket_width metric - naim
- *
- * Revision 1.55  1995/11/30  16:50:55  naim
- * Adding bucket_width metric - naim
- *
- * Revision 1.54  1995/11/28  15:46:18  naim
- * Adding the boolean parameter "all" to getAvailableMetric. If this value is
- * true, then all metrics will be passed regardless the mode - naim
- *
- * Revision 1.53  1995/11/21  15:19:30  naim
- * Adding method getFocusName to dataManager class - naim
- *
- * Revision 1.52  1995/11/17  17:18:12  newhall
- * added normalized member to metric class, support for MDL unitsType option
- *
- * Revision 1.51  1995/11/03  00:05:25  newhall
- * second part of sampling rate change
- *
- * Revision 1.50  1995/10/13  22:06:52  newhall
- * Added code to change sampling rate as bucket width changes (this is not
- * completely implemented in daemon code yet, so now it has no effect).
- * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
- * Added 2 new DM interface routines: getResourceName, getResourceLabelName
- *
- * Revision 1.49  1995/09/18  18:22:12  newhall
- * changes to avoid for-scope problem
- *
- * Revision 1.48  1995/09/05  16:24:16  newhall
- * added DM interface routines for PC, added resourceList method functions
- *
- * Revision 1.47  1995/08/20  03:51:33  newhall
- * *** empty log message ***
- *
- * Revision 1.46  1995/08/20 03:37:13  newhall
- * changed parameters to DM_sequential_init
- * added persistent data and persistent collection flags
- *
- * Revision 1.45  1995/08/18  22:06:55  mjrg
- * Fixed dataManager::defineDaemon
- *
- * Revision 1.44  1995/08/11  21:50:33  newhall
- * Removed DM kludge method function.  Added calls to metDoDaemon,
- * metDoProcess and metDoTunable that were moved out of metMain
- *
- * Revision 1.43  1995/08/08  03:10:06  newhall
- * bug fix to DMresourceListNameCompare
- * changed newPerfData and sampleDataCallbackFunc definitions
- *
- * Revision 1.42  1995/08/01  02:11:18  newhall
- * complete implementation of phase interface:
- *   - additions and changes to DM interface functions
- *   - changes to DM classes to support data collection at current or
- *     global phase granularity
- * added alphabetical ordering to foci name creation
- *
- * Revision 1.41  1995/07/06  01:52:53  newhall
- * update for new version of Histogram library, removed compiler warnings
- *
- * Revision 1.40  1995/06/02  20:48:27  newhall
- * * removed all pointers to datamanager class objects from datamanager
- *    interface functions and from client threads, objects are now
- *    refered to by handles or by passing copies of DM internal data
- * * removed applicationContext class from datamanager
- * * replaced List and HTable container classes with STL containers
- * * removed global variables from datamanager
- * * remove redundant lists of class objects from datamanager
- * * some reorginization and clean-up of data manager classes
- * * removed all stringPools and stringHandles
- * * KLUDGE: there are PC friend members of DM classes that should be
- *    removed when the PC is re-written
- *
- * Revision 1.38  1995/02/26  02:14:07  newhall
- * added some of the phase interface support
- *
- * Revision 1.37  1995/02/16  19:10:44  markc
- * Removed start slash from comments
- *
- * Revision 1.36  1995/02/16  08:16:42  markc
- * Changed Bool to bool
- * Changed igen-xdr functions to use string/vectors rather than char igen-arrays
- *
- * Revision 1.35  1995/01/26  17:58:23  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.34  1994/11/09  18:39:36  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.33  1994/11/07  08:24:37  jcargill
- * Added ability to suppress search on children of a resource, rather than
- * the resource itself.
- *
- * Revision 1.32  1994/11/04  16:30:41  rbi
- * added getAvailableDaemons()
- *
- * Revision 1.31  1994/11/02  11:46:21  markc
- * Changed shadowing nam.
- *
- * Revision 1.30  1994/09/30  19:17:47  rbi
- * Abstraction interface change.
- *
- * Revision 1.29  1994/09/22  00:56:05  markc
- * Added const to args to addExecutable()
- *
- * Revision 1.28  1994/08/22  15:59:07  markc
- * Add interface calls to support daemon definitions.
- *
- * Revision 1.27  1994/08/11  02:17:42  newhall
- * added dataManager interface routine destroyPerformanceStream
- *
- * Revision 1.26  1994/08/08  20:15:20  hollings
- * added suppress instrumentation command.
- *
- * Revision 1.25  1994/08/05  16:03:59  hollings
- * more consistant use of stringHandle vs. char *.
- *
- * Revision 1.24  1994/07/25  14:55:37  hollings
- * added suppress resource option.
- *
- * Revision 1.23  1994/07/14  23:45:54  hollings
- * added hybrid cost model.
- *
- * Revision 1.22  1994/07/07  03:29:35  markc
- * Added interface function to start a paradyn daemon
- *
- * Revision 1.21  1994/07/02  01:43:12  markc
- * Removed all uses of type aggregation from enableDataCollection.
- * The metricInfo structure now contains the aggregation operator.
- *
- * Revision 1.20  1994/06/27  21:23:29  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.19  1994/06/17  22:08:00  hollings
- * Added code to provide upcall for resource batch mode when a large number
- * of resources is about to be added.
- *
- * Revision 1.18  1994/06/14  15:23:17  markc
- * Added support for aggregation.
- *
- * Revision 1.17  1994/06/02  16:08:16  hollings
- * fixed duplicate naming problem for printResources.
- *
- * Revision 1.16  1994/05/31  19:11:33  hollings
- * Changes to permit direct access to resources and resourceLists.
- *
- * Revision 1.15  1994/05/10  03:57:38  hollings
- * Changed data upcall to return array of buckets.
- *
- * Revision 1.14  1994/05/09  20:56:22  hollings
- * added changeState callback.
- *
- * Revision 1.13  1994/04/21  23:24:27  hollings
- * removed process name from calls to RPC_make_arg_list.
- *
- * Revision 1.12  1994/04/20  15:30:11  hollings
- * Added error numbers.
- * Added data manager function to get histogram buckets.
- *
- * Revision 1.11  1994/04/19  22:08:38  rbi
- * Added getTotValue method to get non-normalized metric data.
- *
- * Revision 1.10  1994/04/18  22:28:32  hollings
- * Changes to create a canonical form of a resource list.
- *
- * Revision 1.9  1994/04/06  21:26:41  markc
- * Added "include <assert.h>"
- *
- * Revision 1.8  1994/04/01  20:45:05  hollings
- * Added calls to query bucketWidth and max number of bins.
- *
- * Revision 1.7  1994/03/31  01:39:01  markc
- * Added dataManager continue/pause Process.
- *
- * Revision 1.6  1994/03/20  01:49:49  markc
- * Gave process structure a buffer to allow multiple writers.  Added support
- * to register name of paradyn daemon.  Changed addProcess to return type int.
- *
- * Revision 1.5  1994/03/08  17:39:34  hollings
- * Added foldCallback and getResourceListName.
- *
- * Revision 1.4  1994/02/24  04:36:32  markc
- * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
- * startup.  Added a data member to the class that igen generates.
- * Make depend differences due to new header files that igen produces.
- * Added support to allow asynchronous starts of paradynd's.  The dataManager has
- * an advertised port that new paradynd's can connect to.
- *
- * Revision 1.3  1994/02/08  17:20:29  hollings
- * Fix to not core dump when parent is null.
- *
- * Revision 1.2  1994/02/03  23:26:59  hollings
- * Changes to work with g++ version 2.5.2.
- *
- * Revision 1.1  1994/02/02  00:42:34  hollings
- * Changes to the Data manager to reflect the file naming convention and
- * to support the integration of the Performance Consultant.
- *
- * Revision 1.1  1994/01/28  01:34:18  hollings
- * The initial version of the Data Management thread.
- *
- *
- */
 extern "C" {
 #include <malloc.h>
 }
@@ -1227,21 +946,18 @@ resourceListHandle *dataManager::findResourceList(const char *name){
 }
 
 
-void dataManager::getPredictedDataCost(resourceListHandle rl_handle, 
-       				       metricHandle m_handle)
+void dataManager::getPredictedDataCost(perfStreamHandle ps_handle,
+       				       metricHandle m_handle,
+				       resourceListHandle rl_handle)
 {
     metric *m = metric::getMetric(m_handle);
-    if(m){
-	resourceList *rl = resourceList::getFocus(rl_handle);
-        if(rl){
-            paradynDaemon::predictedDataCost(rl, m);
-        }
-        else {
-          cerr << "Error in DMpublic.C, rl=NULL\n";
-          assert(0);
-        }
+    resourceList *rl = resourceList::getFocus(rl_handle);
+    if(m && rl){
+        paradynDaemon::getPredictedDataCostCall(ps_handle,m_handle,
+						rl_handle,rl,m);
     }
     else {
+      // TODO: call approp. callback routine
       cerr << "Error in DMpublic.C, m=NULL\n";
       assert(0);
     }
@@ -1377,6 +1093,13 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
     (func)(data, num_data_values);
 }
 
+void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func, 
+				  metricHandle m_handle,
+				  resourceListHandle rl_handle,
+				  float cost){
+
+    (func)(m_handle,rl_handle,cost);
+}
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
 				   perfStreamHandle handle,

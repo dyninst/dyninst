@@ -41,6 +41,8 @@ performanceStream::performanceStream(dataType t,
     my_buffer = 0;
     handle = next_id++;
     allStreams[handle] = this;
+    nextpredCostReqestId = 0;
+    pred_Cost_buff.resize(0);
 }
 
 performanceStream::~performanceStream(){
@@ -144,6 +146,17 @@ void performanceStream::callStateFunc(appState state)
     if (controlFunc.sFunc) {
 	dataManager::dm->setTid(threadId);
 	dataManager::dm->changeState(controlFunc.sFunc, handle, state);
+    }
+}
+
+void performanceStream::callPredictedCostFuc(metricHandle m_handle,
+				             resourceListHandle rl_handle,
+					     float cost)
+{
+    if (controlFunc.cFunc) {
+	dataManager::dm->setTid(threadId);
+	dataManager::dm->predictedDataCost(controlFunc.cFunc, m_handle,
+					   rl_handle, cost);
     }
 }
 
@@ -315,3 +328,67 @@ void performanceStream::removeAllCurrUsers(){
        }
    }
 }
+
+//
+// creates a new predCostRecord 
+//
+bool performanceStream::addPredCostRequest(perfStreamHandle ps_handle,
+					   u_int &requestId,
+					   metricHandle m_handle,
+					   resourceListHandle rl_handle,
+					   u_int howmany){
+
+    performanceStream *ps = performanceStream::find(ps_handle); 
+    if(!ps) return false;
+
+    predCostType *new_value = new predCostType; 
+    if(!new_value) return false;
+    new_value->m_handle =  m_handle;
+    new_value->rl_handle =  rl_handle;
+    new_value->max = 0.0;
+    new_value->howmany =  howmany;
+    requestId = ps->nextpredCostReqestId++; 
+    new_value->requestId = requestId;
+    ps->pred_Cost_buff += new_value;
+    new_value = 0;
+    return true;
+}
+
+//
+// update the predicted cost value, and if this is the last outstanding
+// response then send result to calling thread
+//
+void performanceStream::predictedDataCostCallback(u_int requestId,
+						  float cost){
+
+    bool found = false; 
+    u_int which;
+    for(u_int i=0; i < pred_Cost_buff.size(); i++){
+        if((pred_Cost_buff[i])->requestId == requestId){
+	    found = true;
+	    which = i;
+	    break;
+    } }
+    if(found){
+        predCostType *value = pred_Cost_buff[which]; 
+	assert(value->howmany);
+	if(cost > value->max) value->max = cost;
+	value->howmany--;
+	// if all values have been collected, send result to calling thread
+	if(!value->howmany && controlFunc.cFunc ){
+	    this->callPredictedCostFuc(value->m_handle, value->rl_handle,
+				       value->max);
+            u_int size = pred_Cost_buff.size();
+	    if(size){
+                pred_Cost_buff[which] = pred_Cost_buff[size-1];
+		pred_Cost_buff.resize(size-1);
+	    }
+	    delete value;
+	}
+    }
+    else{
+        cout << "error in perfStream::predictedDataCostCallback" << endl;
+	assert(0);
+    }
+}
+

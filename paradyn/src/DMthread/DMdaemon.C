@@ -571,24 +571,32 @@ bool paradynDaemon::setInstSuppress(resource *res, bool newValue)
 // Get the expected delay (as a fraction of the running program) for the passed
 //   resource list (focus) and metric.
 //
-void paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
+void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
+				      metricHandle m_handle,
+				      resourceListHandle rl_handle,
+				      resourceList *rl, 
+				      metric *m)
 {
-    if (!rl || !m) {
-      perfConsult->getPredictedDataCostCallbackPC(0,0.0);
+    if(rl && m){
+        vector<u_int> focus;
+        assert(rl->convertToIDList(focus));
+        const char *metName = m->getName();
+        assert(metName);
+        u_int requestId;
+        if(performanceStream::addPredCostRequest(ps_handle,requestId,m_handle,
+				rl_handle, paradynDaemon::allDaemons.size())){
+            paradynDaemon *pd;
+            for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+                pd = paradynDaemon::allDaemons[i];
+	        pd->getPredictedDataCost(ps_handle,requestId,focus, metName);
+            }
+	    return;
+        }
     }
-    else {
-      vector<u_int> focus;
-      assert(rl->convertToIDList(focus));
-
-      const char *metName = m->getName();
-      assert(metName);
-
-      paradynDaemon *pd;
-      for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-	pd->getPredictedDataCost(focus, metName);
-      }
-    }
+    // TODO: change this to do the right thing
+    // this should make the response upcall to the correct calling thread
+    // perfConsult->getPredictedDataCostCallbackPC(0,0.0);
+    assert(0);
 }
 
 //
