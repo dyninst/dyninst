@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-linux.c,v 1.1 2000/03/04 01:30:26 zandy Exp $ */
+/* $Id: RTheap-linux.c,v 1.2 2000/05/31 18:01:03 nick Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
@@ -83,14 +83,18 @@ void DYNINSTheap_mmapFdClose(int fd)
 
 /* Linux /proc/PID/maps is unreliable when it is read with more than one
 read call (it can show pages that are not actually allocated).  We
-read it all in one call into this buffer. */
+read it all in one call into this buffer.
+
+linux-2.4: reading /proc/PID/maps now returns after each line in the maps,
+so we must loop to get everything.
+*/
 static char procAsciiMap[1<<15];
 
 int
 DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 {
      int fd;
-     ssize_t ret;
+     ssize_t ret, length;
      char *p;
      dyninstmm_t *ms;
      unsigned i, num;
@@ -111,17 +115,24 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 	  perror("open /proc");
 	  return -1;
      }
-     ret = read(fd, procAsciiMap, sizeof(procAsciiMap));
+     length = 0;
+     while (1)
+     {
+         ret = read(fd, procAsciiMap + length, sizeof(procAsciiMap) - length);
+         if (0 == ret) break;
+         if (0 > ret) {
+	      perror("read /proc");
+	      return -1;
+         }
+         length += ret;
+         if (length >= sizeof(procAsciiMap)) {
+	      fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer overflow\n");
+	      return -1;
+         }
+     }
+     procAsciiMap[length] = '\0'; /* Now string processing works */
+
      close(fd);
-     if (0 > ret) {
-	  perror("read /proc");
-	  return -1;
-     }
-     if (ret >= sizeof(procAsciiMap)) {
-	  fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer overflow\n");
-	  return -1;
-     }
-     procAsciiMap[ret] = '\0'; /* Now string processing works */
 
      /* Count lines, which is the same as the number of segments.
 	Newline characters separating lines are converted to nulls. */
