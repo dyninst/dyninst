@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.150 2003/05/30 04:34:15 mjbrim Exp $
+// $Id: aix.C,v 1.151 2003/05/30 14:58:36 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1435,6 +1435,7 @@ bool process::loopUntilStopped() {
         if(hasExited()) return false;
         if (loops == 2000) {
             // Resend sigstop...
+            //cerr << "Time limit reached for loopUntilStop, resending SIGSTOP" << endl;
             stop_();
             loops = 0;
         }
@@ -1459,6 +1460,7 @@ bool process::loopUntilStopped() {
             // it so we that we will get the SIGSTOP signal we sent the proc
             if(status() == stopped)
                continueProc();
+            loops = 0;
         }
     }
     return true;
