@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.118 2000/10/17 17:27:49 schendel Exp $
+// $Id: DMpublic.C,v 1.119 2000/11/03 01:22:30 zandy Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -286,11 +286,6 @@ bool dataManager::pauseProcess(int pid)
 bool dataManager::continueApplication()
 {
     return(paradynDaemon::continueAll());
-}
-
-bool dataManager::continueProcess(int pid)
-{
-    return(paradynDaemon::continueProcess(pid));
 }
 
 bool dataManager::detachApplication(bool pause)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.42 2000/10/17 17:27:47 schendel Exp $
+// $Id: DMdaemon.h,v 1.43 2000/11/03 01:22:30 zandy Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -282,7 +282,7 @@ class paradynDaemon: public dynRPCUser {
         // application and daemon control functions
 	static bool startApplication();
 	static bool pauseProcess(unsigned pid);
-	static bool continueProcess(unsigned pid);
+	bool continueProcess(unsigned pid);
   	static bool pauseAll();	
 	static bool continueAll();
 	//Sends message to each daemon telling it to instrument

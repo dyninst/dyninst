@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.97 2000/10/17 17:27:47 schendel Exp $
+ * $Id: DMdaemon.C,v 1.98 2000/11/03 01:22:30 zandy Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -1689,7 +1689,7 @@ bool paradynDaemon::continueProcess(unsigned pid)
     executable *exec = 0;
     for(unsigned i=0; i < programs.size(); i++){
 	exec = programs[i];
-	if(exec->pid == pid)
+	if(exec->pid == pid && exec->controlPath == this)
 	    break;
         exec = 0;
     }
