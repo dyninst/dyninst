@@ -48,6 +48,7 @@
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/costmetrics.h"
 #include "pdutil/h/pdDebugOstream.h"
+#include "paradynd/src/focus.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 extern pdRPC *tp;
@@ -56,14 +57,12 @@ dictionary_hash<unsigned, machineMetFocusNode*>
                                 machineMetFocusNode::allMachNodes(uiHash);
 
 machineMetFocusNode::machineMetFocusNode(int metricID, 
-     const string& metric_name, const vector< vector<string> >& foc,
-     const string& flat_name, vector<processMetFocusNode*>& parts,
-     aggregateOp agg_op, bool enable_)
-   : metricDefinitionNode(),
-     aggregator(agg_op, getCurrSamplingRate()),
+     const string& metric_name, const Focus &foc,
+     vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
+   : metricDefinitionNode(), aggregator(agg_op, getCurrSamplingRate()), 
      id_(metricID), aggOp(agg_op), aggInfoInitialized(false),
-     _sentInitialActualValue(false), met_(metric_name), flat_name_(flat_name),
-     focus_(foc), enable(enable_)
+     _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
+     enable(enable_)
 {
   allMachNodes[metricID] = this;
 

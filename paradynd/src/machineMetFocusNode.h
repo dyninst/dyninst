@@ -44,7 +44,7 @@
 
 #include "paradynd/src/metric.h"
 #include "common/h/Dictionary.h"
-
+#include "paradynd/src/focus.h"
 
 class processMetFocusNode_Val;
 class threadMetFocusNode_Val;
@@ -61,9 +61,8 @@ class machineMetFocusNode : public metricDefinitionNode {
   bool aggInfoInitialized;
   bool _sentInitialActualValue;        //  true when initial actual value has
                                        //  been sent to the front-end
-  string met_;			     // what type of metric
-  string flat_name_;
-  vector< vector<string> > focus_;
+  const string met_;		       // what type of metric
+  const Focus focus_;
   vector<process *> currentlyPausedProcs;
   bool enable;
 
@@ -84,14 +83,13 @@ class machineMetFocusNode : public metricDefinitionNode {
   }
 
   machineMetFocusNode(int metricID, const string& metric_name, 
-		      const vector< vector<string> >& foc,
-		      const string& flat_name,
+		      const Focus& foc,
 		      vector<processMetFocusNode*>& parts,
 		      aggregateOp agg_op, bool enable_);
   ~machineMetFocusNode();
   const string &getMetName() const { return met_; }
-  const string &getFullName() const { return flat_name_; }
-  const vector< vector<string> > &getFocus() const {return focus_;}
+  const Focus &getFocus() const { return focus_; }
+  const string getFullName() const { return (met_ + focus_.getName()); }
   vector<processMetFocusNode*> getProcNodes() { return procNodes; }
   static void updateAllAggInterval(timeLength width);
   void updateAggInterval(timeLength width);
