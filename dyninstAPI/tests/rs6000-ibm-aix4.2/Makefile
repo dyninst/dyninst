@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/03/31 19:24:48 wylie Exp $
+# $Id: Makefile,v 1.3 2000/05/02 19:48:10 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,11 @@ CXX   = g++
 CXXFLAGS +=
 CFLAGS +=
 
-NATIVE_CC = cc
+NATIVE_CC = xlc
+NATIVE_CXX = xlC
+
+GNU_CC = gcc
+GNU_CXX = g++
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -32,8 +36,11 @@ DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
-ifeq ($(MUTATEE_CC),$(NATIVE_CC))
+ifeq (xl,$(findstring xl,$(MUTATEE_CC)))
 MUTATEE_CFLAGS = $(ARCH_DEF) -bnso -bI:/lib/syscalls.exp -bkeepfile:$(MUTATEE_OBJ)
+ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
+MUTATEE_CFLAGS += -+
+endif
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) -static -Wl,-bgcbypass:3 
 endif
@@ -47,3 +54,5 @@ $(TARGET2): $(MUTATEE_SRC)
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
+
+
