@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.23  1994/10/10 02:51:52  newhall
-/* purify fixes
+/* Revision 1.24  1994/11/03 21:35:15  krisna
+/* status lines for active visis.
 /*
+ * Revision 1.23  1994/10/10  02:51:52  newhall
+ * purify fixes
+ *
  * Revision 1.22  1994/09/30  21:20:10  newhall
  * added interface function VMStringToMetResPair
  * changed parameters to VMCreateVisi to take list of metrespair
@@ -96,6 +99,9 @@
 #include "VISIthread.CLNT.h"
 #include "VMtypes.h"
 #include "../pdMain/paradyn.h"
+
+#include "../UIthread/Status.h"
+
 #define ERROR_MSG(s1, s2) \
    uiMgr->showError(s1,s2); \
    printf("error number %d: %s\n",s1,s2); 
@@ -283,6 +289,28 @@ metrespair_Array temp;
    return(temp);
 }
 
+static
+void
+update_active_visis(VM* thisptr) {
+	VM_activeVisiInfo_Array active_visis;
+	char buf[1024];
+
+	active_visis = thisptr->VMActiveVisis();
+	buf[0] = '\0';
+	for (unsigned i = 0; i < active_visis.count; i++) {
+		strcat(buf, active_visis.data[i].name);
+		strcat(buf, " ");
+	}
+	if (active_visis.count == 0) {
+		sprintf(buf, "(none)");
+	}
+
+	static status_line visi_status("Active Visis");
+	visi_status.message(buf);
+
+	free(active_visis.data);
+}
+
 /////////////////////////////////////////////////////////////
 // VMCreateVisi: VM server routine, starts a visualization process
 //
@@ -366,6 +394,8 @@ VMvisis *visitemp;
   PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
   currNumActiveVisis++;
 
+	update_active_visis(this);
+
   return(VMOK);
 }
 
@@ -398,6 +428,7 @@ VMactiveVisi *temp;
          PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",getTid()));
       }
   }
+  update_active_visis(this);
   PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
 }
 
@@ -422,6 +453,7 @@ VMactiveVisi *temp;
   delete(temp->visip);
   delete(temp);
   currNumActiveVisis--;
+  update_active_visis(this);
 
 }
 
