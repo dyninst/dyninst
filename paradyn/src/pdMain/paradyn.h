@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.22 2003/07/15 22:46:40 schendel Exp $ */
+/* $Id: paradyn.h,v 1.23 2003/09/05 19:22:55 pcroth Exp $ */
 
 /* some global definitions for main.C */
 
@@ -102,6 +102,19 @@ extern void print_debug_macro(const char* format, ...);
 // specified in a PCL process definition, or in the process definition window.
 extern pdstring default_host;
 extern pdstring local_domain;
+
+// struct for passing arguments to UI thread
+struct UIThreadArgs
+{
+    pdstring progName;
+    int argc;
+    char* argv[];
+
+    UIThreadArgs( const char* _progName )
+      : progName( _progName )
+    { }
+};
+
 
 #endif
 

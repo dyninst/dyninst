@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.57 2003/07/15 22:46:34 schendel Exp $ */
+/* $Id: VMmain.C,v 1.58 2003/09/05 19:22:44 pcroth Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -486,11 +486,6 @@ void VM::VMVisiDied(thread_t visiThreadId){
           currNumActiveVisis--;
   } }
 }
-
-int VM::VM_sequential_init(){
-  return 1;
-}
-
 
 void myfree(void* ptr) {
     (void) free(ptr);

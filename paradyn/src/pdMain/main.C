@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.67 2003/07/15 22:46:39 schendel Exp $
+// $Id: main.C,v 1.68 2003/09/05 19:22:55 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -55,11 +55,6 @@
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
-#if !defined(i386_unknown_nt4_0)
-#include "termWin.xdr.CLNT.h"
-#endif // !defined(i386_unknown_nt4_0)
-
-
 
 // trace data streams
 BufferPool<traceDataValueType>  tracedatavalues_bufferpool;
@@ -72,11 +67,6 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
-#if !defined(i386_unknown_nt4_0)
-extern termWinUser* twUser;
-#endif // !defined(i386_unknown_nt4_0)
-
-extern bool mpichUnlinkWrappers();
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -100,12 +90,15 @@ char DMStack[32768];
 
 
 // applicationContext *context;
-dataManagerUser *dataMgr;
-performanceConsultantUser *perfConsult;
-UIMUser *uiMgr;
-VMUser  *vmMgr;
+dataManagerUser *dataMgr = NULL;
+performanceConsultantUser *perfConsult = NULL;
+UIMUser *uiMgr = NULL;
+VMUser  *vmMgr = NULL;
 int paradyn_debug=0;
 char debug_buf[DEBUGBUFSIZE];
+pdstring pclStartupFileName = "";
+pdstring tclStartupFileName = "";
+pdstring daemonStartupInfoFileName = "";
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
@@ -136,68 +129,73 @@ void eFunction(int errno, char *message)
     abort();
 }
 
-//extern bool metMain(pdstring&);
-extern bool metDoTunable();
-extern bool metDoProcess();
-extern bool metDoDaemon();
+bool metDoTunable();
+bool metDoProcess();
+bool metDoDaemon();
+void ParseCommandLine( int argc, char* argv[] );
 
-int         tty;
-
-bool inDeveloperMode = false; // global variable used elsewhere
 
 int
-main (int argc, char **argv)
+main(int argc, char* argv[])
 {
-  char mbuf[MBUFSIZE];
-  unsigned int msgsize;
-  thread_t mtid;
-  tag_t mtag;
-  char *temp=NULL;
+    unsigned int msgsize;
+    char mbuf[MBUFSIZE];
+    thread_t mtid;
+    tag_t mtag;
 
-  tty = isatty(0);
+    // Check whether we're to output debug messages
+    // If the value of PARADYNDEBUG environment variable is > 0,
+    // PARADYN_DEBUG messages will be printed to stdout
+    char* temp = (char *) getenv("PARADYNDEBUG");
+    if (temp != NULL) {
+        paradyn_debug = atoi(temp);
+    }
+
+    // Parse the command line
+    // We do this before we create the UI thread because we need to know
+    // what type of UI to create
+    ParseCommandLine( argc, argv );
+
+    // save the tid of the main thread (and, as a side effect,
+    // initialize the thread library)
+    MAINtid = thr_self();
+
+    // spawn our UI thread early, so we can use it in case there
+    // are problems with startup of other threads
+    int cret = thr_create( UIStack,
+                            sizeof(UIStack),
+                            &UImain,
+                            new UIThreadArgs( argv[0] ),
+                            0,
+                            &UIMtid );
+    if( cret == THR_ERR )
+    {
+        // we have no user interface thread -
+        // use lowest common denominator to report the error
+        fprintf( stderr, "Fatal error: Paradyn was unable to create its user interface and must exit.\n" );
+        exit(1);
+    }
+
+    // ensure the UI thread is initialized before continuing,
+    // so all other threads can use the UI for reporting status, errors, etc.
+    msgsize = MBUFSIZE;
+    mtid = THR_TID_UNSPEC;
+    mtag = MSG_TAG_UIM_READY;
+    msg_recv( &mtid, &mtag, mbuf, &msgsize );
+    assert( mtid == UIMtid );
+    assert( mtag == MSG_TAG_UIM_READY );
+    uiMgr = new UIMUser(UIMtid);
+    PARADYN_DEBUG (("UI thread created\n"));
+
 
   //
   // We check our own read/write events.
   //
+  // TODO is this necessary anymore?
 #if !defined(i386_unknown_nt4_0)
   P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
 #endif // !defined(i386_unknown_nt4_0)
 
-  // get paradyn_debug environment var PARADYNDEBUG, if its value
-  // is > 1, then PARADYN_DEBUG msgs will be printed to stdout
-  temp = (char *) getenv("PARADYNDEBUG");
-  if (temp != NULL) {
-    paradyn_debug = atoi(temp);
-  }
-  else {
-    paradyn_debug = 0;
-  }
-
-// parse the command line arguments
-  int a_ct=1;
-  char *fname=0, *sname=0, *xname=0;
-  while (argv[a_ct]) {
-    if (fname == 0 && !strcmp(argv[a_ct], "-f") && argv[a_ct+1]) {
-      fname = argv[++a_ct];
-    } else if (sname == 0 && !strcmp(argv[a_ct], "-s") && argv[a_ct+1]) {
-      sname = argv[++a_ct];
-    } else if (xname == 0 && !strcmp(argv[a_ct], "-x") && argv[a_ct+1]) {
-      xname = argv[++a_ct];
-    } else if (!default_host.length() && (!strcmp(argv[a_ct], "-default_host") || !strcmp(argv[a_ct], "-d")) && argv[a_ct+1]) {
-      default_host = argv[++a_ct];
-    } else {
-      printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]"
-                      " [-x <connect_filename>] [-default_host <hostname>]\n",
-                 argv[0]);
-      exit(-1);
-    }
-    a_ct++;
-  }
-
-#ifdef notdef // this isn't relevant here as default_host is defined later
-              // when required (in paradynDaemon::getDaemonHelper)
-  default_host = getNetworkName(default_host);
-#endif
 
   const pdstring localhost = getNetworkName();
   //cerr << "main: localhost=<" << localhost << ">" << endl;
@@ -210,28 +208,25 @@ main (int argc, char **argv)
       local_domain = localhost.substr(index+1,localhost.length());
   //cerr << "main: local_domain=<" << local_domain << ">" << endl;
 
-// get tid of parent
-  MAINtid = thr_self();
-
   // enable interaction between thread library and RPC package
   rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
 
-// Structure used to pass initial arguments to data manager
-//  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
-// call sequential initialization routines
-  if(!dataManager::DM_sequential_init(fname)) {
+// TODO let these threads do this initialization once they are started
+// why do they have to do this initialization as part of the main thread?
+
+  // call sequential initialization routines
+  if(!dataManager::DM_sequential_init( pclStartupFileName.c_str() )) {
     printf("Error found in Paradyn Configuration File, exiting\n");
     exit(-1);
   }
-  VM::VM_sequential_init(); 
 
 
-     /* initialize the 4 main threads of paradyn: data manager, visi manager,
-        user interface manager, performance consultant */
+    // spawn the remaining main threads: data manager, visi manager,
+    // and Performance Consultant.  Other threads are created on an 
+    // as-needed basis.
   
-// initialize DM
-
+    // Spawn data manager thread
   if (thr_create(DMStack, sizeof(DMStack), DMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
@@ -244,25 +239,11 @@ main (int argc, char **argv)
   assert( mtid == DMtid );
   msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   dataMgr = new dataManagerUser (DMtid);
+  uiMgr->DMready();
   // context = dataMgr->createApplicationContext(eFunction);
 
-// initialize UIM 
- 
-  if (thr_create (UIStack, sizeof(UIStack), &UImain, NULL,
-		  0, &UIMtid) == THR_ERR) 
-    exit(1);
-  PARADYN_DEBUG (("UI thread created\n"));
 
-  msgsize = MBUFSIZE;
-  mtid = THR_TID_UNSPEC;
-  mtag = MSG_TAG_UIM_READY;
-  msg_recv(&mtid, &mtag, mbuf, &msgsize);
-  assert( mtid == UIMtid );
-  msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-  uiMgr = new UIMUser (UIMtid);
-
-// initialize PC
-
+    // Spawn the Performance Consultant
   if (thr_create(0, 0, PCmain, (void*) &MAINtid, 0, 
 		 (unsigned int *) &PCtid) == THR_ERR)
     exit(1);
@@ -276,7 +257,7 @@ main (int argc, char **argv)
   msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   perfConsult = new performanceConsultantUser (PCtid);
 
-// initialize VM
+    // Spawn the Visi Manager thread
   if (thr_create(0, 0, VMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &VMtid) == THR_ERR)
     exit(1);
@@ -295,50 +276,81 @@ main (int argc, char **argv)
   metDoDaemon();
   metDoProcess();
 
-  // keep this here to prevent UI from starting up till everything's 
-  // been initialized properly!!
-  //  -OR-
-  // move this elsewhere to create a race condition
-  if (sname)
-    uiMgr->readStartupFile (sname);
- 
-  if (xname)
-    dataMgr->printDaemonStartInfo (xname);
+    // keep this here to prevent UI from starting up till everything's 
+    // been initialized properly!!
+    //  -OR-
+    // move this elsewhere to create a race condition
+    if( tclStartupFileName.length() > 0 )
+    {
+        assert( uiMgr != NULL );
+        uiMgr->readStartupFile( tclStartupFileName.c_str() );
+    }
 
-// wait for UIM thread to exit
+    if( daemonStartupInfoFileName.length() > 0 )
+    {
+        assert( dataMgr != NULL );
+        dataMgr->printDaemonStartInfo( daemonStartupInfoFileName.c_str() );
+    }
 
-  thr_join (UIMtid, NULL, NULL);
+    // Block until the UI thread exits, indicating we should shut down
+    thr_join(UIMtid, NULL, NULL);
 
+    // Tell the other threads to exit
+    msg_send(DMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+    thr_join(DMtid, NULL, NULL);
 
-#if DO_LIBTHREAD_MEASUREMENTS
-#if !defined(i386_unknown_nt4_0)
-// tell the other threads to exit
+    msg_send(VMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+    thr_join(VMtid, NULL, NULL);
 
-  msg_send (DMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
-  msg_send (VMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
-  msg_send (PCtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+    msg_send(PCtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+    thr_join(PCtid, NULL, NULL);
 
-// and wait for them to do so
-
-  thr_join (DMtid, NULL, NULL);
-  thr_join (VMtid, NULL, NULL);
-  thr_join (PCtid, NULL, NULL);
-
-  thr_library_cleanup();
-#endif // !defined(i386_unknown_nt4_0)
-#endif // DO_LIBTHREAD_MEASUREMENTS
+    thr_library_cleanup();
   
-#if !defined(i386_unknown_nt4_0)
-  mpichUnlinkWrappers();
-#endif // !defined(i386_unknown_nt4_0)
-
-#if !defined(i386_unknown_nt4_0)
-  // notify termWin of our demise
-  if( twUser != NULL )
-  {
-	  twUser->shutdown();
-  }
-#endif // !defined(i386_unknown_nt4_0)
-
-  return 0;
+    return 0;
 }
+
+
+void
+ParseCommandLine( int /* argc */, char* argv[] )
+{
+    int a_ct=1;
+    while (argv[a_ct])
+    {
+        if(!strcmp(argv[a_ct], "-f") && argv[a_ct+1] &&
+            (pclStartupFileName.length() == 0) )
+        {
+            pclStartupFileName = argv[a_ct+1];
+            a_ct += 2;
+        }
+        else if(!strcmp(argv[a_ct], "-s") && argv[a_ct+1] &&
+            (tclStartupFileName.length() == 0) )
+        {
+            tclStartupFileName = argv[a_ct+1];
+            a_ct += 2;
+        }
+        else if(!strcmp(argv[a_ct], "-x") && argv[a_ct+1] &&
+            (daemonStartupInfoFileName.length() == 0) )
+        {
+            daemonStartupInfoFileName = argv[a_ct+1];
+            a_ct += 2;
+        }
+        else if((!strcmp(argv[a_ct], "-default_host") || 
+                    !strcmp(argv[a_ct], "-d")) && argv[a_ct+1] &&
+                    (default_host.length() == 0) )
+        {
+            default_host = argv[a_ct+1];
+            a_ct += 2;
+        }
+        else
+        {
+            // unrecognized command line switch
+            fprintf(stderr,
+                "usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]"
+                " [-x <connect_filename>] [-default_host <hostname>]\n",
+                argv[0]);
+              exit(-1);
+        }
+    }
+}
+
