@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.22  1997/12/01 02:15:45  tung
+ * modified for Linux/X86 Platform
+ *
  * Revision 1.21  1997/07/22 19:09:56  naim
  * Changes to make fork work on aix. Also, some change to make exec work on
  * solaris. Althought it works now, there are still some things to be done
@@ -146,7 +149,7 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
   if(process::pdFlavor != string("cow"))
   {
-#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3)
+#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3) || defined(i386_unknown_linux2_0)
   	initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 #else

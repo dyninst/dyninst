@@ -125,7 +125,7 @@ extern "C" {
 
 // temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
 // anyway.
-#if defined(hppa1_1_hp_hpux)
+#if defined(hppa1_1_hp_hpux) || defined(i386_unknown_linux2_0)
   extern void endservent(void);
   extern void endpwent(); 
 #elif !defined(rs6000_ibm_aix4_1)

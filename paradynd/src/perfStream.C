@@ -596,7 +596,8 @@ void controllerMainLoop(bool check_buffer_first)
     ***/
 
 #if !defined(i386_unknown_nt4_0)
-    traceSocketPath = string(P_tmpdir) + string("paradynd.") + string(getpid());
+      traceSocketPath = string(P_tmpdir) + "/" + string("paradynd.") + string(getpid());
+
     // unlink it, in case the file was left around from a previous run
     unlink(traceSocketPath.string_of());
 
