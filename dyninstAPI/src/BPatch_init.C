@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.14 2003/09/05 16:27:33 schendel Exp $
+// $Id: BPatch_init.C,v 1.15 2003/10/22 16:01:09 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -47,7 +47,7 @@
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/process.h"
 
 extern int getNumberOfCPUs();
 

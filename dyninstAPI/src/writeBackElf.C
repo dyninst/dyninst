@@ -1,9 +1,11 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.18 2003/09/05 16:28:42 schendel Exp $ */
+/* $Id: writeBackElf.C,v 1.19 2003/10/22 16:01:13 schendel Exp $ */
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
+#include "dyninstAPI/src/process.h"
 #include "writeBackElf.h"
+
 #define MALLOC 0 
 #define DYNAMIC 1 
 

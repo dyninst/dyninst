@@ -39,15 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.26 2003/07/15 22:44:49 schendel Exp $
+// $Id: util.h,v 1.27 2003/10/22 16:01:11 schendel Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
 
 #include "common/h/headers.h"
+#include "common/h/Time.h"
 #include "common/h/Types.h"
 #include "common/h/String.h"
-#include "common/h/Time.h"
+
 
 #ifndef BPATCH_LIBRARY
 // DON'T access through this global variable
@@ -84,11 +85,6 @@ inline unsigned intHash(const int &val) {
 
 void
 pd_log_perror(const char* msg);
-
-typedef struct sym_data {
-  pdstring name;
-  bool must_find;
-} sym_data;
 
 typedef enum { counter, procTimer, wallTimer } CTelementType;
 

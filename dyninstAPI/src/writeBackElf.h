@@ -1,5 +1,5 @@
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.12 2003/09/05 16:28:43 schendel Exp $ */
+/* $Id: writeBackElf.h,v 1.13 2003/10/22 16:01:12 schendel Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -12,17 +12,16 @@
 #include <string.h>
 #if defined(sparc_sun_solaris2_4)
 #include <libelf.h>
-#include "process.h"
 #elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-#include "dyninstAPI/src/process.h"
 #include <libelf/libelf.h>
 #include "linux.h"
-#include "dyninstAPI/src/process.h"
 #endif
-
+#include "common/h/Vector.h"
 #include "ELF_Section.h"
 #include <unistd.h>
 #include "imageUpdate.h"
+
+class process;
 
 class writeBackElf{
 
@@ -66,9 +65,9 @@ private:
 	unsigned int oldLastPage;//location of the last page in memory allocated in the oldElf
 	int DEBUG_MSG;
 	int pageSize ; // page size on this system
-        process* mutateeProcess;
-        int mutateeTextSize;
-        unsigned int mutateeTextAddr;
+	process* mutateeProcess;
+	int mutateeTextSize;
+	unsigned int mutateeTextAddr;
 
 
 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData);
@@ -90,8 +89,10 @@ public:
 						const char* name, bool loadable=true);
 
 	bool createElf();
-        void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches); 
-	void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches);
+	void compactSections(pdvector<imageUpdate*> imagePatches,
+								pdvector<imageUpdate*> &newPatches); 
+	void compactLoadableSections(pdvector<imageUpdate*> imagePatches,
+										  pdvector<imageUpdate*> &newPatches);
 	void alignHighMem(pdvector<imageUpdate*> imagesPatches);
 	Elf* getElf(){ return newElf; };
 };

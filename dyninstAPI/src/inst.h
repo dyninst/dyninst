@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.79 2003/10/21 17:22:07 bernat Exp $
+// $Id: inst.h,v 1.80 2003/10/22 16:01:10 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -49,10 +49,8 @@
 #include "common/h/String.h"
 #include "ast.h" // enum opCode now defined here.
 #include "common/h/Types.h"
-#include "common/h/Time.h"
-#ifndef BPATCH_LIBRARY
-#include "pdutil/h/pdSample.h"
-#else
+
+#ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #endif
 
@@ -276,12 +274,6 @@ extern pdstring getProcessStatus(const process *p);
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const pdstring funcName);
-
-#ifndef BPATCH_LIBRARY
-extern pdSample computePauseTimeMetric(const metricFocusNode *);
-
-extern pdSample computeStackwalkTimeMetric(const metricFocusNode *);
-#endif
 
 extern void initLibraryFunctions();
 
