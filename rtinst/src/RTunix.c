@@ -1,9 +1,12 @@
 /*
  * This file contains the implementation of runtime dynamic instrumentation
- *   functions for a normal Sparc with SUNOS.
+ *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.1  1993/07/02 21:49:35  hollings
+ * Revision 1.2  1993/08/26 19:43:17  hollings
+ * added uarea mapping code.
+ *
+ * Revision 1.1  1993/07/02  21:49:35  hollings
  * Initial revision
  *
  *
@@ -14,13 +17,38 @@
 #include <sys/param.h>
 #include <signal.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <assert.h>
+#include <nlist.h>
 
-#include "rtinst.h"
-#include "trace.h"
+#include <h/rtinst.h>
+#include <h/trace.h>
 
 #define MILLION	1000000
-static int DYNINSTinSample;
+extern int DYNINSTmappedUarea;
+extern int *_p_1, *_p_2;
+
+time64 inline DYNINSTgetUserTime()
+{
+    int first;
+    time64 now;
+    struct rusage ru;
+
+    if (DYNINSTmappedUarea) {
+retry:
+	 first = *_p_1;
+	 now = first;
+	 now *= MILLION;
+	 now += *_p_2;
+	 if (*_p_1 != first) goto retry;
+     } else {
+	 getrusage(RUSAGE_SELF, &ru);
+	 now = ru.ru_utime.tv_sec;
+	 now *= MILLION;
+	 now += ru.ru_utime.tv_usec;
+     }
+     return(now);
+}
 
 void DYNINSTbreakPoint()
 {
@@ -30,16 +58,11 @@ void DYNINSTbreakPoint()
 void DYNINSTstartProcessTimer(tTimer *timer)
 {
     time64 temp;
-    struct rusage ru;
-
-    if (DYNINSTinSample) abort();
 
     if (timer->trigger && (!timer->trigger->value)) return;
+
     if (timer->counter == 0) {
-	 getrusage(RUSAGE_SELF, &ru);
-	 temp = ru.ru_utime.tv_sec;
-	 temp *= MILLION;
-	 temp += ru.ru_utime.tv_usec;
+	 temp = DYNINSTgetUserTime();
 	 timer->start = temp;
 	 timer->normalize = MILLION;
     }
@@ -49,8 +72,7 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 
 void DYNINSTstopProcessTimer(tTimer *timer)
 {
-    time64 end;
-    time64 temp;
+    time64 now;
     struct rusage ru;
 
     if (timer->trigger && (timer->trigger->value <= 0)) return;
@@ -58,16 +80,28 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
 
+
+    /* Warning - there is a window between setting now, and mutex that
+	  can cause time to go backwards by the time to execute the
+	  instructions between these two points.  This is not a cummlative error
+	  and should not affect samples.  This was done (rather than re-sampling
+	  now because the cost of computing now is so high).
+    */
     if (timer->counter == 1) {
-	 getrusage(RUSAGE_SELF, &ru);
-	 temp = ru.ru_utime.tv_sec;
-	 temp *= MILLION;
-	 temp += ru.ru_utime.tv_usec;
-	 end = temp;
-	 timer->total += end - timer->start;
+	now = DYNINSTgetUserTime();
+	timer->snapShot = now - timer->start + timer->total;
+	timer->mutex = 1;
+	timer->counter = 0;
+	timer->total = timer->snapShot;
+	timer->mutex = 0;
+	if (now < timer->start) {
+	     getrusage(RUSAGE_SELF, &ru);
+	     printf("end before start\n");
+	     sigpause(0xffff);
+	}
+    } else {
+	timer->counter--;
     }
-    /* this must be last to prevent race conditions */
-    timer->counter--;
 }
 
 
@@ -76,6 +110,7 @@ void DYNINSTstartWallTimer(tTimer *timer)
     struct timeval tv;
 
     if (timer->trigger && (!timer->trigger->value)) return;
+
     if (timer->counter == 0) {
 	 gettimeofday(&tv, NULL);
 	 timer->start = tv.tv_sec;
@@ -89,7 +124,7 @@ void DYNINSTstartWallTimer(tTimer *timer)
 
 void DYNINSTstopWallTimer(tTimer *timer)
 {
-    time64 end;
+    time64 now;
     struct timeval tv;
 
     if (timer->trigger && (timer->trigger->value <= 0)) return;
@@ -99,18 +134,23 @@ void DYNINSTstopWallTimer(tTimer *timer)
 
     if (timer->counter == 1) {
 	 gettimeofday(&tv, NULL);
-	 end = tv.tv_sec;
-	 end *= MILLION;
-	 end += tv.tv_usec;
-	 timer->total += end - timer->start;
+	 now = tv.tv_sec;
+	 now *= MILLION;
+	 now += tv.tv_usec;
+	 /* see note before StopProcess time for warning about this mutex */
+	 timer->snapShot = timer->total + now - timer->start;
+	 timer->mutex = 1;
+	 timer->counter = 0;
+	 timer->total = timer->snapShot;
+	 timer->mutex = 0;
+    } else {
+	timer->counter--;
     }
-    /* this must be last to prevent race conditions */
-    timer->counter--;
 }
 
 time64 startWall;
 
-int DYNINSTpauseDone = 0;
+volatile int DYNINSTpauseDone = 0;
 
 /*
  * change the variable to let the process proceed.
@@ -118,7 +158,6 @@ int DYNINSTpauseDone = 0;
  */
 void DYNINSTcontinueProcess()
 {
-    printf("in signal handler to continue process\n");
     DYNINSTpauseDone = 1;
 }
 
@@ -132,22 +171,19 @@ void DYNINSTpauseProcess()
     int mask;
     int sigs;
 
-#ifdef notdef
     sigs = ((1 << (SIGUSR2-1)) | (1 << (SIGUSR1-1)) | (1 << (SIGTSTP-1)));
     mask = ~sigs;
-#endif
     DYNINSTpauseDone = 0;
-    printf("into DYNINSTpauseProcess\n");
     while (!DYNINSTpauseDone) {
 #ifdef notdef
-       // temporary bust wait until we figure out what the TSD is up to. 
        sigpause(mask);
+       // temporary busy wait until we figure out what the TSD is up to. 
        printf("out of sigpuase\n");
 #endif
     }
 }
 
-void DYNINSTinit()
+void DYNINSTinit(int skipBreakpoint)
 {
     int val;
     int sigs;
@@ -186,11 +222,13 @@ void DYNINSTinit()
 	ualarm(val, val);
     } 
 
+    DYNINSTmappedUarea = DYNINSTmapUarea();
+
     /*
      * pause the process and wait for additional info.
      *
      */
-    DYNINSTbreakPoint();
+    if (!skipBreakpoint) DYNINSTbreakPoint();
 }
 
 void DYNINSTexit()
@@ -220,10 +258,20 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     header.wall += tv.tv_usec;
     header.wall -= startWall;
 
-    getrusage(RUSAGE_SELF, &ru);
-    header.process = ru.ru_utime.tv_sec;
-    header.process *= (time64) MILLION;
-    header.process += ru.ru_utime.tv_usec;
+#ifdef notdef
+    if (DYNINSTmappedUarea) {
+	header.process = *_p_1;
+	header.process *= MILLION;
+	header.process += *_p_2;
+    } else {
+#endif
+	getrusage(RUSAGE_SELF, &ru);
+	header.process = ru.ru_utime.tv_sec;
+	header.process *= (time64) MILLION;
+	header.process += ru.ru_utime.tv_usec;
+#ifdef notdef
+    }
+#endif
 
     header.type = type;
     header.length = length;
@@ -254,6 +302,7 @@ double lastTime[200];
 
 void DYNINSTreportTimer(tTimer *timer)
 {
+    int i,j;
     time64 now;
     double value;
     time64 total;
@@ -261,39 +310,54 @@ void DYNINSTreportTimer(tTimer *timer)
     struct timeval tv;
     traceSample sample;
 
-    DYNINSTinSample = 1;
-    total = timer->total;
-    if (timer->counter) {
+    if (timer->mutex) {
+	total = timer->snapShot;
+    } else if (timer->counter) {
 	/* timer is running */
-
 	if (timer->type == processTime) {
 	    getrusage(RUSAGE_SELF, &ru);
 	    now = ru.ru_utime.tv_sec;
 	    now *= (time64) MILLION;
 	    now += ru.ru_utime.tv_usec;
-
-	    /* for debugging */
-	    value = ru.ru_utime.tv_sec + ru.ru_utime.tv_usec/1000000.0;
-	    if (value < lastTime[timer->id.id]) abort();
-	    lastTime[timer->id.id] = value;
 	} else {
 	    gettimeofday(&tv, NULL);
 	    now = tv.tv_sec;
 	    now *= MILLION;
 	    now += tv.tv_usec;
 	}
-	total += now - timer->start;
+	total = now - timer->start + timer->total;
+    } else {
+	total = timer->total;
     }
-    if (total < lastValue[timer->id.id]) abort();
+    if (total < lastValue[timer->id.id]) {
+	 printf("time regressed\n");
+	 sigpause(0xffff);
+    }
     lastValue[timer->id.id] = total;
 
     sample.id = timer->id;
     sample.value = ((double) total) / (double) timer->normalize;
 
-    DYNINSTinSample = 0;
-
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
-#ifdef notdef
-    printf("raw sample %d = %f\n", sample.id.id, sample.value);
-#endif
+    /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
+}
+
+DYNINSTfork(void *arg, parameters *param)
+{
+    int sid = 0;
+    traceFork forkRec;
+    int pid = param->arg1;
+
+    printf("fork called with pid = %d\n", pid);
+    if (pid > 0) {
+	forkRec.ppid = getpid();
+	forkRec.pid = pid;
+	forkRec.npids = 1;
+	forkRec.stride = 0;
+	DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec);
+    } else {
+	/* set up signals and stop at a break point */
+	DYNINSTinit(1);
+	sigpause();
+    }
 }
