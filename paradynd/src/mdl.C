@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.29  1996/05/11 00:29:39  mjrg
+ * Fixed memory leak in mdl_inst_stmt::apply
+ *
  * Revision 1.28  1996/05/07 22:39:25  mjrg
  * Fixed code to work when there are two different image files.
  *
@@ -1450,8 +1453,8 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
                                         vector<dataReqNode*>& inFlags) {
- 
-   vector<instPoint *> *points;
+  
+   vector<instPoint *> points;
    vector<dataReqNode*> flags;
    if (constrained_) {
        // we are constrained so use the flags (boolean constraint variables
@@ -1463,12 +1466,13 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   if (!point_expr_->apply(temp))
     return false;
   if (temp.type() == MDL_T_LIST_POINT) {
-    if (!temp.get(points)) return false;
+    vector<instPoint *> *pts;
+    if (!temp.get(pts)) return false;
+    points = *pts;
   } else if (temp.type() == MDL_T_POINT) {
     instPoint *p;
     if (!temp.get(p)) return false;
-    points = new vector<instPoint *>;
-    *points += p;
+      points += p;
   } else {
     return false;
   }
@@ -1500,8 +1504,8 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   }
 
   // for all of the inst points, insert the predicates and the code itself.
-  for (int i = 0; i < (int)points->size(); i++) {
-      instPoint *p = (*points)[i];
+  for (int i = 0; i < (int)points.size(); i++) {
+      instPoint *p = points[i];
       AstNode code;
 
       for (unsigned u=0; u<size; u++)
