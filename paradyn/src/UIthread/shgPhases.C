@@ -4,10 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.10  1996/02/15 23:12:30  tamches
-/* corrected parameters of addEdge to properly handle why vs. where
-/* axis refinements
+/* Revision 1.11  1996/02/26 18:16:54  tamches
+/* bug fix when changing phases
 /*
+ * Revision 1.10  1996/02/15 23:12:30  tamches
+ * corrected parameters of addEdge to properly handle why vs. where
+ * axis refinements
+ *
  * Revision 1.9  1996/02/11 18:26:44  tamches
  * shg message window now works correctly for multiple phases
  * internal cleanup; more tk window name entities parameterized
@@ -375,6 +378,8 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
 		       horizSBName, vertSBName,
 		       currItemLabelName);
 
+   bool result = false; // so far, nothing has changed
+
    // possibly pull off the last phase...
    if (theShgPhases.size() > 1) // never touch the "Global Search"
       if (!theShgPhases[theShgPhases.size()-1].everSearched) {
@@ -388,6 +393,16 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
 
          theShgPhases.resize(theShgPhases.size()-1);
             // destructor for shgStruct will fry the shg
+
+         if (currShgPhaseIndex == theShgPhases.size()) {
+            // uh oh.  We fried the current search.  We need to make
+            // someone else the current search.  But who?  We'll just
+            // make it the previous search index.  One will always exist,
+            // since we'll never fry the global phase search.
+            assert(theShgPhases.size() > 0);
+            changeLL(theShgPhases.size()-1);
+	    result = true;
+	 }
       }
 
    theShgPhases += theStruct;
@@ -403,9 +418,9 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
    const bool changeTo = (theShgPhases.size()==1);
    if (changeTo)
       if (change(phaseName))
-         return true; // indicates a redraw is called for
+         result = true; // indicates a redraw is called for
 
-   return false; // no redraw needed
+   return result;
 }
 
 bool shgPhases::activateCurrSearch() {
