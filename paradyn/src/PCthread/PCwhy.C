@@ -20,6 +20,10 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.C,v $
+ * Revision 1.13  1996/02/22 18:27:36  karavan
+ * cleanup after dataMgr calls; explicitly cast all NULLs to keep
+ * AIX happy
+ *
  * Revision 1.12  1996/02/08 19:52:52  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -62,8 +66,10 @@ hypothesis::hypothesis (const char *hypothesisName,
     resourceHandle *rh;
     for (unsigned i = 0; i < plumList->size(); i++) {
       rh = dataMgr->findResource((*plumList)[i]->string_of());
-      if (rh)
+      if (rh) {
 	pruneList += *rh;
+	delete rh;
+      }
     }
   }
   *success = true;
@@ -73,8 +79,10 @@ hypothesis::hypothesis (const char *hypothesisName,
 			explanationFunction explanation, 
 			bool *success) 
 :name(hypothesisName), explain(explanation), 
- pcMet (NULL), indivThresholdNm(NULL), groupThresholdNm(NULL), 
- getThreshold(NULL), compOp(gt)
+ pcMet ((PCmetric *)NULL), indivThresholdNm((const char *)NULL), 
+ groupThresholdNm((const char *)NULL), 
+ getThreshold((float (*)(const char *, unsigned int))NULL), 
+ compOp(gt)
 {
   *success = true;
 }
@@ -155,6 +163,7 @@ whyAxis::whyAxis()
 {
   bool good = true;
   string rootName ("topLevelHypothesis");
-  root = new hypothesis (rootName.string_of(), NULL, &good);
+  root = new hypothesis (rootName.string_of(), (explanationFunction)NULL, 
+			 &good);
   AllHypotheses [rootName] = root; 
 }

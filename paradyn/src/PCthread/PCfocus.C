@@ -21,15 +21,16 @@
  * Initializing focus info needed by PC from DM's resource hierarchies.
  * 
  * $Log: PCfocus.C,v $
+ * Revision 1.2  1996/02/22 18:30:34  karavan
+ * cleanup after dataMgr calls; explicitly cast all NULLs to keep
+ * AIX happy
+ *
  * Revision 1.1  1996/02/02 02:06:34  karavan
  * A baby Performance Consultant is born!
  *
  */
 
-#include <stdlib.h>
 #include <assert.h>
-#include <string.h>
-
 #include "PCintern.h"
 
 //
@@ -49,45 +50,70 @@ resourceHandle MsgTags;
 focus topLevelFocus;
 
 
-// returns 0 if internal error which is fatal to PC
-int initResources()
+void initResources()
 {
   // only toplevel "base" resources are known to PC 
   // get names <-> handles here
 
+  // first, get handles for base resources guaranteed to exist for every application
+  //
   resourceHandle *h = dataMgr->getRootResource();
   assert (h != NULL); 
   RootResource = *h;
-
-  h = dataMgr->findResource ("/SyncObject");
-  if (h != NULL) 
-    SyncObject = *h;
-  h = dataMgr->findResource ("/Code");
-  assert (h != NULL); // top level resources undefined is bad news
-  Procedures = *h;
-  h = dataMgr->findResource ("/Process");
-  if (h != NULL) 
-    Processes = *h;
-  h = dataMgr->findResource ("/Machine");
-  if (h != NULL) 
-    Machines = *h;
-  h = dataMgr->findResource ("/SpinLock");
-  if (h != NULL)
-    Locks = *h;
-  h = dataMgr->findResource ("/Barrier");
-  if (h != NULL)
-    Barriers = *h;
-  h = dataMgr->findResource ("/Semaphore");
-  if (h != NULL)
-    Semaphores = *h;
-  h = dataMgr->findResource ("/MsgTag");
-  if (h != NULL)
-    MsgTags = *h;
+  delete h;
 
   vector<resourceHandle> *testr = dataMgr->getRootResources();
   assert (testr != NULL);
   topLevelFocus = dataMgr->getResourceList(testr);
-  return 1;
+  delete testr;
+
+  h = dataMgr->findResource ("/SyncObject");
+  assert (h != NULL);  
+  SyncObject = *h;
+  delete h;
+
+  h = dataMgr->findResource ("/Code");
+  assert (h != NULL); 
+  Procedures = *h;
+  delete h;
+
+  h = dataMgr->findResource ("/Process");
+  assert (h != NULL); 
+  Processes = *h;
+  delete h;
+
+  h = dataMgr->findResource ("/Machine");
+  assert (h != NULL); 
+  Machines = *h;
+  delete h;
+  
+  //
+  // now try toplevels not guaranteed to exist for every application
+  //
+  h = dataMgr->findResource ("/SpinLock");
+  if (h != NULL) {
+    Locks = *h;
+    delete h;
+  }
+
+  h = dataMgr->findResource ("/Barrier");
+  if (h != NULL) {
+    Barriers = *h;
+    delete h;
+  }
+
+  h = dataMgr->findResource ("/Semaphore");
+  if (h != NULL) {
+    Semaphores = *h;
+    delete h;
+  }
+
+  h = dataMgr->findResource ("/MsgTag");
+  if (h != NULL) {
+    MsgTags = *h;
+    delete h;
+  }
+
 }
 
 

@@ -20,6 +20,10 @@
  * The PCmetric class implements a limited subset of derived metrics.
  * 
  * $Log: PCmetric.C,v $
+ * Revision 1.32  1996/02/22 18:30:36  karavan
+ * cleanup after dataMgr calls; explicitly cast all NULLs to keep
+ * AIX happy
+ *
  * Revision 1.31  1996/02/02 02:06:40  karavan
  * A baby Performance Consultant is born!
  *
@@ -44,10 +48,10 @@ dictionary_hash<string, PCmetric*> PCmetric::AllPCmetrics(string::hash);
 PCmetric::PCmetric (char *DMmetName, focusType ftype, bool *success):
 ft(ftype)
 {
-  metricHandle *tmpmh;
-  tmpmh = dataMgr->findMetric(DMmetName);
+  metricHandle *tmpmh = dataMgr->findMetric(DMmetName);
   if (tmpmh) {
     mh = *tmpmh;
+    delete tmpmh;
     metName = DMmetName;
     calc = (evalPCmetricInstFunc) NULL;
     setup = (initPCmetricInstFunc) NULL;
@@ -77,6 +81,7 @@ PCmetric::PCmetric (const char *thisName,
     }
     newEntry = new PCMetInfo;
     newEntry->mh = *mh;
+    delete mh;
     newEntry->fType = dataSpecs[i].whichFocus;
     (*DMmetrics)[i] = newEntry;
   }
