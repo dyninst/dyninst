@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.28 2000/07/18 19:55:14 bernat Exp $
+// $Id: inst-alpha.C,v 1.29 2000/07/27 15:28:17 bernat Exp $
 
 #include "util/h/headers.h"
 
@@ -1856,6 +1856,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     }
   }
 
+#if 0
   string ghb = "_DYNINSTtext";
   addr = findInternalAddress(ghb, false, err);
   if (err) {
@@ -1876,7 +1877,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
       return false;
   }
   instHeapStart = addr;
-
+#endif
   return true;
 }
 
