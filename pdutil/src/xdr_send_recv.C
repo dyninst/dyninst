@@ -243,13 +243,13 @@ bool P_xdr_recv(XDR *xdr, string &s) {
    }
 
    char *buffer = new char[len + 1];
-#ifdef PURE_BUILD
-   memset(buffer, '\0', len + 1);
-#endif   
+   buffer[len] = '\0';
 
    unsigned size = len;
    if (!xdr_bytes(xdr, &buffer, &size, len+1))
       return false;
+
+   //cout << "buffer is " << buffer << ", size is " << size << endl;
    
    (void)new((void*)&s)string(buffer, size);
    
