@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.116 2002/10/08 22:50:17 bernat Exp $
+// $Id: mdl.C,v 1.117 2002/10/15 17:11:53 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -57,8 +57,9 @@
 #include "common/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_thread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
@@ -80,7 +81,7 @@ extern pdDebug_ostream metric_cerr;
 // Some global variables
 static string currentMetric;  // name of the metric that is being processed.
 static string daemon_flavor;
-process *global_proc = NULL;
+pd_process *global_proc = NULL;
 static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
@@ -324,13 +325,13 @@ bool mdl_data::new_metric(string id, string name, string units,
 
 // will filter out processes from fromProcs that match the given focus
 // and places the result in filteredOutProcs
-static void filter_processes(const Focus &focus, vector<process*> fromProcs,
-			     vector<process*> *filteredOutProcs) {
+static void filter_processes(const Focus &focus, vector<pd_process*> fromProcs,
+			     vector<pd_process*> *filteredOutProcs) {
   // assumes that the machine we're on (and thus the daemon we're using)
   // matches the focus
    if(focus.process_defined()) {
       for (unsigned i=0; i<fromProcs.size(); i++) {
-	 if (fromProcs[i]->rid->part_name() == focus.get_process()) {
+	 if (fromProcs[i]->get_rid()->part_name() == focus.get_process()) {
 	    (*filteredOutProcs).push_back(fromProcs[i]);
 	    break;
 	 }    
@@ -437,12 +438,13 @@ static bool pick_out_matched_constraints(
 
 // update the interpreter environment for this processor
 // Variable updated: $procedures, $modules, $exit, $start
-static bool update_environment(process *proc) {
+static bool update_environment(pd_process *proc) {
 
   // for cases when libc is dynamically linked, the exit symbol is not
   // correct
   string vname = "$exit";
-  function_base *pdf = proc->findOneFunction(string(EXIT_NAME));
+  function_base *pdf = 
+     proc->findOneFunction(string(EXIT_NAME));
    if (pdf) { 
       mdl_env::add(vname, false, MDL_T_PROCEDURE);
       mdl_env::set(pdf, vname);
@@ -472,7 +474,7 @@ static bool update_environment(process *proc) {
 
 // allocate data and generate code for all threads
 bool setup_sampled_code_node(const processMetFocusNode* procNode,
-			     instrCodeNode* codeNode, process *proc,
+			     instrCodeNode* codeNode, pd_process *proc,
 			     const string &id, unsigned type,
 			     T_dyninstRPC::mdl_constraint *repl_cons,
 			     vector<T_dyninstRPC::mdl_stmt*> *stmts,
@@ -516,7 +518,7 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
    return true;
 }
 
-bool setup_constraint_code_node(instrCodeNode* codeNode, process *proc,
+bool setup_constraint_code_node(instrCodeNode* codeNode, pd_process *proc,
 				T_dyninstRPC::mdl_constraint *flag_con,
 				const Hierarchy &flag_focus_data,
 				bool dontInsertData) 
@@ -545,7 +547,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     bool /*replace_component*/)
 {
    processMetFocusNode *procNode = (*procNode_arg);
-   process *proc = procNode->proc();
+   pd_process *proc = procNode->proc();
    bool dontInsertData = procNode->dontInsertData();
    // create the instrCodeNodes and instrDataNodes for the flag constraints
 
@@ -616,22 +618,22 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 {
    processMetFocusNode *procNode = (*procNode_arg);
 
-   process *proc = procNode->proc();
+   pd_process *proc = procNode->proc();
    bool bMT = proc->multithread_capable();
 
    vector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
       threadMetFocusNode *thrNode = 
 	 threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
-						   proc->STpdThread());
+						   proc->STthread());
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
       int thrSelected = full_focus.getThreadID();
       if(thrSelected == -1) {
-	 vector <pdThread *>& allThr = proc->threads ;
 	 Focus focus_with_thr = no_thr_focus;
-	 for(unsigned u=0; u<allThr.size(); u++) {
-	    pdThread *thr = allThr[u];
+	 threadMgr::thrIter itr = proc->beginThr();
+	 while(itr != proc->endThrMark()) {
+	    pd_thread *thr = *itr++;
 	    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
 	                      thr->get_start_func()->prettyName() + "}";
 	    focus_with_thr.set_thread(thrName);
@@ -640,7 +642,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	    threadNodeBuf.push_back(thrNode);
 	 }
       } else {
-	 pdThread *selThr = proc->getThread(thrSelected);
+	 pd_thread *selThr = proc->thrMgr().find_pd_thread(thrSelected);
 	 threadMetFocusNode *thrNode = 
 	    threadMetFocusNode::newThreadMetFocusNode(metname, full_focus,
 						      selThr);
@@ -661,7 +663,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
    returns 2 if thrMF_node is set
 */
 processMetFocusNode *
-apply_to_process(process *proc,
+apply_to_process(pd_process *proc,
                  string& id, string& name,
 		 const Focus &focus,
                  unsigned agg_op,
@@ -683,7 +685,7 @@ apply_to_process(process *proc,
    if(! full_focus.machine_defined())
       full_focus.set_machine(machineResource->part_name());
    if(! full_focus.process_defined())
-      full_focus.set_process(proc->rid->part_name());
+      full_focus.set_process(proc->get_rid()->part_name());
    // full_focus, has the select. machine, process, and possible thread defined
 
    Focus no_thr_focus = full_focus;
@@ -706,7 +708,7 @@ apply_to_process(process *proc,
    return procNode;
 }
 
-static bool apply_to_process_list(vector<process*>& instProcess,
+static bool apply_to_process_list(vector<pd_process*>& instProcess,
 				  vector<processMetFocusNode*> *procParts,
 				  string& id, string& name,
 				  const Focus& focus,
@@ -722,7 +724,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  bool replace_components_if_present,
 				  bool dontInsertData) {
    for(unsigned p=0; p<instProcess.size(); p++) {
-      process *proc = instProcess[p];
+      pd_process *proc = instProcess[p];
       assert(proc);
       global_proc = proc;     // TODO -- global
       
@@ -730,10 +732,10 @@ static bool apply_to_process_list(vector<process*>& instProcess,
       if (proc->status() == exited || proc->status() == neonatal) continue;
       
       processMetFocusNode *procRetNode = 
-	 apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, flag_cons, 
-			  repl_cons, stmts, flags_focus_data, repl_focus_data,
-			  temp_ctr, replace_components_if_present,
-			  dontInsertData);
+	 apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, 
+			  flag_cons, repl_cons, stmts, flags_focus_data, 
+			  repl_focus_data, temp_ctr,
+			  replace_components_if_present, dontInsertData);
 
       if(procRetNode)  (*procParts).push_back(procRetNode);
    }
@@ -748,7 +750,7 @@ vector<string>global_excluded_funcs;
 
 bool T_dyninstRPC::mdl_metric::apply(
 			    vector<processMetFocusNode *> *createdProcNodes,
-			    const Focus &focus, vector<process *> procs, 
+			    const Focus &focus, vector<pd_process *> procs, 
 	                    bool replace_components_if_present, bool enable) {
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
@@ -781,7 +783,7 @@ bool T_dyninstRPC::mdl_metric::apply(
     return false;
   }
 
-  vector<process*> instProcess;
+  vector<pd_process*> instProcess;
   filter_processes(focus, procs, &instProcess);
 
   if (!instProcess.size())
@@ -897,7 +899,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 
 
 static bool do_trailing_resources(const vector<string>& resource_,
-				  process *proc)
+				  pd_process *proc)
 {
   vector<string>  resPath;
 
@@ -972,7 +974,7 @@ static bool do_trailing_resources(const vector<string>& resource_,
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 					 instrDataNode **dataNode,
 					 const Hierarchy &resource,
-					 process *proc,
+					 pd_process *proc,
 					 bool dontInsertData)
 {
   assert(dataNode);
@@ -1117,7 +1119,7 @@ T_dyninstRPC::mdl_icode::~mdl_icode()
 // global variable when if statements are called in some cases.  This is to
 // account for the cost of the body of the if statement in the observed cost.
 bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
-				    void *proc) 
+				    pd_process *proc) 
 {
   // a return value of true implies that "mn" has been written to
 
@@ -1141,8 +1143,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
   if (pred) 
   {
     // Note: we don't use assignAst on purpose here
-    process *curProc = static_cast<process *>(proc);
-    code = createIf(pred, ast, curProc);
+    code = createIf(pred, ast, proc->get_dyn_process());
     removeAst(pred);
     removeAst(ast);
   }
@@ -2056,7 +2057,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
 #endif
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
-        code = createIf(temp1, temp2, mn->proc());
+        code = createIf(temp1, temp2, mn->proc()->get_dyn_process());
         removeAst(temp1);
         removeAst(temp2);
      }
@@ -2120,7 +2121,7 @@ bool mdl_can_do(const string &met_name) {
 
 bool mdl_do(vector<processMetFocusNode *> *createdProcNodes, 
 	    const Focus& focus, const string &met_name,
-	    const vector<process *> &procs,
+	    const vector<pd_process *> &procs,
 	    bool replace_components_if_present, bool enable, 
 	    aggregateOp *aggOpToUse) {
   currentMetric = met_name;
@@ -2143,7 +2144,7 @@ bool mdl_do(vector<processMetFocusNode *> *createdProcNodes,
 
 machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus, 
 			    const string &met_name, 
-			    vector<process *> procs,
+			    vector<pd_process *> procs,
 			    bool replace_components_if_present, bool enable) {
   vector<processMetFocusNode *> createdProcNodes;
   aggregateOp aggOp;
@@ -2159,11 +2160,11 @@ machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus,
 }
 
 processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
-			    const string &met_name, process * proc,
+			    const string &met_name, pd_process *proc,
 			    bool replace_components_if_present, bool enable) {
   vector<processMetFocusNode *> createdProcNodes;
   aggregateOp aggOp;
-  vector<process *> procs;
+  vector<pd_process *> procs;
   procs.push_back(proc);
   bool result = mdl_do(&createdProcNodes, focus, met_name, procs, 
 		       replace_components_if_present, enable, &aggOp);
@@ -2543,7 +2544,8 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
              *****/
             // ARI -- This is probably the spot!
 
-            vector<instPoint*> calls = pdf->funcCalls(global_proc);
+            vector<instPoint*> calls = 
+	       pdf->funcCalls(global_proc->get_dyn_process());
             // makes a copy of the return value (on purpose), since we 
             // may delete some items that shouldn't be a call site for 
             // this metric.
@@ -2621,7 +2623,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
             {
               // metric_cerr << "nothing was removed -- doing set() now" << endl;
               const vector<instPoint*> *setMe = (const vector<instPoint*> *) 
-                                (&pdf->funcCalls(global_proc));
+                             (&pdf->funcCalls(global_proc->get_dyn_process()));
               if (!ret.set(const_cast<vector<instPoint*>*>(setMe)))
                 return false;
             }
@@ -2643,13 +2645,13 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
           }
           case 2: 
           {
-            if (!ret.set(const_cast<instPoint *>(pdf->funcEntry(global_proc))))
+            if (!ret.set(const_cast<instPoint *>(pdf->funcEntry(global_proc->get_dyn_process()))))
               return false; 
             break;
           }
           case 3:
           {
-            if (!ret.set(const_cast<vector<instPoint *>*>(&pdf->funcExits(global_proc))))
+            if (!ret.set(const_cast<vector<instPoint *>*>(&pdf->funcExits(global_proc->get_dyn_process()))))
               return false;
             break;
           }
