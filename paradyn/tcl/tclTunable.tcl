@@ -1,7 +1,14 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.7  1994/11/02 19:57:45  tamches
+# Revision 1.8  1994/11/04 15:57:45  tamches
+# Developmode flag is now read from the "developerMode" tc, and is treated
+# as any other tc.  "Enter Developer Mode" menu removed; only the help
+# menu remains.
+#
+# Centered "dismiss" button in tunable descriptions
+#
+# Revision 1.7  1994/11/02  19:57:45  tamches
 # Improved look by going to helvetica 14 font.
 # Names are now aligned (i.e. bools and floats each have their
 # names on the left).  This required some hacking of checkbuttons
@@ -134,26 +141,27 @@ proc tunableInitialize {} {
    pack  .tune.top.left.mbar -side bottom -fill x -expand false
       # expand is false; if the window is made taller, we don't want the extra height
    
-   menubutton .tune.top.left.mbar.file -text File -menu .tune.top.left.mbar.file.m
-   menu .tune.top.left.mbar.file.m
-   .tune.top.left.mbar.file.m add command -label "Accept Change(s)" \
-               -command processCommitFinalTunableValues
-   .tune.top.left.mbar.file.m add command -label "Cancel" \
-               -command processDiscardFinalTunableValues
+#   menubutton .tune.top.left.mbar.file -text File -menu .tune.top.left.mbar.file.m
+#   menu .tune.top.left.mbar.file.m
+#   .tune.top.left.mbar.file.m add command -label "Accept Change(s)" \
+#               -command processCommitFinalTunableValues
+#   .tune.top.left.mbar.file.m add command -label "Cancel" \
+#               -command processDiscardFinalTunableValues
 
-   menubutton .tune.top.left.mbar.options -text Options -menu .tune.top.left.mbar.options.m
-   menu .tune.top.left.mbar.options.m
-   .tune.top.left.mbar.options.m add command -label "Enter Developer Mode" \
-               -command processDeveloperModeChange
+#   menubutton .tune.top.left.mbar.options -text Options -menu .tune.top.left.mbar.options.m
+#   menu .tune.top.left.mbar.options.m
+#   .tune.top.left.mbar.options.m add command -label "Enter Developer Mode" \
+#               -command processDeveloperModeChange
 
    menubutton .tune.top.left.mbar.help -text Help -menu .tune.top.left.mbar.help.m
    menu .tune.top.left.mbar.help.m
    .tune.top.left.mbar.help.m add command -label "Show Tunable Descriptions" \
                -command processShowTunableDescriptions
 
-   pack .tune.top.left.mbar.options -side left -padx 4
+#   pack .tune.top.left.mbar.options -side left -padx 4
    pack .tune.top.left.mbar.help -side right -padx 4
-   tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.options .tune.top.left.mbar.help
+#   tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.options .tune.top.left.mbar.help
+   tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.help
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
    label .tune.top.left.titlebar -text "Tunable Constants" -foreground white \
@@ -165,13 +173,20 @@ proc tunableInitialize {} {
    frame .tune.bottom -relief sunken
    pack  .tune.bottom -side bottom -fill x -expand false -ipadx 4 -ipady 4
       # expand is false; if the window is made taller, we don't want the extra height
-   
-   button .tune.bottom.accept -text "Accept Change(s)" -anchor c \
+
+   frame  .tune.bottom.buttonFrame
+   pack   .tune.bottom.buttonFrame -side top -fill y -expand true
+
+   button .tune.bottom.buttonFrame.accept -text "Accept" -anchor c \
            -command processCommitFinalTunableValues
-   pack   .tune.bottom.accept -side left
-   button .tune.bottom.discard -text "Cancel" -anchor c \
+   pack   .tune.bottom.buttonFrame.accept -side left -ipadx 10
+
+   frame  .tune.bottom.buttonFrame.middle -width 20
+   pack   .tune.bottom.buttonFrame.middle -side left
+
+   button .tune.bottom.buttonFrame.discard -text "Cancel" -anchor c \
            -command processDiscardFinalTunableValues
-   pack   .tune.bottom.discard -side right
+   pack   .tune.bottom.buttonFrame.discard -side right -ipadx 10
    
    # .tune.middle -- body of the window (scrollbar & tunable constants canvas)
    frame .tune.middle
@@ -632,31 +647,31 @@ proc processCommitFinalTunableValues {} {
    tunableExitPoint
 }
 
-proc processDeveloperModeChange {} {
-   global DeveloperModeFlag
-   global tunableDescriptionsIsUp
-
-   set DeveloperModeFlag [expr 1-$DeveloperModeFlag]
-
-   if {$DeveloperModeFlag == 1} {
-      .tune.top.left.mbar.options.m entryconfigure 1 -label "Leave Developer Mode"
-#      puts stderr "Warning: you are now in 'developer mode'"
-   } else {
-      .tune.top.left.mbar.options.m entryconfigure 1 -label "Enter Developer Mode"
-#      puts stderr "Leaving 'developer mode'..."
-   }
-
-   # simulate a configure event in the canvas
-   set newWidth  [getWindowWidth  .tune.middle.canvas]
-   set newHeight [getWindowHeight .tune.middle.canvas]
-
-   drawTunables $newWidth $newHeight
-
-   # and if the descriptions window is up, make some changes there too
-   if {$tunableDescriptionsIsUp == 1} {
-      drawTunableDescriptions
-   }
-}
+#proc processDeveloperModeChange {} {
+#   global DeveloperModeFlag
+#   global tunableDescriptionsIsUp
+#
+#   set DeveloperModeFlag [expr 1-$DeveloperModeFlag]
+#
+#   if {$DeveloperModeFlag == 1} {
+#      .tune.top.left.mbar.options.m entryconfigure 1 -label "Leave Developer Mode"
+##      puts stderr "Warning: you are now in 'developer mode'"
+#   } else {
+#      .tune.top.left.mbar.options.m entryconfigure 1 -label "Enter Developer Mode"
+##      puts stderr "Leaving 'developer mode'..."
+#   }
+#
+#   # simulate a configure event in the canvas
+#   set newWidth  [getWindowWidth  .tune.middle.canvas]
+#   set newHeight [getWindowHeight .tune.middle.canvas]
+#
+#   drawTunables $newWidth $newHeight
+#
+#   # and if the descriptions window is up, make some changes there too
+#   if {$tunableDescriptionsIsUp == 1} {
+#      drawTunableDescriptions
+#   }
+#}
 
 proc processDiscardFinalTunableValues {} {
    tunableExitPoint
@@ -703,8 +718,11 @@ proc processShowTunableDescriptions {} {
    pack  .tunableDescriptions.bottom -side bottom -fill x -expand false
       # expand is false; if the window is made taller, we don't want the extra height
 
-   button .tunableDescriptions.bottom.okay -text "Dismiss" -command closeTunableDescriptions
-   pack   .tunableDescriptions.bottom.okay -side right
+   frame .tunableDescriptions.bottom.frame
+   pack  .tunableDescriptions.bottom.frame -side bottom -fill y -expand true
+
+   button .tunableDescriptions.bottom.frame.okay -text "Dismiss" -command closeTunableDescriptions
+   pack   .tunableDescriptions.bottom.frame.okay -side left -pady 6
 
    frame .tunableDescriptions.top
    pack  .tunableDescriptions.top -side top -fill both -expand true
@@ -717,7 +735,7 @@ proc processShowTunableDescriptions {} {
       # expand is false; if the window is made wider, we don't want the extra width
 
    canvas .tunableDescriptions.top.canvas \
-   	-yscrollcommand myDescriptionsScroll -relief flat \
+   	-yscrollcommand myDescriptionsScroll \
 	-scrollincrement 1 \
 	-width 4i -height 3i
    pack propagate .tunableDescriptions.top.canvas false
@@ -935,7 +953,8 @@ proc tunableEntryPoint {} {
    global lastVisibleWidth
    global lastVisibleHeight
 
-   set DeveloperModeFlag 0
+   set DeveloperModeFlag [uimpd tclTunable getvaluebyname developerMode]
+#   puts stderr "Welcome to tunableEntryPoint (tcl): developerMode=$DeveloperModeFlag"
 
    set lastVisibleWidth 0
    set lastVisibleHeight 0
@@ -948,7 +967,6 @@ proc tunableEntryPoint {} {
    set numTunablesDrawn 0
    set nextStartY 0
    set integerScaleFactor 20
-   set developerModeFlag 0
 
    set newWidth  [getWindowWidth  .tune.middle.canvas]
    set newHeight [getWindowHeight .tune.middle.canvas]
