@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.118 2004/03/30 21:01:20 tikir Exp $
+// $Id: inst.C,v 1.119 2004/03/31 04:09:21 tikir Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -493,7 +493,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
 #if defined(rs6000_ibm_aix4_1)
         // Jump to link register
         resetBR(proc, mtHandle->returnAddr);
-#elseif defined(sparc_sun_solaris2_4)
+#elif defined(sparc_sun_solaris2_4)
 		generateBranchOrCallNoSaveRestore(proc,mtHandle->returnAddr,toAddr);
 #else 
         generateBranch(proc, mtHandle->returnAddr, toAddr);
