@@ -14,7 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.87  1996/04/03 16:52:01  naim
+ * Revision 1.88  1996/04/18 22:03:49  naim
+ * Changing maximum buffer size to 2K to write messages from paradynd to paradyn
+ * - naim
+ *
+ * Revision 1.87  1996/04/03  16:52:01  naim
  * Minor change to some test messages - naim
  *
  * Revision 1.86  1996/04/03  14:27:44  naim
@@ -908,7 +912,7 @@ metricDefinitionNode::~metricDefinitionNode()
 //      or, send it when the last sample in the interval has arrived.       //
 //////////////////////////////////////////////////////////////////////////////
 
-const unsigned SAMPLE_BUFFER_SIZE = 1024/sizeof(T_dyninstRPC::batch_buffer_entry);
+const unsigned SAMPLE_BUFFER_SIZE = (2*1024)/sizeof(T_dyninstRPC::batch_buffer_entry);
 bool BURST_HAS_COMPLETED = false;
    // set to true after a burst (after a processTraceStream(), or sampleNodes for
    // the CM5), which will force the buffer to be flushed before it fills up
