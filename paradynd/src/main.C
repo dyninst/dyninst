@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.91 2000/10/20 19:41:54 zandy Exp $
+// $Id: main.C,v 1.92 2000/12/07 20:15:37 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -76,7 +76,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/mdld.h"
 
-pdRPC *tp;
+pdRPC *tp = NULL;
 
 #ifdef PARADYND_PVM
 #include "pvm_support.h"
@@ -247,30 +247,36 @@ static void initialize_debug_flag(void) {
   }
 }
 
-int main(unsigned argc, char *argv[]) {
 
-  initialize_debug_flag();
-
-  string *dir = new string("");  
-#if !defined(i386_unknown_nt4_0)
-    {
-        char *pdkill;
-        pdkill = getenv( "PARADYND_DEBUG" );
-        if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) ) {
-            int pid = getpid();
-            cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
+static
+void
+PauseIfDesired( void )
+{
+	char *pdkill = getenv( "PARADYND_DEBUG" );
+	if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) )
+	{
+		int pid = getpid();
+		cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
 #if defined(i386_unknown_nt4_0)
-            DebugBreak();
+		DebugBreak();
 #elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-	    sleep(20);
+		bool bCont = false;
+		while( !bCont )
+		{
+			sleep( 1 );
+		}
 #else
-            kill(pid, SIGSTOP);
+		kill(pid, SIGSTOP);
 #endif
-        }
-    }
-#endif // !defined(i386_unknown_nt4_0)
+	}
+}
+
 
 #if !defined(i386_unknown_nt4_0)
+static
+void
+InitSigTermHandler( void )
+{
     struct sigaction act;
 
     // int i = 1;
@@ -295,39 +301,273 @@ int main(unsigned argc, char *argv[]) {
         perror("sigaction(SIGTERM)");
         abort();
     }
-#endif
+}
+#endif // !defined(i386_unknown_nt4_0)
+
+#if defined(i386_unknown_nt4_0)
+static
+void
+InitWinsock( void )
+{
+    // Windows NT needs to initialize winsock library
+    WORD wsversion = MAKEWORD(2,0);
+    WSADATA wsadata;
+    WSAStartup(wsversion, &wsadata);
+}
+#endif // defined(i386_unknown_nt4_0)
+
+
+
+
+static
+void
+InitForMPI( char* argv[], const string& pd_machine )
+{
+	// Both IRIX and AIX MPI job-launchers will start paradynd,
+	// which must report to paradyn
+	// the pdRPC is allocated and reportSelf is called
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+	     pd_machine, NULL, NULL, 2);
+	assert(tp != NULL);
+
+	tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
+}
+
+
+
+
+static
+void
+InitManuallyStarted( char* argv[],  const string& pd_machine )
+{
+	bool reported = false;
+
+	// report back to our front end
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+					pd_machine, NULL, NULL, 2);
+	assert(tp);
+	if (!tp->net_obj())
+	{
+		cerr << "Failed to establish connection to Paradyn on "
+			 << pd_machine << " port " << pd_known_socket_portnum << endl;
+		cleanUpAndExit(-1);
+	}
+	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
+	reported = true;
+
+#if defined(PARADYND_PVM)
+	// are we designated for monitoring a PVM application?
+	if (pvm_running
+		&& !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
+	{
+		cleanUpAndExit(-1);
+	}
+#endif // PARADYND_PVM
+}
+
+
+
+static
+void
+InitRemotelyStarted( char* argv[], const string& pd_machine, bool report )
+{ 
+	// we are a remote daemon started by rsh/rexec or some other
+	// use socket to connect back to our front end
+
+	// we fork ourselves and the child process becomes the "real" daemon
+#if !defined(i386_unknown_nt4_0)
+	int pid = fork();
+#else // !defined(i386_unknown_nt4_0)
+	int pid = 0;
+#endif // !defined(i386_unknown_nt4_0)
+	if (pid == 0)
+	{
+		// we are the child process - we are the "true" daemon
+
+		// setup socket
+
+		// We must get a connection with paradyn before starting any 
+		// other daemons, or else one of the daemons we start 
+		// (in PDYN_initForPVM), may get our connection.
+		tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+						pd_machine, NULL, NULL, 2);
+		assert( tp != NULL );
+
+		// ??? is this the right thing to do? it was in the
+		// non-PVM version of the code, but not in the PVM version
+		// we decide whether to report if the cmdLine was empty or not
+		if( report )
+		{
+			tp->reportSelf( machine_name, argv[0], getpid(), pd_flavor );
+		}
+
+#if defined(PARADYND_PVM)
+		if (pvm_running && 
+			!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
+		{
+			// TODO -- report error here
+			cleanUpAndExit(-1);
+		}
+#endif // defined(PARADYND_PVM)
+	}
+	else
+	{
+		// we are the parent process - if the fork succeeded, exit
+		if (pid > 0)
+		{
+			P__exit(0);
+		}
+		else
+		{
+			cerr << "Paradyn daemon: Fatal error: fork failed." << endl;
+			cleanUpAndExit(-1);
+		}
+	}
+}
+
+
+
+static
+void
+InitLocallyStarted( char* argv[], const string& pd_machine )
+{
+#if PARADYND_PVM
+	// check if we are designated to monitor a PVM application
+	if( pvm_running && 
+		!PDYN_initForPVM( argv, pd_machine, pd_known_socket_portnum, 1 ))
+	{
+		// TODO -- report error here
+		cleanUpAndExit( -1 );
+	}
+#endif // PARADYND_PVM
+
+	// connect to our front end using our stdout
+	OS::osDisconnect();
+
+#if !defined(i386_unknown_nt4_0)
+	PDSOCKET sock = 0;
+#else
+	PDSOCKET sock = _get_osfhandle(0);
+#endif // defined(i386_unknown_nt4_0)
+	tp = new pdRPC(sock, NULL, NULL, 2);
+
+	// note that we do not need to report to our front end in this case
+}
+
+
+#if defined(PARADYND_PVM)
+static
+void
+InitForPVM( char* argv[], const string& pd_machine )
+{
+	// Check whether we are we are being created for a PVM application.
+	// Also, check whether we are the first PVM paradynd or if were started 
+	// by the first paradynd using pvm_spawn()
+    int pvmParent = pvm_parent();
+
+	if (pvmParent == PvmSysErr)
+	{
+		cout << "Unable to connect to PVM daemon; is PVM running?\n" << endl;
+		cleanUpAndExit(-1);
+	}
+	else
+	{
+		pvm_running = true;
+	}
+
+    if (pvm_running && (pvmParent != PvmNoParent))
+	{
+		// we were started using pvm_spawn() by another paradynd
+		if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 0))
+		{
+			// TODO -- report error here
+			cleanUpAndExit(-1);
+		}
+
+		// report to our front end
+		tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+						pd_machine, NULL, NULL, 2);
+		assert(tp);
+
+		tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
+    }
+}
+#endif // PARADYND_PVM
+
+
+
+//
+// Note: the pd_flag variable is set from the argument to the -l command
+// line switch.  It has the following meaning:
+//
+// pd_flag == 0 => remote daemon started by Paradyn using rsh/rexec
+// pd_flag == 1 => local daemon started by Paradyn using fork/exec
+// pd_flag == 2 => daemon started manually
+//
+
+
+int
+main( int argc, char* argv[] )
+{
+	PauseIfDesired();
+	initialize_debug_flag();
+
+#if !defined(i386_unknown_nt4_0)
+	InitSigTermHandler();
+#endif // defined(i386_unknown_nt4_0)
+
 
 #ifdef DETACH_ON_THE_FLY
     initDetachOnTheFly();
 #endif
 
 #if defined(i386_unknown_nt4_0)
-    // Windows NT needs to initialize winsock library
-    WORD wsversion = MAKEWORD(2,0);
-    WSADATA wsadata;
-    WSAStartup(wsversion, &wsadata);
-#endif
+	InitWinsock();
+#endif // defined(i386_unknown_nt4_0)
 
-    process::programName = argv[0];
+
+	//
     // process command line args passed in
-    // pd_flag == 1 --> started by paradyn
+	//
+    process::programName = argv[0];
     bool aflag;
     aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
 			       pd_known_socket_portnum, pd_flag);
-    if (!aflag || pd_debug) {
-        if (!aflag) cerr << "Invalid/incomplete command-line args:" << endl;
-        cerr << "   -z<flavor";
-        if (pd_flavor.length()) cerr << "=" << pd_flavor;
-        cerr << "> -l<flag";
-        if (pd_flag) cerr << "=" << pd_flag;
-        cerr << "> -m<hostmachine";
-        if (pd_machine.length()) cerr << "=" << pd_machine;
-        cerr << "> -p<hostport";
-        if (pd_known_socket_portnum) cerr << "=" << pd_known_socket_portnum;
-        cerr << ">" << endl;
-        if (process::dyninstName.length())
-            cerr << "   -L<library=" << process::dyninstName << ">" << endl;
-        if (!aflag) cleanUpAndExit(-1);
+    if (!aflag || pd_debug)
+	{
+		if (!aflag)
+		{
+			cerr << "Invalid/incomplete command-line args:" << endl;
+		}
+		cerr << "   -z<flavor";
+		if (pd_flavor.length())
+		{
+			cerr << "=" << pd_flavor;
+		}
+		cerr << "> -l<flag";
+		if (pd_flag)
+		{
+			cerr << "=" << pd_flag;
+		}
+		cerr << "> -m<hostmachine";
+		if (pd_machine.length()) 
+		{
+			cerr << "=" << pd_machine;
+		}
+		cerr << "> -p<hostport";
+		if (pd_known_socket_portnum)
+		{
+			cerr << "=" << pd_known_socket_portnum;
+		}
+		cerr << ">" << endl;
+		if (process::dyninstName.length())
+		{
+			cerr << "   -L<library=" << process::dyninstName << ">" << endl;
+		}
+		if (!aflag)
+		{
+			cleanUpAndExit(-1);
+		}
     }
 
     aflag = RPC_make_arg_list(process::arg_list,
@@ -338,187 +578,100 @@ int main(unsigned argc, char *argv[]) {
     process::arg_list += flav_arg;
     machine_name = getNetworkName();
 
-    // kill(getpid(),SIGSTOP);
-
     //
     // See if we should fork an app process now.
     //
 
     // We want to find two things
     // First, get the current working dir (PWD)
-    dir = new string(getenv("PWD"));
+    string* dir = new string(getenv("PWD"));
 
     // Second, put the inferior application and its command line
     // arguments into cmdLine. Basically, loop through argv until
     // we find -runme, and put everything after it into cmdLine.
     vector<string> cmdLine;
     unsigned int argNum = 0;
-    while ((argNum < argc) && (strcmp(argv[argNum], "-runme")))
-      argNum++;
-    // Okay, argNum is the command line argument which is "-runme"
+    while ((argNum < (unsigned int)argc) && (strcmp(argv[argNum], "-runme")))
+	{
+		argNum++;
+	}
+    // Okay, argNum is the command line argument which is "-runme" - skip it
     argNum++;
     // Copy everything from argNum to < argc
-    for (unsigned int i = argNum; i < argc; i++)
-      cmdLine += argv[i];
+	// this is the command that is to be issued
+    for (unsigned int i = argNum; i < (unsigned int)argc; i++)
+	{
+		cmdLine += argv[i];
+	}
+	// note - cmdLine could be empty here, if the -runme flag were not given
+
+
+    // There are several ways that we might have been started.
+	// We need to connect to Paradyn differently depending on which 
+	// method was used.
+	//
+	// Use our own stdin if:
+	//   started as local daemon by Paradyn using fork+exec
+	//
+	// Use a socket described in our command-line args if:
+	//   started as remote daemon by rsh/rexec
+	//   started manually on command line
+	//   started by MPI
+	//   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
+	//
 
     process::pdFlavor = pd_flavor;
-#ifdef PARADYND_PVM
-    // There are 3 ways to get here
-    //     started by pvm_spawn from first paradynd -- must report back
-    //     started by rsh, rexec, ugly code --> connect via socket
-    //     started by exec --> use pipe
-    
-    // int pvm_id = pvm_mytid();
-    int pvmParent = PvmSysErr;
-
 #ifdef PDYN_DEBUG
     cerr << "pd_flavor: " << pd_flavor.string_of() << endl;
 #endif
-    if (pd_flavor == string("pvm")) {
-       pvmParent = pvm_parent();
 
-       if (pvmParent == PvmSysErr) {
-	  fprintf(stdout, "Unable to connect to PVM daemon, is PVM running?\n");
- 	  fflush(stdout);
-  	  cleanUpAndExit(-1);
+
+#ifdef PARADYND_PVM
+    if (pd_flavor == string("pvm"))
+	{
+		InitForPVM( argv, pd_machine );
 	}
-       else
-	  pvm_running = true;
-    }
+#endif // PARADYND_PVM
 
-    if (pvm_running && pvmParent != PvmNoParent) {
-      // started by pvm_spawn
-      // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 0)) {
-	cleanUpAndExit(-1);
-      }
-      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
-		     NULL, NULL, 2);
-      assert(tp);
+	if( tp == NULL )
+	{
+		// we haven't yet reported to our front end
 
-      tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
-    } else if ( pd_flavor == "mpi" ) {
-      // Both IRIX and AIX MPI job-launchers will start paradynd,
-      // which must report to paradyn
-      // the pdRPC is allocated and reportSelf is called
-      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-		     pd_machine, NULL, NULL, 2);
-      assert(tp);
-
-      tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
-    } else if (pd_flag == 2) {
-       // manual startup
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
-		       NULL, NULL, 2);
-	assert(tp);
-        //assert(tp->net_obj()); // shouldn't this be part of pdRPC::pdRPC?
-        if (!tp->net_obj()) {
-            cerr << "Failed to establish connection to Paradyn on "
-                 << pd_machine << " port " << pd_known_socket_portnum << endl;
-	    cleanUpAndExit(-1);
-        }
-	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
-
-	if (pvm_running
-	    && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
-	    cleanUpAndExit(-1);
-
-    } else if (!pd_flag) {
-      // not started by pvm_spawn; rather, started via rsh/rexec --> use socket
-      int pid = fork();
-      if (pid == 0) {
-	// configStdIO(true);
-	// setup socket
-	// TODO -- report error here
-	
-	// We must get a connection with paradyn before starting any other daemons,
-	// or else one of the daemons we start (in PDYN_initForPVM), may get our
-	// connection.
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine,
-		       NULL, NULL, 2);
-	assert(tp);
-
-	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
-	    cleanUpAndExit(-1);
+		if( pd_flavor == "mpi" )
+		{
+			InitForMPI( argv, pd_machine );
+		}
+		else if( pd_flag == 0 )
+		{
+			// we are a remote daemon started by rsh/rexec or some other
+			InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
+		}
+		else if( pd_flag == 1 )
+		{
+			// we were started by a local front end using fork+exec
+			InitLocallyStarted( argv, pd_machine );
+		}
+		else if( pd_flag == 2 )
+		{
+			// we were started manually (i.e., from the command line)
+			InitManuallyStarted( argv, pd_machine );
+		}
 	}
 
-      } else if (pid > 0) {
-	P__exit(-1);
-      } else {
-	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
-	cerr.flush();
-	cleanUpAndExit(-1);
-      }
-    } else {
-       // started via exec   --> use pipe
-       // TODO -- report error here
-      if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
-	  cleanUpAndExit(-1);
-      }
-      // already setup on this FD.
-      // disconnect from controlling terminal 
-      OS::osDisconnect();
-      tp = new pdRPC(0, NULL, NULL, 2);
-      assert(tp);
-    }
-    assert(tp);
-#else
-
-    if ( pd_flavor == "mpi" ) {
-      // Both IRIX and AIX MPI job-launchers will start paradynd,
-      // which must report to paradyn
-      // the pdRPC is allocated and reportSelf is called
-      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-		     pd_machine, NULL, NULL, 2);
-      assert(tp);
-
-      tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
-    } else if (pd_flag == 2) {
-       // manual startup
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
-		       NULL, NULL, 2);
-	assert(tp);
-	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
-
-    } else if (!pd_flag) {
-#if !defined(i386_unknown_nt4_0)
-      int pid = fork();
-#else
-      int pid = 0;
-#endif
-      if (pid == 0) {
-	// configStdIO(true);
-	// setup socket
-
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
-		       NULL, NULL, 2);
-	assert(tp);
-
-	if (cmdLine.size()) {
-	    tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
+	// by now, we should have a connection to our front end
+	if( tp == NULL )
+	{
+		if( (pd_flag < 0) || (pd_flag > 2) )
+		{
+			cerr << "Paradyn daemon: invalid -l value " << pd_flag << " given." << endl;
+		}
+		else
+		{
+			cerr << "Paradyn daemon: invalid command-line options seen" << endl;
+		}
+		cleanUpAndExit(-1);
 	}
-    } else if (!pd_flag) {
-      } else if (pid > 0) {
-	P__exit(-1);
-      } else {
-	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
-	cerr.flush();
-	cleanUpAndExit(-1);
-      }
-    } else {
-      OS::osDisconnect();
-
-#if !defined(i386_unknown_nt4_0)
-		PDSOCKET sock = 0;
-#else
-		PDSOCKET sock = _get_osfhandle(0);
-#endif // defined(i386_unknown_nt4_0)
-      tp = new pdRPC(sock, NULL, NULL, 2);
-      assert(tp);
-
-      // configStdIO(false);
-    }
-#endif
+    assert( tp != NULL );
 
 #if defined(MT_THREAD)
     statusLine(V_paradyndMT);
@@ -533,7 +686,9 @@ int main(unsigned argc, char *argv[]) {
 
     initLibraryFunctions();
     if (!init()) 
-      abort();
+	{
+		abort();
+	}
 
 #ifdef mips_sgi_irix6_4
     struct utsname unameInfo;
@@ -553,11 +708,16 @@ int main(unsigned argc, char *argv[]) {
     }
     else
 #endif
-        if (cmdLine.size()) {
-            vector<string> envp;
-            addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
-        }
 
+	// spawn the given process, if necessary
+	if (cmdLine.size())
+	{
+		vector<string> envp;
+		addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
+	}
+
+
+	// start handling events
     controllerMainLoop(true);
     return(0);
 }
