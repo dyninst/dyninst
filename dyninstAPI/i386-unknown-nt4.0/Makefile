@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.26 2005/02/09 03:27:43 jaw Exp $
+# $Id: Makefile,v 1.27 2005/03/04 18:01:49 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -42,7 +42,6 @@ OBJS = 		pdwinnt.obj \
 		FunctionExpansionRecord.obj \
 		InstrucIter-x86.obj \
 		codeRange.obj \
-		trampTemplate.obj \
 		syscall-nt.obj \
 		pdwinntDL.obj \
 		dynamiclinking.obj

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.39 2005/03/01 23:07:30 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.40 2005/03/04 18:01:46 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -35,8 +35,8 @@ SRCS	     = $(SRCS) BPatch.C \
 		BPatch_module.C \
 		BPatch_point.C \
 		BPatch_collections.C \
-      BPatch_edge.C \
-      BPatch_loopTreeNode.C \
+      		BPatch_edge.C \
+      		BPatch_loopTreeNode.C \
 		LineInformation.C \
 		BPatch_instruction.C \
 		BPatch_sourceBlock.C \
@@ -58,7 +58,7 @@ SRCS	     = $(SRCS) BPatch.C \
 		frame.C \
 		dyn_thread.C \
 		dyn_lwp.C \
-      signalhandler.C \
+	      	signalhandler.C \
 		rpcMgr.C \
 		rpcMgr-thr.C \
 		rpcMgr-lwp.C \
@@ -98,8 +98,8 @@ OBJS         = $(OBJS) BPatch.obj \
 		BPatch_module.obj \
 		BPatch_point.obj \
 		BPatch_collections.obj \
-      BPatch_edge.obj \
-      BPatch_loopTreeNode.obj \
+	      	BPatch_edge.obj \
+      		BPatch_loopTreeNode.obj \
 		LineInformation.obj \
 		BPatch_instruction.obj \
 		BPatch_sourceBlock.obj \
@@ -121,11 +121,13 @@ OBJS         = $(OBJS) BPatch.obj \
 		frame.obj \
 		dyn_thread.obj \
 		dyn_lwp.obj \
-      signalhandler.obj \
-      rpcMgr.obj \
+      		signalhandler.obj \
+      		rpcMgr.obj \
 		rpcMgr-thr.obj \
 		rpcMgr-lwp.obj \
 		installed_miniTramps_list.obj \
+		trampTemplate.obj \
+		edgeTrampTemplate.obj \
 		stats.obj \
 		symtab.obj \
 		function.obj \
