@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.194 2001/08/20 20:01:29 bernat Exp $
+// $Id: metricFocusNode.C,v 1.195 2001/08/23 14:44:17 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -47,7 +47,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "pdutil/h/aggregateSample.h"
+#include "pdutil/h/sampleAggregator.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
@@ -90,18 +90,9 @@ extern unsigned inferiorMemAvailable;
 extern vector<Address> getAllTrampsAtPoint(instInstance *instance);
 static unsigned internalMetricCounterId = 0;
 
-static unsigned numOfActCounters_all=0;
-static unsigned numOfActProcTimers_all=0;
-static unsigned numOfActWallTimers_all=0;
-#if defined(MT_THREAD)
-static unsigned numOfCurrentLevels_all=0;
-static unsigned numOfCurrentThreads_all=0;
-static unsigned numOfActiveThreads=0;
-#endif
-
 void flush_batch_buffer();
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
-		     timeStamp endTimeStamp, pdSample value, unsigned val_weight,
+		     timeStamp endTimeStamp, pdSample value, 
 		     bool internal_metric);
 
 timeLength currentPredictedCost = timeLength::Zero();
@@ -131,7 +122,7 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 #define DELETED_MI 1
 #define MILLION 1000000.0
 
-aggregateSample DummyAggSample = aggregateSample(0, metAggInfo.get_proportionCalc(EventCounter));
+sampleAggregator DummyAggSample(aggregateOp(0), getCurrSamplingRate());
 
 /* No longer used
    bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) {
@@ -164,7 +155,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 					   const vector< vector<string> >& foc,
 					   const vector< vector<string> >& component_foc,
 					   const string& component_flat_name, 
-					   metricStyle metric_style, int agg_style,
+					   aggregateOp agg_op,
 #if defined(MT_THREAD)
 					   AGG_LEVEL agg_level)
 : aggLevel(agg_level), 
@@ -172,27 +163,25 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
                                            MDN_TYPE mdntype)
 : mdn_type_(mdntype),
 #endif
-  aggOp(agg_style),
+  aggOp(agg_op),
   // CM5 metrics need aggOp to be set
   inserted_(false), installed_(false), met_(met_name), focus_(foc), 
   component_focus(component_foc), flat_name_(component_flat_name),
-  aggSample(0, metAggInfo.get_proportionCalc(metric_style)),
-  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
-  style_(metric_style)
+  aggregator(agg_op, getCurrSamplingRate()), _sentInitialActualValue(false),
+  cumulativeValue(pdSample::Zero()),
+  id_(-1), originalCost_(timeLength::Zero()), proc_(p)
 {
 #if defined(MT_THREAD)
   needData_ = true ;
 #endif
-  
-  metric_cerr << " [MDN constructor]: ";
 }
 
 // for AGG_MDN or AGG_LEV metrics
 metricDefinitionNode::metricDefinitionNode(const string& metric_name,
                                            const vector< vector<string> >& foc,
                                            const string& cat_name, 
-                                           vector<metricDefinitionNode*>& parts,
-                                           metricStyle metric_style,int agg_op,
+                                          vector<metricDefinitionNode*>& parts,
+                                           aggregateOp agg_op,
 #if defined(MT_THREAD)
                                            AGG_LEVEL agg_level)
 : aggLevel(agg_level),
@@ -202,9 +191,9 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
 #endif
   aggOp(agg_op), inserted_(false), installed_(false), met_(metric_name), 
   focus_(foc), flat_name_(cat_name), components(parts), 
-  aggSample(agg_op, metAggInfo.get_proportionCalc(metric_style)), 
-  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
-  proc_(NULL), style_(metric_style)
+  aggregator(aggregateOp(agg_op), getCurrSamplingRate()), 
+  _sentInitialActualValue(false), cumulativeValue(pdSample::Zero()), id_(-1), 
+  originalCost_(timeLength::Zero()), proc_(NULL)
 {
 /*
   unsigned p_size = parts.size();
@@ -212,7 +201,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
     mi->aggregators += this;
-    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
+    mi->samples += aggregator.newComponent();
     // mi's comp_flat_names is updated in apply_to_process in mdl.C
   }
 */
@@ -221,7 +210,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
 #endif
 
   // as before, only have fields:
-  //     components, aggSample
+  //     components, aggregator
 }
 
   // called after instrumentation has been successfully inserted, so that
@@ -233,11 +222,9 @@ void metricDefinitionNode::okayToSample() {
   for (unsigned u=0; u<c_size; u++) {
     metricDefinitionNode *mi = components[u];
     mi->aggregators.push_back(this);
-    mi->samples.push_back(aggSample.newComponent(metAggInfo.get_updateStyle(style_)));
+    mi->samples.push_back(aggregator.newComponent());
   }
 }
-
-
 
 
 // check for "special" metrics that are computed directly by paradynd 
@@ -271,18 +258,22 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 	// Paradyn will handle this case and report appropriate error msg
 	return (metricDefinitionNode*)-2;
 
+      // it's required that the internal metric's mdn be a "top level node"
+      // (ie. AGG_MDN or AGG_LEV) in order for setInitialActualValue to send
+      // the value the the front-end
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
 				    component_canon_focus, flat_name, 
-				    theIMetric->style(), theIMetric->aggregate(),
+				    theIMetric->aggregate(),
 #if defined(MT_THREAD)
-				    PROC_COMP
+				    AGG_LEV
 #else
-				    COMP_MDN
+				    AGG_MDN
 #endif
 				    );
       assert(mn);
-
-      theIMetric->enableNewInstance(mn);
+      
+      unsigned instIndex = theIMetric->enableNewInstance(mn);
+      theIMetric->getEnabledInstance(instIndex).setStartTime(getWallTime());
       return(mn);
     }
   }
@@ -301,11 +292,11 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
 				    component_canon_focus, flat_name, 
-				    nc->style(), nc->aggregate(),
+				    nc->aggregate(),
 #if defined(MT_THREAD)
-				    PROC_COMP
+				    AGG_LEV
 #else
-				    COMP_MDN
+				    AGG_MDN
 #endif
 				    );
       assert(mn);
@@ -586,18 +577,17 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
     assert(mi->components.size() == 1);
 
     metricDefinitionNode *theNewComponent = mi->components[0];
-    unsigned aggr_size = theNewComponent->aggregators.size();
 
     components += theNewComponent;
 #if defined(MT_THREAD)
-    theNewComponent->aggregators[aggr_size-1] = this;                               // overwrite
-    theNewComponent->samples[aggr_size-1] = aggSample.newComponent(                 // overwrite
-					             metAggInfo.get_updateStyle(style_));
+    unsigned aggr_size = theNewComponent->aggregators.size();
+    theNewComponent->aggregators[aggr_size-1] = this;       // overwrite
+    theNewComponent->samples[aggr_size-1] = aggregator.newComponent();
+                                                            // overwrite
     // theNewComponent->comp_flat_names[aggr_size-1]  has the correct value
 #else
     theNewComponent->aggregators[0] = this;
-    theNewComponent->samples[0] = aggSample.newComponent(
-                                           metAggInfo.get_updateStyle(style_));
+    theNewComponent->samples[0] = aggregator.newComponent();
 #endif
 
     if (!internal) {
@@ -706,11 +696,7 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    if (tempAggMI == NULL)
       return NULL; // failure
 
-#if defined(MT_THREAD)
-   assert(tempAggMI->aggLevel == AGG_LEV);
-#else
-   assert(tempAggMI->mdn_type_ == AGG_MDN);
-#endif
+   assert(tempAggMI->isTopLevelMDN());
 
    // okay, it looks like we successfully created a new aggregate mi.
    // Of course, we're just interested in the (single) component mi contained
@@ -747,13 +733,12 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
 	    aggMI->components[complcv] = resultCompMI;
 
 	    resultCompMI->aggregators += aggMI;
-	    resultCompMI->samples     += aggMI->aggSample.newComponent(
-                                metAggInfo.get_updateStyle(aggMI->metStyle()));
+	    resultCompMI->samples     += aggMI->aggregator.newComponent();
 #if defined(MT_THREAD)
 	    resultCompMI->comp_flat_names += comp_flat_names[agglcv];
 #endif
 
-	    aggMI->aggSample.removeComponent(this->samples[agglcv]);
+	    this->samples[agglcv]->requestRemove();
 	    
 	    found=true;
 	    break;
@@ -855,26 +840,8 @@ void metricDefinitionNode::handleExec(process *proc) {
 // called when all components have been removed (because the processes have exited
 // or exec'd) from "this".  "this" is an aggregate (AGG_MDN or AGG_MDN) mi.
 void metricDefinitionNode::endOfDataCollection() {
+  assert(isTopLevelMDN());
 
-#if defined(MT_THREAD)
-  assert(aggLevel == AGG_LEV);
-#else
-  assert(mdn_type_ == AGG_MDN);
-#endif
-
-  assert(components.size() == 0);
-
-  // flush aggregateSamples
-  sampleInterval ret = aggSample.aggregateValues();
-
-  while (ret.valid) {
-    assert(ret.end > ret.start);
-    assert(ret.start >= getFirstRecordTime());
-    assert(ret.end >= getFirstRecordTime());
-    batchSampleData(met_, id_, ret.start, ret.end, ret.value,
-		    aggSample.numComponents(),false);
-    ret = aggSample.aggregateValues();
-  }
   flush_batch_buffer();
   // trace data streams
   extern dictionary_hash<unsigned, unsigned> traceOn;
@@ -890,7 +857,9 @@ void metricDefinitionNode::endOfDataCollection() {
 	traceOn[key] = 0;
      }
   }
-  tp->endOfDataCollection(id_);
+  // we're not done until this metric doesn't have any metrics
+  if(components.size() == 0)
+    tp->endOfDataCollection(id_);
 }
 
 
@@ -948,9 +917,7 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
 	removeComponent(components[u]);
 	//delete components[u];
       }
-
-      components[u] = components[size-1];
-      components.resize(size-1);
+      components.erase(u);
 
       if (PRIM_MDN == mdn_type_ && 1 == size)
 	if (allMIPrimitives.defines(flat_name_))
@@ -993,13 +960,9 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
 //   undef in MIComponents if it's there
 
 void metricDefinitionNode::removeThisInstance() {
-#if defined(MT_THREAD)
-  assert(aggLevel != AGG_LEV);
-#else
-  assert(mdn_type_ != AGG_MDN);
-#endif
-  
-
+  assert(! isTopLevelMDN());
+  metric_cerr << "removeThisInstance() - " << this << ", sampleAgg: " 
+	      << aggregator << "\n";
 #if defined(MT_THREAD)
 
   assert(aggLevel == PROC_COMP || aggLevel == THR_LEV);
@@ -1009,8 +972,9 @@ void metricDefinitionNode::removeThisInstance() {
 
   // remove aggregators first
   for (unsigned u=0; u<aggr_size; u++) {
-    aggregators[u]->aggSample.removeComponent(samples[u]);
-    metric_cerr << "   removeThisInstance: " << u << "th aggregator calls removeFromAggregate " << endl;
+    samples[u]->requestRemove();
+    metric_cerr << "   removeThisInstance: " << u 
+		<< "th aggregator calls removeFromAggregate " << endl;
     aggregators[u]->removeFromAggregate(this, false);
   }
   aggregators.resize(0);
@@ -1026,7 +990,8 @@ void metricDefinitionNode::removeThisInstance() {
 
   // now remove components
   for (unsigned u1=0; u1<components.size(); u1++) {
-    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u1 << "th component " << endl;
+    metric_cerr << "   removeThisInstance: this calls removeComponent for " 
+		<< u1 << "th component " << endl;
     removeComponent(components[u1]);
 
     // if (0 == component[u1]->aggregators.size())
@@ -1042,24 +1007,40 @@ void metricDefinitionNode::removeThisInstance() {
 #else
   assert(mdn_type_ == COMP_MDN);
 
+  // The dummy component metricDefinitionNodes also comes through here.  I
+  // don't understand these dummy mdn's but I see that they don't have any
+  // components (in the cases I see atleast).
+
   // first, remove from allMIComponents (this is new --- is it right?)
   if (allMIComponents.defines(flat_name_)) {
     allMIComponents.undef(flat_name_);
   }
 
+  assert(components.size()==1 ||  // ie. the primitive metric, 
+	 components.size()==0);     // in the case of a dummy component
+  if(components.size() == 1) {
+    metricDefinitionNode* primMdn = components[0];
+    primMdn->samples[0]->requestRemove();
+  }
   assert(aggregators.size() == samples.size());
 
-  for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
-    metric_cerr << "   removeThisInstance: " << u << "th aggregator calls removeFromAggregate " << endl;
-    aggregators[u]->aggSample.removeComponent(samples[u]);
-    aggregators[u]->removeFromAggregate(this, false);
+  for (unsigned u=0; u<samples.size(); u++) {
+    samples[u]->requestRemove();
   }
+  tryAggregation();
+
+  for (unsigned i=0; i<aggregators.size(); i++) {
+    aggregators[i]->removeFromAggregate(this, false);
+    aggregators[i]->endOfDataCollection();
+  }  
+
   aggregators.resize(0);
   samples.resize(0);
 
   // now remove components
   for (unsigned u1=0; u1<components.size(); u1++) {
-    metric_cerr << "   removeThisInstance: this calls removeComponent for " << u1 << "th component " << endl;
+    metric_cerr << "   removeThisInstance: this calls removeComponent for " 
+		<< u1 << "th component: " << components[u1] << endl;
     removeComponent(components[u1]);
 
     // if (0 == component[u1]->aggregators.size())
@@ -1090,6 +1071,8 @@ void metricDefinitionNode::removeThisInstance() {
 // carry over mi's whenever appropriate.)
 // Remove the aggregate metric instances that don't have any components left
 void removeFromMetricInstances(process *proc) {
+  metric_cerr << "removeFromMetricInstances- proc: " << proc << ", pid: " 
+	      << proc->getPid() << "\n";
     // Loop through all of the _component_ mi's; for each with component process
     // of "proc", remove the component mi from its aggregate mi.
     // Note: imho, there should be a *per-process* vector of mi-components.
@@ -1103,8 +1086,13 @@ void removeFromMetricInstances(process *proc) {
     sprintf(errorLine,"=====> removeFromMetricInstances, MIs size=%d\n",MIs.size());
     logLine(errorLine);
 #endif
+    metric_cerr << "removeFromMetricInstance- numComp: " << MIs.size() << "\n";
     for (unsigned j = 0; j < MIs.size(); j++) {
+      metric_cerr << "  j: " << j << ", comp: " << MIs[j] << ", mi->proc: "
+		  << MIs[j]->proc() << ", numComp: " 
+		  << (MIs[j]->getComponents()).size() << "\n";
       if (MIs[j] != NULL) {   // this check is necessary, MIs[j] could have been deleted if aliased
+	
 	if (MIs[j]->proc() == proc) 
 	  MIs[j]->removeThisInstance();
       }
@@ -1378,7 +1366,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			 focus_, // focus doesn't change (tho component focus will)
 			 newComponentFocus, // this is a change
 			 newComponentFlatName, // this is a change
-			 style_, aggOp,  // no change
+			 aggregateOp(aggOp),  // no change
 #if defined(MT_THREAD)
 			 PROC_COMP
 #else
@@ -1544,8 +1532,7 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
 	    // child component.
 	    aggMI->components += newComp;
 	    newComp->aggregators += aggMI;
-	    newComp->samples     += aggMI->aggSample.newComponent(
-                                metAggInfo.get_updateStyle(aggMI->metStyle()));
+	    newComp->samples     += aggMI->aggregator.newComponent();
 	    foundAgg = true;
 	 }
       }
@@ -2056,7 +2043,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 		    vector<process *> &procsToCont)
 {
     bool internal = false;
-
     // Make the unique ID for this metric/focus visible in MDL.
     string vname = "$globalId";
     mdl_env::add(vname, false, MDL_T_INT);
@@ -2103,7 +2089,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
 
     if (!internal) {
-
         // pause processes that are running and add them to procsToCont.
         // We don't rerun the processes after we insert instrumentation,
         // this will be done by our caller, after all instrumentation
@@ -2144,7 +2129,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         assert(deferred || true);
         assert(ret || true);
         assert(inserted || true);
-
  
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
         // number of functions for which instrumentation was deferred
@@ -2160,6 +2144,8 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
             // Check if we have already created the defInst object for 
             // instrumenting the function later 
             bool previouslyDeferred = false;
+	    // number of functions for which instrumentation was deferred
+	    int numDeferred = instrumentationToDo.size();
 
             for (int i=0; i < numDeferred; i++) {
               if (instrumentationToDo[i]->id() == id) {
@@ -2206,11 +2192,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
         // instrumentation successfully inserted, so okay to sample this 
         // metric. Only for agg mdn's.
-#if defined(MT_THREAD)
-	if (mi->getLevel() == AGG_LEV) {
-#else
-	if (mi->getMdnType() == AGG_MDN) {
-#endif
+	if(mi->isTopLevelMDN()) {
           mi->okayToSample();
 	}
 
@@ -2272,7 +2254,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 #endif
 
     metResPairsEnabled++;
-
     return(mi->id_);
 }
 
@@ -2315,6 +2296,117 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
     return cost;
 }
 
+const char *typeStr(int i) {
+  const char* typeName[] = { "AGG", "COMP", "PRIM", "THR" };  
+#if defined(MT_THREAD)
+  assert(i>=0 && i<=2);
+#else
+  assert(i>=0 && i<=3);
+#endif
+  return typeName[i];
+}
+
+ostream& operator<<(ostream&s, const metricDefinitionNode &m) {
+  s << "mdn: " << &m << ", type: " << typeStr(int(m.getMdnType())) << "\n";
+  s << "name: " << m.getFullName() << "\n";
+  s << "  components -----\n";
+  for(unsigned i=0; i<m.components.size(); i++) {
+    metricDefinitionNode* curCompPtr = m.components[i];
+    s << "  " << curCompPtr //<< ", type: " << typeStr(curCompPtr->mdn_type_) 
+      << "\n";
+  }
+  s << "  aggregator: " << &m.aggregator << "\n";
+  s << "  local aggComponents -----\n";
+  for(unsigned j=0; j<m.samples.size(); j++) {
+    cerr << "  " << m.samples[j] << ", parent: " 
+	 << m.samples[j]->getParentAggregator() << "\n";
+  }
+  s << "\n";
+  for(unsigned k=0; k<m.components.size(); k++) {
+    metricDefinitionNode* curCompPtr = m.components[k];
+    s << *curCompPtr;
+  }
+  s << "\n";
+  return s;
+}
+
+// in regards to the line:     mdn->setInitialActualValue(pdSample::Zero());
+// This has zero for an initial value.  This is because for cpu_time and
+// wall_time, we just want to total the cpu_time and wall_time for this
+// process and no others (but if we want someone to get an actual cpu
+// time for this program even if they start the cpu_time metric after the
+// start of the process, the initial actual value could be the actual cpu
+// time at the start of this metric).  For the counter metrics
+// (eg. proc_calls, io_bytes), we also want zero (we have no way of
+// getting the total proc_calls & io_bytes of the process before the
+// metric was enabled, so we have to use zero).  However, it is possible
+// that in the future we'll create a metric that it makes sense to send
+// an initial actual value.
+
+void mdnContinueCallback(timeStamp timeOfCont) {
+  dictionary_hash_iter<unsigned,metricDefinitionNode*> iter=allMIs;
+  for (; iter; iter++) {
+    metricDefinitionNode *mdn = iter.currval();
+
+    sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn << "\n";
+    //		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
+    if(! mdn->isStartTimeSet()) {
+      mdn->setStartTime(timeOfCont);
+      mdn->setInitialActualValue(pdSample::Zero());
+    }
+  }
+}
+
+// Will set the initial actual value for all the components of this metric.
+// This is actually sort of a kludge, since it assumes that a AGG_MDN mdn
+// will have components that all have the same initial actual sample value.
+// For now this is fine, since currently only internal metrics have non-zero
+// initial actual values.  All these (non-internal) metrics have zero for an
+// initial actual value.
+void metricDefinitionNode::setInitialActualValue(pdSample s) {
+  for(unsigned i = 0; i < aggregator.numComponents(); i++) {
+    aggComponent *curComp = aggregator.getComponent(i);
+    curComp->setInitialActualValue(s);
+  }
+  for(unsigned j=0; j<components.size(); j++) {
+    metricDefinitionNode *compMdn = components[j];
+    compMdn->setInitialActualValue(s);
+  }
+}
+
+void metricDefinitionNode::sendInitialActualValue(pdSample s) {
+  double valToSend = static_cast<double>(s.getValue());
+  tp->setInitialActualValueFE(getMId(), valToSend);
+  sentInitialActualValue(true);
+}
+
+void metricDefinitionNode::updateAllAggInterval(timeLength width) {
+  dictionary_hash_iter<unsigned,metricDefinitionNode*> iter=allMIs;
+  for (; iter; iter++) {
+    metricDefinitionNode *mdn = iter.currval();
+    mdn->updateAggInterval(width);
+  }
+}
+
+void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
+  mdnStartTime = t;
+  sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t << "\n"; 
+    //<< ", type: " << typeStr(getMdnType()) 
+  for(unsigned i = 0; i < aggregator.numComponents(); i++) {
+    aggComponent *curComp = aggregator.getComponent(i);
+    if(resetCompStartTime)
+      curComp->resetInitialStartTime(t);
+    else
+      curComp->setInitialStartTime(t);
+    sampleVal_cerr << "            for comp: " << curComp << ", time: " 
+		   << t << "\n";
+  }
+  for(unsigned j=0; j<components.size(); j++) {
+    metricDefinitionNode *compMdn = components[j];
+    if(! compMdn->isStartTimeSet())
+      compMdn->setStartTime(t);
+  }
+}
 
 bool metricDefinitionNode::insertInstrumentation(pd_Function *&func, 
                                                  bool &deferred)
@@ -2326,11 +2418,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
     inserted_ = true;
     unsigned u, u1;
 
-#if defined(MT_THREAD)
-    if (aggLevel == AGG_LEV) {
-#else
-    if (mdn_type_ == AGG_MDN) {
-#endif
+    if(isTopLevelMDN()) {
       unsigned c_size = components.size();
       for (u=0; u<c_size; u++)
 	if (!components[u]->insertInstrumentation(func, deferred)) {
@@ -2765,7 +2853,6 @@ timeLength metricDefinitionNode::cost() const
 #if !defined(MT_THREAD)
 void metricDefinitionNode::disable()
 {
-
   // check for internal metrics
   unsigned ai_size = internalMetric::allInternalMetrics.size();
   for (unsigned t=0; t<ai_size; t++) {
@@ -3069,7 +3156,8 @@ void metricDefinitionNode::disable()
 // so, comp is proc_comp or thr_lev
 void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
     unsigned u;
-
+    metric_cerr << "calling removeComponent[" << this << "] on " << comp 
+		<< "\n";
 #if defined(MT_THREAD)
     if ( !comp ) {
       metric_cerr << "   --- removeComponent: component does not exist " << endl;
@@ -3140,7 +3228,7 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 	metric_cerr << " remove this thr_lev mn's agg_lev aggregators " << endl;
 
 	for (u=0; u<aggr_size-1; u++) {
-	  comp->aggregators[u]->aggSample.removeComponent(comp->samples[u]);
+	  comp->samples[u]->requestRemove();
 	  comp->aggregators[u]->removeFromAggregate(comp, false);
 	}
 
@@ -3160,6 +3248,9 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       }
     */
 #else
+    metric_cerr << "removeComponent(" << this << "), deleting " << comp <<"\n";
+    metric_cerr << "    aggregator: " << aggregator << "\n";
+    
     if ( !comp ) {
       metric_cerr << "   --- removeComponent: component does not exist " << endl;
       return;
@@ -3431,8 +3522,7 @@ u_int isMetricTimeType(const string& met_name) {
 
 // the metname is temporary, get rid of this 
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
-		     timeStamp endTimeStamp, pdSample value, 
-		     unsigned val_weight, bool internal_metric) 
+		     timeStamp endTimeStamp, pdSample value) 
 {
    // This routine is called where we used to call tp->sampleDataCallbackFunc.
    // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
@@ -3466,12 +3556,11 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
      bval /= 1000000000.0;
    }
    theEntry.value = bval;
+
    sampleVal_cerr << ">b2 startTimeStamp d: " << theEntry.startTimeStamp
    		  << ", endTimeStamp d: " << theEntry.endTimeStamp
    		  << ", value d: " << theEntry.value << "\n";
 
-   theEntry.weight = val_weight;
-   theEntry.internal_met = internal_metric;
    batch_buffer_next++;
 }
 
@@ -3530,138 +3619,103 @@ void batchTraceData(int program, int mid, int recordLength,
 }
 
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
-                                       pdSample value, unsigned weight,
-				       bool internal_met)
+					     pdSample value)
 {
   // TODO mdc
   sampleVal_cerr << "forwardSimpleValue - st: " << start << "  end: " << end 
 		 << "  value: " << value << "\n";
-    assert(start + timeLength::us() >= getFirstRecordTime());
-    assert(end >= getFirstRecordTime());
-    assert(end > start);
 
-    batchSampleData(met_, id_, start, end, value, weight, internal_met);
+  assert(start >= getFirstRecordTime());
+  assert(end > start);
+
+  batchSampleData(met_, id_, start, end, value);
 }
 
+// takes an actual value as input, as opposed to a change in sample value
 void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
 {
   assert(value >= pdSample::Zero());
 
-  // TODO -- is this ok?
-  // TODO -- do sampledFuncs work ?
-  if (style_ == EventCounter) { 
-    sampleVal_cerr << "mdn::updateValue() - " << getFullName() << "value: " 
-		   << value << ", cumVal: " << cumulativeValue << "\n";
+  sampleVal_cerr << "updateValue() - mdn: " << this << ", " 
+		 << getFullName() << "value: " << value << ", cumVal: " 
+		 << cumulativeValue << "\n";
 
-    // only use delta from last sample.
-    if (value < cumulativeValue) {
-      double ratio = static_cast<double>(value.getValue()) / 
-	             static_cast<double>(cumulativeValue.getValue());
-      if (ratio < 0.99999) {
-	//assert((value + 0.0001)  >= cumulativeValue_float);
-#if defined(TEST_DEL_DEBUG)
-	// for now, just keep going and avoid the assertion - naim
-	sprintf(errorLine,"***** avoiding assertion failure, value=%e, cumulativeValue_float=%e\n",value,cumulativeValue_float);
-	  logLine(errorLine);
-#endif
-	  value = cumulativeValue;
-	  // for now, we avoid executing this assertion failure - naim
-          //assert((value + 0.0001)  >= cumulativeValue_float);
-      } else {
-	// floating point rounding error ignore
-	cumulativeValue = value;
-      }
-    }
-
-    //        if (value + 0.0001 < cumulativeValue_float)
-    //           printf ("WARNING:  sample went backwards!!!!!\n");
-    value -= cumulativeValue;
-    cumulativeValue += value;
-  } 
-  sampleVal_cerr << "mdn::updateValue() - value: " << value
-		 << ", cumVal: " << cumulativeValue << "\n";
-
-  //
-  // If style==EventCounter then value is changed. Otherwise, it keeps the
-  // the current "value" (e.g. SampledFunction case). That's why it is not
-  // necessary to have an special case for SampledFunction.
-  //
-  unsigned samples_size = samples.size();
-  unsigned aggregators_size = aggregators.size();
-  if (aggregators_size!=samples_size) {
-    metric_cerr << "++++++++ <" << flat_name_ 
-		<< ">, samples_size=" << samples_size
-		<< ", aggregators_size=" << aggregators_size << endl;
+  if (value < cumulativeValue) {
+  // only use delta from last sample.
+    value = cumulativeValue;
   }
-  assert(samples.size() == aggregators.size());
-  for (unsigned u = 0; u < samples.size(); u++) {
-    sampleVal_cerr << "adding to sampleInfo for mid: " 
-		   << aggregators[u]->getMId() << "\n";
-    if (samples[u]->firstValueReceived()) {
-      sampleVal_cerr << "samples[u]->newValue - sampleTime: " << sampleTime
-		     << ", value: " << value << "\n";
-      samples[u]->newValue(sampleTime, value);
+
+  value -= cumulativeValue;
+  cumulativeValue += value;
+  timeStamp uninitializedTime;  // we don't know the start of the interval here
+  updateWithDeltaValue(uninitializedTime, sampleTime, value);
+}
+
+void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
+						timeStamp sampleTime, 
+						pdSample value) {
+  sampleVal_cerr << "updateWithDeltaValue() - mdn: " << this << ", " 
+		 << getFullName() //<< ", type: " <<  mdn_type_ 
+		 << ", value:" 
+		 << value << ", cumVal: " << cumulativeValue << "\n";
+
+  if(isTopLevelMDN()) {
+    assert(startTime.isInitialized());
+    sampleVal_cerr << "Batching st: " << startTime << ", end: " << sampleTime 
+		   <<", val: " << value << "\n";
+    batchSampleData(met_, id_, startTime, sampleTime, value);
+    return;
+  }
+
+  unsigned numAggregators = aggregators.size();
+  assert(numAggregators == samples.size());
+  //cerr << "  numAggregators: " << numAggregators << "\n";
+  for (unsigned u = 0; u < numAggregators; u++) {
+    aggComponent &curComp = *samples[u];
+    metricDefinitionNode &curParentMdn = *aggregators[u];
+    sampleVal_cerr << "  handling agg#: " << u << ", *: " << &curParentMdn
+		   << ", mdn- " << curParentMdn.getFullName()
+		   << "  mdnStartTime: " << curParentMdn.getStartTime() <<"\n";
+
+    // This can happen because even if the sample of the application
+    // sent to PRIMITIVE mdn is after the creation of the AGG MDN,
+    // after aggregation, the timeOfSample will move back in time since
+    // aggregation needs to fill an interval.  This sample which could
+    // be earlier in time than the creation time of the new AGG mdn.
+    // In this case we adjust this now AGG mdn start time to be
+    // equal to the slightly earlier interval sample time.
+    if(!curParentMdn.isStartTimeSet() || (startTime.isInitialized() &&
+			       startTime < curParentMdn.getStartTime())) {
+      sampleVal_cerr << "  setInitialTime: " << this << " st: " << startTime 
+		     << "\n";
+      curParentMdn.setStartTime(startTime, true);
     }
-    else {
-      sampleVal_cerr << "samples[u]->firstTimeAndValue - sampleTime: " 
-		     << sampleTime << ", value: " << value << "\n";
-      samples[u]->firstTimeAndValue(sampleTime, value);
-      //samples[u]->startTime(sampleTime);
+    sampleVal_cerr << "  addSamplePt- " << sampleTime << ", val: " << value 
+		   << "\n";
+    curComp.addSamplePt(sampleTime, value);
+
+#if defined(MT_THREAD)
+    if ( !(aggLevel == PROC_COMP && curParentMdn.aggLevel == THR_LEV) ) {
+#endif
+      curParentMdn.tryAggregation();
+#if defined(MT_THREAD)
     }
-    sampleVal_cerr << "BEFORE - aggregators["<< u << "]->aggSample: \n" 
-		   << aggregators[u]->aggSample;
-    aggregators[u]->updateAggregateComponent();
-    sampleVal_cerr << "AFTER - aggregators["<< u << "]->aggSample: \n" 
-		   << aggregators[u]->aggSample;
+#endif
+    sampleVal_cerr <<"  back in updateWithDeltaValue, finished handling agg#: "
+		   << u << ", *: " << &curParentMdn << ", mdn- " 
+		   << curParentMdn.getFullName() << "\n";
   }
 }
 
-// There are several problems here. We can not deal with cases that, two levels of
-// aggregations are needed in the daemon
-void metricDefinitionNode::updateAggregateComponent()
-{
-    // currently called (only) by the above routine
-    sampleInterval ret = aggSample.aggregateValues();
-       // class aggregateSample is in util lib (aggregateSample.h)
-       // warning: method aggregateValues() is complex
-
-    sampleVal_cerr << "mid: " << getMId() << ", ret.valid: " 
-		   << ret.valid << "\n";
-
-    if (ret.valid) {
-        assert(ret.end > ret.start);
-        assert(ret.start + timeLength::us() >= getFirstRecordTime());
-        assert(ret.end >= getFirstRecordTime());
-#if defined(MT_THREAD)
-	if (aggLevel == AGG_LEV) {
-#else
-	if (mdn_type_ == AGG_MDN) {
-#endif
-	  batchSampleData(met_, id_, ret.start, ret.end, ret.value,
-			  aggSample.numComponents(),false);
-	}
-
-        assert(samples.size() == aggregators.size());
-        for (unsigned lcv=0; lcv < aggregators.size(); lcv++) {
-#if defined(MT_THREAD)
-	  if ( !(aggLevel == PROC_COMP && aggregators[lcv]->aggLevel == THR_LEV) ) {
-#endif
-            if (samples[lcv]->firstValueReceived()) {
-              samples[lcv]->newValue(ret.start, ret.value);
-            } else {
-              samples[lcv]->firstTimeAndValue(ret.start, ret.value);
-            }
-	    sampleVal_cerr << "BEFORE - aggregators[" <<lcv<< "]->aggSample:\n"
-			   << aggregators[lcv]->aggSample;
-	    // metricDefinitionNode::updateAggregateComponent()
-            aggregators[lcv]->updateAggregateComponent();  
-	    sampleVal_cerr << "AFTER - aggregators[" <<lcv<< "]->aggSample: \n"
-			   << aggregators[lcv]->aggSample;
-
-#if defined(MT_THREAD)
-	  }
-#endif
-       }
+void metricDefinitionNode::tryAggregation() {
+    sampleInterval aggSample;
+    sampleVal_cerr << "Calling aggregate for mdn: " << this << ", sampleAgg: "
+		   << &aggregator << "\n";
+    while(aggregator.aggregate(&aggSample) == true) {
+      if(isTopLevelMDN() && !sentInitialActualValue()) {
+	sendInitialActualValue(aggregator.getInitialActualValue());
+      }
+      updateWithDeltaValue(aggSample.start, aggSample.end, aggSample.value);
     }
 }
 
@@ -4876,132 +4930,36 @@ void sampledShmProcTimerReqNode::disable(process *theProc,
 
 void reportInternalMetrics(bool force) 
 {
-    if (isApplicationPaused())
-       return; // we don't sample when paused (is this right?)
+  if (isApplicationPaused())
+    return; // we don't sample when paused (is this right?)
 
-    static timeStamp end = timeStamp::ts1970();
+  // see if we have a sample to establish time base.
+  if (!isInitFirstRecordTime())
+    return;
 
-    // see if we have a sample to establish time base.
-    if (!isInitFirstRecordTime()) {
-       //cerr << "reportInternalMetrics: no because firstRecordTime==0" << endl;
-       return;
+  static timeStamp lastSampleTime;
+  const  timeStamp now = getWallTime();
+
+  if(! lastSampleTime.isInitialized()) {
+    lastSampleTime = now;
+    return;
+  }
+
+  //  check if it is time for a sample
+  if (!force && now < lastSampleTime + getCurrSamplingRate())
+    return;
+    
+  unsigned ai_size = internalMetric::allInternalMetrics.size();
+  for (unsigned u2=0; u2<ai_size; u2++) {
+    internalMetric *theIMetric = internalMetric::allInternalMetrics[u2];
+    // Loop thru all enabled instances of this internal metric...
+    
+    for (unsigned v=0; v < theIMetric->num_enabled_instances(); v++) {
+      internalMetric::eachInstance &theInst =theIMetric->getEnabledInstance(v);
+      theInst.updateValue(now, theInst.calcValue());
     }
-
-    if (end == timeStamp::ts1970())
-        end = getFirstRecordTime();
-
-    const timeStamp now = getWallTime();
-
-    //  check if it is time for a sample
-    if (!force && now < end + getCurrSamplingRate())  {
-//        cerr << "reportInternalMetrics: no because now < end + samplingRate (end=" << end << "; samplingRate=" << samplingRate << "; now=" << now << ")" << endl;
-//	cerr << "difference is " << (end+samplingRate-now) << endl;
-	return;
-    }
-
-    timeStamp start = end;
-    end = now;
-
-    // TODO -- clean me up, please
-
-    unsigned max1=0;
-    unsigned max2=0;
-    unsigned max3=0;
-#if defined(MT_THREAD)
-    unsigned max4=0;
-    unsigned max5=0;
-    numOfActiveThreads = 0;
-#endif
-    for (unsigned u1 = 0; u1 < processVec.size(); u1++) {
-      if (processVec[u1]->numOfActCounters_is > max1)
-        max1=processVec[u1]->numOfActCounters_is;
-      if (processVec[u1]->numOfActProcTimers_is > max2)
-        max2=processVec[u1]->numOfActProcTimers_is;
-      if (processVec[u1]->numOfActWallTimers_is > max3)
-        max3=processVec[u1]->numOfActWallTimers_is;
-#if defined(MT_THREAD)
-      if (processVec[u1]->numOfCurrentLevels_is > max4)
-        max4=processVec[u1]->numOfCurrentLevels_is;
-      if (processVec[u1]->numOfCurrentThreads_is > max5)
-        max5=processVec[u1]->numOfCurrentThreads_is;
-      numOfActiveThreads += processVec[u1]->numOfCurrentThreads_is ;
-#endif
-    }
-    numOfActCounters_all=max1;
-    numOfActProcTimers_all=max2;
-    numOfActWallTimers_all=max3;
-#if defined(MT_THREAD)
-    numOfCurrentLevels_all=max4;
-    numOfCurrentThreads_all=max5;
-#endif
-
-    unsigned ai_size = internalMetric::allInternalMetrics.size();
-    for (unsigned u2=0; u2<ai_size; u2++) {
-      internalMetric *theIMetric = internalMetric::allInternalMetrics[u2];
-      // Loop thru all enabled instances of this internal metric...
-
-      for (unsigned v=0; v < theIMetric->num_enabled_instances(); v++) {
-	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(v);
-	// The internal metrics used to be of style EventCounter but have
-	// been switched to SampledFunction.  In the front end, eventCounter
-	// metric values are normalized by the time delta whereas the
-	// SampledFunction style metric values are left unnormalized.  When
-	// the internal metrics were EventCounter style, the value was
-	// multiplied in this function by the time delta to offset the
-	// normalization being done in the front end.  This is not only
-	// redundant but also led to difficulties representing resultant
-	// fractional sample values with our now integral sample value type.
-	// eg. previously: (end-start) * sampleValue -> (.2sec) * 1 = .2
-	pdSample value(0);
-
-        if (theIMetric->name() == "active_processes") {
-	  value.assign(theInstance.getValue().getValue());
-        } else if (theIMetric->name() == "bucket_width") {
-	  // I would prefer to use (end-start) * theInstance.getValue(); however,
-	  // we've had some problems getting setValue() called in time, thus
-	  // leaving us with getValues() of 0 sometimes.  See longer comment in dynrpc.C --ari
-	  // we'll transfer bucket width as milliseconds, instead of seconds
-	  // because we can't represent fractional second bucket widths
-	  // (eg. .2 seconds) now that our sample value type (pdSample) is
-	  // an int64_t when it used to be a double
-	  value.assign(getCurrSamplingRate().getI(timeUnit::ms()));
-        } else if (theIMetric->name() == "number_of_cpus") {
-          value.assign(numberOfCPUs);
-        } else if (theIMetric->name() == "numOfActCounters") {
-          value.assign(numOfActCounters_all);
-          assert(value >= pdSample::Zero());
-        } else if (theIMetric->name() == "numOfActProcTimers") {
-          value.assign(numOfActProcTimers_all);
-          assert(value >= pdSample::Zero());
-        } else if (theIMetric->name() == "numOfActWallTimers") {
-          value.assign(numOfActWallTimers_all);
-          assert(value >= pdSample::Zero());
-        } else if (theIMetric->name() == "infHeapMemAvailable") {
-          value.assign(inferiorMemAvailable);
-#if defined(MT_THREAD)
-        } else if (theIMetric->name() == "numOfCurrentLevels") {
-          value.assign(numOfCurrentLevels_all);
-          assert(value >= pdSample::Zero());
-        } else if (theIMetric->name() == "numOfCurrentThreads") {
-          value.assign(numOfCurrentThreads_all);
-          assert(value >= pdSample::Zero());
-        } else if (theIMetric->name() == "active_threads") {
-          value.assign(numOfActiveThreads);
-          assert(value >= pdSample::Zero());
-#endif
-        } else if (theIMetric->style() == EventCounter) {
-          value = theInstance.getValue();
-          // assert((value + 0.0001)  >= imp->cumulativeValue);
-          value -= theInstance.getCumulativeValue();
-          theInstance.bumpCumulativeValueBy(value);
-        } else if (theIMetric->style() == SampledFunction) {
-          value = theInstance.getValue();
-        } 
-
-	theInstance.report(start, end, value);
-	   // calls metricDefinitionNode->forwardSimpleValue()
-      }
-    }
+  }
+  lastSampleTime = now;
 }
 
 void disableAllInternalMetrics() {
@@ -5023,7 +4981,7 @@ void metricDefinitionNode::addPart(metricDefinitionNode* mi)
 {
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
+    mi->samples += aggregator.newComponent();
 }
 
 // for adding constraints primitives
@@ -5031,7 +4989,7 @@ void metricDefinitionNode::addPartDummySample(metricDefinitionNode* mi)
 {
     components += mi;
     mi->aggregators += this; 
-    mi->samples += DummyAggSample.newComponent(metAggInfo.get_updateStyle(EventCounter));
+    mi->samples += DummyAggSample.newComponent();
 }
 
 #if defined(MT_THREAD)
@@ -5041,7 +4999,7 @@ void metricDefinitionNode::addParts(vector<metricDefinitionNode*>& parts)
     metricDefinitionNode *mi = parts[i];
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
+    mi->samples += aggregator.newComponent();
   }
 }
 
@@ -5156,7 +5114,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 					  cons_focus_thr,
 					  cons_component_focus_thr,
 					  cons_flat_name_thr,
-					  cons_prim->style_, cons_prim->aggOp,
+					  cons_prim->aggOp,
 					  THR_LEV); // thread level
 	assert(thr_mn);
 
@@ -5197,7 +5155,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 				    focus_thr,
 				    component_focus_thr,
 				    component_flat_name_thr,
-				    metric_prim->style_, metric_prim->aggOp,
+				    metric_prim->aggOp,
 				    THR_LEV); // thread level
   assert(thr_mn);
 
