@@ -173,7 +173,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 	  uiMgr->showError(90,P_strdup(msg.string_of()));
         }
 	else {
-	  uiMgr->showError(91,"Paradyn daemon is missing in PCL file.");
+	  uiMgr->showError(91,"");
         }
 	return ((paradynDaemon*) 0);
     }
@@ -213,7 +213,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
        uiMgr->updateStatus(DMstatus,P_strdup("ready"));
 
     if (pd->get_fd() < 0) {
-        uiMgr->showError (6, "unable to start paradynd");
+        uiMgr->showError (6, "");
         return((paradynDaemon*) 0);
     }
 
@@ -913,7 +913,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
               }
 	   }
 	   if (!part) {
-	      uiMgr->showError(3, "Unable to find component!!!");
+	      uiMgr->showError(3, "");
 	      exit(-1);
 	   }
 
