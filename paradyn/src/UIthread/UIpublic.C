@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.42  1996/02/07 21:46:57  tamches
-/* defineNewSearch returns bool
+/* Revision 1.43  1996/02/11 18:22:48  tamches
+/* internal cleanup; more tk window names parameterized
 /*
+ * Revision 1.42  1996/02/07 21:46:57  tamches
+ * defineNewSearch returns bool
+ *
  * Revision 1.41  1996/02/07 19:06:13  tamches
  * initSHG gone
  * root node now TopLevelHypothesis instead of Whole Program
@@ -220,6 +223,10 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
                                 ".shg.nontop.main.bottsb",
                                 ".shg.nontop.main.leftsb",
 				".shg.nontop.labelarea.current",
+				".shg.nontop.textarea.text",
+				".shg.nontop.buttonarea.left.search",
+				".shg.nontop.buttonarea.middle.pause",
+				".shg.nontop.currphasearea.label2",
                                 interp, theTkWindow);
    assert(theShgPhases);
 
