@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.15 1999/07/07 16:00:01 zhichen Exp $
+# $Id: make.module.tmpl,v 1.16 1999/07/16 18:08:15 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -44,21 +44,24 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_init.C \
 		../src/BPatch_module.C \
 		../src/BPatch_point.C \
-		 ../src/BPatch_collections.C \
+		../src/BPatch_collections.C \
 		../src/dummy.C \
 		../src/api_showerror.C \
 		../src/ast.C \
 		../src/inst.C \
 		../src/process.C \
-		../../dyninstAPI/src/pdThread.C \
 		../src/stats.C \
 		../src/symtab.C \
 		../src/util.C \
 		../src/sharedobject.C \
 		../src/templates0.C \
 		../src/templates05.C \
-		../src/templates1.C \
-		../../paradynd/src/hashTable.C
+		../src/templates1.C
+
+ifdef USES_MT_THREAD
+SRCS		+= ../../dyninstAPI/src/pdThread.C \
+		   ../../paradynd/src/hashTable.C
+endif
 
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../../paradynd/src/fastInferiorHeap.C \
