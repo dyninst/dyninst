@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.370 2002/10/29 22:56:17 bernat Exp $
+// $Id: process.C,v 1.371 2002/11/14 20:26:33 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5630,14 +5630,18 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
 
       // TODO: this should be done after we (possibly) pick a particular
       // thread/lwp to run on (MT case)
-      void *theSavedRegs;
+      struct dyn_saved_regs *theSavedRegs;
       if (rpcSavesRegs()) {
          theSavedRegs = todo.lwp->getRegisters();
-         if (theSavedRegs == (void *)-1) {
+         if (theSavedRegs == (struct dyn_saved_regs *)-1) {
             thrInSyscall = true;
             continue; // Problem somewhere
          }
       }
+      else {
+          theSavedRegs = NULL;
+      }
+      
       /////////////////////////////////////////////////////////////////////////
       // It is safe to run the RPC, so actually do it. 
       /////////////////////////////////////////////////////////////////////////
@@ -6111,12 +6115,7 @@ bool process::handleTrapIfDueToRPC() {
     void* resultValue = foundIRPC.resultValue;
 
     // release the RPC struct
-#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    delete    foundIRPC.savedRegs;       // not an array on WindowsNT
-#else
-    // Causing memory corruption. Temporarily disabled.
-    //delete [] static_cast<char *>(foundIRPC.savedRegs);
-#endif
+    if (foundIRPC.savedRegs) delete foundIRPC.savedRegs;
 
     // Delete from the appropriate list
     if (foundIRPC.thr) 

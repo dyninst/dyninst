@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.225 2002/10/29 22:56:14 bernat Exp $
+/* $Id: process.h,v 1.226 2002/11/14 20:26:35 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1323,7 +1323,7 @@ bool isLoadingParadynLib;
   // that the inferior heap already exists, which is not true if libdyninstRT
   // has not been loaded yet.
   char savedData[LOAD_DYNINST_BUF_SIZE];
-  void *savedRegs;
+  struct dyn_saved_regs *savedRegs;
 
 
   process *parent;        /* parent of this process */

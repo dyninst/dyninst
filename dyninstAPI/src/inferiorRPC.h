@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inferiorRPC.h,v 1.3 2002/10/15 17:11:14 schendel Exp $
+/* $Id: inferiorRPC.h,v 1.4 2002/11/14 20:26:32 bernat Exp $
  */
 
 #ifndef _INFERIOR_RPC_H_
@@ -51,6 +51,8 @@ class AstNode;
 class dyn_thread;
 class process;
 class dyn_lwp;
+struct dyn_saved_regs;
+
 
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
@@ -81,7 +83,7 @@ struct inferiorRPCinProgress {
   inferiorRPCcallbackFunc callbackFunc;
   void *userData;
   
-  void *savedRegs; // crucial!
+  struct dyn_saved_regs *savedRegs; // crucial!
   
   Address origPC;
   
