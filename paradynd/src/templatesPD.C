@@ -40,7 +40,7 @@
  */
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
 
 #pragma implementation "list.h"
 #include "util/h/list.h"
@@ -62,9 +62,6 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
-
-template class  dictionary<unsigned int, vector<mdl_type_desc> >;
-template class  dictionary<unsigned int, _cpSample *>;
 
 template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
 
@@ -91,7 +88,6 @@ template class  vector<mdl_focus_element>;
 template class  vector<mdl_type_desc>;
 template class  vector<mdl_var>;
 
-//template class  vector<watch_data>;
 template class  vector<costMetric *>;
 
 template class  vector<internalMetric::eachInstance>;
@@ -99,3 +95,6 @@ template class  vector<internalMetric::eachInstance>;
 template class  dictionary_hash <unsigned, cpSample*>;
 
 template class  refCounter<string_ll>;
+
+template class dictionary_hash<string, Symbol>;
+template class vector<dictionary_hash<string, Symbol>::entry>;

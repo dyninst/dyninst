@@ -51,7 +51,7 @@
 #include "util/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
 
 #pragma implementation "list.h"
 #include "util/h/list.h"
