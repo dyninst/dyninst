@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.10  1994/08/01 20:24:40  karavan
-/* new version of dag; new dag support commands
+/* Revision 1.11  1994/08/10 17:21:35  newhall
+/* added parameters to chooseMetricsandResources
 /*
+ * Revision 1.10  1994/08/01  20:24:40  karavan
+ * new version of dag; new dag support commands
+ *
  * Revision 1.9  1994/07/08  04:03:18  karavan
  * changed showMsg to async function
  *
@@ -342,7 +345,10 @@ UIM::showMsgWait(char *displayMsg,
 // ****************************************************************
 
 void 
-UIM::chooseMetricsandResources(chooseMandRCBFunc cb)
+UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
+			       char **metricNames,
+			       int numMetrics,
+			       resourceList* focusChoice)
 {
   char *ml;
   int retVal;
