@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.509 2004/10/07 00:45:56 jaw Exp $
+// $Id: process.C,v 1.510 2004/12/09 05:01:06 rchen Exp $
 
 #include <ctype.h>
 
@@ -2296,7 +2296,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 // #endif
 
 extern bool forkNewProcess(pdstring &file, pdstring dir,
-                           pdvector<pdstring> argv, pdstring inputFile,
+                           pdvector<pdstring> *argv, pdvector<pdstring> *envp,
+			   pdstring inputFile,
                            pdstring outputFile, int &traceLink, int &pid,
                            int &tid, int &procHandle, int &thrHandle,
                            int stdin_fd, int stdout_fd, int stderr_fd);
@@ -2305,9 +2306,9 @@ extern bool forkNewProcess(pdstring &file, pdstring dir,
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *ll_createProcess(const pdstring File, pdvector<pdstring> argv, 
-                       const pdstring dir = "", int stdin_fd=0,
-                       int stdout_fd=1, int stderr_fd=2)
+process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
+			  pdvector<pdstring> *envp, const pdstring dir = "",
+			  int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
 	// prepend the directory (if any) to the filename,
 	// unless the filename is an absolute pathname
@@ -2360,22 +2361,22 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 #else
     // check for I/O redirection in arg list.
     pdstring inputFile;
-    for (unsigned i1=0; i1<argv.size(); i1++) {
-      if (argv[i1] == "<") {
-        inputFile = argv[i1+1];
-        for (unsigned j=i1+2, k=i1; j<argv.size(); j++, k++)
-          argv[k] = argv[j];
-        argv.resize(argv.size()-2);
+    for (unsigned i1=0; i1<argv->size(); i1++) {
+      if ((*argv)[i1] == "<") {
+        inputFile = (*argv)[i1+1];
+        for (unsigned j=i1+2, k=i1; j<argv->size(); j++, k++)
+          (*argv)[k] = (*argv)[j];
+        argv->resize(argv->size()-2);
       }
     }
     // TODO -- this assumes no more than 1 of each "<", ">"
     pdstring outputFile;
-    for (unsigned i2=0; i2<argv.size(); i2++) {
-      if (argv[i2] == ">") {
-        outputFile = argv[i2+1];
-        for (unsigned j=i2+2, k=i2; j<argv.size(); j++, k++)
-          argv[k] = argv[j];
-        argv.resize(argv.size()-2);
+    for (unsigned i2=0; i2<argv->size(); i2++) {
+      if ((*argv)[i2] == ">") {
+        outputFile = (*argv)[i2+1];
+        for (unsigned j=i2+2, k=i2; j<argv->size(); j++, k++)
+          (*argv)[k] = (*argv)[j];
+        argv->resize(argv->size()-2);
       }
     }
 
@@ -2407,7 +2408,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 
 #endif
 
-    if (!forkNewProcess(file, dir, argv, inputFile, outputFile,
+    if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
                         traceLink, pid, tid, procHandle_temp, thrHandle_temp,
                         stdin_fd, stdout_fd, stderr_fd)) {
         // forkNewProcess is responsible for displaying error messages
