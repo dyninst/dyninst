@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.9 2003/01/24 22:53:35 zandy Exp $
+ * $Id: dyn_lwp.h,v 1.10 2003/02/26 16:50:21 mikem Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -60,6 +60,14 @@
 // NT (as needed) defined in os.h
 
 class process;
+
+
+#if !defined(BPATCH_LIBRARY)
+#ifdef PAPI
+class papiMgr;
+#endif
+#endif
+  
 
 /*
  * The dyn_lwp class wraps a kernel thread (lightweight process, or LWP)
@@ -151,6 +159,11 @@ class dyn_lwp
   void closeFD();
   process *proc() { return proc_; }
 
+#if !defined(BPATCH_LIBRARY)
+#ifdef PAPI
+  papiMgr* papi();
+#endif
+#endif
   
  private:
 
