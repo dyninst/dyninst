@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.53 2002/10/15 17:11:26 schendel Exp $
+// $Id: mdl.C,v 1.54 2002/10/28 04:54:19 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -543,6 +543,10 @@ T_dyninstRPC::mdl_v_expr::~mdl_v_expr()
   delete left_; delete right_;
 }
 
+bool T_dyninstRPC::mdl_v_expr::isThreadStartPoint() {
+   return false;
+}
+
 bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
 {
   switch (type_) 
@@ -878,7 +882,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
           string next_field = fields_[v_index];
           bool type_found=false;
           unsigned size = acceptable_fdlst.size();
-          for (unsigned u=0; u<size; u++) 
+
+          for (unsigned u=0; u<size; u++) {
             if (acceptable_fdlst[u].name == next_field) 
             {
               type_found = true;
@@ -887,6 +892,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
               current_type = acceptable_fdlst[u].type;
               break;
             }
+	  }
           if (!type_found)
           {
             cerr << "Invalid field type." << endl;
