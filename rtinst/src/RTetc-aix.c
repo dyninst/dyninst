@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.40 2003/04/11 22:46:46 schendel Exp $
+ * $Id: RTetc-aix.c,v 1.41 2003/04/27 04:17:29 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -461,6 +461,21 @@ int DYNINSTgetRusage(int id)
     }
     return value;
 }
+ 
+void DYNINSTsystem() {
+   rtUIMsg traceData;
+   sprintf(traceData.msgString,
+           "The application called system().  Paradyn "
+           "currently does not support system() on this platform; a future "
+           "release will remedy this limitation.");
+   traceData.errorNum = 127;
+   traceData.msgType = rtError;
+   DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
+                              1, 1, 1);
+   sleep(2);
+   assert(0);
+}
+
 
 unsigned PARADYNgetFD(unsigned lwp)
 {
