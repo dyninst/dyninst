@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.50  1994/11/03 20:54:13  karavan
+ * Revision 1.51  1994/11/03 21:58:49  karavan
+ * Allow blank string for parent resource name so paradyndSIM will work
+ *
+ * Revision 1.50  1994/11/03  20:54:13  karavan
  * Changed error printfs to calls to UIM::showError
  *
  * Revision 1.49  1994/11/02  11:45:58  markc
@@ -366,7 +369,7 @@ void dynRPCUser::resourceInfoCallback(int program,
     stringHandle iName;
 
     // create the resource.
-    if (parentString) {
+    if (parentString && *parentString) {
 	// non-null string.
 	iName = resource::names.findAndAdd(parentString);
 	parent = resource::allResources.find(iName);
