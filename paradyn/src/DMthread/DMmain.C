@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.33  1994/06/27 21:23:25  rbi
+ * Revision 1.34  1994/06/29 02:55:59  hollings
+ * fixed code to remove instrumenation when done with it.
+ *
+ * Revision 1.33  1994/06/27  21:23:25  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.32  1994/06/27  18:54:48  hollings
@@ -155,7 +158,9 @@ metricInstance *performanceStream::enableDataCollection(resourceList *rl,
 	mi->users.add(this);
     } else {
 	mi = appl->enableDataCollection(rl, m, aggOp);
-	if (mi) mi->users.add(this);
+	if (mi) {
+	    mi->users.add(this);
+	}
     }
     return(mi);
 }

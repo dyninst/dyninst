@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.18  1994/06/27 21:23:22  rbi
+ * Revision 1.19  1994/06/29 02:55:57  hollings
+ * fixed code to remove instrumenation when done with it.
+ *
+ * Revision 1.18  1994/06/27  21:23:22  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.17  1994/06/17  22:07:58  hollings
@@ -274,6 +277,9 @@ class metric {
 
 class metricInstance {
     public:
+	~metricInstance() {
+	    if (data) delete(data);
+	}
 	metricInstance(resourceList *rl, metric *m, aggregation aOp = Sum) {
 	    met = m;
 	    focus = rl;
@@ -281,7 +287,7 @@ class metricInstance {
 	    enabledTime = 0.0;
             sample.aggOp = aOp;
 	    aggOp = aOp;
-
+	    data = NULL;
 	}
 	float getValue() {
 	    float ret;

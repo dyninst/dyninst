@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.26  1994/06/23 19:26:20  karavan
+ * Revision 1.27  1994/06/29 02:55:55  hollings
+ * fixed code to remove instrumenation when done with it.
+ *
+ * Revision 1.26  1994/06/23  19:26:20  karavan
  * added option for core dump of all processes with pid=-1 in coreProcess
  * command.
  *
@@ -483,8 +486,10 @@ void histFoldCallBack(timeStamp width, void *arg)
     List<performanceStream*> curr;
 
     mi = (metricInstance *) arg;
-    for (curr = mi->users; ps = *curr; curr++) {
-	ps->callFoldFunc(width);
+    if (mi->count) {
+	for (curr = mi->users; ps = *curr; curr++) {
+	    ps->callFoldFunc(width);
+	}
     }
 }
 
@@ -529,6 +534,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 				 (void *) mi);
 	name = rl->getCanonicalName();
 	m->enabledCombos.add(mi, (void*) name);
+	mi->count = 1;
 	return(mi);
     } else {
 	delete(mi);
