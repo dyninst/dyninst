@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.180 2004/03/05 16:51:20 bernat Exp $
+// $Id: aix.C,v 1.181 2004/03/08 23:45:39 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -630,38 +630,40 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
   lo = lowest_addr;
   hi = highest_addr;
   if (near)
-    {
+  {
       if (near < (lowest_addr + branch_range))
-	lo = lowest_addr;
+          lo = lowest_addr;
       else
-	lo = near - branch_range;
+          lo = near - branch_range;
       if (near > (highest_addr - branch_range))
-	hi = highest_addr;
+          hi = highest_addr;
       else
-	hi = near + branch_range;
-    }
+          hi = near + branch_range;
+  }
   switch (type)
-    {
-    case dataHeap:
-      // mmap, preexisting dataheap constraints
-      // so shift down lo and hi accordingly
-      if (lo < data_low_addr) {
-	lo = data_low_addr;
-	// Keep within branch range so that we know we can
-	// reach anywhere inside.
-	if (hi < (lo + branch_range))
-	  hi = lo + branch_range;
-      }
-      if (hi > data_hi_addr) {
-	hi = data_hi_addr;
-	if (lo > (hi - branch_range))
-	  lo = hi - branch_range;
-      }
-      break;
-    default:
-      // no change
-      break;
-    }
+  {
+ case dataHeap:
+     // mmap, preexisting dataheap constraints
+     // so shift down lo and hi accordingly
+     if (lo < data_low_addr) {
+         lo = data_low_addr;
+         // Keep within branch range so that we know we can
+         // reach anywhere inside.
+         if (hi < (lo + branch_range))
+             hi = lo + branch_range;
+     }
+     if (hi > data_hi_addr) {
+         hi = data_hi_addr;
+/*
+         if (lo > (hi - branch_range))
+             lo = hi - branch_range;
+*/
+     }
+     break;
+ default:
+     // no change
+     break;
+  }
 }
 
 void process::inferiorMallocAlign(unsigned &size)
@@ -2062,3 +2064,35 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
 }
 
 
+void process::copyDanglingMemory(process *child) {
+    // Copy everything in a heap marked "text" over by hand
+    pdvector<heapItem *> items = heap.heapActive.values();
+    for (unsigned i = 0; i < items.size(); i++) {
+        if (items[i]->type == textHeap) {
+            char buffer[items[i]->length];
+            readDataSpace((void *)items[i]->addr, items[i]->length,
+                          buffer, true);
+            child->writeDataSpace((void *)items[i]->addr, 
+                                  items[i]->length,
+                                  buffer);
+        }
+    }
+    // Odd... some changes _aren't_ copied. So add the base tramp
+    // jumps as well (copy from parent)
+    pdvector<trampTemplate *> tramps = baseMap.values();
+    for (unsigned j = 0; j < tramps.size(); j++) {
+        instruction insn;
+        fprintf(stderr, "Copying jump at 0x%x\n",
+                tramps[j]->location->absPointAddr(this));
+        readDataSpace((void *)tramps[j]->location->absPointAddr(this),
+                      sizeof(instruction),
+                      (void *)&insn, true);
+        child->writeDataSpace((void *)tramps[j]->location->absPointAddr(this),
+                              sizeof(instruction),
+                              (void *)&insn);
+    }
+    
+
+}
+
+        
