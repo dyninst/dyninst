@@ -275,6 +275,7 @@ bool PDYN_hoster()
   /*
      printf("hoster() sending back host table\n");
      */
+  pvm_setmwid(pvm_getsbuf(), pvm_getmwid(pvm_getrbuf()));
   pvm_send(fromtid, SM_STHOSTACK);
 
   /* start paradyndPVM */
