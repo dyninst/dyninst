@@ -4,7 +4,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.4  1995/04/05 20:24:05  jcargill
+# Revision 1.5  1995/04/07 15:08:13  jcargill
+# Moved setting of INSTANTIATE_TEMPLATES down into arch-specific Makefiles,
+# since it must be set before make.config is read.
+#
+# Revision 1.4  1995/04/05  20:24:05  jcargill
 # Removed CXXFLAGS brokenness; added INSTANTIATE_TEMPLATES instead
 #
 # Revision 1.3  1995/02/26  01:59:20  newhall
@@ -17,8 +21,6 @@
 # Major build system reorganization
 #
 #
-
-INSTANTIATE_TEMPLATES	= true
 
 TARGET	      = libvisi.a 
 
