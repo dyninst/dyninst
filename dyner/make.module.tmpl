@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.14 2001/12/20 21:33:36 buck Exp $
+# $Id: make.module.tmpl,v 1.15 2002/08/08 18:00:48 buck Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -26,8 +26,10 @@ CFLAGS       += $(BASICWARNINGS)
 # set to "on" by default. This causes linker problems, so we
 # default to "off".
 
+ifdef GCC_2_95
 CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
+endif
 
 LIBS         += -ldyninstAPI 
 
