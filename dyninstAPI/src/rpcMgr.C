@@ -116,15 +116,6 @@ bool rpcMgr::existsRunningIRPC() const {
         return false;
 }
 
-bool rpcMgr::rpcSavesRegs()
-{
-#if defined(rs6000_ibm_aix4_1)
-   return false;
-#else
-   return true;
-#endif
-}
-
 bool rpcMgr::handleSignalIfDueToIRPC() {
     // For each IRPC we're running, check whether the thread
     // (or lwp) is at the PC equal to the trap address. 

@@ -170,13 +170,11 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     struct dyn_saved_regs *theSavedRegs = NULL;
     // Some platforms save daemon-side, some save process-side (on the stack)
     // Should unify this.
-    if (mgr_->rpcSavesRegs()) {
-        theSavedRegs = lwp->getRegisters();
-        if (theSavedRegs == (struct dyn_saved_regs *)-1) {
-            // Should only happen if we're in a syscall, which is 
-            // caught above
-            return irpcError;
-        }
+    theSavedRegs = lwp->getRegisters();
+    if (theSavedRegs == (struct dyn_saved_regs *)-1) {
+        // Should only happen if we're in a syscall, which is 
+        // caught above
+        return irpcError;
     }
     // RPC is actually going to be running
     runningRPC_ = pendingRPC_;

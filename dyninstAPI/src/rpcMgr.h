@@ -290,7 +290,6 @@ class rpcMgr {
    bool cancelRPC(unsigned id);
    
    inferiorRPCtoDo *getProcessRPC();
-   bool rpcSavesRegs();
    
    // The big function: launch RPCs everywhere possible
    bool launchRPCs(bool wasRunning);
