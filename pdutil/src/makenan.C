@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.14 1999/10/19 18:26:57 nick Exp $
+// $Id: makenan.C,v 1.15 1999/10/19 22:08:13 nick Exp $
 
 #include "util/h/makenan.h"
 #include "util/h/headers.h"
-#include <cmath>
-#include <cassert>
+#include <math.h>
+#include <assert.h>
 
 static float f_paradyn_nan = 0.0;
 static bool nan_created = false;
