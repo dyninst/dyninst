@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 1999/05/29 23:39:29 wylie Exp $
+# $Id: make.module.tmpl,v 1.18 2000/03/31 22:07:18 wylie Exp $
 #
 
 ifndef TARGET
@@ -74,7 +74,7 @@ $(TARGET): $(OBJS)
 
 UNCOMMON_INSTALL = true
 
-install: $(INSTOBJS)
+install: $(INSTOBJS) $(SYSEXTRAS)
 
 $(DEST)/$(TARGET):       $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
