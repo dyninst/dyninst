@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.5  1994/08/05 16:02:05  hollings
+ * Revision 1.6  1994/09/22 03:19:13  markc
+ * Changed private pointers to char*
+ *
+ * Revision 1.5  1994/08/05  16:02:05  hollings
  * More consistant use of stringHandle vs. char *.
  *
  * Revision 1.4  1994/07/28  22:22:06  krisna
@@ -41,7 +44,7 @@
  *   page 436.
  *
  */
-static int hash(char *ch, int size)
+static int hash(const char *ch, int size)
 {
     register unsigned int h = 0, g;
 
@@ -58,40 +61,40 @@ static int hash(char *ch, int size)
 stringPool::stringPool()
 {
     memset(table, '\0', sizeof(table));
-    currPage = (stringHandle) malloc(4090);;
+    currPage = new char[4090];
     currPos = currPage;
 }
 
-stringHandle stringPool::find(char *data)
+stringHandle stringPool::find(const char *data)
 {
     int hid;
     stringEntry *curr;
 
     hid = hash(data, TAB_SIZE);
     for (curr=table[hid]; curr; curr=curr->next) {
-	if (!strcmp(data, (char *) curr->data)) {
+	if (!strcmp(data, curr->data)) {
 	    return(curr->data);
 	}
     }
     return(NULL);
 }
 
-stringHandle stringPool::getSpace(int size)
+char *stringPool::getSpace(int size)
 {
-    stringHandle ret;
+    char *ret;
 
     if ((int)(currPos - currPage) + size > PAGE_SIZE) {
-	// create a new page.
-	currPage = (stringHandle) malloc(4090);
-	if (!currPage) abort();
-	currPos = currPage;
+      // create a new page.
+      currPage = new char[4090];
+      if (!currPage) abort();
+      currPos = currPage;
     }
     ret = currPos;
     currPos += size;
     return(ret);
 }
 
-stringHandle stringPool::findAndAdd(char *data)
+stringHandle stringPool::findAndAdd(const char *data)
 {
     int hid;
     stringHandle val;
@@ -101,12 +104,12 @@ stringHandle stringPool::findAndAdd(char *data)
     if (!val) {
 	// add it.
 	hid = hash(data, TAB_SIZE);
-	temp = (stringEntry *) malloc(sizeof(stringEntry));
+	temp = new stringEntry;
 	temp->data = getSpace(strlen(data)+1);
-	strcpy((char *) temp->data, data);
-	temp->next = this->table[hid];
+	strcpy(temp->data, data);
+	temp->next = table[hid];
 	table[hid] = temp;
-	val = temp->data;
+	val = (stringHandle) temp->data;
     }
     return(val);
 }
