@@ -5,15 +5,18 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.9  1995/08/24 15:04:45  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
+ * Revision 1.10  1996/06/20 21:35:07  naim
+ * Adding a nop at the delay slot to avoid "illegal instruction" bug - naim
  *
+# Revision 1.9  1995/08/24  15:04:45  hollings
+# AIX/SP-2 port (including option for split instruction/data heaps)
+# Tracing of rexec (correctly spawns a paradynd if needed)
+# Added rtinst function to read getrusage stats (can now be used in metrics)
+# Critical Path
+# Improved Error reporting in MDL sematic checks
+# Fixed MDL Function call statement
+# Fixed bugs in TK usage (strings passed where UID expected)
+#
 # Revision 1.8  1994/11/02  19:01:26  hollings
 # Made the observed cost model use a normal variable rather than a reserved
 # register.
@@ -79,6 +82,7 @@ _baseTramp:
 	*/
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
+	nop
 	.word 	EMULATE_INSN
 	nop			/* delay slot */
 	nop			/* extra nop for aggregate size */
