@@ -137,6 +137,23 @@ void clearBaseBranch(process *proc, instInstance *inst)
     // stupid kludge because the instPoint class is defined in a .C file
     // so we can't access any of its member functions
     generateNoOp(proc, addr);
+
+    // If there is no instrumentation at this point, skip.
+    unsigned fromAddr, toAddr;
+    if (inst->when == callPreInsn) {
+      fromAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+      toAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.emulateInsOffset;
+    }
+    else {
+      fromAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+      toAddr = (unsigned)inst->baseInstance->baseAddr+baseTemplate.returnInsOffset;
+    }
+    generateBranch(proc,fromAddr,toAddr);
+
+#if defined(MT_DEBUG)
+    sprintf(errorLine,"generating branch from address 0x%x to address 0x%x - CLEAR\n",fromAddr,toAddr);
+    logLine(errorLine);
+#endif
 }
 
 // implicit assumption that tramps generate to less than 64K bytes!!!
@@ -180,6 +197,11 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->proc = proc;
     ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance);
     if (!ret->baseInstance) return(NULL);
+
+#if defined(MT_DEBUG)
+    sprintf(errorLine,"==>BaseTramp is in 0x%x\n",ret->baseInstance->baseAddr);
+    logLine(errorLine);
+#endif
 
     /* check if there are other inst points at this location. for this process
        at the same pre/post mode */
@@ -230,17 +252,6 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
-
-#ifdef FREEDEBUG1
-    static vector<unsigned> TESTaddrs;
-    for (unsigned i=0;i<TESTaddrs.size();i++) {
-      if (TESTaddrs[i] == ret->trampBase) {
-        sprintf(errorLine,"=====> inferiorMalloc returned same address 0x%x\n",ret->trampBase);
-        logLine(errorLine);
-      }
-    }
-    TESTaddrs += (unsigned)ret->trampBase;
-#endif
 
     if (!ret->trampBase) return(NULL);
     trampBytes += count;
