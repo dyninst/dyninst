@@ -5,10 +5,17 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.23  1995/12/03 21:32:29  newhall
+ * added BufferPool
+ *
+<<<<<<< templates.C
+ * Revision 1.21  1995/11/20  03:19:08  tamches
+=======
  * Revision 1.22  1995/11/29 00:15:35  tamches
  * added stuff necessary for the new pdLogo.C file
  *
  * Revision 1.21  1995/11/20 03:19:08  tamches
+>>>>>>> 1.22
  * changed vector<whereAxisRootNode *> to const
  *
  * Revision 1.20  1995/11/06 19:31:06  tamches
@@ -108,6 +115,9 @@
 #pragma implementation "Queue.h"
 #include "util/h/Queue.h"
 
+#pragma implementation "BufferPool.h"
+#include "paradyn/src/DMthread/BufferPool.h"
+
 #pragma implementation "Dictionary.h"
 #include "util/h/Dictionary.h"
 
@@ -134,6 +144,7 @@ class cpContext;
 #include "paradyn/src/DMthread/DMperfstream.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMabstractions.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
 
 
 template class vector<cpContext*>;
@@ -162,6 +173,8 @@ template class pair<string, metric*>;
 template class vector< pair< string, metric*> >;
 template class vector< dictionary_hash<string, metric *> :: hash_pair >;
 template class vector< vector< dictionary_hash<string, metric *> :: hash_pair > >;
+template class vector<dataValueType>;
+template class BufferPool<dataValueType>;
 
 
 template class dictionary<string, resource*>;
