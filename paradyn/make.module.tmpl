@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.27  1996/02/27 17:30:40  karavan
+# removed PC debug printing flag
+#
 # Revision 1.26  1996/02/22 18:34:23  karavan
 #  obsoleted PCdataQ.C
 #
@@ -95,8 +98,8 @@
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
-#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
+#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 TARGET	      = paradyn
