@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.52 2002/07/03 22:18:44 bernat Exp $
+ * $Id: rtinst.h,v 1.53 2002/07/11 19:45:48 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -206,17 +206,18 @@ typedef struct rpcToDo_s {
 } rpcToDo;
 
 typedef struct RTsharedData_rec {
-  unsigned cookie;
-  unsigned inferior_pid;
-  unsigned daemon_pid;
-  unsigned observed_cost;
+  unsigned *cookie;
+  unsigned *inferior_pid;
+  unsigned *daemon_pid;
+  unsigned *observed_cost;
+  unsigned *trampGuards;
   /* MT */
-  tTimer virtualTimers[MAX_NUMBER_OF_THREADS];
-  rpcToDo pendingIRPCs[MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
-  unsigned posToThread[MAX_NUMBER_OF_THREADS];
+  tTimer *virtualTimers;
+  unsigned *posToThread;
+  rpcToDo **pendingIRPCs; /* By POS, then by index */
 } RTsharedData_t;
 
-extern RTsharedData_t *RTsharedData; /* Defined in RTinst.c */
+extern RTsharedData_t RTsharedData; /* Defined in RTinst.c */
 
 #endif /*!defined(__ASSEMBLER__)*/
 
