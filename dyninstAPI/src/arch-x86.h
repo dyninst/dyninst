@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.17 2004/03/25 21:29:35 lharris Exp $
+// $Id: arch-x86.h,v 1.18 2004/04/01 00:48:19 lharris Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -98,6 +98,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 /* opcodes of some instructions */
 #define PUSHAD   (0x60)
 #define PUSHFD   (0x9C)
+#define PUSHEBP  (0x55)
 #define POPAD    (0x61)
 #define POPFD    (0x9D)
 #define PUSH_DS  (0x1E)
