@@ -174,8 +174,9 @@ $(OBJDIR)/scanner.C: $(SRCDIR)/src/scanner.l $(OBJDIR)/parser.tab.C $(FRC)
 
 $(OBJDIR)/parser.tab.C $(OBJDIR)/parser.tab.h: $(SRCDIR)/src/parser.y $(FRC)
 	echo Building `basename $@` ...
-	$(BISON) -p mrn -d -o $@ $<
-	mv $(OBJDIR)/parser.tab.H $(OBJDIR)/parser.tab.h
+	$(BISON) -p mrn -d -y $<
+	mv y.tab.c $(OBJDIR)/parser.tab.C
+	mv y.tab.h $(OBJDIR)/parser.tab.h
 
 parser: $(OBJDIR)/scanner.C $(OBJDIR)/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS) \
 	    src/Network.o
