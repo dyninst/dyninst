@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.96 2002/10/15 17:11:57 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.97 2002/11/25 23:52:49 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -102,9 +102,11 @@ public:
   // propagate this aggregate mi to a newly started process p (not for
   // processes started via fork or exec, just for those started "normally")
   static void handleNewProcess(process *p);
+  static void handleDeletedProcess(pd_process *p);
 
   metricFocusNode *forkProcess(process *child,
-                                    const dictionary_hash<instInstance*,instInstance*> &map) const;
+                               const dictionary_hash<instInstance*,
+                               instInstance*> &map) const;
      // called when it's determined that an mi should be propagated from the
      // parent to the child.  "this" is a component mi, not an aggregator mi.
   bool unFork(dictionary_hash<instInstance*, instInstance*> &map,
@@ -133,6 +135,7 @@ public:
      // in question is removed from the system.
 
   static void handleNewThread(pd_process *proc, pd_thread *thr);
+  static void handleDeletedThread(pd_process *proc, pd_thread *thr);
 
 protected:
   // Since we don't define these, make sure they're not used:
@@ -140,7 +143,8 @@ protected:
 };
 
 
-typedef enum { insert_success, insert_failure, insert_deferred } instr_insert_result_t;
+typedef enum { insert_success, insert_failure, insert_deferred } 
+                                                   instr_insert_result_t;
 
 class metricFocusRequestCallbackInfo {
    int request_id;
