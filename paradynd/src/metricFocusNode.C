@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.199 2001/09/07 15:22:30 schendel Exp $
+// $Id: metricFocusNode.C,v 1.200 2001/09/14 16:02:05 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3340,8 +3340,9 @@ metricDefinitionNode::~metricDefinitionNode()  // call removeComponent before de
   // TO UNDEF from allMIPrimitives -- taken care of in removeComponent?
   // if (allMIComponents.defines(flat_name_) && this==allMIComponents[flat_name_])
   // allMIComponents.undef(flat_name_);
-  for (unsigned u2=0; u2<dataRequests.size(); u2++) 
+  for (unsigned u2=0; u2<dataRequests.size(); u2++) {
     delete dataRequests[u2];
+  }
   dataRequests.resize(0);
 
 #else
@@ -5643,9 +5644,9 @@ bool AstNode::condMatch(AstNode* a,
   return false;
 }
 
-// going to here
+// Check if "mn" and "this" correspond to the same instrumentation?
 bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
-				     vector<dataReqNode*> &data_tuple1, // initialization?
+				     vector<dataReqNode*> &data_tuple1,
 				     vector<dataReqNode*> &data_tuple2) {
 
   assert(mdn_type_ == PRIM_MDN);
@@ -5658,6 +5659,9 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
   unsigned datareqs_size = datanodes1.size();
   unsigned instreqs_size = instRequests.size();
 
+  
+  // Both "this" metricDefinitionNode and the passed in metricDefinitionNode
+  // "mn" have the same number of dataRequestNodes 
   if ((datareqs_size != datanodes2.size()) ||
       (instreqs_size != mn->instRequests.size())) {
     return false;
@@ -5666,6 +5670,7 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
   // need to return this match?
   // vector<dataReqNode*> data_tuple1, data_tuple2; // initialization?
 
+  // Check that instRequestNodes in "mn" and "this" are the same. 
   for (unsigned i=0; i<instreqs_size; i++) {
 
     // what to do with "callWhen when" and "callOrder order"??
@@ -5681,6 +5686,7 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
       return false;
     }
   }
+
   return true;
 }
 
@@ -5689,18 +5695,26 @@ bool metricDefinitionNode::condMatch(metricDefinitionNode *mn,
 // incremental code generation optimization
 // check if match BEFORE add into allMIPrimitives
 metricDefinitionNode* metricDefinitionNode::matchInMIPrimitives() {
+
+
   assert(mdn_type_ == PRIM_MDN);
 
-  // note the two loops; we can't safely combine into one since the second loop modifies
-  // the dictionary. probably not necessary here
+
+  // note the two loops; we can't safely combine into one since the second 
+  // loop modifies the dictionary. 
   vector<metricDefinitionNode*> allprims;
-  for (dictionary_hash_iter<string,metricDefinitionNode*> iter=allMIPrimitives; iter; iter++)
+  for (dictionary_hash_iter<string, metricDefinitionNode*> iter = 
+                                            allMIPrimitives; iter; iter++) {
     allprims += iter.currval();
+  }
   
   for (unsigned i=0; i < allprims.size(); i++) {
     metricDefinitionNode* primitiveMI = allprims[i];
-    if ((primitiveMI->proc() != proc_) || primitiveMI->metStyle() != style_)
+
+    if ((primitiveMI->proc() != proc_) || 
+        (primitiveMI->metStyle() != style_)) {
       continue;
+    }
 
     // what about? -- not meaningful to primitive mdn at all!
     //   met_: met_.., internalMetric::isInternalMetric(aggMI->getMetName())

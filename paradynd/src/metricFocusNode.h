@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.77 2001/09/07 15:22:28 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.78 2001/09/14 16:02:06 gurari Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -943,6 +943,7 @@ public:
     unsigned csize = components.size();
     return (components[csize-1]);
   }
+
   metricDefinitionNode * getThrComp(string tname) {
     assert(mdn_type_ == PRIM_MDN);
     unsigned csize = components.size();
@@ -954,6 +955,7 @@ public:
 
     return NULL;
   }
+
   metricDefinitionNode * getProcComp() {
     assert(mdn_type_ == PRIM_MDN);
 
