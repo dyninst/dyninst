@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.49 2003/03/08 01:23:42 bernat Exp $
+// $Id: irix.C,v 1.50 2003/03/10 23:15:28 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -453,7 +453,7 @@ int decodeProcStatus(process *proc,
                      procProcStatus_t status,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
-                     int &retval) {
+                     procSignalInfo_t &info) {
     
     switch (status.pr_why) {
   case PR_SIGNALLED:
@@ -463,12 +463,12 @@ int decodeProcStatus(process *proc,
   case PR_SYSENTRY:
       why = procSyscallEntry;
       what = status.pr_what;
-      retval = status.pr_reg[REG_A0];
+      info = (procSignalInfo_t) status.pr_reg[REG_A0];
       break;
   case PR_SYSEXIT:
       why = procSyscallExit;
       what = status.pr_what;
-      retval = status.pr_reg[PROC_REG_RV];
+      info = (procSignalInfo_t) status.pr_reg[PROC_REG_RV];
       break;
   case PR_REQUESTED:
       // We don't expect PR_REQUESTED in the signal handler
@@ -494,12 +494,12 @@ int decodeProcStatus(process *proc,
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
 
     why = procUndefined;
     what = 0;
-    retval = 0;
+    info = 0;
 
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
@@ -601,7 +601,7 @@ process *decodeProcessEvent(int pid,
             // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
                     return NULL;
             }
         }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.125 2003/03/08 01:23:41 bernat Exp $
+// $Id: aix.C,v 1.126 2003/03/10 23:15:27 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -825,7 +825,7 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t what)
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
     int options;
     if (block) options = 0;
@@ -1150,16 +1150,16 @@ bool process::loopUntilStopped() {
     while (!isStopped) {
         procSignalWhy_t why;
         procSignalWhat_t what;
-        int retval;
-        process *proc = decodeProcessEvent(pid, why, what, retval, true);
+        procSignalInfo_t info;
+        process *proc = decodeProcessEvent(pid, why, what, info, true);
         assert(proc == NULL ||
                proc == this);
-        if (why == procSignalled &&
+        if (didProcReceiveSignal(why) &&
             what == SIGSTOP) {
             isStopped = true;
         }
         else {
-            handleProcessEvent(this, why, what, 0);
+            handleProcessEvent(this, why, what, info);
         }
     }
     return true;

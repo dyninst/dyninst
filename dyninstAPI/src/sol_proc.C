@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.11 2003/03/08 01:23:45 bernat Exp $
+// $Id: sol_proc.C,v 1.12 2003/03/10 23:15:31 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1305,8 +1305,8 @@ int decodeProcStatus(process *proc,
                      lwpstatus_t status,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
-                     int &retval) {
-    retval = status.pr_reg[R_O0];
+                     procSignalInfo_t &info) {
+    info = status.pr_reg[R_O0];
     
     switch (status.pr_why) {
   case PR_SIGNALLED:
@@ -1345,11 +1345,11 @@ int decodeProcStatus(process *proc,
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
     why = procUndefined;
     what = 0;
-    retval = 0;
+    info = 0;
 
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
@@ -1427,7 +1427,7 @@ process *decodeProcessEvent(int pid,
             // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
                     return NULL;
             }
         }

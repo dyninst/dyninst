@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.44 2003/03/08 01:23:40 bernat Exp $
+// $Id: osf.C,v 1.45 2003/03/10 23:15:30 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -314,7 +314,8 @@ int decodeProcStatus(process *proc,
                      procProcStatus_t status,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
-                     int &retval) {
+                     procSignalInfo_t &info) {
+    
     switch (status.pr_why) {
   case PR_SIGNALLED:
       why = procSignalled;
@@ -323,12 +324,12 @@ int decodeProcStatus(process *proc,
   case PR_SYSENTRY:
       why = procSyscallEntry;
       what = status.pr_what;
-      retval = status.pr_reg.regs[A0_REGNUM];
+      info = status.pr_reg.regs[A0_REGNUM];
       break;
   case PR_SYSEXIT:
       why = procSyscallExit;
       what = status.pr_what;
-      retval = status.pr_reg.regs[V0_REGNUM];
+      info = status.pr_reg.regs[V0_REGNUM];
       break;
   case PR_REQUESTED:
       // We don't expect PR_REQUESTED in the signal handler
@@ -354,12 +355,12 @@ int decodeProcStatus(process *proc,
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
 
     why = procUndefined;
     what = 0;
-    retval = 0;
+    info = 0;
 
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
@@ -386,7 +387,6 @@ process *decodeProcessEvent(int pid,
                     }
                     else if (retWait > 1) {
                         decodeWaitPidStatus(processVec[u], status, why, what);
-                        retval = 0;
                         // In this case we return directly
                         return processVec[u];
                     }
@@ -454,7 +454,7 @@ process *decodeProcessEvent(int pid,
             // Check if the process is stopped waiting for us
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
                     return NULL;
             }
         }
@@ -469,162 +469,6 @@ process *decodeProcessEvent(int pid,
     
 } 
 
-
-
-#if 0
-
-
-// Get and decode a signal for a process
-// We poll /proc for process events, and so it's possible that
-// we'll get multiple hits. In this case we return one and queue
-// the rest. Further calls of decodeProcessEvent will burn through
-// the queue until there are none left, then re-poll.
-// Return value: 0 if nothing happened, or process pointer
-
-process *decodeProcessEvent(int pid,
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            int &retval,
-                            bool block) {
-
-    why = procUndefined;
-    what = 0;
-    retval = 0;
-
-    extern pdvector<process*> processVec;
-    static struct pollfd fds[OPEN_MAX];  // argument for poll
-    // Number of file descriptors with events pending
-    static int selected_fds = 0; 
-    // The current FD we're processing.
-    static int curr = 0;
-    prstatus_t stat;
-    int status;
-
-    if (selected_fds == 0) {
-	    for (unsigned u = 0; u < processVec.size(); u++) {
-            if ((processVec[u]->status_ == exited)) {
-                fds[u].fd = -1;
-                continue;
-            }
-            
-            fds[u].events = POLLPRI | POLLIN;
-            fds[u].revents = 0;
-            if (processVec[u]) {
-                fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
-                int status;
-                // exit doesn't show up on a poll. Check for that
-                // now with a waitpid
-                int retExit = waitpid(processVec[u]->getPid(),
-                                      &status, WNOHANG|WNOWAIT);
-                if (retExit == -1) {
-                    continue; // Skip this proc
-                }
-                else if (retExit == processVec[u]->getPid()) {
-                    decodeWaitPidStatus(processVec[u],
-                                        status,
-                                        why,
-                                        what);
-                    return processVec[u];
-                }
-            } else {
-                fds[u].fd = -1;
-            }
-	    }
-        if (selected_fds == 0) {
-            // only poll if no waitpid event was identified
-            int timeout;
-            // since exit doesn't provide an event, we need to timeout and test via waitpid
-            if (block) timeout = 5;
-            else timeout = 0;
-            selected_fds = poll(fds, processVec.size(), timeout);
-            if (selected_fds <= 0) {
-                if (selected_fds < 0) {
-                    perror("decodeProcStatus: poll failed");
-                    selected_fds = 0;
-                }
-                return NULL;
-            }
-	    }
-        
-        curr = 0;
-    } // if selected_fds == 0
-    // We have one or more events to work with.
-    while (fds[curr].revents == 0) {
-        // skip
-        ++curr;
-    }
-    if (curr > processVec.size()) return NULL;
-    
-    // fds[curr] has an event of interest
-    prstatus_t procstatus;
-    process *currProcess = processVec[curr];
-    
-    if (fds[curr].revents & POLLHUP) {
-        // True if the process exited out from under us
-        int ret;
-        // Process exited, get its return status
-        do {
-            ret = waitpid(currProcess->getPid(), &status, 0);
-        } while ((ret < 0) && (errno == EINTR));
-        if (ret < 0) {
-            // This means that the application exited, but was not our child
-            // so it didn't wait around for us to get it's return code.  In
-            // this case, we can't know why it exited or what it's return
-            // code was.
-            ret = currProcess->getPid();
-            status = 0;
-            // is this the bug??
-            // processVec[curr]->continueProc_();
-        }
-        if (!decodeWaitPidStatus(currProcess, status, why, what)) {
-            cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
-            return NULL;
-        }
-    } 
-    else {
-        // Real return from poll
-
-        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
-                  PIOCSTATUS, 
-                  &procstatus) != -1) {
-            // Similar to POLLHUP above
-            if (procstatus.pr_why == PR_DEAD) {
-                int ret;
-                do {
-                    ret = waitpid(processVec[curr]->getPid(), &status, 0);
-                } while ((ret < 0) && (errno == EINTR));
-                if (ret < 0) {
-                    // This means that the application exited, but was not our child
-                    // so it didn't wait around for us to get it's return code.  In
-                    // this case, we can't know why it exited or what it's return
-                    // code was.
-                    ret = processVec[curr]->getPid();
-                    status = 0;
-                }
-                assert(ret == processVec[curr]->getPid());
-                if (!decodeWaitPidStatus(currProcess, status, why, what)) {
-                    return NULL;
-                }
-            }
-            else if (procstatus.pr_flags & PR_STOPPED ||
-                     procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
-                    return NULL;
-            }
-        }
-        else {
-            perror("ioctl failed in decodeProcessEvent");
-            
-        }
-    }
-    // Skip this FD the next time through
-    --selected_fds;
-    ++curr;    
-    return currProcess;
-    
-} 
-
-#endif
 
 /*
    Open the /proc file correspoding to process pid, 

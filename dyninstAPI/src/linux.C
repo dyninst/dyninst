@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.87 2003/03/08 01:23:39 bernat Exp $
+// $Id: linux.C,v 1.88 2003/03/10 23:15:29 bernat Exp $
 
 #include <fstream.h>
 
@@ -241,7 +241,7 @@ process *findProcess( int );  // In process.C
 process *decodeProcessEvent(int pid, 
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
     int options = 0;
     if (!block) options |= WNOHANG;
@@ -935,16 +935,16 @@ bool process::loopUntilStopped() {
     while (!haveStopped) {
         procSignalWhy_t why;
         procSignalWhat_t what;
-        int retval;
-        process *proc = decodeProcessEvent(getPid(), why, what, retval, true);
+        procSignalInfo_t info;
+        process *proc = decodeProcessEvent(getPid(), why, what, info, true);
         assert(proc == NULL ||
                proc == this);
-        if (why == procSignalled &&
+        if (didProcReceiveSignal(why) &&
             what == SIGSTOP) {
             haveStopped = true;
             // Don't call the general handler
         }
-        else handleProcessEvent(this, why, what, 0);
+        else handleProcessEvent(this, why, what, info);
     }
     return true;
 }
