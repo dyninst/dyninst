@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.11  1995/11/22 00:10:05  mjrg
+ * Fixed "constrained" feature of MDL (fixed by Jeff, commited by mjrg)
+ *
  * Revision 1.10  1995/11/21 15:14:27  naim
  * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
  * can specify all elements in any order). Additionally, the option "fold"
@@ -1111,7 +1114,15 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
-					 vector<dataReqNode*>& flags) {
+                                        vector<dataReqNode*>& inFlags) {
+ 
+   // check to see if this is constrained or not 
+   vector<dataReqNode*> flags;
+   if (constrained_) {
+       // we are constrained so use the flags (boolean constraint variables
+       flags = inFlags;
+   }
+ 
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
