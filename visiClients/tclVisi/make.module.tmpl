@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/07/06 01:55:23  newhall
+# Revision 1.6  1995/07/06 16:06:10  newhall
+# removed -static flag
+#
+# Revision 1.5  1995/07/06  01:55:23  newhall
 # update for Tcl-7.4, Tk-4.0
 #
 # Revision 1.4  1995/03/20  19:37:03  jcargill
@@ -29,7 +32,6 @@ SRCS	     += ../src/tclVisi.C \
 
 LIBS         += -lvisi -lhist -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
-LDFLAGS	     += -static
 
 
 all: $(TARGET)
