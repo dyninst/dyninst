@@ -72,10 +72,10 @@ bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd){
 	    addr = (u_int)(auxv_elms[i].a_un.a_ptr);
 	    // cout << "ld.so.1 base addr = " << addr << "num " 
 	    // << auxvnum << endl;
-	    delete auxv_elms;
+	    delete [] auxv_elms;
 	    return true;
     } }
-    delete auxv_elms;
+    delete [] auxv_elms;
     return false;
 }
 
