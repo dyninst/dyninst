@@ -5,6 +5,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.15  1995/08/01 02:18:04  newhall
+ * changes to support phases
+ *
  * Revision 1.14  1995/07/24 21:25:51  tamches
  * removed list of resourceDisplayObj
  *
@@ -114,6 +117,7 @@ template class vector<resource*>;
 template class vector<resourceList*>;
 template class vector<abstraction*>;
 template class vector<metricInstance*>;
+template class vector<ArchiveType *>;
 template class dictionary<string,metric*>;
 template class dictionary_hash<string,metric*>;
 template class pair<string, metric*>;
