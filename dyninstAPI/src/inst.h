@@ -45,10 +45,11 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+#include "ast.h" // enum opCode now defined here.
 
+class instPoint;
 class instInstance;
 class process;
-class instPoint;
 class pd_Function;
 class metricDefinitionNode;
 
@@ -163,37 +164,6 @@ unsigned getPrimitiveCost(const string &name);
 
 // a register.
 typedef int reg;
-
-typedef enum { plusOp,
-               minusOp,
-               timesOp,
-               divOp,
-               lessOp,
-               leOp,
-               greaterOp,
-               geOp,
-               eqOp,
-               neOp,
-               loadOp,           
-               loadConstOp,
-               storeOp,
-	       storeMemOp,
-	       loadMemOp,
-               ifOp,
-	       callOp,
-	       trampPreamble,
-	       trampTrailer,
-	       noOp,
-	       orOp,
-	       andOp,
-	       getRetValOp,
-	       getSysRetValOp,
-	       getParamOp,
-	       getSysParamOp,	   
-	       loadIndirOp,
-	       storeIndirOp,
-	       saveRegOp,
-	       updateCostOp } opCode;
 
 /*
  * Generate an instruction.
