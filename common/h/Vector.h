@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.9 2000/06/14 23:01:29 wylie Exp $
+ * $Id: Vector.h,v 1.10 2001/06/12 15:42:46 hollings Exp $
 ************************************************************************/
 
 
@@ -64,6 +64,22 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#ifdef USE_STL_VECTOR
+
+#include <stl.h>
+
+extern "C" {
+typedef int (*qsort_cmpfunc_t)(const void *, const void *);
+}
+
+#define VECTOR_APPEND(l1, l2) 	{ for (int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
+#define VECTOR_SORT(l1, f) 	qsort((l1).begin(),(l1).size(),sizeof((l1).front()), (qsort_cmpfunc_t) f);
+/* #define VECTOR_SORT(l1, f) 	stable_sort((l1).begin(),(l1).end(),f); */
+
+#else
+
+#define VECTOR_APPEND(l1, l2) 	l1 += l2;
+#define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
 
 
 
@@ -88,8 +104,12 @@ public:
     DO_INLINE_F ~vector ();
 
     DO_INLINE_F vector<T>&  operator= (const vector<T> &);
+
+    // These two should be elimindated as non-standard
     DO_INLINE_F vector<T>& operator+= (const vector<T> &);
     DO_INLINE_F vector<T>& operator+= (const T &);
+
+    DO_INLINE_F vector<T>& push_back(const T &); 
 
     DO_INLINE_F T&         operator[] (unsigned)                               const;
     DO_INLINE_F bool       operator== (const vector<T> &)                      const;
@@ -171,6 +191,15 @@ template<class T>
 DO_INLINE_F
 vector<T>&
 vector<T>::operator+=(const T& v0) {
+    resize(sz_+1);
+    data_[sz_-1] = v0;
+    return *this;
+}
+
+template<class T>
+DO_INLINE_F
+vector<T>&
+vector<T>::push_back(const T& v0) {
     resize(sz_+1);
     data_[sz_-1] = v0;
     return *this;
@@ -334,5 +363,7 @@ find(const vector<T> &v, const T &v0, unsigned &l) {
 	}
 	return false;
 }
+
+#endif
 
 #endif /* !defined(_Vector_h_) */

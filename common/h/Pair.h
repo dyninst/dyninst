@@ -43,7 +43,6 @@
  * Pair.h: definition of pairs for dictionaries and sets.
 ************************************************************************/
 
-
 
 #if defined(external_templates)
 #pragma interface
@@ -52,6 +51,10 @@
 
 #if !defined(_Pair_h_)
 #define _Pair_h_
+
+#ifdef USE_STL_VECTOR
+#include <stl.h>
+#else
 
 
 
@@ -77,5 +80,6 @@ struct pair {
 
 
 
+#endif
 
 #endif /* !defined(_Pair_h_) */

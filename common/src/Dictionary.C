@@ -275,7 +275,7 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
       const unsigned hashval = hasher(key);
       const unsigned bin     = hashval % bins.size();
 
-      all_elems += entry(key, hashval, V(), UINT_MAX);
+      all_elems.push_back(entry(key, hashval, V(), UINT_MAX));
       const unsigned new_entry_ndx = all_elems.size()-1;
 
       // Insert at the head of the bin (we could insert at the tail, but this

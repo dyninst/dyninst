@@ -88,7 +88,7 @@ class vectorSet {
    }
 
    vectorSet &operator+=(const T &item) {
-      data += item;
+      data.push_back(item);
       return *this;
    }
 };

@@ -246,6 +246,7 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
   return (rexec(ahost, (int)inport, user, passwd, cmd, fd2p));}
 
 // for matherr()
+#ifdef USES_NATIVE_CC
 struct exception { // CSS
         int type;
         char *name;
@@ -253,6 +254,7 @@ struct exception { // CSS
         double arg2;
         double retval;
 };
+#endif
 
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
