@@ -1,14 +1,17 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.10  1996/01/10 02:33:23  tamches
-/* changed uses of dynamic1dArray/2d to the vector class
-/* removed theWindowName
-/* added a tkInstallIdle
-/* int --> unsigned for many index variables
-/* constructor now takes an array of color names
-/* added getMetricColorName
+/* Revision 1.11  1996/05/15 18:01:22  tamches
+/* added setMetricNewMaxLL
 /*
+ * Revision 1.10  1996/01/10 02:33:23  tamches
+ * changed uses of dynamic1dArray/2d to the vector class
+ * removed theWindowName
+ * added a tkInstallIdle
+ * int --> unsigned for many index variables
+ * constructor now takes an array of color names
+ * added getMetricColorName
+ *
  * Revision 1.9  1995/09/22 19:24:03  tamches
  * removed warnings under g++ 2.7.0
  *
@@ -183,6 +186,8 @@ class BarChart {
       index %= metricColorNames.size();
       return metricColorNames[index];
    }
+
+   void setMetricNewMaxLL(unsigned metricindex, double newmaxval); // ugly
 };
 
 extern BarChart *theBarChart;
