@@ -1,6 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.35  1995/07/18 19:14:58  krisna
+# removed "source" command in mainMenu.tcl
+# moved code for status lines to status.tcl
+#
 # Revision 1.34  1995/07/01 23:00:00  rbi
 # updated colormodel handling to tk 4.0 and temporarily delayed need
 # for rmc technology
@@ -280,6 +284,9 @@ proc drawToolBar {} {
 
     # read in error file
 
-    uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
+#
+# not needed any more since errorList will be converted and sourced
+#
+#   uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
 }
 
