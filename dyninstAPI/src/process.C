@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.290 2002/01/30 22:19:56 hollings Exp $
+// $Id: process.C,v 1.291 2002/01/31 17:06:17 cortes Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1829,6 +1829,12 @@ unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); 
 //
 // Process "normal" (non-attach, non-fork) ctor, for when a new process
 // is fired up by paradynd itself.
+// This ctor. is also used in the case that the application has been fired up
+// by another process and stopped just after executing the execv() system call.
+// In the "normal" case, the parameter iTraceLink will be a non-negative value which
+// corresponds to the pipe descriptor of the trace pipe used between the paradynd
+// and the application. In the later case, iTraceLink will be -1. This will be 
+// posteriorly used to properly initialize the createdViaAttachToCreated flag. - Ana
 //
 
 //removed all ioLink related code for output redirection
@@ -1901,7 +1907,13 @@ process::process(int iPid, image *iImage, int iTraceLink
     wasRunningWhenAttached = false;
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
-        createdViaFork = false;
+    createdViaFork = false;
+
+    if (iTraceLink != -1 ) createdViaAttachToCreated = false; 
+    else 
+       createdViaAttachToCreated = true; // indicates the unique case where paradynd is attached to
+                                         // a stopped application just after executing the execv() --Ana 
+
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
@@ -1982,7 +1994,9 @@ process::process(int iPid, image *iImage, int iTraceLink
    changedPCvalue = 0;
 #endif
 
-   traceLink = iTraceLink;
+          traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
+                                  // case called "AttachToCreated" - Ana
+          
    //removed for output redirection
    //ioLink = iIoLink;
 
@@ -2002,7 +2016,8 @@ process::process(int iPid, image *iImage, int iTraceLink
    symbols->getDYNINSTHeaps(inferiorHeaps);
    fprintf(stderr, "Done\n");
 */
-}
+} // end of normal constructor
+
 
 //
 // Process "attach" ctor, for when paradynd is attaching to an already-existing
@@ -2096,6 +2111,7 @@ process::process(int iPid, image *iSymbols,
    hasBootstrapped = false;
    reachedVeryFirstTrap = true;
    createdViaFork = false;
+   createdViaAttachToCreated = false; 
 
    // the next two variables are used only if libdyninstRT is dynamically linked
    hasLoadedDyninstLib = false;
@@ -2324,6 +2340,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     hasLoadedDyninstLib = false; // TODO: is this the right value?
     isLoadingDyninstLib = false;
 
+    createdViaAttachToCreated = false;
         createdViaFork = true;
     createdViaAttach = parentProc.createdViaAttach;
     wasRunningWhenAttached = true;
@@ -2798,7 +2815,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    theProc->setCallbackBeforeContinue(mdnContinueCallback);
 #endif
 
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if !(defined i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    // we now need to dynamically load libdyninstRT.so.1 - naim
    if (!theProc->pause()) {
      logLine("WARNING: pause failed\n");
@@ -2926,6 +2943,162 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
    return true; // successful
 }
+
+
+
+/*
+ * This function is needed in the unique case where we want to 
+ * attach to an application which has been previously stopped
+ * in the exec() system call as in the normal case (createProcess).
+ * In this particular case, the SIGTRAP due to the exec() has been 
+ * previously caught by another process, therefore we should taking into
+ * account this issue in the necessary platforms. 
+ * Basically, is an hybrid case between addprocess() and attachProcess().
+ * 
+ */
+
+bool AttachToCreatedProcess(int pid,const string &progpath)
+{
+
+
+    int traceLink = -1;
+
+    string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+    
+    if (!fullPathToExecutable.length())
+      return false;
+  
+    int tid;
+    int procHandle;
+    int thrHandle;
+
+
+#ifdef BPATCH_LIBRARY
+    // Register the pid with the BPatch library (not yet associated with a
+    // BPatch_thread object).
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->registerProvisionalThread(pid);
+#endif
+
+    int status = pid;
+    
+    // Get the file descriptor for the executable file
+    // "true" value is for AIX -- waiting for an initial trap
+    // it's ignored on other platforms
+    fileDescriptor *desc = getExecFileDescriptor( fullPathToExecutable, status, true);
+    if (!desc)
+      return false;
+
+#ifndef BPATCH_LIBRARY
+// NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
+//      are processed (after receiving the SIGSTOP indicating the end of running
+//      DYNINSTinit; more specifically, procStopFromDYNINSTinit().
+//      Prevents a diabolical w/w deadlock on solaris --ari
+tp->resourceBatchMode(true);
+#endif /* BPATCH_LIBRARY */
+
+        image *img = image::parseImage(desc);
+        if (img==NULL) {
+            // For better error reporting, two failure return values would be
+            // useful.  One for simple error like because-file-not-because.
+            // Another for serious errors like found-but-parsing-failed 
+            //    (internal error; please report to paradyn@cs.wisc.edu)
+
+            string msg = string("Unable to parse image: ") + fullPathToExecutable;
+            showErrorCallback(68, msg.string_of());
+            // destroy child process
+            OS::osKill(pid);
+            return(false);
+        }
+
+        /* parent */
+        statusLine("initializing process data structures");
+
+#ifdef SHM_SAMPLING
+        vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+        theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+        theShmHeapStats[0].maxNumElems  = numIntCounters;
+
+        theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+        theShmHeapStats[1].maxNumElems  = numWallTimers;
+
+        theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+        theShmHeapStats[2].maxNumElems  = numProcTimers;
+#endif
+	// The same process ctro. is used as in the "normal" case but
+	// here, traceLink is -1 instead of a positive value.
+
+        process *ret = new process(pid, img, traceLink
+#ifdef SHM_SAMPLING
+                                   , 7000, // shm seg key to try first
+                                   theShmHeapStats
+#endif
+                                   );
+
+        assert(ret);
+#ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
+		//the MIPS instruction generator needs the Gp register value to
+		//correctly calculate the jumps.  In order to get it there it needs
+		//to be visible in Object-nt, and must be taken from process.
+		void *cont;
+		//DebugBreak();
+		cont = ret->GetRegisters(thrHandle); //ccw 10 aug 2000 : ADD thrHandle HERE!
+		img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
+#endif
+
+        processVec.push_back(ret);
+        activeProcesses++;
+
+#ifndef BPATCH_LIBRARY
+        if (!costMetric::addProcessToAll(ret))
+           assert(false);
+#endif
+        // find the signal handler function
+        ret->findSignalHandler(); // should this be in the ctor?
+
+        // initializing vector of threads - thread[0] is really the 
+        // same process
+
+#ifndef BPATCH_LIBRARY
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+        ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
+#else
+        ret->threads += new pdThread(ret);     
+#endif
+#endif
+        // initializing hash table for threads. This table maps threads to
+        // positions in the superTable - naim 4/14/97
+
+        // we use this flag to solve race condition between inferiorRPC and 
+        // continueProc message from paradyn - naim
+        ret->deferredContinueProc = false;
+
+        ret->numOfActCounters_is=0;
+        ret->numOfActProcTimers_is=0;
+        ret->numOfActWallTimers_is=0;
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+        // XXXX - this is a hack since getExecFileDescriptor needed to wait for
+        //    the TRAP signal.
+        // We really need to move most of the above code (esp parse image)
+        //    to the TRAP signal handler.  The problem is that we don't
+        //    know the base addresses until we get the load info via ptrace.
+        //    In general it is even harder, since dynamic libs can be loaded
+        //    at any time.
+        extern int handleSigChild(int pid, int status);
+
+        (void) handleSigChild(pid, status);
+#endif
+#ifndef BPATCH_LIBRARY
+    if (ret) {
+      ret->setCallbackBeforeContinue(mdnContinueCallback); 
+    }
+#endif
+    
+    return(true);
+
+} // end of AttachToCreatedProcess
+
 
 
 #ifndef BPATCH_LIBRARY
@@ -5923,6 +6096,9 @@ void process::installBootstrapInst() {
 #ifdef SHM_SAMPLING
    key_t theKey   = getShmKeyUsed();
    numBytes = getShmHeapTotalNumBytes();
+   if (this->createdViaAttachToCreated) { // If we are dealing with the hybrid case indicated by this flag
+            theKey  *= -1;                 // we should do this trick to indicate DYNINSTinit() this specific
+   }                                      // situation. -- Ana 
 #else
    int theKey = 0;
 #endif
@@ -7001,3 +7177,4 @@ BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
     return ret;
 }
 #endif
+

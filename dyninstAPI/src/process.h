@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.174 2002/01/25 00:05:46 schendel Exp $
+/* $Id: process.h,v 1.175 2002/01/31 17:06:18 cortes Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1407,6 +1407,11 @@ private:
   // and have an inherit_tracing_state flag -- DAN
   bool createdViaFork;
 
+  bool createdViaAttachToCreated;
+  // This is set by constructor. True if thisprocess was created by an 
+  // extern process and the process has been stopped just after the exec()
+  // system call. -- Ana
+
   // the following 2 are defined only if 'createdViaAttach' is true; action is
   // taken on these vrbles once DYNINSTinit completes.
 
@@ -1574,7 +1579,8 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
                    process *&newProcess);
 #else
 bool attachProcess(const string &progpath, int pid, int afterAttach);
-#endif
+#endif 
+bool  AttachToCreatedProcess(int pid, const string &progpath);
 
 void handleProcessExit(process *p, int exitStatus);
 
