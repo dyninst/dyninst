@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.28  1996/05/07 22:39:25  mjrg
+ * Fixed code to work when there are two different image files.
+ *
  * Revision 1.27  1996/04/30 16:17:05  lzheng
  * The name of the functions to be instrumented for timer now become machine
  * dependent and the definations are moved to $(PLATFORM).h
@@ -199,6 +202,14 @@ public:
     case MDL_T_PROCEDURE:
       pdf = (*func_iter)[index++];
       // cout << "Function: " << pdf->prettyName() << endl;
+      /***********************************************************************
+	TODO:
+	pdf may be the wrong function if there are more than one process running
+	on this daemon. We need to find the correct function for each process.
+	The code in the next line is a quick fix for this problem, but we should
+	really fix the watch_vec stuff.
+      ************************************************************************/
+      pdf = global_proc->symbols->findOneFunction(pdf->prettyName());
       return (mdl_env::set(pdf, index_name));
     case MDL_T_MODULE: 
       m = (*mod_iter)[index++];      return (mdl_env::set(m, index_name));
@@ -491,6 +502,84 @@ inline dataReqNode *create_data_object(unsigned mdl_data_type,
   }
 }
 
+
+static metricDefinitionNode *
+apply_to_process(process *proc, 
+		 string& id, string& name,
+		 vector< vector<string> >& focus,
+		 string& flat_name,
+		 unsigned& agg_op,
+		 unsigned& type,
+		 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+		 T_dyninstRPC::mdl_constraint *base_use,
+		 vector<T_dyninstRPC::mdl_stmt*> *stmts,
+		 vector<unsigned>& flag_dex,
+		 unsigned& base_dex,
+		 vector<string> *temp_ctr) {
+
+    if (!update_environment(proc)) return NULL;
+
+    // TODO -- Using aggOp value for this metric -- what about folds
+    metricDefinitionNode *mn = new metricDefinitionNode(proc, name,
+							focus, flat_name, agg_op);
+
+    // Create the timer, counter
+    dataReqNode *the_node = create_data_object(type, mn);
+    assert(the_node);
+    mdl_env::set(the_node, id);
+
+    // Create the temporary counters - are these useful
+    if (temp_ctr) {
+      unsigned tc_size = temp_ctr->size();
+      for (unsigned tc=0; tc<tc_size; tc++) {
+	dataReqNode *temp_node;
+	temp_node = mn->addIntCounter(0, false);
+	mdl_env::set(temp_node, (*temp_ctr)[tc]);
+      }
+    }
+
+    unsigned flag_size = flag_cons.size();
+    vector<dataReqNode*> flags;
+    if (flag_size) {
+      for (unsigned fs=0; fs<flag_size; fs++) {
+	// TODO -- cache these created flags
+	dataReqNode *flag = NULL;
+	if (! (flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc))) {
+	  delete mn;
+	  return NULL;
+	}
+	assert(flag);
+	flags += flag;
+	// cout << "Applying constraint for " << flag_cons[fs]->id_ << endl;
+      }
+    }
+
+    if (base_use) {
+      dataReqNode *flag = NULL;
+      if (!base_use->apply(mn, flag, focus[base_dex], proc)) {
+	// cout << "apply of " << name << " failed\n";
+	delete mn;
+	return NULL;
+      }
+    } else {
+      unsigned size = stmts->size();
+      for (unsigned u=0; u<size; u++) {
+	if (!(*stmts)[u]->apply(mn, flags)) {
+	  // cout << "apply of " << name << " failed\n";
+	  delete mn;
+	  return NULL;
+	}
+      }
+    }
+
+    if (!mn->nonNull()) {
+      delete mn;
+      return NULL;
+    }
+
+    return mn;
+}
+
 static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<metricDefinitionNode*>& parts,
 				  string& id, string& name,
@@ -531,61 +620,12 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     // skip exited processes.
     if (proc->status() == exited) continue;
 
-    if (!update_environment(proc)) return false;
-
-    // TODO -- Using aggOp value for this metric -- what about folds
-    metricDefinitionNode *mn = new metricDefinitionNode(proc, name,
-							focus, flat_name, agg_op);
-
-    // Create the timer, counter
-    dataReqNode *the_node = create_data_object(type, mn);
-    assert(the_node);
-    mdl_env::set(the_node, id);
-
-    // Create the temporary counters - are these useful
-    if (temp_ctr) {
-      unsigned tc_size = temp_ctr->size();
-      for (unsigned tc=0; tc<tc_size; tc++) {
-	dataReqNode *temp_node;
-	temp_node = mn->addIntCounter(0, false);
-	mdl_env::set(temp_node, (*temp_ctr)[tc]);
-      }
-    }
-
-    unsigned flag_size = flag_cons.size();
-    vector<dataReqNode*> flags;
-    if (flag_size) {
-      for (unsigned fs=0; fs<flag_size; fs++) {
-	// TODO -- cache these created flags
-	dataReqNode *flag = NULL;
-	assert(flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc));
-	assert(flag);
-	flags += flag;
-	// cout << "Applying constraint for " << flag_cons[fs]->id_ << endl;
-      }
-    }
-
-    if (base_use) {
-      dataReqNode *flag = NULL;
-      if (!base_use->apply(mn, flag, focus[base_dex], proc)) {
-	// cout << "apply of " << name << " failed\n";
-	return false;
-      }
-    } else {
-      unsigned size = stmts->size();
-      for (unsigned u=0; u<size; u++) {
-	if (!(*stmts)[u]->apply(mn, flags)) {
-	  // cout << "apply of " << name << " failed\n";
-	  return false;
-	}
-      }
-    }
-
-    if (mn && mn->nonNull()) 
+    metricDefinitionNode *mn;
+    mn = apply_to_process(proc, id, name, focus, flat_name, agg_op, type,
+			  flag_cons, base_use, stmts, flag_dex, base_dex, temp_ctr);
+    if (mn)
       parts += mn;
-    else {
-      delete mn; mn = NULL;
-    }
+
 #ifdef DEBUG_MDL
     loadTimer.stop();
     char timeMsg[500];
@@ -593,6 +633,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     // tp->applicationIO(10, strlen(timeMsg), timeMsg);
     (*of) << name << ":" << timeMsg << endl;
 #endif
+
   }
 #ifdef DEBUG_MDL
   totalTimer.stop();
@@ -602,6 +643,9 @@ static bool apply_to_process_list(vector<process*>& instProcess,
   // tp->applicationIO(10, strlen(timeMsg), timeMsg);
   (*of) << name << ":" << timeMsg << endl;
 #endif
+
+  if (parts.size() == 0)
+    return false;
 
   return true;
 }
@@ -687,7 +731,7 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 					     vector<T_dyninstRPC::mdl_stmt*> *stmts,
 					     bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
-  data_type_(d_type), hierarchy_(0), type_(0) { }
+  data_type_(d_type), hierarchy_(0), type_(0) { error = false; }
 T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   delete match_path_;
   if (stmts_) {
@@ -1012,7 +1056,6 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
   }
 
   AstNode code;
-  pdFunction *pdf;
 
   switch (type_) {
   case MDL_SET_COUNTER:
@@ -1073,8 +1116,8 @@ bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
     return false;
 
   // TODO
-  vector<pdFunction*> *vp;
-  list_var.get(vp);
+  //  vector<pdFunction*> *vp;
+  //  list_var.get(vp);
   list_closure closure(index_name_, list_var);
 
   // mdl_env::set_type(list_var.element_type(), index_name_);
@@ -1341,8 +1384,8 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode *mn,
-					vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode */*mn*/,
+					vector<dataReqNode*>& /*flags*/) {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
     if ((*flavor_)[u0] == daemon_flavor) {
@@ -1457,7 +1500,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   }
 
   // for all of the inst points, insert the predicates and the code itself.
-  for (int i = 0; i < points->size(); i++) {
+  for (int i = 0; i < (int)points->size(); i++) {
       instPoint *p = (*points)[i];
       AstNode code;
 
