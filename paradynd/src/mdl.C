@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.99 2001/11/01 17:22:20 schendel Exp $
+// $Id: mdl.C,v 1.100 2001/12/06 20:57:55 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2986,7 +2986,11 @@ T_dyninstRPC::mdl_icode::mdl_icode(
 T_dyninstRPC::mdl_icode::~mdl_icode() 
 { assert(0); delete if_expr_; delete expr_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) 
+// The process is used in generating code which updates the observed cost
+// global variable when if statements are called in some cases.  This is to
+// account for the cost of the body of the if statement in the observed cost.
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
+				    process *proc) 
 {
   // a return value of true implies that "mn" has been written to
 
@@ -3010,7 +3014,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized)
   if (pred) 
   {
     // Note: we don't use assignAst on purpose here
-    code = createIf(pred, ast);
+    code = createIf(pred, ast, proc);
     removeAst(pred);
     removeAst(ast);
   }
@@ -3907,8 +3911,9 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   // which was a waste since the code is the same for all points).
   AstNode *code = NULL;
   unsigned size = icode_reqs_->size();
+  assert(mn->getMdnType() != AGG_MDN);  // should be 1 process per mn here
   for (unsigned u=0; u<size; u++) {
-    if (!(*icode_reqs_)[u]->apply(code, u>0)) {
+    if (!(*icode_reqs_)[u]->apply(code, u>0, mn->proc())) {
       // when u is 0, code is un-initialized
       removeAst(code);
       return false;
@@ -3944,7 +3949,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 #endif
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
-        code = createIf(temp1, temp2);
+        code = createIf(temp1, temp2, mn->proc());
         removeAst(temp1);
         removeAst(temp2);
      }

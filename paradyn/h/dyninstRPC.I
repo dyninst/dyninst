@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.89 2001/08/23 14:43:32 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.90 2001/12/06 20:57:54 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -167,7 +167,7 @@ $ignore
 public:
   mdl_icode(mdl_expr *if_expr, mdl_expr *expr);
   ~mdl_icode();
-  bool apply(AstNode *&mn, bool mn_initialized);
+  bool apply(AstNode *&mn, bool mn_initialized, process *proc);
 $ignore
 };
 
