@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.30 2002/05/13 19:53:56 mjbrim Exp $
+// $Id: datagrid.C,v 1.31 2002/05/15 21:53:14 mjbrim Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -48,33 +48,43 @@
 ///////////////////////////////////////////////
 #include "visi/src/datagridP.h" 
 
-Metric::Metric(string metricUnits,
+Metric::Metric(string metric_currUnits,
+	       string metric_totUnits,
 	       string metricName,
 	       u_int id,
 	       int foldMethod,
 	       visi_unitsType units_type){
 
-  units = metricUnits;
+  curr_units = metric_currUnits;
+  tot_units = metric_totUnits;
   name = metricName;
   Id    = id;
+  
   if(foldMethod == AVE)
     aggregate = foldMethod;
   else
     aggregate = SUM;
   unitstype = units_type;
-  if(unitstype == Normalized) {
-    label = units;
-    total_label = units;
-    total_label += P_strdup("_seconds");
+  
+  if( metric_totUnits != "" ) { // both units specifed, use as labels
+    label = metric_currUnits; 
+    total_label = metric_totUnits; 
   }
-  else if (unitstype == UnNormalized) {
-    label = units;
-    label += P_strdup("/sec");
-    total_label = units; 
-  }
-  else {
-    label = units;
-    total_label = units; 
+  else { // set labels based upon normalized flag
+    if(unitstype == Normalized) {
+      label = curr_units;
+      total_label = curr_units;
+      total_label += P_strdup("_seconds");
+    }
+    else if (unitstype == UnNormalized) {
+      label = curr_units;
+      label += P_strdup("/sec");
+      total_label = curr_units; 
+    }
+    else {
+      label = curr_units;
+      total_label = curr_units; 
+    }
   }
 }
 
@@ -464,9 +474,9 @@ int i;
   resources    = new Resource[noResources];
 
   for(i = 0; i < noMetrics; i++){
-    metrics[i] = Metric(metricList[i].Units(),metricList[i].Name(),
-		      metricList[i].Identifier(),metricList[i].Aggregate(),
-		      metricList[i].UnitsType());
+    metrics[i] = Metric(metricList[i].CurrUnits(),metricList[i].TotUnits(),
+			metricList[i].Name(),metricList[i].Identifier(),
+			metricList[i].Aggregate(),metricList[i].UnitsType());
   }
   for(i = 0; i < noResources; i++){
     resources[i] = Resource(resourceList[i].Name(),resourceList[i].Identifier());
@@ -506,9 +516,9 @@ int i;
   resources    = new Resource[noResources];
 
   for(i = 0; i < noMetrics; i++){
-    metrics[i] = Metric(metricList[i].units,metricList[i].name,
-		      metricList[i].Id,metricList[i].aggregate,
-		      metricList[i].unitstype);
+    metrics[i] = Metric(metricList[i].curr_units,metricList[i].tot_units,
+			metricList[i].name,metricList[i].Id,
+			metricList[i].aggregate,metricList[i].unitstype);
   }
   for(i = 0; i < noResources; i++){
     resources[i] = Resource(resourceList[i].name,resourceList[i].Id);
@@ -525,8 +535,6 @@ int i;
   phase_handle = phaseHandle;
 
 }
-
-
 
 //
 //  DataGrid destructor 
@@ -564,7 +572,7 @@ const char   *visi_DataGrid::MetricName(int i){
 const char *visi_DataGrid::MetricUnits(int i){
 
   if((i < numMetrics) && (i>=0))
-    return(metrics[i].Units());
+    return(metrics[i].CurrUnits());
   return(0);
 }
 
@@ -735,14 +743,16 @@ int i;
   metrics = new Metric[numMetrics + howmany];
 
   for(i = 0; i < numMetrics; i++){
-    metrics[i] = Metric(temp[i].Units(),temp[i].Name(),
-		      temp[i].Identifier(),temp[i].Aggregate(),
-		      temp[i].UnitsType());
+    metrics[i] = Metric(temp[i].CurrUnits(),temp[i].TotUnits(),
+			temp[i].Name(),temp[i].Identifier(),
+			temp[i].Aggregate(),temp[i].UnitsType());
   }
   for(i = numMetrics; i < (numMetrics + howmany); i++){
-    metrics[i] = Metric(mlist[i-numMetrics].units, mlist[i-numMetrics].name,
-		       mlist[i-numMetrics].Id, mlist[i-numMetrics].aggregate,
-		       mlist[i-numMetrics].unitstype);
+    metrics[i] = Metric(mlist[i-numMetrics].curr_units, 
+			mlist[i-numMetrics].tot_units, 
+			mlist[i-numMetrics].name,
+		        mlist[i-numMetrics].Id, mlist[i-numMetrics].aggregate,
+			mlist[i-numMetrics].unitstype);
   }
 
 
@@ -768,7 +778,6 @@ int i;
   tempdata = 0;
   temp = 0;
   return(VISI_OK);
-
 }
 
 
@@ -810,6 +819,4 @@ void visi_DataGrid::AddNewPhase(int handle, visi_timeType start, visi_timeType e
     PhaseInfo *p = new PhaseInfo(handle,start,end,width,name.c_str());
     phases += p;
     phases.sort(phaseCompare);
-
 }
-								       
