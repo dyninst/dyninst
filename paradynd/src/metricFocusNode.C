@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.232 2002/10/15 17:11:55 schendel Exp $
+// $Id: metricFocusNode.C,v 1.233 2002/10/28 04:54:32 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -619,6 +619,7 @@ void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
   
 void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
    vector<processMetFocusNode *> procNodes;
+   assert(proc->multithread_ready());
    processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
    for(unsigned i=0; i<procNodes.size(); i++) {
       procNodes[i]->propagateToNewThread(thr);
@@ -642,12 +643,13 @@ instr_insert_result_t startCollecting(string& metric_name,
 
    machineMetFocusNode *machNode = 
      createMetricInstance(mid, metric_name, focus, true);
-
+   //cerr << "startCollecting, " << machNode->getFullName() << "\n";
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
 		  << " failed because createMetricInstance failed" << endl;
       return insert_failure;
    }
+
    //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
    addCurrentPredictedCost(machNode->cost());
    metResPairsEnabled++;
