@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.74 2000/07/28 17:21:39 pcroth Exp $
+// $Id: symtab.h,v 1.75 2000/08/16 19:52:21 hollings Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -359,6 +359,8 @@ class pd_Function : public function_base {
        } InactiveFrameRange;
 
        vector<InactiveFrameRange> inactiveRanges;
+#elif defined(alpha_dec_osf4_0)
+    int             frame_size; // stack frame size
 #endif
 
 #ifndef BPATCH_LIBRARY

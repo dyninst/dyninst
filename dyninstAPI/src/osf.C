@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.14 2000/07/28 17:21:16 pcroth Exp $
+// $Id: osf.C,v 1.15 2000/08/16 19:52:20 hollings Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -68,6 +68,7 @@
 
 #define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
+#define SP_REGNUM 30
 #define FP_REGNUM 15
 #define A0_REGNUM 16	/* first param to funcs and syscalls */
 #define RA_REGNUM 26
@@ -155,7 +156,7 @@ void Frame::getActiveFrame(process *p)
   gregset_t theIntRegs;
   int proc_fd = p->getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
-    fp_ = theIntRegs.regs[FP_REGNUM];  
+    fp_ = theIntRegs.regs[SP_REGNUM];  
     pc_ = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
   }
 }
@@ -522,6 +523,7 @@ int process::waitProcs(int *status)
 			     sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
 				 (int) stat.pr_what);
 			     logLine(errorLine);
+			     processVec[curr]->continueProc_();
 			 }
 #endif
 			 *status = SIGTRAP << 8 | 0177;
@@ -714,39 +716,59 @@ bool process::attach() {
   return true;
 }
 
-Frame Frame::getCallerFrameNormal(process * /* p */) const
+Frame Frame::getCallerFrameNormal(process *p) const
 {
   Frame ret;
   Address values[2];
   gregset_t theIntRegs;
+  pd_Function *currFunc;
+  instPoint     *ip = NULL;
+  trampTemplate *bt = NULL;
+  instInstance  *mt = NULL;
 
-#ifdef notdef
-  if (fp_ == 0) return false;
+  if (fp_ == 0) return Frame();
 
   if (uppermost_) {
     int proc_fd = p->getProcFileDescriptor();
     if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
-      ret.fp_ = theIntRegs.regs[FP_REGNUM];  
-      ret.pc_ = theIntRegs.regs[RA_REGNUM];  
+      ret.pc_ = theIntRegs.regs[PC_REGNUM];  
+
+      currFunc = findAddressInFuncsAndTramps(p, ret.pc_, ip, bt, mt);
+      if (currFunc && currFunc->frame_size) {
+	  ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
+	  ret.sp_ = theIntRegs.regs[SP_REGNUM];
+	  //printf(" %s fp=%lx\n",currFunc->prettyName().string_of(), ret.fp_);
+      } else {
+	  ret.fp_ = 0;
+	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+	  logLine(errorLine);
+      }
+
     } else {
       return Frame(); // zero frame
     }
   } else {
-    if (!p->readDataSpace((void *)fp_, sizeof(Address)*2, values, false)){
+    if (!p->readDataSpace((void *)sp_, sizeof(Address), values, false)){
       printf("error reading frame at %lx\n", fp_);
       return Frame(); // zero frame
     } else {
-      // (*fp) = RA
-      // (*fp+8) = saved fp
+      // (*sp_) = RA
+      // fp_ + frame_size = saved fp
       ret.pc_ = values[0];
-      ret.fp_ = values[1];
-      printf("in uppermost fp = %lx, ra = %lx\n", ret.fp_, ret.pc_);
+
+      currFunc = findAddressInFuncsAndTramps(p, ret.pc_, ip, bt, mt);
+      if (currFunc && currFunc->frame_size) {
+	  ret.sp_ = fp_;		/* current stack pointer is old fp */
+	  ret.fp_ = fp_ + currFunc->frame_size;  
+	  //printf(" %s fp=%lx\n",currFunc->prettyName().string_of(), ret.fp_);
+      } else {
+	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+	  logLine(errorLine);
+	  ret.fp_ = 0;
+      }
     }
   }
   return ret;
-#endif
-
-  return Frame(); // zero frame
 }
 
 bool process::dumpCore_(const string coreFile) 

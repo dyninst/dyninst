@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.31 2000/08/04 19:49:48 hollings Exp $
+// $Id: inst-alpha.C,v 1.32 2000/08/16 19:52:20 hollings Exp $
 
 #include "common/h/headers.h"
 
@@ -1736,6 +1736,7 @@ bool pd_Function::findInstPoints(const image *owner)
   long gpValue;	// gp needs signed operations
   bool gpKnown = false;
 
+  frame_size = 0;
   // normal linkage on alphas is that the first two instructions load gp.
   //   In this case, many functions jump past these two instructions, so
   //   we put the inst point at the third instruction.
@@ -1767,16 +1768,28 @@ bool pd_Function::findInstPoints(const image *owner)
 
     bool done;
 
+    // check for lda $sp,n($sp) to guess frame size
+    if (!frame_size && ((instr.raw & 0xffff0000) == 0x23de0000)) {
+	// lda $sp,n($sp)
+	frame_size = -((short) (instr.raw & 0xffff));
+	if (frame_size < 0) {
+	    // we missed the setup and found the cleanup
+	    frame_size = 0;
+	}
+    }
+
     // check for return insn and as a side affect decide if we are at the
     //   end of the function.
     if (isReturnInsn(owner, adr, done)) {
       // define the return point
-      // check to see if adr-8 is ldq fp, xx(sp), if so use it as the
+      // check to see if adr-8 is ldq fp, xx(sp) or ldq sp, xx(sp), if so 
+      // use it as the
       // address since it will ensure the activation record is still active.
-      // Only gcc seems to use a frame pointer
+      // Gcc uses a frame pointer, on others only sp is used.
       instruction frameRestInsn;
       frameRestInsn.raw = owner->get_instruction(adr-8);
-      if ((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) {
+      if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
+	  ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
 	  Address tempAddr = adr - 8;
 	  funcReturns += new instPoint(this,frameRestInsn,owner,tempAddr,false, 
 	      functionExit);
