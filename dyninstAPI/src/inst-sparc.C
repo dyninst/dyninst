@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.80 1999/06/08 22:14:09 csserra Exp $
+// $Id: inst-sparc.C,v 1.81 1999/07/07 16:05:03 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -350,40 +350,116 @@ void initTramps()
     assert(regSpace);
 }
 
+#if defined(MT_THREAD)
 //
 // For multithreaded applications and shared memory sampling, this routine 
 // will compute the address where the corresponding counter/timer vector for
 // level 0 is (by default). In the mini-tramp, if the counter/timer is at a
 // different level, we will add the corresponding offset - naim 4/18/97
 //
+// NUM_INSN_MT_PREAMBLE
 void generateMTpreamble(char *insn, Address &base, process *proc)
 {
-  AstNode *t1,*t2,*t3,*t4,*t5;;
+  AstNode *t1 ;
+  Address tableAddr;
+  int value; 
+  bool err;
+  unsigned offset = 19*sizeof(instruction);
+  Register src = Null_Register;
+
   vector<AstNode *> dummy;
+
+  t1 = new AstNode("DYNINSTthreadPos", dummy);
+
+  // t2=DYNINSTthreadPos()*sizeof(unsigned)
+  value = sizeof(unsigned);
+  AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
+  AstNode* t2 = new AstNode(timesOp, t1, t4);
+  removeAst(t1) ;
+  removeAst(t4) ;
+
+  // t3=DYNINSTthreadTable+t2
+  //
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  AstNode* t3 = new AstNode(plusOp, t2, t5);
+  removeAst(t2);
+  removeAst(t5);
+
+  AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
+  AstNode* t8 = new AstNode(eqOp, t1, t7);
+  removeAst(t7);
+  AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
+  //goto offset
+  AstNode* t10 = new AstNode(branchOp, t9);
+  removeAst(t9);
+  //t11 = "if(t1 ==-2) goto offset"
+  AstNode* t11 = new AstNode(ifOp, t8, t10);
+  removeAst(t8);
+  removeAst(t10) ;
+
+  //t6 = " if (t1 == -2) goto Offset; t3=DYNINSTthreadTable+t2"
+  AstNode *t6= new AstNode(t11, t3);
+  removeAst(t11);
+  removeAst(t3);
+  src = t6->generateCode(proc, regSpace, insn, base, false, true);
+  removeAst(t6);
+  (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
+  regSpace->freeRegister(src);
+}
+
+void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid)
+{
+  AstNode *t1 ;
   Address tableAddr;
   int value; 
   bool err;
   Register src = Null_Register;
 
-  /* t3=DYNINSTthreadTable[thr_self()] */
-  t1 = new AstNode("DYNINSTthreadPos", dummy);
-  value = sizeof(unsigned);
-  t4 = new AstNode(AstNode::Constant,(void *)value);
-  t2 = new AstNode(timesOp, t1, t4);
-  removeAst(t1);
-  removeAst(t4);
+  if (tid != -1)  {
+    vector<AstNode *> param;
+    param += new AstNode(AstNode::Constant,(void *)tid);
+    t1 = new AstNode("DYNINSTthreadPosTID", param);
+    for (unsigned i=0; i<param.size(); i++) 
+      removeAst(param[i]) ;
 
-  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
-  assert(!err);
-  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
-  t3 = new AstNode(plusOp, t2, t5);
-  removeAst(t2);
-  removeAst(t5);
-  src = t3->generateCode(proc, regSpace, insn, base, false, true);
-  removeAst(t3);
-  (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
-  regSpace->freeRegister(src);
+    value = sizeof(unsigned);
+    AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
+    AstNode* t2 = new AstNode(timesOp, t1, t4);
+    removeAst(t1) ;
+    removeAst(t4) ;
+
+    // t3=DYNINSTthreadTable[thr_self()]
+    //
+    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+    assert(!err);
+    AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+    AstNode* t3 = new AstNode(plusOp, t2, t5);
+    removeAst(t2);
+    removeAst(t5);
+
+    AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
+    AstNode* t8 = new AstNode(eqOp, t1, t7);
+    removeAst(t7);
+    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
+    AstNode* t10 = new AstNode(branchOp, t9);
+    removeAst(t9);
+    AstNode* t11 = new AstNode(ifOp, t8, t10);
+    removeAst(t8);
+    removeAst(t10) ;
+
+    AstNode *t6= new AstNode(t11, t3);
+    removeAst(t11);
+    removeAst(t3);
+    src = t6->generateCode(proc, regSpace, insn, base, false, true);
+    removeAst(t6);
+    unsigned first_insn=base;
+    (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
+    regSpace->freeRegister(src);
+  }
 }
+#endif
 
 void generateNoOp(process *proc, Address addr)
 {
@@ -485,7 +561,12 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
                                      bool stopForResult,
                                      unsigned &stopForResultOffset,
+#if defined(MT_THREAD)
+				     unsigned &justAfter_stopForResultOffset,
+				     bool isSafeRPC) {
+#else
                                      unsigned &justAfter_stopForResultOffset) {
+#endif
    // Sequence: restore, trap, illegal
 
    instruction *insn = (instruction *)insnPtr;
@@ -499,6 +580,10 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
       justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
    }
 
+#if defined(MT_THREAD)
+   if (isSafeRPC) //ret instruction
+     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I7, 0x08, REG_G0) ;
+#endif
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
 
    // Now that the inferior has executed the 'restore' instruction, the %in and
@@ -506,14 +591,19 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
    // (reminder: the %in and %local registers aren't saved and set with ptrace
    //  GETREGS/SETREGS call)
 
-   // Trap instruction:
-   genBreakpointTrap(&insn[baseInstruc]); // ta 1
-   breakOffset = baseInstruc * sizeof(instruction);
-   baseInstruc++;
+#if defined(MT_THREAD)
+   if (!isSafeRPC) {
+#endif
+     // Trap instruction:
+     genBreakpointTrap(&insn[baseInstruc]); // ta 1
+     breakOffset = baseInstruc * sizeof(instruction);
+     baseInstruc++;
 
-   // And just to make sure that we don't continue from the trap:
-   genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
-
+     // And just to make sure that we don't continue from the trap:
+     genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
+#if defined(MT_THREAD)
+   }
+#endif
    baseBytes = baseInstruc * sizeof(instruction); // convert back
 
    return true; // success
