@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.6  1994/08/22 15:53:23  markc
+ * Revision 1.7  1994/09/22 01:22:05  markc
+ * Set default args
+ *
+ * Revision 1.6  1994/08/22  15:53:23  markc
  * Config language version 2.
  *
  * Revision 1.2  1994/07/07  13:10:41  markc
@@ -176,6 +179,7 @@ int metDoDaemon()
     strcpy(cmdStr, "paradyndCM5");
     def.flavor = metCM5;
     define_daemon(&def);
+    def.command = 0; def.name =0;
     been_done = 1;
   }
 
@@ -211,6 +215,7 @@ int metDoVisi()
     vm.name = nmStr;
     vm.command = cmdStr;
     add_visi(&vm);
+    vm.command=0; vm.name=0;
     been_done = 1;
   }
 

@@ -6,7 +6,10 @@
 
 /*
  * $Log: metTemplates.C,v $
- * Revision 1.2  1994/08/22 15:53:31  markc
+ * Revision 1.3  1994/09/22 01:22:10  markc
+ * Set default args
+ *
+ * Revision 1.2  1994/08/22  15:53:31  markc
  * Config language version 2.
  *
  */
@@ -23,8 +26,8 @@ class processMet;
 class visiMet;
 class tunableMet;
 
-typedef List<stringList*>;
-typedef List<daemonMet*>;
-typedef List<processMet*>;
-typedef List<visiMet*>;
-typedef List<tunableMet*>; 
+typedef List<stringList*> m1;
+typedef List<daemonMet*> m2;
+typedef List<processMet*> m3;
+typedef List<visiMet*> m4;
+typedef List<tunableMet*> m5; 
