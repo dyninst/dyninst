@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.11 2002/04/17 21:18:03 schendel Exp $
+// $Id: baseTable.C,v 1.12 2002/04/23 18:58:43 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -108,37 +108,54 @@ baseTable<HK, RAW>::~baseTable()
 }
 
 template <class HK, class RAW>
-bool baseTable<HK, RAW>::alloc(unsigned thr_pos, const RAW &iRawValue,
-			       const HK &iHouseKeepingValue,
-			       unsigned *allocatedIndex,
-			       unsigned *allocatedLevel,
-			       bool doNotSample)
+inst_var_index baseTable<HK, RAW>::allocateForInstVar(unsigned level)
 {
-   assert(superVectorBuf.size() > 0);
-   assert(superVectorBuf.size() == levelMap.size());
+  assert(superVectorBuf.size() == levelMap.size());
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == level) break;
+  }
+  assert(i<levelMap.size());
+  return superVectorBuf[i]->allocateForInstVar();
+}
 
-   // we try to find a superVector where to place the new data element.
-   bool foundFreeLevel=false;
-   for (unsigned i=0; i<superVectorBuf.size(); i++) {
-      assert(superVectorBuf[i] != NULL);
-      // if (*allocated)!=UI32_MAX, we will re-use this position because we are
-      // trying to enable a counter/timer that has been already allocated
-      if (*allocatedLevel == UI32_MAX || *allocatedIndex == UI32_MAX) {
-	 *allocatedLevel = levelMap[i];    
-	 foundFreeLevel = superVectorBuf[i]->alloc(thr_pos, iRawValue,
-				            iHouseKeepingValue, allocatedIndex,
-						   doNotSample);
-      } else if (*allocatedLevel == levelMap[i]) {
-	 foundFreeLevel = superVectorBuf[i]->alloc(thr_pos, iRawValue,
-					    iHouseKeepingValue, allocatedIndex,
-						   doNotSample);
-      }
-      if (foundFreeLevel) return true;
-   }
-   // At this point, we don't have any free spot in the current allocated
-   // levels, so we need to add a new one, but the superTable class has to
-   // request it.
-   return false;
+template <class HK, class RAW>
+void baseTable<HK, RAW>::createThrInstVar(unsigned level, 
+					  inst_var_index varIndex,
+					  unsigned thrPos, const RAW &iValue,
+					  const HK &iHKValue) {
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == level) break;
+  }
+  assert(i<levelMap.size());
+  superVectorBuf[i]->createThrInstVar(varIndex, thrPos, iValue, iHKValue);
+}
+
+template <class HK, class RAW>
+    void baseTable<HK, RAW>::markVarAsSampled(unsigned level,
+					      inst_var_index varIndex,
+					      unsigned thrPos) const
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == level) break;
+  }
+  assert(i<levelMap.size());
+  superVectorBuf[i]->markVarAsSampled(varIndex, thrPos);
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::markVarAsNotSampled(unsigned level,
+					     inst_var_index varIndex,
+					     unsigned threadPos) const
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == level) break;
+  }
+  assert(i<levelMap.size());
+  superVectorBuf[i]->markVarAsNotSampled(varIndex, threadPos);
 }
 
 template <class HK, class RAW>
@@ -146,10 +163,9 @@ void baseTable<HK, RAW>::setBaseAddrInApplic(RAW *addr)
 {
    for (unsigned i=0; i<superVectorBuf.size(); i++) {
      assert(superVectorBuf[i]);
-     superVectorBuf[i]->setBaseAddrInApplic(addr,levelMap[i]);
+     superVectorBuf[i]->setBaseAddrInApplic(addr, levelMap[i]);
    }
 }
-
 
 template <class HK, class RAW>
 bool baseTable<HK, RAW>::doMajorSample()
@@ -172,70 +188,70 @@ bool baseTable<HK, RAW>::doMinorSample()
 }
 
 template <class HK, class RAW>
-RAW *baseTable<HK, RAW>::index2LocalAddr(unsigned position,
-					 unsigned allocatedIndex,
-					 unsigned allocatedLevel) const
+RAW *baseTable<HK, RAW>::index2LocalAddr(unsigned level,
+					 inst_var_index varIndex,
+					 unsigned threadPos) const
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {
-    if (levelMap[i] == allocatedLevel) break;
+    if (levelMap[i] == level) break;
   }
   assert(i<levelMap.size());
-  return superVectorBuf[i]->index2LocalAddr(position,allocatedIndex);
+  return superVectorBuf[i]->index2LocalAddr(varIndex, threadPos);
 }
 
 template <class HK, class RAW>
-RAW *baseTable<HK, RAW>::index2InferiorAddr(unsigned position,
-					    unsigned allocatedIndex,
-					    unsigned allocatedLevel) const
+RAW *baseTable<HK, RAW>::index2InferiorAddr(unsigned level,
+					    inst_var_index varIndex,
+					    unsigned threadPos) const
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {
-    if (levelMap[i] == allocatedLevel) break;
+    if (levelMap[i] == level) break;
   }
   assert(i<levelMap.size());
-  return superVectorBuf[i]->index2InferiorAddr(position,allocatedIndex);
+  return superVectorBuf[i]->index2InferiorAddr(varIndex, threadPos);
 }
 
 template <class HK, class RAW>
-HK *baseTable<HK, RAW>::getHouseKeeping(unsigned position,
-					unsigned allocatedIndex,
-					unsigned allocatedLevel)
+HK *baseTable<HK, RAW>::getHouseKeeping(unsigned level,
+					inst_var_index varIndex,
+					unsigned threadPos)
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {
-    if (levelMap[i] == allocatedLevel) break;
+    if (levelMap[i] == level) break;
   }
   assert(i<levelMap.size());
 
-  return superVectorBuf[i]->getHouseKeeping(position,allocatedIndex);
+  return superVectorBuf[i]->getHouseKeeping(varIndex, threadPos);
 }
 
 template <class HK, class RAW>
-void baseTable<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex, 
-					       unsigned allocatedLevel,
+void baseTable<HK, RAW>::initializeHKAfterFork(unsigned level, 
+					       inst_var_index varIndex,
 					       const HK &iHouseKeepingValue)
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {
-    if (levelMap[i] == allocatedLevel) break;
+    if (levelMap[i] == level) break;
   }
   assert(i<levelMap.size());
-  superVectorBuf[i]->initializeHKAfterFork(allocatedIndex, iHouseKeepingValue);
+  superVectorBuf[i]->initializeHKAfterFork(varIndex, iHouseKeepingValue);
 }
 
 template <class HK, class RAW>
-void baseTable<HK, RAW>::makePendingFree(unsigned pd_pos,
-					 unsigned allocatedIndex,
-					 unsigned allocatedLevel, 
+void baseTable<HK, RAW>::makePendingFree(unsigned level,
+					 inst_var_index varIndex,
+					 unsigned threadPos, 
 					 const vector<Address> &trampsUsing)
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {
-    if (levelMap[i] == allocatedLevel) break;
+    if (levelMap[i] == level) break;
   }
   assert(i<levelMap.size());
-  superVectorBuf[i]->makePendingFree(pd_pos, allocatedIndex, trampsUsing);
+  superVectorBuf[i]->makePendingFree(varIndex, threadPos, trampsUsing);
 }
 
 template <class HK, class RAW>
