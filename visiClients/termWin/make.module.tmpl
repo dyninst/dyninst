@@ -1,0 +1,45 @@
+#
+# Common makefile template for phaseTable.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2001/04/25 20:07:51 wxd Exp $
+#
+
+TARGET	      = termWin
+
+SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
+		../../../paradyn/src/UIthread/tkTools.C \
+		../../../paradyn/src/UIthread/minmax.C \
+		../src/templates.C \
+		../src/main.C \
+
+VPATH 	     += ../../../paradyn/src/UIthread \
+		../../tclVisi/src
+
+IFLAGS	     += -I../../../paradyn/src/UIthread
+
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile phaseTable.
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
+
+TCL_SRCS        = ../tcl/termWin.tcl
+
+SRCS		+= $(TCL2C_GEN_SRCS)
+
+LIBS         += -lpdutilOld -lpdthread
+SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -lstdc++
+endif
+
+all: $(TARGET)
+
+templates.o: ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C
+
+$(TCL2C_GEN_SRCS): $(TCL_SRCS)
+	$(PERL) $(TCL2C) $^ > $@
