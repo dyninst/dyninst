@@ -5,6 +5,10 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.4  1996/07/25 23:21:55  mjrg
+ * Divided the templates files, to avoid problems compiling on HP.
+ * Added new templates
+ *
  * Revision 1.3  1996/05/08 23:55:11  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -49,96 +53,12 @@
 #pragma implementation "list.h"
 #include "util/h/list.h"
 
-#pragma implementation "dyninstRPC.xdr.h"
-#include "dyninstRPC.xdr.h"
-
 #pragma implementation "Symbol.h"
 #include "util/h/Symbol.h"
 
 #include "util/h/String.h"
 
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
-                                       bool_t (*)(XDR*, u_int*), u_int*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*,
-				       bool_t (*)(XDR*, int*), int*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*,
-				       bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
-					   bool_t (*)(XDR*, string*), string*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::metricInfo*),
-				       T_dyninstRPC::metricInfo*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*,
-				       vector<T_dyninstRPC::focusStruct>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::focusStruct*),
-				       T_dyninstRPC::focusStruct*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
-				       T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
-				       T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-				       T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-				       T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
-				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-				       T_dyninstRPC::mdl_metric**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_rand*>*,
-			      bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-			      T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-			       T_dyninstRPC::mdl_instr_rand**);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
-					   T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_stmt*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
-					   T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_icode*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-					   T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constraint*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-					   T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
-					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-					   T_dyninstRPC::mdl_metric**);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_rand*>**,
-				      bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-				      T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>**,
-                        	      bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-				      T_dyninstRPC::mdl_instr_rand**);
-
-
-
-// added for batchSampleDataCallbackFunc
-template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
-T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
-template class vector<T_dyninstRPC::batch_buffer_entry>;
-
-
 #include "util/h/aggregateSample.h"
-
-template class vector<sampleInfo*>;
-template class vector<bool>;
-
-
-/* ************************************************ */
-
-
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "symtab.h"
@@ -153,6 +73,8 @@ template class vector<bool>;
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
+template class vector<sampleInfo*>;
+template class vector<bool>;
 template class  vector<AstNode>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
@@ -214,3 +136,4 @@ template class  dictionary<unsigned int, resource *>;
 template class  dictionary<string, resource *>;
 template class  dictionary_iter<string, Symbol>;
 template class  dictionary<string, Symbol>;
+template class  dictionary <string, metricDefinitionNode*>;

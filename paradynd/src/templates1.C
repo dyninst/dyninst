@@ -34,6 +34,7 @@ template class  dictionary_hash <string, vector<pdFunction*>*>;
 template class  dictionary_hash <unsigned, cpSample*>;
 template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash <string, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pdFunction*>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  dictionary_hash <unsigned, unsigned>;
