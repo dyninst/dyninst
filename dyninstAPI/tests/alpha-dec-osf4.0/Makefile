@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2000/05/01 21:19:14 paradyn Exp $
+# $Id: Makefile,v 1.10 2000/06/20 21:49:44 paradyn Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -17,7 +17,6 @@ include $(TO_CORE)/make.config
 CXXFLAGS += -mcpu=ev56 
 CFLAGS += -g
 
-SYSLIBS   += -g -lmld -liberty
 NATIVE_CC = cc
 NATIVE_CXX = cxx
 GNU_CXX = g++
