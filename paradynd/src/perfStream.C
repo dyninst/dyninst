@@ -70,13 +70,14 @@ extern "C" {
 #include "main.h"
 #include "util/h/debugOstream.h"
 
-// The following were defined in process.C
+// The following were all defined in process.C (for no particular reason)
 extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
+extern debug_ostream sharedobj_cerr;
 
 string traceSocketPath; /* file path for trace socket */
 
@@ -386,7 +387,7 @@ int handleSigChild(int pid, int status)
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
 
-	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << endl;
+	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << " status=" << curr->getStatusAsString() << endl;
 		const bool wasRunning = (curr->status() == running);
 		curr->status_ = stopped; // probably was 'neonatal'
 
@@ -439,6 +440,7 @@ int handleSigChild(int pid, int status)
 		// executed in an already-running process).
                 // But we must query 'reachedFirstBreak' because on machines where we
 		// attach/detach on pause/continue, a TRAP is generated on each pause!
+
 		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
 	           // cerr << "!reachedFirstBreak" << endl;
 		   string buffer = string("PID=") + string(pid);
@@ -467,7 +469,7 @@ int handleSigChild(int pid, int status)
 		   }
 		}
 		else {
-		   forkexec_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
+		   signal_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
 		}
 
 		break;
@@ -483,17 +485,23 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		   // the following routines expect (and assert) this status.
 
-		if (curr->procStopFromDYNINSTinit()) {
-		   // grabs data from DYNINST_bootstrap_info
-		   assert(curr->status_ == stopped);
-		     // DYNINSTinit() after normal startup, after fork, or after exec
-		     // syscall was made by a running program; leave paused
-		     // (tp->newProgramCallback() to paradyn will result in the process
-		     // being continued soon enough, assuming the applic was running,
-		     // which is true in all cases except when an applic is just being
-		     // started up).  Fall through (we want the status line to change)
-
+		int result = curr->procStopFromDYNINSTinit();
+		assert(result >=0 && result <= 2);
+		if (result != 0) {
 		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
+
+		   if (result == 1)
+		      assert(curr->status_ == stopped);
+		      // DYNINSTinit() after normal startup, after fork, or after exec
+		      // syscall was made by a running program; leave paused
+		      // (tp->newProgramCallback() to paradyn will result in the process
+		      // being continued soon enough, assuming the applic was running,
+		      // which is true in all cases except when an applic is just being
+		      // started up).  Fall through (we want the status line to change)
+		   else {
+		      assert(result == 2);
+		      break; // don't fall through...prog is finishing the inferiorRPC
+		   }
 		}
 		else if (curr->handleTrapIfDueToRPC()) {
 		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
@@ -519,9 +527,6 @@ int handleSigChild(int pid, int status)
 
 		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();
-
-		curr->reachedFirstBreak = true;
-		   // probably not needed; should already be true
 
 		break;
 	    }
@@ -978,10 +983,9 @@ void controllerMainLoop(bool check_buffer_first)
 	if (ct > 0) {
 
 	    if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
-	      // a process forked by a process we are tracing is trying
-	      // to get a connection for its trace stream.
-	      // NOTE: This will probably be the gateway whereby we implement
-	      //       attaching to a new process.  (NOT YET IMPLEMENTED)
+	      // Either (1) a process we're measuring has forked, and the child
+	      // process is asking for a new connection, or (2) a process we've
+	      // attached to is asking for a new connection.
 
 	      processNewTSConnection(traceSocket_fd); // context.C
 	    }
