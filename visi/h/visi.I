@@ -16,9 +16,12 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.10  1995/02/26 01:59:28  newhall
-/* added phase interface functions
+/* Revision 1.11  1995/06/02 21:01:55  newhall
+/* changed type of metric and focus handles to u_int
 /*
+# Revision 1.10  1995/02/26  01:59:28  newhall
+# added phase interface functions
+#
 # Revision 1.9  1995/02/16  09:32:03  markc
 # Modified to support machines which do not have NaN(x).
 # This code has not been tested, but it compiles.
@@ -60,18 +63,18 @@
 $remote struct metricType {
      string units;    // how units are measured  i.e. "ms" 
      string name;     // for y-axis labeling  
-     int     Id;       // unique metric Id
-     int     aggregate;  //either SUM or AVE
+     u_int  Id;       // unique metric Id
+     int    aggregate;  //either SUM or AVE
 };
 
 $remote struct resourceType {
      string name;     // obj. name for graph labeling
-     int    Id;       // unique resource id
+     u_int  Id;       // unique resource id
 };
 
 $remote struct dataValue {
-  int 	metricId;
-  int 	resourceId;
+  u_int metricId;
+  u_int resourceId;
   int 	bucketNum;
   float data;
 };
@@ -85,13 +88,13 @@ $remote struct phase_info{
   double start;
   double end;
   double  bucketWidth;
-  int handle;
+  u_int handle;
   string name;
 };
 
 $remote visualization {
   $base  7000;
-  $version  9;
+  $version  11;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
@@ -104,7 +107,7 @@ $remote visualization {
   // m: metricId of invalid metric-focus combination
   // r: resourceId of invalid metric-focus combination
   //
-  $async void InvalidMR(int m,int r);
+  $async void InvalidMR(u_int m,u_int r);
 
   //
   // A new set of metrics and resources from Paradyn
@@ -121,14 +124,14 @@ $remote visualization {
 		    double end,		// -1 means phase has not ended yet
 		    double bucketWidth,  // for histogram data values
 		    string name,	// string name for phase 
-		    int handle);	// unique phase id 
+		    u_int handle);	// unique phase id 
 
   //
   // A phase specified by "handle" has ended
   // currently this is just used to fill in the end value in the phase table
   //
   $async void PhaseEnd(double end,
-		       int handle);
+		       u_int handle);
 
 
   //
@@ -141,8 +144,8 @@ $remote visualization {
   // An array of data values from Paradyn starting with bucket #0
   //
   $async void BulkDataTransfer(vector<float> values, // array of data values 
-			       int metricId,	  // id of met. assoc. w/data
-			       int resourceId);   // id of res. assoc. w/data
+			       u_int metricId,	  // id of met. assoc. w/data
+			       u_int resourceId);   // id of res. assoc. w/data
 
   //
   // A request from the visualization to Paradyn for new data
@@ -153,8 +156,8 @@ $remote visualization {
   //
   // A request to Paradyn to stop data associated with metricId & resourceId
   //
-  $upcall $async void StopMetricResource(int metricId,
-					 int resourceId);
+  $upcall $async void StopMetricResource(u_int metricId,
+					 u_int resourceId);
 
   // request a new phase start from paradyn 
   // begin: phase start time (default of -1 means now)

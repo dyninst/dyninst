@@ -1,7 +1,10 @@
 /* $Log: visithread.C,v $
-/* Revision 1.4  1994/06/08 17:34:48  newhall
-/* *** empty log message ***
+/* Revision 1.5  1995/06/02 21:02:13  newhall
+/* changed type of metric and focus handles to u_int
 /*
+ * Revision 1.4  1994/06/08  17:34:48  newhall
+ * *** empty log message ***
+ *
  * Revision 1.3  1994/04/13  21:21:46  newhall
  * *** empty log message ***
  *
@@ -9,7 +12,7 @@
  * *** empty log message ***
  *  */ 
 #include <stdio.h>
-#include "../sparc-sun-sunos4.1.3/visi.CLNT.h" 
+#include "visi.xdr.CLNT.h" 
 
 
 

@@ -1,7 +1,25 @@
-include 	../../make.config
+IFLAGS          = -I. -I../.. 
 
+SUFFIX          = .C:sC
 
 VPATH	      = ../src
+
+LIBDIR		= -L../../../lib/$(PLATFORM) -L/p/paradyn/lib/$(PLATFORM)
+
+YFLAGS		= -d -y
+YACC		= bison
+
+.SUFFIXES: .I .c .C .o
+
+DEST          = .
+
+CFLAGS          = $(IFLAGS) -g -Wall
+
+CC              = g++
+
+.C.o:
+	$(CC) -c $(CFLAGS) $<
+
 LIBRARY	      = visilib.a
 
 SRVROBJ       = server1.o
@@ -13,8 +31,9 @@ CLNT2OBJS      = client2.o visithread.o
 OBJS	      = client1.o server1.o xtext.o \
 		xtext2.o client2.o visithread.o
 
-SRCS	      = visi.C visi.CLNT.C visi.SRVR.C client1.C server1.C xtext.C \
-		xtext2.C client2.C visithread.C
+SRCS	      = visi.xdr.C visi.xdr.CLNT.C visi.xdr.SRVR.C \
+		client1.C server1.C xtext.C xtext2.C \
+		client2.C visithread.C
 
 PRINT	      = pr
 
@@ -56,44 +75,23 @@ update:         $(DEST)/$(LIBRARY)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-visi.o: /usr/include/stdio.h /usr/include/stdlib.h
-visi.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
-visi.o: /usr/include/malloc.h /usr/include/sys/types.h
-visi.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-visi.o: /usr/include/sys/time.h /usr/include/assert.h /usr/include/rpc/xdr.h
-visi.o: /usr/include/errno.h /usr/include/sys/errno.h visi.h
-visi.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-visi.o: /usr/include/sys/socket.h
-visi.CLNT.o: /usr/include/stdio.h /usr/include/stdlib.h
-visi.CLNT.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
-visi.CLNT.o: /usr/include/malloc.h /usr/include/sys/types.h
-visi.CLNT.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-visi.CLNT.o: /usr/include/sys/time.h /usr/include/assert.h
-visi.CLNT.o: /usr/include/rpc/xdr.h /usr/include/errno.h
-visi.CLNT.o: /usr/include/sys/errno.h visi.CLNT.h visi.h
-visi.CLNT.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-visi.CLNT.o: /usr/include/sys/socket.h
-visi.SRVR.o: /usr/include/stdio.h /usr/include/stdlib.h
-visi.SRVR.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
-visi.SRVR.o: /usr/include/malloc.h /usr/include/sys/types.h
-visi.SRVR.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-visi.SRVR.o: /usr/include/sys/time.h /usr/include/assert.h
-visi.SRVR.o: /usr/include/rpc/xdr.h /usr/include/errno.h
-visi.SRVR.o: /usr/include/sys/errno.h visi.SRVR.h visi.h
-visi.SRVR.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-visi.SRVR.o: /usr/include/sys/socket.h
+visi.xdr.o: visi.xdr.h ../../util/h/rpcUtil.h ../../util/h/headers.h
+visi.xdr.o: ../../util/h/String.h ../../util/h/Vector.h
+visi.xdr.CLNT.o: visi.xdr.CLNT.h visi.xdr.h ../../util/h/rpcUtil.h
+visi.xdr.CLNT.o: ../../util/h/headers.h ../../util/h/String.h
+visi.xdr.CLNT.o: ../../util/h/Vector.h ../../util/h/Queue.h
+visi.xdr.SRVR.o: visi.xdr.SRVR.h visi.xdr.h ../../util/h/rpcUtil.h
+visi.xdr.SRVR.o: ../../util/h/headers.h ../../util/h/String.h
+visi.xdr.SRVR.o: ../../util/h/Vector.h ../../util/h/Queue.h
 client1.o: /usr/include/stdio.h /usr/include/stdlib.h
-client1.o: /usr/include/sys/stdtypes.h visi.CLNT.h visi.h
-client1.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-client1.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
-client1.o: /usr/include/sys/socket.h /usr/include/rpc/types.h
-client1.o: /usr/include/malloc.h /usr/include/sys/time.h
-client1.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
+client1.o: /usr/include/sys/stdtypes.h visi.xdr.CLNT.h visi.xdr.h
+client1.o: ../../util/h/rpcUtil.h ../../util/h/headers.h
+client1.o: ../../util/h/String.h ../../util/h/Vector.h ../../util/h/Queue.h
 server1.o: ../h/visualization.h ../h/datagrid.h /usr/include/string.h
 server1.o: /usr/include/sys/stdtypes.h /usr/include/math.h
 server1.o: /usr/include/floatingpoint.h /usr/include/sys/ieeefp.h
 server1.o: /usr/include/values.h ../h/visiTypes.h /usr/include/stdio.h
-server1.o: ../h/mrlist.h
+server1.o: ../../util/h/String.h /usr/include/assert.h ../../util/h/Vector.h
 xtext.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
 xtext.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
@@ -112,7 +110,7 @@ xtext.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
 xtext.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
 xtext.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
 xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/visiTypes.h
-xtext.o: ../h/mrlist.h
+xtext.o: ../../util/h/String.h /usr/include/assert.h ../../util/h/Vector.h
 xtext2.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext2.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
 xtext2.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
@@ -131,17 +129,12 @@ xtext2.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
 xtext2.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
 xtext2.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
 xtext2.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/visiTypes.h
-xtext2.o: ../h/mrlist.h
+xtext2.o: ../../util/h/String.h /usr/include/assert.h ../../util/h/Vector.h
 client2.o: /usr/include/stdio.h /usr/include/stdlib.h
-client2.o: /usr/include/sys/stdtypes.h visi.CLNT.h visi.h
-client2.o: ../../util/h/rpcUtil.h /usr/include/unistd.h
-client2.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
-client2.o: /usr/include/sys/socket.h /usr/include/rpc/types.h
-client2.o: /usr/include/malloc.h /usr/include/sys/time.h
-client2.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
-visithread.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/unistd.h
-visithread.o: /usr/include/sys/types.h /usr/include/sys/stdtypes.h
-visithread.o: /usr/include/sys/sysmacros.h /usr/include/sys/socket.h
-visithread.o: /usr/include/rpc/types.h /usr/include/malloc.h
-visithread.o: /usr/include/sys/time.h /usr/include/sys/time.h
-visithread.o: /usr/include/rpc/xdr.h /usr/include/stdio.h
+client2.o: /usr/include/sys/stdtypes.h visi.xdr.CLNT.h visi.xdr.h
+client2.o: ../../util/h/rpcUtil.h ../../util/h/headers.h
+client2.o: ../../util/h/String.h ../../util/h/Vector.h ../../util/h/Queue.h
+visithread.o: /usr/include/stdio.h visi.xdr.CLNT.h visi.xdr.h
+visithread.o: ../../util/h/rpcUtil.h ../../util/h/headers.h
+visithread.o: ../../util/h/String.h ../../util/h/Vector.h
+visithread.o: ../../util/h/Queue.h

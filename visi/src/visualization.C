@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.24  1995/03/31 15:56:11  jcargill
-/* Changed malloc's to new's, so that constructors would get fired;
-/* otherwise, bogus memory references/free's occur.
+/* Revision 1.25  1995/06/02 21:02:06  newhall
+/* changed type of metric and focus handles to u_int
 /*
+ * Revision 1.24  1995/03/31  15:56:11  jcargill
+ * Changed malloc's to new's, so that constructors would get fired;
+ * otherwise, bogus memory references/free's occur.
+ *
  * Revision 1.23  1995/02/26  01:59:40  newhall
  * added phase interface functions
  *
@@ -229,8 +232,11 @@ void StopMetRes(int metricIndex,
       && (resourceIndex <dataGrid.NumResources())){
     dataGrid[metricIndex][resourceIndex].ClearEnabled();
     dataGrid[metricIndex][resourceIndex].Invalidate();
-    vp->StopMetricResource(dataGrid.MetricId(metricIndex),
-			   dataGrid.ResourceId(resourceIndex));
+    u_int *r, *m;
+    m = dataGrid.MetricId(metricIndex);
+    r = dataGrid.ResourceId(resourceIndex);
+    if(m && r)
+        vp->StopMetricResource(*m,*r);
   }
 }
 
@@ -330,7 +336,7 @@ void visualization::Fold(double newBucketWidth){
 // invalid metric/resource pair.  Invalidataes the datagrid
 // cell associated with the metricId m and resourceId r.
 ///////////////////////////////////////////////////////////
-void visualization::InvalidMR(int m, int r){
+void visualization::InvalidMR(u_int m, u_int r){
 
 int i,j;
 int ok;
@@ -342,10 +348,10 @@ int ok;
   // resourceId r
   for(i=0;
      (i<dataGrid.NumMetrics())
-     &&(m!=dataGrid.MetricId(i)); i++) ;
+     &&(m!= *(dataGrid.MetricId(i))); i++) ;
   for(j=0;
       (j<dataGrid.NumResources())
-      &&(r!=dataGrid.ResourceId(j)); j++) ;
+      &&(r!= *(dataGrid.ResourceId(j))); j++) ;
 
   dataGrid[i][j].ClearEnabled();
   ok = dataGrid.Invalidate(i,j);
@@ -501,25 +507,37 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 // resourceId 
 ///////////////////////////////////////////////////////////
 void visualization::BulkDataTransfer(vector<float> values,
-				     int metricId,
-				     int resourceId){
-int i, lastBucket, temp, j;
+				     u_int metricId,
+				     u_int resourceId){
+int lastBucket, temp, j;
 int noMetrics, noResources;
-int met = -1, res = -1;
+int met,res;
 
 
     // find datagrid indicies associated with metricId, resourceId 
     noMetrics = dataGrid.NumMetrics();
     noResources = dataGrid.NumResources();
-    for(i = 0; i < noMetrics; i++){
-        if(dataGrid.MetricId(i) == metricId)
-	    met = i;
+    bool found = false;
+    for(int i = 0; i < noMetrics; i++){
+	u_int *m_id = dataGrid.MetricId(i);
+	if(m_id)
+            if(*m_id == metricId){
+	        met = i;
+	        found = true;
+            }
     }
+
+    if(!found) return;
+    found = false;
     for(i = 0; i < noResources; i++){
-        if(dataGrid.ResourceId(i) == resourceId)
-	    res = i;
+	u_int *r_id = dataGrid.ResourceId(i);  
+	if(r_id)
+            if(*r_id == resourceId){
+	        res = i;
+	        found = true;
+            }
     }
-    if((met == -1) || (res == -1))  return; 
+    if(!found) return;
 
     // add new data values to datagrid
     for(i = 0; i < values.size(); i++){
@@ -556,7 +574,7 @@ void visualization::PhaseStart(double begin,
 			  double end,
 			  double bucketWidth,
 			  string name,
-			  int handle){
+			  u_int handle){
 
   if(!initDone)
     VisiInit();
@@ -575,7 +593,7 @@ void visualization::PhaseStart(double begin,
 // Visi interface routine.  Visualization recieves Phase
 // end information from Paradyn.
 ///////////////////////////////////////////////////////////
-void visualization::PhaseEnd(double end, int handle){
+void visualization::PhaseEnd(double end, u_int handle){
 
 
   if(!initDone)

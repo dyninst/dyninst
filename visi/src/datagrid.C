@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.14  1995/02/26 01:59:37  newhall
-/* added phase interface functions
+/* Revision 1.15  1995/06/02 21:02:04  newhall
+/* changed type of metric and focus handles to u_int
 /*
+ * Revision 1.14  1995/02/26  01:59:37  newhall
+ * added phase interface functions
+ *
  * Revision 1.13  1994/11/02  04:14:57  newhall
  * memory leak fixes
  *
@@ -69,7 +72,7 @@
 
 Metric::Metric(string metricUnits,
 	       string metricName,
-	       int id,
+	       u_int id,
 	       int foldMethod){
 
   units = metricUnits;
@@ -85,7 +88,7 @@ Metric::Metric(string metricUnits,
 //  Metric destructor
 //
 Metric::~Metric(){
-  Id = NOVALUE;
+  Id = 0;
 }
 
 ///////////////////////////////////////////
@@ -93,8 +96,7 @@ Metric::~Metric(){
 //  Resource constructor
 //
 Resource::Resource(string resourceName,
-		   int id){
-  int len;
+		   u_int id){
 
   if(resourceName.string_of() != NULL){
     name = resourceName; 
@@ -102,7 +104,7 @@ Resource::Resource(string resourceName,
   }
   else {
     name = NULL;
-    Id = -1;
+    Id = 0;
   }
 }
 
@@ -362,23 +364,30 @@ int  visi_DataGrid::FoldMethod(int i){
 // 
 // returns metric identifier associated with metric number i 
 //
-int  visi_DataGrid::MetricId(int i){
+u_int  *visi_DataGrid::MetricId(int i){
 
-  if((i < numMetrics) && (i >= 0))
-    return(metrics[i].Identifier());
+  
+  if((i < numMetrics) && (i >= 0)){
+    u_int *ret = new u_int;
+    *ret = metrics[i].Identifier();
+    return(ret);
+  }
   visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_DataGrid::MetricId");
-  return(ERROR_SUBSCRIPT);
+  return(NULL);
 }
 
 // 
 // returns resource identifier associated with resource number j 
 //
-int  visi_DataGrid::ResourceId(int j){
+u_int  *visi_DataGrid::ResourceId(int j){
 
-  if((j < numResources) && (j >= 0))
-    return(resources[j].Identifier());
+  if((j < numResources) && (j >= 0)){
+    u_int *ret = new u_int;
+    *ret = resources[j].Identifier();
+    return(ret);
+  }
   visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_DataGrid::ResourceId");
-  return(ERROR_SUBSCRIPT);
+  return(NULL);
 }
 
 //
@@ -498,7 +507,7 @@ int i;
 //
 //  returns 1 if metric with Id equal to test_id is in the data grid
 //
-int visi_DataGrid::MetricInGrid(int test_id){
+int visi_DataGrid::MetricInGrid(u_int test_id){
 
   for(int i = 0; i < numMetrics; i++){
     if (test_id == metrics[i].Identifier()){
@@ -512,7 +521,7 @@ int visi_DataGrid::MetricInGrid(int test_id){
 //
 //  returns 1 if resource with Id equal to test_id is in the data grid
 //
-int visi_DataGrid::ResourceInGrid(int test_id){
+int visi_DataGrid::ResourceInGrid(u_int test_id){
 
   for(int i = 0; i < numResources; i++){
     if (test_id == resources[i].Identifier()){

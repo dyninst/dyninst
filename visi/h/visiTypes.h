@@ -16,9 +16,12 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.9  1995/02/26 01:59:29  newhall
-/* added phase interface functions
+/* Revision 1.10  1995/06/02 21:01:56  newhall
+/* changed type of metric and focus handles to u_int
 /*
+ * Revision 1.9  1995/02/26  01:59:29  newhall
+ * added phase interface functions
+ *
  * Revision 1.8  1995/02/16  09:32:05  markc
  * Modified to support machines which do not have NaN(x).
  * This code has not been tested, but it compiles.
@@ -113,7 +116,7 @@ typedef double timeType;
 struct metricStruct {
      string units;    // how units are measured
      string name;     // metric name for graph labeling  
-     int     Id;       // unique metric Id
+     u_int   Id;       // unique metric Id
      int     aggregate;  //either SUM or AVE
 };
 typedef struct metricStruct visi_metricType;
@@ -121,14 +124,14 @@ typedef struct metricStruct visi_metricType;
 
 struct resourceStruct{
      string name;     // resource name for graph labeling
-     int    Id;       // unique resource id
+     u_int  Id;       // unique resource id
 };
 typedef struct resourceStruct visi_resourceType;
 
 
 struct dataValueStruct{
-     int   metricId;
-     int   resourceId;
+     u_int metricId;
+     u_int resourceId;
      int   bucketNum;
      sampleType data;
 };

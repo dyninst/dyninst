@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.16  1995/02/26 01:59:27  newhall
-/* added phase interface functions
+/* Revision 1.17  1995/06/02 21:01:54  newhall
+/* changed type of metric and focus handles to u_int
 /*
+ * Revision 1.16  1995/02/26  01:59:27  newhall
+ * added phase interface functions
+ *
  * Revision 1.15  1994/11/08  01:51:04  newhall
  * array bounds error fix to visi_GridCellHisto::Value
  *
@@ -88,43 +91,43 @@
 class Metric{
      string     units;    // how units are measured  i.e. "ms" 
      string     name;     // for y-axis labeling  
-     int         Id;       // unique metric Id
-     int         aggregate; //either SUM or AVE, for fold operation 
+     u_int      Id;       // unique metric Id
+     int        aggregate; //either SUM or AVE, for fold operation 
   public:
-     Metric(){units = NULL; Id = NOVALUE; aggregate=SUM;}
-     Metric(string ,string,int,int); 
+     Metric(){units = NULL; Id = 0; aggregate=SUM;}
+     Metric(string ,string,u_int,int); 
      ~Metric(); 
      const char *Units(){return(units.string_of());}
      const char *Name(){return(name.string_of());}
-     int         Identifier(){return(Id);}
+     u_int       Identifier(){return(Id);}
      int         Aggregate(){return(aggregate);}
 };
 
 
 class Resource{
      string   name;     // obj. name for graph labeling
-     int      Id;       // unique resource id
+     u_int    Id;       // unique resource id
    public:
-     Resource(){name = NULL; Id = -1;}
-     Resource(string,int);
+     Resource(){name = NULL; Id = 0;}
+     Resource(string,u_int);
      ~Resource();
      const char *Name(){return(name.string_of());}
-     int        Identifier(){return(Id);}
+     u_int    Identifier(){return(Id);}
 };
 
 class PhaseInfo{
   private:
-    int phaseHandle;
+    u_int phaseHandle;
     timeType startTime;
     timeType endTime;
     timeType bucketWidth;
     string phaseName;
   public:
     PhaseInfo(){
-	    phaseHandle = -1; startTime = -1.0; 
+	    phaseHandle = 0; startTime = -1.0; 
 	    endTime = -1.0; phaseName = NULL;
     }
-    PhaseInfo(int h,timeType s,timeType e,timeType w, string n){
+    PhaseInfo(u_int h,timeType s,timeType e,timeType w, string n){
 	   phaseHandle = h;
 	   startTime = s;
 	   endTime = e;
@@ -136,7 +139,7 @@ class PhaseInfo{
     void setStartTime(timeType s){ startTime = s;}
     void setEndTime(timeType e){ endTime = e;}
     void setBucketWidth(timeType w){ bucketWidth = w;}
-    int  getPhaseHandle() const { return(phaseHandle);}
+    u_int  getPhaseHandle() const { return(phaseHandle);}
     const char *getName() { return(phaseName.string_of());}
     timeType getStartTime() { return(startTime);}
     timeType getEndTime() { return(endTime);}
@@ -437,16 +440,16 @@ class visi_DataGrid {
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);
      int        NumResources(){return(numResources);}
-     int        MetricId(int); // returns metric Id
-     int        ResourceId(int); // returns Resource Id
+     u_int      *MetricId(int); // returns metric Id
+     u_int      *ResourceId(int); // returns Resource Id
      int        NumBins(){return(numBins);}
      timeType   BinWidth(){return(binWidth);}
      int        Valid(int,int);  
      int        Invalidate(int,int);
      int        AddNewMetrics(int,visi_metricType *);
      int        AddNewResource(int,visi_resourceType *);
-     int        ResourceInGrid(int);
-     int        MetricInGrid(int);
+     int        ResourceInGrid(u_int);
+     int        MetricInGrid(u_int);
      int	NumPhases(){ return(phases.size());}
      void       AddNewPhase(int,timeType,timeType,timeType,string);
 
