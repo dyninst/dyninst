@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.536 2005/03/18 04:34:56 chadd Exp $
+// $Id: process.C,v 1.537 2005/03/18 15:39:30 chadd Exp $
 
 #include <ctype.h>
 
@@ -829,16 +829,18 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
 }
 	
 bool process::applyMutationsToTextSection(char *textSection, int textAddr, int textSize){
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 	mutationRecord *mr = afterMutationList.getHead();
 
 	while (mr != NULL) {
 		if( mr->addr >= textAddr && mr->addr < (textAddr+textSize)){
 			memcpy(&(textSection[mr->addr-textAddr]), mr->data, mr->size);
 		}
-     	mr = mr->next;
+     		mr = mr->next;
 	}
+#endif
+	return true;
 }
-
 char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize){
 	//dyninst_SharedLibraries
 	//the SharedLibraries sections contains a list of all the shared libraries
