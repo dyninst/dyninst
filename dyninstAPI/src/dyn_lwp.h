@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.13 2003/03/12 01:50:01 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.14 2003/04/16 21:07:08 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -63,8 +63,6 @@
 
 // note: handleT is normally unsigned on unix platforms, void * for 
 // NT (as needed) defined in os.h
-
-#include "dyninstAPI/src/process.h"
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
@@ -91,6 +89,8 @@ class dyn_lwp
 
   dyn_lwp(const dyn_lwp &l);
 
+  ~dyn_lwp();       // we only want process::deleteLWP to do this
+
   // Returns a struct used by changePC/restoreRegisters
   struct dyn_saved_regs *getRegisters();
   // Sets register file to values retrieved by getRegisters
@@ -115,7 +115,8 @@ class dyn_lwp
   // Set a breakpoint at the system call exit
   // Actually sets up some state and calls the process version,
   // but hey...
-  bool setSyscallExitTrap();
+  bool setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
+                          void *data);
   // Clear the above, and perform any necessary emulation work
   bool clearSyscallExitTrap();
   // What if the wrong lwp hits the trap?
@@ -174,8 +175,9 @@ class dyn_lwp
      return status_fd_;
   };
   handleT usage_fd() const {
-     assert(fd_opened());
-     return usage_fd_;
+      if (!fd_opened())
+          fprintf(stderr, "FD not opened for %d (0x%x)\n", get_lwp_id(),(int) this);
+      return usage_fd_;
   };
   
   // Open and close (if necessary) the file descriptor/handle. Used
@@ -193,8 +195,6 @@ class dyn_lwp
 #endif
   
  private:
-  friend void process::deleteLWP(dyn_lwp *);
-  ~dyn_lwp();       // we only want process::deleteLWP to do this
   bool openFD_();   // os specific
   void closeFD_();  // os specific
   
@@ -230,7 +230,10 @@ class dyn_lwp
 
   // Pointer to the syscall trap data structure
   syscallTrap *trappedSyscall_;
-
+  // Callback to be made when the syscall exits
+  syscallTrapCallbackLWP_t trappedSyscallCallback_;
+  void *trappedSyscallData_;
+  
   // When we run an inferior RPC we cache the stackwalk of the
   // process and return that if anyone asks for a stack walk
   pdvector<Frame> cachedStackWalk;

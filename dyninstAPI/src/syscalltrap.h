@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: syscalltrap.h,v 1.1 2003/02/28 22:13:29 bernat Exp $
+/* $Id: syscalltrap.h,v 1.2 2003/04/16 21:07:10 bernat Exp $
  */
 
 #ifndef _SYSCALL_TRAP_H_
@@ -47,12 +47,20 @@
 
 #include "common/h/Types.h"
 
+class dyn_thread;
+class dyn_lwp;
+
 /*
  * This file provides prototypes for the data structures which track
  * traps inserted at the exit of system calls. These are primarily
  * used to signal when it is possible to modify the state of the program.
+ *
  */
 
+/*
+ * This is the process-wide version: per system call how many are waiting,
+ * etc.
+ */
 struct syscallTrap {
     // Reference count (for MT)
     unsigned refcount;
@@ -65,5 +73,12 @@ struct syscallTrap {
     // Handle for further info
     void *saved_data;
 };
+
+/*
+ * Per thread or LWP: a callback to be made when the
+ * system call exits
+ */
+
+typedef void (*syscallTrapCallbackLWP_t)(dyn_lwp *lwp, void *data);
 
 #endif /*_SYSCALL_TRAP_H_*/

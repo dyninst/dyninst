@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.7 2003/03/12 01:50:00 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.8 2003/04/16 21:07:07 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -59,8 +59,9 @@ dyn_lwp::dyn_lwp() :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  isRunningIRPC(false), are_fd_opened(false)
-  
+  trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
+  trappedSyscallData_(NULL),
+  isRunningIRPC(false), are_fd_opened(false)  
 {
 };
 
@@ -75,7 +76,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  trappedSyscall_(NULL),
+  trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
+  trappedSyscallData_(NULL),
   isRunningIRPC(false), are_fd_opened(false)
 {
 }
@@ -91,7 +93,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, handleT fd, process *proc) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  trappedSyscall_(NULL),
+  trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
+  trappedSyscallData_(NULL),
   isRunningIRPC(false), are_fd_opened(false)
 {
 }
@@ -107,9 +110,11 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  trappedSyscall_(0),
+  trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
+  trappedSyscallData_(NULL),
   isRunningIRPC(false), are_fd_opened(false)
 {
+    fprintf(stderr, "LWP copy constructor\n");
 }
 
 dyn_lwp::~dyn_lwp()
@@ -160,7 +165,7 @@ bool dyn_lwp::openFD() {
 
 void dyn_lwp::closeFD() {
    if(fd_opened()) {
-      closeFD_();
+       closeFD_();
       are_fd_opened = false;
    }
 }
@@ -168,14 +173,26 @@ void dyn_lwp::closeFD() {
 // Find out some info about the system call we're waiting on,
 // and ask the process class to set a breakpoint there. 
 
-bool dyn_lwp::setSyscallExitTrap()
+bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
+                                 void *data)
 {
     assert(executingSystemCall());
-    assert(!trappedSyscall_);
+    if (trappedSyscall_) {
+        fprintf(stderr, "Error: syscall already trapped on LWP %d\n",
+                get_lwp_id());
+        assert(0);
+    }
     
     Address syscallInfo = getCurrentSyscall();
+    fprintf(stderr, "Setting trap at syscall %d, lwp %d\n",
+            syscallInfo, get_lwp_id());
+    
     
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
+    if (trappedSyscall_ == NULL)
+        fprintf(stderr, "ERROR SETTING SYSCALL!\n");
+    trappedSyscallCallback_ = callback;
+    trappedSyscallData_ = data;
     return (trappedSyscall_ != NULL);
 }
 
@@ -189,7 +206,13 @@ bool dyn_lwp::clearSyscallExitTrap()
     if (!proc()->clearSyscallTrapInternal(trappedSyscall_))
         return false;
     
+    // Make the callback
+    if (trappedSyscallCallback_)
+        (*trappedSyscallCallback_)(this, trappedSyscallData_);
+
     trappedSyscall_ = NULL;
+    trappedSyscallCallback_ = NULL;
+    trappedSyscallData_ = NULL;
     return true;
 }
 

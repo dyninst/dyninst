@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.20 2003/04/11 22:46:28 schendel Exp $
+// $Id: sol_proc.C,v 1.21 2003/04/16 21:07:09 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -510,7 +510,12 @@ unsigned recognize_lwp(process *proc, int lwp_id) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
 
-   return proc->postRPCtoDo(ast, true, &doneWithLwp, (void *)lwp_id, lwp);
+   return proc->getRpcMgr()->postRPCtoDo(ast, true, 
+                                         doneWithLwp, 
+                                         (void *)lwp_id, -1,
+                                         false,
+                                         NULL, 
+                                         lwp);
 }
 
 void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
@@ -553,16 +558,16 @@ bool anyRpcsActive(process *proc, pdvector<lwprequest_info*> *rpcReqBuf) {
       }      
 
       int rpc_id = rpcReq->rpc_id;
-      irpcState_t rpc_state = proc->getRPCState(rpc_id);
-      if(rpc_state == irpcWaitingForTrap) {
-         proc->cancelRPC(rpc_id);
-         rpcReq->cancelled = true;
+      irpcState_t rpc_state = proc->getRpcMgr()->getRPCState(rpc_id);
+      if(rpc_state == irpcWaitingForSignal) {
+          proc->getRpcMgr()->cancelRPC(rpc_id);
+          rpcReq->cancelled = true;
       }
       else if(rpc_state == irpcNotValid) {   // ie. it's already completed
-         rpcReq->completed = true;
+          rpcReq->completed = true;
       }
       else {
-         any_active = true;
+          any_active = true;
       }
       iter++;
    }
@@ -584,12 +589,12 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
    }
 
    do {
-      launchRPCs(false);
-      if(hasExited())  return;
-      decodeAndHandleProcessEvent(false);
-      // Loop until all rpcs are done
+       getRpcMgr()->launchRPCs(false);
+       if(hasExited())  return;
+       decodeAndHandleProcessEvent(false);
+       // Loop until all rpcs are done
    } while(anyRpcsActive(this, &rpcReqBuf));
-
+   
    pdvector<lwprequest_info*>::iterator iter = rpcReqBuf.begin();
    while(iter != rpcReqBuf.end()) {
       lwprequest_info *rpcReq = (*iter);
@@ -1240,6 +1245,9 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
+        fprintf(stderr, "Bumping refcount for syscall %d to %d\n",
+                trappedSyscall->syscall_id, trappedSyscall->refcount);
+        
         return trappedSyscall;
     }
     else {
@@ -1262,7 +1270,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
             trappedSyscall->orig_setting = 1;
         else
             trappedSyscall->orig_setting = 0;
-        
+
         // 2) Place a trap
         praddsysset(cur_syscalls, trappedSyscall->syscall_id);
         int bufsize = sizeof(long) + SYSSET_SIZE(cur_syscalls);
@@ -1273,7 +1281,9 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
             perror("Syscall trap set");
             return NULL;
         }
-
+        fprintf(stderr, "PCSexit for %d, orig %d\n", 
+                trappedSyscall->syscall_id, trappedSyscall->orig_setting);
+        
         // Insert into the list of trapped syscalls
         syscallTraps_ += (trappedSyscall);
 
@@ -1290,6 +1300,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     trappedSyscall->refcount--;
     if (trappedSyscall->refcount > 0) {
+        fprintf(stderr, "Refcount on syscall %d reduced to %d\n",
+                trappedSyscall->syscall_id,
+                trappedSyscall->refcount);
         return true;
     }
     // Erk... it hit 0. Remove the trap at the system call
@@ -1297,8 +1310,13 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     pstatus_t proc_status;
     if (!get_status(&proc_status)) return false;
     if (!get_exit_syscalls(&proc_status, cur_syscalls)) return false;
-    if (!trappedSyscall->orig_setting) 
+    fprintf(stderr, "Clearing trapped syscall\n");
+    if (!trappedSyscall->orig_setting) {
         prdelsysset(cur_syscalls, trappedSyscall->syscall_id);
+        fprintf(stderr, "Originally: off\n");
+    }
+    else fprintf(stderr, "Originally: on\n");
+    
     int bufsize = sizeof(long) + SYSSET_SIZE(cur_syscalls);
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSEXIT; bufptr++;
@@ -1310,12 +1328,12 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     // Now that we've reset the original behavior, remove this
     // entry from the vector
+    pdvector<syscallTrap *> newSyscallTraps;
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (trappedSyscall == syscallTraps_[iter]) {
-            syscallTraps_.removeByIndex(iter);
-            break;
-        }
+        if (trappedSyscall != syscallTraps_[iter])
+            newSyscallTraps.push_back(syscallTraps_[iter]);
     }
+    syscallTraps_ = newSyscallTraps;
     delete trappedSyscall;
     
     return true;
@@ -1347,18 +1365,20 @@ bool dyn_lwp::stepPastSyscallTrap()
 // 1: Trapped, but did not have a syscall trap placed for this LWP
 // 2: Trapped with a syscall trap desired.
 int dyn_lwp::hasReachedSyscallTrap() {
+    Address syscall;
+    
     // Get the status of the LWP
     lwpstatus_t status;
     if (!get_status(&status)) {
         fprintf(stderr, "Failed to get thread status\n");
-        return false;
+        return 0;
     }
     
     if (status.pr_why != PR_SYSEXIT) {
-        return false;
+        return 0;
     }
-    Address syscall = status.pr_what;
-
+    syscall = status.pr_what;
+    
     if (trappedSyscall_ && syscall == trappedSyscall_->syscall_id) {
         return 2;
     }
@@ -1368,7 +1388,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
     // process placed
     if (proc()->checkTrappedSyscallsInternal(syscall))
         return 1;
-    
+    // This is probably an error case... but I'm not sure.
     return 0;
 }
 
