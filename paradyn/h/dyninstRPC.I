@@ -92,6 +92,14 @@
 #include "util/h/aggregation.h"
 #include "paradyn/src/met/mdl.h"
 
+$remote
+struct batch_buffer_entry {
+   int mid;
+   double startTimeStamp;
+   double endTimeStamp;
+   double value;
+};
+
 
 /* used by paradynd to inform a change in the status of an application. */
 // typedef enum { procPaused, procExited } processStatus_t;
@@ -499,11 +507,19 @@ $remote dynRPC {
     //   endTimeStamp - ending time of the interval covered by this sample.
     //   value - the value of this sample
     //
-   $virtual $upcall $async void sampleDataCallbackFunc(int program, 
-						       int mi,
-						       double startTimeStamp, 
-						       double endTimeStamp, 
-						       double value);
+//   $virtual $upcall $async void sampleDataCallbackFunc(int program, 
+//						       int mi,
+//						       double startTimeStamp, 
+//						       double endTimeStamp, 
+//						       double value);
+
+   // batch the samples (paradynd-->paradyn) to get better performance
+   // the functionality is essentially the same as the 
+   // sampleDataCallbackFunc, which is now obsolete
+
+   $virtual $upcall $async
+   void batchSampleDataCallbackFunc(int program,
+	                            vector<batch_buffer_entry> theBatchBuffer);
 
    //
    // XXXX - Hack this should be generalized into a vector.
