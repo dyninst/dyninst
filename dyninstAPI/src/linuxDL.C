@@ -285,7 +285,7 @@ bool dynamic_linking::set_r_brk_point( process * proc ) {
 	jAddr.replaceBundleWith( returnBundle );
 	brkpoint_set = true;
 
-	fprintf( stderr, "* Inserted r_brk trap at 0x%lx (target at 0x%lx)\n", r_brk_addr, r_brk_target_addr );
+	// /* DEBUG */ fprintf( stderr, "* Inserted r_brk trap at 0x%lx (target at 0x%lx)\n", r_brk_addr, r_brk_target_addr );
 	return true;
 	} /* end set_r_brk_point() */
 #else
@@ -741,7 +741,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 		   for our use here. */
 		proc->getRepresentativeLWP()->changePC( r_brk_target_addr, NULL );
 		} else {
-		fprintf( stderr, "* Not changing PC on dyninst library load.\n" );
+		// /* DEBUG */ fprintf( stderr, "* Not changing PC on dyninst library load.\n" );
 		}
 
 	return true;
