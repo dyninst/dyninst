@@ -46,6 +46,9 @@
  * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
+ * Revision 1.9  1997/01/16 22:17:38  tamches
+ * added proper param names to DYNINSTos_init
+ *
  * Revision 1.8  1997/01/16 20:59:17  tamches
  * params to DYNINSTos_init
  *
@@ -225,7 +228,7 @@ DYNINSTmapUarea(void) {
 ************************************************************************/
 
 void
-DYNINSTos_init(int, int) { /* params: calledByFork, calledByAttach */
+DYNINSTos_init(int calledByFork, int calledByAttach) {
     DYNINSTmapUarea();
 }
 

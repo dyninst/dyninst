@@ -78,7 +78,7 @@ static const double MILLION       = 1.0e6;
 ************************************************************************/
 
 void
-DYNINSTos_init(int,int) { /* params: calledByFork, calledByAttach */
+DYNINSTos_init(int calledByFork, int calledByAttach) {
 
     /*
        Install trap handler.

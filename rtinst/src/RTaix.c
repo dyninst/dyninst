@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTaix.c,v $
+ * Revision 1.7  1997/01/16 22:19:34  tamches
+ * added proper param names to DYNINSTos_init
+ *
  * Revision 1.6  1997/01/16 20:55:45  tamches
  * params to DYNINSTos_init
  *
@@ -76,7 +79,7 @@ static const long int MILLION       = 1000000;
 ************************************************************************/
 
 void
-DYNINSTos_init(int, int) {
+DYNINSTos_init(int calledByFork, int calledByAttach) {
 }
 
 
