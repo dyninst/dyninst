@@ -56,6 +56,11 @@
 #include "util/h/aggregation.h"
 #include "paradynd/src/blizzard_memory.h" //class memory and struct memory::bounds
 
+// Toplevel for code in resource heirarchy....
+#define CODE_RH_NAME "Code"
+// field seperator for resource heirarchy....
+#define RH_SEPERATOR '/'
+
 #define MDL_FOLD_SUM 0
 #define MDL_FOLD_AVG 1
 

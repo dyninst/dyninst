@@ -41,6 +41,17 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.31  1997/11/26 21:47:49  mcheyney
+ * Changed syntax of exclude statement:
+ * Old:
+ *   exclude "function"  or
+ *   exclude "module/function"
+ * New:
+ *   exclude "/Code/module" or
+ *   exclude "/Code/module/function"
+ * Also some small mdl changes to make syntax a bit more transparent in
+ *  a few places & get rid of a few warnings.
+ *
  * Revision 1.30  1997/06/27 18:21:20  tamches
  * removed some warnings
  *
@@ -951,8 +962,10 @@ bool mdl_init() {
   return true;
 }
 
+// 970930 - changed mdl ehanged code exclusion to Code/module or 
+//  Code/module/func instead of  module/func or module.
 // check that exclude_node strings have form "module" or "module/func" only
-bool mdl_check_node_constraints() {
+bool mdl_check_node_constraints_OLD() {
 
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++) {
         char *temp = P_strdup(mdl_data::lib_constraints[i].string_of()); 
@@ -978,6 +991,86 @@ bool mdl_check_node_constraints() {
             return false;
 	}
     }
+    return true;
+}
+
+// 970930 - changed mdl ehanged code exclusion to /Code/module or 
+//  /Code/module/func instead of  module/func or module.
+//  In addition, modified mdl_data::lib_constraints to by
+//  stripping off the leading /Code/ from each entry.  Thus,
+//  after returning (with val == true) mdl_data::lib_constraints
+//  should have entries of the old form: "module", or "module/func"....
+// check that exclude_node strings have form "module" or "module/func" only
+bool mdl_check_node_constraints() {
+    unsigned int i;
+    // locations of first, second, and 3rd "/" characters....
+    char *temp, *first_slash, *second_slash, *third_slash, *fourth_slash;
+    string modified_constraint;
+    bool bad_string;
+
+    // temp vector to hold lib constraints with leading 
+    //  "Code/" stripped off....
+    vector<string> modified_lib_constraints;
+
+    for(i=0;i<mdl_data::lib_constraints.size(); i++) {
+        first_slash = second_slash = third_slash = NULL;
+
+        bad_string = 0;
+        // get copy of string char *data for strchr....
+        temp = P_strdup(mdl_data::lib_constraints[i].string_of());
+	// Doh!!!!  Changed exclude directive to have form /Code,
+	//  instead of Code/, so strip off leading '/'
+	first_slash = P_strchr(temp, RH_SEPERATOR);
+	if (first_slash != temp) {
+	    bad_string = 1;
+	    first_slash = NULL;
+	} 
+        // Now that the leading "/" is stripped off, 
+	// stript everything before new first slash off of constraint....
+	// This should place constraint in form which system previously
+	// expected....
+	if (first_slash != NULL) {
+	    second_slash = P_strchr(&first_slash[1], RH_SEPERATOR);
+	}
+	if (second_slash != NULL) {
+	    modified_constraint = string(&second_slash[1]);
+	    third_slash = P_strchr(&second_slash[1], RH_SEPERATOR);
+	}
+	if (third_slash != NULL) {
+	    fourth_slash = P_strchr(&third_slash[1], RH_SEPERATOR);
+	}
+	// excluded item should have at least 2 "/", e.g.
+	//  "/Code/module", or "/Code/module/func"....
+	if (first_slash == NULL || second_slash == NULL) {
+	    bad_string = 1; 
+	    cerr << "exclude syntax : could not find 2 seperators in resource hierarchy path" << endl;
+	}
+	// and at most most 2....
+	if (fourth_slash != NULL) {
+	    bad_string = 1;
+	    cerr << "exclude syntax : found too many seperators in resource hierarchy path" << endl;
+	}
+	if (bad_string != 1) {
+	    // the substring between the first and second slash 
+	    //  should be "Code"
+	    if (strncmp(CODE_RH_NAME, &first_slash[1], second_slash - \
+		    first_slash - 1) != 0) {
+	      cerr << "exclude syntax : top level resource hierarchy path must be " << CODE_RH_NAME << endl;;
+	        bad_string = 1;
+	    }
+	}
+	// dont forget to free up temp....
+	if (temp != NULL) delete []temp;
+	
+	if (bad_string) {
+	    cout << "exclude syntax error : " << mdl_data::lib_constraints[i].string_of() << " is not of expected form : /Code/module/function, or /Code/module" << endl;
+	    return false;
+	} 
+	
+	modified_lib_constraints += modified_constraint;
+    }
+
+    mdl_data::lib_constraints = modified_lib_constraints;
     return true;
 }
 

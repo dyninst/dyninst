@@ -62,7 +62,7 @@ public:
 			 vector<T_dyninstRPC::mdl_stmt*> *stmts, 
 			 vector<string> *flavs,
 			 vector<T_dyninstRPC::mdl_constraint*> *cons,
-			 vector<string> *temp_counters,
+		 vector<string> *temp_counters,
 			 bool developerMode,
 			 int normalized);
 
