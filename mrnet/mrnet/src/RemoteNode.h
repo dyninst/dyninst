@@ -1,8 +1,6 @@
 #if !defined(__remotenode_h) 
 #define __remotenode_h 1
 
-#include <poll.h>
-
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/Message.h"
 #include "mrnet/src/pthread_sync.h"
@@ -20,7 +18,6 @@ class RemoteNode:public CommunicationNode, public Error {
 
     int sock_fd;
     bool _is_internal_node;
-    struct pollfd poll_struct;
 
     int accept_Connection( int sock_fd, bool doConnect = true );
 
@@ -54,7 +51,6 @@ class RemoteNode:public CommunicationNode, public Error {
     bool is_internal();
     bool is_upstream();
 
-    const pollfd& get_pollfd( void ) const    { return poll_struct; }
     int get_sockfd( void ) const              { return sock_fd; }
 
     static void set_BlockingTimeOut( int _timeout );

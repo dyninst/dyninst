@@ -20,8 +20,6 @@
 #include "mrnet/src/EndPointImpl.h"
 #include "mrnet/src/EventImpl.h"
 
-#include "mrnet/h/MRNetC.h"
-
 namespace MRN
 {
 

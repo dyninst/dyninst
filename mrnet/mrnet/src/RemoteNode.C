@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <poll.h>
 #include <arpa/inet.h>
+
 
 #include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/ChildNode.h"
@@ -205,9 +207,6 @@ int RemoteNode::connect()
         return -1;
     }
     
-    poll_struct.fd = sock_fd;
-    poll_struct.events = POLLIN;
-    
     mrn_printf(3, MCFL, stderr,
                "connect_to_host() succeeded. new socket = %d\n", sock_fd);
     return 0;
@@ -246,10 +245,6 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
             error( ESYSTEM, "pthread_create() failed: %s\n", strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream send thread creation failed...\n");
         }
-    }
-    else{
-        poll_struct.fd = sock_fd;
-        poll_struct.events = POLLIN;
     }
 
     return retval;
@@ -388,6 +383,9 @@ int RemoteNode::send(Packet& packet)
 
 bool RemoteNode::has_data()
 {
+    pollfd poll_struct;
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
     poll_struct.revents = 0;
 
     mrn_printf(3, MCFL, stderr, "In remotenode.has_data(%d)\n", poll_struct.fd);
