@@ -1541,7 +1541,11 @@ void LineInformation::print()
 }
 #endif
 
-ostream& operator<<(ostream& os,LineInformation& linfo){
+#ifdef OLDFILE_INFO
+ostream& operator<<(ostream& os,LineInformation& linfo) {
+#else
+ostream& operator<<(ostream& os,LineInformation&) {
+#endif
 #ifdef OLDFILE_INFO
 	os << "**********************************************\n";
 	os << "MODULE : " << linfo.moduleName << "\n";  

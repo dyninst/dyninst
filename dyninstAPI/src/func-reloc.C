@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.42 2003/07/18 15:43:52 schendel Exp $
+ * $Id: func-reloc.C,v 1.43 2003/07/31 19:01:23 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -502,7 +502,13 @@ bool pd_Function::expandInstPoints(const image *owner,
                                Address baseAddress, Address mutator,
                                Address mutatee, instruction oldInstructions[], 
                                unsigned num_instructions,
-			       process *proc) {
+#if defined (sparc_sun_solaris2_4)
+                               process *proc
+#else
+                               process *
+#endif
+                                   )
+{
 
   bool combined1, combined2, combined3, combined4, combined5;
   bool attach1 = true, attach2 = true, attach3 = true, attach4 = true, attach5 = true;
@@ -530,7 +536,7 @@ bool pd_Function::expandInstPoints(const image *owner,
                            oldInstructions, num_instructions, size());
 #if defined (sparc_sun_solaris2_4)
   attach4 = PA_attachBasicBlockEndRewrites(&tmp_alt_set3, baseAddress, mutatee,
-					   proc);
+                                           proc);
   attach5 = PA_attachTailCalls(&tmp_alt_set4);
 #endif
 

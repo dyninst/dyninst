@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.107 2003/07/18 15:44:01 schendel Exp $
+// $Id: linux.C,v 1.108 2003/07/31 19:01:25 schendel Exp $
 
 #include <fstream>
 
@@ -325,7 +325,6 @@ process *decodeProcessEvent(int pid,
     
     int result = 0, status = 0;
     process *proc = NULL;
-    bool ignore;
     result = waitpid( pid, &status, options );
     // Translate the signal into a why/what combo.
     // We can fake results here as well: translate a stop in fork
@@ -861,7 +860,7 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
   return pdstring("/proc/") + pdstring(pid) + "/exe";
 }
 
-void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+void process::recognize_threads(pdvector<unsigned> * /*completed_lwps*/) {
    // implement when handling forks for linux multi-threaded programs
 }
 
@@ -1060,9 +1059,6 @@ bool process::catchupSideEffect( Frame & /* frame */, instReqNode * /* inst */ )
 #endif
 
 bool process::loopUntilStopped() {
-    int flags = WUNTRACED | WNOHANG;
-    bool stopSig = false;
-    int count = 0;
     /* make sure the process is stopped in the eyes of ptrace */
     bool haveStopped = false;
     stop_();

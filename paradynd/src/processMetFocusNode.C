@@ -457,11 +457,11 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // Convert the stack walks into a similar list of catchupReq nodes, which
    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
    // need to be executed
-   Address aixHACKlowestFunc = (Address) -1;
+   Address aixHACKlowestFunc = (Address) 0;
    pdvector<catchupReq *> catchupWalk;
    for (unsigned f=0; f<stackWalk.size(); f++) {
        catchupWalk.push_back(new catchupReq(stackWalk[f]));
-       if (aixHACKlowestFunc == -1) {
+       if (aixHACKlowestFunc == 0) {
            aixHACKlowestFunc = stackWalk[f].getPC();
        }
    }
@@ -482,7 +482,6 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
 #if !defined(sparc_sun_solaris2_4)
    // Then through each frame in the stack walk
    AstNode *conglomerate = NULL;
-   Address aixHACK = 0;
    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
       catchupReq *curCReq = catchupWalk[j];
       // Note: backwards iteration

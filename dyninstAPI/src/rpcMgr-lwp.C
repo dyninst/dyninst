@@ -212,7 +212,7 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
       return irpcStarted;
 }
 
-bool rpcLWP::deleteLWPIRPC(int id) {
+bool rpcLWP::deleteLWPIRPC(unsigned id) {
     // Can remove a queued or pending lwp IRPC
     bool removed = false;
     

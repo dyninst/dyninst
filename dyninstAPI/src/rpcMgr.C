@@ -495,9 +495,9 @@ void rpcMgr::addThread(dyn_thread *thr) {
 
     // this code will fill in NULLs in any array entries that haven't yet
     // been assigned a thread
-    int new_size = index + 1;
+    unsigned new_size = static_cast<unsigned>(index) + 1;
     if(new_size > thrs_.size()) {
-       for(int i=thrs_.size(); i < new_size; i++)
+       for(unsigned i=thrs_.size(); i < new_size; i++)
           thrs_.push_back(NULL);
     }
     thrs_[index] = newThread;
@@ -580,7 +580,7 @@ bool rpcMgr::addRunningRPC(inferiorRPCinProgress *running) {
     return removePendingRPC(running);
 }
 
-bool rpcMgr::deleteProcessRPC(int id) {
+bool rpcMgr::deleteProcessRPC(unsigned id) {
     bool removed = false;
     pdvector<inferiorRPCtoDo *> newRPCs;
     for (unsigned i = 0; i < postedProcessRPCs_.size(); i++) {

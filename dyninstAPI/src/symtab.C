@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.174 2003/07/29 00:32:43 eli Exp $
+// $Id: symtab.C,v 1.175 2003/07/31 19:01:33 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1581,239 +1581,239 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
     defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
-  // check .stabs section to get language info for modules:
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
+   // check .stabs section to get language info for modules:
+   int stab_nsyms;
+   char *stabstr_nextoffset;
+   const char *stabstrs = 0;
 
-  char *modName, *ptr;
-  pdstring mod_string;
+   char *ptr;
+   pdstring mod_string;
 
-  // This ugly flag is set when certain (sun) fortran compilers are detected.
-  // If it is set at any point during the following iteration, this routine
-  // ends with "backtrack mode" and reiterates through all chosen languages, changing
-  // lang_Fortran to lang_Fortran_with_pretty_debug.
-  //
-  // This may be ugly, but it is set up this way since the information that is used
-  // to determine whether this flag is set comes from the N_OPT field, which 
-  // seems to come only once per image.  The kludge is that we assume that all
-  // fortran sources in the module have this property (they probably do, but
-  // could conceivably be mixed (???)).
-  int fortran_kludge_flag = 0;
+   // This ugly flag is set when certain (sun) fortran compilers are detected.
+   // If it is set at any point during the following iteration, this routine
+   // ends with "backtrack mode" and reiterates through all chosen languages, changing
+   // lang_Fortran to lang_Fortran_with_pretty_debug.
+   //
+   // This may be ugly, but it is set up this way since the information that is used
+   // to determine whether this flag is set comes from the N_OPT field, which 
+   // seems to come only once per image.  The kludge is that we assume that all
+   // fortran sources in the module have this property (they probably do, but
+   // could conceivably be mixed (???)).
+   int fortran_kludge_flag = 0;
 
-  // "state variables" we use to accumulate potentially useful information
-  //  A final module<->language decision is not made until we have arrived at the
-  //  next module entry, at which point we use any and all info we have to 
-  //  make the most sensible guess
-  pdstring working_module;
-  supportedLanguages working_lang;
-  char *working_options = NULL, *working_name = NULL;
+   // "state variables" we use to accumulate potentially useful information
+   //  A final module<->language decision is not made until we have arrived at the
+   //  next module entry, at which point we use any and all info we have to 
+   //  make the most sensible guess
+   pdstring working_module;
+   supportedLanguages working_lang = lang_Unknown;
+   char *working_options = NULL, *working_name = NULL;
 
-  struct stab_entry *stabptr = NULL;
+   struct stab_entry *stabptr = NULL;
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
-  //Using the Object to get the pointers to the .stab and .stabstr
-  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  linkedFile.get_stab_info((void **) &stabptr, stab_nsyms, 
-			     (void **) &stabstr_nextoffset);
+   //Using the Object to get the pointers to the .stab and .stabstr
+   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+   linkedFile.get_stab_info((void **) &stabptr, stab_nsyms, 
+                            (void **) &stabstr_nextoffset);
 
-  for(int i=0;i<stab_nsyms;i++){
-    if (stabptr[i].type == N_UNDF) {/* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr[i].name == 1);
-      stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = const_cast<char *>(stabstrs + stabptr[i].val);
-    }
-    else if (stabptr[i].type == N_OPT){
-      //  We can use the compiler option string (in a pinch) to guess at the source file language
-      //  There is possibly more useful information encoded somewhere around here, but I lack
-      //  an immediate reference....
-      if (working_name)
-	working_options = const_cast<char *> (&stabstrs[stabptr[i].name]); 
-    }
-    else if ((stabptr[i].type == N_SO)  || (stabptr[i].type == N_ENDM)){ /* compilation source or file name */
-      // We have arrived at the next source file, finish up with the last one and reset state
-      // before starting next
-
-
-      //   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
-      //   XXXXXXXXXXX  change it there too.
-      if  (working_name) {
-	working_lang = pickLanguage(working_module, working_options, working_lang);
-	if (working_lang == lang_Fortran_with_pretty_debug)
-	  fortran_kludge_flag = 1;
-	(*mod_langs)[working_module] = working_lang;
-
+   for(int i=0;i<stab_nsyms;i++){
+      if (stabptr[i].type == N_UNDF) {/* start of object file */
+         /* value contains offset of the next string table for next module */
+         // assert(stabptr[i].name == 1);
+         stabstrs = stabstr_nextoffset;
+         stabstr_nextoffset = const_cast<char *>(stabstrs + stabptr[i].val);
       }
-      //   XXXXXXXXXXX
+      else if (stabptr[i].type == N_OPT){
+         //  We can use the compiler option string (in a pinch) to guess at the source file language
+         //  There is possibly more useful information encoded somewhere around here, but I lack
+         //  an immediate reference....
+         if (working_name)
+            working_options = const_cast<char *> (&stabstrs[stabptr[i].name]); 
+      }
+      else if ((stabptr[i].type == N_SO)  || (stabptr[i].type == N_ENDM)){ /* compilation source or file name */
+         // We have arrived at the next source file, finish up with the last one and reset state
+         // before starting next
+
+
+         //   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
+         //   XXXXXXXXXXX  change it there too.
+         if  (working_name) {
+            working_lang = pickLanguage(working_module, working_options, working_lang);
+            if (working_lang == lang_Fortran_with_pretty_debug)
+               fortran_kludge_flag = 1;
+            (*mod_langs)[working_module] = working_lang;
+
+         }
+         //   XXXXXXXXXXX
 	
-      // reset "state" here
-      working_lang = lang_Unknown;
-      working_options = NULL;
+         // reset "state" here
+         working_lang = lang_Unknown;
+         working_options = NULL;
 
-      //  Now:  out with the old, in with the new
+         //  Now:  out with the old, in with the new
 
-      if (stabptr[i].type == N_ENDM) {
-	// special case:
-	// which is most likely both broken (and ignorable ???)
-	working_name = "DEFAULT_MODULE";
-      }
-      else {
-	working_name = const_cast<char*>(&stabstrs[stabptr[i].name]);
-	ptr = strrchr(working_name, '/');
-	if (ptr) {
-	  ptr++;
-	  working_name = ptr;
-	}
-      }
-      working_module = pdstring(working_name);
+         if (stabptr[i].type == N_ENDM) {
+            // special case:
+            // which is most likely both broken (and ignorable ???)
+            working_name = "DEFAULT_MODULE";
+         }
+         else {
+            working_name = const_cast<char*>(&stabstrs[stabptr[i].name]);
+            ptr = strrchr(working_name, '/');
+            if (ptr) {
+               ptr++;
+               working_name = ptr;
+            }
+         }
+         working_module = pdstring(working_name);
 
-      if (mod_langs->defines(working_module) && (*mod_langs)[working_module] != lang_Unknown) {
-	//  we already have a module with this name in the map.  If it has been given
-	//  a language assignment (not lang_Unknown), we can just skip ahead
-	  working_name = NULL;
-	  working_options = NULL;
-	  continue;
-      } 
-      else {
-	//cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
-	switch (stabptr[i].desc) {
-	case N_SO_FORTRAN: 
-	  working_lang = lang_Fortran;
-	  break;
-	case N_SO_F90:
-	  working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
-	  break;
-	case N_SO_AS:
-	  working_lang = lang_Assembly;
-	  break;
-	case N_SO_ANSI_C:
-	case N_SO_C:
-	  working_lang = lang_C;
-	  break;
-	case N_SO_CC:
-	  working_lang = lang_CPlusPlus;
-	  break;
-	default:
-	  //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
-	  //  do we need to make this kind of distinction here?
-	  working_lang = lang_Unknown;
-	  break;
-	}
+         if (mod_langs->defines(working_module) && (*mod_langs)[working_module] != lang_Unknown) {
+            //  we already have a module with this name in the map.  If it has been given
+            //  a language assignment (not lang_Unknown), we can just skip ahead
+            working_name = NULL;
+            working_options = NULL;
+            continue;
+         } 
+         else {
+            //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
+            switch (stabptr[i].desc) {
+              case N_SO_FORTRAN: 
+                 working_lang = lang_Fortran;
+                 break;
+              case N_SO_F90:
+                 working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
+                 break;
+              case N_SO_AS:
+                 working_lang = lang_Assembly;
+                 break;
+              case N_SO_ANSI_C:
+              case N_SO_C:
+                 working_lang = lang_C;
+                 break;
+              case N_SO_CC:
+                 working_lang = lang_CPlusPlus;
+                 break;
+              default:
+                 //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
+                 //  do we need to make this kind of distinction here?
+                 working_lang = lang_Unknown;
+                 break;
+            }
 	
-      } 
-    } // end N_SO section
+         } 
+      } // end N_SO section
 #ifdef NOTDEF
-    else {
-      //  This is here only to trace the parse, for my edification and knowledge, should be removed
-      //  Throw away most known symbols here
-      if ( (N_FUN != stabptr[i].type) &&
-	   (N_GSYM != stabptr[i].type) &&
-	   (N_STSYM != stabptr[i].type) &&
-	   (N_LCSYM != stabptr[i].type) &&
-	   (N_ROSYM != stabptr[i].type) &&
-	   (N_SLINE != stabptr[i].type) &&
-	   (N_SOL != stabptr[i].type) &&
-	   (N_ENTRY != stabptr[i].type) &&
-	   (N_BCOMM != stabptr[i].type) &&
-	   (N_ECOMM != stabptr[i].type)) {
-      char hexbuf[10];
-      sprintf(hexbuf, "%p",stabptr[i].type );
-      cerr << __FILE__ << __LINE__ << ":  got " << hexbuf << endl;
+      else {
+         //  This is here only to trace the parse, for my edification and knowledge, should be removed
+         //  Throw away most known symbols here
+         if ( (N_FUN != stabptr[i].type) &&
+              (N_GSYM != stabptr[i].type) &&
+              (N_STSYM != stabptr[i].type) &&
+              (N_LCSYM != stabptr[i].type) &&
+              (N_ROSYM != stabptr[i].type) &&
+              (N_SLINE != stabptr[i].type) &&
+              (N_SOL != stabptr[i].type) &&
+              (N_ENTRY != stabptr[i].type) &&
+              (N_BCOMM != stabptr[i].type) &&
+              (N_ECOMM != stabptr[i].type)) {
+            char hexbuf[10];
+            sprintf(hexbuf, "%p",stabptr[i].type );
+            cerr << __FILE__ << __LINE__ << ":  got " << hexbuf << endl;
+         }
       }
-    }
 #endif
-  } // for loop
+   } // for loop
 
-  //  Need to make sure we finish up with the module we were last collecting information 
-  //  about
+   //  Need to make sure we finish up with the module we were last collecting information 
+   //  about
 
-  //   XXXXXXXXXXX  see note above (find the X's)
-  if  (working_name) {
-    working_lang = pickLanguage(working_module, working_options, working_lang);	  
-   if (working_lang == lang_Fortran_with_pretty_debug)
-      fortran_kludge_flag = 1;
-    (*mod_langs)[working_module] = working_lang;
-  }
-  //   XXXXXXXXXXX
+   //   XXXXXXXXXXX  see note above (find the X's)
+   if  (working_name) {
+      working_lang = pickLanguage(working_module, working_options, working_lang);	  
+      if (working_lang == lang_Fortran_with_pretty_debug)
+         fortran_kludge_flag = 1;
+      (*mod_langs)[working_module] = working_lang;
+   }
+   //   XXXXXXXXXXX
 
-  if (fortran_kludge_flag) {
-    // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
-    dictionary_hash_iter<pdstring, supportedLanguages> iter(*mod_langs);
-    pdstring aname;
-    supportedLanguages alang;
-    while (iter.next(aname, alang)) {
-      if (lang_Fortran == alang) {
-	(*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
-	cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << endl;
+   if (fortran_kludge_flag) {
+      // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
+      dictionary_hash_iter<pdstring, supportedLanguages> iter(*mod_langs);
+      pdstring aname;
+      supportedLanguages alang;
+      while (iter.next(aname, alang)) {
+         if (lang_Fortran == alang) {
+            (*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
+            cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << endl;
+         }
       }
-    }
-  }
+   }
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
 #endif
 
 
 #endif // stabs platforms
 
-//
-// eCoff Platforms
-//
+   //
+   // eCoff Platforms
+   //
 #if defined(alpha_dec_osf4_0)
 
-    LDFILE *ldptr;
-    pCHDRR symtab;
+   LDFILE *ldptr;
+   pCHDRR symtab;
 
-    ldptr = ldopen((char *)linkedFile.GetFile().c_str(), NULL);
-    symtab = SYMTAB(ldptr);
-    for (int i = 0; i < symtab->hdr.ifdMax; ++i) {
-        pCFDR file = symtab->pcfd + i;
-	char *tmp = ((symtab->psym + file->pfd->isymBase)->iss + 
-		     (symtab->pss + file->pfd->issBase));
-        pdstring modname = (strrchr(tmp, '/') ? strrchr(tmp, '/') + 1 : tmp);
+   ldptr = ldopen((char *)linkedFile.GetFile().c_str(), NULL);
+   symtab = SYMTAB(ldptr);
+   for (int i = 0; i < symtab->hdr.ifdMax; ++i) {
+      pCFDR file = symtab->pcfd + i;
+      char *tmp = ((symtab->psym + file->pfd->isymBase)->iss + 
+                   (symtab->pss + file->pfd->issBase));
+      pdstring modname = (strrchr(tmp, '/') ? strrchr(tmp, '/') + 1 : tmp);
 
-        if (file->pfd->csym && modname.length()) {
-            switch (file->pfd->lang) {
-            case langAssembler:
-//		fprintf(stderr, "Setting %s to 'lang_Assembly'\n", modname.c_str());
-                (*mod_langs)[modname] = lang_Assembly;
-                break;
+      if (file->pfd->csym && modname.length()) {
+         switch (file->pfd->lang) {
+           case langAssembler:
+              //		fprintf(stderr, "Setting %s to 'lang_Assembly'\n", modname.c_str());
+              (*mod_langs)[modname] = lang_Assembly;
+              break;
 
-            case langC:
-            case langStdc:
-//		fprintf(stderr, "Setting %s to 'lang_C'\n", modname.c_str());
-                (*mod_langs)[modname] = lang_C;
-                break;
+           case langC:
+           case langStdc:
+              //		fprintf(stderr, "Setting %s to 'lang_C'\n", modname.c_str());
+              (*mod_langs)[modname] = lang_C;
+              break;
 
-            case langCxx:
-            case langDECCxx:
-//		fprintf(stderr, "Setting %s to 'lang_CPlusPlus'\n", modname.c_str());
-                (*mod_langs)[modname] = lang_CPlusPlus;
-                break;
+           case langCxx:
+           case langDECCxx:
+              //		fprintf(stderr, "Setting %s to 'lang_CPlusPlus'\n", modname.c_str());
+              (*mod_langs)[modname] = lang_CPlusPlus;
+              break;
 
-            case langFortran:
-            case langFortran90:
-//		fprintf(stderr, "Setting %s to 'lang_Fortran'\n", modname.c_str());
-                (*mod_langs)[modname] = lang_Fortran;
-                break;
+           case langFortran:
+           case langFortran90:
+              //		fprintf(stderr, "Setting %s to 'lang_Fortran'\n", modname.c_str());
+              (*mod_langs)[modname] = lang_Fortran;
+              break;
 
-            default:
-//		fprintf(stderr, "Setting %s to 'lang_Unknown'\n", modname.c_str());
-                (*mod_langs)[modname] = lang_Unknown;
-            }
+           default:
+              //		fprintf(stderr, "Setting %s to 'lang_Unknown'\n", modname.c_str());
+              (*mod_langs)[modname] = lang_Unknown;
+         }
 
-        }
-    }
-    ldaclose(ldptr);
+      }
+   }
+   ldaclose(ldptr);
 
 #endif // eCoff Platforms
 

@@ -69,7 +69,7 @@ extern resource *machineResource;
 
 // Global "create a new pd_process object" functions
 
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp, pdstring dir) {
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
 #if !defined(i386_unknown_nt4_0)
     if (termWin_port == -1)
         return NULL;
@@ -92,9 +92,9 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp,
 	tp->resourceBatchMode(true);
     
 #if !defined(i386_unknown_nt4_0)
-    pd_process *proc = new pd_process(argv[0], argv, envp, dir, 0, stdout_fd, 2);
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
 #else 
-    pd_process *proc = new pd_process(argv[0], argv, envp, dir, 0, 1, 2);
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
 #endif
     if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
 #if !defined(i386_unknown_nt4_0)
@@ -184,8 +184,8 @@ void pd_process::init() {
 
 // Creation constructor
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
-                       pdvector<pdstring> envp, const pdstring dir,
-                       int stdin_fd, int stdout_fd, int stderr_fd) 
+                       const pdstring dir, int stdin_fd, int stdout_fd,
+                       int stderr_fd) 
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -195,8 +195,8 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
           paradynRTState(libUnloaded),
           inExec(false)
 {
-    dyninst_process = createProcess(argv0, argv, envp, dir, 
-                                    stdin_fd, stdout_fd, stderr_fd);
+    dyninst_process = createProcess(argv0, argv, dir, stdin_fd, stdout_fd,
+                                    stderr_fd);
 
     img = new pd_image(dyninst_process->getImage(), this);
 
@@ -434,7 +434,7 @@ void pd_process::handleExit(int exitStatus) {
    tp->processStatus(getPid(), procExited);
 }
 
-void pd_process::initAfterFork(pd_process *parentProc) {
+void pd_process::initAfterFork(pd_process * /*parentProc*/) {
    initCpuTimeMgr();
 
    tp->newProgramCallbackFunc(getPid(), arg_list, 
@@ -468,16 +468,16 @@ void pd_process::paradynPreExitDispatch(process *p, void *data, int code) {
     ((pd_process *)data)->preExitHandler(p, code);
 }
 
-void pd_process::preForkHandler(process *p) {
+void pd_process::preForkHandler(process *) {
 }
 
-void pd_process::postForkHandler(process *p, process *c) {
+void pd_process::postForkHandler(process *, process *) {
 }
 
-void pd_process::preExecHandler(process *p, char *arg0) {
+void pd_process::preExecHandler(process *, char * /*arg0*/) {
 }
 
-void pd_process::postExecHandler(process *p) {
+void pd_process::postExecHandler(process *) {
     // We need to reload the Paradyn library
     paradynRTState = libUnloaded; // It was removed when we execed
     inExec = true;
@@ -488,7 +488,7 @@ void pd_process::postExecHandler(process *p) {
     loadParadynLib(exec_load);
 }
 
-void pd_process::preExitHandler(process *p, int code) {
+void pd_process::preExitHandler(process *, int /*code*/) {
 }
 
 
@@ -540,7 +540,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
 
     pdvector<AstNode*> loadLibAstArgs(1);
     loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
-                                   (void *)paradynRTname.c_str());
+          reinterpret_cast<void *>(const_cast<char *>(paradynRTname.c_str())));
     AstNode *loadLib = new AstNode("DYNINSTloadLibrary", loadLibAstArgs);
     removeAst(loadLibAstArgs[0]);
 
@@ -705,7 +705,7 @@ bool pd_process::finalizeParadynLib() {
     
     const bool calledFromFork   = (bs_record.event == 2);
     const bool calledFromExec   = (bs_record.event == 4);
-    const bool calledFromAttach = (bs_record.event == 3);
+    //const bool calledFromAttach = (bs_record.event == 3);
 
     // Override tramp guard address
     dyninst_process->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
@@ -944,7 +944,7 @@ bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
 
     pdvector<AstNode*> loadLibAstArgs(1);
     loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
-                                    (void *)libname.c_str());
+                reinterpret_cast<void *>(const_cast<char *>(libname.c_str())));
     AstNode *loadLib = new AstNode("DYNINSTloadLibrary", loadLibAstArgs);
     removeAst(loadLibAstArgs[0]);
 

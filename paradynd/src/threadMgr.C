@@ -77,8 +77,8 @@ pd_thread *threadMgr::find_pd_thread(int tid) {
    while(itr != thrBuf.end()) {
       pd_thread *curThr = (*itr);
       itr++;
-      if(curThr->get_tid() == tid) {
-	 return curThr;
+      if(curThr->get_tid() == static_cast<unsigned>(tid)) {
+         return curThr;
       }
    }
    return NULL;

@@ -251,7 +251,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
 
 }
 
-bool rpcThr::deleteThrIRPC(int id) {
+bool rpcThr::deleteThrIRPC(unsigned id) {
     // Can remove a queued or pending thr IRPC
     bool removed = false;
     

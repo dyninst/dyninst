@@ -154,7 +154,6 @@ bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 {
-    unsigned int i = 0;
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	os << "Basic Block : " << bb.blockNumber <<" : [ ";
 	os << ostream::hex << bb.startAddress << " , ";
@@ -170,23 +169,23 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 
 	BPatch_basicBlock** belements = new BPatch_basicBlock*[bb.sources.size()];
 	bb.sources.elements(belements);
-	for(i=0;i<bb.sources.size();i++)
+	for(int i=0; i<bb.sources.size(); i++)
 		os << "\t<- " << belements[i]->blockNumber << "\n";
 	delete[] belements;
 
 	os << "Succ:\n";
 	belements =  new BPatch_basicBlock*[bb.targets.size()];
 	bb.targets.elements(belements);
-	for(i=0;i<bb.targets.size();i++)
-		os << "\t-> " << belements[i]->blockNumber << "\n";
+	for(int j=0; j<bb.targets.size(); j++)
+		os << "\t-> " << belements[j]->blockNumber << "\n";
 	delete[] belements;
 
 	os << "Immediate Dominates: ";
 	if(bb.immediateDominates){
 		belements = new BPatch_basicBlock*[bb.immediateDominates->size()];
 		bb.immediateDominates->elements(belements);
-		for(i=0;i<bb.immediateDominates->size();i++)
-			os << belements[i]->blockNumber << " ";
+		for(int k=0; k<bb.immediateDominates->size(); k++)
+			os << belements[k]->blockNumber << " ";
 		delete[] belements;
 	}
 	os << "\n";
@@ -199,8 +198,8 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 
 	os << "Source Block:\n";
 	if(bb.sourceBlocks){
-		for(unsigned int i=0;i<bb.sourceBlocks->size();i++)
-			os << *((*(bb.sourceBlocks))[i]);
+		for(unsigned l=0; l<bb.sourceBlocks->size(); l++)
+			os << *((*(bb.sourceBlocks))[l]);
 	}
 
 	os << "\n";

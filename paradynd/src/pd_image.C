@@ -86,8 +86,8 @@ void pd_image::FillInCallGraphStatic(pd_process *proc) {
       // if env var set and curmod is the first module (the user's program)
       // then print the loops for all the functions in this module.
       bool printLoops = false;
-      if (char * pl = getenv("PARADYND_PRINTLOOPS")) {
-	  printLoops = (i==0);
+      if(getenv("PARADYND_PRINTLOOPS")) {
+         printLoops = (i==0);
       }
 
       curmod->FillInCallGraphStatic(proc->get_dyn_process(), printLoops);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.88 2003/07/15 22:43:40 schendel Exp $
+// $Id: BPatch_thread.C,v 1.89 2003/07/31 19:01:20 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -164,29 +164,18 @@ static void insertVForkInst(BPatch_thread *thread)
  * path		Pathname of the executable to start.
  * argv		A list of pointers to character strings which are the
  *              arguments for the new process, terminated by a NULL pointer.
- * envp		A list of pointers to character strings which are to be
- *              passed to the new process as its environment, terminated by a
- *              NULL pointer.  If envp is NULL, the parent's environment is
- *              copied and passed to the child.
  */
 BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
-			     int stdin_fd, int stdout_fd, int stderr_fd)
+                             int stdin_fd, int stdout_fd, int stderr_fd)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(false), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
     pdvector<pdstring> argv_vec;
-    pdvector<pdstring> envp_vec;
 
     // Contruct a vector out of the contents of argv
     for(int i = 0; argv[i] != NULL; i++)
-	argv_vec.push_back(argv[i]);
-
-    // Construct a vector out of the contents of envp
-    if (envp != NULL) {
-    	for(int i = 0; envp[i] != NULL; i++)
-    	    envp_vec.push_back(envp[i]);
-    }
+       argv_vec.push_back(argv[i]);
 
     pdstring directoryName = "";
 
@@ -209,7 +198,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     //directoryName = buf;
     //#endif
 
-    proc = createProcess(path, argv_vec, envp_vec, directoryName, stdin_fd,
+    proc = createProcess(path, argv_vec, directoryName, stdin_fd,
                          stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
     if (proc == NULL) { 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstP.h,v 1.20 2003/07/15 22:44:01 schendel Exp $
+/* $Id: dyninstP.h,v 1.21 2003/07/31 19:01:22 schendel Exp $
  *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
@@ -69,10 +69,9 @@ typedef int (*errorHandler)(int errno, char *message);
  * Define a program to run (this is very tentative!)
  *
  *   argv - arguments to command
- *   envp - environment args, for pvm
  *   dir  - the directory where the program will run
  */
-int addProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp, pdstring dir = "");
+int addProcess(pdvector<pdstring> &argv, pdstring dir = "");
 
 /*
  * Find out if an application has been.defines yet.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.110 2003/07/30 14:47:12 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.111 2003/07/31 19:01:34 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -454,8 +454,7 @@ void dynRPC::MonitorDynamicCallSites(pdstring function_name){
 //
 int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
 {
-  pdvector<pdstring> envp;
-  pd_process *p = pd_createProcess(argv, envp, dir);
+  pd_process *p = pd_createProcess(argv, dir);
 
   metricFocusNode::handleNewProcess(p);
 

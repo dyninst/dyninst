@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.17 2003/07/18 15:45:00 schendel Exp $
+/* $Id: shmMgr.C,v 1.18 2003/07/31 19:01:41 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -141,16 +141,7 @@ shmMgr::~shmMgr()
   }
 }
 
-static unsigned align(unsigned num, unsigned alignmentFactor) {
-  unsigned retnum;
-  if (num % alignmentFactor != 0)
-    retnum = num - (alignmentFactor - (num % alignmentFactor));
-
-  assert(retnum % alignmentFactor == 0);
-  return retnum;
-}
-
-Address shmMgr::malloc(unsigned size, bool align /*= true*/) {
+Address shmMgr::malloc(unsigned size, bool /* align = true*/) {
   //  fprintf(stderr, "Allocating size %d\n", size);
     if (freespace < size)
         return 0;

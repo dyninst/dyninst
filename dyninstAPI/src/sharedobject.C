@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.18 2003/07/25 15:52:05 chadd Exp $
+// $Id: sharedobject.C,v 1.19 2003/07/31 19:01:32 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -79,15 +79,15 @@ shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, imag
 
 shared_object::shared_object(fileDescriptor *f,
 			     bool p, bool m, bool i, image *d):
-#ifndef BPATCH_LIBRARY
-      include_funcs(i), 
-      included_funcs(0),
-#endif
       desc(f),
       name(f->file()), 
       base_addr(0),
       processed(p),
       mapped(m),
+#ifndef BPATCH_LIBRARY
+      include_funcs(i), 
+      included_funcs(0),
+#endif
       objs_image(d),
       dlopenUsed(false)
 { 

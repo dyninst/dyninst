@@ -79,8 +79,7 @@ class pd_process {
  public:
   // Creation constructor
   pd_process(const pdstring argv0, pdvector<pdstring> &argv,
-             pdvector<pdstring> envp, const pdstring dir,
-             int stdin_fd, int stdout_fd, int stderr_fd);
+             const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd);
 
   // Attach constructor
   pd_process(const pdstring &progpath, int pid);
@@ -437,7 +436,7 @@ class pd_process {
 
 
 // Shouldn't these be static members of class pd_process?
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp, pdstring dir);
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir);
 pd_process *pd_attachProcess(const pdstring &progpath, int pid);
 
 #endif

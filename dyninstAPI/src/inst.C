@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.108 2003/07/15 22:44:17 schendel Exp $
+// $Id: inst.C,v 1.109 2003/07/31 19:01:24 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -279,11 +279,16 @@ loadMiniTramp_result addInstFunc(miniTrampHandle *mtHandle_save, process *proc,
 
 // writes to *mtInfo
 loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc, 
-			    instPoint *&location,
-		            AstNode *&ast, // the ast could be changed 
-		            callWhen when, callOrder order, bool noCost,
-		            returnInstance *&retInstance,
-		            bool trampRecursiveDesired)
+                                   instPoint *&location,
+                                   AstNode *&ast, // the ast could be changed 
+                                   callWhen when,
+#if defined(rs6000_ibm_aix4_1)
+                                   callOrder order,
+#else
+                                   callOrder,
+#endif
+                                   bool noCost, returnInstance *&retInstance,
+                                   bool trampRecursiveDesired)
 {
    // retInstance gets filled in with info on how to jmp to the base tramp
    // (the call to findAndInstallBaseTramp doesn't do that)

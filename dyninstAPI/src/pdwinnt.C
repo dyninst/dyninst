@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.105 2003/07/29 00:32:40 eli Exp $
+// $Id: pdwinnt.C,v 1.106 2003/07/31 19:01:26 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1625,7 +1625,6 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
  *   file: file to execute
  *   dir: working directory for the new process
  *   argv: arguments to new process
- *   envp: environment **** not in use
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
@@ -1637,11 +1636,10 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
-		    pdvector<pdstring>envp, pdstring inputFile, pdstring outputFile,
-		    int &traceLink,  
-		    int &pid, int &tid, 
-		    int &procHandle, int &thrHandle, int /* stdin_fd */, 
-		    int stdout_fd, int /* stderr_fd */) {
+                    pdstring inputFile, pdstring outputFile,
+                    int &traceLink, int &pid, int &tid, 
+                    int &procHandle, int &thrHandle, int /* stdin_fd */, 
+                    int stdout_fd, int /* stderr_fd */) {
 #ifdef mips_unknown_ce2_11 //ccw 8 aug 2000 : 29 mar 2001
 	WCHAR appName[256];
 	WCHAR dirName[256];

@@ -90,7 +90,7 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 				                     point->iPgetFunction()));
    ++loadInstAttempts;
    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
-      pd_Function *function_not_inserted = 
+      function_not_inserted = 
          dynamic_cast<pd_Function *>(const_cast<function_base *>(
 				                     point->iPgetFunction()));
       if(function_not_inserted != NULL)

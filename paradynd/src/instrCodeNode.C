@@ -359,7 +359,6 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       // in the timer takes care of that.    
       for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
       {
-          Frame thisFrame = stackWalk[frameIter]->frame;
           bool triggered = 
           curInstReq->triggeredInStackFrame(stackWalk[frameIter]->frame,
                                             stackWalk[frameIter]->func,

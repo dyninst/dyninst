@@ -81,7 +81,7 @@ struct inferiorRPCtoDo {
     inferiorRPCcallbackFunc callbackFunc;
     void *userData; /* Good 'ol callback/void * pair */
     bool lowmem; /* Steers allocation of memory for the RPC to run in */
-    int id;
+    unsigned id;
     dyn_thread *thr;
     dyn_lwp *lwp;
     Address aixHACK;
@@ -161,7 +161,7 @@ class rpcThr {
     static void launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
     // Remove a pending IRPC
-    bool deleteThrIRPC(int id);
+    bool deleteThrIRPC(unsigned id);
     
     // Handle completion states
     bool handleCompletedIRPC();
@@ -222,7 +222,7 @@ class rpcLWP {
     static void launchLWPIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
     // Remove a pending IRPC
-    bool deleteLWPIRPC(int id);
+    bool deleteLWPIRPC(unsigned id);
     
     // Handle completion states
     bool handleCompletedIRPC();
@@ -267,7 +267,7 @@ class rpcMgr {
     // Oh, and pending ones -- why not
     pdvector<inferiorRPCinProgress *> allPendingRPCs_;
 
-    bool deleteProcessRPC(int id);
+    bool deleteProcessRPC(unsigned id);
     
     // Used by thread and LWP
     bool removePostedRPC(inferiorRPCtoDo *rpc);
