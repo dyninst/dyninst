@@ -114,6 +114,11 @@
 #define	TRAILER_11             0xffffffd1 
 #define	TRAILER_00             0xffffffe1	
 
-
+#define	SAVE_PRE               0xffffffa2
+#define	SAVE_POST              0xffffffa3 
+#define	RESTORE_PRE            0xffffffb3 
+#define	RESTORE_POST           0xffffffc3 
+#define	SKIP_PRE_INSN          0xffffffd3 
+#define	SKIP_POST_INSN         0xffffffe3	
 
 #endif

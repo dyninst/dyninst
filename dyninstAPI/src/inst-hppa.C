@@ -43,6 +43,11 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.22  1996/10/04 14:57:58  naim
+ * Moving save/restore instructions from mini-tramp to base-tramp. Also, changes
+ * to the base-tramp to support arrays of counters and timers (multithreaded
+ * case) - naim
+ *
  * Revision 1.21  1996/10/03 22:12:09  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -689,10 +694,10 @@ int getPointCost(process *proc, instPoint *point)
     if (proc->baseMap.defines(point)) {
         return(0);
     } else {
-        // 8 cycles for base tramp
+        // 76 cycles for base tramp
         if (point->ipType == callSite)
-	    return(38+28);
-	else return(38);
+	    return(76+28);
+	else return(76);
     }
 }
 
@@ -816,6 +821,18 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
 		break;
+	    case SKIP_PRE_INSN:
+                thisTemp->skipPreInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case SKIP_POST_INSN:
+                thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case RETURN_INSN:
+                thisTemp->returnInsOffset = ((void*)temp - (void*)tramp);
+                break;
+	    case EMULATE_INSN:
+                thisTemp->emulateInsOffset = ((void*)temp - (void*)tramp);
+                break;
   	}
     }
     thisTemp->size = (int) temp - (int) tramp;
@@ -874,9 +891,9 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		    *temp = location->nextInstruction;
 		} 
 		temp++;
-		generateLoad(temp, 30, 31, -20); 
+		generateLoad(temp, 30, 31, -20);
+                currAddr += 2*sizeof(instruction);  
 	    } else if (location->ipType == functionExit) {
-
 		temp++;
 		assert(temp->raw == EMULATE_INSN_1);
 		*temp = location->nextInstruction;
@@ -889,13 +906,14 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		    *(temp+1) = location->delaySlotInsn;
 		}
 	    } else if (location->ipType == functionEntry) {
-
 		temp++;
 		assert(temp->raw == EMULATE_INSN_1);
 		relocateInstruction(proc, temp, location->addr+4, currAddr, 
 				    location);
+                currAddr += sizeof(instruction);
 	    }
-
+            // TODO: What happens if ipType is not any of the previous choices?
+            // We should probably do something about it - naim
 	} else if (temp->raw == RETURN_INSN) {
             genArithImmn(temp, ADDIop, 31, 31, -0x4);
         } else if (temp->raw == RETURN_INSN_1) {
@@ -930,6 +948,30 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    generateLoad(temp, 30,  31, -124);
 	} else if (temp->raw == TRAILER_0||temp->raw == TRAILER_00)  { 
 	    genArithImmn(temp, ADDIop, 30, 30, -128);
+        } else if (temp->raw == SAVE_PRE || temp->raw == SAVE_POST) {
+          int ind;
+	  for (ind=0; ind < 4; ind++) {
+	    generateStore(temp+ind, 26-ind,  30, -128-36-4*ind);
+	  }
+          ind--;
+          temp += ind;
+          currAddr += ind*sizeof(instruction);
+        } else if (temp->raw == RESTORE_PRE || temp->raw == RESTORE_POST) { 
+          int ind;
+          for (ind=0; ind < 4; ind++) {
+	    generateLoad(temp+ind, 30, 23+ind, -128-48+4*ind);
+	  }
+          ind--;
+          temp += ind;
+          currAddr += ind*sizeof(instruction);
+        } else if (temp->raw == SKIP_PRE_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
+        } else if (temp->raw == SKIP_POST_INSN) {
+          unsigned offset;
+          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+          generateBranchInsn(temp,offset);
         } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_PRE_BRANCH_1) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -1005,6 +1047,15 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+
+    unsigned atAddr;
+    if (inst->when == callPreInsn) {
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+    }
+    else {
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+    }
+    generateNoOp(inst->proc, atAddr);
 }
 
 /*
@@ -1109,6 +1160,10 @@ pdFunction *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
+unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
+                 unsigned &base)
+{
+}
 
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
@@ -1213,12 +1268,14 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction)*2;
 	return(base - 2*sizeof(instruction)); 
     } else if (op ==  trampPreamble) {
+/*
+        // this is being done in the base tramp now - naim
 	for (int ind=0; ind < 4; ind++) {
 	    generateStore(insn, 26-ind,  30, -128-36-4*ind);
 	    base += sizeof(instruction);
 	    insn = (instruction *) ((void*)&i[base]);
 	}
-
+*/
 	generateLoadConst(insn, dest, 29, base);
         insn = (instruction *) ((void*)&i[base]);
 
@@ -1237,6 +1294,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	
 
     } else if (op ==  trampTrailer) {
+/*
+        // this is being done in the base tramp now - naim
 	// restore any saved registers, but we never save them
 	// dest is in words of offset and generateBranchInsn is bytes offset
 	for (int ind=0; ind < 4; ind++) {
@@ -1244,7 +1303,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	    base += sizeof(instruction);
 	    insn = (instruction *) ((void*)&i[base]);
 	}
-
+*/
 	generateBranchInsn(insn, dest << 2);
 	base += sizeof(instruction);
 	insn++;
@@ -1591,9 +1650,26 @@ void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
 
+bool doNotOverflow(int value)
+{
+  //
+  // this should be changed by the correct code. If there isn't any case to
+  // be checked here, then the function should return TRUE. If there isn't
+  // any immediate code to be generated, then it should return FALSE - naim
+  //
+  return(false);
+}
 
 void instWaitingList::cleanUp(process *proc, Address pc) {
     proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
 		    (caddr_t)&relocatedInstruction);
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
 }
+
+
+
+
+
+
+
+
