@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.37 2002/08/12 04:22:16 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.38 2002/08/21 19:42:13 schendel Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -74,8 +74,10 @@ extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 
 
 static int procfd = -1;
-rawTime64 cpuPrevious = 0;
-rawTime64 wallPrevious = 0;
+rawTime64 cpuPrevious_hw = 0;
+rawTime64 cpuPrevious_sw = 0;
+rawTime64 wallPrevious_hw = 0;
+rawTime64 wallPrevious_sw = 0;
 
 /* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
 void PARADYNos_init(int calledByFork, int calledByAttach) {
@@ -97,8 +99,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
 
   /* needs to be reinitialized when fork occurs */
-   cpuPrevious  = 0;
-   wallPrevious = 0;
+   cpuPrevious_hw  = 0;
+   cpuPrevious_sw  = 0;
+   wallPrevious_hw = 0;
+   wallPrevious_sw = 0;
 }
 
 
@@ -156,7 +160,7 @@ DYNINSTgetCPUtime_hw(void) {
 rawTime64
 DYNINSTgetCPUtime_sw(void) {
   static int cpuRollbackOccurred = 0;
-  rawTime64 now, tmp_cpuPrevious = cpuPrevious;
+  rawTime64 now, tmp_cpuPrevious = cpuPrevious_sw;
 
   now = gethrvtime();
 
@@ -166,16 +170,16 @@ DYNINSTgetCPUtime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time:"
 	      " %lld nsecs, using previous value %lld nsecs.",
-	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
 				 1, 1);
     }
     cpuRollbackOccurred++;
-    now = cpuPrevious;
+    now = cpuPrevious_sw;
   }
-  else  cpuPrevious = now;
+  else  cpuPrevious_sw = now;
 #endif
   return now;  
 }
@@ -194,7 +198,7 @@ DYNINSTgetWalltime_hw(void) {
 rawTime64
 DYNINSTgetWalltime_sw(void) {
   static int wallRollbackOccurred = 0;
-  rawTime64 now, tmp_wallPrevious = wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious_sw;
 
   now = gethrtime();
 
@@ -211,9 +215,9 @@ DYNINSTgetWalltime_sw(void) {
 				 1, 1);
     }
     wallRollbackOccurred++;
-    now = wallPrevious;
+    now = wallPrevious_sw;
   }
-  else  wallPrevious = now;
+  else  wallPrevious_sw = now;
 #endif
 
   return now;

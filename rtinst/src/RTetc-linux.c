@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.21 2002/08/12 04:22:15 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.22 2002/08/21 19:42:12 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -83,8 +83,10 @@ static int procfd = -1;
 struct hrtime_struct *hr_cpu_map = NULL;
 #endif
 
-rawTime64 cpuPrevious  = 0;
-rawTime64 wallPrevious = 0;
+rawTime64 cpuPrevious_hw  = 0;
+rawTime64 cpuPrevious_sw  = 0;
+rawTime64 wallPrevious_hw = 0;
+rawTime64 wallPrevious_sw = 0;
 
 /* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
 void PARADYNos_init(int calledByFork, int calledByAttach) {
@@ -102,8 +104,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   }
 
   /* needs to be reinitialized when fork occurs */
-  cpuPrevious = 0;
-  wallPrevious = 0;
+  cpuPrevious_hw = 0;
+  cpuPrevious_sw = 0;
+  wallPrevious_hw = 0;
+  wallPrevious_sw = 0;
 
 #ifdef notdef   /* Has this ever been active on this platform? */
    /* This must be done once for each process (including forked) children */
@@ -163,7 +167,7 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 rawTime64 
 DYNINSTgetCPUtime_hw(void) {
   static int cpuRollbackOccurred = 0;
-  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious;
+  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious_hw;
 
 #ifdef HRTIME  
   now = hrtimeGetVtime(hr_cpu_map);
@@ -181,9 +185,9 @@ DYNINSTgetCPUtime_hw(void) {
 				 &traceData, 1, 1, 1);
     }
     cpuRollbackOccurred++;
-    now = cpuPrevious;
+    now = cpuPrevious_hw;
   }
-  else  cpuPrevious = now;
+  else  cpuPrevious_hw = now;
   
   return now;
 }
@@ -195,7 +199,7 @@ DYNINSTgetCPUtime_hw(void) {
 rawTime64
 DYNINSTgetCPUtime_sw(void) {
   static int cpuRollbackOccurred = 0;
-  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious;
+  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious_sw;
   struct tms tm;
   
   times( &tm );
@@ -213,9 +217,9 @@ DYNINSTgetCPUtime_sw(void) {
 				 &traceData, 1, 1, 1);
     }
     cpuRollbackOccurred++;
-    now = cpuPrevious;
+    now = cpuPrevious_sw;
   }
-  else  cpuPrevious = now;
+  else  cpuPrevious_sw = now;
   
   return now;
 }
@@ -229,7 +233,7 @@ DYNINSTgetCPUtime_sw(void) {
 rawTime64
 DYNINSTgetWalltime_hw(void) {
   static int wallRollbackOccurred = 0;
-  rawTime64 now, tmp_wallPrevious = wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious_hw;
   struct timeval tv;
 
   getTSC(now);
@@ -239,16 +243,16 @@ DYNINSTgetWalltime_hw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
-                tmp_wallPrevious-now, now, tmp_wallPrevious);
+                tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
 			       1, 1, 1);
     }
     wallRollbackOccurred++;
-    wallPrevious = now;
+    wallPrevious_hw = now;
   }
-  else  wallPrevious = now;
+  else  wallPrevious_hw = now;
 
   return now;
 }
@@ -260,7 +264,7 @@ DYNINSTgetWalltime_hw(void) {
 rawTime64
 DYNINSTgetWalltime_sw(void) {
   static int wallRollbackOccurred = 0;
-  rawTime64 now, tmp_wallPrevious = wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious_sw;
   struct timeval tv;
 
   if (gettimeofday(&tv,NULL) == -1) {
@@ -277,16 +281,16 @@ DYNINSTgetWalltime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld usecs, using previous value %lld usecs.",
-                tmp_wallPrevious-now, now, tmp_wallPrevious);
+                tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
 			       1, 1, 1);
     }
     wallRollbackOccurred++;
-    wallPrevious = now;
+    wallPrevious_sw = now;
   }
-  else  wallPrevious = now;
+  else  wallPrevious_sw = now;
 
   return(now);
 }
