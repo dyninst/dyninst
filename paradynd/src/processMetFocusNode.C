@@ -97,14 +97,25 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    // process.  Under pthreads, my understanding is that only the thread
    // for which the fork call occurs is duplicated in the child.  Under
    // Solaris threads, my understanding is that all threads are duplicated.
-   for(unsigned j=0; j<par.thrNodes.size(); j++) {
-      assert(par.thrNodes.size() <= childProc->numThr());
-      threadMetFocusNode *parThrNode = par.thrNodes[j];
-      pd_thread *childThr = 
-	 childProc->thrMgr().find_pd_thread(parThrNode->getThreadID());
+   threadMgr::thrIter itr = childProc->thrMgr().begin();
+   for(; itr != childProc->thrMgr().end(); itr++) {
+      pd_thread *childThr = *itr;
+      const threadMetFocusNode *parThrNode = 
+         par.getThrNode(childThr->get_tid());
+      // If a thread in the child process has a corresponding threadNode
+      // in the parent processMetFocusNode, then we need to copy it over
+      // We need to use the method where we only copy over thread nodes
+      // if the thread is in the child-process because the different thread
+      // models have different semantics as far as which threads are created
+      // in the child process when a fork occurs.
+      if(parThrNode == NULL) {
+         cerr << "Warning: in fork handling, couldn't find a thrMetFocusNode "
+              << "in the parent process for a thread in the child process\n";
+         continue;
+      }
       threadMetFocusNode *newThrNode = 
-	 threadMetFocusNode::copyThreadMetFocusNode(*parThrNode, childProc,
-						    childThr);
+         threadMetFocusNode::copyThreadMetFocusNode(*parThrNode, childProc,
+                                                    childThr);
       addThrMetFocusNode(newThrNode);
    }
    
@@ -193,10 +204,22 @@ bool processMetFocusNode::trampsHookedUp() {
   return hookedUp;
 }
 
-threadMetFocusNode *processMetFocusNode::getThrNode(pd_thread *thr) {
+
+threadMetFocusNode *processMetFocusNode::getThrNode(unsigned tid) {
    pdvector<threadMetFocusNode *>::iterator iter = thrNodes.begin();
    while(iter != thrNodes.end()) {
-      if((*iter)->getThreadID() == thr->get_tid()) {
+      if((*iter)->getThreadID() == tid) {
+         return (*iter);
+      }
+      iter++;
+   }
+   return NULL;
+}
+
+const threadMetFocusNode *processMetFocusNode::getThrNode(unsigned tid) const {
+   pdvector<threadMetFocusNode *>::const_iterator iter = thrNodes.begin();
+   while(iter != thrNodes.end()) {
+      if((*iter)->getThreadID() == tid) {
          return (*iter);
       }
       iter++;
@@ -484,7 +507,7 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    }
    
    pauseProcess();
-   
+
    instr_insert_result_t insert_status = loadInstrIntoApp();
    
    if(insert_status == insert_deferred) {
@@ -510,7 +533,7 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
    doCatchupInstrumentation();
-   
+
    // Changes for MT: process will be continued by inferior RPCs
    // This is because the inferior RPCs may complete after the instrumentation
    // path, and so they must leave the process in a paused state.
@@ -667,6 +690,22 @@ void processMetFocusNode::prepareCatchupInstr() {
       allCodeNodes[i]->markAsCatchupDone();
 }
 
+/*
+// This might be a good way to trigger sampling in the future.
+// Needs some testing and debugging though.
+void processMetFocusNode::catchupRPC_Complete(process *, unsigned rpc_id,
+                                              void *data, void *) {
+   processMetFocusNode *procNode = static_cast<processMetFocusNode *>(data);
+
+   procNode->cancelPendingRPC(rpc_id);
+
+   if(! procNode->anyPendingRPCs()) {
+      cerr << "all pending RPCs have finished, start sampling data nodes\n";
+      procNode->prepareForSampling();
+   }
+}
+*/
+
 bool processMetFocusNode::postCatchupRPCs()
 {
    // Assume the list of catchup requests is 
@@ -687,8 +726,10 @@ bool processMetFocusNode::postCatchupRPCs()
               << catchupASTList[i].lwp->get_fd() << "\n";
       }
       catchupPosted = true;
-      proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
-                         getMetricID(), catchupASTList[i].lwp, false);
+      unsigned rpc_id = proc_->postRPCtoDo(catchupASTList[i].ast, false,
+                             NULL, //processMetFocusNode::catchupRPC_Complete,
+                                           this, catchupASTList[i].lwp, false);
+      rpc_id_buf.push_back(rpc_id);
    }
    
    catchupASTList.resize(0);
@@ -703,8 +744,8 @@ bool processMetFocusNode::postCatchupRPCs()
 void processMetFocusNode::initializeForSampling(timeStamp startTime, 
 						pdSample initValue)
 {
-  initAggInfoObjects(startTime, initValue);
-  prepareForSampling();  
+   initAggInfoObjects(startTime, initValue);
+   prepareForSampling();
 }
 
 void processMetFocusNode::initAggInfoObjects(timeStamp startTime, 
@@ -752,12 +793,12 @@ instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
 }
 
 void processMetFocusNode::prepareForSampling() {
-  metricVarCodeNode->prepareForSampling(thrNodes);
+   metricVarCodeNode->prepareForSampling(thrNodes);
 }
 
 void processMetFocusNode::prepareForSampling(threadMetFocusNode *thrNode)
 {
-  metricVarCodeNode->prepareForSampling(thrNode);
+   metricVarCodeNode->prepareForSampling(thrNode);
 }
 
 void processMetFocusNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
@@ -984,7 +1025,7 @@ void processMetFocusNode::propagateToNewThread(pd_thread *thr)
    threadMetFocusNode *thrNode = threadMetFocusNode::
       newThreadMetFocusNode(metric_name, focus_with_thr, thr);
    addThrMetFocusNode(thrNode);
-   
+
    thrNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
@@ -1009,5 +1050,29 @@ void processMetFocusNode::unFork() {
   delete this;  // will remove instrumentation and data for the procMetFocusNode
                 // (the metFocusNode deletion code deals with code and data
                 //  sharing appropriately)
+}
+
+// returns true if erased, otherwise returns false
+bool processMetFocusNode::cancelPendingRPC(unsigned rpc_id) {
+   bool erased = false;
+   pdvector<unsigned>::iterator iter = rpc_id_buf.end();
+   while(iter != rpc_id_buf.begin()) {
+      iter--;
+      unsigned cur_rpc_id = (*iter);
+      if(rpc_id == cur_rpc_id) {
+         rpc_id_buf.erase(iter);
+         erased = proc_->cancelRPC(cur_rpc_id);
+         break;
+      }
+   }
+   return erased;
+}
+
+void processMetFocusNode::cancelPendingRPCs() {
+   pdvector<unsigned>::iterator iter = rpc_id_buf.end();
+   while(iter != rpc_id_buf.begin()) {
+      iter--;
+      cancelPendingRPC(*iter);
+   }
 }
 
