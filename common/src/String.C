@@ -44,91 +44,107 @@
 #include <assert.h>
 #include "util/h/String.h"
 
-string::string()
+
+string_ll::string_ll()
     : str_(0), len_(0), key_(0) {
 }
 
-string::string(const char* str)
-    : str_(STRDUP(str)), len_(STRLEN(str)), key_(hashs(str)) {
+string_ll::string_ll(const char* str)
+    : str_(STRDUP(str)), len_(STRLEN(str)) {
+   key_ = 0; // lazy key define
 }
 
-string::string(const char *str, unsigned len) {
+string_ll::string_ll(const char *str, unsigned len) {
    // same as above constructor, but copies less than the entire string.
    // You specifiy the # of chars to copy.
-   bool aflag;
-   aflag=(len <= strlen(str));
-   assert(aflag);
+   assert(len <= strlen(str));
+
    len_ = len;
    str_ = new char[len+1];
    (void) P_memcpy(str_, str, len);
    str_[len] = '\0';
-   key_ = hashs(str_);
+
+   //key_ = hashs(str_);
+   key_ = 0; // lazy key define
 }
 
-string::string(const string& s)
+string_ll::string_ll(const string_ll& s)
     : str_(STRDUP(s.str_)), len_(s.len_), key_(s.key_) {
+   // lazy key define iff "s" lazy key define (as it should be)
 }
 
-string::string(int i) {
+string_ll::string_ll(int i) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%d", i);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+//   key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::string(long l) {
+string_ll::string_ll(long l) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%ld", l);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+//   key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::string(unsigned u) {
+string_ll::string_ll(unsigned u) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%u", u);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+//   key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::string(unsigned long ul) {
+string_ll::string_ll(unsigned long ul) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%lu", ul);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+//   key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::string(float f) {
+string_ll::string_ll(float f) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%f", f);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+//   key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::string(double d) {
+string_ll::string_ll(double d) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%g", d);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
-   key_ = hashs (tempBuffer);
+
+   //key_ = hashs (tempBuffer);
+   key_ = 0; // lazy key define
 }
 
-string::~string() {
+string_ll::~string_ll() {
     delete [] str_; str_ = 0;
 }
 
-string&
-string::operator=(const char* str) {
+string_ll&
+string_ll::operator=(const char* str) {
     if (str_ == str) {
         return *this;
     }
@@ -137,13 +153,15 @@ string::operator=(const char* str) {
 
     str_ = STRDUP(str);
     len_ = STRLEN(str);
-    key_ = hashs(str);
+
+//    key_ = hashs(str);
+    key_ = 0; // lazy key define
 
     return *this;
 }
 
-string&
-string::operator=(const string& s) {
+string_ll&
+string_ll::operator=(const string_ll& s) {
     if (this == &s) {
         return *this;
     }
@@ -152,15 +170,16 @@ string::operator=(const string& s) {
 
     str_ = STRDUP(s.str_);
     len_ = s.len_;
-    key_ = s.key_;
+    key_ = s.key_; // lazy key define iff "s" lazy key define, which is correct
 
     return *this;
 }
 
-string&
-string::operator+=(const string& s) {
+string_ll&
+string_ll::operator+=(const string_ll& s) {
     unsigned nlen = len_ + s.len_;
     char*    ptr  = new char[nlen+1];
+    assert(ptr);
 
     memcpy(ptr, str_, len_);
     memcpy(&ptr[len_], s.str_, s.len_);
@@ -169,63 +188,105 @@ string::operator+=(const string& s) {
     delete[] str_; str_ = 0;
     str_ = ptr;
     len_ = nlen;
-    key_ = hashs(str_);
+
+//    key_ = hashs(str_);
+    key_ = 0;
 
     return *this;
 }
 
-string
-string::operator+(const string& s) const {
-    string ret = *this;
-    return ret += s;
+string_ll&
+string_ll::operator+=(const char *ptr) {
+   // this routine exists as an optimization, sometimes avoiding the need to create
+   // a temporary string, which can be expensive.
+
+   const int ptr_len = P_strlen(ptr);
+   const unsigned nlen = len_ + ptr_len;
+   char *new_ptr = new char[nlen+1];
+   assert(new_ptr);
+
+   memcpy(new_ptr, str_, len_);
+   memcpy(&new_ptr[len_], ptr, ptr_len);
+   new_ptr[nlen] = '\0';
+  
+   delete [] str_;
+   str_ = new_ptr;
+   len_ = nlen;
+
+//   key_ = hashs(str_);
+   key_ = 0; // lazy key define
+
+   return *this;
+}
+
+
+string_ll
+string_ll::operator+(const string_ll& s) const {
+    string_ll ret = *this;
+    return (ret += s);
+}
+
+string_ll
+string_ll::operator+(const char *ptr) const {
+   string_ll ret = *this;
+   return (ret += ptr);
 }
 
 bool
-string::operator==(const string& s) const {
-    return ((&s == this)
-        || ((key_ == s.key_)
-        && (len_ == s.len_)
-        && STREQ(str_, s.str_)));
+string_ll::operator==(const string_ll& s) const {
+   if (&s == this) return true;
+
+   updateKeyIfNeeded(); s.updateKeyIfNeeded();
+   if (key_ != s.key_) return false;
+   if (len_ != s.len_) return false;
+   return STREQ(str_, s.str_);
+//    return ((&s == this)
+//        || ((key_ == s.key_)
+//        && (len_ == s.len_)
+//        && STREQ(str_, s.str_)));
 }
 
 bool
-string::operator!=(const string& s) const {
-    return ((!(&s == this)) && (len_ != s.len_)
-        || STRNE(str_, s.str_));
+string_ll::operator!=(const string_ll& s) const {
+   if (&s == this) return false;
+   if (len_ != s.len_) return true;
+   return STRNE(str_, s.str_);
+//    return ((!(&s == this)) && (len_ != s.len_)
+//        || STRNE(str_, s.str_));
 }
 
 bool
-string::operator<=(const string& s) const {
+string_ll::operator<=(const string_ll& s) const {
     return ((&s == this) || STRLE(str_, s.str_));
 }
 
 bool
-string::operator>=(const string& s) const {
+string_ll::operator>=(const string_ll& s) const {
     return ((&s == this) || STRGE(str_, s.str_));
 }
 
 bool
-string::prefix_of(const char* s, unsigned sl) const {
+string_ll::prefix_of(const char* s, unsigned sl) const {
     return ((len_ > sl) ? false : STREQN(str_, s, len_));
 }
 
 bool
-string::prefix_of(const string& s) const {
+string_ll::prefix_of(const string_ll& s) const {
     return ((&s == this) || prefix_of(s.str_, s.len_));
 }
 
 bool
-string::prefixed_by(const char* s, unsigned sl) const {
+string_ll::prefixed_by(const char* s, unsigned sl) const {
     return ((sl > len_) ? false : STREQN(str_, s, sl));
 }
 
 bool
-string::prefixed_by(const string& s) const {
+string_ll::prefixed_by(const string_ll& s) const {
     return ((&s == this) || prefixed_by(s.str_, s.len_));
 }
 
 unsigned
-string::hashs(const char* str) {
+string_ll::hashs(const char* str) {
     if (!str) {
         return 0;
     }
@@ -239,12 +300,12 @@ string::hashs(const char* str) {
 }
 
 unsigned
-string::STRLEN(const char* str) {
+string_ll::STRLEN(const char* str) {
     return ((str)?(P_strlen(str)):(0));
 }
 
 char*
-string::STRDUP(const char* str) {
+string_ll::STRDUP(const char* str) {
     if (!str) {
         return 0;
     }
@@ -257,44 +318,44 @@ string::STRDUP(const char* str) {
 }
 
 bool
-string::STREQ(const char* s1, const char* s2) {
+string_ll::STREQ(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)==0):(!(s1||s2)));
 }
 
 bool
-string::STREQN(const char* s1, const char* s2, unsigned len) {
+string_ll::STREQN(const char* s1, const char* s2, unsigned len) {
     return ((s1&&s2)?(P_strncmp(s1,s2,len)==0):(!(s1||s2)));
 }
 
 bool
-string::STRNE(const char* s1, const char* s2) {
+string_ll::STRNE(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)!=0):(false));
 }
 
 bool
-string::STRLT(const char* s1, const char* s2) {
+string_ll::STRLT(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)<0):(false));
 }
 
 bool
-string::STRLE(const char* s1, const char* s2) {
+string_ll::STRLE(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)<=0):(!(s1||s2)));
 }
 
 bool
-string::STRGT(const char* s1, const char* s2) {
+string_ll::STRGT(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)>0):(false));
 }
 
 bool
-string::STRGE(const char* s1, const char* s2) {
+string_ll::STRGE(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)>=0):(!(s1||s2)));
 }
 
-ostream& operator<< (ostream &os, const string &s) {
+ostream& operator<< (ostream &os, const string_ll &s) {
    return os << s.str_;
 }
 
-debug_ostream& operator<< (debug_ostream &os, const string &s) {
+debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
    return os << s.str_;
 }
