@@ -423,7 +423,7 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
     out_stream << "void " << gen_class_prefix(true) << "handle_error() {\n";
-    out_stream << "cerr << \"Error not handled, exiting\\n\" << endl;\n";
+    out_stream << "cerr << \"Error not handled, exiting\" << endl;\n";
     out_stream << "IGEN_ERR_ASSERT;\n";
     out_stream << "exit(-1);\n";
     out_stream << "}\n\n";
@@ -469,9 +469,7 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
     out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
-    out_stream << "cerr << \"Error condition found - handle_error\\n\" << endl;\n";
-//    out_stream << "cerr << \"Error not handled, exiting\";\n";
-//    out_stream << "assert(0);\n";
+    out_stream << "cerr << \"Error condition found - handle_error\" << endl;\n";
     out_stream << "}\n\n";
   }
 
@@ -497,13 +495,13 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
       << "string_pd(net_obj(), &proto) || \n !" 
 	<< Options::ml->bundler_prefix() << "u_int(net_obj(), &tag)) {\n";
     out_stream << "set_err_state(igen_proto_err);\n";
-    out_stream << "cerr << \"Protocol verify - bad response from server\\n\" << endl;";
+    out_stream << "cerr << \"Protocol verify - bad response from server\" << endl;";
     out_stream << "handle_error(); exit(-1); return false;\n}\n";
     
     out_stream << "if ((tag != " << version() << "|| proto != \""
       << name() << "\")) {\n";
     out_stream << "cerr << \" Protocol " << name() << " version " << version()
-      << " expected\\n\" << endl;";
+      << " expected\" << endl;";
     out_stream << "cerr << \" Found Protocol \" << proto << \" version \" << tag << endl;";
     out_stream << "set_err_state(igen_proto_err);\n";
     out_stream << "handle_error();\nexit(-1); return false;\n}\n";
