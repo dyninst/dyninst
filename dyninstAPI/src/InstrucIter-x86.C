@@ -365,7 +365,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
         
         maxSwitch++;
     }
-    else if(*ptr == 0x83)
+    else if( *ptr == 0x83 || *ptr == 0x80 ) //0x83 and 0x80 are CMP instructions
     {
         ptr++;
         if((*ptr & 0x38) == 0x38)
@@ -380,7 +380,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
             {
                 ptr++;
             }
-            else if( insn_hasDisp32(modRM) )
+            else if( insn_hasDisp32( modRM ) )
             {
                 ptr += 4;
             }
@@ -388,6 +388,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
             maxSwitch++;
         }
     }
+    
     if( !maxSwitch )
     {
         result += backupAddress;	
