@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.481 2004/03/12 21:12:55 tikir Exp $
+// $Id: process.C,v 1.482 2004/03/12 23:18:08 legendre Exp $
 
 #include <ctype.h>
 
@@ -199,6 +199,10 @@ pdstring process::pdFlavor;
 extern pdstring osName;
 #endif
 
+#if defined (i386_unknown_linux2_0)
+extern void cleanupVsysinfo(void *ehd);
+#endif
+
 // PARADYND_DEBUG_XXX
 int pd_debug_infrpc=0;
 int pd_debug_catchup=0;
@@ -313,16 +317,11 @@ bool process::walkStackFromFrame(Frame startFrame,
   startTimingStackwalk();
 #endif
 
-
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(ia64_unknown_linux2_4)
   next_pc = currentFrame.getPC();
 
   // Do a special check for the vsyscall page
-#if defined(i386_unknown_linux2_0)
-  if (next_pc >= 0xffffe000 && next_pc < 0xfffff000) {
-#else
   if (next_pc >= 0xffffffffffffe000 && next_pc < 0xfffffffffffff000) {
-#endif
     currentFrame.setLeaf(true);
     fpOld = currentFrame.getSP();
     // Silently toss this frame - it's in the vsyscall page, and we don't
@@ -333,18 +332,6 @@ bool process::walkStackFromFrame(Frame startFrame,
 #endif
 
   // Do special check first time for leaf frames
-#if defined(i386_unknown_linux2_0)
-  next_pc = currentFrame.getPC();
-  pd_Function *pdf = findFuncByAddr(next_pc);
-  if (pdf != NULL && pdf->hasNoStackFrame()) {
-    currentFrame.setLeaf(true);
-    fpOld = currentFrame.getSP();
-    stackWalk.push_back(currentFrame);
-    
-    currentFrame = currentFrame.getCallerFrame(this); 
-  }
-#endif
-
   // Step through the stack frames
   while (!currentFrame.isLastFrame(this)) {
     
@@ -353,6 +340,7 @@ bool process::walkStackFromFrame(Frame startFrame,
 
     // Check that we are not moving up the stack
     // successive frame pointers might be the same (e.g. leaf functions)
+#if !defined(i386_unknown_linux2_0)
     if (fpOld > fpNew) {
       
       // AIX:
@@ -365,11 +353,10 @@ bool process::walkStackFromFrame(Frame startFrame,
       // We should check to see if this early exit is warranted.
       return false;
     }
+#endif
     fpOld = fpNew;
     
-    next_pc = currentFrame.getPC();
-    stackWalk.push_back(currentFrame);
-    
+    stackWalk.push_back(currentFrame);    
     currentFrame = currentFrame.getCallerFrame(this); 
   }
   // Clean up after while loop (push end frame)
@@ -630,11 +617,13 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
  */
 bool process::isInSignalHandler(Address addr)
 {
-#if defined(i386_unknown_linux2_0)
-  if (addr == signal_restore)
-    return true;
-  else
-    return false;
+#if defined(os_linux) && defined(arch_x86)
+  for (int i = 0; i < signal_restore.size(); i++)
+  {
+    if (addr == signal_restore[i])
+      return true;
+  }
+  return false;
 #else
   if (!signal_handler)
       return false;
@@ -1662,9 +1651,7 @@ void process::deleteProcess() {
     }
 
     // Signal handler
-#if defined(i386_unknown_linux2_0)
-   signal_restore = 0;
-#else
+#if !(defined(os_linux) && defined(arch_x86))
    signal_handler = 0;
 #endif
 
@@ -1728,6 +1715,10 @@ process::~process()
         }
         
     }
+
+#if defined(i386_unknown_linux2_0)
+    cleanupVsysinfo(getVsyscallData());
+#endif
 }
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
@@ -1853,9 +1844,7 @@ process::process(int iPid, image *iImage, int iTraceLink
    all_modules = 0;
    some_modules = 0;
    some_functions = 0;
-#if defined(i386_unknown_linux2_0)
-   signal_restore = 0;
-#else
+#if !(defined(os_linux) && defined(arch_x86))
    signal_handler = 0;
 #endif
    execed_ = false;
@@ -1873,6 +1862,13 @@ process::process(int iPid, image *iImage, int iTraceLink
    //   childUareaPtr = tryToMapChildUarea(iPid);
    childUareaPtr = NULL;
 #endif
+#endif
+
+#if defined(i386_unknown_linux2_0)
+    vsyscall_start_ = 0x0;
+    vsyscall_end_ = 0x0;
+    vsyscall_text_ = 0x0;
+    vsyscall_data_= NULL;
 #endif
 
    splitHeaps = false;
@@ -2019,9 +2015,7 @@ process::process(int iPid, image *iSymbols,
     all_modules = 0;
     some_modules = 0;
     some_functions = 0;
-#if defined(i386_unknown_linux2_0)
-    signal_restore = 0;
-#else
+#if !(defined(os_linux) && defined(arch_x86))
     signal_handler = 0;
 #endif
     execed_ = false;
@@ -2035,6 +2029,12 @@ process::process(int iPid, image *iSymbols,
         splitHeaps = true;
 #endif
 
+#if defined(i386_unknown_linux2_0)
+    vsyscall_start_ = 0x0;
+    vsyscall_end_ = 0x0;
+    vsyscall_text_ = 0x0;
+    vsyscall_data_= NULL;
+#endif
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
    bufStart = 0;
@@ -2219,6 +2219,13 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    cumObsCost = 0;
    lastObsCostLow = 0;
 
+#if defined(i386_unknown_linux2_0)
+    vsyscall_start_ = 0x0;
+    vsyscall_end_ = 0x0;
+    vsyscall_text_ = 0x0;
+    vsyscall_data_= NULL;
+#endif
+
    inInferiorMallocDynamic = false;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
@@ -2270,7 +2277,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
          (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
 
-#if defined(i386_unknown_linux2_0)
+#if defined(os_linux) && defined(arch_x86)
    signal_restore = parentProc.signal_restore;
 #else
    signal_handler = parentProc.signal_handler;
@@ -4009,11 +4016,11 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 
     // if the signal handler function has not yet been found search for it
 #if defined(i386_unknown_linux2_0)
-    if(!signal_restore){
+    if(signal_restore.size() == 0){
       Symbol s;
       if (img->symbol_info(SIGNAL_HANDLER, s)) {
 	  // Add base address of shared library
-	  signal_restore = s.addr() + new_obj->getBaseAddress();
+	signal_restore.push_back(s.addr() + new_obj->getBaseAddress());
       }
     }
 #else
@@ -5048,17 +5055,17 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
 }
 
 #if defined(i386_unknown_linux2_0)
-// findSignalHandler: if signal_restore is 0, then it checks all images
+// findSignalHandler: if signal_restore is empty, then it checks all images
 // associated with this process for the signal restore function.
 // Otherwise, the signal restore function has already been found
 void process::findSignalHandler(){
-  if (!signal_restore) {
+  if (signal_restore.size() == 0) {
     Symbol s;
     if (getSymbolInfo(SIGNAL_HANDLER, s))
-	signal_restore = s.addr();
+	signal_restore.push_back(s.addr());
 
     signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
-    if (!signal_restore) signal_cerr << " NOT";
+    if (signal_restore.size() == 0) signal_cerr << " NOT";
     signal_cerr << " found." << endl;
   }
 }

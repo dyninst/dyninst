@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.288 2004/03/11 22:20:37 bernat Exp $
+/* $Id: process.h,v 1.289 2004/03/12 23:18:09 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -668,6 +668,27 @@ class process {
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
+  
+ #if defined(i386_unknown_linux2_0)
+  public:
+  Address getVsyscallStart() { return vsyscall_start_; }
+  Address getVsyscallEnd() { return vsyscall_end_; }
+  Address getVsyscallText() { return vsyscall_text_; } 
+  void setVsyscallRange(Address start, Address end) 
+    { vsyscall_start_ = start; vsyscall_end_ = end; }
+  void *getVsyscallData() { return vsyscall_data_; }
+  void setVsyscallData(void *data) { vsyscall_data_ = data; }
+  bool readAuxvInfo();
+  
+ 
+  private: 
+  Address vsyscall_start_;
+  Address vsyscall_end_;
+  Address vsyscall_text_;
+  void *vsyscall_data_;
+#endif
+  
+  
 
   private:
   bootstrapState_t bootstrapState;
@@ -1311,9 +1332,14 @@ private:
   pdvector<module *> *some_modules;  
   pdvector<function_base *> *some_functions; 
 
+  
 #if defined(os_linux) && defined(arch_x86)
-  Address signal_restore;	// address of signal context restore function
-				// (for stack walking)
+public:
+  void addSignalHandlerAddr(Address a) { signal_restore.push_back(a); }
+  
+private:
+  pdvector<Address> signal_restore;   // addresses of signal context restore functions
+                                    // (for stack walking)
 #else // !os_linux
   pd_Function *signal_handler;  // signal handler function (for stack walking)
 #endif
