@@ -3,6 +3,9 @@
 
 #include "util/h/String.h"
 #include "util/h/sys.h"
+#include "util/h/Vector.h"
+
+class performanceStream; 
 
 typedef int phaseHandle;
 
@@ -14,8 +17,9 @@ private:
 	float	     bucketWidth;
 	phaseHandle  handle;
 	string       *name;
-public:
+	static vector<phaseInfo *> dm_phases;
 	static int  numPhases;
+public:
 
 	phaseInfo(timeStamp s,timeStamp e,timeStamp b,phaseHandle h,string *n){
     		startTime = s;
@@ -35,8 +39,9 @@ public:
 	float GetBucketWidth(){ return(bucketWidth);}
 	void SetEndTime(timeStamp time){ endTime = time;}
 	void ChangeBucketWidth(float newWidth){ bucketWidth = newWidth; }
-	int  NumPhases(){return(numPhases);}
         const char *PhaseName(){return(name->string_of());}
+	static int NumPhases(){return(numPhases);}
+	static void AddNewPhase(phaseInfo *p){ dm_phases+=p; }
 };
 
 #endif

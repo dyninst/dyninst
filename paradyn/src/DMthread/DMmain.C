@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.61  1995/02/27 18:43:03  tamches
+ * Revision 1.62  1995/03/01 00:12:27  newhall
+ * added static members to phaseInfo class
+ *
+ * Revision 1.61  1995/02/27  18:43:03  tamches
  * Changes to reflect the new TCthread; syntax for creating/declaring
  * tunable constants, as well as syntax for obtaining current
  * value of tunable constants has changed.
@@ -241,10 +244,8 @@ List<paradynDaemon*> paradynDaemon::allDaemons;
 
 void newSampleRate(float rate); // callback routine for float TC "samplingRate"
 
-// TEMPORARY
+// TODO: temporary until new version of data manager
 vector<performanceStream *> phase_notify_list;
-vector<phaseInfo *> dm_phases; 
-
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
@@ -778,7 +779,7 @@ void DMstartPhase(timeStamp start_Time, string *name){
     // return a start time for the phase
 
     // create a new phaseInfo object and add it to the list of phases
-    phaseHandle handle = (phaseHandle)phaseInfo::numPhases;
+    phaseHandle handle = (phaseHandle)phaseInfo::NumPhases();
 
     string *n;
     if (name){
@@ -798,7 +799,7 @@ void DMstartPhase(timeStamp start_Time, string *name){
             	      handle,
             	      n);
     
-    dm_phases+=p;
+    phaseInfo::AddNewPhase(p);
 
     // invoke newPhaseCallback for all perf. streams
     performanceStream *ps;
