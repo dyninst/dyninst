@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.3 2003/03/10 23:15:37 bernat Exp $
+/* $Id: signalhandler.h,v 1.4 2003/03/21 22:50:26 bernat Exp $
  */
 
 /*
@@ -95,6 +95,23 @@ int handleProcessEvent(process *proc,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info);
+
+/////////////////////
+// Callbacks.
+/////////////////////
+
+// Note: Replace with BPatch callbacks when Paradyn can use them
+// Fork entry
+typedef void (*forkEntryCallback_t)(process *p, void *data);
+// Fork exit: include new pid
+typedef void (*forkExitCallback_t)(process *p, void *data, process *child);
+// Exec entry: include program argument
+typedef void (*execEntryCallback_t)(process *p, void *data, char *arg0);
+// Exec exit
+typedef void (*execExitCallback_t)(process *p, void *data);
+// Exit entry: include exit code
+typedef void (*exitEntryCallback_t)(process *p, void *data, int code);
+
 
 #endif
 
