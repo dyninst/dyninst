@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2004/03/05 16:50:56 bernat Exp $
+# $Id: Makefile,v 1.22 2004/05/12 22:37:48 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,6 +8,7 @@ USES_LIBERTY = true
 USES_SHM_SAMPLING = true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
+USES_LIBELF = true
 # DEBUG_FLAG = -g
 
 #If libhrtime is not installed on your computer and you have no interest
@@ -54,13 +55,18 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/saveSharedLibrary.C \
 		../../dyninstAPI/src/syscall-linux.C
 
-MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
+MYFLAGS     += -I$(LIBELFDIR)/include
+MYFLAGS		+= -I/usr/include/libelf
 
-SYSLIBS  = -ldl -lelf
-#SYSLIBS = -lelf -lsocket -lnsl
-LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
+SYSLIBS  = -ldl
+LIBS     = -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBELFDIR)/bin
+ifdef LIBELFSTATIC
+LIBS    += -Wl,-static -lelf -Wl,-call_shared
+else
+LIBS    += -lelf
+endif
 
 AS		= /usr/bin/as
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2004/04/28 20:20:54 rchen Exp $
+# $Id: Makefile,v 1.17 2004/05/12 22:37:46 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,6 +8,7 @@
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_UNWIND_LIB = true
+USES_LIBELF = true
 
 # Turns off optimization, and enables debugging.
 # NO_OPT_FLAG = true
@@ -41,8 +42,9 @@ SRCS =	../src/linux.C \
 		../src/ia64-template.s	\
 		../src/syscall-linux.C
 
-MYFLAGS		+= -I/usr/include/libelf -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR) \
-			   -I$(LIBUNWINDDIR)/include
+MYFLAGS		+=  -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR) \
+			   -I$(LIBUNWINDDIR)/include -I$(LIBELFDIR)/include \
+            -I/usr/include/libelf
 
 CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
@@ -51,8 +53,15 @@ TFLAGS		+= $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS           += -g
 
-SYSLIBS		= -lelf -ldl
-LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBUNWINDDIR)/lib -Wl,-Bstatic -lunwind -Wl,-Bdynamic
+SYSLIBS		= -ldl
+
+LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBELFDIR)/bin
+ifdef LIBELFSTATIC
+LIBS    += -Wl,-static -lelf -Wl,-call_shared
+else
+LIBS    += -lelf
+endif
+LIBS    += -L$(LIBUNWINDDIR)/lib -Wl,-Bstatic -lunwind -Wl,-Bdynamic
 
 AS		= /usr/bin/as
 

@@ -1,10 +1,11 @@
 #
-# $Id: Makefile,v 1.3 2004/03/05 16:50:59 bernat Exp $
+# $Id: Makefile,v 1.4 2004/05/12 22:37:49 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_LIBERTY = true
+USES_LIBELF = true
 USES_SHM_SAMPLING = true
 NO_IMPLICIT_TEMPLATES = true
 #DEBUG_FLAG = -ggdb
@@ -42,11 +43,18 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c
 
-MYFLAGS		+= -I/usr/include/libelf
+MYFLAGS		+= -I$(LIBELFDIR)/include -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT
 
-SYSLIBS  = -ldl -lelf
-#SYSLIBS = -lelf -lsocket -lnsl
+SYSLIBS  = -ldl
+LIBS = -L$(LIBELFDIR)/bin
+ifdef LIBELFSTATIC
+LIBS    += -Wl,-static -lelf -Wl,-call_shared
+else
+LIBS    += -lelf
+endif
+
+#SYSLIBS = -lsocket -lnsl
 
 AS		= /usr/bin/as
 

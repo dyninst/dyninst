@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2004/03/05 16:50:46 bernat Exp $
+# $Id: Makefile,v 1.22 2004/05/12 22:37:45 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,6 +9,7 @@
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 # For debugging.
 #NO_OPT_FLAG = true
@@ -45,7 +46,6 @@ SRCS =          ../src/linux.C \
 		../../common/src/timing-linux.C \
 		../src/syscall-linux.C
 
-MYFLAGS		+= -I/usr/include/libelf
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
 #MYFLAGS	+= -DATTACH_DETACH_DEBUG
@@ -57,6 +57,8 @@ MYFLAGS		+= -I/usr/include/libelf
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
+MYFLAGS     += -I$(LIBELFDIR)/include
+MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -65,8 +67,15 @@ TFLAGS          += $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-SYSLIBS		= -lelf -ldl 
-LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -lgcc
+SYSLIBS		= -ldl 
+
+LIBS	  +=  -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBELFDIR)/bin
+ifdef LIBELFSTATIC
+LIBS    += -Wl,-static -lelf -Wl,-call_shared
+else
+LIBS    += -lelf
+endif
+LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
