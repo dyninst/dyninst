@@ -44,7 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Id: UIwhere.C,v 1.26 2002/11/25 23:52:20 schendel Exp $ */
+/* $Id: UIwhere.C,v 1.27 2003/05/08 17:52:21 mirg Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -87,7 +87,23 @@ void resourceAddedCB(perfStreamHandle, resourceHandle parent,
   whereAxis &theWhereAxis = theAbs[theAbstractionName];
      // may create a where axis!
 
-  const char *nameLastPart = strrchr(name, '/');
+  // Strip away all path components up to our name. Look for '/', but
+  // be careful not to strip away "operator/".
+  const char *nameLastPart = strstr(name, "operator/");
+  if (nameLastPart == 0) {
+      nameLastPart = strrchr(name, '/');
+  }
+  else {
+#ifdef FIXME_AFTER_4
+      cerr << "WARNING: Change the whereAxis separator from '/' to something\n"
+	   << "else. Otherwise, operator/ needs to be special-cased\n";
+#endif
+      // Scan back from the current point looking for '/'. Can't use
+      // strrchr, since it always scans from the end of the string.
+      while (nameLastPart != name && *nameLastPart != '/') {
+	  nameLastPart--;
+      }
+  }
 
 #ifdef i386_unknown_nt4_0
   // under Windows, we may find our Code resources
