@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.17 1995/02/16 08:53:08 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18 1995/05/18 10:32:35 markc Exp $";
 #endif
 
 
@@ -27,7 +27,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.17  1995/02/16 08:53:08  markc
+ * Revision 1.18  1995/05/18 10:32:35  markc
+ * Replaced process dict with process map
+ * Get metric definitions from two locations (internal, and mdl)
+ *
+ * Revision 1.17  1995/02/16  08:53:08  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.16  1995/02/16  08:33:12  markc
@@ -106,6 +110,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dyninst.h"
 #include "stats.h"
 #include "resource.h"
+#include "paradynd/src/mdld.h"
+#include "paradynd/src/init.h"
 
 // default to once a second.
 float samplingRate = 1.0;
@@ -115,86 +121,46 @@ void dynRPC::printStats(void)
   printDyninstStats();
 }
 
-void dynRPC::addResource(string parent, string name)
+// TODO -- use a different creation time
+void dynRPC::addResource(u_int parent_id, u_int id, string name)
 {
-    resource *pr;
-
-    pr = findResource(parent);
-    if (!pr) {			// parent isn't defined
-      char *tmp;
-      resource *res;
-      char *ptr = P_strdup(parent.string_of());
-      char *resName = ptr + 1;
-      assert(resName);
-
-      pr = rootResource;
-      while (resName) {
-	tmp = P_strchr(resName, '/');
-	if (tmp) {
-	  *tmp = '\0';
-	  tmp++;
-	}
-	res = newResource(pr, NULL, nullString, resName, 0.0, "");
-	pr = res;
-	resName = tmp;
-      }
-      delete ptr;
-    }
-    if (pr) newResource(pr, NULL, nullString, name, 0.0, "");
+  resource *parent = resource::findResource(parent_id);
+  if (!parent) return;
+  resource::newResource(parent, name, id);
 }
 
 void dynRPC::coreProcess(int id)
 {
-    if (processMap.defines(id))
-      (processMap[id])->dumpCore("core.out");
+  process *proc = findProcess(id);
+  if (proc)
+    proc->dumpCore("core.out");
 }
 
 string dynRPC::getStatus(int id)
 {
-    char ret[50];
-    if (!processMap.defines(id)) {
-      sprintf (ret, "PID:%d not found for getStatus\n", id);
-      return (ret);
-    }
-    else
-      return ((processMap[id])->getProcessStatus());
+  char ret[50];
+  process *proc = findProcess(id);
+  if (!proc) {
+    sprintf (ret, "PID:%d not found for getStatus\n", id);
+    return (ret);
+  } else 
+    return (proc->getProcessStatus());
 }
 
-// TODO - data structures
-//
-// NOTE: This version of getAvailableMetrics assumes that new metrics are
-//   NOT added during execution.
-//
-vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void)
-{
-    static bool inited=false;
-    static vector<T_dyninstRPC::metricInfo> metInfo;
-    int i;
+vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
+  vector<T_dyninstRPC::metricInfo> metInfo;
+  unsigned size = internalMetric::allInternalMetrics.size();
+  for (unsigned u=0; u<size; u++)
+    metInfo += internalMetric::allInternalMetrics[u]->getInfo();
 
-    if (!inited) {
-	metricListRec *stuff;
-
-	stuff = getMetricList();
-	for (i=0; i < stuff->count; i++) 
-	    metInfo += stuff->elements[i].getMetInfo();
-	inited = true;
-    }
-    return(metInfo);
+  mdl_get_info(metInfo);
+  return(metInfo);
 }
 
-double dynRPC::getPredictedDataCost(vector<string> focusString, string metName)
+double dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
 {
-    metric *m;
-    double val;
-    resourceListRec *l;
-
     if (!metName.length()) return(0.0);
-    m = findMetric(metName);
-    l = findFocus(focusString);
-    if (!l) return(0.0);
-    val = guessCost(l, m);
-
-    return(val);
+    return (guessCost(metName, focus));
 }
 
 double dynRPC::getCurrentHybridCost(void)
@@ -208,8 +174,6 @@ void dynRPC::disableDataCollection(int mid)
     float cost;
     metricDefinitionNode *mi;
 
-//    commented out because it seems to perturb PC  -rbi 11/8/94
-//    statusLine("altering instrumentation");  
     if (!allMIs.defines(mid)) {
       sprintf(errorLine, "disableDataCollection mid %d not found\n", mid);
       logLine(errorLine);
@@ -217,53 +181,49 @@ void dynRPC::disableDataCollection(int mid)
     }
 
     mi = allMIs[mid];
-    // sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
-    // logLine(errorLine);
-    // printResourceList(mi->resList);
-    // logLine("\n");
+    // cout << "disable of " << mi->getFullName() << endl; 
 
-    cost = mi->originalCost;
+    cost = mi->originalCost();
 
     currentPredictedCost -= cost;
 
     mi->disable();
-    allMIs.undef(mi->id);
+    allMIs.undef(mid);
     delete(mi);
 }
 
-bool dynRPC::setTracking(string target, bool mode)
+bool dynRPC::setTracking(unsigned target, bool mode)
 {
-    resource *res;
-
-    res = findResource(target);
+    resource *res = resource::findResource(target);
     if (res) {
-	if (isResourceDescendent(moduleRoot, res)) {
+	if (res->isResourceDescendent(moduleRoot)) {
 	    image::changeLibFlag(res, (bool) mode);
-	    res->suppressed = true;
+	    res->suppress(true);
 	    return(true);
 	} else {
 	    // un-supported resource hierarchy.
 	    return(false);
 	}
     } else {
-	return(false);
+      // cout << "Set tracking target " << target << " not found\n";
+      return(false);
     }
 }
 
-// TODO get rid of these ifdefs
-int dynRPC::enableDataCollection(vector<string> focusString, string met)
+void dynRPC::resourceInfoResponse(vector<string> resource_name, u_int resource_id) {
+  resource *res = resource::findResource(resource_name);
+  if (res)
+    res->set_id(resource_id);
+}
+
+// TODO -- startCollecting  Returns -1 on failure ?
+int dynRPC::enableDataCollection(vector<u_int> focus, string met)
 {
     int id;
-    metric *m;
-    resourceListRec *l;
     totalInstTime.start();
-
-    m = findMetric(met);
-    l = findFocus(focusString);
-    if (!l) return(-1);
-
-    id = startCollecting(l, m);
+    id = startCollecting(met, focus);
     totalInstTime.stop();
+    // cout << "Enabled " << met << " = " << id << endl;
     return(id);
 }
 
@@ -278,8 +238,9 @@ void dynRPC::setSampleRate(double sampleInterval)
 
 bool dynRPC::detachProgram(int program, bool pause)
 {
-  if (processMap.defines(program)) 
-    return((processMap[program])->detach(pause));
+  process *proc = findProcess(program);
+  if (proc)
+    return(proc->detach(pause));
   else
     return false;
 }
@@ -298,11 +259,12 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int program)
 {
-    if (!processMap.defines(program)) {
+    process *proc = findProcess(program);
+    if (!proc) {
       sprintf(errorLine, "Can't continue PID %d\n", program);
       logLine(errorLine);
     }
-    (processMap[program])->continueProc();
+    proc->continueProc();
 }
 
 //
@@ -319,12 +281,13 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
-    if (!processMap.defines(program)) {
+    process *proc = findProcess(program);
+    if (!proc) {
       sprintf(errorLine, "Can't pause PID %d\n", program);
       logLine(errorLine);
       return false;
     }
-    return ((processMap[program])->pause());
+    return (proc->pause());
 }
 
 bool dynRPC::startProgram(int program)
