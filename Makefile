@@ -3,6 +3,9 @@
 # First cut at a topLevel makefile for the paradyn system.
 #
 # $Log: Makefile,v $
+# Revision 1.20  1995/11/04 01:14:56  tamches
+# added the new table visi (visiClients/tableVisi) to the nightly build
+#
 # Revision 1.19  1995/01/30 18:08:12  jcargill
 # Major build system reorganization
 #
@@ -16,8 +19,8 @@
 #
 buildfirst	= util igen thread visi dag hist
 subsystems	= bininst paradyn paradynd paradyndSIM paradyndPVM \
-		  rtinst rthist visiClients/tclVisi visiClients/barchart
-
+		  rtinst rthist visiClients/tclVisi visiClients/barchart \
+		  visiClients/tableVisi
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
