@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.70 1999/05/21 18:49:24 wylie Exp $
+// $Id: solaris.C,v 1.71 1999/06/29 15:56:40 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1645,7 +1645,14 @@ bool process::set_breakpoint_for_syscall_completion() {
 void process::clear_breakpoint_for_syscall_completion() { return; }
 
 Address process::read_inferiorRPC_result_register(Register) {
+
    prgregset_t theIntRegs;
+#ifdef PURE_BUILD
+  // explicitly initialize "theIntRegs" struct (to pacify Purify)
+  for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++)
+      theIntRegs[r]=0;
+#endif
+
    if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
       perror("process::read_inferiorRPC_result_register PIOCGREG");
       if (errno == EBUSY) {
