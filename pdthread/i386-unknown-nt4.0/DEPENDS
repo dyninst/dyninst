@@ -1,70 +1,70 @@
 file_q.obj: ../src/file_q.C ../src/thrtab_entries.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h ../src/mailbox.h ../src/refarray.C \
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/mailbox.h ../src/refarray.C \
   ../src/refarray.h ../src/dllist.C ../src/predicate.h \
   ../../common/h/language.h ../h/thread.h ../../pdutil/h/pdsocket.h \
-  ../../pdutil/h/pddesc.h ../../xplat/h/Mutex.h ../src/entity.h \
+  ../../pdutil/h/pddesc.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/entity.h \
   ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 hash.obj: ../src/hash.C ../src/hash.h
 io_entity.obj: ../src/io_entity.C ../src/thrtab_entries.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h ../src/mailbox.h ../src/refarray.C \
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/mailbox.h ../src/refarray.C \
   ../src/refarray.h ../src/dllist.C ../src/predicate.h \
   ../../common/h/language.h ../h/thread.h ../../pdutil/h/pdsocket.h \
-  ../../pdutil/h/pddesc.h ../../xplat/h/Mutex.h ../src/entity.h \
+  ../../pdutil/h/pddesc.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/entity.h \
   ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 io_mailbox.obj: ../src/io_mailbox.C ../src/io_mailbox.h ../src/mailbox.h \
   ../src/refarray.C ../src/refarray.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h ../src/dllist.C ../src/predicate.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/dllist.C ../src/predicate.h \
   ../../common/h/language.h ../h/thread.h ../../pdutil/h/pdsocket.h \
-  ../../pdutil/h/pddesc.h ../../xplat/h/Mutex.h ../src/message.h \
+  ../../pdutil/h/pddesc.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/message.h \
   ../src/thrtab_entries.h ../src/entity.h ../src/io_entity.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 io_message.obj: ../src/io_message.C ../src/io_message.h ../src/message.h \
   ../h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
-  ../src/thrtab_entries.h ../src/rwlock.h ../../xplat/h/Monitor.h \
+  ../src/thrtab_entries.h ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h \
   ../src/mailbox.h ../src/refarray.C ../src/refarray.h ../src/dllist.C \
-  ../src/predicate.h ../../common/h/language.h ../../xplat/h/Mutex.h \
+  ../src/predicate.h ../../common/h/language.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/thrtab.h
 lwp.obj: ../src/lwp.C ../src/mailbox.h ../src/refarray.C ../src/refarray.h \
-  ../src/rwlock.h ../../xplat/h/Monitor.h ../src/dllist.C \
+  ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/dllist.C \
   ../src/predicate.h ../../common/h/language.h ../h/thread.h \
-  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h ../../xplat/h/Mutex.h \
+  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/thrtab.h ../src/thrtab_entries.h ../src/entity.h \
   ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 mailbox.obj: ../src/mailbox.C ../src/mailbox.h ../src/refarray.C \
-  ../src/refarray.h ../src/rwlock.h ../../xplat/h/Monitor.h \
+  ../src/refarray.h ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h \
   ../src/dllist.C ../src/predicate.h ../../common/h/language.h \
   ../h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
-  ../../xplat/h/Mutex.h ../src/message_predicates.h ../src/message.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/message_predicates.h ../src/message.h \
   ../src/thrtab_entries.h ../src/entity.h ../src/io_entity.h \
-  ../src/io_mailbox.h ../src/lwp.h ../../xplat/h/Thread.h \
-  ../../xplat/h/TLSKey.h ../../xplat/h/Once.h ../src/file_q.h \
+  ../src/io_mailbox.h ../src/lwp.h ../../../i386-unknown-nt4.0/include/xplat/Thread.h \
+  ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h ../src/file_q.h \
   ../src/hashtbl.C ../src/hash.h ../src/socket_q.h ../src/mailbox_defs.h \
   ../src/thrtab.h
 message.obj: ../src/message.C ../src/message.h ../h/thread.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
-  ../src/thrtab_entries.h ../src/rwlock.h ../../xplat/h/Monitor.h \
+  ../src/thrtab_entries.h ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h \
   ../src/mailbox.h ../src/refarray.C ../src/refarray.h ../src/dllist.C \
-  ../src/predicate.h ../../common/h/language.h ../../xplat/h/Mutex.h \
+  ../src/predicate.h ../../common/h/language.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 msg.obj: ../src/msg.C ../h/thread.h ../../pdutil/h/pdsocket.h \
   ../../pdutil/h/pddesc.h ../src/thrtab.h ../src/refarray.h \
-  ../src/rwlock.h ../../xplat/h/Monitor.h ../src/dllist.C \
+  ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/dllist.C \
   ../src/predicate.h ../../common/h/language.h ../src/thrtab_entries.h \
-  ../src/mailbox.h ../src/refarray.C ../../xplat/h/Mutex.h \
+  ../src/mailbox.h ../src/refarray.C ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/message.h ../src/thr_mailbox.h ../src/DummyMonitor.h \
   ../src/MsgAvailablePipe.h ../src/thr_debug.h \
@@ -73,46 +73,46 @@ predicate.obj: ../src/predicate.C ../src/predicate.h
 pthread_sync.obj: ../src/pthread_sync.C ../h/thread.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h ../src/pthread_sync.h
 refarray.obj: ../src/refarray.C ../src/refarray.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h
-rwlock.obj: ../src/rwlock.C ../src/rwlock.h ../../xplat/h/Monitor.h
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h
+rwlock.obj: ../src/rwlock.C ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h
 socket_q.obj: ../src/socket_q.C ../src/thrtab_entries.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h ../src/mailbox.h ../src/refarray.C \
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/mailbox.h ../src/refarray.C \
   ../src/refarray.h ../src/dllist.C ../src/predicate.h \
   ../../common/h/language.h ../h/thread.h ../../pdutil/h/pdsocket.h \
-  ../../pdutil/h/pddesc.h ../../xplat/h/Mutex.h ../src/entity.h \
+  ../../pdutil/h/pddesc.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/entity.h \
   ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h
 sync.obj: ../src/sync.C ../h/thread.h ../../pdutil/h/pdsocket.h \
-  ../../pdutil/h/pddesc.h ../src/rwlock.h ../../xplat/h/Monitor.h
+  ../../pdutil/h/pddesc.h ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h
 sync_queue.obj: ../src/sync_queue.C
 thr_mailbox.obj: ../src/thr_mailbox.C ../src/thr_mailbox.h ../src/message.h \
   ../h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
-  ../src/thrtab_entries.h ../src/rwlock.h ../../xplat/h/Monitor.h \
+  ../src/thrtab_entries.h ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h \
   ../src/mailbox.h ../src/refarray.C ../src/refarray.h ../src/dllist.C \
-  ../src/predicate.h ../../common/h/language.h ../../xplat/h/Mutex.h \
+  ../src/predicate.h ../../common/h/language.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/DummyMonitor.h ../src/MsgAvailablePipe.h ../src/thrtab.h \
   ../src/io_message.h ../src/message_predicates.h ../src/mailbox_defs.h \
   ../src/WaitSet.h ../../common/h/Vector.h ../src/thr_debug.h
 thread.obj: ../src/thread.C ../h/thread.h ../../pdutil/h/pdsocket.h \
   ../../pdutil/h/pddesc.h ../src/thrtab_entries.h ../src/rwlock.h \
-  ../../xplat/h/Monitor.h ../src/mailbox.h ../src/refarray.C \
+  ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/mailbox.h ../src/refarray.C \
   ../src/refarray.h ../src/dllist.C ../src/predicate.h \
-  ../../common/h/language.h ../../xplat/h/Mutex.h ../src/entity.h \
+  ../../common/h/language.h ../../../i386-unknown-nt4.0/include/xplat/Mutex.h ../src/entity.h \
   ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/thrtab.h ../src/thr_debug.h
 thrtab.obj: ../src/thrtab.C ../src/thrtab.h ../h/thread.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h ../src/refarray.h \
-  ../src/rwlock.h ../../xplat/h/Monitor.h ../src/dllist.C \
+  ../src/rwlock.h ../../../i386-unknown-nt4.0/include/xplat/Monitor.h ../src/dllist.C \
   ../src/predicate.h ../../common/h/language.h ../src/thrtab_entries.h \
-  ../src/mailbox.h ../src/refarray.C ../../xplat/h/Mutex.h \
+  ../src/mailbox.h ../src/refarray.C ../../../i386-unknown-nt4.0/include/xplat/Mutex.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
-  ../../xplat/h/Thread.h ../../xplat/h/TLSKey.h ../../xplat/h/Once.h \
+  ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/thr_mailbox.h ../src/message.h ../src/DummyMonitor.h \
   ../src/MsgAvailablePipe.h ../src/thr_debug.h \
