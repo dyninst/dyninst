@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.86 2000/02/21 15:04:10 bernat Exp $
+// $Id: inst-sparc.C,v 1.87 2000/03/15 17:41:30 pcroth Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -588,7 +588,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 
 #if defined(MT_THREAD)
    if (isSafeRPC) //ret instruction
-     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I7, 0x08, REG_G0) ;
+     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
 #endif
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
 
@@ -647,7 +647,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                   generateRShift(insn, src1, (Register)result, dest);           
                 else { // needs to set the Y register to zero first
                   // Set the Y register to zero: Zhichen
-                  genImmInsn(insn, WRYop3, REG_G0, 0, 0);
+                  genImmInsn(insn, WRYop3, REG_G(0), 0, 0);
                   base += sizeof(instruction);
                   insn = (instruction *) ((void*)&i[base]);
                   genImmInsn(insn, op3, src1, src2imm, dest);

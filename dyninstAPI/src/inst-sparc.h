@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.39 2000/02/18 20:40:53 bernat Exp $
+// $Id: inst-sparc.h,v 1.40 2000/03/15 17:41:30 pcroth Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -90,20 +90,8 @@ inline Address ABS(int x) {
 #define MIN_IMM13       (-4096)
 
 
-#define REG_G0          0
-#define	REG_G5		5
-#define	REG_G6		6
-#define	REG_G7		7
-
-#define REG_O7    	15
-#define REG_I7    	31
-
-#define REG_L0          16
-#define REG_L1          17
-#define REG_L2          18
-
-#define REG_SP          14
-#define REG_FP          30
+#define REG_SPTR          14
+#define REG_FPTR          30
 
 // some macros for helping code which contains register symbolic names
 #define REG_I(x) (x + 24)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.63 2000/02/18 20:40:52 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.64 2000/03/15 17:41:29 pcroth Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -526,7 +526,7 @@ void relocateInstruction(instruction *insn,
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
 	    instruction insnPlus[3];
-	    genImmInsn(insnPlus, SAVEop3, REG_SP, -112, REG_SP);
+	    genImmInsn(insnPlus, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	    generateCallInsn(insnPlus+1, ret+sizeof(instruction), 
 			     origAddr+old_offset);
 	    genSimpleInsn(insnPlus+2, RESTOREop3, 0, 0, 0); 
@@ -677,7 +677,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 		    *temp = location->delaySlotInsn;  
 		    temp++; 
 		    currAddr += sizeof(instruction);
-		    genImmInsn(temp, SAVEop3, REG_SP, -112, REG_SP); 
+		    genImmInsn(temp, SAVEop3, REG_SPTR, -112, REG_SPTR); 
 		    temp++; 
 		    currAddr += sizeof(instruction);  
 		    *temp = location->originalInstruction;
@@ -726,7 +726,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 					  (process *)proc);
  		       temp++; 
  		       currAddr += sizeof(instruction);
- 		       genImmInsn(temp, SAVEop3, REG_SP, -112, REG_SP); 
+ 		       genImmInsn(temp, SAVEop3, REG_SPTR, -112, REG_SPTR); 
 
 		       // relocate the call instruction     
  		       temp++; 
@@ -797,7 +797,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
  		    *temp = location->isDelayedInsn;  
  		    temp++; 
  		    currAddr += sizeof(instruction);
- 		    genImmInsn(temp, SAVEop3, REG_SP, -112, REG_SP); 
+ 		    genImmInsn(temp, SAVEop3, REG_SPTR, -112, REG_SPTR); 
  		    temp++; 
  		    currAddr += sizeof(instruction);  
  		    *temp = location->delaySlotInsn;
@@ -864,7 +864,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 		    }
 		} 
 		
-		genImmInsn(temp+1, SAVEop3, REG_SP, -112, REG_SP);
+		genImmInsn(temp+1, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	    }
 	    
 	} else if (temp->raw == RETURN_INSN) {
@@ -1123,7 +1123,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
           } else {
             branchSize = 3 ;
             insn = new instruction[branchSize + e_size];
-            genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+            genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
             generateCallInsn(insn+1, adr+baseAddress+4, location->func->getAddress(proc));
             genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0);
           }
@@ -1181,7 +1181,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     // generate  original; call; add $o7 imm4 
 	     instruction *insn = new instruction[2];
 	     generateCallInsn(insn, adr+4, (int) ret->baseAddr);
-	     genImmInsn(insn+1,ADDop3,REG_O7,4,REG_O7);
+	     genImmInsn(insn+1,ADDop3,REG_O(7),4,REG_O(7));
 	     retInstance = new returnInstance((instructUnion *)insn,
 				 2*sizeof(instruction), adr+4,
 			         2*sizeof(instruction));
@@ -1216,7 +1216,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
              if(!already_done) {
 	         instruction *insn = new instruction[3];
-	         genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	         genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	         generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
 	         generateNOOP(insn+2);
 	         retInstance = new returnInstance((instructUnion *)insn, 
@@ -1269,7 +1269,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     instruction *insn = new instruction[3];	
 	     generateCallInsn(insn, adr, (int) ret->baseAddr);
 	     generateNOOP(insn+1);
-	     genImmInsn(insn+2,ADDop3,REG_O7,4,REG_O7);
+	     genImmInsn(insn+2,ADDop3,REG_O(7),4,REG_O(7));
 	     retInstance = new returnInstance((instructUnion *)insn, 
 					      3*sizeof(instruction), adr, 
 					      3*sizeof(instruction));
@@ -1494,13 +1494,13 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
       case trampPreamble: {
 #ifdef ndef
         // save and restore are done in the base tramp now
-        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+        genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	base += sizeof(instruction);
         insn++;
 
 	// generate code to save global registers
 	for (unsigned u = 0; u < 4; u++) {
-	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
+	  genStoreD(insn, 2*u, REG_FPTR, - (8 + 8*u));
 	  base += sizeof(instruction);
 	  insn++;
 	}
@@ -1512,7 +1512,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         // save and restore are done in the base tramp now
 	// generate code to restore global registers
 	for (unsigned u = 0; u < 4; u++) {
-	  genLoadD(insn, REG_FP, - (8 + 8*u), 2*u);
+	  genLoadD(insn, REG_FPTR, - (8 + 8*u), 2*u);
 	  base += sizeof(instruction);
 	  insn++;
 	}
@@ -1557,25 +1557,25 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
       case getParamOp: {
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // saving CT/vector address on the stack
-        generateStore(insn, REG_MT, REG_FP, -40);
+        generateStore(insn, REG_MT, REG_FPTR, -40);
         insn++;
 #endif
 	// first 8 parameters are in register bank I (24..31)
 	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
 	insn++;
 
-	generateStore(insn, REG_I(src1), REG_SP, 68+4*src1); 
+	generateStore(insn, REG_I(src1), REG_SPTR, 68+4*src1); 
 	insn++;
 	      
-	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	insn++;
 
-	generateLoad(insn, REG_SP, 112+68+4*src1, REG_I(src1)); 
+	generateLoad(insn, REG_SPTR, 112+68+4*src1, REG_I(src1)); 
 	insn++;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // restoring CT/vector address back in REG_MT
-        generateLoad(insn, REG_FP, -40, REG_MT);
+        generateLoad(insn, REG_FPTR, -40, REG_MT);
         insn++;
         base += 6*sizeof(instruction);
 #else
@@ -1598,13 +1598,13 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
 	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
 	insn++;
 
-	generateStore(insn, REG_I(0), REG_SP, 68); 
+	generateStore(insn, REG_I(0), REG_SPTR, 68); 
 	insn++;
 	      
-	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
 	insn++;
 
-	generateLoad(insn, REG_SP, 112+68, REG_I(0)); 
+	generateLoad(insn, REG_SPTR, 112+68, REG_I(0)); 
 	insn++;
 
 	base += 4*sizeof(instruction);
@@ -1626,13 +1626,13 @@ int getFP(instruction *insn, Register dest)
     genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
     insn++;
 
-    generateStore(insn, REG_FP, REG_SP, 68); 
+    generateStore(insn, REG_FPTR, REG_SPTR, 68); 
     insn++;
 	  
-    genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+    genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
     insn++;
 
-    generateLoad(insn, REG_SP, 112+68, dest); 
+    generateLoad(insn, REG_SPTR, 112+68, dest); 
     insn++;
 
     return(4*sizeof(instruction));
@@ -1765,7 +1765,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	if ((offset < MIN_IMM13) || (offset > MAX_IMM13)) {
 	    // We are really one regsiter short here, so we put the
 	    //   value to store onto the stack for part of the sequence
-	    generateStore(insn, src1, REG_SP, 112+68);
+	    generateStore(insn, src1, REG_SPTR, 112+68);
 	    base += sizeof(instruction);
 	    insn++;
 
@@ -1781,7 +1781,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	    base += sizeof(instruction);
 	    insn++;
 
-	    generateLoad(insn, REG_SP, 112+68, src1); 
+	    generateLoad(insn, REG_SPTR, 112+68, src1); 
 	    base += sizeof(instruction);
 	    insn++;
 
@@ -1807,18 +1807,18 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
         // generate code to update the observed cost.
 	if (!noCost) {
 	   // sethi %hi(dest), %l0
-	   generateSetHi(insn, dest, REG_L0);
+	   generateSetHi(insn, dest, REG_L(0));
 	   base += sizeof(instruction);
 	   insn++;
   
 	   // ld [%l0+ lo(dest)], %l1
-	   generateLoad(insn, REG_L0, LOW10(dest), REG_L1);
+	   generateLoad(insn, REG_L(0), LOW10(dest), REG_L(1));
 	   base += sizeof(instruction);
 	   insn++;
   
 	   // update value (src1 holds the cost, in cycles; e.g. 19)
 	   if (src1 <= MAX_IMM13) {
-	      genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
+	      genImmInsn(insn, ADDop3, REG_L(1), src1, REG_L(1));
 	      base += sizeof(instruction);
 	      insn++;
 
@@ -1831,23 +1831,23 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
 	      insn++;
 	   } else {
 	      // load in two parts
-	      generateSetHi(insn, src1, REG_L2);
+	      generateSetHi(insn, src1, REG_L(2));
 	      base += sizeof(instruction);
 	      insn++;
 
 	      // or regd,imm,regd
-	      genImmInsn(insn, ORop3, REG_L2, LOW10(src1), REG_L2);
+	      genImmInsn(insn, ORop3, REG_L(2), LOW10(src1), REG_L(2));
 	      base += sizeof(instruction);
 	      insn++;
 
 	      // now add it
-	      genSimpleInsn(insn, ADDop3, REG_L1, REG_L2, REG_L1);
+	      genSimpleInsn(insn, ADDop3, REG_L(1), REG_L(2), REG_L(1));
 	      base += sizeof(instruction);
 	      insn++;
 	   }
   
 	   // store result st %l1, [%l0+ lo(dest)];
-	   generateStore(insn, REG_L1, REG_L0, LOW10(dest));
+	   generateStore(insn, REG_L(1), REG_L(0), LOW10(dest));
 	   base += sizeof(instruction);
 	   insn++;
 	}
@@ -1902,7 +1902,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 	    case divOp:
 		op3 = SDIVop3;
                 //need to set the Y register to Zero, Zhichen
-                genImmInsn(insn, WRYop3, REG_G0, 0, 0);
+                genImmInsn(insn, WRYop3, REG_G(0), 0, 0);
                 base += sizeof(instruction);
                 insn = (instruction *) ((void*)&i[base]);
 		break;

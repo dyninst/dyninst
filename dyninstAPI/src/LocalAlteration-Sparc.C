@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.3 1998/12/25 22:34:22 wylie Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.4 2000/03/15 17:41:27 pcroth Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -188,7 +188,7 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
     // ALERT ALERT - -112 seems like apparently random number
     //  used in solaris specific code where save instructions 
     //  are generated.  Why -112?
-    genImmInsn(&newInstr[i++], SAVEop3, REG_SP, -112, REG_SP);
+    genImmInsn(&newInstr[i++], SAVEop3, REG_SPTR, -112, REG_SPTR);
   
     // Generate : mv %reg %g1.
     // On Sparc, mv %1 %2 is synthetic inst. implemented as orI %1, 0, %2....
