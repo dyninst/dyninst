@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.24 2002/10/14 21:02:08 bernat Exp $
+// $Id: osfDL.C,v 1.25 2002/12/14 16:37:34 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -365,13 +365,8 @@ void process::handleIfDueToDyninstLib()
   delete [] (char*)savedRegs;
   savedRegs = NULL;
 
-#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   const char *DyninstEnvVar="DYNINSTAPI_RT_LIB";
   const char *DyninstLibName="libdyninstAPI_RT";
-#else
-  const char *DyninstEnvVar="PARADYN_LIB";
-  const char *DyninstLibName="libdyninstRT";
-#endif
 
   (void) findInternalAddress("DYNINSTbreakPoint", false, err);
   if (!err) {
@@ -385,16 +380,16 @@ void process::handleIfDueToDyninstLib()
 
   hasLoadedDyninstLib = true;
 
-  if (dyninstName.length()) {
+  if (dyninstRT_name.length()) {
     // use the library name specified on the start-up command-line
-    sprintf(errorLine,"Pre-specified library %s\n", dyninstName.c_str());
+    sprintf(errorLine,"Pre-specified library %s\n", dyninstRT_name.c_str());
     logLine(errorLine);
   } else {
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      dyninstRT_name = getenv(DyninstEnvVar);
       sprintf(errorLine,"Environment variable %s=%s\n", DyninstEnvVar,
-              dyninstName.c_str());
+              dyninstRT_name.c_str());
       logLine(errorLine);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
@@ -403,8 +398,8 @@ void process::handleIfDueToDyninstLib()
       return;
     }
   }
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(dyninstRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return;
@@ -415,7 +410,7 @@ void process::handleIfDueToDyninstLib()
 
   // get the address of the new shared objects
   for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-      if (((*new_shared_objs)[i])->getName() == dyninstName) {
+      if (((*new_shared_objs)[i])->getName() == dyninstRT_name) {
 	  if (addASharedObject(*((*new_shared_objs)[i]))) {
 	      shared_objects->push_back(((*new_shared_objs)[i]));
 	  }

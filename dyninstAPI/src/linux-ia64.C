@@ -299,15 +299,11 @@ bool process::dlopenDYNINSTlib() {
 	/* FXIME: Check the glibc version.  If it's not 2.2.x, die. */
 
 	/* Fetch the name of the run-time library. */
-	#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
-		const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
-	#else
-		const char DyninstEnvVar[]="PARADYN_LIB";
-	#endif
+        const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 
-	if( ! dyninstName.length() ) { // we didn't get anything on the c/l
+	if( ! dyninstRT_name.length() ) { // we didn't get anything on the c/l
 		if (getenv(DyninstEnvVar) != NULL) {
-			dyninstName = getenv(DyninstEnvVar);
+			dyninstRT_name = getenv(DyninstEnvVar);
 			} else {
 			string msg = string( "Environment variable " + string(DyninstEnvVar)
 					+ " has not been defined for process " ) + string(pid);
@@ -349,7 +345,7 @@ bool process::dlopenDYNINSTlib() {
 	   that the function is long enough that we don't accidentally 
 	   write over something important. */
 	// FIXME: DLOPEN_CALL_LENGTH should come from the code generator.  See below.
-	iAddr.writeStringAtOffset( DLOPEN_CALL_LENGTH + 1, dyninstName.c_str(), dyninstName.length() );
+	iAddr.writeStringAtOffset( DLOPEN_CALL_LENGTH + 1, dyninstRT_name.c_str(), dyninstRT_name.length() );
 
 	/* Insert a function call.  The first argument should be a pointer
 	   to the string we just wrote; the second DLOPEN_MODE; and the   

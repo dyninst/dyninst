@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.13 2002/10/08 22:49:58 bernat Exp $
+// $Id: irixDL.C,v 1.14 2002/12/14 16:37:32 schendel Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -412,17 +412,13 @@ bool process::dlopenDYNINSTlib()
   // find runtime library
   char *rtlib_var;
   char *rtlib_prefix;
-#ifdef BPATCH_LIBRARY
+
   rtlib_var = "DYNINSTAPI_RT_LIB";
   rtlib_prefix = "libdyninstAPI_RT";
-#else
-  rtlib_var = "PARADYN_LIB";
-  rtlib_prefix = "libdyninstRT";
-#endif
 
-  if (!dyninstName.length()) {
-    dyninstName = getenv(rtlib_var);
-    if (!dyninstName.length()) {
+  if (!dyninstRT_name.length()) {
+    dyninstRT_name = getenv(rtlib_var);
+    if (!dyninstRT_name.length()) {
       string msg = string("Environment variable ") + string(rtlib_var)
                  + string(" has not been defined for process ") + string(pid);
       showErrorCallback(101, msg);
@@ -430,7 +426,7 @@ bool process::dlopenDYNINSTlib()
     }
   }
 
-  const char *rtlib_val = dyninstName.c_str();
+  const char *rtlib_val = dyninstRT_name.c_str();
   assert(strstr(rtlib_val, rtlib_prefix));
 
   // for 32-bit apps, modify the rtlib environment variable
@@ -448,7 +444,7 @@ bool process::dlopenDYNINSTlib()
     // construct environment variable
     char buf[512];
     sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
-    dyninstName = string(rtlib_val)+string(rtlib_mod)+string(rtlib_suffix);
+    dyninstRT_name = string(rtlib_val)+string(rtlib_mod)+string(rtlib_suffix);
     // allocate environment buffer
     char *env = (char *)malloc(strlen(buf)+1);
     assert(env);
