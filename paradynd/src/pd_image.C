@@ -82,7 +82,15 @@ void pd_image::FillInCallGraphStatic(pd_process *proc) {
       pd_module *curmod = pd_modules[i];
       buffer = "building call graph module: " + curmod->fileName();
       statusLine(buffer.c_str());
-      curmod->FillInCallGraphStatic(proc->get_dyn_process());
+
+      // if env var set and curmod is the first module (the user's program)
+      // then print the loops for all the functions in this module.
+      bool printLoops = false;
+      if (char * pl = getenv("PARADYND_PRINTLOOPS")) {
+	  printLoops = (i==0);
+      }
+
+      curmod->FillInCallGraphStatic(proc->get_dyn_process(), printLoops);
    }
 }
 
