@@ -39,65 +39,67 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.9 2000/10/17 17:42:35 schendel Exp $
+// $Id: internalMetrics.C,v 1.10 2001/08/23 14:44:12 schendel Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
 
-internalMetric::eachInstance::eachInstance(sampleValueFunc f, metricDefinitionNode *n) {
-   func = f;
-
-   value = pdSample(0);
-   cumulativeValue = pdSample(0);
-
-   node = n;
+internalMetric::eachInstance::eachInstance(internalMetric *_parent,
+		     sampleValueFunc f, metricDefinitionNode *n) :
+                         parent(_parent), func(f), node(n) { 
 }
 
-internalMetric::eachInstance::eachInstance(const internalMetric::eachInstance &src) {
-   func = src.func;
-   if (func == NULL)
-      value = src.value;
-   cumulativeValue = src.cumulativeValue;
-   node = src.node;
-}
+void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
+					       pdSample value) {
+  //cerr << "intM::updateValue- time: " << timeOfSample << "val: " 
+  //   << value << " lastSampleTime: " << lastSampleTime 
+  //   << ", inst: " << this << ", mdn: " << node->getFullName() << "\n";
+  assert(node);
+  // lastSampleTime needs to be initially set with setStartTime()
+  assert(lastSampleTime.isInitialized());
 
-internalMetric::eachInstance &internalMetric::eachInstance::operator=(const internalMetric::eachInstance &src) {
-   if (this == &src) return *this;
+  if(cumulativeValue.isNaN()) {
+    assert(!node->sentInitialActualValue());
+    pdSample initActVal;
+    if(getInitActualValuePolicy() == zero_ForInitActualValue) {
+      // we set the cumativeValue to the value of this first sample
+      // because we want to "throw away" any value of this metric before
+      // this.  eg. for pause_time, we want the pause_time to graph
+      // starting at zero, even if the application was paused and
+      // it's first sample is greater than zero.
+      cumulativeValue = value;
+      initActVal = pdSample::Zero();
+    }
+    else if(getInitActualValuePolicy() == firstSample_ForInitActualValue) {
+      cumulativeValue = value;
+      initActVal = value;
+    }
+    else assert(0);  // only two initActualValuePolicies so far
 
-   // clean up "this" (nothing to do)...
-   // assign to "this"...
-   func = src.func;
-   if (func == NULL)
-      value = src.value;
-   cumulativeValue = src.cumulativeValue;
-   node = src.node;
-
-   return *this;
-}
-
-void internalMetric::eachInstance::report(timeStamp start, timeStamp end,
-					  pdSample valueToForward) {
-   assert(node);
-   node->forwardSimpleValue(start, end, valueToForward, 1, true);
-      // 1 --> weight (?)
-      // true --> this is an internal metric
+    node->setInitialActualValue(initActVal);
+    node->sendInitialActualValue(initActVal);
+  } else {
+    value -= cumulativeValue;
+    cumulativeValue += value;
+    assert(timeOfSample > lastSampleTime);
+    node->forwardSimpleValue(lastSampleTime, timeOfSample, value);
+  }
+  lastSampleTime = timeOfSample;
+  // 1 --> weight (?)
+  // true --> this is an internal metric
 }
 
 /* ***************************************************************************** */
 
-internalMetric::internalMetric(const string &n, metricStyle style, int a,
-			       const string &units,
-			       sampleValueFunc f, im_pred_struct& im_preds,
-			       bool developermode, daemon_MetUnitsType unitstype) :
-		       name_(n), units_(units), pred(im_preds)
+internalMetric::internalMetric(const string &n, aggregateOp a, 
+			       const string &units, sampleValueFunc f, 
+			       im_pred_struct& im_preds, bool developermode, 
+			       daemon_MetUnitsType unitstype,
+			       initActualValuePolicy_t iavPolicy) :
+  name_(n), agg_(a), units_(units), pred(im_preds), 
+  developermode_(developermode), unitstype_(unitstype), func(f), 
+  initActualValuePolicy(iavPolicy)
 {
-   func = f;
-
-   agg_ = a;
-   style_ = style;
-   developermode_ = developermode;
-   unitstype_ = unitstype;
-
    // we leave "instances" initialized to an empty vector
 }
 
@@ -120,14 +122,14 @@ bool internalMetric::disableByMetricDefinitionNode(metricDefinitionNode *diss_me
 }
 
 metricStyle internalMetric::style() const {
-   return style_;
+  return style_;
 }
 
 const string &internalMetric::name() const {
    return name_;
 }
 
-int internalMetric::aggregate() const {
+aggregateOp internalMetric::aggregate() const {
    return agg_;
 }
 
@@ -138,9 +140,9 @@ bool internalMetric::isDeveloperMode() const {
 T_dyninstRPC::metricInfo internalMetric::getInfo() {
     T_dyninstRPC::metricInfo ret;
     ret.name = name_;
-    ret.style = style_;
     ret.aggregate = agg_;
     ret.units = units_;
+    ret.style = int(style_);
     ret.developerMode = developermode_;
     if (unitstype_ == UnNormalized) ret.unitstype = 0;
     else if (unitstype_ == Normalized) ret.unitstype = 1; 
@@ -208,16 +210,12 @@ bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
   return true;
 }
 
-internalMetric *internalMetric::newInternalMetric(const string &n,
-                                                  metricStyle style,
-                                                  int a, 
-                                                  const string &units, 
-                                                  sampleValueFunc f,
-                                                  im_pred_struct& im_pred,
-                                                  bool developerMode,
-                                                  daemon_MetUnitsType unitstype) {
-  internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
-                                          developerMode, unitstype);
+internalMetric *internalMetric::newInternalMetric(
+          const string &n, aggregateOp a, const string &units, 
+	  sampleValueFunc f, im_pred_struct& im_pred, bool developerMode,
+	  daemon_MetUnitsType unitstype, initActualValuePolicy_t iavPolicy) {
+  internalMetric *im = new internalMetric(n, a, units, f, im_pred,
+					  developerMode, unitstype, iavPolicy);
   assert(im);
 
   // It looks like we are checking to see if an internal metric with
