@@ -332,6 +332,9 @@ void processTraceStream(process *curr)
                 traceOn[sid] = 1;
                 break;
 
+	    case TR_SYNC:
+		// to eliminate a race condition, --Zhichen
+		break ;
 	    default:
 		sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
 		    header.type, sid);
@@ -884,7 +887,24 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
 
 }
 
+//
+// Blizzard
 // report a piece of shared-memory
+// After the paradyn received the piece of memory, it will
+// generate ids for them and broadcast it to all the daemons
+// via memoryInfoResponse in paradynd/dynrpc.C
+// memoryInfoCallback is defined in paradyn/DMthread/DMmain.C
+// it calls createResource_ncb which actually generate those ids
+//
+//     Paradynd                              Paradyn
+// ------------------------------------------------------------
+//   reportMemory                     
+//        memoryInfoCallback  ........... memoryInforCallback
+//                                         createResource_ncb
+//   memoryInfoResponse ................. memoryInfoResponse  
+//       newResource_ncb
+//
+//
 static void reportMemory(int pid, traceHeader *, struct _traceMemory *r)
 {
     char        *name   = r->name;
@@ -892,7 +912,6 @@ static void reportMemory(int pid, traceHeader *, struct _traceMemory *r)
     unsigned    memSize = r->memSize ;
     unsigned    blkSize = r->blkSize ;
 
-    printf("reportMemory(%d, %s, %d, %u, %u)\n", pid, name, va, memSize, blkSize) ;
     tp->resourceBatchMode(true);
     tp->memoryInfoCallback(0, name, va, memSize, blkSize) ;
     tp->resourceBatchMode(false);
