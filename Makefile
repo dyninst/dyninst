@@ -45,13 +45,16 @@ docs install-man:
 	done
 
 
-# The "make world" target is what should get run automatically every
-# night.  It builds things in the right order for a build from
-# scratch.  This doesn't go first in the Makefile, though, since we
+# The "make world" target is set up to build things in the "correct"
+# order for a build from scratch.  It builds things in the
+# "buildfirst" list first, then builds everything, then installs
+# everything.
+#
+# This make target doesn't go first in the Makefile, though, since we
 # really only want to make "install" when it's specifically requested.
 # Note that "world" doesn't do a "clean", since it's nice to be able
-# to restart a compilation that fails without re-doing a lot of work.
-# Instead, the nightly build should be a "make clean world".
+# to restart a compilation that fails without re-doing a lot of
+# unnecessary work.
 
 world:
 	+for subsystem in $(buildfirst); do 			\
@@ -63,6 +66,21 @@ world:
 	done
 	$(MAKE) all
 	$(MAKE) install
+
+
+# The "make nightly" target is what should get run automatically every
+# night.  It uses "make world" to build things in the right order for
+# a build from scratch.  
+#
+
+# Note that "nightly" should only be run on the primary build site,
+# and does things like building documentation that don't need to be
+# built for each different architecture.  Other "non-primary" build
+# sites that run each night should just run "make clean world".
+
+nightly:
+	$(MAKE) clean
+	$(MAKE) world
 	$(MAKE) docs
 	$(MAKE) install-man
 	chmod 644 /p/paradyn/man/man?/*
