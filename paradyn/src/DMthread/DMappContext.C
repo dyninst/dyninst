@@ -2,7 +2,12 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.23  1994/06/02 23:25:17  markc
+ * Revision 1.24  1994/06/14 15:21:34  markc
+ * Set the aggOp field in metricInstance so the metric can choose from one of
+ * four types of aggregation (max, min, sum, avg).  The aggregation is done in
+ * aggregateSample.C
+ *
+ * Revision 1.23  1994/06/02  23:25:17  markc
  * Added virtual function 'handle_error' to pardynDaemon class which uses the
  * error handling features that igen provides.
  *
@@ -477,7 +482,8 @@ void histFoldCallBack(timeStamp width, void *arg)
 //    metric/focus pair.
 //
 metricInstance *applicationContext::enableDataCollection(resourceList *rl, 
-							 metric *m)
+							 metric *m,
+							 aggregation aggOp)
 {
     int id;
     char *name;
@@ -493,7 +499,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     // 
     // for each daemon request the data to be enabled.
     //
-    mi = new metricInstance(rl, m);
+    mi = new metricInstance(rl, m, aggOp);
     foundOne = FALSE;
     for (curr = daemons; daemon = *curr; curr++) {
 	id = daemon->enableDataCollection(ra, m->getName());
