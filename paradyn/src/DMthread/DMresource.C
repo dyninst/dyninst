@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.20 1995/03/02 04:23:21 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.21 1995/05/18 10:56:53 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.20  1995/03/02 04:23:21  krisna
+ * Revision 1.21  1995/05/18 10:56:53  markc
+ * extended resource class to store an id per resource
+ *
+ * Revision 1.20  1995/03/02  04:23:21  krisna
  * warning and bug fixes.
  *
  * Revision 1.19  1995/02/16  08:17:30  markc
@@ -95,15 +98,17 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dataManager.thread.h"
 #include "DMresource.h"
 
+unsigned resource::all_id_=0;
 stringPool resource::names;
 resource *resource::rootResource = new resource();
 HTable<resource*> resource::allResources;
-
 stringPool resourceList::names;
+
 
 //
 // used only to construct root.
 //
+// What is this?
 resource::resource()
 {
     name = names.findAndAdd("");
@@ -116,24 +121,27 @@ resource::resource()
                              // yet.  This is UGLY.  We need a better way
                              // to initialize globals than relying on 
                              // their constructors.
+    id_ = all_id_++;
 }
 
-resource::resource(resource *p, char *newResource, const char *a) 
+resource::resource(resource *p, stringHandle iName, stringHandle my_abstraction,
+		   vector<string>& name_parts)
+: name_parts_(name_parts)
 {
-    stringHandle iName;
-    char tempName[255];
-    // perfStreamList perf;
-
-    iName = names.findAndAdd(newResource);
-
     parent = p;
 
-    sprintf(tempName, "%s/%s", (char*)p->fullName, (char*)iName);
-    fullName = names.findAndAdd(tempName);
+    id_ = all_id_++;
+    string f_name;
+    unsigned size = name_parts.size();
+    for (unsigned u=0; u<size; u++)
+      f_name += string("/") + name_parts[u];
+    fullName = names.findAndAdd(f_name.string_of());
+
     allResources.add(this, (void *) fullName);
     name = iName;
-
-    abstr = AMfind(a);
+    
+    // It would be nice if we could settle on char* or stringHandle or string
+    abstr = AMfind((const char*)my_abstraction);
 
     suppressChildSearch = FALSE;
     suppressSearch = p->getSuppressChildren(); // check for suppress of
@@ -229,10 +237,18 @@ resource *resourceList::find(const char *name)
     return(ret);
 }
 
-bool resourceList::convertToStringList(vector<string> &vs) {
+bool resourceList::convertToStringList(vector< vector<string> > &fs) {
+    lock();
+    for (unsigned i=0; i < count; i++) 
+      fs += elements[i]->getParts();
+    unlock();
+    return true;
+}
+
+bool resourceList::convertToIDList(vector<u_int> &fs) {
     lock();
     for (unsigned i=0; i < count; i++)
-      vs += (char *)elements[i]->fullName;
+      fs += elements[i]->id();
     unlock();
     return true;
 }
