@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.151 2004/02/28 00:26:21 schendel Exp $
+ * $Id: inst-x86.C,v 1.152 2004/03/11 05:29:18 lharris Exp $
  */
 
 #include <iomanip>
@@ -70,6 +70,7 @@
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "InstrucIter.h"
 
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
@@ -269,10 +270,16 @@ static bool _canUseExtraSlot(const instPoint *pt, const instPoint *entry,
    /* The entry has a slot, the point can be used for a slot,
       now see if the point can reach the slot. */
    int displacement = entry->jumpAddr() + 5 - pt->jumpAddr();
-   assert(displacement < 0);
+   if( !(displacement < 0) )
+     {
+       cerr << "Entry: " << entry->jumpAddr() << endl;
+       cerr << "pt: " << pt->jumpAddr() << endl;
+       cerr << pt->pointFunc()->prettyName() << endl;
+     }
+       assert(displacement < 0);
    if (pt->size() >= 2 && (displacement-2) > SCHAR_MIN)
       return true;
-   else
+   else 
       return false;
 }
 
@@ -370,56 +377,6 @@ Address pd_Function::newCallPoint(Address, const instruction,
 				 const image *, bool &)
 { assert(0); return 0; }
 
-
-// see if we can recognize a jump table and skip it
-// return the size of the table in tableSz.
-bool checkJumpTable(image *im, instruction insn, Address addr, 
-                    Address funcBegin, Address &funcEnd, unsigned &tableSz)
-{
-   const unsigned char *instr = insn.ptr();
-   tableSz = 0;
-   /*
-     the instruction usually used for jump tables is 
-     jmp dword ptr [REG*4 + ADDR]
-     where ADDR is an immediate following the SIB byte.
-     The opcode is 0xFF and the MOD/RM byte is 0x24. 
-     The SS field (bits 7 and 6) of SIB is 2, and the
-     base ( bits 2, 1, 0) is 5. The index bits (5,4,3) 
-     select the register.
-   */
-   if (instr[0] == 0xFF && instr[1] == 0x24 &&
-       ((instr[2] & 0xC0)>>6) == 2 && (instr[2] & 0x7) == 5) {
-      const Address tableBase = *(const Address *)(instr+3);
-      //fprintf(stderr, "Found jump table at 0x%lx 0x%lx\n",addr, tableBase);
-      // check if the table is right after the jump and inside the current
-      // function
-      if (tableBase > funcBegin && tableBase < funcEnd) {
-         // table is within function code
-         if (tableBase < addr+insn.size()) {
-            fprintf(stderr, "bad indirect jump at 0x%lx\n", addr);
-            return false;
-         } else if (tableBase > addr+insn.size()) {
-            // jump table may be at the end of the function code -
-            // adjust funcEnd
-            funcEnd = tableBase;
-            return true;
-         }
-         // skip the jump table
-         const unsigned *ptr = 
-            (const unsigned *)im->getPtrToInstruction(tableBase);
-         for(; *ptr >= funcBegin && *ptr <= funcEnd; ptr++) {
-            //fprintf(stderr, " jump table entry = 0x%lx\n", *(unsigned *)ptr);
-            tableSz += sizeof(int);
-         }
-      }
-      else {
-         // fprintf(stderr, "Ignoring external jump table at 0x%lx.\n",
-         //         tableBase);
-      }
-   }
-   return true;
-}
-
 void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   const unsigned char *instr = insn.ptr();
 
@@ -433,8 +390,7 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
-
-bool isRealCall(instruction &insn, Address adr, image *owner,
+bool isRealCall(instruction insn, Address adr, image *owner,
                 bool &validTarget, pd_Function * /* pdf */ )
 {
    // calls to adr+5 are not really calls, they are used in 
@@ -491,397 +447,686 @@ bool isRealCall(instruction &insn, Address adr, image *owner,
    return true;
 }
 
-static bool isStackFramePreamble(instruction& one, instruction& two)
+bool pd_Function::isInstrumentableByFunctionName()
 {
-   /* test for
-      one:  push   %ebp
-      two:  mov    %esp,%ebp
-   */
-   const unsigned char *p, *q;
-   p = one.ptr();
-   q = two.ptr();
-   return (one.size() == 1
-           && p[0] == 0x55
-           && two.size() == 2
-           && q[0] == 0x89
-           && q[1] == 0xe5);
+#if defined(i386_unknown_solaris2_5)
+    /* On Solaris, this function is called when a signal handler
+       returns.  If it requires trap-based instrumentation, it can foul
+       the handler return mechanism.  So, better exclude it.  */
+    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
+	return false;
+#endif /* i386_unknown_solaris2_5 */
+    
+    if( prettyName() == "__libc_free" )
+        return false;
+
+    // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
+    // they can't be instrumented or we would have an infinite loop
+    if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
+	|| prettyName() == "GetProcessTimes")
+	return false;
+    return true;
 }
 
-/* auxiliary data structures for function findInstPoints */
-enum { EntryPt, CallPt, ReturnPt, OtherPt };
-class point_ {
-public:
-   point_(): point(0), index(0), type(0) {};
-   point_(instPoint *p, unsigned i, unsigned t): point(p), index(i), type(t)
-      {  };
-   instPoint *point;
-   unsigned index;
-   unsigned type;
-};
-
-
-bool pd_Function::findInstPoints(const image *i_owner) {
-   // sorry this this hack, but this routine can modify the image passed in,
-   // which doesn't occur on other platforms --ari
-   image *owner = const_cast<image *>(i_owner); // const cast
-   point_ *points = NULL;
-   instruction *allInstr = NULL;
-   pdvector<instPoint*> foo;
-   unsigned lastPointEnd = 0;
-   unsigned thisPointEnd = 0;
-   bool canBeRelocated = true;
-   instPoint *p;
-   unsigned numInsns = 0;
-   instruction insn;
-   unsigned insnSize;
-   unsigned npoints = 0;
-   Address adr;
-   const unsigned char *instr;
-   Address funcEnd;
-
-   const unsigned char *begAddr = owner->getPtrToInstruction(getAddress(0));
-   
-   if (size() == 0) {
-      //fprintf(stderr,"Function %s, size = %d\n",
-      //        prettyName().c_str(), size());
-      goto set_uninstrumentable;
-   }
-
-#if defined(i386_unknown_solaris2_5)
-   /* On Solaris, this function is called when a signal handler
-      returns.  If it requires trap-based instrumentation, it can foul
-      the handler return mechanism.  So, better exclude it.  */
-   if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-      goto set_uninstrumentable;
-#endif /* i386_unknown_solaris2_5 */
-
-   // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
-   // they can't be instrumented or we would have an infinite loop
-   if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
-       || prettyName() == "GetProcessTimes")
-      goto set_uninstrumentable;
-
-   points = new point_[size()];
-   if( points == NULL )
-   {
-		assert( false );
-   }
-   //point_ *points = (point_ *)alloca(size()*sizeof(point));
-
-   instr = (const unsigned char *)begAddr;
-   adr = getAddress(0);
-   numInsns = 0;
-
-   noStackFrame = true; // Initial assumption
-
-   // keep a buffer with all the instructions in this function
-   allInstr = new instruction[size()+5];
-   //instruction *allInstr = 
-   //   (instruction *)alloca((size()+5)*sizeof(instruction));
-
-   // define the entry point
-   insnSize = insn.getNextInstruction(instr);
-   p = new instPoint(this, owner, adr, functionEntry, insn);
-   funcEntry_ = p;
-   points[npoints++] = point_(p, numInsns, EntryPt);
-
-   // check if the entry point contains another point
-   if (insn.isJumpDir()) {
-      Address target = insn.getTarget(adr);
-      owner->addJumpTarget(target);
-
-      const unsigned char *tgt = (const unsigned char *)target;
-      if(tgt >= begAddr && tgt <= begAddr+5)
-         has_jump_to_first_five_bytes = true;
-
-      if (target < getAddress(0) || target >= getAddress(0) + size()) {
-         // jump out of function
-         // this is an empty function
-         goto set_uninstrumentable;
-      }
-   } else if (insn.isReturn()) {
-      // this is an empty function
-      goto set_uninstrumentable;
-   } else if (insn.isCall()) {
-      // TODO: handle calls at entry point
-      // call at entry point
-      //instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
-      //calls += p;
-      //points[npoints++] = point_(p, numInsns, CallPt);
-      //fprintf(stderr,"Function %s, call at entry point\n",
-      //        prettyName().c_str());
-      goto set_uninstrumentable;
-   }
-
-   allInstr[numInsns] = insn;
-   numInsns++;
-   instr += insnSize;
-   adr += insnSize;
-   funcEnd = getAddress(0) + size();
-
-   if (adr < funcEnd) {
-      instruction next_insn;
-      next_insn.getNextInstruction(instr);
-      if (isStackFramePreamble(insn, next_insn))
-         noStackFrame = false;       
-   }
-
-   if (insn.isJumpDir()) {
-      Address target = insn.getTarget(adr);
-      const unsigned char *tgt = (const unsigned char *)target;
-      if(tgt >= begAddr && tgt <= begAddr+5)
-         has_jump_to_first_five_bytes = true;
-   }
-
-   // get all the instructions for this function, and define the
-   // instrumentation points. For now, we only add one instruction to each
-   // point.  Additional instructions, for the points that need them, will be
-   // added later.
-
+void pd_Function::canFuncBeRelocated( bool& canBeRelocated )
+{
 #ifdef BPATCH_LIBRARY
-   if (BPatch::bpatch->hasForcedRelocation_NP()) {
-      needs_relocation_ = true;
-   }
+    if (BPatch::bpatch->hasForcedRelocation_NP()) 
+    {
+	needs_relocation_ = true;
+    }
 #endif
 
-   // checkJumpTable will set canBeRelocated = false if their is a jump to a 
-   // jump table inside this function. 
-   if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") {
-      canBeRelocated = false;
-   }
+// checkJumpTable will set canBeRelocated = false if their is a jump to a 
+// jump table inside this function. 
+    if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") 
+    {
+	canBeRelocated = false;
+    }
+}
 
-   for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
-      insnSize = insn.getNextInstruction(instr);
-      assert(insnSize > 0);
+bool checkEntry( instruction insn, Address adr, image* owner )
+{
+    // check if the entry point contains another point
+    if (insn.isJumpDir()) 
+    {
+	Address target = insn.getTarget(adr);
+	owner->addJumpTarget(target);
+	
+	return false;
+    } 
+    else if (insn.isReturn()) 
+    {
+	// this is an empty function
+	return false;
+    } 
+    else if (insn.isCall()) 
+    {
+	// TODO: handle calls at entry point
+	// call at entry point
+	//instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
+	//calls += p;
+	//points[npoints++] = point_(p, numInsns, CallPt);
+	//fprintf(stderr,"Function %s, call at entry point\n", 
+	//prettyName().c_str());
+	return false;
+    }
+    return true;
+}
 
-      if (adr + insnSize > funcEnd) {
-         break;
-      }
+//used to compare instpoints for vector sort
+int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
+{
+    if( ip1->pointAddr() > ip2->pointAddr() )
+	return 1;
 
-      if (insn.isJumpIndir()) {
-         unsigned jumpTableSz;
+    if( ip1->pointAddr() < ip2->pointAddr() )
+	return -1;
+ 
+    return 0;
+} 
 
-         // check if function should be allowed to be relocated
-         checkIfRelocatable(insn, canBeRelocated);
+//used to compare basicBlocks by starting address for vector sort
+int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
+{
+    if( bb1->getStartAddress() > bb2->getStartAddress() )
+	return 1;
+    if( bb1->getStartAddress() < bb2->getStartAddress() )
+	return -1;
+    return 0;
+}
 
-         // check for jump table. This may update funcEnd
-         if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd,
-                             jumpTableSz))
-         {
-            //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
-            //          prettyName().c_str(), size());
-            goto set_uninstrumentable;
-         }
+/*****************************************************************************
+findInstpoints: uses recursive disassembly to parse a function. instPoints and
+                basicBlock information is collected here. findInstpoints
+                does not rely on function size information. This helps us
+                to parse stripped x86 binaries.  
+******************************************************************************/
+bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
+				   const image *i_owner, bool reparse,
+				  Address upper ) 
+{
+    // sorry this this hack, but this routine can modify the image passed in,
+    // which doesn't occur on other platforms --ari
+    image *owner = const_cast<image *>(i_owner); // const cast
+    
+    pdvector< point_ > points_;
+    pdvector< instruction > allInstructions;   
+    pdvector< instPoint* > foo;
+    bool canBeRelocated = true;
+    instPoint *p;
+    unsigned numInsns = 0;
+    noStackFrame = true; // Initial assumption
+    BPatch_Set< Address > leaders;
+    dictionary_hash< Address, BPatch_basicBlock* > leadersToBlock( addrHash );
+   
+    int window;
+    int insnSize;
+    Address funcBegin = getAddress( 0 );  
+    
+    //funcEnd set to the beginning of the function
+    //will be updated if necessary at the end of each basic block  
+    Address funcEnd = funcBegin;
+    Address currAddr = funcBegin;
+    
+    if( !isInstrumentableByFunctionName() || size() == 0 )
+    {
+        isInstrumentable_ = false;
+        return false;
+    }  
 
-         // process the jump instruction
-         allInstr[numInsns] = insn;
-         numInsns++;
+    InstrucIter ah( funcBegin, funcBegin, owner ); 
+    if( !checkEntry( ah.getInstruction(), funcBegin, owner ) )
+    {
+        isInstrumentable_ = false;
+        return false;
+    }
+    
+    //we detect parsing errors by overlaps in the address ranges of functions
+    //in that case we reparse the lower function using the starting address
+    //of the higher function as an upper bound
+    if( reparse )
+    {
+        delete funcEntry_;
+        blockList->clear();
+        funcReturns.clear();
+        calls.clear();
+    }
 
-         if (jumpTableSz > 0) {
-            // skip the jump table
-            // insert an illegal instruction with the size of the jump table
-            insn = instruction(instr, ILLEGAL, jumpTableSz);
-            allInstr[numInsns] = insn;
-            numInsns++;
-            insnSize += jumpTableSz;
-         }
-      } else if (insn.isJumpDir()) {
-         // check for jumps out of this function
-         Address target = insn.getTarget(adr);
-         owner->addJumpTarget(target);
+    //define the entry point
+    p = new instPoint( this, owner, funcBegin, functionEntry, 
+		       ah.getInstruction() );
+    funcEntry_ = p;
+    points_.push_back( point_( p, numInsns, EntryPt ) );   
+    
+    if( ah.isStackFramePreamble() )
+    {
+        noStackFrame = false;       
+    }
 
-         const unsigned char *tgt = (const unsigned char *)target;
-         if(tgt >= begAddr && tgt <= begAddr+5)
-            has_jump_to_first_five_bytes = true;
+    canFuncBeRelocated( canBeRelocated );
+    
+    // get all the instructions for this function, and define the
+    // instrumentation points.  
+    BPatch_Set< Address > visited;
+    pdvector< Address > jmpTargets;
+    jmpTargets.push_back( funcBegin ); 
+     
+    bool entryblock = true;
+    
+    leaders += funcBegin;
+    leadersToBlock[ funcBegin ] = new BPatch_basicBlock;
+    leadersToBlock[ funcBegin ]->setStartAddress( funcBegin );
+    leadersToBlock[ funcBegin ]->isEntryBasicBlock = true;
+    blockList->push_back( leadersToBlock[ funcBegin ] );
+    
+    for( unsigned i = 0; i < jmpTargets.size(); i++ )
+    {
+    
+	if( reparse && jmpTargets[i] >= upper )
+	    continue;
+	
+        InstrucIter ah( jmpTargets[ i ], funcBegin, owner );
+	window = 0;
+ 
+        while( true  )
+	{    
+            currAddr = *ah;
+            insnSize = ah.getInstruction().size();
+	          
+	    if( visited.contains( currAddr ) )
+		break;
+	    else 
+		visited += currAddr;
 
-         if (target < getAddress(0) || target >= getAddress(0) + size()) {
-            // jump out of function
-            instPoint *p = new instPoint(this, owner, adr, functionExit, insn);
-            funcReturns.push_back(p);
-            points[npoints++] = point_(p, numInsns, ReturnPt);
-         } 
-      } else if (insn.isReturn()) {
-         instPoint *p = new instPoint(this, owner, adr, functionExit, insn);
-         funcReturns.push_back(p);
-         points[npoints++] = point_(p, numInsns, ReturnPt);
+	    if( reparse && (currAddr + insnSize > upper) )
+	    {       
+                leadersToBlock[ jmpTargets[ i ] ]->setEndAddress( currAddr );
+		leadersToBlock[ jmpTargets[ i ] ]
+                    ->setAbsoluteEndAddr( currAddr + insnSize );
+		funcEnd = currAddr + insnSize;
+		leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
+                break;
+	    }
+	   
+	    
+	    if( ah.isACondBranchInstruction() )
+	    {
+		leadersToBlock[ jmpTargets[ i ] ]->setEndAddress( currAddr );
+		leadersToBlock[ jmpTargets[ i ] ]
+                    ->setAbsoluteEndAddr( currAddr + insnSize );
+		if( currAddr >= funcEnd )
+		    funcEnd = currAddr + insnSize;
+		
+		Address target = ah.getBranchTarget();
+		allInstructions.push_back( ah.getInstruction() );
+		numInsns++;
 
-      } else if (insn.isCall()) {
-         // validTarget is set to false if the call target is not a valid 
-         // address in the applications process space 
-         bool validTarget = true;
+		if( target < funcBegin )
+		   break;
 
-         if ( isRealCall(insn, adr, owner, validTarget, this) ) {
-            instPoint *p = new instPoint(this, owner, adr, callSite, insn);
-            calls.push_back(p);
-            points[npoints++] = point_(p, numInsns, CallPt);
-         } else {
+		Address t2 = currAddr + insnSize;
+		if( reparse && t2 >= upper )
+		{
+		  break;
+		}
 
-            // Call was to an invalid address, do not instrument function 
-            if (validTarget == false) {
-               goto set_uninstrumentable;
+		owner->addJumpTarget( target );
+		if( target >= funcBegin && target <= funcBegin + 5 )
+		    has_jump_to_first_five_bytes = true;
+
+		jmpTargets.push_back( t2 );
+		jmpTargets.push_back( target );
+		
+		//check if a basicblock object has been created for the target
+		if( !leaders.contains( target ) )
+		{
+		    //if not, then create one
+		    leadersToBlock[ target ] = new BPatch_basicBlock;
+		    leaders += target;
+		    blockList->push_back( leadersToBlock[ target ] );
+		}
+				
+		leadersToBlock[ target ]->setStartAddress( target );
+		
+		leadersToBlock[ target ]->
+		    addSource( leadersToBlock[ jmpTargets[ i ] ] );
+		
+		leadersToBlock[ jmpTargets[ i ] ]->
+		    addTarget( leadersToBlock[ target ] );
+		
+		//check if a basicblock object has be created for fall through
+		if( !leaders.contains( t2 ) )
+		{
+		    leadersToBlock[ t2 ] = new BPatch_basicBlock;
+		    leaders += t2;
+		    blockList->push_back( leadersToBlock[ t2 ] );
+		}
+		
+		leadersToBlock[ t2 ]->setStartAddress( t2 );
+		
+		leadersToBlock[ t2 ]->
+		    addSource( leadersToBlock[ jmpTargets[ i ] ] );
+		
+		leadersToBlock[ jmpTargets[ i ] ]->
+		    addTarget( leadersToBlock[ t2 ] );
+		
+		break;
+	    }	    
+	
+	    else if( ah.isAIndirectJumpInstruction() ) 
+	    {
+		//if this instructions goes to a jumpTable, 
+                //we retrieve the addresses from the table
+                checkIfRelocatable( ah.getInstruction(), canBeRelocated );
+
+		if( currAddr >= funcEnd )
+		    funcEnd = currAddr + insnSize;
+
+		//if register indirect then table address will be taken from
+		//previous insn
+		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
+                leadersToBlock[ jmpTargets[ i ] ]
+                    ->setAbsoluteEndAddr( currAddr + insnSize );
+
+		if( *allInstructions[ numInsns -1 ].ptr() == 0x5b
+		    && window )
+		{
+		    break;
+		}
+		
+		instruction tableInsn = ah.getInstruction();
+		instruction maxSwitch;
+		bool isAddInJmp = true;
+		
+		bool foundMaxSwitch = false;
+		int j = allInstructions.size() - 1;
+		
+		const unsigned char* ptr = ah.getInstruction().ptr();
+		assert( *ptr == 0xff );
+		
+		ptr++;
+		if( (*ptr & 0xc7) != 0x04)
+		{
+		    isAddInJmp = false;
+		    for( ; j >= 0; j-- )
+		    {
+			if( *(allInstructions[ j ].ptr()) == 0x8b )
+			{
+			    tableInsn = allInstructions[ j ];
+			    break;    
+			}
+		    }
+		}    
+
+		//now get the instruction to find the maximum switch value 
+		for( ; j >= 0; j-- )
+		{
+		    if( allInstructions[ j ].type() & IS_JCC )
+		    {
+			maxSwitch = allInstructions[ j - 1 ];
+			foundMaxSwitch = true;
+		    }
+		}
+		
+		//found the max switch assume jump table
+		if( foundMaxSwitch )
+		{
+		    pdvector< Address > result;
+		    ah.getMultipleJumpTargets( result, tableInsn, maxSwitch, 
+                                               isAddInJmp );
+		    		    
+		    for( unsigned l = 0; l < result.size(); l++ )
+		    {
+                        if( !owner->isValidAddress( result[ l ] ) )
+                            continue;
+
+			if( result[ l ] >= funcBegin && 
+			    result[ l ] <= funcBegin + 5 )
+			    has_jump_to_first_five_bytes = true;
+			
+			if( !leaders.contains( result[ l ] ) )
+			{
+			    leadersToBlock[ result[ l ] ] =
+				new BPatch_basicBlock;	   
+			    
+			    leadersToBlock[ result[l] ]
+				->setStartAddress( result[l] );
+			    
+			    leaders += result[ l ];
+			    
+			    jmpTargets.push_back( result[ l ] );
+			    blockList->push_back( leadersToBlock[result[l] ]);
+			}
+			
+			leadersToBlock[ jmpTargets[i] ]
+			    ->addTarget( leadersToBlock[result[l]] );
+			
+			leadersToBlock[ result[l] ]
+			    ->addSource( leadersToBlock[jmpTargets[i]]);
+		    }
+		}		
+		break;
+	    } 
+	    else if ( ah.isAJumpInstruction() ) 
+	    {
+		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
+                leadersToBlock[ jmpTargets[ i ] ]
+                    ->setAbsoluteEndAddr( currAddr + insnSize );
+		
+                if( currAddr >= funcEnd )
+		    funcEnd = currAddr + insnSize;
+		
+		Address target = ah.getBranchTarget();
+		
+		if( !owner->isValidAddress( target ) )
+		    break;
+		
+		owner->addJumpTarget( target );
+		if( target >= funcBegin && target <= funcBegin + 5 )
+		    has_jump_to_first_five_bytes = true;
+	
+		if( owner->findFuncByEntry( target ) && target != funcBegin )
+		    break;
+		
+		//check if tailcall
+                //TODO remove magic numbers
+		if( ( *allInstructions[ numInsns - 1 ].ptr() == 0x5d ||
+		    *allInstructions[ numInsns - 1 ].ptr() == 0xc9 )
+		    && window )
+		{
+		    leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
+		    p = new instPoint( this, owner, currAddr, 
+				       functionExit, ah.getInstruction() );
+		    funcReturns.push_back( p );
+		    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
+		    int num = allInstructions.size() - 1;
+		    for( ; window > 0; window-- )
+		    {
+			if( p->size() < 5 )
+			{
+			    p->addInstrBeforePt( allInstructions[ num ] );
+			} 
+			else 
+			    break;
+			num--;
+		    }
+		    break;
+		}
+		else if(  target < funcBegin )  
+		{
+		    p = new instPoint(this, owner, currAddr, 
+				      functionExit, ah.getInstruction() );
+		    funcReturns.push_back( p );
+		    points_.push_back( point_( p, numInsns, ReturnPt ) ); 
+		    int num = numInsns - 1;
+		    for( ; window > 0; window-- )
+		    {
+			if( p->size() < 5 )
+			{
+			    p->addInstrBeforePt( allInstructions[ num ] );
+			} 
+			else 
+			    break;
+			num--;
+		    }
+		    ah++;
+		    for( int i = 0; i < 4; i++ )
+		    {
+			if( ah.isANopInstruction() )
+			{
+			    p->addInstrAfterPt( ah.getInstruction() );
+			    funcEnd += ah.getInstruction().size();
+			    ah++;
+			}
+			else 
+			    break;
+		    }
+		}
+		else
+		{
+		    //assume intra procedural jump
+		    if( !leaders.contains( target ) )
+		    {
+			leadersToBlock[ target ] = new BPatch_basicBlock;
+			leaders += target;
+			blockList->push_back( leadersToBlock[ target ] );
+		    }
+		    
+		    leadersToBlock[ target ]->setStartAddress( target );
+
+		    leadersToBlock[ target ]->
+			addSource( leadersToBlock[ jmpTargets[ i ] ] );
+		    
+		    leadersToBlock[ jmpTargets[ i ] ]->
+			addTarget( leadersToBlock[ target ] ); 
+		    
+		    jmpTargets.push_back( target );
+		}
+                break;
+	    } 
+	    else if( ah.isAReturnInstruction() ) 
+	    {
+		leadersToBlock[ jmpTargets[i] ]->setEndAddress( currAddr );
+		leadersToBlock[ jmpTargets[i] ]->isExitBasicBlock = true;
+                leadersToBlock[ jmpTargets[ i ] ]
+                    ->setAbsoluteEndAddr( currAddr + insnSize );
+
+		if( currAddr >= funcEnd )
+		    funcEnd = currAddr + insnSize;
+
+		p = new instPoint( this, owner, currAddr, functionExit, 
+				   ah.getInstruction()  );   
+		
+		int num = numInsns - 1;
+		for( ; window > 0; window-- )
+		{			    
+		    if( p->size() < JUMP_SZ )
+		    {
+			p->addInstrBeforePt( allInstructions[ num ] );
+		    } 
+		    else 
+			break;
+		    num--;
+		}
+		ah++;
+		for( int i = 0; i < 4; i++ )
+		{
+		    if( ah.isANopInstruction() )
+		    {
+			p->addInstrAfterPt( ah.getInstruction() );
+			funcEnd += ah.getInstruction().size();
+			ah++;
+		    }
+		    else 
+			break;
+		}
+		funcReturns.push_back( p );
+		points_.push_back( point_( p, numInsns, ReturnPt ) );    
+		
+		allInstructions.push_back( ah.getInstruction() );
+		break;
+	    } 
+            else if( ah.isACallInstruction() && !ah.isIndir() ) 
+	    {
+                entryblock = false;
+                //validTarget is set to false if the call target is not a 
+		//valid address in the applications process space 
+		bool validTarget = true;
+		window = 0;     
+		
+		if ( isRealCall( ah.getInstruction(), currAddr, owner, 
+				 validTarget, this ) ) 
+		{
+                    Address target = ah.getBranchTarget();
+		    p = new instPoint( this, owner, currAddr, callSite, 
+				       ah.getInstruction() );
+		    calls.push_back( p );		    
+		    points_.push_back( point_( p, numInsns, CallPt ) );
+		    		    
+		    if( !ah.isIndir() && 
+			( target < currAddr || target > currAddr + insnSize ))
+		    {
+			callTargets.push_back( target );
+		    }		    
+		} 
+		else 
+		{	
+		    // Call was to an invalid address, do not instrument func 
+		    if( validTarget == false ) 
+		    {
+			isInstrumentable_ = false;
+			return false;
+		    }
+		    // Force relocation when instrumenting function
+		    needs_relocation_ = true;
+		}
+	    }
+	    else if ( ah.isALeaveInstruction() )
+	    {
+		noStackFrame = false;
+	    }
+	    allInstructions.push_back( ah.getInstruction() );
+	    numInsns++;
+	    
+	    if( !entryblock )
+		window++;
+	
+            ah++;
+	    if( entryblock && ( funcEntry_->size() < JUMP_SZ ) )
+	    {
+                //don't add calls to entry point
+                if( ah.isACallInstruction() )
+                {
+                    entryblock = false;
+                }
+                else
+                {
+                    funcEntry_->addInstrAfterPt( ah.getInstruction() );
+                }   
+                window = 0;
             }
+        }
+	entryblock = false;
+    }    
 
-            // Force relocation when instrumenting function
-            needs_relocation_ = true;
-         }
-      }
-      else if (insn.isLeave())
-         noStackFrame = false;
+    size_ = funcEnd - funcBegin;
+    
+    for ( unsigned u = 0; u < points_.size(); u++ )
+    {
+	points_[u].point->checkInstructions();
+    }
+    
+    //sorted_ips_vector expects funcReturns and calls to be sorted
+    VECTOR_SORT( funcReturns, instPointCompare );
+    VECTOR_SORT( calls, instPointCompare );
 
-      allInstr[numInsns] = insn;
-      numInsns++;
-      assert(npoints <= size());
-      assert(numInsns <= size());
-   }
+    sorted_ips_vector( foo );
 
-   unsigned u;
-   // there are often nops after the end of the function. We get them here,
-   // since they may be usefull to instrument the return point
-   for (u = 0; u < 4; u++) {     
-      if (owner->isValidAddress(adr)) {
-         insnSize = insn.getNextInstruction(instr);
-         if (insn.isNop()) {
-            allInstr[numInsns] = insn;
-            numInsns++;
-            assert(numInsns < size()+5);
-            instr += insnSize;
-            adr += insnSize;
-         }
-         else
-            break;
-      }
-   }
+    for ( unsigned ii = 0; ii < foo.size() ; ii++ ) 
+    {
+	if ( _usesTrap(foo[ii], funcEntry_, funcReturns) && size() >= 5 ) 
+	{
+	    needs_relocation_ = true;
+	}
+    }
 
-   // add extra instructions to the points that need it.
-   for (u = 0; u < npoints; u++) {
-      instPoint *p = points[u].point;
-      unsigned index = points[u].index;
-      unsigned type = points[u].type;
-      lastPointEnd = thisPointEnd;
-      thisPointEnd = index;
-
-      // add instructions before the point
-      unsigned size = p->size();
-      for (int u1 = index-1;
-           size < JUMP_SZ && u1 >= 0 && u1 > (int)lastPointEnd; u1--)
-      {
-         if (!allInstr[u1].isCall()) {
-            p->addInstrBeforePt(allInstr[u1]);
-            size += allInstr[u1].size();
-         } else
-            break;
-      }
-
-      lastPointEnd = index;
-
-      // add instructions after the point
-      if (type == ReturnPt && p->pointAddr() == funcEnd-1) {
-
-         /* If an instrumentation point at the end of the function
-            does not end on a 4-byte boundary, we claim the bytes up
-            to the next 4-byte boundary (or the next symbol, whichever
-            comes first) as "bonus bytes" for the point, since the
-            next function will likely begin at or past the boundary.
-            We do not try to reclaim more than 4 bytes, because this
-            approach is a hack in the first place and may break if some
-            unlabeled data is located after the ret instruction (we have
-            not seen it happening, but it is possible). Remove when
-            a more robust instrumentation mechanism is implemented! */
-         unsigned bonus = 0;
-#ifndef i386_unknown_nt4_0 /* VC++ does not align functions by default */
-         Address nextPossibleEntry = funcEnd;
-         while ((nextPossibleEntry & 3) != 0 &&
-                !owner->hasSymbolAtPoint(nextPossibleEntry)) {
-            bonus++;
-            nextPossibleEntry++;
-         }
-#endif /* i386_unknown_nt4_0 */
-       //p->setBonusBytes(bonus);
-         unsigned u1;
-         for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns;
-              u1++)
-         {
-            if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-               //p->addInstrAfterPt(allInstr[u1]);
-               bonus++;
-               thisPointEnd = u1;
-            }
-            else 
-               break;
-         }
-         p->setBonusBytes(bonus);
-      } else if (type == ReturnPt) {
-         // normally, we would not add instructions after the return, but the
-         // compilers often add nops after the return, and we can use them if
-         // necessary
-         for(unsigned u1 = index+1; u1 < index+JUMP_SZ-1 && u1 < numInsns; 
-             u1++)
-         {
-            if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-               p->addInstrAfterPt(allInstr[u1]);
-               thisPointEnd = u1;
-            }
-            else 
-               break;
-         }
-      } else {
-         size = p->size();
-         unsigned maxSize = JUMP_SZ;
-         if (type == EntryPt) maxSize = 2*JUMP_SZ;
-         for (unsigned u1 = index+1; size < maxSize && u1 <= numInsns; u1++) {
-            if (((u+1 == npoints) || (u+1 < npoints && points[u+1].index > u1))
-                && !allInstr[u1].isCall()) {
-               p->addInstrAfterPt(allInstr[u1]);
-               size += allInstr[u1].size();
-               thisPointEnd = u1;
-            }
-            else 
-               break;
-         }
-      }
-   }
-
-
-   for (u = 0; u < npoints; u++)
-      points[u].point->checkInstructions();
-
-   // create and sort vector of instPoints
-   sorted_ips_vector(foo);
-
-   unsigned int i;
-   for (i=0;i<foo.size();i++) {
-      if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
-         needs_relocation_ = true;
-      }
-   }
-
-   // if the function contains a jump to a jump table, we can't relocate
-   // the function 
-   if ( !canBeRelocated ) {
-      // Function would have needed relocation 
-      if (needs_relocation_ == true) {
-
+    //if the function contains a jump to a jump table, we can't relocate
+    if ( !canBeRelocated ) 
+    {
+	// Function would have needed relocation 
+       if ( needs_relocation_ == true ) 
+       {
+	   
 #ifdef DEBUG_FUNC_RELOC      
-         cerr << prettyName().c_str() << endl;
-         cerr << "Jump Table: Can't relocate function" << endl;
+	   cerr << prettyName() << endl;
+	   cerr << "Jump Table: Can't relocate function" << endl;
 #endif
+	   needs_relocation_ = false;
+       }
+    }
+      
+    //check if basic blocks need to be split   
+    VECTOR_SORT( (*blockList), basicBlockCompare );
+ 
 
-         needs_relocation_ = false;
-      }
-   }
+    //maybe BPatch_flowGraph.C would be a better home for this bit of code?
+    for( unsigned int iii = 0; iii < blockList->size(); iii++ )
+    {
+	(*blockList)[iii]->blockNumber = iii;
+    }
+    
+    for( unsigned int r = 0; r + 1 < blockList->size(); r++ )
+    {
+	if( (*blockList)[r+1]->getStartAddress() < 
+	    (*blockList)[r]->getEndAddress() )
+	{
+	    BPatch_Vector< BPatch_basicBlock* > out;
+	    (*blockList)[r]->getTargets( out );
+	    
+	    for( unsigned j = 0; j < out.size(); j++ )
+	    {
+		out[j]->sources.remove( (*blockList)[r] );
+		out[j]->sources.insert( (*blockList)[r+1] );
+	    }
+	    
+            //set end address of higher block
+	    (*blockList)[r+1]->setEndAddress((*blockList)[r]->getEndAddress());
+            (*blockList)[r+1]->
+                setAbsoluteEndAddr((*blockList)[r]->getAbsoluteEndAddr());
 
-   delete [] points;
-   delete [] allInstr;
+            (*blockList)[r+1]->targets = (*blockList)[r]->targets;
+	    
+	    (*blockList)[r+1]->addSource( (*blockList)[r] );
+	    
+	    BPatch_Set< BPatch_basicBlock* > nt;
+	    nt += (*blockList)[r+1];
+	    (*blockList)[r]->targets = nt;
+	    
+	    //find the end of the split block	       
+	    InstrucIter ah( (*blockList)[r]->getStartAddress(), funcBegin,
+			    owner );
+	    
+	    while( *ah + ah.getInstruction().size() < 
+		   (*blockList)[r+1]->getStartAddress() )
+		ah++;
+	    
+	    (*blockList)[r]->setEndAddress( *ah );
+            (*blockList)[r]
+                ->setAbsoluteEndAddr(*ah+ah.getInstruction().size());
+	    
+            (*blockList)[r]->addTarget( (*blockList)[r+1] );
+	    (*blockList)[r+1]->addSource( (*blockList)[r] );
+	    
+	    if( (*blockList)[r]->isExitBasicBlock )
+	    {
+		(*blockList)[r]->isExitBasicBlock = false;
+		(*blockList)[r+1]->isExitBasicBlock = true;
+	    }
+	}
+	
+	if( (*blockList)[r]->targets.size() == 0 && 
+	    !(*blockList)[r]->isExitBasicBlock )
+	{
+	    //find the end of this block
+            InstrucIter ah( (*blockList)[r]->getStartAddress(), funcBegin,
+			    owner );
+	    
+	    while( *ah + ah.getInstruction().size() < 
+		   (*blockList)[r+1]->getStartAddress() )
+		ah++;
+	    
+	    (*blockList)[r]->setEndAddress( *ah );
+             (*blockList)[r]
+                ->setAbsoluteEndAddr(*ah+ah.getInstruction().size());
 
-   isInstrumentable_ = true;
-   return true;
+	    (*blockList)[r]->addTarget( (*blockList)[r+1] );
+	    (*blockList)[r+1]->addSource( (*blockList)[r] );
+	}
+    }
 
- set_uninstrumentable:
-   if (points) delete [] points;
-   if (allInstr) delete [] allInstr;
-
-   isInstrumentable_ = false;
-   return false;
+    isInstrumentable_ = true;
+    return true;    
 }
 
 
@@ -5238,3 +5483,4 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
    delete[] oldCode;
 }
+
