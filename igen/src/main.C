@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.31  1994/09/22 00:37:58  markc
+ * Revision 1.32  1995/01/18 23:25:37  markc
+ * Renamed the files that igen creates.
+ * Removed reliance on assignment operator for class ofstream.
+ *
+ * Revision 1.31  1994/09/22  00:37:58  markc
  * Made all templates external
  * Made array declarations separate
  * Add class support
@@ -251,41 +255,41 @@ int main(int argc, char *argv[])
 
 
     // open the files for output
-    char *dump_to = new char[strlen(protoFile) + 10];
+    char *dump_to = new char[strlen(protoFile) + 20];
     assert(dump_to);
 
-    sprintf(dump_to, "%sh", protoFile);
+    sprintf(dump_to, "%s%sh", protoFile, (generateXDR ? "xdr." : "thread."));
     dot_h.open(dump_to, ios::out);
     assert(dot_h.good());
 
-    sprintf(dump_to, "%sC", protoFile);
+    sprintf(dump_to, "%s%sC", protoFile, (generateXDR ? "xdr." : "thread."));
     dot_c.open(dump_to, ios::out);
     assert(dot_c.good());
 
-    sprintf(dump_to, "%sSRVR.h", protoFile);
+    sprintf(dump_to, "%s%sSRVR.h", protoFile, (generateXDR ? "xdr." : "thread."));
     srvr_dot_h.open(dump_to, ios::out);
     assert(srvr_dot_h.good());
 
-    sprintf(dump_to, "%sCLNT.h", protoFile);
+    sprintf(dump_to, "%s%sCLNT.h", protoFile, (generateXDR ? "xdr." : "thread."));
     clnt_dot_h.open(dump_to, ios::out);
     assert(clnt_dot_h.good());
 
     if (generateXDR)
       {
-	sprintf(dump_to, "%sSRVR.C", protoFile);
+	sprintf(dump_to, "%s%sSRVR.C", protoFile, (generateXDR ? "xdr." : "thread."));
 	srvr_dot_c.open(dump_to, ios::out);
 	assert(srvr_dot_c.good());
 
-	sprintf(dump_to, "%sCLNT.C", protoFile);
-	clnt_dot_c.open(dump_to, ios::out);
-	assert(clnt_dot_c.good());
+	sprintf(dump_to, "%s%sCLNT.C", protoFile, (generateXDR ? "xdr." : "thread."));
+	(generateXDR ? clnt_dot_c : dot_c).open(dump_to, ios::out);
+	assert((generateXDR ? clnt_dot_c : dot_c).good());
       }
     else
       {
-	srvr_dot_c = dot_c;
-	clnt_dot_c = dot_c;
-	assert(clnt_dot_c.good());
-	assert(srvr_dot_c.good());
+	// srvr_dot_c = dot_c;
+	// (generateXDR ? clnt_dot_c : dot_c) = dot_c;
+	// assert((generateXDR ? clnt_dot_c : dot_c).good());
+	// assert(srvr_dot_c.good());
       }
 
     if (emitHeader) {
@@ -347,10 +351,13 @@ int main(int argc, char *argv[])
         currentInterface->genIncludes(dot_c, 1);
 	
 	if (generateTHREAD) {
-	  dot_c << "#include \"" << protoFile << "SRVR.h\"\n";
-	  dot_c << "#include \"" << protoFile << "CLNT.h\"\n";
+	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
+	    << ".SRVR.h\"\n";
+	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
+	    << ".CLNT.h\"\n";
 	} else {
-	  dot_c << "#include \"" << protoFile << "h\"\n";
+	  dot_c << "#include \"" << protoFile << (generateXDR ? "xdr" : "thread") 
+	    << ".h\"\n";
 	}
 
 	if (generateXDR)
