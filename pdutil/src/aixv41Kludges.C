@@ -145,7 +145,11 @@ unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE){
 /* BSD */
 
 int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+#if defined(CROSSCOMPILER)
   return (accept(SOCK, ADDR, (int *)LENGTH_PTR));
+#else
+  return (accept(SOCK, ADDR, (long unsigned int *)LENGTH_PTR));
+#endif
 }
 
 int P_bind(int socket, struct sockaddr *addr, size_t len) {
@@ -169,7 +173,11 @@ struct servent *P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 
 int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+#if defined(CROSSCOMPILER)
   return (getsockname(SOCKET, ADDR, (int *)LENGTH_PTR));
+#else
+  return (getsockname(SOCKET, ADDR, (long unsigned int *)LENGTH_PTR));
+#endif
 }
 
 /* int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
