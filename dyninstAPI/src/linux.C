@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.134 2004/03/16 18:15:37 schendel Exp $
+// $Id: linux.C,v 1.135 2004/03/19 21:38:04 bernat Exp $
 
 #include <fstream>
 
@@ -379,7 +379,20 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
         case SIGTRAP:
            // We use int03s (traps) to do instrumentation when there
            // isn't enough room to insert a branch.
-           why = procInstPointTrap;
+        { // make switch happy
+            
+            Frame sigframe = pertinentLWP->getActiveFrame();
+            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
+                why = procInstPointTrap;
+                info = pertinentProc->trampTrapMapping[sigframe.getPC()];
+            }
+            // Also seen traps at PC+1
+            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) {
+                why = procInstPointTrap;
+                info = pertinentProc->trampTrapMapping[sigframe.getPC()-1];
+            }
+        }
+        
            break;
         case SIGCHLD:
            // Linux fork() sends a SIGCHLD once the fork has been created
