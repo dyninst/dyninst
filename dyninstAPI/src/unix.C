@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.118 2004/03/11 22:20:41 bernat Exp $
+// $Id: unix.C,v 1.119 2004/03/12 19:44:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -681,7 +681,7 @@ int handleSigCritical(const procevent &event) {
              return forwardSigToProcess(event);
 #endif
          break;
-#if defined(USE_IRIX_FIXES)
+#if defined(bug_irix_broken_sigstop)
       case SIGEMT:
 #endif
       case SIGSTOP:

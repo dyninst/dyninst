@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.16 2003/03/10 23:15:39 bernat Exp $
+// $Id: test_util.C,v 1.17 2004/03/12 19:44:28 bernat Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -26,12 +26,13 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
                       const char *testname)
 {
     while (!appThread->isStopped() && !appThread->isTerminated())
-	bpatch->waitForStatusChange();
-
+        bpatch->waitForStatusChange();
+    
     if (!appThread->isStopped()) {
-	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process did not signal mutator via stop\n");
-	exit(-1);
+        printf("**Failed test #%d (%s)\n", testnum, testname);
+        printf("    process did not signal mutator via stop\n");
+        fprintf(stderr, "thread is not stopped\n");
+        exit(-1);
     }
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
@@ -48,7 +49,7 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 	     (appThread->stopSignal() != SIGILL)) {
 #else
     else if ((appThread->stopSignal() != SIGSTOP) &&
-#ifdef USE_IRIX_FIXES
+#if defined(bug_irix_broken_sigstop)
 	     (appThread->stopSignal() != SIGEMT) &&
 #endif
 	     (appThread->stopSignal() != SIGHUP)) {

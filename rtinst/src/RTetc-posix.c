@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.72 2003/02/21 20:06:31 bernat Exp $
+ * $Id: RTetc-posix.c,v 1.73 2004/03/12 19:44:30 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -84,7 +84,7 @@
 /* ccw 22 apr 2002 :  from dyninstAPI_RT/src/RTposix.c*/
 void pDYNINSTbreakPoint(void) /* ccw 5 sep 2002 */
 {
-#ifndef USE_IRIX_FIXES
+#if !defined(bug_irix_broken_sigstop)
      fprintf(stderr, "Kill %d\n", getpid());
      kill(getpid(), SIGKILL);
      sleep(10);

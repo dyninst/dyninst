@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.76 2004/03/08 23:45:42 bernat Exp $
+// $Id: irix.C,v 1.77 2004/03/12 19:44:24 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1023,7 +1023,7 @@ bool process::setProcessFlags()
     (void)praddset(&sigs, SIGSTOP);
     (void)praddset(&sigs, SIGTRAP);
     (void)praddset(&sigs, SIGILL);
-#ifdef USE_IRIX_FIXES
+#if defined(bug_irix_broken_sigstop)
     // we need to use SIGEMT for breakpoints in IRIX due to a bug with
     // tracing SIGSTOP in a process and then waitpid()ing for it
     // --wcb 10/4/2000
@@ -1511,7 +1511,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    (void)praddset(&sigs, SIGSTOP);
    (void)praddset(&sigs, SIGTRAP);
    (void)praddset(&sigs, SIGILL);
-#ifdef USE_IRIX_FIXES
+#if defined(bug_irix_broken_sigstop)
    // we need to use SIGEMT for breakpoints in IRIX due to a bug with
    // tracing SIGSTOP in a process and then waitpid()ing for it
    // --wcb 10/4/2000

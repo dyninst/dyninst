@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.7 2003/02/21 20:06:09 bernat Exp $
+ * $Id: RTposix.c,v 1.8 2004/03/12 19:44:29 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -57,15 +57,13 @@
 void DYNINSTbreakPoint(void)
 {
 
-#ifndef USE_IRIX_FIXES
-     kill(getpid(), SIGSTOP);
-#endif
-
-#ifdef USE_IRIX_FIXES
+#if defined(bug_irix_broken_sigstop)
      /* there is a bug in all 6.5 versions of IRIX through 6.5.9f that
         cause a PIOCSTRACE on SIGSTOP to starve (at least under the
         conditions that we are throwing it in.)  So on IRIX, we use
         SIGEMT.   -- willb, 10/4/2000 */
      kill(getpid(), SIGEMT);
+#else
+     kill(getpid(), SIGSTOP);
 #endif
 }

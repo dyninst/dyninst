@@ -96,7 +96,7 @@ void stop_process_()
     return;
 #endif
 
-#ifndef USE_IRIX_FIXES
+#if !defined(bug_irix_broken_sigstop)
     kill(getpid(), SIGSTOP);
 #else
     kill(getpid(), SIGEMT);
