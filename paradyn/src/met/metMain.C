@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.18  1995/06/02 20:49:01  newhall
+ * Revision 1.19  1995/08/11 21:50:55  newhall
+ * removed calls to metDoDaemon,metDoVisi,metDoProcess,metDoTunable from metMain
+ * added metVisiSize, and metgetVisi functions
+ *
+ * Revision 1.18  1995/06/02  20:49:01  newhall
  * made code compatable with new DM interface
  * fixed problem with force option in visiDef
  * fixed hpux link errors
@@ -90,10 +94,10 @@ static int open_N_parse(string& file);
 // return -1 on failure to open file
 // else return yyparse result
 
-static bool metDoDaemon();
-static bool metDoVisi();
-static bool metDoProcess();
-static bool metDoTunable();
+bool metDoDaemon();
+bool metDoVisi();
+bool metDoProcess();
+bool metDoTunable();
 
 static int open_N_parse (string& file)
 {
@@ -151,17 +155,16 @@ bool metMain(string &userFile)
     yy3 = open_N_parse(userFile);
 
   // take actions based on the parsed configuration files
-  metDoDaemon();
-  metDoTunable();
-  metDoProcess();
-  metDoVisi();
-
+  // metDoDaemon();
+  // metDoTunable();
+  // metDoProcess();
+  // metDoVisi();
   bool mdl_res = mdl_apply();
 
   return true;
 }
 
-static bool metDoDaemon()
+bool metDoDaemon()
 {
   static bool been_done=0;
   // the default daemons
@@ -197,7 +200,21 @@ static void add_visi(visiMet *the_vm)
 			       NULL, 0);
 }
 
-static bool metDoVisi()
+
+unsigned metVisiSize(){
+  return(visiMet::allVisis.size());
+}
+
+visiMet *metgetVisi(unsigned i){
+   
+   if(i < visiMet::allVisis.size()){
+       return(visiMet::allVisis[i]);
+   }
+   return 0;
+}
+
+
+bool metDoVisi()
 {
   unsigned size = visiMet::allVisis.size();
 
@@ -218,7 +235,7 @@ static void start_process(processMet *the_ps)
 			&argv);
 }
 
-static bool metDoProcess()
+bool metDoProcess()
 {
   unsigned size = processMet::allProcs.size();
   for (unsigned u=0; u<size; u++) {
@@ -254,7 +271,7 @@ static void set_tunable (tunableMet *the_ts)
   }
 }
   
-static bool metDoTunable()
+bool metDoTunable()
 {
   unsigned size = tunableMet::allTunables.size();
   for (unsigned u=0; u<size; u++)
