@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.20 2001/11/01 17:22:23 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.21 2001/11/03 06:08:53 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -187,7 +187,7 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
-//#ifdef SHM_SAMPLING_DEBUG
+#ifdef SHM_SAMPLING_DEBUG
    const unsigned drnId    = dataValue.id.id;
       // okay to read dataValue.id since there's no race condition with it.
    assert(drnId == this->lowLevelId); // verify our new code is working right
@@ -201,22 +201,17 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
       cerr << "intCounter sample not for valid metric instance, so dropping" << endl;
       return true; // is this right?
    }
-   if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
-		    << "which isn't inserted yet, isdeferred: " 
-		    << theMi->hasDeferredInstr() << "\n";
-     return false;
-   }
    assert(theMi == this->mi); // verify our new code is working right
       // eventually, id field can be removed from inferior heap; we'll
       // just use this->mi.
-
-   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
-   // an entirely different identifier that has no relation to our 'id'
-//#endif
-
+#endif
    assert(mi);
    assert(mi->proc() == inferiorProc);
+
+   if(! mi->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
+     return false;
+   }
 
    timeStamp currWallTime = getWallTime();
 
@@ -337,20 +332,16 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    metricDefinitionNode *theMi;
    if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
-      cout << "NOTE: dropping sample unknown wallTimer id " << id << endl;
+      cout << "NOTE: dropping sample unknown wallTimer id " << drnId << endl;
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
-   if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
-		    << "which isn't inserted yet, isdeferred: " 
-		    << theMi->hasDeferredInstr() << "\n";
+#endif
+
+   if(! mi->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
      return false;
    }
-
-   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
-   // an entirely different identifier that has no relation to our 'id'
-#endif
 
    mi->updateValue(currWallTime, pdSample(timeValueToUse));
 
@@ -449,7 +440,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 					     inferiorCPUtime, theTimer.id.id);
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "timeValueToUse: " << timeValueToUse << "\n";
+   sampleVal_cerr << "raw-total: " << total << ", timeValueToUse: " << timeValueToUse << "\n";
    
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    // cerr <<"lastTimeValueUsed="<< lastTimeValueUsed << endl ;
@@ -478,9 +469,8 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-//#ifdef SHM_SAMPLING_DEBUG
+#ifdef SHM_SAMPLING_DEBUG
    const unsigned drnId    = theTimer.id.id;
-
    assert(drnId == this->lowLevelId); // verify our new code is working right
 
    extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
@@ -495,16 +485,12 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
-   if(! theMi->inserted()) {
-     sampleVal_cerr << "perform on data id: " << drnId << " is tied to mdn "
-		    << "which isn't inserted yet, isdeferred: " 
-		    << theMi->hasDeferredInstr() << "\n";
+#endif
+
+   if(! mi->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
      return false;
    }
-
-   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
-   // an entirely different identifier that has no relation to our 'id'
-//#endif
 
    mi->updateValue(currWallTime, pdSample(timeValueToUse));
 
