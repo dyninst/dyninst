@@ -81,7 +81,21 @@ _baseTramp:
 	nop
 	nop
 	nop
-	nop	
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	nop
 	.long	GLOBAL_PRE_BRANCH
         nop				/* fill this in with instructions to */
@@ -113,9 +127,23 @@ _baseTramp:
 	nop
 	nop
 	.long	RESTORE_PRE_INSN	/* restore registers */
-        nop
 	nop
-	nop	
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -124,12 +152,26 @@ _baseTramp:
 	nop
         .long	SKIP_POST_INSN		/* if no instrumentation, then skip */
 	.long	SAVE_POST_INSN		/* save registers */
-        nop
 	nop
 	nop
 	nop
 	nop
-	nop	
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	nop
 	.long	GLOBAL_POST_BRANCH
         nop				/* fill this in with instructions to */
@@ -140,8 +182,8 @@ _baseTramp:
 	nop
 	nop
 	nop
-	nop
         nop
+	nop
 	nop
 	nop
 	nop
@@ -155,9 +197,23 @@ _baseTramp:
 	nop
 	.long	LOCAL_POST_BRANCH
 	.long	RESTORE_POST_INSN	/* restore registers */
-        nop
 	nop
-	nop	
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
