@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.144 2003/05/08 23:44:35 bernat Exp $
+// $Id: aix.C,v 1.145 2003/05/14 20:46:17 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1012,6 +1012,44 @@ process *decodeProcessEvent(int pid,
                   // Load
                   why = procSyscallExit;
                   what = SYS_load;
+                  static bool in_trap_loop = false;
+                  static int recurse_level = 0;
+                  // Debug info
+                  dyn_saved_regs *regs;
+                  regs = proc->getDefaultLWP()->getRegisters();
+                  if (proc->previousSignalAddr() == regs->gprs[3]) {
+                      if (!in_trap_loop) {
+                          fprintf(stderr, "Spinning to handle multiple traps caused by null library loads...\n");
+                          in_trap_loop = true;
+                      }
+                      
+                      // Nothing to see here, move along... you get the idea
+                      proc->continueProc();
+                      
+                      // Even if we perform no processing, we still get a big
+                      // slowdown because we don't check for signals often enough.
+                      // So we wait until we get a valid event.
+                      
+                      // We don't want to spin completely, since that makes the
+                      // daemon appear to have hung from the outside. So eat the
+                      // first, say, 50 signals... then return control to the
+                      // main event loop for a second.
+                      if (recurse_level < 50) { // Made up constant
+                          recurse_level++;
+                          // Allow the process a bit of time
+                          usleep(500);
+                          return decodeProcessEvent(pid, why, what, info, block);
+                      }
+                      else {
+                          fprintf(stderr, "Finished spinning, returning to normal processing.\n");
+                          recurse_level = 0;
+                          return NULL;
+                      }
+                  }
+                  else if (in_trap_loop) {
+                      in_trap_loop = false;
+                  }
+                  proc->setPreviousSignalAddr(regs->gprs[3]); 
                   break;
               case W_SFWTED:
                   // Fork
@@ -1045,7 +1083,7 @@ process *decodeProcessEvent(int pid,
                       if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
                           == -1) {
                           assert(false);
-                          return false;
+                          return NULL;
                       }
                       
                       assert((pid_t)psinfo.pi_pid == result);
@@ -1093,7 +1131,7 @@ process *decodeProcessEvent(int pid,
         if (errno != ECHILD) 
             perror("waitpid");
     }
-
+    
     return proc;
 }
 
