@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.74 2005/03/01 23:07:31 bernat Exp $
+# $Id: make.module.tmpl,v 1.75 2005/03/07 21:18:50 bernat Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -100,7 +100,8 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/pd_image.C \
 		../src/pd_module.C \
 		../src/threadMgr.C \
-		../src/pd_thread.C
+		../src/pd_thread.C \
+		../src/debug.C
                  
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
