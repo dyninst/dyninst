@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  1997/08/28 16:06:14  naim
+# Minor change when we set USES_PVM - naim
+#
 # Revision 1.1  1997/05/23 23:00:37  mjrg
 # Windows NT port
 #
@@ -12,7 +15,7 @@
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
-USES_PVM = 1
+USES_PVM = true 
 #USES_SHM_SAMPLING = true
 
 include ../../nmake.config 
