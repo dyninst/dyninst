@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: shgConsts.h,v $
-/* Revision 1.1  1995/10/17 22:07:38  tamches
-/* initial version for the new search history graph
+/* Revision 1.2  1996/01/11 23:42:04  tamches
+/* there are now 6 node styles instead of 4
 /*
+ * Revision 1.1  1995/10/17 22:07:38  tamches
+ * initial version for the new search history graph
+ *
  */
 
 #ifndef _SHG_CONSTS_H_
@@ -16,16 +19,16 @@
 #include "Vector.h"
 #endif
 
-#include "tkclean.h"
+#include "tk.h"
 
 struct shgConsts {
    vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
    vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
 
    shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
-      rootItemTk3DBordersByStyle.resize(4);
+      rootItemTk3DBordersByStyle.resize(6);
 
-      // uninstrumented
+      // Inactive, no conclusion
 //      rootItemTk3DBordersByStyle[0] = Tk_Get3DBorder(interp, theTkWindow,
 //						     Tk_GetUid("Gray"));
       rootItemTk3DBordersByStyle[0] = Tk_Get3DBorder(interp, theTkWindow,
@@ -46,13 +49,20 @@ struct shgConsts {
 						     Tk_GetUid("#acbff48ff6c8")); // yuck --ari
       assert(rootItemTk3DBordersByStyle[2]);
 
-      // instrumented, decided on false
+      // uninstrumented, decided on false
 //      rootItemTk3DBordersByStyle[3] = Tk_Get3DBorder(interp, theTkWindow,
 //						     Tk_GetUid("pink"));
       rootItemTk3DBordersByStyle[3] = Tk_Get3DBorder(interp, theTkWindow,
 						     Tk_GetUid("#cc85d5c2777d")); // yuck --ari
       assert(rootItemTk3DBordersByStyle[3]);
 
+      // instrumented, false
+      rootItemTk3DBordersByStyle[4] = Tk_Get3DBorder(interp, theTkWindow,
+						     Tk_GetUid("plum"));
+
+      // uninstrumented, true
+      rootItemTk3DBordersByStyle[5] = Tk_Get3DBorder(interp, theTkWindow,
+						     Tk_GetUid("green"));
 
       // It seems reasonable to use the exact same colors for shg listbox items:
       listboxItemTk3DBordersByStyle = rootItemTk3DBordersByStyle;
@@ -63,6 +73,8 @@ struct shgConsts {
       Tk_Free3DBorder(rootItemTk3DBordersByStyle[1]);
       Tk_Free3DBorder(rootItemTk3DBordersByStyle[2]);
       Tk_Free3DBorder(rootItemTk3DBordersByStyle[3]);
+      Tk_Free3DBorder(rootItemTk3DBordersByStyle[4]);
+      Tk_Free3DBorder(rootItemTk3DBordersByStyle[5]);
    }
 };
 

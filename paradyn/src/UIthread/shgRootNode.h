@@ -3,9 +3,12 @@
 // analagous to rootNode.h (for the where axis)
 
 /* $Log: shgRootNode.h,v $
-/* Revision 1.1  1995/10/17 22:08:52  tamches
-/* initial version, for the new search history graph
+/* Revision 1.2  1996/01/11 23:42:21  tamches
+/* there are now 6 node styles instead of 4
 /*
+ * Revision 1.1  1995/10/17 22:08:52  tamches
+ * initial version, for the new search history graph
+ *
  */
 
 #ifndef _SHG_ROOT_NODE_H_
@@ -21,11 +24,16 @@
 
 class shgRootNode {
  public:
-   enum style {Uninstrumented, InstrumentedAndTesting,
-		 TestedTentativelyTrue, TestedFalse};
+   enum style {InactiveUnknown, ActiveUnknown,
+		 ActiveTrue, InactiveFalse,
+		 ActiveFalse, InactiveTrue};
  private:
    unsigned id;
-   string label, fullInfo;
+   string label;
+   string fullInfo;
+      // note: now that we have a perf cons igen call getNodeInfo(), perhaps
+      // keeping "fullInfo" here is a mistake?
+
    bool highlighted;
    style theStyle;
 
