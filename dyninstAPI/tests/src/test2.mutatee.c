@@ -27,7 +27,7 @@
  */
 int kludge;
 
-// control debug printf statements
+/* control debug printf statements */
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
 
@@ -60,12 +60,12 @@ void stop_process()
 
 void func10_1()
 {
-    // Does nothing.  Will be instrumented with a BPatch_breakPointExpr
+    /* Does nothing.  Will be instrumented with a BPatch_breakPointExpr */
 }
 
 void func11_1()
 {
-    // Does nothing.
+    /* Does nothing. */
 }
 
 void main(int argc, char *argv[])
@@ -85,7 +85,7 @@ void main(int argc, char *argv[])
         }
     }
 
-    // see if we should wait for the attach
+    /* see if we should wait for the attach */
     if (useAttach) {
 	printf("Waiting for mutator to attach...\n");
 	while (!checkIfAttached()) ;
@@ -93,14 +93,14 @@ void main(int argc, char *argv[])
     }
 
 #ifdef sparc_sun_solaris2_4
-    // now use the dlopen interface to force an object to load.
+    /* now use the dlopen interface to force an object to load. */
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
     if (!ref) {
 	fprintf(stderr, "%s\n", dlerror());
 	fflush(stderr);
     }
 
-    // Stop and wait for the mutator to check that we linked the library
+    /* Stop and wait for the mutator to check that we linked the library */
     stop_process();
 #endif
 

@@ -21,7 +21,7 @@
  */
 int kludge;
 
-// control debug printf statements
+/* control debug printf statements */
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
 
@@ -166,8 +166,8 @@ int call9_1(int p1, int p2, int p3, int p4, int p5)
 void call10_1()
 {
     if (globalVariable10_4 == 0) {
-	globalVariable10_4 = 1;	// update marker of call order
-	globalVariable10_1 = 1;	// flag that this was called first
+	globalVariable10_4 = 1;	/* update marker of call order */
+	globalVariable10_1 = 1;	/* flag that this was called first */
     }
 }
 
@@ -175,16 +175,16 @@ void call10_1()
 void call10_2()
 {
     if (globalVariable10_4 == 1) {
-	globalVariable10_4 = 2;	// update marker of call order
-	globalVariable10_2 = 1;	// flag that this was called first
+	globalVariable10_4 = 2;	/* update marker of call order */
+	globalVariable10_2 = 1;	/* flag that this was called first */
     }
 }
 
 void call10_3()
 {
     if (globalVariable10_4 == 2) {
-	globalVariable10_4 = 3;	// update marker of call order
-	globalVariable10_3 = 1;	// flag that this was called first
+	globalVariable10_4 = 3;	/* update marker of call order */
+	globalVariable10_3 = 1;	/* flag that this was called first */
     }
 }
 
@@ -306,9 +306,9 @@ void call19_1()
 }
 
 
-//
-// This is a series of nearly empty functions to attach code to 
-//
+/*
+ * This is a series of nearly empty functions to attach code to 
+ */
 void func1_1() { dprintf("func1_1 () called\n"); }
 void func2_1() { dprintf("func2_1 () called\n"); }
 void func3_1() { dprintf("func3_1 () called\n"); }
@@ -445,8 +445,8 @@ void func14_3()
 
 void func14_1()
 {
-    kludge = 1;	// Here so that the following function call isn't the first
-		// instruction
+    kludge = 1;	/* Here so that the following function call isn't the first
+		   instruction */
 
     func14_2();
     func14_3();
@@ -487,8 +487,8 @@ void func15_3()
 
 void func15_4()
 {
-    kludge = 1;	// Here so that the following function call isn't the first
-		// instruction
+    kludge = 1;	/* Here so that the following function call isn't the first
+		   instruction */
 
     func15_3();
 }
@@ -503,7 +503,7 @@ void func15_1()
 		  "after first call to instrumented function", &failed);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-    // Test a function that makes a system call (is a special case on Sparc)
+    /* Test a function that makes a system call (is a special case on Sparc) */
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
 		  "after first call to instrumented function", &failed);
@@ -661,7 +661,7 @@ void main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-    // Test #1
+    /* Test #1 */
     dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
     func1_1();
     dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
@@ -671,13 +671,13 @@ void main(int argc, char *argv[])
     else
         printf("\n**Failed** test #1 (zero arg function call)\n");
 
-    // Test #2
+    /* Test #2 */
     func2_1();
 
-    // Test #3 
+    /* Test #3  */
     func3_1();
 
-    // Test #4
+    /* Test #4 */
     func4_1();
     if (globalVariable4_1 == 41) {
 	printf("**Failed** test #4 (sequence)\n");
@@ -689,7 +689,7 @@ void main(int argc, char *argv[])
         printf("Passed test #4 (sequence)\n");
     }
 
-    // test #5
+    /* test #5 */
     func5_1();
     if ((globalVariable5_1 == 51) && (globalVariable5_2 == 53)) {
         printf("Passed test #5 (if w.o. else)\n");
