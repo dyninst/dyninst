@@ -2,6 +2,9 @@
 
 /*
  * $Log: pdLogo.h,v $
+ * Revision 1.3  1996/08/05 07:30:31  tamches
+ * removed a warning
+ *
  * Revision 1.2  1995/12/26 19:58:17  tamches
  * tclclean/tkclean --> tcl/tk.h; cleaned up include of String.h w.r.t. directory
  *
@@ -30,6 +33,8 @@
 
 class pdLogo {
  private:
+   friend class foo; // placate compiler
+
    struct logoStruct {
       void *rawData; unsigned width; unsigned height;
       bool operator==(const logoStruct &other) const {
