@@ -60,6 +60,8 @@
 #include "dyninstAPI/src/inst-x86.h"
 #endif
 
+#include "instPoint.h"
+
 #include <sys/procfs.h>
 #include <poll.h>
 #include <limits.h>
