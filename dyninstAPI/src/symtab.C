@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.197 2003/11/24 17:37:57 schendel Exp $
+// $Id: symtab.C,v 1.198 2004/02/13 15:10:25 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3709,6 +3709,14 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 		Dwarf_Line * lineBuffer;
 		Dwarf_Signed lineCount;
 		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+		assert( status != DW_DLV_ERROR );
+		
+		/* It's OK for a CU not to have line information. */
+		if( status != DW_DLV_OK ) {
+			/* Free this CU's DIE. */
+			dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+			continue;
+			}
 		assert( status == DW_DLV_OK );
 		
 		/* Iterate over this CU's source lines. */
