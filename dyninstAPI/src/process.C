@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.451 2003/09/29 23:04:31 bernat Exp $
+// $Id: process.C,v 1.452 2003/10/07 19:06:08 schendel Exp $
 
 #include <ctype.h>
 
@@ -365,8 +365,8 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
   Frame active;
   bool success = true;
   if (!threads.size()) { // Nothing defined in the thread data structures
-    // So use the default LWP instead (Dyninst)
-    active = getDefaultLWP()->getActiveFrame();
+    // So use the process LWP instead (Dyninst)
+    active = getProcessLWP()->getActiveFrame();
     if (active == Frame()) { // Hrm.. should getActive return a bool?
       return false;
     }
@@ -388,7 +388,7 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 {
   pdvector<Frame> stackWalk;
   if (!threads.size()) { // Nothing defined in thread data structures
-    if (!getDefaultLWP()->walkStack(stackWalk))
+    if (!getProcessLWP()->walkStack(stackWalk))
       return false;
     // Use the walk from the default LWP
     stackWalks.push_back(stackWalk);
@@ -1644,9 +1644,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
-  lwps(CThash),
-  procHandle_(0)
-    
+  lwps(CThash)
 {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
@@ -1758,9 +1756,7 @@ process::process(int iPid, image *iImage, int iTraceLink
    //removed for output redirection
    //ioLink = iIoLink;
 
-#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
-   createLWP(0);
-#endif   
+   createProcessLWP();
 
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
@@ -1811,8 +1807,7 @@ process::process(int iPid, image *iSymbols,
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
 #endif
-  lwps(CThash),
-  procHandle_(0)
+  lwps(CThash)
 {
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
@@ -1907,9 +1902,7 @@ process::process(int iPid, image *iSymbols,
    // Now the actual attach...the moment we've all been waiting for
 
    attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
-#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
-   createLWP(0);
-#endif
+   createProcessLWP();
 
    // It is assumed that a call to attach() doesn't affect the running status
    // of the process.  But, unfortunately, some platforms may barf if the
@@ -1937,6 +1930,7 @@ process::process(int iPid, image *iSymbols,
       success = false;
       return;
    }
+
    image *theImage = image::parseImage(desc);
    if (theImage == NULL) {
       pdstring msg = pdstring("Warning: unable to parse to specified process: ")
@@ -2028,8 +2022,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
-  lwps(CThash),
-  procHandle_(0)
+  lwps(CThash)
 {
    tracingRequests = parentProc.tracingRequests;
     
@@ -2151,9 +2144,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    childUareaPtr = NULL;
 #endif
 
-#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
-   createLWP(0);
-#endif   
+   createProcessLWP();
 
    if (!attach()) {     // moved from ::forkProcess
       showErrorCallback(69, "Error in fork: cannot attach to child process");
@@ -2394,7 +2385,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
       // useful.  One for simple error like because-file-not-because.
       // Another for serious errors like found-but-parsing-failed 
       //    (internal error; please report to paradyn@cs.wisc.edu)
-        cerr << "Unable to parse target image" << endl;
       pdstring msg = pdstring("Unable to parse image: ") + file;
       showErrorCallback(68, msg.c_str());
       // destroy child process
@@ -2432,13 +2422,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     // In the ST case, threads[0] (the only one) is effectively
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
-    
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    dyn_lwp *lwp = theProc->createLWP(tid, 0, (void*)thrHandle_temp);
-    theProc->threads.push_back(new dyn_thread(theProc, tid, 0, lwp));
-#else
+
     theProc->threads.push_back(new dyn_thread(theProc));
-#endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
@@ -2550,7 +2535,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     delete theProc;
     return NULL;
   }
-  
+
   // Note: it used to be that the attach ctor called pause()...not anymore...so
   // the process is probably running even as we speak.
   
@@ -2564,7 +2549,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     logLine("WARNING: pause failed\n");
     assert(0);
   }
-  
+
   // find the signal handler function
   theProc->findSignalHandler(); // shouldn't this be in the ctor?
 
@@ -2631,8 +2616,9 @@ bool process::loadDyninstLib() {
     // Wait for the process to get to an initialized (dlopen exists)
     // state
     while (!reachedBootstrapState(initialized)) {
-       if(hasExited())
+       if(hasExited()) {
           return false;
+       }
        decodeAndHandleProcessEvent(true);
     }
     assert(status_ == stopped);
@@ -2678,7 +2664,7 @@ bool process::loadDyninstLib() {
 
     loadDYNINSTlib();
     setBootstrapState(loadingRT);
-    
+
     if (!continueProc()) {
         assert(0);
     }
@@ -2693,7 +2679,6 @@ bool process::loadDyninstLib() {
     // Make sure the library was actually loaded
     if (!runtime_lib) return false;
     
-
     // Get rid of the callback
     unregisterLoadLibraryCallback(dyninstRT_name);
 
@@ -2709,7 +2694,7 @@ bool process::loadDyninstLib() {
     extern pdvector<sym_data> syms_to_find;
     if (!heapIsOk(syms_to_find))
         return false;
-    
+
     // The library is loaded, so do mutator-side initialization
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", finalizing RT library");
@@ -2831,25 +2816,19 @@ bool process::iRPCDyninstInit() {
 }
 
 bool process::attach() {
-    bool res = false;
-
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
    dyn_lwp *lwp;
    unsigned index;
    
+   assert(getProcessLWP());  // we expect this to be defined
+
    while (lwp_iter.next(index, lwp)) {
-      if (!lwp->openFD()) {
+      if (!lwp->attach()) {
          deleteLWP(lwp);
          return false;
       }
    }
 
-   // Set up whatever tracing is necessary for the process
-   res = attach_();
-   
-   if (!res)
-       return false;
-   
    return installSyscallTracing();
 }
 
@@ -3054,13 +3033,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     // initializing vector of threads - thread[0] is really the 
     // same process
 
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
-    //ccw 20 july 2000 : 29 mar 2001
-    dyn_lwp *lwp = ret->createLWP(0);
-    ret->threads += new dyn_thread(ret, 0, 0, lwp);
-#else
     ret->threads += new dyn_thread(ret);     
-#endif
 
     // initializing hash table for threads. This table maps threads to
     // positions in the superTable - naim 4/14/97
@@ -4903,15 +4876,9 @@ bool process::detach(const bool paused) {
    dyn_lwp *lwp;
    unsigned index;
    while (lwp_iter.next(index, lwp)) {
-      lwp->closeFD();
+      lwp->detach();
    }
 
-   bool res = detach_();
-   
-   if (!res) {
-      // process may have exited
-      return false;
-   }
    return true;
 }
 
@@ -5114,7 +5081,7 @@ void process::handleExecExit() {
 
    // Before we parse the file descriptor, re-open the /proc/pid/as file handle
 #if defined(rs6000_ibm_aix4_1) && defined(AIX_PROC)
-   reopen_fds();
+   getProcessLWP()->reopen_fds();
 #endif
 
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
@@ -5810,7 +5777,7 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   }
 
   foundLWP = createLWP(lwp_id);
-  if (!foundLWP->openFD()) {
+  if (!foundLWP->attach()) {
      deleteLWP(foundLWP);
      return NULL;
   }
@@ -5833,7 +5800,7 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    delete lwp_to_delete;
 }
 
-dyn_lwp *process::getDefaultLWP() const
+dyn_lwp *process::getProcessLWP() const
 {
   dyn_lwp *lwp;
   if (lwps.find(0, lwp))
@@ -5877,7 +5844,7 @@ void process::init_shared_memory(process *parentProc) {
    int lwp_stopped_from_exit = parentProc->getLWPStoppedFromForkExit();
    dyn_lwp *lwp_to_use;
    if(lwp_stopped_from_exit == UNSET_LWP_STOPPED_FROM_EXIT_VAL)
-      lwp_to_use = getDefaultLWP();
+      lwp_to_use = getProcessLWP();
    else
       lwp_to_use = getLWP(lwp_stopped_from_exit);
 
@@ -6052,13 +6019,13 @@ void process::deleteThread(int tid)
 
 #endif /* MT*/
 
-void process::overrideDefaultLWP(dyn_lwp *lwp) {
-    saved_default_lwp = lwps[0];
+void process::overrideProcessLWP(dyn_lwp *lwp) {
+    saved_process_lwp = lwps[0];
     lwps[0] = lwp;
 }
 
-void process::restoreDefaultLWP() {
-    lwps[0] = saved_default_lwp;
+void process::restoreProcessLWP() {
+    lwps[0] = saved_process_lwp;
 }
 
 
