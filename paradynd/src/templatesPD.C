@@ -64,6 +64,7 @@
 #include "paradynd/src/internalMetrics.h"
 
 template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
+template class  vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
 
 template class  vector<functionName*>;
 
@@ -93,6 +94,7 @@ template class  vector<costMetric *>;
 template class  vector<internalMetric::eachInstance>;
 
 template class  dictionary_hash <unsigned, cpSample*>;
+template class  vector<dictionary_hash <unsigned, cpSample*>::entry>;
 
 template class  refCounter<string_ll>;
 
