@@ -103,28 +103,33 @@ bool
 frameChainValid(process *proc, unsigned pc)
 {
     pdFunction *funcStart = proc->findOneFunction("_start");
+
     if (funcStart) {
 	if ((pc >= funcStart->getAddress(proc)) && 
 	    (pc <= (funcStart->getAddress(proc) + funcStart->size()))) {   
 	    return false;
 	}
+    } else {
+	sprintf(errorLine,"func _start is not found");
+	logLine(errorLine);
     }
     
-    funcStart = proc->findOneFunction("$START$");
-
-    sprintf(errorLine,"func $start is at %x", (unsigned)funcStart);
-    logLine(errorLine);
+    funcStart = proc->getImage()->findOneFunctionFromAll("$START$");
 
     if (funcStart) {
 	if ((pc >= funcStart->getAddress(proc)) && 
 	     (pc <= (funcStart->getAddress(proc) + funcStart->size()))) {   
 	    return false;
 	}
+    } else {
+	sprintf(errorLine,"func $start$ is not found");
+	logLine(errorLine);
     }
 
     return true;
 }
 
+static unsigned readCurrPC(int pid);
 
 bool process::getActiveFrame(int *fp, int *pc)
 {
@@ -137,7 +142,14 @@ bool process::getActiveFrame(int *fp, int *pc)
     
     // Get the value of PC from the reg no.33 which is ss_pcoq_head in
     // the structure save_state. </usr/include/machine/save_state.h>   
-    if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)132,0, buf)) {
+    *pc = readCurrPC(getPid());
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "getActiveFrame: PC = %x, ", *pc); 
+	logLine(errorLine);
+#endif
+    if (*pc == -1) assert(0);
+
+/*    if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)132,0, buf)) {
         buf[3] &= ~0x3;
 	*pc = *(int *)&buf[0];
 #ifdef DEBUG_STACK
@@ -145,7 +157,7 @@ bool process::getActiveFrame(int *fp, int *pc)
 	logLine(errorLine);
 #endif
     }
-    else err = false;
+    else err = false;*/
     
     // We get the value of frame pointer by finding out the frame size
     // of current frame. Then move the SP down to the head of next
@@ -158,6 +170,8 @@ bool process::getActiveFrame(int *fp, int *pc)
 #endif	
 	freeNotOK = true;
 	err = false;
+	/* *fp = 1; /* set it to non-zero value. which is to say this
+		    is not the last frame although the entry is not found */
 	return err;
     }
     
@@ -279,6 +293,46 @@ static save_state save_state_foo;
 #define saveStateRegAddr(field) ((char*)&save_state_foo.field - (char*)&save_state_foo.ss_flags)
 #define saveStateFPRegAddr(field) ((char*)&save_state_foo.ss_fpblock.fpdbl.field - (char*)&save_state_foo.ss_flags)
 
+static unsigned readCurrPC(int pid) {
+   // If IN_SYSCALL then we should return the contents
+   // of register 31 (the link register for BLE should contain
+   // the return address, in user code); else, return the contents
+   // of reg 33 (the PCOQ_HEAD).
+   // Note that in any event, we clear the low 2 bits (I think that they
+   // have something to do w/ privilege level -- please confirm this)
+
+    const unsigned saveStateFlagAddr = saveStateRegAddr(ss_flags);
+    assert(saveStateFlagAddr == 0);
+    errno = 0;
+    const unsigned saveStateFlags = ptrace(PT_RUREGS, pid, saveStateFlagAddr, 0, \
+					   0);
+    if (errno != 0) {
+	perror("process::getRegisters PT_RUREGS");
+	cerr << "ReadCurrPC: the process exited" << endl;
+	assert(0);
+	return (unsigned)-1;
+    }
+
+   errno = 0;
+   unsigned result;
+
+   if (saveStateFlags & SS_INSYSCALL) {
+      result = ptrace(PT_RUREGS, pid, 4 * 31, 0, 0);
+   }
+   else {
+      result = ptrace(PT_RUREGS, pid, 4 * 33, 0, 0);
+   }
+
+   if (errno != 0) {
+      perror("readCurrPC");
+      cerr << "SS_INSYSCALL was " << (saveStateFlags & SS_INSYSCALL) << endl;
+
+      return (unsigned)-1;
+   }
+
+   return result & ~0x03;
+}
+
 static unsigned readCurrPC(int pid, unsigned flagsreg) {
    // If IN_SYSCALL then we should return the contents
    // of register 31 (the link register for BLE should contain
@@ -306,6 +360,7 @@ static unsigned readCurrPC(int pid, unsigned flagsreg) {
 
    return result & ~0x03;
 }
+
 
 static const unsigned getRegistersNumBytes = 
                              4 // for save-state flags (not sure this needs to be saved)
@@ -344,7 +399,10 @@ void *process::getRegisters(bool &syscall) {
       return NULL;
    }
 
-   *resultPtr++ = saveStateFlags;
+   if (saveStateFlags & SS_INSYSCALL)
+       *resultPtr++ = saveStateFlags & ~0x2;
+   else
+       *resultPtr++ = saveStateFlags;
 
    // Now set 'thePCspace' to the value of PCSQ_HEAD_REGNUM,
    // and save registers "normally" (as read from ptrace).
@@ -361,7 +419,6 @@ void *process::getRegisters(bool &syscall) {
       const unsigned regvalue = ptrace(PT_RUREGS, getPid(), 4 * regnum, 0, 0);
       if (errno != 0) {
 	 perror("ptrace PT_RUREGS for an integer register");
-	 cerr << "the int reg num was " << regnum << endl;
 	 return NULL;
       }
 
@@ -378,7 +435,6 @@ void *process::getRegisters(bool &syscall) {
       const unsigned part1 = ptrace(PT_RUREGS, getPid(), offset, 0, 0);
       if (errno != 0) {
 	 perror("ptrace PT_RUREGS for part 1 of an fp reg");
-	 cerr << "the fp reg num was " << regnum << endl;
 	 return NULL;
       }
 
@@ -386,7 +442,6 @@ void *process::getRegisters(bool &syscall) {
       const unsigned part2 = ptrace(PT_RUREGS, getPid(), offset+4, 0, 0);
       if (errno != 0) {
 	 perror("ptrace PT_RUREGS for part 2 of an fp reg");
-	 cerr << "the fp reg num was " << regnum << endl;
 	 return NULL;
       }
 
@@ -432,10 +487,12 @@ void *process::getRegisters(bool &syscall) {
    assert((char *)resultPtr - (char *)result == getRegistersNumBytes);
 
    if (saveStateFlags & SS_INSYSCALL) {
-       cerr << "DEFER: Currently, the pc is " << readCurrPC(getPid(), saveStateFlags)
-       <<endl;
        // cerr << "hpux getRegisters(): SS_INSYSCALL is true, so deferring..." << endl;
        syscall = true;
+       if (saveStateFlags & SS_DORFI) {
+	   // cerr << "Delay the inferior RPC for the SS_DORFI." << endl;
+	   return (void *)-1;
+       }
    }
 
    return result;
@@ -531,11 +588,18 @@ bool process::restoreRegisters(void *buffer) {
    // this instruction with the original instruction and restore all
    // the old registers.
    char buf[4];
-   readDataSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), buf, true);
+   if (!readDataSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), buf, true)) {
+       cerr << "Restore Register failed because readDataSpace failed" << endl;
+       assert(0);
+   }
+
    instruction bp;
    extern void generateBreakPoint(instruction &);
    generateBreakPoint(bp);
-   writeTextSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), (caddr_t)&bp);
+   if (!writeTextSpace((caddr_t)(savedPCOQ_HEAD), sizeof(int), (caddr_t)&bp)) {
+       cerr << "Restore Register failed because writeTextSpace failed" <<endl;
+       assert(0);
+   }
    continueProc();
        
    bool isStopped = false;
@@ -543,28 +607,41 @@ bool process::restoreRegisters(void *buffer) {
    while (!isStopped) {
        int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
        if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+	   cerr << "Child process died.\t" << "ret: " << ret <<"\t errno: "
+	        << errno << "\tWIFEXITED(waitStatus): " << WIFEXITED(waitStatus) <<endl;
 	   // the child is gone.
 	   //status_ = exited;
-	   handleProcessExit(this, WEXITSTATUS(waitStatus));
-	   return(false);
+	   assert(0);
        }
        if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
 	   printf("problem stopping process\n");
 	   assert(0);
        }
        int sig = WSTOPSIG(waitStatus);
-       // printf("signal is %d\n", sig); fflush(stdout); 
        if (sig == SIGTRAP) {
+	   // if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
+           //    logLine("ptrace error\n");
+           // }
 	   status_ = stopped;
 	   isStopped = true;
        } else {
+	   unsigned pc = readCurrPC(getPid());
+	   cerr << "Currently, the PC is " << (void *)*&pc << endl; 
+	   cerr << "Got an unexpected Trap, hmmm. Anyway... " << endl;
+	   status_ = stopped;
+	   isStopped = true;
+	   if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
+	       logLine("ptrace error\n");
+	   }
+	   /* cerr << "Detaching from the application!" << endl;
 	   if (sig > 0) {
 	       if (P_ptrace(PT_CONTIN, pid, 1, WSTOPSIG(waitStatus), 0) == -1) {
 		   cerr << "Ptrace error\n";
 		   assert(0);
 	       }
 	   }
-	   stop_();
+	   cerr << "Is this correct? " << endl;
+	   continueProc();*/
        }
    }
 
@@ -663,7 +740,7 @@ bool process::restoreRegisters(void *buffer) {
       return false;
    }
 
-   cerr << "restoreRegisters: all done!" << endl;
+   // cerr << "restoreRegisters: all done!" << endl;
 
    return true;
 }
@@ -876,6 +953,7 @@ bool process::loopUntilStopped() {
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
       //status_ = exited;
+	assert(0);
       handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
     }
