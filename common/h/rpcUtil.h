@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.15  1994/03/31 22:59:04  hollings
+ * Revision 1.16  1994/04/06 22:45:24  markc
+ * Cleaned up rpcUtil.h.  Moved include files to rpcUtil.C where they belonged.
+ *
+ * Revision 1.15  1994/03/31  22:59:04  hollings
  * added well known port as a paramter to xdrRPC constructor.
  *
  * Revision 1.14  1994/03/25  16:07:31  markc
@@ -19,46 +22,14 @@
  *
  */
 
-/* prevents malloc from being redefined */
-#ifdef MIPS
-#define MALLOC_DEFINED_AS_VOID
-#endif
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <memory.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <sys/file.h>
 
 extern "C" {
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 }
-
-// functions that g++-fixincludes missed
-#ifdef MIPS
-void bzero (char*, int);
-int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
-char *strdup (char*);
-int gethostname(char*, int);
-int socket(int, int, int);
-int bind(int s, struct sockaddr *, int);
-int getsockname(int, struct sockaddr*, int *);
-int listen(int, int);
-int connect(int s, struct sockaddr*, int);
-int socketpair(int, int, int, int sv[2]);
-int vfork();
-int accept(int, struct sockaddr *addr, int *);
-#endif
 
 #define xdr_Boolean xdr_char
 typedef XDR *XDRptr;
