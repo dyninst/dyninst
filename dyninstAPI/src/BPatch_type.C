@@ -635,6 +635,7 @@ BPatch_typeTypedef::BPatch_typeTypedef(int _ID, BPatch_type *_base, const char *
    assert(_base != NULL);
    base = _base;
    sizeHint = _sizeHint / 8;
+   size = 0;
    base->incrRefCount();
 }
 
@@ -644,6 +645,7 @@ BPatch_typeTypedef::BPatch_typeTypedef(BPatch_type *_base, const char *_name)
    assert(_base != NULL && _name != NULL);
    base = _base;
    sizeHint = 0;
+   size = 0;
    base->incrRefCount();
 }
 
