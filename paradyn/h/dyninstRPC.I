@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.102 2002/10/28 04:54:09 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.103 2002/11/25 23:51:42 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -94,7 +94,6 @@ public:
   virtual bool apply(mdl_var &ret) = 0;
   virtual bool apply(AstNode*& ast) = 0;
   virtual bool mk_list(vector<string> &funcs) = 0;
-  virtual bool isThreadStartPoint() = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -139,7 +138,6 @@ public:
   bool apply(AstNode*& mn); // code-gen version
 
   bool mk_list(vector<string> &funcs);
-  bool isThreadStartPoint();
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) 
   {
@@ -595,6 +593,9 @@ $remote dynRPC {
 
 
    $virtual $upcall $async void resourceBatchMode(bool);
+
+   // Inform front-end about retired resources.
+   $virtual $upcall $async void retiredResource(string res);
 
    //
    // Handler that gets called when new mapping data is collected.
