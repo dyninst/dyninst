@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.3 1999/07/27 17:21:46 cain Exp $
+// $Id: MagnifyManager.C,v 1.4 1999/08/09 05:40:09 csserra Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
@@ -60,7 +60,6 @@ vector <resourceHandle>* MagnifyManager::getChildren
 printf("in getchildren, original magnify type\n");
 #endif
 	    return rh->getChildren();
-	    break;
 	case CallGraphSearch:
 #ifdef PCDEBUG
 printf("in getchildren, CallGraph magnify type\n");
@@ -68,7 +67,6 @@ printf("in getchildren, CallGraph magnify type\n");
 	    cg = CallGraph::FindCallGraph();
 	    assert(cg);
 	    return cg->getChildren(rh);
-	    break;
 	default:
 	    assert(false);
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.69 1999/08/03 20:28:09 nash Exp $
+// $Id: ast.C,v 1.70 1999/08/09 05:37:19 csserra Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1053,10 +1053,9 @@ Address AstNode::generateCode_phase2(process *proc,
             // this node.
             loperand->useCount--;
 
-	    logLine("store: ");
-	    print();
-
-	    logLine("\n\n");
+	    //logLine("store: ");
+	    //print();
+	    //logLine("\n\n");
 
             if (loperand->useCount==0 && loperand->kept_register!=Null_Register) {
                 rs->unkeep_register(loperand->kept_register);
@@ -1154,8 +1153,8 @@ Address AstNode::generateCode_phase2(process *proc,
 		      }
                       else {
                         int result;
-                        if (!isPowerOf2((int)right->oValue,result) &&
-                             isPowerOf2((int)left->oValue,result))
+                        if (!isPowerOf2((Address)right->oValue,result) &&
+                             isPowerOf2((Address)left->oValue,result))
                         {
                           AstNode *temp = assignAst(right);
 	                  right = assignAst(left);
@@ -1181,7 +1180,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
             if (right && (right->type == operandNode) &&
                 (right->oType == Constant) &&
-                doNotOverflow((int)right->oValue) &&
+                doNotOverflow((Address)right->oValue) &&
                 (type == opCodeNode))
 	    {
 #ifdef alpha_dec_osf4_0
@@ -1263,7 +1262,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataReg) {
             rs->unkeep_register(dest);
             rs->freeRegister(dest);
-            dest = (Register)oValue;
+            dest = (Address)oValue;
 	} else if (oType == DataId) {
 	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
                         insn, base, noCost);
@@ -1299,7 +1298,7 @@ Address AstNode::generateCode_phase2(process *proc,
 		dest = emitR(getSysParamOp, (Register)oValue, 0, src, insn, base, noCost);
 	    else 
 #endif
-		dest = emitR(getParamOp, (Register)oValue, 0, src, insn, base, noCost);
+		dest = emitR(getParamOp, (Address)oValue, 0, src, insn, base, noCost);
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
@@ -1463,27 +1462,29 @@ void AstNode::print() const {
 #endif
     if (type == operandNode) {
       if (oType == Constant) {
-	sprintf(errorLine, " %d", (int) oValue);
+	sprintf(errorLine, " %d", (int)(Address) oValue);
 	logLine(errorLine);
       } else if (oType == ConstantString) {
         sprintf(errorLine, " %s", (char *)oValue);
 	logLine(errorLine) ;
-/*      } else if (oType == DataPtr) {
-	sprintf(errorLine, " %d", (int) oValue);
+/*
+      } else if (oType == DataPtr) {
+	sprintf(errorLine, " %d", (int)(Address) oValue);
 	logLine(errorLine);
       } else if (oType == DataValue) {
-	sprintf(errorLine, " @%d", (int) oValue);
-	logLine(errorLine); */
+	sprintf(errorLine, " @%d", (int)(Address) oValue);
+	logLine(errorLine); 
+*/
       } else if (oType == DataIndir) {
 	logLine(" @[");
         loperand->print();
 	logLine("]");
       } else if (oType == DataReg) {
-	sprintf(errorLine," reg%d ",(int)oValue);
+	sprintf(errorLine," reg%d ",(int)(Address)oValue);
         logLine(errorLine);
         loperand->print();
       } else if (oType == Param) {
-	sprintf(errorLine, " param[%d]", (int) oValue);
+	sprintf(errorLine, " param[%d]", (int)(Address) oValue);
 	logLine(errorLine);
       } else if (oType == ReturnVal) {
 	sprintf(errorLine, "retVal");
@@ -1492,7 +1493,7 @@ void AstNode::print() const {
 	sprintf(errorLine, " [0x%lx]", (long) oValue);
 	logLine(errorLine);
       } else if (oType == FrameAddr)  {
-	sprintf(errorLine, " [$fp + %d]", (int) oValue);
+	sprintf(errorLine, " [$fp + %d]", (int)(Address) oValue);
 	logLine(errorLine);
       } else {
 	logLine(" <Unknown Operand>");

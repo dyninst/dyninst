@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.32 1999/07/14 17:36:03 paradyn Exp $
+// $Id: hist.C,v 1.33 1999/08/09 05:45:05 csserra Exp $
 
 #include "util/h/headers.h"
 #include "util/h/hist.h"
@@ -292,7 +292,8 @@ void Histogram::foldAllHist()
 	      if((allHist[i])->storageType == HistBucket){
                   Bin *bins = (allHist[i])->dataPtr.buckets;
 		  int last_bin = -1;
-		  for(int j=0; j < numBins/2; j++){
+		  int j;
+		  for(j=0; j < numBins/2; j++){
 		      if(!isnan(bins[j*2+1])){   // both are not NaN
                           bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0F;
                       }

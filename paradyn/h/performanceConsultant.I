@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.36 1999/06/04 16:04:29 cain Exp $
+ * $Id: performanceConsultant.I,v 1.37 1999/08/09 05:39:05 csserra Exp $
  */
 
 #include "dataManager.thread.h"
@@ -12,16 +12,15 @@ class searchHistoryNode;
 class filteredDataServer;
 class PCmetricInstServer;
 
-typedef struct int_Array {
+typedef struct {
   int count;
   int *data;
 } int_Array;
 
 
-typedef enum testResult
-{
-	tfalse, ttrue, tunknown
-}; 
+typedef enum {
+  tfalse, ttrue, tunknown
+} testResult; 
 
 // Note: the following structure (used by the "getNodeInfo" igen call) is
 //       subject to fairly frequent change, as we think of more goodies.

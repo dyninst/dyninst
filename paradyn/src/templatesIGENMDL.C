@@ -173,44 +173,6 @@ template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
 template class vector<dictionary_hash<unsigned, vector<mdl_type_desc> >::entry>;
 template class vector< vector< mdl_type_desc > >;
 
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
-			       bool_t (*)(XDR*, u_int*), u_int*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*,
-			       bool_t (*)(XDR*, int*), int*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
-				       T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
-				       T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-			       T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-			       T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-			       T_dyninstRPC::mdl_metric**);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
-			   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
-			   T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_stmt*>**,
-				   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
-				   T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_icode*>**,
-				   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
-				   T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constraint*>**,
-			   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
-			   T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
-				   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
-				   T_dyninstRPC::mdl_metric**);
-
 // Igen - visi stuff
 
 template class vector<T_visi::buf_struct*>;

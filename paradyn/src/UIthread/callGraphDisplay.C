@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.3 1999/07/26 21:48:00 cain Exp $
+// $Id: callGraphDisplay.C,v 1.4 1999/08/09 05:41:14 csserra Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -344,7 +344,6 @@ void callGraphDisplay::addItem(const string &newShortName,const string &newFullN
 			bool isShadowNode,
 			bool rethinkGraphicsNow,
 			bool resortNow) {
-  unsigned int i;
   callGraphRootNode tempRootNode(newNodeUniqueId, newShortName, newFullName,
 				 recursiveFlag, isShadowNode);
   where4tree<callGraphRootNode> *newNode = 

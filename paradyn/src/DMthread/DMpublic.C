@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.111 1999/07/26 21:47:33 cain Exp $
+// $Id: DMpublic.C,v 1.112 1999/08/09 05:40:08 csserra Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -388,7 +388,6 @@ perfStreamHandle dataManager::createPerformanceStream(dataType dt,
     td = getRequestingThread();
     ps = new performanceStream(dt, dc, cc, td);
     return(ps->Handle());
-    ps = 0;
 }
 
 int dataManager::destroyPerformanceStream(perfStreamHandle handle){
@@ -760,7 +759,7 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 		allS(performanceStream::allStreams);
 	perfStreamHandle h; performanceStream *ps;
 	while(allS.next(h,ps)){
-	    if(h == (perfStreamHandle)(ps)){
+	    if(h == (perfStreamHandle)(Address)(ps)){
 	        ps->callDataEnableFunc(response,request_Id);
 		break;
 	} }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.159 1999/07/28 19:21:33 nash Exp $
+// $Id: metricFocusNode.C,v 1.160 1999/08/09 05:42:13 csserra Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -102,7 +102,7 @@ dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
    // maps low-level counter-ids to metricDefinitionNodes
 
 unsigned mdnHash(const metricDefinitionNode *&mdn) {
-  return ((unsigned)mdn) >> 2; // assume all addrs are 4-byte aligned
+  return ((unsigned)(Address)mdn) >> 2; // assume all addrs are 4-byte aligned
 //  return ((unsigned) mdn);
 }
 
@@ -1327,137 +1327,138 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
 //       No -> don't manually trigger n's instrumentation.
 //       Yes ->
 //         
-void metricDefinitionNode::adjustManuallyTrigger() {
-    vector<instPoint*> instPts;
-    unsigned i, j, k, l;
-    pd_Function *stack_func;
-    instPoint *point;
-    Address stack_pc;
-
-    // aggregate metricDefinitionNode - decide whether to manually trigger 
-    //  instrumentation corresponding to each component node individually.
-    if (aggregate_) {
-		//cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
-		// << flat_name_.string_of() << endl;
-        //cerr << " (metricDefinitionNode::adjustManuallyTrigger()) aggregate = true" << endl;
-        for (i=0; i < components.size(); i++) {
-	    components[i]->adjustManuallyTrigger();
-        }
-    } 
-    // non-aggregate:
-    else {
-		//cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
-		//	 << flat_name_.string_of() << "aggregate = false, instRequests.size = "
-		//	 << instRequests.size() << endl;
-		assert(proc_); // proc_ should always be correct for non-aggregates
-		const function_base *mainFunc = proc_->getMainFunction();
-		assert(mainFunc); // processes should always have mainFunction defined
+void metricDefinitionNode::adjustManuallyTrigger()
+{
+  vector<instPoint*> instPts;
+  unsigned i, j, k, l;
+  pd_Function *stack_func;
+  instPoint *point;
+  Address stack_pc;
+  
+  // aggregate metricDefinitionNode - decide whether to manually trigger 
+  //  instrumentation corresponding to each component node individually.
+  if (aggregate_) {
+    //cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
+    // << flat_name_.string_of() << endl;
+    //cerr << " (metricDefinitionNode::adjustManuallyTrigger()) aggregate = true" << endl;
+    for (i=0; i < components.size(); i++) {
+      components[i]->adjustManuallyTrigger();
+    }
+  } 
+  // non-aggregate:
+  else {
+    //cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
+    //	 << flat_name_.string_of() << "aggregate = false, instRequests.size = "
+    //	 << instRequests.size() << endl;
+    assert(proc_); // proc_ should always be correct for non-aggregates
+    const function_base *mainFunc = proc_->getMainFunction();
+    assert(mainFunc); // processes should always have mainFunction defined
 #ifndef OLD_CATCHUP
-	vector<Address> stack_pcs = proc_->walkStack();
-	if( stack_pcs.size() == 0 )
-		cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
-	vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
-	proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
-	bool badReturnInst = false;
-
-	for(i=0;i<stack_funcs.size();i++) {
-	    stack_func = stack_funcs[i];
-	    stack_pc = stack_pcs[i];
-		//if( stack_func != NULL )
-		//	cerr << i << ": " << stack_func->prettyName() << "@" << (void*)stack_pc << endl;
-		//else
-		//	cerr << i << ": @" << (void*)stack_pc << endl;
-	    if (stack_func == NULL) continue;
-	    instPts.resize(0);
-	    instPts += const_cast<instPoint*>( stack_func->funcEntry(proc_) );
-	    instPts += stack_func->funcCalls(proc_);
-	    instPts += stack_func->funcExits(proc_);
-
-#if !(defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-      || defined(i386_unknown_linux2_0))
-		// If there is a function on the stack with relevant instPoints which we were
-		// not able to install return instances for, we don't want to manually trigger
-		// anything else further on the stack, as it could cause inconsistencies with
-		// metrics which rely on matching pairs of actions. - DAN
-		// **NOTE** we don't do this on x86, because we can always immediately insert
-		// a 'jump' to base tramp via. trap.  In addition, when we use a trap rather
-		// than a branch, the return instance is still NULL, and this code breaks. - DAN
-		for(j=1;j<instPts.size()&&!badReturnInst;j++) {
-			for(k=0;k<instRequests.size();k++) {
-				if( instPts[j] == instRequests[k].Point() ) {
-					if( instRequests[k].getRInstance() != NULL
-						&& !(instRequests[k].getRInstance()->Installed())
-						&& instPts[j]->triggeredExitingStackFrame(stack_func, stack_pc,
-												instRequests[k].When(), proc_ ) )
-					{
-						metric_cerr << "AdjustManuallyTrigger -- Bad return instance in "
-							 << stack_func->prettyName()
-							 << ", not manually triggering the rest of the stack." << endl;
-						badReturnInst = true;
-						break;
-					}
-				}
-			}
-		}
-#endif
-		if( badReturnInst )
-			break;
-
-	    for(j=0;j<instPts.size();j++) {
-	        point = instPts[j];
-		for(k=0;k<instRequests.size();k++) {
-		    if (point == instRequests[k].Point()) {
-		        if (point->triggeredInStackFrame(stack_func, stack_pc, 
-							 instRequests[k].When(), proc_ ))
-				{
-					metric_cerr << "AdjustManuallyTrigger -- catch-up needed for "
-								<< flat_name_ << " @ " << stack_func->prettyName() << endl;
-					manuallyTriggerNodes += &(instRequests[k]);
-				}
-		    }
-		}
+    vector<Address> stack_pcs = proc_->walkStack();
+    if( stack_pcs.size() == 0 )
+      cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
+    vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
+    proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
+    bool badReturnInst = false;
+    
+    for(i=0;i<stack_funcs.size();i++) {
+      stack_func = stack_funcs[i];
+      stack_pc = stack_pcs[i];
+      //if( stack_func != NULL )
+      //cerr << i << ": " << stack_func->prettyName() << "@" << (void*)stack_pc << endl;
+      //else
+      //cerr << i << ": @" << (void*)stack_pc << endl;
+      if (stack_func == NULL) continue;
+      instPts.resize(0);
+      instPts += const_cast<instPoint*>( stack_func->funcEntry(proc_) );
+      instPts += stack_func->funcCalls(proc_);
+      instPts += stack_func->funcExits(proc_);
+      
+#if !(defined(i386_unknown_nt4_0) \
+  || defined(i386_unknown_solaris2_5) \
+  || defined(i386_unknown_linux2_0))
+      // If there is a function on the stack with relevant instPoints which we were
+      // not able to install return instances for, we don't want to manually trigger
+      // anything else further on the stack, as it could cause inconsistencies with
+      // metrics which rely on matching pairs of actions. - DAN
+      // **NOTE** we don't do this on x86, because we can always immediately insert
+      // a 'jump' to base tramp via. trap.  In addition, when we use a trap rather
+      // than a branch, the return instance is still NULL, and this code breaks. - DAN
+      for(j=1;j<instPts.size()&&!badReturnInst;j++) {
+	for(k=0;k<instRequests.size();k++) {
+	  if( instPts[j] == instRequests[k].Point() ) {
+	    if( instRequests[k].getRInstance() != NULL
+		&& !(instRequests[k].getRInstance()->Installed())
+		&& instPts[j]->triggeredExitingStackFrame(stack_func, stack_pc,
+							  instRequests[k].When(), proc_ ) )
+	    {
+	      metric_cerr << "AdjustManuallyTrigger -- Bad return instance in "
+			  << stack_func->prettyName()
+			  << ", not manually triggering the rest of the stack." << endl;
+	      badReturnInst = true;
+	      break;
 	    }
+	  }
 	}
+      }
+#endif
+      if( badReturnInst )
+	break;
+      
+      for(j=0;j<instPts.size();j++) {
+	point = instPts[j];
+	for(k=0;k<instRequests.size();k++) {
+	  if (point == instRequests[k].Point()) {
+	    if (point->triggeredInStackFrame(stack_func, stack_pc, 
+					     instRequests[k].When(), proc_ ))
+	    {
+	      metric_cerr << "AdjustManuallyTrigger -- catch-up needed for "
+			  << flat_name_ << " @ " << stack_func->prettyName() << endl;
+	      manuallyTriggerNodes += &(instRequests[k]);
+	    }
+	  }
+	}
+      }
+    }
 
 #endif // !OLD_CATCHUP
 
-
-	// This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
-	// have not been set to manjually trigger by the above code.  Look at the 
-	// component_focus for the "Code" element, and see if there is any contraint.
-	// Then, for each InstReqNode in this MetricDefinitionNode which is at the entry
-	// point of main, and which has not been added to the manuallyTriggerNodes list,
-	// add it to the list.
-		for( j = 0; j < component_focus.size(); ++j )
-		if( component_focus[j][0] == "Code" && ( component_focus[j].size() == 1
-			|| ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
-		for( k = 0; k < instRequests.size(); ++k ) {
-			if( instRequests[ k ].Point()->iPgetFunction() == mainFunc ) {
-			if( !find( manuallyTriggerNodes, &(instRequests[k]), l ) ) {
+    
+    // This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
+    // have not been set to manjually trigger by the above code.  Look at the 
+    // component_focus for the "Code" element, and see if there is any contraint.
+    // Then, for each InstReqNode in this MetricDefinitionNode which is at the entry
+    // point of main, and which has not been added to the manuallyTriggerNodes list,
+    // add it to the list.
+    for( j = 0; j < component_focus.size(); ++j )
+      if( component_focus[j][0] == "Code" && ( component_focus[j].size() == 1 ||
+					       ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
+	for( k = 0; k < instRequests.size(); ++k ) {
+	  if( instRequests[ k ].Point()->iPgetFunction() == mainFunc ) {
+	    if( !find( manuallyTriggerNodes, &(instRequests[k]), l ) ) {
 #if defined(mips_sgi_irix6_4)
-				if( instRequests[ k ].Point()->type() == IPT_ENTRY )
+	      if( instRequests[ k ].Point()->type() == IPT_ENTRY )
 #elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-				if( instRequests[ k ].Point()->ipType == functionEntry )
+	      if( instRequests[ k ].Point()->ipType == functionEntry )
 #elif defined(rs6000_ibm_aix4_1)
-				if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
+	      if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
       || defined(i386_unknown_linux2_0)
-				if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
+	      if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
 #else
 #error Check for instPoint type == entry not implemented on this platform
 #endif
-				{
-					metric_cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
-								<< flat_name_ << " @ " << mainFunc->prettyName() << endl;
-					manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
-				}
-			}
-		}
-		}
-
-	}
+	      {
+		metric_cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
+			    << flat_name_ << " @ " << mainFunc->prettyName() << endl;
+		manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
+	      }
+	    }
+	  }
+	}   
+  }
 }
-
+ 
 // Look at the inst point corresponding to *this, and the stack.
 // If inst point corresponds a location which is conceptually "over"
 // the current execution frame, then set the manuallyTrigger flag

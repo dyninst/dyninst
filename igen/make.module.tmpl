@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.7 1998/04/01 02:51:50 wylie Exp $
+# $Id: make.module.tmpl,v 1.8 1999/08/09 05:38:41 csserra Exp $
 #
 
 USES_FLEX = true
@@ -23,9 +23,12 @@ ifdef CROSSCOMPILER
 SYSLIBS      += -lstdc++
 endif
 
-CXXFLAGS       += $(USEFULWARNINGS) 
+CXXFLAGS     += $(USEFULWARNINGS) 
+TFLAGS       += $(USEFULWARNINGS) 
+
+IFLAGS       += -I../$(PLATFORM) -I../src
 
 all:	$(TARGET)
 
 templates.o: ../src/templates.C 
-	$(CXX) $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C

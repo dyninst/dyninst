@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.26 1999/07/13 04:28:20 csserra Exp $
+// $Id: templates1.C,v 1.27 1999/08/09 05:37:20 csserra Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -67,7 +67,8 @@ class BPatch_field;
 
 #if defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/irixDL.h" // dsoEvent_t
-template class  vector<dsoEvent_t *>;
+template class  vector<pdDsoEvent *>;
+template class  vector<pdElfObjInfo *>;
 template class  vector<vector<int> >;
 template class  vector<pdElfSym *>;
 #endif
@@ -165,12 +166,16 @@ template class vector< fastInferiorHeap<intCounterHK, intCounter> >;
 template class vector< fastInferiorHeap<wallTimerHK, tTimer> >;
 template class vector< fastInferiorHeap<processTimerHK, tTimer> >;
 
+#ifndef USES_NATIVE_CC
 #include "baseTable.C"
+#endif
 template class baseTable<intCounterHK, intCounter>;
 template class baseTable<wallTimerHK, tTimer>;
 template class baseTable<processTimerHK, tTimer>;
 
+#ifndef USES_NATIVE_CC
 #include "superVector.C"
+#endif
 template class superVector<intCounterHK, intCounter>;
 template class superVector<wallTimerHK, tTimer>;
 template class superVector<processTimerHK, tTimer>;
@@ -210,12 +215,6 @@ template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
 
 template class vector<BPatch_localVar *>;
 template class vector<BPatch_field *>;
-template class dictionary_hash <string, BPatch_type *>;
-template class dictionary_hash <int, BPatch_type *>;
-
-template class dictionary_hash_iter <string, BPatch_type *>;
-template class dictionary_hash_iter <int, BPatch_type *>;
-
 #endif
 
 template class dictionary_hash <string, vector<string>*>;

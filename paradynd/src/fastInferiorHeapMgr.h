@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapMgr.h,v 1.4 1999/07/07 16:16:03 zhichen Exp $
+// $Id: fastInferiorHeapMgr.h,v 1.5 1999/08/09 05:42:11 csserra Exp $
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
 // Formerly, each fastInferiorHeap would create its own shm-segment.
 // But this created too many segments.  This class creates a single shm segment,
@@ -52,15 +52,17 @@
 #include "fastInferiorHeap.h"
 
 class fastInferiorHeapMgr {
- private:
-   enum space {paradynd, applic};
-
+ public:
    // The following structure contains all that this class needs to know about
    // a given fastInferiorHeap contained within us:
    struct oneHeapStats {
       unsigned elemNumBytes;
       unsigned maxNumElems;
    };
+
+ private:
+   enum space {paradynd, applic};
+
    vector<oneHeapStats> theHeapStats;
 
    static unsigned cookie;

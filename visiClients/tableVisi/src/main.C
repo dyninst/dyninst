@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.14 1999/07/13 17:16:10 pcroth Exp $
+// $Id: main.C,v 1.15 1999/08/09 05:45:49 csserra Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -48,6 +48,7 @@
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
 #include "util/h/pddesc.h"
+#include "util/h/Types.h" // Address
 #include "visi/h/visualization.h"
 
 #include "tcl.h"
@@ -146,11 +147,12 @@ int main(int argc, char **argv) {
 //      panic("Dg2_Init() -- couldn't install PHASEINFO callback");
 
 	// install a handler to notify us when there is data to be read
-	Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
-	Tcl_CreateChannelHandler( visi_chan,
-								TCL_READABLE,
-								(Tcl_FileProc*)visiFdReadableHandler,
-								0);
+	Tcl_Channel visi_chan = 
+	  Tcl_MakeTcpClientChannel((ClientData)(Address)(PDDESC)visi_sock);
+	Tcl_CreateChannelHandler(visi_chan,
+				 TCL_READABLE,
+				 (Tcl_FileProc*)visiFdReadableHandler,
+				 0);
 
    // Krishna's tcl2c stuff:
    extern int initialize_tcl_sources(Tcl_Interp *);

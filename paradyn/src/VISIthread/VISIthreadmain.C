@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.83 1999/05/25 22:35:46 nash Exp $
+// $Id: VISIthreadmain.C,v 1.84 1999/08/09 05:41:19 csserra Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -802,8 +802,9 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
         // trace data streams
         flush_traceBuffer_if_nonempty(ptr);
 
-        unsigned newMaxBufferSize = min<unsigned>(ptr->buffer.size()+numEnabled,
-					DM_DATABUF_LIMIT);
+        unsigned nbufs = ptr->buffer.size() + numEnabled;
+        unsigned lim = (unsigned)DM_DATABUF_LIMIT;
+        unsigned newMaxBufferSize = (nbufs < lim) ? (nbufs) : (lim);
         ptr->buffer.resize(newMaxBufferSize); // new
 
         // trace data streams

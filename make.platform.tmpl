@@ -1,0 +1,78 @@
+#
+# $Id: make.platform.tmpl,v 1.1 1999/08/09 05:36:15 csserra Exp $
+# make.platform.tmpl: toplevel, platform-specific make configuration
+#
+
+### mips-sgi-irix6.4 flags
+ifeq ($(PLATFORM),mips-sgi-irix6.4)
+
+### platform flags (both compilers)
+AS            = as -64
+ASFLAGS      := $(filter-out -P,$(ASFLAGS))
+TCLTK_DIR     = /p/paradyn/packages/tcl8.0p2
+
+
+ifndef USES_NATIVE_CC
+
+### generic "-64" binaries (default)
+CC            = gcc -mabi=64
+CXX           = g++ -mabi=64
+MODCC         = g++ -mabi=64
+### generic "-n32" binaries
+CC2           = gcc -mabi=n32
+MODCC2        = g++ -mabi=n32
+LD2           = ld -n32
+### generic flags
+OPT_FLAG      =
+LDFLAGS      += -Wl,-woff,131 -Wl,-woff,85
+
+else # USES_NATIVE_CC
+
+### native "-64" binaries (default)
+CC            = cc -64
+CXX           = CC -64
+MODCC         = CC -64
+### native "-n32" binaries
+CC2           = cc -n32
+MODCC2        = CC -n32
+LD2           = CC -n32
+### filter non-native flags
+# -fno-implicit-templates
+# -fexternal-templates
+# -fPIC
+# $(BASICWARNINGS)
+# $(COMMONWARNINGS)
+# $(USEFULWARNINGS)
+# $(TCLFRIENDLYWARNINGS)
+CFLAGS          := $(filter-out -f%,$(CFLAGS))
+CXXFLAGS        := $(filter-out -f%,$(CXXFLAGS))
+KFLAGS          := $(filter-out -f%,$(KFLAGS))
+TFLAGS          := $(filter-out -f%,$(TFLAGS))
+CFLAGS          := $(filter-out -W%,$(CFLAGS))
+CXXFLAGS        := $(filter-out -W%,$(CXXFLAGS))
+KFLAGS          := $(filter-out -W%,$(KFLAGS))
+TFLAGS          := $(filter-out -W%,$(TFLAGS))
+#LIBS            := $(filter-out -lstdc++,$(LIBS))
+SYSLIBS         := $(filter-out -lstdc++,$(SYSLIBS))
+DEPENDFLAGS     := $(subst -MM,-M,$(DEPENDFLAGS))
+### native flags
+NATIVE_FLAGS    += -DUSES_NATIVE_CC
+NATIVE_FLAGS    += -D__LONGLONG
+NATIVE_FLAGS    += -Dvfork=fork
+NATIVE_FLAGS    += -woff 1155
+NATIVE_FLAGS    += -Xcpluscomm
+NATIVE_CXXFLAGS += -LANG:ansi-for-init-scope=ON
+NATIVE_CXXFLAGS += -woff 3303
+CFLAGS          += $(NATIVE_FLAGS)
+CXXFLAGS        += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+TFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+KFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+### native linking
+LIBDIR          += -L/usr/local/lib64
+### native optimization
+ifndef NO_OPT_FLAG
+OPT_FLAG        += -OPT:Olimit=0
+endif
+
+endif # USES_NATIVE_CC
+endif # mips-sgi-irix6.4

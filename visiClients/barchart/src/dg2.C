@@ -42,7 +42,7 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.23 1999/07/13 17:15:59 pcroth Exp $ */
+/* $Id: dg2.C,v 1.24 1999/08/09 05:45:47 csserra Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
@@ -53,6 +53,7 @@
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
 #include "util/h/pddesc.h"
+#include "util/h/Types.h" // Address
 
 #include "tcl.h"
 #include "tk.h"
@@ -303,11 +304,12 @@ int Dg2_Init(Tcl_Interp *interp) {
  
    // Arrange for my_visi_callback() to be called whenever data is waiting
    // to be read from visi socket
-   Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
-   Tcl_CreateChannelHandler( visi_chan,
-							TCL_READABLE,
-							(Tcl_FileProc*)my_visi_callback,
-							0);
+   Tcl_Channel visi_chan = 
+     Tcl_MakeTcpClientChannel((ClientData)(Address)(PDDESC)visi_sock);
+   Tcl_CreateChannelHandler(visi_chan,
+			    TCL_READABLE,
+			    (Tcl_FileProc*)my_visi_callback,
+			    0);
 
    return TCL_OK;
 }

@@ -40,36 +40,8 @@
  */
 
 /*
- *  DGclient.C -- Code for the visi<->tcl interface.
- *    
- * $Log: DGclient.C,v $
- * Revision 1.19  1999/03/13 15:24:15  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.18  1997/09/24 19:32:49  tamches
- * Tcl_GetFile() no longer used in tcl 8.0
- *
- * Revision 1.17  1996/08/16 21:37:39  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.16  1996/08/05 07:13:24  tamches
- * update for tcl 7.5
- *
- * Revision 1.15  1996/04/04 22:28:58  newhall
- * changed type of args to visi_DefinePhase to match visi interface
- *
- * Revision 1.14  1996/02/23  17:51:11  tamches
- * DEFINEPHASE now takes 3 params instead of 1
- *
- * Revision 1.13  1996/02/11 21:25:09  tamches
- * added param to start-phase
- *
- * Revision 1.12  1996/01/26 22:02:00  newhall
- * added myphasename, myphasestartT, myphasehandle
- *
- * Revision 1.11  1996/01/19  20:56:29  newhall
- * changes due to visiLib interface changes
- *
+ * $Id: DGclient.C,v 1.20 1999/08/09 05:45:51 csserra Exp $
+ * DGclient.C -- Code for the visi<->tcl interface.
  */
 
 #include <stdlib.h>
@@ -78,6 +50,7 @@
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
 #include "util/h/pddesc.h"
+#include "util/h/Types.h" // Address
 #include "visi/h/visualization.h"
 
 #include "tcl.h"
@@ -437,11 +410,12 @@ int Dg_Init(Tcl_Interp *interp) {
  
 	// Arrange for my_visi_callback() to be called whenever data is waiting
 	// to be read off of descriptor "visi_sock".
-	Tcl_Channel visi_chan = Tcl_MakeTcpClientChannel( (PDDESC)visi_sock );
-	Tcl_CreateChannelHandler( visi_chan,
-								TCL_READABLE,
-								(Tcl_FileProc*)my_visi_callback,
-								0);
+	Tcl_Channel visi_chan = 
+	  Tcl_MakeTcpClientChannel((ClientData)(Address)(PDDESC)visi_sock);
+	Tcl_CreateChannelHandler(visi_chan,
+				 TCL_READABLE,
+				 (Tcl_FileProc*)my_visi_callback,
+				 0);
 
   return TCL_OK;
 }

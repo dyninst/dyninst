@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.3 1999/07/26 21:48:00 cain Exp $
+// $Id: callGraphDisplay.h,v 1.4 1999/08/09 05:41:15 csserra Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -146,8 +146,8 @@ class callGraphDisplay {
 
    static void sliderMouseMotion(ClientData cd, XEvent *eventPtr);
    static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);
-   void callGraphDisplay::recursiveChangeNameStyle(where4tree<callGraphRootNode> *ptr, 
-						   bool fullName);
+   void recursiveChangeNameStyle(where4tree<callGraphRootNode> *ptr, 
+				 bool fullName);
  protected:
    void rethink_nominal_centerx();
    

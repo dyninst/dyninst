@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.2 1999/07/13 04:33:41 csserra Exp $ */
+/* $Id: RTetc-irix.c,v 1.3 1999/08/09 05:43:22 csserra Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -54,10 +54,10 @@
 #include <unistd.h>                   /* procfs, sbrk() */
 #include <sys/procfs.h>               /* procfs */
 #include <dlfcn.h>                    /* dlopen() */
-#include <invent.h>                   /* getinvent() */
 #include <sys/syssgi.h>               /* free running cycle counter */
 #include <time.h>                     /* clock(), clock_getres() */
 #include <sys/timers.h>               /* PTIMER macros */
+#include <invent.h>                   /* getinvent() */
 
 
 /*
@@ -86,9 +86,33 @@ static unsigned long long mulMillion(unsigned long long in) {
    return result;
 }
 
-/* shared timer state */
+float DYNINSTos_cyclesPerSecond(void)
+{
+  float ret = 0.0;
+  
+  if (setinvent() != -1) {
+    unsigned raw = 0;
+    inventory_t *inv;
+    for (inv = getinvent(); inv != NULL; inv = getinvent()) {
+      /* only need PROCESSOR/CPUBOARD inventory entries */
+      if (inv->inv_class != INV_PROCESSOR) continue;
+      if (inv->inv_type != INV_CPUBOARD) continue;
+      /* check for clock speed mismatch */
+      if (raw == 0) raw = inv->inv_controller;
+      if (inv->inv_controller != raw) {
+	fprintf(stderr, "!!! non-uniform CPU speeds\n");
+	break;
+      }
+    }
+    endinvent();
+    ret = raw * (float)1000000.0; /* convert MHz to Hz */
+  }
+
+  return ret;
+}
+
+/* timer state */
 char       DYNINSTos_wallCtr_use = 0;
-/* local timer state */
 static int ctr_procFd            = -1;
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)
@@ -97,7 +121,7 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
   /*fprintf(stderr, "*** DYNINSTos_init()\n");*/
   sprintf(fname, "/proc/%i", getpid());
   /* TODO: avoid conflict with alternate versions of open() - necessary? */
-  if ((ctr_procFd = open(fname, O_RDWR)) == -1) {
+  if ((ctr_procFd = open(fname, O_RDONLY)) == -1) {
     perror("DYNINSTinitCPUtime - open()");
     abort();
   }  

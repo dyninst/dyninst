@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.92 1999/06/04 16:04:28 cain Exp $
+ * $Id: dataManager.I,v 1.93 1999/08/09 05:39:04 csserra Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -101,13 +101,13 @@ typedef void (*memoryInfoCallback)(perfStreamHandle handle,
                                 resourceHandle parent,
                                 vector<resourceHandle> *newResources) ;
 
-typedef enum batchMode { batchStart, batchEnd };
+typedef enum { batchStart, batchEnd } batchMode;
 
 typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
 
 typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width, phaseType);
 
-typedef enum appState { appRunning, appPaused, appExited };
+typedef enum { appRunning, appPaused, appExited } appState;
 
 typedef void (*appStateChangeCallback)(perfStreamHandle, appState state);
 

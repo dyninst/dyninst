@@ -48,6 +48,7 @@
 #include "visi/src/visiTypesP.h"
 #include "util/h/makenan.h"
 #include "visi/h/visualization.h"
+#include "util/h/Types.h" // Address
 
 #define MAXSTRINGSIZE  16*1024
 #define EVENTSIZE      FOLD+1
@@ -113,7 +114,7 @@ int visi_StartVisi(int argc,
 
   // call GetMetricResources with initial metric resource lists
   if(argc == 3)
-   visi_vp->GetMetricResource(argv[1],(int)argv[2],0);
+   visi_vp->GetMetricResource(argv[1],(int)(Address)argv[2],0);
   else
    visi_vp->GetMetricResource("",0,0);
   return(VISI_OK);

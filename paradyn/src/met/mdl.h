@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.21 1999/07/07 15:58:27 zhichen Exp $
+// $Id: mdl.h,v 1.22 1999/08/09 05:41:21 csserra Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -834,9 +834,9 @@ inline bool mdl_var::get_ith_element(mdl_var &ret, unsigned ith) const {
   case MDL_T_LIST_MODULE:
     assert(0); return false;
   default:
-    return false;
+    break;
   }
-  return true;
+  return false;
 }
 
 inline bool mdl_var::add_to_list(mdl_var& add_me) {

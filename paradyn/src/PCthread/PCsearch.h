@@ -40,57 +40,8 @@
  */
 
 /*
- * PCsearch.h
- *
- * State information required throughout a search.
- *
- * $Log: PCsearch.h,v $
- * Revision 1.16  1999/05/19 07:50:29  karavan
- * Added new shg save feature.
- *
- * Revision 1.15  1997/03/16 23:17:08  lzheng
- * Changes made for the value of observed cost
- *
- * Revision 1.14  1996/08/16 21:03:43  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.13  1996/07/26 18:02:39  karavan
- * added display of status if search throttled back.
- *
- * Revision 1.12  1996/07/24 20:10:38  karavan
- * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
- * now zero'd at phase boundary.
- *
- * Revision 1.11  1996/07/22 18:55:45  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.10  1996/05/15 04:35:19  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.9  1996/05/11 01:58:04  karavan
- * fixed bug in PendingCost calculation.
- *
- * Revision 1.8  1996/05/08 07:35:27  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.7  1996/04/30 06:26:44  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
+ * $Id: PCsearch.h,v 1.17 1999/08/09 05:40:36 csserra Exp $
+ * PCsearch.h: State information required throughout a search.
  */
 
 #ifndef pc_search_h
@@ -99,7 +50,7 @@
 #include "PCmetricInst.h"
 #include "PCshg.h"
 
-typedef enum schState {schNeverRun, schPaused, schRunning, schEnded};
+typedef enum {schNeverRun, schPaused, schRunning, schEnded} schState;
 typedef unsigned SearchQKey;
 
 class costModule;

@@ -43,6 +43,10 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.10  1999/08/09 05:41:12  csserra
+ * - added support for (mips-sgi-irix6.4) native compiler build
+ * - eliminated misc. compiler warnings
+ *
  * Revision 1.9  1999/06/08 05:53:00  csserra
  * ctor missing member initialization
  *
@@ -86,8 +90,8 @@
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
 
-typedef enum tunableUse { developerConstant, userConstant };
-typedef enum tunableType { tunableBoolean, tunableFloat };
+typedef enum { developerConstant, userConstant } tunableUse;
+typedef enum { tunableBoolean, tunableFloat } tunableType;
 
 typedef bool (*isValidFunc)(float newVal);
 typedef void (*booleanChangeValCallBackFunc)(bool value);

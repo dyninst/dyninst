@@ -51,9 +51,9 @@ class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
 
-typedef enum BPatchErrorLevel {
+typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
-};
+} BPatchErrorLevel;
 
 typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 				    int number,

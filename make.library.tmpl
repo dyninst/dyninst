@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.15 1999/06/08 04:53:41 csserra Exp $
+# $Id: make.library.tmpl,v 1.16 1999/08/09 05:36:14 csserra Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -122,6 +122,7 @@ depend:
 # all the time.  We do need to build the Igen-generated files before
 # updating DEPENDS, however,
 #
+DEPENDFLAGS = -MM
 ifdef IGEN_ISRCS
 ifdef EXPLICIT_DEPENDS
 DEPENDS:
@@ -131,7 +132,7 @@ endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
 	$(MAKE) $(SRCS)
-	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
 ifdef EXPLICIT_DEPENDS
@@ -141,10 +142,11 @@ DEPENDS: $(SRCS)
 endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
+### TODO: remove this in favor of native compiler support
 ifeq ($(MODCC),cc)
 	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
-	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
@@ -171,3 +173,6 @@ pure:
 # include the dependencies.
 #
 include DEPENDS
+
+# platform-specific options
+include $(TO_CORE)/make.platform.tmpl

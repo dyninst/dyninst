@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.3 1999/07/26 21:47:33 cain Exp $
+// $Id: CallGraph.C,v 1.4 1999/08/09 05:40:07 csserra Exp $
 
 #include "CallGraph.h"
 #include "paradyn/src/met/mdl.h"
 #include "dyninstAPI/src/util.h"
 #include "paradyn/src/pdMain/paradyn.h"
+#include "util/h/Types.h" // Address
 // constructors for static data members in call graph class....
 dictionary_hash<int, CallGraph *> CallGraph::directory(intHash);
 resource *CallGraph::rootResource = NULL;
@@ -54,7 +55,7 @@ int CallGraph::last_id_issued = 0;
 //  hashing....
 static inline unsigned hash_dummy(resource * const &r) {
     const resource *p = r;
-    unsigned int u = (unsigned int)p;
+    unsigned u = (unsigned)(Address)p;
     return u;
 }
 

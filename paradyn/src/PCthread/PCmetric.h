@@ -45,6 +45,10 @@
  * The PCmetric class and the PCmetricInst class.
  * 
  * $Log: PCmetric.h,v $
+ * Revision 1.24  1999/08/09 05:40:36  csserra
+ * - added support for (mips-sgi-irix6.4) native compiler build
+ * - eliminated misc. compiler warnings
+ *
  * Revision 1.23  1999/03/03 18:15:15  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
@@ -86,12 +90,12 @@
 //      sampleValue value;
 //  };
 
-typedef enum PCmetricType {derived, simple};
+typedef enum {derived, simple} PCmetricType;
 typedef metricInstanceHandle PCmetDataID;
 typedef bool (*initPCmetricInstFunc)(focus foo);
 typedef sampleValue (*evalPCmetricInstFunc)(focus foo, sampleValue *data,
 					    int dataSize); 
-typedef enum focusType {cf, tlf};
+typedef enum {cf, tlf} focusType;
 struct metNameFocusStruct {
   const char *mname;
   focusType whichFocus;

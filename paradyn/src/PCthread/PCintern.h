@@ -45,6 +45,10 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.12  1999/08/09 05:40:35  csserra
+ * - added support for (mips-sgi-irix6.4) native compiler build
+ * - eliminated misc. compiler warnings
+ *
  * Revision 1.11  1999/03/03 18:15:14  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
@@ -157,7 +161,7 @@ typedef resourceListHandle focus;
 typedef metricInstanceHandle PCmetDataID;
 class experiment;
 typedef experiment* PCmetSubscriber;
-typedef enum filterType { averaging, nonfiltering}; 
+typedef enum { averaging, nonfiltering} filterType; 
 
 // known or "base" resources -- these don't vary across applications
 extern resourceHandle rootResource;

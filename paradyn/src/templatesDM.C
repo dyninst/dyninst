@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.16 1999/06/03 07:15:52 nash Exp $
+// $Id: templatesDM.C,v 1.17 1999/08/09 05:39:33 csserra Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -201,7 +201,6 @@ template class dictionary_hash<int, CallGraph *>;
 template class vector<CallGraph *>;
 template class vector<dictionary_hash<int, CallGraph*>::entry>;
 
-template class vector<resource *>;
 template class dictionary_hash <resource *, vector<resource *> >;
 template class vector< vector<resource *> >;
 template class vector<dictionary_hash<resource *, vector<resource*> >::entry>;

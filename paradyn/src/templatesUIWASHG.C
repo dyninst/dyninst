@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesUIWASHG.C,v 1.5 1999/05/24 17:01:55 cain Exp $
+// $Id: templatesUIWASHG.C,v 1.6 1999/08/09 05:39:34 csserra Exp $
 
 // templatesUIWASHG.C
 // templates in the UIthread related to the where axis and search history graph
@@ -99,8 +99,6 @@ template class vector<dictionary_hash<where4tree<shgRootNode> *, where4tree<shgR
 template class dictionary_hash< unsigned, vector<where4tree<shgRootNode>*> >;
 template class vector<dictionary_hash< unsigned, vector<where4tree<shgRootNode>*> >::entry>;
 template class vector< vector<where4tree<shgRootNode>*> >;
-template class vector<where4tree<shgRootNode>*>;
-
 
 template class vector<Tk_3DBorder>; // shg consts
  
@@ -126,8 +124,6 @@ template class vector<dictionary_hash<where4tree<callGraphRootNode> *, where4tre
 template class dictionary_hash< unsigned, vector<where4tree<callGraphRootNode>*> >;
 template class vector<dictionary_hash< unsigned, vector<where4tree<callGraphRootNode>*> >::entry>;
 template class vector< vector<where4tree<callGraphRootNode>*> >;
-template class vector<where4tree<callGraphRootNode>*>;
-
 
 
 

@@ -87,7 +87,6 @@
 
 template class  vector<pdThread *>;
 template class  vector< vector<pdThread *> >;
-template class  vector<Register>;
 template class  vector<bool>;
 template class  vector<AstNode>;
 template class  vector<AstNode *>;

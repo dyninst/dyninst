@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.49 1999/07/07 15:57:05 zhichen Exp $
+// $Id: DMresource.C,v 1.50 1999/08/09 05:40:09 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,7 +172,6 @@ resourceHandle *resource::findChild(const char *nm) const {
 	     resourceHandle *h = new resourceHandle;
 	     *h = children[i];
 	     return(h);
-	     h = 0;
         }
     }
     return(0);  // not found
@@ -330,10 +329,9 @@ bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags
 	        // is a function constraint so don't add it to the
 	        // list of lib constraints
 		char *next = P_strdup((temp[i].string_of()));
-		char *blah=0; 
-		if(next && (!(blah = P_strrchr(next, '/')))){
+		if(next && (!P_strrchr(next, '/'))){
 		    lib_constraints += string(next);
-			lib_constraint_flags += tmp_flags[i];
+		    lib_constraint_flags += tmp_flags[i];
 		}
 		delete next;
 	    }
@@ -362,8 +360,7 @@ bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsig
                 // if the string is of the form "blah/blah" then this
 	        // is a function constraint so add it to the list 
 		char *next = P_strdup((temp[i].string_of()));
-		char *blah=0; 
-		if(next && ((blah = P_strrchr(next, '/')))) {
+		if(next && (P_strrchr(next, '/'))) {
 		  u_int where = 0;
 		  u_int prev_where = where;
 		  for(u_int j=0; j< temp[i].length();j++){
@@ -845,7 +842,6 @@ const resourceListHandle *resourceList::find(const string &name){
         resourceList *res_list = allFoci[name]; 
 	const resourceListHandle *h = &res_list->id;
 	return(h);
-	res_list = 0;
     }
     return 0;
 
