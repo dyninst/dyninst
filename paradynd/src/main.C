@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.71 1998/04/06 04:27:05 wylie Exp $
+// $Id: main.C,v 1.72 1999/01/21 20:56:22 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -125,8 +125,10 @@ void cleanUpAndExit(int status) {
     PDYN_exit_pvm();
 #endif
 
+#if !defined(i386_unknown_nt4_0)
   // delete the trace socket file
   unlink(traceSocketPath.string_of());
+#endif
 
 #ifdef SHM_SAMPLING_DEBUG
    cerr << "paradynd cleanUpAndExit: deleting all process structures now" << endl;
