@@ -1,0 +1,26 @@
+#!/usr/local/bin/tcsh
+
+if($# > 1) then
+	echo "usage : $0 [<additional args>]"
+	exit
+endif
+
+
+set CWD=`pwd`
+echo $CWD
+
+cd $CWD/ijpeg
+echo "../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp"
+../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp
+if(-e core) then
+        echo "\tThe execution is terminated by Segmentation Fault"
+	rm -rf core
+endif
+
+cd $CWD/cc1
+echo "../../dyncov $1 --run ./cc1 `ls *.i`"
+../../dyncov $1 --run ./cc1 `ls *.i`
+if(-e core) then
+        echo "\tThe execution is terminated by Segmentation Fault"
+	rm -rf core
+endif
