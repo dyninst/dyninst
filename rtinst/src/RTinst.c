@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.79 2004/03/23 01:12:43 eli Exp $
+ * $Id: RTinst.c,v 1.80 2004/04/06 21:58:35 mirg Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1099,10 +1099,10 @@ DYNINSTresourceCreationInfo_Add( DYNINSTresourceCreationInfo* ci,
 #define DYNINSTNewTagsLimit   50 /* don't want to overload the system */
 
 typedef struct DynInstTag_st {
-  int   TagGroupId;                 /* group as used by the program */
-  int   TGUniqueId;                 /* our unique identifier for the group */
-  int   NumTags;                    /* number of tags in our TagTable */
-  int   TagTable[DYNINSTTagsLimit]; /* known tags for this group */
+  int      TagGroupId;                /* group as used by the program */
+  unsigned TGUniqueId;                /* our unique identifier for the group */
+  int      NumTags;                   /* number of tags in our TagTable */
+  int      TagTable[DYNINSTTagsLimit];/* known tags for this group */
   DYNINSTresourceCreationInfo	tagCreateInfo;	/* record of recent tag creations */
 
   struct DynInstTag_st* Next;       /* next defined group info struct */
@@ -1113,7 +1113,7 @@ typedef struct DynInstTag_st {
 typedef struct DynInstNewTagInfo_
 {
 	int tagId;                   /* id of new tag */
-	int groupId;                 /* group tag belongs to */
+	unsigned groupId;            /* group tag belongs to */
 	int isNewGroup;              /* is this the first time we saw this group? */
 } DynInstNewTagInfo;
 
@@ -1182,7 +1182,7 @@ void DYNINSTreportNewTags(void)
     
     if((TagGroupInfo.TagHierarchy) && (TagGroupInfo.NewTags[dx].isNewGroup)) {
       memset(&newRes, '\0', sizeof(newRes));
-      sprintf(newRes.name, "SyncObject/Message/%d",
+      sprintf(newRes.name, "SyncObject/Message/%u",
 	      TagGroupInfo.NewTags[dx].groupId);
       strcpy(newRes.abstraction, "BASE");
       newRes.mdlType = RES_TYPE_INT;
@@ -1195,7 +1195,7 @@ void DYNINSTreportNewTags(void)
     
     memset(&newRes, '\0', sizeof(newRes));
     if(TagGroupInfo.TagHierarchy) {
-      sprintf(newRes.name, "SyncObject/Message/%d/%d", 
+      sprintf(newRes.name, "SyncObject/Message/%u/%d", 
 	      TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].tagId);
       newRes.btype = MessageTagResourceType;
     } else {
@@ -1238,13 +1238,13 @@ void DYNINSTreportNewTags(void)
  ************************************************************************/
 static unsigned int rateCheck = 0;
 
-void DYNINSTrecordTagGroupInfo(int tagId, int groupId)
+void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
 {
   DynInstTagSt* tagSt;
   int           dx;
   int           newGroup;
-  int			tagDx = (tagId % DYNINSTTagsLimit);
-  int			groupDx = (groupId % DYNINSTTagGroupsLimit);
+  int		        tagDx = (tagId % DYNINSTTagsLimit);
+  unsigned		groupDx = (groupId % DYNINSTTagGroupsLimit);
   double		recentTagCreateRate;
   rawTime64		ts;
   
@@ -1396,17 +1396,15 @@ void DYNINSTrecordTag(int tagId)
   DYNINSTrecordTagGroupInfo(tagId, -1);
 }
 
-void DYNINSTrecordTagAndGroup(int tagId, int groupId)
+void DYNINSTrecordTagAndGroup(int tagId, unsigned groupId)
 {
   assert(tagId >= 0);
-  assert(groupId >= 0);
   TagGroupInfo.TagHierarchy = 1; /* TRUE; */
   DYNINSTrecordTagGroupInfo(tagId, groupId );
 }
 
-void DYNINSTrecordGroup(int groupId)
+void DYNINSTrecordGroup(unsigned groupId)
 {
-  assert(groupId >= 0);
   TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
   DYNINSTrecordTagGroupInfo(-1, groupId);
 }
@@ -1493,24 +1491,11 @@ int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_FindUniqueId(int groupId)
+int DYNINSTTGroup_FindUniqueId(unsigned groupId)
 {
-  int           groupDx;
+  unsigned      groupDx;
   DynInstTagSt* tagSt;
 
-  if ( groupId < 0 )
-  {
-    rtUIMsg traceData;
-    sprintf(traceData.msgString,
-            "Invalid group ID %d encountered.", groupId);
-    traceData.errorNum = 116;
-    traceData.msgType = rtWarning;
-    DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
-                               1, 1, 1);
-
-    return(-1);
-  }
-  
   groupDx = groupId % DYNINSTTagGroupsLimit;
 
   for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
