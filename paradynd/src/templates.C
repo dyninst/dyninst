@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.15  1995/05/18 10:42:54  markc
+ * Revision 1.16  1995/08/05 17:17:12  krisna
+ * added lots of missing templates
+ *
+ * Revision 1.15  1995/05/18  10:42:54  markc
  * removed unused templates
  *
  * Revision 1.14  1995/02/16  08:54:27  markc
@@ -80,14 +83,10 @@
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
 
+#pragma implementation "Symbol.h"
+#include "util/h/Symbol.h"
+
 #include "util/h/String.h"
-
-template class queue<T_dyninstRPC::buf_struct*>;
-template class vector<string>;
-template class vector<T_dyninstRPC::metricInfo>;
-
-template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
-template class vector<mdl_focus_element>;
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
 				       bool_t (*)(XDR*, u_int*), u_int*);
@@ -147,42 +146,64 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-template class List<sampleInfo*>;
+template class  List<sampleInfo*>;
 
+template class  queue<T_dyninstRPC::buf_struct*>;
+
+template class  vector<Symbol*>;
+template class  vector<Symbol>;
+template class  vector<T_dyninstRPC::mdl_constraint *>;
+template class  vector<T_dyninstRPC::mdl_expr *>;
+template class  vector<T_dyninstRPC::mdl_icode *>;
+template class  vector<T_dyninstRPC::mdl_metric *>;
+template class  vector<T_dyninstRPC::mdl_stmt *>;
+template class  vector<T_dyninstRPC::metricInfo>;
 template class  vector<dataReqNode*>;
+template class  vector<heapItem*>;
+template class  vector<image*>;
+template class  vector<instMapping*>;
+template class  vector<instPoint *>;
 template class  vector<instReqNode*>;
 template class  vector<internalMetric*>;
-template class  vector<instMapping*>;
-template class  vector<heapItem*>;
-template class  vector<process*>;
+template class  vector<mdl_focus_element>;
+template class  vector<mdl_type_desc>;
+template class  vector<mdl_var>;
+template class  vector<metricDefinitionNode *>;
+template class  vector<module *>;
 template class  vector<pdFunction*>;
-template class  vector<Symbol*>;
+template class  vector<process*>;
+template class  vector<string>;
 template class  vector<sym_data>;
-template class  vector<image*>;
+template class  vector<vector<string> >;
+template class  vector<watch_data>;
 
 template class  dictionary_hash <Address, Symbol*>;
 template class  dictionary_hash <instPoint*, point*>;
-template class  dictionary_hash <string, unsigned>;
-template class  dictionary_hash <string, resource*>;
 template class  dictionary_hash <instPoint*, unsigned>;
-template class  dictionary_hash <string, pdFunction*>;
-template class  dictionary_hash <unsigned, pdFunction*>;
-template class  dictionary_hash <string, vector<pdFunction*>*>;
+template class  dictionary_hash <string, Symbol>;
 template class  dictionary_hash <string, internalSym*>;
 template class  dictionary_hash <string, module *>;
-template class  dictionary_hash <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash <string, pdFunction*>;
+template class  dictionary_hash <string, resource*>;
+template class  dictionary_hash <string, unsigned>;
+template class  dictionary_hash <string, vector<pdFunction*>*>;
+template class  dictionary_hash <unsigned, Line>;
 template class  dictionary_hash <unsigned, heapItem*>;
+template class  dictionary_hash <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash <unsigned, pdFunction*>;
+template class  dictionary_hash <unsigned, resource *>;
+template class  dictionary_hash <unsigned, unsigned>;
+template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, point*>;
-template class  dictionary_hash_iter <string, unsigned>;
-template class  dictionary_hash_iter <string, resource*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <string, pdFunction*>;
-template class  dictionary_hash_iter <unsigned, pdFunction*>;
-template class  dictionary_hash_iter <string, vector<pdFunction*>*>;
 template class  dictionary_hash_iter <string, internalSym*>;
 template class  dictionary_hash_iter <string, module *>;
-template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash_iter <string, pdFunction*>;
+template class  dictionary_hash_iter <string, resource*>;
+template class  dictionary_hash_iter <string, unsigned>;
+template class  dictionary_hash_iter <string, vector<pdFunction*>*>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
-
+template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash_iter <unsigned, pdFunction*>;
