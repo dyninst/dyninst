@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: headers.h,v 1.16 2001/08/01 15:39:50 chadd Exp $
+// $Id: headers.h,v 1.17 2001/10/26 06:29:29 schendel Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -53,8 +53,6 @@
 extern "C" {
 typedef int (*xdr_rd_func)(void *, char *, int);
 typedef int (*xdr_wr_func)(void *, char *, int);
-typedef int (*const_xdr_rd_func)(const void *, char *, const int);
-typedef int (*const_xdr_wr_func)(const void *, const char *, const int);
 }
 #endif
 
