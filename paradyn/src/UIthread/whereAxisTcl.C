@@ -4,10 +4,13 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.6  1995/10/17 22:22:44  tamches
-/* abstractions is no longer a templated type.
-/* Other minor changes corresponding to new where axis commits.
+/* Revision 1.7  1996/01/09 23:56:19  tamches
+/* added whereAxisDrawTipsCallback
 /*
+ * Revision 1.6  1995/10/17 22:22:44  tamches
+ * abstractions is no longer a templated type.
+ * Other minor changes corresponding to new where axis commits.
+ *
  * Revision 1.5  1995/09/20 01:30:36  tamches
  * File size reduced by using some utilities in the new tkTools.C file
  *
@@ -28,8 +31,8 @@
  *
  */
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #ifndef PARADYN
@@ -381,6 +384,18 @@ int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
 
    return TCL_OK;
 }
+
+/* ******************************************************************** */
+
+#ifdef PARADYN
+void whereAxisDrawTipsCallback(bool newValue) {
+   extern Tcl_Interp *interp;
+   if (newValue)
+      myTclEval(interp, "whereAxisDrawTips");
+   else
+      myTclEval(interp, "whereAxisEraseTips");
+}
+#endif
 
 /* ******************************************************************** */
 
