@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.11 1994/08/08 20:13:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.12 1994/09/22 02:26:40 markc Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.11  1994/08/08 20:13:47  hollings
+ * Revision 1.12  1994/09/22 02:26:40  markc
+ * Made structs classes
+ *
+ * Revision 1.11  1994/08/08  20:13:47  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.10  1994/08/02  18:25:07  hollings
@@ -84,39 +87,52 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *
  */
 
+extern "C" {
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <memory.h>
+}
 
-#include "dyninst.h"
+#include "util/h/list.h"
 #include "symtab.h"
 #include "util.h"
+#include "dyninstP.h"
 
-resource moduleRoot;
+resource *moduleRoot;
 extern "C" char *cplus_demangle(char *, int);
 static image *allImages;
-stringPool pool;
+extern stringPool pool;
+
+extern image *loadSymTable(const char *file, int offset, List<libraryFunc*> libraryFunctions, 
+			   const char **iSym);
 
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
-extern libraryList libraryFunctions;
+extern List<libraryFunc*> libraryFunctions;
 
-void processLine(module *mod, int line, caddr_t addr)
+/* store text address of source code line numbers */
+void lineTable::setLineAddr(int line, caddr_t lineAddr)
 {
+  if (line < 0) {
+    sprintf(errorLine, "symbol table entry: N_SLINE, line#=%d, addr=%x\n",
+	    line, (unsigned)lineAddr);
+    logLine(errorLine);
+    return;
+  }
+  if (line >= maxLine) {
     int increment;
-
-    if (line >= mod->lines.maxLine) {
-	mod->lines.addr = (caddr_t *) 
-	    xrealloc(mod->lines.addr, sizeof(caddr_t)*(line+100));
-	increment = line+100 - mod->lines.maxLine;
-	memset(&mod->lines.addr[mod->lines.maxLine],'\0',sizeof(int)*increment);
-	mod->lines.maxLine = line+100;
-    }
-    mod->lines.addr[line] = addr;
+    int moreLines = line - maxLine + 100;
+    addr = (caddr_t *) xrealloc(addr, sizeof(caddr_t)*(moreLines + maxLine));
+    increment = moreLines;
+    memset((char*)&addr[maxLine],'\0',sizeof(caddr_t)*increment);
+    maxLine = moreLines;
+  }
+  addr[line] = lineAddr;
 }
 
-module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
+module *newModule(image *curr, const char *currentDirectory, const char *name, caddr_t addr)
 {
     module *ret;
     char fileName[255];
@@ -128,7 +144,7 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
 	return(ret);
     }
 
-    ret = (module *) xcalloc(1, sizeof(image));
+    ret = new module;
     sprintf(fileName, "%s%s", currentDirectory, name);
     ret->compileInfo = NULL;
     ret->fullName = pool.findAndAdd(fileName);
@@ -137,9 +153,6 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
     ret->addr = addr;
     ret->exec = curr;
     ret->next = curr->modules;
-
-    ret->lines.maxLine = 100;
-    ret->lines.addr = (caddr_t *) xcalloc(100, sizeof(caddr_t));
 
     curr->modules = ret;
     curr->moduleCount++;
@@ -157,7 +170,7 @@ module *moduleFindOrAdd(image *exec, caddr_t addr, char *name)
     }
     sprintf(errorLine, "warning no symbol table for module %s\n", name);
     logLine(errorLine);
-    curr = (module *) xcalloc(1, sizeof(module));
+    curr = new module;
     curr->fileName = pool.findAndAdd(name);
     curr->fullName = NULL;
     curr->language = unknown;
@@ -167,12 +180,12 @@ module *moduleFindOrAdd(image *exec, caddr_t addr, char *name)
     return(curr);
 }
 
-char *buildDemangledName(function *func)
+stringHandle buildDemangledName(pdFunction *func)
 {
     char *tempName;
-    char *prettyName;
+    stringHandle prettyName;
 
-    tempName = cplus_demangle(func->symTabName, 0);
+    tempName = cplus_demangle((char*)func->symTabName, 0);
     if (tempName) {
 	prettyName = pool.findAndAdd(tempName);
 	free(tempName);
@@ -182,9 +195,9 @@ char *buildDemangledName(function *func)
     return(prettyName);
 }
 
-function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
+pdFunction *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 {
-    function *func;
+    pdFunction *func;
 
     for (func = exec->funcs; func; func=func->next) {
 	if (func->addr == addr) {
@@ -192,7 +205,7 @@ function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 	}
     }
 
-    func = (function *) xcalloc(1, sizeof(function));
+    func = new pdFunction;
     func->symTabName = pool.findAndAdd(name);
     func->prettyName = buildDemangledName(func);
     func->line = UNKNOWN_LINE;	
@@ -207,15 +220,15 @@ function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
     return(func);
 }
 
-function *newFunc(image *exec, module *mod, char *name, int addr)
+pdFunction *newFunc(image *exec, module *mod, const char *name, int addr)
 {
     char *p;
-    function *func;
+    pdFunction *func;
 
     if (!mod) {
 	logLine("Error function without module\n");
     }
-    func = (function *) xcalloc(1, sizeof(function));
+    func = new pdFunction;
 
     if (exec->funcAddrHash.find((void *) addr)) {
 	sprintf(errorLine, "function defined twice\n");
@@ -246,7 +259,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
  * List of prefixes for internal symbols we need to find.
  *
  */
-char *internalPrefix[] = {
+const char *internalPrefix[] = {
     "DYNINST",
     "TRACELIB",
     NULL
@@ -268,10 +281,10 @@ image *parseImage(char *file, int offset)
     image *ret;
     module *mod;
     Boolean status;
-    function *func;
+    pdFunction *func;
     caddr_t endUserAddr;
-    List<function*> curr;
-    resource modResource;
+    List<pdFunction*> curr;
+    resource *modResource;
     caddr_t startUserAddr;
     internalSym *endUserFunc;
     internalSym *startUserFunc;
@@ -282,7 +295,7 @@ image *parseImage(char *file, int offset)
      *
      */
     for (ret=allImages; ret; ret = ret->next) {
-	if (!strcmp(ret->file, file) && (ret->offset == offset)) {
+	if (!strcmp((char*)ret->file, file) && (ret->offset == offset)) {
 	    return(ret);
 	}
     }
@@ -308,7 +321,7 @@ image *parseImage(char *file, int offset)
     allImages = ret;
 
     /*
-     * mark as lib, library functions that were compiled with symbols.
+     * mark as lib, library pdFunctions that were compiled with symbols.
      *
      */
     startUserFunc = findInternalSymbol(ret, "DYNINSTstartUserCode", False);
@@ -358,25 +371,30 @@ image *parseImage(char *file, int offset)
 		// see if we have created module yet.
 		if (!modResource) {
 		    modResource = newResource(moduleRoot, mod, NULL, 
-			mod->fileName, 0.0, FALSE);
+			(const char*) mod->fileName, 0.0, FALSE);
 		}
 		(void) newResource(modResource, func, NULL, 
-		    func->prettyName,0.0,FALSE);
+		    (const char*) func->prettyName,0.0,FALSE);
 	    } else {
 		func->tag |= TAG_LIB_FUNC;
 	    }
 	}
     }
 
-    free(ret->code);
+    /* this may not be heap allocated memory, comment out for now */
+    /* will look at this later */
+    /* zero out ret->code so it can't be followed - mdc */
+    /* free(ret->code); */
+    ret->code = 0;
+
     return(ret);
 }
 
 
-internalSym *findInternalSymbol(image *i, char *name, Boolean warn)
+internalSym *findInternalSymbol(image *i, const char *name, Boolean warn)
 {
     int count;
-    char *iName;
+    stringHandle iName;
 
     iName = pool.findAndAdd(name);
     for (count = 0; count < i->iSymCount; count++) {
@@ -392,10 +410,10 @@ internalSym *findInternalSymbol(image *i, char *name, Boolean warn)
     return(NULL);
 }
 
-caddr_t findInternalAddress(image *i, char *name, Boolean warn)
+caddr_t findInternalAddress(image *i, const char *name, Boolean warn)
 {
     int count;
-    char *iName;
+    stringHandle iName;
     internalSym *curr;
 
     iName = pool.findAndAdd(name);
@@ -411,9 +429,9 @@ caddr_t findInternalAddress(image *i, char *name, Boolean warn)
     return(NULL);
 }
 
-module *findModule(image *i, char *name)
+module *findModule(image *i, const char *name)
 {
-    char *iName;
+    stringHandle iName;
     module *mod;
 
     iName = pool.findAndAdd(name);
@@ -431,10 +449,10 @@ module *findModule(image *i, char *name)
 // Warning the sibling code depends on findFunction working down the
 //    function list in order!!  
 //
-function *findFunction(image *i, char *name)
+pdFunction *findFunction(image *i, const char *name)
 {
-    char *iName;
-    function *func;
+    stringHandle iName;
+    pdFunction *func;
 
     iName = pool.findAndAdd(name);
     for (func = i->funcs; func; func=func->next) {
@@ -447,9 +465,9 @@ function *findFunction(image *i, char *name)
     return(NULL);
 }
 
-function *findFunctionByAddr(image *i, caddr_t addr)
+pdFunction *findFunctionByAddr(image *i, caddr_t addr)
 {
-    function *func;
+    pdFunction *func;
 
     func = i->funcAddrHash.find((void *) addr);
 #ifdef notdef
@@ -463,23 +481,19 @@ function *findFunctionByAddr(image *i, caddr_t addr)
     return(func);
 }
 
-int intComp(int *i, int *j)
-{
-    return(*i - *i);
-}
 
 void mapLines(module *mod)
 {
     int j;
-    function *func;
-    List<function*> curr;
+    pdFunction *func;
+    List<pdFunction*> curr;
 
     if (!mod) return;
 
-    qsort(mod->lines.addr, mod->lines.maxLine, sizeof(int), intComp);
+    mod->lines.qsortLines();
     for (curr = mod->funcs; func = *curr; curr++) {
-	for (j=0; j < mod->lines.maxLine; j++) {
-	    if (func->addr <= (caddr_t) mod->lines.addr[j]) {
+	for (j=0; j < mod->lines.getMaxLine(); j++) {
+	    if (func->addr <= (caddr_t) mod->lines.getLineAddr(j)) {
 		func->line = j;
 		break;
 	    }
@@ -487,12 +501,12 @@ void mapLines(module *mod)
     }
 }
 
-void changeLibFlag(resource res, Boolean setSuppress)
+void changeLibFlag(resource *res, Boolean setSuppress)
 {
     image *ret;
     module *mod;
-    function *func;
-    List<function*> curr;
+    pdFunction *func;
+    List<pdFunction*> curr;
 
     for (ret=allImages; ret; ret = ret->next) {
 	mod = findModule(ret, res->getName());
@@ -516,4 +530,50 @@ void changeLibFlag(resource res, Boolean setSuppress)
 	    }
 	}
     }
+}
+
+image::image()
+{
+  file = NULL;
+  name = NULL;
+  moduleCount = 0;
+  modules = NULL;
+  funcCount = 0;
+  funcs = NULL;
+  iSymCount=0;
+  iSyms = NULL;
+  code = NULL;
+  textOffset = 0;
+  offset  = 0;
+  next = 0;
+}
+
+module::module()
+{
+  compileInfo = NULL;
+  fileName = NULL;
+  fullName = NULL;
+  language = unknown;
+  addr = 0;
+  exec = 0;
+  next = 0;
+}
+
+pdFunction::pdFunction()
+{
+  symTabName = NULL;
+  prettyName = NULL;
+  line = 0;
+  file = NULL;
+  addr = 0;
+  funcEntry = NULL;
+  funcReturn = NULL;
+  callLimit = 0;
+  callCount = 0;
+  calls = NULL;
+  ljmpCount = 0;
+  jmps = NULL;
+  tag = 0;
+  next = NULL;
+  sibling = NULL;
 }

@@ -7,7 +7,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.5  1994/08/02 18:25:08  hollings
+ * Revision 1.6  1994/09/22 02:26:56  markc
+ * Made structs classes
+ *
+ * Revision 1.5  1994/08/02  18:25:08  hollings
  * fixed modules to use list template for lists of functions.
  *
  * Revision 1.4  1994/07/22  19:21:11  hollings
@@ -41,11 +44,17 @@
  *
  *
  */
+
+extern "C" {
 #include <sys/types.h>
+#include <stdlib.h>
+}
 
 #include "util/h/stringPool.h"
 #include "util/h/list.h"
 #include "dyninst.h"
+#include "arch-sparc.h"
+#include "util.h"
 
 /*
  * List of supported languages.
@@ -54,26 +63,107 @@
 typedef enum { unknown, assembly, C, cPlusPlus, gnuCPlusPlus,
     fortran, CMFortran } supportedLanguages;
 
-typedef struct functionRec function;
-typedef struct moduleRec module;
-typedef struct instPointRec instPoint;
-typedef struct imageRec image;
-
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 #define NO_SYMS_MODULE	"NO_SYMS_MODULE"
 
-typedef struct {
+class pdFunction;
+class instPoint;
+class module;
+class image;
+class internalSym;
+
+class pdFunction {
+ public:
+    pdFunction();
+    stringHandle symTabName;		/* name as it appears in the symbol table */
+    stringHandle prettyName;		/* user's view of name (i.e. de-mangled) */
+    int line;			/* first line of function */
+    module *file;		/* pointer to file that defines func. */
+    caddr_t addr;		/* address of the start of the func */
+    instPoint *funcEntry;	/* place to instrument entry (often not addr) */
+    instPoint *funcReturn;	/* exit point for function */
+    int callLimit;		/* max val of calls array */
+    int callCount;		/* number of sub-routine cal points */
+    instPoint **calls;		/* pointer to the calls */
+    int ljmpCount;		/* number of long jumps out of func */
+    instPoint *jmps;		/* long jumps out */
+    int tag;			/* tags to ident special (library) funcs. */
+    pdFunction *next;		/* next function in global function list */
+    pdFunction *sibling;		/* next function with the same name - WARNING
+					we assume name equality so this
+					could either be c++ template functions
+					beging replicated or other non global
+					functions that appear twice.
+				*/
+};
+
+
+class instPoint {
+ public:
+    instPoint() {
+      addr = 0; originalInstruction.raw = 0; delaySlotInsn.raw = 0;
+      aggregateInsn.raw =0;
+      inDelaySlot=0; isDelayed = 0; callIndirect=0; callAggregate=0;
+      callee=NULL; func=NULL;
+    }
+    int addr;                   /* address of inst point */
+    instruction originalInstruction;    /* original instruction */
+    instruction delaySlotInsn;  /* original instruction */
+    instruction aggregateInsn;  /* aggregate insn */
+    int inDelaySlot;            /* Is the instruction in a dealy slot */
+    int isDelayed;		/* is the instruction a delayed instruction */
+    int callIndirect;		/* is it a call whose target is rt computed ? */
+    int callAggregate;		/* calling a func that returns an aggregate
+				   we need to reolcate three insns in this case
+				 */
+    pdFunction *callee;		/* what function is called */
+    pdFunction *func;		/* what function we are inst */
+};
+
+
+/* Stores source code to address in text association for modules */
+class lineTable {
+ public:
+    lineTable() {
+      maxLine = 100;
+      addr = (caddr_t *) xcalloc(100, sizeof(caddr_t));
+    }
+    ~lineTable() {
+      if (addr)
+	free(addr);
+    }
+    void qsortLines() {
+      qsort(addr, maxLine, sizeof(int), intComp);
+    }
+    int getMaxLine() { return maxLine;}
+    void setLineAddr (int line, caddr_t lineAddr);
+    caddr_t getLineAddr (int line) {
+      if ((line >= 0) && (line < maxLine))
+	return (addr[line]);
+      else
+	return (NULL);
+    }
+
+  private:
     int maxLine;		/* max possible line */
     caddr_t *addr;		/* addr[line] is the addr of line */
-} lineTable;
+};
 
-struct moduleRec {
+class module {
+ public:
+    module();
+    void setLineAddr(int line, caddr_t addr) {
+      lines.setLineAddr(line, addr);
+    }
+    caddr_t getLineAddr(int line) {
+      return (lines.getLineAddr(line));
+    }
     char *compileInfo;
-    char *fileName;		/* short file */
-    char *fullName;		/* full path to file */
+    stringHandle fileName;		/* short file */
+    stringHandle fullName;		/* full path to file */
     supportedLanguages language;
     caddr_t addr;		/* starting address of module */
-    List<function*> funcs;	/* functions defined in this module */
+    List<pdFunction*> funcs;	/* functions defined in this module */
     image *exec;		/* what executable it came from */
     lineTable lines;		/* line mapping info */
     module *next;		/* pointer to next module */
@@ -88,29 +178,6 @@ struct moduleRec {
 #define TAG_SYNC_FUNC	0x08
 #define TAG_CPU_STATE	0x10	/* does the func block waiting for ext. event */
 
-struct functionRec {
-    char *symTabName;		/* name as it appears in the symbol table */
-    char *prettyName;		/* user's view of name (i.e. de-mangled) */
-    int line;			/* first line of function */
-    module *file;		/* pointer to file that defines func. */
-    caddr_t addr;		/* address of the start of the func */
-    instPoint *funcEntry;	/* place to instrument entry (often not addr) */
-    instPoint *funcReturn;	/* exit point for function */
-    int callLimit;		/* max val of calls array */
-    int callCount;		/* number of sub-routine cal points */
-    instPoint **calls;		/* pointer to the calls */
-    int ljmpCount;		/* number of long jumps out of func */
-    instPoint *jmps;		/* long jumps out */
-    int tag;			/* tags to ident special (library) funcs. */
-    function *next;		/* next function in global function list */
-    function *sibling;		/* next function with the same name - WARNING
-					we assume name equality so this
-					could either be c++ template functions
-					beging replicated or other non global
-					functions that appear twice.
-				*/
-};
-
 /*
  * symbols we need to find from our RTinst library.  This is how we know
  *   were our inst primatives got loaded as well as the data space variables
@@ -118,28 +185,33 @@ struct functionRec {
  *   is placed in the image structure.
  *
  */
-struct _internalSym {
-    char *name;			/* name as it appears in the symbol table. */
+class internalSym {
+ public:
+    internalSym() { 
+      name = NULL; addr=0;
+    }
+    stringHandle name;		/* name as it appears in the symbol table. */
     unsigned int addr;		/* absolute address of the symbol */
 };
 
-typedef _internalSym internalSym;
-
-struct imageRec {
-    char *file;			/* image file name */
-    char *name;			/* filename part of file */
+class image {
+ public:
+    image();
+    stringHandle file;		/* image file name */
+    stringHandle name;		/* filename part of file */
     int moduleCount;		/* number of modules */
     module *modules;		/* pointer to modules */
     int funcCount; 		/* number of functions */
-    function *funcs;		/* pointer to linked list of functions */
+    pdFunction *funcs;		/* pointer to linked list of functions */
     int iSymCount;		/* # of internal RTinst library symbols */
     internalSym *iSyms;		/* internal RTinst library symbols */
     void *code;			/* pointer to code */
     unsigned int textOffset;	/* base of where code is loaded */
     int offset;			/* offset of a.out in file */
-    HTable<function*> funcAddrHash; /* hash table to find functions by address */
+    HTable<pdFunction*> funcAddrHash; /* hash table to find functions by address */
     image *next;		/* next in our list of images */
 };
+
 
 /*
  * a definition of a library function that we may wish to identify.  This is
@@ -149,21 +221,19 @@ struct imageRec {
  *
  */
 image *parseImage(char *file, int offset);
-module *newModule(image*, char *currDir, char *name, caddr_t addr);
-function *newFunc(image*, module *, char *name, int addr);
+module *newModule(image*, const char *currDir, const char *name, caddr_t addr);
+pdFunction *newFunc(image*, module *, const char *name, int addr);
 extern stringPool pool;
 
 class libraryFunc {
     public:
-	libraryFunc(char *n, int t) {
+	libraryFunc(const char *n, int t) {
 	    name = pool.findAndAdd(n);
 	    tags = t;
 	}
-	char *name;
+	stringHandle name;
 	int tags;
 };
-
-typedef List<libraryFunc*> libraryList;
 
 /*
  * Functions provided by machine/os/vendor specific files.
@@ -171,9 +241,10 @@ typedef List<libraryFunc*> libraryList;
  * iSym is the prefix to match on to find the callable inst functions.
  *
  */
-image *loadSymTable(char *file, int offset, libraryList libraryFunctions, 
-    char **iSym);
-
+/*
+image *loadSymTable(const char *file, int offset, List<libraryFunc*> libraryFunctions, 
+		    const char **iSym);
+*/
 Boolean locateAllInstPoints(image *i);
 
 /*
@@ -188,28 +259,22 @@ image *parseImage(char *file, int offset);
  */
 
 /* find the named internal symbol */
-internalSym *findInternalSymbol(image *, char *name, Boolean warn = True);
+internalSym *findInternalSymbol(image *, const char *name, Boolean warn = True);
 
 /* find the address of the named internal symbol */
-caddr_t findInternalAddress(image *, char *name, Boolean warn = True);
+caddr_t findInternalAddress(image *, const char *name, Boolean warn = True);
 
 /* find the named module */
-module *findModule(image *, char *name);
+module *findModule(image *, const char *name);
 
 /* find the named funcation */
-function *findFunction(image *, char *name);
+pdFunction *findFunction(image *, const char *name);
 
 /* find the function add the passed addr */
-function *findFunctionByAddr(image *, caddr_t addr);
+pdFunction *findFunctionByAddr(image *, caddr_t addr);
 
 /* look through func for inst points */
-void locateInstPoints(function*, void *, int, int calls);
-
-/*
- * upcalls from machine specific code to main symbol table package 
- *
- */
-void processLine(module*, int line, caddr_t addr);
+void locateInstPoints(pdFunction*, void *, int, int calls);
 
 /* record line # for each func entry */
 void mapLines(module *);
