@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.2 1994/02/01 18:46:54 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.3 1994/02/03 23:29:44 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.2  1994/02/01 18:46:54  hollings
+ * Revision 1.3  1994/02/03 23:29:44  hollings
+ * Corrected metric type for active_processes.
+ *
+ * Revision 1.2  1994/02/01  18:46:54  hollings
  * Changes for adding perfConsult thread.
  *
  * Revision 1.1  1994/01/27  20:31:30  hollings
@@ -551,7 +554,7 @@ resourcePredicate defaultPredicates[] = {
 };
 
 struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", SampledFunction, "Processes" },
+    { { "active_processes", EventCounter, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
     },
     { { "cpu", EventCounter, "# CPUs" },
