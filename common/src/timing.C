@@ -39,9 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.20 2002/03/17 20:10:59 tlmiller Exp $
+// $Id: timing.C,v 1.21 2002/04/09 18:04:48 mjbrim Exp $
 
-#include <iostream.h>
 #include "common/h/Timer.h"
 #include "common/h/timing.h"
 #include "common/h/Time.h"

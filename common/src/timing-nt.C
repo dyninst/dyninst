@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-nt.C,v 1.4 2001/02/01 01:07:31 schendel Exp $
+// $Id: timing-nt.C,v 1.5 2002/04/09 18:04:47 mjbrim Exp $
 #include <windows.h>   // for LARGE_INTEGERS
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/timeb.h>
-#include <iostream.h>
 #include <shlwapi.h>
 #include "common/h/timing.h"
 

@@ -39,17 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: int64iostream.C,v 1.4 2000/10/17 17:42:07 schendel Exp $
+// $Id: int64iostream.C,v 1.5 2002/04/09 18:04:46 mjbrim Exp $
 //----------------------------------------------------------------------------
 //
 // Utility functions adding support for Microsoft's 64-bit integer
 // data type (__int64) into the iostream I/O mechanism.
 //
 //----------------------------------------------------------------------------
-#include <iostream.h>
 #include <stdlib.h>
 #include "common/h/int64iostream.h"
-
 
 ostream&
 operator<<( ostream& s, int64_t val )

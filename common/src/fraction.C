@@ -1,7 +1,5 @@
-#include <iostream.h>
 #include "common/h/fraction.h"
 #include "common/h/int64iostream.h"
-
 
 fraction::ostream_fmt fraction::curFmt = sparse;
 
