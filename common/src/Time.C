@@ -19,6 +19,7 @@ const timeUnit *timeUnit::_min = NULL;
 const timeUnit *timeUnit::_hour = NULL;
 const timeUnit *timeUnit::_day = NULL;
 const timeUnit *timeUnit::_year = NULL;
+const timeUnit *timeUnit::_leapYear = NULL;
 
 // these helper functions will help reduce code bloat
 // The ...Help functions are not inlined (or not included with their inlined
@@ -53,7 +54,12 @@ const timeUnit *timeUnit::dayHelp() {
 }
 const timeUnit *timeUnit::yearHelp() {
   double ns_per_day =static_cast<double>(day().get_ns_per_unit().getNumer());
-  fraction ratio(static_cast<int64_t>(365.25 * ns_per_day));
+  fraction ratio(static_cast<int64_t>(365 * ns_per_day));
+  return new timeUnit(ratio);
+}
+const timeUnit *timeUnit::leapYearHelp() {
+  double ns_per_day =static_cast<double>(day().get_ns_per_unit().getNumer());
+  fraction ratio(static_cast<int64_t>(366 * ns_per_day));
   return new timeUnit(ratio);
 }
 
@@ -63,9 +69,14 @@ const timeBase *timeBase::_b1970 = NULL;
 const timeBase *timeBase::bStdHelp() {
   return new timeBase(0);
 }
+// if StdBase is changed, might need to change calculation of numLeapYears
 const timeBase *timeBase::b1970Help() {
   int64_t nsPerYear = timeUnit::year().get_ns_per_unit().getNumer();
-  return new timeBase((StdBaseMark-1970) * nsPerYear);
+  int64_t nsPerLeapYear = timeUnit::leapYear().get_ns_per_unit().getNumer();
+  int numLeapYears = (StdBaseMark - 1970)/4;
+  int numStdYears  = (StdBaseMark - 1970) - numLeapYears;
+  return new timeBase(numStdYears * nsPerYear + 
+		      numLeapYears * nsPerLeapYear);
 }
 
 
@@ -106,12 +117,17 @@ const timeStamp *timeStamp::ts1970Help() {
 }
 
 const timeStamp *timeStamp::tsStdHelp() {
-  int y19702Std = timeBase::StdBaseMark - 1970;
-  return new timeStamp(y19702Std, timeUnit::year(), timeBase::b1970());
+  return new timeStamp(0, timeUnit::year(), timeBase::bStd());
 }
 
 const timeStamp *timeStamp::ts2200Help() {
-  return new timeStamp(230, timeUnit::year(), timeBase::b1970());
+  timeStamp *p_ts1970 = new timeStamp(0, timeUnit::year(), timeBase::b1970());
+  *p_ts1970 += 23*timeLength::year() + 7*timeLength::leapYear(); // 1970 - 2000
+  // beginning 2000 (leap year) - beg 2100 (no leap year), 25 4 year spans
+  *p_ts1970 += 75*timeLength::year() + 25*timeLength::leapYear();
+  // beg 2100 (no leap year) - beg 2200 (no leap year), 25 4 year spans
+  *p_ts1970 += 76*timeLength::year() + 24*timeLength::leapYear();
+  return p_ts1970;
 }
 
 void timeStamp::initI(int64_t iTime, const timeUnit &u, timeBase b) {
@@ -182,6 +198,11 @@ const timeLength *timeLength::_year = NULL;
 const timeLength *timeLength::yearHelp() {
   return new timeLength(1, timeUnit::year());
 }
+const timeLength *timeLength::_leapYear = NULL;
+const timeLength *timeLength::leapYearHelp() {
+  return new timeLength(1, timeUnit::leapYear());
+}
+
 
 timeLength::timeLength(double dTime, const timeUnit &u) : timeParent() {
   double dRes = static_cast<double>(u.cvtTo_ns(dTime));
@@ -207,7 +228,7 @@ ostream& operator<<(ostream&s, const timeUnit &u) {
 }
 
 ostream& operator<<(ostream&s, timeBase b) {
-  s << "[ns2nearestCenturyMark: " << b.get_ns2StdBaseMark() << "]";
+  s << timeStamp(-b.get_ns2StdBaseMark(),timeUnit::ns(),timeBase::bStd());
   return s;
 }
 
@@ -306,12 +327,13 @@ ostream& operator<<(ostream&s, timeStamp z) {
     int64_t nstot = z.getI(timeUnit::ns(), timeBase::b1970());
     int64_t nsrem = nstot - nsI1970;
     char dateStr[50];
+    s1970 = mktime(gmtime(&s1970));
     strcpy(dateStr, ctime(&s1970));
     char *p = strstr(dateStr, "\n");  // erase the nl
     if(p != NULL) {  *p++ = 0;   *p = 0; }
     char strFmt[30];
     insCommas(static_cast<int>(nsrem), strFmt);
-    s << "[" << dateStr << setw(14) << strFmt << "ns]";
+    s << "[" << dateStr << "  " << strFmt << "ns]";
   }
   return s;
 }

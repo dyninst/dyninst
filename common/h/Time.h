@@ -68,12 +68,14 @@
 class timeUnit {
  private:
   // logically const
-  static const timeUnit *_year, *_day, *_hour, *_min, *_sec, *_ms, *_us, *_ns;
+  static const timeUnit *_leapYear, *_year, *_day, *_hour, *_min;
+  static const timeUnit *_sec, *_ms, *_us, *_ns;
   static const timeUnit *nsHelp(),  *usHelp(),   *msHelp(),  *secHelp();
   static const timeUnit *minHelp(), *hourHelp(), *dayHelp(), *yearHelp();
+  static const timeUnit *leapYearHelp();
  public:
   static const timeUnit &ns(), &us(), &ms(), &sec();
-  static const timeUnit &min(), &hour(), &day(), &year();
+  static const timeUnit &min(), &hour(), &day(), &year(), &leapYear();
 
  public:
   typedef enum { sparse, verbose } ostream_fmt; 
@@ -86,6 +88,8 @@ class timeUnit {
  public:
   timeUnit(fraction _ns_per_unit) : ns_per_unit(_ns_per_unit), 
     units_per_ns(ns_per_unit.reciprocal()) {
+    ns_per_unit.reduce();
+    units_per_ns.reduce();
   }
   // default copy constructor
 
@@ -139,6 +143,10 @@ inline const timeUnit &timeUnit::year() {
   if(_year==NULL) _year = yearHelp();
   return *_year;
 }
+inline const timeUnit &timeUnit::leapYear() {
+  if(_leapYear==NULL) _leapYear = leapYearHelp();
+  return *_leapYear;
+}
 
 class timeStamp;
 
@@ -165,7 +173,9 @@ class timeBase {
   static const timeBase *_bStd, *_b1970;  // logically const
   static const timeBase *bStdHelp(), *b1970Help();
  public:
-  enum { StdBaseMark = 2000 };  // ie. the year for the internal time base
+  // ie. the year for the internal time base, if changed check to make
+  // sure timeBase::b1970Help() is still accurate
+  enum { StdBaseMark = 2000 };  
   static const timeBase &bStd();
   static const timeBase &b1970();
   // bNone is for times like process time, time is counted since the
@@ -276,7 +286,8 @@ class timeStamp : public timeParent {
   // eg. to create the time Jan 1, 1995 12:00am you could do this:
   //    timeStamp myTime(25, timeUnit::year(), timeBase::b1970());
   // one way to create July 20, 1976 8:35am:
-  //    timeStamp myBirthDay = timeStamp::b1970() + 6*timeLength::year() +
+  //    timeStamp myBirthDay = timeStamp::b1970() + 4*timeLength::year() +
+  //                           2*timeStamp::leapYear() +
   //                           202*timeLength::day() + 8*timeLength::hour() +
   //                           35*timeLength::min();
   timeStamp(int64_t iTime, const timeUnit &u, timeBase b) : timeParent() {
@@ -344,13 +355,13 @@ class timeLength : public timeParent {
  private:
   // logically const
   static const timeLength *_zero, *_ns, *_us, *_ms, *_sec, *_min;
-  static const timeLength *_hour, *_day, *_year;
+  static const timeLength *_hour, *_day, *_year, *_leapYear;
   static const timeLength *ZeroHelp(), *nsHelp(), *usHelp(), *msHelp();
   static const timeLength *secHelp(), *minHelp(), *hourHelp(), *dayHelp();
-  static const timeLength *yearHelp();
+  static const timeLength *yearHelp(), *leapYearHelp();
  public:
   static const timeLength &Zero(), &ns(), &us(), &ms(), &sec();
-  static const timeLength &min(), &hour(), &day(), &year();
+  static const timeLength &min(), &hour(), &day(), &year(), &leapYear();
 
   timeLength(int64_t iTime, const timeUnit &u) : timeParent() {
     initI(iTime, u);
@@ -422,6 +433,10 @@ inline const timeLength &timeLength::day() {
 inline const timeLength &timeLength::year() {
   if(_year == NULL) _year = yearHelp();
   return *_year;
+}
+inline const timeLength &timeLength::leapYear() {
+  if(_leapYear == NULL) _leapYear = leapYearHelp();
+  return *_leapYear;
 }
 
 
