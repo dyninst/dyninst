@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.29  1996/01/11 01:52:18  tamches
+#  call to long2shortFocusName to calculate short focus names
+#
 #  Revision 1.28  1996/01/10 21:09:41  tamches
 #  added metric2units
 #  MetricMinValues and MetricMaxValues are now indexed by unit name
@@ -618,7 +621,7 @@ proc drawResourcesAxis {windowHeight} {
       # possibly convert to a short name:
       global LongNames
       if {$LongNames==0} {
-         set theName [file tail $theName]
+         set theName [long2shortFocusName $theName]
       }
    
       label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
