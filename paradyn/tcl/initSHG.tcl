@@ -3,7 +3,11 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.8  1994/09/20 21:29:33  jcargill
+# Revision 1.9  1994/11/01 05:47:44  karavan
+# eliminated tcl global SHGname; combined initbindings and styles into single
+# procedure since always called together; changed fonts.
+#
+# Revision 1.8  1994/09/20  21:29:33  jcargill
 # added procedure addDefaultShgBindings (really karavan, but she's not here...)
 #
 # Revision 1.7  1994/09/05  20:09:18  karavan
@@ -71,29 +75,26 @@ proc shgUpdateStatusLine {w newItem} {
     }
 }
 
-proc addDefaultShgBindings {cname dagID} {
+proc addDefaultShgBindingsAndStyles {cname dagID} {
     $cname bind all <2> "shgFullName $cname $dagID"
     $cname bind all <1> "updateCurrentSelection $cname $dagID"
     $cname bind all <3> "hideCurrentSelection $cname $dagID"
-}
-
-proc addDefaultShgStyles {dagID} {
 
   # style 1: not tested
     uimpd addNStyle $dagID 1 "#e9fbb57aa3c9" DarkSlateGrey  \
-	    "-*-Times-Bold-R-Normal--*-140*" black r 1.0
+	    "-*-Times-Bold-R-Normal--*-100*" black r 1.0
 
   # style 2: not active
     uimpd addNStyle $dagID 2 "#cc85d5c2777d" DarkSlateGrey  \
-	    "-*-Times-Bold-R-Normal--*-100*" black r 1.0
+	    "-*-Times-Bold-R-Normal--*-80*" black r 1.0
 
   # style 3: active and true
     uimpd addNStyle $dagID 3 "#acbff48ff6c8" SlateGrey  \
-	            "-*-Times-Bold-R-Normal--*-140*" black r 1.0
+	            "-*-Times-Bold-R-Normal--*-100*" black r 1.0
 
   # style 4: active and false
     uimpd addNStyle $dagID 4 "#ffffbba5bba5" DarkSlateGrey  \
-		"-*-Times-Bold-R-Normal--*-100*" black r 1.0
+		"-*-Times-Bold-R-Normal--*-80*" black r 1.0
 
   # edge 1: where axis refinement
     uimpd addEStyle $dagID 1 0 "#c99e5f54dcab" b 2.0
@@ -105,9 +106,9 @@ proc addDefaultShgStyles {dagID} {
     uimpd addEStyle $dagID 3 0 black b 2.0
 }
 
-proc initSHG {dagID} {
+proc initSHG {SHGname dagID} {
 
-    global SHGname PCsearchState shgExplainStr currentSelection$dagID
+    global PCsearchState shgExplainStr currentSelection$dagID
 
     set PCsearchState 1
     set shgExplainStr ""
@@ -117,6 +118,7 @@ proc initSHG {dagID} {
     set clrSHGSTEPBUTTbg "#fb63e620d36b"
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
     set clrSHGPAUSEBUTTbg "#fb63e620d36b"
+
     toplevel $SHGname -class "Paradyn.Shg"
     option add *Shg*background #fb63e620d36b
     wm minsize $SHGname 400 200
@@ -129,7 +131,7 @@ proc initSHG {dagID} {
     button $SHGname.buttons.b3 -text "AUTO SEARCH" \
 	    -command {paradyn search true -1}
     button $SHGname.buttons.b4 -text "PAUSE SEARCH" \
-	    -command {SHGpause $SHGname.buttons.b4}   
+	    -command "SHGpause $SHGname.buttons.b4"   
 
     frame $SHGname.topbar
     frame $SHGname.topbar.r
