@@ -23,6 +23,15 @@
 
 process *defaultProcess;
 
+// <sts/ptrace.h> should really define this. 
+extern "C" {
+int ptrace(enum ptracereq request, 
+		      int pid, 
+		      int *addr, 
+		      int data, 
+		      char *addr2);
+}
+
 void changeDefaultProcess(int pid)
 {
     process *nProc;
@@ -121,7 +130,7 @@ void dumpProcessImage(process *proc, Boolean stopped)
     lseek(ofd, N_TXTOFF(exec), SEEK_SET);
     for (i=0; i < exec.a_text; i+= 4096) {
 	errno = 0;
-	ptrace(PTRACE_READTEXT, proc->pid, proc->symbols->textOffset+i, 
+	ptrace(PTRACE_READTEXT, proc->pid, (int*) proc->symbols->textOffset+i, 
 	    4096, buffer);
 	if (errno) {
 	     perror("ptrace");

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.18 1994/06/02 23:27:57 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.19 1994/06/22 01:43:16 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.18  1994/06/02 23:27:57  markc
+ * Revision 1.19  1994/06/22 01:43:16  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.18  1994/06/02  23:27:57  markc
  * Replaced references to igen generated class to a new class derived from
  * this class to implement error handling for igen code.
  *
@@ -147,6 +151,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "ast.h"
 #include "util.h"
 #include "comm.h"
+
+
+extern "C" {
+// <sys/time.h> should define this
+int gettimeofday(struct timeval *tp, struct timezone *tzp);
+}
 
 extern pdRPC *tp;
 extern int metricCount;

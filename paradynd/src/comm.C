@@ -3,7 +3,11 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.1  1994/06/02 23:26:56  markc
+ * Revision 1.2  1994/06/22 01:43:12  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.1  1994/06/02  23:26:56  markc
  * Files to implement error handling for igen generated class.
  *
  *
@@ -11,6 +15,7 @@
 
 #include "comm.h"
 #include "stdio.h"
+#include "stdlib.h"
 
 // handle_error is a virtual function in the igen generated code
 // defining it allows for custom error handling routines to be implemented

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.8 1994/05/31 18:11:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.9 1994/06/22 01:43:13 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.8  1994/05/31 18:11:50  markc
+ * Revision 1.9  1994/06/22 01:43:13  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.8  1994/05/31  18:11:50  markc
  * Initialized v global values used to compute pause time.  Added pvm
  * specific default instrumentation.
  *
@@ -105,9 +109,12 @@ extern "C" {
 
 int ptrace(enum ptracereq request, 
 		      int pid, 
-		      char *addr, 
+		      int *addr, 
 		      int data, 
 		      char *addr2);
+
+// <sys/time.h> should define this
+int gettimeofday(struct timeval *tp, struct timezone *tzp);
 }
 
 /*
@@ -293,7 +300,6 @@ Boolean isApplicationPaused()
 
 Boolean continueAllProcesses()
 {
-    sampleValue val;
     struct timeval tv;
     struct List<process *> curr;
     extern void computePauseTimeMetric(time64, time64, sampleValue);

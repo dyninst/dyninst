@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.14 1994/06/02 23:27:59 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.15 1994/06/22 01:43:17 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.14  1994/06/02 23:27:59  markc
+ * Revision 1.15  1994/06/22 01:43:17  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.14  1994/06/02  23:27:59  markc
  * Replaced references to igen generated class to a new class derived from
  * this class to implement error handling for igen code.
  *
@@ -129,7 +133,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <string.h>
-
+#include <sys/resource.h>
 
 // this is missing from ptrace.h
 extern "C" {
@@ -138,6 +142,10 @@ extern "C" {
 	       char *addr, 
 	       int data,
 	       char *addr2);
+
+    void bzero (char*, int);
+    int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
+    int wait3(int *statusp, int options, struct rusage *ru);
 }
 
 #include <assert.h>
@@ -173,7 +181,7 @@ Boolean synchronousMode;
 Boolean firstSampleReceived;
 
 
-time64 firstRecordTime = 0.0;
+time64 firstRecordTime = 0;
 
 void processAppIO(process *curr)
 {

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.1 1994/01/27 20:31:22 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.2 1994/06/22 01:43:15 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.1  1994/01/27 20:31:22  hollings
+ * Revision 1.2  1994/06/22 01:43:15  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.1  1994/01/27  20:31:22  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.11  1993/12/15  21:02:42  hollings
@@ -606,7 +610,8 @@ void installBaseTramp(int baseAddr,
     instruction *temp;
 
     code = (instruction *) xmalloc(baseTemplate.size);
-    bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
+    memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
+    // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
 
     for (temp = code, currAddr = baseAddr; 
 	(currAddr - baseAddr) < baseTemplate.size;

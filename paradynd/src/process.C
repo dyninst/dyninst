@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.8 1994/05/31 17:59:05 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.9 1994/06/22 01:43:18 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.8  1994/05/31 17:59:05  markc
+ * Revision 1.9  1994/06/22 01:43:18  markc
+ * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
+ * reference to proc->status to use proc->heap->status.
+ *
+ * Revision 1.8  1994/05/31  17:59:05  markc
  * Closed iopipe fd that had been dup'd if the fd was greater than 2.
  *
  * Revision 1.7  1994/05/18  00:52:31  hollings
@@ -93,7 +97,17 @@ extern char *sys_errlist[];
 resource processResource;
 resource machineResource;
 
-extern "C" ptrace();
+// <sts/ptrace.h> should really define this. 
+extern "C" {
+int gethostname(char*, int);
+int socketpair(int, int, int, int sv[2]);
+int vfork();
+int ptrace(enum ptracereq request, 
+		      int pid, 
+		      int *addr, 
+		      int data, 
+		      char *addr2);
+}
 
 #define INFERRIOR_HEAP_BASE	"DYNINSTdata"
 #define GLOBAL_HEAP_BASE	"DYNINSTglobalData"
@@ -112,7 +126,7 @@ void initInferiorHeap(process *proc, Boolean globalHeap)
     }
     proc->heap->length = SYN_INST_BUF_SIZE;
     proc->heap->next = NULL;
-    proc->status = HEAPfree;
+    proc->heap->status = HEAPfree;
 }
 
 void copyInferriorHeap(process *from, process *to)
@@ -133,7 +147,7 @@ void copyInferriorHeap(process *from, process *to)
 	newEntry->next = to->heap;
 	to->heap = newEntry;
     }
-    to->status = HEAPfree;
+    to->heap->status = HEAPfree;
 }
 
 int inferriorMalloc(process *proc, int size)
@@ -300,7 +314,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 
 	/* indicate our desire to be trace */
 	errno = 0;
-	ptrace(0, 0, 0, 0);
+	ptrace(PTRACE_TRACEME, 0, 0, 0, 0);
 	if (errno != 0) {
 	  perror("ptrace error\n");
 	  _exit(-1);
