@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.93 2002/04/04 18:06:42 mirg Exp $
+// $Id: ast.C,v 1.94 2002/04/05 19:38:37 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1665,73 +1665,57 @@ int AstNode::costHelper(enum CostStyleType costStyle) const {
 void AstNode::print() const {
   if (this) {
 #if defined(ASTDEBUG)
-    sprintf(errorLine,"{%d}", referenceCount) ;
-    logLine(errorLine) ;
+    fprintf(stderr,"{%d}", referenceCount) ;
 #endif
     if (type == operandNode) {
       if (oType == Constant) {
-	sprintf(errorLine, " %d", (int)(Address) oValue);
-	logLine(errorLine);
+	fprintf(stderr," %d", (int)(Address) oValue);
       } else if (oType == ConstantString) {
-        sprintf(errorLine, " %s", (char *)oValue);
-	logLine(errorLine) ;
+        fprintf(stderr," %s", (char *)oValue);
 #if defined(MT_THREAD)
       } else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
-	sprintf(errorLine, " %d", (int)(Address) oValue);
-	logLine(errorLine);
+	fprintf(stderr," %d", (int)(Address) oValue);
 #endif
       } else if (oType == DataPtr) {  // restore AstNode::DataPtr type
-	sprintf(errorLine, " %d", (int)(Address) oValue);
-	logLine(errorLine);
+	fprintf(stderr," %d", (int)(Address) oValue);
       } else if (oType == DataValue) {  // restore AstNode::DataValue type
-	sprintf(errorLine, " @%d", (int)(Address) oValue);
-	logLine(errorLine); 
+	fprintf(stderr," @%d", (int)(Address) oValue);
       } else if (oType == DataIndir) {
-	logLine(" @[");
+	fprintf(stderr," @[");
         loperand->print();
-	logLine("]");
+	fprintf(stderr,"]");
       } else if (oType == DataReg) {
-	sprintf(errorLine," reg%d ",(int)(Address)oValue);
-        logLine(errorLine);
+	fprintf(stderr," reg%d ",(int)(Address)oValue);
         loperand->print();
       } else if (oType == Param) {
-	sprintf(errorLine, " param[%d]", (int)(Address) oValue);
-	logLine(errorLine);
+	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == ReturnVal) {
-	sprintf(errorLine, "retVal");
-	logLine(errorLine);
+	fprintf(stderr,"retVal");
       } else if (oType == DataAddr)  {
-	sprintf(errorLine, " [0x%lx]", (long) oValue);
-	logLine(errorLine);
+	fprintf(stderr," [0x%lx]", (long) oValue);
       } else if (oType == FrameAddr)  {
-	sprintf(errorLine, " [$fp + %d]", (int)(Address) oValue);
-	logLine(errorLine);
+	fprintf(stderr," [$fp + %d]", (int)(Address) oValue);
       } else if (oType == EffectiveAddr)  {
-	sprintf(errorLine, " <<effective address>>");
-	logLine(errorLine);
+	fprintf(stderr," <<effective address>>");
       } else {
-	logLine(" <Unknown Operand>");
+	fprintf(stderr," <Unknown Operand>");
       }
     } else if (type == opCodeNode) {
-      ostrstream os(errorLine, 1024, ios::out);
-      os << "(" << getOpString(op) << ends;
-      logLine(errorLine);
+      cerr << "(" << getOpString(op);
       if (loperand) loperand->print();
       if (roperand) roperand->print();
       if (eoperand) eoperand->print();
-      logLine(")\n");
+      fprintf(stderr,")\n");
     } else if (type == callNode) {
-      ostrstream os(errorLine, 1024, ios::out);
-      os << "(" << callee << ends;
-      logLine(errorLine);
+      cerr << "(" << callee;
       for (unsigned u = 0; u < operands.size(); u++)
 	operands[u]->print();
-      logLine(")\n");
+      fprintf(stderr,")\n");
     } else if (type == sequenceNode) {
       if (loperand) loperand->print();
-      logLine(",");
+      fprintf(stderr,",");
       if (roperand) roperand->print();
-      logLine("\n");
+      fprintf(stderr,"\n");
     }
   }
 }
@@ -1804,8 +1788,8 @@ AstNode *computeAddress(void *level, void *index, int type)
   /* DYNINSTthreadTable[0][thr_self()] */
   AstNode* base = new AstNode(AstNode::DataReg, (void *)REG_MT_BASE);
 
-  fprintf(stderr, "Emitting computeAddr with level %d, index %d, type %d\n",
-	  (unsigned) level, (unsigned) index, type);
+  //fprintf(stderr, "Emitting computeAddr with level %d, index %d, type %d\n",
+  //  (unsigned) level, (unsigned) index, type);
   
   /* Now we compute the offset for the corresponding level. We assume */
   /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
