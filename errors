@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.20  1994/07/11 21:31:31  newhall
+# Revision 1.21  1994/07/11 21:35:42  newhall
+# created error #15
+#
+# Revision 1.20  1994/07/11  21:31:31  newhall
 # *** empty log message ***
 #
 # Revision 1.19  1994/07/11  21:14:26  newhall
@@ -199,4 +202,13 @@ Call to thr_getspecific in a visi-thread function failed.
 %X
 A request to start a new visualization process failed.  This is due
 to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
+%Y
+
+%N 15
+%E unable to create performance stream
+%A vi
+%S serious
+%X
+An attempt to create a performance stream for a new visualizaiton
+failed.
 %Y
