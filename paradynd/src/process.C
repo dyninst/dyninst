@@ -14,7 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.44  1996/05/01 19:04:31  naim
+ * Revision 1.45  1996/05/06 13:48:47  naim
+ * Fixing problem with deletion of instrumentation and adding procedure to
+ * compact memory when we run out of space to insert more instrumentation - naim
+ *
+ * Revision 1.44  1996/05/01  19:04:31  naim
  * Adding debugging information during the deletion of instrumentation - naim
  *
  * Revision 1.43  1996/04/24  15:00:34  naim
@@ -335,14 +339,25 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
 	    np = proc->heaps[dataHeap].heapActive[pointer];
 	}
 
+        if ( (ptr->addr >= np->addr) && 
+             (ptr->addr <= (np->addr + np->length)) )
+        {
+
+#ifdef FREEDEBUG1
+          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
+          logLine(errorLine);
+#endif
+
+          return(false);     
+        }
+
         for (unsigned int l=0;l<pcs.size();l++) {
           if ((pcs[l] >= ptr->addr) && 
               (pcs[l] <= (ptr->addr + ptr->length))) 
           {
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"      IN isFreeOK: we found 0x%x in our inst. range!\n",
-	ptr->addr);
+    sprintf(errorLine,"      IN isFreeOK: we found 0x%x in our inst. range!\n",ptr->addr);
     logLine(errorLine);
 #endif
 
@@ -365,6 +380,46 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
   return(true);
 }
 
+//
+// This procedure will try to compact the framented memory available in 
+// heapFree. This is an emergency procedure that will be called if we
+// are running out of memory to insert instrumentation - naim
+//
+void inferiorFreeCompact(inferiorHeap *hp)
+{
+  int size;
+  heapItem *np;
+  size = hp->heapFree.size();
+  unsigned j,i=0;
+#ifdef FREEDEBUG
+  logLine("***** Trying to compact freed memory...\n");
+#endif
+  while (i < size) {
+    np = hp->heapFree[i];
+#ifdef FREEDEBUG1
+    sprintf(errorLine,"***** Checking address=%d\n",ALIGN_TO_WORDSIZE(np->addr+np->length));
+    logLine(errorLine);
+#endif
+    for (j=0; j < size; j++) {
+      if (i != j) {
+        if ( ALIGN_TO_WORDSIZE(np->addr+np->length)==(hp->heapFree[j])->addr )
+        {
+          np->length += (hp->heapFree[j])->length;
+          hp->heapFree[j] = hp->heapFree[size-1];
+          hp->heapFree.resize(size-1);
+          size = hp->heapFree.size();
+#ifdef FREEDEBUG
+          sprintf(errorLine,"***** Compacting free memory (%d bytes, i=%d, j=%d)\n",np->length,i,j);
+          logLine(errorLine);
+#endif
+          break;
+        }
+      }
+    }
+    if (j == size) i++;
+  }
+}
+
 void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
   unsigned int i=0;
@@ -381,7 +436,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
     maxDelTime = MAX_DELETING_TIME*10.0;
     sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->pid);
     logLine(errorLine);
-#ifdef FREEDEBUG
+#ifdef FREEDEBUG1
     sprintf(errorLine,"***** disList.size() = %d\n",disList->size());
     logLine(errorLine);
 #endif
@@ -505,14 +560,14 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       if (countingChances==2) secondChance=false;
 
       for (unsigned i=0; i < hp->heapFree.size(); i++) {
-#ifdef FREEDEBUG
+#ifdef FREEDEBUG1
         if (!secondChance) {
-          sprintf(errorLine,"***** (pid=%d) i=%d, heapFree[%d].length=%d, heapFree.size()=%d\n",proc->pid,i,i,(hp->heapFree[i])->length,hp->heapFree.size()); 
+          sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->pid,i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
           logLine(errorLine);
         }
 #endif
         if ((hp->heapFree[i])->length >= size) {
-#ifdef FREEDEBUG
+#ifdef FREEDEBUG1
           if (!secondChance) {
             sprintf(errorLine,"***** (pid=%d) i=%d, found is TRUE\n",proc->pid,i); 
             logLine(errorLine);
@@ -534,6 +589,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 #endif
 #if !defined(hppa1_1_hp_hpux)
         inferiorFreeDefered(proc, hp, true);
+        inferiorFreeCompact(hp);
 #endif
       }
       countingChances++;
@@ -543,7 +599,8 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       sprintf(errorLine, "***** Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
-      return(0);
+      P__exit(-1);
+      //return(0);
     }
 
     if (np->length != size) {
