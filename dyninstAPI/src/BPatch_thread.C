@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.90 2003/08/01 22:58:43 jodom Exp $
+// $Id: BPatch_thread.C,v 1.91 2003/09/05 16:27:34 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -181,12 +181,12 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // i.e. for all unixes
 
-    // this fixes a problem on linux and alpha platforms where pathless filenames
-    // are searched for either in a standard, predefined path, or in $PATH by execvp.
-    // thus paths that should resolve to "./" are missed.
-    // Note that the previous use of getcwd() here for the alpha platform was dangerous
-    // since this is an API and we don't know where the user's code will leave the
-    // cwd pointing.
+    // this fixes a problem on linux and alpha platforms where pathless
+    // filenames are searched for either in a standard, predefined path, or
+    // in $PATH by execvp.  thus paths that should resolve to "./" are
+    // missed.  Note that the previous use of getcwd() here for the alpha
+    // platform was dangerous since this is an API and we don't know where
+    // the user's code will leave the cwd pointing.
     const char *dotslash = "./";
     if (NULL == strchr(path, '/'))
       directoryName = dotslash;
@@ -198,15 +198,15 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     //directoryName = buf;
     //#endif
 
-    proc = createProcess(path, argv_vec, directoryName, stdin_fd,
-                         stdout_fd, stderr_fd);
+    proc = ll_createProcess(path, argv_vec, directoryName, stdin_fd,
+                            stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
     if (proc == NULL) { 
         cerr << "Process is NULL!" << endl;
         return;
     }
     
-    proc->thread = this;
+    proc->bpatch_thread = this;
 
     // Add this object to the list of threads
     // XXX Should be conditional on success of creating process
@@ -243,7 +243,7 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
        expression to be incorrectly evaluated as false.  This appears
        to be a compiler bug ("g++ -mabi=64 -O3"). */
     // Giving this another try -- bernat, JAN03 */
-    proc = attachProcess(path, pid);
+    proc = ll_attachProcess(path, pid);
     if (!proc) {
         cerr << "attachProcess failed" << endl;
       // XXX Should do something more sensible
@@ -253,7 +253,7 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
     // Just to be sure, pause the process....
     proc->pause();
 
-    proc->thread = this;
+    proc->bpatch_thread = this;
 
     // Add this object to the list of threads
     assert(BPatch::bpatch != NULL);
@@ -282,7 +282,7 @@ BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
     createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
-    proc->thread = this;
+    proc->bpatch_thread = this;
 
     // Add this object to the list of threads
     assert(BPatch::bpatch != NULL);
@@ -1029,7 +1029,7 @@ void BPatch_thread::setMutationsActive(bool activate)
 {
     // If not activating or deactivating, just return.
     if ((activate && mutationsActive) || (!activate && !mutationsActive))
-	return;
+       return;
 
 #if 0
     // The old implementation
@@ -1050,12 +1050,15 @@ void BPatch_thread::setMutationsActive(bool activate)
 	*/
     }
 #endif
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
     if (activate)
-	proc->reinstallMutations();
+       proc->reinstallMutations();
     else
-	proc->uninstallMutations();
+       proc->uninstallMutations();
 
     mutationsActive = activate;
+#endif
 }
 
 
