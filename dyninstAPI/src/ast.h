@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.65 2003/08/01 22:55:30 jodom Exp $
+// $Id: ast.h,v 1.66 2003/09/05 16:27:38 schendel Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -53,9 +53,7 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
-#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_type.h"
-#endif
 
 class process;
 class instPoint;
@@ -317,10 +315,8 @@ class AstNode {
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
         unsigned int whichMA;       // only for memory access nodes
-#ifdef BPATCH_LIBRARY
 	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
-#endif
 	int size;		    // size of the operations (in bytes)
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
@@ -335,7 +331,6 @@ class AstNode {
     public:
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
-#ifdef BPATCH_LIBRARY
 	AstNode(operandType ot, int which); // for memory access
 	const BPatch_type *getType() { return bptype; };
 	void		  setType(const BPatch_type *t) { 
@@ -343,7 +338,6 @@ class AstNode {
 				size = t->getSize(); }
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	BPatch_type	  *checkType();
-#endif
 };
 
 AstNode *assignAst(AstNode *src);

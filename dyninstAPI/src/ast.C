@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.130 2003/08/05 21:49:22 hollings Exp $
+// $Id: ast.C,v 1.131 2003/09/05 16:27:39 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -51,12 +51,13 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/showerror.h"
 
-#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/src/BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
+
+#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/BPatch_collections.h"
 #else
 #include "dyninstAPI/src/dyn_thread.h"
 #include "rtinst/h/rtinst.h"
@@ -370,10 +371,8 @@ AstNode &AstNode::operator=(const AstNode &src) {
 #endif
    
    size = src.size;
-#if defined(BPATCH_LIBRARY)
    bptype = src.bptype;
    doTypeCheck = src.doTypeCheck;
-#endif
 
    return *this;
 }
@@ -410,10 +409,8 @@ AstNode::AstNode() {
    kept_register = Null_Register;
    // "operands" is left as an empty vector
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 AstNode::AstNode(const pdstring &func, AstNode *l, AstNode *r) {
@@ -433,10 +430,8 @@ AstNode::AstNode(const pdstring &func, AstNode *l, AstNode *r) {
     if (l) operands.push_back(assignAst(l));
     if (r) operands.push_back(assignAst(r));
     size = 4;
-#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
-#endif
 }
 
 AstNode::AstNode(const pdstring &func, AstNode *l) {
@@ -455,10 +450,8 @@ AstNode::AstNode(const pdstring &func, AstNode *l) {
     calleefunc = NULL;
     if (l) operands.push_back(assignAst(l));
     size = 4;
-#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
-#endif
 }
 
 AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
@@ -478,10 +471,8 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
    callee = func;
    calleefunc = NULL;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 
@@ -502,10 +493,8 @@ AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
    callee = func->prettyName();
    calleefunc = func;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 
@@ -527,10 +516,8 @@ AstNode::AstNode(function_base *func) {
    callee = func->prettyName();
    calleefunc = func;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 
@@ -552,14 +539,11 @@ AstNode::AstNode(operandType ot, void *arg) {
     	oValue = (void *) arg;
     loperand = roperand = eoperand = NULL;
     size = 4;
-#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
-#endif
 };
 
 // VG(7/31/02): Added for x86 memory instrumentation
-#ifdef BPATCH_LIBRARY
 AstNode::AstNode(operandType ot, int which) : whichMA(which)
 {
   assert(BPatch::bpatch != NULL);
@@ -589,7 +573,6 @@ AstNode::AstNode(operandType ot, int which) : whichMA(which)
   size = bptype->getSize();
   doTypeCheck = BPatch::bpatch->isTypeChecked();
 };
-#endif
 
 // to create a newly added type for recognizing offset for locating variables
 
@@ -610,10 +593,8 @@ AstNode::AstNode(operandType ot, AstNode *l) {
     eoperand = NULL;
     loperand = assignAst(l);
     size = 4;
-#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
-#endif
 };
 
 // for sequence node
@@ -632,10 +613,8 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
    roperand = assignAst(r);
    eoperand = NULL;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 };
 
 AstNode::AstNode(opCode ot) {
@@ -653,10 +632,8 @@ AstNode::AstNode(opCode ot) {
    op = ot;
    loperand = roperand = eoperand = NULL;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 AstNode::AstNode(opCode ot, AstNode *l) {
@@ -676,10 +653,8 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    roperand = NULL;
    eoperand = NULL;
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 }
 
 AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
@@ -698,10 +673,8 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
    roperand = assignAst(r);
    eoperand = assignAst(e);
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
-#endif
 };
 
 AstNode::AstNode(AstNode *src) {
@@ -741,10 +714,8 @@ AstNode::AstNode(AstNode *src) {
    roperand = assignAst(src->roperand);
    eoperand = assignAst(src->eoperand);
    size = 4;
-#if defined(BPATCH_LIBRARY)
    bptype = src->bptype;
    doTypeCheck = src->doTypeCheck;
-#endif
 }
 
 #if defined(ASTDEBUG)
@@ -1995,7 +1966,6 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc)
 #endif
 
 
-#ifdef BPATCH_LIBRARY
 BPatch_type *AstNode::checkType()
 {
     BPatch_type *ret = NULL;
@@ -2115,7 +2085,6 @@ BPatch_type *AstNode::checkType()
 
     return ret;
 }
-#endif
 
 bool AstNode::findFuncInAst(pdstring func) {
   if (type == callNode && callee == func) 
