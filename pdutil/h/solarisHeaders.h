@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <memory.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/types.h>
