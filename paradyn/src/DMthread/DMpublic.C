@@ -208,7 +208,7 @@ bool dataManager::addExecutable(const char *machine,
   string n = name;
   string d = dir;
 
-  if(n == "poed") {
+  if(n == "mpid") {
     int    pid;
     
     pid = fork();
@@ -229,7 +229,7 @@ bool dataManager::addExecutable(const char *machine,
 	  str[dx+2] = strdup(paradynDaemon::args[dx].string_of());
 	}
       }
-      str[paradynDaemon::args.size()+2] = strdup("-zpoe");
+      str[paradynDaemon::args.size()+2] = strdup("-zmpi");
       str[paradynDaemon::args.size()+3] = strdup("-runme");
       
       for(dx=0; dx < argv->size(); dx++) {

@@ -1460,8 +1460,8 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
       name = "cm5d";
     } else if(flavor == "unix") {
       name = "defd";
-    } else if(flavor == "poe") {
-      name = "poed";
+    } else if(flavor == "mpi") {
+      name = "mpid";
     } else {
       name = flavor;
     }
