@@ -32,6 +32,10 @@ class sampleInfo {
     struct sampleInterval newValue(vector<sampleInfo *> peers, 
 				   timeStamp wallTime, 
 				   sampleValue value);
+    struct sampleInterval newValue(vector<sampleInfo *> &parts, 
+				   vector<unsigned> &weight_of_part,
+				   timeStamp wallTime, 
+				   sampleValue value);
     sampleInfo( int aOp = aggSum) {
         firstSampleReceived = false;
 	value = 0.0;
