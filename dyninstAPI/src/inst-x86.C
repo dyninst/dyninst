@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.199 2005/03/15 23:38:47 lharris Exp $
+ * $Id: inst-x86.C,v 1.200 2005/03/17 05:00:46 bernat Exp $
  */
 #include <iomanip>
 
@@ -2299,6 +2299,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	     ((instPoint*)location)->insnsAfter());
      fprintf(stderr, "Location is %p\n", location);
 #endif
+
    bool aflag;
   
    /*
@@ -2448,8 +2449,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
            // MT change: for each thread
            {
                for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
-                   if (currAddrs[ca_iter] == origAddr)
+		 if (currAddrs[ca_iter] == origAddr) {
                        proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+		 }
                }
            }
            
@@ -2460,6 +2462,17 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
            currAddr += newSize;
            origAddr += location->insnBeforePt(u).size();
        }
+   }
+
+   if (location->hasInsnAtPoint()) {
+     // We might be overwriting the instruction with a jump; to be safe,
+     // we change the PC to point into the tramp. We do this at the
+     // entry, so we don't miss any instrumentation.
+     for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
+       if (currAddrs[ca_iter] == origAddr) {
+	 proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+       }
+     }
    }
 
    /***
@@ -2483,34 +2496,27 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
        then later at the base tramp, at the point where we relocate the
        instruction at the point, we insert a jump to target
    ***/
+   
    if (location->hasInsnAtPoint() && location->insnAtPoint().type() & IS_JCC) {
-       currAddr = baseAddr + (insn - code);
-       assert(origAddr == location->pointAddr() + imageBaseAddr);
-       origAddr = location->pointAddr() + imageBaseAddr;
-
-       // MT change: for each thread
-       {
-           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
-               if (currAddrs[ca_iter] == origAddr)
-                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
-           }
-       }
-       
-       jccTarget =
-           changeConditionalJump(location->insnAtPoint().ptr(), 
-                                 location->insnAtPoint().type(), 
-                                 location->insnAtPoint().size(), 
-                                 origAddr, 
-                                 currAddr,
-                                 currAddr+location->insnAtPoint().size()+5,
-                                 insn);
-
-       currAddr += location->insnAtPoint().size();
-       auxJumpOffset = insn-code;
-
-       emitJump(0, insn);
-
-       origAddr += location->insnAtPoint().size();
+     currAddr = baseAddr + (insn - code);
+     assert(origAddr == location->pointAddr() + imageBaseAddr);
+     origAddr = location->pointAddr() + imageBaseAddr;
+     
+     jccTarget =
+       changeConditionalJump(location->insnAtPoint().ptr(), 
+			     location->insnAtPoint().type(), 
+			     location->insnAtPoint().size(), 
+			     origAddr, 
+			     currAddr,
+			     currAddr+location->insnAtPoint().size()+5,
+			     insn);
+     
+     currAddr += location->insnAtPoint().size();
+     auxJumpOffset = insn-code;
+     
+     emitJump(0, insn);
+     
+     origAddr += location->insnAtPoint().size();
    }
    if (location->isConservative() && !noCost)
        emitSimpleInsn(PUSHFD, insn);    // pushfd
@@ -2599,48 +2605,40 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       // follow.  (This could in theory be fixed) So, 10 NOP instructions
       // (each 1 byte)
       for (unsigned foo=0; foo < 10; foo++)
-         emitSimpleInsn(0x90, insn); // NOP
+         emitSimpleInsn(NOP, insn); // NOP
    }
    
    // if there is no instruction at this point to relocate then we do
    // not have to emulate it
    if (location->hasInsnAtPoint()) {
-   if (!(location->insnAtPoint().type() & IS_JCC)) {
-      // emulate the instruction at the point 
-      ret->emulateInsOffset = insn-code;
-      currAddr = baseAddr + (insn - code);
-
-//       fprintf(stderr,"0x%x 0x%x 0x%x 0x%x\n", origAddr, 
-//               location->pointAddr()+imageBaseAddr,
-//               location->pointAddr(),imageBaseAddr);
-
-      assert(origAddr == location->pointAddr() + imageBaseAddr);
-      origAddr = location->pointAddr() + imageBaseAddr;
-
-       // MT change: for each thread
-       {
-           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
-               if (currAddrs[ca_iter] == origAddr)
-                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
-           }
-       }
-
-      unsigned newSize =
+     if (!(location->insnAtPoint().type() & IS_JCC)) {
+       // emulate the instruction at the point 
+       ret->emulateInsOffset = insn-code;
+       currAddr = baseAddr + (insn - code);
+       
+       //       fprintf(stderr,"0x%x 0x%x 0x%x 0x%x\n", origAddr, 
+       //               location->pointAddr()+imageBaseAddr,
+       //               location->pointAddr(),imageBaseAddr);
+       
+       assert(origAddr == location->pointAddr() + imageBaseAddr);
+       origAddr = location->pointAddr() + imageBaseAddr;
+       
+       unsigned newSize =
          relocateInstruction(location->insnAtPoint(), origAddr, currAddr,insn);
-
-      aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
-      assert(aflag);
-      currAddr += newSize;
-      origAddr += location->insnAtPoint().size();
-   } else {
-      // instruction at point is a conditional jump.  The instruction was
-      // relocated to the beggining of the tramp (see comments above) We must
-      // generate a jump to the original target here
-      assert(jccTarget > 0);
-      currAddr = baseAddr + (insn - code);
-      emitJump(jccTarget-(currAddr+JUMP_SZ), insn);
-      currAddr += JUMP_SZ;
-   }
+       
+       aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
+       assert(aflag);
+       currAddr += newSize;
+       origAddr += location->insnAtPoint().size();
+     } else {
+       // instruction at point is a conditional jump.  The instruction was
+       // relocated to the beggining of the tramp (see comments above) We must
+       // generate a jump to the original target here
+       assert(jccTarget > 0);
+       currAddr = baseAddr + (insn - code);
+       emitJump(jccTarget-(currAddr+JUMP_SZ), insn);
+       currAddr += JUMP_SZ;
+     }
    }
    else {
        currAddr += JUMP_SZ;
@@ -2734,8 +2732,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
        // MT change: for each thread
        {
            for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
-               if (currAddrs[ca_iter] == origAddr)
-                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+	     if (currAddrs[ca_iter] == origAddr) {
+	       proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+	     }
            }
        }
 
