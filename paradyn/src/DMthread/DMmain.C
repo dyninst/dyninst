@@ -179,6 +179,84 @@ printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
 }
 
+void dynRPCUser::memoryInfoCallback(int,
+                                    string vname,
+                                    int va,
+                                    u_int mem_size,
+                                    u_int blk_size)
+{//TO DO
+   string       abstr = "BASE";
+   u_int        type = MDL_T_INT;
+   int          end =  va + mem_size ;
+   int          start = va ;
+   vector<resourceHandle> handles, whereHandles ;
+   resourceHandle         p_handle, r_handle ;
+   int                    num_blks = 0 ;
+
+   printf("Paradyn received: (var:%s, va:%d, mem_size:%d, blk_size:%d)\n",
+              vname.string_of(), va, mem_size, blk_size) ;
+
+   vector<string> res_name;
+   res_name += "Memory" ; res_name += vname ;
+   bool exist = false ;
+   r_handle = createResource_ncb(res_name, abstr, MDL_T_VARIABLE, p_handle, exist);
+   handles += r_handle ;
+
+   /* inform others about it if they need to know */
+   if(!exist)
+   {
+    char temp[255] ;
+    sprintf(temp, "Memory/%s", vname.string_of()) ;
+    const char *name = strdup(temp) ;
+    const char *abs  = strdup(abstr.string_of()) ;
+    dictionary_hash_iter<perfStreamHandle,performanceStream*>
+                        allS(performanceStream::allStreams);
+    perfStreamHandle h;
+    performanceStream *ps;
+    while(allS.next(h,ps)){
+        ps->callResourceFunc(p_handle,r_handle,name,abs);
+    }
+   }
+
+   while (va < end)
+   {
+        char temp[255] ;
+        vector<string> res_name;
+        res_name += "Memory" ; res_name += vname ;
+
+        sprintf(temp, "%d", (int) va) ;
+        res_name += temp ;
+        exist = true; /* we do not want to search to duplication */
+        r_handle = createResource_ncb(res_name, abstr, type, p_handle, exist);
+        handles += r_handle ;
+        whereHandles += r_handle ;
+
+        va += blk_size ;
+        num_blks ++ ;
+   }
+   /* inform the daemon of the things it needs to know */
+   /* should send this to all daemons, not just one  */
+   {
+    for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
+                paradynDaemon *pd = paradynDaemon::allDaemons[j];
+                pd->memoryInfoResponse(vname, start, mem_size, blk_size, handles
+) ;
+    }
+   }
+
+   /* inform others about it if they need to know */
+   {
+    dictionary_hash_iter<perfStreamHandle,performanceStream*>
+                        allS(performanceStream::allStreams);
+    perfStreamHandle h;
+    performanceStream *ps;
+    while(allS.next(h,ps)){
+        ps->callMemoryFunc(vname, start, mem_size, blk_size, p_handle, whereHandles);
+    }
+   }
+}
+
+
 void dynRPCUser::mappingInfoCallback(int,
 				     string abstraction, 
 				     string type, 
@@ -857,6 +935,60 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr, unsi
 	ps->callResourceFunc(parent->getHandle(),r_handle,ret->getFullName(),
 	ret->getAbstractionName());
     }
+    return(r_handle);
+}
+
+resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, unsigned type,
+				  resourceHandle &p_handle, bool &exist
+				 ) 
+{
+  resource *parent = NULL;
+  unsigned r_size = resource_name.size();
+  string p_name;
+
+
+  switch (r_size) {
+    case 0:
+        // Should this case ever occur ?
+        assert(0); break;
+    case 1:
+        parent = resource::rootResource; break;
+    default:
+        for (unsigned ri=0; ri<(r_size-1); ri++) 
+            p_name += string("/") + resource_name[ri];
+        parent = resource::string_to_resource(p_name);
+        assert(parent);
+        break;
+    }
+    if (!parent) assert(0);
+
+
+    /* first check to see if the resource has already been defined */
+    p_handle = parent->getHandle() ;
+    resource *p = resource::resources[parent->getHandle()];
+    string myName = p_name;
+    myName += "/";
+    myName += resource_name[r_size - 1];
+    if(!exist) {
+    	resourceHandle *child = p->findChild(myName.string_of());
+    	if (child){
+        	return(*child); 
+        	delete child;
+    	}
+    } else {
+     	exist = false ;
+    }
+
+    // if abstr is not defined then use default abstraction 
+    if(!abstr.string_of()){
+        abstr = string("BASE");
+    }
+
+    /* then create it */
+    resource *ret =  new resource(parent->getHandle(),resource_name,
+				  myName,abstr, type);
+
+    resourceHandle r_handle = ret->getHandle() ;
     return(r_handle);
 }
 
