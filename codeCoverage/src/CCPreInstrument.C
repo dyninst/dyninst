@@ -88,6 +88,11 @@ int CCPreInstrument::run(){
 	/** if instrumentation code deletion is activated */
 	if(deletionInterval > 0)
 		while(true){
+			if(appThread->isTerminated()){
+				cerr << "Mutatee unexpectedly terminated....." << endl;
+				exit(-1);
+			}
+
 			/** if already stooped, it reached the end of mutatee */
 			if(appThread->isStopped())
 				break;

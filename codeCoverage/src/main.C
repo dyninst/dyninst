@@ -208,6 +208,15 @@ Tcl_Interp* initTclTk(CodeCoverage* codeCoverage,int interval){
 
 	if(Tcl_Init(interp) == TCL_ERROR)
 		return NULL;
+
+	Tcl_Channel channel = Tcl_GetStdChannel(TCL_STDIN);
+	if(channel){
+		if(Tcl_Close(interp,channel) != TCL_OK)
+			cerr << "warning : Tcl_Channel for TCL_STDIN  can not be closed" << endl;
+	}
+	else
+		cerr << "warning : Tcl_Channel for TCL_STDIN is not valid" << endl;
+
 	if(Tk_Init(interp) == TCL_ERROR)
 		return NULL;
 
