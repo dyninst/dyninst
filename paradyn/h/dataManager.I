@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.52  1995/11/13 14:49:14  naim
+ * Revision 1.53  1995/11/17 17:16:26  newhall
+ * added normalized argument to routines that define metrics
+ *
+ * Revision 1.52  1995/11/13  14:49:14  naim
  * Fixing return value for function DM_sequential_init - naim
  *
  * Revision 1.51  1995/10/19  22:39:53  mjrg
@@ -269,7 +272,8 @@ typedef void (*metricInfoCallback)(perfStreamHandle,
 				   int style,
 				   int aggregate,
 				   const char *units,
-				   metricHandle handle);
+				   metricHandle handle,
+				   bool normalized);
 
 /*
  * Handler that gets called when a new resource is defined.
@@ -316,7 +320,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 26;
+    $version 27;
 
     //
     // Start a paradyn daemon
@@ -738,7 +742,8 @@ $remote dataManager {
 				         int style,
 				         int aggregate,
 				         const char *units,
-				         metricHandle handle);
+				         metricHandle handle,
+					 bool normalized);
 
     $upcall $async void newResourceDefined(resourceInfoCallback,
 					   perfStreamHandle, 
