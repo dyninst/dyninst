@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.5  1995/11/29 00:43:33  tamches
+ * paradyn logo is now hard-coded
+ *
  * Revision 1.4  1995/11/18 08:34:45  tamches
  * initial # of sig figs is now 3
  *
@@ -25,6 +28,9 @@
 #include "tclclean.h"
 #include "tkclean.h"
 #include "tkTools.h"
+
+#include "pdLogo.h"
+#include "paradyn/xbm/logo.xbm"
 
 #include "visi/h/visualization.h"
 #include "dg2.h"
@@ -114,6 +120,12 @@ int main(int argc, char **argv) {
 
 //if (Tcl_EvalFile(mainInterp, "/p/paradyn/development/tamches/core/visiClients/tableVisi/tcl/tableVisi.tcl") != TCL_OK)
 //   tclpanic(mainInterp, "could not open tableVisi.tcl");
+
+   pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
+   tcl_cmd_installer createPdLogo(mainInterp, "makeLogo", pdLogo::makeLogoCommand,
+				  (ClientData)mainTkWindow);
+
+   myTclEval(mainInterp, "initializeTableVisi");
 
    // Create our main data structure:
    theTableVisi = new tableVisi(mainInterp,
