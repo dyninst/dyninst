@@ -44,6 +44,15 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.10  1997/04/14 20:07:31  zhichen
+ * Added
+ * 	enum index { machine, procedure, process, sync_object, memory };
+ *         resource *memoryRoot; // shared-memory resource
+ *         resource *memoryResource; // shared-memory resource
+ *         resource *resource::newResource_ncb(...)
+ * changed
+ * 	void resource::make_canonical...)
+ *
  * Revision 1.9  1997/03/18 19:45:59  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -96,10 +105,13 @@ extern resource *machineResource;
 extern resource *processResource;
 extern resource *moduleRoot;
 extern resource *syncRoot;
+extern resource *memoryRoot;
+extern resource *memoryResource;
+
 
 class resource {
 public:
-  enum index { machine, procedure, process, sync_object };
+  enum index { machine, procedure, process, sync_object, memory };
 
   inline resource();
   inline resource(const string& abstraction, const string& self_name,
@@ -139,6 +151,11 @@ public:
 			     const vector<u_int>& ids,
 			     bool print_err_msg);
   static resource *newResource(resource *parent, void *handle,
+			       const string &abstraction,
+			       const string &name, timeStamp creation,
+			       const string &unique, 
+			       unsigned type);
+  static resource *newResource_ncb(resource *parent, void *handle,
 			       const string &abstraction,
 			       const string &name, timeStamp creation,
 			       const string &unique, 
