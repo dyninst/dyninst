@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.33  1994/11/09 22:35:29  karavan
+# Revision 1.34  1995/07/01 23:00:00  rbi
+# updated colormodel handling to tk 4.0 and temporarily delayed need
+# for rmc technology
+#
+# Revision 1.33  1994/11/09  22:35:29  karavan
 # in which Karen gets all the resize functionality exactly the way we want
 # it and concedes defeat on the appearance ofthe initial screen startup...
 #
@@ -169,7 +173,7 @@ proc drawToolBar {} {
     set metMenuCtr 0 
     # state = 1 during met/res selection, 0 otherwise
     set tclSelectionState 0 
-    if {[string match [tk colormodel .] color] == 1} {
+    if {[winfo depth .] > 1} {
       # . created before options are added
       . config -bg #e830e830e830
 
@@ -191,10 +195,9 @@ proc drawToolBar {} {
     bind Entry <2> { %W insert insert [selection get] }
 
     wm minsize . 400 300
-    frame .parent -geometry 500x300
+    frame .parent 
     frame .parent.menub -relief raised -borderwidth 2
-    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 \
-	    -geometry 500x200
+    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 
     frame .parent.status  -relief raised -borderwidth 4
     frame .parent.main
     frame .parent.buttons -relief raised -borderwidth 4 \
@@ -274,12 +277,6 @@ proc drawToolBar {} {
     pack .parent.where -side top -fill both -expand 1
 
     pack .parent -fill both -expand 1
-
-bind .parent <ResizeRequest> {
-    pack .parent.buttons -side bottom -fill x -expand 0
-    pack .parent.status -side bottom -fill x -expand 0
-    pack .parent.where -side top -fill both -expand 1
-}
 
     # read in error file
 
