@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.64 2003/09/05 16:28:46 schendel Exp $
+// $Id: BPatch.C,v 1.65 2003/09/05 19:01:05 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -400,19 +400,12 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
  */
 BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 {
-
-#if defined(i386_unknown_nt4_0) 
-    reportError(BPatchWarning, 0,
-	"exit callbacks not implemented on this platform\n");
-    return NULL;
-#else
     BPatchExitCallback ret;
 
     ret = exitCallback;
     exitCallback = func;
     
     return ret;
-#endif
 }
 
 /*
