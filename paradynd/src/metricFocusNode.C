@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.230 2002/08/12 04:21:55 schendel Exp $
+// $Id: metricFocusNode.C,v 1.231 2002/09/07 16:15:26 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -147,16 +147,12 @@ metricFocusNode::metricFocusNode()
 {
 }
 
-
-
-
-const char *typeStr(int i) {
-  static const char* typeName[] = { "AGG", "COMP", "PRIM", "THR" };  
-  if(! (i>=0 && i<=3))
-    cerr << "i == " << i << "\n";
-  assert(i>=0 && i<=3);
-  return typeName[i];
-}
+void metricFocusRequestCallbackInfo::makeCallback(const vector<int> &returnIDs,
+						  const vector<u_int> &mi_ids)
+{
+   assert(returnIDs.size() == mi_ids.size());
+   tp->enableDataCallback(daemon_id, returnIDs, mi_ids, request_id);
+}  
 
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
@@ -630,33 +626,40 @@ void metricFocusNode::handleNewThread(pdThread *thr) {
 // Especially since it clearly is an integral part of the class;
 // in particular, it sets the crucial vrble "id_"
 //
-int startCollecting(string& metric_name, vector<u_int>& focus, int id)
+instr_insert_result_t startCollecting(string& metric_name, 
+      vector<u_int>& focus, int mid, metricFocusRequestCallbackInfo *cbi)
 {
    // Make the unique ID for this metric/focus visible in MDL.
    string vname = "$globalId";
    mdl_env::add(vname, false, MDL_T_INT);
-   mdl_env::set(id, vname);
-   
+   mdl_env::set(mid, vname);
+
    machineMetFocusNode *machNode = 
-     createMetricInstance(id, metric_name, focus, true);
-   
+     createMetricInstance(mid, metric_name, focus, true);
+
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
 		  << " failed because createMetricInstance failed" << endl;
-      return(-1);
+      return insert_failure;
    }
    //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
    addCurrentPredictedCost(machNode->cost());
    metResPairsEnabled++;
    
    if (machNode->isInternalMetric()) {
-      return machNode->getMetricID();
+      return insert_success;
    }
 
-   if(! machNode->insertInstrumentation()) {
-      return machNode->getMetricID();
+   instr_insert_result_t insert_status =  machNode->insertInstrumentation();
+   if(insert_status == insert_deferred) {
+      machNode->setMetricFocusRequestCallbackInfo(cbi);
+      return insert_deferred;
+   } else if(insert_status == insert_failure) {
+      // error message already displayed in processMetFocusNode::insertInstrum.
+      delete machNode;
+      return insert_failure;
    }
-   
+
    // This has zero for an initial value.  This is because for cpu_time and
    // wall_time, we just want to total the cpu_time and wall_time for this
    // process and no others (but if we want someone to get an actual cpu time
@@ -669,7 +672,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
 
-   return machNode->getMetricID();
+   return insert_success;
 }
 
 timeLength guessCost(string& metric_name, vector<u_int>& focus) {

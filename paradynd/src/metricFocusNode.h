@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.94 2002/08/12 04:21:56 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.95 2002/09/07 16:15:25 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -58,8 +58,6 @@
 #include "pdutil/h/ByteArray.h"
 #include "common/h/Dictionary.h"
 
-#define OPT_VERSION 1
-
 class threadMetFocusNode_Val;
 
 class instInstance; // enough since we only use instInstance* in this file
@@ -77,7 +75,6 @@ class instrCodeNode;
 class metricFocusNode {
 friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
 
-friend int startCollecting(string&, vector<u_int>&, int id); // called by dynrpc.C
 #if defined(MT_THREAD)
 friend bool checkMetricMIPrimitives(string metric_flat_name, 
 				    instrCodeNode *& metric_prim,
@@ -144,6 +141,20 @@ protected:
 };
 
 
+typedef enum { insert_success, insert_failure, insert_deferred } instr_insert_result_t;
+
+class metricFocusRequestCallbackInfo {
+   int request_id;
+   int daemon_id;
+   
+ public:
+   metricFocusRequestCallbackInfo(int request_id_, int daemon_id_) :
+      request_id(request_id_), daemon_id(daemon_id_) { }
+
+   void makeCallback(const vector<int> &returnIDs, 
+		     const vector<u_int> &mi_ids);
+};
+
 #if defined(MT_THREAD)
 extern dictionary_hash<string, metricFocusNode*> allMIinstalled;
 #endif
@@ -177,7 +188,9 @@ extern void reportInternalMetrics(bool force);
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-int startCollecting(string& metricName, vector<u_int>& focus, int id); 
+instr_insert_result_t startCollecting(string& metricName, vector<u_int>& focus,
+				   int mid, 
+				   metricFocusRequestCallbackInfo *cbi = NULL);
 
 /*
  * Return the expected cost of collecting performance data for a single
