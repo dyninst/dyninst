@@ -1,5 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
+# Revision 1.12  1995/12/28 21:52:17  tamches
+# error dialog box now puts its information in a scrollable, resizable
+# text widget instead of a non-scrollable, non-resizable message widget
+#
 # Revision 1.11  1995/12/21 22:17:48  naim
 # Changing "Paradyn Error #" by "Paradyn Message #", since not every message
 # is an error message - naim
@@ -164,16 +168,13 @@ proc showError {errorCode errorStr} {
     mkDialogWindow $w
     $w configure -bg red
     frame $w.out -class "Paradyn.Error" 
-    pack $w.out -padx 5 -pady 5
+    pack $w.out -padx 5 -pady 5 -fill both -expand true
 
     # Error screen header: bitmap, title and Error Number
     frame $w.out.top
-    pack $w.out.top -padx 5 -pady 5
+    pack $w.out.top -padx 5 -pady 5 -fill both -expand false
 
     makeLogo $w.out.top.exclaim dont flat 0 red
-
-#    label $w.out.top.exclaim -bitmap @$PdBitmapDir/dont.xbm \
-#	    -fg red -height 40 -width 40
 
     ## **** don't forget to use class for this font!!!!
     label $w.out.top.title -text "Paradyn Message \#\ $errorCode" \
@@ -181,14 +182,24 @@ proc showError {errorCode errorStr} {
 	    -fg red -font "-Adobe-times-bold-r-normal--*-120*"
     pack $w.out.top.exclaim $w.out.top.title -side left -pady 5 -padx 10
 
-    pack $w.out.top -expand yes -fill both
-
     # specific error message text
     frame $w.out.mid
-    message $w.out.mid.msg -width 300 -text $errorStr -relief groove \
-	-borderwidth 2
-    pack $w.out.mid.msg -expand yes -fill both -padx 5 -pady 5
     pack $w.out.mid -expand yes -fill both  -padx 5
+
+#    message $w.out.mid.msg -width 300 -text $errorStr -relief groove \
+#	-borderwidth 2
+
+    scrollbar $w.out.mid.msgsb -orient vertical -command "$w.out.mid.msg yview" \
+	    -background lightgray -activebackground lightgray
+    pack $w.out.mid.msgsb -side right -fill y -expand false
+
+    text $w.out.mid.msg -wrap word \
+	    -yscrollcommand "$w.out.mid.msgsb set" \
+	    -height 8 -width 50
+    pack $w.out.mid.msg -fill both -expand true
+
+    $w.out.mid.msg insert end $errorStr
+
     label $w.out.eclass -text "Message Category: $etype" -anchor center
     pack $w.out.eclass -side top -pady 5
 
@@ -201,7 +212,7 @@ proc showError {errorCode errorStr} {
     $w.out.buttons.3 configure -command "errorExit $w"
     $w.out.buttons.2 configure -command "explError $errorCode $w"
     $w.out.buttons.1 configure -command "destroy $w"
-    pack $w.out.buttons -expand yes -fill both -padx 5
+    pack $w.out.buttons -fill both -padx 5 -expand false
 
     # add this error to error history list
     lappend pdErrorHistory [list $errorCode $errorStr]
@@ -224,13 +235,3 @@ proc errorExit {oldwin} {
     pack $w.l $w.buttons -side top 
     focus $w
 }
-
-
-
-
-
-
-
-
-
-
