@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.24  1994/05/16 22:31:38  hollings
+ * Revision 1.25  1994/05/17 00:16:38  hollings
+ * Changed process id speperator from [] to {} to get around braindead tcl.
+ *
+ * Revision 1.24  1994/05/16  22:31:38  hollings
  * added way to request unique resource name.
  *
  * Revision 1.23  1994/05/12  23:34:00  hollings
@@ -241,7 +244,8 @@ String dynRPCUser::getUniqueResource(int program,
 	ret = new uniqueName(ptr);
 	allUniqueNames.add(ret, ptr);
     }
-    sprintf(newName, "%s[%d]", newResource, ret->nextId++);
+    // changed from [] to {} due to TCL braindeadness.
+    sprintf(newName, "%s{%d}", newResource, ret->nextId++);
     ptr = resource::names.findAndAdd(newName);
 
     return(ptr);
