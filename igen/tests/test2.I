@@ -1,15 +1,23 @@
 
 /* a struct with one int */
-$remote typedef struct { 
+$remote struct intStruct { 
     int style;
-} intStruct;		
+}; 
 
-$remote typedef struct {
+$remote struct s2 {
    int i1;
    int i2;
-} s2;
+};
 
-$remote array int int_Array;
+typedef struct other {
+  int i;
+  float k;
+} other;
+
+class scope {
+public:
+  typedef enum { apple, orange, pear } fruit;
+};
 
 /*
  *
@@ -17,16 +25,27 @@ $remote array int int_Array;
 $remote test {
     $base 2000;
     $version 1;
+    scope::fruit echoFruit(scope::fruit);
+    other *testOther(other *);
     void nullNull();
     int intNull();
     s2 *isSp(s2*);
-    s2 isS(s2);
     void nullStruct(intStruct);
-    int intString(char *);
+    int intString(string*);
     int add(int, int);
-    int sumVector(int_Array);
-    int_Array retVector(int len, int start);
-    char *stringString(char *);
+    int sumVector(vector<int>*);
+    vector<int> *retVector(int len, int start);
+    string *stringString(string*);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x1);
+    void hangup();
+
+       $cignore
+           int j;
+           float k;
+        $cignore
+
+       $signore 
+         int i;
+       $signore
 };

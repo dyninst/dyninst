@@ -1,149 +1,156 @@
-#include <unistd.h>
-#include <assert.h>
-#include "test1.CLNT.h"
-#include <string.h>
+#include "test1.xdr.CLNT.h"
 
-char * str1 = "A Test string with server words in it";
-char * str2 = "Different string";
+string str1 = "A Test string with server words in it";
+string str2 = "Different string";
 
-int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-int_Array vect;
-
-void echoA(char_PTR_Array &in) {
-  int i;
-  for (i=0; i<in.count; ++i)
-    printf("Element %d = %s\n", i, in.data[i]);
+void echoA(vector<string> &in) {
+  for (int i=0; i<in.size(); ++i)
+    cout << "Element " << i << " = " << in[i] << endl;
 }
 
-void freeA(char_PTR_Array &in) {
-  int i;
-  for (i=0; i<in.count; ++i) {
-    delete (in.data[i]);
-    in.data[i] = 0;
-  }
+void echoCSA(vector<T_test1::charStruct> &in) {
+  for (int i=0; i<in.size(); ++i)
+    cout << "Item " << i << " = " << in[i].cp << endl;
 }
 
-void echoCSA(charStruct_Array *in) {
-  int i;
-  for (i=0; i<in->count; ++i)
-    printf("Item %d = %s\n", i, in->data[i].cp);
-}
-
-void freeCSA(charStruct_Array *in) {
-  int i;
-  for (i=0; i<in->count; ++i) {
-    delete (in->data[i].cp);
-    in->data[i].cp = 0;
-  }
-}
+static bool seen_rapid_upcall=false;
+static unsigned count = 0;
 
 main()
 {
-    int i;
-    int fd;
-    int pid;
-    int eid;
-    int total;
-    intStruct is;
+    int i, fd, pid, total;
+    T_test1::intStruct is;
     testUser *remote;
 
-    fd = RPCprocessCreate(pid, "localhost", "", "server1");
+    vector<string> arg_list;
+    fd = RPCprocessCreate(pid, "localhost", "", "server1", arg_list);
     if (fd < 0) {
 	perror("process Create");
 	exit(-1);
     }
 
-    remote = new testUser(fd, NULL, NULL);
+    remote = new testUser(fd, NULL, NULL, false);
 
+    int tries; 
+    for (tries=0; tries<100; tries++)
+      remote->nullNull();
+    cerr << "nullNull ok\n";
 
-    remote->nullNull();
+    for (tries=0; tries<100; tries++)
+      assert(remote->intNull() == 0);
+    cerr << "intNull ok\n";
 
-    assert(remote->intNull() == 0);
+    for (tries=0; tries<100; tries++)
+      remote->nullStruct(is);
+    cerr << "nullStruct ok\n";
 
-    remote->nullStruct(is);
+    string longStr = "abacasdflkjasrlejrlkjavljadl;jasdjwe;rawojiasdvjal;jwer;lkjadsjasvl;jopejrl;jwel;jasdjasfjl;wejrl;asjd;jasdfjajfjer;lasdf;jasdfjasrjawrjas;jfajfl;ajf;lajwer;ljwaer;laflk;jasdf;jasdfjasdfjasdkfjwejrafjafjafjl;roaiwejfoifjasdjweroijwajasdjasvja;rjwrjasfjajvl;jowerjoiargj;dasgjl;l;kwrl;jfasdjfajfl;fj;sd;fj;fsdlksdfljkajforijsdogjlsl;ertokpsdrjioerjsfdjweiojsdflkjweojsdfojsdjerojsdjsdfjwejdsojsdggjgjsdfjsdfjerjegeigiolkdfsgasdgjerjerjwtgjodfsgjjasdjasfjajfl;ajgoierjtergjaejasdasjdlfjoarjioasdjdagjasoigjagoirghasdhasfjaofjpweasfjasdjasdjfwjfadfjoagjfoargjopasdfgjopjfof;jf;jasdf;jrwjaejadsojassjjsjasdjasdjarwjioaejasdjiasdjhashasdhasdhasdopfhasoidjfaodfjpfoasjdjasdjasfjofjodgjajasdjasdjajgogofjasdjasdjfasfjasofjojofioasdgjasgjasgjadgjadgjajgaopgjajgasjadjasdjasjasjasjasjaopjfasfasflkasjfgjdfjasdjfasjfoifoidfjasdjasd;jfjasdjasdjasjfojgofgjasjasdjasjfawjfgaojgl;fjagjasdjfas;jfajfl;f;jasdjasdjajflfjf;asdfaljfofglhasdfgalfl;asdjasdfjasdfja;fj;asf;asjdfl;jag;okahsdhasdfhasfofosdfljkasdlfjasjfafaffjaslkjajafjasdjkasd;jkasdfasdfasdf;jasdf;lkajsdjasdf;ljasdjasdjasdjasfja;fjadf;jasdjas;fjasjfajfl;f;jdfjasdfjasfjajfjfasdjasdjasd;jasddsslfg;fgj;fg;jasdf;dasjasdjasd;jasfjasjfas;fjasjasd;jasd;jasd;jasd;jasd;fjasd;jasdjasdjasdljk";
 
-    assert(strlen(str1) == remote->intString(str1));
+    assert(longStr.length() == remote->intString(longStr));
+    cerr << "intString: long string test ok, length = " << longStr.length() << endl;
 
-    str2 = remote->stringString(str1);
-    assert(!strcmp(str2, str1));
+    string strNull;
+    assert(strNull.length() == remote->intString(strNull));
+    cerr << "intString: null string test ok\n";
+	
+    for (tries=0; tries<100; tries++)
+      assert(str1.length() == remote->intString(str1));
+    cerr << "intString ok\n";
 
-    assert(remote->add(1, 1) == 2);
-    assert(remote->add(-1, -13) == -14);
+    str2 = remote->stringString(strNull);
+    assert(str2 == strNull);
+    cerr << "stringString: null string test ok\n";
 
-    vect.count = sizeof(numbers)/sizeof(int);
-    vect.data = numbers;
-    for (i=0, total = 0; i < vect.count; i++) {
-	total += numbers[i];
+    for (tries=0; tries<100; tries++) {
+      str2 = remote->stringString(str1);
+      assert(str2 == str1);
     }
-    assert(remote->sumVector(vect) == total);
+    cerr << "stringString ok\n";
+
+    for (tries=0; tries<100; tries++) {
+      assert(remote->add(1, 1) == 2);
+      assert(remote->add(-1, -13) == -14);
+    }
+    cerr << "add ok\n";
+
+    vector<int> vect;
+    vect += 1; vect += 2; vect += 3; vect += 4; vect += 5;
+    vect += 6; vect += 7; vect += 8; vect += 9; vect += 10;
+    for (i=0, total = 0; i < vect.size(); i++) 
+	total += vect[i];
+    
+    for (tries=0; tries<100; tries++) {
+      assert(remote->sumVector(vect) == total);
+      assert(remote->sumVectorPtr(&vect) == total);
+    }
+    cerr << "sumVector ok\n";
 
     remote->triggerAsyncUpcall(-10);
-    assert(-10 == remote->triggerSyncUpcall(-10));
 
-    for (i=0; i < 10000; i++) {
-	remote->add(1, i);
-    }
+    for (i=0; i < 10000; i++)
+	assert(remote->add(1, i) == (1+i));
     printf("RPC test1 passed\n");
 
-    char_PTR_Array cpa, res;
-    cpa.count = 2;
-    cpa.data = new char*[2];
-    cpa.data[0] = strdup("Happy");
-    cpa.data[1] = strdup("Sad");
+    vector<string> cpa, res;
+    cpa += "Happy"; cpa += "Sad";
     echoA(cpa);
     res = remote->echoCPA(cpa);
     echoA(res);
 
-    freeA(cpa);
-    freeA(res);
-    delete [] (cpa.data);
-    delete [] res.data;
+    assert(res.size() == cpa.size());
+    for (int ea=0; ea<res.size(); ea++)
+      assert(res[ea] == cpa[ea]);
 
-    charStruct cs, *csp, *csp1;
-    charStruct_Array csa, *csap, *csap1;
+    vector<string> *vs = remote->echoCPAPtr(&cpa);
+    assert(vs->size() == cpa.size());
+    for (int l=0; l<vs->size(); l++)
+      assert((*vs)[l] == cpa[l]);
+    delete vs;
 
-    csp = new charStruct;
-    cs.cp = strdup("Happy");
-    *csp = remote->echoCS(cs);
-    csp1 = remote->echoCSP(&cs);
+    T_test1::charStruct cs, csp;
+    vector<T_test1::charStruct> csa, csap;
 
-    delete cs.cp;
-    delete csp->cp;
-    delete csp;
-    delete csp1->cp;
-    delete csp1;
+    cs.cp = "Happy";
+    csp = remote->echoCS(cs);
+    assert (csp.cp == cs.cp);
 
-    csa.count = 2;
-    csa.data = new charStruct[2];
+    csp.cp = "Hospital"; csa += csp;
+    csp.cp = "Accident"; csa += csp;
 
-    csa.data[0].cp = strdup("Hospital");
-    csa.data[1].cp = strdup("Accident");
+    csap = remote->echoCSA(csa);
+    assert (csap.size() == csa.size());
+    for (ea=0; ea<csa.size(); ea++)
+      assert(csap[ea].cp == csa[ea].cp);
 
-    csap = new charStruct_Array;
-    *csap = remote->echoCSA(csa);
-    csap1 = remote->echoCSAP(csap);
+    cerr << "triggering async upcalls\n";
+    T_test1::boolStruct bs;
+    bs.b = true;
+    assert (remote->boolToString(bs) == "true");
+    bs.b = false;
+    assert (!seen_rapid_upcall);
+    assert (remote->boolToString(bs) == "false");
 
-    freeCSA(&csa);
-    delete csa.data;
-    freeCSA(csap1);
-    freeCSA(csap);
-    delete csap->data;
-    delete csap1->data;
-    delete csap;
-    delete csap1;
+    cerr << "handling async upcalls\n";
+    while (remote->buffered_requests())
+      remote->process_buffered();
+    assert(count == 999);
 
     remote->asyncClient();
     sleep(3);
     delete remote;
 }
 
-void testUser::asyncUpcall(int val)
-{
-    printf("asyncUpcall called with value = %d\n", val);
+void testUser::rapidUpcall(unsigned val) {
+  if (!seen_rapid_upcall) {
+    seen_rapid_upcall = true;
+    count = val;
+  } else {
+    assert (count == (val - 1));
+    count++;
+  }
 }
 
-int testUser::SyncUpcall(int val)
-{
-    printf("SyncUpcall called with value = %d\n", val);
-    return val;
+void testUser::asyncUpcall(int val) {
+  printf("asyncUpcall called with value = %d\n", val);
 }
+

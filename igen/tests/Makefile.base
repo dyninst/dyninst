@@ -3,16 +3,26 @@ USES_PVM = true
 
 .SUFFIXES: .c .I .C .o
 
-LIBDIR = -L../../../../lib/$(PLATFORM) -L/p/paradyn/lib/$(PLATFORM)
-TADV_OBJ = classT.o TadvancedC.o TadvancedS.o
-ADV_C_OBJ = class.o class.CLNT.o advancedC.o
-ADV_S_OBJ = class.o class.SRVR.o advancedS.o
-C_OBJSPVM	= testPVM.o clientPVM.o testPVM.CLNT.o 
-S_OBJSPVM	= testPVM.o serverPVM.o testPVM.SRVR.o 
-C_OBJS1	= test1.o client1.o test1.CLNT.o 
-S_OBJS1	= test1.o server1.o test1.SRVR.o 
-OBJS2	= test2.o client2.o server2.o 
+LIBDIR = -L../../../../lib/$(PLATFORM) -L/p/paradyn/lib/$(PLATFORM) \
+         -L/usr/psup/lib 
+TADV_OBJ = classT.thread.o TadvancedC.o TadvancedS.o
+ADV_C_OBJ = class.xdr.o class.xdr.CLNT.o advancedC.o
+ADV_S_OBJ = class.xdr.o class.xdr.SRVR.o advancedS.o
+C_OBJSPVM	= testPVM.pvm.o clientPVM.pvm.o testPVM.pvm.CLNT.o 
+S_OBJSPVM	= testPVM.pvm.o serverPVM.pvm.o testPVM.pvm.SRVR.o 
+C_OBJS1	= test1.xdr.o client1.o test1.xdr.CLNT.o  test1.xdr.temp.o
+S_OBJS1	= test1.xdr.o server1.o test1.xdr.SRVR.o test1.xdr.temp.o
+OBJS2	= test2.thread.CLNT.o test2.thread.SRVR.o client2.o server2.o test2.thread.temp.o
 IGEN = igen
+PURIFY	= purify -best-effort
+
+LIBS 	+= -lg++ -lfl -lutil
+IFLAGS	+= -I. -I../..  -I../../..
+
+#Override options from system defaults
+CFLAGS         += 
+CXXFLAGS       += 
+TFLAGS         += 
 
 SRCS 	= client1.C \
           client2.C \
@@ -25,7 +35,11 @@ SRCS 	= client1.C \
 	  TadvancedS.C \
 	  TadvancedC.C 
            
-EXTRA_CFLAGS = $(CFLAGS) -I./util/h
+test1.xdr.temp.o: test1.xdr.temp.C
+	$(CXX) $(TFLAGS) -c test1.xdr.temp.C
+
+test2.thread.temp.o: test2.thread.temp.C
+	$(CXX) $(TFLAGS) -c test2.thread.temp.C
 
 all:  all_igen client1 server1 program2 advancedS advancedC Tadvanced
 
@@ -36,65 +50,66 @@ all_igen: test1_igen test2_igen testPVM_igen class_igen classT_igen
 all_pure: server1_pure client1_pure program2_pure Tadvanced_pure advanced_pure
 
 client1_pure: $(C_OBJS1) 
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o client1 \
-	         $(C_OBJS1) $(LIBDIR) -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o client1 \
+	         $(C_OBJS1) $(LIBDIR) $(LIBS)
 
 server1_pure: $(S_OBJS1) 
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o server1  \
-	         $(S_OBJS1) $(LIBDIR) -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o server1  \
+	         $(S_OBJS1) $(LIBDIR) $(LIBS)
 
 Tadvanced_pure: $(TADV_OBJ)
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o Tadvanced \
-	          $(TADV_OBJ) $(LIBDIR) -lthread -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o Tadvanced \
+	          $(TADV_OBJ) $(LIBDIR) -lthread $(LIBS)
 
 program2_pure: $(OBJS2) 
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o program2 \
-	          $(OBJS2) $(LIBDIR) -lthread -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o program2 \
+	          $(OBJS2) $(LIBDIR) -lthread $(LIBS)
 
 clientPVM_pure: $(C_OBJSPVM) 
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o clientPVM \
-	            $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o clientPVM \
+	            $(C_OBJSPVM) $(LIBDIR) -lpvm3 $(LIBS)
 
 serverPVM_pure: $(S_OBJSPVM) 
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o serverPVM \
-	         $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o serverPVM \
+	         $(S_OBJSPVM) $(LIBDIR) -lpvm3 $(LIBS)
 
 advanced_pure: advancedS_pure advancedC_pure
 
 advancedS_pure: $(ADV_S_OBJ)
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) $(CFLAGS)  -o advS $(ADV_S_OBJ) $(LIBDIR) -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) $(CFLAGS)  -o advS $(ADV_S_OBJ) $(LIBDIR) $(LIBS)
 
 advancedC_pure: $(ADV_C_OBJ)
-	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) $(CFLAGS) -o advC $(ADV_C_OBJ) $(LIBDIR) -lutil $(LIBS)
+	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) $(CFLAGS) -o advC $(ADV_C_OBJ) $(LIBDIR) $(LIBS)
 
 advancedS: $(ADV_S_OBJ)
-	$(CC) $(CFLAGS)  -o advS $(ADV_S_OBJ) $(LIBDIR) -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS)  -o advS $(ADV_S_OBJ) $(LIBDIR) $(LIBS)
 
 advancedC: $(ADV_C_OBJ)
-	$(CC) $(CFLAGS) -o advC $(ADV_C_OBJ) $(LIBDIR) -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS) -o advC $(ADV_C_OBJ) $(LIBDIR) $(LIBS)
 
 client1: $(C_OBJS1) 
-	$(CC) $(CFLAGS) -o client1 $(C_OBJS1) $(LIBDIR) -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS) -o client1 $(C_OBJS1) $(LIBDIR) $(LIBS)
 
 server1: $(S_OBJS1) 
-	$(CC) $(CFLAGS) -o server1 $(S_OBJS1) $(LIBDIR) -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS) -o server1 $(S_OBJS1) $(LIBDIR) $(LIBS)
 
 Tadvanced: $(TADV_OBJ) 
-	$(CC) $(CFLAGS) -o Tadvanced $(TADV_OBJ) $(LIBDIR) -lthread -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS) -o Tadvanced $(TADV_OBJ) $(LIBDIR) -lthread $(LIBS)
 
 program2: $(OBJS2) 
-	$(CC) $(CFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lthread -lutil $(LIBS)
+	$(CXX) $(CXXFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lthread $(LIBS)
 
 clientPVM: $(C_OBJSPVM) 
-	$(CC) $(CFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 $(LIBS)
+	$(CXX) $(CXXFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lpvm3 $(LIBS)
 
 serverPVM: $(S_OBJSPVM) 
-	$(CC) $(CFLAGS) -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3  $(LIBS)
+	$(CXX) $(CXXFLAGS) -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lpvm3  $(LIBS)
 
 clean: 
-	rm *.o *CLNT* *SRVR* *.h clientPVM serverPVM \
-              testPVM.C *pure* client1 server1 program2 \
-              test1.C test2.C class.C advC advS Tadvanced classT.C
+	rm *.o *CLNT* *SRVR* *.h clientPVM serverPVM *core* \
+              testPVM.pvm.C *pure* client1 server1 program2 \
+              test1.xdr.C test2.thread.C class.xdr.C advC advS Tadvanced classT.thread.C \
+              test1.xdr.temp.C test2.thread.temp.C 
 
 classT_igen: classT.I
 	$(IGEN) -thread $<
@@ -111,23 +126,20 @@ test2_igen: test2.I
 testPVM_igen: testPVM.I
 	$(IGEN) -pvm $<
 
-test2.C: test2.I ../$(PLATFORM)/igen
+test2.thread.C test2.thread.CLNT.C test2.thread.SRVR.C: test2.I 
 	$(IGEN) -thread $<
 
-test1.C: test1.I ../$(PLATFORM)/igen
+test1.xdr.C test1.xdr.CLNT.C test1.xdr.SRVR.C: test1.I
 	$(IGEN) -xdr $<
 
-testPVM.C: testPVM.I ../$(PLATFORM)/igen
+testPVM.C: testPVM.I 
 	$(IGEN) -pvm $<
 
-class.C: class.I ../$(PLATFORM)/igen
+class.C: class.I 
 	$(IGEN) -xdr $<
 
-classT.C: classT.I ../$(PLATFORM)/igen
+classT.C: classT.I 
 	$(IGEN) -thread $<
 
-ISRCS = test1.CLNT.C test1.SRVR.C test1.C test2.C class.C class.SRVR.C \
-        class.CLNT.C classT.C
-DEPENDS: all_igen $(SRCS) $(ISRCS)
-	touch DEPENDS
-	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(ISRCS)
+ISRCS = test1.xdr.CLNT.C test1.xdr.SRVR.C test1.xdr.C test2.thread.C \
+        class.xdr.C class.xdr.SRVR.C class.xdr.CLNT.C classT.thread.C

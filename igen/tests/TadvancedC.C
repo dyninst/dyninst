@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
-#include "classT.CLNT.h"
+#include "classT.thread.CLNT.h"
 
 extern void serverMainFunc(void *pid);
 

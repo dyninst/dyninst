@@ -1,25 +1,27 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "test1.SRVR.h"
+#include "test1.xdr.SRVR.h"
 
 main(int argc, char *argv[])
 {
     int fd;
-    int eid;
+
     int ret;
     test *tp;
+
+    // int z=1;
+    // while(z) ;
 
     if (argc == 1) {
 	fd = 0;
     } else {
 	printf("remote start not supported\n");
+        abort();
 	exit(-1);
     }
-    tp = new test(0, NULL, NULL);
+    tp = new test(0, NULL, NULL, false);
 
     // now go into main loop
     while(1) {
-	ret = tp->mainLoop();	
+	ret = tp->waitLoop();	
 	if (ret < 0) {
 	    // assume the client has exited, and leave.
 	    exit(-1);
@@ -28,73 +30,62 @@ main(int argc, char *argv[])
 }
 
 
-void test::nullNull()
-{
+void test::nullNull() {
     return;
 }
 
-int test::intNull()
-{
+int test::intNull() {
     return(0);
 }
 
-void test::nullStruct(intStruct s)
-{
+void test::nullStruct(T_test1::intStruct s) {
     return;
 }
 
-int test::intString(const char *s)
-{
-    return(strlen(s));
+int test::intString(string s) {
+    return(s.length());
 }
 
-char *test::stringString(char *s)
-{
+string test::stringString(string s) {
     return(s);
 }
 
-int test::add(int a, int b)
-{
+int test::add(int a, int b) {
     return(a+b);
 }
 
-float test::fadd(float a, float b)
-{
+float test::fadd(float a, float b) {
     return(a+b);
 }
-int test::sumVector(int_Array nums)
-{
-   int i, total;
 
-   for (i=0, total=0; i < nums.count; i++) {
-       total += nums.data[i];
+int test::sumVector(vector<int> nums) {
+   int total=0;
+   for (int i=0; i < nums.size(); i++) {
+       total += nums[i];
    }
    return(total);
 }
 
-int_Array test::retVector(int num, int start)
-{
-    int i;
-    int_Array retVal;
+int test::sumVectorPtr(vector<int> *nums) {
+   int total=0;
+   for (int i=0; i < (*nums).size(); i++) {
+       total += (*nums)[i];
+   }
+   delete nums;
+   return(total);
+}
 
-    retVal.count = num;
-    retVal.data = (int*) malloc(sizeof(int) * num);
-    for (i=0; i < num; i++) {
-	retVal.data[i] = start+i;
-    }
+vector<int> test::retVector(int num, int start) {
+    vector<int> retVal;
+
+    for (int i=0; i<num; i++)
+      retVal += start++;
     return(retVal);
 }
 
 
-void test::triggerAsyncUpcall(int val)
-{
+void test::triggerAsyncUpcall(int val) {
     asyncUpcall(val);
-}
-
-int test::triggerSyncUpcall(int val)
-{
-    SyncUpcall(val);
-    return val;
 }
 
 void exitNow(test *me) {
@@ -102,28 +93,32 @@ void exitNow(test *me) {
   exit(1);
 }
 
-void test::asyncClient()
-{
+void test::asyncClient() {
   printf("In test::asyncClient(), goodbye!\n");
   exitNow(this);
 }
 
-char_PTR_Array test::echoCPA(char_PTR_Array input) {
+vector<string> test::echoCPA(vector<string> input) {
   return input;
 }
 
-charStruct test::echoCS(charStruct csin) {
+vector<string> *test::echoCPAPtr(vector<string> *input) {
+  return input;
+}
+
+T_test1::charStruct test::echoCS(T_test1::charStruct csin) {
   return csin;
 }
 
-charStruct *test::echoCSP(charStruct *csin) {
-  return csin;
-}
-
-charStruct_Array test::echoCSA(charStruct_Array csa) {
+vector<T_test1::charStruct> test::echoCSA(vector<T_test1::charStruct> csa) {
   return csa;
 }
 
-charStruct_Array *test::echoCSAP(charStruct_Array *csap) {
-  return csap;
+string test::boolToString(T_test1::boolStruct bs) {
+  if (bs.b) {
+    for (unsigned i=0; i<1000; i++)
+      rapidUpcall(i);
+    return "true";
+  } else
+    return "false";
 }

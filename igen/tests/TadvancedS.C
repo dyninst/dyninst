@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "classT.SRVR.h"
+#include "classT.thread.SRVR.h"
 
 void *serverMainFunc(void *parentId)
 {

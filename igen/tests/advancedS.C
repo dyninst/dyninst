@@ -1,5 +1,5 @@
 
-#include "class.SRVR.h"
+#include "class.xdr.SRVR.h"
 
 int signal = 0;
 

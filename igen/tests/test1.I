@@ -1,16 +1,16 @@
 /* a struct with one int */
-$remote typedef struct { 
+$remote struct intStruct { 
     int style;
-} intStruct;		
+};		
 
-$remote typedef struct {
-  char *cp;
-} charStruct;
+$remote struct charStruct {
+  string cp;
+};
 
-$remote array charStruct charStruct_Array;
+$remote struct boolStruct {
+  bool b;
+};
 
-$remote array int int_Array; 
-$remote array char* char_PTR_Array; 
 
 /*
  *
@@ -18,23 +18,23 @@ $remote array char* char_PTR_Array;
 $remote test {
     $base 2000;
     $version 1;
+    int add(int, int);
+    float fadd(float, float);
+    vector<int> retVector(int len, int start);
     void nullNull();				// a comment
     int intNull();
     $async void asyncClient();
     void nullStruct(intStruct);
-    int intString(const char *s1);
-    int add(int, int);
-    float fadd(float, float);
-    int sumVector(int_Array);
-    int_Array retVector(int len, int start);
-    $noFree char *stringString(char *);
+    int intString(const string s1);
+    int sumVector(vector<int>);
+    int sumVectorPtr(vector<int>*);
+    string stringString(string);
     void triggerAsyncUpcall(int val);
-    int triggerSyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
-    $upcall int SyncUpcall(int x);
-    $noFree char_PTR_Array echoCPA(char_PTR_Array);
-    $noFree charStruct echoCS(charStruct);  
-    $noFree charStruct *echoCSP(charStruct *);
-    $noFree charStruct_Array echoCSA(charStruct_Array);
-    $noFree charStruct_Array *echoCSAP(charStruct_Array*);
+    vector<string> echoCPA(vector<string>);
+    $free vector<string>* echoCPAPtr(vector<string>*);
+    charStruct echoCS(charStruct);  
+    vector<charStruct> echoCSA(vector<charStruct>);
+    string boolToString(boolStruct bs);
+    $upcall $async void rapidUpcall(u_int count);
 };

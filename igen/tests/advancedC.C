@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "class.CLNT.h"
+#include "class.xdr.CLNT.h"
 
 int noSignal=1; 
 
