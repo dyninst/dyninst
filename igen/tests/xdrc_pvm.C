@@ -35,7 +35,7 @@ main (int argc, char *argv[])
     {
       pvm_recv (tid, -1);
     }
-  RPC_undo_arg_list (argc, argv, &machine, &family, &type, &well_known_socket, &flag);
+  assert (RPC_undo_arg_list (argc, argv, &machine, &family, &type, &well_known_socket, &flag) == 0);
 
   if (flag)
     {
