@@ -50,7 +50,7 @@ hashTable::hashTable(unsigned size,
     tableUsage += false;
   }
   for (unsigned i=0; i<initial_free_size; i++) {
-    freeList += i+initial_free_elem;
+    freeList += initial_free_size-1-i+initial_free_elem;
   }
 }
 
@@ -70,24 +70,31 @@ hashTable::~hashTable() {}
 
 void hashTable::addToFreeList(unsigned from, unsigned how_many)
 {
-  for (unsigned i=from; i<how_many; i++) {
+  for (unsigned i=from; i<from+how_many; i++) {
     freeList += i;
     assert(tableUsage[i]==false);
   }
 }
 
-unsigned hashTable::add(unsigned id)
+bool hashTable::add(unsigned id, unsigned &position)
 {
-    unsigned tmpSize, position;
-    assert(!mapTable.defines(id));
-    assert(freeList.size());
+    unsigned tmpSize;
+    if (freeList.size() == 0)  {
+      logLine("*** hashTable::add, freeList.size() == 0 ...\n") ;
+      return(false);
+    }
+    if (mapTable.defines(id)) {
+      logLine("*** hashTable::add, mapTable.defines(id) ...\n") ;
+      assert(0) ;
+      return false ;
+    }
     mapTable[id] = freeList[freeList.size()-1];
     position = mapTable[id];
     tmpSize = freeList.size();
     freeList.resize(tmpSize-1);
     assert(!tableUsage[position]);
     tableUsage[position] = true;
-    return(position);
+    return(true);
 }
 
 void hashTable::remove(unsigned id)
@@ -98,7 +105,14 @@ void hashTable::remove(unsigned id)
     assert(position < tableUsage.size());
     assert(tableUsage[position]);
     tableUsage[position] = false;
-    freeList += position;
+    vector<unsigned> tempList ;
+
+    //prepend to the front
+    tempList += position ;
+    for (unsigned k=0; k< freeList.size(); k++) {
+      tempList += freeList[k] ;
+    }
+    freeList = tempList ;
     mapTable.undef(id);
 }
 

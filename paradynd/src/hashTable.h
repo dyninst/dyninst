@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: hashTable.h,v 1.2 1998/08/16 23:34:03 wylie Exp $
+// $Id: hashTable.h,v 1.3 1999/07/07 16:16:41 zhichen Exp $
 
 #ifndef _HASH_TABLE_H_
 #define _HASH_TABLE_H_
@@ -54,7 +54,7 @@ class hashTable {
     hashTable(unsigned size, unsigned initial_free_size, unsigned initial_free_elem);
     hashTable(hashTable *src); // fork ctor
     ~hashTable();
-    unsigned add(unsigned id); 
+    bool add(unsigned id, unsigned &position); 
     void remove(unsigned id);
     void addToFreeList(unsigned from, unsigned how_many);
     unsigned getMapId(unsigned id) 
