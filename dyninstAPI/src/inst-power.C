@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.147 2002/08/16 16:01:37 gaburici Exp $
+ * $Id: inst-power.C,v 1.148 2002/09/17 20:08:02 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -968,12 +968,6 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
     tmp_insn++; scratchBase+=sizeof(instruction);
   }
-  // Compare immediate with -2, branch if true: two ops
-  genImmInsn(tmp_insn, CMPIop, 0, REG_MT_POS, (unsigned) -2);
-  tmp_insn++; scratchBase+=sizeof(instruction);
-  returnVal = scratchBase + base;
-  generateNOOP(tmp_insn);
-  tmp_insn++; scratchBase+=sizeof(instruction);
 
   // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
@@ -981,21 +975,6 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
   tmp_insn++;
   scratchBase += sizeof(instruction);
 
-  AstNode *pos = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
-  AstNode *size = new AstNode(AstNode::Constant, (void *)sizeof(unsigned));
-  AstNode *tramp_offset = new AstNode(timesOp, pos, size);
-  removeAst(pos);
-  removeAst(size);
-  Register result = tramp_offset->generateCode(proc, regSpace, (char *)insn,
-					       scratchBase, false, true);
-  tmp_insn = (instruction *) ((void*)&insn[scratchBase/4]);
-  if ((result) != REG_GUARD_OFFSET) {
-    // This is always going to happen... we reserve REG_MT_POS, so the
-    // code generator will never use it as a destination
-    genImmInsn(tmp_insn, ORILop, result, REG_GUARD_OFFSET, 0);
-    tmp_insn++; scratchBase+=sizeof(instruction);
-  }
-			      
   base += scratchBase;
 
   return returnVal;
@@ -1208,8 +1187,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Initialize some bits of the template
   theTemplate->prevInstru = false;
   theTemplate->postInstru = false;
-  theTemplate->MTpreBranch = -1;
-  theTemplate->MTpostBranch = -1;
   theTemplate->prevBaseCost = 0;
   theTemplate->postBaseCost = 0;
   theTemplate->cost = 0;
@@ -1293,7 +1270,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     //be found
     
     // MT: thread POS calculation. If not, stick a 0 here
-    theTemplate->MTpreBranch = generateMTTrampCode(insn, currAddr, proc);
+    generateMTTrampCode(insn, currAddr, proc);
     // GenerateMT will push forward the currAddr, but not insn
     insn = &tramp[currAddr/4];
   }
@@ -1305,9 +1282,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
 	      (char *)insn, spareAddr, false);
 #if defined(MT_THREAD)
-    // Add on the offset (for MT)
-    emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
-	  (char *)insn, spareAddr, false);
+    // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
+    // and add to the guard address
+    if (proc->paradynLibAlreadyLoaded()) {
+      emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
+	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+      
+      // Add on the offset (for MT)
+      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	    (char *)insn, spareAddr, false);
+    }
 #endif
     // Load value
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
@@ -1420,7 +1404,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     //at this point we may have not yet loaded the
     //paradyn lib, so the DYNINSTthreadPos symbols may not
     //be found   
-    theTemplate->MTpostBranch = generateMTTrampCode(insn, currAddr, proc);
+    generateMTTrampCode(insn, currAddr, proc);
     // GenerateMT will push forward the currAddr, but not insn
     insn = &tramp[currAddr/4];
   }
@@ -1433,16 +1417,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
 	      (char *)insn, spareAddr, false);
 #if defined(MT_THREAD)
-if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
-	//at this point we may have not yet loaded the
-	//paradyn lib, so the DYNINSTthreadPos symbols may not
-	//be found
-
-
-    // Add on the offset (for MT)
-    emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
-	  (char *)insn, spareAddr, false);
-}
+    // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
+    // and add to the guard address
+    if (proc->paradynLibAlreadyLoaded()) {
+      emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
+	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+      
+      // Add on the offset (for MT)
+      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	    (char *)insn, spareAddr, false);
+    }
 #endif
     // Load value
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
@@ -1532,9 +1516,6 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
   // 4) postTrampGuard (recursiveGuardPostJumpOffset to restorePostInsn)
   // 5) Return jump (returnInsOffset to location->addr)
   // 6) Emulated instruction (well, kinda)
-  // (MT)
-  // 7) MTpreBranch (MTpreBranch to restorePreInsn)
-  // 8) MTpostBranch (MTpostBranch to restorePostInsn) 
 
   // 1
   instruction *temp = &(tramp[theTemplate->skipPreInsOffset/sizeof(instruction)]);
@@ -1562,28 +1543,6 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
     // Set it up by hand
     temp->raw = 0; temp->bform.op = BCop; // conditional
     temp->bform.bo = BFALSEcond; // Branch if false
-    temp->bform.bi = EQcond; temp->bform.bd = offset; 
-    temp->bform.aa = 0; temp->bform.lk = 0;
-  }
-  // 7
-  if (theTemplate->MTpreBranch != -1) {
-    temp = &(tramp[theTemplate->MTpreBranch/sizeof(instruction)]);
-    Address offset = ((theTemplate->restorePreInsOffset -
-		       theTemplate->MTpreBranch))/4;
-    // Set it up by hand
-    temp->raw = 0; temp->bform.op = BCop; // conditional
-    temp->bform.bo = BTRUEcond; // Branch if false
-    temp->bform.bi = EQcond; temp->bform.bd = offset; 
-    temp->bform.aa = 0; temp->bform.lk = 0;
-  }
-  // 8
-  if (theTemplate->MTpostBranch != -1) {
-    temp = &(tramp[theTemplate->MTpostBranch/sizeof(instruction)]);
-    Address offset = ((theTemplate->restorePostInsOffset -
-		       theTemplate->MTpostBranch))/4;
-    // Set it up by hand
-    temp->raw = 0; temp->bform.op = BCop; // conditional
-    temp->bform.bo = BTRUEcond; // Branch if false
     temp->bform.bi = EQcond; temp->bform.bd = offset; 
     temp->bform.aa = 0; temp->bform.lk = 0;
   }
@@ -1651,10 +1610,8 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
   //fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-  /*
-  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
-	  baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
-  */  
+  //fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+  //baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
   if (isReinstall) return NULL;
 
   return theTemplate;
@@ -1948,12 +1905,6 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
     tmp_insn++; base+=sizeof(instruction);
   }
-  // Compare immediate with -2, branch if true: two ops
-  genImmInsn(tmp_insn, CMPIop, 0, REG_MT_POS, (unsigned) -2);
-  tmp_insn++; base+=sizeof(instruction);
-  returnVal = base;
-  generateNOOP(tmp_insn);
-  tmp_insn++; base+=sizeof(instruction);
 
   // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
@@ -1963,18 +1914,6 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
 }
 
 #endif
-
-void generateMTSkipBranch(void *insnPtr, Address addr, Address offset)
-{
-  instruction *temp = (instruction *) (&((instruction *)insnPtr)[addr/sizeof(instruction)]);
-
-  // Can't just generate, since we need a conditional branch
-  // Set it up by hand
-  temp->raw = 0; temp->bform.op = BCop; // conditional
-  temp->bform.bo = BTRUEcond; // Branch if false
-  temp->bform.bi = EQcond; temp->bform.bd = offset-addr; 
-  temp->bform.aa = 0; temp->bform.lk = 0;  
-}
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
