@@ -1449,16 +1449,16 @@ bool process::triggeredInStackFrame(Frame &frame,
 
     // Can't figure it out if we don't know where we are
     if (!range) return false;
-    
-/*
+
+    /*
     fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s)\n", 
             frame.getPC(), 
             frame.getThread()->get_tid(),
             point->iPgetAddress(this),
             point->iPgetFunction()->prettyName().c_str());
-*/
+    */
     Address collapsedFrameAddr;
-    
+
     // Test 1: if the function associated with the frame
     // is not the instPoint function, return false immediately.
     if (range->function_ptr) {
@@ -1498,6 +1498,10 @@ bool process::triggeredInStackFrame(Frame &frame,
 */
     }
     else if (range->reloc_ptr) {
+       pd_Function *parent_func = range->reloc_ptr->func();
+       if(parent_func != (const pd_Function *) point->iPgetFunction())
+          return false;         
+
         // The inst point given should be within the relocated function,
         // so everything should work normally
         collapsedFrameAddr = frame.getPC();
