@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.14  1994/05/18 00:50:12  hollings
-/* added pid argument to core command.
+/* Revision 1.15  1994/05/26 21:26:10  karavan
+/* corrected return value for Process command, to return TCL_ERROR if call
+/* to Add_Executable fails.
 /*
+ * Revision 1.14  1994/05/18  00:50:12  hollings
+ * added pid argument to core command.
+ *
  * Revision 1.13  1994/05/12  23:34:16  hollings
  * made path to paradyn.h relative.
  *
@@ -251,6 +255,11 @@ void processUsage()
   printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> \"command\"\n");
 }
 
+/****
+ * Process
+ * Calls data manager service "addExecutable".  
+ * Returns TCL_OK or TCL_ERROR
+ */
 int ParadynProcessCmd(ClientData clientData,
 		      Tcl_Interp *interp,
 		      int argc,
@@ -288,10 +297,12 @@ int ParadynProcessCmd(ClientData clientData,
 	}
     }
 
-    dataMgr->addExecutable(context, machine, user, paradynd, argc-i, &argv[i]);
-
-    return(0);
-}
+    if (dataMgr->addExecutable(context, machine, user, paradynd, argc-i, 
+			       &argv[i]) < 0)
+      return TCL_ERROR;
+    else
+      return TCL_OK;
+  }
 
 /*
  * build_resource_list
