@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCdata.C,v 1.10 2001/12/12 17:28:49 gurari Exp $
+// $Id: PCdata.C,v 1.11 2003/05/21 18:21:17 pcroth Exp $
 // dataSubscriber and dataProvider base classes
 
 #include "PCintern.h"
@@ -85,12 +85,12 @@ dataProvider::sendValue(PCmetDataID which, pdRate newval, relTimeStamp begin,
 
 void 
 dataProvider::sendEnableReply (unsigned token1, unsigned token2, unsigned token3,
-			       bool successful)
+			       bool successful, string msg )
 {
   unsigned size = allConsumers.size();
   for (unsigned i = 0; i < size; i++) {
     if (allConsumers[i] != NULL)
-      (allConsumers[i])->enableReply (token1, token2, token3, successful);
+      (allConsumers[i])->enableReply (token1, token2, token3, successful, msg);
   }
 }
   

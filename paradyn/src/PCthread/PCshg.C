@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.68 2002/12/20 07:50:03 jaw Exp $
+ * $Id: PCshg.C,v 1.69 2003/05/21 18:21:17 pcroth Exp $
  */
 
 #include "PCintern.h"
@@ -203,7 +203,7 @@ searchHistoryNode::startExperiment()
 }
 
 void 
-searchHistoryNode::enableReply (bool successful)
+searchHistoryNode::enableReply (bool successful, string msg)
 {
   if (successful) {
     changeActive(true);
@@ -214,6 +214,16 @@ searchHistoryNode::enableReply (bool successful)
 #ifdef PCDEBUG
     cout << "unable to start experiment for node: " << nodeID << endl;
 #endif
+    if( msg.length() > 0 )
+    {
+        string statusMsg = "Unable to start experiment for ";
+        statusMsg += getHypoName();
+        statusMsg += " at focus ";
+        statusMsg += string(dataMgr->getFocusNameFromHandle(where));
+        statusMsg += ": ";
+        statusMsg += msg;
+        mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
+    }
   }
   float mycost = getEstimatedCost();
   mamaGraph->clearPendingSearch(mycost);
@@ -1071,7 +1081,7 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
 }
 
 void 
-searchHistoryGraph::updateDisplayedStatus (char *newmsg)
+searchHistoryGraph::updateDisplayedStatus (const char *newmsg)
 {
   string *msgStr = new string (newmsg); // UI will call 'delete' on this
   uiMgr->updateStatusDisplay(guiToken, msgStr);

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.41 2003/05/09 20:12:58 pcroth Exp $    
+ * $Id: PCfilter.C,v 1.42 2003/05/21 18:21:17 pcroth Exp $    
  */
 
 #include "PCfilter.h"
@@ -464,10 +464,12 @@ filteredDataServer::newDataEnabled(pdvector<metricInstInfo> *newlyEnabled)
 	curr->status = filter::Active;
 	curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
       } else { 
-	// enable failed 
-	//**
-	curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 0, false);
-	curr->status = filter::Inactive;
+        // enable failed 
+        //**
+        curr->sendEnableReply(miicurr->m_id, miicurr->r_id,
+                                0,
+                                false, miicurr->emsg );
+        curr->status = filter::Inactive;
       }
     }
   }

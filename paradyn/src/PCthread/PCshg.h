@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.41 2002/12/20 07:50:03 jaw Exp $
+ * $Id: PCshg.h,v 1.42 2003/05/21 18:21:17 pcroth Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -131,7 +131,7 @@ public:
   const char *getHypoName() {return why->getName();}
   focus getWhere() {return where;}
   void estimatedCostNotification(); 
-  void enableReply (bool);
+  void enableReply (bool, string = "");
   void addActiveSearch();
   void retestAllChildren();
   void retest();
@@ -218,7 +218,7 @@ class searchHistoryGraph {
 			      bool *newFlag);
   searchHistoryNode *const getNode (unsigned nodeId);
   void updateDisplayedStatus (string *newmsg);
-  void updateDisplayedStatus (char *newmsg);
+  void updateDisplayedStatus (const char *newmsg);
   void finalizeSearch(relTimeStamp searchEndTime);
   unsigned getPhase() {return (unsigned)guiToken;}
   void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);

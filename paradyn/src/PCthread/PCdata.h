@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCdata.h,v 1.9 2002/12/20 07:50:02 jaw Exp $
+// $Id: PCdata.h,v 1.10 2003/05/21 18:21:17 pcroth Exp $
 // dataSubscriber and dataProvider base classes
 
 #ifndef pc_data_h
@@ -67,7 +67,7 @@ class dataSubscriber {
   virtual ~dataSubscriber() {;}
   virtual void newData(PCmetDataID, pdRate, relTimeStamp, relTimeStamp) = 0; 
   virtual void updateEstimatedCost(float) = 0;
-  virtual void enableReply (unsigned, unsigned, unsigned, bool) = 0;
+  virtual void enableReply (unsigned, unsigned, unsigned, bool, string = "") = 0;
 };
 
 class dataProvider {
@@ -81,7 +81,7 @@ public:
   int rmConsumer(dataSubscriber*);
   int getNumConsumers () {return numConsumers;}
   void sendValue(PCmetDataID, pdRate, relTimeStamp, relTimeStamp);
-  void sendEnableReply (unsigned, unsigned, unsigned, bool);
+  void sendEnableReply (unsigned, unsigned, unsigned, bool, string = "");
 protected:
   void sendUpdatedEstimatedCost(float costDiff);
   pdvector<dataSubscriber*> allConsumers;

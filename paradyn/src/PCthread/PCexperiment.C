@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.21 2002/05/13 19:53:07 mjbrim Exp $
+ * $Id: PCexperiment.C,v 1.22 2003/05/21 18:21:17 pcroth Exp $
  */
 
 #include "PCintern.h"
@@ -274,7 +274,8 @@ experiment::halt ()
 }
 
 void 
-experiment::enableReply (unsigned, unsigned, unsigned, bool successful)
+experiment::enableReply (unsigned, unsigned, unsigned,
+                            bool successful, string msg)
 {
 #ifdef PCDEBUG
     // debug printing
@@ -283,6 +284,6 @@ experiment::enableReply (unsigned, unsigned, unsigned, bool successful)
     cout << *pcmih << endl;
   }
 #endif
-  papaNode->enableReply(successful);
+  papaNode->enableReply(successful, msg);
 }
 
