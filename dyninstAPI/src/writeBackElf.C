@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.14 2003/03/10 15:05:47 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.15 2003/07/01 19:57:56 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -40,7 +40,11 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		}
 		delete [] fileName;
 	}
-        elf_version(EV_CURRENT);
+
+        if(elf_version(EV_CURRENT) == EV_NONE){
+
+		printf(" elf_version failed!\n");
+	} 
         if ((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) == NULL){
 		printf("OLDELF_BEGIN_FAIL");
                 fflush(stdout);
@@ -180,7 +184,7 @@ unsigned int writeBackElf::findAddressOf(char *objName){
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
 
-	Elf32_Shdr *newsh, *shdr, *dynamicShdr;
+	Elf32_Shdr *newsh, *shdr;
 	Elf_Scn *scn, *newScn; 
         Elf32_Ehdr *ehdr ;//= elf32_getehdr(oldElf);
 	Elf_Data *data, *newdata, *olddata;
@@ -264,7 +268,7 @@ void writeBackElf::driver(){
      			textSh = newsh; 
 		}
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".bss")){
-			createSections(newsh, newdata);
+			createSections();
                 }
 
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".shstrtab")){
@@ -286,7 +290,7 @@ void writeBackElf::driver(){
         memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
         newEhdr->e_shstrndx+=newSectionsSize;
 
-	fixPhdrs((int) ehdr->e_phnum-1);
+	fixPhdrs();
 
 }
 
@@ -371,7 +375,7 @@ bool writeBackElf::outputElf(){
 
 
 
-void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
+void writeBackElf::createSections(){
 
 //newSections
 //lets assume that newSections is sorted on vaddr
@@ -473,7 +477,7 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 }
 
 
-void writeBackElf::fixPhdrs(int oldPhdrs){ 
+void writeBackElf::fixPhdrs(){ 
 
 	elf_update(newElf, ELF_C_NULL);
 	unsigned int i=0;
@@ -596,7 +600,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= stopPage){
+			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{
@@ -764,7 +768,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= stopPage){
+			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{

@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.9 2003/01/02 19:51:57 schendel Exp $ */
+/* $Id: writeBackElf.h,v 1.10 2003/07/01 19:58:01 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -74,9 +74,9 @@ private:
 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData);
 	void updateDynamic(Elf_Data* dynamicData);
 	void driver(); // main processing loop of outputElf()
-	void createSections(Elf32_Shdr *bssSh, Elf_Data* bssData);
+	void createSections();
 	void addSectionNames(Elf_Data* newdata, Elf_Data *olddata);
-	void fixPhdrs(int oldPhdrs);
+	void fixPhdrs();
 	void parseOldElf();
 	bool writeOutNewElf();
 	unsigned int findAddressOf(char *objName);
