@@ -1,0 +1,37 @@
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/12/15 22:01:37  tamches
+# first version of phaseTable
+#
+#
+
+TARGET	      = phaseTable
+
+SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
+		../../../paradyn/src/UIthread/tkTools.C \
+		../../../paradyn/src/UIthread/minmax.C \
+		../../tclVisi/src/DGclient.C \
+		../src/templates.C \
+		../src/main.C \
+
+VPATH 	     += ../../../paradyn/src/UIthread \
+		../../tclVisi/src
+
+IFLAGS	     += -I../../../util/h \
+		-I../../../paradyn/src/UIthread
+
+TCL2C           = tcl2c
+TCL2C_GEN_SRCS  = tcl2c.C
+TCL_SRCS        = $(wildcard ../tcl/*.tcl)
+SRCS		+= $(TCL2C_GEN_SRCS)
+
+LIBS         += -lvisi -lhist -lpdutil 
+SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
+
+all: $(TARGET)
+
+templates.o: ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C
+
+$(TCL2C_GEN_SRCS): $(TCL_SRCS)
+	$(TCL2C) $^ > $@
