@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.10  1994/08/08 20:13:34  hollings
+ * Revision 1.11  1994/09/22 01:50:54  markc
+ * reorganized, temporary
+ *
+ * Revision 1.10  1994/08/08  20:13:34  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.9  1994/06/27  21:28:08  rbi
@@ -64,199 +67,12 @@
 #define INSTRUMENTATION_H
 
 #include "rtinst/h/trace.h"
+#include "util/h/stringDecl.h"
+#include "util/h/stringPool.h"
+
+extern stringPool pool;
 
 /* time */
 typedef double timeStamp;		
-
-/* something that data can be collected for */
-typedef class resourceRec *resource;		
-
-/* descriptive information about a resource */
-struct _resourceInfo {
-    char *name;			/* name of actual resource */
-    char *fullName;		/* full path name of resource */
-    char *abstraction;          /* abstraction name */
-    timeStamp creation;		/* when did it get created */
-};		
-typedef struct _resourceInfo resourceInfo;
-
-/* list of resources */
-typedef struct _resourceListRec *resourceList;		
-
-class resourceRec {
-    public:
-	char *getName()	{ return(info.name); }
-	resourceRec(Boolean full = True) {
-	    if (full) {
-		parent = NULL;
-		handle = NULL;
-		children = NULL;
-		info.name = "";
-		info.fullName = "";
-		info.creation = 0.0;
-		suppressed = False;
-	    }
-	};
-	Boolean suppressed;		/* don't collect data about this */
-	resource parent;		/* parent of this resource */
-	void *handle;		/* handle to resource specific data */
-	resourceList children;	/* children of this resource */
-	resourceInfo info;
-};
-
-/* a metric */
-typedef struct _metricRec *metric;			
-
-/* a list of metrics */
-typedef struct _metricListRec *metricList;		
-
-/* a metric/resourceList pair */
-typedef class metricDefinitionNode *metricInstance;		
-
-typedef enum { Trace, Sample } dataType;
-
-/*
- * error handler call back.
- *
- */
-typedef (*errorHandler)(int errno, char *message);
-
-/*
- * Define a program to run (this is very tentative!)
- *
- *   argv - arguments to command
- *   envp - environment args, for pvm
- */
-int addProcess(int argc, char*argv[], int nenv=0, char *envp[]=0);
-
-/*
- * Find out if an application has been defined yet.
- *
- */
-Boolean applicationDefined();
-
-/*
- * Start an application running (This starts the actual execution).
- *  app - an application context from createPerformanceConext.
- */
-Boolean startApplication();
-
-/*
- *   Stop all processes associted with the application.
- *	app - an application context from createPerformanceConext.
- *
- * Pause an application (I am not sure about this but I think we want it).
- *      - Does this force buffered data to be delivered?
- *	- Does a paused application respond to enable/disable commands?
- */
-Boolean pauseAllProcesses();
-
-/*
- * Continue a paused application.
- *    app - an application context from createPerformanceConext.
- */
-Boolean continueAllProcesses();
-
-
-/*
- * Disconnect the tool from the process.
- *    pause - leave the process in a stopped state.
- *
- */
-Boolean detachProcess(int pid, Boolean pause);
-
-/*
- * Routines to control data collection.
- *
- * resourceList		- a list of resources
- * metric		- what metric to collect data for
- *
- */
-int startCollecting(resourceList, metric);
-
-
-/*
- * Return the expected cost of collecting performance data for a single
- *    metric at a given focus.  The value returned is the fraction of
- *    perturbation expected (i.e. 0.10 == 10% slow down expected).
- */
-float guessCost(resourceList, metric);
-
-/*
- * Control information arriving about a resource Classes
- *
- * resource		- enable notification of children of this resource
- */
-Boolean enableResourceCreationNotification(resource);
-
-/*
- * Resource utility functions.
- *
- */
-resourceList getRootResources();
-
-extern resource rootResource;
-
-char *getResourceName(resource);
-
-resource getResourceParent(resource);
-
-resourceList getResourceChildren(resource);
-
-Boolean isResourceDescendent(resource parent, resource child);
-
-resource findChildResource(resource parent, char *name);
-
-int getResourceCount(resourceList);
-
-resource getNthResource(resourceList, int n);
-
-resourceInfo *getResourceInfo(resource);
-
-resourceList createResourceList();
-
-Boolean addResourceList(resourceList, resource);
-
-resource newResource(resource parent,
-		     void *handle,
-		     char *abstraction,
-		     char *name,
-		     timeStamp creation,
-		     Boolean unique);
-
-/*
- * manipulate user handle (a single void * to permit mapping between low level
- *   resource's and the resource consumer.
- *
- */
-void *getResourceHandle(resource);
-
-void setResourceHandle(resource, void*);
-
-resourceList findFocus(int count, char **foucsString);
-
-/*
- * Get the static configuration information.
- *
- */
-metricList getMetricList();
-
-/*
- * looks for a specifc metric instance in an application context.
- *
- */
-metric findMetric(char *name);
-
-/*
- * Metric utility functions.
- *
- */
-char *getMetricName(metric);
-
-/*
- * Get metric out of a metric instance.
- *
- */
-metric getMetric(metricInstance);
 
 #endif
