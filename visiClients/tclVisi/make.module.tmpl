@@ -4,6 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.7  1995/12/01 06:41:57  tamches
+# added new SRCS: pdLogo.C, tkTools.C, minmax.C; updated
+# VPATH and IFLAGS to match
+#
 # Revision 1.6  1995/07/06 16:06:10  newhall
 # removed -static flag
 #
@@ -26,9 +30,17 @@
 
 TARGET	      = tclVisi
 
-SRCS	     += ../src/tclVisi.C \
+SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
+		../../../paradyn/src/UIthread/tkTools.C \
+		../../../paradyn/src/UIthread/minmax.C \
+		../src/tclVisi.C \
 		../src/templates.C \
 		../src/DGclient.C
+
+VPATH 	     += ../../../paradyn/src/UIthread
+
+IFLAGS	     += -I../../../util/h \
+		-I../../../paradyn/src/UIthread
 
 LIBS         += -lvisi -lhist -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
