@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.4 2002/10/29 22:56:13 bernat Exp $
+// $Id: dyn_thread.h,v 1.5 2002/12/14 16:37:36 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -83,21 +83,22 @@ class dyn_thread {
     }
 
   dyn_thread(process *parent, dyn_thread *src) {
-    assert(src && parent);
-    ppid = parent->getPid();
-    tid = src->tid;
-    pos = src->pos;
-    lwp = src->lwp;
-    stack_addr = src->stack_addr;
-    start_pc = src->start_pc;
-    resumestate_p = src->resumestate_p;
-    start_func = src->start_func;
-    rid = src->rid;
-    proc = parent;
-    pending_tramp_addr = ADDR_NULL;
-    in_IRPC = false;
-    isIRPCwaitingForSyscall_ = false;
+     assert(src && parent);
+     ppid = parent->getPid();
+     tid = src->tid;
+     pos = src->pos;
+     lwp  = parent->getDefaultLWP();
+     stack_addr = src->stack_addr;
+     start_pc = src->start_pc;
+     resumestate_p = src->resumestate_p;
+     start_func = src->start_func;
+     rid = src->rid;
+     proc = parent;
+     pending_tramp_addr = ADDR_NULL;
+     in_IRPC = false;
+     isIRPCwaitingForSyscall_ = false;
   }
+
   ~dyn_thread() {
   }
   
