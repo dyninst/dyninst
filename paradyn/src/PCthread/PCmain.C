@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.36  1995/11/17 17:19:29  newhall
-/* changes due to addition of normalized method in metric class
+/* Revision 1.37  1995/11/28 15:47:58  naim
+/* Adding boolean parameter to getAvailableMetric - naim
 /*
+ * Revision 1.36  1995/11/17  17:19:29  newhall
+ * changes due to addition of normalized method in metric class
+ *
  * Revision 1.35  1995/10/13  22:09:19  newhall
  * added phaseType parameter to PCnewData
  *
@@ -290,7 +293,7 @@ void PCmain(void* varg)
     PCbucketWidth = dataMgr->getCurrentBucketWidth();
 
     // now find about existing metrics.
-    vector<string> *mets = dataMgr->getAvailableMetrics();
+    vector<string> *mets = dataMgr->getAvailableMetrics(true);
     for (i=0; i < mets->size(); i++) {
 	metricHandle *m_handle = dataMgr->findMetric((*mets)[i].string_of());
 	if (m_handle) {

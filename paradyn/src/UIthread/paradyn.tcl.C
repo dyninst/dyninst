@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.56  1995/11/08 06:25:22  tamches
-/* removed some warnings
+/* Revision 1.57  1995/11/28 15:49:36  naim
+/* Adding boolean parameter to getAvailableMetric - naim
 /*
+ * Revision 1.56  1995/11/08  06:25:22  tamches
+ * removed some warnings
+ *
  * Revision 1.55  1995/11/08 05:11:10  tamches
  * no longer prints a msg when a tunable constant value is changed
  *
@@ -265,7 +268,7 @@ int ParadynMetricsCmd(ClientData,
 			int,
 			char **)
 {
-  vector<string> *ml = dataMgr->getAvailableMetrics();
+  vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
     Tcl_AppendElement(interp, (*ml)[i].string_of());
   delete ml;
@@ -302,7 +305,7 @@ int ParadynListCmd(ClientData,
 {
   dataMgr->printResources();
 
-  vector<string> *ml = dataMgr->getAvailableMetrics();
+  vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++) {
     cout << ((*ml)[i]).string_of() << endl;
   }
