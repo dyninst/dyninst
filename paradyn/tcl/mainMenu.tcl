@@ -1,7 +1,13 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.35  1995/07/18 19:14:58  krisna
+# Revision 1.36  1995/07/19 23:03:00  tamches
+# Commented out an entry widget binding which inserts the current
+# selection when the middle button is pressed.  This feature is
+# provided automatically in tk4.0, so the effect was to insert
+# things twice.
+#
+# Revision 1.35  1995/07/18  19:14:58  krisna
 # removed "source" command in mainMenu.tcl
 # moved code for status lines to status.tcl
 #
@@ -196,7 +202,7 @@ proc drawToolBar {} {
     }
     option add *TopMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
-    bind Entry <2> { %W insert insert [selection get] }
+#    bind Entry <2> { %W insert insert [selection get] }
 
     wm minsize . 400 300
     frame .parent 
