@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.13 2002/04/09 18:05:41 mjbrim Exp $
+# $Id: nmake.module.tmpl,v 1.14 2002/05/02 21:28:53 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -57,13 +57,13 @@ CXXFLAGS	= $(CXXFLAGS) -DPARADYND_PVM
 
 !ifdef USES_SHM_SAMPLING
 SRCS 		= $(SRCS) \
-			../src/fastInferiorHeap.C \
-			../src/fastInferiorHeapHKs.C \
-		   ../src/fastInferiorHeapMgr.C \
-		   ../src/baseTable.C \
-		   ../src/superTable.C \
-		   ../src/superVector.C \
+		   ../src/varInstanceHKs.C \
+		   ../src/varInstance.C \
+		   ../src/shmMgr.C \
+		   ../src/varTable.C \
+		   ../src/variableMgr.C \
 		   ../src/shmSegment-nt.C
+
 CXXFLAGS	= $(CXXFLAGS) -DSHM_SAMPLING
 TFLAGS		= $(TFLAGS) -DSHM_SAMPLING
 CFLAGS		= $(CFLAGS) -DSHM_SAMPLING
@@ -118,12 +118,11 @@ OBJS      = $(OBJS) association.obj \
 
 !ifdef USES_SHM_SAMPLING
 OBJS	= $(OBJS) \
-		fastInferiorHeap.obj \
-		fastInferiorHeapHKs.obj \
-		fastInferiorHeapMgr.obj \
-		baseTable.obj \
-		superTable.obj \
-		superVector.obj \
+		varInstanceHKs.obj \
+		varInstance.obj \
+		shmMgr.obj \
+		varTable.obj \
+		variableMgr.obj \
 		shmSegment-nt.obj
 !endif
 

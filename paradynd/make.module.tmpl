@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.40 2002/04/22 20:52:42 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.41 2002/05/02 21:28:51 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -68,9 +68,9 @@ LIBS		+= $(PVM_LIB)
 endif
 
 ifdef USES_SHM_SAMPLING
-SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C \
-		   ../src/fastInferiorHeapMgr.C ../src/baseTable.C \
-		   ../src/superTable.C ../src/superVector.C \
+SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
+		   ../src/shmMgr.C ../src/varTable.C \
+		   ../src/variableMgr.C \
 		   ../src/shmSegment-unix.C
 CXXFLAGS	+= -DSHM_SAMPLING
 TFLAGS		+= -DSHM_SAMPLING
