@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.42 2002/04/22 20:52:39 mjbrim Exp $
+//$Id: templates1.C,v 1.43 2002/05/10 18:37:41 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -142,8 +142,6 @@ template class  dictionary_hash <unsigned, unsigned long>;
 template class  dictionary_hash <unsigned long, unsigned long>;
 template class  vector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
-template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
-template class  vector<dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>::entry>;
 
 #if defined(i386_unknown_linux2_0) || \
 	defined(i386_unknown_solaris2_4) || \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.24 2002/05/02 21:28:50 schendel Exp $
+// $Id: templates-nt.C,v 1.25 2002/05/10 18:37:40 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -69,7 +69,7 @@ template class dictionary_hash<unsigned int, heapItem *>;
 template class dictionary_hash<unsigned int, pd_Function *>;
 #ifndef BPATCH_LIBRARY
 template class dictionary_hash<unsigned int, _cpSample *>;
-template class dictionary_hash<unsigned int, metricDefinitionNode *>;
+template class dictionary_hash<unsigned int, metricFocusNode *>;
 template class dictionary_hash<unsigned int, vector<mdl_type_desc> >;
 #endif
 
@@ -81,7 +81,7 @@ template class dictionary_hash<string, pdmodule *>;
 template class dictionary_hash<string, pd_Function *>;
 template class dictionary_hash<string, internalSym *>;
 #ifndef BPATCH_LIBRARY
-template class dictionary_hash<string, metricDefinitionNode *>;
+template class dictionary_hash<string, metricFocusNode *>;
 template class dictionary_hash<string, instrCodeNode *>;
 
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;

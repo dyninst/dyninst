@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.26 2002/05/09 21:42:56 schendel Exp $
+// $Id: templatesPD.C,v 1.27 2002/05/10 18:37:42 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -58,7 +58,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 
-#include "paradynd/src/metric.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
@@ -96,11 +95,6 @@ template class vector<internalMetric::eachInstance>;
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;
 template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
 
-template class  dictionary_hash <unsigned, metricDefinitionNode*>;
-template class  vector<dictionary_hash <unsigned, metricDefinitionNode*>::entry>;
-template class  vector<dictionary_hash <unsigned long, metricDefinitionNode*>::entry>;
-template class  dictionary_hash <string, metricDefinitionNode*>;
-template class  vector<dictionary_hash <string, metricDefinitionNode*>::entry>;
 template class  dictionary_hash <string, instrCodeNode_Val*>;
 template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
 template class  dictionary_hash <string, instrCodeNode*>;
@@ -109,7 +103,6 @@ template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
 template class  dictionary_hash <string, threadMetFocusNode_Val*>;
 template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
 
-template class  dictionary_hash_iter <string, metricDefinitionNode*>;
 template class  vector<instrDataNode*>;
 template class  vector<const instrDataNode*>;
 
