@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.142 2003/09/05 16:27:45 schendel Exp $
+ * $Id: inst-x86.C,v 1.143 2003/10/07 19:06:13 schendel Exp $
  */
 
 #include <iomanip>
@@ -1572,7 +1572,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    // get the current instruction that is being executed. If the PC is at a
    // instruction that is being relocated, we must change the PC.
 
-   Frame frame = proc->getDefaultLWP()->getActiveFrame();
+   Frame frame = proc->getProcessLWP()->getActiveFrame();
    Address currentPC = frame.getPC();
 
    // emulate the instructions before the point
@@ -1582,7 +1582,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       --u;
       if (currentPC == origAddr) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getDefaultLWP()->changePC(currAddr, NULL);
+         proc->getProcessLWP()->changePC(currAddr, NULL);
       }
 
       unsigned newSize = relocateInstruction(location->insnBeforePt(u),
@@ -1623,7 +1623,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getDefaultLWP()->changePC(currAddr, NULL);
+         proc->getProcessLWP()->changePC(currAddr, NULL);
       }
 
       jccTarget =
@@ -1735,7 +1735,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getDefaultLWP()->changePC(currAddr, NULL);
+         proc->getProcessLWP()->changePC(currAddr, NULL);
       }
 
       unsigned newSize =
@@ -1834,7 +1834,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    for (u = 0; u < location->insnsAfter(); u++) {
       if (currentPC == origAddr) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getDefaultLWP()->changePC(currAddr, NULL);
+         proc->getProcessLWP()->changePC(currAddr, NULL);
       }
       unsigned newSize = relocateInstruction(location->insnAfterPt(u), 
                                              origAddr, currAddr, insn);

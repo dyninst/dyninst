@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.35 2003/09/05 16:27:56 schendel Exp $
+// $Id: linux-x86.C,v 1.36 2003/10/07 19:06:15 schendel Exp $
 
 #include <fstream>
 
@@ -344,7 +344,7 @@ bool process::loadDYNINSTlibCleanup()
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
   // restore registers
-  getDefaultLWP()->restoreRegisters(savedRegs); 
+  getProcessLWP()->restoreRegisters(savedRegs); 
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -977,7 +977,7 @@ bool process::loadDYNINSTlib() {
   }
 
   // save registers
-  savedRegs = getDefaultLWP()->getRegisters();
+  savedRegs = getProcessLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   struct dyn_saved_regs new_regs;
@@ -1005,7 +1005,7 @@ bool process::loadDYNINSTlib() {
 
   if (!libc_21)
   {
-      if (!getDefaultLWP()->changePC(codeBase,NULL))
+      if (!getProcessLWP()->changePC(codeBase,NULL))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1023,7 +1023,7 @@ bool process::loadDYNINSTlib() {
           reg_ptr->ecx = codeBase;
       }
 
-      if( !getDefaultLWP()->restoreRegisters(&new_regs) )
+      if( !getProcessLWP()->restoreRegisters(&new_regs) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);

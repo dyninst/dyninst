@@ -730,7 +730,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       return true;
     }
 
-    if (!proc->getDefaultLWP()->changePC(ret_addr, NULL))
+    if (!proc->getProcessLWP()->changePC(ret_addr, NULL))
       error_occured = true;
 
     return true;
@@ -739,7 +739,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	if( brkpoint_set ) {
 		/* We've inserted a return statement at r_brk_target_addr
 		   for our use here. */
-		proc->getDefaultLWP()->changePC( r_brk_target_addr, NULL );
+		proc->getProcessLWP()->changePC( r_brk_target_addr, NULL );
 		} else {
 		fprintf( stderr, "* Not changing PC on dyninst library load.\n" );
 		}

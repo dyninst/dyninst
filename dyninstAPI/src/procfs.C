@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.27 2003/08/05 21:49:23 hollings Exp $
+// $Id: procfs.C,v 1.28 2003/10/07 19:06:18 schendel Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -142,7 +142,7 @@ bool process::isRunning_() const {
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
    prstatus theStatus;
-   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &theStatus)) {
+   if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCSTATUS, &theStatus)) {
       perror("process::isRunning_()");
       assert(false);
    }
@@ -198,7 +198,7 @@ bool process::continueProc_() {
   memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
 
-  int ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &stat);
+  int ret = ioctl(getProcessLWP()->get_fd(), PIOCSTATUS, &stat);
 
   if (ret == -1) {
       perror("status error is ");
@@ -212,14 +212,14 @@ bool process::continueProc_() {
   if ((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
       flags.pr_flags |= PRCSIG; // clear current signal
   }
-  if (getDefaultLWP()->changedPCvalue) {
+  if (getProcessLWP()->changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
       flags.pr_flags |= PRSVADDR;
-      flags.pr_vaddr = (char*)getDefaultLWP()->changedPCvalue;
-      getDefaultLWP()->changedPCvalue = 0;
+      flags.pr_vaddr = (char*)getProcessLWP()->changedPCvalue;
+      getProcessLWP()->changedPCvalue = 0;
   }
 
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &flags) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCRUN, &flags) == -1) {
     fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -238,7 +238,7 @@ bool process::pause_() {
   prstatus_t prstatus;
   int ioctl_ret;
 
-  ioctl_ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTOP, &prstatus);
+  ioctl_ret = ioctl(getProcessLWP()->get_fd(), PIOCSTOP, &prstatus);
   if (ioctl_ret == -1) {
       sprintf(errorLine,
       "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
@@ -265,7 +265,7 @@ bool process::detach_() {
 }
 
 bool process::continueWithForwardSignal(int) {
-   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL)) {
+   if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCRUN, NULL)) {
       perror("could not forward signal in PIOCRUN");
       return false;
    }
@@ -346,14 +346,14 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         trappedSyscall->syscall_id = (int) syscall;
         sysset_t *save_exitset = new sysset_t;
         
-        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, save_exitset))
+        if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, save_exitset))
             return NULL;
         trappedSyscall->saved_data = (void *)save_exitset;
 
         sysset_t new_exitset;
         prfillset(&new_exitset);
         
-        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exitset))
+        if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &new_exitset))
             return NULL;
         
         syscallTraps_ += trappedSyscall;
@@ -374,7 +374,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     // Erk... it hit 0. Remove the trap at the system call
     sysset_t *save_exitset = (sysset_t *) trappedSyscall->saved_data;
 
-    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, save_exitset))
+    if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, save_exitset))
         return false;
     
     // Now that we've reset the original behavior, remove this
@@ -440,7 +440,7 @@ bool process::API_detach_(const bool cont)
 {
   // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
   long pr_flags = 0;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSSPCACT, &pr_flags) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSSPCACT, &pr_flags) < 0) {
       sprintf(errorLine, "Cannot get status\n");
       logLine(errorLine);
       return false;
@@ -449,7 +449,7 @@ bool process::API_detach_(const bool cont)
   // Set the run-on-last-close-flag if necessary
   if (cont) {
     long pr_flags = 1;
-    if (ioctl (getDefaultLWP()->get_fd(),PIOCSRLC, &pr_flags) < 0) {
+    if (ioctl (getProcessLWP()->get_fd(),PIOCSRLC, &pr_flags) < 0) {
       fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
       return false;
     }
@@ -457,34 +457,34 @@ bool process::API_detach_(const bool cont)
 
   sigset_t sigs;
   premptyset(&sigs);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "detach: PIOCSTRACE failed: %s\n", sys_errlist[errno]);
     return false;
   }
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSHOLD, &sigs) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSHOLD, &sigs) < 0) {
     fprintf(stderr, "detach: PIOCSHOLD failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
   fltset_t faults;
   premptyset(&faults);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSFAULT, &faults) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSFAULT, &faults) < 0) {
     fprintf(stderr, "detach: PIOCSFAULT failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
   sysset_t syscalls;
   premptyset(&syscalls);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &syscalls) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSENTRY, &syscalls) < 0) {
     fprintf(stderr, "detach: PIOCSENTRY failed: %s\n", sys_errlist[errno]);
     return false;
   }
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &syscalls) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &syscalls) < 0) {
     fprintf(stderr, "detach: PIOCSEXIT failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
-  deleteLWP(getDefaultLWP());
+  deleteLWP(getProcessLWP());
   return true;
 }
 
@@ -510,9 +510,9 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
   errno = 0;
   prmap_t tmp;
   tmp.pr_vaddr = (char*)inTracedProcess;
-  ret = lseek(getDefaultLWP()->get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
+  ret = lseek(getProcessLWP()->get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
 #else
-  ret =  lseek(getDefaultLWP()->get_fd(), (off_t)inTracedProcess, SEEK_SET);
+  ret =  lseek(getProcessLWP()->get_fd(), (off_t)inTracedProcess, SEEK_SET);
 #endif  
 
   if (ret != (off_t)inTracedProcess) {
@@ -520,7 +520,7 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
       return false;
   }
-  return (write(getDefaultLWP()->get_fd(), inSelf, amount) == (int)amount);
+  return (write(getProcessLWP()->get_fd(), inSelf, amount) == (int)amount);
 }
 
 bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf) {
@@ -528,21 +528,21 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
   ptraceOps++; ptraceBytes += amount;
 #ifdef __alpha   
   prstatus info;
-  ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
+  ioctl(getProcessLWP()->get_fd(), PIOCSTATUS,  &info);
   while (!prismember(&info.pr_flags, PR_STOPPED))
   {
      sleep(1);
-     ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
+     ret = ioctl(getProcessLWP()->get_fd(), PIOCSTATUS,  &info);
      if (ret == -1) return false;
   } 
   errno = 0;
 #endif  
-  ret = lseek(getDefaultLWP()->get_fd(), reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
+  ret = lseek(getProcessLWP()->get_fd(), reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
 
   if (ret != (off_t)inTracedProcess) {
       perror("lseek");
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
-      fprintf(stderr, "lseek(%d,%lx,%d)\n", getDefaultLWP()->get_fd(), inTracedProcess, SEEK_SET); 
+      fprintf(stderr, "lseek(%d,%lx,%d)\n", getProcessLWP()->get_fd(), inTracedProcess, SEEK_SET); 
       fprintf(stderr, "The return address: %lx\n",ret); 
       #ifdef DEBUG
         if (errno == EBADF)
@@ -564,7 +564,7 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
      #endif
      return false;
   }
-  return (read(getDefaultLWP()->get_fd(), inSelf, amount) == (int)amount);
+  return (read(getProcessLWP()->get_fd(), inSelf, amount) == (int)amount);
 }
 
 bool process::loopUntilStopped() {

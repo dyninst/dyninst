@@ -297,8 +297,8 @@ class pd_process {
    void setTraceLink(int v) {
       dyninst_process->lowlevel_process()->traceLink = v;
    }
-   dyn_lwp *getDefaultLWP() const {
-      return dyninst_process->lowlevel_process()->getDefaultLWP();
+   dyn_lwp *getProcessLWP() const {
+      return dyninst_process->lowlevel_process()->getProcessLWP();
    }
 
    void installInstrRequests(const pdvector<instMapping*> &requests) {

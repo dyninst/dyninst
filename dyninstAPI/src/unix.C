@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.106 2003/09/29 20:48:03 bernat Exp $
+// $Id: unix.C,v 1.107 2003/10/07 19:06:19 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -611,7 +611,7 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // is, we'll hand-check and see whether to ignore a trap.
 #if defined(AIX_PROC)
     lwpstatus_t status;
-    proc->getDefaultLWP()->get_status(&status);
+    proc->getProcessLWP()->get_status(&status);
     
     instruction foo;
     proc->readDataSpace((void *)status.pr_reg.__iar, 
