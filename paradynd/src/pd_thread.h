@@ -71,6 +71,7 @@ class pd_thread {
    resource* get_rid() { return rid; }
 
    rawTime64  getInferiorVtime(virtualTimer*, bool&);
+   bool       resetInferiorVtime(virtualTimer*);
 
 };
 
