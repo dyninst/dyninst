@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2002/05/14 21:37:37 pcroth Exp $
+# $Id: Makefile,v 1.5 2003/07/24 16:44:01 pcroth Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -18,8 +18,8 @@ include ../../make.config
 
 include ../make.module.tmpl
 
-CFLAGS	+= -fPIC 
-CXXFLAGS	+= -fPIC 
+CFLAGS	    += -fPIC
+CXXFLAGS	+= -fPIC
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

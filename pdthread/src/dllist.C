@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "predicate.h"
-#include "pthread_sync.h"
+#include "dummy_sync.h"
 #include "common/h/language.h"
 
 #define DLLIST_EMPTY 0
@@ -23,8 +23,9 @@ class list_types {
     enum type { fifo, lifo };
 };
 
-template<class Element, class Sync>
-class dllist {
+template<class Element, class Sync=dummy_sync>
+class dllist
+{
   private:
     class node {
       public:
@@ -482,8 +483,6 @@ void dllist<Element,Sync>::visit(Visitor* visitor) {
     }
 
     s.unlock();
-    
-    return;
 }
 
 #endif /* __libthread_dllist_C__ */

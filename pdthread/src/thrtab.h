@@ -22,10 +22,10 @@ class thrtab {
     static thread_t create_thread(lwp::task_t func,
                                   lwp::value_t arg,
                                   bool start);
-    static thread_t create_file(PDDESC fd, thread_t owner,
+    static thread_t create_file( PdFile fd, thread_t owner,
                                 int (*will_block_func)(void*), void* desc,
                                 bool is_special);
-    static thread_t create_socket(PDSOCKET sock, thread_t owner,
+    static thread_t create_socket( PdSocket sock, thread_t owner,
                                   int (*will_block_func)(void*), void* desc,
                                   bool is_special);
     

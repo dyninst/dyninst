@@ -6,30 +6,37 @@
 #include "mailbox.h"
 #include "refarray.C"
 #include "pthread_sync.h"
-#include "dummy_sync.h"
 #include "dllist.C"
 #include "predicate.h"
 #include "../h/thread.h"
 
-extern int SOCK_FD;
 
-class thr_mailbox : public mailbox {
-	friend class ready_socks_populator;
-	friend class fd_set_populator;
 
-  private:
+
+class thr_mailbox : public mailbox
+{
+	friend class FdSetPopulator;
+	friend class ReadySetPopulator;
+
+private:
     int msg_avail_pipe[2];
     
 
-	// monitor used to enforce mutual exclusion to the bound socket set
-	// and the ready-to-read socket set
-    dllist<PDSOCKET,dummy_sync> *ready_socks;
-    dllist<PDSOCKET,dummy_sync> *bound_socks;
-
+    // sets of bound sockets, ready-to-read sockets, and a mutex 
+    // for access control
+    dllist<PdSocket>* bound_socks;
+    dllist<PdSocket>* ready_socks;
     pthread_sync* sock_monitor;
+
+    // sets of bound files, ready-to-read files, and a mutex 
+    // for access control
+    dllist<PdFile>* bound_files;
+    dllist<PdFile>* ready_files;
+    pthread_sync* file_monitor;
     
-    dllist<message*,dummy_sync> *messages;
-    dllist<message*,dummy_sync> *sock_messages;
+    dllist<message*>* messages;
+    dllist<message*>* sock_messages;
+    dllist<message*>* file_messages;
     
     bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
@@ -51,20 +58,37 @@ class thr_mailbox : public mailbox {
     /* put_sock() delivers socket message m into this mailbox */
     virtual int put_sock(message* m);
 
+    /* put_file() delivers file message m into this mailbox */
+    virtual int put_file(message* m);
+
     /* recv() receives mail from this mailbox into buf;
        see the libthread documentation for the full
        meanings of the args */
     virtual int recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp);
 
     /* poll() checks for suitable available messages */
-    virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0);
+    virtual int poll(thread_t* from,
+                        tag_t* tagp,
+                        unsigned block,
+                        unsigned fd_first=0);
 
-    void bind_sock(PDSOCKET s, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
-    void unbind_sock(PDSOCKET s, bool getlock = true);
+    void bind( PdFile fd,
+                    unsigned special,
+                    int (*wb)(void*), void* arg,
+                    thread_t* ptid);
+    void unbind( PdFile fd, bool getlock = true );
+    bool is_bound( PdFile fd );
 
-    bool is_sock_bound(PDSOCKET s);
+    void bind( PdSocket s,
+                    unsigned special,
+                    int (*wb)(void*),
+                    void* arg,
+                    thread_t* ptid);
+    void unbind( PdSocket s, bool getlock = true );
+    bool is_bound( PdSocket s);
 
-    void clear_ready_sock( PDSOCKET sock );
+    void clear_ready( PdSocket sock );
+    void clear_ready( PdFile fd );
     
     virtual void dump_state();
 };

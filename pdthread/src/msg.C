@@ -112,7 +112,7 @@ int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_f
     mailbox* mbox = lwp::get_mailbox();
     int ret = mbox->poll(tid, tag, block, fd_first);
 
-  done:
+
     thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);
     return ret;
 }
@@ -131,34 +131,47 @@ int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
     
     int ret = mbox->recv(tid,tag,buf,bufsize);
     
-  done:
+
     thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d, count = %d\n", ret, *tid, *tag, *bufsize);
     return ret;
 }
 
-int msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
-    thr_debug_msg(CURRENT_FUNCTION, "fd = %d, special = %d, will_block = %p, arg = %p\n", fd, special, will_block, arg);
+int
+msg_bind_file(PDDESC fd,
+                    unsigned special,
+                    int (*will_block)(void*),
+                    void* arg,
+                    thread_t* ptid)
+{
+    int ret = THR_OKAY;
+    thr_debug_msg(CURRENT_FUNCTION,
+        "fd = %d, special = %d, will_block = %p, arg = %p\n",
+        fd, special, will_block, arg);
 
-    fprintf(stderr,"binding files to message queues not implemented; aborting...\n");
-    assert(false);
+    thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
+    thread_t me = thr_self();
+    my_mail->bind( PdFile(fd), special, will_block, arg, ptid);
+
+    assert(my_mail->is_bound( PdFile(fd) ));
+
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
+    return ret;
 }
 
-int msg_bind_sig(int sig, thread_t* tid) {
-    fprintf(stderr,"binding signals to message queues not implemented; aborting...\n");
-    assert(false);
-}
-
-
-int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* ptid) {
+int
+msg_bind_socket(PDSOCKET s,
+                unsigned special,
+                int (*will_block)(void*), void* arg, thread_t* ptid)
+{
     thr_debug_msg(CURRENT_FUNCTION, "s = %d, special = %d, will_block = %p, arg = %p\n", s, special, will_block, arg);
     int ret = THR_OKAY;
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
-    my_mail->bind_sock(s, special, will_block, arg, ptid);
+    my_mail->bind( PdSocket(s), special, will_block, arg, ptid);
 
-    assert(my_mail->is_sock_bound(s));
-  done:
+    assert(my_mail->is_bound( PdSocket(s) ));
+
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;
 }
@@ -167,20 +180,45 @@ int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void
 int msg_bind_wmsg(thread_t* tid);
 #endif /* defined(i386_unknown_nt4_0) */
 
-int msg_unbind(thread_t tid) {
+int msg_unbind(thread_t tid)
+{
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", tid);
     int ret = THR_OKAY;
-    PDSOCKET to_unbind = thr_socket(tid);
 
-    if (to_unbind == INVALID_PDSOCKET) {
+    thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
+    thread_t me = thr_self();
+
+    if( thr_type( tid ) == item_t_socket )
+    {
+        PdSocket to_unbind = thr_socket(tid);
+        if( to_unbind != INVALID_PDSOCKET)
+        {
+            my_mail->unbind( to_unbind );
+        }
+        else
+        {
+            ret = THR_ERR;
+        }
+    }
+    else if( thr_type( tid ) == item_t_file )
+    {
+        PdFile to_unbind = thr_file( tid );
+        if( to_unbind != INVALID_PDDESC )
+        {
+            my_mail->unbind( to_unbind );
+        }
+        else
+        {
+            ret = THR_ERR;
+        }
+    }
+    else
+    {
+        // item wasn't a socket or a file - it shouldn't have been bound
         ret = THR_ERR;
-    } else {
-        thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
-        thread_t me = thr_self();
-        my_mail->unbind_sock( to_unbind );
     }
     
-  done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;
 }
+

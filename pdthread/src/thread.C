@@ -171,7 +171,7 @@ PDDESC thr_file(thread_t tid) {
     entity* thrtab_entry = thrtab::get_entry(tid);
     if(!thrtab_entry || (thrtab_entry && thrtab_entry->gettype() != item_t_file))
         return INVALID_PDDESC;
-    return ((file_q*)thrtab_entry)->fd;
+    return ((file_q*)thrtab_entry)->fd.fd;
 }
 
 PDSOCKET thr_socket(thread_t tid) {
@@ -179,7 +179,7 @@ PDSOCKET thr_socket(thread_t tid) {
     entity* thrtab_entry = thrtab::get_entry(tid);
     if (!thrtab_entry || (thrtab_entry && thrtab_entry->gettype() != item_t_socket))
         return INVALID_PDSOCKET;
-    return ((socket_q*)thrtab_entry)->sock;
+    return ((socket_q*)thrtab_entry)->sock.s;
 }
 
 int thr_create(void* stack, unsigned stack_size, void* (*func)(void*), 

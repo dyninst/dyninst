@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "hash.h"
+#include "dummy_sync.h"
 
 /* Basic fixed-size hash table class, protected by a monitor.  Some important
    restrictions: 
@@ -25,7 +26,7 @@ struct pair {
 };
 
 
-template<class key_t, class value_t, class monitor_t>
+template<class key_t, class value_t, class monitor_t=dummy_sync>
 class hashtbl {
   private:
     static const char* hashtbl_name(const char* kt, const char* vt, const char* c) {

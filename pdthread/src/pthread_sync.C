@@ -24,7 +24,7 @@ void sync_visitor::exec(pthread_sync* p) {
     if(p) p->dump_measurements();
 }
 
-hashtbl<pthread_sync*, pthread_sync*, dummy_sync> sync_registry::registry;
+hashtbl<pthread_sync*, pthread_sync*> sync_registry::registry;
 
 void sync_registry::register_sync(pthread_sync* p) {
     sync_registry::registry.put(p,p);
@@ -39,7 +39,7 @@ void sync_registry::dump_all_sync_stats() {
     sync_registry::registry.map_vals(&sv);
 }
 
-lock_stats_printer::lock_stats_printer(FILE* f, hashtbl<thread_t, long long, dummy_sync> *s, const char *c)
+lock_stats_printer::lock_stats_printer(FILE* f, hashtbl<thread_t, long long> *s, const char *c)
         : out_file(f), total_ops(0), stats(s), comment(c) {}
 
 #define LOCK_STATS_PRINTER_BUFSIZE 512

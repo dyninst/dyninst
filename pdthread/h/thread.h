@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -186,8 +186,7 @@ int			msg_poll(thread_t* tid, tag_t* tag, unsigned block);
 int			msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first);
 int			msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize);
 
-int			msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
-int			msg_bind_sig(int sig, thread_t* tid);
+int			msg_bind_file(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
 int			msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
 #if defined(i386_unknown_nt4_0)
 int			msg_bind_wmsg(thread_t* tid);
@@ -214,6 +213,7 @@ const char*	thr_strerror(void);
 
 /* state maintenance functions */
 void	clear_ready_sock( PDSOCKET sock );
+void	clear_ready_file( PDDESC sock );
 
     
 /*

@@ -3,10 +3,15 @@
 #include <unistd.h>
 #endif
 
-hashtbl<PDDESC,file_q*,pthread_sync> file_q::file_registry("PDDESC","file_q*","file_registry");
+hashtbl<PdFile,file_q*,pthread_sync> file_q::file_registry("PdFile","file_q*","file_registry");
 
-file_q::file_q(PDDESC the_fd, thread_t owned_by, int (*will_block_func)(void*), void* desc, bool is_special)
-        : io_entity(owned_by, will_block_func, desc, is_special), fd(the_fd) {
+file_q::file_q(PdFile the_fd,
+                thread_t owned_by,
+                int (*will_block_func)(void*),
+                void* desc,
+                bool is_special)
+  : io_entity(owned_by, will_block_func, desc, is_special), fd(the_fd)
+{
     file_registry.put(the_fd, this);
 }
 
@@ -14,7 +19,9 @@ file_q::~file_q() {
     file_registry.put(this->fd, NULL);
 }
 
-file_q* file_q::file_from_desc(PDDESC the_fd) {
+file_q*
+file_q::file_from_desc( PdFile the_fd)
+{
     return file_registry.get(the_fd);
 }
 
@@ -26,14 +33,14 @@ int file_q::do_read(void* buf, unsigned bufsize, unsigned* count) {
     
 #if defined(i386_unknown_nt4_0)
     DWORD bytes_written;
-    if( ReadFile( fd, buf, bufsize, &bytes_written, NULL ) ) {
+    if( ReadFile( fd.fd, buf, bufsize, &bytes_written, NULL ) ) {
         *count = (unsigned)bytes_written;
         ret = (int)*count;
     } else {
         ret = PDDESC_ERROR;
     }
 #else // defined(i386_unkown_nt4_0)
-    ret = read( fd, buf, bufsize);
+    ret = read( fd.fd, buf, bufsize);
     if( ret != PDDESC_ERROR ) {
         *count = (unsigned)ret;
     }
@@ -48,14 +55,14 @@ int file_q::do_write(void* buf, unsigned bufsize, unsigned* count) {
 
 #if defined(i386_unknown_nt4_0)
     DWORD bytes_written;
-    if( WriteFile( fd, buf, bufsize, &bytes_written, NULL ) ) {
+    if( WriteFile( fd.fd, buf, bufsize, &bytes_written, NULL ) ) {
         *count = (unsigned)bytes_written;
         ret = (int)*count;
     } else {
         ret = PDDESC_ERROR;     
     }
 #else
-    ret = write( fd, buf, bufsize );
+    ret = write( fd.fd, buf, bufsize );
     if( ret != PDDESC_ERROR ) {
         *count = (unsigned)ret;
     }

@@ -23,7 +23,7 @@ class pthread_sync;
 #if DO_LIBPDTHREAD_MEASUREMENTS == 1
 class sync_registry {
   private:
-    static hashtbl<pthread_sync*, pthread_sync*, dummy_sync> registry;
+    static hashtbl<pthread_sync*, pthread_sync*> registry;
   public:
     static void register_sync(pthread_sync*);
     static void unregister_sync(pthread_sync*);
@@ -40,7 +40,7 @@ class pthread_sync {
     const char* comment;
     
 #if DO_LIBPDTHREAD_MEASUREMENTS == 1
-    hashtbl<thread_t, long long, dummy_sync> lock_stats;
+    hashtbl<thread_t, long long> lock_stats;
 #endif
     
   public:
@@ -64,10 +64,10 @@ class lock_stats_printer {
     int total_ops;
     FILE* out_file;
     const char *comment;
-    hashtbl<thread_t, long long, dummy_sync> *stats;
+    hashtbl<thread_t, long long> *stats;
     
   public:
-    lock_stats_printer(FILE* f, hashtbl<thread_t, long long, dummy_sync> *s, const char *comment);
+    lock_stats_printer(FILE* f, hashtbl<thread_t, long long> *s, const char *comment);
     void exec(thread_t key_val);
 
     int get_total_ops() { return total_ops; }

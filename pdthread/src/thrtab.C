@@ -62,7 +62,12 @@ thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
     return new_tid;
 }
 
-thread_t thrtab::create_file(PDDESC fd, thread_t owner, int (*will_block_func)(void*), void* desc, bool is_special) {
+thread_t thrtab::create_file( PdFile fd,
+                                thread_t owner,
+                                int (*will_block_func)(void*),
+                                void* desc,
+                                bool is_special)
+{
     file_q* new_file = new file_q(fd, owner, will_block_func, desc, is_special);
     thread_t new_tid = entries.push_back((entity*)new_file);
     new_file->init(new_tid);
@@ -72,9 +77,12 @@ thread_t thrtab::create_file(PDDESC fd, thread_t owner, int (*will_block_func)(v
     return new_tid;
 }
 
-thread_t thrtab::create_socket(PDSOCKET sock, thread_t owner, int 
-                               (*will_block_func)(void*), void* desc,
-							   bool is_special) {
+thread_t thrtab::create_socket( PdSocket sock,
+                                thread_t owner,
+                                int (*will_block_func)(void*),
+                                void* desc,
+                                bool is_special)
+{
     socket_q* new_socket = new socket_q(sock, owner, 
 										will_block_func, desc, is_special);
     thread_t new_tid = entries.push_back((entity*)new_socket);
