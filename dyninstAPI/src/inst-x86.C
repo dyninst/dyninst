@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.132 2003/04/18 22:35:29 tlmiller Exp $
+ * $Id: inst-x86.C,v 1.133 2003/04/23 19:57:03 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -3445,11 +3445,9 @@ bool process::MonitorCallSite(instPoint *callSite){
       {
 	AstNode *prevReg = new AstNode(AstNode::PreviousStackFrameDataReg,
 				       (void *) base_reg);
-	AstNode *derefPrevReg = new AstNode(AstNode::DataIndir, prevReg );
-
  	AstNode *offset = new AstNode(AstNode::Constant, 
 	 			      (void *) displacement);
- 	AstNode *sum = new AstNode(plusOp, derefPrevReg, offset);
+ 	AstNode *sum = new AstNode(plusOp, prevReg, offset);
 	
  	the_args[0] = new AstNode(AstNode::DataIndir, sum);
  	the_args[1] = new AstNode(AstNode::Constant,
