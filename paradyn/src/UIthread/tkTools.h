@@ -6,6 +6,9 @@
 
 /*
  * $Log: tkTools.h,v $
+ * Revision 1.3  1995/11/29 00:20:37  tamches
+ * added tcl_cmd_installer
+ *
  * Revision 1.2  1995/11/06 02:28:02  tamches
  * added tclpanic and resizeScrollbar
  *
@@ -16,6 +19,7 @@
 
 #include "tclclean.h"
 #include "tkclean.h"
+
 #ifdef PARADYN
 #include "util/h/String.h"
 #else
@@ -74,5 +78,20 @@ bool processScrollCallback(Tcl_Interp *interp,
 
 void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
                      int total_width, int visible_width);
+
+class tcl_cmd_installer {
+ private:
+   static void dummy_delete_proc(ClientData) {}
+
+ public:
+   tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc) {
+      Tcl_CreateCommand(interp, tclCmdName.string_of(), proc, NULL, &dummy_delete_proc);
+   }
+
+   tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc, ClientData cd) {
+      Tcl_CreateCommand(interp, tclCmdName.string_of(), proc, cd, &dummy_delete_proc);
+   }
+  ~tcl_cmd_installer() {}
+};
 
 #endif
