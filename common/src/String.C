@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.21 2003/04/18 22:36:16 tlmiller Exp $
+// $Id: String.C,v 1.22 2003/04/26 20:27:05 schendel Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -215,7 +215,8 @@ string_ll::string_ll(double d) {
 }
 
 string_ll::~string_ll() { 
-    /* delete [] str_; */ str_ = 0;
+   delete [] str_;
+   str_ = 0;
 }
 
 string_ll&
