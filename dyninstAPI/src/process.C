@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.318 2002/04/18 19:40:05 bernat Exp $
+// $Id: process.C,v 1.319 2002/05/02 21:28:45 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1993,8 +1993,7 @@ unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); 
 //removed all ioLink related code for output redirection
 process::process(int iPid, image *iImage, int iTraceLink 
 #ifdef SHM_SAMPLING
-                 , key_t theShmKey,
-                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 , key_t theShmKey
 #endif
 ) :
   curr_lwp(0),
@@ -2013,18 +2012,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   savedRegs(NULL),
   pid(iPid) // needed in fastInferiorHeap ctors below
 #if !defined(BPATCH_LIBRARY)
-  ,previous(0),
-  inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-  theSuperTable(this,
-		iShmHeapStats[0].maxNumElems,
-		iShmHeapStats[1].maxNumElems,
-		iShmHeapStats[2].maxNumElems,
-#if defined(MT_THREAD)
-		MAX_NUMBER_OF_THREADS/4
-#else
-		1
-#endif
-		)
+  ,previous(0)
 #endif
 {
 #ifdef DETACH_ON_THE_FLY
@@ -2069,6 +2057,14 @@ process::process(int iPid, image *iImage, int iTraceLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
+#if defined(MT_THREAD)
+				     MAX_NUMBER_OF_THREADS
+#else
+				     1
+#endif
+				     );
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2172,8 +2168,7 @@ process::process(int iPid, image *iSymbols,
                  int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
                  bool &success
 #if !defined(BPATCH_LIBRARY)
-                 , key_t theShmKey,
-                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 , key_t theShmKey
 #endif
                  ) :
   curr_lwp(0),
@@ -2191,22 +2186,7 @@ process::process(int iPid, image *iSymbols,
 #endif
   savedRegs(NULL),
   pid(iPid)
-#if !defined(BPATCH_LIBRARY)
-  ,previous(0),
-  inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-  theSuperTable(this,
-		iShmHeapStats[0].maxNumElems,
-		iShmHeapStats[1].maxNumElems,
-		iShmHeapStats[2].maxNumElems,
-#if defined(MT_THREAD)
-		MAX_NUMBER_OF_THREADS/4
-#else
-		1
-#endif
-		)
-#endif
 {
-
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
@@ -2262,6 +2242,14 @@ process::process(int iPid, image *iSymbols,
     deferredContinueProc = false;
     
 #ifndef BPATCH_LIBRARY
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
+#if defined(MT_THREAD)
+				     MAX_NUMBER_OF_THREADS
+#else
+				     1
+#endif
+				     );
     initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
@@ -2423,8 +2411,7 @@ process::process(int iPid, image *iSymbols,
 process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
                  ,key_t theShmKey,
-                 void *applShmSegPtr,
-                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 void *applShmSegPtr
 #endif
                  ) :
   curr_lwp(0),
@@ -2442,10 +2429,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif
   savedRegs(NULL)
 #ifdef SHM_SAMPLING
-  ,previous(0),
-  inferiorHeapMgr(parentProc.inferiorHeapMgr, applShmSegPtr, 
-                  theShmKey, iShmHeapStats, iPid),
-  theSuperTable(parentProc.getTable(), this)
+  ,previous(0)
 #endif
 {
 
@@ -2491,6 +2475,15 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     pid = iPid; 
 
 #ifndef BPATCH_LIBRARY
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
+#if defined(MT_THREAD)
+				     MAX_NUMBER_OF_THREADS
+#else
+				     1
+#endif
+				     );
+    
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2628,14 +2621,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
    shmsample_cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
 
-   inferiorHeapMgr.registerInferiorAttachedAt(inferiorAttachedAtPtr);
-   theSuperTable.setBaseAddrInApplic(0,(intCounter*) inferiorHeapMgr.getSubHeapInApplic(0));
-   theSuperTable.setBaseAddrInApplic(1,(tTimer*) inferiorHeapMgr.getSubHeapInApplic(1));
-   theSuperTable.setBaseAddrInApplic(2,(tTimer*) inferiorHeapMgr.getSubHeapInApplic(2));
+   theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
 #if defined(MT_THREAD)
    // we are now ready to update the thread table for thread 0 - naim
    assert(threads.size()==1 && threads[0]!=NULL);
-   getTable().addThread(threads[0]);
+   getVariableMgr().addThread(threads[0]);
 #endif
 }
 #endif
@@ -2786,22 +2776,9 @@ tp->resourceBatchMode(true);
         /* parent */
         statusLine("initializing process data structures");
 
-#ifdef SHM_SAMPLING
-        vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-        theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-        theShmHeapStats[0].maxNumElems  = numIntCounters;
-
-        theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-        theShmHeapStats[1].maxNumElems  = numWallTimers;
-
-        theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-        theShmHeapStats[2].maxNumElems  = numProcTimers;
-#endif
-
         process *ret = new process(pid, img, traceLink
 #ifdef SHM_SAMPLING
-                                   , 7000, // shm seg key to try first
-                                   theShmHeapStats
+                                   , 7000 // shm seg key to try first
 #endif
                                    );
            // change this to a ctor that takes in more args
@@ -2931,24 +2908,11 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
     return false; // failure
   }
   
-#ifdef SHM_SAMPLING
-  vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-  theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-  theShmHeapStats[0].maxNumElems  = numIntCounters;
-  
-  theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-  theShmHeapStats[1].maxNumElems  = numWallTimers;
-  
-  theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-  theShmHeapStats[2].maxNumElems  = numProcTimers;
-#endif
-  
   // NOTE: the actual attach happens in the process "attach" constructor:
   bool success=false;
   process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
-				 ,7000, // shm seg key to try first
-				 theShmHeapStats
+				 ,7000 // shm seg key to try first
 #endif                            
 				 );
   assert(theProc);
@@ -3197,25 +3161,12 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     /* parent */
     statusLine("initializing process data structures");
 
-#ifdef SHM_SAMPLING
-    vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-    theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-    theShmHeapStats[0].maxNumElems  = numIntCounters;
-
-    theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-    theShmHeapStats[1].maxNumElems  = numWallTimers;
-
-    theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-    theShmHeapStats[2].maxNumElems  = numProcTimers;
-#endif
-
     // The same process ctro. is used as in the "normal" case but
     // here, traceLink is -1 instead of a positive value.
     process *ret = new process(pid, img, traceLink
 
 #ifdef SHM_SAMPLING
-                                   , 7000, // shm seg key to try first
-                                   theShmHeapStats
+			       , 7000  // shm seg key to try first
 #endif
                                    );
 
@@ -3318,24 +3269,11 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
       return false; // failure
    }
 
-#ifdef SHM_SAMPLING
-   vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-   theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-   theShmHeapStats[0].maxNumElems  = numIntCounters;
-
-   theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-   theShmHeapStats[1].maxNumElems  = numWallTimers;
-
-   theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-   theShmHeapStats[2].maxNumElems  = numProcTimers;
-#endif
-
    // NOTE: the actual attach happens in the process "attach" constructor:
    bool success=false;
    process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
-                                  ,7000, // shm seg key to try first
-                                  theShmHeapStats
+                                  ,7000  // shm seg key to try first
 #endif                            
                                   );
    assert(theProc);
@@ -3364,7 +3302,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
 bool process::doMajorShmSample() {
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
-   if (!theSuperTable.doMajorSample())
+   if (!theVariableMgr->doMajorSample())
       result = false;
       // inferiorProcessTimers used to take in a non-dummy process time as the
       // 2d arg, but it looks like that we need to re-read the process time for
@@ -3388,7 +3326,7 @@ bool process::doMinorShmSample() {
    // samplings.
    bool result = true; // so far...
 
-   if (!theSuperTable.doMinorSample())
+   if (!theVariableMgr->doMinorSample())
       result = false;
 
    return result;
@@ -3453,26 +3391,13 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
                               void *applAttachedPtr
 #endif
                               ) {
-#ifdef SHM_SAMPLING
-    vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-    theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-    theShmHeapStats[0].maxNumElems  = numIntCounters;
-    
-    theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-    theShmHeapStats[1].maxNumElems  = numWallTimers;
-
-    theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-    theShmHeapStats[2].maxNumElems  = numProcTimers;
-#endif
-
     forkexec_cerr << "paradynd welcome to process::forkProcess; parent pid=" << theParent->getPid() << "; calling fork ctor now" << endl;
 
     // Call the "fork" ctor:
     process *ret = new process(*theParent, (int)childPid, iTrace_fd
 #ifdef SHM_SAMPLING
                                , theKey,
-                               applAttachedPtr,
-                               theShmHeapStats
+                               applAttachedPtr
 #endif
                                );
     assert(ret);
@@ -5160,11 +5085,11 @@ void process::handleExec() {
    // we don't need to re-attach after an exec (is this right???)
  
 #ifdef SHM_SAMPLING
-   inferiorHeapMgr.handleExec();
+   theSharedMemMgr->handleExec();
       // reuses the shm seg (paradynd's already attached to it); resets applic-attached-
       // at to NULL.  Quite similar to the (non-fork) ctor, really.
 
-   theSuperTable.handleExec();
+   theVariableMgr->handleExec();
 #endif
 
    inExec = false;
@@ -5552,6 +5477,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     // to a list of function pointers in the runtime library
     // We have a data structure that has a array of linked lists of 
     // these guys -- tag this iRPC on at the tail and sit back and wait
+    
+    // the pendingIRPCs section in shared memory needs to be replaced
+    // now that we've changed our shared memory manager
+    /*
     RTINSTsharedData *sharedData = (RTINSTsharedData *)getRTsharedDataInParadyndSpace();
     // The RPC queue is organized as a two-dimensional array of 
     // rpcToDo structures. Find an empty one (flag == 0),
@@ -5568,6 +5497,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     sharedData->pendingIRPCs[todo.thr->get_pos()][i].rpc = (void (*)())RPCImage;
     // Don't worry about the lock variable -- that is for shared data.
     // This is thread-specific.
+    */
 #else
     // Non-MT has no way of making a non-immediate RPC
     assert(0);
@@ -5879,7 +5809,6 @@ bool process::handleTrapIfDueToRPC() {
    // get curr PC register (can assume process is stopped), search for it in
    // 'currRunningRPCs'.  If found, restore regs, do callback, delete tramp, and
    // return true.  Returns false if not processed.
-
    assert(status_ == stopped); // a TRAP should always stop a process (duh)
    
    if (currRunningRPCs.empty()) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.194 2002/04/18 19:40:06 bernat Exp $
+/* $Id: process.h,v 1.195 2002/05/02 21:28:47 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -78,8 +78,8 @@
 
 #ifdef SHM_SAMPLING
 #include "paradynd/src/shmSegment.h"
-#include "paradynd/src/fastInferiorHeapMgr.h"
-#include "paradynd/src/superTable.h"
+#include "paradynd/src/shmMgr.h"
+#include "paradynd/src/variableMgr.h"
 #include "paradynd/src/hashTable.h"
 #ifdef sparc_sun_sunos4_1_3
 #include <kvm.h>
@@ -358,8 +358,7 @@ class process {
   //removed for output redirection
   process(int iPid, image *iImage, int iTraceLink
 #ifdef SHM_SAMPLING
-          , key_t theShmSegKey,
-          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          , key_t theShmSegKey
 #endif
           );
      // this is the "normal" ctor
@@ -368,8 +367,7 @@ class process {
           int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
           bool& success 
 #ifdef SHM_SAMPLING
-          , key_t theShmSegKey,
-          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          , key_t theShmSegKey
 #endif
           );
      // this is the "attach" ctor
@@ -377,8 +375,7 @@ class process {
   process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
           , key_t theShmSegKey,
-          void *applShmSegPtr,
-          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          void *applShmSegPtr
 #endif
           );
      // this is the "fork" ctor
@@ -1184,34 +1181,40 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
 
 #ifdef SHM_SAMPLING
-  key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
+  key_t getShmKeyUsed() const {return theSharedMemMgr->getShmKey();}
   bool doMajorShmSample();
   bool doMinorShmSample();
 
-  const fastInferiorHeapMgr &getShmHeapMgr() const {
-     return(inferiorHeapMgr);
+  const shmMgr &getShmHeapMgr() const {
+     return(*theSharedMemMgr);
   }
 
   unsigned getShmHeapTotalNumBytes() {
-     return inferiorHeapMgr.getHeapTotalNumBytes();
+     return theSharedMemMgr->getHeapTotalNumBytes();
   }
 
 #if defined(MT_THREAD)
   void *getRTsharedDataInApplicSpace() {
-     void *result = inferiorHeapMgr.getRTsharedDataInApplicSpace();
-     return result;
+    // the pendingIRPCs section in shared memory needs to be replaced
+    // now that we've changed our shared memory manager
+
+    //void *result = theSharedMemMgr->getRTsharedDataInApplicSpace();
+     return NULL;
   }
   void *getRTsharedDataInParadyndSpace() {
-     void *result = inferiorHeapMgr.getRTsharedDataInParadyndSpace();
-     return result;
+    // the pendingIRPCs section in shared memory needs to be replaced
+    // now that we've changed our shared memory manager
+
+    //void *result = theSharedMemMgr->getRTsharedDataInParadyndSpace();
+     return NULL;
   }
 #endif
   void *getObsCostLowAddrInApplicSpace() {
-     void *result = inferiorHeapMgr.getObsCostAddrInApplicSpace();
+     void *result = theSharedMemMgr->getObsCostAddrInApplicSpace();
      return result;
   }
   void *getObsCostLowAddrInParadyndSpace() {
-     void *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
+     void *result = theSharedMemMgr->getObsCostAddrInParadyndSpace();
      return result;
   }
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
@@ -1274,9 +1277,9 @@ private:
   rawTime64 previous; 
 
   // New components of the conceptual "inferior heap"
-  fastInferiorHeapMgr inferiorHeapMgr;
+  shmMgr *theSharedMemMgr;
 
-  superTable theSuperTable;
+  variableMgr *theVariableMgr;
 
 #ifdef sparc_sun_sunos4_1_3
   kvm_t *kvmHandle;
@@ -1287,11 +1290,11 @@ private:
 
 public:
 #ifdef SHM_SAMPLING
-  const superTable &getTable() const {
-     return theSuperTable;
+  const variableMgr &getVariableMgr() const {
+     return *theVariableMgr;
   }
-  superTable &getTable() {
-     return theSuperTable;
+  variableMgr &getVariableMgr() {
+     return *theVariableMgr;
   }
 #endif
 
@@ -1504,6 +1507,10 @@ void inferiorMallocAlign(unsigned &size);
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const vector<addrVecType> &);
+
+
+
+
 process *createProcess(const string file, vector<string> argv, 
 		       vector<string> envp, const string dir,
 		       int stdin_fd, int stdout_fd, int stderr_fd);
