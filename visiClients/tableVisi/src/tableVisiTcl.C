@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: tableVisiTcl.C,v 1.17 2000/10/17 17:28:58 schendel Exp $
+// $Id: tableVisiTcl.C,v 1.18 2001/11/07 05:03:24 darnold Exp $
 
 #include <iostream.h>
 
@@ -54,6 +54,7 @@
 #include "tableVisi.h"
 
 #include "tableVisiTcl.h"
+#include "visiClients/auxiliary/h/Export.h"
 
 /* ************************************************************* */
 
@@ -611,4 +612,9 @@ void installTableVisiCommands(Tcl_Interp *interp) {
 		             tableVisiDestroyCommand,
 		             NULL,
                      dummyDeleteProc);
+
+   //Create commands for export functionality
+   Tcl_CreateObjCommand(interp, "get_subscribed_mrpairs",
+		       get_subscribed_mrpairs, NULL, NULL);
+   Tcl_CreateObjCommand(interp, "DoExport", DoExport, NULL, NULL);
 }
