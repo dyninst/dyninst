@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.163 2005/03/07 21:18:38 bernat Exp $
+// $Id: linux.C,v 1.164 2005/03/16 20:53:20 bernat Exp $
 
 #include <fstream>
 
@@ -1247,7 +1247,7 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
 }
 
 
-void process::determineLWPs(pdvector<unsigned> *all_lwps)
+void process::determineLWPs(pdvector<unsigned> &all_lwps)
 {
   char procdir[128];
   struct dirent *direntry;
@@ -1261,7 +1261,7 @@ void process::determineLWPs(pdvector<unsigned> *all_lwps)
     while((direntry = readdir(dirhandle)) != NULL) {
       unsigned lwp_id = atoi(direntry->d_name);
       if (lwp_id) 
-	all_lwps->push_back(lwp_id);
+	all_lwps.push_back(lwp_id);
     }
     closedir(dirhandle);
     return;

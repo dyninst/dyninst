@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.59 2005/03/02 23:31:19 bernat Exp $
+// $Id: sol_proc.C,v 1.60 2005/03/16 20:53:21 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -474,7 +474,7 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
     return true;
 }
 
-void process::determineLWPs(pdvector<unsigned> *all_lwps) {
+void process::determineLWPs(pdvector<unsigned > &lwp_ids) {
    char procdir[128];
    sprintf(procdir, "/proc/%d/lwp", getPid());
    DIR *dirhandle = opendir(procdir);
@@ -483,8 +483,7 @@ void process::determineLWPs(pdvector<unsigned> *all_lwps) {
       char str[100];
       strncpy(str, direntry->d_name, direntry->d_reclen);
       unsigned lwp_id = atoi(direntry->d_name);
-      if(lwp_id != 0) // && lwp_id != 1)
-         (*all_lwps).push_back(lwp_id);
+      lwp_ids.push_back(lwp_id);
    }
    closedir(dirhandle);
 }
@@ -527,6 +526,7 @@ bool dyn_lwp::executingSystemCall()
   lwpstatus_t status;
   if (!get_status(&status)) return false;
   // Old-style
+
   if (status.pr_syscall > 0 && // If we're in a system call
       status.pr_why != PR_SYSEXIT) {
       stoppedSyscall_ = status.pr_syscall;
