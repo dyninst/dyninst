@@ -344,8 +344,8 @@ bool expanded = true;
 /* Plarform independent */
 
 // First expand the function, determining all LocalAlterations that need 
-// to be applied, and then apply them, storing the expanded function in 
-// the buffer NEW_CODE
+// to be applied, and then apply them, writing the rewritten function to
+// the buffer relocatedCode
 
 // newAdr: address in mutatee where function is to be relocated to
 // reloc_info: info about relocated functions
@@ -418,16 +418,25 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
       relocatedByProcess += reloc_info;
     }
 
+    // Allocate the memory in paradyn to hold a copy of the rewritten function
+    relocatedCode = new unsigned char[size() + totalSizeChange];
+    if(!relocatedCode) {
+      cerr << "WARNING: Allocation of space for relocating function "
+           << prettyName() << " failed." << endl;
+       delete []oldInstructions;  
+       return false;
+    } 
+
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
       newInstructions = NEW_INSTR;
 #elif defined(sparc_sun_solaris2_4)
-      newInstructions = newInstr;
+      newInstructions = (instruction *)relocatedCode;
 #endif
 
     // Apply the alterations needed for relocation. The expanded function 
-    // will be placed in NEW_CODE.
+    // will be written to relocatedCode.
     if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
-                           newAdr, oldInstructions, size(), newInstructions))) {
+                           newAdr, oldInstructions, size(), newInstructions) )) {
       delete []oldInstructions;
       return false;
     }
@@ -664,7 +673,7 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 
     /* Platform independent */
 
-// place an expanded copy of the original function in NEW_CODE 
+// place an expanded copy of the original function in relocatedCode 
 
 // mutatee: first address of function in mutatee
 // mutator: first address of copy of function in mutator
@@ -696,14 +705,9 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
   int newDisp = 0;
 
-  // buffer for relocated function
-  unsigned char *code = 0; 
+  // offset into buffer for rerwitten function
   unsigned codeOffset = 0;
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-      code = NEW_CODE;
-#endif
- 
   Address oldAdr_before, oldAdr_after, newAdr_before, newAdr_after; 
 
 #ifdef DEBUG_FUNC_RELOC
@@ -842,7 +846,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
                                   newAdr, newAdr_after, 
                                   oldInstructions, newInstructions, oldInsnOffset,  
                                   newInsnOffset, newDisp, 
-                                  codeOffset, code);
+                                  codeOffset, relocatedCode);
 
       // update offsets by the # of bytes RewriteFootprint walked over
       oldOffset += (oldAdr_after - oldAdr_before);
@@ -1091,33 +1095,28 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 
     if (!reloc_info) {
       // findAndApplyAlterations expands and updates the function, 
-      // storing the expanded function with relocated addresses in NEW_CODE.
+      // storing the expanded function with relocated addresses in 
+      // the buffer relocatedCode.
       if (findAndApplyAlterations(location->iPgetOwner(), location, ret, proc, 
                                   reloc_info, size_change)) {
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-
-        // Copy the expanded and updated function into the mutatee
+        // Copy the expanded and updated function into the mutatee's 
+        // address space
         proc->writeDataSpace((caddr_t)ret, size() + size_change,
-                             (caddr_t) NEW_CODE);
-#elif defined(sparc_sun_solaris2_4)
-        // Copy the expanded and updated function into the mutatee
-        proc->writeDataSpace((caddr_t)ret, size() + size_change,
-                             (caddr_t) newInstr);
-#endif
+                             relocatedCode);
 
         // branch from original function to relocated function
         generateBranch(proc, origAddress, ret);
         reloc_info->setInstalled();
 
-#ifdef DEBUG_FUNC_RELOC
+	//#ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction " << endl;
         cerr << " prettyName = " << prettyName().string_of() << endl;      
         cerr << " relocated from 0x" << hex << origAddress
 	     << " with size 0x" << size() << endl;
         cerr << " to 0x" << hex << ret 
              << " with size 0x" << size()+size_change << endl;
-#endif
+	//#endif
 
       } else {
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.75 2001/03/09 17:50:06 gurari Exp $
+ * $Id: inst-x86.C,v 1.76 2001/04/04 17:33:11 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -82,7 +82,6 @@ extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
 instruction NEW_INSTR[NEW_INSTR_ARRAY_LEN];
-unsigned char NEW_CODE[NEW_INSTR_ARRAY_LEN];
 unsigned char OLD_CODE[NEW_INSTR_ARRAY_LEN];
 
 // The general machine registers. 
@@ -3368,12 +3367,12 @@ void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn,
 
   // iterate over each byte of the machine instruction, copying it
   for (unsigned i = 0; i < insnSize; i++) {     
-    NEW_CODE[codeOffset] = *(oldPtr + i);
+    relocatedCode[codeOffset] = *(oldPtr + i);
     codeOffset++;
   }
 
   // update x86 instruction corresponding to machine code instruction
-  newInsn = *(new instruction(&NEW_CODE[tmp], oldInsn.type(), insnSize));
+  newInsn = *(new instruction(&relocatedCode[tmp], oldInsn.type(), insnSize));
 }   
 
 /****************************************************************************/
@@ -3750,7 +3749,7 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 
   unsigned char *insn = 0;
 
-  // copy the instruction we are inserting nops after into NEW_CODE 
+  // copy the instruction we are inserting nops after into relocatedCode 
   function->copyInstruction(newInstructions[newOffset], oldInstructions[oldOffset], codeOffset);
   newOffset++;  
 
@@ -3760,7 +3759,7 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
     // pointer to the machine code
     insn = (unsigned char *)(&code[codeOffset]);
 
-    // write nop to buffer of char* (i.e. NEW_CODE)
+    // write nop to relocatedCode
     emitSimpleInsn(0x90, insn);
     // emit simple insn increments insn, so we need to decrement insn
     insn--;  

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.79 2001/02/20 21:39:04 gurari Exp $
+// $Id: symtab.h,v 1.80 2001/04/04 17:33:12 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -188,7 +188,10 @@ class pd_Function : public function_base {
     pd_Function(const string &symbol, const string &pretty, pdmodule *f, 
 		Address adr, const unsigned size, const unsigned tg, 
 		const image *owner, bool &err);
-    ~pd_Function() { /* TODO */ }
+    ~pd_Function() { delete relocatedCode;  // delete the rewritten version 
+                                            // of the function if it was 
+                                            // relocated      
+                               /* TODO */ }
 
     bool findInstPoints(const image *owner);
     void checkCallPoints();
@@ -472,8 +475,10 @@ class pd_Function : public function_base {
 #ifndef BPATCH_LIBRARY
     resource *funcResource;
 #endif
+    
     // these are for relocated functions
     bool relocatable_;		// true if func will be relocated when instr
+    unsigned char *relocatedCode;  // points to copy of rewritten function
 
     bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
 
