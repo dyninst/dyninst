@@ -2,10 +2,13 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.13  1995/06/02 20:58:43  newhall
-/* made code compatable with new datamanager interface
-/* replaced List and HTable container classes with STL containers
+/* Revision 1.14  1995/07/17 04:25:50  tamches
+/* commented out the unused batch calls
 /*
+# Revision 1.13  1995/06/02  20:58:43  newhall
+# made code compatable with new datamanager interface
+# replaced List and HTable container classes with STL containers
+#
 # Revision 1.12  1995/01/26  17:59:26  jcargill
 # Changed igen-generated include files to new naming convention; fixed
 # some bugs compiling with gcc-2.6.3.
@@ -143,8 +146,9 @@ $remote UIM {
 	$upcall $async void chooseMenuItemREPLY (chooseMenuItemCBFunc cb, 
 			int userChoice);
 
-	$async void startBatchMode ();
-	$async void endBatchMode ();
+// These 2 guys were unused, so I commented them out --ari
+//	$async void startBatchMode ();
+//	$async void endBatchMode ();
 
 	// used to tell UI to source a tcl file after initialization
 	$async void readStartupFile(const char *script);
