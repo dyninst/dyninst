@@ -145,6 +145,12 @@ class BPATCH_DLL_EXPORT BPatch {
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
+    /* If true, deep parsing (anything beyond symtab info) is delayed until
+       accessed */
+    /* Note: several bpatch constructs have "access everything" behavior, 
+       which will trigger full parsing. This should be looked into. */
+    bool delayedParsing_;
+
     BPatch_stats stats;
     void updateStats();
 public:
@@ -167,6 +173,7 @@ public:
     bool isTrampRecursive() { return trampRecursiveOn; }
     bool hasForcedRelocation_NP() { return forceRelocation_NP; }
     bool autoRelocationOn() { return autoRelocation_NP; }
+    bool delayedParsingOn() { return delayedParsing_;}
 
     // The following are only to be called by the library:
     void registerProvisionalThread(int pid);
@@ -222,6 +229,7 @@ public:
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
     void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
     void setAutoRelocation_NP(bool x) { autoRelocation_NP = x; }
+    void setDelayedParsing(bool x) { delayedParsing_ = x; }
 
     BPatch_thread *createProcess(const char *path, const char *argv[], 
 	const char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
