@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.468 2004/01/19 21:53:47 schendel Exp $
+// $Id: process.C,v 1.469 2004/02/07 18:34:17 schendel Exp $
 
 #include <ctype.h>
 
@@ -1679,9 +1679,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
-  locked_continues(false),
-  continue_queued(false),
-  signal_for_queued_cont(NoSignal),
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
@@ -1853,9 +1850,6 @@ process::process(int iPid, image *iSymbols,
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
 #endif
-  locked_continues(false),
-  continue_queued(false),
-  signal_for_queued_cont(NoSignal),
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
@@ -2048,9 +2042,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
-  locked_continues(false),
-  continue_queued(false),
-  signal_for_queued_cont(NoSignal),
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
   windows_termination_requested(false),
 #endif
@@ -2479,8 +2470,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     ev.why  = procSignalled;
     ev.what = fileDescSignal;
     ev.info = 0;
-    getSH()->beginEventHandling(1);
-    getSH()->handleProcessEventWithUnlock(ev);    
+    getSH()->handleProcessEvent(ev);    
 #endif
 
     bool res = theProc->loadDyninstLib();
@@ -3107,8 +3097,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     ev.why  = procSignalled;
     ev.what = fileDescSignal;
     ev.info = 0;
-    getSH()->beginEventHandling(1);
-    getSH()->handleProcessEventWithUnlock(ev);
+    getSH()->handleProcessEvent(ev);
 #endif
     
     return(true);
@@ -3556,6 +3545,21 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
       assert(whichLWP == getRepresentativeLWP());
       set_status(lwp_st);  // sets process status and all lwp statuses
    }
+}
+
+void process::clearCachedRegister() {
+   pdvector<dyn_thread *>::iterator iter = threads.begin();
+   
+   dyn_lwp *proclwp = getRepresentativeLWP();
+   if(proclwp) proclwp->clearCachedRegister();
+   
+   while(iter != threads.end()) {
+      dyn_thread *thr = *(iter);
+      dyn_lwp *lwp = thr->get_lwp();
+      assert(lwp);
+      lwp->clearCachedRegister();
+      iter++;
+   }   
 }
 
 bool process::pause() {
@@ -5037,32 +5041,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
      return 0;
 }
 
-  // unlocks continues, only does one continue if multiple continues have
-  // been queued
-void process::unlock_continues() {
-   assert(! (!locked_continues && continue_queued));  // F , T
-
-   if(locked_continues && continue_queued) {          // T , T
-      locked_continues = false;
-      continueProc(signal_for_queued_cont);
-   } else                                             // T , F or F , F
-      locked_continues = false;
-}
-
 bool process::continueProc(int signalToContinueWith) {
-   if(locked_continues) {
-      continue_queued = true;
-      if(signal_for_queued_cont != NoSignal && 
-         signal_for_queued_cont != signalToContinueWith) {
-         cerr << "  requesting to queue multiple continues with signals"
-              << " with different signals, not supported\n";
-         assert(false);
-      }
-      signal_for_queued_cont = signalToContinueWith;
-      return true;
-   }
-   continue_queued = false;
-
    if (status_ == exited) {
       return false;
    }
@@ -5142,46 +5121,51 @@ bool process::API_detach(const bool cont)
  */
 
 #if defined(alpha_dec_osf4_0)
-bool process::handleSyscallExit(procSignalWhat_t syscall)
+bool process::handleSyscallExit(procSignalWhat_t syscall,
+                                dyn_lwp *lwp_with_event)
 #else
-bool process::handleSyscallExit(procSignalWhat_t)
+bool process::handleSyscallExit(procSignalWhat_t, dyn_lwp *lwp_with_event)
 #endif
 {
-    // For each thread:
-    // Get the LWP associated with the thread
-    // Check to see if the LWP is at a syscall exit trap
-    // Check to see if the trap is desired
-    // Return the first thread to match the above conditions.
-   bool found_lwp_with_trap_event = false;
-    for (unsigned iter = 0; iter < threads.size(); iter++) {
-        dyn_thread *thr = threads[iter];
-        int match_type = thr->get_lwp()->hasReachedSyscallTrap();
-        if (match_type == 0)
-            continue; // No match
-        else if (match_type == 1) {
-            // Uhh... crud. 
-            thr->get_lwp()->stepPastSyscallTrap();
-            // Question: what to return? The trap was incorrect,
-            // and as such should silently disappear. For now, return
-            // the thread that hit the trap, and the caller should 
-            // determine there is nothing to be done.
-            //return true;  ... don't return here, need to look through
-            //                  all lwps for match_type of 2
-            found_lwp_with_trap_event = true;
-        }
-        else {
-            thr->get_lwp()->clearSyscallExitTrap();
-            found_lwp_with_trap_event = true;
-        }
-    }
-    
-    return found_lwp_with_trap_event;
+   // For each thread:
+   // Get the LWP associated with the thread
+   // Check to see if the LWP is at a syscall exit trap
+   // Check to see if the trap is desired
+   // Return the first thread to match the above conditions.
+   bool lwp_with_trap_event = false;
+   for (unsigned iter = 0; iter < threads.size(); iter++) {
+      dyn_thread *thr = threads[iter];
+      dyn_lwp *lwp = thr->get_lwp();
+#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
+      if(lwp != lwp_with_event)
+         continue;
+#endif
+
+      int match_type = lwp->hasReachedSyscallTrap();
+      if (match_type == 0)
+         continue; // No match
+      else if (match_type == 1) {
+         // Uhh... crud. 
+         lwp->stepPastSyscallTrap();
+         // Question: what to return? The trap was incorrect,
+         // and as such should silently disappear. For now, return
+         // the thread that hit the trap, and the caller should 
+         // determine there is nothing to be done.
+         //return true;  ... don't return here, need to look through
+         //                  all lwps for match_type of 2
+         lwp_with_trap_event = true;
+      }
+      else {
+         lwp->clearSyscallExitTrap();
+         lwp_with_trap_event = true;
+      }
+   }
+   
+   return lwp_with_trap_event;
 }
 
 void process::triggerNormalExitCallback(int exitCode) {
    // special case where can't wait to continue process
-   getSH()->continueLockedProcesses();
-
    if (status() == exited) {
       return;
    }
@@ -5214,8 +5198,6 @@ void process::triggerNormalExitCallback(int exitCode) {
 
 void process::triggerSignalExitCallback(int signalnum) {
    // special case where can't wait to continue process
-   getSH()->continueLockedProcesses();
-
    if (status() == exited) {
       return;
    }
@@ -5225,8 +5207,6 @@ void process::triggerSignalExitCallback(int signalnum) {
 
 void process::handleProcessExit() {
    // special case where can't wait to continue process
-   getSH()->continueLockedProcesses();
-
    if (status() == exited) {
       return;
    }

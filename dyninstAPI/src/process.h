@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.281 2004/01/19 21:53:46 schendel Exp $
+/* $Id: process.h,v 1.282 2004/02/07 18:34:18 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -393,6 +393,9 @@ class process {
   // update the status of the process and one particular lwp in the process
   void set_lwp_status(dyn_lwp *whichLWP, processState st);
 
+  // should only be called by dyn_lwp::continueLWP
+  void clearCachedRegister();
+
   Address previousSignalAddr() const { return previousSignalAddr_; }
   void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
   void savePreSignalStatus() { status_before_signal_ = status_; }
@@ -470,7 +473,6 @@ class process {
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
   void recognize_threads(pdvector<unsigned> *completed_lwps);
-
   int getPid() const { return pid;}
 
   bool heapIsOk(const pdvector<sym_data>&);
@@ -577,16 +579,6 @@ class process {
 
   enum { NoSignal = -1 };   // matches declaration in dyn_lwp.h
   bool continueProc(int signalToContinueWith = NoSignal);
-
-  // provides ability to block process continues.  done to keep process
-  // stopped until all events associated with process stop have been handled
-  // --------------------------------------
-  void lock_continues() { locked_continues = true; }
-  // unlocks continues, only does one continue if multiple continues have
-  // been queued
-  void unlock_continues();
-  bool hasQueuedContinues() {  return continue_queued; }
-  // --------------------------------------
 
   bool terminateProc();
   ~process();
@@ -1004,7 +996,7 @@ class process {
 
   // Generic handler for anything else waiting on a system call
   // Returns true if handling was done
-  bool handleSyscallExit(procSignalWhat_t syscall);
+  bool handleSyscallExit(procSignalWhat_t syscall, dyn_lwp *lwp_with_event);
   
   // For platforms where we can't specifically tell if a signal is due to
   // fork or exec and have to guess
@@ -1186,11 +1178,6 @@ public:
 #endif
 
 private:
-  bool locked_continues;
-  bool continue_queued;
-  int signal_for_queued_cont;
-
-
   bool createdViaAttach;
      // set in the ctor.  True iff this process was created with an attach,
      // as opposed to being fired up by paradynd.  On fork, has the value of
