@@ -1,9 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.30  1994/10/09 01:24:47  karavan
-/* A large number of changes related to the new UIM/visiThread metric&resource
-/* selection interface and also to direct selection of resources on the
-/* Where axis.
+/* Revision 1.31  1994/10/25 17:57:32  karavan
+/* added Resource Display Objects, which support display of multiple resource
+/* abstractions.
 /*
+ * Revision 1.30  1994/10/09  01:24:47  karavan
+ * A large number of changes related to the new UIM/visiThread metric&resource
+ * selection interface and also to direct selection of resources on the
+ * Where axis.
+ *
  * Revision 1.29  1994/09/30  19:18:28  rbi
  * Abstraction interface change.
  *
@@ -163,6 +167,7 @@ extern "C" {
 }
 
 #include "../DMthread/DMresource.h"
+#include "../DMthread/DMabstractions.h"
 #include "dataManager.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
@@ -197,8 +202,9 @@ Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 int UIMwhereDagID;
-appState PDapplicState = appPaused;     // used to update run/pause buttons  
 dag *baseWhere;
+appState PDapplicState = appPaused;     // used to update run/pause buttons  
+
 
 /*
  * Command-line options:
@@ -243,6 +249,12 @@ extern int UimpdCmd(ClientData clientData,
 		int argc, 
 		char *argv[]);
 extern int getDagToken ();
+extern void resourceAddedCB (performanceStream *ps , 
+		      resource *parent, 
+		      resource *newResource, 
+		      char *name);
+extern int initMainWhereDisplay ();
+
 /*
  * Forward declarations for procedures defined later in this file:
  */
@@ -250,11 +262,9 @@ extern int getDagToken ();
 void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 void             StdinProc _ANSI_ARGS_((ClientData clientData,
                             int mask));
-void reaper();
-void controlFunc (performanceStream *ps, resource *parent, 
-                  resource *newResource, char *name);
-void foldFunc (performanceStream *ps, timeStamp width);
 
+/*** I don't think we need this anymore -klk
+void reaper();
 
 void reaper()
 {
@@ -271,33 +281,7 @@ void reaper()
         printf("%x\n", status);
     }
 }
-
-/* 
-   This callback function invoked by dataManager whenever a new 
-   resource has been defined.  Maintains where axis display.
 */
-void controlFunc (performanceStream *ps , 
-                  resource *parent, 
-                  resource *newResource, 
-                  char *name)
-{
-  int nodeID;
-  stringHandle parname;
-  char *label;
-  dataMgr->enableResourceCreationNotification(ps, newResource);
-
-  nodeID = (int) Tk_GetUid(name);
-  label = strrchr(name, '/'); label++; 
-  if (parent == uim_rootRes) {
-    baseWhere->CreateNode (nodeID, 1, label, 1, (void *)newResource); 
-  }
-  else {
-    baseWhere->CreateNode (nodeID, 0, label, 1, (void *)newResource);
-    parname = parent->getFullName();
-    baseWhere->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
-  }
-}
-
 
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
@@ -327,80 +311,6 @@ applicStateChanged (performanceStream*, appState state)
     PDapplicState = state;
 }
 
-int initWhereAxis (dag *wheredag, int abs) 
-{
-  int token;
-  char tcommand[100];
-
-  token = getDagToken ();
-  ActiveDags[token] = wheredag;
-
-  if (abs == 0) {
-    sprintf (tcommand, "initWHERE %d .where {Paradyn Base Where Axis} 0", 
-	     token);
-    if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
-      printf ("NOWHERE:: %s\n", interp->result);
-      return -1;
-    }
-
-    wheredag->createDisplay (".where");
-  } else {
-    /** need to add getname function here for abs */
-    sprintf (tcommand, "initWHERE %d .whereX {Paradyn Abstraction Axis} 1", 
-	     token);
-    if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
-      printf ("NOWHERE:: %s\n", interp->result);
-      return -1;
-    }
-    wheredag->createDisplay (".whereX");
-  }
-
-  sprintf (tcommand, "addDefaultWhereSettings %s %d",
-	   wheredag->getCanvasName(), token);
-  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
-    printf ("ERROR ADDING Where Bindings %s\n", interp->result);
-    return -1;
-  }
-
-  return token;
-}
-
-void initResourceHierarchy (int abs)
-{
-  int retVal;
-  resHierarchy *newRec;
-  controlCallback controlFuncs;
-  dataCallback dataFunc;
-  
-  controlFuncs.rFunc = controlFunc;
-  controlFuncs.mFunc = NULL;
-  controlFuncs.fFunc = NULL;
-  controlFuncs.sFunc = applicStateChanged;
-  controlFuncs.bFunc = resourceBatchChanged;
-  dataFunc.sample = NULL;
-  uim_defaultStream = dataMgr->createPerformanceStream(context, Sample,
-						       dataFunc, controlFuncs);
-  dataMgr->enableResourceCreationNotification(uim_defaultStream, 
-					      uim_rootRes);
-  baseWhere = new dag (interp);
-
-  // display the where axis 
-  retVal = initWhereAxis (baseWhere, 0);
-  if (retVal < 0) {
-    printf ("Unable to initialize base where axis\n");
-    thr_exit(0);
-  }
-
-  // create record for whereAxesTbl
-  newRec = (resHierarchy *) malloc (sizeof (resHierarchy));
-  newRec->abs = abs;
-  newRec->resDag = baseWhere;
-  newRec->wname = ".where";
-  newRec->status = DISPLAYED;
-
-  whereAxesTbl.add (newRec, (void *) newRec->abs);
-  
-}
 
 /*
  *----------------------------------------------------------------------
@@ -434,7 +344,9 @@ UImain(void* vargs)
     unsigned msgSize = 0;
     char UIMbuff[UIMBUFFSIZE];
     char *temp;
-
+    controlCallback controlFuncs;
+    dataCallback dataFunc;
+  
     interp = Tcl_CreateInterp();
 #ifdef TCL_MEM_DEBUG
     Tcl_InitMemory(interp);
@@ -590,12 +502,22 @@ UImain(void* vargs)
 
     uim_rootRes = dataMgr->getRootResource();
     if (!uim_rootRes) abort();
+    controlFuncs.rFunc = resourceAddedCB;
+    controlFuncs.mFunc = NULL;
+    controlFuncs.fFunc = NULL;
+    controlFuncs.sFunc = applicStateChanged;
+    controlFuncs.bFunc = resourceBatchChanged;
+    dataFunc.sample = NULL;
+    uim_defaultStream = dataMgr->createPerformanceStream
+      (context, Sample, dataFunc, controlFuncs);
+    dataMgr->enableResourceCreationNotification(uim_defaultStream, 
+						uim_rootRes);
 
     uim_ResourceSelectionStatus = 0;    // no selection in progress
     Tcl_LinkVar (interp, "resourceSelectionStatus", 
 		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
-
-    initResourceHierarchy(0);
+    retVal = 0;
+    initMainWhereDisplay();
 
 /********************************
  *    Main Loop for UIM thread.  

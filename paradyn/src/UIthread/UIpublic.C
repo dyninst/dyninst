@@ -30,11 +30,15 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.15  1994/10/09 01:24:49  karavan
-/* A large number of changes related to the new UIM/visiThread metric&resource
-/* selection interface and also to direct selection of resources on the
-/* Where axis.
+/* Revision 1.16  1994/10/25 17:57:34  karavan
+/* added Resource Display Objects, which support display of multiple resource
+/* abstractions.
 /*
+ * Revision 1.15  1994/10/09  01:24:49  karavan
+ * A large number of changes related to the new UIM/visiThread metric&resource
+ * selection interface and also to direct selection of resources on the
+ * Where axis.
+ *
  * Revision 1.14  1994/09/25  01:54:10  newhall
  * updated to support changes in VM, and UI interface
  *
@@ -100,7 +104,6 @@ class statusDisplayObject;
       */
 dag *ActiveDags[MAXNUMACTIVEDAGS];
 Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
-List<resHierarchy *> whereAxesTbl;  /* one record per abstraction */
 extern void initSHGStyles();
 extern dag *baseWhere;
  /* globals for metric resource selection */
@@ -371,8 +374,10 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   UIMReplyRec *reply;
   Tcl_HashEntry *entryPtr;
   int newptr;
+  char tcommand[300];
+  int rdoID;
+  List<resourceDisplayObj *>tmp;
 
-  
       // store record with unique id and callback function
   UIMMsgTokenID++;
   entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
@@ -398,13 +403,23 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_SetVar (interp, "metCount", ctr, 0);
 
   // set global tcl variable to list of currently defined where axes
-  /** just the base for now */
+
+  /*** need to implement this functionality
+  tmp = resourceDisplayObj::allRDOs;
+  while (*tmp) {    
+    (*tmp)->addResource (newResource, parent, name, rname);
+    tmp++;
+  }
+  // this version used just the base -- obsoleted w/change to rdo's
   Tcl_SetVar (interp, "CurrentWhereAxes", baseWhere->getCanvasName(), 
 	      TCL_APPEND_VALUE | TCL_LIST_ELEMENT);
+  */
 
+  tmp = resourceDisplayObj::allRDOs;
       // tcl proc draws window & gets metrics and resources from user 
-  sprintf (ctr, "%d", UIMMsgTokenID);
-  retVal = Tcl_VarEval (interp, "getMetsAndRes ", ctr, 0);
+  sprintf (tcommand,  "getMetsAndRes %d %d", UIMMsgTokenID,
+	   (int)(*tmp)->getToken());
+  retVal = Tcl_VarEval (interp, tcommand, 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (21, "getMetsAndRes in UIM::chooseMetricsandResources");
     printf ("%s\n", interp->result);

@@ -116,6 +116,7 @@ dag::~dag(void)
   delete graph;
 }
 
+/*** delete after testing complete klk10/23
 int 
 dag::createDisplay (char *parentWindow)
 {
@@ -131,6 +132,34 @@ dag::createDisplay (char *parentWindow)
   } else {
     strcpy (dframe+nameLength, ".dag");
     strcpy (dcanvas+nameLength, ".dag._c_");
+  }
+  printf ("canvas name: %s\n", dcanvas);
+  printf ("frame name: %s\n", dframe);
+
+  if (Tcl_VarEval (interp, "setupDAG ", dframe, 0) == TCL_ERROR)
+    printf ("UIMcreateDisplay: %s\n", interp->result);
+
+  displayActive = 1;
+
+  RePaintDag(this);
+  flags = 0;
+  return 1;
+}
+*/
+
+int 
+dag::createDisplay (char *parentWindow)
+{
+  int nameLength;
+  nameLength = strlen(parentWindow);
+  dframe = new char[nameLength];
+  dcanvas = new char[nameLength+4];
+  strcpy (dframe, parentWindow);
+  strcpy (dcanvas, parentWindow);
+  if (nameLength == 1) {
+    strcpy (dcanvas+nameLength, "_c_");
+  } else {
+    strcpy (dcanvas+nameLength, "._c_");
   }
   printf ("canvas name: %s\n", dcanvas);
   printf ("frame name: %s\n", dframe);

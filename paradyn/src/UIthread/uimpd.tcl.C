@@ -3,10 +3,14 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.9  1994/10/09 02:28:07  karavan
-/* Many updates related to the switch to the new UIM/visiThread resource/metric
-/* selection interface, and to resource selection directly on the nodes.
+/* Revision 1.10  1994/10/25 17:57:37  karavan
+/* added Resource Display Objects, which support display of multiple resource
+/* abstractions.
 /*
+ * Revision 1.9  1994/10/09  02:28:07  karavan
+ * Many updates related to the switch to the new UIM/visiThread resource/metric
+ * selection interface, and to resource selection directly on the nodes.
+ *
  * Revision 1.8  1994/09/25  01:54:14  newhall
  * updated to support changes in VM, and UI interface
  *
@@ -37,17 +41,17 @@
 
 extern "C" {
   #include "tk.h"
+  int atoi(const char*);
 }
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMresource.h"
-// #include "../DMthread/DMinternals.h"
 #include "UIglobals.h"
 #include "../VMthread/metrespair.h"
 #include "dag.h"
 
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern int getDagToken ();
-extern int initWhereAxis (dag *wheredag, int aName); 
+extern int initWhereAxis (dag *wheredag, stringHandle abs); 
 resourceList *uim_SelectedFocus;
 
 void printMFPlist (metrespair *list, int lsize) 
@@ -83,9 +87,9 @@ int sendVisiSelectionsCmd(ClientData clientData,
   List<metrespair *> localSelectList;
   metrespair *metricFocusPairs = NULL;
 
-#ifdef UIM_DEBUG
+
   printf ("sendVisiSelectionsCmd: %s %s\n", argv[1], argv[2]);
-#endif
+
   cancelFlag = atoi(argv[2]);
   if (cancelFlag == 1) {
     uim_VisiSelectionsSize = 0;
@@ -103,9 +107,7 @@ int sendVisiSelectionsCmd(ClientData clientData,
       metricFocusPairs[i].focus = (*localSelectList)->focus;
       localSelectList++;
     }
-#ifdef UIM_DEBUG
     printMFPlist (metricFocusPairs, uim_VisiSelectionsSize);
-#endif
   }
 
   // get callback and thread id for this msg
@@ -210,6 +212,7 @@ int addNStyleCmd (ClientData clientData,
   int dagID;
   dag *currDag;
   dagID = atoi(argv[1]);
+  printf ("adding style for dagtoken = %d\n", dagID);
   currDag = ActiveDags[dagID];
   currDag->AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
 		     argv[5], argv[6], argv[7][0], atof(argv[8]));
@@ -296,7 +299,7 @@ int showAllNodesCmd (ClientData clientData,
 /*
   showWhereAxisCmd
   binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to close display
+  looks up dag * for this display and calls function to display
   arguments: dagID
 */
 int showWhereAxisCmd (ClientData clientData, 
@@ -304,10 +307,13 @@ int showWhereAxisCmd (ClientData clientData,
 		      int argc, 
 		      char *argv[])
 {
+  /*** this for compile only --- arguments to initWhereAxis have changed!!!
   if (initWhereAxis (baseWhere, 0))
+*/
     return TCL_OK;
-  else 
+/***  else 
     return TCL_ERROR;
+*/
 }
 
 /*
@@ -406,23 +412,29 @@ int unhighlightNodeCmd (ClientData clientData,
 
 /* 
  * args: 0 processResourceSelection
- *       1 dag pointer
+ *       1 rdo token
  */
 int processResourceSelectionCmd (ClientData clientData, 
                       Tcl_Interp *interp, 
                       int argc, 
                       char *argv[])
 {
-  int dagID;
+  int rdoToken;
   dag *currDag;
   resourceList *selection;
   rNode me;
   int r;
+  resourceDisplayObj *currRDO;
 
-  // get dag ptr from token
-  dagID = atoi (argv[1]);
-  currDag = ActiveDags[dagID];
+  // get rdo ptr from token
+  rdoToken = atoi(argv[1]);
+  printf ("processResourceSelection::rdoToken: %d\n", rdoToken);
+  currRDO = resourceDisplayObj::allRDOs.find((void *)rdoToken);
+  printf ("processResourceSelection::lookuptoken: %d\n", currRDO->getToken());
 
+  // get currently displayed dag
+  currDag = currRDO->getTopDag();
+  printf ("processResourceSelection::lookupDag: %s\n", currDag->getCanvasName());
   selection = new resourceList;
   for (r = 0; r < currDag->graph->rSize; r++) {
     me = currDag->graph->row[r].first;
@@ -432,13 +444,14 @@ int processResourceSelectionCmd (ClientData clientData,
       me = me->forw;
     }
   }
-  if (selection->getCount() > 0) {
-    uim_SelectedFocus = selection;
+  printf ("DONE WITH LOOP\n");
+  if (selection->getCount() == 0)
+    return TCL_ERROR;
+  uim_SelectedFocus = selection;
 #ifdef UIM_DEBUG
-    printf ("resource selection %s added\n", 	    
-	    (char *) uim_SelectedFocus->getCanonicalName());
+  printf ("resource selection %s added\n", 	    
+	  (char *) uim_SelectedFocus->getCanonicalName());
 #endif
-  }
   return TCL_OK;
 }
 
@@ -527,7 +540,27 @@ int drawStartVisiMenuCmd (ClientData clientData,
   }
   return TCL_OK;
 }
-  
+
+/*
+ * argv[1] = rdoToken
+ * argv[2] = abstraction
+ */
+int switchRDOdagCmd (ClientData clientData, 
+                Tcl_Interp *interp, 
+                int argc, 
+                char *argv[])
+{
+  int rdoToken;
+  resourceDisplayObj *trdo;
+  rdoToken = atoi(argv[1]);
+  printf ("switchRDOdag %d\n", rdoToken);
+  trdo = resourceDisplayObj::allRDOs.find((void *)rdoToken);
+  trdo->cycle(argv[2]);
+  return TCL_OK;
+}
+
+
+
 struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"sendVisiSelections", sendVisiSelectionsCmd},
@@ -544,6 +577,7 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"processVisiSelection", processVisiSelectionCmd},
   {"clearResourceSelection", clearResourceSelectionCmd},
   {"processResourceSelection", processResourceSelectionCmd},
+  {"switchRDOdag", switchRDOdagCmd},
  {NULL, NULL}
 };
 

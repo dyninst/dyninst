@@ -1,9 +1,13 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.8  1994/10/09 01:24:45  karavan
-/* A large number of changes related to the new UIM/visiThread metric&resource
-/* selection interface and also to direct selection of resources on the
-/* Where axis.
+/* Revision 1.9  1994/10/25 17:57:31  karavan
+/* added Resource Display Objects, which support display of multiple resource
+/* abstractions.
 /*
+ * Revision 1.8  1994/10/09  01:24:45  karavan
+ * A large number of changes related to the new UIM/visiThread metric&resource
+ * selection interface and also to direct selection of resources on the
+ * Where axis.
+ *
  * Revision 1.7  1994/08/01  20:24:37  karavan
  * new version of dag; new dag support commands
  *
@@ -35,9 +39,11 @@
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.CLNT.h"
 #include "UI.SRVR.h"
+#include "thread/h/thread.h"
 extern "C" {
  #include "tk.h"
 }
+
 #define UIMBUFFSIZE 256
 #define MAXNUMACTIVEDAGS 20
 
@@ -45,14 +51,47 @@ extern "C" {
 #define ICONIFIED 1
 #define INACTIVE 2
 
+// typedef Boolean char;
 class dag;
 
-struct resHierarchy
-{
-  int abs;
-  dag *resDag;
-  char *wname;
+class resourceDisplayObj {
+ public:
+  int getStatus () {return status;}
+  char *getParentWindow () {return parentwin;}
+  int getToken () {return token;}
+  int getSize () {return numdags;}
+  dag *getTopDag() {return topdag;}
+  resourceDisplayObj (int baseflag, int &success);
+  resourceDisplayObj (char *pwin);
+  resourceDisplayObj copy (char *pwin);
+  void addResource (resource *newres, resource *parent, char *name, 
+		    stringHandle abs);
+  dag *addAbstraction (stringHandle newabs);
+  int cycle (char *abs);
+  void print ();
+  friend void resourceAddedCB (performanceStream *ps , resource *parent, 
+			       resource *newResource, char *name);
+  friend int switchRDOdagCmd (ClientData clientData, 
+                Tcl_Interp *interp, 
+                int argc, 
+                char *argv[]);
+  friend int processResourceSelectionCmd (ClientData clientData, 
+		      Tcl_Interp *interp, 
+                      int argc, 
+                      char *argv[]); 
+  friend void UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
+					     metrespair *pairList,
+					     int numElements);
+ private: 
+  int token;
+  dag *topdag;
+  int numdags;
+  char parentwin[15];
   int status;
+  int base;
+  List<dag *> dags;
+  static List<resourceDisplayObj *> allRDOs;
+  static int rdoCount;
 };
 
 struct cmdTabEntry 
@@ -66,21 +105,56 @@ typedef struct UIMReplyRec {
   thread_t tid;
 } UIMReplyRec;
 
+typedef struct tokenRec {
+  int token;
+  void *object;
+} tokenRec;
 
-extern resource                  *uim_rootRes;
+class tokenHandler {
+ public:
+  int getToken(void *obj);
+  int reportToken (void *obj);
+  tokenRec *translateToken (int token);
+  Boolean invalidate (int token);
+  tokenHandler () {counter = 1;}
+  int getCount () {return counter;}
+ private:
+  int counter;
+  List<tokenRec *> store;
+};
+
+// used by paradyn enable command
 extern int                       uim_eid;
+
 extern List<metricInstance*>     uim_enabled;
 extern performanceStream         *uim_defaultStream;
 extern UIM                       *uim_server;
-extern int UIMMsgTokenID;
+
+// callback pointers stored here for lookup after return from tcl/tk routines
+//  int tokens are used within tcl/tk code since we can't use pointers
 extern Tcl_HashTable UIMMsgReplyTbl;
+extern int UIMMsgTokenID;
+//extern tokenHandler tokenClerk; 
 extern Tcl_HashTable shgNamesTbl;
-extern Tcl_Interp *interp;
-extern int UIM_BatchMode;
-extern int uim_maxError;
-extern dag *baseWhere;
+
+// this tcl interpreter used for entire UI
+extern Tcl_Interp *interp;   
+
+// set for batch mode; clear for normal
+extern int UIM_BatchMode;    
+
+// value of highest valid error index
+extern int uim_maxError;     
+
+// every currently defined dag listed here for lookups by tcl/tk routines
 extern dag *ActiveDags[MAXNUMACTIVEDAGS];
-extern List<resHierarchy *> whereAxesTbl;  /* one record per abstraction */
+
+// where axes display
+extern resource                  *uim_rootRes;
+extern dag *baseWhere;  /*** get rid of this from uimpd, UImain,UIpublic */
+extern List<stringHandle> uim_knownAbstractions;
+
+// metric-resource selection 
 extern int uim_ResourceSelectionStatus;
 extern List<resourceList *> uim_CurrentResourceSelections;
 extern List<metrespair *> uim_VisiSelections;
