@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.72 1999/01/21 20:56:22 wylie Exp $
+// $Id: main.C,v 1.73 1999/03/03 18:01:09 pcroth Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -404,7 +404,13 @@ int main(unsigned argc, char *argv[]) {
       }
     } else {
       OS::osDisconnect();
-      tp = new pdRPC(0, NULL, NULL, 2);
+
+#if !defined(i386_unknown_nt4_0)
+		PDSOCKET sock = 0;
+#else
+		PDSOCKET sock = _get_osfhandle(0);
+#endif // defined(i386_unknown_nt4_0)
+      tp = new pdRPC(sock, NULL, NULL, 2);
       assert(tp);
 
       // configStdIO(false);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.98 1999/02/11 16:54:26 paradyn Exp $
+// $Id: perfStream.C,v 1.99 1999/03/03 18:01:10 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -550,7 +550,7 @@ void controllerMainLoop(bool check_buffer_first)
     fd_set readSet;
     fd_set errorSet;
     struct timeval pollTime;
-    int traceSocket_fd;
+    PDSOCKET traceSocket_fd;
 
     // TODO - i am the guilty party - this will go soon - mdc
 #ifdef PARADYND_PVM
@@ -566,6 +566,7 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 
+#if !defined(i386_unknown_nt4_0)
     {
         char *pdkill;
         pdkill = getenv( "PARADYND_DEBUG" );
@@ -579,6 +580,8 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
         }
     }
+#endif // !defined(i386_unknown_nt4_0)
+
 //    cerr << "doing controllerMainLoop..." << endl;
 
 
@@ -659,13 +662,16 @@ void controllerMainLoop(bool check_buffer_first)
 	// add traceSocket_fd, which accept()'s new connections (from processes
 	// not launched via createProcess() [process.C], such as when a process
 	// forks, or when we attach to an already-running process).
-	if (traceSocket_fd > 0) FD_SET(traceSocket_fd, &readSet);
+	if (traceSocket_fd != INVALID_PDSOCKET) FD_SET(traceSocket_fd, &readSet);
 	if (traceSocket_fd > width) width = traceSocket_fd;
 
 	// add our igen connection with the paradyn process.
-	FD_SET(tp->get_fd(), &readSet);
-	FD_SET(tp->get_fd(), &errorSet);
-	if (tp->get_fd() > width) width = tp->get_fd();
+	FD_SET(tp->get_sock(), &readSet);
+	FD_SET(tp->get_sock(), &errorSet);
+
+	// "width" is computed but ignored on Windows NT, where sockets 
+	// are not represented by nice little file descriptors.
+	if (tp->get_sock() > width) width = tp->get_sock();
 
 #ifdef PARADYND_PVM
 	// add connection to pvm daemon.
@@ -785,7 +791,7 @@ void controllerMainLoop(bool check_buffer_first)
 		}
 	    }
 
-	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
+	    if (FD_ISSET(tp->get_sock(), &errorSet)) {
 		// paradyn is gone so we go too.
 	        cleanUpAndExit(-1);
 	    }
@@ -807,7 +813,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    // request - naim
 	    if (!delayIGENrequests) {
               // Check if something has arrived from Paradyn on our igen link.
-	      if (FD_ISSET(tp->get_fd(), &readSet)) {
+	      if (FD_ISSET(tp->get_sock(), &readSet)) {
 	        bool no_stuff_there = false;
 	        while(!no_stuff_there) {
 		  T_dyninstRPC::message_tags ret = tp->waitLoop();

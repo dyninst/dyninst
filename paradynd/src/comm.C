@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,10 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.14  1999/03/03 18:01:08  pcroth
+ * Updated to support changes in igen output,
+ * Updated to support automatic startup from Paradyn front end
+ *
  * Revision 1.13  1998/04/22 02:37:24  buck
  * Moved showerror.h from paradynd directory to dyninstAPI directory.
  *
@@ -124,6 +128,12 @@ void dump_profile(pdRPC *pdr) {
 //
 void pdRPC::handle_error()
 {
+	string resPartName;
+	if (machineResource != NULL)
+	{
+		resPartName = machineResource->part_name();
+	}
+
   switch (get_err_state())
     {
     case igen_encode_err:
@@ -131,40 +141,35 @@ void pdRPC::handle_error()
       sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
 	      (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(73,(const char *) errorLine,
-		        machineResource->part_name());
+      showErrorCallback(73,(const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_proto_err:
       sprintf(errorLine, "Internal error: protocol verification failed, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(74, (const char *) errorLine,
-		        machineResource->part_name());
+      showErrorCallback(74, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_call_err:
       sprintf(errorLine, "Internal error: cannot do sync call here, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(75, (const char *) errorLine,
-		        machineResource->part_name());
+      showErrorCallback(75, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_request_err:
       sprintf(errorLine, "Internal error: unknown message tag pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(76, (const char *) errorLine,
-			machineResource->part_name());
+      showErrorCallback(76, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_no_err:
       sprintf(errorLine, "Internal error: handle error called for err_state = igen_no_err\n");
       logLine(errorLine);
-      showErrorCallback(77, (const char *) errorLine,
-			machineResource->part_name());
+      showErrorCallback(77, (const char *) errorLine, resPartName);
       // fall thru
     case igen_send_err:
     case igen_read_err:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,10 @@
  * defaults.
  * 
  * $Log: comm.h,v $
+ * Revision 1.10  1999/03/03 18:01:08  pcroth
+ * Updated to support changes in igen output,
+ * Updated to support automatic startup from Paradyn front end
+ *
  * Revision 1.9  1997/05/17 19:59:30  lzheng
  * Changes made for nonblocking write
  *
@@ -98,8 +102,8 @@ public:
   }
 
 
-  pdRPC(int fdes, xdr_rd_func r, xdr_wr_func w, int nblock=0)
-    : dynRPC(fdes, r, w, nblock) {
+  pdRPC(PDSOCKET sock, xdr_rd_func r, xdr_wr_func w, int nblock=0)
+    : dynRPC(sock, r, w, nblock) {
 
      alterSendSocketBufferSize();
   }
@@ -117,7 +121,7 @@ public:
      int num_bytes = 32768;
      int size = sizeof(num_bytes);
 
-     if (P_setsockopt(this->get_fd(), SOL_SOCKET, SO_SNDBUF,
+     if (P_setsockopt(this->get_sock(), SOL_SOCKET, SO_SNDBUF,
                       &num_bytes, size) < 0) {
         cerr << "paradynd warning: could not set socket write buffer size" << endl;
      }
