@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.146 2003/05/15 22:12:25 bernat Exp $
+// $Id: aix.C,v 1.147 2003/05/20 21:53:46 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -662,8 +662,10 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
     
     for (unsigned i=0; i < 32; i++) {
         if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)i, regs->gprs[i], 0) == -1) {
-            //perror("restoreRegisters PT_WRITE_GPR");
-            //return false;
+            if (errno) {
+                perror("restoreRegisters PT_WRITE_GPR");
+                return false;
+            }
         }
     } 
     
@@ -681,9 +683,11 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
         
         if (P_ptrace(PT_WRITE_FPR, proc_->getPid(),
                      (void *)&(regs->fprs[i-FPR0]), i, 0) == -1) {
-            perror("ptrace PT_WRITE_FPR");
-            cerr << "regnum was " << i << endl;
-            return false;
+            if (errno) {
+                perror("ptrace PT_WRITE_FPR");
+                cerr << "regnum was " << i << endl;
+                return false;
+            }
         }
     } 
     
@@ -693,9 +697,11 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
       if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), 
                    (void *)(special_register_codenums[i]), 
                    regs->sprs[i], 0) == -1) {
-          perror("ptrace PT_WRITE_GPR for a special register");
-          cerr << "regnum was " << special_register_codenums[i] << endl;
-          return false;
+          if (errno) {
+              perror("ptrace PT_WRITE_GPR for a special register");
+              cerr << "regnum was " << special_register_codenums[i] << endl;
+              return false;
+          }
       }
     }
   }
