@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.38 1998/03/27 16:53:03 naim Exp $
+# $Id: errorList.tcl,v 1.39 1999/05/03 19:57:28 zandy Exp $
 
 #
 # Error message format:
@@ -963,9 +963,17 @@ needs to insert. To avoid this, you can try to move any loops at the beginning
 of main to some other place. A future release will fix this problem.}
 }
 
+set pdError(109) {
+{Unimplemented feature}
+{paradynd}
+{warning}
+{You have attempted to use a feature that has not been implemented for \
+this platform.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 108
+    return 109
 }
