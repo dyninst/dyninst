@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.21 2003/07/18 15:43:50 schendel Exp $
+// $Id: Object-nt.C,v 1.22 2003/09/05 16:28:45 schendel Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -372,8 +372,8 @@ Object::Module::BuildSymbolMap( const Object* obj ) const
 	PatchSymbolSizes( obj, allSyms );
 
 #if READY
-	check whether each file's symbols are contiguous
-	set each file's size
+	// check whether each file's symbols are contiguous
+	// set each file's size
 #endif // READY
 }
 
