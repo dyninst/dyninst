@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.64 2001/06/20 20:33:41 schendel Exp $
+ * $Id: PCshg.C,v 1.65 2001/12/06 16:10:11 pcroth Exp $
  */
 
 #include "PCintern.h"
@@ -1191,10 +1191,17 @@ searchHistoryGraph::notifyDynamicChild(resourceHandle parent,
 	}
       }
 
-      if(found_parent){
-	NodeIndex[i]->addDynamicChild(child);
-      }
-      
+	  if( found_parent )
+	  {
+	    // we found the parent of the "dynamic function"
+		// add the child only if the parent has already been expanded
+		// (if it hasn't, the child will be added using the normal
+		// mechanism when the parent is expanded)
+		if( NodeIndex[i]->getExpandStatus() != expandedNone )
+		{
+          NodeIndex[i]->addDynamicChild(child);
+		}
+	  }
     }
   }
 }  
