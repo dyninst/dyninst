@@ -2,7 +2,12 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.29  1994/07/05 03:27:15  hollings
+ * Revision 1.30  1994/07/07 03:28:59  markc
+ * Added routine to start a paradyn daemon.
+ * Changed int returns to type Boolean to agree with expected return values from
+ * interface functions.
+ *
+ * Revision 1.29  1994/07/05  03:27:15  hollings
  * added observed cost model.
  *
  * Revision 1.28  1994/07/02  01:43:08  markc
@@ -134,7 +139,7 @@ String_Array convertResourceList(resourceList *rl)
 
 // called when a program is started external to paradyn and
 // must inform paradyn that it exists
-int applicationContext::addRunningProgram (int pid,
+Boolean applicationContext::addRunningProgram (int pid,
 					   int argc,
 					   char **argv,
 					   paradynDaemon *daemon)
@@ -143,7 +148,7 @@ int applicationContext::addRunningProgram (int pid,
 
 	exec = new executable (pid, argc, argv, daemon);
 	programs.add(exec);
-	return 0;
+	return TRUE;
 }
 
 
@@ -151,7 +156,7 @@ int applicationContext::addRunningProgram (int pid,
 // add a new paradyn daemon
 // called when a new paradynd contacts the advertised socket
 //
-int applicationContext::addDaemon (int new_fd)
+Boolean applicationContext::addDaemon (int new_fd)
 {
   paradynDaemon *new_daemon;
 
@@ -166,7 +171,7 @@ int applicationContext::addDaemon (int new_fd)
 
   daemons.add(new_daemon);
 
-  return (0);
+  return (TRUE);
 }
 
 //
@@ -205,9 +210,74 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 }
 
 //
+// add a new daemon
+// check to see if a daemon that matches the function args exists
+// if it does exist, return a pointer to it
+// otherwise, create a new daemon
+//
+paradynDaemon *applicationContext::getDaemonHelper (char *machine, 
+						    char *login,
+						    char *program)
+{
+  paradynDaemon *daemon;
+  List<paradynDaemon*> curr;
+
+  // find out if we have a paradynd on this machine+login+paradynd
+  for (curr=daemons, daemon = NULL; *curr; curr++)
+    {
+      if (!strcmp((*curr)->machine, machine) &&
+	  !strcmp((*curr)->login, login) &&
+	  !strcmp((*curr)->program, program))
+	{
+	  daemon = *curr;
+	}
+    }
+
+  // nope start one.
+  if (!daemon)
+    {
+      daemon = new paradynDaemon(machine, login, program, NULL, NULL);
+      if (daemon->fd < 0)
+	{
+	  printf("unable to start paradynd: %s\n", program);
+	  printf("paradyn Error #6\n");
+	  return((paradynDaemon*) NULL);
+	}
+      daemons.add(daemon);
+      msg_bind(daemon->fd, TRUE);
+
+      // if this looks like a kludge, it is
+      // libutil defines a pid member that is set when a new process is
+      // created, however, the pid member is defined in a base class
+      // and is not easy to find - mdc
+      daemon->my_pid = daemon->pid;
+
+      paradynDdebug(daemon->pid);
+    }
+
+  return daemon;
+}
+
+// 
+// add a new daemon, unless a daemon is already running on that machine
+// with the same machine, login, and program
+//
+Boolean applicationContext::getDaemon (char *machine,
+				       char *login,
+				       char *program)
+{
+  paradynDaemon *daemon;
+  
+  if (!getDaemonHelper(machine, login, program))
+    return FALSE;
+  else
+    return TRUE;
+}
+
+//
 // add a new executable (binary) to a program.
 //
-int applicationContext::addExecutable(char  *machine,
+Boolean applicationContext::addExecutable(char  *machine,
 				  char *login,
 				  char *program,
 				  int argc,
@@ -217,7 +287,6 @@ int applicationContext::addExecutable(char  *machine,
      executable *exec;
      paradynDaemon *daemon;
      String_Array programToRun;
-     List<paradynDaemon*> curr;
      char local[50];
 
     // null machine & login are mapped empty strings to keep strcmp happy.
@@ -229,28 +298,9 @@ int applicationContext::addExecutable(char  *machine,
       }
     if (!login) login = "";
 
-    // find out if we have a paradynd on this machine+login+paradynd
-    for (curr=daemons, daemon = NULL; *curr; curr++) {
-	if (!strcmp((*curr)->machine, machine) &&
-	    !strcmp((*curr)->login, login) &&
-	    !strcmp((*curr)->program, program)) {
-	    daemon = *curr;
-	}
-    }
-
-    // nope start one.
-    if (!daemon) {
-	daemon = new paradynDaemon(machine, login, program, NULL, NULL);
-	if (daemon->fd < 0) {
-	    printf("unable to start paradynd: %s\n", program);
-	    printf("paradyn Error #6\n");
-	    return(-1);
-	}
-	daemons.add(daemon);
-	msg_bind(daemon->fd, TRUE);
-	daemon->my_pid = getpid();
-	paradynDdebug(daemon->pid);
-    }
+    if ((daemon = getDaemonHelper(machine, login, program)) ==
+ 	(paradynDaemon*) NULL)
+      return FALSE;
 
     programToRun.count = argc;
     programToRun.data = argv;
@@ -265,9 +315,9 @@ int applicationContext::addExecutable(char  *machine,
 	fprintf (stderr, "PID is %d\n", pid);
 	exec = new executable(pid, argc, argv, daemon);
 	programs.add(exec);
-	return(0);
+	return (TRUE);
     } else {
-	return(-1);
+	return(FALSE);
     }
 }
 
