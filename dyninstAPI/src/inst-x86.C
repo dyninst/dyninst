@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.43 1999/06/08 22:14:11 csserra Exp $
+ * $Id: inst-x86.C,v 1.44 1999/06/17 22:08:13 wylie Exp $
  */
 
 #include <limits.h>
@@ -2273,7 +2273,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
-#if !defined(USES_LIBDYNINSTRT_SO)
+#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
   Address currAddr = sym.addr()+baseAddr;
 #endif
 
@@ -2288,7 +2288,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
 #endif
 
-#if !defined(USES_LIBDYNINSTRT_SO)
+#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
   // Check that we can patch up user code to jump to our base trampolines:
   const Address instHeapStart = currAddr;
   const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;

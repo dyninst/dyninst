@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.174 1999/06/17 06:17:46 csserra Exp $
+// $Id: process.C,v 1.175 1999/06/17 22:08:11 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -845,7 +845,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     hasLoadedDyninstLib = false;
     isLoadingDyninstLib = false;
 
-#if defined(USES_LIBDYNINSTRT_SO)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -972,7 +972,7 @@ process::process(int iPid, image *iSymbols,
    RPCs_waiting_for_syscall_to_complete = false;
    save_exitset_ptr = NULL;
 
-#if defined(USES_LIBDYNINSTRT_SO)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -1181,7 +1181,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     bufStart = 0;
     bufEnd = 0;
 
-#if defined(USES_LIBDYNINSTRT_SO)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -1559,7 +1559,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
    theProc->threads += new pdThread(theProc);
 
-#if defined(USES_LIBDYNINSTRT_SO)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
    // we now need to dynamically load libdyninstRT.so.1 - naim
    if (!theProc->pause()) {
      logLine("WARNING: pause failed\n");
@@ -2798,7 +2798,10 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
+#if defined(USES_LIBDYNINSTRT_SO) \
+&& !defined(i386_unknown_linux2_0) \
+&& !defined(alpha_dec_osf4_0) \
+&& !defined(i386_unknown_nt4_0)
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
@@ -2973,7 +2976,7 @@ void process::handleExec() {
     this->findSignalHandler();
 
     // initInferiorHeap can only be called after symbols is set!
-#if !defined(USES_LIBDYNINSTRT_SO)
+#if !defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
     initInferiorHeap();
 #endif
 
@@ -3812,7 +3815,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-#if !defined(USES_LIBDYNINSTRT_SO)
+#if !defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
       if (!handleStartProcess()) {
 	// reads in shared libraries...can take a while
 	logLine("WARNING: handleStartProcess failed\n");
