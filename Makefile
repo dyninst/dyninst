@@ -65,4 +65,4 @@ world:
 	$(MAKE) install
 	$(MAKE) docs
 	$(MAKE) install-man
-	chmod 644 /var/home/paradyn/man/man?/*
+	chmod 644 /p/paradyn/man/man?/*
