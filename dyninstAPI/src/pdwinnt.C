@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.54 2002/06/17 21:31:15 chadd Exp $
+// $Id: pdwinnt.C,v 1.55 2002/06/21 14:19:29 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -934,13 +934,17 @@ bool setVariable(process* p, string name, int value){
    		assert(0); 
 	Address tmpAddr = syminfo.addr();
 	int oldvalue;	
-	//p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &oldvalue,true);
-	//printf("\n\n READ ORIGINAL VAR %s %x %d\n", full_name.c_str(), tmpAddr, oldvalue);
+  	/*
+        p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &oldvalue,true);
+	printf("\n\n READ ORIGINAL VAR %s %x %d\n", full_name.c_str(), tmpAddr, oldvalue);
+	*/
 	int ret= p->writeDataSpace((void*)tmpAddr, sizeof(int), (void*) &value);
-	//printf(" SET VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
-	//p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &value,true);
-	//printf(" READ VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
-	//fflush(stdout);
+	/*
+	printf(" SET VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
+	p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &value,true);
+	printf(" READ VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
+	fflush(stdout);
+	*/
 	return ret;
 }
 
@@ -1593,7 +1597,7 @@ int process::waitProcs(int *status) {
 #ifndef BPATCH_LIBRARY
 	    tp->resourceBatchMode(true);
 #endif 
-	    p->addASharedObject(*so);
+	    p->addASharedObject(*so,(Address) debugEv.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
 	    tp->resourceBatchMode(false);
 #endif 

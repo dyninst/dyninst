@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.334 2002/06/18 18:54:42 chadd Exp $
+// $Id: process.C,v 1.335 2002/06/21 14:19:29 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4163,12 +4163,12 @@ check_rtinst(process *proc, shared_object *so)
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
-bool process::addASharedObject(shared_object &new_obj){
+bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     int ret;
     string msg;
     // FIXME
 
-    image *img = image::parseImage(new_obj.getFileDesc());
+    image *img = image::parseImage(new_obj.getFileDesc(),newBaseAddr); 
 
     if(!img){
         //logLine("error parsing image in addASharedObject\n");

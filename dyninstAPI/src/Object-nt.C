@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.13 2002/05/13 19:51:53 mjbrim Exp $
+// $Id: Object-nt.C,v 1.14 2002/06/21 14:19:29 chadd Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -83,13 +83,13 @@ Object::ParseDebugInfo( void )
 {
     IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
 	bool bHaveSymbols = false;
-    
+   
     // access the module's debug information
-    pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.c_str(), NULL, 0);
+    pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.c_str(), NULL, 0); 
     if( pDebugInfo != NULL )
     {
         // ensure that the base address is valid
-        if( baseAddr == NULL )
+        if( baseAddr == NULL ) 
         {
             // use the image base address from the disk image
             // (this should only happen for EXEs; we should have
@@ -97,7 +97,7 @@ Object::ParseDebugInfo( void )
             // 
             // TODO: we should be able to use the in-core address
             // for EXEs as well
-            baseAddr = pDebugInfo->ImageBase;
+            baseAddr = pDebugInfo->ImageBase; 	
         }
         assert( baseAddr != NULL );
 

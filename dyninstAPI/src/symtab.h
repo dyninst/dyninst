@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.108 2002/06/17 21:31:15 chadd Exp $
+// $Id: symtab.h,v 1.109 2002/06/21 14:19:30 chadd Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -736,9 +736,9 @@ class image {
    //
 public:
   static image *parseImage(const string file);
-  static image *parseImage(fileDescriptor *desc);
+  static image *parseImage(fileDescriptor *desc, Address newBaseAddr = 0); 
 
-  image(fileDescriptor *desc, bool &err);
+  image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
   ~image() { /* TODO */ }
 
   // Check the list of symbols returned by the parser, return

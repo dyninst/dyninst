@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.16 2002/05/13 19:51:56 mjbrim Exp $
+// $Id: Object-xcoff.C,v 1.17 2002/06/21 14:19:29 chadd Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -980,7 +980,7 @@ Object::Object(const string file,Address addr,void (*err_func)(const char *))
 }
 
 // More general object creation mechanism
-Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
+Object::Object(fileDescriptor *desc, Address baseAddr, void (*err_func)(const char *))
   : AObject(desc->file(), err_func) {
   // We're passed a descriptor object that contains everything needed.
   fileDescriptor_AIX *fda = (fileDescriptor_AIX *)desc;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.139 2002/06/17 21:31:15 chadd Exp $
+// $Id: symtab.C,v 1.140 2002/06/21 14:19:30 chadd Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1222,7 +1222,7 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor *desc)
+image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
 {
   /*
    * Check to see if we have parsed this image at this offset before.
@@ -1248,7 +1248,7 @@ image *image::parseImage(fileDescriptor *desc)
   bool err=false;
   
   // TODO -- kill process here
-  image *ret = new image(desc, err);
+  image *ret = new image(desc, err, newBaseAddr); 
   if (err || !ret) {
     if (ret)
       delete ret;
@@ -1299,13 +1299,13 @@ statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, righ
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor *desc, bool &err)
+image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   : 
     desc_(desc),
     is_libdyninstRT(false),
     is_a_out(false),
     main_call_addr_(0),
-    linkedFile(desc, pd_log_perror),
+    linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
     knownJumpTargets(int_addrHash, 8192),
 #if !defined(USE_STL_VECTOR)
     includedMods(0),
@@ -1623,7 +1623,7 @@ pd_Function *image::findFuncByAddr(const Address &addr,
 // the file.
 
 pd_Function *image::findFuncByEntryAddr(const Address &addr, 
-					const process */*p*/) const
+					const process * /*p*/) const
 {
   pd_Function *pdf;
 

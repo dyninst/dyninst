@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.16 2002/01/08 22:16:30 pcroth Exp $
+ * $Id: Object-nt.h,v 1.17 2002/06/21 14:19:29 chadd Exp $
 ************************************************************************/
 
 
@@ -85,7 +85,7 @@ public:
 			void (*)(const char *) = log_msg);
 	Object(const Object&);
 	// "Filedescriptor" ctor
-	Object(fileDescriptor *desc, void (*)(const char *) = log_msg);
+	Object(fileDescriptor *desc, Address baseAddress = 0, void (*)(const char *) = log_msg);
 
 	virtual ~Object( void );
 
@@ -219,11 +219,12 @@ Object::Object(const string file, void (*err_func)(const char *))
 }
 
 inline
-Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
+Object::Object(fileDescriptor *desc, Address baseAddress, void (*err_func)(const char *)) 
   : AObject(desc->file(), err_func),
     baseAddr(desc->addr()),
     pDebugInfo( NULL) 
 {
+	baseAddr = baseAddress;
   ParseDebugInfo();
 }
 

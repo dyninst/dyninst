@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.5 2002/06/14 21:43:32 tlmiller Exp $
+ * $Id: Object-xcoff.h,v 1.6 2002/06/21 14:19:29 chadd Exp $
 ************************************************************************/
 
 
@@ -165,7 +165,7 @@ public:
              Object (const Object &);
 	     Object (const string, const Address baseAddr,
                 void (*)(const char *) = log_msg);
-	     Object (fileDescriptor *desc,
+	     Object (fileDescriptor *desc,Address baseAddr = 0,
                 void (*)(const char *) = log_msg);
     ~Object ();
 

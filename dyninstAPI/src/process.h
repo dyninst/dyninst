@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.202 2002/06/17 21:31:15 chadd Exp $
+/* $Id: process.h,v 1.203 2002/06/21 14:19:29 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1042,7 +1042,7 @@ void saveWorldData(Address address, int size, const void* src);
   // addASharedObject: This routine is called whenever a new shared object
   // has been loaded by the run-time linker after the process starts running
   // It processes the image, creates new resources
-  bool addASharedObject(shared_object &);
+  bool addASharedObject(shared_object &, Address newBaseAddr = 0);
 
   // return the list of dynamically linked libs
   vector<shared_object *> *sharedObjects() { return shared_objects;  } 
