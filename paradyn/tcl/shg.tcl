@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: shg.tcl,v 1.24 2005/03/16 22:22:00 gquinn Exp $
+# $Id: shg.tcl,v 1.25 2005/03/21 04:38:12 legendre Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
