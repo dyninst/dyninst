@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.2 1994/07/21 01:34:49 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.3 1994/07/26 20:00:52 hollings Exp $";
 #endif
 
 
@@ -29,7 +29,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * still need this after changing to synchronous sampling of the nodes?
  *
  * $Log: perfStream-cm5.C,v $
- * Revision 1.2  1994/07/21 01:34:49  hollings
+ * Revision 1.3  1994/07/26 20:00:52  hollings
+ * switch to select based polling of nodes.
+ *
+ * Revision 1.2  1994/07/21  01:34:49  hollings
  * removed extra polls of the nodes for printfs.
  *
  * Revision 1.1  1994/07/14  14:45:52  jcargill
@@ -45,6 +48,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "rtinst/src/traceio.h"
 #include "primitives.h"
 #include "util.h"
+#include "dyninst.h"
 
 
 extern time64 firstRecordTime;
@@ -56,6 +60,13 @@ extern void createResource(traceHeader *header, struct _newresource *res);
 
 void processArchDependentTraceStream()
 {
+    timeStamp now;
+    static timeStamp last;
+    extern float SAMPLEnodes;
+    extern void sampleNodes();
+    extern timeStamp getCurrentTime(Boolean firstRecordRelative);
+
+#ifdef notdef
     int ret;
     traceStream sid;
     char *recordData;
@@ -65,13 +76,18 @@ void processArchDependentTraceStream()
     static char buffer[TRACE_BUF_SIZE];	/* buffer for data */
     static int bufEnd = 0;	/* last valid data in buffer */
 
-#ifdef notdef
     /* Check for node I/O */
     while (CMMD_poll_for_services() == 1)
 	;	/* TEMPORARY:    XXXXXX */
 #endif
 
+    now = getCurrentTime(FALSE);
+    if (now > last + SAMPLEnodes) {
+	sampleNodes();
+	last = now;
+    }
 
+#ifdef notdef
     /*  */
     while (1) {
 	/* Check whether there's any data that we need to worry about... */
@@ -180,4 +196,5 @@ void processArchDependentTraceStream()
 	memcpy(buffer, &buffer[bufStart], bufEnd - bufStart);
 	bufEnd = bufEnd - bufStart;
     }
+#endif
 }
