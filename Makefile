@@ -4,9 +4,12 @@
 #
 #
 
+
+subsystems	= util rtinst thread paradyn paradynd igen
+
 all:
-	-cd util/$(PLATFORM); make install
-	-cd igen/$(PLATFORM); make install
-	-cd bininst/$(PLATFORM); make install
-	-cd paradynd/$(PLATFORM); make install
-	-cd paradyn/$(PLATFORM); make install
+	for subsystem in $(subsystems); do 			\
+	    if [ -d $$subsystem/$(PLATFORM) ]; then 		\
+	       cd $$subsystem/$(PLATFORM); make install; cd ../.. 	\
+	    else true; fi					\
+	done
