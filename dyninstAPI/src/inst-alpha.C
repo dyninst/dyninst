@@ -1546,7 +1546,7 @@ emitFuncCall(opCode op,
     //    srcs += operands[u].generateCode(proc, rs, (char *)(insn + words), base);
 
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u]->generateCode(proc, rs, i , base,false);
+    srcs += operands[u]->generateCode(proc, rs, i , base, false, false);
 
   //  words += (base - temp_base) / sizeof(insn);
   //  base = temp_base;
