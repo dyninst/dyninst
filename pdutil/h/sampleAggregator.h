@@ -69,13 +69,85 @@ struct sampleInterval {
 // used with class sampleAggregator. aggComponent objects are allocated and
 // deallocated by class sampleAggregator.  Objects are allocated by
 // sampleAggregator::newSampleInfo.  All aggComponent object must be a
-// component of at least one sampleAggregator, and they can of more many
-// samplesAggregator.
+// component of one and only one sampleAggregator.  Sharing of aggComponents
+// between sampleAggregator's is not allowed.  This is because the
+// aggComponents have information about the state of aggregation for a
+// particular sampleAggregator.  
+
+// To interact with the aggregation code, here's what one does.  The sequence
+// is important:
+//   1) create a sampleAggregator object
+//   2) create a new aggComponent with newComponent() of a sampleAggregator
+//   3) call setInitialStartTime() on this aggComponent
+//   4) call setInitialActualValue() on this aggComponent
+//          note: (3) and (4) can be done in either order
+//                isReadyToReceiveSamples() should now return true
+//   5) call addSamplePt() on this aggComponent
+//
+//   6) aggregate() of the sampleAggregator object can be called at any time
+//      it will return true when it is able to do the aggregation, otherwise
+//      it will return false.  The aggregation result is returned in the
+//      modified sampleInterval argument.  The calling of aggregate will not
+//      break (that is it will return false) even if some of it's constituent
+//      aggComponents aren't ready to receive samples yet (indicated with
+//      function isReadyToReceiveSamples).
+// 
+//   7) after a call to aggregate() returns true, one can call
+//      getInitialActualValue() to get the calculated initial actual value
+//      for these aggComponents.  This initial actual value for the
+//      sampleAggregator is determined by the sampleAggregator's aggregation
+//      operator.  If it's aggSum, then the sampleAggregator initial actual
+//      value will be the sum of the initial actual values of the
+//      aggComponents.  If it's aggMax, the resultant initial actual value
+//      will be the maximum of the initial actual values of the
+//      aggComponents.
+//
+//
+// Aggregation (aggSum, aggMax, or aggMin) is done in user specified
+// intervals.  An example might help of what it's doing.  Let's say there are
+// three aggComponents (A, B, and C) attached to a sampleAggregator.  Let's
+// say the sampleAggregator has an interval that it's collecting data for of
+// length 200 milliseconds.  Let's say aggComponent A has filled this
+// interval with a value of 5.  Let's say aggComponent B has filled this
+// interval with a value of 9.  Let's say C has filled the interval halfway
+// with a value of 2.  If one calls aggregate() at this point, false will be
+// returned since C hasn't filled the interval yet.  Let's say a addSamplePt
+// gets called on C so C gets filled.  Let's say C has a final value of 6
+// now.  Now if aggregate() gets called it will return true since it has data
+// for all of it's components.  If the aggregation operator is aggSum, the
+// resulting interval with length 200 milliseconds will have a value of 20.
+// If the aggregation operator is aggMax or aggMin, then the resulting value
+// is not necesarily 9 or 5 respectively.  This is because the
+// sampleAggregator returns the change in the actual sample value (ie. the
+// derivative) of the resulting graph.  Think of it like this, the graphs for
+// A, B, and C are either summed, maxed, or mined (at each point).  Then the
+// derivative of this resulting graph is taken and returned from the
+// aggregate() function.
+//
+// If one wants to change the interval length by which the sampleAggregator
+// is doing aggregation, call the member function of sampleAggregator,
+// changeAggIntervalWidth.  
+
+// If one wants to remove an aggComponent, one should NOT delete (ie. with
+// the C++ delete keyword) it themselves.  One should call the requestRemove
+// on this aggComponent and the parent sampleAggregator will delete this
+// aggComponent after it has aggregated all the sampling data for this
+// aggComponent.
+
 
 class aggComponent {
   friend class sampleAggregator;
  public:
+  // requires that initial start time hasn't already been set 
+
+  // requires that the initial start time is greater than the
+  // end of the last sampleAggregator interval.  That is the initial start
+  // time needs to be in or after the current interval
   void setInitialStartTime(timeStamp initialStTime);
+
+  // if need to reset the initial start time, call this.  This might be
+  // needed if the original setting of the initial start time needs to
+  // be adjusted for some reason.
   void resetInitialStartTime(timeStamp initialStTime);
   timeStamp getInitialStartTime() const {
     return lastProcessedSampleTime;
@@ -95,6 +167,9 @@ class aggComponent {
     curActualVal = v;
   }
   pdSample getInitialActualValue() const { return initActualVal; }
+
+  // note the value here is a change in sample value that got added at the
+  // specified timeOfSample
   void addSamplePt(timeStamp timeOfSample, pdSample value);
   void requestRemove() {  _requestRemove = true;  }
   const sampleAggregator *getParentAggregator() { return &parentAggregator; }
@@ -138,7 +213,7 @@ class aggComponent {
 ostream& operator<<(ostream&s, const aggComponent &comp);
 
 
-
+// read comments above
 class sampleAggregator {
  public:
   // a sentinal value, for aggregate function
@@ -171,9 +246,9 @@ class sampleAggregator {
   }
     
   // aggregate the values for all components.  If not ready to aggregate
-  // will return false and sampleInterval argument will be unchanged
-  bool aggregate(struct sampleInterval *ret, 
-		 timeStamp curTime = DONTWAITTOAGGREGATE);
+  // will return false and sampleInterval argument will be unchanged.  The
+  // combined graph is represented in the parameter ret.
+  bool aggregate(struct sampleInterval *ret);
   
   // won't really get changed until current aggregation interval is aggregated
   void changeAggIntervalWidth(timeLength _aggIntervalWidth) {
@@ -185,8 +260,6 @@ class sampleAggregator {
   timeStamp  getCurIntvlEnd()   const {  return curIntvlEnd;    }
   timeLength getAggIntvlWidth() const {  return aggIntervalWidth; }
   pdSample   getInitialActualValue() const { return initActualVal; }
-  //static timeLength getAggDelayTime() {  return aggDelayTime;   }
-  //static void setAggDelayTime(timeLength t) { aggDelayTime = t; }
   
  private:
   void setCurIntvlStart(timeStamp t) {  
@@ -195,17 +268,16 @@ class sampleAggregator {
     aggIntervalWidth = newAggIntervalWidth;
   }
   timeStamp earliestCompInitialStartTime() const;
-  void tryToSetupIntvls();
+  void setupIntvlTimes();
   bool allCompsReadyToReceiveSamples() const;    // for addSamplePt
   bool allCompsCompleteForInterval() const;
   void updateCompValues();
   void updateQueuedSamples();
-  bool readyToAggregate(timeStamp curTime);
+  bool readyToAggregate();
   void calcInitialActualVal();
   void actuallyAggregate(struct sampleInterval *ret);
   void removeComponentsRequestedToRemove();
 
-  static timeLength aggDelayTime;
   const aggregateOp aggOp;       // how to combine component values
   timeStamp  curIntvlStart;
   timeStamp  curIntvlEnd;
@@ -224,6 +296,7 @@ class sampleAggregator {
 
 ostream& operator<<(ostream&s, const sampleAggregator &ag);
 
+// need to be defined down here, since parentAggregator is after aggCompon.
 inline timeStamp aggComponent::startIntvl() const {  
   return parentAggregator.getCurIntvlStart(); 
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.2 2001/08/28 02:50:46 schendel Exp $
+// $Id: sampleAggregator.C,v 1.3 2001/08/30 01:58:50 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -54,25 +54,34 @@ pdDebug_ostream aggu_cerr(cerr, true);
 pdDebug_ostream aggu_cerr(cerr, false);
 #endif
 
-const timeStamp  sampleAggregator::DONTWAITTOAGGREGATE(timeStamp::ts1970());
-timeLength sampleAggregator::aggDelayTime;
+
+// Essentially, the aggregation is passed a set of graphs that represent the
+// rate of change (ie. derivative) of the sample value and and an initial
+// actual value of the graph.  The aggregation code calculates a (derivative)
+// graph that represents the change in the (sum, max, or min) of the
+// component graphs and an initial actual value for this combined graph.
+
+// The set of graphs are broken up such that the sum, max, or min of the
+// combined graph is calculated at specific intervals (ie. aggregation
+// intervals).  This interval width can be changed (changeAggIntervalWidth())
+// during the lifetime of the sampleAggregator object.  The individual sets
+// of graphs are represented with aggComponent objects.  These aggComponents
+// don't store the entire graph, but just the sampling data for the current
+// interval and sampling data which is in the future compared to the current
+// interval.
+
+// When all the aggComponents have filled their intervals then the
+// aggregation code can calculate a combined interval value.  From this
+// combined graph, the derivative of the graph at this interval can be
+// calculated.
 
 // The initial start time needs to be set before values can be aggregated.
 // Samples added through addSamplePt before initial start time set, will be
 // queued.
 void aggComponent::setInitialStartTime(timeStamp initialStTime) {
   assert(! isInitialStartTimeSet());
-  // the addSamplePt function won't work if the lastProcessedSampleTime
-  // isn't greater than the start of the interval
-  if(startIntvl().isInitialized()) {
-    if(! (initialStTime > startIntvl())) {
-      cerr << "trying to start a component later in time (" << initialStTime
-	   << ") than\nthe current interval start time (" << startIntvl()
-	   << ").  Error.\n";
-    }
-    assert(initialStTime > startIntvl());
-  }
-  lastProcessedSampleTime = initialStTime;
+
+  resetInitialStartTime(initialStTime);
 }
 
 // used when need to adjust start of component to a more convenient time
@@ -90,6 +99,9 @@ void aggComponent::resetInitialStartTime(timeStamp initialStTime) {
   lastProcessedSampleTime = initialStTime;
 }
 
+// Just adds the samples to a priority queue sorted on timeOfSample.  Samples
+// added for a particular aggComponent need to occur sequentially later in
+// time.
 void aggComponent::addSamplePt(timeStamp timeOfSample, pdSample value) {
   aggu_cerr << "addSamplePt- " << this << ", timeOfSample: " << timeOfSample
 	    << ", lastProcessedSampleTime: " << lastProcessedSampleTime 
@@ -98,6 +110,7 @@ void aggComponent::addSamplePt(timeStamp timeOfSample, pdSample value) {
   futureSamples.add(timeOfSample, value);
 }
 
+// Actually process a sample, sample should have been shifted off of queue
 void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
   aggu_cerr << "processSamplePt\n";
   aggu_cerr << "timeOfSample: " << timeOfSample << "\n";
@@ -124,6 +137,7 @@ void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
   pdSample addToCur = pcntInCurIntvl * value;
   aggu_cerr << "addToCur: " << addToCur << "\n";
   curIntvlVal += addToCur;
+  // the leftover is the amount in later intervals
   pdSample addToLeftOver = value - addToCur;
   aggu_cerr << "addToLeftOver: " << addToLeftOver << "\n";
   if(addToLeftOver > pdSample::Zero()) {
@@ -135,6 +149,7 @@ void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
   lastProcessedSampleTime = rightTimeMark;
 }
 
+// will attempt to update the aggComponents with the queued samples
 void aggComponent::updateCurIntvlWithQueuedSamples() {
   aggu_cerr <<"------------   updateCurIntvlWithQueuedSamples  ---------------\n";
   aggu_cerr << "this: " << this << ", curIntvlVal: " << curIntvlVal << "\n";
@@ -152,15 +167,8 @@ void aggComponent::updateCurIntvlWithQueuedSamples() {
   aggu_cerr <<"^^^^^^^^^^^^   updateCurIntvlWithQueuedSamples  ^^^^^^^^^^^^^^^\n";
 }
 
-// We want to consider that the interval is filled if it has been marked for
-// removal and it has received atleast one sample in this interval.  We need
-// to do this so that all the components can be considered to have filled
-// intervals (even those requested for removal) and thus aggregation can
-// occur even with components that are requested for removal.  We consider
-// the case that the lastProcessedSampleTime = startIntvl as a filled
-// interval since the times of its samples could be in line with the parent
-// sampleAggregator's interval boundary times, and it could have been 
-// aggregated in the last interval
+// indicates whether the aggComponent has received sampling data for the
+// entire current interval
 bool aggComponent::curIntvlFilled()  const {
   if(isInitialStartTimeSet() && filledUpto(endIntvl()))
     return true;
@@ -248,17 +256,16 @@ timeStamp sampleAggregator::earliestCompInitialStartTime() const {
   return earliestTime;
 }
 
-// returns true if start and end time of intervals was successfully set up
-void sampleAggregator::tryToSetupIntvls() {
+void sampleAggregator::setupIntvlTimes() {
   assert(! curIntvlStart.isInitialized());
-  aggu_cerr << "tryToSetupIntvls()\n";
+  aggu_cerr << "setupIntvlTimes()\n";
 
   timeStamp earliestStartTime = earliestCompInitialStartTime();
   setCurIntvlStart(earliestStartTime);
   aggu_cerr << "Setting earliest time to: " << earliestStartTime << "\n";
 }
 
-bool sampleAggregator::readyToAggregate(timeStamp /* curTime */) {
+bool sampleAggregator::readyToAggregate() {
   // the order that the following occurs is very specific
   // don't change this sequence without thinking through how it'll work
 
@@ -275,32 +282,9 @@ bool sampleAggregator::readyToAggregate(timeStamp /* curTime */) {
     return false;
   }
 
-  // make sure all the start & end time of the current interval is set up
-
+  // set up the start & end time of the current interval if not set up
   if(! curIntvlStart.isInitialized())
-    tryToSetupIntvls();
-
-  // we want to wait a certain amount of time until we do aggregation (even
-  // if it seems like we're all ready to go) because a new component
-  // (ie. daemon/metric-focus pair) could start with a start time in the
-  // current interval.  If we start aggregating right away, then we've moved
-  // the current interval down to far in time, past the "new" components
-  // time.  I think this race condition is possible because the time
-  // adjustment factor between the daemon and the front-end can only be so
-  // accurate.  I haven't seen any of these particular race conditions
-  // recently so we'll investigate this further if we start seeing further
-  // problems.  If the bug occurs, it should be triggered in the assert in
-  // setInitialStartTime.
-  /*
-  if(curTime != DONTWAITTOAGGREGATE) {
-    timeLength timeWaitedSoFar = curTime - curIntvlEnd;
-    if(timeWaitedSoFar < getAggDelayTime()) {
-      aggu_cerr << "timeWaitedSoFar: " << timeWaitedSoFar << " < "
-		<< "aggDelayTime: " << getAggDelayTime() << ", returning\n";
-      //      return false;
-    }
-  }
-  */
+    setupIntvlTimes();
 
   // now start updating the components' current values with any queued
   // samples
@@ -317,18 +301,12 @@ bool sampleAggregator::readyToAggregate(timeStamp /* curTime */) {
   return true;
 }
 
-// the aggregation is passed a set of graphs that represent the rate of
-// change (ie. derivative) of the sample value and and an initial actual
-// value of the graph.  The aggregation code calculates a (derivative) graph
-// that represents the change in the (sum, max, or min) of the individual
-// graphs and an initial actual value for this combined graph.
-
-bool sampleAggregator::aggregate(struct sampleInterval *ret, 
-				 timeStamp curTime) {
+// attempt to aggregate the constituent graphs (ie. intervals)
+bool sampleAggregator::aggregate(struct sampleInterval *ret) {
   aggu_cerr << "aggregate- start: " << curIntvlStart << ", end: " 
 	    << curIntvlEnd << "\n";
 
-  if(! readyToAggregate(curTime))
+  if(! readyToAggregate())
     return false;
 
   if(getInitialActualValue().isNaN()) {
@@ -405,6 +383,8 @@ void sampleAggregator::actuallyAggregate(struct sampleInterval *ret) {
 void sampleAggregator::removeComponentsRequestedToRemove() {
   for(unsigned i=0; i<componentBuf.size(); i++) {
     aggComponent *curComp = componentBuf[i];
+    // can't delete aggComponent until have used all of it's sampling data
+    // to calculate the combined data
     if(curComp->isRemoveRequested() && curComp->numQueuedSamples()==0) {
       aggu_cerr << "removing aggComp: " << curComp << "\n";
       componentBuf.erase(i);
