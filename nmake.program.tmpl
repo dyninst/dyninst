@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.program.tmpl,v 1.3 1998/04/01 02:59:52 wylie Exp $
+# $Id: nmake.program.tmpl,v 1.4 1999/03/12 22:49:12 pcroth Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -27,7 +27,7 @@ $(VOUCHER):
 !ifdef TARGET
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
-	link -out:$(TARGET) -debug $(LDFLAGS) $(VOUCHER).obj $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	link -out:$(TARGET) -debug -pdb:none $(LDFLAGS) $(VOUCHER).obj $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 !endif
 !endif
 
