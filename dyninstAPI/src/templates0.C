@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.47 2005/02/24 10:17:18 rchen Exp $
+// $Id: templates0.C,v 1.48 2005/03/02 19:44:49 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -75,8 +75,10 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 
+#if defined(cap_relocation)
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+#endif
 
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/instReqNode.h"
