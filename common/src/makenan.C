@@ -1,5 +1,4 @@
 #include "util/h/makenan.h"
-#include "util/h/matherr.h"
 #include "util/h/headers.h"
 
 float f_paradyn_nan = 0;

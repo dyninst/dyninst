@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.35  1995/12/03 21:33:11  newhall
-/* changes to support new sampleDataCallbackFunc
+/* Revision 1.36  1995/12/20 20:18:35  newhall
+/* removed matherr.h
 /*
+ * Revision 1.35  1995/12/03  21:33:11  newhall
+ * changes to support new sampleDataCallbackFunc
+ *
  * Revision 1.34  1995/11/21  15:24:39  naim
  * Exiting if there is an unrecoverable parse error - naim
  *
@@ -150,7 +153,7 @@
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
 #include "../UIthread/tkTools.h" // tclpanic
-#include "util/h/matherr.h"
+#include "util/h/makenan.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 

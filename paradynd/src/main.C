@@ -2,6 +2,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.39  1995/12/20 20:19:00  newhall
+ * removed matherr.h
+ *
  * Revision 1.38  1995/12/15 22:26:50  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -160,7 +163,7 @@
  */
 
 #include "util/h/headers.h"
-#include "util/h/matherr.h"
+#include "util/h/makenan.h"
 
 #include "rtinst/h/rtinst.h"
 
