@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.29 2002/12/20 07:49:55 jaw Exp $
+// $Id: BPatch_function.C,v 1.30 2003/01/29 23:01:22 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -708,3 +708,8 @@ bool BPatch_function::isInstrumentable()
      return ((pd_Function *)func)->isInstrumentable();
 }
 
+// Return TRUE if the function resides in a shared lib, FALSE otherwise
+
+bool BPatch_function::isSharedLib() const {
+  return mod->isSharedLib();
+} 

@@ -143,6 +143,8 @@ public:
     // Returns true if the function is instrumentable.
     bool isInstrumentable();
 
+    bool isSharedLib() const;
+
 #ifdef IBM_BPATCH_COMPAT
     bool getLineNumbers(unsigned int &start, unsigned int &end);
 

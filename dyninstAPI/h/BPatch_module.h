@@ -99,6 +99,7 @@ public:
     // parse stab stuff when needed
     void parseTypes();
 
+    bool isSharedLib() const;
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.116 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: symtab.h,v 1.117 2003/01/29 23:01:22 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -668,6 +668,7 @@ public:
   pdvector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
   function_base *findFunctionFromAll(const string &name);
+  bool isShared() const;
 #ifndef BPATCH_LIBRARY
   resource *getResource() { return modResource; }
 #endif
@@ -686,6 +687,7 @@ private:
   //  list of non-excluded found functions in module....
   pdvector<pd_Function*> some_funcs;
   bool some_funcs_inited;
+  bool shared_;                      // if image it belongs to is shared lib
 };
 
 

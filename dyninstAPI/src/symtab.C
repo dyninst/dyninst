@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.145 2003/01/02 19:51:20 schendel Exp $
+// $Id: symtab.C,v 1.146 2003/01/29 23:01:22 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1863,3 +1863,9 @@ bool image::findFunction(const string &name, pdvector<pd_Function*> &retList,
     return found;
 }
 #endif
+
+// Returns TRUE if module belongs to a shared library, and FALSE otherwise
+
+bool pdmodule::isShared() const { 
+  return !exec_->isAOut();
+}

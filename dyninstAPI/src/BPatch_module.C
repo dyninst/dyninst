@@ -1067,6 +1067,10 @@ LineInformation* BPatch_module::getLineInformation(){
 	return lineInformation;
 }
 
+bool BPatch_module::isSharedLib() const {
+  return mod->isShared();
+}
+
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_module::getLineNumbers(unsigned int &start, unsigned int &end)
