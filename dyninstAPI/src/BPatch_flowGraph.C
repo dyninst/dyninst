@@ -82,6 +82,12 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
    // them. The dominator information will also be filled
    valid = true;
    
+   unsigned tmpSize = func->get_size();
+   if(!tmpSize){
+	valid = false;
+	return;
+   }
+
    if (!createBasicBlocks()) {
       valid = false;
       return;
@@ -996,7 +1002,7 @@ BPatch_flowGraph::createSourceBlocks()
              //while the address is valid  go backwards and find the
              //entry in the mapping from address to line number for closest
              //if the address is coming after a line number information
-             while (ah.hasMore()) {
+             while (ah.hasPrev()) {
                 Address cAddr = ah--;
                 if (fLineInformation->getLineFromAddr(fName,lineNums,cAddr))
                    break;
