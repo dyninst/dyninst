@@ -80,8 +80,9 @@ REFOBJ *refarray<REFOBJ,USE_RWLOCK>::operator[](unsigned index) {
    
     if(USE_RWLOCK)
         lock->release(rwlock::read);
-    
+
     return rv;
+
 }
 
 template<class REFOBJ, int USE_RWLOCK>
@@ -91,31 +92,26 @@ void refarray<REFOBJ,USE_RWLOCK>::resize() {
 
 template<class REFOBJ, int USE_RWLOCK>
 void refarray<REFOBJ,USE_RWLOCK>::resize(REFOBJ* default_value) {
-    unsigned new_size;
-    unsigned old_size;
-    REFOBJ *new_items[];
-    int i; /* unfortunately, VC++ does not scope variables declared in
-              for loop invariant blocks properly */
-
-    if(USE_RWLOCK)
-        lock->acquire(rwlock::read);
-
-    new_size = (_size * 2) + 1;
-    old_size = _size;
-
-    if(USE_RWLOCK)
-        lock->release(rwlock::read);
-
-    new_items = new (REFOBJ*)[new_size];
-
-    for(i = 0; i < old_size; i++)
-        new_items[i] = (*this)[i];
-    
-    for(i = old_size; i < new_size; i++)
-        new_items[i] = default_value;
     
     if(USE_RWLOCK)
         lock->acquire(rwlock::write);
+
+    unsigned new_size;
+    unsigned old_size;
+    REFOBJ **new_items;
+    int i; /* unfortunately, VC++ does not scope variables declared in
+              for loop invariant blocks properly */
+
+    new_size = (_size * 2) + 1;
+    old_size = _size;
+    
+    new_items = new (REFOBJ*)[new_size];
+
+    for(i = 0; i < old_size; i++)
+        new_items[i] = items[i];
+    
+    for(i = old_size; i < new_size; i++)
+        new_items[i] = default_value;
     
     if (new_size > _size) {
         delete [] this->items;
@@ -132,22 +128,28 @@ void refarray<REFOBJ,USE_RWLOCK>::resize(REFOBJ* default_value) {
         lock->release(rwlock::write);
 
     return;
-    
 }
 
 template<class REFOBJ, int USE_RWLOCK>
 void refarray<REFOBJ,USE_RWLOCK>::set_elem_at(unsigned index, REFOBJ* value) {
+    
     if(USE_RWLOCK) {
         assert(lock);
         lock->acquire(rwlock::write);
     }
-    
-    items[index] = value;
 
+    if(index < _size) {
+        items[index] = value;
+    } else {
+        _resize(NULL);
+        items[index] = value;
+    }
+    
     if(USE_RWLOCK) {
         assert(lock);
         lock->release(rwlock::write);
     }
+
 }
 
 
@@ -178,6 +180,9 @@ unsigned refarray<REFOBJ,USE_RWLOCK>::push_back(REFOBJ* value) {
 
 template<class REFOBJ, int USE_RWLOCK>
 void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
+
+    // MUST have acquired write access to lock before entering this method
+
     unsigned new_size;
     unsigned old_size;
     REFOBJ **new_items;
@@ -191,7 +196,7 @@ void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
     new_items = new (REFOBJ*)[new_size];
 
     for(i = 0; i < old_size; i++)
-        new_items[i] = (*this)[i];
+        new_items[i] = items[i];
     
     for(i = old_size; i < new_size; i++)
         new_items[i] = default_value;
@@ -210,3 +215,4 @@ void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
     return;    
 }
 #endif
+

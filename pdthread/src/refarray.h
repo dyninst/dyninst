@@ -61,11 +61,11 @@ class refarray {
     unsigned _last;
     void _resize(REFOBJ* default_value);
     bool destroy_constituents;
-    
+
   public:
 
     refarray() {
-        int sz = 128;
+        int sz = 1024;
         this->_size = sz;
 
         destroy_constituents = false;
@@ -132,6 +132,7 @@ class refarray {
 
     void resize();
     void resize(REFOBJ* default_value);
+
 };
 
 #endif /*  __libthread_refarray_h__ */

@@ -48,7 +48,7 @@ mailbox* mailbox::for_thread(thread_t tid) {
 
 void mailbox::register_mbox(thread_t owner, mailbox* which) {
     if (!mailbox::registry)
-        mailbox::registry = new refarray<mailbox,1>(64,NULL,NULL);
+        mailbox::registry = new refarray<mailbox,1>(2048,NULL,NULL);
     mailbox::registry->set_elem_at(owner, which);    
 }
 

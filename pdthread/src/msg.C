@@ -80,7 +80,10 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
         message* m = new message(sender, tag, buf, size);
         mailbox* recipient = mailbox::for_thread(tid);
         
-        assert(recipient);
+        if(!recipient) {
+            fprintf(stderr, "can't send message [sender = %d, tid = %d, tag = %d]\n", sender, tid, tag);
+            assert (recipient);
+        }
         
         ret = recipient->put(m);
     }
