@@ -1,6 +1,9 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.6  1994/05/19 00:00:30  hollings
+ * Revision 1.7  1994/05/30 19:35:02  hollings
+ * Removed workaround for node add update bug.
+ *
+ * Revision 1.6  1994/05/19  00:00:30  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -60,7 +63,7 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.6 1994/05/19 00:00:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.7 1994/05/30 19:35:02 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -189,8 +192,6 @@ void inline searchHistoryNode::changeColor()
   }
   if (newStyle != style) {
       uiMgr->DAGconfigNode(SHGid, nodeId, newStyle);
-      // work around bug.
-      uiMgr->DAGaddNode(SHGid, nodeId, newStyle, shortName, name, 0);
       style = newStyle;
   }
 }
