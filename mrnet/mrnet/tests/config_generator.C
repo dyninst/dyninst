@@ -6,64 +6,152 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
+
 #include <vector>
+#include <string>
+
+#include "Topology.h"
+#include "Tree.h"
+
+static std::vector<std::string> get_HostsFromFile( FILE *);
+static void print_usage();
 
 int main(int argc, char **argv)
 {
-    char * machine_file, *outfile, *befile;
-    unsigned int num_backends, fanout, i, j, tmp_int;
-    char tmp_str[256], tmp_str2[256], *num_proc_str;
-    FILE *f;
-    unsigned int cur_parent=0, next_orphan=0, num_nodes=0, depth=0, pow;
-    std::vector<char *> hosts;
+    std::string machine_file="", output_file="", topology="", topology_type="";
+    std::vector<std::string> hosts;
+    int c;
+    FILE * infile, *outfile;
 
-    if(argc != 6){
-        fprintf(stderr,
-            "usage: %s <infile> <outfile> <befile> <num_backends> <fan-out>\n",
-                argv[0] );
-        exit(-1);
+    while (1) {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"balanced", 1, 0, 'b'},
+            {"binomial", 1, 0, 'n'},
+            {"other", 1, 0, 'o'},
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long (argc, argv, "b:n:o", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'b':
+            topology_type = "balanced";
+            topology = optarg;
+            break;
+        case 'n':
+            topology_type = "binomial";
+            topology = optarg;
+            break;
+        case 'o':
+            topology_type = "other";
+            topology = optarg;
+            break;
+        default:
+            print_usage();
+            break;
+        }
     }
 
-    machine_file = argv[1];
-    outfile = argv[2];
-    befile = argv[3];
-    num_backends = atoi(argv[4]);
-    fanout = atoi(argv[5]);
-
-    if( num_backends <= 0 ||
-        fanout <= 0 ){
-        fprintf(stderr, "num_backends: %d and fanout:%d must be > 0\n",
-                num_backends, fanout);
-        exit(-1);
+    //hack alert:if topology_type is 2nd to last arg, only infile is specified
+    //           if topology_type is 3rd to last arg, outfile is also specified
+    if( topology == argv[argc-2] ||
+        ( std::string(argv[argc-2]).find('=') != std::string::npos ) ){
+        machine_file = argv[argc-1];
+    }
+    else if( topology == argv[argc-3] ||
+             ( std::string(argv[argc-3]).find('=') != std::string::npos ) ){
+        output_file = argv[argc-1];
+        machine_file = argv[argc-2];
+    }
+    else if( topology != argv[argc-1] ||
+             ( std::string(argv[argc-1]).find('=') != std::string::npos ) ) {
+        fprintf(stderr, "topology_type \"%s\" should be last, 2nd to last or 3rd to last!\n",
+                topology.c_str());
+        print_usage();
     }
 
-    tmp_int = num_backends;
-    depth=0;
-    do{
-        if( tmp_int % fanout != 0 ){
-            fprintf(stderr, "num_backends: %d must be a power of fanout:%d\n",
-                    num_backends, fanout);
+    if( machine_file == "" ){
+        infile = stdin;
+    }
+    else{
+        infile = fopen(machine_file.c_str(), "r");
+        if( !infile ){
+            fprintf(stderr, "%s (reading):", machine_file.c_str() );
+            perror("fopen()");
             exit(-1);
         }
-        tmp_int /= fanout;
-        depth++;
-    } while (tmp_int != 1);
-
-    pow=1;
-    for(i=0; i<=depth; i++){
-        num_nodes += pow;
-        pow*=fanout;
     }
-    f = fopen(machine_file, "r");
-    if( !f ){
-        perror("fopen()");
+    if( output_file == "" ){
+        outfile = stdout;
+    }
+    else{
+        outfile = fopen(output_file.c_str(), "w");
+        if( !outfile ){
+            fprintf(stderr, "%s (writing): ", output_file.c_str() );
+            perror("fopen()");
+            exit(-1);
+        }
+    }
+
+    if( topology_type == "binomial" ){
+        fprintf(stderr, "binomial topologies not yet supported\n" );
+        exit(-1);
+    }
+    else if( topology_type == "balanced" ){
+        //fprintf(stderr, "Creating balanced topology \"%s\" from \"%s\" to \"%s\"\n",
+                //topology.c_str(),
+                //( machine_file == "" ? "stdin" : machine_file.c_str() ),
+                //( output_file == "" ? "stdout" : output_file.c_str() ) );
+    }
+    else if( topology_type == "other" ){
+        //fprintf(stderr, "Creating generic topology \"%s\" from \"%s\" to \"%s\"\n",
+                //topology.c_str(),
+                //( machine_file == "" ? "stdin" : machine_file.c_str() ),
+                //( output_file == "" ? "stdout" : output_file.c_str() ) );
+    }
+    else{
+        fprintf(stderr, "Error: Unknown topology \"%s\".", topology.c_str() );
         exit(-1);
     }
 
+    hosts = get_HostsFromFile(infile);
+
+    Tree * tree;
+    if( topology_type == "balanced" ){
+        tree = new BalancedTree( hosts, topology );
+    }
+    else if( topology_type == "other" ){
+        tree = new GenericTree( hosts, topology );
+    }
+
+    tree->create_TopologyFile( outfile );
+
+    if ( !tree->validate() ){
+        if( tree->contains_Cycle() ){
+            fprintf(stderr, "Tree contains cycle: check hostfile for duplicate machine specifications\n");
+            exit(-1);
+        }
+        if( tree->contains_UnreachableNodes() ){
+            fprintf(stderr, "Tree contains unreachable nodes: check hostfile for duplicate machine specifications\n");
+            exit(-1);
+        }
+    }
+    return 0;
+}
+
+std::vector<std::string> get_HostsFromFile(FILE * f)
+{
+    std::vector<std::string> hosts;
+    char tmp_str[128], tmp_str2[128], *num_proc_str;
     char * cur_host;
     unsigned int num_procs;
+
     while( fscanf(f, "%s", tmp_str) != EOF ){
-        //fprintf(stderr, "processing %s\n");
         cur_host = tmp_str;
         num_procs = 1;
 
@@ -71,54 +159,39 @@ int main(int argc, char **argv)
             *(num_proc_str) = '\0'; //null terminate host name
             num_procs = atoi(num_proc_str+1);
         }
-        //fprintf(stderr, "host: %s, num_procs: %d\n", cur_host, num_procs);
-        for(i=0; i<num_procs; i++){
-            //fprintf(stderr, "inserting %s:%d\n", cur_host, i);
+
+        for(unsigned int i=0; i<num_procs; i++){
             sprintf(tmp_str2, "%s:%d", cur_host, i);
-            hosts.push_back( strdup(tmp_str2) ); //place in host vector
+            hosts.push_back( tmp_str2 ); //place in host vector
         }
     }
-    fclose(f);
 
-    if( hosts.size() < num_nodes ){
-        fprintf(stderr, "not enough nodes in %s: %d of %d\n",
-                machine_file, (int)hosts.size(), num_nodes);
-        exit(-1);
-    }
-    
-    f = fopen(outfile, "w");
-    if( !f ){
-        perror("fopen()");
-        exit(-1);
-    }
+    return hosts;
+}
 
-    next_orphan = 1;
-    cur_parent = 0;
-    fprintf(stderr, "%d backends, %d fanout, %d nodes\n", num_backends,
-            fanout, num_nodes);
-    for(i=1; i<num_nodes; ){
-        fprintf(f, "%s => ", hosts[cur_parent++]);
+void print_usage()
+{
+    fprintf( stderr, "\nUsage: mrnet_topgen <OPTION> [INFILE] [OUTFILE]\n\n"
 
-        for(j=0; j<fanout; j++){
-            fprintf(f, "%s ", hosts[next_orphan++]);
-            i++;
-        }
-        fprintf(f, ";\n");
-    }
-    fclose(f);
+             "Create a MRNet topology specification from machine list in [INFILE],\n"
+             "or standard input, and writes output to [OUTFILE], or standard output.\n"
+             "\t-b topology, --balanced=topology\n"
+             "\t\tCreate a balanced tree using \"topology\" specification. The specification\n"
+             "\t\tis in the format DxN, where D is the fan-out or out degree of each node and N is\n"
+             "\t\tthe number of leaves or back-ends.\n\n"
 
-    f = fopen(befile, "w");
-    if( !f )
-    {
-        perror("fopen()");
-        exit(-1);
-    }
+             "\t-n topology, --binomial=topology\n"
+             "\t\tCurrently unsupported\n\n"
 
-    for(i=cur_parent; i<num_nodes; i++ )
-    {
-        fprintf( f, "%s\n", hosts[i] );
-    }
-    fclose(f);
-
-	return 0;
+             "\t-o topology, --othter=topology\n"
+             "\t\tCreate a generic tree using \"topology\" specification. The specification\n"
+             "\t\tfor this option is (the agreeably complicated) N:N,N,N:... where N specifies\n"
+             "\t\tthe number of children a node has, ',' distinguishes nodes on the same level,\n"
+             "\t\tand ':' separates the tree into levels.\n\n"
+             "\t\tExample 1: \"2:2,2\" specifies a tree where the root has 2 children\n"
+             "\t\t           and each child on the 2nd level has 2 children.\n"
+             "\t\tExample 2: \"2:8,4\" specifies a tree where the root has 2 children.\n"
+             "\t\t           At the 2nd level, the 1st child has 8 children, and the\n"
+             "\t\t           2nd child has 4 children\n" );
+    exit(-1);
 }
