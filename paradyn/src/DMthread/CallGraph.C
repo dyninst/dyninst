@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.21 2004/07/28 07:24:47 jaw Exp $
+// $Id: CallGraph.C,v 1.22 2005/02/11 19:33:14 mjbrim Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -78,7 +78,7 @@ static inline unsigned hash_dummy(const resource * const &r) {
 //the code hierarchy.
 //
 //Yup- this is one ugly function. 
-static pdstring stripCodeFromName( pdstring s )
+static const char* stripCodeFromName( pdstring s )
 {
     return s.c_str() + 6;
 }
@@ -256,14 +256,14 @@ bool CallGraph::AddDynamicallyDeterminedChild(const resource *p,
       if(visited[c]){
 	uiMgr->CGaddNode(program_id, p->getHandle(), 
 			 c->getHandle(),c->getName(),
-			 stripCodeFromName(c->getFullName()).c_str(),
+			 stripCodeFromName(c->getFullName()),
 			 false, //function is not recursive
 			 true); //function is a shadow
       }
       else{
 	uiMgr->CGaddNode(program_id, p->getHandle(), 
 			 c->getHandle(),c->getName(),
-			 stripCodeFromName(c->getFullName()).c_str(),
+			 stripCodeFromName(c->getFullName()),
 			 false, //function is not recursive
 			 false); //function is not a shadow
 	dictionary_hash <const resource *, int> callPath(hash_dummy); 
@@ -352,7 +352,7 @@ void CallGraph::displayCallGraph(){
   uiMgr->callGraphProgramAddedCB(0, entryFunction->getHandle(), 
 				 executableName.c_str(),
 				 entryFunction->getName(),
-			     stripCodeFromName(entryFunction->getFullName()).c_str()); 
+			     stripCodeFromName(entryFunction->getFullName())); 
   
   callPath[entryFunction] = 1;
   addChildrenToDisplay(entryFunction,callPath);
@@ -388,7 +388,7 @@ void CallGraph::addChildrenToDisplay(const resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
+		       stripCodeFromName(these_children[i]->getFullName()),
 		       false,//function is not recursive
 		       false); //function is not a shadow node
       addChildrenToDisplay(these_children[i], callPath);
@@ -400,7 +400,7 @@ void CallGraph::addChildrenToDisplay(const resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
+		       stripCodeFromName(these_children[i]->getFullName()),
 		       true,//function is recursive
 		       true);//function is a shadown node
     }
@@ -408,7 +408,7 @@ void CallGraph::addChildrenToDisplay(const resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
+		       stripCodeFromName(these_children[i]->getFullName()),
 		       false,//function is not recursive
 		       true);//function is a shadown node
     }
