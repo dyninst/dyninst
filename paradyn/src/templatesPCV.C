@@ -37,7 +37,6 @@
 
 template class vector<string*>;
 template class vector<fmf>;
-template class vector<ff>;
 template class vector<costServerRec>;
 template class vector<uiSHGrequest>;
 template class vector<dataSubscriber*>;
