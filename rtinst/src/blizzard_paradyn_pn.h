@@ -1,3 +1,0 @@
-
-
-int blizzard_identify();
