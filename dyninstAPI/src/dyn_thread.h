@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.1 2002/10/15 17:11:12 schendel Exp $
+// $Id: dyn_thread.h,v 1.2 2002/10/18 22:41:12 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -122,6 +122,7 @@ class dyn_thread {
 #endif
   void update_tid          (unsigned tid_)        { tid = tid_; }
   void update_pos          (unsigned pos_)        { pos = pos_; }
+  void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
   void update_rid          (resource *rid_)       { rid = rid_; } 
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
   void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }

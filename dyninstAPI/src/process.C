@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.367 2002/10/16 22:11:41 bernat Exp $
+// $Id: process.C,v 1.368 2002/10/18 22:41:12 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2133,7 +2133,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 
    inSyscall_ = false;
    runningRPC_ = false;
-   stoppedInSyscall = false;
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
       string msg = string("Warning: unable to attach to specified process :")
@@ -2206,7 +2205,6 @@ process::process(int iPid, image *iSymbols,
    inSyscall_ = false;
    runningRPC_ = false;
    save_exitset_ptr = NULL;
-   stoppedInSyscall = false;
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
@@ -2488,7 +2486,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     inSyscall_= false;
     runningRPC_ = false;
     save_exitset_ptr = NULL;
-    stoppedInSyscall = false;
 
 
     hasBootstrapped = true;

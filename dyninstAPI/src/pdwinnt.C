@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.65 2002/10/15 17:11:17 schendel Exp $
+// $Id: pdwinnt.C,v 1.66 2002/10/18 22:41:12 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1435,27 +1435,34 @@ int process::waitProcs(int *status) {
     
     case CREATE_PROCESS_DEBUG_EVENT: {
 	//CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
-	//printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
+	printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
 	p = findProcess(debugEv.dwProcessId);
 	if (p) {
 	    p->secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
 	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
+        dyn_lwp *l = p->getDefaultLWP();
+        if (!l) {
+            // It's possible we never created the default LWP
+            l = new dyn_lwp(debugEv.dwThreadId,
+                            debugEv.u.CreateProcessInfo.hThread, 
+                            p);
+            p->lwps[0] = l;
+        }
 	    if (p->threads.size() == 0) {
-	      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId,
-				       debugEv.u.CreateProcessInfo.hThread, 
-				       p);
-
-			dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID,
-													 0, // POS (main thread is always 0)
-													 l);
-		// define the main thread
-	      p->threads.push_back(t);
-	      p->lwps[0] = l;
-	    }
-	}
-    } break;
-
-    case EXIT_THREAD_DEBUG_EVENT: {
+            dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID,
+                                           0, // POS (main thread is always 0)
+                                           l);
+            // define the main thread
+            p->threads.push_back(t);
+        }
+        else {
+            p->threads[0]->update_tid(debugEv.dwThreadId);
+            p->threads[0]->update_lwp(l);
+        }
+    }
+    break;
+    }
+  case EXIT_THREAD_DEBUG_EVENT: {
 	//printf("exit thread, tid = %d\n", debugEv.dwThreadId);
 	unsigned nThreads = p->threads.size();
 	// start from one to skip main thread

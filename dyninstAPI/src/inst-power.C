@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.154 2002/10/15 17:11:23 schendel Exp $
+ * $Id: inst-power.C,v 1.155 2002/10/18 22:41:12 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -951,8 +951,8 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
   regSpace->resetSpace();
   /* Get the hashed value of the thread */
   if (!proc->multithread_ready()) {
-    // Uh oh... we're not ready to build a tramp yet!
-    cerr << "WARNING: tramp constructed without RT multithread support!" << endl;
+    // Uh oh... we're not ready to build an MT tramp yet. 
+      // Probably haven't loaded the RT library
     threadPOS = new AstNode("DYNINSTreturnZero", dummy);
   }
   else 

@@ -39,15 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.124 2002/10/15 17:11:18 schendel Exp $
+// $Id: solaris.C,v 1.125 2002/10/18 22:41:13 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
-#ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/dyn_thread.h"
-#endif
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
 #include <sys/ioctl.h>
@@ -1596,8 +1594,8 @@ bool process::stop_() {assert(false); return(false);}
 /* 
    continue a process that is stopped 
 */
-bool process::continueProc_() {
-  ptraceOps++; ptraceOtherOps++;
+
+bool dyn_lwp::continueLWP() {
   prrun_t flags;
   prstatus_t stat;
   Address pc;  // PC at which we are trying to continue
@@ -1615,59 +1613,61 @@ bool process::continueProc_() {
   // a process that receives a stop signal stops twice. We need to run the process
   // and wait for the second stop. (The first run simply absorbs the stop signal;
   // the second one does the actual continue.)
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &stat) == -1) return false;
+  if (ioctl(fd_, PIOCSTATUS, &stat) == -1) return false;
 
-  if ((0==stat.pr_flags & PR_STOPPED) && (0==stat.pr_flags & PR_ISTOP))
-    return false;
-
+  if ((0==stat.pr_flags & PR_STOPPED) && (0==stat.pr_flags & PR_ISTOP)) {
+      fprintf(stderr, "LWP not stopped, returning false\n");
+      return false;
+  }
+  
   if ((stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)
       && (stat.pr_what == SIGSTOP || stat.pr_what == SIGINT)) {
-    flags.pr_flags = PRSTOP;
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &flags) == -1) {
-      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCWSTOP, 0) == -1) {
-      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
+      flags.pr_flags = PRSTOP;
+      if (ioctl(fd_, PIOCRUN, &flags) == -1) {
+          fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+          return false;
+      }
+      if (ioctl(fd_, PIOCWSTOP, 0) == -1) {
+          fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
+          return false;
+      }
   }
   flags.pr_flags = PRCSIG; // clear current signal
   pc = (Address)stat.pr_reg[PC_REG];
   
-  if (! (stoppedInSyscall && pc == postsyscallpc)) {
+  if (! (stoppedInSyscall_ && pc == postsyscallpc_)) {
        // Continue the process
-       if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &flags) == -1) {
-	   sprintf(errorLine,
-		   "continueProc_: PIOCRUN 2 failed: %s\n",
-		   sys_errlist[errno]);
-	   logLine(errorLine);
-	   return false;
-       }
+      if (ioctl(fd_, PIOCRUN, &flags) == -1) {
+          sprintf(errorLine,
+                  "continueProc_: PIOCRUN 2 failed: %s\n",
+                  sys_errlist[errno]);
+          logLine(errorLine);
+          return false;
+      }
   } else {
-       // We interrupted a sleeping system call at some previous pause
-       // (i.e. stoppedInSyscall is true), we have not restarted that
-       // system call yet, and the current PC is the insn following
-       // the interrupted call.  It is time to restart the system
-       // call.
-       
-       // Note that when we make the process runnable, we ignore
-       // `flags', set if `hasNewPC' was true in the previous block,
-       // because we don't want its PC; we want the PC of the system
-       // call trap, which was saved in `syscallreg'.
-       
-       sysset_t scentry, scsavedentry;
-       prrun_t run;
- 
-       // Restore the registers
-       if (0 > ioctl(getDefaultLWP()->get_fd(), PIOCSREG, syscallreg)) {
-	   sprintf(errorLine,
+      // We interrupted a sleeping system call at some previous pause
+      // (i.e. stoppedInSyscall is true), we have not restarted that
+      // system call yet, and the current PC is the insn following
+      // the interrupted call.  It is time to restart the system
+      // call.
+      
+      // Note that when we make the process runnable, we ignore
+      // `flags', set if `hasNewPC' was true in the previous block,
+      // because we don't want its PC; we want the PC of the system
+      // call trap, which was saved in `syscallreg'.
+      
+      sysset_t scentry, scsavedentry;
+      prrun_t run;
+      
+      // Restore the registers
+      if (0 > ioctl(fd_, PIOCSREG, syscallreg_)) {
+          sprintf(errorLine,
 		   "Can't restart sleeping syscall (PIOCSREG)\n");
-	   logLine(errorLine);
-	   return false;
-       }
-       
+          logLine(errorLine);
+          return false;
+      }
+#if 0      
        // Save current syscall entry traps
        if (0 > ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &scsavedentry)) {
 	   sprintf(errorLine,
@@ -1727,28 +1727,53 @@ bool process::continueProc_() {
        // SPARC, it doesn't matter -- the system call can be restarted
        // whether or not we do this.  On the x86, the restart FAILS if
        // we do this.  So Sun can go sit and spin for all I care.
-       if (0 > ioctl(getDefaultLWP()->get_fd(), PIOCSREG, syscallreg)) {
+       if (0 > ioctl(getDefaultLWP()->get_fd(), PIOCSREG, syscallreg_)) {
 	   sprintf(errorLine,
 		   "Can't restart sleeping syscall (PIOCSREG)\n");
 	   logLine(errorLine);
 	   return false;
        }
 #endif
-       
+#endif 
        // We are done -- the process is in the kernel for the system
        // call, with the right registers values.  Make the process
        // runnable, restoring its previously blocked signals.
-       stoppedInSyscall = false;
-       run.pr_sighold = sighold;
+       stoppedInSyscall_ = false;
+       run.pr_sighold = sighold_;
        run.pr_flags = PRSHOLD;
-       if (0 > ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &run)) {
-	   sprintf(errorLine,
-		   "Can't restart sleeping syscall (PIOCRUN)\n");
-	   logLine(errorLine);
-	   return false;
+       if (0 > ioctl(fd_, PIOCRUN, &run)) {
+           sprintf(errorLine,
+                   "Can't restart sleeping syscall (PIOCRUN)\n");
+           logLine(errorLine);
+           return false;
        }
   }
   return true;
+}
+
+
+bool process::continueProc_() {
+  ptraceOps++; ptraceOtherOps++;
+  return getDefaultLWP()->continueLWP();
+#if 0
+  // This doesn't work -- dyninst/ST paradyn are okay,
+  // since they are equivalent. But MT breaks.
+  if (threads.size() == 0) {
+      return getDefaultLWP()->continueLWP();
+  }
+  else {
+      bool success = true;
+      for (unsigned i = 0; i < threads.size(); i++) {
+          dyn_lwp *lwp = threads[i]->get_lwp();
+          if (!lwp) continue;
+          if (!lwp->continueLWP())
+              success = false;
+      }
+      
+      return success;
+  }
+  return true;
+#endif
 }
 
 #ifdef BPATCH_LIBRARY
@@ -1806,6 +1831,11 @@ int dyn_lwp::abortSyscall()
   sysset_t scexit, scsavedexit;
   sysset_t scentry, scsavedentry;
   prstatus_t prstatus;
+
+  // MT: aborting syscalls does not work. Maybe someone with better knowledge
+  // of Solaris can get it working. 
+  if (proc_->multithread_capable())
+      return 0;
   
   // We do not expect to recursively interrupt system calls.  We could
   // probably handle it by keeping a stack of system call state.  But
@@ -1842,7 +1872,7 @@ int dyn_lwp::abortSyscall()
   // Note: On x86/Linux this should probably be 2 bytes, because Linux
   // uses "int" to trap, not lcall.
 
-  syscallreg[PC_REG] -= 7;
+  syscallreg_[PC_REG] -= 7;
 #endif
 
   // 2. Abort the system call
@@ -1950,16 +1980,16 @@ int dyn_lwp::abortSyscall()
 /*
    pause a process that is running
 */
-bool process::pause_() {
-  ptraceOps++; ptraceOtherOps++;
+
+bool dyn_lwp::pauseLWP() {
   int ioctl_ret;
   prstatus_t prstatus;
-
+  
   // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
-  ioctl_ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTOP, &prstatus);
+  ioctl_ret = ioctl(fd_, PIOCSTOP, &prstatus);
   if (ioctl_ret == -1) {
       // see if the reason it failed is that we were already stopped
-      if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &prstatus) == -1) {
+      if (ioctl(fd_, PIOCSTATUS, &prstatus) == -1) {
 	  sprintf(errorLine,
 		  "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
 	  perror("warn : process::pause_ ioctl PICOSTOP: ");
@@ -1970,19 +2000,40 @@ bool process::pause_() {
       }
   }
 
-#ifndef MT_THREAD
   // Determine if the process was in a system call when we stopped it.
   if (! (prstatus.pr_why == PR_REQUESTED
 	 && prstatus.pr_syscall != 0
 	 && (prstatus.pr_flags & PR_ASLEEP))) {
        // The process was not in a system call.  We're done.
        if (prstatus.pr_why != PR_SYSENTRY) 
-	   return 1;
+	   return true;
   }
+  
+  return abortSyscall();
+}
 
-  return (getDefaultLWP()->abortSyscall());
+
+bool process::pause_() {
+  ptraceOps++; ptraceOtherOps++;
+  return getDefaultLWP()->pauseLWP();
+#if 0
+  // This code doesn't work. I'm leaving it here as an example -- bernat
+  if (threads.size() == 0) {
+      return getDefaultLWP()->pauseLWP();
+  }
+  else {
+      bool success = true;
+      for (unsigned i = 0; i < threads.size(); i++) {
+          dyn_lwp *lwp = threads[i]->get_lwp();
+          if (!lwp) continue;
+          if (!lwp->pauseLWP())
+              success = false;
+      }
+      
+      return success;
+  }
+  return true;
 #endif
-  return 1;
 }
 
 /*

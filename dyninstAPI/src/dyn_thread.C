@@ -94,7 +94,6 @@ bool dyn_thread::updateLWP()
   if (lwp) lwp_id = lwp->get_lwp();
   else lwp_id = 0;
   int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
-  fprintf(stderr, "lwp is %d, vt is %d\n", lwp_id, vt_lwp);
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;

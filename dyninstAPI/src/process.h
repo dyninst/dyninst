@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.223 2002/10/15 17:11:22 schendel Exp $
+/* $Id: process.h,v 1.224 2002/10/18 22:41:13 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1490,22 +1490,6 @@ private:
    bool saveOriginalInstructions(Address addr, int size);
    bool writeMutationList(mutationList &list);
 #endif
-
-   // System call interruption, currently for Solaris, only.  If the
-   // process is sleeping in a system call during an inferior RPC
-   // attempt, we interrupt the system call, perform the RPC, and
-   // restart the system call.  (This var is defined on all platforms
-   // to avoid platform-dependent initialization in process ctor.)
-   bool stoppedInSyscall;  
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-   // These variables are meaningful only when `stoppedInSyscall' is true.
-   int stoppedSyscall;     // The number of the interrupted syscall
-   prgregset_t syscallreg; // Registers during sleeping syscall
-                           // (note we do not save FP registers)
-   sigset_t sighold;       // Blocked signals during sleeping syscall
-   Address postsyscallpc;  // PC after the syscall is interrupted
-#endif
-
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \

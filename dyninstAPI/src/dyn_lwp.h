@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.2 2002/10/14 21:02:11 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.3 2002/10/18 22:41:12 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -115,9 +115,14 @@ class dyn_lwp
   // Walk the stack of the given LWP
   bool walkStack(vector<Frame> &stackWalk);
 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
   // Implemented where aborting system calls is possible
   int abortSyscall();
-
+  // Solaris: keep data in the LWP instead of in class process
+  bool pauseLWP();
+  bool continueLWP();
+#endif  
+  
   // Access methods
   unsigned get_lwp() const { return lwp_; };
   handleT get_fd() const { return fd_;  };
