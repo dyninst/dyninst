@@ -78,6 +78,8 @@ public:
   static void error_str(const char *);
   static int recv( bool blocking=true );
   static int send(Packet *);
+  static bool is_FrontEnd();
+  static bool is_BackEnd();
 
   NetworkImpl(const char * _filename, const char * _application);
   ~NetworkImpl();

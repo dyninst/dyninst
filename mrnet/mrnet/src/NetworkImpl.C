@@ -46,14 +46,14 @@ NetworkImpl::NetworkImpl(const char * _filename, const char * _application)
 
   int status;
   if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, MCFL, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     assert(0);
   }
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
   if( (status = pthread_setspecific(tsd_key, (const void *)local_data)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, 0,0, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
 
@@ -150,6 +150,15 @@ int NetworkImpl::send(Packet *packet)
   }
 }
 
+bool NetworkImpl::is_FrontEnd()
+{
+  return ( Network::network != NULL );
+}
+
+bool NetworkImpl::is_BackEnd()
+{
+  return ( Network::network == NULL );
+}
 
 
 static
