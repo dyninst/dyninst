@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.37 2005/01/11 22:45:14 legendre Exp $
+// $Id: templatesDM.C,v 1.38 2005/02/15 17:44:08 legendre Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -218,4 +218,9 @@ template class pdvector<int>;
 
 template class dictionary_hash<unsigned, pdvector<unsigned> >;
 template class dictionary_hash<unsigned, pdvector<T_dyninstRPC::focusStruct> >;
+template class pdvector<dictionary_hash<unsigned, pdvector<T_dyninstRPC::focusStruct> >::entry >;
+template class pdvector<dictionary_hash<unsigned, pdvector<unsigned> >::entry >;
+template class pdvector<dictionary_hash<unsigned, pdvector<pdstring> >::entry>;
 template class dictionary_hash<unsigned, pdvector<pdstring> >;
+
+
