@@ -189,7 +189,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 49;
+    $version 50;
 
     //
     // Start a paradyn daemon
@@ -363,7 +363,13 @@ $remote dataManager {
     // metricInstance	- a metricInstance returned by enableDataCollection.
     // phaseType - specifies either global or current phase data
     //
-    $async void disableDataCollection(perfStreamHandle, 
+    // If you are going to add something to a list using pt_handle on enable
+    // it would probably be a good idea to remove it useing pt_handle on
+    // disable rather than ps_handle...otherwise all those asserts you added
+    // to check the size of the list are bound to fail when the ps_handle
+    // and pt_handle are not the same.
+    $async void disableDataCollection(perfStreamHandle ps_handle, 
+				      perfStreamHandle pt_handle,
 			              metricInstanceHandle,
 			              phaseType);
 
@@ -377,6 +383,7 @@ $remote dataManager {
     // clear_phase_persistent_data - if true, clear phase_persistent_data flag
     //
     $async void disableDataAndClearPersistentData(perfStreamHandle ps_handle,
+					 perfStreamHandle pt_handle,
 					 metricInstanceHandle mi_handle,
 					 phaseType p_type,
 					 bool clear_persistent_data,
