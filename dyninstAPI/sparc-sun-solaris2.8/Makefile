@@ -1,11 +1,10 @@
 #
-# $Id: Makefile,v 1.4 2001/12/09 02:41:24 gaburici Exp $
+# $Id: Makefile,v 1.5 2002/02/21 21:47:22 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
-#USES_SHM_SAMPLING = true
 #NO_OPT_FLAG = true
 NO_IMPLICIT_TEMPLATES = true
 
