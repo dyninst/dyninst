@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.4 2003/03/21 22:50:26 bernat Exp $
+/* $Id: signalhandler.h,v 1.5 2003/10/22 16:00:41 schendel Exp $
  */
 
 /*
@@ -60,6 +60,7 @@
 #endif
 
 class process;
+class dyn_lwp;
 
 /* Included from the unix/NT file:
  * procSignalWhy_t: What event
@@ -84,11 +85,10 @@ void decodeAndHandleProcessEvent(bool block);
 // block: block waiting for a signal?
 // waitProcs replacement
 
-process *decodeProcessEvent(int pid,
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            procSignalInfo_t &info,
-                            bool block);
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block,
+                            int wait_options);
 
 // Takes the data above and performs whatever handling is necessary
 int handleProcessEvent(process *proc,
