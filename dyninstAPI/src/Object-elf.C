@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.80 2005/01/11 22:44:57 legendre Exp $
+ * $Id: Object-elf.C,v 1.81 2005/02/15 17:43:52 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2880,7 +2880,7 @@ static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
    status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
                                   &fde_data, &fde_count, &err);
    if (status != DW_DLV_OK) {
-      pd_dwarf_handler(err, NULL);
+      //No actual stackwalk info in this object
       goto err_noalloc;
    }
 
