@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.28 1995/02/26 22:44:29 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.29 1995/05/18 10:30:58 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.28  1995/02/26 22:44:29  markc
+ * Revision 1.29  1995/05/18 10:30:58  markc
+ * Replace process dict with process map
+ *
+ * Revision 1.28  1995/02/26  22:44:29  markc
  * Changed vector of strings to reference to vector of strings for addProcess(...)
  *
  * Revision 1.27  1995/02/16  08:53:03  markc
@@ -178,7 +181,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  */
 bool applicationDefined()
 {
-    if (processMap.size()) {
+    if (processVec.size()) {
 	return(true);
     } else {
 	return(false);
@@ -189,9 +192,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 {
     process *ret=NULL, *parent;
 
-    if (!processMap.defines(fr->ppid))
+    parent = findProcess(fr->ppid);
+    if (!parent)
       abort();
-    parent = processMap[fr->ppid];
 
     /* attach to the process */
     if (!OS::osAttach(fr->pid)) {
@@ -206,6 +209,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     ret = allocateProcess(fr->pid, name);
 
     ret->symbols = image::parseImage(parent->symbols->file());
+    if (!ret->symbols) {
+      // TODO -- this should back out cleanly
+    }
     ret->traceLink = parent->traceLink;
     ret->ioLink = parent->ioLink;
     ret->parent = parent;
@@ -266,10 +272,9 @@ bool isApplicationPaused()
 
 bool continueAllProcesses()
 {
-    dictionary_hash_iter<int, process*> pi(processMap);
-    int i; process *proc;
-    while (pi.next(i, proc))
-      proc->continueProc();
+    unsigned p_size = processVec.size();
+    for (unsigned u=0; u<p_size; u++)
+      processVec[u]->continueProc();
 
     if (!appPause) return(false);
 
@@ -286,14 +291,12 @@ bool continueAllProcesses()
 bool pauseAllProcesses()
 {
     bool changed;
-    dictionary_hash_iter<int, process*> pi(processMap);
-    int i; process *proc;
-
     changed = markApplicationPaused();
 
-    while (pi.next(i, proc))
-      proc->pause();
-    
+    unsigned p_size = processVec.size();
+    for (unsigned u=0; u<p_size; u++)
+      processVec[u]->pause();
+
     statusLine("application paused");
     return(changed);
 }
