@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.81 2002/07/25 19:22:54 willb Exp $
+// $Id: rpcUtil.C,v 1.82 2002/08/24 20:40:09 schendel Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -883,6 +883,15 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
     return ret;
 }
 
+const char *getRshCommand() {
+  // ensure we know the user's desired rsh command
+  const char* rshCmd = getenv( RSH_COMMAND_ENV );
+  if( rshCmd == NULL ) {
+    rshCmd = DEF_RSH_COMMAND;
+  }
+  return rshCmd;
+}
+
 //
 // use rsh to get a remote process started.
 //
@@ -898,12 +907,8 @@ PDSOCKET rshCommand(const string hostName, const string userName,
 		    const string command, const vector<string> &arg_list, int portFd)
 {
   // ensure we know the user's desired rsh command
-  const char* rshCmd = getenv( RSH_COMMAND_ENV );
-  if( rshCmd == NULL ) {
-    rshCmd = DEF_RSH_COMMAND;
-  }
-
-  return remoteCommand( hostName, userName, command, rshCmd, arg_list, portFd );
+  const char* rshCmd = getRshCommand();
+  return remoteCommand(hostName, userName, command, rshCmd, arg_list, portFd);
 }
 
 /*

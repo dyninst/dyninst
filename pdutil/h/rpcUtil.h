@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.50 2002/07/25 19:22:53 willb Exp $
+// $Id: rpcUtil.h,v 1.51 2002/08/24 20:40:08 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -154,6 +154,8 @@ extern const string getHostName();                            // e.g. "foo"
 extern const string getDomainName(const string hostname="");  // "bar.net"
 extern const string getNetworkName(const string hostname=""); // "foo.bar.net"
 extern const string getNetworkAddr(const string hostname=""); // "127.0.0.1"
+
+extern const char *getRshCommand();
 
 class rpcBuffer {
   public:
