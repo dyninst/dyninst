@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.40 2001/06/20 20:41:02 schendel Exp $
+// $Id: hist.C,v 1.41 2001/08/23 14:44:38 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -66,12 +66,11 @@ pdDebug_ostream hist_cerr(cerr, false);
 #endif
 
 // constructor for histogram that doesn't start at time 0
-Histogram::Histogram(relTimeStamp start, metricStyle type, dataCallBack d, 
-		     foldCallBack f, void *c, bool globalFlag)
-  : startTime(start), globalData(globalFlag)
+Histogram::Histogram(relTimeStamp start, dataCallBack d, 
+		     foldCallBack f, void *c)
+  : startTime(start)
 {
-    lastBin = 0;
-    metricType = type;
+    lastBin = -1;
     buckets = new Bin[numBins];
     for(int i = 0; i < numBins; i++){
         buckets[i] = pdSample::NaN(); 
@@ -109,14 +108,12 @@ Histogram::Histogram(relTimeStamp start, metricStyle type, dataCallBack d,
 
 Histogram::Histogram(Bin *buckets, 
                      relTimeStamp start,
-		     metricStyle type, 
 		     dataCallBack d, 
 		     foldCallBack f,
-		     void *c,
-		     bool globalFlag)
+		     void *c)
 {
     // First call default constructor.
-    (void) Histogram(start, type, d, f, c, globalFlag);
+    (void) Histogram(start, d, f, c);
     memcpy(buckets, buckets, sizeof(Bin)*numBins);
 }
 
@@ -245,8 +242,7 @@ void Histogram::foldAllHist()
 				       numBins*(allHist[i])->bucketWidth;
 	      if((allHist[i])->foldFunc) 
 		((allHist[i])->foldFunc)(&(allHist[i])->bucketWidth, 
-					 (allHist[i])->cData,
-					 (allHist[i])->globalData);
+					 (allHist[i])->cData);
 	  }
 	}
     }
@@ -260,7 +256,8 @@ void Histogram::flushUnsentBuckets() {
       hist_cerr << "sending buckets: " << firstBinToSend << ", for count of: " 
 		<< curBinFilling - lastBinSent << "\n";
       (dataFunc)(&buckets[firstBinToSend], startTime,
-		 curBinFilling - lastBinSent, firstBinToSend,cData,globalData);
+		 curBinFilling - lastBinSent, firstBinToSend, cData);
+      lastBinSent = curBinFilling - 1;
     }
   }
 }
@@ -302,76 +299,69 @@ void Histogram::bucketValue(relTimeStamp start_clock, relTimeStamp end_clock,
 	      << "  firstBinSt: " << first_bin_start << "  lastBinSt: "
 	      << last_bin_start << "\n";
 
-    if (metricType == SampledFunction) {
-      hist_cerr << "SampledFunction-  \n";
-	for (i=first_bin; i <= last_bin; i++) {
-	  hist_cerr << " bucket[" << i << "] = " << value << "\n";
-	    buckets[i] = value;
-	}
-    } else {
-	relTimeStamp first_bin_interval_left  = start_clock - startTime;
-	relTimeStamp userEndT = relTimeStamp(end_clock - startTime);
-	relTimeStamp first_bin_interval_right = 
-	                      earlier(first_bin_start + bucketWidth, userEndT);
-	timeLength time_in_first_bin = first_bin_interval_right - 
-	                               first_bin_interval_left;
-
-	timeLength time_in_last_bin = timeLength::Zero();
-	if(first_bin != last_bin)
-	  time_in_last_bin = userEndT - last_bin_start;
-	else {
-	  // the interval is contained solely in the first bucket
-	  time_in_last_bin = timeLength::Zero();
-	}
-
-	timeLength time_in_other_bins = max(elapsed_clock - 
-		   (time_in_first_bin + time_in_last_bin), timeLength::Zero());
-        // ignore bad values
-        if((time_in_first_bin < timeLength::Zero()) || 
-	   (time_in_last_bin < timeLength::Zero()) || 
-	   (time_in_other_bins < timeLength::Zero()))
-	    return;
-
-	hist_cerr << "H2 elapsed_clock: " << elapsed_clock 
-		  << "  time_in_first_bin: " << time_in_first_bin 
-		  << "  time_in_last_bin: " << time_in_last_bin 
-		  << "  time_in_other_bins: " << time_in_other_bins << "\n";
-	  
-	/* determine how much of value should be in each bin in the interval */
-	pdSample amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
-	pdSample amt_last_bin  = (time_in_last_bin  / elapsed_clock) * value;
-	pdSample amt_other_bins = (time_in_other_bins / elapsed_clock) * value;
-	int num_middle_bins = (last_bin - first_bin) - 1;
-	double num_middle_binsD = static_cast<double>(num_middle_bins);
-	if (last_bin > first_bin+1) 
-	  amt_other_bins = amt_other_bins / num_middle_binsD;
-
-        // if bins contain NaN values set them to 0 before adding new value
-	if(buckets[first_bin].isNaN()) 
-	    buckets[first_bin] = pdSample::Zero();
-	if(buckets[last_bin].isNaN()) 
-	    buckets[last_bin] = pdSample::Zero();
-
-	hist_cerr << " bucket[" << first_bin << "] = " 
-		  << buckets[first_bin] << "   bucket[" << last_bin 
-		  << "] = " << buckets[last_bin] << "\n";
-
-	/* add the appropriate amount of time to each bin */
-	buckets[first_bin] += amt_first_bin;
-	hist_cerr << " bucket[" << first_bin << "] += " << amt_first_bin
-		  << " = " << buckets[first_bin] << "\n";
-	buckets[last_bin]  += amt_last_bin;
-
-	for (i=first_bin+1; i < last_bin; i++){
-	    if(buckets[i].isNaN()) 
-	        buckets[i] = pdSample::Zero();
-	    buckets[i]  += amt_other_bins;
-	    hist_cerr << " bucket[" << i << "] += " << amt_other_bins
-		      << " = " << buckets[i] << "\n";
-        }
-	hist_cerr << " bucket[" << last_bin << "] += " << amt_last_bin
-		  << " = " << buckets[last_bin] << "\n";
+    relTimeStamp first_bin_interval_left  = start_clock - startTime;
+    relTimeStamp userEndT = relTimeStamp(end_clock - startTime);
+    relTimeStamp first_bin_interval_right = 
+      earlier(first_bin_start + bucketWidth, userEndT);
+    timeLength time_in_first_bin = first_bin_interval_right - 
+      first_bin_interval_left;
+    
+    timeLength time_in_last_bin = timeLength::Zero();
+    if(first_bin != last_bin)
+      time_in_last_bin = userEndT - last_bin_start;
+    else {
+      // the interval is contained solely in the first bucket
+      time_in_last_bin = timeLength::Zero();
     }
+
+    timeLength time_in_other_bins = max(elapsed_clock - 
+		   (time_in_first_bin + time_in_last_bin), timeLength::Zero());
+    // ignore bad values
+    if((time_in_first_bin < timeLength::Zero()) || 
+       (time_in_last_bin < timeLength::Zero()) || 
+       (time_in_other_bins < timeLength::Zero()))
+      return;
+
+    hist_cerr << "H2 elapsed_clock: " << elapsed_clock 
+	      << "  time_in_first_bin: " << time_in_first_bin 
+	      << "  time_in_last_bin: " << time_in_last_bin 
+	      << "  time_in_other_bins: " << time_in_other_bins << "\n";
+    
+    /* determine how much of value should be in each bin in the interval */
+    pdSample amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
+    pdSample amt_other_bins = (time_in_other_bins / elapsed_clock) * value;
+    pdSample amt_last_bin  = value - amt_first_bin - amt_other_bins;
+
+    int num_middle_bins = (last_bin - first_bin) - 1;
+    double num_middle_binsD = static_cast<double>(num_middle_bins);
+    if (last_bin > first_bin+1) 
+      amt_other_bins = amt_other_bins / num_middle_binsD;
+    
+    // if bins contain NaN values set them to 0 before adding new value
+    if(buckets[first_bin].isNaN()) 
+      buckets[first_bin] = pdSample::Zero();
+    if(buckets[last_bin].isNaN()) 
+      buckets[last_bin] = pdSample::Zero();
+    
+    hist_cerr << " bucket[" << first_bin << "] = " 
+	      << buckets[first_bin] << "   bucket[" << last_bin 
+	      << "] = " << buckets[last_bin] << "\n";
+    
+    /* add the appropriate amount of time to each bin */
+    buckets[first_bin] += amt_first_bin;
+    hist_cerr << " bucket[" << first_bin << "] += " << amt_first_bin
+	      << " = " << buckets[first_bin] << "\n";
+    buckets[last_bin]  += amt_last_bin;
+    
+    for (i=first_bin+1; i < last_bin; i++) {
+      if(buckets[i].isNaN()) 
+	buckets[i] = pdSample::Zero();
+      buckets[i]  += amt_other_bins;
+      hist_cerr << " bucket[" << i << "] += " << amt_other_bins
+		<< " = " << buckets[i] << "\n";
+    }
+    hist_cerr << " bucket[" << last_bin << "] += " << amt_last_bin
+	      << " = " << buckets[last_bin] << "\n";
 
     // inform users about the data.
     // make sure they want to hear about it (dataFunc)
@@ -379,15 +369,27 @@ void Histogram::bucketValue(relTimeStamp start_clock, relTimeStamp end_clock,
 
     if ((dataFunc)  && (last_bin > first_bin)) {
       hist_cerr << "dataFunc()- firstBin: " << first_bin << ", val(1): " 
-		<< buckets[first_bin] << "\n"; 
-      lastBinSent = first_bin;
-	(dataFunc)(&buckets[first_bin], 
-		   startTime,
-		   last_bin-first_bin, 
-		   first_bin, 
-		   cData,
-		   globalData);
+		<< buckets[first_bin] << "\n";
+
+      // We want to send the actual value of the last bin that was sent along
+      // with the change in sample values in order that the performance
+      // streams can easily calculate the actual value for each bucket to
+      // pass on (along with the given change in sample value)
+
+      (dataFunc)(&buckets[first_bin], startTime, 
+		 last_bin-first_bin, first_bin, cData);
+      lastBinSent = last_bin - 1;
     }
+}
+
+// can this replace getValue()
+pdSample Histogram::getCurrentActualValue() {
+  pdSample curTot = pdSample::Zero();
+  assert(! initActualVal.isNaN());
+  for(int i=0; i<lastBin; i++) {
+    if(! buckets[i].isNaN())  curTot += buckets[i];
+  }
+  return initActualVal + curTot;
 }
 
 /*
@@ -420,9 +422,11 @@ int Histogram::getBuckets(pdSample *saveBuckets, int numberOfBuckets,int first)
 {
     int i;
     int last;
+
     hist_cerr << "getBuckets - num: " << numberOfBuckets << "  first: " 
 	      << first << "\n";
     last = first + numberOfBuckets - 1;
+
     if (lastBin < last) last = lastBin;  // lastBin is an index
 
     assert(first >= 0);
@@ -432,7 +436,12 @@ int Histogram::getBuckets(pdSample *saveBuckets, int numberOfBuckets,int first)
 	hist_cerr << "   " << i << ": " << temp << "\n";
 	saveBuckets[i-first] = temp;
     }
-    return(last-first+1);
+    int ret;
+    if(last == -1)
+      ret = 0;
+    else
+      ret = last - first + 1;
+    return ret;
 }
 
 
