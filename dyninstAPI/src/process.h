@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.186 2002/02/26 20:30:05 gurari Exp $
+/* $Id: process.h,v 1.187 2002/03/04 20:44:59 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -447,6 +447,10 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
+  // MT_AIX stuff
+  // Keep the current "best guess" of the active kernel thread around
+  unsigned curr_lwp;
+  
   void walkStack(Frame currentFrame, vector<Address>&pcs, 
                  vector<Address>&fps, bool noPause=false);
 
@@ -1518,9 +1522,6 @@ private:
    Address postsyscallpc;  // PC after the syscall is interrupted
 #endif
 
-   // MT_AIX stuff
-   // Keep the current "best guess" of the active kernel thread around
-   unsigned curr_lwp;
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
