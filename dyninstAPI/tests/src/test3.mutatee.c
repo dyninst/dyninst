@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.8 1999/11/06 21:44:38 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.9 1999/11/11 17:38:40 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -25,6 +25,10 @@
 
 /* Mutatee for multi-process tests.
  */
+
+/* control debug printf statements */
+#define dprintf	if (debugPrint) printf
+int debugPrint = 0;
 
 /* 
  * Test #1 - just run in a busy wait loop and then exit.
@@ -57,7 +61,7 @@ void test2()
 
      func2_1();
 
-     sprintf(filename, "test3.out.%d", getpid());
+     sprintf(filename, "test3.out.%d", (int)getpid());
      fp = fopen(filename, "w");
      assert(fp);
      fprintf(fp, "%d\n", test2ret);
@@ -103,5 +107,6 @@ int main(int iargc, char *argv[])
 		printf("invalid test number %d in mutatee\n", testNum);
 		break;
     }
+    dprintf("Mutatee terminating.\n");
     return(0);
 }

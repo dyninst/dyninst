@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.29 1999/11/11 16:50:10 paradyn Exp $ */
+/* $Id: test1.mutatee.c,v 1.30 1999/11/11 17:38:39 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1956,5 +1956,6 @@ int main(int iargc, char *argv[])
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
+    dprintf("Mutatee terminating.\n");
     return (testsFailed ? 127 : 0);
 }

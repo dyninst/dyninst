@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.19 1999/11/06 21:44:38 wylie Exp $ */
+/* $Id: test2.mutatee.c,v 1.20 1999/11/11 17:38:40 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -202,6 +202,7 @@ int main(int iargc, char *argv[])
 
     while(1);
 
+    dprintf("Mutatee terminating.\n");
     return(0);
 }
 

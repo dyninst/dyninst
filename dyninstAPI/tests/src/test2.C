@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.33 1999/11/07 21:48:47 wylie Exp $
+// $Id: test2.C,v 1.34 1999/11/11 17:38:40 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -552,6 +552,9 @@ void test14()
 	return;
     }
 
+    int statusCode = ret->terminationStatus();
+    dprintf("Terminated mutatee returned status code 0x%x\n", statusCode);
+
     printf("Passed test #14 (process mgmnt. tests)\n");
     passedTest[14] = true;
     return;
@@ -789,10 +792,11 @@ main(unsigned int argc, char *argv[])
     
     int pid = ret->getPid();
 
-
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
     // detach from the process.
     ret->detach(true);
+#else
+    printf("[Process detach not yet implemented.]\n");
 #endif
 
     // now kill the process.
