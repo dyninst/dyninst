@@ -1,11 +1,11 @@
 #
-# $Id: Makefile,v 1.5 2004/10/07 00:45:59 jaw Exp $
+# $Id: Makefile,v 1.6 2005/01/20 15:31:12 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_TCLTK	= true
-USE_TCL83 = true
+#USE_TCL83 = true
 USES_X11	= true
 TO_CORE		= ..\..\..
 NO_IMPLICIT_TEMPLATES = true
