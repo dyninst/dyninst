@@ -1,4 +1,15 @@
 
+#ifndef _ARCH_SPARC_H
+#define _ARCH_SPARC_H
+
+/*
+ * $Log: arch-sparc.h,v $
+ * Revision 1.3  1994/09/22 01:31:33  markc
+ * Added log message, duplicate include guards
+ *
+ */
+
+
 /*
  * Define sparc instruction information.
  *
@@ -179,3 +190,5 @@ typedef union instructUnion instruction;
                            (insn.branch.op2 == 6) ||    \
                            (insn.branch.op2 == 7)))
 
+
+#endif
