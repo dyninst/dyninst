@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.7  1994/04/19 18:54:43  hollings
+# Revision 1.8  1994/04/19 18:59:35  hollings
+# created error #7
+#
+# Revision 1.7  1994/04/19  18:54:43  hollings
 # created error #6
 #
 # Revision 1.6  1994/04/19  18:50:06  hollings
@@ -88,4 +91,13 @@ new paradyd process failed.  This is a continuable error, but does mean that
 the request application process will NOT be started.  This error can happen
 if the path for the paradynd is incorrect, if the paradynd binary is not
 installed on that machine, or if the machine or network is down.
+%Y
+
+%N 7
+%E auto refinement already enabled
+%A pc
+%S serious
+%X
+An attempt to enable automatic refinement was made will automated refinement
+was already being attempted.
 %Y
