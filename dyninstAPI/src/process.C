@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.414 2003/04/20 01:00:09 schendel Exp $
+// $Id: process.C,v 1.415 2003/04/23 22:59:54 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5359,8 +5359,6 @@ bool process::handleSyscallExit(procSignalWhat_t syscall)
             return true;            
         }
         else {
-            fprintf(stderr, "Clearing system call on thread %d\n",
-                    thr->get_tid());
             thr->get_lwp()->clearSyscallExitTrap();
             return true;
         }
