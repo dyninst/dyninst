@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.16 1999/06/29 15:59:11 wylie Exp $
+// $Id: BPatch_snippet.C,v 1.17 1999/06/29 18:28:09 wylie Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -655,6 +655,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         result->push_back(new_point);
     }
     switch (loc) {
+      case BPatch_entry: // already done
+          break;
       case BPatch_allLocations:
         {
           const vector<instPoint *> &Rpoints = func->funcExits(proc);
