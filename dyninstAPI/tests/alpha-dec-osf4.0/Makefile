@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 1999/05/29 22:30:10 wylie Exp $
+# $Id: Makefile,v 1.4 1999/10/18 17:32:46 hollings Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -14,7 +14,7 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS +=
+CXXFLAGS += -mcpu=ev56
 CFLAGS += -g
 
 SYSLIBS   += -g -lmld -liberty
@@ -24,14 +24,14 @@ SYSLIBS   += -g -lmld -liberty
 
 include ../make.module.tmpl
 
+MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
+
 ifdef USES_LIBDYNINSTRT_SO
-$(TARGET2): $(TARGET2).o
-	# $(CC) $(TARGET2).o -o $(TARGET2) ../../../../lib/$(PLATFORM)/libdyninstAPI_RT.so.1
-	# $(CC) -taso -g $(TARGET2).o -o $(TARGET2) 
-	$(CC) -g $(TARGET2).o -o $(TARGET2) 
+$(TARGET2): $(MUTATEE_SRC)
+	$(MUTATEE_CC) $(MODCFLAGS) -g $(MUTATEE_SRC) -o $(TARGET2) 
 else
-$(TARGET2): $(TARGET2).o
-	$(CC) -g $(TARGET2).o -o $(TARGET2)
+$(TARGET2): $(MUTATEE_SRC)
+	$(MUTATEE_CC) $(DYNINSTAPI_RT_LIB) -g $(MUTATEE_SRC) -o $(TARGET2)
 endif
 
 libtestA.o:

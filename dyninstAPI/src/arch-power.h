@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.12 1998/12/25 22:02:06 wylie Exp $
+// $Id: arch-power.h,v 1.13 1999/10/18 17:32:43 hollings Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -294,5 +294,8 @@ inline bool isAligned(const Address addr)
 // bool isCallInsn(const instruction);
 // bool isReturnInsn(const image *, Address, bool&);
 
+// Define bounds for immediate offsets
+#define MIN_IMM16	-32768
+#define MAX_IMM16	32767
 
 #endif

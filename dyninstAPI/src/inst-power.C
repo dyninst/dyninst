@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.81 1999/09/10 14:26:27 nash Exp $
+ * $Id: inst-power.C,v 1.82 1999/10/18 17:32:45 hollings Exp $
  */
 
 #include "util/h/headers.h"
@@ -116,6 +116,11 @@ inline void generateBranchInsn(instruction *insn, int offset)
 inline void genImmInsn(instruction *insn, int op, Register rt, Register ra, int immd)
 {
   // something should be here to make sure immd is within bounds
+  // bound check really depends on op since we have both signed and unsigned
+  //   opcodes.
+  // This assert seem 
+  assert((immd >= 2*MIN_IMM16) && (immd <= 2*MAX_IMM16));
+
   insn->raw = 0;
   insn->dform.op = op;
   insn->dform.rt = rt;
@@ -2050,17 +2055,19 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
     if (op == loadConstOp) {
-	if (ABS(src1) > MAX_IMM) {
+	// constants are signed
+	int constValue = (int) src1;
+	if (ABS(constValue) > MAX_IMM) {
 	    // really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
-	    genImmInsn(insn, CAUop, dest, 0, HIGH(src1));
+	    genImmInsn(insn, CAUop, dest, 0, HIGH(constValue));
 	    insn++;
 
 	    // ori dest,dest,LOW(src1)
-	    genImmInsn(insn, ORILop, dest, dest, LOW(src1));
+	    genImmInsn(insn, ORILop, dest, dest, LOW(constValue));
 	    base += 2 * sizeof(instruction);
 	} else {
 	    // really add regd,0,imm
-	    genImmInsn(insn, CALop, dest, 0, src1);
+	    genImmInsn(insn, CALop, dest, 0, constValue);
 	    base += sizeof(instruction);
 	}
     } else if (op ==  loadOp) {
@@ -2084,6 +2091,28 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	genImmInsn(insn, Lop, dest, dest, LOW(src1));
 
         base += sizeof(instruction)*2;
+    } else if (op == loadFrameRelativeOp) {
+	// return the value that is FP offset from the original fp
+	int offset = (int) src1;
+
+	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
+	    abort();
+	} else {
+	    genImmInsn(insn, Lop, dest, REG_SP, offset);
+	    insn++;
+            base += sizeof(instruction)*2;
+	}
+    } else if (op == loadFrameAddr) {
+	// offsets are signed!
+	int offset = (int) src1;
+
+	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
+	    abort();
+	} else {
+	    genImmInsn(insn, CALop, dest, REG_SP, offset);
+	    insn++;
+	    base += sizeof(instruction);
+	}
     } else {
         abort();       // unexpected op for this emit!
     }
@@ -2123,15 +2152,28 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 
 	// low == LOW(dest)
 	// generate -- st src1, low(temp)
+#ifdef notdef
 	insn->dform.op = STop;
 	insn->dform.rt = src1;
 	insn->dform.ra = temp;
 	insn->dform.d_or_si = LOW(dest);
+#endif
+	genImmInsn(insn, STop, src1, temp, LOW(dest));
 	base += sizeof(instruction);
         insn++;
 
 	regSpace->freeRegister(temp);
         return;
+    } else if (op == storeFrameRelativeOp) {
+	// offsets are signed!
+	int offset = (int) dest;
+	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
+	    abort();
+	} else {
+	    genImmInsn(insn, STop, src1, REG_SP, offset);
+	    base += sizeof(instruction);
+	    insn++;
+	}
     } else {
         abort();       // unexpected op for this emit!
     }
@@ -2940,8 +2982,7 @@ bool process::replaceFunctionCall(const instPoint *point,
     if (newFunc == NULL) {	// Replace with a NOOP
 	generateNOOP(&newInsn);
     } else {			// Replace with a new call instruction
-	generateBranchInsn(&newInsn,
-			   newFunc->addr()+sizeof(instruction)-point->addr);
+	generateBranchInsn(&newInsn, newFunc->addr()-point->addr);
 	newInsn.iform.lk = 1;
     }
 

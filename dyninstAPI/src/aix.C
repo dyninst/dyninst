@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.60 1999/09/14 17:14:52 bernat Exp $
+// $Id: aix.C,v 1.61 1999/10/18 17:32:43 hollings Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1159,6 +1159,8 @@ void Object::load_object()
    union auxent *csect;
    char *stringPool=NULL;
    Symbol::SymbolType type; 
+   bool foundDebug = false;
+
    int *lengthPtr = &poolLength;
    struct syment *symbols = NULL;
    struct scnhdr *sectHdr = NULL;
@@ -1267,6 +1269,29 @@ void Object::load_object()
       goto cleanup;
    }
 
+   foundDebug = false;
+
+   // Find the debug symbol table.
+   for (i=0; i < hdr.f_nscns; i++) {
+       if (sectHdr[i].s_flags & STYP_DEBUG) {
+	   foundDebug = true;
+	   break;
+       }
+
+   }
+
+   if (foundDebug) {
+       stabs_ = symbols;
+       nstabs_ = hdr.f_nsyms;
+       stringpool_ = stringPool;
+       if (!seekAndRead(fd, roundup4(sectHdr[i].s_scnptr),
+	   (void **) &stabstr_, sectHdr[i].s_size, true)) {
+	     cerr << "seekAndRead for initialized debug section failed!" << 
+		 endl;
+	     goto cleanup;
+       }
+   }
+
    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; 
    // (OLD, pre-4.1)
    data_off_ = aout.data_start;
@@ -1353,8 +1378,8 @@ void Object::load_object()
 
          //dump << "name \"" << name << "\" in module \"" << modName << "\" value=" << (void*)value << endl;
             
-         //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
-         //   name.string_of(), modName.string_of(), value);
+         // fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
+            // name.string_of(), modName.string_of(), value);
 
 #ifdef BPATCH_LIBRARY
 	 unsigned int size = 0;
@@ -1426,8 +1451,8 @@ void Object::load_object()
   cleanup:
    close(fd);
    if (sectHdr) free(sectHdr);
-   if (stringPool) free(stringPool);
-   if (symbols) free(symbols);
+   if (stringPool && !foundDebug) free(stringPool);
+   if (symbols && !foundDebug) free(symbols);
 
    return;
 }

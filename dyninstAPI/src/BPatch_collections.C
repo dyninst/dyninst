@@ -44,6 +44,7 @@
 #include "util.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "BPatch.h"
 //#include "BPatch_type.h"
 
 
@@ -165,8 +166,14 @@ BPatch_type *BPatch_typeCollection::findType(const int & ID)
 {
     if (typesByID.defines(ID))
     	return typesByID[ID];
-    else
-	return (BPatch_type *)NULL;
+    else {
+	BPatch_type *ret = NULL;
+	
+	if (BPatch::bpatch && BPatch::bpatch->builtInTypes) 
+	    ret = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
+
+	return ret;
+    }
 }
 
 /*

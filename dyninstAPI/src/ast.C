@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.71 1999/08/26 20:02:19 hollings Exp $
+// $Id: ast.C,v 1.72 1999/10/18 17:32:44 hollings Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1844,16 +1844,14 @@ BPatch_type *AstNode::checkType()
 	ret = BPatch::bpatch->type_Untyped;
     }
 
-#ifdef notdef
-    print();
     if (ret) {
 	logLine(" type is ");
 	if (ret->getName()) 
 	     logLine(ret->getName());
 	else
 	     logLine(" <NULL Name String>");
+	logLine("\n");
     }
-#endif
 
     // remember what type we are
     setType(ret);

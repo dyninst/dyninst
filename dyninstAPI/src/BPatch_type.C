@@ -736,8 +736,11 @@ bool BPatch_type::isCompatible(const BPatch_type &otype)
 
       // verify that the number of elements is the same
       if ((this->hi - this->low) != (otype.hi - otype.low)) {
-	  BPatch_reportError(BPatchWarning, 112, 
-	      "Arrays have differing number of elements");
+	  char message[80];
+	  sprintf(message, 
+	      "Incompatible number of elements [%d..%d] vs. [%d..%d]",
+	      this->low, this->hi, otype.low, otype.hi);
+	  BPatch_reportError(BPatchWarning, 112, message);
 	  return false;
       }
 

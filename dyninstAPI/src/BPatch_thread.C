@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.25 1999/08/26 20:02:18 hollings Exp $
+// $Id: BPatch_thread.C,v 1.26 1999/10/18 17:32:42 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -556,6 +556,9 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
     if (!mutationsActive)
 	return NULL;
 
+    // code is null (possibly an empy sequence or earlier error)
+    if (!expr.ast) return NULL;
+
     callWhen 	_when;
     callOrder	_order;
 
@@ -591,6 +594,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 	// XXX Really only need to type check once per function the snippet is
 	// being inserted into, not necessarily once per point.
 	if (BPatch::bpatch->isTypeChecked()) {
+	    assert(expr.ast);
 	    if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
 		// XXX Type check error - should call callback
 		delete handle;
