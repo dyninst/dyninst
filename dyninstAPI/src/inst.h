@@ -66,14 +66,14 @@ class returnInstance;
  * TODO: make these methods of class process
  */
 instInstance *addInstFunc(process *proc,
-			  const instPoint *&location,
+			  instPoint *&location,
 			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
 			  bool noCost);
 
 instInstance *addInstFunc(process *proc,
-			  const instPoint *&location,
+			  instPoint *&location,
 			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,

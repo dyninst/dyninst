@@ -1841,7 +1841,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportCounter", tmp);
    removeAst(tmp);
 
-   const instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = sampleFunction->funcEntry(theProc);
    sampler = addInstFunc(theProc, func_entry,
 			 ast, callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
@@ -2254,7 +2254,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportTimer", tmp);
    removeAst(tmp);
 
-   const instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = sampleFunction->funcEntry(theProc);
    sampler = addInstFunc(theProc, func_entry, ast,
 			 callPreInsn, orderLastAtPoint, false);
    removeAst(ast);

@@ -131,6 +131,7 @@ public:
   instruction inDelaySlotInsn;
   instruction extraInsn;   	// if 1st instr is conditional branch this is
 			        // previous instruction 
+  instruction saveInsn;         // valid only with nonLeaf function entry 
 
   bool inDelaySlot;             // Is the instruction in a delay slot
   bool isDelayed;		// is the instruction a delayed instruction
@@ -149,6 +150,9 @@ public:
   const image *image_ptr;	// for finding correct image in process
   bool firstIsConditional;      // 1st instruction is conditional branch
   bool relocated_;	        // true if instPoint is from a relocated func
+
+  bool isLongJump;              // true if it turned out the branch from this 
+                                // point to baseTramp needs long jump.   
 };
 
 inline unsigned getMaxBranch3Insn() {
@@ -192,6 +196,10 @@ inline bool offsetWithinRangeOfBranchInsn(int offset) {
       return true;
 }
 
+inline bool in1BranchInsnRange(unsigned adr1, unsigned adr2) 
+{
+    return (abs(adr1-adr2) < (0x1 << 23));
+}
 
 inline void generateNOOP(instruction *insn)
 {
@@ -436,7 +444,7 @@ extern void generateNoOp(process *proc, int addr);
 extern void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr,
 		  instruction originalBranch);
 extern trampTemplate *findAndInstallBaseTramp(process *proc,
-				 const instPoint *&location, 
+				 instPoint *&location, 
 				 returnInstance *&retInstance, bool noCost);
 
 extern void  generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);

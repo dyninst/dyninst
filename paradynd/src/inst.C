@@ -143,7 +143,7 @@ static dictionary_hash<const instPoint*, point*> activePoints(ipHash);
 vector<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
-instInstance *addInstFunc(process *proc, const instPoint *&location,
+instInstance *addInstFunc(process *proc, instPoint *&location,
 			  AstNode *&ast, // ast may change (sysFlag stuff)
 			  callWhen when, callOrder order,
 			  bool noCost)
@@ -162,7 +162,7 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
 }
 
 // Shouldn't this be a member fn of class process?
-instInstance *addInstFunc(process *proc, const instPoint *&location,
+instInstance *addInstFunc(process *proc, instPoint *&location,
 			  AstNode *&ast, // the ast could be changed 
 			  callWhen when, callOrder order,
 			  bool noCost,

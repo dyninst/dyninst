@@ -730,7 +730,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       const instPoint *&location,
+				       instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool noCost)
 {

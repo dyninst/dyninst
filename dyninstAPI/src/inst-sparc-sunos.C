@@ -54,7 +54,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f),
   leaf(isLeaf), ipType(pointType), image_ptr(owner), firstIsConditional(false),
-  relocated_(false)
+  relocated_(false), isLongJump(true)
 {
 
   isBranchOut = false;
@@ -161,6 +161,22 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   // sequence. (there's a -1 here because one will be added up later in
   // the function findInstPoints)  
   adr = addr + (size - 1*sizeof(instruction));
+}
+
+
+void AstNode::sysFlag(instPoint *location)
+{
+    // astFlag = location->func->isTrapFunc();
+    if (astFlag == false)
+	astFlag = (location -> isLongJump)? false:true; 
+    if (loperand)
+	loperand->sysFlag(location);
+    if (roperand)
+	roperand->sysFlag(location); 
+
+    for (unsigned u = 0; u < operands.size(); u++) {
+	operands[u]->sysFlag(location);
+    }
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -581,7 +597,7 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
  *
  */
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 const instPoint *&location,
+				 instPoint *&location,
 				 returnInstance *&retInstance,
 				 bool )
 {

@@ -67,7 +67,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f), 
   ipType(pointType), image_ptr(owner), firstIsConditional(false), 
-  relocated_(false)
+  relocated_(false), isLongJump(false)
 {
   assert(f->isTrapFunc() == true);  
 
@@ -297,18 +297,6 @@ void generateNoOp(process *proc, int addr)
     proc->writeTextWord((caddr_t)addr, insn.raw);
 }
 
-void AstNode::sysFlag(instPoint *location)
-{
-    astFlag = location->func->isTrapFunc();
-    if (loperand)
-	loperand->sysFlag(location);
-    if (roperand)
-	roperand->sysFlag(location); 
-
-    for (unsigned u = 0; u < operands.size(); u++) {
-	operands[u]->sysFlag(location);
-    }
-}
 
 /*
  * change the insn at addr to be a branch to newAddr.

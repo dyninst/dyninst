@@ -2973,7 +2973,7 @@ void process::installBootstrapInst() {
    pdFunction *func = findOneFunction("main");
    assert(func);
 
-   const instPoint *func_entry = func->funcEntry(this);
+   instPoint *func_entry = func->funcEntry(this);
    addInstFunc(this, func_entry, ast, callPreInsn,
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
@@ -3009,14 +3009,14 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       }
 
       if (req->where & FUNC_ENTRY) {
-	 const instPoint *func_entry = func->funcEntry(this);
+	 instPoint *func_entry = func->funcEntry(this);
 	 (void)addInstFunc(this, func_entry, ast,
 			   callPreInsn, orderLastAtPoint, false);
 
       }
 
       if (req->where & FUNC_CALL) {
-	 const vector<instPoint*> func_calls = func->funcCalls(this);
+	 vector<instPoint*> func_calls = func->funcCalls(this);
 	 if (func_calls.size() == 0)
 	    continue;
 

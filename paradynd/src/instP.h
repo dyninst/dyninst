@@ -152,7 +152,7 @@ class instWaitingList {
 extern vector<instWaitingList*> instWList;
 
 extern trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 const instPoint *&location,
+				 instPoint *&location,
 				 returnInstance *&retInstance,
 				 bool noCost);
 extern void installTramp(instInstance *inst, char *code, int codeSize);

@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.36  1997/02/03 05:01:25  lzheng
+ * Combined the long jump and short jump for the instrumentation
+ *
  * Revision 1.35  1997/01/30 18:18:58  tamches
  * emitInferiorRPCtrailer revamped...can now stop to read the return value
  * of an inferiorRPC
@@ -1121,7 +1124,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc,
-				       const instPoint *&location,
+				       instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool noCost)
 {
