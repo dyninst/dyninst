@@ -342,7 +342,7 @@ main.obj: ../src/main.C ../../util/h/headers.h \
  ../../util/h/machineType.h ../../paradynd/src/init.h \
  ../../paradynd/src/costmetrics.h ../../paradynd/src/perfStream.h \
  ../../dyninstAPI/src/clock.h ../../paradynd/src/mdld.h \
- ../src/pvm_support.h c:/pvm/include/pvm3.h
+ ../src/pvm_support.h
 metric.obj: ../src/metric.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../rtinst/h/rtinst.h \
  ../../rtinst/h/trace.h ../../util/h/sys.h \
@@ -449,8 +449,7 @@ metricDefs-critPath.obj: ../src/metricDefs-critPath.C \
  ../../paradyn/src/met/mdl.h ../../util/h/Queue.h ../../util/h/Stack.h \
  ../../paradynd/src/pvm_support.h
 perfStream-def.obj: ../src/perfStream-def.C
-perfStream.obj: ../src/perfStream.C \
- c:/pvm/include/pvm3.h ../src/pvm_support.h \
+perfStream.obj: ../src/perfStream.C ../src/pvm_support.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
  ../../util/h/refCounter.h ../../rtinst/h/rtinst.h \
