@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.19  1994/07/11 21:14:26  newhall
+# Revision 1.20  1994/07/11 21:31:31  newhall
+# *** empty log message ***
+#
+# Revision 1.19  1994/07/11  21:14:26  newhall
 # created error #14
 #
 # Revision 1.18  1994/07/11  20:48:38  newhall
@@ -195,5 +198,5 @@ Call to thr_getspecific in a visi-thread function failed.
 %S serious
 %X
 A request to start a new visualization process failed.  This is due
-to a return value of -1 from the call to RPCprocessCreate.
+to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
 %Y
