@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.73 2001/08/23 14:44:20 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.74 2001/08/28 02:48:41 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -934,6 +934,7 @@ public:
   bool inserted(void)     { return inserted_; }
   bool installed(void)    { return installed_; }
 
+  bool isInitialActualValueSet() { return !mdnInitActualVal.isNaN(); }
   bool isStartTimeSet()    { return mdnStartTime.isInitialized(); }
   timeStamp getStartTime() { return mdnStartTime; }
 
@@ -1049,6 +1050,8 @@ private:
   //  should be added or removed if necessary;
   //  also added in AGG_LEV constructor and addPart
   timeStamp mdnStartTime;    // the time that this metric started
+
+  pdSample mdnInitActualVal;  // the initial actual value for this mdn
 
   // for component (non-aggregate) and primitive metrics
   vector<dataReqNode*>	dataRequests;  //  for THR_LEV only
