@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.54 2002/06/25 20:27:44 bernat Exp $
+ * $Id: RTinst.c,v 1.55 2002/06/26 21:22:53 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -79,7 +79,7 @@
 extern void makeNewShmSegCopy();
 
 #if defined(MT_THREAD)
-extern const char V_libdyninstRT_MT[];
+extern const char V_libparadynMT[];
 #else
 extern const char V_libdyninstRT[];
 #endif
@@ -543,7 +543,7 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
   }
   
 #if defined(MT_THREAD)
-  RTprintf("%s\n", V_libdyninstRT_MT);
+  RTprintf("%s\n", V_libparadynMT);
 #else
   RTprintf("%s\n", V_libdyninstRT);
 #endif

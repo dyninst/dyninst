@@ -70,8 +70,6 @@ DECLARE_TC_LOCK(DYNINST_traceLock) ;
 DECLARE_TC_LOCK(DYNINST_posLock) ;
 DECLARE_TC_LOCK(DYNINST_initLock) ;
 
-#define MAX_REMOVED_THREADS MAX_NUMBER_OF_THREADS*4
-
 /*============================
        Per-Thread Data
  ============================= */
@@ -79,6 +77,7 @@ RTINSTsharedData *RTsharedData = NULL ;
 
 /* Used for storing appropriate thread-specific data */
 dyninst_key_t  DYNINST_thread_key ;
+unsigned *DYNINST_pos_to_thread;
 
 /**************************** INITIALIZATION ********************************/
 
@@ -102,6 +101,8 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     DYNINST_initialize_done=1;
     P_thread_key_create(&DYNINST_thread_key, NULL /* no destructor */) ;
     RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
+    
+    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
 
     memset((char*)&(RTsharedData->virtualTimers), '\0', sizeof(tTimer)*MAX_NUMBER_OF_THREADS) ;    
   }

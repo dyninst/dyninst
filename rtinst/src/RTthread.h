@@ -65,6 +65,7 @@ typedef struct rpcToDo_s {
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
   rpcToDo pendingIRPCs [MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
+  unsigned  DYNINSTthreadMap[MAX_NUMBER_OF_THREADS];
 } RTINSTsharedData ;
 
 extern RTINSTsharedData *RTsharedData;
@@ -109,7 +110,6 @@ unsigned DYNINST_alloc_pos(int tid);
 void DYNINST_free_pos(unsigned pos, int tid);
 unsigned DYNINST_lookup_pos(int tid);
 unsigned DYNINSTthreadPosSLOW(int tid);
-extern unsigned DYNINST_pos_to_thread[MAX_NUMBER_OF_THREADS];
 
 /* RTthread-<arch> */
 unsigned DYNINSTthreadPosFAST();
@@ -125,6 +125,7 @@ int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
 extern dyninst_key_t  DYNINST_thread_key ;
 extern unsigned DYNINST_initialize_done;
 extern RTINSTsharedData *RTsharedData;
+extern unsigned *DYNINST_pos_to_thread;
 void DYNINST_initialize_once();
 extern tc_lock_t DYNINST_traceLock;
 

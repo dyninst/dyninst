@@ -54,7 +54,6 @@
    ID, called a POS. 
 */
 
-unsigned  DYNINST_pos_to_thread[MAX_NUMBER_OF_THREADS];
 unsigned  DYNINST_next_free_pos;
 unsigned  DYNINST_num_pos_free;
 DECLARE_TC_LOCK(DYNINST_pos_lock);
