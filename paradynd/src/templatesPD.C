@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.20 2001/08/23 14:44:24 schendel Exp $
+// $Id: templatesPD.C,v 1.21 2002/04/05 19:38:47 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -62,6 +62,11 @@
 #include "dyninstAPI/src/Object.h"
 
 #include "paradynd/src/metric.h"
+#include "paradynd/src/machineMetFocusNode.h"
+#include "paradynd/src/processMetFocusNode.h"
+#include "paradynd/src/instrCodeNode.h"
+#include "paradynd/src/instrThrDataNode.h"
+#include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
 #include "common/h/Time.h"
@@ -82,6 +87,7 @@ template class vector<T_dyninstRPC::mdl_stmt *>;
 template class vector<T_dyninstRPC::metricInfo>;
 template class vector<T_dyninstRPC::focusStruct>;
 template class vector<dataReqNode*>;
+template class vector<const dataReqNode*>;
 template class vector<aggComponent*>;
 
 template class vector<instReqNode>;
@@ -99,6 +105,27 @@ template bool  find(const vector<instReqNode *> &,
 		    instReqNode * const &, 
 		    unsigned &);
 template class vector<internalMetric::eachInstance>;
+
+template class  dictionary_hash <unsigned, machineMetFocusNode*>;
+template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
+
+template class  dictionary_hash <unsigned, metricDefinitionNode*>;
+template class  vector<dictionary_hash <unsigned, metricDefinitionNode*>::entry>;
+template class  vector<dictionary_hash <unsigned long, metricDefinitionNode*>::entry>;
+template class  dictionary_hash <string, metricDefinitionNode*>;
+template class  vector<dictionary_hash <string, metricDefinitionNode*>::entry>;
+template class  dictionary_hash <string, instrCodeNode_Val*>;
+template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
+template class  dictionary_hash <string, instrCodeNode*>;
+template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
+
+template class  dictionary_hash <string, threadMetFocusNode_Val*>;
+template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+
+template class  dictionary_hash_iter <string, metricDefinitionNode*>;
+template class  vector<indivInstrThrDataNode*>;
+
+template class  vector<dataInstHandle>;
 
 template class dictionary_hash <unsigned, cpSample*>;
 template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
@@ -119,3 +146,8 @@ template class vector<pdSample>;
 template class timeMgrBase<NoClass, NoArgs>;
 template class timeMgrBase<process, int>;
 template class timeMgr<process, int>;
+
+template class parentDataRec<processMetFocusNode>;
+template class vector< parentDataRec<processMetFocusNode> >;
+
+

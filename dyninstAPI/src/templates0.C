@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.25 2002/02/12 15:42:05 chadd Exp $
+// $Id: templates0.C,v 1.26 2002/04/05 19:38:46 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -83,6 +83,7 @@
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
+
 template class  vector<pdThread *>;
 template class  vector< vector<pdThread *> >;
 template class  vector<bool>;
@@ -102,8 +103,14 @@ template class  vector<int>;
 template class  vector<instruction>;
 #ifndef BPATCH_LIBRARY
 template class  vector<metricDefinitionNode *>;
+template class  vector<machineMetFocusNode *>;
 template class  vector<processMetFocusNode *>;
+template class  vector<instrCodeNode *>;
+template class  vector<const instrCodeNode *>;
+template class  vector<instrThrDataNode *>;
 template class  vector<threadMetFocusNode *>;
+template class  vector<threadMetFocusNode_Val *>;
+template class  vector<const threadMetFocusNode_Val *>;
 #endif
 template class  vector<module *>;
 template class  vector<pdmodule *>;

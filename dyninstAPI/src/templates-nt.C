@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.22 2001/01/04 19:06:49 tikir Exp $
+// $Id: templates-nt.C,v 1.23 2002/04/05 19:38:44 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -55,6 +55,9 @@
 #include "dyninstAPI/src/process.h"
 #ifndef BPATCH_LIBRARY
 #include "paradyn/src/met/mdl.h"
+#include "paradynd/src/machineMetFocusNode.h"
+#include "paradynd/src/instrCodeNode.h"
+#include "paradynd/src/threadMetFocusNode.h"
 #endif
 
 template class vectorSet<process::inferiorRPCtoDo>;
@@ -79,6 +82,20 @@ template class dictionary_hash<string, pd_Function *>;
 template class dictionary_hash<string, internalSym *>;
 #ifndef BPATCH_LIBRARY
 template class dictionary_hash<string, metricDefinitionNode *>;
+template class dictionary_hash<string, instrCodeNode *>;
+
+template class  dictionary_hash <unsigned, machineMetFocusNode*>;
+template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
+template class  dictionary_hash <string, instrCodeNode_Val*>;
+template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
+template class  dictionary_hash <string, instrCodeNode*>;
+template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
+
+template class  dictionary_hash <string, threadMetFocusNode_Val*>;
+template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+
+template class parentDataRec<processMetFocusNode>;
+template class vector< parentDataRec<processMetFocusNode> >;
 #endif
 template class dictionary_hash<string, vector<string> *>;
 template class dictionary_hash<string, vector<pd_Function *> *>;
