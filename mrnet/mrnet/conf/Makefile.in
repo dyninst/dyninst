@@ -29,8 +29,8 @@ WARNFLAGS = -Wall \
             -Wconversion           \
             -Wshadow               \
             -Wredundant-decls      \
-            -pedantic              \
-            -Wno-non-template-friend
+            -Wno-non-template-friend \
+#            -pedantic              \
 
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas

@@ -99,8 +99,8 @@ int MC_Synchronizer::push_packets(std::list <MC_Packet *> &packets_in,
 /*==========================================*
  *    Default Aggregator Definitions        *
  *==========================================*/
-void aggr_Int_Sum(MC_DataElement **in_elems, int in_count,
-                  MC_DataElement ***out_elems, int *out_count)
+void aggr_Int_Sum(MC_DataElement **in_elems, unsigned int in_count,
+                  MC_DataElement ***out_elems, unsigned int *out_count)
 {
   int i;
   int sum=0;
@@ -116,8 +116,8 @@ void aggr_Int_Sum(MC_DataElement **in_elems, int in_count,
   (*out_elems)[0][0].type = INT32_T;
 }
 
-void aggr_Float_Avg(MC_DataElement **in_elems, int in_count,
-                    MC_DataElement ***out_elems, int *out_count)
+void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
+                    MC_DataElement ***out_elems, unsigned int *out_count)
 {
   int i;
   float avg=0;
@@ -139,8 +139,8 @@ void aggr_Float_Avg(MC_DataElement **in_elems, int in_count,
 }
 
 
-void aggr_CharArray_Concat(MC_DataElement **in_elems, int in_count,
-                           MC_DataElement ***out_elems, int *out_count)
+void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
+                           MC_DataElement ***out_elems, unsigned int *out_count)
 {
   int i, result_array_size=0;
   char *result_array;
