@@ -578,7 +578,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	
 	delete ld_path;		// allocated by gd_ld_info
 	return (result);
-	} /* end getSharedObjects() */
+} /* end getSharedObjects() */
 
 
 // findChangeToLinkMaps: This routine returns a vector of shared objects
