@@ -118,6 +118,7 @@ public:
     virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
     
 protected:
+    ~AObject() {}
     // explicitly protected
     AObject(const string file , void (*err_func)(const char *)): file_(file), 
 	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 

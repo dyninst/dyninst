@@ -470,6 +470,7 @@ void process::handleIfDueToDyninstLib()
   //Address codeBase = getImage()->codeOffset();
 
   Address codeBase = (this->findOneFunction("_start"))->addr();
+  assert(codeBase);
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
   restoreRegisters(savedRegs); 
   // this should put the PC at the right position, that is, at the entry point
@@ -479,6 +480,7 @@ void process::handleIfDueToDyninstLib()
 void process::handleTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
+  assert(f_main);
   unsigned addr = f_main->addr();
   // restore original instruction 
   writeDataSpace((void *)addr, sizeof(instruction), (char *)savedCodeBuffer);
@@ -487,6 +489,7 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
+  assert(f_main);
   unsigned addr = f_main->addr();
   // save original instruction first
   readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
@@ -508,6 +511,7 @@ bool process::dlopenDYNINSTlib() {
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
   Address codeBase = (this->findOneFunction("_start"))->addr();
+  assert(codeBase);
 
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
@@ -646,7 +650,7 @@ bool process::dlopenDYNINSTlib() {
   // we have now written the name of the library after the trap - naim
 
 #ifdef BPATCH_LIBRARY  /* dyninst API doesn't load libsocket.so.1 */
-  assert((count + strlen(libname) + 1) <=BYTES_TO_SAVE);
+  assert(count<=BYTES_TO_SAVE);
   // The dyninst API doesn't load the socket library
 #else
   char socketname[256];
@@ -661,7 +665,7 @@ bool process::dlopenDYNINSTlib() {
   count += strlen(socketname)+1;
   // we have now written the name of the socket library after the trap - naim
   //
-  assert((count + strlen(libname)+1 + strlen(socketname)+1) <=BYTES_TO_SAVE);
+  assert(count<=BYTES_TO_SAVE);
 #endif
 
 #ifdef BPATCH_LIBRARY  /* dyninst API doesn't load libsocket.so.1 */

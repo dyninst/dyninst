@@ -168,3 +168,6 @@ template class dictionary_hash_iter<int, BPatch_thread *>;
 #endif
 template class dictionary<string, vector<string> *>;
 template class  dictionary_hash <string, vector<string>*>;
+
+template class vector<process::inferiorRPCtoDo>;
+template class vector<process::inferiorRPCinProgress>;

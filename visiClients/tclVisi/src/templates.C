@@ -58,3 +58,6 @@ template class dictionary_lite<string, pdLogo *>;
 
 template class dictionary_lite<string, pdLogo::logoStruct>;
 template class  refCounter<string_ll>;
+template class vector<vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
+template class vector<vector<dictionary_lite<string, pdLogo *>::hash_pair> >;
+template class vector<unsigned int>;

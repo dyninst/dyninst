@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.5  1997/09/05 22:20:33  naim
+ * Changes to template files to be able to compile paradyn with -O3 - naim
+ *
  * Revision 1.4  1997/04/30 15:37:16  mjrg
  * added template needed for new implementation of string class
  *
@@ -74,3 +77,6 @@ template class dictionary_lite<string, pdLogo *>;
 
 template class dictionary_lite<string, pdLogo::logoStruct>;
 template class refCounter<string_ll>;
+template class vector<vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
+template class vector<vector<dictionary_lite<string, pdLogo *>::hash_pair> >;
+template class vector<unsigned int>;
