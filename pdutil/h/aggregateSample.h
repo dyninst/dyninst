@@ -128,8 +128,6 @@ public:
     for (unsigned u = 0; u < newParts.size(); u++) {
       if (newParts[u] == comp) {
         removedNewParts[u] = true;
-        newParts[u] = newParts[newParts.size()-1];
-        newParts.resize(newParts.size()-1);
         return;
       }
     }
