@@ -14,9 +14,11 @@
 
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
 
 #include "AddressHandle.h"
+
 #endif
 
 #include "LineInformation.h"
@@ -180,7 +182,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
 	int tbs = 0,i,j;
 
 	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
@@ -194,7 +197,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 	//initializing the variables to use. Creating an address handle
 	//a set of leaders and a map from leaders to the basic blocks.
 
-	AddressHandle ah(bpFunction->proc->getImage(),relativeAddress,
+	AddressHandle ah(bpFunction->proc,relativeAddress,
 			 bpFunction->getSize());
 
 	Address baddr = relativeAddress;
@@ -223,7 +226,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 		Address pos = ah++;
 
 		//if it is a conditional branch 
-		if(isLocalCondBranch(inst)){
+		if(isACondBranchInstruction(inst)){
 			//if also it is inside the function space
 			//then insert the target address as a leader
 			//and create the basic block for the leader
@@ -252,7 +255,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 				allBlocks += leaderToBlock[taddr];
 			}
 		}
-		else if(isLocalJump(inst)) {
+		else if(isAJumpInstruction(inst)) {
 			//if it is unconditional jump then find the
 			//target address and insert it as a leader and create
 			//a basic block for it.
@@ -269,11 +272,20 @@ void BPatch_flowGraph::createBasicBlocks(){
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
+#if defined(alpha_dec_osf4_0)
+			taddr = *ah;
+			if((taddr < maddr) && !leaders.contains(taddr)){
+				leaders += taddr;
+				leaderToBlock[taddr] =
+				    new BPatch_basicBlock(this, tbs++);
+				allBlocks += leaderToBlock[taddr];
+			}
+#endif
 		}
 #if defined(rs6000_ibm_aix4_1)
-		else if(isLocalIndirectJump(inst,AddressHandle(ah))){
+		else if(isAIndirectJumpInstruction(inst,AddressHandle(ah))){
 #else
-		else if(isLocalIndirectJump(inst)){
+		else if(isAIndirectJumpInstruction(inst)){
 #endif
 			AddressHandle ah2(ah);
 			BPatch_Set<Address> possTargets; 
@@ -354,7 +366,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 			//predecessor field of the other one. Do the
 			//same thing for the following ( or the other one
 			//if delay instruction is supported) as a leader.
-			if(isLocalCondBranch(inst)){
+			if(isACondBranchInstruction(inst)){
 				taddr = getBranchTargetAddress(inst,pos);
 				if((baddr <= taddr) && (taddr < maddr)){
 					bb->targets += leaderToBlock[taddr];
@@ -373,7 +385,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 					leaderToBlock[taddr]->sources += bb;
 				}
 			}
-			else if(isLocalJump(inst)){
+			else if(isAJumpInstruction(inst)){
 				//if the branch is unconditional then only
 				//find the target and leader and basic block 
 				//coressponding to the leader. And update 
@@ -392,9 +404,9 @@ void BPatch_flowGraph::createBasicBlocks(){
 					++ah;
 			}
 #if defined(rs6000_ibm_aix4_1)
-			else if(isLocalIndirectJump(inst,AddressHandle(ah))){
+			else if(isAIndirectJumpInstruction(inst,AddressHandle(ah))){
 #else
-			else if(isLocalIndirectJump(inst)){
+			else if(isAIndirectJumpInstruction(inst)){
 #endif
 				AddressHandle ah2(ah);
 				BPatch_Set<Address> possTargets; 
@@ -417,7 +429,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 					//architecture then skip one more instruction
 					++ah;
 			}
-			else if(isReturn(inst)){
+			else if(isAReturnInstruction(inst)){
 				exitBlock += bb;
 				bb->isExitBasicBlock = true;
 			}
@@ -443,7 +455,8 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
 
 	if (isSourceBlockInfoReady)
 		return;
@@ -488,7 +501,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 	//and find the closest lines to these addresses.
 
 	//get the address handle for the region
-	AddressHandle ah(bpFunction->proc->getImage(),effectiveAddress,
+	AddressHandle ah(bpFunction->proc,effectiveAddress,
 			 bpFunction->getSize()); 
 
 	//for every basic block in the control flow graph

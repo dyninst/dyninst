@@ -20,7 +20,7 @@
 /** is the instruction used to return from the functions
   * @param i the instruction value 
   */
-bool isReturn(const instruction i){
+bool isAReturnInstruction(const instruction i){
 
 	if((i.resti.op == 0x2) && (i.resti.op3 == 0x38) &&
 	   (i.resti.rd == 0) && (i.resti.i == 0x1) &&
@@ -33,7 +33,7 @@ bool isReturn(const instruction i){
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */
-bool isLocalIndirectJump(const instruction i){
+bool isAIndirectJumpInstruction(const instruction i){
 
 	if((i.resti.op == 0x2) && (i.resti.op3 == 0x38) &&
 	   (i.resti.rd == 0) && (i.resti.rs1 != 0xf) && 
@@ -45,7 +45,7 @@ bool isLocalIndirectJump(const instruction i){
 /** is the instruction a conditional branch instruction 
   * @param i the instruction value 
   */ 
-bool isLocalCondBranch(const instruction i){
+bool isACondBranchInstruction(const instruction i){
 	if((i.branch.op == 0) &&
 	   (i.branch.op2 == 2 || i.branch.op2 == 6) &&
 	   (i.branch.cond != 0) && (i.branch.cond != 8))
@@ -55,7 +55,7 @@ bool isLocalCondBranch(const instruction i){
 /** is the instruction an unconditional branch instruction 
   * @param i the instruction value 
   */
-bool isLocalJump(const instruction i){
+bool isAJumpInstruction(const instruction i){
 	if((i.branch.op == 0) &&
 	   (i.branch.op2 == 2 || i.branch.op2 == 6) &&
 	   (i.branch.cond == 8))
@@ -65,7 +65,7 @@ bool isLocalJump(const instruction i){
 /** is the instruction a call instruction 
   * @param i the instruction value 
   */
-bool isLocalCall(const instruction i){
+bool isACallInstruction(const instruction i){
 	if(i.call.op == 0x1)
 		return true;
 	return false;
@@ -86,20 +86,23 @@ Address getBranchTargetAddress(const instruction i,Address pos){
 //Address Handle used by flowGraph which wraps the instructions
 //and supply enough operation to iterate over the instrcution sequence.
 
-AddressHandle::AddressHandle(image* fImage,
+AddressHandle::AddressHandle(process* fProcess,
 			     Address bAddress,
 			     unsigned fSize)
-	: addressImage(fImage),baseAddress(bAddress),
+	: addressProc(fProcess),
+	  addressImage(fProcess->getImage()),baseAddress(bAddress),
 	  range(fSize),currentAddress(bAddress) {}
 
-AddressHandle::AddressHandle(Address cAddress,image* fImage,
+AddressHandle::AddressHandle(Address cAddress,process* fProcess,
 			     Address bAddress,
 			     unsigned fSize)
-	: addressImage(fImage),baseAddress(bAddress),
+	: addressProc(fProcess),
+	  addressImage(fProcess->getImage()),baseAddress(bAddress),
 	  range(fSize),currentAddress(cAddress) {}
 
 AddressHandle::AddressHandle(const AddressHandle& ah){
 	addressImage = ah.addressImage;
+	addressProc = ah.addressProc;
 	baseAddress = ah.baseAddress;
 	currentAddress = ah.currentAddress;
 	range = ah.range;
@@ -135,7 +138,6 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 bool AddressHandle::delayInstructionSupported(){
 	return true;
 }
-
 bool AddressHandle::hasMore(){
 	if((currentAddress < (baseAddress + range )) &&
 	   (currentAddress >= baseAddress))

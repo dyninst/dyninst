@@ -3,7 +3,8 @@
 
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
 
 #include "BPatch_Set.h"
 
@@ -12,16 +13,16 @@ class AddressHandle;
 /** helper function to identify the properties of the
   * instruction such as the type and the offset.
   */
-bool isReturn(const instruction);
-bool isLocalCondBranch(const instruction);
-bool isLocalJump(const instruction);
-bool isLocalCall(const instruction);
+bool isAReturnInstruction(const instruction);
+bool isACondBranchInstruction(const instruction);
+bool isAJumpInstruction(const instruction);
+bool isACallInstruction(const instruction);
 Address getBranchTargetAddress(const instruction,Address pos);
 
 #if defined(rs6000_ibm_aix4_1)
-bool isLocalIndirectJump(const instruction,AddressHandle);
+bool isAIndirectJumpInstruction(const instruction,AddressHandle);
 #else 
-bool isLocalIndirectJump(const instruction);
+bool isAIndirectJumpInstruction(const instruction);
 #endif
 
 /** class for manipulating the address space in an image for a given
@@ -30,6 +31,10 @@ bool isLocalIndirectJump(const instruction);
   */
 class AddressHandle {
 protected:
+
+	/** process of the function and image */
+	process* addressProc;
+
 	/** member which hold the image of that will be used to retrive
 	  * instruction values, where the address space resides.
 	  */
@@ -47,19 +52,19 @@ protected:
 	Address currentAddress;
 public:
 	/** constructor
-	  * @param image_ptr image wher address spce resides
+	  * @param process_ptr process wher address spce resides
 	  * @param base_addr start address of the addresss space
 	  * @param range range of the address space in bytes
 	  */ 
-	AddressHandle (image*,Address,unsigned);
+	AddressHandle (process*,Address,unsigned);
 
 	/** constructor
 	  * @param current current address of the iteration
-	  * @param image_ptr image wher address spce resides
+	  * @param process_ptr process wher address spce resides
 	  * @param base_addr start address of the addresss space
 	  * @param range range of the address space in bytes
 	  */ 
-	AddressHandle (Address,image*,Address,unsigned);
+	AddressHandle (Address,process*,Address,unsigned);
 
 	/** copy constructor
 	  * @param ah address handler that will be copied 

@@ -21,30 +21,24 @@
   * @param i the instruction value 
   */
 bool isAReturnInstruction(const instruction i){
-	if((i.xlform.op == BCLRop) &&
-	   (i.xlform.xo == BCLRxop) && 
-	   (i.xlform.bt & 0x10) && (i.xlform.bt & 0x4))
+	if((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
+	   (i.mem_jmp.ext == MD_RET) &&
+	   (i.mem_jmp.ra == 31))
+	{
 		return true;
+	}
 	return false;
 }
 
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */
-bool isAIndirectJumpInstruction(const instruction i,AddressHandle ah){
-	if((i.xlform.op == BCLRop) && (i.xlform.xo == BCCTRxop) &&
-	   !i.xlform.lk && (i.xlform.bt & 0x10) && (i.xlform.bt & 0x4))
+bool isAIndirectJumpInstruction(const instruction i){
+	if((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
+	   (i.mem_jmp.ext == MD_JMP) &&
+	   (i.mem_jmp.ra == 31))
+	{
 		return true;
-
-	if((i.xlform.op == BCLRop) && (i.xlform.xo == BCLRxop) &&
-	   (i.xlform.bt & 0x10) && (i.xlform.bt & 0x4)){
-		--ah;--ah;
-		if(!ah.hasMore())
-			return false;
-		instruction j = ah.getInstruction();
-		if((j.xfxform.op == 31) && (j.xfxform.xo == 467) &&
-		   (j.xfxform.spr == 0x100))
-			return true;
 	}
 	return false;
 }
@@ -53,54 +47,43 @@ bool isAIndirectJumpInstruction(const instruction i,AddressHandle ah){
   * @param i the instruction value 
   */ 
 bool isACondBranchInstruction(const instruction i){
-	if((i.bform.op == BCop) && !i.bform.lk &&
-	   !((i.bform.bo & 0x10) && (i.bform.bo & 0x4)))
+	if((i.branch.opcode == OP_BR) || 
+	   (i.branch.opcode == OP_BSR))
+		return false;
+	if((i.branch.opcode & ~0xf) == 0x30)
+	{
 		return true;
+	}
 	return false;
 }
 /** is the instruction an unconditional branch instruction 
   * @param i the instruction value 
   */
 bool isAJumpInstruction(const instruction i){
-	if((i.iform.op == Bop) && !i.iform.lk)
+	if((i.branch.opcode == OP_BR) &&
+	   (i.branch.ra == 31))
+	{
 		return true;
-	if((i.bform.op == BCop) && !i.bform.lk &&
-	   (i.bform.bo & 0x10) && (i.bform.bo & 0x4))
-		return true;
+	}
 	return false;
 }
 /** is the instruction a call instruction 
   * @param i the instruction value 
   */
 bool isACallInstruction(const instruction i){
-	cout << "CALL called\n";
-	if(i.iform.lk && 
-	   ((i.iform.op == Bop) || (i.bform.op == BCop) ||
-	    ((i.xlform.op == BCLRop) && 
-	     ((i.xlform.xo == 16) || (i.xlform.xo == 528))))){
-		cout << "TIKIR : found CALL\n";
+	if((i.branch.opcode == OP_BSR) ||
+	   ((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
+	    (i.mem_jmp.ext == MD_JSR)))
 		return true;
-	}
 	return false;
 }
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
 Address getBranchTargetAddress(const instruction i,Address pos){
-	Address ret = 0;
-	if((i.iform.op == Bop) || (i.bform.op == BCop)){
-		int disp = 0;
-		if(i.iform.op == Bop)
-			disp = i.iform.li;
-		else if(i.bform.op == BCop)
-			disp = i.bform.bd;
-		disp <<= 2;
-		if(i.iform.aa)
-			ret = (Address)disp;
-		else
-			ret = (Address)(pos+disp);
-	}
-	return (Address)ret;
+	pos += sizeof(instruction);
+	int offset = i.branch.disp << 2;
+	return (Address)(pos + offset);
 }
 
 //Address Handle used by flowGraph which wraps the instructions
@@ -129,70 +112,82 @@ AddressHandle::AddressHandle(const AddressHandle& ah){
 }
 void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
-	(*this)--;
+        (*this)--;
 	Address initialAddress = currentAddress;
-	Address TOC_address = (addressImage->getObject()).getTOCoffset();
 
-	instruction check;
-	Address jumpStartAddress = 0;
-	while(hasMore()){
-		check = getInstruction();
-		if((check.dform.op == Lop) && (check.dform.ra == 2)){
-			jumpStartAddress = 
-				(Address)(TOC_address + check.dform.d_or_si);
+        instruction check;
+        int jumpTableOffset = 0;
+        while(hasMore()){
+                check = getInstruction();
+		if((check.mem.opcode == OP_LDQ) && (check.mem.rb == 29)){
+			jumpTableOffset = check.mem.disp;
 			break;
 		}
-		(*this)--;
-	}
-	(*this)--;
-	Address adjustEntry = 0;
-	check = getInstruction();
-	if((check.dform.op == Lop))
-		adjustEntry = check.dform.d_or_si;
-
-	Address tableStartAddress = 0;
-	while(hasMore()){
-		instruction check = getInstruction();
-		if((check.dform.op == Lop) && (check.dform.ra == 2)){
-			tableStartAddress = 
-				(Address)(TOC_address + check.dform.d_or_si);
-			break;
-		}
-		(*this)--;
-	}
-
-	setCurrentAddress(initialAddress);
-	int maxSwitch = 0;
-	while(hasMore()){
-		instruction check = getInstruction();
-		if((check.bform.op == BCop) && 
-	           !check.bform.aa && !check.bform.lk){
-			(*this)--;
-			check = getInstruction();
-			if(10 != check.dform.op)
+                (*this)--;
+        }
+	if(!jumpTableOffset)
+		return;
+        (*this)--;
+        unsigned maxSwitch = 0;
+        while(hasMore()){
+                check = getInstruction();
+		if(check.branch.opcode == OP_BEQ){
+                        (*this)--;
+                        check = getInstruction();
+                	if((check.oper_lit.opcode != OP_CMPLUE) ||
+		   	   (check.oper_lit.function != 0x3d) ||
+		   	   (!check.oper_lit.one))
 				break;
-			maxSwitch = check.dform.d_or_si + 1;
-			break;
-		}
-		(*this)--;
-	}
-	if(!maxSwitch){
-		result += (initialAddress + sizeof(instruction));
+                        maxSwitch = check.oper_lit.lit + 1;
+                        break;
+                }
+                (*this)--;
+        }
+        if(!maxSwitch){
+                result += (initialAddress + sizeof(instruction));
 		return;
 	}
 
-	Address jumpStart = 
-		(Address)addressImage->get_instruction(jumpStartAddress);
-	Address tableStart = 
-		(Address)addressImage->get_instruction(tableStartAddress);
-
-	for(int i=0;i<maxSwitch;i++){
-		Address tableEntry = adjustEntry + tableStart + (i * sizeof(instruction));
-		int jumpOffset = (int)addressImage->get_instruction(tableEntry);
-		result += (Address)(jumpStart+jumpOffset);
+	currentAddress = baseAddress;
+	Address GOT_Value = 0;
+	while(hasMore()){
+		check = getInstruction();
+		if((check.mem.opcode == OP_LDAH) && 
+		   (check.mem.ra == 29) &&
+		   (check.mem.rb == 27))
+		{
+			int highDisp = check.mem.disp;
+			(*this)++;
+			check = getInstruction();
+			if((check.mem.opcode != OP_LDA) ||
+			   (check.mem.ra != 29) || 
+			   (check.mem.rb != 29))
+				return;	
+			int lowDisp = check.mem.disp;
+			GOT_Value = (Address)((long)baseAddress + (highDisp * (long)0x10000) + lowDisp);
+			break;
+		}
+		(*this)++;
 	}
-}
+	if(!GOT_Value)
+		return;
 
+        Address jumpTableAddress = 
+		(Address)((long)GOT_Value + jumpTableOffset);
+	Address jumpTable = 0;
+	addressProc->readTextSpace((const void*)jumpTableAddress,
+				   sizeof(Address),
+				   (const void*)&jumpTable);
+
+        for(unsigned int i=0;i<maxSwitch;i++){
+                Address tableEntry = jumpTable + (i * sizeof(instruction));
+                int jumpOffset = 0;
+		addressProc->readTextSpace((const void*)tableEntry,
+					   sizeof(Address),
+					   (const void*)&jumpOffset);
+                result += (Address)((long)GOT_Value + jumpOffset) & ~0x3;
+        }
+}
 bool AddressHandle::delayInstructionSupported(){
 	return false;
 }
@@ -228,7 +223,7 @@ void AddressHandle::setCurrentAddress(Address addr){
 	currentAddress = addr;
 }
 unsigned AddressHandle::getInstructionCount(){
-	return range / sizeof(instruction);
+	return range / sizeof(Word);
 }
 instruction AddressHandle::getInstruction(){
 	instruction ret;

@@ -226,21 +226,21 @@ bool modifies_greg(instruction i, int &regnum)
 /** is the instruction used to return from the functions
   * @param i the instruction value 
   */
-bool isReturn(const instruction i){
+bool isAReturnInstruction(const instruction i){
     return isReturnInsn(i);
 }
 
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */
-bool isLocalIndirectJump(const instruction i){
+bool isAIndirectJumpInstruction(const instruction i){
     return isInsnType(i, JRmask, JRmatch) && !isReturnInsn(i);
 }
 
 /** is the instruction a conditional branch instruction 
   * @param i the instruction value 
   */ 
-bool isLocalCondBranch(const instruction i){
+bool isACondBranchInstruction(const instruction i){
     BranchInfo bi;
 
     if (getBranchInfo(i, bi)) {
@@ -254,7 +254,7 @@ bool isLocalCondBranch(const instruction i){
 /** is the instruction an unconditional branch instruction 
   * @param i the instruction value 
   */
-bool isLocalJump(const instruction i){
+bool isAJumpInstruction(const instruction i){
     BranchInfo bi;
 
     if (getBranchInfo(i, bi)) {
@@ -269,7 +269,7 @@ bool isLocalJump(const instruction i){
 /** is the instruction a call instruction 
   * @param i the instruction value 
   */
-bool isLocalCall(const instruction i){
+bool isACallInstruction(const instruction i){
     if (isCallInsn(i)) {
 	return true;
     } else if (i.decode.op == REGIMMop) {
@@ -548,23 +548,26 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 //Address Handle used by flowGraph which wraps the instructions
 //and supply enough operation to iterate over the instrcution sequence.
 
-AddressHandle::AddressHandle(image* fImage,
-		 Address bAddress,
-		 unsigned fSize)
-    : addressImage(fImage),baseAddress(bAddress),
-      currentAddress(bAddress),range(fSize) {}
+AddressHandle::AddressHandle(process* fProcess,
+			     Address bAddress,
+			     unsigned fSize)
+	: addressProc(fProcess),
+	  addressImage(fProcess->getImage()),baseAddress(bAddress),
+	  range(fSize),currentAddress(bAddress) {}
 
-AddressHandle::AddressHandle(Address cAddress,image* fImage,
-		 Address bAddress,
-		 unsigned fSize)
-    : addressImage(fImage),baseAddress(bAddress),
-      currentAddress(cAddress),range(fSize) {}
+AddressHandle::AddressHandle(Address cAddress,process* fProcess,
+			     Address bAddress,
+			     unsigned fSize)
+	: addressProc(fProcess),
+	  addressImage(fProcess->getImage()),baseAddress(bAddress),
+	  range(fSize),currentAddress(cAddress) {}
 
 AddressHandle::AddressHandle(const AddressHandle& ah){
-    addressImage = ah.addressImage;
-    baseAddress = ah.baseAddress;
-    currentAddress = ah.currentAddress;
-    range = ah.range;
+	addressImage = ah.addressImage;
+	addressProc = ah.addressProc;
+	baseAddress = ah.baseAddress;
+	currentAddress = ah.currentAddress;
+	range = ah.range;
 }
 
 bool AddressHandle::delayInstructionSupported(){
