@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.13  1994/04/04 21:36:12  newhall
+ * Revision 1.14  1994/04/11 23:18:49  hollings
+ * added checks to make sure time moves forward.
+ *
+ * Revision 1.13  1994/04/04  21:36:12  newhall
  * added synchronization code to DM thread startup
  *
  * Revision 1.12  1994/04/01  20:17:22  hollings
@@ -229,6 +232,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     metricInstance *mi;
     struct sampleInterval ret;
 
+    // printf("mid %d %f from %f to %f\n", mid, value, startTimeStamp, endTimeStamp);
     mi = activeMids.find((void*) mid);
     if (!mi) {
 	printf("ERROR: data for unknown mid: %d\n", mid);
@@ -248,6 +252,9 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     ret = mi->sample.newValue(mi->parts, (time64) endTimeStamp, value);
 
     if (ret.valid) {
+	assert(ret.end >= 0.0);
+	assert(ret.start >= 0.0);
+	assert(ret.end >= ret.start);
 	mi->enabledTime += ret.end - ret.start;
 	mi->data->addInterval(ret.start, ret.end, ret.value, FALSE);
     }
