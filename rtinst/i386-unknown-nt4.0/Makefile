@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 1998/04/03 02:21:06 wylie Exp $
+# $Id: Makefile,v 1.7 1998/07/23 16:13:33 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ include ../../nmake.config
 # Now make any necessary architecture specific changes to variables:
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:coff -base:0x60000000
+LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000
 
 #TARGET2		= libdyninstCP.a
 

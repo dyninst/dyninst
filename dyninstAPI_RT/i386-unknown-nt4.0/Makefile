@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 1998/04/06 04:48:23 wylie Exp $
+# $Id: Makefile,v 1.7 1998/07/23 16:14:21 wylie Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,7 +14,7 @@ include ../../nmake.config
 # Now make any necessary architecture specific changes to variables:
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:coff -base:0x60000000
+LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000
 
 SRCS		= $(SRCS) ../src/RTwinnt.c
 
