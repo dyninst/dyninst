@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.38 2001/08/23 14:43:56 schendel Exp $
+// $Id: metParser.y,v 1.39 2002/02/11 22:46:26 pcroth Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "paradyn/src/met/mdl.h"
@@ -594,7 +594,7 @@ metric_struct: tLBLOCK metric_list tRBLOCK {$$.mde = $2.mde;}
 
 metric_list: {$$.mde = new metricDef();}
   | metric_list metric_elem_list 
-  { $$.mde = $1.mde; $$.mde->setField(*$2.mfld); delete $2.mfld }
+  { $$.mde = $1.mde; $$.mde->setField(*$2.mfld); delete $2.mfld; }
   ;
 
 metric_elem_list: met_name 
