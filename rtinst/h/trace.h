@@ -101,27 +101,37 @@ typedef struct _traceHeader traceHeader;
 #define TR_EXEC_FAILED          12
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-#define TR_THREAD               13
-#define TR_THRSELF              14
+#define TR_THR_CREATE        100
+#define TR_THR_SELF          101
+#define TR_THR_DELETE        102
+#define TR_THR_STACK         103
 #endif
 
+#define TR_NEW_MEMORY           16
 
-#define TR_NEW_MEMORY           15
 /* trace data streams */
-#define TR_DATA                 16
+#define TR_DATA                 17
 #define TR_SYNC                 20
 
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1
 
+#define FLAG_SELF        1 /* DYNINST_ThreadCreate */
+#define FLAG_PARENT      2 /* DYNINST_ThreadPCreate */
+#define FLAG_ATTACH      3 /* DYNINST_ThreadUpdate(FLAG_ATTACH) */
+#define FLAG_INIT        4 /* DYNINST_ThreadUpdate(FLAG_INIT) */
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 struct _traceThread {
-    int	ppid;	/* id of creating thread */
-    int	tid;	/* id of new thread */
-    int pos;    /* position of the new thread in the thread table */
-    int ntids;	/* number of new threads */
-    int stride;	/* offset to next pid in multi */
+    int	ppid;	 /* id of creating process*/
+    int	tid;	 /* id of new thread */
+    unsigned stack_addr; /* starting address of thread's stack */
+    unsigned start_pc ;  /* pc of start function */
+    void*    resumestate_p; /* pointer to the resumestate_t */
+    int pos;     /* position of the new thread in the thread table */
+    int context; /* FLAG_SELF, FLAG_PARENT, FLAG_ATTACH, FLAG_INIT */  
+    int ntids;	 /* number of new threads */
+    int stride;	 /* offset to next pid in multi */
 };
 
 typedef struct _traceThread traceThread;

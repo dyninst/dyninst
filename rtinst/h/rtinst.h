@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.36 1999/04/27 16:04:48 nash Exp $
+ * $Id: rtinst.h,v 1.37 1999/07/07 15:59:25 zhichen Exp $
  * This file contains the standard insrumentation functions that are provied
  *   by the instrumentation layer.
  *
@@ -121,6 +121,11 @@ struct tTimerRec {
    volatile time64 start;
    volatile int counter;
    volatile sampleId id; /* can be made obsolete in the near future */
+#if defined(MT_THREAD)
+   volatile int lwp_id;  /* we need to save the lwp id so paradynd can get in sync */
+   volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
+   volatile struct tTimerRec  *vtimer; /* position in the threadTable */
+#endif
 
    /* the following 2 vrbles are used to implement consistent sampling.
       Updating by rtinst works as follows: bump protector1, do action, then
@@ -165,11 +170,9 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-#define MAX_NUMBER_OF_THREADS (100)
-#define MAX_NUMBER_OF_LEVELS (30)
-extern int DYNINSTthreadPos(void);
-extern int DYNINSTthreadSelf(void);
+#if defined(MT_THREAD)
+extern time64 DYNINSTgetCPUtime_LWP(int lwp_id);
+#include "rtinstMT/src/RTthread.h"
 #endif
 
 /*
