@@ -116,27 +116,60 @@ void initOpCodeInfo() {
 	/* I don't need this for anything. */
 	} /* end initOpCodeInfo() */
 
+
+#define MEMORY_X6_MASK      0x07E0000000000000  /* bits 30 - 35 */
+#define MEMORY_ADDR_MASK	0x0003F80000000000	/* bits 20 - 26 */
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
 	IA64_instruction * insn = getInstruction();
 	IA64_instruction::insnType type = insn->getType();
+
+	BPatch_memoryAccess * bpma = NULL;
+	
+	uint64_t instruction = insn->getMachineCode();	
+	unsigned addr = (instruction & MEMORY_ADDR_MASK) >> (ALIGN_RIGHT_SHIFT + 20);
+
+	uint8_t x6 = (instruction & MEMORY_X6_MASK) >> (ALIGN_RIGHT_SHIFT + 30);
+	uint8_t size = x6 & 0x03;
+	switch( size ) { case 0: size = 1; break; case 1: size = 2; break; case 2: size = 4; break; case 3: size = 8; break; }
 	
 	switch( type ) {
-		case IA64_instruction::INTEGER_LOAD:
-			break;
+		case IA64_instruction::INTEGER_LOAD: {
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
+			assert( bpma != NULL );
+			} break;
 		case IA64_instruction::INTEGER_STORE:
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), false, true, size, 0, addr, -1 );
+			assert( bpma != NULL );
 			break;
 		case IA64_instruction::FP_LOAD:
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
+			assert( bpma != NULL );
 			break;
 		case IA64_instruction::FP_STORE:
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), false, true, size, 0, addr, -1 );
+			assert( bpma != NULL );
 			break;											
+		
+		case IA64_instruction::FP_PAIR_LOAD:
+		case IA64_instruction::INTEGER_PAIR_LOAD:
+			/* The load pair instructions encode sizes a little differently. */
+			switch( x6 & 0x03 ) { case 0x02: size = 8; break; case 0x03: size = 16; break; case 0x01: size = 16; break; }
+
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction ), true, false, size, 0, addr, -1 );
+			assert( bpma != NULL );
+			break;
 			
+		case IA64_instruction::PREFETCH:
+			bpma = new BPatch_memoryAccess( insn, sizeof( IA64_instruction), false, false, 0, addr, -1, 0, 0, -1, -1, 0, -1, false, 0 );
+			assert( bpma != NULL );
+			break;
+		
 		default:
-			return NULL;
+			return BPatch_memoryAccess::none;
 		}
 
-	fprintf( stderr, "FIXME: decode instruction to generate BPatch_memoryAccess.\n" );
-	return NULL;
+	return bpma;
 }
 
 BPatch_instruction *InstrucIter::getBPInstruction() {
@@ -323,14 +356,14 @@ void InstrucIter::setCurrentAddress(Address addr)
 
 instruction InstrucIter::getInstruction()
 {	
+	/* In addition to being more efficient, an instruction
+	   iterator _must_ iterate over the local copy of the
+	   mutatee's address space to pass test6.  (It is apparently
+	   defined such that it iterates only over the original code.) */
 	uint8_t slotNo = (currentAddress % 0x10 );
 	Address alignedBundleAddress = currentAddress - slotNo;
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( alignedBundleAddress, addressProc );
-	ia64_bundle_t rawBundle;
-	bool successfulRead = iAddr.saveMyBundleTo( (uint8_t *) & rawBundle );
-	assert( successfulRead );
-
-	IA64_bundle theBundle( rawBundle );
+	const ia64_bundle_t * bundlePtr = (const ia64_bundle_t *)addressImage->getPtrToInstruction( alignedBundleAddress );
+	IA64_bundle theBundle( * bundlePtr );
 	return theBundle.getInstruction( slotNo );
 }
 
