@@ -42,8 +42,19 @@
 // pathName.C
 
 #include <ctype.h>
-#include <pwd.h>
 #include "util/h/pathName.h"
+
+#if defined(i386_unknown_nt4_0)
+
+#define S_ISDIR(x) ((x) & _S_IFDIR)
+
+string expand_tilde_pathname(const string &dir) {
+   return dir;
+}
+
+#else
+
+#include <pwd.h>
 
 string expand_tilde_pathname(const string &dir) {
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
@@ -100,6 +111,7 @@ string expand_tilde_pathname(const string &dir) {
    endpwent();
    return result;
 }
+#endif
 
 static string concat_pathname_components_simple(const string &comp1, const string &comp2) {
    string result = (comp1.length() ? comp1 : comp2);

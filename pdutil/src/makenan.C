@@ -60,7 +60,15 @@ float make_Nan() {
     return f_paradyn_nan;
 }
 
-
+#if defined(i386_unknown_nt4_0)
+int matherr(struct _exception *x) {
+  if ((x->type == _DOMAIN) && !P_strcmp(x->name, "sqrt")) {
+      if (matherr_flag)
+          return(1);
+  }
+  return(0);
+}
+#else
 int matherr(struct exception *x) {
   if ((x->type == DOMAIN) && !P_strcmp(x->name, "sqrt")) {
       if (matherr_flag)
@@ -68,5 +76,5 @@ int matherr(struct exception *x) {
   }
   return(0);
 }
-
+#endif
 

@@ -63,8 +63,11 @@ class debug_ostream {
    debug_ostream &operator<<(unsigned i);
    debug_ostream &operator<<(long l);
    debug_ostream &operator<<(unsigned long l);
+#if !defined(i386_unknown_nt4_0)
+   // long long is not supported on all platforms
    debug_ostream &operator<<(long long l);
    debug_ostream &operator<<(unsigned long long l);
+#endif
 
    debug_ostream &operator<<(const char *str);
    debug_ostream &operator<<(const unsigned char *str);
@@ -74,9 +77,12 @@ class debug_ostream {
    debug_ostream &operator<<(float f);
    debug_ostream &operator<<(double d);
 
+#if !defined(i386_unknown_nt4_0)
+   // This code may be g++ specific!
    debug_ostream &operator<<(__omanip);
       // for things like endl, which are actually functions (!) (see iostream.h
       // in g++-include)
+#endif
 
    debug_ostream &flush();
 

@@ -46,7 +46,12 @@
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
   state_(STOPPED),
-  CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), MICROSECS_PER_SEC_(1.0e6),
+#if defined(i386_unknown_nt4_0)
+  CYCLES_PER_SEC_(CLK_TCK), // TODO: is this right?
+#else
+  CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), 
+#endif
+  MICROSECS_PER_SEC_(1.0e6),
   NANOSECS_PER_SEC_(1.0e9)
 {
 }
@@ -164,6 +169,46 @@ timer::print(ostream& os) {
 
 
 #undef HAVE_GET_CURRENT_DEFINITION
+
+
+
+
+#if defined(i386_unknown_nt4_0)
+#if !defined(HAVE_GET_CURRENT_DEFINITION)
+#define HAVE_GET_CURRENT_DEFINITION
+
+#include <sys/timeb.h>
+#include <time.h>
+#include <winbase.h>
+#include <limits.h>
+
+void
+timer::get_current(double& u, double& s, double& w) {
+  /*
+    u = user time
+    s = system time
+    w = wall time
+  */
+
+  struct _timeb tb;
+  _ftime(&tb);
+  w = (double)tb.time + (double)tb.millitm/1000.0;
+
+  FILETIME kernelT, userT, creatT, exitT;
+  if (GetProcessTimes(GetCurrentProcess(), &creatT, &exitT, &kernelT, &userT)) {
+    timer t;
+    s = ((double)kernelT.dwHighDateTime * ((double)_UI32_MAX + 1.0)
+        + (double)kernelT.dwLowDateTime)*100.0 / t.NANOSECS_PER_SEC();
+    u = ((double)userT.dwHighDateTime * ((double)_UI32_MAX + 1.0)
+        + (double)userT.dwLowDateTime)*100.0 / t.NANOSECS_PER_SEC();
+  } else {
+    u = 0;
+    s = 0;
+  }
+}
+
+#endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
+#endif /* defined(i386_unknown_nt4_0) */
 
 
 

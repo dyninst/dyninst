@@ -102,8 +102,6 @@ extern int shmctl(int, int, struct shmid_ds *);
 #endif
 #endif
 
-#include "util/h/spinMutex_cintf.h"
-
 extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
@@ -526,7 +524,9 @@ DYNINSTstopWallTimer(tTimer* timer) {
  * need a well-defined method for finding the CPU cycle speed
  * on each CPU.
 ************************************************************************/
-#if defined(rs6000_ibm_aix4_1)
+#if defined(i386_unknown_nt4_0)
+#define NOPS_4  { __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 }
+#elif defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
@@ -964,8 +964,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   DYNINSTsamplingRate = val/MILLION;
   
-  /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
-  DYNINST_install_ualarm(val);
 #endif
   
 #ifdef USE_PROF
@@ -997,9 +995,13 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   }
   
   DYNINST_bootstrap_info.pid = getpid();
+#if !defined(i386_unknown_nt4_0)
   if (calledFromFork)
     DYNINST_bootstrap_info.ppid = getppid();
-  
+#else
+  DYNINST_bootstrap_info.ppid = 0;
+#endif
+
   /* We do this field last as a way to synchronize; paradynd will ignore what it
      sees in this structure until the event field is nonzero */
   if (calledFromFork)
@@ -1014,7 +1016,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   /* If attaching, now's the time where we set up the trace stream connection fd */
   if (calledFromAttach) {
     int pid = getpid();
+#if !defined(i386_unknown_nt4_0)
     int ppid = getppid();
+#else
+    int ppid = 0;
+#endif
     unsigned attach_cookie = 0x22222222;
     
     DYNINSTinitTrace(paradyndPid);
@@ -1030,8 +1036,19 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   }
   else if (!calledFromFork) {
     /* either normal startup or startup via a process having exec'd */
-    /* trace stream is already open */
-    DYNINSTinitTrace(-1);
+#if !defined(i386_unknown_nt4_0)
+      /* trace stream is already open */
+      DYNINSTinitTrace(-1);
+#else
+      /* need to get a connection to daemon */
+      int cookie = 0;
+      int pid = getpid();
+      int ppid = paradyndPid;
+      DYNINSTinitTrace(paradyndPid);
+      DYNINSTwriteTrace(&cookie, sizeof(cookie));
+      DYNINSTwriteTrace(&pid, sizeof(pid));
+      DYNINSTwriteTrace(&ppid, sizeof(ppid));
+#endif
   }
   else
     /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
@@ -1078,6 +1095,12 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
      enabled before the user press run, so we don't loose any samples - mjrg
      */
   DYNINSTreportSamples();
+
+  /* Install alarm only when exiting DYNINSTinit to avoid alarm going off
+     before DYNINSTinit is done */
+  /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
+  DYNINST_install_ualarm(val);
+
 #endif
 }
 
@@ -1147,7 +1170,7 @@ void forkexec_printf(const char *fmt, ...) {
 #endif
 }
 
-
+#if !defined(i386_unknown_nt4_0)
 void
 DYNINSTfork(int pid) {
     //forkexec_printf("DYNINSTfork called with pid = %d\n", pid);
@@ -1233,6 +1256,7 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child done...running freely.\n");
     }
 }
+#endif
 
 
 void

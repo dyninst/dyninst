@@ -63,9 +63,10 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#if !defined(i386_unknown_nt4_0)
 #include <sys/time.h>
 #include <sys/types.h>
-
+#endif
 
 
 

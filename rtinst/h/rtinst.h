@@ -62,8 +62,13 @@
 typedef enum { processTime, wallTime } timerType;
 
 /* 64 bit time values */
+#if defined(i386_unknown_nt4_0)
+typedef __int64 time64;
+typedef __int64 int64;
+#else
 typedef long long int time64;
 typedef long long int int64;
+#endif
 
 struct sampleIdRec {
     unsigned int id;

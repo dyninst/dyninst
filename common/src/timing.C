@@ -43,6 +43,8 @@
 #include "util/h/Timer.h"
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
+#elif defined(i386_unknown_nt4_0)
+#define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
@@ -116,7 +118,7 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
       max_speed = speed;
   }
 
-#ifdef i386_unknown_solaris2_5
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
   // the speed of the pentium is being overestimated by a factor of 2
   max_speed /= 2;
 #endif

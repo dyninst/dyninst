@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.36  1997/05/08 00:10:15  mjrg
+ * Changes for Windows NT port
+ *
  * Revision 1.35  1997/04/29 23:04:50  mjrg
  * added explicit "int" to declaration
  *
@@ -122,7 +125,9 @@ public:
   XDRrpc(int family, int port, int type, const string machine,
 	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const bool block);
   ~XDRrpc();
-  void setNonBlock() { if (fd >= 0) fcntl (fd, F_SETFL, O_NONBLOCK); }
+  // This function does work on Windows NT. Since it is not being used
+  // anywhere, I'm commenting it out -- mjrg
+  //void setNonBlock() { if (fd >= 0) fcntl (fd, F_SETFL, O_NONBLOCK); }
   void closeConnect() {if (fd >= 0) close(fd); fd = -1; }
   int get_fd() const { return fd; }
   int readReady(const int timeout=0) { return RPC_readReady (fd, timeout); }

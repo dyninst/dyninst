@@ -91,6 +91,7 @@ debug_ostream &debug_ostream::operator<<(unsigned long l) {
    return *this;
 }
 
+#if !defined(i386_unknown_nt4_0)
 debug_ostream &debug_ostream::operator<<(long long ll) {
    if (on)
       actual_ostream << ll;
@@ -102,6 +103,7 @@ debug_ostream &debug_ostream::operator<<(unsigned long long ull) {
       actual_ostream << ull;
    return *this;
 }
+#endif
 
 debug_ostream &debug_ostream::operator<<(const char *str) {
    if (on)
@@ -133,11 +135,13 @@ debug_ostream &debug_ostream::operator<<(double d) {
    return *this;
 }
 
+#if !defined(i386_unknown_nt4_0)
 debug_ostream &debug_ostream::operator<<(__omanip m) {
    if (on)
       actual_ostream << m;
    return *this;
 }
+#endif
 
 debug_ostream &debug_ostream::flush() {
    if (on)
