@@ -21,6 +21,16 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.39  1996/07/23 20:28:04  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.38  1996/07/22 18:56:21  karavan
  * part one of two-part commit
  *
@@ -162,16 +172,20 @@ void initPCmetrics()
   specs[1].ft = averaging;
   temp = new PCmetric ("NormalizedCPUtime", specs, 2, NULL, 
 		       DivideEval, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "cpu";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("nonNormalizedCPUtime", specs, 1, NULL, NULL, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
-  
+#endif
+
   specs[0].mname = "sync_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
@@ -179,15 +193,19 @@ void initPCmetrics()
   specs[1].whichFocus = cf;
   specs[1].ft = averaging;
   temp = new PCmetric ("NormSyncToCPURatio", specs, 2, NULL, DivideEval, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "sync_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("nonNormSyncToCPURatio", specs, 1, NULL, NULL, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "io_ops";
   specs[0].whichFocus = cf;
@@ -196,8 +214,10 @@ void initPCmetrics()
   specs[1].whichFocus = cf;
   specs[1].ft = averaging;
   temp = new PCmetric ("IOAvgSize", specs, 2, NULL, DivideEval, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "locks_held";
   specs[0].whichFocus = cf;
@@ -206,15 +226,19 @@ void initPCmetrics()
   specs[1].whichFocus = cf;
   specs[1].ft = averaging;
   temp = new PCmetric ("SyncRegionSize", specs, 2, NULL, DivideEval, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "io_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("IoWait", specs, 1, NULL, NULL, 1);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 
   specs[0].mname = "observed_cost";
   specs[0].whichFocus = tlf;
@@ -226,8 +250,10 @@ void initPCmetrics()
   specs[2].whichFocus = tlf;
   specs[2].ft = averaging;
   temp = new PCmetric("normSmoothCost", specs, 3, NULL, CostTrackerEval, 0);
+#ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
+#endif
 }
 
 sampleValue defaultGetThresholdFunc (const char *tname, focus)
@@ -264,7 +290,7 @@ void initPChypos()
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList);
+		   gt, (void *)NULL, &plumList, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
@@ -277,7 +303,7 @@ void initPChypos()
 		   "",
 		   "PC_SyncThreshold",
 		   SyncRegionGetThresholdFunc,
-		   lt, (void *)NULL, &plumList);
+		   lt, (void *)NULL, &plumList, NULL);
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
 */
@@ -289,7 +315,7 @@ void initPChypos()
 		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList2);
+		   gt, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -300,23 +326,27 @@ void initPChypos()
 		   "diskBlockSize", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList2);
+		   gt, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
   plum = new string ("/SyncObject");
   stringList plumList3;
+  stringList suppress;
   plumList3 += plum;
   plum = new string ("/Process");
   plumList3 += plum;
+  //plum = new string  ("/Code/anneal.c");
+  //suppress += plum;
   flag = PCWhyAxis->
     addHypothesis ("CPUbound", (const char *)NULL, 
 		   "NormalizedCPUtime",
 		   "nonNormalizedCPUtime",
 		   "highCPUtoSyncRatioThreshold",
 		   "PC_CPUThreshold",
-		   defaultGetThresholdFunc, 
-		   gt, (void *)NULL, &plumList3);
+		   defaultGetThresholdFunc,
+		   gt, (void *)NULL, &plumList3, NULL);
+		   //gt, (void *)NULL, &plumList3, &suppress);
 
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;

@@ -20,6 +20,16 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.51  1996/07/23 20:28:07  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.50  1996/07/22 21:19:45  karavan
  * added new suppress feature to hypothesis definition.
  *
@@ -502,6 +512,10 @@ void
 searchHistoryNode::makeFalse()
 {
   truthValue = tfalse;
+  // if this node contains an experiment (ie, its non-virtual) then 
+  // we want to halt the experiment for now
+  if (!persistent) stopExperiment();
+  // change truth value and/or active status on the GUI
   changeDisplay();
 }
 
@@ -573,20 +587,10 @@ void
 searchHistoryNode::changeTruth (testResult newTruth)
 {
   testResult oldValue = truthValue;
-  if (truthValue == newTruth) {
-    // oops!  this isn't really a change!
-    return;
-  }
   if (newTruth == tfalse)  {
     // status change to false
-    // if this node contains an experiment (ie, its non-virtual) then 
-    // we want to halt the experiment for now
-    if (!persistent) {
-      stopExperiment();
-      //** add to aging queue
-    }
     this->makeFalse();
-    if (oldValue != tunknown) {
+    if (oldValue == ttrue) {
       // change to false was from true
       for (unsigned i = 0; i < parents.size(); i++) {
 	parents[i] -> percolateUp(tfalse);
@@ -595,23 +599,29 @@ searchHistoryNode::changeTruth (testResult newTruth)
 	children[k]->percolateDown(tfalse);
       }
     }
-  } else if (newTruth == ttrue) {
-    // status change to true
-    this->makeTrue();
-    for (unsigned i = 0; i < parents.size(); i++) {
-      parents[i] -> percolateUp(ttrue);
+  } else {
+    if (oldValue == newTruth) {
+      // oops!  this isn't really a change!
+      return;
     }
-    if (expanded) {
-      for (unsigned k = 0; k < children.size(); k++) {
-	children[k]->percolateDown(ttrue);
+    if (newTruth == ttrue) {
+      // status change to true
+      this->makeTrue();
+      for (unsigned i = 0; i < parents.size(); i++) {
+	parents[i] -> percolateUp(ttrue);
+      }
+      if (expanded) {
+	for (unsigned k = 0; k < children.size(); k++) {
+	  children[k]->percolateDown(ttrue);
+	}
+      } else {
+	expand();
       }
     } else {
-      expand();
+      // change to unknown
+      makeUnknown();
+      changeDisplay ();
     }
-  } else {
-    // change to unknown
-    makeUnknown();
-    changeDisplay ();
   }
 }
 

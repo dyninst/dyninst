@@ -20,6 +20,16 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.19  1996/07/23 20:28:05  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.18  1996/07/22 18:55:44  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -232,6 +242,8 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       string *ds = new string 
 	("WARNING:  Predicted Node Search Code exceeds limit.  Skipped Node:\n\t");
       *ds += curr->getShortName();
+      *ds += "||";
+      *ds += curr->getHypoName();
       *ds += "\n";
       uiMgr->updateStatusDisplay(dispToken, ds);
     } else if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) 

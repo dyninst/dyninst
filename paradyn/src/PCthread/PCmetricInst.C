@@ -20,6 +20,16 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.14  1996/07/23 20:28:03  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.13  1996/07/22 18:55:43  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -312,9 +322,6 @@ PCmetricInst::activate()
   for (int k = 0; k < numInPorts; k++) {
     AllCurrentValues[k] = 0.0;
   }
-  //**
-  cout << "%% PCmetric Filter Activated %%" << endl;
-  cout << *this << endl;
 }
 
 void
@@ -330,8 +337,7 @@ PCmetricInst::deactivate()
     }
   }
   active = false;
-  cout << "?? PCmetric Filter Deactivated ??" << endl;
-  cout << *this << endl;
+  EnableStatus = 0;
 }
 
 PCmetricInst::~PCmetricInst()
@@ -396,15 +402,11 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 
 #ifdef PCDEBUG
     // debug printing
-    if (performanceConsultant::printDataTrace) {
+    if (performanceConsultant::printDataTrace 
+	|| performanceConsultant::printDataCollection) {
       cout << *this << endl;
     }
 #endif
-
-    //**
-    if (performanceConsultant::printDataCollection) {
-      cout << *this << endl;
-    }
 
   // check all data ready, if so, compute new value
   if (DataStatus == AllDataReady) {

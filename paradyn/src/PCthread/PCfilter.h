@@ -21,6 +21,16 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.9  1996/07/23 20:28:02  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.8  1996/07/22 18:55:41  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -137,12 +147,14 @@ class filter : public dataProvider
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
   focus getFocus() {return foc;}
+  bool isActive() {return active;}
   // true means we want to disable this as part of a PC pause event
   bool pausable() {return (numConsumers > 0 && !costFlag);}
   void setcostFlag() {costFlag = true;}
+ protected:  
   // activate filter by enabling met/focus pair
   void wakeUp();
- protected:  
+  void inactivate() {active = false;}
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
   void getInitialSendTime(timeStamp startTime);
@@ -166,6 +178,7 @@ class filter : public dataProvider
   metricHandle metric;
   focus foc;
  private:
+  bool active;
   // if set, this data is not disabled for a pause because it is used in 
   // cost observation by all phases
   bool costFlag;
@@ -211,12 +224,6 @@ public:
 //**
 const unsigned NumMetrics = 25;
 class filteredDataServer;
-class ff {
-  friend class filteredDataServer;
-private:
-  focus f;
-  fdsDataID mih;
-};
 
 class fmf {
   friend class filteredDataServer;
@@ -240,6 +247,7 @@ class filteredDataServer
 public:
   filteredDataServer(unsigned phID);
   ~filteredDataServer();
+
   // interface to subscribers (provider role)
   void addSubscription(fdsSubscriber sub,
 			    metricHandle mh,
@@ -247,25 +255,29 @@ public:
 			    filterType ft,
 			    bool costFlag);
   void endSubscription(fdsSubscriber sub, fdsDataID subID);
+  void endSubscription(fdsSubscriber sub, metricHandle met, focus foc);
   // cancel pending enable request for this met/foc pair
   void cancelSubRequest (fdsSubscriber sub, metricHandle met, focus foc);
   void unsubscribeAllData();
   void resubscribeAllData();
-  void makeEnableDataRequest (metricHandle met, focus foc, filter *sub);
 
   // interface to raw data source (consumer role)
   void newBinSize(timeStamp newSize);
   void newData(metricInstanceHandle mih, sampleValue value, int bin);
   void newDataEnabled(vector<metricInstInfo>* newlyEnabled);
-  // 
+
+  // miscellaneous  
   timeStamp getCurrentBinSize () {return currentBinSize;}
+ private:
+  void printPendings(); 
+  filter *findFilter(metricHandle mh, focus f);
+  static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
+  void inActivateFilter (filter *fil);
+  void makeEnableDataRequest (metricHandle met, focus foc, filter *sub);
   unsigned getPCphaseID () {
     if (phType == CurrentPhase) return dmPhaseID+1;
     else return 0;
   }
- private:
-  void printPendings(); 
-  static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
   // size of dm histogram bucket; used to convert data bin number into interval
   timeStamp currentBinSize;  
   // current size of each interval of output
@@ -276,10 +288,11 @@ public:
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
-  // miIndex, DataFilters, and AllDataFilters contain all filters which are now 
+  // miIndex and DataFilters  contain all filters which are now 
   // or have been in the past, successfully enabled.  
   dictionary_lite<fdsDataID, filter*>DataFilters;
-  vector<ff> miIndex [NumMetrics];
+  vector<fmf> miIndex [NumMetrics];
+  // this vector contains every filter ever created for this server
   vector<filter*> AllDataFilters;
   // Pendings contains pending records for all filters with pending enable 
   // requests.   These filters may or may not also be listed in miIndex DataFilters and 

@@ -20,6 +20,16 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.13  1996/07/23 20:27:59  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.12  1996/07/22 18:55:38  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -329,6 +339,9 @@ experiment::start()
   pcmih->addSubscription((PCmetSubscriber)this);
   papaNode->addActiveSearch();   // update active search count
   status = true;
+  currentConclusion = tunknown;
+  minObservationFlag = false;
+  timeTrueFalse = 0;
   //** need to distinguish here if PCmetricInst already running!!
   return false;
 }

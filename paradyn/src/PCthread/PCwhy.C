@@ -20,6 +20,16 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.C,v $
+ * Revision 1.16  1996/07/23 20:28:09  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.15  1996/07/22 21:19:49  karavan
  * added new suppress feature to hypothesis definition.
  *
@@ -93,10 +103,7 @@ hypothesis::hypothesis (const char *hypothesisName,
       rh = dataMgr->findResource((*plumList)[i]->string_of());
       if (rh) {
 	pruneList += *rh;
-	cout << "ppplum added: " << (*plumList)[i]->string_of() << endl;
 	delete rh;
-      } else {
-	cout << "ppplum not found: " << (*plumList)[i]->string_of() << endl;
       }
     }
   }
@@ -107,10 +114,7 @@ hypothesis::hypothesis (const char *hypothesisName,
       rh = dataMgr->findResource((*suppressions)[i]->string_of());
       if (rh) {
 	suppressList += *rh;
-	cout << "sssuppress added: " << (*suppressions)[i]->string_of() << endl;
 	delete rh;
-      } else {
-	cout << "sssuppress not found: " << (*suppressions)[i]->string_of() << endl;
       }
     }
   }

@@ -21,6 +21,16 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.27  1996/07/23 20:28:01  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.26  1996/07/22 18:55:40  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -192,7 +202,7 @@ filter::filter(filteredDataServer *keeper,
 : intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
   workingInterval(0), mi(0), metric(met), foc (focs), 
-  costFlag(cf), server(keeper)
+  active(false), costFlag(cf), server(keeper)
 {
   ;
 }
@@ -496,22 +506,8 @@ filteredDataServer::unsubscribeAllData()
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
-#ifdef MYPCDEBUG
-      double t1,t2;
-      t1=TESTgetTime(); 
-#endif
       dataMgr->disableDataCollection(performanceConsultant::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
-      //cout << "data disabled successfully. " << endl;
-#ifdef MYPCDEBUG
-      // -------------------------- PCDEBUG ------------------
-      t2=TESTgetTime();
-      if (performanceConsultant::collectInstrTimings) {
-        if ((t2-t1) > 1.0) 
-	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
-      }
-      // -------------------------- PCDEBUG ------------------
-#endif
     }
   }
 }
@@ -520,9 +516,6 @@ filteredDataServer::~filteredDataServer ()
 {
   unsubscribeAllData();
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-#ifdef MYPCDEBUG
-    if (!AllDataFilters[i]) printf("++++++++++++++ AllDataFilters[%d] is NULL\n",i);
-#endif
     delete AllDataFilters[i];
   }
 }
@@ -533,61 +526,64 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
   //** cache focus name here??
   filter *curr = NULL;
   metricInstInfo *miicurr;
-  for (unsigned i = 0; i < newlyEnabled->size(); i++) {
+  unsigned nesz = newlyEnabled->size();
+  for (unsigned i = 0; i < nesz; i++) {
     miicurr = &((*newlyEnabled)[i]);
+
 #ifdef PCDEBUG
     cout << "enable REPLY for m=" << miicurr->m_id << " f=" << miicurr->r_id 
       << " mi=" << miicurr->mi_id << endl;
 #endif
+
+    // first check if this mihandle already in use; if so its a bad internal error
+    //**
     bool beenEnabled = DataFilters.find(miicurr->mi_id, curr);
-    if (beenEnabled) {
-      // ** clear out Pendings record??
-      assert(curr);
-      curr->sendEnableReply(miicurr->mi_id, miicurr->r_id, miicurr->mi_id, 
-			    miicurr->successfully_enabled);
-    } else {
-      // first time this met/foc pair enabled by the PC
-      bool pendingRecFound = false;
-      for (unsigned j = 0; j < Pendings.size(); j++) {
-	if ((Pendings[j].mh == miicurr->m_id) && (Pendings[j].f == miicurr->r_id)
-	    && Pendings[j].fil) {
-	  pendingRecFound = true;
-	  curr = Pendings[j].fil;
-	  // clear out this record for reuse
-	  Pendings[j].fil = NULL;
-	  Pendings[j].mh = 0;
-	  Pendings[j].f = 0;
-	  if (miicurr->successfully_enabled) {
-	    curr->mi = miicurr->mi_id;
-	    AllDataFilters += curr;
-	    DataFilters[(fdsDataID) curr->mi] = curr;
-	    ff tempff;
-	    tempff.f = curr->foc;
-	    tempff.mih = curr->mi;
-	    miIndex[curr->metric] += tempff;
-	    curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
+
+    if (beenEnabled && curr) {
+      // this request was part of a PC pause; there is no pending
+      // record and metricInstanceHandle is unchanged
+      curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 
+			    miicurr->mi_id, miicurr->successfully_enabled);
+      return;
+    } 
+    bool pendingRecFound = false;
+    for (unsigned j = 0; j < Pendings.size(); j++) {
+      if ((Pendings[j].mh == miicurr->m_id) && (Pendings[j].f == miicurr->r_id)
+	  && Pendings[j].fil) {
+	pendingRecFound = true;
+	curr = Pendings[j].fil;
+	if (miicurr->successfully_enabled) {
+	  curr->mi = miicurr->mi_id;
+	  DataFilters[(fdsDataID) curr->mi] = curr;
+	  Pendings[j].fil = curr;
+	  miIndex[curr->metric] += Pendings[j];
+	  curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
 	  } else { 
 	    // enable failed and it has never succeeded; trash this filter
 	    curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 0, false);
-	    delete curr;
 	  }
-	  break;
-	}
-      } // for j < Pendings.size()
-      if (!pendingRecFound) {
-	// this enable request was cancelled while it was being handled by the dm
-	// so we need to send back an explicit cancel request
-	if (phType == GlobalPhase)
-	  dataMgr->disableDataAndClearPersistentData
-	    (performanceConsultant::pstream, miicurr->mi_id, phType, true, false);
-	else
-	  dataMgr->disableDataAndClearPersistentData
-	    (performanceConsultant::pstream, miicurr->mi_id, phType, false, true);
-#ifdef PCDEBUG
-	cout << "PCdisableData: m=" << miicurr->m_id << " f=" << miicurr->r_id 
-	  << " mi=" << miicurr->mi_id << endl;
-#endif
+	// clear out this record for reuse
+	Pendings[j].fil = NULL;
+	Pendings[j].mh = 0;
+	Pendings[j].f = 0;
+	break;
       }
+    } // for j < Pendings.size()
+
+    if (!pendingRecFound) {
+      // this enable request was cancelled while it was being handled by the dm
+      // so we need to send back an explicit cancel request
+      if (phType == GlobalPhase)
+	dataMgr->disableDataAndClearPersistentData
+	  (performanceConsultant::pstream, miicurr->mi_id, phType, true, false);
+      else
+	dataMgr->disableDataAndClearPersistentData
+	  (performanceConsultant::pstream, miicurr->mi_id, phType, false, true);
+
+#ifdef PCDEBUG
+      cout << "PCdisableData: m=" << miicurr->m_id << " f=" << miicurr->r_id 
+	<< " mi=" << miicurr->mi_id << endl;
+#endif
     }
   }
 #ifdef PCDEBUG
@@ -657,6 +653,20 @@ filteredDataServer::printPendings()
   }
 }
 
+
+filter *
+filteredDataServer::findFilter(metricHandle mh, focus f)
+{
+  unsigned sz = (miIndex[mh]).size();
+  // is there already a filter for this met/focus pair?
+  for (unsigned i = 0; i < sz; i++) {
+    if ((miIndex[mh])[i].f == f) {
+      return (miIndex[mh])[i].fil;
+    }
+  }
+  return (filter *)NULL;
+}
+
 void
 filteredDataServer::addSubscription(fdsSubscriber sub,
 				    metricHandle mh,
@@ -664,28 +674,18 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 				    filterType ft,
 				    bool flag)
 {
-  filter *subfilter;
-  fdsDataID index;
-  bool found = false;
-  unsigned sz = (miIndex[mh]).size();
-
   // is there already a filter for this met/focus pair?
-  for (unsigned i = 0; i < sz; i++) {
-    if ((miIndex[mh])[i].f == f) {
-      index = (miIndex[mh])[i].mih;
-      found = DataFilters.find(index, subfilter);
-      if (!found) break;
-      if (flag) subfilter->setcostFlag();
-      break;
-    }
-  }
-  if (found) {
+  filter *subfilter = findFilter(mh, f);
+
+  if (subfilter) {
+    if (flag) subfilter->setcostFlag();
     // add subscriber to filter, which already exists
-    if ( (subfilter->addConsumer (sub)) > 1)
+    if ( (subfilter->addConsumer (sub)) > 1) {      
       // filter is already active
-      subfilter->sendEnableReply(mh, f, index, true);
-    else
+      subfilter->sendEnableReply(mh, f, subfilter->getMI(), true);
+    } else {
       subfilter->wakeUp();
+    }
     return;
   }
 
@@ -703,6 +703,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     subfilter = new valFilter (this, mh, f, flag);
   else
     subfilter = new avgFilter (this, mh, f, flag);
+  AllDataFilters += subfilter;
   subfilter->addConsumer(sub);
   subfilter->wakeUp();
 }
@@ -727,11 +728,51 @@ filteredDataServer::cancelSubRequest (fdsSubscriber sub, metricHandle met, focus
   }
 }
  
-  
+void
+filteredDataServer::inActivateFilter (filter *fil)
+{
+  // ask dm to disable metric/focus pair 
+  if (phType == GlobalPhase)
+    dataMgr->disableDataAndClearPersistentData
+      (performanceConsultant::pstream, fil->getMI(), phType, true, false);
+  else
+    dataMgr->disableDataAndClearPersistentData
+      (performanceConsultant::pstream, fil->getMI(), phType, false, true);
 
+  // update server indices
+  fil->inactivate();
+  DataFilters[fil->getMI()] = NULL;
+  
+#ifdef PCDEBUG
+  cout << "PCdisableData: m=" << fil->getMetric() << " f=" << fil->getFocus() 
+    << " mi=" << fil->getMI() << endl;
+#endif
+}
+  
+// 
 // all filters live until end of Search, although no subscribers may remain
 // if subscriber count goes to 0, disable raw data
 //
+void 
+filteredDataServer::endSubscription(fdsSubscriber sub, metricHandle met, focus foc)
+{
+  filter *curr = findFilter (met, foc);
+  if (!curr) 
+    // invalid request 
+    return;
+  int subsLeft = curr->rmConsumer(sub);
+  if (subsLeft == 0) {
+    // we just removed the only subscriber
+    inActivateFilter(curr);
+  }
+#ifdef PCDEBUG
+  if (performanceConsultant::printDataCollection) {
+    cout << "FDS: subscription ended: " << curr->getMI() << "numLeft=" << subsLeft 
+         << endl; 
+  }
+#endif
+}
+  
 void 
 filteredDataServer::endSubscription(fdsSubscriber sub, 
 				    fdsDataID subID)
@@ -743,32 +784,8 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   if (!fndflag) return;
   subsLeft = curr->rmConsumer(sub);
   if (subsLeft == 0) {
-#ifdef MYPCDEBUG
-    double t1,t2;
-    t1=TESTgetTime();
-#endif
-    //dataMgr->clearPersistentData(subID);
-    if (phType == GlobalPhase)
-      dataMgr->disableDataAndClearPersistentData
-	(performanceConsultant::pstream, subID, phType, true, false);
-    else
-      dataMgr->disableDataAndClearPersistentData
-	(performanceConsultant::pstream, subID, phType, false, true);
-    //dataMgr->disableDataCollection ();
-
-#ifdef PCDEBUG
-    cout << "PCdisableData: m=" << curr->getMetric() << " f=" << curr->getFocus() 
-      << " mi=" << subID << endl;
-#endif
-
-#ifdef MYPCDEBUG
-    t2=TESTgetTime();
-    if (performanceConsultant::collectInstrTimings) {
-      if ((t2-t1) > 1.0) 
-        printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1);
-    } 
-#endif
-
+    // we just removed the only subscriber
+    inActivateFilter(curr);
   }
 #ifdef PCDEBUG
   // debug printing
@@ -786,7 +803,7 @@ filteredDataServer::newData (metricInstanceHandle mih,
 {
   filter *curr;
   bool fndflag = DataFilters.find(mih, curr);
-  if (fndflag) {
+  if (fndflag && curr) {
     // convert data to start and end based on bin
     timeStamp start = currentBinSize * bucketNumber;
     timeStamp end = currentBinSize * (bucketNumber + 1);

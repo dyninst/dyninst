@@ -20,6 +20,16 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.29  1996/07/23 20:28:08  karavan
+ * second part of two-part commit.
+ *
+ * implements new search strategy which retests false nodes under certain
+ * circumstances.
+ *
+ * change in handling of high-cost nodes blocking the ready queue.
+ *
+ * code cleanup.
+ *
  * Revision 1.28  1996/07/22 18:55:47  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -184,6 +194,8 @@ public:
   void setExpanded () {expanded = true;}
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
+  const char *getHypoName() {return why->getName();}
+  //const char *getFocus() {return exp->getFocus();}
   void estimatedCostNotification(); 
   void enableReply (bool);
   void addActiveSearch();
