@@ -1433,7 +1433,6 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
     // TODO: 32/64-bit value
     // "src1"     : address register (from)
     // "dst"      : value register (to)
-    //fprintf(stderr, ">>> emit(loadIndirOp)\n"); 
     genItype(insn, LWop, src1, dst, 0);
     base += INSN_SIZE;
     break;
@@ -2569,6 +2568,50 @@ bool process::findCallee(instPoint &ip, function_base *&target)
   target = NULL;
   return false;
 }
+
+void emitLoadPreviousStackFrameRegister(Address register_num,
+					 Register dest,
+					 char *insn,
+					 Address &base,
+					 int size,
+					 bool noCost){
+  int offset = ((31 - register_num) * 8)+4;
+  emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
+	  base, noCost);
+  //Load the value stored on the stack at address dest into register dest
+  emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+}
+
+#ifndef BPATCH_LIBRARY
+bool process::isDynamicCallSite(instPoint *callSite){
+  function_base *temp;
+  if(!findCallee(*(callSite),temp)){
+    return true;
+  }
+  return false;
+}
+
+bool process::MonitorCallSite(instPoint *callSite){
+  instruction i = callSite->origInsn_;
+  vector<AstNode *> the_args(2);
+  //IS the instruction of type "jalr ra,RR"?
+  if(isCall1(i)){
+    the_args[0] = 
+      new AstNode(AstNode::PreviousStackFrameDataReg,
+		  (void *) i.rtype.rs);
+    the_args[1] = new AstNode(AstNode::Constant,
+			      (void *) callSite->iPgetAddress());
+    AstNode *func = new AstNode("DYNINSTRegisterCallee", 
+				the_args);
+    addInstFunc(this, callSite, func, callPreInsn,
+		orderFirstAtPoint,
+		true);
+  }
+  else return false;
+ 
+  return true;
+}
+#endif
 
 /* initDefaultPointFrequencyTable() - define the expected call
    frequency of procedures.  Currently we just define several one

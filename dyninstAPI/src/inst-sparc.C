@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.83 1999/07/29 13:58:47 hollings Exp $
+// $Id: inst-sparc.C,v 1.84 1999/11/09 19:20:53 cain Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -452,7 +452,7 @@ void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offs
     removeAst(t9);
     AstNode* t11 = new AstNode(ifOp, t8, t10);
     removeAst(t8);
-    removeAst(t10) ;
+    removeAst(t10);
 
     AstNode *t6= new AstNode(t11, t3);
     removeAst(t11);
@@ -1172,6 +1172,67 @@ bool process::replaceFunctionCall(const instPoint *point,
     return true;
 }
 
+#ifndef BPATCH_LIBRARY
+bool process::isDynamicCallSite(instPoint *callSite){
+  function_base *temp;
+  if(!findCallee(*(callSite),temp)){
+    //True call instructions are not dynamic on sparc,
+    //they are always to a pc relative offset
+    if(!isTrueCallInsn(callSite->originalInstruction))
+      return true;
+  }
+  return false;
+}
+
+bool process::MonitorCallSite(instPoint *callSite){
+ 
+  if(isJmplInsn(callSite->originalInstruction)){
+    vector<AstNode *> the_args(2);
+    
+    //this instruction is a jmpl with i == 1, meaning it
+    //calling function register rs1+simm13
+    if(callSite->originalInstruction.rest.i == 1){
+      
+      AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
+			  (void *) callSite->originalInstruction.rest.rs1);
+      AstNode *offset = new AstNode(AstNode::Constant, 
+			(void *) callSite->originalInstruction.resti.simm13);
+      the_args[0] = new AstNode(plusOp, base, offset);
+    } 
+    
+    //This instruction is a jmpl with i == 0, meaning its
+    //two operands are registers
+    else if(callSite->originalInstruction.rest.i == 0){
+      //Calculate the byte offset from the contents of the %fp reg
+      //that the registers from the previous stack frame 
+      //specified by rs1 and rs2 are stored on the stack
+      AstNode *callee_addr1 = 
+	new AstNode(AstNode::PreviousStackFrameDataReg,
+		    (void *) callSite->originalInstruction.rest.rs1);
+      AstNode *callee_addr2 = 
+	new AstNode(AstNode::PreviousStackFrameDataReg, 
+		    (void *) callSite->originalInstruction.rest.rs2);
+      the_args[0] = new AstNode(plusOp, callee_addr1, callee_addr2);
+    }
+    else assert(0);
+    
+    the_args[1] = new AstNode(AstNode::Constant,
+			      (void *) callSite->iPgetAddress());
+    AstNode *func = new AstNode("DYNINSTRegisterCallee", 
+				the_args);
+    addInstFunc(this, callSite, func, callPreInsn,
+		orderFirstAtPoint,
+		true);
+  }
+  else if(isTrueCallInsn(callSite->originalInstruction)){
+    //True call destinations are always statically determinable.
+    return true;
+  }
+  else return false;
+
+  return true;
+}
+#endif
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)  On SPARC, we do

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.23 1999/05/19 21:22:29 zhichen Exp $
+// $Id: arch-sparc.h,v 1.24 1999/11/09 19:20:52 cain Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -165,6 +165,8 @@ typedef union instructUnion instruction;
 #define SWAPop  3
 #define SWAPop3 15 
 
+#define FLUSHWop3 43
+
 /* mask bits for various parts of the instruction format */
 #define OPmask		0xc0000000
 #define OP2mask		0x01c00000
@@ -244,6 +246,7 @@ typedef union instructUnion instruction;
 #define ANNUL_BIT	0x40000000
 
 #define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
+#define SPILL_REGISTERS_INSN 0x91d02003 /*ta 3*/
 
 
 inline bool isInsnType(const instruction i,
@@ -288,6 +291,12 @@ inline bool isJmplCallInsn(const instruction i) {
 	}
     }
     return false;
+}
+
+inline bool isJmplInsn(const instruction i){
+  if (i.resti.op == 0x2 && i.resti.op3 == 0x38)
+    return true;
+  return false;
 }
 
 inline bool isCondBranch(const instruction i){

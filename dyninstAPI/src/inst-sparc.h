@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.37 1999/07/28 19:20:58 nash Exp $
+// $Id: inst-sparc.h,v 1.38 1999/11/09 19:20:53 cain Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -181,6 +181,17 @@ inline void generateNOOP(instruction *insn)
     insn->branch.op2 = NOOPop2;
 
     // logLine("nop\n");
+}
+
+inline void generateTrapRegisterSpill(instruction *insn){
+  insn->raw = SPILL_REGISTERS_INSN;
+}
+
+inline void generateFlushw(instruction *insn){
+  insn->raw = 0;
+  insn->rest.op = RESTop;
+  insn->rest.op3 = FLUSHWop3;
+  insn->rest.i = 0;
 }
 
 inline void generateBranchInsn(instruction *insn, int offset)

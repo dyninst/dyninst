@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.59 1999/10/28 23:00:41 zandy Exp $
+// $Id: inst-sparc-solaris.C,v 1.60 1999/11/09 19:20:53 cain Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -48,6 +48,7 @@
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 
+#include <sys/utsname.h>
 #include <stdlib.h>
 
 static unsigned pfdp_to_pfdp_hash(pd_Function * const &f) {
@@ -1326,6 +1327,70 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     }
 }
 
+//This function returns true if the processor on which the daemon is running
+//is an ultra SPARC, otherwise returns false.
+bool isUltraSparc(){
+  struct utsname u;
+  if(uname(&u) < 0){
+    cerr <<"Trouble in uname(), inst-sparc-solaris.C\n";
+    return false;
+  }
+  if(!strcmp(u.machine, "sun4u")){
+    return 1;
+  }
+  return false;
+}
+
+void emitLoadPreviousStackFrameRegister(Address register_num,
+					Register dest,
+					char *insn,
+					Address &base,
+					int size,
+					bool noCost){
+  if(register_num > 31)
+    assert(0);
+  else if(register_num > 15){
+    /*Need to find it on the stack*/
+    unsigned frame_offset = (register_num-16) * 4;
+    /*generate a FLUSHW instruction, in order to make sure that
+      the registers from the caller are on the caller's stack
+      frame*/
+    instruction *in = (instruction *) ((void*)&insn[base]);
+    if(isUltraSparc())
+      generateFlushw(in);
+    else 
+      generateTrapRegisterSpill(in);
+    base+=sizeof(instruction);
+    
+    if(frame_offset == 0){
+      emitV(loadIndirOp, 30, 0, dest, insn, base, noCost, size);
+    }	    
+    else {
+      emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
+	      dest, insn, base, noCost);
+      emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+    }
+  }	  
+  else if(register_num > 7) { 
+    //out registers become in registers, so we add 16 to the register
+    //number to find it's value this stack frame. We move it's value
+    //into the destination register
+    emitV(orOp, (Register) register_num + 16, 0,  dest, insn, base, false);
+  }
+  else if(register_num >= 0){
+    int frame_offset;
+    if(register_num % 2 == 0) 
+      frame_offset = (register_num * -4) - 8;
+    else 
+      frame_offset = (register_num * -4);
+    //read globals from the stack, they were saved in tramp-sparc.S
+    emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
+	    dest, insn, base, noCost);
+    emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+  }
+  else assert(0);
+  
+}
 
 Register emitFuncCall(opCode op, 
 		      registerSpace *rs,
@@ -3515,9 +3580,6 @@ bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
 
     return true;
 }
-
-
-
 
 
 
