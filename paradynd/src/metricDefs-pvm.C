@@ -7,15 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.19 1995/02/16 08:34:10 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.20 1995/02/26 22:47:39 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.19  1995/02/16 08:34:10  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.20  1995/02/26 22:47:39  markc
+ * Upgraded to compile using new interfaces.  Many public data members became private.
+ *
+ * Revision 1.19  1995/02/16  08:34:10  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules
@@ -176,9 +179,9 @@ void osDependentInst(process *proc) {
   unsigned u; pdFunction *func;
 
   while (fi.next(u, func)) {
-    if (func->tag & (TAG_MSG_SEND | TAG_MSG_RECV)) {
-      addInstFunc(proc, func->funcEntry, setNode, callPreInsn, orderLastAtPoint);
-      addInstFunc(proc, func->funcReturn, unsetNode, callPreInsn, orderFirstAtPoint);
+    if (func->isTagSimilar(TAG_MSG_SEND | TAG_MSG_RECV)) {
+      addInstFunc(proc, func->funcEntry(), setNode, callPreInsn, orderLastAtPoint);
+      addInstFunc(proc, func->funcReturn(), unsetNode, callPreInsn, orderFirstAtPoint);
     }
   }
 }
@@ -273,8 +276,8 @@ void createMsgBytesRecvMetric(metricDefinitionNode *mn,
   unsigned u;
 
   while (fi.next(u, func)) {
-    if (func->tag & matchTag) 
-      mn->addInst(func->funcReturn, msgBytesAst,
+    if (func->isTagSimilar(matchTag)) 
+      mn->addInst(func->funcReturn(), msgBytesAst,
 		  callPreInsn, orderFirstAtPoint);
   }
 }
@@ -312,8 +315,8 @@ void createMsgBytesSentMetric(metricDefinitionNode *mn,
   unsigned u;
 
   while (fi.next(u, func)) {
-    if (func->tag & matchTag)
-      mn->addInst(func->funcEntry, msgBytesAst,
+    if (func->isTagSimilar(matchTag))
+      mn->addInst(func->funcEntry(), msgBytesAst,
 		  callPreInsn, orderFirstAtPoint);
   }
 }
@@ -381,10 +384,10 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     unsigned u;
 
     while (fi.next(u, func)) {
-      if (func->tag & (TAG_MSG_SEND | TAG_MSG_RECV)) {
-	mn->addInst(func->funcEntry, filterNode,
+      if (func->isTagSimilar(TAG_MSG_SEND | TAG_MSG_RECV)) {
+	mn->addInst(func->funcEntry(), filterNode,
 		    callPreInsn, orderFirstAtPoint);
-	mn->addInst(func->funcReturn, clearNode,
+	mn->addInst(func->funcReturn(), clearNode,
 		    callPreInsn, orderLastAtPoint);
       }
     }
@@ -415,14 +418,14 @@ void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 
     func = (mn->proc->symbols)->findOneFunction("main");
     assert(func);
-    mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
+    mn->addInst(func->funcEntry(), startNode,callPreInsn,orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
+    mn->addInst(func->funcReturn(), stopNode,callPreInsn,orderLastAtPoint);
 
     func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
-    mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
+    mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint);
 }
 
 void createIOOps(metricDefinitionNode *mn, AstNode *trigger) {
@@ -469,8 +472,8 @@ void IOBytesRead(metricDefinitionNode *mn, AstNode *trigger,
   pdFunction *func;
 
   while (fi.next(u, func)) {
-    if (func->tag & TAG_IO_IN)
-      mn->addInst(func->funcReturn, readAst, callPreInsn, orderFirstAtPoint);
+    if (func->isTagSimilar(TAG_IO_IN))
+      mn->addInst(func->funcReturn(), readAst, callPreInsn, orderFirstAtPoint);
   }
 }
 
@@ -494,8 +497,8 @@ void IOBytesWrite(metricDefinitionNode *mn, AstNode *trigger,
   pdFunction *func;
 
   while (fi.next(u, func)) {
-    if (func->tag & TAG_IO_OUT)
-      mn->addInst(func->funcEntry, writeAst, callPreInsn, orderFirstAtPoint);
+    if (func->isTagSimilar(TAG_IO_OUT))
+      mn->addInst(func->funcEntry(), writeAst, callPreInsn, orderFirstAtPoint);
   }
 }
 
