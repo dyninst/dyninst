@@ -3,6 +3,11 @@
 
 /*
  * $Log: tvMetric.h,v $
+ * Revision 1.3  1995/12/19 00:52:49  tamches
+ * added numSigFigs and valuesPixWidth member variables.
+ * Constructor takes in 2 new params, accordingly.
+ * changeUnitsName was cleaned up (it should not have been const)
+ *
  * Revision 1.2  1995/12/03 21:09:32  newhall
  * changed units labeling to match type of data being displayed
  *
@@ -23,12 +28,16 @@ class tvMetric {
    string unitsName;
    unsigned namePixWidth;
    unsigned unitsPixWidth;
+   unsigned numSigFigs;
+   unsigned valuesPixWidth; // a direct function of numSigFigsBeingDisplayed
 
  public:
    tvMetric() {} // needed by class Vector (nuts)
    tvMetric(const string &iName, const string &iUnitsName,
 	    XFontStruct *nameFontStruct,
-	    XFontStruct *unitsNameFontStruct);
+	    XFontStruct *unitsNameFontStruct,
+	    XFontStruct *valuesFontStruct,
+	    unsigned numSigFigs);
    tvMetric(const tvMetric &src) : name(src.name), unitsName(src.unitsName) {
       namePixWidth = src.namePixWidth;
       unitsPixWidth = src.unitsPixWidth;
@@ -45,10 +54,12 @@ class tvMetric {
 
    const string &getName() const {return name;}
    const string &getUnitsName() const {return unitsName;}
-   void changeUnitsName(const string &newname) const { 
-		const char *temp = newname.string_of();
-		((string) unitsName) = temp; 
+   void changeUnitsName(const string &newunitsname) {
+      unitsName = newunitsname;
    }
+
+   void changeNumSigFigs(unsigned newSigFigs, XFontStruct *valuesFontStruct);
+   
    unsigned getNamePixWidth() const {return namePixWidth;}
    unsigned getUnitsPixWidth() const {return unitsPixWidth;}
    unsigned getColPixWidth() const; // width of whole column (incl. horiz padding)
