@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.13 2002/02/12 23:50:36 schendel Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.14 2002/04/05 19:39:10 schendel Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -50,7 +50,7 @@
 #include "common/h/Types.h"    // Address
 #include "common/h/Time.h"
 
-class threadMetFocusNode;
+class threadMetFocusNode_Val;
 
 class process;
 //#include "dyninstAPI/src/process.h" 
@@ -59,7 +59,7 @@ class process;
 // wallTimerHK, processTimerHK, etc.
 class genericHK {
  protected:
-   threadMetFocusNode *thrmi;
+   threadMetFocusNode_Val *thrNodeVal;
    
    // Needed for GC use:
    struct trampRange {
@@ -70,24 +70,27 @@ class genericHK {
 
    // new vector class wants copy-ctor defined:
    genericHK(const genericHK &src) {
-      thrmi = src.thrmi;
+      thrNodeVal = src.thrNodeVal;
    }
 
  public:
    genericHK() {
       // no-param ctor required since the actual HK types need one
-      thrmi = NULL;
+      thrNodeVal = NULL;
       // trampsUsingMe is initialized to empty array
    }
-   genericHK(threadMetFocusNode *_thrmi) {
-      thrmi = _thrmi;
+   genericHK(threadMetFocusNode_Val *_thrNodeVal) {
+      thrNodeVal = _thrNodeVal;
       // trampsUsingMe is initialized to empty array
    }
   ~genericHK() {}
    genericHK &operator=(const genericHK &src);
 
-   void makePendingFree(const vector<Address> &iTrampsUsing);
-
+   void makePendingFree(const vector<Address> &iTrampsUsing,
+			process *inferiorProc);
+   void setThrClient(threadMetFocusNode_Val *thrclient) {
+     thrNodeVal = thrclient;
+   }
    bool tryGarbageCollect(const vector<Address> &PCs);
       // Given a list of inferior process PC-registers representing a stack trace
       // (i.e. the current inferior process PC, the PC of its caller, then its
@@ -95,7 +98,7 @@ class genericHK {
       // any "trampsUsingMe", previously passed to makePendingFree().
 
    // Needed for debugging only
-   threadMetFocusNode* getThrMi() { return thrmi; }
+   threadMetFocusNode_Val* getThrNodeVal() { return thrNodeVal; }
 };
 
 /* ******************************************************************************* */
@@ -115,9 +118,9 @@ class intCounterHK : public genericHK {
  public:
    intCounterHK() : genericHK() {
       // no-param ctor is required by fastInferiorHeap
-      lowLevelId = 0; // wouldn't UINT_MAX be better?
+      lowLevelId = 0; // wouldn't UI32_MAX be better?
    }
-   intCounterHK(int iCounterId, threadMetFocusNode *thrmi) : genericHK(thrmi) {
+   intCounterHK(int iCounterId, threadMetFocusNode_Val *thrNodeVal) : genericHK(thrNodeVal) {
       lowLevelId = iCounterId;
    }
 
@@ -130,7 +133,7 @@ class intCounterHK : public genericHK {
    intCounterHK &operator=(const intCounterHK &src);
 
    void assertWellDefined() const {
-      assert(thrmi != NULL);
+      assert(thrNodeVal != NULL);
    }
 
    bool perform(const intCounter &dataValue, process *);
@@ -160,8 +163,8 @@ class wallTimerHK : public genericHK {
       lowLevelId = 0;
    }
    wallTimerHK(int iCounterId,
-	       threadMetFocusNode *thrmi,
-	       timeLength iLastTimeValueUsed) : genericHK(thrmi), 
+	       threadMetFocusNode_Val *thrNodeVal,
+	       timeLength iLastTimeValueUsed) : genericHK(thrNodeVal), 
                lastTimeValueUsed(iLastTimeValueUsed) 
    {
       lowLevelId = iCounterId;
@@ -177,7 +180,7 @@ class wallTimerHK : public genericHK {
    wallTimerHK &operator=(const wallTimerHK &src);
 
    void assertWellDefined() const {
-      assert(thrmi != NULL);
+      assert(thrNodeVal != NULL);
    }
 
    bool perform(const tTimer &theTimer, process *);
@@ -210,8 +213,8 @@ class processTimerHK : public genericHK {
       lowLevelId = 0;
       vTimer = NULL ;
    }
-   processTimerHK(int iCounterId, threadMetFocusNode *thrmi,
-	          timeLength iLastTimeValueUsed) : genericHK(thrmi), 
+   processTimerHK(int iCounterId, threadMetFocusNode_Val *thrNodeVal,
+	          timeLength iLastTimeValueUsed) : genericHK(thrNodeVal), 
      lastTimeValueUsed(iLastTimeValueUsed) {
       lowLevelId = iCounterId;
       vTimer = NULL ;
@@ -229,7 +232,7 @@ class processTimerHK : public genericHK {
 
    tTimer* vtimer() const { return vTimer;} 
    void assertWellDefined() const {
-      assert(thrmi != NULL);
+      assert(thrNodeVal != NULL);
    }
 
    bool perform(const tTimer &theTimer, process *);
