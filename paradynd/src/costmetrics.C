@@ -21,7 +21,8 @@ costMetric::costMetric(const string n,
    else combinerop_ = -1;
 
    for(unsigned i = 0; i < PAST_LIMIT; i++){
-       past[i] = -1.0;
+       past[i].value = -1.0;
+       past[i].len = 0.0;
    }
    for(unsigned i2 = 0; i2 < processVec.size(); i2++){
        components += processVec[i2];
@@ -256,20 +257,21 @@ void costMetric::updateSmoothValue(process *proc,
 
     if(ret.valid){ // there is a new value for this interval
 	// compute smoothed value 
-	unsigned count = 0;
 	smooth_sample = 0.0;
 	timeStamp length = ret.end - ret.start;
 	if(length > 0.0){
-	    sampleValue temp = ret.value/length;
+	    float total_len = (float)length;
+	    sampleValue temp = ret.value;
 	    for(unsigned i=0; i < PAST_LIMIT; i++){
-	        if(past[i] != -1.0){
-	            temp += past[i];	
-		    count++;
+	        if(past[i].value != -1.0){
+	            temp += past[i].value;	
+		    total_len += past[i].len;
 	        } 
 	    }
-            smooth_sample = temp / (1.0*(count + 1));
-	    // add value to the past list: time normalized observed values
-	    past[past_head++] = ret.value/length;  
+            smooth_sample = temp / (total_len);
+	    // add new value to the past list
+	    past[past_head].value = ret.value;  
+	    past[past_head++].len = length;  
 	    if(past_head >= PAST_LIMIT) past_head = 0;
 	    // compute value for the appropriate time interval
 	    smooth_sample *= length;

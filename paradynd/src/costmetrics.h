@@ -8,6 +8,13 @@
 #include "paradynd/src/resource.h"
 
 #define PAST_LIMIT 6
+
+struct pd_past_Values{
+    float     value;
+    timeStamp len;
+};
+typedef pd_past_Values pd_pastValues;
+
 class costMetric {
   friend sampleInterval costMetricValueUpdate(costMetric *met, 
 					      process *proc,
@@ -109,7 +116,7 @@ private:
 
   // circular list of past values for the metric (for computing smoothed costs)
   // these values are normalized by time
-  float past[PAST_LIMIT];
+  pd_pastValues past[PAST_LIMIT];
   int  past_head;
   sampleValue smooth_sample;
   sampleInfo sample;
