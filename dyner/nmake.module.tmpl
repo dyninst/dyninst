@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2000/06/29 22:17:00 paradyn Exp $
+# $Id: nmake.module.tmpl,v 1.7 2000/07/30 16:45:02 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -20,8 +20,7 @@ OBJS	      = $(TARGET:.exe=.obj) lex.$(TARGET:.exe=.obj) $(TARGET:.exe=.tab).obj
 
 IFLAGS       = $(IFLAGS) -I$(TO_CORE)/dyninstAPI/h -I../src 
 
-LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib \
-                  $(TO_CORE)/$(LIBRARY_DEST)/libpdutil.lib
+LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib
 
 SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib $(TCLTK_LIBS) \
 		  imagehlp.lib
