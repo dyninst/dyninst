@@ -240,9 +240,16 @@ int process::waitProcs(int *status) {
      if (fds[curr].revents & POLLHUP) {
 	 do {
 	     ret = waitpid(processVec[curr]->getPid(), status, 0);
-	     assert(ret != 0);
 	 } while ((ret < 0) && (errno == EINTR));
-	 assert(ret > 0);
+	 if (ret < 0) {
+	     // This means that the application exited, but was not our child
+	     // so it didn't wait around for us to get it's return code.  In
+	     // this case, we can't know why it exited or what it's return
+	     // code was.
+	     ret = processVec[curr]->getPid();
+	     *status = 0;
+	 }
+	 assert(ret == processVec[curr]->getPid());
      } else
 #endif
      if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
