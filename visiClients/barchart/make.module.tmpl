@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.10  1996/02/07 15:33:01  mjrg
+# use perl to invoke tcl2c to avoid problems on HP.
+#
 # Revision 1.9  1996/01/10 02:22:03  tamches
 # added an intelligent -I flag: the user no longer needs to have the visilib
 # checked out in order to compile barChart
@@ -68,4 +71,4 @@ SYSLIBS	     += -ltk -ltcl -lX11 -lm
 all:	$(TARGET)
 
 $(TCL2C_GEN_SRCS): $(TCL_SRCS)
-	$(TCL2C) $^ > $@
+	perl $(TCL2C) $^ > $@
