@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.44 2000/03/23 01:28:49 wylie Exp $
+// $Id: rpcUtil.h,v 1.45 2000/04/26 18:10:52 pcroth Exp $
 
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
@@ -171,5 +171,14 @@ class rpcBuffer {
     char *buf;
     int len;
 };
+
+#if defined(i386_unknown_nt4_0)
+// a vector of callback functions for reads and accepts, needed to support
+// correct interation between XDR and our thread library under Windows
+//
+typedef void (*RPCSockCallbackFunc)( SOCKET );
+
+extern vector<RPCSockCallbackFunc> rpcSockCallback;
+#endif // defined(i386_unknown_nt4_0)
 
 #endif

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.74 2000/04/10 17:37:53 bernat Exp $
+// $Id: rpcUtil.C,v 1.75 2000/04/26 18:10:55 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -63,6 +63,11 @@
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
 
+
+#if defined(i386_unknown_nt4_0)
+vector<RPCSockCallbackFunc>    rpcSockCallback;
+#endif // defined(i386_unknown_nt4_0)
+
 //---------------------------------------------------------------------------
 // prototypes of utility functions used in this file
 //---------------------------------------------------------------------------
@@ -78,6 +83,16 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 
 #if defined(i386_unknown_nt4_0)
     ret = recv( sock, buf, len, 0 );
+
+    // call any user-defined callbacks
+    unsigned int cbi;
+    for( cbi = 0; cbi < rpcSockCallback.size(); cbi++ )
+    {
+        assert( rpcSockCallback[cbi] != NULL );
+
+        (*(rpcSockCallback[cbi]))( sock );
+    }
+    
 #else
     do {
         ret = P_read(sock, buf, len);
@@ -147,12 +162,20 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     }
 
 #if defined(i386_unknown_nt4_0)
-    ret = recv(fd, buffer+partialMsgs[i]->len,
+   	ret = recv(fd, buffer+partialMsgs[i]->len,
                len + sizeof(int) - partialMsgs[i]->len, 0);
+
+    // call any user-defined callbacks
+    unsigned int cbi;
+    for( cbi = 0; cbi < rpcSockCallback.size(); cbi++ )
+    {
+        assert( rpcSockCallback[cbi] != NULL );
+        (*(rpcSockCallback[cbi]))( fd );
+    }
 #else
     do {
         ret = P_read(fd, buffer+partialMsgs[i]->len, 
-                     len + sizeof(int) -partialMsgs[i]->len);
+                     len + sizeof(int) - partialMsgs[i]->len);
     } while (ret < 0 && errno == EINTR);
 #endif
 
@@ -293,7 +316,6 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
         ioctlsock_arg = 0; // set blocking
         if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
             perror("ioctlsocket");
-
 #else
         if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
             perror("fcntl");
@@ -359,7 +381,6 @@ doDeferedRPCasyncXDRWrite() {
         ioctlsock_arg = 0; // set blocking
         if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
             perror("ioctlsocket");
-
 #else
         if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
             perror("fcntl");
@@ -1110,7 +1131,18 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
     return INVALID_PDSOCKET;
   }
   else
+  {
+#if defined(i386_unknown_nt4_0)
+    // note that we have consumed the "available data" from
+    // the indicated socket
+    unsigned int i;
+    for( i = 0; i < rpcSockCallback.size(); i++ )
+    {
+      (*rpcSockCallback[i])( sock );
+    }
+#endif // defined(i386_unknown_nt4_0)
     return new_sock;
+  }
 }
 
 // TODO -- use vectors and strings ?
