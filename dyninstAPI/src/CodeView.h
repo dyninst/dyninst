@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.9 2003/07/15 22:43:42 schendel Exp $
+// $Id: CodeView.h,v 1.10 2003/09/05 16:27:41 schendel Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -72,11 +72,9 @@
 #include <windows.h> //ccw 7 apr 2001
 #endif
 
-#ifdef BPATCH_LIBRARY
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "dyninstAPI/src/BPatch_collections.h"
-#endif
 
 //
 // LPString
@@ -617,11 +615,9 @@ public:
         // operations
 		void	Parse( const char* pSymBase, DWORD cb );
 		Symbols& operator=( const Symbols& syms );
-#ifdef BPATCH_LIBRARY
 		void CreateTypeInfo( const char* pSymBase, DWORD cb, 
-                               TypesSubSection *pTypeBase, BPatch_module *mod ,
-			       LineInformation* lineInformation);
-#endif
+                           TypesSubSection *pTypeBase, BPatch_module *mod ,
+                           LineInformation* lineInformation);
 
 	private:
 		pdvector<SymRecordProc*> gprocs;		// global functions
@@ -636,15 +632,13 @@ public:
 		//Below are used to create DyninstAPI types for the symbols
 
 	// Operations
-#ifdef BPATCH_LIBRARY
 		BPatch_type *ExploreType(BPatch_module *, DWORD, 
 						TypesSubSection *, char *);
 		BPatch_type *CreatePrimitiveType(DWORD index);
 		void FindFields(BPatch_module *mod, BPatch_type *mainType, int cnt,
 				DWORD index, TypesSubSection *pTypeBase, char *startAddr);
-#endif
 
-        friend class CodeView;
+      friend class CodeView;
 	};
 
 
@@ -690,7 +684,7 @@ public:
 
     // operations
 	bool Parse( void );
-#ifdef BPATCH_LIBRARY
+
 	//this method parses debug infor and generates type and line info
 	void CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
                                     LineInformation* lineInformation);
@@ -700,7 +694,6 @@ public:
 	//which is later done by former.
 	void CreateLineInfo(const char* srcMod, DWORD baseAddr ,
                             LineInformation* lineInformation);
-#endif
 
 private:
 	const char* pBase;          // location of CodeView symbols

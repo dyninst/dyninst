@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.17 2003/07/18 15:43:47 schendel Exp $
+// $Id: CodeView.C,v 1.18 2003/09/05 16:27:40 schendel Exp $
 
 #include <assert.h>
 
@@ -175,8 +175,6 @@ CodeView::ParseSrcModuleSubsection( SDEntry* pEntry )
 	Module& mod = modules[pEntry->iMod];
 	mod.psrc = (SrcModuleSubsection*)(pBase + pEntry->offset);
 }
-
-#ifdef BPATCH_LIBRARY
 
 #include "LineInformation.h"
 
@@ -379,7 +377,6 @@ CodeView::CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
 	mod->syms.CreateTypeInfo( (const char *)mod->pas, alignSubSec->cb,
 					pTypeBase, inpMod,lineInformation);
 }
-#endif // BPATCH_LIBRARY
 
 //---------------------------------------------------------------------------
 // CodeView::Symbols methods
@@ -469,7 +466,6 @@ CodeView::Symbols::operator=( const CodeView::Symbols& syms )
 	return *this;
 }
 
-#ifdef BPATCH_LIBRARY
 //
 // Creates type information for the symbols in the specified module
 //
@@ -1201,7 +1197,6 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 	mod->moduleTypes->addType(newType);
 	return(newType);
 }
-#endif // BPATCH_LIBRARY
 
 //---------------------------------------------------------------------------
 // CodeView::Module methods
