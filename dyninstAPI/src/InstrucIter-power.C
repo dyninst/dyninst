@@ -91,6 +91,11 @@ bool InstrucIter::isAIndirectJumpInstruction(InstrucIter ah)
 		if((j.xfxform.op == 31) && (j.xfxform.xo == 467) &&
 		   (j.xfxform.spr == 0x100))
 			return true;
+		++ah;
+                j = ah.getInstruction();
+		if((j.xfxform.op == 31) && (j.xfxform.xo == 467) &&
+		   (j.xfxform.spr == 0x100))
+			return true;
 	}
 	return false;
 }

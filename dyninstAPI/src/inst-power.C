@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.217 2005/03/17 23:26:38 bernat Exp $
+ * $Id: inst-power.C,v 1.218 2005/03/21 23:19:57 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -3627,19 +3627,6 @@ bool int_function::findInstPoints(const image *i_owner)
                  currBlk->addTarget( leadersToBlock[ t2 ] );
                  break;
              }
-             else if( ah.isAReturnInstruction() ||
-                      ah.getInstruction().raw == 0x0 )
-             {
-                 //we catch exits by overwriting the return address
-                 //we therefore do not need to make exit instPoints
-                 currBlk->setRelLast( currAddr );
-                 currBlk->setRelEnd( currAddr + insnSize );
-                 currBlk->isExitBasicBlock = true;
-                 
-                 if( currAddr >= funcEnd )
-                     funcEnd = currAddr + insnSize;
-                 break;
-             }
              else if( ah.isAIndirectJumpInstruction( ah ) )
              {
                  InstrucIter ah2( ah );
@@ -3679,6 +3666,19 @@ bool int_function::findInstPoints(const image *i_owner)
                  }                 
                  break;
              }             
+             else if( ah.isAReturnInstruction() ||
+                      ah.getInstruction().raw == 0x0 )
+             {
+                 //we catch exits by overwriting the return address
+                 //we therefore do not need to make exit instPoints
+                 currBlk->setRelLast( currAddr );
+                 currBlk->setRelEnd( currAddr + insnSize );
+                 currBlk->isExitBasicBlock = true;
+                 
+                 if( currAddr >= funcEnd )
+                     funcEnd = currAddr + insnSize;
+                 break;
+             }
              else if( ah.isAJumpInstruction() )
              {
                  currBlk->setRelLast( currAddr );
