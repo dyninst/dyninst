@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.44  1994/08/17 17:56:24  markc
+ * Revision 1.45  1994/08/22 15:58:36  markc
+ * Add code for class daemonEntry
+ *
+ * Revision 1.44  1994/08/17  17:56:24  markc
  * Added flavor paramater to paradyn daemon data structure.
  * Added flavor parameter to reportSelf function call.
  *
@@ -436,7 +439,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 
     // there better be a paradynd running on this machine!
     for (curr=paradynDaemon::allDaemons, daemon = NULL; *curr; curr++) {
-	if (!strcmp((*curr)->machine, machine_name))
+	if ((*curr)->machine && !strcmp((*curr)->machine, machine_name))
 	    daemon = *curr;
     }
     // for now, abort if there is no paradynd, this should not happen
@@ -564,14 +567,36 @@ void paradynDaemon::handle_error()
 // When a paradynd is started remotely, ie not by paradyn, this upcall
 // reports the information for that paradynd to paradyn
 //
+// This must set command, name, machine and flavor fields
+//
 void 
 paradynDaemon::reportSelf (String m, String p, int pd, int flav)
 {
-  machine = strdup(m);
-  program = strdup(p);
-  my_pid = pd;
+  pid = pd;
   flavor = flav;
-  printf("paradyn daemon pid %d reported\n", my_pid);
+  if (!m || !p) {
+    dm->appContext->removeDaemon(this, TRUE);
+    printf("paradyn daemon reported bad info, removed\n");
+    // error
+  } else {
+    machine = strdup(m);
+    command = strdup(p);
+    switch (flavor) {
+    case metPVM:
+      name = strdup("pvmd"); 
+      break;
+    case metCM5:
+      name = strdup("cm5d");
+      break;
+    case metUNIX:
+      name = strdup("defd");
+      break;
+    default:
+      dm->appContext->removeDaemon(this, TRUE);
+      printf("paradyn daemon reported bad flavor, removed\n");
+    }
+    printf("paradyn daemon pid %d reported\n", pid);
+  }
   return;
 }
 
@@ -732,4 +757,64 @@ void newSampleRate(float rate)
     for (curr = paradynDaemon::allDaemons; *curr; curr++) {
 	(*curr)->setSampleRate(rate);
     }
+}
+
+Boolean daemonEntry::setAll (char *m, char *c, char *n,
+			     char *l, char *d, int f)
+{
+  if (!n || !c)
+    return FALSE;
+  if (m)
+    machine = strdup(m);
+  else
+    machine = 0;
+  command = strdup(c);
+  name = strdup(n);
+  if (l)
+    login = strdup(l);
+  else 
+    login = 0;
+  if (d)
+    dir = strdup(d);
+  else
+    dir = 0;
+  flavor = f;
+
+  return TRUE;
+}
+
+Boolean daemonEntry::freeAll()
+{
+  if (name) delete name;
+  if (command) delete command;
+  if (dir) delete dir;
+  if (login) delete login;
+  if (machine) delete machine;
+  name = 0; command = 0; dir = 0; login = 0; machine = 0;
+  return TRUE;
+}
+
+void daemonEntry::print() 
+{
+  cout << "DAEMON ENTRY\n";
+  cout << "  name: " << (name ? name : "<EMPTY>") << endl;
+  cout << "  command: " << (command ? command : "<EMPTY>") << endl;
+  cout << "  dir: " << (dir ? dir : "<EMPTY>") << endl;
+  cout << "  login: " << (login ? login : "<EMPTY>") << endl;
+  cout << "  machine: " << (machine ? machine : "<EMPTY>") << endl;
+  cout << "  flavor: ";
+  switch (flavor) {
+  case metPVM:
+    cout << " metPVM " << endl;
+    break;
+  case metUNIX:
+    cout << " metUNIX " << endl;
+    break;
+  case metCM5:
+    cout << " metCM5 " << endl;
+    break;
+  default:
+    cout << flavor << " is UNKNOWN!" << endl;
+    break;
+  }
 }
