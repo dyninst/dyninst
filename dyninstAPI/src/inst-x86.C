@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.98 2001/12/14 17:57:02 gaburici Exp $
+ * $Id: inst-x86.C,v 1.99 2001/12/20 04:28:52 buck Exp $
  */
 
 #include <iomanip.h>
@@ -3715,6 +3715,8 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
                                 int numBefore, int numAfter, 
                                 unsigned type, int index) {   
 
+  Address newJumpAddr = p->address();
+
   // add instructions before the point
   unsigned size = (p->insnAtPoint()).size();
   for (int u1 = index-1; size < JUMP_SZ && u1 >= 0 && 
@@ -3722,10 +3724,13 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
     if (!allInstr[u1].isCall()) {
         p->addInstrBeforePt(allInstr[u1]);
         size += allInstr[u1].size();
+	newJumpAddr -= allInstr[u1].size();
     } else {
         break;
     }
   }
+
+  p->setJumpAddr(newJumpAddr);
 
   // add instructions after the point
   if (type == ReturnPt) {
@@ -3772,18 +3777,7 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
 //                      the buffer corresponding to the expanded and relocate
 //                      function.
 //
-// oldJumpOffset:       offset (in bytes) from the beginning of the original
-//                      function, at which the jump to the baseTramp would be
-//                      placed.
-//
-// newJumpOffset:       offset (in bytes) from the beginning of the expanded 
-//                      and relocated function, at which the jump to the 
-//                      baseTramp would be placed.
-//
-// newJumpAddr:         absolute Address of the jump to the baseTramp, 
-//                      in the expanded and relocated function would be placed.
-//
-// newJumpAddr:         absolute Address of the instruction in the expanded 
+// adr:                 absolute Address of the instruction in the expanded 
 //                      and relocated function.
 
 
@@ -3794,9 +3788,6 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
      newOffset = originalOffset + alteration_set.getShift(originalOffset);    \
      newArrayOffset = originalArrayOffset +				      \
                       alteration_set.getInstPointShift(originalOffset);	      \
-     oldJumpOffset = (ip->jumpAddr() + imageBaseAddr) - mutatee;	      \
-     newJumpOffset = oldJumpOffset + alteration_set.getShift(oldJumpOffset);  \
-     newJumpAddr = newAdr + newJumpOffset;				      \
      adr = newAdr + newOffset;
  
 /****************************************************************************/
@@ -3814,8 +3805,7 @@ bool pd_Function::fillInRelocInstPoints(
    
   unsigned retId = 0, callId = 0,arbitraryId = 0;
   int originalOffset, newOffset, originalArrayOffset, newArrayOffset;
-  int oldJumpOffset, newJumpOffset;
-  Address adr, newJumpAddr;
+  Address adr;
 
   instPoint *point = 0; 
 
@@ -3851,8 +3841,6 @@ bool pd_Function::fillInRelocInstPoints(
 
     point->setRelocated();
 
-    point->setJumpAddr(newJumpAddr-imageBaseAddr);
-
     instrAroundPt(point, newCode, funcEntry_->insnsBefore(), 
                   funcEntry_->insnsAfter() + 
                   alteration_set.numInstrAddedAfter(originalOffset), 
@@ -3884,8 +3872,6 @@ bool pd_Function::fillInRelocInstPoints(
  
     point->setRelocated();
 
-    point->setJumpAddr(newJumpAddr-imageBaseAddr);
- 
     instrAroundPt(point, newCode,funcReturns[retId]->insnsBefore(), 
                   funcReturns[retId]->insnsAfter() + 
                   alteration_set.numInstrAddedAfter(originalOffset), 
@@ -3915,7 +3901,6 @@ bool pd_Function::fillInRelocInstPoints(
  
     point->setRelocated();
 
-    point->setJumpAddr(newJumpAddr-imageBaseAddr); 
     instrAroundPt(point, newCode, calls[callId]->insnsBefore(), 
                   calls[callId]->insnsAfter() + 
                   alteration_set.numInstrAddedAfter(originalOffset),
@@ -3940,10 +3925,8 @@ bool pd_Function::fillInRelocInstPoints(
 
     point->setRelocated();
 
-    point->setJumpAddr(newJumpAddr-imageBaseAddr);
-
-    instrAroundPt(point, newCode,funcReturns[retId]->insnsBefore(),
-                  funcReturns[retId]->insnsAfter() +
+    instrAroundPt(point, newCode,funcReturns[arbitraryId]->insnsBefore(),
+                  funcReturns[arbitraryId]->insnsAfter() +
                   alteration_set.numInstrAddedAfter(originalOffset),
                   ReturnPt, newArrayOffset);
 
@@ -4666,8 +4649,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
     Address mutatee,newAdr,mutator;
     LocalAlterationSet alteration_set(this);
-    int oldJumpOffset, newJumpOffset;
-    Address adr, newJumpAddr;
+    Address adr;
 
     instruction *oldCode = NULL, *newCode = NULL;
 
@@ -4687,9 +4669,6 @@ void pd_Function::addArbitraryPoint(instPoint* location,
     newOffset = originalOffset + alteration_set.getShift(originalOffset);
     newArrayOffset = originalArrayOffset +
 		  alteration_set.getInstPointShift(originalOffset);
-    oldJumpOffset = (location->jumpAddr() + imageBaseAddr) - mutatee;
-    newJumpOffset = oldJumpOffset + alteration_set.getShift(oldJumpOffset);
-    newJumpAddr = newAdr + newJumpOffset;
     adr = newAdr + newOffset;
 
     newCode  = reinterpret_cast<instruction *> (relocatedCode);
@@ -4701,8 +4680,6 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 			  true);
 
     point->setRelocated();
-
-    point->setJumpAddr(newJumpAddr-imageBaseAddr);
 
     instrAroundPt(point, newCode, location->insnsBefore(), 
                   location->insnsAfter() + 
