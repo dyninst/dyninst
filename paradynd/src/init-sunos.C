@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.42 2003/02/21 20:06:19 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.43 2003/03/08 01:23:51 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -110,6 +110,8 @@ bool initOS() {
                                      FUNC_ENTRY, callPreInsn, 
 				     orderLastAtPoint);
 
+#if 0
+  // Unsupported
   initialRequestsPARADYN += new instMapping("_resume_ret",
 				     "DYNINSTthreadStart",
 				     FUNC_ENTRY, callPreInsn,
@@ -119,7 +121,7 @@ bool initOS() {
 				     "DYNINSTthreadStop",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
-
+#endif
   // Thread SyncObjects
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
@@ -138,6 +140,8 @@ bool initOS() {
                                             "DYNINSTreportNewMutex",
                                             FUNC_ENTRY|FUNC_ARG,
                                             arg0);
+
+
   // rwlock
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
@@ -154,6 +158,7 @@ bool initOS() {
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
 
+
   // Conditional variable
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
@@ -161,6 +166,8 @@ bool initOS() {
   				     "DYNINSTreportNewCondVar", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
+
+
 #endif
   
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
