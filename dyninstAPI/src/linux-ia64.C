@@ -730,10 +730,7 @@ Frame Frame::getCallerFrame() {
 
 		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
 		}
-		
-	/* FIXME: the Frame destructor should free the unwind cursor. */
-	/* If we're returning the uppermost frame, free the unwind cursor, so it doesn't hang around forever. */
-		
+				
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
