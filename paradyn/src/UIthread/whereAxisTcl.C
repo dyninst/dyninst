@@ -4,11 +4,15 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.2  1995/07/18 03:41:27  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:37:37  tamches
+/* better existsCurrent() error checking.
+/* Implemented alt-freescroll feature
 /*
+ * Revision 1.2  1995/07/18  03:41:27  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:59:12  tamches
  * First version of the new where axis
  *
@@ -20,13 +24,12 @@
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
 #include "DMinclude.h" // for resourceHandle
-#include "abstractions.h"
-#include "whereAxisTcl.h"
 #else
 #include "paradyn/src/DMthread/DMinclude.h" // for resourceHandle
+#endif
+
 #include "abstractions.h"
 #include "whereAxisTcl.h"
-#endif
 
 // Here is the main where axis global variable:
 abstractions<resourceHandle> *theAbstractions;
@@ -56,7 +59,8 @@ void whereAxisWhenIdleDrawRoutine(ClientData cd) {
    const bool isXsynchOn = xsynchronize;
 #endif
 
-   theAbstractions->getCurrent().draw(doubleBuffer, isXsynchOn);
+   if (theAbstractions->existsCurrent())
+      theAbstractions->getCurrent().draw(doubleBuffer, isXsynchOn);
 }
 
 void initiateWhereAxisRedraw(Tcl_Interp *interp, bool doubleBuffer) {
@@ -119,7 +123,7 @@ int whereAxisDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
-   if (theAbstractions->existsCurrent) {
+   if (theAbstractions->existsCurrent()) {
       bool needToRedrawAll=theAbstractions->getCurrent().processDoubleClick(x, y, true);
          // true --> redraw now
 
@@ -211,7 +215,7 @@ int whereAxisNewHorizScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
    // 3) scroll [num-pages] page   (num-pages is always either -1 or 1)
 
-   if (theAbstractions->existsCurrent) {
+   if (theAbstractions->existsCurrent()) {
       if (0==strcmp(argv[1], "moveto")) {
          const float newFrac = atof(argv[2]);
          theAbstractions->getCurrent().adjustHorizSBOffset(newFrac);
@@ -320,6 +324,86 @@ int whereAxisFindCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
+int altAnchorX, altAnchorY;
+bool currentlyInstalledAltMoveHandler = false;
+bool ignoreNextAltMove = false;
+
+int whereAxisAltPressCommand(ClientData cd, Tcl_Interp *interp,
+			     int argc, char **argv) {
+   if (!haveSeenFirstGoodWhereAxisWid)
+      return TCL_OK;
+   if (!theAbstractions->existsCurrent())
+      return TCL_OK;
+
+   assert(argc==3);
+   int x = atoi(argv[1]);
+   int y = atoi(argv[2]);
+
+
+   if (currentlyInstalledAltMoveHandler) {
+      if (ignoreNextAltMove) {
+         ignoreNextAltMove = false;
+         return TCL_OK;
+      }
+
+      int deltax = x - altAnchorX;
+      int deltay = y - altAnchorY;
+//      cout << "Scroll (" << deltax << "," << deltay << ")" << endl;
+
+      theAbstractions->getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
+      theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
+
+      initiateWhereAxisRedraw(interp, true);
+
+      Tk_Window theTkWindow = theAbstractions->getTkWindow();
+
+      XWarpPointer(Tk_Display(theTkWindow),
+		   Tk_WindowId(theTkWindow),
+		   Tk_WindowId(theTkWindow),
+		   0, 0, 0, 0,
+		   altAnchorX, altAnchorY);
+
+      ignoreNextAltMove = true;
+
+      return TCL_OK;
+   }
+   else {
+      cout << "I detect mouse-motion w/alt pressed at (" << x << ", " << y << ")" << "; installing handler" << endl;
+
+      altAnchorX = x;
+      altAnchorY = y;
+
+      currentlyInstalledAltMoveHandler = true;
+   }
+
+   return TCL_OK;
+}
+
+int whereAxisAltReleaseCommand(ClientData cd, Tcl_Interp *interp,
+			       int argc, char **argv) {
+//   cout << "welcome to whereAxisAltReleaseCommand" << endl;
+
+   if (!haveSeenFirstGoodWhereAxisWid)
+      return TCL_OK;
+   if (!theAbstractions->existsCurrent())
+      return TCL_OK;
+
+   assert(argc==1);
+   
+   // Now un-install the mouse-move event handler that may have been
+   // installed by the above routine.
+
+   if (currentlyInstalledAltMoveHandler) {
+      cout << "releasing alt-move event handler now." << endl;
+      currentlyInstalledAltMoveHandler = false;
+   }
+   else {
+      // cout << "no need to release alt-move event handler (not installed?)" << endl;
+   }
+
+   return TCL_OK;
+}
+
 /* ******************************************************************** */
 
 void deleteDummyProc(ClientData cd) {}
@@ -365,9 +449,17 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "findHook", whereAxisFindCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
+   Tcl_CreateCommand(interp, "altPressHook", whereAxisAltPressCommand,
+		     NULL, // clientData
+		     deleteDummyProc);
+   Tcl_CreateCommand(interp, "altReleaseHook", whereAxisAltReleaseCommand,
+		     NULL, // clientData
+		     deleteDummyProc);
 }
 
 void unInstallWhereAxisCommands(Tcl_Interp *interp) {
+   Tcl_DeleteCommand(interp, "altReleaseHook");
+   Tcl_DeleteCommand(interp, "altPressHook");
    Tcl_DeleteCommand(interp, "findHook");
    Tcl_DeleteCommand(interp, "changeAbstraction");
    Tcl_DeleteCommand(interp, "navigateTo");
