@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.41 1999/06/04 16:08:22 cain Exp $
+# $Id: errorList.tcl,v 1.42 1999/10/27 21:53:52 schendel Exp $
 
 #
 # Error message format:
@@ -957,9 +957,9 @@ set pdError(108) {
 {Internal error: procedure main cannot be instrumented.}
 {paradynd}
 {fatal error}
-{Paradyn could not find or instrument procedure main. One possible explanation
-is that main has a jump to the middle of the instrumentation that Paradyn
-needs to insert. To avoid this, you can try to move any loops at the beginning
+{Paradyn could not find or instrument procedure main. One possible explanation\
+is that main has a jump to the middle of the instrumentation that Paradyn\
+needs to insert. To avoid this, you can try to move any loops at the beginning\
 of main to some other place. A future release will fix this problem.}
 }
 
@@ -967,7 +967,7 @@ set pdError(109) {
 {Unimplemented feature}
 {paradynd}
 {warning}
-{You have attempted to use a feature that has not been implemented for \
+{You have attempted to use a feature that has not been implemented for\
 this platform.}
 }
 
@@ -985,9 +985,20 @@ set pdError(111) {
 {No additional information available.}
 }
 
+set pdError(112) {
+{Run time library time retrieval function timer rollback.}
+{rtlibrary}
+{warning}
+{Could be caused by a buggy time retrieval function\
+(eg. gettimeofday or gethrtime) such that it returned a time that\
+went backwards.  It's also possible that this is an error caused by\
+a race condition.}
+}
+
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 111
+    return 112
 }
