@@ -461,7 +461,8 @@ class pd_process {
    static void paradynPostForkDispatch(BPatch_thread *parent,
                                        BPatch_thread *child);
    static void paradynExecDispatch(BPatch_thread *thread);
-   static void paradynExitDispatch(BPatch_thread *thread, int exitCode);
+   static void paradynExitDispatch(BPatch_thread *thread,
+                                   BPatch_exitType exit_type);
 
   private:
    void preForkHandler();

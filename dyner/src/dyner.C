@@ -1032,7 +1032,7 @@ void printArray(BPatch_type * type )
 
 BPatch_snippet *termStatement = NULL;
 
-void exitCallback(BPatch_thread *thread, int) {
+void exitCallback(BPatch_thread *thread, BPatch_exitType) {
     if (termStatement == NULL)
 	return;
 
