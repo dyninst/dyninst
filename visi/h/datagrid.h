@@ -17,9 +17,14 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.10  1994/07/20 22:17:20  newhall
-/* added FirstValidBucket method function to visi_GridCellHisto class
+/* Revision 1.11  1994/07/30 03:25:25  newhall
+/* added enabled member to gridcell to indicate that the metric associated
+/* w/ this cell has been enabled and data will arrive for it eventually
+/* updated member functions affected by this addition
 /*
+ * Revision 1.10  1994/07/20  22:17:20  newhall
+ * added FirstValidBucket method function to visi_GridCellHisto class
+ *
  * Revision 1.9  1994/06/16  18:21:46  newhall
  * bug fix to AddNewValues
  *
@@ -91,28 +96,36 @@ class Resource{
 };
 
 
-///////////////////////////////////////////////
-// visi_GridCellHisto:  A grid cell element 
-// (histogram) is an instance of this class
-// valid: indicates that the cell contains a histogram
-// deleted: indicates that the cell cannot accept new data values
+///////////////////////////////////////////////////////////////////
+// visi_GridCellHisto: 
 // size: number of buckets
 // lastBucketFilled: number of full buckets 
-////////////////////////////////////////////
+// deleted: indicates that the cell cannot accept new data values
+// valid:   indicates that the cell contains histogram data  
+// enabled: indicates that the cell can accept data values (if not
+//          currently valid, it will be when data values are added)
+// if deleted == 1 then no values can be added to the data grid
+// if deleted == 0 and valid == 1 then data values are present and
+//                                can be added
+// if deleted == 0 and valid == 0 and enabled == 1 then values are
+//                                not present, but instrumentation
+//                                has been enabled for this cell
+///////////////////////////////////////////////////////////////////
 
 class visi_GridCellHisto {
   private:
-     int   valid;
-     int   firstValidBucket;
-     int   size;
-     int   lastBucketFilled;  // bucket number of last data value added   
-     int   deleted;  // set on delete cell element, cleared on add new element
-     sampleType *value;
+     int   valid;    // set when data values are present for this cell
+     int   firstValidBucket;  // first index into "value" that is not NaN
+     int   size;              // size of array "value"
+     int   lastBucketFilled;  // bucket number of last data value added
+     int   deleted;   // set on delete cell element, cleared on add new element
+     int   enabled;   // set when data values can be added to this cell
+     sampleType *value;   // array of data values
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
-			  userdata = NULL; lastBucketFilled = -1; deleted = 0;
-			  firstValidBucket = -1;}
+			  userdata = NULL; lastBucketFilled = -1; 
+			  deleted = 0; firstValidBucket = -1; enabled = 0;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
      int    LastBucketFilled(){return(lastBucketFilled);}
@@ -130,6 +143,9 @@ class visi_GridCellHisto {
      int    Deleted(){return(deleted);}
      void   SetDeleted(){deleted = 1;}
      void   ClearDeleted(){deleted = 0;}
+     int    Enabled(){return(enabled);}
+     void   SetEnabled(){enabled = 1;}
+     void   ClearEnabled(){enabled = 0;}
      int    FirstValidBucket() { return(firstValidBucket); }
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
@@ -139,7 +155,8 @@ class visi_GridCellHisto {
 			 int lbf,
 			 void *ud,
 			 int v, 
-			 int d){
+			 int d,
+			 int e){
         
 	if(temp == NULL){
           value = NULL;
@@ -163,6 +180,7 @@ class visi_GridCellHisto {
 	userdata = ud;
 	valid = v;
 	deleted = d;
+	enabled = e;
 	return(OK);
      }
 
@@ -249,6 +267,7 @@ class visi_GridCellHisto {
 	 size = numElements;
 	 valid = 1;
 	 deleted = 0;
+	 enabled = 1;
 	 for(j=0;j<size;j++){
 	   value[j] = ERROR;
          }
@@ -274,6 +293,9 @@ class visi_GridCellHisto {
 };
 
 
+////////////////////////////////////////
+// visi_GridCellHisto: 
+////////////////////////////////////////
 class  visi_GridHistoArray {
    private:
       visi_GridCellHisto *values;
@@ -344,6 +366,15 @@ class  visi_GridHistoArray {
 };
 
 
+///////////////////////////////////////////////////////////////
+// visi_DataGrid: 
+// metrics:  list of metric info. for metrics in data grid 
+// resources: list of resource info. for resources in data grid 
+// numBins: number of bins in the histogram of each datagrid cell 
+// binWidth: size of each bin in seconds
+// data_values: array of size numMetrics each containing an array
+//              of size numResources
+///////////////////////////////////////////////////////////////
 class visi_DataGrid {
  protected:
      Metric     *metrics;
