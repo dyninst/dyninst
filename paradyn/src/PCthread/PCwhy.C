@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.3  1994/06/29 02:56:30  hollings
+ * Revision 1.4  1994/09/22 01:11:12  markc
+ * Added const to char* in
+ *  hypothesis::hypothesis(hypothesis *p, test *t , const char *id, explanationFunction e
+ * hypothesis::hypothesis(hypothesis *p, test *t , const char *id)
+ * test::test(changeCollectionFunc on, evalFunc eval, const char *id)
+ *
+ * Revision 1.3  1994/06/29  02:56:30  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.2  1994/06/22  22:58:27  hollings
@@ -55,7 +61,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.3 1994/06/29 02:56:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.4 1994/09/22 01:11:12 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -67,27 +73,32 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCmetric.h"
 #include "PCglobals.h"
 
+#include <string.h>
+
 void test::print()
 {
     printf("%s", name);
 }
 
-test::test(changeCollectionFunc on, evalFunc eval, char *id)
+test::test(changeCollectionFunc on, evalFunc eval, const char *id)
 {
     changeCollection = on;
     evaluate = eval;
-    name = id;
+    name = strdup(id);
 }
 
 extern void defaultExplanation(searchHistoryNode *explainee);
 
-hypothesis::hypothesis(hypothesis *p, test *t , char *id)
+hypothesis::hypothesis(hypothesis *p, test *t , const char *id)
 {
     explanation = &defaultExplanation;
     children = NULL;
     preCondition = p;
     testObject = t;
-    name = id;
+    if (id)
+      name = strdup(id);
+    else 
+      name = 0;
 
     allHypotheses.add(this);
     if (t) {
@@ -102,13 +113,16 @@ hypothesis::hypothesis(hypothesis *p, test *t , char *id)
 }
 
 
-hypothesis::hypothesis(hypothesis *p, test *t , char *id, explanationFunction e)
+hypothesis::hypothesis(hypothesis *p, test *t , const char *id, explanationFunction e)
 {
     explanation = e;
     children = NULL;
     preCondition = p;
     testObject = t;
-    name = id;
+    if (id)
+      name = strdup(id);
+    else
+      name = 0;
 
     allHypotheses.add(this);
     if (t) {
