@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.98 2003/05/23 23:44:11 jodom Exp $
+// $Id: unix.C,v 1.99 2003/05/30 21:32:36 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -496,8 +496,9 @@ int forwardSigToProcess(process *proc,
         return 0;
         //P_abort();
     } 
-    if (what != SIGSTOP)
+    if (what != SIGSTOP) {
 	    proc->status_ = running;
+    }
     return 1;
 }
 
@@ -634,7 +635,7 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
 }
 
 // Needs to be fleshed out
-int handleSigStopNInt(process *proc, procSignalInfo_t info) {
+int handleSigStopNInt(process *proc, procSignalWhat_t what, procSignalInfo_t info) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
@@ -651,6 +652,16 @@ int handleSigStopNInt(process *proc, procSignalInfo_t info) {
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
+
+// AIX MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
+#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
+    if( what == SIGSTOP )
+    {
+        // we saw an unexpected SIGSTOP, continue the process
+        proc->continueProc();
+    }
+#endif
+
    return 1;
 }
 
@@ -744,7 +755,7 @@ int handleSignal(process *proc, procSignalWhat_t what,
 #endif
  case SIGSTOP:
  case SIGINT:
-     ret = handleSigStopNInt(proc, info);
+     ret = handleSigStopNInt(proc, what, info);
      break;
  case SIGILL: 
      // x86 uses SIGILL for various purposes
@@ -1047,7 +1058,7 @@ int handleProcessEvent(process *proc,
    if(proc->hasExited()) {
        return 1;
    }
-   
+
    // One big switch statement
    switch(why) {
       // First the platform-independent stuff
