@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.3  1995/02/16 08:54:21  markc
+ * Revision 1.4  1995/05/18 10:42:12  markc
+ * Added getruage calls
+ *
+ * Revision 1.3  1995/02/16  08:54:21  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.2  1995/02/16  08:34:54  markc
@@ -37,10 +40,14 @@
 
 extern "C" {
 extern int ioctl(int, int, ...);
+extern int getrusage(int, struct rusage*);
 #include <a.out.h>
 #include <sys/exec.h>
 #include <stab.h>
+extern struct rusage *mapUarea();
 };
+
+extern struct rusage *mapUarea();
 
 class ptraceKludge {
 public:
@@ -141,10 +148,9 @@ bool process::dumpCore_(const string coreFile) {
     return false;
   ptraceOps++; ptraceOtherOps++;
 
-  assert(0);
   errno = 0;
-  // int ret = P_ptrace(request, pid, coreFile, 0, (char*) NULL);
-  int ret = 0;
+  int ret = P_ptrace(PTRACE_DUMPCORE, pid, coreFile.string_of(), 0, (char*) NULL);
+  // int ret = 0;
   assert(errno == 0);
   return ret;
 }
@@ -299,4 +305,111 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
   P_close(ofd);
   P_close(ifd);
   return true;
+}
+
+// TODO -- only call getrusage once per round
+static struct rusage *get_usage_data() {
+  static bool init = false;
+  static struct rusage *mapped = NULL;
+  static struct rusage other;
+
+  if (!init) {
+    mapped = mapUarea();
+    init = true;
+  }
+  if (!mapped) {
+    mapped = &other;
+    if (!getrusage(RUSAGE_SELF, &other))
+      return mapped;
+    else
+      return NULL;
+  } else
+    return mapped;
+}
+
+float OS::compute_rusage_cpu() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float)ru->ru_utime.tv_sec + (float)ru->ru_utime.tv_usec / 1000000.0);
+  } else
+    return 0;
+}
+
+float OS::compute_rusage_sys() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float)ru->ru_stime.tv_sec + (float)ru->ru_stime.tv_usec / 1000000.0);
+  } else
+    return 0;
+}
+
+float OS::compute_rusage_min() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_minflt);
+  } else
+    return 0;
+}
+float OS::compute_rusage_maj() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_majflt);
+  } else
+    return 0;
+}
+float OS::compute_rusage_swap() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nswap);
+  } else
+    return 0;
+}
+float OS::compute_rusage_io_in() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_inblock);
+  } else
+    return 0;
+}
+float OS::compute_rusage_io_out() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_oublock);
+  } else
+    return 0;
+}
+float OS::compute_rusage_msg_send() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_msgsnd);
+  } else
+    return 0;
+}
+float OS::compute_rusage_msg_recv() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_msgrcv);
+  } else
+    return 0;
+}
+float OS::compute_rusage_sigs() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nsignals);
+  } else
+    return 0;
+}
+float OS::compute_rusage_vol_cs() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nvcsw);
+  } else
+    return 0;
+}
+float OS::compute_rusage_inv_cs() {
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nivcsw);
+  } else
+    return 0;
 }
