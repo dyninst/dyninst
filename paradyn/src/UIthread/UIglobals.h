@@ -1,11 +1,15 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.18  1995/10/05 04:30:13  karavan
-/* added ActiveDags to dag class.
-/* removed SHG_DAGID global (not used).
-/* removed SHGwinName global (obsoleted).
-/* removed tokenRec struc and tokenHandler class (obsoleted).
-/* removed commented obsolete code.
+/* Revision 1.19  1995/10/17 20:43:50  tamches
+/* Commented out StrToNodeIdType, dag, and shgDisplay -- things obsoleted
+/* by the new search history graph
 /*
+ * Revision 1.18  1995/10/05 04:30:13  karavan
+ * added ActiveDags to dag class.
+ * removed SHG_DAGID global (not used).
+ * removed SHGwinName global (obsoleted).
+ * removed tokenRec struc and tokenHandler class (obsoleted).
+ * removed commented obsolete code.
+ *
  * Revision 1.17  1995/07/24  21:29:43  tamches
  * removed or commented out resourceDisplayObj, baseWhere, and
  * uim_knownAbstractions, which are all things related to the old where axis.
@@ -91,10 +95,10 @@ extern "C" {
 
 typedef unsigned nodeIdType;
 typedef vector<nodeIdType> numlist;
-nodeIdType StrToNodeIdType (char *instring); 
+//nodeIdType StrToNodeIdType (char *instring); 
 
-class dag;
-class shgDisplay;
+//class dag;
+//class shgDisplay;
 
 struct cmdTabEntry 
 {
