@@ -1,12 +1,5 @@
 #
-# $Log: Makefile,v $
-# Revision 1.2  1997/08/28 16:06:14  naim
-# Minor change when we set USES_PVM - naim
-#
-# Revision 1.1  1997/05/23 23:00:37  mjrg
-# Windows NT port
-#
-#
+# $Id: Makefile,v 1.3 1998/03/02 00:25:25 wylie Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -30,8 +23,6 @@ LDFLAGS		= -DLL -debug -debugtype:coff
 DYNOBJS		= DYNINSTstartCode.obj \
 		DYNINSTendCode.obj
 
-CFLAGS		= -Z7 $(CFLAGS)
-
 SRCS	     = $(SRCS) ../src/RTfirst.c \
 		../src/RTwinnt.c
 
@@ -54,9 +45,11 @@ include ../../nmake.library.tmpl
 # Override target to force ld to happen
 #
 $(TARGET): $(OBJS)
-	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 -out:$(TARGET) $(OBJS) $(LIBS) wsock32.lib winmm.lib
+	@$(MAKE) $(VERSION)
+	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
+	    -out:$(TARGET) $(VERSION).obj $(OBJS) $(LIBS) wsock32.lib winmm.lib
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o
-#	@rm -f $(TARGET2)
+#	@$(RM) $(TARGET2)
 #	$(LD) $(LDFLAGS) -o $(TARGET2) $(OBJS) RTpvmPiggy.o RTcriticalPath.o $(LIBS)
 
