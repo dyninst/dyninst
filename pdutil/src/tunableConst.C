@@ -3,7 +3,13 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.7  1994/11/04 15:54:02  tamches
+ * Revision 1.8  1994/12/21 00:34:07  tamches
+ * Added "findTunableConstant" static member function to the base class.
+ * Outside code had been doing similar things by peeking at class
+ * variables, which is now disallowed in tunableConst.h.  No more compile
+ * warnings.
+ *
+ * Revision 1.7  1994/11/04  15:54:02  tamches
  * Added "developerMode" tunable constant, which is a boolean tc in user mode.
  * The user interface (tcl) will now look at this tc to determine whether it
  * is in developer mode or not.
@@ -39,13 +45,21 @@
 List<tunableConstant*> *tunableConstant::allConstants=NULL;
 stringPool *tunableConstant::pool=NULL;
 
+tunableConstant *tunableConstant::findTunableConstant(const char *name) {
+   // returns NULL if not found.  a static member function.
+   assert(allConstants && pool);
+
+   char *key = (char *)(pool->find(name));
+   return allConstants->find(key);
+}
+
 tunableBooleanConstant tcInDeveloperMode(false,
          NULL, // presently, no callback function			 
 	 userConstant,
 	 "developerMode",
 	 "Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)");
 
-tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
+tunableBooleanConstant::tunableBooleanConstant(bool initialValue,
 					       booleanChangeValCallBackFunc cb,
 					       tunableUse u,
 					       const char *n,
@@ -59,8 +73,9 @@ tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
     use = u;
     typeName = tunableBoolean;
 
-    if (!pool) pool = new(stringPool);
-    name = pool->findAndAdd(n);
+    if (!pool)
+       pool = new stringPool;
+    name = (char *)pool->findAndAdd(n);
     newValueCallBack = cb;
     if (!allConstants) allConstants = new(List<tunableConstant*>);
     allConstants->add(this, name);
@@ -69,14 +84,13 @@ tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
 void tunableBooleanConstant::print()
 {
    cout << (char*) name << " = ";
-   if (value == TRUE) {
+   if (value) 
        cout << "True\n";
-   } else {
+   else
        cout << "False\n";
-   }
 }
 
-Boolean tunableFloatConstant::simpleRangeCheck(float val)
+bool tunableFloatConstant::simpleRangeCheck(float val)
 {
     return((val >= min) && (val <= max));
 }
@@ -102,7 +116,7 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
     newValueCallBack = cb;
 
     if (!pool) pool = new(stringPool);
-    name = pool->findAndAdd(n);
+    name = (char *)pool->findAndAdd(n);
     if (!allConstants) allConstants = new(List<tunableConstant*>);
     allConstants->add(this, name);
 }
@@ -128,7 +142,7 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
     min=max=0.0; // so we can detect those tunable float constants with no min/max set
 
     if (!pool) pool = new(stringPool);
-    name = pool->findAndAdd(n);
+    name = (char *)pool->findAndAdd(n);
     if (!allConstants) allConstants = new(List<tunableConstant*>);
     allConstants->add(this, name);
 }
