@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.9 2000/07/19 21:49:19 bernat Exp $ */
+/* $Id: RTheap.c,v 1.10 2000/07/27 19:39:56 hollings Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -115,6 +115,10 @@ static Address heap_alignDown(Address addr, int align)
 
 #define BEG(x) ((Address)(x)->pr_vaddr)
 #define END(x) ((Address)(x)->pr_vaddr + (x)->pr_size)
+
+#ifndef MAP_FAILED
+#define MAP_FAILED -1
+#endif
 
 static Address
 trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
