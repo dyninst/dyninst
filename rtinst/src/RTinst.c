@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.44 2001/08/09 15:06:14 chadd Exp $
+ * $Id: RTinst.c,v 1.45 2001/08/28 18:07:21 chadd Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1021,6 +1021,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINST_install_ualarm(val);
 
 #endif
+
 }
 
 #ifdef SHM_SAMPLING
@@ -1929,37 +1930,3 @@ int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
 	
 	return 0;
 }
-
-
-#if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
-#include <windows.h>
-
-int libdyninstAPI_RT_DLL_localKey=-1;
-int libdyninstAPI_RT_DLL_localNumBytes=-1;
-int libdyninstAPI_RT_DLL_localPPid=-1;
-
-/* this function is automatically called when windows loads this dll
- if we are launching a mutatee to instrument, dyninst will place
- the correct values in libdyninstAPI_RT_DLL_localPid and
- libdyninstAPI_RT_DLL_localCause and they will be passed to
- DYNINSTinit to correctly initialize the dll.  this keeps us
- from having to instrument two steps from the mutator (load and then 
- the execution of DYNINSTinit()
-*/
-BOOL WINAPI DllMain(
-  HINSTANCE hinstDLL,  /* handle to DLL module*/
-  DWORD fdwReason,     /* reason for calling function */
-  LPVOID lpvReserved   /* reserved */
-){
-
-	if(libdyninstAPI_RT_DLL_localPPid != -1 || libdyninstAPI_RT_DLL_localKey != -1 ||
-		libdyninstAPI_RT_DLL_localNumBytes != -1 ){
-		DYNINSTinit(libdyninstAPI_RT_DLL_localKey,libdyninstAPI_RT_DLL_localNumBytes,
-		libdyninstAPI_RT_DLL_localPPid);
-	}
-	return 1; 
-}
- 
-
-#endif
-

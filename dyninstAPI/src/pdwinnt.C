@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.38 2001/08/23 14:43:20 schendel Exp $
+// $Id: pdwinnt.C,v 1.39 2001/08/28 18:07:11 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -991,15 +991,17 @@ int process::waitProcs(int *status) {
 		    buffer=string("PID=") + string(pid) 
 			 + ", installing call to DYNINSTinit()";
 		    statusLine(buffer.string_of());
-		    //p->installBootstrapInst();//ccw 20 june 2001 
+#if !defined(BPATCH_LIBRARY)
+		    p->installBootstrapInst();//ccw 20 june 2001 
 			// now we dont need to do this,  DLLMain() does it.
-      
+     			//this still needs to be done for paradyn
+ 
 		    // now, let main() and then DYNINSTinit() get invoked.  As it
 		    // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
 		    // we read bootstrap information "sent back" (in a global vrble),
 		    // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-		    // break; //ccw 20 june 2001, commented out  with p->installBootstrapInst()
-
+		     break; //ccw 20 june 2001, commented out  with p->installBootstrapInst()
+#endif
 		} else {
 		    //printf("First breakpoint after attach\n");
 		    p->pause_();
@@ -1363,7 +1365,7 @@ int process::waitProcs(int *status) {
 #endif 
 	    p->setDynamicLinking();
 	  }
-
+#ifdef BPATCH_LIBRARY
 	for(int kk = 0;kk< MAX_PATH && nameBuffer[kk] != '\0';kk++){ //ccw 2 may 2001
 		nameBuffer[kk] = toupper(nameBuffer[kk]);
 	}
@@ -1372,34 +1374,14 @@ int process::waitProcs(int *status) {
 	//when we load libdyninstAPI_RT.dll we need to find the local
 	//variables in the dll that will hold the cause and pid so when
 	//DLLMain is called they will be correctly passed to DYNINSTinit
-#ifdef BPATCH_LIBRARY
 		if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
 			assert(0);
 		}
 		if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
 			assert(0);
 		}
-#else
-#include "paradynd/src/perfStream.h"
-
-#ifdef SHM_SAMPLING
-   	key_t theKey   = p->getShmKeyUsed();
-	int numBytes = p->getShmHeapTotalNumBytes();
-#else
-	int theKey = 0;
-	int numBytes = 0;
-#endif
-		if(!setVariable(p, "libdyninstAPI_RT_DLL_localKey", theKey)){
-			assert(0);
-		}
-		if(!setVariable(p, "libdyninstAPI_RT_DLL_localNumBytes", numBytes)){
-			assert(0);
-		}
-	        if(!setVariable(p, "libdyninstAPI_RT_DLL_localPPid",traceConnectInfo)){
-			assert(0);
-		}	
+	}
 #endif	
-	      }
 	}
     break;
     case UNLOAD_DLL_DEBUG_EVENT:
