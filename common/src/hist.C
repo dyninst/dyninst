@@ -43,6 +43,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.31  1998/05/22 23:48:55  tamches
+ * fixed a purify FMM (free mismatched memory) hit.
+ *
  * Revision 1.30  1997/03/05 21:33:23  naim
  * Minor change to fix warning message about MAX macro - naim
  *
@@ -211,7 +214,7 @@ Histogram::~Histogram(){
         free(dataPtr.intervals);
     }
     else {
-	free(dataPtr.buckets);
+	delete [] dataPtr.buckets;
     }
 }
 
