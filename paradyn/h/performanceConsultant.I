@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.17  1996/01/09 21:43:17  tamches
+ * incremented version number to 7
+ *
  * Revision 1.16  1996/01/09 00:45:15  tamches
  * added phaseID argument to getNodeInfo
  *
@@ -99,7 +102,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 6;
+    $version 7;
 
     // for all of the configured tests print their status.
     //  This is intended for debugging only.
