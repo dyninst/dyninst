@@ -14,10 +14,13 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.1  1994/08/13 20:52:40  newhall
-/* changed when a visualization process is started
-/* added new file VISIthreadpublic.C
-/* */
+/* Revision 1.2  1994/09/22 01:20:20  markc
+/* Changed "String" to "char*"
+/*
+ * Revision 1.1  1994/08/13  20:52:40  newhall
+ * changed when a visualization process is started
+ * added new file VISIthreadpublic.C
+ * */
 /////////////////////////////////////////////////////////////////////
 // * visualizationUser routines:  GetMetricResource, PhaseName
 //		StopMetricResource
@@ -74,8 +77,8 @@
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(String metric,
-					  String resource,
+void visualizationUser::GetMetricResource(char *metric,
+					  char *resource,
 					  int type){
  VISIthreadGlobals *ptr;
 
@@ -157,7 +160,7 @@ void visualizationUser::StopMetricResource(int metricId,
 ///////////////////////////////////////////////////////////////////
 void visualizationUser::PhaseName(double begin,
 				  double end,
-				  String name){
+				  char *name){
 
  VISIthreadGlobals *ptr;
 
