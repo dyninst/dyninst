@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.94 2003/05/12 21:29:04 bernat Exp $ */
+/* $Id: context.C,v 1.95 2003/05/19 03:03:03 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -239,7 +239,7 @@ void deleteThread(traceThread *fr)
     // take a final sample when thread is noticed as exited, but before it's
     // meta-data is deleted;
     pdproc->doMajorShmSample();  // take a final sample
-    metricFocusNode::handleDeletedThread(pdproc, thr);
+    metricFocusNode::handleExitedThread(pdproc, thr);
     pdproc->getVariableMgr().deleteThread(thr);
 
     // deleting thread
