@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.73  1996/02/07 21:46:38  tamches
-/* defineNewSearch returns bool flag
+/* Revision 1.74  1996/02/08 01:00:03  tamches
+/* implementing starting a phase w/ pc
 /*
+ * Revision 1.73  1996/02/07 21:46:38  tamches
+ * defineNewSearch returns bool flag
+ *
  * Revision 1.72  1996/02/07 19:04:37  tamches
  * added deferred-phase-adding features
  *
@@ -245,7 +248,6 @@ void ui_newPhaseDetected(perfStreamHandle,
 //   cout << "id=" << ph + 1 << endl;
 //   cout << "name=" << name << endl;
 //   cout << "begin=" << begin << "; end=" << end << endl;
-//   cout << "bucketwidth=" << bucketwidth << endl;
 
    // For the benefit of the shg, in the event that the shg window
    // has not yet been opened, with the result that "theShgPhases"
@@ -254,12 +256,31 @@ void ui_newPhaseDetected(perfStreamHandle,
    if (theShgPhases == NULL) {
       latest_detected_new_phase_id = ph + 1;
       latest_detected_new_phase_name = name;
-      cout << "ui_newPhaseDetected: deferring phase " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
+      cout << "ui_newPhaseDetected: deferring phase id " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
+      if (with_new_pc)
+         cout << "ui_newPhaseDetected: can't start new phase right now since shg window not yet opened" << endl;
    }
    else {
       cout << "ui_newPhaseDetected: adding the phase now" << endl;
       perfConsult->newSearch(CurrentPhase);
-      if (theShgPhases->defineNewSearch(ph+1, name))
+      bool redraw = theShgPhases->defineNewSearch(ph+1, name);
+
+      if (with_new_pc) {
+         // the user has requested that we begin searching immediately on this
+         // new phase, as if we had clicked on the "Search" button.  So let's do
+         // the equivalent.  But first, we must switch to the new "screen".
+	 assert(theShgPhases->changeByPhaseId(ph+1));
+
+	 myTclEval(interp, "shgClickOnSearch");
+	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()
+            // in shgPhases.C
+
+         cout << "ui_newPhaseDetected: started the new search!" << endl;
+
+	 redraw = true;
+      }
+      
+      if (redraw)
          initiateShgRedraw(interp, true);
    }
 }
