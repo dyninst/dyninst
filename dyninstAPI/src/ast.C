@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.107 2002/06/27 20:20:53 mirg Exp $
+// $Id: ast.C,v 1.108 2002/06/28 15:23:18 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1496,31 +1496,35 @@ Address AstNode::generateCode_phase2(process *proc,
 	    if (loperand) {
 		instruction instr;
 		instr.raw = (unsigned)(loperand->oValue);
-		src = emitOptReturn(instr, src, insn, base, noCost);
+		src = emitOptReturn(instr, dest, insn, base, noCost);
 	    }
 	    else if (astFlag)
-		src = emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
+		src = emitR(getSysRetValOp, 0, 0, dest, insn, base, noCost);
 	    else 
 #endif
-		src = emitR(getRetValOp, 0, 0, src, insn, base, noCost);
-	    // Move src to dest. Can't simply return src, since it was not
-	    // allocated properly
-	    emitImm(orOp, src, 0, dest, insn, base, noCost);
+		src = emitR(getRetValOp, 0, 0, dest, insn, base, noCost);
+	    if (src != dest) {
+		// Move src to dest. Can't simply return src, since it was not
+		// allocated properly
+		emitImm(orOp, src, 0, dest, insn, base, noCost);
+	    }
 	    break;
 	case Param:
 	    dest = rs->allocateRegister(insn, base, noCost);
 	    // return the actual reg it is in.
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (astFlag)
-		src = emitR(getSysParamOp, (Register)oValue, 0, src, insn, 
+		src = emitR(getSysParamOp, (Register)oValue, 0, dest, insn, 
 			    base, noCost);
 	    else 
 #endif
-		src = emitR(getParamOp, (Address)oValue, 0, src, insn,
+		src = emitR(getParamOp, (Address)oValue, 0, dest, insn,
 			    base, noCost);
-	    // Move src to dest. Can't simply return src, since it was not
-	    // allocated properly
-	    emitImm(orOp, src, 0, dest, insn, base, noCost);
+	    if (src != dest) {
+		// Move src to dest. Can't simply return src, since it was not
+		// allocated properly
+		emitImm(orOp, src, 0, dest, insn, base, noCost);
+	    }
 	    break;
 	case DataAddr:
 	  addr = (Address) oValue;
