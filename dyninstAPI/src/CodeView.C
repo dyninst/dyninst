@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.6 2000/08/01 01:00:49 altinel Exp $
+// $Id: CodeView.C,v 1.7 2000/08/01 17:09:59 paradyn Exp $
 
 #include <assert.h>
 
@@ -176,8 +176,9 @@ CodeView::ParseSrcModuleSubsection( SDEntry* pEntry )
 	mod.psrc = (SrcModuleSubsection*)(pBase + pEntry->offset);
 }
 
+#ifdef BPATCH_LIBRARY
 //
-// Create type infor for a specific module
+// Create type information for a specific module
 //
 void
 CodeView::CreateTypeInfo( BPatch_module *inpMod )
@@ -264,6 +265,7 @@ CodeView::CreateTypeInfo( BPatch_module *inpMod )
 	mod->syms.CreateTypeInfo( (const char *)mod->pas, alignSubSec->cb,
 					pTypeBase, inpMod);
 }
+#endif // BPATCH_LIBRARY
 
 //---------------------------------------------------------------------------
 // CodeView::Symbols methods
@@ -353,12 +355,13 @@ CodeView::Symbols::operator=( const CodeView::Symbols& syms )
 	return *this;
 }
 
+#ifdef BPATCH_LIBRARY
 //
 // Creates type information for the symbols in the specified module
 //
 void
 CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb, 
-					TypesSubSection *pTypeBase, BPatch_module *mod )
+                                TypesSubSection *pTypeBase, BPatch_module *mod )
 {
 	char currFuncName[1024];
 	char symName[1024];
@@ -931,7 +934,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 
 BPatch_type *
 CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index, 
-					TypesSubSection *pTypeBase, char *startAddr)
+                               TypesSubSection *pTypeBase, char *startAddr)
 {
 	BPatch_type *lastType, *newType = NULL;
 	char typeName[1024];
@@ -1065,6 +1068,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 	mod->moduleTypes->addType(newType);
 	return(newType);
 }
+#endif // BPATCH_LIBRARY
 
 //---------------------------------------------------------------------------
 // CodeView::Module methods

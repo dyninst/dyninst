@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.4 2000/08/01 01:00:49 altinel Exp $
+// $Id: CodeView.h,v 1.5 2000/08/01 17:10:00 paradyn Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -68,9 +68,11 @@
 #ifndef CODEVIEW_H
 #define CODEVIEW_H
 
+#ifdef BPATCH_LIBRARY
 #include "BPatch.h"
 #include "BPatch_module.h"
-#include "BPatch_collections.h"
+#include "dyninstAPI/src/BPatch_collections.h"
+#endif
 
 //
 // LPString
@@ -610,8 +612,10 @@ public:
         // operations
 		void	Parse( const char* pSymBase, DWORD cb );
 		Symbols& operator=( const Symbols& syms );
+#ifdef BPATCH_LIBRARY
 		void CreateTypeInfo( const char* pSymBase, DWORD cb, 
-					TypesSubSection *pTypeBase, BPatch_module *mod );
+                               TypesSubSection *pTypeBase, BPatch_module *mod );
+#endif
 
 	private:
 		vector<SymRecordProc*> gprocs;		// global functions
@@ -626,12 +630,13 @@ public:
 		//Below are used to create DyninstAPI types for the symbols
 
 	// Operations
+#ifdef BPATCH_LIBRARY
 		BPatch_type *ExploreType(BPatch_module *, DWORD, 
 						TypesSubSection *, char *);
 		BPatch_type *CreatePrimitiveType(DWORD index);
 		void FindFields(BPatch_module *mod, BPatch_type *mainType, int cnt,
 				DWORD index, TypesSubSection *pTypeBase, char *startAddr);
-
+#endif
 
         friend class CodeView;
 	};
@@ -679,7 +684,9 @@ public:
 
     // operations
 	bool Parse( void );
+#ifdef BPATCH_LIBRARY
 	void CreateTypeInfo( BPatch_module *inpMod );
+#endif
 
 private:
 	const char* pBase;			// location of CodeView symbols
