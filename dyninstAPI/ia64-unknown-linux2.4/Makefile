@@ -1,14 +1,14 @@
 #
-# $Id: Makefile,v 1.18 2004/06/24 22:27:44 legendre Exp $
+# $Id: Makefile,v 1.19 2004/11/30 21:06:50 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
-USES_UNWIND_LIB = true
 USES_LIBELF = true
+USES_UNWIND_LIB = true
 
 # Turns off optimization, and enables debugging.
 # NO_OPT_FLAG = true
@@ -42,16 +42,12 @@ SRCS =	../src/linux.C \
 		../src/ia64-template.s	\
 		../src/syscall-linux.C
 
-MYFLAGS		+=  -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
-			   -I$(LIBUNWIND_INC) -I$(LIBELF_INC) \
-            -I/usr/include/libelf
+MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
+				-I$(LIBUNWIND_INC) -I$(LIBELF_INC)
 
 CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
 TFLAGS		+= $(MYFLAGS)
-
-# Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS           += -g
 
 SYSLIBS		= -ldl
 
@@ -66,9 +62,7 @@ LIBS    += -Wl,-Bstatic -lelf -Wl,-Bdynamic
 else
 LIBS    += -lelf
 endif
-LIBS    += -L$(LIBUNWIND_LIB) -Wl,-Bstatic -lunwind -Wl,-Bdynamic
-
-AS		= /usr/bin/as
+LIBS    += -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
