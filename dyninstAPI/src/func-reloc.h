@@ -27,9 +27,6 @@ bool alreadyExpanded(int offset, int shift,
 void combineAlterationSets(LocalAlterationSet *alteration_set, 
                            LocalAlterationSet *temp_alteration_set);
 
-void shiftAlterationSet(int type, LocalAlterationSet *alteration_set, 
-                        LocalAlterationSet *shifted_alteration_set);
-
 LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration, 
                                            LocalAlteration *tempAlteration);
 

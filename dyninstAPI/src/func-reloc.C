@@ -4,7 +4,6 @@ extern bool isTrueCallInsn(const instruction insn);
 extern bool isNearBranchInsn(const instruction insn);
 extern void copyInstruction(instruction &newInsn, instruction &oldInsn,  
                                                unsigned &codeOffset);
-enum { NORMALIZE = -1 , EXPAND = 1, SHIFT = 1 };
 
 class LocalAlterationSet;
 class LocalAlteration;
@@ -660,10 +659,8 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
          << " codeSize = " << codeSize << endl;
 #endif 
 
-  // make an expanded copy of the LocalAlterations that have already been found
-  shiftAlterationSet(EXPAND, &norm_alt_set, &norm_alt_set);
-  LocalAlterationSet *alteration_set = copyAlterationSet(&norm_alt_set);
-  shiftAlterationSet(NORMALIZE, &norm_alt_set, &norm_alt_set);
+  norm_alt_set.iterReset();  
+  norm_alt_set.Collapse(); 
 
   // iterate over all instructions
   while (oldOffset < codeSize) {
@@ -683,18 +680,18 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
     // if instruction needs to be expanded 
     if (size_of_expansion1) {
       // expansion was not already found
-      if (!alreadyExpanded(newOffset, size_of_expansion1, alteration_set)) {
+      if (!alreadyExpanded(oldOffset, size_of_expansion1, &norm_alt_set)) {
           
         // new LocalAlteration
-        ExpandInstruction *exp = new ExpandInstruction(this, newOffset,       
+        ExpandInstruction *exp = new ExpandInstruction(this, oldOffset,       
                                                        size_of_expansion1);
         discover_alteration_set.AddAlteration(exp);
         foundAlteration = true;
 
 #ifdef DEBUG_FUNC_RELOC 
 	  cerr << " ExpandInstruction alteration found " << endl;
-          cerr << " offset: " << newOffset 
-               << " size: " << size_of_expansion1 << endl;
+          cerr << "     offset: " << oldOffset << endl; 
+          cerr << "     size: " << size_of_expansion1 << endl;
 #endif
 
       }
@@ -715,18 +712,18 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
       assert(!size_of_expansion1);
 
       // expansion was not already found
-      if (!alreadyExpanded(newOffset, size_of_expansion2, alteration_set)) {
+      if (!alreadyExpanded(oldOffset, size_of_expansion2, &norm_alt_set)) {
 
         // new LocalAlteration
-	ExpandInstruction *exp = new ExpandInstruction(this, newOffset, 
+	ExpandInstruction *exp = new ExpandInstruction(this, oldOffset, 
                                                          size_of_expansion2);
         discover_alteration_set.AddAlteration(exp);
         foundAlteration = true;        
 
 #ifdef DEBUG_FUNC_RELOC 
 	  cerr << " ExpandInstruction alteration found " << endl;
-          cerr << " offset: " << newOffset 
-               << " size: " << size_of_expansion2 << endl;
+          cerr << "     offset: " << oldOffset << endl; 
+          cerr << "     size: " << size_of_expansion2 << endl;
 #endif
 
       }
@@ -745,9 +742,6 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 
   if (foundAlteration) *temp_alteration_set = discover_alteration_set;
 
-  alteration_set->DeleteAlterations();
-  delete alteration_set; 
-
   return true;
 }
 /****************************************************************************/
@@ -762,8 +756,12 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 // an infinite looping 
 
 bool alreadyExpanded(int offset, int shift, LocalAlterationSet *alteration_set) {
-
+  bool already_expanded;
   LocalAlteration *alteration = 0;
+
+#ifdef DEBUG_FUNC_RELOC 
+	  cerr << " Method alreadyExpanded called " << endl;
+#endif  
 
   alteration_set->iterReset();
 
@@ -776,37 +774,18 @@ bool alreadyExpanded(int offset, int shift, LocalAlterationSet *alteration_set) 
  
     alteration = dynamic_cast<ExpandInstruction *> (alteration);
 
-    if (alteration == NULL || alteration->getShift() > shift) return false;
-    else return true;
-
+    if (alteration == NULL || alteration->getShift() > shift) {
+      already_expanded = false;
+    }
+    else {
+      already_expanded = true;
+    }
   } else {
-      return false;
-  }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
-// Make and return a copy of LocalAlterationSet alt_set 
-
-LocalAlterationSet *pd_Function::copyAlterationSet(LocalAlterationSet *alt_set) {
-  
-  alt_set->iterReset();
-  alt_set->Collapse();  
-
-  LocalAlterationSet *alteration_set = new LocalAlterationSet(this);
-  LocalAlteration *alteration = 0;
-  
-  for (alteration = alt_set->iterNext(); 
-       alteration != NULL; 
-       alteration = alt_set->iterNext()) {
-    alteration_set->AddAlteration(alteration->Copy());
+      already_expanded = false;
   }
   
-  alt_set->iterReset();
   alteration_set->iterReset();
-
-  return alteration_set; 
+  return already_expanded;
 }
 
 /****************************************************************************/
@@ -866,9 +845,8 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
     cerr << " codeSize = " << codeSize << endl;
 #endif 
 
-  shiftAlterationSet(EXPAND, &norm_alt_set, &norm_alt_set);
-  LocalAlterationSet *alteration_set = copyAlterationSet(&norm_alt_set);
-  shiftAlterationSet(NORMALIZE, &norm_alt_set, &norm_alt_set);
+  norm_alt_set.iterReset();  
+  norm_alt_set.Collapse(); 
 
   // iterate over all instructions in function....
   while (oldOffset < codeSize) {
@@ -945,8 +923,6 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
           // updated disp for relative branch or call insn to target 
           // inside function
-          norm_alt_set.getShift((oldOffset + oldInsnSize) +  oldDisp);
-          norm_alt_set.getShift((oldOffset + oldInsnSize)); 
           newDisp = oldDisp + (norm_alt_set.getShift(oldOffset + oldInsnSize +
                                oldDisp) - norm_alt_set.getShift(oldOffset + oldInsnSize));
 
@@ -1002,9 +978,6 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
     }
   } 
   
-  alteration_set->DeleteAlterations();
-  delete alteration_set;
-
   return true;
 }
 
@@ -1118,51 +1091,6 @@ void combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   }
   combined_alteration_set->iterReset();  
   combined_alteration_set->Collapse(); 
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
-/* Platform independent */
-
-// Shift the LocalAlterations in alteration_set by the shift amounts
-// of the LocalAlterations of shifted_alterattion_set.
-// The shift may expand or normalize, depending on the falue of type
-
-void shiftAlterationSet(int type, LocalAlterationSet *alteration_set,
-                        LocalAlterationSet *shifting_alteration_set) { 
-
-  int offset = 0, shift = 0;
-  LocalAlteration *alteration = 0; 
-
-#ifdef DEBUG_FUNC_RELOC 
-	   cerr << "pd_Function::shiftAlterationSet " << endl;
-#endif
-   
-  assert (type == NORMALIZE || type == EXPAND || type == SHIFT);
-  assert (alteration_set != NULL && shifting_alteration_set != NULL);
-
-  alteration_set->iterReset();
-  shifting_alteration_set->Collapse();
-
-  for (alteration = alteration_set->iterNext(); 
-       alteration != NULL; 
-       alteration = alteration_set->iterNext()) { 
-
-    offset = alteration->getOffset();
-    
-    // set shift to the sum total of the shifts of all LocalAlterations whose
-    // offset is smaller than the offset of the current LocalAlteration
-    shift = shifting_alteration_set->getShift(offset-1);
-
-#ifdef DEBUG_FUNC_RELOC 
-    cerr << "offset " << offset << " shift " << shift << " type " << type << endl;
-#endif
-
-    alteration_set->UpdateAlteration(type * shift);
-  }
-  alteration_set->iterReset();
-  alteration_set->Collapse();
 }
 
 /****************************************************************************/

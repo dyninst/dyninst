@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.77 2001/02/02 21:19:32 gurari Exp $
+// $Id: symtab.h,v 1.78 2001/02/09 23:40:38 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -426,8 +426,6 @@ class pd_Function : public function_base {
 			  Address mutator, Address mutatee, Address newAdr, 
                           instruction originalCode[], 
 			  unsigned originalCodeSize, instruction newCode[]);
-
-    LocalAlterationSet* copyAlterationSet(LocalAlterationSet *alt_set);
 
     bool updateAlterations(LocalAlterationSet *temp_alteration_set,
                            LocalAlterationSet &normalized_alteration_set,
