@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+
 /************************************************************************
  * RTposix.c: runtime instrumentation functions for generic posix.
  *
@@ -81,6 +82,7 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
+
 #if defined(sparc_sun_solaris2_4)
 #include <thread.h>
 #endif
@@ -93,7 +95,7 @@ unsigned hash_lookup(unsigned k);
 unsigned initialize_done=0;
 #endif
 
-
+
 /* sunos's header files don't have these: */
 #ifdef sparc_sun_sunos4_1_3
 extern int socket(int, int, int);
@@ -109,6 +111,7 @@ extern int shmctl(int, int, struct shmid_ds *);
 #endif
 
 #include "util/h/spinMutex_cintf.h"
+
 
 /************************************************************************
  * Per module flags
@@ -138,15 +141,11 @@ extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
 
-
-
-
 /************************************************************************
  * void DYNINSTbreakPoint(void)
  *
  * stop oneself.
 ************************************************************************/
-
 void
 DYNINSTbreakPoint(void) {
     kill(getpid(), SIGSTOP);
@@ -217,7 +216,7 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 }
 
 
-
+
 
 
 /************************************************************************
@@ -312,7 +311,7 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 }
 
 
-
+
 
 
 /************************************************************************
@@ -371,7 +370,7 @@ DYNINSTstartWallTimer(tTimer* timer) {
 }
 
 
-
+
 
 
 /************************************************************************
@@ -457,9 +456,6 @@ DYNINSTstopWallTimer(tTimer* timer) {
 }
 
 
-
-
-
 /************************************************************************
  * void DYNINST_install_ualarm(unsigned value, unsigned interval)
  *
@@ -482,8 +478,6 @@ DYNINST_install_ualarm(unsigned value, unsigned interval) {
     }
 }
 #endif
-
-
 
 
 /************************************************************************
@@ -509,8 +503,6 @@ double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
    TR_EXEC record is now obsolete, too */
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
-
-
 
 
 /************************************************************************
@@ -560,7 +552,7 @@ DYNINSTcyclesPerSecond(void) {
 }
 
 
-
+
 
 
 /************************************************************************
@@ -586,7 +578,7 @@ restoreFPUstate(float* base) {
 }
 
 
-
+
 /* The current observed cost since the last call to 
  *      DYNINSTgetObservedCycles(false) 
  */
@@ -636,8 +628,6 @@ int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
 }
 #endif
 
-
-
 
 /************************************************************************
  * void DYNINSTsampleValues(void)
@@ -654,8 +644,6 @@ DYNINSTsampleValues(void) {
     DYNINSTnumReported++;
 }
 #endif
-
-
 
 static int DYNINST_trace_fd = -1; /* low-level version of DYNINSTtraceFp */
 
@@ -752,7 +740,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 }
 
 
-
+
 
 
 /************************************************************************
@@ -845,7 +833,7 @@ DYNINSTreportSamples(void) {
 }
 #endif
 
-
+
 
 
 /************************************************************************
@@ -920,9 +908,6 @@ DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
 #endif 
 }
 #endif
-
-
-
 
 
 /************************************************************************
@@ -1323,8 +1308,6 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
 }
 
 
-
-
 void DYNINSTprintCost(void);
 
 /************************************************************************
@@ -1353,8 +1336,6 @@ DYNINSTexit(void) {
     DYNINSTprintCost();
 }
 
-
-
 
 /************************************************************************
  * void DYNINSTfork(void* arg, int pid)
@@ -1512,12 +1493,13 @@ DYNINSTfork(int pid) {
 
         //char *traceEnv;
 
-       forkexec_printf("DYNINSTfork CHILD -- welcome\n");
-       fflush(stderr);
+	forkexec_printf("DYNINSTfork CHILD -- welcome\n");
+	fflush(stderr);
 
 #ifdef SHM_SAMPLING
 	/* Here, we need to detach from the old shm segment, create a new one
-	   (in the same virtual memory location as the old one), and attach to it */
+	   (in the same virtual memory location as the old one), and attach 
+           to it */
 	makeNewShmSegCopy();
 #endif
 
@@ -1636,15 +1618,12 @@ DYNINSTexecFailed() {
 #endif
 }
 
-
-
 
 /************************************************************************
  * void DYNINSTprintCost(void)
  *
  * print a detailed summary of the cost of the application's run.
 ************************************************************************/
-
 void
 DYNINSTprintCost(void) {
     FILE *fp;
@@ -1740,13 +1719,11 @@ DYNINSTprintCost(void) {
     fclose(fp);
 #endif
 
-    /* record that we are done -- should be somewhere better. */
+    /* record that the exec is done -- should be somewhere better. */
     DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1,
-		wall_time,now);
+			       wall_time,now);
 }
 
-
-
 
 
 /************************************************************************
@@ -1824,8 +1801,6 @@ DYNINSTreportNewTags(void) {
  * (and hence DYNINSTgenerateTraceRecord) if the tag has been seen
  * before.
 ************************************************************************/
-
-
 void
 DYNINSTrecordTag(int tag) {
     int i;
@@ -1850,9 +1825,6 @@ DYNINSTrecordTag(int tag) {
    DYNINSTreportNewTags();
 #endif    
 }
-
-
-
 
 
 /************************************************************************
@@ -1984,8 +1956,6 @@ DYNINSTreportTimer(tTimer *timer) {
 }
 #endif
 
-
-
 
 /************************************************************************
  * DYNINST test functions.
@@ -2013,9 +1983,6 @@ void DYNINSTcallReturn(int arg) {
 void DYNINSTexitPrint(int arg) {
     printf("exit %d\n", arg);
 }
-
-
-
 
 
 /*
