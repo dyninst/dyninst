@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.14  1994/07/28 22:34:03  krisna
+ * Revision 1.15  1994/08/05 16:04:15  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.14  1994/07/28  22:34:03  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
  * changed infinity() to HUGE_VAL
@@ -107,7 +110,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.14 1994/07/28 22:34:03 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.15 1994/08/05 16:04:15 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -178,9 +181,10 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 	newArc = of->children->addUnique(newNode);
 
 	  // extract display label string from node name
-	nptr = strchr (newNode->name, ' ');
+	nptr = strchr ((char *) newNode->name, ' ');
 	*newNode->shortName = '\0';
-	strncat (newNode->shortName, newNode->name, (nptr-newNode->name));
+	(void) strncat (newNode->shortName, (char *) newNode->name, 
+	    (nptr-(char *)newNode->name));
 #ifndef SHG_ADD_ON_EVAL
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
@@ -303,7 +307,8 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
     for (; *newFoci; newFoci++){
 	f = *newFoci;
 	newNode = findAndAddSHG(of, of->why, f, of->when);
-	newNode->shortName = makeShortName(of->name, newNode->name);
+	newNode->shortName = 
+	    makeShortName((char *) of->name, (char *) newNode->name);
 
 #ifndef SHG_ADD_ON_EVAL
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 

@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.23  1994/07/14 23:45:53  hollings
+ * Revision 1.24  1994/08/05 16:03:56  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.23  1994/07/14  23:45:53  hollings
  * added hybrid cost model.
  *
  * Revision 1.22  1994/07/07  03:31:20  markc
@@ -258,7 +261,7 @@ class performanceStream {
 	void enableResourceCreationNotification(resource*);
 	void disableResourceCreationNotification(resource*);
 	void callSampleFunc(metricInstance *, sampleValue*, int, int);
-	void callResourceFunc(resource *p, resource *c, char *name);
+	void callResourceFunc(resource *p, resource *c, stringHandle name);
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.25  1994/08/01 20:24:39  karavan
-/* new version of dag; new dag support commands
+/* Revision 1.26  1994/08/05 16:04:25  hollings
+/* more consistant use of stringHandle vs. char *.
 /*
+ * Revision 1.25  1994/08/01  20:24:39  karavan
+ * new version of dag; new dag support commands
+ *
  * Revision 1.24  1994/07/28  22:32:16  krisna
  * proper starting sequence for UImain thread
  *
@@ -262,7 +265,8 @@ void controlFunc (performanceStream *ps ,
                   char *name)
 {
   int nodeID;
-  char *parname, *label;
+  stringHandle parname;
+  char *label;
   dataMgr->enableResourceCreationNotification(ps, newResource);
   nodeID = (int) Tk_GetUid(name);
   label = strrchr(name, '/'); label++; 
@@ -272,7 +276,7 @@ void controlFunc (performanceStream *ps ,
   else {
     baseWhere->CreateNode (nodeID, 0, label, 1);
     parname = parent->getFullName();
-    baseWhere->AddEdge ((int) Tk_GetUid(parname), nodeID, 1);
+    baseWhere->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
   }
 }
 

@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.42  1994/08/03 19:06:24  hollings
+ * Revision 1.43  1994/08/05 16:03:57  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.42  1994/08/03  19:06:24  hollings
  * Added tunableConstant to print enable/disable pairs.
  *
  * Fixed fold to report fold info to all perfStreams even if they have
@@ -176,7 +179,7 @@ tunableFloatConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, userConstant,
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
 {
-    char *name;
+    stringHandle name;
     metricInstance *mi;
 
     if (!m || !rl) return(NULL);
@@ -232,7 +235,7 @@ void performanceStream::callSampleFunc(metricInstance *mi,
 
 void performanceStream::callResourceFunc(resource *p,
 				         resource *c,
-				         char *name)
+				         stringHandle name)
 {
     if (controlFunc.rFunc) {
 	dm->setTid(threadId);
@@ -341,13 +344,14 @@ void dynRPCUser::resourceInfoCallback(int program,
 				      String abstraction)
 {
     resource *parent;
+    stringHandle iName;
     abstractionType at;
 
     // create the resource.
     if (*parentString != '\0') {
 	// non-null string.
-	parentString = resource::names.findAndAdd(parentString);
-	parent = resource::allResources.find(parentString);
+	iName = resource::names.findAndAdd(parentString);
+	parent = resource::allResources.find(iName);
 	if (!parent) abort();
     } else {
 	parent = resource::rootResource;
@@ -382,19 +386,19 @@ void dynRPCUser::mappingInfoCallback(int program,
 
 class uniqueName {
   public:
-    uniqueName(char *base) { name = base; nextId = 0; }
+    uniqueName(stringHandle base) { name = base; nextId = 0; }
     int nextId;
-    char *name;
+    stringHandle name;
 };
 
 
 String dynRPCUser::getUniqueResource(int program, 
-				     String parentString, 
-				     String newResource)
+					   String parentString, 
+					   String newResource)
 {
-    char *ptr;
     uniqueName *ret;
     char newName[80];
+    stringHandle ptr;
     static List<uniqueName*> allUniqueNames;
 
     sprintf(newName, "%s/%s", parentString, newResource);
@@ -410,7 +414,7 @@ String dynRPCUser::getUniqueResource(int program,
     sprintf(newName, "%s{%d}", newResource, ret->nextId++);
     ptr = resource::names.findAndAdd(newName);
 
-    return(ptr);
+    return((String)ptr);
 }
 
 //
@@ -658,8 +662,8 @@ void *DMmain(void* varg)
 
 void addMetric(metricInfo info)
 {
-    char *iName;
     metric *met;
+    stringHandle iName;
     performanceStream *stream;
     List<performanceStream *> curr;
 
@@ -694,8 +698,8 @@ void addMetric(metricInfo info)
 resource *createResource(resource *p, char *newResource, abstractionType at)
 {
     resource *ret;
-    char *fullName;
     resource *temp;
+    stringHandle fullName;
     performanceStream *stream;
     List<performanceStream *> curr;
 

@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.22  1994/08/03 19:10:25  hollings
-/* split tunable constant into boolean and float types.
+/* Revision 1.23  1994/08/05 16:04:28  hollings
+/* more consistant use of stringHandle vs. char *.
 /*
+ * Revision 1.22  1994/08/03  19:10:25  hollings
+ * split tunable constant into boolean and float types.
+ *
  * Revision 1.21  1994/07/25  14:58:15  hollings
  * added suppress resource option.
  *
@@ -136,10 +139,10 @@ int ParadynResourcesCmd(ClientData clientData,
 			int argc, 
 			char *argv[])
 {
+  stringHandle name;
   resource *parent, *child;
   resourceList *resList, *children;
   int i, j, count, count2;
-  char *name;
 
   parent = uim_rootRes;
   resList = parent->getChildren();
@@ -150,7 +153,7 @@ int ParadynResourcesCmd(ClientData clientData,
     parent = resList->getNth(i);
 
     name = parent->getFullName();
-    Tcl_AppendElement(interp, name);
+    Tcl_AppendElement(interp, (char *) name);
 
     children = parent->getChildren();
     count2 = children->getCount();
@@ -158,7 +161,7 @@ int ParadynResourcesCmd(ClientData clientData,
     for (j = 0; j < count2; j++) {
       child = children->getNth(j);
       name = child->getFullName();
-      Tcl_AppendElement(interp, name);
+      Tcl_AppendElement(interp, (char *) name);
     }
   }
   return TCL_OK;
@@ -421,7 +424,7 @@ int ParadynEnableCmd (ClientData clientData,
 		      char *argv[])
 {
   metric *met;
-  char *name;
+  stringHandle name;
   metricInstance *mi;
   resourceList *resList;
 
@@ -490,7 +493,7 @@ int ParadynSetCmd (ClientData clientData,
 		    char *argv[])
 {
   int val;
-  char *sp;
+  stringHandle sp;
   tunableConstant *curr;
   tunableFloatConstant *fConst;
   tunableBooleanConstant *bConst;
@@ -610,8 +613,8 @@ int ParadynSuppressCmd (ClientData clientData,
 {
     int i;
     int limit;
-    char *name;
     resource *r;
+    stringHandle name;
     resourceList *resList;
 
     if (argc != 2) {

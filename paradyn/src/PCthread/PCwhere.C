@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.10  1994/07/28 22:34:06  krisna
+ * Revision 1.11  1994/08/05 16:04:18  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.10  1994/07/28  22:34:06  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
  * changed infinity() to HUGE_VAL
@@ -98,7 +101,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.10 1994/07/28 22:34:06 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.11 1994/08/05 16:04:18 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -156,14 +159,14 @@ void focus::updateName()
 {
     int i;
     int limit;
-    char **names;
     resource *res;
     char temp[256];
+    stringHandle *names;
 
     strcpy(temp, "<");
     if (data) {
 	limit = data->getCount();
-	names = (char **) malloc(sizeof(char *) * limit);
+	names = (stringHandle *) malloc(sizeof(stringHandle) * limit);
 	suppress = FALSE;
 	for (i=0; i < limit; i++) {
 	    res = data->getNth(i);
@@ -173,7 +176,7 @@ void focus::updateName()
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), stringCompare);
 	for (i=0; i < limit; i++) {
-	    strcat(temp, names[i]);
+	    strcat(temp, (char *) names[i]);
 	    if (i != limit - 1) strcat(temp, ",");
 	}
 	free(names);
@@ -199,7 +202,7 @@ Boolean focus::operator ==(focus *f)
 void focus::print() 
 {
     if (data)
-	printf(name);
+	printf((char *) name);
     else
 	printf("<>");
 }
@@ -207,7 +210,7 @@ void focus::print()
 void focus::print(char *ret)
 {
     if (data)
-	strcpy(ret, name);
+	strcpy(ret, (char *) name);
     else
 	strcpy(ret, "<>");
 }
@@ -429,7 +432,7 @@ focus *focus::moreSpecific(resource *parm, Boolean &conflicts)
           // the current focus is more specific - it will be reused
 	  found = FALSE;
 	  break;
-	} else if (strcmp(curr->getName(), parm->getName()) &&
+	} else if (strcmp((char *) curr->getName(), (char *) parm->getName()) &&
 		   (curr->sameRoot(parm) == TRUE)) {
 	  // if the resource and param have the same root, but
 	  // one is not a descendant of the other,

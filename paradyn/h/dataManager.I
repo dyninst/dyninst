@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.23  1994/07/25 14:56:19  hollings
+ * Revision 1.24  1994/08/05 16:03:46  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.23  1994/07/25  14:56:19  hollings
  * added suppress resource option.
  *
  * Revision 1.22  1994/07/14  23:44:28  hollings
@@ -87,6 +90,7 @@
 #include "util/h/hist.h"
 #include "dyninstRPC.h"
 #include "util/h/aggregation.h"
+#include "util/h/stringPool.h"
 
 /* one or more program working together */
 class applicationContext;	
@@ -186,7 +190,7 @@ typedef void (*metricInfoCallback)(performanceStream*, metric*);
  *
  */
 typedef void (*resourceInfoCallback)(performanceStream*, resource *parent, 
-    resource *newResource, char *name);
+    resource *newResource, stringHandle name);
 
 typedef enum batchMode { batchStart, batchEnd };
 
@@ -386,7 +390,7 @@ $remote dataManager {
     //
     // Metric utility functions.
     //
-    char *getMetricName(metric*);
+    stringHandle getMetricName(metric*);
 
     //
     // get the supporting info about a metric.
@@ -396,7 +400,7 @@ $remote dataManager {
     // Get metric out of a metric instance.
     //
     metric *getMetric(metricInstance*);
-    char *getMetricNameFromMI(metricInstance*);
+    stringHandle getMetricNameFromMI(metricInstance*);
 
     //
     // Get the value of a metric.
@@ -441,7 +445,7 @@ $remote dataManager {
 					   performanceStream *ps, 
 					   resource *parent,
 					   resource *newResource, 
-					   char *name);
+					   stringHandle name);
 
     $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
 					        performanceStream *ps, 

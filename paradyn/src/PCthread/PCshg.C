@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.15  1994/08/03 19:09:54  hollings
+ * Revision 1.16  1994/08/05 16:04:16  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.15  1994/08/03  19:09:54  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -121,7 +124,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.15 1994/08/03 19:09:54 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.16 1994/08/05 16:04:16 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -274,7 +277,7 @@ void searchHistoryNode::changeActive(Boolean newact)
         // make sure we have the node in the SHG
 	for (parent = this->parents; *parent; parent++) {
 	    uiMgr->DAGaddNode (SHGid, this->nodeId, UNTESTEDNODESTYLE,
-			       this->shortName, this->name, 0);
+			       this->shortName, (char *) this->name, 0);
 	    uiMgr->DAGaddEdge(SHGid, (*parent)->nodeId, this->nodeId, 
 				WHEREEDGESTYLE);
         }
@@ -396,7 +399,8 @@ void shgInit()
     SHGid = uiMgr->initSHG();     
     // display root node with style 1 
     uiMgr->DAGaddNode (SHGid, currentSHGNode->nodeId, UNTESTEDNODESTYLE, 
-		       currentSHGNode->shortName, currentSHGNode->name, 1);
+		       currentSHGNode->shortName, 
+		       (char *) currentSHGNode->name, 1);
 
     PCpathDepth = 0;
 }

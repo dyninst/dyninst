@@ -14,7 +14,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.4  1994/08/04 21:50:41  newhall
+ * Revision 1.5  1994/08/05 16:04:37  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.4  1994/08/04  21:50:41  newhall
  * changed value of hlen in metMain() to fix array bounds write error
  *
  * Revision 1.3  1994/08/03  19:11:07  hollings
@@ -379,7 +382,7 @@ int metDoTunable()
   List<tunableStruct*> tl;
   tunableConstant* curr;
   tunableFloatConstant *fConst;
-  char *sp;
+  stringHandle sp;
 
   if (!tunableConstant::allConstants)
     return -1;

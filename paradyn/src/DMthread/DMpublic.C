@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.24  1994/07/25 14:55:37  hollings
+ * Revision 1.25  1994/08/05 16:03:59  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.24  1994/07/25  14:55:37  hollings
  * added suppress resource option.
  *
  * Revision 1.23  1994/07/14  23:45:54  hollings
@@ -232,12 +235,12 @@ metric *dataManager::getMetric(metricInstance *mi)
     return(mi->met);
 }
 
-char *dataManager::getMetricNameFromMI(metricInstance *mi)
+stringHandle dataManager::getMetricNameFromMI(metricInstance *mi)
 {
     return(mi->met->getName());
 }
 
-char *dataManager::getMetricName(metric *m)
+stringHandle dataManager::getMetricName(metric *m)
 {
     return(m->getName());
 }
@@ -313,7 +316,7 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 					 performanceStream *ps,
 					 resource *parent,
 					 resource *newResource,
-					 char *name)
+					 stringHandle name)
 {
     (cb)(ps, parent, newResource, name);
 }
@@ -360,7 +363,7 @@ resource *dataManager::newResource(applicationContext *app,
     resource *child;
 
     child = createResource(res, name, BASE);
-    app->tellDaemonsOfResource(res->getFullName(), name);
+    app->tellDaemonsOfResource((char *) res->getFullName(), name);
     return(child);
 }
 

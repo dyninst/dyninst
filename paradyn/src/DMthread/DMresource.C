@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.11 1994/07/28 22:31:09 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.12 1994/08/05 16:04:00 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.11  1994/07/28 22:31:09  krisna
+ * Revision 1.12  1994/08/05 16:04:00  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.11  1994/07/28  22:31:09  krisna
  * include <rpc/types.h>
  * stringCompare to match qsort prototype
  * proper prorotypes for starting DMmain
@@ -81,7 +84,7 @@ resource::resource()
 
 resource::resource(resource *p, char *newResource, abstractionType at) 
 {
-    char *iName;
+    stringHandle iName;
     char tempName[255];
     // perfStreamList perf;
 
@@ -174,12 +177,13 @@ resource *resourceList::find(char *name)
 {
     int i;
     resource *ret;
+    stringHandle iName;
 
-    name = resource::names.findAndAdd(name);
+    iName = resource::names.findAndAdd(name);
 
     lock();
     for (i=0, ret = NULL; i < count; i++) {
-	if (elements[i]->name == name) {
+	if (elements[i]->name == iName) {
 	    ret = elements[i];
 	    break;
 	}
@@ -188,13 +192,13 @@ resource *resourceList::find(char *name)
     return(ret);
 }
 
-char ** resourceList::convertToStringList() 
+stringHandle *resourceList::convertToStringList() 
 {
     int i;
-    char **temp;
+    stringHandle *temp;
 
     lock();
-    temp = (char **) malloc(sizeof(char *) * count);
+    temp = (stringHandle *) malloc(sizeof(stringHandle) * count);
     for (i=0; i < count; i++) {
 	temp[i] = elements[i]->fullName;
     }
@@ -209,29 +213,29 @@ static int stringCompare(const void* p1, const void* p2) {
     return strCompare(q1, q2);
 }
 
-char *resourceList::getCanonicalName()
+stringHandle resourceList::getCanonicalName()
 {
     int i;
     int total;
     char *tempName;
-    char **temp;
+    stringHandle *temp;
 
     lock();
     if (!fullName) {
-	temp = (char **) malloc(sizeof(char *) * count);
+	temp = (stringHandle *) malloc(sizeof(stringHandle) * count);
 	for (i=0; i < count; i++) {
 	    temp[i] = elements[i]->fullName;
 	}
 	qsort(temp, count, sizeof(char *), stringCompare);
 
 	total = 3;
-	for (i=0; i < count; i++) total += strlen(temp[i])+2;
+	for (i=0; i < count; i++) total += strlen((char *) temp[i])+2;
 
 	tempName = new(char[total]);
 	strcpy(tempName, "<");
 	for (i=0; i < count; i++) {
 	    if (i) strcat(tempName, ",");
-	    strcat(tempName, temp[i]);
+	    strcat(tempName, (char *) temp[i]);
 	}
 	strcat(tempName, ">");
 

@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.7  1994/07/25 14:55:40  hollings
+ * Revision 1.8  1994/08/05 16:04:01  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.7  1994/07/25  14:55:40  hollings
  * added suppress resource option.
  *
  * Revision 1.6  1994/06/27  21:23:33  rbi
@@ -82,10 +85,10 @@ class resourceList {
 	return;
       }
       resource *find(char *name);
-      char *getCanonicalName();
+      stringHandle getCanonicalName();
       int getCount()	{ return(count); }
       void print();
-      char **convertToStringList();
+      stringHandle *convertToStringList();
   private:
       // provide mutex so we can support shared access.
       void lock() { assert(!locked); locked = 1; }
@@ -95,7 +98,7 @@ class resourceList {
       int count;
       int maxItems;
       resource **elements;
-      char *fullName;
+      stringHandle fullName;
 
       // names space of all resource list canonical names
       static stringPool names;
@@ -110,8 +113,8 @@ class resource {
       friend class dynRPCUser;
   public:
     resourceList *getChildren() { return(&children); }
-    char *getName() { return(name); }
-    char *getFullName() { return(fullName); }
+    stringHandle getName() { return(name); }
+    stringHandle getFullName() { return(fullName); }
     resource *findChild(char *name) { return(children.find(name)); }
     int match(char *ptr) { return(ptr == name); }
     Boolean isDescendent(resource *child);
@@ -132,8 +135,8 @@ class resource {
     /* children of this resourceBase */
     resourceList children;  	
 
-    char *name;
-    char *fullName;
+    stringHandle name;
+    stringHandle fullName;
     abstractionType abstraction;
 
     List<performanceStream*> notify;

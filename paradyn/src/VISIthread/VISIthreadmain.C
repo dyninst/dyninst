@@ -25,10 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.20  1994/08/03 20:46:53  newhall
-/* removed calls to visi interface routine Enabled()
-/* added error detection code
+/* Revision 1.21  1994/08/05 16:04:33  hollings
+/* more consistant use of stringHandle vs. char *.
 /*
+ * Revision 1.20  1994/08/03  20:46:53  newhall
+ * removed calls to visi interface routine Enabled()
+ * added error detection code
+ *
  * Revision 1.19  1994/08/02  17:12:19  newhall
  * bug fix to StopMetricResource
  *
@@ -353,13 +356,13 @@ void VISIthreadchooseMetRes(char **metricNames,
  int  numEnabled = 0;
  int  i,j,found;
  int  numBins = 0;
- char **y;
+ stringHandle *y;
  int  totalSize, where;
  char errorString[128];
  int  howmany;
- char *key;
  int  numFoci = 0;
  char *tempName;
+ stringHandle key;
  float_Array bulk_data;
  int_Array metricIds;
  List<metricInstance*> walk;
@@ -494,7 +497,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     numFoci = newEnabled[0]->focus->getCount();
 
     for(i = 0; i < numFoci; i++)
-        totalSize += strlen(y[i]);
+        totalSize += strlen((char *) y[i]);
  
     totalSize += numFoci;  // space for commas
 
@@ -507,13 +510,13 @@ void VISIthreadchooseMetRes(char **metricNames,
     where = 0;
 
     for(i = 0; i < numFoci; i++){
-        if((strncpy(&(tempName[where]),y[i],strlen(y[i])))
-	    ==NULL){
+        if (!(strncpy(&(tempName[where]), 
+		      (char *) y[i],strlen((char *) y[i])))){
 	    ERROR_MSG(12,"strncpy in VISIthreadchooseMetRes");
             ptr->quit = 1;
             return;
         }
-        where += strlen(y[i]);
+        where += strlen((char *) y[i]);
 	if( i < (numFoci - 1)){
 	  tempName[where++] = ',';
 	}

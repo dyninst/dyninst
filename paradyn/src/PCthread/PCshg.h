@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.8  1994/08/03 19:09:56  hollings
+ * Revision 1.9  1994/08/05 16:04:17  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.8  1994/08/03  19:09:56  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -97,7 +100,7 @@ class searchHistoryNode {
 	searchHistoryNodeList parents;
 	void resetStatus();
 	int nodeId;			// unique id for this node.
-	char *name;			// name of this node.
+	stringHandle name;		// name of this node.
 	char *shortName;		// name of this node.
 	hintList *hints;
 	static stringPool shgNames;

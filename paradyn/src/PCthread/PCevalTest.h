@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.4  1994/08/03 19:09:48  hollings
+ * Revision 1.5  1994/08/05 16:04:11  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.4  1994/08/03  19:09:48  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -84,8 +87,8 @@ class testResult {
 class testResultList: public List<testResult*> {
     public:
 	Boolean addUnique(testResult *res) { 
-	    char *id;
 	    char str[80];
+	    stringHandle id;
 	    testResult *ret;
 
 	    sprintf(str, "%d %d %d", res->t, res->f, res->at);
@@ -102,16 +105,16 @@ class testResultList: public List<testResult*> {
 	    return(find(res->t, res->f, res->at));
 	}
 	testResult *find(test *t, focus *f, timeInterval *when) { 
-	    char *id;
 	    char str[80];
+	    stringHandle id;
 
 	    sprintf(str, "%d %d %d", t, f, when);
 	    id = resultPool.findAndAdd(str);
 	    return (List<testResult*>::find(id)); 
 	}
         Boolean remove(testResult *res) {
-            char *id;
             char str[80];
+            stringHandle id;
   
             sprintf(str, "%d %d %d", res->t, res->f, res->at);
             id = resultPool.findAndAdd(str);

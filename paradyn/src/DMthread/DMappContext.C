@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.35  1994/08/03 19:06:23  hollings
+ * Revision 1.36  1994/08/05 16:03:55  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.35  1994/08/03  19:06:23  hollings
  * Added tunableConstant to print enable/disable pairs.
  *
  * Fixed fold to report fold info to all perfStreams even if they have
@@ -160,7 +163,7 @@ String_Array convertResourceList(resourceList *rl)
     String_Array ret;
 
     ret.count = rl->getCount();
-    ret.data = rl->convertToStringList();
+    ret.data = (String *) rl->convertToStringList();
     return(ret);
 }
 
@@ -523,9 +526,10 @@ String_Array applicationContext::getAvailableMetrics()
 //
 metric *applicationContext::findMetric(char *name)
 {
-    name = metric::names.findAndAdd(name);
-    return(metric::allMetrics.find(name));
-    return(NULL);
+    stringHandle iName;
+
+    iName = metric::names.findAndAdd(name);
+    return(metric::allMetrics.find(iName));
 }
 
 //
@@ -608,10 +612,10 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 							 metric *m)
 {
     int id;
-    char *name;
     component *comp;
     String_Array ra;
     Boolean foundOne;
+    stringHandle name;
     metricInstance *mi;
     paradynDaemon *daemon;
     List<paradynDaemon*> curr;
@@ -642,7 +646,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 				 histFoldCallBack, 
 				 (void *) mi);
 	name = rl->getCanonicalName();
-	m->enabledCombos.add(mi, (void*) name);
+	m->enabledCombos.add(mi, name);
 	mi->count = 1;
 	return(mi);
     } else {
@@ -657,15 +661,15 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 void applicationContext::disableDataCollection(metricInstance *mi)
 {
     metric *m;
-    char *name;
     component *c;
+    stringHandle name;
     List<component*> curr;
 
     m = mi->met;
     name = mi->focus->getCanonicalName();
 
     if (printChangeCollection.getValue()) {
-	cout << "DI: " << m->getName() << name << "\n";
+	cout << "DI: " << m->getName() << ((char *) name) << "\n";
     }
 
     m->enabledCombos.remove(name);

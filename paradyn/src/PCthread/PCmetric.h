@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.9  1994/08/03 19:09:52  hollings
+ * Revision 1.10  1994/08/05 16:04:14  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.9  1994/08/03  19:09:52  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -131,7 +134,7 @@ class datum {
 	metricInstance	*mi;			// when enabled.
 
 	Histogram	*hist;
-	char		*metName;
+	stringHandle	metName;
 };
 
 class performanceConsultant;
@@ -147,7 +150,7 @@ class PCmetric {
 	// Constructor - default is Sum to aggregate.
 	void print();
 
-	char *getName() { return(name); }
+	stringHandle getName() { return(name); }
 	char *getUnits() { 
 	    metricInfo *info;
 
@@ -201,7 +204,7 @@ class PCmetric {
 	    return avg(fl, currentInterval->start, PCcurrentTime); 
 	}
     private:
-	char *name;
+	stringHandle name;
 	metric	*met;		// handle to inst.
 	List<datum*> samples;
 	int aggregationOperator;

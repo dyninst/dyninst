@@ -16,15 +16,18 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.20  1994/08/03 19:09:49  hollings
-/* split tunable constant into float and boolean types
+/* Revision 1.21  1994/08/05 16:04:12  hollings
+/* more consistant use of stringHandle vs. char *.
 /*
-/* added tunable constant for printing tests as they avaluate.
-/*
-/* added code to compute the min interval data has been enabled for a single
-/* test rather than using a global min.  This prevents short changes from
-/* altering long term trends among high level hypotheses.
-/*
+ * Revision 1.20  1994/08/03  19:09:49  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
  * Revision 1.19  1994/07/28  22:33:59  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
@@ -84,7 +87,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.20 1994/08/03 19:09:49 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.21 1994/08/05 16:04:12 hollings Exp $";
 #endif
 
 #include <assert.h>
@@ -170,8 +173,8 @@ void PCnewInfo()
 
 void PCmetricFunc(performanceStream *ps, metric *met)
 {
-    char *name;
     PCmetric *pcMet;
+    stringHandle name;
     extern stringPool PCmetricStrings;
 
     name = PCmetricStrings.findAndAdd(dataMgr->getMetricName(met));

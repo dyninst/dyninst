@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.19  1994/08/03 19:09:51  hollings
+ * Revision 1.20  1994/08/05 16:04:13  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.19  1994/08/03  19:09:51  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -138,7 +141,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.19 1994/08/03 19:09:51 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.20 1994/08/05 16:04:13 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -196,7 +199,7 @@ PCmetric::PCmetric(char *id, int ag, calcType c)
 
 void PCmetric::print()
 {
-    printf(name);
+    printf((char *) name);
 }
 
 sampleValue PCmetric::value()
@@ -538,7 +541,7 @@ focus *tempFocus;
 
 PCmetric *findMetric(char *name)
 {
-    char *id;
+    stringHandle id;
 
     id = PCmetricStrings.findAndAdd(name);
     return(allMetrics.find(id));
