@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.89 2003/03/12 01:49:56 schendel Exp $
+// $Id: linux.C,v 1.90 2003/03/14 23:18:24 bernat Exp $
 
 #include <fstream.h>
 
@@ -238,6 +238,80 @@ process *findProcess( int );  // In process.C
 // Wait for a process event to occur, then map it into
 // the why/what space (a la /proc status variables)
 
+int decodeRTSignal(process *proc,
+                   procSignalWhy_t &why,
+                   procSignalWhat_t &what,
+                   procSignalInfo_t &info)
+{
+    // We've received a signal we believe was sent
+    // from the runtime library. Check the RT lib's
+    // status variable and return it.
+    // These should be made constants
+    string status_str = string("DYNINST_instSyscallState");
+    string arg_str = string("DYNINST_instSyscallArg1");
+
+    int status;
+    Address arg;
+
+    bool err = false;
+    Address status_addr = proc->findInternalAddress(status_str, false, err);
+    if (err) {
+        // Couldn't find symbol
+        return 0;
+    }
+
+    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
+                             &status, true)) {
+        return 0;
+    }
+
+    if (status == 0) {
+        return 0; // Nothing to see here
+    }
+    
+    Address arg_addr = proc->findInternalAddress(arg_str, false, err);
+    if (err) {
+        return 0;
+    }
+    
+    if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
+                             &arg, true))
+        assert(0);
+    info = (procSignalInfo_t)arg;
+    
+    switch(status) {
+  case 1:
+      /* Entry to fork */
+      why = procSyscallEntry;
+      what = SYS_fork;
+      break;
+  case 2:
+      why = procSyscallExit;
+      what = SYS_fork;
+      break;
+  case 3:
+      /* Entry to exec */
+      why = procSyscallEntry;
+      what = SYS_exec;
+      break;
+  case 4:
+      /* Exit of exec, unused */
+      break;
+  case 5:
+      /* Entry of exit, used for the callback. We need to trap before
+         the process has actually exited as the callback may want to
+         read from the process */
+      why = procSyscallEntry;
+      what = SYS_exit;
+      break;
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
+
+}
+
 process *decodeProcessEvent(int pid, 
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
@@ -257,6 +331,13 @@ process *decodeProcessEvent(int pid,
     // to a (SYSEXIT,fork) pair. Don't do that yet.
     if (result > 0) {
         proc = findProcess(result);
+
+        if (proc) {
+            // Processes' state is saved in preSignalStatus()
+            proc->savePreSignalStatus();
+            // Got a signal, process is stopped.
+            proc->status_ = stopped;
+        }
         
         if (WIFEXITED(status)) {
             // Process exited via signal
@@ -273,8 +354,14 @@ process *decodeProcessEvent(int pid,
             // as well. procSignalled is a generic return.
             // For example, we translate SIGILL to SIGTRAP
             // in a few cases
+
             why = procSignalled;
             what = WSTOPSIG(status);
+
+            if (what == SIGSTOP) {
+                decodeRTSignal(proc, why, what, info);
+            }
+
             if (what == SIGILL) {
                 // The following is more correct, but breaks.
                 // Problem is getting the frame requires a ptrace...
@@ -289,7 +376,6 @@ process *decodeProcessEvent(int pid,
                     proc->existsRPCWaitingForSyscall()) {
                     what = SIGTRAP;
                 }
-                
             }
         }
     }
@@ -298,6 +384,46 @@ process *decodeProcessEvent(int pid,
     }
     return proc;
 }
+
+
+bool process::installSyscallTracing() {
+    // We mimic system call tracing via instrumentation
+    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+    AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
+
+    
+    // Pre-fork - is this strictly necessary?
+    tracingRequests += new instMapping("__libc_fork", "DYNINST_instForkEntry",
+                                       FUNC_ENTRY);
+    // Post-fork:
+    instMapping *forkExit = new instMapping("__libc_fork", "DYNINST_instForkExit",
+                                            FUNC_EXIT|FUNC_ARG,
+                                            returnVal);
+    forkExit->dontUseTrampGuard();
+    tracingRequests += forkExit;
+
+    // Pre-exec: get the exec'ed file name
+    tracingRequests += new instMapping("execve", "DYNINST_instExecEntry",
+                                       FUNC_ENTRY|FUNC_ARG,
+                                       arg0);
+
+    // Post-exec: handled for us by the system
+
+    // Pre-exit: get the return code
+    tracingRequests += new instMapping("exit", "DYNINST_instExitEntry",
+                                       FUNC_ENTRY|FUNC_ARG,
+                                       arg0);
+
+    // Post-exit: handled for us by the system
+
+
+    removeAst(arg0);
+    removeAst(returnVal);
+    
+
+    return true;
+}
+
 
 // attach to an inferior process.
 bool process::attach_() {
@@ -478,12 +604,12 @@ bool process::continueProc_() {
 
   if (ret == -1)
   {
-	  /*if( isRunning_() )
-		  ret = 0;
-		  else*/
-		  perror("continueProc_()");
+      fprintf(stderr, "ptrace error on process %d\n", getPid());
+      sleep(10);
+      
+      perror("continueProc_()");
   }
-
+  
   return ret != -1;
 }
 
@@ -948,9 +1074,23 @@ bool process::loopUntilStopped() {
     return true;
 }
 
-// Implement when we can map from trap address to syscall
-procSyscall_t decodeSyscall(process * /*p*/, 
-                            procSignalWhat_t /*what*/) {
+procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
+{
+    switch (what) {
+  case SYS_fork:
+      return procSysFork;
+      break;
+  case SYS_exec:
+      return procSysExec;
+      break;
+  case SYS_exit:
+      return procSysExit;
+      break;
+  default:
+      return procSysOther;
+      break;
+    }
+    assert(0);
     return procSysOther;
 }
 

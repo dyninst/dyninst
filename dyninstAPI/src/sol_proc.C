@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.13 2003/03/12 01:49:58 schendel Exp $
+// $Id: sol_proc.C,v 1.14 2003/03/14 23:18:28 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -681,25 +681,18 @@ void dyn_lwp::closeFD_()
  * Process-wide /proc operations
  */
 
-#ifdef BPATCH_LIBRARY
-/*
- * Use by dyninst to set events we care about from procfs
- *
- */
-bool process::setProcfsFlags()
+bool process::installSyscallTracing()
 {
+    
     long command[2];
     command[0] = PCSET;
-    long flags = PR_BPTADJ;
-    if (BPatch::bpatch->postForkCallback) {
-        // cause the child to inherit trap-on-exit from exec and other traps
-        // so we can learn of the child (if the user cares)
-       flags = PR_BPTADJ | PR_FORK | PR_ASYNC | PR_RLC | PR_MSACCT;
-    }
+
+    long flags = PR_BPTADJ | PR_FORK | PR_ASYNC | PR_RLC | PR_MSACCT;
+
     command[1] = flags;
 
     if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-        perror("setProcfsFlags: PCSET");
+        perror("installSyscallTracing: PCSET");
         return false;
     }
 
@@ -713,46 +706,39 @@ bool process::setProcfsFlags()
     // Get traced system calls (entry and exit)
     if (pread(status_fd(), &status, sizeof(status), 0) != sizeof(status))
         return false;
-
     //if (!get_entry_syscalls(&status, entryset)) return false;
     //if (!get_exit_syscalls(&status, exitset)) return false;
     
-    if (BPatch::bpatch->postForkCallback) {
-        if (SYSSET_MAP(SYS_fork, getPid()) != -1) {
-            praddsysset (exitset, SYSSET_MAP(SYS_fork, getPid()));
-        }
-        
-        if (SYSSET_MAP(SYS_fork1, getPid()) != -1) {
-            praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
-        }
-        
-        if (SYSSET_MAP(SYS_vfork, getPid()) != -1) {
-            praddsysset (exitset, SYSSET_MAP(SYS_vfork, getPid()));
-        }
-    }
-    if (BPatch::bpatch->execCallback) {
-        if (SYSSET_MAP(SYS_exec, getPid()) != -1)
-           praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
-        if (SYSSET_MAP(SYS_execve, getPid()) != -1)
-           praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
-    }
-    if (BPatch::bpatch->exitCallback) {
-        if (SYSSET_MAP(SYS_exit, getPid()) != -1)
-            praddsysset (entryset, SYSSET_MAP(SYS_exit, getPid()));
+    if (SYSSET_MAP(SYS_fork, getPid()) != -1) {
+        praddsysset (exitset, SYSSET_MAP(SYS_fork, getPid()));
     }
     
-    if (BPatch::bpatch->preForkCallback) {
-        if (SYSSET_MAP(SYS_fork, getPid()) != -1)
-            praddsysset (entryset, SYSSET_MAP(SYS_fork, getPid()));
-        if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
-            praddsysset (entryset, SYSSET_MAP(SYS_fork1, getPid()));
-        if (SYSSET_MAP(SYS_vfork, getPid()) != -1)
-            praddsysset (entryset, SYSSET_MAP(SYS_vfork, getPid()));
+    if (SYSSET_MAP(SYS_fork1, getPid()) != -1) {
+        praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
     }
+    
+    if (SYSSET_MAP(SYS_vfork, getPid()) != -1) {
+        praddsysset (exitset, SYSSET_MAP(SYS_vfork, getPid()));
+    }
+
+    if (SYSSET_MAP(SYS_exec, getPid()) != -1)
+        praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
+    if (SYSSET_MAP(SYS_execve, getPid()) != -1)
+        praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
+
+    if (SYSSET_MAP(SYS_exit, getPid()) != -1)
+        praddsysset (entryset, SYSSET_MAP(SYS_exit, getPid()));
+    
+    if (SYSSET_MAP(SYS_fork, getPid()) != -1)
+        praddsysset (entryset, SYSSET_MAP(SYS_fork, getPid()));
+    if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
+        praddsysset (entryset, SYSSET_MAP(SYS_fork1, getPid()));
+    if (SYSSET_MAP(SYS_vfork, getPid()) != -1)
+        praddsysset (entryset, SYSSET_MAP(SYS_vfork, getPid()));
     
     return set_syscalls(entryset, exitset);    
 }
-#endif
+
 /*
    Open the /proc file correspoding to process pid, 
    set the signals to be caught to be only SIGSTOP and SIGTRAP,
@@ -817,31 +803,7 @@ bool process::attach_() {
         perror("attach: PCSTRACE");
         return false;
     }
-
-    // Step 3) /proc PIOCSET:
-    // a) turn on the reset-on-last-close flag (undoes changes when last
-    //    proc fd is closed)
-    // b) turn on inherit-on-fork flag (tracing flags inherited when
-    // child forks) in Paradyn only
-    // c) turn on breakpoint trap pc adjustment (x86 only).
-    // Also, any child of this process will stop at the exit of an exec call.
     
-#ifdef BPATCH_LIBRARY
-    setProcfsFlags();
-#else
-    // Paradyn only uses a limited subset of Dyninst's flags
-    long command[2];
-    command[0] = PCSET;
-  
-    if(process::pdFlavor == string("cow") || process::pdFlavor == string("mpi"))
-        command[1] = PR_KLC |  PR_BPTADJ | PR_MSACCT;
-    else
-        command[1] = PR_KLC | PR_FORK | PR_BPTADJ | PR_MSACCT;
-    if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-        perror("setProcfsFlags: PCSET");
-        return false;
-    }
-#endif
     if (!get_ps_info(getPid(), this->argv0, this->cwdenv, this->pathenv)) return false;
     return true;
 }
@@ -1407,6 +1369,7 @@ process *decodeProcessEvent(int pid,
             // is this the bug??
             // processVec[curr]->continueProc_();
         }
+        
         if (!decodeWaitPidStatus(currProcess, status, why, what))
             return NULL;
 
@@ -1425,6 +1388,12 @@ process *decodeProcessEvent(int pid,
         }
     }
     // Skip this FD the next time through
+    if (currProcess) {
+        currProcess->savePreSignalStatus();
+        currProcess->status_ = stopped;
+    }
+    
+
     --selected_fds;
     ++curr;    
     return currProcess;

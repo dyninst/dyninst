@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.128 2003/03/12 01:49:54 schendel Exp $
+// $Id: aix.C,v 1.129 2003/03/14 23:18:22 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -815,20 +815,97 @@ void OS::osTraceMe(void)
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t what)
 {
     switch (what) {
-  case W_SFWTED:
+  case SYS_fork:
       return procSysFork;
       break;
-  case W_SLWTED:
-      return procSysLoad;
-      break;
-  case W_SEWTED:
+  case SYS_exec:
       return procSysExec;
       break;
+  case SYS_load:
+      return procSysLoad;
+      break;
+  case SYS_exit:
+      return procSysExit;
+      break;
   default:
+      return procSysOther;
       break;
     }
+    assert(0);
     return procSysOther;
 }
+
+int decodeRTSignal(process *proc,
+                   procSignalWhy_t &why,
+                   procSignalWhat_t &what,
+                   procSignalInfo_t &info)
+{
+    // We've received a signal we believe was sent
+    // from the runtime library. Check the RT lib's
+    // status variable and return it.
+    // These should be made constants
+    string status_str = string("DYNINST_instSyscallState");
+    string arg_str = string("DYNINST_instSyscallArg1");
+
+    int status;
+    Address arg;
+
+    bool err = false;
+    Address status_addr = proc->findInternalAddress(status_str, false, err);
+    if (err) {
+        // Couldn't find symbol
+        return 0;
+    }
+    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
+                             &status, true)) {
+        return 0;
+    }
+
+    if (status == 0) {
+        return 0; // Nothing to see here
+    }
+    
+    Address arg_addr = proc->findInternalAddress(arg_str, false, err);
+    if (err) {
+    }
+    
+    if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
+                             &arg, true))
+        assert(0);
+    info = (procSignalInfo_t)arg;
+    
+    switch(status) {
+  case 1:
+      /* Entry to fork */
+      why = procSyscallEntry;
+      what = SYS_fork;
+      break;
+  case 2:
+      /* Exit of fork, unused */
+      break;
+  case 3:
+      /* Entry to exec */
+      why = procSyscallEntry;
+      what = SYS_exec;
+      break;
+  case 4:
+      /* Exit of exec, unused */
+      break;
+  case 5:
+      /* Entry of exit, used for the callback. We need to trap before
+         the process has actually exited as the callback may want to
+         read from the process */
+      why = procSyscallEntry;
+      what = SYS_exit;
+      break;
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
+
+}
+
 
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
@@ -839,6 +916,9 @@ process *decodeProcessEvent(int pid,
     if (block) options = 0;
     else options = WNOHANG;
     process *proc = NULL;
+    why = procUndefined;
+    what = 0;
+    info = 0;
     int result = 0;
     int sig = 0;
     bool ignore;
@@ -850,6 +930,21 @@ process *decodeProcessEvent(int pid,
     // to a (SYSEXIT,fork) pair. Don't do that yet.
     if (result > 0) {
         proc = findProcess(result);
+
+        if (!proc) {
+            // This happens if we fork -- we get a trap from both the
+            // parent and the child, but the child came first (and so
+            // we have no clue about it). This is handled specially in the
+            // fork case below.
+        }
+
+        if (proc) {
+            // Processes' state is saved in preSignalStatus()
+            proc->savePreSignalStatus();
+            // Got a signal, process is stopped.
+            proc->status_ = stopped;
+            
+        }
         
         if (WIFEXITED(status)) {
             // Process exited via signal
@@ -865,39 +960,135 @@ process *decodeProcessEvent(int pid,
             // This is where return value faking would occur
             // as well. procSignalled is a generic return.
             // For example, we translate SIGILL to SIGTRAP
-            // in a few cases
+            // in a few cases    
             why = procSignalled;
             what = WSTOPSIG(status);
-
             // AIX returns status information in the guise
             // of a trap. In this case, fake the info to 
             // the form we want.
-            if (what == SIGTRAP) {
+            if (what == SIGSTOP) {
+                // Not due to a ptrace-derived signal, see if it is
+                // from the RT lib
+                // Only overwrites why,what,info if the signal is from the RT
+                decodeRTSignal(proc, why, what, info);
+            }
+            else if (what == SIGTRAP) {
                 switch(status & 0x7f) {
               case W_SLWTED:
                   // Load
                   why = procSyscallExit;
-                  what = W_SLWTED;
+                  what = SYS_load;
                   break;
               case W_SFWTED:
                   // Fork
                   why = procSyscallExit;
-                  what = W_SFWTED;
+                  what = SYS_fork;
+                  
+                  if (proc) {
+                      // We're the parent, since the child doesn't have a
+                      // process object
+                      int childPid = proc-> childHasSignalled();
+                      if (childPid) {
+                          info = childPid;
+                      }
+                      else {
+                          // Haven't seen the child yet, so 
+                          // discard this signal. We'll use the child
+                          // trap to begin fork handling
+                          proc->setParentHasSignalled(result);
+                          return NULL;
+                      }
+                  }
+                  else {
+                      // Child-side. See if the parent has trapped yet.
+                      // Uh... who is our parent?
+                      struct procsinfo psinfo;
+                      pid_t temp_child_pid = result;
+                      if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
+                          == -1) {
+                          assert(false);
+                          return false;
+                      }
+                      
+                      assert((pid_t)psinfo.pi_pid == result);
+                      
+                      int parentPid = psinfo.pi_ppid;
+                      process *parent = findProcess(parentPid);
+                      if (parent->parentHasSignalled()) {
+                          // Parent trap was already hit, so do the work here
+                          proc = parent;
+                          info = result;
+                      }
+                      else {
+                          // Parent hasn't been seen yet, set variables and wait
+                          parent->setChildHasSignalled(result);
+                          proc = NULL;
+                      }
+                  }
                   break;
               case W_SEWTED:
+                  // Exec
                   why = procSyscallExit;
-                  what = W_SEWTED;
+                  what = SYS_exec;
+                  break;
+              default:                  
                   break;
                 }
             }
         }
+        else {
+            fprintf(stderr, "Unknown status 0x%x for process %d\n",
+                    status, result);
+        }
+        
     }
     else if (result < 0) {
         // Possible the process exited but we weren't aware of
         // it yet.
+        proc = NULL;
         perror("waitpid");
     }
+    
     return proc;
+}
+
+bool process::installSyscallTracing() {
+    // turn on 'multiprocess debugging', which allows ptracing of both the
+    // parent and child after a fork.  In particular, both parent & child will
+    // TRAP after a fork.  Also, a process will TRAP after an exec (after the
+    // new image has loaded but before it has started to execute at all).
+    // Note that turning on multiprocess debugging enables two new values to be
+    // returned by wait(): W_SEWTED and W_SFWTED, which indicate stops during
+    // execution of exec and fork, respectively.
+    // Should do this in loadSharedObjects
+    // Note: this can also get called when we incrementally find a shared object.
+    // So? :)
+    ptrace(PT_MULTI, getPid(), 0, 1, 0);
+
+    // We mimic system call tracing via instrumentation
+    
+    // Pre-fork (is this strictly necessary?
+    tracingRequests += new instMapping("fork", "DYNINST_instForkEntry",
+                                       FUNC_ENTRY);
+    // Post-fork: handled for us by the system
+
+    // Pre-exec: get the exec'ed file name
+    AstNode *arg1 = new AstNode(AstNode::Param, (void *)0);
+    tracingRequests += new instMapping("execve", "DYNINST_instExecEntry",
+                                       FUNC_ENTRY|FUNC_ARG,
+                                       arg1);
+
+    // Post-exec: handled for us by the system
+
+    // Pre-exit: get the return code
+    tracingRequests += new instMapping("exit", "DYNINST_instExitEntry",
+                                       FUNC_ENTRY|FUNC_ARG,
+                                       arg1);
+
+    // Post-exit: handled for us by the system
+    removeAst(arg1);
+
+    return true;
 }
 
 
@@ -964,24 +1155,26 @@ bool process::isRunning_() const {
 bool process::continueProc_() {
   int ret;
 
-  if (!checkStatus()) 
-    return false;
+  if (!checkStatus()) {
+      cerr << "Status check failed" << endl;
+      return false; 
+  }
+  
   ptraceOps++; ptraceOtherOps++;
 
 /* Choose either one of the following methods to continue a process.
  * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
-#ifndef PTRACE_ATTACH_DETACH
-  if (!ptraceKludge::deliverPtrace(this, PT_CONTINUE, (char*)1, 0, NULL))
-    ret = -1;
+  if (!ptraceKludge::deliverPtrace(this, PT_CONTINUE, (char*)1, 0, NULL)) {
+      perror("ptrace continue");
+      ret = -1;
+  }
+  
   else
     ret = 0;
   // switch these to not detach after every call.
   //ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
-#else
-  ret = ptrace(PT_DETACH, pid, (int *)1, 0, NULL);
-#endif
 
   return (ret != -1);
 }
@@ -1440,99 +1633,6 @@ int getNumberOfCPUs()
 // #include "paradynd/src/costmetrics.h"
 
 class instInstance;
-
-extern bool completeTheFork(process *, int);
-   // in inst-power.C since class instPoint is too
-
-void process_whenBothForkTrapsReceived(process *parent, int childPid) {
-   forkexec_cerr << "welcome to: process_whenBothForkTrapsReceived" << endl;
-   forkexec_cerr << "calling completeTheFork" << endl;
-
-   if (!completeTheFork(parent, childPid))
-      assert(false);
-
-   parent->resetForkTrapData();
-
-   // let's continue both processes
-   if (!parent->continueProc())
-      assert(false);
-
-   // Note that we use PT_CONTINUE on the child instead of kill(pid, SIGSTOP).
-   // Is this right?  (I think so)
-
-//   int ret = ptrace(PT_CONTINUE, pidForChild, (int*)1, 0, 0);
-   int ret = ptrace(PT_CONTINUE, childPid, (int*)1, SIGCONT, 0);
-   if (ret == -1)
-      assert(false);
-
-   forkexec_cerr << "leaving process_whenBothForkTrapsReceived (parent & "
-                 << "child running and should execute DYNINSTfork soon)"
-                 << endl;
-}
-
-bool handleAIXsigTraps(int pid, int status) {
-    process *curr = findProcess(pid); // NULL for child of a fork
-    // see man page for "waitpid" et al for descriptions of constants such
-    // as W_SLWTED, W_SFWTED, etc.
-    // On AIX the processes will get a SIGTRAP when they execute a fork.
-    // (Both the parent and the child will get this TRAP).
-    // we must check for the SIGTRAP here, and handle the fork.
-    // On aix the instrumentation on the parent will not be duplicated on 
-    // the child, so we need to insert instrumentation again.
-    
-    if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
-        && ((status & 0x7f) == W_SFWTED)) {
-        if (curr) {
-            // parent process.  Stay stopped until the child process has completed
-            // calling "completeTheFork()".
-            forkexec_cerr << "AIX: got fork SIGTRAP from parent process " 
-                          << pid << "\n";
-            curr->status_ = stopped;
-            curr->receivedForkTrapForParent();
-            
-            int childPid;
-            if(curr->readyToCopyInstrToChild(&childPid))
-                process_whenBothForkTrapsReceived(curr, childPid);
-            return true;
-        } else {
-            // child process
-            forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " 
-                          << pid << "\n";
-            
-            // get process info
-            struct procsinfo psinfo;
-            pid_t temp_child_pid = pid;
-            pid_t child_pid = pid;
-            if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
-                == -1) {
-                assert(false);
-                return false;
-            }
-            
-            assert((pid_t)psinfo.pi_pid == pid);
-            
-            int parentPid = psinfo.pi_ppid;
-            process *parent = findProcess(parentPid); // NULL for child of a fork
-            
-            //string str = string("Parent of process ") + string(pid) + " is " +
-            //               string(psinfo.pi_ppid) + "\n";
-            //logLine(str.c_str());
-            
-            parent->receivedForkTrapForChild((int)child_pid);
-            
-            int childPid;
-            if(parent->readyToCopyInstrToChild(&childPid)) {
-                assert(childPid == child_pid);
-                if(parent->status() == running) {
-                    if(! parent->pause())   assert(false);
-                }
-                process_whenBothForkTrapsReceived(parent, childPid);
-            }
-            return true;
-        } // child process
-    } //  W_SFWTED (stopped-on-fork)
-    return false;
-}
 
 string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
    // returns empty string on failure
@@ -2377,7 +2477,7 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 
 void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
 
-	int startPage, stopPage;
+	unsigned startPage, stopPage;
 	imageUpdate *patch;
 
 	int pageSize = getpagesize();
@@ -2641,11 +2741,11 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	compactSections(highmemUpdates, compactedHighmemUpdates);
 
 	imageFileName = "dyninst_mutatedBinary";
-	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
-        strcpy(fullName, directoryName);
-        strcat(fullName, (char*)imageFileName.c_str());
+	char* fullName = new char[strlen(directoryName) + strlen (imageFileName.c_str())+1];
+    strcpy(fullName, directoryName);
+    strcat(fullName, imageFileName.c_str());
 
-	newXCOFF = new writeBackXCOFF( ( char*) getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ );
+	newXCOFF = new writeBackXCOFF( (char *)getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ );
 
 	newXCOFF->registerProcess(this);
 	//int sectionsAdded = 0;

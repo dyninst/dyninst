@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.243 2003/03/12 01:50:07 schendel Exp $
+/* $Id: process.h,v 1.244 2003/03/14 23:18:27 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -439,8 +439,10 @@ class process {
 
   Address findInternalAddress(const string &name, bool warn, bool &err) const;
 
+  bool installSyscallTracing();
+  pdvector<instMapping*> tracingRequests;
+
 #ifdef BPATCH_LIBRARY
-  bool setProcfsFlags();
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(string outFile);//ccw 28 oct 2001
 #else
@@ -898,27 +900,13 @@ void saveWorldData(Address address, int size, const void* src);
                               int iTrace_fd);
 #endif
 
-#if defined(rs6000_ibm_aix4_1)
-  bool gotForkTrapForParent;
-  enum { NoChildForkReceived = 0 };
-  int  childPidWhichReceivedForkTrap;
-  void receivedForkTrapForParent() {  gotForkTrapForParent = true; }
-  void receivedForkTrapForChild(int childPid) {
-    childPidWhichReceivedForkTrap = childPid;
-  }
-  void resetForkTrapData() {
-    gotForkTrapForParent = false;
-    childPidWhichReceivedForkTrap = NoChildForkReceived;
-  }
-  bool readyToCopyInstrToChild(int *childPid) {
-    if(gotForkTrapForParent && 
-       childPidWhichReceivedForkTrap != NoChildForkReceived) {
-      *childPid = childPidWhichReceivedForkTrap;
-      return true;
-    } else
-      return false;
-  }
-#endif
+  // Used when we get traps for both child and parent of a fork.
+  int childPid;
+  int parentPid;
+  int childHasSignalled() { return childPid; };
+  int parentHasSignalled() { return parentPid; };
+  void setChildHasSignalled(int c) { childPid = c; };
+  void setParentHasSignalled(int c) { parentPid = c; };
 
   // get and set info. specifying if this is a dynamic executable
   void setDynamicLinking(){ dynamiclinking = true;}
@@ -1149,6 +1137,8 @@ void saveWorldData(Address address, int size, const void* src);
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
   bool inExec;
+  bool nextTrapIsExec;
+  bool nextTrapIsFork;
   string execPathArg;	// path exec is trying - used when process calls exec
 
   string execFilePath;		// full path of process

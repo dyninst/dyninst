@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.52 2003/03/12 18:02:33 bernat Exp $
+// $Id: irix.C,v 1.53 2003/03/14 23:18:23 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -392,32 +392,6 @@ bool process::attach_()
     return false;
   }
 
-  // step 3 - /proc PIOC{SET,RESET}:
-  // a) turn on the kill-on-last-close flag (kills inferior with SIGKILL when
-  //    the last writable /proc fd closes)
-  // b) turn on inherit-on-fork flag (tracing flags inherited when
-  // child forks), Paradyn only.
-  // c) turn off run-on-last-close flag (on by default)
-  // Also, any child of this process will stop at the exit of an exec
-  // call, Paradyn only.
-
-#ifdef BPATCH_LIBRARY
-  setProcfsFlags();
-#else
-  long flags = 0;
-
-  flags = PR_KLC | PR_FORK;
-  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
-    perror("process::attach(PIOCSET)");
-    return false;
-  }
-  flags = PR_RLC;
-  if (ioctl (getDefaultLWP()->get_fd(), PIOCRESET, &flags) < 0) {
-    perror("process::attach(PIOCRESET)");
-    return false;
-  }
-#endif
-
   // environment variables
   prpsinfo_t info;
   if (ioctl(getDefaultLWP()->get_fd(), PIOCPSINFO, &info) < 0) {
@@ -621,6 +595,14 @@ process *decodeProcessEvent(int pid,
             // get_status failed, probably because the process doesn't exist
         }
     }
+
+    if (currProcess) {
+        // Processes' state is saved in preSignalStatus()
+        currProcess->savePreSignalStatus();
+        // Got a signal, process is stopped.
+        currProcess->status_ = stopped;
+    }
+    
     // Skip this FD the next time through
     --selected_fds;
     ++curr;    
@@ -1066,87 +1048,86 @@ bool process::dumpImage() {
   return true;
 }
 
-#ifdef BPATCH_LIBRARY
 /*
  * Use by dyninst to set events we care about from procfs
  *
  */
-bool process::setProcfsFlags()
+
+bool process::installSyscallTracing()
 {
+    
+    long flags = PR_KLC | PR_FORK;
+    if (BPatch::bpatch->postForkCallback) {
+        // cause the child to inherit trap-on-exit from exec and other traps
+        // so we can learn of the child (if the user cares)
+        flags = PR_FORK | PR_RLC;
+    }
+    
+    if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
+        fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+        return false;
+    }
+    
+    // cause a stop on the exit from fork
+    sysset_t sysset;
+    
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
+        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+        return false;
+    }
+    
+    if (BPatch::bpatch->postForkCallback) {
+        praddset (&sysset, SYS_fork);
+        praddset (&sysset, SYS_execve);
+    }
+    
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
+        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+        return false;
+    }
+    
+    // now worry about entry too
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
+        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+        return false;
+    }
+    
+    if (BPatch::bpatch->exitCallback) {
+        praddset (&sysset, SYS_exit);
+    }
+    
+    if (BPatch::bpatch->preForkCallback) {
+        praddset (&sysset, SYS_fork);
+    }
 
-  long flags = PR_KLC | PR_FORK;
-  if (BPatch::bpatch->postForkCallback) {
-      // cause the child to inherit trap-on-exit from exec and other traps
-      // so we can learn of the child (if the user cares)
-      flags = PR_FORK | PR_RLC;
-  }
-
-  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
-    fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  // cause a stop on the exit from fork
-  sysset_t sysset;
-
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  if (BPatch::bpatch->postForkCallback) {
-      praddset (&sysset, SYS_fork);
-      praddset (&sysset, SYS_execve);
-  }
-  
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  // now worry about entry too
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  if (BPatch::bpatch->exitCallback) {
-      praddset (&sysset, SYS_exit);
-  }
-
-  if (BPatch::bpatch->preForkCallback) {
-      praddset (&sysset, SYS_fork);
-  }
-
-  praddset (&sysset, SYS_execve);
-
-  // should these be for exec callback??
-  // prdelset (&sysset, SYS_execve);
-  
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  sigset_t sigs;
-  premptyset(&sigs);
-  (void)praddset(&sigs, SIGSTOP);
-  (void)praddset(&sigs, SIGTRAP);
-  (void)praddset(&sigs, SIGILL);
+    praddset (&sysset, SYS_execve);
+    
+    // should these be for exec callback??
+    // prdelset (&sysset, SYS_execve);
+    
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
+        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+        return false;
+    }
+    
+    sigset_t sigs;
+    premptyset(&sigs);
+    (void)praddset(&sigs, SIGSTOP);
+    (void)praddset(&sigs, SIGTRAP);
+    (void)praddset(&sigs, SIGILL);
 #ifdef USE_IRIX_FIXES
-  // we need to use SIGEMT for breakpoints in IRIX due to a bug with
-  // tracing SIGSTOP in a process and then waitpid()ing for it
-  // --wcb 10/4/2000
-  (void)praddset(&sigs, SIGEMT);
+    // we need to use SIGEMT for breakpoints in IRIX due to a bug with
+    // tracing SIGSTOP in a process and then waitpid()ing for it
+    // --wcb 10/4/2000
+    (void)praddset(&sigs, SIGEMT);
 #endif
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
-    perror("process::attach(PIOCSTRACE)");
-    return false;
-  }
-
-  return true;
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
+        perror("process::attach(PIOCSTRACE)");
+        return false;
+    }
+    
+    return true;
 }
-#endif
 
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.46 2003/03/12 01:49:57 schendel Exp $
+// $Id: osf.C,v 1.47 2003/03/14 23:18:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -170,12 +170,11 @@ Frame dyn_lwp::getActiveFrame()
   return theFrame;
 }
 
-#ifdef BPATCH_LIBRARY
 /*
  * Use by dyninst to set events we care about from procfs
  *
  */
-bool process::setProcfsFlags()
+bool process::installSyscallTracing()
 {
 
   long flags = 0;
@@ -236,7 +235,7 @@ bool process::setProcfsFlags()
 
   return true;
 }
-#endif
+
 
 static inline bool execResult(prstatus_t stat) 
 {
@@ -463,6 +462,13 @@ process *decodeProcessEvent(int pid,
         }
     }
     // Skip this FD the next time through
+
+    if (currProcess) {
+        currProcess->savePreSignalStatus();
+        currProcess->status_ = stopped;
+    }
+    
+
     --selected_fds;
     ++curr;    
     return currProcess;
@@ -532,9 +538,6 @@ bool process::attach_() {
 #endif
 #endif
 
-#ifdef BPATCH_LIBRARY
-  setProcfsFlags();
-#endif
   return true;
 }
 

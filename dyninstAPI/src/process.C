@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.396 2003/03/12 01:50:05 schendel Exp $
+// $Id: process.C,v 1.397 2003/03/14 23:18:26 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1993,11 +1993,12 @@ process::process(int iPid, image *iImage, int iTraceLink
 	PARADYNhasBootstrapped = false;
 #endif
 
-
+    parentPid = childPid = 0;
   dyninstlib_brk_addr = 0;
 
   main_brk_addr = 0;
-
+  nextTrapIsExec = false;
+  
     wasRunningWhenAttached_ = false;
     bootstrapState = unstarted;
 
@@ -2095,10 +2096,6 @@ process::process(int iPid, image *iImage, int iTraceLink
    //removed for output redirection
    //ioLink = iIoLink;
 
-#if defined(rs6000_ibm_aix4_1)
-   resetForkTrapData();
-#endif
-
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
    createLWP(0);
 #endif   
@@ -2165,9 +2162,11 @@ process::process(int iPid, image *iSymbols,
   lwps(CThash),
   procHandle_(0)
 {
+    parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
-
+    nextTrapIsExec = false;
+    
 	createdViaAttach = true;
 
 #if !defined(i386_unknown_nt4_0)
@@ -2311,10 +2310,6 @@ process::process(int iPid, image *iSymbols,
    // Now pause the process before we go to work on it.
    if (!pause())
        assert(false);
-   
-#if defined(rs6000_ibm_aix4_1)
-   resetForkTrapData();
-#endif
 
    // Does attach() send a SIGTRAP, a la the initial SIGTRAP sent at the
    // end of exec?  It seems that on some platforms it does; on others
@@ -2403,6 +2398,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   lwps(CThash),
   procHandle_(0)
 {
+    tracingRequests = parentProc.tracingRequests;
+    
    // This is the "fork" ctor
    bootstrapState = initialized;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
@@ -2463,10 +2460,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    parent = const_cast<process*>(&parentProc);
     
+    parentPid = childPid = 0;
    dyninstlib_brk_addr = 0;
 
    main_brk_addr = 0;
-
+   nextTrapIsExec = false;
+   
    bootstrapState = initialized;
 
    splitHeaps = parentProc.splitHeaps;
@@ -2535,10 +2534,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    signal_handler = parentProc.signal_handler;
 #endif
    execed_ = false;
-
-#if defined(rs6000_ibm_aix4_1)
-   resetForkTrapData();
-#endif
 
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
@@ -3029,7 +3024,6 @@ bool process::loadDyninstLib() {
     if (!continueProc()) {
         assert(0);
     }
-
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
         decodeAndHandleProcessEvent(true);
@@ -3064,14 +3058,12 @@ bool process::loadDyninstLib() {
         buffer = string("PID=") + string(pid);
         buffer += string(", finalizing library via inferior RPC");
         statusLine(buffer.c_str());    
-
         iRPCDyninstInit();
     }
 
     buffer = string("PID=") + string(pid);
     buffer += string(", dyninst RT lib ready");
     statusLine(buffer.c_str());    
-
     return true;
 }
 
@@ -3089,10 +3081,13 @@ bool process::setDyninstLibInitParams() {
    // 3 = attached
    
    int cause;
-   if (createdViaAttach)
-       cause = 3;
-   else if (createdViaFork)
+   if (createdViaAttach) {
+       cause = 3; 
+   }
+   else if (createdViaFork) {
        cause = 2;
+   }
+   
    else 
        cause = 1;
    
@@ -3159,6 +3154,8 @@ bool process::iRPCDyninstInit() {
 }
 
 bool process::attach() {
+    bool res = false;
+
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
    dyn_lwp *lwp;
    unsigned index;
@@ -3169,7 +3166,14 @@ bool process::attach() {
          return false;
       }
    }
-   return attach_();
+
+   // Set up whatever tracing is necessary for the process
+   res = attach_();
+   
+   if (!res)
+       return false;
+   
+   return installSyscallTracing();
 }
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
@@ -3182,7 +3186,7 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
-
+    
     assert(status_ == stopped);
 
    if (reachedBootstrapState(bootstrapped)) {
@@ -3211,16 +3215,14 @@ bool process::finalizeDyninstLib() {
        statusLine(str.c_str());
        
        extern pdvector<instMapping*> initialRequests; // init.C
+
+       // Install any global instrumentation requests
        installInstrRequests(initialRequests);
+
+       // Install process-specific instrumentation requests
+       installInstrRequests(tracingRequests);
    }
    
-#if defined(BPATCH_LIBRARY)
-   // It is now safe to call the exec callback
-   if (wasExeced()) {
-       BPatch::bpatch->registerExec(thread);
-   }
-   
-#endif
    
    if (calledFromFork) {
        process *parentProcess = findProcess(bs_record.ppid);
@@ -3242,7 +3244,14 @@ bool process::finalizeDyninstLib() {
 
    // Ready to rock
    setBootstrapState(bootstrapped);
-    
+   
+#if defined(BPATCH_LIBRARY)
+   // It is now safe to call the exec callback
+   if (wasExeced()) {
+       BPatch::bpatch->registerExec(thread);
+   }
+   
+#endif
    return true;
 }
 
@@ -5158,8 +5167,9 @@ bool process::continueProc() {
   bool res = continueProc_();
 
   if (!res) {
-    showErrorCallback(38, "System error: can't continue process");
-    return false;
+      showErrorCallback(38, "System error: can't continue process");
+      cerr << "Failed continue" << getPid() << endl;
+      return false;
   }
   status_ = running;
   
@@ -5323,6 +5333,13 @@ void process::handleExec() {
 #endif
 
     bootstrapState = unstarted;
+    createdViaFork = false;
+    createdViaAttach = false;
+    // This doesn't exist, but would be appropriate
+    // createdViaExec = true;
+    createdViaAttachToCreated = true;
+    
+
     /* update process status */
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
     
