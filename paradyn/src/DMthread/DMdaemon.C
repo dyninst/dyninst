@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.123 2003/03/04 19:16:11 willb Exp $
+ * $Id: DMdaemon.C,v 1.124 2003/03/06 19:34:43 mikem Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1701,6 +1701,11 @@ bool paradynDaemon::newExecutable(const string &machineArg,
 	 string m = getNetworkName(default_host);
 	 machine = m;
       }
+   }
+   else if (getNetworkName(machine) == "") {
+         string msg = string("Machine \"") + machine + string("\" not defined.");
+         uiMgr->showError(90,P_strdup(msg.c_str()));
+         return false;
    }
 
    if ( def->getFlavorString() == "mpi" )
