@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.24 2003/05/17 17:13:51 bernat Exp $
+// $Id: Object-xcoff.C,v 1.25 2003/05/30 02:50:58 igor Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -714,8 +714,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
            bctr.raw = inst[5];
 
            if ((lr12.dform.op == Lop) && (lr12.dform.rt == 12) && (lr12.dform.ra == 2) &&
-               (lr0.dform.op == Lop) && (lr0.dform.rt == 0) && (lr0.dform.ra == 1) &&
-               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
+                (lr0.dform.op == Lop) && (lr0.dform.rt == 0) &&
+                (lr0.dform.ra == 1 || lr0.dform.ra == 12) &&
+               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop) 
+	        && !( (name == "execve") && (modName == "/usr/lib/libc.a") ) )
                name += "_linkage";
        }
 
