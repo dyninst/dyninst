@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.67 2002/11/14 20:26:22 bernat Exp $
+// $Id: pdwinnt.C,v 1.68 2002/11/18 17:29:26 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2011,7 +2011,7 @@ Frame Frame::getCallerFrame(process *p) const
 }
 #endif
 
-void *dyn_lwp::getRegisters() {
+struct dyn_saved_regs *dyn_lwp::getRegisters() {
     struct dyn_saved_regs *regs = new dyn_saved_regs();
     
   // we must set ContextFlags to indicate the registers we want returned,
