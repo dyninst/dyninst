@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.2  1994/02/02 00:42:31  hollings
+ * Revision 1.3  1994/02/05 23:14:00  hollings
+ * Made sure we didn't return an mi when the enable failed.
+ *
+ * Revision 1.2  1994/02/02  00:42:31  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -233,6 +236,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 {
     int id;
     String_Array ra;
+    Boolean foundOne;
     metricInstance *mi;
     List<paradynDaemon*> curr;
 
@@ -242,13 +246,22 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     // for each daemon request the data to be enabled.
     //
     mi = new metricInstance(rl, m);
-    mi->data = new Histogram(m->getStyle());
-    m->enabledCombos.add(mi, (void*) rl);
+    foundOne = FALSE;
     for (curr = daemons; *curr; curr++) {
 	id = (*curr)->enableDataCollection(ra, m->getName());
-	mi->components.add(new component(*curr, id, mi));
+	if (id > 0) {
+	    mi->components.add(new component(*curr, id, mi));
+	    foundOne = TRUE;
+	}
     }
-    return(mi);
+    if (foundOne) {
+	mi->data = new Histogram(m->getStyle());
+	m->enabledCombos.add(mi, (void*) rl);
+	return(mi);
+    } else {
+	delete(mi);
+	return(NULL);
+    }
 }
 
 //
