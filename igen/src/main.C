@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.19  1994/03/31 02:12:18  markc
+ * Revision 1.20  1994/03/31 22:57:52  hollings
+ * Fixed xdr_endofrecord bug and added wellKnownScoket parameter.
+ *
+ * Revision 1.19  1994/03/31  02:12:18  markc
  * Added code to initialize versionVerifyDone
  *
  * Revision 1.18  1994/03/25  22:35:21  hollings
@@ -379,7 +382,7 @@ void interfaceSpec::genProtoVerify()
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
     printf("    callErr = 0;\n");
     printf("    if ((xdr_int(__xdrs__, &__tag__) != TRUE) ||\n");
-    printf("        !xdrrec_endofrecord(__xdrs__, TRUE)) {\n");
+    printf("        (xdrrec_endofrecord(__xdrs__, TRUE) != TRUE)) {\n");
     printf("        callErr = -1;\n");
     printf("        return;\n");
     printf("    }\n");
@@ -418,7 +421,7 @@ void interfaceSpec::genProtoVerify()
     printf ("}\n");
 
     printf("%sUser::%sUser(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n", name, name);
-    printf("    XDRrpc(m, l, p, r, w, args, nblock) {\n");
+    printf("    XDRrpc(m, l, p, r, w, args, nblock, __wellKnownPortFd__) {\n");
     printf("    if (__xdrs__) verifyProtocolAndVersion();\n");
     printf ("   callErr = 0;\n");
     printf ("}\n");
@@ -501,6 +504,8 @@ void interfaceSpec::generateClientCode()
 
 	// include client header
 	printf ("#include \"%sCLNT.h\"\n", protoFile);
+
+	printf("int %sUser::__wellKnownPortFd__;\n", name);
 
     } else if (generatePVM) {
         FILE *cf;
@@ -957,7 +962,7 @@ void remoteFunc::genXDRStub(char *className)
 	printf("        if ((xdr_int(__xdrs__, &__tag__) != TRUE) ||\n");
 	printf("            (xdr_String(__xdrs__,&__ProtocolName__) != TRUE) || \n");
 	printf("            (xdr_int(__xdrs__, &__version__) != TRUE) ||\n");
-	printf("            (xdrrec_endofrecord(__xdrs__, TRUE))) {\n");
+	printf("            (xdrrec_endofrecord(__xdrs__, TRUE) != TRUE)) {\n");
 	printf("            callErr = -1; return");
 	if (retS) printf("(%s)", retVar);
 	printf(";\n        }\n");
@@ -1236,8 +1241,7 @@ void interfaceSpec::genClass()
     printf( "class %sUser: public RPCUser, public %s {\n", name, transportBase);
     printf( "  public:\n");
     client_pass_thru.map(&print_pass_thru);
-
-    printf( "    int callErr;\n");
+    printf( "    static int __wellKnownPortFd__;\n");
 
     if (generateXDR) {
       printf( "    virtual void verifyProtocolAndVersion();\n");
