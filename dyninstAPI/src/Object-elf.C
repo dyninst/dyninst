@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.53 2003/07/29 00:32:33 eli Exp $
+ * $Id: Object-elf.C,v 1.54 2003/08/11 11:57:53 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1552,7 +1552,11 @@ bool Object::fix_global_symbol_modules_static_dwarf(
 
 	/* Acquire declFileNoToName. */
 	status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
-	assert( status == DW_DLV_OK );
+	assert( status != DW_DLV_ERROR );
+	
+	if( status == DW_DLV_NO_ENTRY ) {
+		fprintf( stderr, "Unable to determine modules (%s): no source file information available.\n", moduleName.c_str() );
+		}
 
 	/* Walk the tree. */
 	fixSymbolsInModule( dbg, moduleName, moduleDIE, global_symbols, symbols_, symbolNamesByAddr );
