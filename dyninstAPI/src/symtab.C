@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.228 2005/02/03 23:46:53 bernat Exp $
+ // $Id: symtab.C,v 1.229 2005/02/04 22:07:42 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2711,6 +2711,20 @@ void pdmodule::addFunction( int_function * func ) {
   }
 } /* end addFunction() */
 
+void pdmodule::addTypedPrettyName(int_function *func, const char *prettyName) {
+  // Add a new pretty name to our lists
+  
+  pdvector<int_function *> *funcsByPrettyEntry = NULL;
+  // Ensure a vector exists
+  if (!allFunctionsByPrettyName.find(pdstring(prettyName),
+				     funcsByPrettyEntry)) {
+    funcsByPrettyEntry = new pdvector<int_function*>;
+    allFunctionsByPrettyName[pdstring(prettyName)] = funcsByPrettyEntry;
+  }
+  (*funcsByPrettyEntry).push_back(func);
+}
+
+  
 void pdmodule::removeFunction(int_function *func) {
   pdvector <int_function *> newUniqueFuncs;
   for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
