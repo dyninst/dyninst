@@ -939,15 +939,15 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 		 << " machine " << machine.string_of() << "\n";
 	}
 
-	if (!activeMids.defines(mid)) {
+        // Okay, the sample is not an error; let's process it.
+	metricInstance *mi;
+        bool found = activeMids.find(mid, mi);
+	if (!found) {
 	   // this can occur due to asynchrony of enable or disable requests
 	   // so just ignore the data
 	   return;
         }
-
-        // Okay, the sample is not an error; let's process it.
-	metricInstance *mi = activeMids[mid];
-	assert(mi);
+       	assert(mi);
 
 	// Any sample sent by a daemon should not have the start time
 	// less than lastSampleEnd for the aggregate sample. When a new

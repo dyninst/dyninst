@@ -86,7 +86,7 @@ class DM_enableType{
 
 // hash functions for dictionary members
 inline unsigned uiHash(const unsigned &ptr) {
-  return (ptr >> 2);
+  return (ptr >> 4);
 }
 
 // an entry in the daemon dictionary

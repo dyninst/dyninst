@@ -221,8 +221,10 @@ void performanceStream::callPhaseFunc(phaseInfo& phase,
 }
 
 performanceStream *performanceStream::find(perfStreamHandle psh){
-    if(allStreams.defines(psh)){
-        return(allStreams[psh]);
+    performanceStream *pshan;
+    bool found = allStreams.find(psh, pshan);
+    if (found){
+      return(pshan);
     }
     return((performanceStream *)NULL);
 }

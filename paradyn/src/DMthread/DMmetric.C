@@ -191,8 +191,10 @@ int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
 
 metricInstance *metricInstance::getMI(metricInstanceHandle mh){
 
-    if(allMetricInstances.defines(mh)){
-        return(allMetricInstances[mh]);
+    metricInstance* mih;
+    bool found = allMetricInstances.find(mh, mih);
+    if (found) {
+        return mih;
     }
     return 0;
 }
