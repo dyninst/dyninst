@@ -77,7 +77,7 @@ extern int P_waitpid(pid_t pid, int *statusp, int options);
 extern size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE);
 extern int P_chdir(const char *path);
 
-extern int P_putenv(const char *str);
+extern int P_putenv(char *str);
 
 /* SYSTEM-V shared memory */
 #include <sys/ipc.h>

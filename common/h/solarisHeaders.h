@@ -108,7 +108,7 @@ inline int P_waitpid(pid_t pid, int *statusp, int options) {
 inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return (chdir(path)); }
-inline int P_putenv(const char *str) { return putenv(str); }
+inline int P_putenv(char *str) { return putenv(str); }
 
 /* SYSTEM-V shared memory */
 #include <sys/ipc.h>

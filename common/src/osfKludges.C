@@ -98,7 +98,7 @@ size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 int P_chdir(const char *path) { return (chdir(path)); }
 
-int P_putenv(const char *str) { return putenv(str); }
+int P_putenv(char *str) { return putenv(str); }
 
 /* SYSTEM-V shared memory */
 int P_shmget(key_t thekey, int size, int flags) { return shmget(thekey, size, flags); }
