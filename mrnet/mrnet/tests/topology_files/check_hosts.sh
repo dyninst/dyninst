@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ $# -lt 1 ]; then
-  echo "Usage: clean_hosts.sh $hostfile"
+  echo "Usage: check_hosts.sh $hostfile"
   exit -1;
 fi
 
@@ -9,10 +9,9 @@ hosts=`cat $1`
 
 for host in $hosts
 do
-	echo -n "Cleaning processes on $host ..."
+	echo -n "Checking processes on $host ..."
 
 	ssh $host ps aux | grep darnold 
-    ssh $host killall -9 ssh
 
 	if [ "$?" != 0 ]; then
         echo "failure!"
