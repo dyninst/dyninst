@@ -117,8 +117,8 @@ DYNINSTos_init(void) {
  * filesystem.
  * return value is in usec units.
  *
- * XXXX - This should really return time in native units and use normalize
- *	conversion to float abd division are way to expensive to
+ * XXXX - This should really return time in native units and use normalize.
+ *	conversion to float and division are way too expensive to
  *	do everytime we want to read a clock (slows this down 2x) -
  *	jkh 3/9/95
 ************************************************************************/
@@ -126,13 +126,14 @@ DYNINSTos_init(void) {
 time64
 DYNINSTgetCPUtime(void) {
   static time64 previous=0;
-  time64 now;
 
-retryCPU:
-  now = (time64)gethrvtime()/(time64)1000;
-  if (now < previous) goto retryCPU;
-  previous = now;
-  return (now);
+  while (1) {
+     time64 now = (time64)gethrvtime()/(time64)1000;
+     if (now < previous) continue;
+
+     previous = now;
+     return (now);
+  }
 }
 
 
@@ -150,19 +151,19 @@ time64
 DYNINSTgetWalltime(void) {
   static time64 previous=0;
   time64 now;
-  struct timeval tv;
 
-retryWall:
+  while (1) {
+    struct timeval tv;
     if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
     now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
-    if (now < previous) goto retryWall;
+    if (now < previous) continue;
     previous = now;
     return(now);
+  }
 }
-
 
 
 /****************************************************************************
