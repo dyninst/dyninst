@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.9  1996/04/21 21:45:38  newhall
+ * Revision 1.10  1996/04/22 17:59:23  newhall
+ * added comments, minor change to getPredictedDataCostAsync
+ *
+ * Revision 1.9  1996/04/21  21:45:38  newhall
  * changed getPredictedDataCostAsync
  *
  * Revision 1.8  1996/04/18  22:01:52  naim
@@ -121,7 +124,7 @@ float getPredictedDataCostAsync(perfStreamHandle pstream,
 		    (T_dataManager::message_tags)tag,&buffer);
           if (waitTag==tagPC) {
               ready=true;
-              result = buffer.predictedDataCost_call.var_115;
+              result = buffer.predictedDataCost_call.cost;
           }
           else {
 	      cerr << "Error in PCfilter.C, tag not valid\n";

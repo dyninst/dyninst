@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.53  1996/04/21 21:45:02  newhall
-/* added PCpredData, and registered at a cFunc controlCallback func
+/* Revision 1.54  1996/04/22 17:59:24  newhall
+/* added comments, minor change to getPredictedDataCostAsync
 /*
+ * Revision 1.53  1996/04/21  21:45:02  newhall
+ * added PCpredData, and registered at a cFunc controlCallback func
+ *
  * Revision 1.52  1996/04/18  22:01:55  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
@@ -138,8 +141,16 @@ void PCfold(perfStreamHandle,
   }
 }
 
+// Currently this routine never executes because of a kludge in 
+// getPredictedDataCostAsync that receives the response message from the
+// DM before a call to this routine is made.  This routine must still be
+// registered with the DM on createPerformanceStream, otherwise the DM
+// will not send the response message.  If the PC is changed so that
+// the call to getPredictedDataCost is handled in a truely asynchronous
+// manner, then this routine should contain the code to handle the upcall
+// from the DM
 void PCpredData(metricHandle m_handle,resourceListHandle rl_handle,float cost){
-    cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+    // cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
 }
 
 //
@@ -247,6 +258,10 @@ void PCmain(void* varg)
     memset(&controlHandlers, '\0', sizeof(controlHandlers));
     controlHandlers.fFunc = PCfold;
     controlHandlers.pFunc = PCphase;
+    // The PC has to register a callback routine for predictedDataCost callbacks
+    // even though there is a kludge in the PC to receive the msg before the
+    // callback routine is called (PCpredData will never execute).  This is 
+    // to maintain consistency in how the DM handles all callback functions.
     controlHandlers.cFunc = PCpredData;
     dataHandlers.sample = PCnewDataCallback;
     filteredDataServer::initPStoken(dataMgr->createPerformanceStream(Sample,
