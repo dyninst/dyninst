@@ -3,10 +3,11 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Types-unix.h,v 1.2 2004/03/23 01:12:22 eli Exp $
+// $Id: Types-unix.h,v 1.3 2004/06/01 16:33:15 pcroth Exp $
 #ifndef XPLAT_TYPES_UNIX_H
 #define XPLAT_TYPES_UNIX_H
 
 #include <netdb.h>
+#include <sys/socket.h>
 
 #endif // XPLAT_TYPES_UNIX_H
