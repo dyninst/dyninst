@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.15  1994/07/05 03:26:54  hollings
+ * Revision 1.16  1994/07/14 23:44:29  hollings
+ * added getCurrentHybridCost
+ *
+ * Revision 1.15  1994/07/05  03:26:54  hollings
  * added stat printing command.
  *
  * Revision 1.14  1994/07/02  01:45:24  markc
@@ -182,6 +185,11 @@ $remote dynRPC {
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
     double getPredictedDataCost($array String resourceList, String metric);
+
+    //
+    // Current best guess about the cost of instrumentation.
+    //
+    double getCurrentHybridCost();
 
     //
     // Get the static configuration information.

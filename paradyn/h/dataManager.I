@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.21  1994/07/07 03:22:28  markc
+ * Revision 1.22  1994/07/14 23:44:28  hollings
+ * added getCurrentHybridCost
+ *
+ * Revision 1.21  1994/07/07  03:22:28  markc
  * Added addDaemon function to start daemon prior to start process.
  *
  * Revision 1.20  1994/07/02  01:45:22  markc
@@ -324,6 +327,11 @@ $remote dataManager {
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
     float getPredictedDataCost(applicationContext*, resourceList*, metric*);
+
+    //
+    // Current best guess of the cost of inst in the system.
+    //
+    float getCurrentHybridCost(applicationContext*);
 
     //
     // Control information arriving about a resource Classes
