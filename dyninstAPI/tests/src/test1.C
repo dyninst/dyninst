@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.45 2000/03/02 23:49:25 hollings Exp $
+// $Id: test1.C,v 1.46 2000/03/04 01:25:42 zandy Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -935,11 +935,17 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     temp = appThread->malloc(HEAP_TEST_UNIT_SIZE); 
     int count = 0;
     while (temp) {
+#if defined(USES_DYNAMIC_INF_HEAP)
+        if (! temp) {
+	     printf("*** Inferior malloc stress test failed\n"); 
+	     exit(-1);
+	}
+#endif /* USES_DYNAMIC_INF_HEAP */
 	memStuff[count++] = temp;
 	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
 #if defined(USES_DYNAMIC_INF_HEAP)
 	// heap will grow indefinitely on dynamic heap platforms
-	if (count == 1000) break; 
+	if (count == 10000) break; 
 #endif /* USES_DYNAMIC_INF_HEAP */
 	assert(count < 30000);
     }
