@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.133 2002/08/21 19:42:06 schendel Exp $
+// $Id: perfStream.C,v 1.134 2002/09/07 16:15:27 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -450,23 +450,37 @@ extern vector<int> deferredMetricIDs;
 
 void doDeferredInstrumentation() {
   for (int i=(int)deferredMetricIDs.size()-1; i>=0; i--) {
-    int id = deferredMetricIDs[i];
+    int mid = deferredMetricIDs[i];
     machineMetFocusNode *machNode;
-    machNode = machineMetFocusNode::lookupMachNode(id);
+    machNode = machineMetFocusNode::lookupMachNode(mid);
 
     if(machNode == NULL) {
       assert(false);
     }
 
-    bool instrumented = machNode->insertInstrumentation();
+    instr_insert_result_t insert_status = machNode->insertInstrumentation();
+    metricFocusRequestCallbackInfo *cbi = 
+       machNode->getMetricFocusRequestCallbackInfo();
 
-    if(instrumented) {
+    if(insert_status == insert_success) {
+       deferredMetricIDs.erase(i);
+       machNode->initializeForSampling(getWallTime(), pdSample::Zero());
+       
+       vector<int> returnIDs;
+       returnIDs.push_back(mid);
+       vector<u_int> mi_ids;
+       mi_ids.push_back(mid);
+       if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+    } else if(insert_status == insert_failure) {
       deferredMetricIDs.erase(i);
-    
-      machNode->initializeForSampling(getWallTime(), pdSample::Zero());
-    }
-  }
-
+      vector<int> returnIDs;
+      returnIDs.push_back(-1);
+      vector<u_int> mi_ids;
+      mi_ids.push_back(mid);
+      if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+      delete machNode;
+    } // else insert_status == insert_deferred
+  }  
 }
 
 void doDeferredRPCs() {
