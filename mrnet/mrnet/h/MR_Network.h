@@ -9,24 +9,25 @@ class MC_NetworkImpl;
 class MC_BackEndNode;
 
 
-
-
 class MC_Network{
  public:
     class LeafInfo
     {
     public:
         virtual const char* get_Host( void ) const = NULL;
-        virtual unsigned short  get_Port( void ) const = NULL;
+        virtual unsigned short get_Rank( void ) const   = NULL;
+        virtual unsigned short get_Id( void ) const   = NULL;
+        virtual const char* get_ParHost( void ) const   = NULL;
+        virtual unsigned short get_ParPort( void ) const   = NULL;
+        virtual unsigned short get_ParRank( void ) const   = NULL;
     };
 
   static int new_Network(const char * _filename, 
                             const char * _commnode,
-                            const char * _application);
-  static int new_Network(const char * _filename,
+                            const char * _backend);
+  static int new_NetworkNoBE(const char * _filename,
                             const char * _commnode,
-                            MC_Network::LeafInfo*** leaves,
-                            unsigned int* numLeaves);
+                            const char* leafInfoFile );
   static int connect_Backends( void );
   static void delete_Network();
 

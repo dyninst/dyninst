@@ -65,7 +65,7 @@ class MC_SerialGraph{
 class MC_NetworkGraph{
  private:
   MC_NetworkNode * root;
-  std::map<std::string, MC_NetworkNode*> nodes; 
+  std::map<std::string, MC_NetworkNode*>* nodes; 
   bool graph_checked;
   unsigned int visited_nodes;
   bool _has_cycle;

@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <sys/types.h>
 #include <ctype.h>
 #include <limits.h>
@@ -16,6 +17,8 @@
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/EndPointImpl.h"
+
+#include "mrnet/h/MR_NetworkC.h"
 
 MC_NetworkImpl * MC_Network::network = NULL;
 MC_BackEndNode * MC_Network::back_end = NULL;
@@ -37,10 +40,20 @@ int MC_Network::new_Network(const char * _filename,
   }
 }
 
-int MC_Network::new_Network( const char* cfgFileName,
+
+bool
+leafInfoCompare( const MC_Network::LeafInfo* a,
+                    const MC_Network::LeafInfo* b )
+{
+    assert( a != NULL );
+    assert( b != NULL );
+    return (a->get_Id() < b->get_Id());
+}
+
+
+int MC_Network::new_NetworkNoBE( const char* cfgFileName,
                                 const char* commNodeExe,
-                                MC_Network::LeafInfo*** leafInfo,
-                                unsigned int* numLeaves )
+                                const char* leafInfoFile )
 {
     int ret = 0;
 
@@ -53,27 +66,23 @@ int MC_Network::new_Network( const char* cfgFileName,
         std::vector<MC_Network::LeafInfo*> linfo = 
             MC_Network::network->get_LeafInfo();
 
-        // deliver the requested information
-        unsigned int nLeaves = linfo.size();
-        mc_printf( MCFL, stderr, "MRN: reporting %d leaves\n", nLeaves );
-        for( unsigned int i = 0; i < nLeaves; i++ )
-        {
-            mc_printf( MCFL, stderr, "MRN: leaf[%d] at %s:%d\n",
-                i, linfo[i]->get_Host(), linfo[i]->get_Port() );
-        }
+        // sort leaf info according to backend rank
+        std::sort(linfo.begin(), linfo.end(), leafInfoCompare);
 
-        if( leafInfo != NULL )
+        // deliver the requested information
+        std::ofstream ofs( leafInfoFile );
+        for( unsigned int i = 0; i < linfo.size(); i++ )
         {
-            *leafInfo = new MC_Network::LeafInfo*[nLeaves];
-            for( unsigned int i = 0; i < nLeaves; i++ )
-            {
-                (*leafInfo)[i] = linfo[i];
-            }
+            assert( linfo[i] != NULL );
+            ofs << linfo[i]->get_Id()
+                << ' ' << linfo[i]->get_Host()
+                << ' ' << linfo[i]->get_Rank()
+                << ' ' << linfo[i]->get_ParHost()
+                << ' ' << linfo[i]->get_ParPort()
+                << ' ' << linfo[i]->get_ParRank()
+                << std::endl;
         }
-        if( numLeaves != NULL )
-        {
-            *numLeaves = nLeaves;
-        }
+        ofs.close();
     }
     else
     {
@@ -169,22 +178,17 @@ int MC_Stream::recv(int *tag, void **buf, MC_Stream ** stream)
   return MC_StreamImpl::recv(tag, buf, stream);
 }
 
+
 int MC_Stream::unpack(char * buf, char const *fmt_str, ...)
 {
-  MC_Packet * packet = (MC_Packet *)buf;
-  int status;
-  va_list arg_list;
+    va_list arg_list;
 
-  mc_printf(MCFL, stderr, "In stream.unpack()\n");
-  mc_printf(MCFL, stderr, "packet(%p) tag: %d, fmt: %s\n", packet, packet->get_Tag(), packet->get_FormatString());
-  va_start(arg_list, fmt_str);
-  status = packet->ExtractVaList(fmt_str, arg_list); 
-  va_end(arg_list);
-
-  mc_printf(MCFL, stderr, "stream.unpack() %s",
-             (status==-1 ? "failed\n" : "succeeded\n"));
-  return status;
+    va_start( arg_list, fmt_str );
+    int ret = MC_StreamImpl::unpack( buf, fmt_str, arg_list );
+    va_end( arg_list );
+    return ret;
 }
+
 
 /*======================================================*/
 /*             MC_Communicator class DEFINITIONS        */
@@ -207,3 +211,6 @@ MC_EndPoint * MC_EndPoint::new_EndPoint(int _id, const char * _hostname,
 {
   return new MC_EndPointImpl(_id, _hostname, _port);
 }
+
+
+

@@ -71,6 +71,10 @@ void aggr_Float_Max(MC_DataElement **, unsigned int, MC_DataElement ***, unsigne
 #define AGGR_CHARARRAY_CONCAT_FORMATSTR "%ac"
 void aggr_CharArray_Concat(MC_DataElement **, unsigned int, MC_DataElement ***, unsigned int*);
 
+#define AGGR_INT_EQ_CLASS_ID    2008
+#define AGGR_INT_EQ_CLASS_FORMATSTR "%aud %aud"
+void aggr_IntEqClass(MC_DataElement**, unsigned int, MC_DataElement***, unsigned int*);
+
 #define SYNC_WAITFORALL 2003
 void sync_WaitForAll(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
                      std::list <MC_RemoteNode *> &, void **);

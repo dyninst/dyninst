@@ -16,10 +16,10 @@ class MC_ParentNode{
   friend class MC_Synchronizer;
   friend class MC_RemoteNode;
  private:
-  static std::map<unsigned int, MC_Aggregator::AggregatorSpec *> AggrSpecById;
+  static std::map<unsigned int, MC_Aggregator::AggregatorSpec *>* AggrSpecById;
   static std::map<unsigned int,
            void(*)(std::list<MC_Packet*>&, std::list<MC_Packet*>&,
-                   std::list<MC_RemoteNode *> &, void **) > SyncById;
+                   std::list<MC_RemoteNode *> &, void **) >* SyncById;
 
   std::string hostname;
   unsigned short port;

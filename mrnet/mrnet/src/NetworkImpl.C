@@ -7,7 +7,9 @@
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/utils.h"
 
-extern MC_NetworkGraph * parsed_graph;
+std::list <MC_NetworkNode *>* hostlist = NULL;
+std::list <MC_NetworkNode *>* potential_root = NULL;
+MC_NetworkGraph* parsed_graph = NULL;
 
 MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
                                 const char * _commnode,
@@ -18,6 +20,11 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
    endpoints( NULL ),
    front_end( NULL )
 {
+    // ensure our variables are set for parsing
+    parsed_graph = new MC_NetworkGraph;
+    hostlist = new std::list<MC_NetworkNode*>;
+    potential_root = new std::list<MC_NetworkNode*>;
+
   if( parse_configfile() == -1){
     return;
   }
@@ -59,7 +66,6 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
   //Frontend is root of the tree
   front_end = new MC_FrontEndNode(graph->get_Root()->get_HostName(),
                         graph->get_Root()->get_Port());
-
   MC_SerialGraph sg = graph->get_SerialGraph();
   sg.print();
 
@@ -80,21 +86,21 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
   return;
 }
 
-extern FILE * yyin;
-int yyparse();
-extern int yydebug;
+extern FILE * mrnin;
+int mrnparse();
+extern int mrndebug;
 
 int MC_NetworkImpl::parse_configfile()
 {
-  // yydebug=1;
-  yyin = fopen(filename.c_str(), "r");
-  if( yyin == NULL){
+  // mrndebug=1;
+  mrnin = fopen(filename.c_str(), "r");
+  if( mrnin == NULL){
     mc_errno = MC_EBADCONFIG_IO;
     _fail = true;
     return -1;
   }
 
-  if( yyparse() != 0 ){
+  if( mrnparse() != 0 ){
     mc_errno = MC_EBADCONFIG_FMT;
     _fail = true;
     return -1;
@@ -185,21 +191,43 @@ MC_NetworkImpl::get_LeafInfo( void )
         {
             // we got the response successfully -
             // build the return value from the response packet
+            int* ids = NULL;
+            unsigned int nIds = 0;
             char** hosts = NULL;
             unsigned int nHosts = 0;
-            unsigned int* ports = NULL;
-            unsigned int nPorts = 0;
+            int* ranks = NULL;
+            unsigned int nRanks = 0;
+            char** phosts = NULL;
+            unsigned int nPHosts = 0;
+            int* pports = NULL;
+            unsigned int nPPorts = 0;
+            int* pranks = NULL;
+            unsigned int nPRanks = 0;
 
-            int nret = resp->ExtractArgList( "%as %aud", &hosts, &nHosts,
-                                                            &ports, &nPorts );
+            int nret = resp->ExtractArgList( "%ad %as %ad %as %ad %ad",
+                                                &ids, &nIds,
+                                                &hosts, &nHosts,
+                                                &ranks, &nRanks,
+                                                &phosts, &nPHosts,
+                                                &pports, &nPPorts,
+                                                &pranks, &nPRanks );
             if( nret == 0 )
             {
-                if( nHosts == nPorts )
+                if( (nHosts == nRanks) &&
+                    (nHosts == nPHosts) &&
+                    (nHosts == nPPorts) &&
+                    (nHosts == nPRanks) )
                 {
                     for( unsigned int i = 0; i < nHosts; i++ )
                     {
-                        ret.push_back( new MC_NetworkImpl::LeafInfoImpl( hosts[i],
-                                                                    ports[i] ) );
+                        MC_NetworkImpl::LeafInfoImpl* li =
+                            new MC_NetworkImpl::LeafInfoImpl( ids[i],
+                                                                hosts[i],
+                                                                ranks[i],
+                                                                phosts[i],
+                                                                pports[i],
+                                                                pranks[i] );
+                        ret.push_back( li );
                     }
                 }
                 else

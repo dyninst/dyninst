@@ -25,7 +25,7 @@ void * MC_RemoteNode::recv_thread_main(void * args)
     sprintf(local_port_str, "%d",
             local_child_node->get_Port());
     sprintf(remote_port_str, "%d",
-            remote_node->MC_CommunicationNode::config_port);
+            remote_node->MC_CommunicationNode::id);
 
     name = "UPRECV(";
     name += getHostName( local_child_node->get_HostName() );
@@ -40,7 +40,7 @@ void * MC_RemoteNode::recv_thread_main(void * args)
   else{
       sprintf(local_port_str, "%d", local_parent_node->config_port);
     sprintf(remote_port_str, "%d",
-            remote_node->MC_CommunicationNode::config_port);
+            remote_node->MC_CommunicationNode::id);
 
     name = "DOWNRECV(";
     name += getHostName( local_parent_node->get_HostName() );
@@ -113,7 +113,7 @@ void * MC_RemoteNode::send_thread_main(void * args)
     sprintf(local_port_str, "%d",
             local_child_node->get_Port());
     sprintf(remote_port_str, "%d",
-            remote_node->MC_CommunicationNode::config_port);
+            remote_node->MC_CommunicationNode::id);
 
     name = "UPSEND(";
     name += getHostName( local_child_node->get_HostName() );
@@ -128,7 +128,7 @@ void * MC_RemoteNode::send_thread_main(void * args)
   else{
     sprintf(local_port_str, "%d", local_parent_node->config_port);
     sprintf(remote_port_str, "%d",
-            remote_node->MC_CommunicationNode::config_port);
+            remote_node->MC_CommunicationNode::id);
 
     name = "DOWNSEND";
     name += getHostName( local_parent_node->get_HostName() );
@@ -260,12 +260,12 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_ho
   std::vector <std::string> args;
 
   mc_printf(MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
-             hostname.c_str(), config_port);
+             hostname.c_str(), get_Id());
 
   _is_internal_node = true;
 
   args.push_back(hostname);
-  sprintf(port_str, "%d", config_port);
+  sprintf(port_str, "%d", get_Id());
   args.push_back(port_str);
   args.push_back(parent_host);
   sprintf(parent_port_str, "%d", parent_port);
@@ -292,10 +292,10 @@ int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_hos
 
   mc_printf(MCFL, stderr, "In new_Application(%s:%d,\n"
                      "                   cmd: %s)\n",
-                     hostname.c_str(), config_port, cmd.c_str());
+                     hostname.c_str(), get_Id(), cmd.c_str());
   
   char port_str[128];
-  sprintf(port_str, "%d", config_port);
+  sprintf(port_str, "%d", get_Id());
   char parent_port_str[128];
   sprintf(parent_port_str, "%d", parent_port);
   char parent_id_str[128];

@@ -1,6 +1,9 @@
 #include "mrnet/src/Types.h"
 #include <stdarg.h>
 #include <errno.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <poll.h>
 
 #include "mrnet/src/Message.h"
 #include "mrnet/src/utils.h"
@@ -22,7 +25,12 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
   PDR pdrs;
   enum pdr_op op = PDR_DECODE;
 
+
   mc_printf(MCFL, stderr, "Receiving packets to message (%p)\n", this);
+
+    //
+    // packet count
+    //
 
   /* find out how many packets are coming */
   buf_len = pdr_sizeof((pdrproc_t)(pdr_uint32), &no_packets);
@@ -44,6 +52,11 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
     }
   }
 
+
+    //
+    // pdrmem initialize
+    //
+
   pdrmem_create(&pdrs, buf, buf_len, op);
   if( !pdr_uint32(&pdrs, &no_packets) ){
     mc_printf(MCFL, stderr, "pdr_uint32() failed\n");
@@ -53,18 +66,36 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
   free(buf);
   mc_printf(MCFL, stderr, "pdr_uint32() succeeded. Receive %d packets\n", no_packets);
 
+  if( no_packets == 0 )
+  {
+    fprintf(stderr, "warning: Receiving %d packets\n", no_packets);
+  }
+
+
+    //
+    // packet size vector
+    //
+
   /* recv an vector of packet_sizes */
   //buf_len's value is hardcode, breaking pdr encapsulation barrier :(
   buf_len = sizeof(uint32_t) * no_packets + 4; // 4 byte pdr overhead
   buf = (char *)malloc( buf_len);
   assert(buf);
 
+
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets);
+  if( packet_sizes == NULL )
+  {
+        fprintf( stderr, "recv: packet_size malloc is NULL for %d packets\n",
+            no_packets );
+  }
   assert(packet_sizes);
 
   mc_printf(MCFL, stderr, "Calling MC_read(%d, %p, %d) for %d buffer lengths.\n",
              sock_fd, buf, buf_len, no_packets);
-  if( MC_read(sock_fd, buf, buf_len) != buf_len){
+    int readRet = MC_read(sock_fd, buf, buf_len);
+  if( readRet != buf_len )
+  {
     mc_printf(MCFL, stderr, "MC_read() failed\n");
     free(buf);
     if( errno == 0 ){
@@ -74,6 +105,11 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
         return -1;
     }
   }
+
+
+    //
+    // packets
+    //
 
   pdrmem_create(&pdrs, buf, buf_len, op);
   if( !pdr_vector(&pdrs, (char *)(packet_sizes), no_packets, sizeof(uint32_t),
@@ -109,6 +145,10 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
     return -1;
   }
 
+    //
+    // post-processing
+    //
+
   for(i=0; i<msg.msg_iovlen; i++){
     MC_Packet * new_packet = new MC_Packet(msg.msg_iov[i].iov_len,
 					   (char *)msg.msg_iov[i].iov_base);
@@ -130,7 +170,6 @@ int MC_Message::send(int sock_fd)
   unsigned int i;
   uint32_t *packet_sizes, no_packets;
   struct iovec *iov;
-  uint32_t iovlen;
   char * buf;
   int buf_len;
   PDR pdrs;
@@ -147,7 +186,6 @@ int MC_Message::send(int sock_fd)
   /* send packet buffers */
   iov = (struct iovec *)malloc(sizeof(struct iovec)*no_packets);
   assert(iov);
-  iovlen = no_packets;
 
   //Process packets in list to prepare for send()
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets );
@@ -179,13 +217,16 @@ int MC_Message::send(int sock_fd)
 
   if( !pdr_uint32(&pdrs, &no_packets) ){
     mc_printf(MCFL, stderr, "pdr_uint32() failed\n");
+    fprintf(stderr, "pdr_uint32() failed\n");
     free(buf);
     return -1;
   }
 
+
   mc_printf(MCFL, stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len);
   if( MC_write(sock_fd, buf, buf_len) != buf_len){
     mc_printf(MCFL, stderr, "%s", "");
+    fprintf(stderr, "MC_write failed: %s", "");
     _perror("MC_write()");
     free(buf);
     return -1;
@@ -201,32 +242,67 @@ int MC_Message::send(int sock_fd)
   if( !pdr_vector(&pdrs, (char *)(packet_sizes), no_packets, sizeof(uint32_t),
                  (pdrproc_t)pdr_uint32) ){
     mc_printf(MCFL, stderr, "pdr_vector() failed\n");
+    fprintf(stderr, "pdr_vector() failed\n");
     free(buf);
     return -1;
   }
 
   mc_printf(MCFL, stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len);
-  if( MC_write(sock_fd, buf, buf_len ) != buf_len){
+  int mcwret = MC_write(sock_fd, buf, buf_len);
+  if( mcwret != buf_len){
     mc_printf(MCFL, stderr, "%s", "");
+    fprintf(stderr, "MC_write (2) failed %s", "");
     _perror("MC_write()");
     free(buf);
     return -1;
   }
   free(buf);
 
-  mc_printf(MCFL, stderr, "Calling writev(%d vectors, %d total bytes)\n",
-             iovlen, total_bytes);
-  int ret;
-  if( (ret=writev(sock_fd, iov, iovlen)) != total_bytes){
-    mc_printf(MCFL, stderr, "writev() returned %d of %d bytes\n", ret, total_bytes);
-    for(i=0; i<iovlen; i++){
-      mc_printf(MCFL, stderr, "vector[%d].size = %d\n", i, iov[i].iov_len);
+
+    if( no_packets > IOV_MAX )
+    {
+        fprintf( stderr, "splitting writev\n" );
     }
-    _perror("writev()");
-    return -1;
-  }
+
+    uint32_t nPacketsLeftToSend = no_packets;
+    struct iovec* currIov = iov;
+    while( nPacketsLeftToSend > 0 )
+    {
+        uint32_t iovlen = 
+            (nPacketsLeftToSend > IOV_MAX) ? IOV_MAX : nPacketsLeftToSend;
+
+        // count the bytes in the packets to be sent
+        int nBytesToSend = 0;
+        for( i = 0; i < iovlen; i++ )
+        {
+            nBytesToSend += currIov[i].iov_len;
+        }
+
+        mc_printf(MCFL, stderr, "Calling writev(%d vectors, %d total bytes)\n",
+                    iovlen, nBytesToSend);
+
+        int ret = writev(sock_fd, currIov, iovlen);
+        if( ret != nBytesToSend )
+        {
+            mc_printf(MCFL, stderr,
+                "writev() returned %d of %d bytes\n", ret, nBytesToSend);
+            fprintf(stderr, "writev() returned %d of %d bytes, errno = %d, iovlen = %d\n", ret, nBytesToSend, errno, iovlen );
+            for(i=0; i<iovlen; i++){
+              mc_printf(MCFL, stderr, "vector[%d].size = %d\n",
+                    i, currIov[i].iov_len);
+              fprintf(stderr, "vector[%d].size = %d\n", i, currIov[i].iov_len);
+            }
+            _perror("writev()");
+            return -1;
+        }
+
+        // advance
+        nPacketsLeftToSend -= iovlen;
+        currIov += iovlen;
+    }
 
   packets.clear();
+
 
   mc_printf(MCFL, stderr, "msg(%p)::send() succeeded\n", this);
   return 0;
@@ -782,8 +858,10 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
     case DOUBLE_ARRAY_T:
     case STRING_ARRAY_T:
       tmp_ptr = (void *)va_arg(arg_list, void **);
+      assert( tmp_ptr != NULL );
       *((void **)tmp_ptr) = cur_elem->val.p;
       tmp_ptr = (void *)va_arg(arg_list, int *);
+      assert( tmp_ptr != NULL );
       *((int *)tmp_ptr) = cur_elem->array_len;
       break;
     case STRING_T:
@@ -872,14 +950,20 @@ MC_DataTypes Fmt2Type(const char * cur_fmt)
 
 int MC_write(int fd, const void *buf, int count)
 {
+  int ret = send(fd, buf, count, 0);
+
   //should do a recursive call checking for syscall interuption
-  return send(fd, buf, count, 0);
+  return ret;
 }
 
 int MC_read(int fd, void *buf, int count)
 {
+
+
   int bytes_recvd=0, retval;
   while(bytes_recvd != count){
+
+
     retval = recv(fd, ((char*)buf)+bytes_recvd, count-bytes_recvd, MSG_WAITALL);
 
     if(retval == -1){
@@ -889,7 +973,10 @@ int MC_read(int fd, void *buf, int count)
       else{
           mc_printf(MCFL, stderr, "premature return from MC_read(). Got %d of %d "
                     " bytes. errno: %d ", bytes_recvd, count, errno);
-          perror("");
+            if( errno != 0 )
+            {
+            perror("");
+            }
           return -1;
       }
     }
@@ -909,7 +996,10 @@ int MC_read(int fd, void *buf, int count)
           if(bytes_recvd != count){
               mc_printf(MCFL, stderr, "premature return from MC_read(). %d of %d "
                         " bytes. errno: %d ", bytes_recvd, count, errno);
-              perror("");
+                if( errno != 0 )
+                {
+                perror("");
+                }
           }
           return bytes_recvd;
       }

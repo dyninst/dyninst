@@ -218,12 +218,19 @@ MC_FrontEndNode::deliverLeafInfoResponse( MC_Packet* pkt )
         // the same process.  But if we're pointing to data on the
         // stack, we don't have the original data anymore anyway.
         //
-        leafInfoPacket = new MC_Packet( pkt->get_BufferLen(),
-                                        pkt->get_Buffer() );
+        unsigned int buflen = pkt->get_BufferLen();
+        char* buf = pkt->get_Buffer();
+        if( (buflen == 0) || (buf == NULL) )
+        {
+            fprintf( stderr, "FE::ParentNode: deliverleafinfo resp: empty buffer\n" );
+        }
+        leafInfoPacket = new MC_Packet( buflen, buf );
 
         // release the given packet
         // TODO (is this safe?)
+#if READY
         delete pkt;
+#endif // READY
     }
     else
     {

@@ -18,31 +18,51 @@ class MC_NetworkImpl: public MC_Error {
   friend class MC_CommunicatorImpl;
   friend class MC_StreamImpl;
 
- private:
 
+public:
     class LeafInfoImpl : public MC_Network::LeafInfo
     {
     private:
         char* host;
-        unsigned short port;
+        unsigned short id;
+        unsigned short rank;
+        char* phost;
+        unsigned short pport;
+        unsigned short prank;
 
     public:
-        LeafInfoImpl( const char* h, unsigned short p )
-          : host( new char[strlen(h)+1] ),
-            port( p )
+        LeafInfoImpl( unsigned short _id,
+                        const char* _host,
+                        unsigned short _rank,
+                        const char* _phost,
+                        unsigned short _pport,
+                        unsigned short _prank )
+          : host( new char[strlen(_host)+1] ),
+            id( _id ),
+            rank( _rank ),
+            phost( new char[strlen(_phost)+1] ),
+            pport( _pport ),
+            prank( _prank )
         {
-            strcpy( host, h );
+            strcpy( host, _host );
+            strcpy( phost, _phost );
         }
 
         virtual ~LeafInfoImpl( void )
         {
             delete[] host;
+            delete[] phost;
         }
 
         virtual const char* get_Host( void ) const      { return host; }
-        virtual unsigned short get_Port( void ) const   { return port; }
+        virtual unsigned short get_Rank( void ) const   { return rank; }
+        virtual unsigned short get_Id( void ) const   { return id; }
+        virtual const char* get_ParHost( void ) const   { return phost; }
+        virtual unsigned short get_ParPort( void ) const   { return pport; }
+        virtual unsigned short get_ParRank( void ) const   { return prank; }
     };
 
+ private:
   std::string filename;          /* Name of topology configuration file */
   std::string commnode;          // path to comm_node executable
   std::string application;       /* Name of application to launch */

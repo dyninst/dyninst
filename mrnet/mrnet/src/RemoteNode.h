@@ -53,6 +53,7 @@ class MC_RemoteNode:public MC_CommunicationNode{
   bool is_upstream();
 
   const pollfd& get_pollfd( void ) const    { return poll_struct; }
+  int get_sockfd( void ) const              { return sock_fd; }
 };
 
 #endif /* __mc_remotenode_h  */

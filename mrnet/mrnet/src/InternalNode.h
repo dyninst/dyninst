@@ -8,6 +8,7 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/ChildNode.h"
 #include "mrnet/src/Message.h"
+#include "mrnet/src/pthread_sync.h"
 
 class MC_InternalNode: public MC_ParentNode, public MC_ChildNode,
 		       public MC_CommunicationNode

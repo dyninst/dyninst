@@ -21,7 +21,7 @@ MC_Filter::~MC_Filter()
 MC_Aggregator::MC_Aggregator(unsigned short _filter_id)
   :MC_Filter(_filter_id)
 {
-  aggr_spec = MC_ParentNode::AggrSpecById[filter_id];
+  aggr_spec = (*MC_ParentNode::AggrSpecById)[filter_id];
 }
 
 MC_Aggregator::~MC_Aggregator()
@@ -49,9 +49,10 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
   //Allocate an array of dataelements for each packet. This represents a
   //set of data possibly each downstream_node
   int tag = -1;
-  unsigned short streamId = 0;
+  unsigned short streamId = USHRT_MAX;
   in = new MC_DataElement * [in_count];
   for(i=0,iter = packets_in.begin(); iter != packets_in.end(); iter++, i++){
+
       assert( aggr_spec->format_str == (*iter)->get_FormatString() );
 
       // save the tag and stream id for use in the output packets
@@ -91,7 +92,7 @@ MC_Synchronizer::MC_Synchronizer(unsigned short _filter_id,
                                  std::list <MC_RemoteNode *> &nodes)
   :MC_Filter(_filter_id), downstream_nodes(nodes), object_local_storage(NULL)
 {
-  sync = MC_ParentNode::SyncById[filter_id];
+  sync = (*MC_ParentNode::SyncById)[filter_id];
 }
 
 MC_Synchronizer::~MC_Synchronizer()
@@ -198,6 +199,69 @@ void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
   (*out_elems)[0][0].type = CHAR_ARRAY_T;
 }
 
+
+void
+aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
+                  MC_DataElement ***out_elems, unsigned int *out_count)
+{
+    std::map<unsigned int, unsigned int> classes;
+
+    for( unsigned int i = 0; i < in_count; i++ )
+    {
+        unsigned int* sums = (unsigned int*)(in_elems[i][0].val.p);
+        unsigned int* reps = (unsigned int*)(in_elems[i][1].val.p);
+
+        assert( in_elems[i][0].array_len == in_elems[i][1].array_len );
+        for( unsigned int j = 0; j < in_elems[i][0].array_len; j++ )
+        {
+            fprintf( stderr, "\tclass %d: val = %u, rep = %u\n",
+                j,
+                sums[j],
+                reps[j] );
+
+            // update the representative for the current value's class
+            classes[sums[j]] = reps[j];
+        }
+    }
+
+    // extract arrays with the values and with the reps
+    unsigned int* values = new unsigned int[classes.size()];
+    unsigned int* reps = new unsigned int[classes.size()];
+    unsigned int i = 0;
+    for( std::map<unsigned int, unsigned int>::iterator iter = classes.begin();
+            iter != classes.end();
+            iter++ )
+    {
+        values[i] = iter->first;
+        reps[i] = iter->second;
+        i++;
+    }
+
+    // dump the output classes
+    *out_count = 1;
+    (*out_elems) = new MC_DataElement*[1];
+    (*out_elems)[0] = new MC_DataElement[2];
+
+    // values
+    (*out_elems)[0][0].type = UINT32_ARRAY_T;
+    (*out_elems)[0][0].array_len = classes.size();
+    (*out_elems)[0][0].val.p = values;
+
+    // representatives
+    (*out_elems)[0][1].type = UINT32_ARRAY_T;
+    (*out_elems)[0][1].array_len = classes.size();
+    (*out_elems)[0][1].val.p = reps;
+
+    fprintf( stderr, "aggrIntEqClass: returning\n" );
+    for( unsigned int i = 0; i < classes.size(); i++ )
+    {
+        fprintf( stderr, "\tclass %d: val = %u, rep = %u\n",
+            i,
+            ((unsigned int*)((*out_elems)[0][0].val.p))[i],
+            ((unsigned int*)((*out_elems)[0][1].val.p))[i] );
+    }
+}
+
 /*============================================*
  *    Default Synchronizer Definitions        *
  *============================================*/
@@ -230,6 +294,7 @@ void sync_WaitForAll(std::list <MC_Packet *> &packets_in,
   std::list <MC_Packet *>::iterator iter;
   mc_printf(MCFL, stderr, "Placing %d incoming packets\n", packets_in.size());
   for(iter = packets_in.begin(); iter != packets_in.end(); iter++){
+
     ((*PacketListByNode)[(*iter)->inlet_node])->push_back(*iter);
   }
   packets_in.clear();

@@ -157,7 +157,11 @@ int MC_InternalNode::proc_DataFromDownStream(MC_Packet *packet)
 {
   mc_printf(MCFL, stderr, "In internal.proc_DataFromUpStream()\n");
 
+  // TODO why aren't these locks necessary?
+  // streammanagerbyid_sync.lock();
   MC_StreamManager * stream_mgr = StreamManagerById[ packet->get_StreamId() ];
+  // streammanagerbyid_sync.unlock();
+
   std::list<MC_Packet *> packets;
   std::list<MC_Packet *> ::iterator iter;
 

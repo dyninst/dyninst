@@ -45,11 +45,16 @@ void MC_NetworkNode::visit()
 /***************************************************
  * MC_NetworkGraph
  **************************************************/
+
 MC_NetworkGraph::MC_NetworkGraph()
-  :graph_checked(false), visited_nodes(0), _has_cycle(false)
+  : root( NULL ),
+    nodes( new std::map<std::string, MC_NetworkNode*> ),
+    graph_checked(false),
+    visited_nodes(0),
+    _has_cycle(false),
+    endpoints(new std::vector<MC_EndPoint*>)
 {
   //add_Node(root);
-  endpoints = new std::vector <MC_EndPoint *>;
 }
 
 void MC_NetworkGraph::set_Root(MC_NetworkNode * _root)
@@ -74,7 +79,8 @@ void MC_NetworkGraph::add_Node(MC_NetworkNode* new_node)
 
   if(new_node){
     std::string key = new_node->get_HostName() + std::string(port_str);
-    nodes[key] = new_node;
+    assert( nodes != NULL );
+    (*nodes)[key] = new_node;
   }
 }
 
@@ -89,8 +95,9 @@ MC_NetworkNode * MC_NetworkGraph::find_Node(char * hostname, unsigned short port
   sprintf(port_str, "%d", port);
   std::string key = std::string(hostname) + std::string(port_str);
 
-  std::map<std::string, MC_NetworkNode*>::iterator iter = nodes.find(key);
-  if( iter == nodes.end() ){
+    assert( nodes != NULL );
+  std::map<std::string, MC_NetworkNode*>::iterator iter = nodes->find(key);
+  if( iter == nodes->end() ){
     return NULL;
   }
   return (*iter).second;
@@ -155,12 +162,14 @@ bool MC_NetworkGraph::fully_connected()
 
   //printf(MCFL, stderr, "In fully_connected(). visited %d, exist %d\n",
              //visited_nodes, nodes.size() );
-  return ( visited_nodes == nodes.size() ) ;
+    assert( nodes != NULL );
+  return ( visited_nodes == nodes->size() ) ;
 }
 
 int MC_NetworkGraph::get_Size()
 {
-  return nodes.size();
+    assert( nodes != NULL );
+  return nodes->size();
 }
 
 

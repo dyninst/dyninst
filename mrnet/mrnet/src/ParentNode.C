@@ -7,11 +7,11 @@
 /*====================================================*/
 /*  MC_ParentNode CLASS METHOD DEFINITIONS            */
 /*====================================================*/
-std::map<unsigned int, MC_Aggregator::AggregatorSpec*>
-  MC_ParentNode::AggrSpecById;
+std::map<unsigned int, MC_Aggregator::AggregatorSpec*>*
+  MC_ParentNode::AggrSpecById = NULL;
 std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
-                               std::list<MC_RemoteNode *> &, void **)>
-   MC_ParentNode::SyncById;
+                               std::list<MC_RemoteNode *> &, void **)>*
+   MC_ParentNode::SyncById = NULL;
 
 MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
                              unsigned short _port)
@@ -30,35 +30,51 @@ MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
   subtreereport_sync.register_cond(MC_ALLNODESREPORTED);
 
   //hardcoding some aggregator definitions
+  if( AggrSpecById == NULL )
+  {
+        AggrSpecById = 
+        new std::map<unsigned int, MC_Aggregator::AggregatorSpec*>;
+  }
   MC_Aggregator::AggregatorSpec *tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_NULL_FORMATSTR;
   tmp->filter = NULL;
-  AggrSpecById[AGGR_NULL] =tmp;
+  (*AggrSpecById)[AGGR_NULL] =tmp;
 
   tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_INT_SUM_FORMATSTR;
   tmp->filter = aggr_Int_Sum;
-  AggrSpecById[AGGR_INT_SUM_ID] =tmp;
+  (*AggrSpecById)[AGGR_INT_SUM_ID] =tmp;
 
   tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_FLOAT_AVG_FORMATSTR;
   tmp->filter = aggr_Float_Avg;
-  AggrSpecById[AGGR_FLOAT_AVG_ID] =tmp;
+  (*AggrSpecById)[AGGR_FLOAT_AVG_ID] =tmp;
 
   tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_FLOAT_MAX_FORMATSTR;
   tmp->filter = aggr_Float_Max;
-  AggrSpecById[AGGR_FLOAT_MAX_ID] =tmp;
+  (*AggrSpecById)[AGGR_FLOAT_MAX_ID] =tmp;
 
   tmp = new MC_Aggregator::AggregatorSpec;
   tmp->format_str = AGGR_CHARARRAY_CONCAT_FORMATSTR;
   tmp->filter = aggr_CharArray_Concat;
-  AggrSpecById[AGGR_CHARARRAY_CONCAT_ID] =tmp;
+  (*AggrSpecById)[AGGR_CHARARRAY_CONCAT_ID] =tmp;
+
+  tmp = new MC_Aggregator::AggregatorSpec;
+  tmp->format_str = AGGR_INT_EQ_CLASS_FORMATSTR;
+  tmp->filter = aggr_IntEqClass;
+  (*AggrSpecById)[AGGR_INT_EQ_CLASS_ID] = tmp;
 
   //hardcoding some synchonizer definitions
-  SyncById[SYNC_WAITFORALL] = sync_WaitForAll;
-  SyncById[SYNC_DONTWAIT] = sync_DontWait;
-  SyncById[SYNC_TIMEOUT] = sync_TimeOut;
+  if( SyncById == NULL )
+  {
+        SyncById = 
+        new std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
+                               std::list<MC_RemoteNode *> &, void **)>;
+  }
+  (*SyncById)[SYNC_WAITFORALL] = sync_WaitForAll;
+  (*SyncById)[SYNC_DONTWAIT] = sync_DontWait;
+  (*SyncById)[SYNC_TIMEOUT] = sync_TimeOut;
 
   mc_printf(MCFL, stderr, "Leaving MC_ParentNode()\n");
 }
@@ -278,7 +294,10 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
       // since this child is a backend, I'm a leaf
       isLeaf_ = true;
 
-      MC_RemoteNode *cur_node = new MC_RemoteNode(threaded, rootname, rootport);
+      MC_RemoteNode *cur_node = new MC_RemoteNode(threaded,
+                                                    rootname,
+                                                    rootport,
+                                                    cur_sg->get_Id() );
 
       if( application.length() > 0 )
       {
@@ -659,16 +678,45 @@ MC_ParentNode::proc_getLeafInfo( MC_Packet* pkt )
     {
         mc_printf(MCFL, stderr, "leaf at %s:%u\n", hostname.c_str(), port);
 
-        // build a response packet with our address
-        // we need to build it as the degenerate case of
-        // the packet seen higher up in the tree.  This means,
-        // we need to format it as an array with one element,
-        // rather than just the one element.
-        const char* myHost = hostname.c_str();
-        unsigned int myPort = port;
-        MC_Packet* resp = new MC_Packet( MC_GET_LEAF_INFO_PROT, "%as %aud",
-                                            &myHost, 1,
-                                            &myPort, 1 );
+        // build our leaf connection info arrays
+        unsigned int nBEs = children_nodes.size();
+        int* beIds = new int[nBEs];
+        const char** beHosts = new const char*[nBEs];
+        int* beRanks = new int[nBEs];
+        const char** myHosts = new const char*[nBEs];
+        int* myPorts = new int[nBEs];
+        int* myRanks = new int[nBEs];
+
+        assert( ChildNodeByBackendId.size() == nBEs );
+        unsigned int i = 0;
+        for( std::map<unsigned int, MC_RemoteNode*>::iterator iter = 
+                ChildNodeByBackendId.begin();
+                iter != ChildNodeByBackendId.end();
+                iter++ )
+        {
+            unsigned int curId = iter->first;
+            MC_RemoteNode* curChild = iter->second;
+
+            beIds[i] = curId;
+            beHosts[i] = strdup( curChild->get_HostName().c_str() );
+            beRanks[i] = curChild->get_Port();
+
+            // my info doesn't change, regardless of the child's info
+            myHosts[i] = strdup( hostname.c_str() );
+            myPorts[i] = port;
+            myRanks[i] = config_port;
+
+            i++;
+        }
+
+        MC_Packet* resp = new MC_Packet( MC_GET_LEAF_INFO_PROT,
+                                            "%ad %as %ad %as %ad %ad",
+                                            beIds, nBEs,
+                                            beHosts, nBEs,
+                                            beRanks, nBEs,
+                                            myHosts, nBEs,
+                                            myPorts, nBEs,
+                                            myRanks, nBEs );
 
         // deliver the response 
         // (how it is delivered depends on what type of 
@@ -726,8 +774,12 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
         // the data elements of all these other packets?  Doesn't look 
         // like it.
         //
+        std::vector<unsigned int> allIds;
         std::vector<char*> allHosts;
-        std::vector<unsigned int> allPorts;
+        std::vector<unsigned int> allRanks;
+        std::vector<char*> allParHosts;
+        std::vector<unsigned int> allParPorts;
+        std::vector<unsigned int> allParRanks;
         for( std::vector<MC_Packet*>::iterator piter = 
                             childLeafInfoResponses.begin();
                 piter != childLeafInfoResponses.end();
@@ -737,13 +789,25 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
             assert( currPkt != NULL );
 
             // get the data out of the current packet
+            int* currIds = NULL;
+            unsigned int currNumIds = 0;
             char** currHosts = NULL;
-            unsigned int* currPorts = NULL;
             unsigned int currNumHosts = 0;
-            unsigned int currNumPorts = 0;
-            int eret = currPkt->ExtractArgList( "%as %aud", 
+            int* currRanks = NULL;
+            unsigned int currNumRanks = 0;
+            char** currParHosts = NULL;
+            unsigned int currNumParHosts = 0;
+            int* currParPorts = NULL;
+            unsigned int currNumParPorts = 0;
+            int* currParRanks = NULL;
+            unsigned int currNumParRanks = 0;
+            int eret = currPkt->ExtractArgList( "%ad %as %ad %as %ad %ad", 
+                                        &currIds, &currNumIds,
                                         &currHosts, &currNumHosts,
-                                        &currPorts, &currNumPorts );
+                                        &currRanks, &currNumRanks,
+                                        &currParHosts, &currNumParHosts,
+                                        &currParPorts, &currNumParPorts,
+                                        &currParRanks, &currNumParRanks );
             if( eret == -1 )
             {
                 mc_printf( MCFL, stderr,
@@ -751,13 +815,20 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
                 ret = -1;
                 break;
             }
-            assert( currNumHosts == currNumPorts );
+            assert( currNumHosts == currNumRanks );
 
             // add the new set of hosts and ports to our cumulative set
             for( unsigned int i = 0; i < currNumHosts; i++ )
             {
+                fprintf( stderr, "MRN: ParentNode: got LeafInfo: %u %s %u %s %u %u\n",
+
+                currIds[i], currHosts[i], currRanks[i], currParHosts[i], currParPorts[i], currParRanks[i] );
+                allIds.push_back( currIds[i] );
                 allHosts.push_back( currHosts[i] );
-                allPorts.push_back( currPorts[i] );
+                allRanks.push_back( currRanks[i] );
+                allParHosts.push_back( currParHosts[i] );
+                allParPorts.push_back( currParPorts[i] );
+                allParRanks.push_back( currParRanks[i] );
             }
         }
 
@@ -766,20 +837,45 @@ MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
         // to build our packet - yet another copy operation)
         // TODO looks to me like there's no way to get at the underlying array
         //
+        unsigned int nIds = allIds.size();
         unsigned int nHosts = allHosts.size();
-        unsigned int nPorts = allPorts.size();
-        assert( nHosts == nPorts );
+        unsigned int nRanks = allRanks.size();
+        unsigned int nParHosts = allParHosts.size();
+        unsigned int nParPorts = allParPorts.size();
+        unsigned int nParRanks = allParRanks.size();
+        assert( nIds == nHosts );
+        assert( nHosts == nRanks );
+        assert( nHosts == nParHosts );
+        assert( nHosts == nParPorts );
+        assert( nHosts == nParRanks );
+        int* idsArray = new int[nIds];
         char** hostsArray = new char*[nHosts];
-        unsigned int* portsArray = new unsigned int[nPorts];
+        int* ranksArray = new int[nRanks];
+        char** parHostsArray = new char*[nParHosts];
+        int* parPortsArray = new int[nParPorts];
+        int* parRanksArray = new int[nParRanks];
         for( unsigned int i = 0; i < nHosts; i++ )
         {
+            idsArray[i] = allIds[i];
             hostsArray[i] = allHosts[i];
-            portsArray[i] = allPorts[i];
+            ranksArray[i] = allRanks[i];
+            parHostsArray[i] = allParHosts[i];
+            parPortsArray[i] = allParPorts[i];
+            parRanksArray[i] = allParRanks[i];
+
+            fprintf( stderr, "ParNode: creating new leafinfo packet with %u %s %u %s %u %u\n", 
+            idsArray[i], hostsArray[i], ranksArray[i],
+            parHostsArray[i], parPortsArray[i], parRanksArray[i] );
         }
+
         MC_Packet* resp = new MC_Packet( MC_GET_LEAF_INFO_PROT,
-                                            "%as %aud",
+                                            "%ad %as %ad %as %ad %ad",
+                                            idsArray, nIds,
                                             hostsArray, nHosts,
-                                            portsArray, nPorts );
+                                            ranksArray, nRanks,
+                                            parHostsArray, nParHosts,
+                                            parPortsArray, nParPorts,
+                                            parRanksArray, nParRanks );
 
         // handle the aggregated response
         if( deliverLeafInfoResponse( resp ) == -1 )
