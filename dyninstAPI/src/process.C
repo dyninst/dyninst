@@ -39,14 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.442 2003/07/29 00:32:41 eli Exp $
-
-extern "C" {
-#ifdef PARADYND_PVM
-int pvmputenv (const char *);
-int pvmendtask();
-#endif
-}
+// $Id: process.C,v 1.443 2003/07/31 19:00:43 schendel Exp $
 
 #include <ctype.h>
 
@@ -2690,20 +2683,19 @@ void aix_pre_allocate(process *theProc) {
 }
 #endif
 
-extern bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
-		    pdvector<pdstring> envp, pdstring inputFile, pdstring outputFile,
-		    int &traceLink, 
-		    int &pid, int &tid, 
-		    int &procHandle, int &thrHandle,
-		    int stdin_fd, int stdout_fd, int stderr_fd);
+extern bool forkNewProcess(pdstring &file, pdstring dir,
+                           pdvector<pdstring> argv, pdstring inputFile,
+                           pdstring outputFile, int &traceLink, int &pid,
+                           int &tid, int &procHandle, int &thrHandle,
+                           int stdin_fd, int stdout_fd, int stderr_fd);
 
 /*
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
 process *createProcess(const pdstring File, pdvector<pdstring> argv, 
-                        pdvector<pdstring> envp, const pdstring dir = "", 
-                        int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
+                       const pdstring dir = "", int stdin_fd=0,
+                       int stdout_fd=1, int stderr_fd=2)
 {
 	// prepend the directory (if any) to the filename,
 	// unless the filename is an absolute pathname
@@ -2803,9 +2795,9 @@ process *createProcess(const pdstring File, pdvector<pdstring> argv,
 
 #endif
     
-    if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-		   traceLink, pid, tid, procHandle_temp, thrHandle_temp,
-		   stdin_fd, stdout_fd, stderr_fd)) {
+    if (!forkNewProcess(file, dir, argv, inputFile, outputFile,
+                        traceLink, pid, tid, procHandle_temp, thrHandle_temp,
+                        stdin_fd, stdout_fd, stderr_fd)) {
         // forkNewProcess is responsible for displaying error messages
         // Note: if the fork succeeds, but exec fails, forkNew...
         // will return true. 
@@ -3559,12 +3551,6 @@ void handleProcessExit(process *proc, int exitStatus) {
     disableAllInternalMetrics();
 #endif
 
-#ifdef PARADYND_PVM
-  if (pvm_running) {
-    PDYN_reportSIGCHLD(proc->getPid(), exitStatus);
-  }
-#endif
-
   // Perhaps these lines can be un-commented out in the future, but since
   // cleanUpAndExit() does the same thing, and it always gets called
   // (when paradynd detects that paradyn died), it's not really necessary
@@ -3951,7 +3937,6 @@ bool process::handleIfDueToSharedObjectMapping(){
       // if something was added then call process::addASharedObject with
       // each element in the vector of changed_objects
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
-
          for(u_int i=0; i < changed_objects->size(); i++) {
              // TODO: currently we aren't handling dlopen because  
              // we don't have the code in place to modify existing metrics

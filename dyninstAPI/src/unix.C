@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.103 2003/07/18 15:44:06 schendel Exp $
+// $Id: unix.C,v 1.104 2003/07/31 19:00:52 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -120,12 +120,6 @@ extern unsigned enable_pd_sharedobj_debug;
 #define sharedobj_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-extern "C" {
-#ifdef PARADYND_PVM
-int pvmputenv (const char *);
-int pvmendtask();
-#endif
-}
 
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
@@ -136,7 +130,6 @@ int pvmendtask();
  *   file: file to execute
  *   dir: working directory for the new process
  *   argv: arguments to new process
- *   envp: environment **** not in use
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
@@ -149,285 +142,270 @@ int pvmendtask();
  ****************************************************************************/
 #ifdef BPATCH_LIBRARY
 bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
-                    pdvector<pdstring> /*envp*/, 
                     pdstring /*inputFile*/, pdstring /*outputFile*/,
                     int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
-		    int stdin_fd, int , int )
+                    int stdin_fd, int , int )
 #else
 bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
-		    pdvector<pdstring>envp, pdstring inputFile, pdstring outputFile,
-		    int &traceLink,
-		    int &pid, int & /*tid*/, 
-		    int & /*procHandle*/, int & /*thrHandle*/,
-		    int stdin_fd, int stdout_fd, int)
-
+                    pdstring inputFile, pdstring outputFile, int &traceLink,
+                    int &pid, int & /*tid*/, int & /*procHandle*/,
+                    int & /*thrHandle*/, int stdin_fd, int stdout_fd, int)
 #endif
 {
 #ifndef BPATCH_LIBRARY
-    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
-    // Pipe works fine.
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
-    int tracePipe[2];
-    int r = P_pipe(tracePipe);
-    if (r) {
+   // Strange, but using socketpair here doesn't seem to work OK on SunOS.
+   // Pipe works fine.
+   // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+   int tracePipe[2];
+   int r = P_pipe(tracePipe);
+   if (r) {
+      // P_perror("socketpair");
+      pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
+         pdstring("': ") + pdstring(sys_errlist[errno]);
+      showErrorCallback(68, msg);
+      return false;
+   }
+
+   /* removed for output redirection
+   // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
+   // turn read by the parent via the process->ioLink socket.
+   int ioPipe[2];
+
+   // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
+   r = P_pipe(ioPipe);
+   if (r) {
 	// P_perror("socketpair");
-        pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
-	               pdstring("': ") + pdstring(sys_errlist[errno]);
+   pdstring msg = pdstring("Unable to create IO pipe for program '") + file +
+   pdstring("': ") + pdstring(sys_errlist[errno]);
 	showErrorCallback(68, msg);
 	return false;
-    }
-
-    /* removed for output redirection
-    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
-    // turn read by the parent via the process->ioLink socket.
-    int ioPipe[2];
-
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
-    r = P_pipe(ioPipe);
-    if (r) {
-	// P_perror("socketpair");
-        pdstring msg = pdstring("Unable to create IO pipe for program '") + file +
-	               pdstring("': ") + pdstring(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return false;
-    }
-    */
+   }
+   */
 #endif
 
-    //
-    // WARNING This code assumes that vfork is used, and a failed exec will
-    //   corectly change failed in the parent process.
-    //
+   //
+   // WARNING This code assumes that vfork is used, and a failed exec will
+   //   corectly change failed in the parent process.
+   //
     
-    errno = 0;
-#if defined(PARADYND_PVM) || (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
-// must use fork, since pvmendtask will do some writing in the address space
-    pid = fork();
-    // fprintf(stderr, "FORK: pid=%d\n", pid);
+   errno = 0;
+#if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
+   // must use fork, since pvmendtask will do some writing in the address space
+   pid = fork();
+   // fprintf(stderr, "FORK: pid=%d\n", pid);
 #else
-    pid = vfork();
+   pid = vfork();
 #endif
 
-    if (pid != 0) {
+   if (pid != 0) {
 
-        // *** parent
+      // *** parent
 
-#if defined(PARADYND_PVM) || (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
-	/*
-	 * On Irix, errno sometimes seems to have a non-zero value after
-	 * the fork even though it succeeded.  For now, if we're using fork
-	 * and not vfork, we will check the return code of fork to determine
-	 * if there was error, instead of relying on errno (so make sure the
-	 * condition for this section of code is the same as the condition for
-	 * using fork instead of vfork above). - brb
-	 */
-	if (pid == -1)
+#if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
+      /*
+       * On Irix, errno sometimes seems to have a non-zero value after
+       * the fork even though it succeeded.  For now, if we're using fork
+       * and not vfork, we will check the return code of fork to determine
+       * if there was error, instead of relying on errno (so make sure the
+       * condition for this section of code is the same as the condition for
+       * using fork instead of vfork above). - brb
+       */
+      if (pid == -1)
 #else
-	if (errno)
+         if (errno)
 #endif
-	{
-	    sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
-		    sys_errlist[errno]);
-	    logLine(errorLine);
-	    showErrorCallback(68, (const char *) errorLine);
-	    return false;
-	}
+         {
+            sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
+                    sys_errlist[errno]);
+            logLine(errorLine);
+            showErrorCallback(68, (const char *) errorLine);
+            return false;
+         }
 
 #ifndef BPATCH_LIBRARY
-	close(tracePipe[1]);
+      close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
 
-        /* removed for output redirection
-	close(ioPipe[1]);
-           // parent closes write end of io pipe; child closes its read end.
-           // pipe output goes to the parent's read fd (ret->ioLink); pipe input
-           // comes from the child's write fd.  In short, when the child writes to
-           // its stdout/stderr, it gets sent to the pipe which in turn sends it to
-           // the parent's ret->ioLink fd for reading.
+      /* removed for output redirection
+         close(ioPipe[1]);
+         // parent closes write end of io pipe; child closes its read end.
+         // pipe output goes to the parent's read fd (ret->ioLink); pipe input
+         // comes from the child's write fd.  In short, when the child writes to
+         // its stdout/stderr, it gets sent to the pipe which in turn sends it to
+         // the parent's ret->ioLink fd for reading.
 
-	//ioLink = ioPipe[0];
-	*/
+         //ioLink = ioPipe[0];
+         */
 
-	traceLink = tracePipe[0];
+      traceLink = tracePipe[0];
 #endif
-	return true;
+      return true;
 
-    } else if (pid == 0) {
-        // *** child
-
-#ifdef PARADYND_PVM
-	if (pvm_running)
-	  pvmendtask(); 
-#endif   
+   } else if (pid == 0) {
+      // *** child
 
 #ifndef BPATCH_LIBRARY
-	// handle stdio.
+      // handle stdio.
 
-	/* removed for output redirection
-        // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
-        // call dup2() twice to assign our stdout and stderr to the write end of the
-	// pipe.
-	close(ioPipe[0]);
-
-	//dup2(ioPipe[1], 1);
+      /* removed for output redirection We only write to ioPipe.  Hence we
+      // close ioPipe[0], the read end.  Then we call dup2() twice to assign
+      // our stdout and stderr to the write end of the pipe.
+      // close(ioPipe[0]);
+   
+      //dup2(ioPipe[1], 1);
 
 	
-           // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
-           // in use, dup2 will first close it then reopen it with the characteristics
-	   // of ioPipe[1].)
-           // In short, stdout gets redirected towards the write end of the pipe.
-           // The read end of the pipe is read by the parent (paradynd), not by us.
+      // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is
+      // already in use, dup2 will first close it then reopen it with the
+      // characteristics of ioPipe[1].)  In short, stdout gets redirected
+      // towards the write end of the pipe.  The read end of the pipe is read
+      // by the parent (paradynd), not by us.
 
-	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
+      dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
 
-        // We're not using ioPipe[1] anymore; close it.
-	if (ioPipe[1] > 2) close (ioPipe[1]);
-	*/
+      // We're not using ioPipe[1] anymore; close it.
+      if (ioPipe[1] > 2) close (ioPipe[1]);
+      */
 
-	//setup output redirection to termWin
-	dup2(stdout_fd,1);
-	dup2(stdout_fd,2);
+      //setup output redirection to termWin
+      dup2(stdout_fd,1);
+      dup2(stdout_fd,2);
 
-	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
-        // instead of the usual line buffered (when it goes to a tty).  In effect the
-        // stdio library is being a little too clever for our purposes.  We don't want
-        // the "bufferedness" to change.  So we set it back to line-buffered.
-        // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
-        // do it here, since the upcoming execve() would undo our work [execve keeps
-        // fd's but resets higher-level stdio information, which is recreated before
-        // execution of main()]  So when do we do it?  In rtinst's DYNINSTinit
-        // (RTposix.c et al.)
+      // Now that stdout is going to a pipe, it'll (unfortunately) be block
+      // buffered instead of the usual line buffered (when it goes to a tty).
+      // In effect the stdio library is being a little too clever for our
+      // purposes.  We don't want the "bufferedness" to change.  So we set it
+      // back to line-buffered.  The command to do this is setlinebuf(stdout)
+      // [stdio.h call] But we don't do it here, since the upcoming execve()
+      // would undo our work [execve keeps fd's but resets higher-level stdio
+      // information, which is recreated before execution of main()] So when
+      // do we do it?  In rtinst's DYNINSTinit (RTposix.c et al.)
 
-	// setup stderr for rest of exec try.
-	FILE *childError = P_fdopen(2, "w");
+      // setup stderr for rest of exec try.
+      FILE *childError = P_fdopen(2, "w");
 
-	P_close(tracePipe[0]);
+      P_close(tracePipe[0]);
 
-	if (P_dup2(tracePipe[1], 3) != 3) {
-	    fprintf(childError, "dup2 failed\n");
-	    fflush(childError);
-	    P__exit(-1);
-	}
+      if (P_dup2(tracePipe[1], 3) != 3) {
+         fprintf(childError, "dup2 failed\n");
+         fflush(childError);
+         P__exit(-1);
+      }
 
-	/* close if higher */
-	if (tracePipe[1] > 3) close(tracePipe[1]);
+      /* close if higher */
+      if (tracePipe[1] > 3) close(tracePipe[1]);
 
 
-	if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
-		  sys_errlist[errno]);
-	  logLine(errorLine);
-	  P__exit(-1);
-	}
+      if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+         sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+                 sys_errlist[errno]);
+         logLine(errorLine);
+         P__exit(-1);
+      }
 #endif
 #if !defined(BPATCH_LIBRARY)
-	/* see if I/O needs to be redirected */
-	if (inputFile.length()) {
-	    int fd = P_open(inputFile.c_str(), O_RDONLY, 0);
-	    if (fd < 0) {
-		fprintf(childError, "stdin open of %s failed\n", inputFile.c_str());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 0);
-		P_close(fd);
-	    }
-	}
+      /* see if I/O needs to be redirected */
+      if (inputFile.length()) {
+         int fd = P_open(inputFile.c_str(), O_RDONLY, 0);
+         if (fd < 0) {
+            fprintf(childError, "stdin open of %s failed\n", inputFile.c_str());
+            fflush(childError);
+            P__exit(-1);
+         } else {
+            dup2(fd, 0);
+            P_close(fd);
+         }
+      }
 
-	if (outputFile.length()) {
-	    int fd = P_open(outputFile.c_str(), O_WRONLY|O_CREAT, 0444);
-	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", outputFile.c_str());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
-		P_close(fd); // not using descriptor fd any more; close it.
-	    }
-	}
+      if (outputFile.length()) {
+         int fd = P_open(outputFile.c_str(), O_WRONLY|O_CREAT, 0444);
+         if (fd < 0) {
+            fprintf(childError, "stdout open of %s failed\n", outputFile.c_str());
+            fflush(childError);
+            P__exit(-1);
+         } else {
+            dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
+            P_close(fd); // not using descriptor fd any more; close it.
+         }
+      }
 #endif
 
-        /* see if we should use alternate file decriptors */
-	if (stdin_fd != 0) dup2(stdin_fd, 0);
-	//removed for output redirection
-	//if (stdout_fd != 1) dup2(stdout_fd, 1);
-	//if (stderr_fd != 2) dup2(stderr_fd, 2);
+      /* see if we should use alternate file decriptors */
+      if (stdin_fd != 0) dup2(stdin_fd, 0);
+      //removed for output redirection
+      //if (stdout_fd != 1) dup2(stdout_fd, 1);
+      //if (stderr_fd != 2) dup2(stderr_fd, 2);
 
 #ifdef BPATCH_LIBRARY
-	// define our own session id so we don't get the mutators signals
+      // define our own session id so we don't get the mutators signals
 
 #ifndef rs6000_ibm_aix4_1
- 	setsid();
+      setsid();
 #endif
 #endif
 
-	/* indicate our desire to be traced */
-	errno = 0;
-	OS::osTraceMe();
-	if (errno != 0) {
-	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
-	  logLine(errorLine);
-	  logLine(sys_errlist[errno]);
-	  showErrorCallback(69, pdstring("Internal error: ") + 
+      /* indicate our desire to be traced */
+      errno = 0;
+      OS::osTraceMe();
+      if (errno != 0) {
+         sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
+         logLine(errorLine);
+         logLine(sys_errlist[errno]);
+         showErrorCallback(69, pdstring("Internal error: ") + 
 	                        pdstring((const char *) errorLine)); 
-	  P__exit(-1);   // double underscores are correct
-	}
-#ifdef PARADYND_PVM
-	if (pvm_running && envp.size())
-	  for (int ep=envp.size()-1; ep>=0; ep--) {
-	    pvmputenv(envp[ep].c_str());
-	  }
-#endif
+         P__exit(-1);   // double underscores are correct
+      }
+
 #ifndef BPATCH_LIBRARY
-        // hand off info about how to start a paradynd to the application.
-	//   used to catch rexec calls, and poe events.
-	//
-	char* paradynInfo = new char[1024];
-	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-	for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
-	    const char *str;
+      // hand off info about how to start a paradynd to the application.
+      //   used to catch rexec calls, and poe events.
+      //
+      char* paradynInfo = new char[1024];
+      sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
+      for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
+         const char *str;
 
-	    str = P_strdup(pd_process::arg_list[i].c_str());
-	    if (!strcmp(str, "-l1")) {
-		strcat(paradynInfo, "-l0");
-	    } else {
-		strcat(paradynInfo, str);
-	    }
-	    strcat(paradynInfo, " ");
-	}
-	P_putenv(paradynInfo);
+         str = P_strdup(pd_process::arg_list[i].c_str());
+         if (!strcmp(str, "-l1")) {
+            strcat(paradynInfo, "-l0");
+         } else {
+            strcat(paradynInfo, str);
+         }
+         strcat(paradynInfo, " ");
+      }
+      P_putenv(paradynInfo);
 #endif
 
-	char **args;
-	args = new char*[argv.size()+1];
-	for (unsigned ai=0; ai<argv.size(); ai++)
-	  args[ai] = P_strdup(argv[ai].c_str());
-	args[argv.size()] = NULL;
-	P_execvp(file.c_str(), args);
-	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
-	logLine(errorLine);
+      char **args;
+      args = new char*[argv.size()+1];
+      for (unsigned ai=0; ai<argv.size(); ai++)
+         args[ai] = P_strdup(argv[ai].c_str());
+      args[argv.size()] = NULL;
+      P_execvp(file.c_str(), args);
+      sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
+      logLine(errorLine);
     
-	logLine(sys_errlist[errno]);
-    {
-        int i=0;
-        while (args[i]) {
+      logLine(sys_errlist[errno]);
+      {
+         int i=0;
+         while (args[i]) {
             sprintf(errorLine, "argv %d = %s\n", i, args[i]);
             logLine(errorLine);
             i++;
-        }
-    }
-	P__exit(-1);
-	// not reached
+         }
+      }
+      P__exit(-1);
+      // not reached
     
-	return false;
-    } else { // pid == 0 --- error
-        sprintf(errorLine, "vfork failed, errno=%d\n", errno);
-        logLine(errorLine);
-        showErrorCallback(71, (const char *) errorLine);
-	return false;
-    }
+      return false;
+   } else { // pid == 0 --- error
+      sprintf(errorLine, "vfork failed, errno=%d\n", errno);
+      logLine(errorLine);
+      showErrorCallback(71, (const char *) errorLine);
+      return false;
+   }
 
 }
 
@@ -468,7 +446,7 @@ int decodeWaitPidStatus(process * /*p*/,
 
 int forwardSigToProcess(process *proc, 
                         procSignalWhat_t what,
-                        procSignalInfo_t info) {
+                        procSignalInfo_t /*info*/) {
 #if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && \
     (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
     // In this way, we will detach from the application and we
@@ -500,7 +478,7 @@ int forwardSigToProcess(process *proc,
     return 1;
 }
 
-int handleSigTrap(process *proc, procSignalInfo_t info) {
+int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // SIGTRAP is our workhorse. It's used to stop the process at a specific
     // address, notify the mutator/daemon of an event, and a few other things
     // as well.
@@ -631,7 +609,13 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
 }
 
 // Needs to be fleshed out
-int handleSigStopNInt(process *proc, procSignalWhat_t what, procSignalInfo_t info) {
+int handleSigStopNInt(process *proc,
+#if defined(rs6000_ibm_aix4_1)
+                      procSignalWhat_t what,
+#else
+                      procSignalWhat_t,
+#endif
+                      procSignalInfo_t /*info*/) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
@@ -798,7 +782,7 @@ int handleSignal(process *proc, procSignalWhat_t what,
 // Most of our syscall handling code is shared on all platforms.
 // Unfortunately, there's that 5% difference...
 
-int handleForkEntry(process *proc, procSignalInfo_t info) {
+int handleForkEntry(process *proc, procSignalInfo_t /*info*/) {
     proc->handleForkEntry();
     return 1;
 }
@@ -867,7 +851,6 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
         }
         if (i== processVec.size()) {
             // this is a new child, register it with dyninst
-            int parentPid = proc->getPid();
             process *theChild = new process(*proc, (int)childPid, -1);
             if (theChild) {
                 processVec.push_back(theChild);
@@ -994,7 +977,7 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
     return 1;
 }
 
-int handleLoadExit(process *proc, procSignalInfo_t info) {
+int handleLoadExit(process *proc, procSignalInfo_t /*info*/) {
     // AIX: for 4.3.2 and later, load no longer causes the 
     // reinitialization of the process text space, and as
     // such we don't need to fix base tramps.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.121 2003/07/29 20:12:48 schendel Exp $
+// $Id: main.C,v 1.122 2003/07/31 19:00:53 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -79,16 +79,6 @@ static bool reportedSelf = false;
        bool startOnReportSelfDone = false;
 
 pdRPC *tp = NULL;
-
-#ifdef PARADYND_PVM
-#include "pvm_support.h"
-extern "C" {
-#include <pvm3.h>
-}
-#endif     
-
-
-bool pvm_running = false;
 
 static pdstring machine_name;
 pdstring osName;
@@ -135,15 +125,8 @@ void sigtermHandler()
   showErrorCallback(98,"paradynd has been terminated");
 }
 
-// Cleanup for pvm and exit.
-// This function must be called when we exit, to clean up and exit from pvm.
 // Now also cleans up shm segs by deleting all processes  -ari
 void cleanUpAndExit(int status) {
-#ifdef PARADYND_PVM
-   if (pvm_running)
-      PDYN_exit_pvm();
-#endif
-
 #if !defined(i386_unknown_nt4_0)
    // delete the trace socket file
    unlink(traceSocketPath.c_str());
@@ -384,15 +367,6 @@ InitManuallyStarted( char* argv[],  const pdstring& pd_machine )
 	}
 	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
 	reportedSelf = true;
-
-#if defined(PARADYND_PVM)
-	// are we designated for monitoring a PVM application?
-	if (pvm_running
-		&& !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
-	{
-		cleanUpAndExit(-1);
-	}
-#endif // PARADYND_PVM
 }
 
 
@@ -427,26 +401,8 @@ InitRemotelyStarted( char* argv[], const pdstring& pd_machine, bool report )
 
 static
 void
-InitLocallyStarted( char* []
-#if PARADYND_PVM
-                    argv
-#endif
-                    , const pdstring& 
-#ifdef PARADYND_PVM
-                    pd_machine 
-#endif
-)
+InitLocallyStarted( char* [] , const pdstring& )
 {
-#ifdef PARADYND_PVM
-	// check if we are designated to monitor a PVM application
-	if( pvm_running && 
-		!PDYN_initForPVM( argv, pd_machine, pd_known_socket_portnum, 1 ))
-	{
-		// TODO -- report error here
-		cleanUpAndExit( -1 );
-	}
-#endif // PARADYND_PVM
-
 	// connect to our front end using our stdout
 	OS::osDisconnect();
 
@@ -459,48 +415,6 @@ InitLocallyStarted( char* []
 
 	// note that we do not need to report to our front end in this case
 }
-
-
-#if defined(PARADYND_PVM)
-static
-void
-InitForPVM( char* argv[], const pdstring& pd_machine )
-{
-	// Check whether we are we are being created for a PVM application.
-	// Also, check whether we are the first PVM paradynd or if were started 
-	// by the first paradynd using pvm_spawn()
-    int pvmParent = pvm_parent();
-
-	if (pvmParent == PvmSysErr)
-	{
-		cout << "Unable to connect to PVM daemon; is PVM running?\n" << endl;
-		cleanUpAndExit(-1);
-	}
-	else
-	{
-		pvm_running = true;
-	}
-
-    if (pvm_running && (pvmParent != PvmNoParent))
-	{
-		// we were started using pvm_spawn() by another paradynd
-		if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 0))
-		{
-			// TODO -- report error here
-			cleanUpAndExit(-1);
-		}
-
-		// report to our front end
-		tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-						pd_machine, NULL, NULL, 2);
-		assert(tp);
-
-		tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
-        reportedSelf = true;
-    }
-}
-#endif // PARADYND_PVM
-
 
 #if !defined(i386_unknown_nt4_0)
 void sighup_handler( int ) {
@@ -679,14 +593,6 @@ main( int argc, char* argv[] )
    cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
 #endif
 
-
-#ifdef PARADYND_PVM
-   if (pd_flavor == pdstring("pvm"))
-   {
-      InitForPVM( argv, pd_machine );
-   }
-#endif // PARADYND_PVM
-   
    if( tp == NULL )
    {
       // we haven't yet reported to our front end
@@ -808,9 +714,8 @@ StartOrAttach( void )
       // spawn the given process, if necessary
       if (newProcCmdLine.size() && (pd_attpid==0))
       {
-         pdvector<pdstring> envp;
          // ignore return val (is this right?)
-         pd_createProcess(newProcCmdLine, envp, *newProcDir); 
+         pd_createProcess(newProcCmdLine, *newProcDir); 
       } 
       else if (pd_attpid && (pd_flag==2))
       {
