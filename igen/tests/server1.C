@@ -46,7 +46,18 @@ int test::intString(string s) {
     return(s.length());
 }
 
+vector<string> test::refVector(vector<string> &vec) {
+  return vec;
+}
+vector<string> test::norefVector(vector<string> vec) {
+  return vec;
+}
+
 string test::stringString(string s) {
+    return(s);
+}
+
+string test::stringStringRef(string &s) {
     return(s);
 }
 
@@ -114,11 +125,54 @@ vector<T_test1::charStruct> test::echoCSA(vector<T_test1::charStruct> csa) {
   return csa;
 }
 
+unsigned total = 0;
+
 string test::boolToString(T_test1::boolStruct bs) {
   if (bs.b) {
-    for (unsigned i=0; i<1000; i++)
+
+    for (unsigned i=0; i<1000; i++) {
+      up1(); total++;
+      up2(); total++;
+      up3(); total++;
+      up4(); total++;
+    }
+
+    for (i=0; i<1000; i++)
       rapidUpcall(i);
+
+    for (i=0; i<1000; i++) {
+      up1(); total++;
+      up2(); total++;
+      up3(); total++;
+      up4(); total++;
+    }
+
+    up_done(total);
+
     return "true";
   } else
     return "false";
+}
+
+T_test1::basicClass *test::echoClass(T_test1::basicClass *b) {
+  return b;
+}
+
+T_test1::basicClass test::echoBClass(T_test1::basicClass b) {
+  return b;
+}
+
+T_test1::derClass test::echoDClass(T_test1::derClass d) {
+  return d;
+}
+
+T_test1::charStruct *test::echoCSP(T_test1::charStruct *cs) {
+  return cs;
+}
+
+T_test1::basicClass::basicClass() { }
+T_test1::derClass::derClass() { }
+
+vector<T_test1::resStruct> test::echoResStruct(vector<T_test1::resStruct> rs) {
+  return rs;
 }

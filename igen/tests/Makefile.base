@@ -10,9 +10,9 @@ ADV_C_OBJ = class.xdr.o class.xdr.CLNT.o advancedC.o
 ADV_S_OBJ = class.xdr.o class.xdr.SRVR.o advancedS.o
 C_OBJSPVM	= testPVM.pvm.o clientPVM.pvm.o testPVM.pvm.CLNT.o 
 S_OBJSPVM	= testPVM.pvm.o serverPVM.pvm.o testPVM.pvm.SRVR.o 
-C_OBJS1	= test1.xdr.o client1.o test1.xdr.CLNT.o  test1.xdr.temp.o
-S_OBJS1	= test1.xdr.o server1.o test1.xdr.SRVR.o test1.xdr.temp.o
-OBJS2	= test2.thread.CLNT.o test2.thread.SRVR.o client2.o server2.o test2.thread.temp.o
+C_OBJS1	= test1.xdr.o client1.o test1.xdr.CLNT.o  
+S_OBJS1	= test1.xdr.o server1.o test1.xdr.SRVR.o 
+OBJS2	= test2.thread.CLNT.o test2.thread.SRVR.o client2.o server2.o 
 IGEN = igen
 PURIFY	= purify -best-effort
 

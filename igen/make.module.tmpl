@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.3  1995/03/13 18:14:15  jcargill
+# Revision 1.4  1995/05/18 11:13:50  markc
+# added support for derived classes
+#
+# Revision 1.3  1995/03/13  18:14:15  jcargill
 # Changed libutil to libpdutil
 #
 # Revision 1.2  1995/02/16  07:54:26  markc
@@ -14,6 +17,8 @@
 # Major build system reorganization
 #
 #
+
+USES_FLEX = true
 
 TARGET	      = igen
 
@@ -29,4 +34,4 @@ CXXFLAGS       += $(USEFULWARNINGS)
 all:	$(TARGET)
 
 templates.o: ../src/templates.C 
-	$(CXX) -DDO_INLINE="inline" $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates.C
+	$(CXX) $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates.C

@@ -63,18 +63,38 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
   out_stream << "return((tag >= " << Options::type_prefix() << "verify) && "
     << "(tag <= " << Options::type_prefix() << "last));\n}\n";
 
+  if (Options::ml->address_space() == message_layer::AS_one) {
+    out_stream << "// KLUDGE ALERT -- can't use a class member for msg_buf because this class \n";
+    out_stream << "// instance is being abused -- multiplexed by several threads \n";
+  }
+
+  out_stream << Options::type_prefix() << "message_tags switch_on("
+    << Options::type_prefix() << "message_tags m";
+  if (Options::ml->address_space() == message_layer::AS_one) 
+    out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE";
+  out_stream << ");\n";
+
   if (Options::ml->serial()) {
-    out_stream << "bool awaitResponse(const "
-      << Options::type_prefix() << "message_tags &);\n";
     out_stream << "// returns true if any requests are buffered\n";
     out_stream << "bool buffered_requests() {\n"
       << "return (async_buffer.size());\n}\n";
 
-    out_stream << "// Default value handles any request\n";
+    out_stream << "// Wait until this mesage tag is received, or is found buffered\n";
+    out_stream << "bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
+
+    out_stream << "bool is_buffered(" << Options::type_prefix() << "message_tags m) {\n";
+    out_stream << "unsigned size = async_buffer.size();\n";
+    out_stream << "for (unsigned u=head; u<size; u++) \n";
+    out_stream << "if (async_buffer[u]->data_type == m) return true;\n";
+    out_stream << "return false;\n}\n";
+
+    out_stream << "// Handles any buffered request\n";
     out_stream << Options::type_prefix() << "message_tags process_buffered();\n";
 
     out_stream << "private:\n";
-    out_stream << Options::type_prefix() << "message_tags delete_buffer();\n";
+    out_stream << Options::type_prefix() << "message_tags process_buffered(unsigned dex);\n";
+    out_stream << "bool awaitResponse(const " << Options::type_prefix() << "message_tags &);\n";
+    out_stream << Options::type_prefix() << "message_tags delete_buffer(unsigned dex);\n";
     out_stream << "public:\n";
   }
   return true;
@@ -106,7 +126,7 @@ bool interface_spec::gen_stl_bundler(ofstream &out_h, ofstream &out_c) const {
 
   out_h << "#if defined(external_templates)\n#pragma interface\n#endif\n"; 
 
-  out_h << "template <class Cont, class Elem, class Bund_Func> \n";
+  out_h << "template <class Cont, class Elem, class Bund_Func> \ninline\n";
   out_h << Options::ml->bundler_return_type() << " " 
     << Options::type_class() << "_"
     << Options::ml->bundler_prefix() << "stl("
@@ -120,16 +140,18 @@ bool interface_spec::gen_stl_bundler(ofstream &out_h, ofstream &out_c) const {
   out_h << "if (" << Options::obj_ptr() << " == "
     << Options::ml->unpack_const() << ") {\n";
   out_h << "unsigned index=0;\n";
-  out_h << "Elem element;\n";
   out_h << "unsigned count;\n";
   out_h << "if (!" << Options::ml->read_tag("obj", "count") << ")\n"
     << " return FALSE;\n";
 
-  out_h << "while ((index < count) && ";
-  out_h << "Func(obj, &element)) {\n";
+  out_h << "while (index < count) {\n ";
+  out_h << "Elem element;\n";
+  out_h << "if (Func(obj, &element)) {\n";
   out_h << "(*data) += element;\n";
   out_h << "index++;\n";
-  out_h << "}\n";
+  out_h << "} else { \n";
+  out_h << "break;\n";
+  out_h << "}\n}\n";
   out_h << "if (index == count) return "
     << Options::ml->bundle_ok() << "; else return " 
       << Options::ml->bundle_fail() << ";\n";
@@ -151,7 +173,7 @@ bool interface_spec::gen_stl_bundler_ptr(ofstream &out_h, ofstream &out_c) const
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
 
-  out_h << "template <class Cont, class Elem, class Bund_Func> \n";
+  out_h << "template <class Cont, class Elem, class Bund_Func> \ninline\n";
   out_h << Options::ml->bundler_return_type() << " " 
     << Options::type_class() << "_"
     << Options::ml->bundler_prefix() << "stl_PTR("
@@ -162,17 +184,22 @@ bool interface_spec::gen_stl_bundler_ptr(ofstream &out_h, ofstream &out_c) const
   out_h << "assert(" << Options::obj_ptr() << " != "
     << Options::ml->free_const() << ");\n";
 
+  out_h << "bool is_null = (*data == NULL);\n";
+  out_h << "if (!P_xdr_Boolean(obj, &is_null)) return " << Options::ml->bundle_fail()
+    << ";\n";
+
   out_h << "if (" << Options::obj_ptr() << " == "
     << Options::ml->unpack_const() << ") {\n";
+  out_h << "if (is_null) { *data = NULL; return " << Options::ml->bundle_ok() << "; }\n";
   out_h << "*data = new Cont;\n";
-  out_h << "assert(*data);\n";
+  out_h << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
   out_h << "return "
     << Options::type_class() << "_"
     << Options::ml->bundler_prefix() << "stl(obj, *data, Func, ptr);\n";
   out_h << "} ";
 
   out_h << "else {\n";
-  out_h << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
+  out_h << "if (!*data) return " << Options::ml->bundle_ok() << ";\n";
   out_h << "return "
          << Options::type_class() << "_"
           <<  Options::ml->bundler_prefix() << "stl(obj, *data, Func, ptr);\n";
@@ -185,9 +212,24 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   out_h << "class " << Options::type_class() << "  {\npublic:\n";
 
   type_defn *td; string s;
-  dictionary_hash_iter<string, type_defn*> tdi(Options::all_types);
 
-  while (tdi.next(s, td)) {
+  bool first = true;
+  out_h << "typedef enum {\n ";
+  for (unsigned u=0; u<Options::vec_types.size(); u++) {
+    td = Options::vec_types[u];
+    if (td->is_class()) {
+      if (!first)
+	out_h << ", " << td->unqual_id();
+      else {
+	out_h << td->unqual_id() << " = " << base()+2001;
+	first=false;
+      }
+    }
+  }
+  out_h << "} class_ids;\n";
+
+  for (u=0; u<Options::vec_types.size(); u++) {
+    td = Options::vec_types[u];
     if (!td->is_in_library() && !td->is_stl()) {
       td->gen_class(Options::ml->bundler_prefix(), out_h);
       if (Options::ml->address_space() == message_layer::AS_many) {
@@ -249,8 +291,9 @@ bool interface_spec::gen_header(ofstream &out_stream, const bool &server) const 
 
   out_stream << "\nprotected:\n virtual void handle_error();\n";
   if (Options::ml->serial()) {
-    out_stream << "queue<" << Options::type_prefix()
+    out_stream << "vector<" << Options::type_prefix()
       << "buf_struct*> async_buffer;\n";
+    out_stream << "unsigned head;\n";
   } 
   if (Options::ml->address_space() == message_layer::AS_one)
     out_stream << "// " << Options::type_prefix() << "msg_buf msg_buf;\n";
@@ -279,7 +322,9 @@ bool interface_spec::gen_ctor_4(ofstream &out_stream, const bool &server,
     << gen_class_name(server) 
       << "(const unsigned tid) :\n ";
   out_stream << " RPCBase(igen_no_err, 0), \n"
-    << Options::ml->rpc_parent() << "(tid) { } \n";
+    << Options::ml->rpc_parent() << "(tid)";
+  if (Options::ml->serial()) out_stream << ", head(0) ";
+  out_stream << " { } \n";
   return true;
 }
 
@@ -294,7 +339,9 @@ bool interface_spec::gen_ctor_1(ofstream &out_stream, const bool &server,
   }
   
   out_stream << "\n: RPCBase(igen_no_err, 0),\n"
-    << Options::ml->rpc_parent() << "(use_fd, r, w, nblock)\n";
+    << Options::ml->rpc_parent() << "(use_fd, r, w, nblock) ";
+  if (Options::ml->serial()) out_stream << " , head(0) ";
+  out_stream << "\n";
   return true;
 }
 
@@ -309,7 +356,9 @@ bool interface_spec::gen_ctor_2(ofstream &out_stream, const bool &server,
     return true;
   }
   out_stream << "\n: RPCBase(igen_no_err, 0),\n"
-    << Options::ml->rpc_parent() << "(family, port, type, host, r, w, nblock)\n";
+    << Options::ml->rpc_parent() << "(family, port, type, host, r, w, nblock)";
+  if (Options::ml->serial()) out_stream << ", head(0)";
+  out_stream << "\n";
   return true;
 }
 
@@ -324,7 +373,9 @@ bool interface_spec::gen_ctor_3(ofstream &out_stream, const bool &server,
     return true;
   }
   out_stream << "\n: RPCBase(igen_no_err, 0),\n"
-    << Options::ml->rpc_parent() << "(machine, login, program, rf, wf, args, nblock, port_fd)\n";
+    << Options::ml->rpc_parent() << "(machine, login, program, rf, wf, args, nblock, port_fd)";
+  if (Options::ml->serial()) out_stream << ", head(0) ";
+  out_stream << "\n";
  
   return true;
 }
@@ -359,11 +410,13 @@ bool interface_spec::gen_dtor_body(ofstream &out_stream, const bool &server) con
 
 bool interface_spec::gen_server_verify(ofstream &out_stream) const {
 
-  out_stream << "void " << gen_class_prefix(true) << "handle_error() {\n";
-  out_stream << "cerr << \"Error not handled, exiting\";\n";
-  out_stream << "IGEN_ERR_ASSERT;\n";
-  out_stream << "exit(-1);\n";
-  out_stream << "}\n\n";
+  if (!Options::dont_gen_handle_err) {
+    out_stream << "void " << gen_class_prefix(true) << "handle_error() {\n";
+    out_stream << "cerr << \"Error not handled, exiting\";\n";
+    out_stream << "IGEN_ERR_ASSERT;\n";
+    out_stream << "exit(-1);\n";
+    out_stream << "}\n\n";
+  }
 
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
@@ -378,6 +431,8 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
     out_stream << Options::error_state("igen_read_err", "false");
   }
   out_stream << "if (!" << Options::ml->bundler_prefix() << "u_int(net_obj(), &tag)) ";
+  out_stream << Options::error_state("igen_proto_err", "false");
+  out_stream << "if (tag != " << Options::type_prefix() << "verify) ";
   out_stream << Options::error_state("igen_proto_err", "false");
   out_stream << "}\n";
 
@@ -401,10 +456,12 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
 
 bool interface_spec::gen_client_verify(ofstream &out_stream) const {
 
-  out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
-  out_stream << "cerr << \"Error not handled, exiting\";\n";
-  out_stream << "assert(0);\n";
-  out_stream << "}\n\n";
+  if (!Options::dont_gen_handle_err) {
+    out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
+    out_stream << "cerr << \"Error not handled, exiting\";\n";
+    out_stream << "assert(0);\n";
+    out_stream << "}\n\n";
+  }
 
   if (Options::ml->address_space() == message_layer::AS_many) {
     out_stream << "bool  " << gen_class_prefix(false)
@@ -444,6 +501,7 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
 }
 
 bool interface_spec::gen_interface() const {
+
   gen_scope(Options::dot_h, Options::dot_c);
 
   gen_header(Options::clnt_dot_h, false);
@@ -562,14 +620,35 @@ bool interface_spec::gen_process_buffered(ofstream &out_stream, const bool &srvr
   out_stream << "if (!async_buffer.size()) return "
     << Options::type_prefix() << "error;\n";
 
-  out_stream << "return (delete_buffer());\n";
+  out_stream << "return (delete_buffer(head));\n";
+  out_stream << "}\n";
+
+  out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
+    << "process_buffered(unsigned index) {\n";
+  out_stream << "if (!async_buffer.size()) return "
+    << Options::type_prefix() << "error;\n";
+  out_stream << "return (delete_buffer(index));\n";
   out_stream << "}\n";
 
   out_stream << Options::type_prefix() << "message_tags "
-    << gen_class_prefix(srvr) << "delete_buffer() {\n";
+    << gen_class_prefix(srvr) << "delete_buffer(unsigned index) {\n";
+  out_stream << "unsigned asize = async_buffer.size();\n";
+  out_stream << "assert(index < asize);\n";
+  out_stream << Options::type_prefix() << "buf_struct *item = async_buffer[index];\n";
 
-  out_stream << Options::type_prefix()
-    << "buf_struct *item = async_buffer.dequeue();\n";
+  out_stream << "unsigned elems_left = asize - head - 1;\n";
+  out_stream << "if (index == head) \n head++;\n";
+  out_stream << "else if (index == (asize - 1))   \n";
+  out_stream << "   async_buffer.resize(asize - 1); \n";
+  out_stream << "else {   \n";
+  out_stream << "   async_buffer[index] = async_buffer[asize - 1]; \n";
+  out_stream << "   async_buffer.resize(asize - 1);   \n";
+  out_stream << "}\n";
+
+  out_stream << "if (!elems_left) {    \n";
+  out_stream << "head = 0; async_buffer.resize(0);   \n";
+  out_stream << "}\n";
+  out_stream << "assert((!async_buffer.size() && !head) || (elems_left == (async_buffer.size()-head)));\n";
   out_stream << Options::type_prefix() << "message_tags tag = item->data_type;\n";
   out_stream << "switch (tag) {\n";
   
@@ -638,20 +717,11 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     << gen_class_prefix(srvr) << "waitLoop(";
   
   if (Options::ml->address_space() == message_layer::AS_many) {
-    out_stream << " void) {\n";
+    out_stream << "void) {\n";
   } else {
     out_stream << " bool specific, "
       << Options::type_prefix() << "message_tags mt) {\n"; 
   }
-
-  if (Options::ml->serial()) {
-    out_stream << "if (buffered_requests()) {\n";
-    out_stream << "return (process_buffered());\n";
-    out_stream << "}\n";
-  }
-
-  if (Options::ml->address_space() == message_layer::AS_one)
-    out_stream << Options::type_prefix() << "msg_buf KLUDGE_msg_buf;\n";    
 
   out_stream << Options::type_prefix() << "message_tags tag;\n";
 
@@ -672,21 +742,34 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "if (!" << Options::ml->read_tag("net_obj()", "tag") << ") ";
     out_stream << Options::error_state("igen_read_err",
 			 Options::type_prefix()+"error");
+    out_stream << "return switch_on(tag);\n"; 
   } else {
     out_stream << "if (!specific) \n";
-    out_stream << "tag = " << Options::type_prefix() 
-      << "message_tags(MSG_TAG_ANY);\n";
+    out_stream << "tag = " << Options::type_prefix() << "message_tags(MSG_TAG_ANY);\n";
     out_stream << "else \n";
     out_stream << "tag = mt;\n";
 
-    out_stream << "int val = THR_OKAY;\n";
+    out_stream << Options::type_prefix() << "msg_buf KLUDGE_msg_buf;\n";    
     out_stream << "// unsigned len = sizeof(msg_buf);\n";
     out_stream << "unsigned len = sizeof(KLUDGE_msg_buf);\n";
     out_stream << "// setRequestingThread(msg_recv((unsigned*)&tag, &msg_buf, &len));\n";
     out_stream << "setRequestingThread(msg_recv((unsigned*)&tag, &KLUDGE_msg_buf, &len));\n";
     out_stream << "if (getRequestingThread() == THR_ERR) ";
-    out_stream <<
-      Options::error_state("igen_read_err", Options::type_prefix()+"error");
+    out_stream << Options::error_state("igen_read_err", Options::type_prefix()+"error");
+    out_stream << "return switch_on(tag, KLUDGE_msg_buf);\n"; 
+  }
+
+
+  out_stream << "}\n";
+
+  out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
+    << "switch_on(" << Options::type_prefix() << "message_tags tag";
+  if (Options::ml->address_space() == message_layer::AS_one) 
+    out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE_msg_buf";
+  out_stream << ") {\n";
+
+  if (Options::ml->address_space() == message_layer::AS_one) {
+    out_stream << "int val = THR_OKAY;\n";
   }
 
   out_stream << "switch (tag) {\n";
@@ -695,8 +778,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "case " << Options::type_prefix() << "verify:\n";
     out_stream << "if (!verify_protocol(true)) ";
     out_stream << Options::error_state("igen_proto_err", Options::type_prefix()+"error");
-    out_stream << "return " << Options::type_prefix() << "verify;\n";
-    out_stream << "break;\n";
+    out_stream << "return tag;\n";
   }
 
   remote_func *rf; string s;
@@ -717,8 +799,26 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
   }
 
   out_stream << "return tag;\n";
-
   out_stream << "}\n";
+
+  if (Options::ml->address_space() != message_layer::AS_one) {
+    out_stream << "bool " << gen_class_prefix(srvr)
+      << "wait_for(" << Options::type_prefix() << "message_tags tag) {\n";
+
+    out_stream << "unsigned size = async_buffer.size();\n";
+    out_stream << "for (unsigned u=head; u<size; u++) \n";
+    out_stream << "if (async_buffer[u]->data_type == tag) {\n";
+    out_stream << "if (process_buffered(u) != tag) \n return false;\n";
+    out_stream << "else \n return true;\n";
+    out_stream << "}\n";
+
+    out_stream << "if (!awaitResponse(tag)) ";
+    out_stream << Options::error_state("igen_proto_err", "false");
+    
+    out_stream << "if (!switch_on(tag)) \n return false;\n";
+    out_stream << "else \n return true;\n";
+    out_stream << "}\n";
+  }
   return true;
 }
 
@@ -739,8 +839,8 @@ bool interface_spec::are_bundlers_generated() const {
 }
 
 void interface_spec::ignore(bool is_srvr, char *text) {
-  if (!text || (strlen(text) < 17)) return;
-  char *buffer = strdup(text);
+  if (!text || (P_strlen(text) < 17)) return;
+  char *buffer = P_strdup(text);
   char *temp = buffer;
   temp[strlen(temp) - 8] = (char) 0;
   temp += 8;

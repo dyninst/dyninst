@@ -1,4 +1,5 @@
 #include "test1.xdr.CLNT.h"
+#include "util/h/Timer.h"
 
 string str1 = "A Test string with server words in it";
 string str2 = "Different string";
@@ -13,17 +14,28 @@ void echoCSA(vector<T_test1::charStruct> &in) {
     cout << "Item " << i << " = " << in[i].cp << endl;
 }
 
+static bool seen_done = false;
 static bool seen_rapid_upcall=false;
+static bool seen_random_upcall = false;
 static unsigned count = 0;
+timer perf_timer;
 
-main()
+T_test1::derClass::derClass() { }
+T_test1::basicClass::basicClass() { }
+
+main(int argc, char *argv[])
 {
     int i, fd, pid, total;
     T_test1::intStruct is;
     testUser *remote;
 
     vector<string> arg_list;
-    fd = RPCprocessCreate(pid, "localhost", "", "server1", arg_list);
+    // note -- starting on remote hosts will not work yet
+    string host = "localhost";
+    if (argc > 1)
+      host = argv[1];
+
+    fd = RPCprocessCreate(pid, host, "", "server1", arg_list);
     if (fd < 0) {
 	perror("process Create");
 	exit(-1);
@@ -61,12 +73,83 @@ main()
     assert(str2 == strNull);
     cerr << "stringString: null string test ok\n";
 
-    for (tries=0; tries<100; tries++) {
-      str2 = remote->stringString(str1);
-      assert(str2 == str1);
-    }
-    cerr << "stringString ok\n";
+    const unsigned max_tries = 500;
 
+    cerr << "Performance testing: \n";
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++) 
+      remote->nullNull();
+    perf_timer.stop();
+    cerr << max_tries << " null rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " null rpc's per second\n\n";
+
+    string echo_me = "happy", res_me;
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++) {
+      res_me = remote->stringString(echo_me);
+      assert(res_me == echo_me);
+    }
+    perf_timer.stop();
+    cerr << max_tries << " echo string rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo string rpc's per second\n\n";
+
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++) {
+      res_me = remote->stringStringRef(echo_me);
+      assert(res_me == echo_me);
+    }
+    perf_timer.stop();
+    cerr << max_tries << " echo string by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo string by ref rpc's per second\n\n";
+
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++) {
+      res_me = remote->stringStringRef(longStr);
+      assert(res_me == longStr);
+    }
+    perf_timer.stop();
+    cerr << max_tries << " echo long string rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo long string rpc's per second\n\n";
+
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++) {
+      res_me = remote->stringStringRef(longStr);
+      assert(res_me == longStr);
+    }
+    perf_timer.stop();
+    cerr << max_tries << " echo long string by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo long string by ref rpc's per second\n\n";
+
+    vector<string> arg, result;
+    arg += "happy"; arg += "sad"; arg += "honest"; arg += "memory_hog";
+    arg += "design"; arg += "good"; arg += "bad"; arg += "functional";
+    arg += "efficient"; arg += "debug"; arg += "core_dump"; arg += "fault";
+    arg += "colors"; arg += "widgets"; arg += "stupendous";
+    for (int q=0; q<100; ++q)
+      arg += "filler";
+
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++)
+      result = remote->norefVector(arg);
+    perf_timer.stop();
+    cerr << max_tries << " echo vector<string> rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo vector<string> rpc's per second\n\n";
+
+    perf_timer.clear();
+    perf_timer.start();
+    for (tries=0; tries<max_tries; tries++)
+      result = remote->refVector(arg);
+    perf_timer.stop();
+    cerr << max_tries << " echo vector<string> by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo vector<string> by ref rpc's per second\n\n";
+
+    
     for (tries=0; tries<100; tries++) {
       assert(remote->add(1, 1) == 2);
       assert(remote->add(-1, -13) == -14);
@@ -86,7 +169,7 @@ main()
     cerr << "sumVector ok\n";
 
     remote->triggerAsyncUpcall(-10);
-
+    remote->wait_for(T_test1::asyncUpcall_REQ);
     for (i=0; i < 10000; i++)
 	assert(remote->add(1, i) == (1+i));
     printf("RPC test1 passed\n");
@@ -122,6 +205,56 @@ main()
     for (ea=0; ea<csa.size(); ea++)
       assert(csap[ea].cp == csa[ea].cp);
 
+    T_test1::charStruct *csptr;
+    csptr = remote->echoCSP((T_test1::charStruct*)NULL);
+    assert(!csptr);
+    cerr << "Passed null structure ok\n";
+
+    csptr = remote->echoCSP(&cs);
+    assert(csptr->cp == cs.cp);
+    cerr << "Passed structure pointer ok\n";
+    delete csptr;
+
+    T_test1::basicClass b, b1, *bp; T_test1::derClass d, d1, *dp;
+    b.b = false; d.u = 3019; d.b = false;
+    bp = NULL;
+    bp = remote->echoClass((T_test1::basicClass*)NULL);
+    assert(!bp);
+    cerr << "Null class passed ok\n";
+    bp = remote->echoClass(&b);
+    assert(!bp->b);
+    assert(bp->getId() == T_test1::basicClass_id);
+    delete bp;
+    cerr << "passing class pointers ok\n";
+
+    b1 = remote->echoBClass(b);
+    d1 = remote->echoDClass(d);
+    assert(!b1.b); 
+    assert(d1.u == 3019); 
+    assert(!d.b);
+    cerr << "passing classes ok\n";
+
+    bp = remote->echoClass(&d1);
+    assert(bp->getId() == T_test1::derClass_id);
+    delete bp;
+    cerr << "passing derived class ok\n";
+
+    vector<string> vs1, vs2;
+    vs1 += "/Mark"; vs1 += "/Is"; vs1 += "/Bored";
+    vs2 += "/What"; vs2 += "/To";
+    vector<T_test1::resStruct> vres, answer;
+    T_test1::resStruct restr;
+    restr.parts = vs1;
+    restr.handle = 0;
+    vres += restr;
+    restr.parts = vs2;
+    vres += restr;
+    cerr << "Echoing vector of structures\n";
+    answer = remote->echoResStruct(vres);
+    assert(answer[0].parts == vs1);
+    assert(answer[1].parts == vs2);
+    cerr << "Echoing vector of structures --> passed\n";
+    
     cerr << "triggering async upcalls\n";
     T_test1::boolStruct bs;
     bs.b = true;
@@ -129,12 +262,31 @@ main()
     bs.b = false;
     assert (!seen_rapid_upcall);
     assert (remote->boolToString(bs) == "false");
-
+    assert (!seen_rapid_upcall);
     cerr << "handling async upcalls\n";
-    while (remote->buffered_requests())
-      remote->process_buffered();
-    assert(count == 999);
+    while(remote->is_buffered(T_test1::rapidUpcall_REQ))
+      remote->wait_for(T_test1::rapidUpcall_REQ);
 
+    assert(count == 999);
+    assert (!seen_random_upcall);
+
+    bool one_there = true; 
+    while (one_there) {
+      one_there = false;
+      if (remote->is_buffered(T_test1::up1_REQ)) {
+	remote->wait_for(T_test1::up1_REQ); one_there = true;
+      }
+      if (remote->is_buffered(T_test1::up2_REQ)) {
+	remote->wait_for(T_test1::up2_REQ); one_there = true;
+      }
+      if (remote->is_buffered(T_test1::up3_REQ)) {
+	remote->wait_for(T_test1::up3_REQ); one_there = true;
+      }
+      if (remote->is_buffered(T_test1::up4_REQ)) {
+	remote->wait_for(T_test1::up4_REQ); one_there = true;
+      }
+    }
+    remote->wait_for(T_test1::up_done_REQ);
     remote->asyncClient();
     sleep(3);
     delete remote;
@@ -154,3 +306,29 @@ void testUser::asyncUpcall(int val) {
   printf("asyncUpcall called with value = %d\n", val);
 }
 
+unsigned total = 0;
+
+void testUser::up1() {
+  total++;
+  seen_random_upcall = true;
+}
+
+void testUser::up2() {
+  total++;
+  seen_random_upcall = true;
+}
+
+void testUser::up3() {
+  total++;
+  seen_random_upcall = true;
+}
+
+void testUser::up4() {
+  total++;
+  seen_random_upcall = true;
+}
+
+void testUser::up_done(u_int tot) {
+  assert(tot == total);
+  seen_done = true;
+}

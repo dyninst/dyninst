@@ -10,11 +10,11 @@ extern void *yyerror(char*);
 
 %}
 
-%token tIDENT tCOMMA tARRAY tSTAR tNAME tBASE tINT tUNS tUPCALL tASYNC
+%token tIDENT tCOMMA tSTAR tNAME tBASE tUNS tUPCALL tASYNC
 %token tLPAREN tRPAREN tSEMI tLBLOCK tRBLOCK 
 %token tTYPEDEF tSTRUCT tVERSION tVIRTUAL
 %token tCLASS tCOLON tCIGNORE tSIGNORE tLINE tCONST tIGNORE
-%token tANGLE_L tANGLE_R tFREE
+%token tANGLE_L tANGLE_R tFREE tREF tABSTRACT tFORWARD
 %%
 
 completeDefinition: parsableUnitList { return 0;}
@@ -26,10 +26,10 @@ completeDefinition: parsableUnitList { return 0;}
 };
 
 parsableUnitList: 
-| parsableUnit { parsing = 0; }parsableUnitList;
+| parsableUnitList parsableUnit { parsing = 0; };
 
 parsableUnit: interface_spec 
-| typeSpec;
+            | typeSpec;
 
 interfacePreamble: interfaceName tLBLOCK interfaceBase interfaceVersion {
   interface_spec *is;
@@ -47,6 +47,10 @@ interfaceBase: tBASE tUNS tSEMI { $$.u = $2.u; };
 
 interfaceVersion: tVERSION tUNS tSEMI { $$.u = $2.u; };
 
+forward_spec: tFORWARD tIDENT tSEMI {
+  Options::forward_decls += *$2.cp; delete $2.cp;
+};
+
 definitionList:
 	      | definitionList definition
 	      ;
@@ -62,13 +66,22 @@ optUpcall:   { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = false; }
 optFree:        { $$.b = false;}
         | tFREE { $$.b = true;}
 
-definition: optFree optUpcall optConst typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
-  arg a($4.cp, $5.u, $3.b, NULL);
-  if (!Options::current_interface->new_remote_func($6.cp, $8.arg_vector,
+optRef:         { $$.b = false;}
+        | tREF  { $$.b = true;};
+
+definition: optFree optUpcall optConst typeName pointers optRef tIDENT tLPAREN arglist tRPAREN tSEMI {
+  arg a($4.cp, $5.u, $3.b, NULL, $6.b);
+  if ($5.u && $6.b) {
+    char msg[80];
+    sprintf(msg, "Cannot use a reference with pointers, goodbye\n");
+    yyerror(msg);
+    exit(0);
+  }
+  if (!Options::current_interface->new_remote_func($7.cp, $9.arg_vector,
 						   $2.fd.call, $2.fd.is_virtual,
 						   a, $1.b))
     abort();
-  delete ($6.cp); delete ($4.cp); delete ($8.arg_vector);
+  delete ($7.cp); delete ($4.cp); delete ($9.arg_vector);
 
 } | tCIGNORE {
  Options::current_interface->ignore(false, $1.charp);
@@ -76,15 +89,26 @@ definition: optFree optUpcall optConst typeName pointers tIDENT tLPAREN arglist 
  Options::current_interface->ignore(true, $1.charp);
 };
 
-optIgnore: tIGNORE { $$.charp = $1.charp;}
-           |        { $$.charp = NULL; };
+optIgnore: tIGNORE { $$.cp = new string($1.charp);}
+           |        { $$.cp = new string((char*)NULL); };
 
-classOrStruct: tCLASS | tSTRUCT;
+optAbstract:      { $$.b = false; }
+           | tABSTRACT { $$.b = true; };
+
+classOrStruct: optAbstract tCLASS { $$.class_data.b = true; $$.class_data.abs = $1.b;}
+             | tSTRUCT { $$.class_data.b = false; $$.class_data.abs = false;};
 
 typeSpec: classOrStruct tIDENT optDerived
                         tLBLOCK fieldDeclList optIgnore tRBLOCK tSEMI {
    // remove ignore tokens -- later
    // is derived? -- later
+   if (($1.class_data.b || $3.derived.is_derived) &&
+       Options::ml->address_space() == message_layer::AS_one) {
+     char str[80];
+     sprintf(str, "Not supported for single address spaces, you should not be doing this, goodbye!\n");
+     yyerror(str);
+     exit(0);
+   }
    if (Options::types_defined(*$2.cp)) {
      char str[80];
      
@@ -94,14 +118,17 @@ typeSpec: classOrStruct tIDENT optDerived
    }
 
    // FREE ALL MEMORY
-   $$.cp = new string(Options::allocate_type(*$2.cp,
+
+   $$.cp = new string(Options::allocate_type(*$2.cp, $1.class_data.b, $1.class_data.abs,
+					     $3.derived.is_derived,
+					     *($3.derived.name),
 					     type_defn::TYPE_COMPLEX, true, false,
-					     $5.arg_vector, $6.charp));
+					     $5.arg_vector, *$6.cp));
    delete ($2.cp); delete($3.derived.name); delete ($5.arg_vector); delete($6.cp);
    parsing = 0;
  }; 
 
-optDerived: {$$.derived.is_derived = false; $$.derived.name = NULL;}
+optDerived: {$$.derived.is_derived = false; $$.derived.name = new string;}
           | tCOLON tIDENT {$$.derived.is_derived=true; $$.derived.name = $2.cp;};
 
 fieldDeclList:  { $$.arg_vector = new vector<arg*>; }
@@ -110,7 +137,7 @@ fieldDeclList:  { $$.arg_vector = new vector<arg*>; }
 };
 
 fieldDecl: optConst typeName pointers tIDENT tSEMI {
-  $$.args = new arg($2.cp, $3.u, $1.b, $4.cp);
+  $$.args = new arg($2.cp, $3.u, $1.b, $4.cp, false);
   delete($2.cp); delete($4.cp);
 };
 
@@ -120,15 +147,30 @@ typeName: tIDENT {
     char str[80];
 
     bool in_lib = false;
+    bool is_forward = false;
+
+    unsigned fsize = Options::forward_decls.size();
+    for (unsigned u=0; u<fsize; u++) 
+      if (Options::forward_decls[u] == *$1.cp) {
+	is_forward = true; break;
+      }
+
     if (Options::current_interface->are_bundlers_generated()) {
-      sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
-      yyerror(str);
-      exit(0);
+      if (!is_forward) {
+	sprintf(str, "unknown type %s, exiting", ($1.cp)->string_of());
+	yyerror(str);
+	exit(0);
+      }
     } else
       in_lib = true;
 
-    $$.cp = new string(Options::allocate_type(*$1.cp,
-					      type_defn::TYPE_COMPLEX, true, in_lib));
+    if (!is_forward)
+      $$.cp = new string(Options::allocate_type(*$1.cp, false, false,
+						false, "",
+						type_defn::TYPE_COMPLEX, true, in_lib));
+    else
+      $$.cp = new string(Options::type_prefix() + *$1.cp);
+
     delete ($1.cp);
   } else
     $$.cp = new string(Options::get_type(*$1.cp));
@@ -145,7 +187,7 @@ typeName: tIDENT {
     } else
       in_lib = true;
 
-    $$.cp = new string(Options::allocate_type(tname, 
+    $$.cp = new string(Options::allocate_type(tname, false, false, false, "",
 					      type_defn::TYPE_COMPLEX, true, in_lib));
   } else
     $$.cp = new string(Options::get_type(tname));
@@ -182,7 +224,7 @@ typeName: tIDENT {
   } else
     in_lib = true;
 
-  string tname = string(*$1.cp) + "<" + *$3.cp + ">";
+  string tname = string(*$1.cp) + "<" + el_data.name + ">";
   Options::stl_seen = true;
   if (!Options::types_defined(tname)) {
     $$.cp = new string(Options::allocate_stl_type(*$1.cp, *$3.cp, $4.u, in_lib));
@@ -205,15 +247,20 @@ pointers:		 { $$.u = 0; }
 // ...but only 1 level of indirection
 //
 
-funcArg: optConst typeName pointers tIDENT {
-  // this may exit
-  $$.args = new arg($2.cp, $3.u, $1.b, $4.cp);
-  delete ($2.cp); delete($4.cp);
-}
-| optConst typeName pointers {
-  $$.args = new arg($2.cp, $3.u, $1.b, NULL);
-  delete ($2.cp);
-};
+funcArg: optConst typeName pointers {
+            $$.args = new arg($2.cp, $3.u, $1.b, NULL, false);
+            delete ($2.cp);
+	  } | optConst typeName pointers tIDENT {
+	    // this may exit
+	    $$.args = new arg($2.cp, $3.u, $1.b, $4.cp, false);
+	    delete ($2.cp); delete($4.cp);
+	  } | optConst typeName tREF tIDENT {
+	    $$.args = new arg($2.cp, 0, $1.b, $4.cp, true);
+	    delete ($2.cp); delete ($4.cp);
+	  } | optConst typeName tREF {
+	    $$.args = new arg($2.cp, 0, $1.b, NULL, true);
+	    delete ($2.cp);
+	  };
 
 nonEmptyArg: funcArg {    
   $$.arg_vector = new vector<arg*>;

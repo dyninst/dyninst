@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.9 1995/02/16 07:49:07 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.10 1995/05/18 11:14:11 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -70,7 +70,6 @@ int getScanChar(FILE *file)
 DIGIT	[0-9]
 DOLLAR	\$
 INT	{DIGIT}+
-UNS	{DIGIT}+
 FIX	{INT}"."{INT}
 ALPHA	[A-Za-z]
 IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
@@ -88,6 +87,7 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
                   } else
 		    REJECT;
 		}
+"forward"	{ return(tFORWARD); }
 \$upcall	{ return(tUPCALL); }
 \$virtual	{ return(tVIRTUAL); }
 \$base		{ return(tBASE); }
@@ -95,6 +95,7 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 \$version	{ return(tVERSION); }
 \$async		{ return(tASYNC); }
 \$free		{ return(tFREE); }
+"&"		{ return(tREF); }
 "("		{ return(tLPAREN); }
 ")"		{ return(tRPAREN); }
 "{"		{ return(tLBLOCK); }
@@ -102,17 +103,16 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 ","		{ return(tCOMMA); }
 "<"		{ return(tANGLE_L);}
 ">"		{ return(tANGLE_R);}
-"[]"		{ return(tARRAY); }
 "*"		{ return(tSTAR); }
 ":"		{ return(tCOLON); }
 ";"		{ /* parsing = 0; */
 		  return(tSEMI); 
 		}
 "const"         { return(tCONST); }
-"array"		{ return(tARRAY); }
 "typedef"	{ return(tTYPEDEF); }
 "struct"	{ return(tSTRUCT); }
 "class"		{ return(tCLASS); }
+"abstract"	{ return(tABSTRACT); }
 \$cignore[^$]*\$cignore		{ yylval.charp = yytext; return(tCIGNORE); }
 \$signore[^$]*\$signore		{ yylval.charp = yytext; return(tSIGNORE); }
 \$ignore[^$]*\$ignore		{ yylval.charp = yytext; return(tIGNORE); }
@@ -126,10 +126,6 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
                   assert(i >= 0);
                   yylval.u = (unsigned) i;
 		  return(tUNS);
-		}
-{INT}           {
-		  yylval.i = atoi(yytext);
-		  return(tINT);
 		}
 .       	{ yyerror("invalid character"); }
 %%

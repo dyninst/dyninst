@@ -3,9 +3,12 @@
 #include <iostream.h>
 #include <stdio.h>
 
+bool Options::dont_gen_handle_err = false;
 dictionary_hash<string, type_defn*> Options::all_types(string::hash);
+vector<type_defn*> Options::vec_types;
 vector<message_layer*> Options::all_ml;
 vector<Options::stl_data> Options::stl_types;
+vector<string> Options::forward_decls;
 
 extern FILE *yyin;
 extern int yyparse();
@@ -21,6 +24,7 @@ static void end_header_files();
 static void init_types();
 
 interface_spec *Options::current_interface;
+
 ifstream Options::input;
 ofstream Options::dot_h;
 ofstream Options::dot_c;
@@ -67,6 +71,8 @@ static void do_opts(int argc, char *argv[]) {
 	cerr << "Message layer 'pvm' unknown\n";
 	exit(-1);
       }
+    } else if (!strcmp("-no_err", argv[i])) {
+      Options::dont_gen_handle_err = true;
     } else if (!strcmp("-xdr", argv[i])) {
       if (!set_ml("xdr")) {
 	cerr << "Message layer 'xdr' unknown\n";
@@ -290,15 +296,24 @@ static void init_types() {
   el.name = "string"; el.type = "string"; el.stars = 0;
   Options::stl_types[0].elements += el;
 
-  Options::add_type("int", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("double", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("void", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("bool", type_defn::TYPE_SCALAR, false, true, NULL, NULL, "Boolean");
-  Options::add_type("u_int", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("float", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("u_char", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("char", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("string", type_defn::TYPE_SCALAR, false, true, NULL, NULL, "string_pd");
+  Options::add_type("int", false, false, false, "", type_defn::TYPE_SCALAR, false,
+		    true, NULL);
+  Options::add_type("double", false, false, false, "", type_defn::TYPE_SCALAR, false,
+		    true, NULL);
+  Options::add_type("void", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL);
+  Options::add_type("bool", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL, NULL, "Boolean");
+  Options::add_type("u_int", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL);
+  Options::add_type("float", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL);
+  Options::add_type("u_char", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL);
+  Options::add_type("char", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL);
+  Options::add_type("string", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+		    NULL, NULL, "string_pd");
 }
 
 static bool set_ml(const string ml_name) {
@@ -421,7 +436,6 @@ void dump_to_dot_h(const char *msg) {
   Options::dot_h << msg << endl;
 }
 
-
 string Options::make_ptrs(unsigned count) {
   static char buffer[100];
   assert(count < 100);
@@ -433,18 +447,27 @@ string Options::make_ptrs(unsigned count) {
   return buffer;
 }
 
-string arg::type(const bool use_const) const {
-  if (use_const)
-    return ((constant_ ? string("const ") : string("")) + type_+pointers_);
+string arg::deref(const bool use_ref) const {
+  if (stars_)
+    return pointers_;
+  else if (is_ref_ && use_ref)
+    return "&";
   else
-    return (type_ + pointers_);
+    return "";
+}
+
+string arg::type(const bool use_const, const bool local) const {
+  if (use_const)
+    return ((constant_ ? string("const ") : string("")) + type_ + deref(local));
+  else
+    return (type_ + deref(local));
 }
 
 string arg::gen_bundler_name() const {
   string suffix;
   switch (stars_) {
   case 0: break;
-  case 1: suffix = "_PTR";
+  case 1: suffix = "_PTR"; break;
   default: abort();
   }
   return ((Options::all_types[base_type()])->gen_bundler_name() + suffix);
@@ -460,9 +483,15 @@ void arg::gen_bundler(ofstream &out_stream, const string obj_name,
 }
 
 arg::arg(const string *type, const unsigned star_count,
-	 const bool b, const string *name) 
+	 const bool b, const string *name, const bool is_ref) 
 : pointers_(Options::make_ptrs(star_count)), type_(*type),
-  constant_(b), stars_(star_count) {
+  constant_(b), stars_(star_count), is_ref_(is_ref) {
+
+  if(is_ref_ && star_count) {
+    cerr << "Cannot use pointers with a reference, good bye\n";
+    exit(0);
+  }
+
   if (name)
     name_ = *name;
   else
@@ -521,6 +550,8 @@ bool arg::tag_bundle_send_one(ofstream &out_stream, const string bundle_val,
 {
   
 }
+
+string type_defn::qual_id() const { return (Options::type_prefix()+unqual_id());}
 
 bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
 			  ofstream &out_stream) const
@@ -596,13 +627,12 @@ type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
 		     const bool in_lib)
 : my_type_(type_defn::TYPE_COMPLEX), 
   in_lib_(in_lib), is_stl_(true),
-  pointer_used_(false), can_point_(true) 
+  pointer_used_(false), can_point_(true), is_class_(false), is_derived_(false) 
 {
   string ptrs = Options::make_ptrs(ct);
   string waste="dummy";
-  name_ = stl_name + "<" + element_name +
-    ptrs + ">";
-  stl_arg_ = new arg(&element_name, ct, false, &waste);
+  name_ = stl_name + "<" + element_name + ptrs + ">";
+  stl_arg_ = new arg(&element_name, ct, false, &waste, false);
   if (Options::all_types.defines(name_)) {
     cerr << name_ << " is already defined\n";
     exit(-1);
@@ -612,11 +642,27 @@ type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
   bundle_name_ = "stl";
 }
 
-type_defn::type_defn(const string name, const type_type type,
+static string process_ignore(const string txt) {
+  if (txt.length() < 17) return "";
+  char *buffer = P_strdup(txt.string_of());
+  char *temp = buffer;
+
+  temp[strlen(temp) - 8] = (char) 0;
+  temp += 8;
+  string s = temp;
+  delete buffer;
+  return s;
+}
+
+type_defn::type_defn(const string name, const bool is_cl, const bool is_abs,
+		     const bool is_der, const string par, 
+		     const type_type type,
 		     vector<arg*> *arglist, const bool can_point, 
 		     bool in_lib, const string ignore, const string bundle_name)
 : my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),
-  is_stl_(false), pointer_used_(false), can_point_(can_point), ignore_(ignore)
+  is_stl_(false), pointer_used_(false), can_point_(can_point),
+  ignore_(process_ignore(ignore)),
+  is_class_(is_cl), is_abstract_(is_abs), is_derived_(is_der) 
 {
   stl_arg_ = NULL;
   if (Options::all_types.defines(name)) {
@@ -639,52 +685,227 @@ type_defn::type_defn(const string name, const type_type type,
     for (int i=0; i< arglist->size(); i++)
       arglist_ += (*arglist)[i];
   }
+  if (is_derived_) {
+    parent_ = Options::type_prefix() + par;
+    if (!Options::all_types.defines(parent_)) {
+      cerr << "Parent " << par << " not defined\n";
+      exit(0);
+    } else {
+      type_defn *p = Options::all_types[parent_];
+      assert(p);
+      p->add_kid(name_);
+    }
+  }
 }
+
+void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
 
 bool type_defn::gen_class(const string bundler_prefix, ofstream &out_stream) {
 
-  out_stream << "class " << unqual_name() << "{ \npublic:";
+  if (is_class())
+    out_stream << "class "; 
+  else
+    out_stream << "struct ";
+  out_stream << unqual_name();
+  if (is_derived()) 
+    out_stream << " : public " << parent() << " ";
+  out_stream << "{ \n";
+  if (is_class()) {
+    out_stream << " public: \n ";
+    out_stream << unqual_name() << "();\n";
+  }
   
   for (int i=0; i<arglist_.size(); i++) 
     out_stream << arglist_[i]->type(true) << " " << arglist_[i]->name() << ";\n";
+
+  if (ignore_.length())
+    out_stream << "\n" << ignore_ << endl;
+
+  if (is_class()) {
+    out_stream << "public:\n";
+    if (has_kids())
+      out_stream << "virtual ";
+    out_stream << Options::ml->bundler_return_type() << " marshall "
+      << "(" << Options::ml->marshall_obj()
+	<< " " << Options::ml->marshall_obj_ptr() << " obj);\n";
+    if (has_kids())
+      out_stream << "virtual ";
+    out_stream << "class_ids getId() { return " << unqual_id() << ";}\n";
+  }
+
   out_stream << "};\n";
-  // out_stream << "typedef struct " << unqual_name() << " " << unqual_name() << ";\n";
+
+  if (!is_class()) 
+    out_stream << "typedef struct " << unqual_name() << " " << unqual_name()
+      << ";\n";
   return true;
 }
 
 bool type_defn::gen_bundler_ptr(const string class_prefix, const string bundler_prefix,
 				ofstream &out_c, ofstream &out_h) const 
 {
-  if (!pointer_used())
-    return true;
+  bool do_it = false;
+  if (pointer_used())
+    do_it = true;
+  else if (is_class()) {
+    type_defn *curr_defn = this;
+    while (curr_defn->is_derived()) {
+      if (!Options::all_types.defines(curr_defn->parent())) {
+	cerr << "Parent " << curr_defn->parent() << " should be defined\n";
+	assert(0);
+      }
+      curr_defn = Options::all_types[curr_defn->parent()];
+      if (curr_defn->pointer_used()) {
+	do_it = true;
+	break;
+      }
+    }
+  }
 
+  // if (!do_it)
+  // return true;
+
+  if (is_class()) 
+    return (gen_bundler_ptr_class(class_prefix, bundler_prefix, out_c, out_h));
+  else
+    return (gen_bundler_ptr_struct(class_prefix, bundler_prefix, out_c, out_h));
+}
+
+bool type_defn::gen_bundler_ptr_struct(const string class_prefix, const string bundler_prefix,
+				ofstream &out_c, ofstream &out_h) const 
+{
   out_h << "static " << Options::ml->bundler_return_type() << " "
     << bundler_prefix << unqual_name() << "_PTR" << "(" << Options::ml->marshall_obj()
       << " " << Options::ml->marshall_obj_ptr() << " obj, "
 	<< unqual_name() << Options::ml->marshall_data_ptr() << "*"
-	  << " data)" << ";" << endl;
+	  << " data);\n";
 
-  out_c << Options::ml->bundler_return_type() << " "  << class_prefix;
-  out_c << bundler_prefix << unqual_name() << "_PTR" << "("
-    << Options::ml->marshall_obj() << " " << Options::ml->marshall_obj_ptr() << " obj, ";
-  out_c << class_prefix << unqual_name() << Options::ml->marshall_data_ptr() << "*" 
-    << " data) {\n";
+  out_c << Options::ml->bundler_return_type() << " "
+    << class_prefix << bundler_prefix << unqual_name() << "_PTR"
+      << "(" << Options::ml->marshall_obj()
+	<< " " << Options::ml->marshall_obj_ptr() << " obj, "
+	  << name() << Options::ml->marshall_data_ptr() << "*" << " data) { \n";
   out_c << "assert(obj);\n";
   out_c << "assert(" << Options::obj_ptr() << " != " << Options::ml->free_const() << ");\n";
+  out_c << "bool is_null(false);\n";
   out_c << "switch (" << Options::obj_ptr() << ") {\n";
   out_c << "case " << Options::ml->pack_const() << ":\n";
-  out_c << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "if (!*data) is_null=true;\n";
+  out_c << "if (!" << Options::all_types["bool"]->gen_bundler_call("obj", "&is_null", 0)
+    << ") return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "if (!*data) return " << Options::ml->bundle_ok() << ";\n";
   out_c << "break;\n";
   out_c << "case " << Options::ml->unpack_const() << ":\n";
+  out_c << "if (!" << Options::all_types["bool"]->gen_bundler_call("obj", "&is_null", 0)
+    << ") return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "if (is_null) { *data = NULL; return " << Options::ml->bundle_ok() << ";}\n";
   out_c << "*data = new " << name() << ";\n";
+  out_c << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
   out_c << "break;\n";
+  out_c << "default: \n return " << Options::ml->bundle_fail() << ";\n";
   out_c << "}\n";
   out_c << "return " << class_prefix << bundler_prefix << unqual_name() << "(obj, *data);\n";
   out_c << "}\n";
   return true;
 }
 
+bool type_defn::gen_bundler_ptr_class(const string class_prefix, const string bundler_prefix,
+				ofstream &out_c, ofstream &out_h) const 
+{
+  out_h << "static " << Options::ml->bundler_return_type() << " "
+    << bundler_prefix << unqual_name() << "_PTR" << "(" << Options::ml->marshall_obj()
+      << " " << Options::ml->marshall_obj_ptr() << " obj, "
+	<< unqual_name() << Options::ml->marshall_data_ptr() << "*" << " data);\n";
+
+  out_c << Options::ml->bundler_return_type() << " "  << class_prefix
+    << bundler_prefix << unqual_name() << "_PTR" << "("
+      << Options::ml->marshall_obj() << " " << Options::ml->marshall_obj_ptr()
+	<< " obj, ";
+  out_c << class_prefix << unqual_name() << Options::ml->marshall_data_ptr() << "*" 
+    << " data) {\n";
+  out_c << "assert(obj);\n";
+  out_c << "assert(" << Options::obj_ptr() << " != " << Options::ml->free_const()
+    << ");\n";
+  out_c << "bool is_null = (*data == NULL);\n";
+  out_c << "unsigned tag;\n";
+  out_c << "if (" << Options::obj_ptr() << " == " << Options::ml->pack_const()
+    << ") {\n";
+  out_c << "if (!*data) tag = " << qual_id() << ";\n";
+  out_c << "else tag = (unsigned) (*data)->getId();\n";
+  out_c << "}\n";
+  out_c << "if (!" << Options::all_types["bool"]->gen_bundler_call("obj", 
+								   "&is_null",
+								   0)
+    << ") return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "if (!" << Options::all_types["u_int"]->gen_bundler_call("obj",
+								    "&tag",
+								    0)
+    << ") return " << Options::ml->bundle_fail() << ";\n";
+
+  out_c << "if (" << Options::obj_ptr() << " == " << Options::ml->unpack_const()
+    << ") {\n";
+  out_c << "if (is_null) { *data = NULL; return " << Options::ml->bundle_ok() << ";}\n";
+  out_c << "switch (tag) {\n";
+  if (!is_abstract()) {
+    out_c << "case " << qual_id() << ":\n";
+    out_c << "*data = new " << name() << ";\n";
+    out_c << "break;\n";
+  }
+  
+  recursive_dump_kids(this, out_c);
+
+  out_c << "default: \n return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "};\n";
+  out_c << "if (!*data) return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "} else if (" << Options::obj_ptr() << " == "
+    << Options::ml->pack_const() << ") {\n";
+  out_c << "if (!*data) return " << Options::ml->bundle_ok() << ";\n";
+  out_c << "} else  \n return " << Options::ml->bundle_fail() << ";\n";
+  out_c << "return ((*data)->marshall(obj));\n";
+  out_c << "}\n";
+
+  out_c << Options::ml->bundler_return_type() << " " 
+    << name() << "::"
+      << "marshall("
+	<< Options::ml->marshall_obj()
+	  << " " << Options::ml->marshall_obj_ptr() << " obj) {\n";
+
+  for (int i=0; i<arglist_.size(); i++) {
+    out_c << " if (!";
+    arglist_[i]->gen_bundler(out_c, "obj", "&");
+    out_c << ")\n";
+    out_c << "return " << Options::ml->bundle_fail() << ";\n";
+  }
+  const type_defn *curr_defn = this;
+  while (curr_defn->is_derived()) {
+    if (!Options::all_types.defines(curr_defn->parent())) {
+      cerr << "Parent " << curr_defn->parent() << " should be defined\n";
+      assert(0);
+    }
+    curr_defn = Options::all_types[curr_defn->parent()];
+    assert(curr_defn);
+    for (int ui=0; ui<curr_defn->arglist_.size(); ui++) {
+      out_c << " if (!";
+      arglist_[ui]->gen_bundler(out_c, "obj", "&");
+      out_c << ")\n";
+      out_c << "return " << Options::ml->bundle_fail() << ";\n";
+    }
+  }
+  out_c << "return " << Options::ml->bundle_ok() << " ;\n";
+  out_c << "}\n";
+  return true;
+}
+
 bool type_defn::gen_bundler_body(const string bundler_prefix, const string class_prefix,
+				 ofstream &out_stream) const
+{
+  if (is_class()) 
+    return (gen_bundler_body_class(bundler_prefix, class_prefix, out_stream));
+  else
+    return (gen_bundler_body_struct(bundler_prefix, class_prefix, out_stream));
+}
+				 
+bool type_defn::gen_bundler_body_struct(const string bundler_prefix, const string class_prefix,
 				 ofstream &out_stream) const
 {
   gen_bundler_sig(false, class_prefix, bundler_prefix, out_stream);
@@ -701,6 +922,19 @@ bool type_defn::gen_bundler_body(const string bundler_prefix, const string class
   }
   
   out_stream << "return " << Options::ml->bundle_ok() << " ;\n}\n";
+  return true;
+}
+
+bool type_defn::gen_bundler_body_class(const string bundler_prefix, const string class_prefix,
+				 ofstream &out_stream) const
+{
+  gen_bundler_sig(false, class_prefix, bundler_prefix, out_stream);
+  out_stream << "{\n";
+  out_stream << "assert(obj);\n";
+  out_stream << "assert(" << Options::obj_ptr() << " != "
+    << Options::ml->free_const() << ");\n";
+  out_stream << "return (data->marshall(obj));\n";
+  out_stream << "}\n";
   return true;
 }
 
@@ -772,25 +1006,33 @@ string Options::allocate_stl_type(string stl_type, string element_name,
   type_defn *ign = new type_defn(stl_type, element_name, star_count, in_lib);
   assert(ign);
   Options::all_types[ign->name()] = ign;
+  Options::vec_types += ign;
   return (ign->name());
 }
 
-string Options::allocate_type(const string name, const type_defn::type_type &typ,
+string Options::allocate_type(const string name, const bool is_class, const bool is_abstract,
+			      const bool is_derived, const string parent,
+			      const type_defn::type_type &typ,
 			      const bool can_point, const bool &in_lib,
 			      vector<arg*> *arglist, const string ignore_text,
 			      const string bundle_name) {
-  return (Options::add_type(name, typ, can_point, in_lib, arglist, ignore_text, bundle_name));
+  return (Options::add_type(name, is_class, is_abstract, is_derived, parent, typ, can_point,
+			    in_lib, arglist, ignore_text, bundle_name));
 }
 
 
-string Options::add_type(const string name, const type_defn::type_type &type,
+string Options::add_type(const string name, const bool is_class, const bool is_abstract,
+			 const bool is_derived, const string parent,
+			 const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib,
 			 vector<arg*> *arglist, const string ignore_text,
 			 const string bundler_name) {
-  type_defn *ign = new type_defn(name, type, arglist, can_point, in_lib, ignore_text,
-				 bundler_name);
+  type_defn *ign = new type_defn(name, is_class, is_abstract, is_derived, parent, type,
+				 arglist, can_point,
+				 in_lib, ignore_text, bundler_name);
   assert(ign);
   Options::all_types[ign->name()] = ign;
+  Options::vec_types += ign;
   return (ign->name());
 }
 			    
@@ -966,7 +1208,7 @@ bool remote_func::save_async_request(ofstream &out_stream, const bool srvr) cons
   else
     out_stream << "buffer->data_ptr = NULL;\n";
 
-  out_stream << "async_buffer.enqueue(buffer);\n";
+  out_stream << "async_buffer += buffer;\n";
   out_stream << "}\n";
   out_stream << "break;\n";
   return true;
@@ -983,7 +1225,7 @@ bool remote_func::gen_signature(ofstream &out_stream, const bool &hdr,
       if (is_virtual())
          out_stream << " virtual ";
 
-  out_stream << return_arg_.type() << " ";
+  out_stream << return_arg_.type(true, true) << " ";
 
   if (!hdr)
     out_stream << Options::current_interface->gen_class_prefix(is_srvr_call());
@@ -1043,7 +1285,8 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
 			    request_tag());
 
   if (!is_async_call()) {
-    (srvr?out_srvr:out_clnt) << "assert(awaitResponse(" << response_tag() << "));\n";
+    (srvr?out_srvr:out_clnt) << "if (!awaitResponse(" << response_tag() << ")) "
+      << Options::error_state("igen_read_err", return_value());
 
     // set direction decode 
     if (!is_void()) {
@@ -1140,7 +1383,8 @@ signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(fals
       args = td->copy_args();
       // get names here
     } else {
-      type_ = Options::allocate_type(string("T_") + rf_name,
+      type_ = Options::allocate_type(string("T_") + rf_name, false, false,
+				     false, "",
 				     type_defn::TYPE_COMPLEX,
 				     true, false, &args);
     }
@@ -1254,7 +1498,7 @@ bool signature::gen_sig(ofstream &out_stream) const {
   case 1:
   default:
     for (int i=0; i<args.size(); i++) {
-      out_stream << args[i]->type(true) << " " << args[i]->name();
+      out_stream << args[i]->type(true, true) << " " << args[i]->name();
       if (i < (args.size()-1))
 	out_stream << ", ";
     }
@@ -1269,3 +1513,17 @@ bool signature::arg_struct(ofstream &out_stream) const {
   return true;
 }
 
+void recursive_dump_kids(const type_defn *curr_defn, ofstream &output) {
+  for (unsigned u=0; u<curr_defn->kids_.size(); u++) {
+    string kid_name = curr_defn->kids_[u];
+    if (!Options::all_types.defines(kid_name)) {
+      cerr << "Child: " << kid_name << " should be defined\n";
+      assert(0);
+    }    
+    const type_defn *kid_defn = Options::all_types[kid_name];
+    output << "case " << kid_defn->qual_id() << ":\n";
+    output << "*data = new " << kid_defn->name() << ";\n";
+    output << "break;\n";
+    recursive_dump_kids(kid_defn, output);
+  }
+}

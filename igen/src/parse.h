@@ -22,7 +22,8 @@ class interface_spec;
 class arg {
 public:
   // gen_variable()
-  arg(const string *type, const unsigned star_count, const bool b, const string *name);
+  arg(const string *type, const unsigned star_count, const bool is_const,
+      const string *name, const bool is_ref);
   arg() { }
   ~arg() { }
   bool operator== (const arg &other) const { return (type_ == other.type()); }
@@ -34,12 +35,14 @@ public:
 
   string pointers() const { return pointers_; }
   string base_type() const { return type_;}
-  string type(const bool use_const=false) const;
+  string type(const bool use_const=false, const bool use_ref=false) const;
   string name() const { return name_; }
   bool is_const() const { return constant_;}
   bool tag_bundle_send(ofstream &out_stream, const string bundle_value, 
 		       const string tag_value, const string return_value) const;
   unsigned stars() const { return stars_;}
+  bool is_ref() const { return is_ref_;}
+  string deref(const bool local) const;
 
 private:
   string pointers_;
@@ -47,6 +50,7 @@ private:
   string name_;
   bool constant_;
   unsigned stars_;
+  bool is_ref_;
 
   bool tag_bundle_send_one(ofstream &out_stream, const string bundle_value, 
 		       const string tag_value, const string return_value) const;
@@ -56,11 +60,15 @@ private:
 
 class type_defn {
 public:
+  friend void recursive_dump_kids(const type_defn *from, ofstream &output);
+
   typedef enum { TYPE_SCALAR, TYPE_COMPLEX } type_type;
 
   type_defn(string stl_name, string element_name, const unsigned star_count,
 	    const bool in_lib);
-  type_defn(const string name, const type_type type, vector<arg*> *arglist = NULL, 
+  type_defn(const string name, const bool is_class, const bool is_abstract,
+	    const bool is_derived, const string parent, 
+	    const type_type type, vector<arg*> *arglist = NULL, 
 	    const bool can_point=false, bool in_lib=false, const string ignore="",
 	    const string bundle_name="");
   ~type_defn() { }
@@ -76,6 +84,8 @@ public:
 		       ofstream &out_c, ofstream &out_h) const;
   bool gen_class(const string bundler_prefix, ofstream &out_stream);
 
+  string unqual_id() const { return (unqual_name_ + "_id");}
+  string qual_id() const;
   string name() const { return name_;}
   string bundle_name() const { return bundle_name_;}
   type_type my_type() const { return my_type_;}
@@ -93,6 +103,12 @@ public:
   bool can_point() const { return can_point_;}
   const vector<arg*> &copy_args() const { return (arglist_);}
   string ignore() const { return ignore_;}
+  bool is_class() const { return is_class_;}
+  bool is_abstract() const { return is_abstract_; }
+  bool is_derived() const { return is_derived_;}
+  string parent() const { return parent_;}
+  void add_kid(const string kid_name);
+  bool has_kids() const { return (kids_.size());}
 
 private:
   type_type my_type_;
@@ -107,6 +123,21 @@ private:
   bool can_point_;
   arg *stl_arg_;
   string ignore_;
+  bool is_class_;
+  bool is_abstract_;
+  bool is_derived_;
+  string parent_;
+  vector<string> kids_;
+
+  bool gen_bundler_ptr_struct(const string bundler_prefix, const string class_prefix,
+		       ofstream &out_c, ofstream &out_h) const;
+  bool gen_bundler_ptr_class(const string bundler_prefix, const string class_prefix,
+		       ofstream &out_c, ofstream &out_h) const;
+
+  bool gen_bundler_body_class(const string bundler_prefix, const string class_prefix,
+			ofstream &out_stream) const;
+  bool gen_bundler_body_struct(const string bundler_prefix, const string class_prefix,
+			ofstream &out_stream) const;
 };
 
 class signature {
@@ -343,8 +374,14 @@ public:
   static string error_state(const string err_name, const string return_value);
   static interface_spec *current_interface;
   static dictionary_hash<string, type_defn*> all_types;
+  static vector<type_defn*> vec_types;
   static vector<message_layer*> all_ml;
   static message_layer *ml;
+
+  static void ignore(string &s, bool is_server);
+  static vector<string> client_ignores;
+  static vector<string> server_ignores;
+  static vector<string> forward_decls;
 
   typedef struct el_data {
     string type;
@@ -374,12 +411,16 @@ public:
 
   static string allocate_stl_type(string stl_type, string element_name,
 				  const unsigned star_count, const bool in_lib);
-  static string allocate_type(const string name, const type_defn::type_type &typ,
+  static string allocate_type(const string name, const bool is_class, const bool is_abstract,
+			      const bool is_derived, const string parent,
+			      const type_defn::type_type &typ,
 			      const bool can_point, const bool &in_lib,
 			      vector<arg*> *arglist=NULL, const string ignore_text="",
 			      const string bundle_name="");
 
-  static string add_type(const string name, const type_defn::type_type &type, 
+  static string add_type(const string name, const bool is_class, const bool is_abstract,
+			 const bool is_derived, const string parent,
+			 const type_defn::type_type &type, 
 			 const bool can_point, const bool in_lib,
 			 vector<arg*> *arglist=NULL, const string ignore="",
 			 const string bundler_name="");
@@ -403,6 +444,7 @@ public:
       abort();
   }
   static bool stl_seen;
+  static bool dont_gen_handle_err;
 
 private:
   static string file_base_;
@@ -423,12 +465,18 @@ typedef struct derived_data {
   string *name;
 } Derived_data;
 
+typedef struct cl {
+  bool b;
+  bool abs;
+} cl;
+
 union parse_stack {
   string *cp;
   int i;
   unsigned u;
   float f;
   bool b;
+  cl class_data;
   arg *args;
   func_data fd;
   derived_data derived;
