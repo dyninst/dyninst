@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.8  1994/09/22 02:27:18  markc
+ * Revision 1.9  1994/11/02 11:18:03  markc
+ * Instantiated new classes here.
+ *
+ * Revision 1.8  1994/09/22  02:27:18  markc
  * Gave type names to typedefs
  *
  * Revision 1.7  1994/09/20  18:18:33  hollings
@@ -33,9 +36,15 @@
  *
  *
  */
-#pragma implementation  "list.h"
 
-#include "util/h/list.h"
+#pragma implementation "Pair.h"
+#include "util/h/Pair.h"
+
+#pragma implementation "Vector.h"
+#include "util/h/Vector.h"
+
+#pragma implementation "Dictionary.h"
+#include "util/h/Dictionary.h"
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -50,25 +59,43 @@
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
+#include "util/h/Object.h"
 
-typedef List<int> d1;
-typedef List<void *> d2;
-typedef List<process *> d3;
-typedef List<dataReqNode *> d4;
-typedef List<instReqNode *> d5;
-typedef List<metricDefinitionNode *> d6;
-typedef List<internalMetric *> d7;
-typedef List<libraryFunc*> d7a;
+typedef vector<heapItem*> a1;
+typedef vector<process*> a2;
+typedef vector<pdFunction*> a3;
+typedef vector<heapItem*> a4;
+typedef vector<resourcePredicate*> a5;
+typedef vector<Symbol> a6;
 
-typedef HTable<metricDefinitionNode *> d8;
-typedef HTable<metric*> d9;
-typedef HTable<resource*> d10;
-typedef HTable<resourceListRec*> d11;
-typedef HTable<point*> d12;
+typedef dictionary_hash <Address, Symbol*> la;
+typedef dictionary_hash <instPoint*, point*> l0;
+typedef dictionary_hash <string, unsigned> l1;
+typedef dictionary_hash <string, internalMetric*> l2;
+typedef dictionary_hash <string, resource*> l3;
+typedef dictionary_hash <string, image*> l4;
+typedef dictionary_hash <instPoint*, unsigned> l5;
+typedef dictionary_hash <string, pdFunction*> l6;
+typedef dictionary_hash <unsigned, pdFunction*> l7;
+typedef dictionary_hash <string, vector<pdFunction*>*> l8;
+typedef dictionary_hash <string, internalSym*> l9;
+typedef dictionary_hash <string, module *> l10;
+typedef dictionary_hash <unsigned, metricDefinitionNode*> l11;
+typedef dictionary_hash <unsigned, heapItem*> l12;
+typedef dictionary_hash <int, process*> l13;
 
-typedef List<heapItem *> d13;
-typedef HTable<heapItem *> d14;
-
-typedef StringList<int> d15;
-
-typedef List<pdFunction *> d16;
+typedef dictionary_hash_iter <Address, Symbol*> ila;
+typedef dictionary_hash_iter <instPoint*, point*> il0;
+typedef dictionary_hash_iter <string, unsigned> il1;
+typedef dictionary_hash_iter <string, internalMetric*> il2;
+typedef dictionary_hash_iter <string, resource*> il3;
+typedef dictionary_hash_iter <string, image*> il4;
+typedef dictionary_hash_iter <instPoint*, unsigned> il5;
+typedef dictionary_hash_iter <string, pdFunction*> il6;
+typedef dictionary_hash_iter <unsigned, pdFunction*> il7;
+typedef dictionary_hash_iter <string, vector<pdFunction*>*> il8;
+typedef dictionary_hash_iter <string, internalSym*> il9;
+typedef dictionary_hash_iter <string, module *> il10;
+typedef dictionary_hash_iter <unsigned, metricDefinitionNode*> il11;
+typedef dictionary_hash_iter <unsigned, heapItem*> il12;
+typedef dictionary_hash_iter <int, process*> il13;
