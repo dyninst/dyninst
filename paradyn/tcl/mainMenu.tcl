@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.19  1994/11/01 05:49:15  karavan
+# Revision 1.20  1994/11/03 00:04:27  karavan
+# added frame for status line service.
+#
+# Revision 1.19  1994/11/01  05:49:15  karavan
 # updated Where axis choices
 #
 # Revision 1.18  1994/10/26  22:54:38  tamches
@@ -148,7 +151,7 @@ proc drawToolBar {} {
 
     frame .menub -relief raised -borderwidth 2
     frame .where -height 312
-    frame .main -height 0 -width 0
+    frame .status 
     frame .buttons
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
@@ -197,6 +200,7 @@ proc drawToolBar {} {
     wm title . "Paradyn"
 
     pack .menub -side top -fill x
+    pack .status -side top -fill both -expand 1
     pack .where -side top -fill both -expand 1
     pack .buttons -side bottom -fill x 
 
@@ -215,4 +219,6 @@ proc drawToolBar {} {
     
     InitApplicDefnScreen 
 
+    puts "tests here (5)"
+    uimpd showError 5 "this is a test.  this is only test.  if..."
 }
