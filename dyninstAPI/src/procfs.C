@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.15 2002/06/18 21:35:55 rchen Exp $
+// $Id: procfs.C,v 1.16 2002/07/26 15:56:17 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -152,6 +152,11 @@ bool process::isRunning_() const {
       return true;
 }
 
+
+bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
+{
+  return restoreRegisters(buffer);
+}
 
 bool process::restoreRegisters(void *buffer) 
 {
