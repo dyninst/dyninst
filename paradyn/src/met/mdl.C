@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.35  1998/01/30 21:14:08  czhang
+ * In mdl_v_expr::apply, MDL_EXPR_VAR processing, "switch (get_drn.type())"
+ * missed two cases: MDL_T_PROC_TIMER and MDL_T_WALL_TIMER.  Added them.
+ *
  * Revision 1.34  1998/01/21 15:00:56  czhang
  * In line 1378 (this will certainly change in the future), a wrong variable
  * was used.  Changed "if (!left_val.get(v1))" to "if (!left_val.get(i1))".
@@ -720,6 +724,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
       {
         case MDL_T_INT:
         case MDL_T_COUNTER:
+        case MDL_T_PROC_TIMER:
+        case MDL_T_WALL_TIMER:
         case MDL_T_DRN:
           ok_ = true;
           return true;
