@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.8  1994/07/07 05:58:05  karavan
-/* added UI error service function
+/* Revision 1.9  1994/07/08 04:03:18  karavan
+/* changed showMsg to async function
 /*
+ * Revision 1.8  1994/07/07  05:58:05  karavan
+ * added UI error service function
+ *
  * Revision 1.7  1994/06/12  22:38:27  karavan
  * implemented status display service.
  *
@@ -206,21 +209,20 @@ UIM::endBatchMode ()
 // Error Message Display Service 
 // ****************************************************************
 
-int
+void
 UIM::showError(int errCode, char *errString)
 {
   char errNum[10];
   int maxError;
   sprintf (errNum, "%d", errCode);
-  if (errCode > uim_maxError)
-    return -1;
+  if (errCode <= uim_maxError) {
 
   // custom error info string to be printed
-  if (Tcl_VarEval (interp, "showError ", errNum, " \{",errString, 
-		   "\}", (char *) NULL) == TCL_ERROR)
-    printf ("newShowError: Tcl call to showError fails, %s\n", 
-	    interp->result);
-  return 0;
+    if (Tcl_VarEval (interp, "showError ", errNum, " \{", errString, 
+		     "\}", (char *) NULL) == TCL_ERROR)
+      printf ("newShowError: Tcl call to showError fails, %s\n", 
+	      interp->result);
+  }
 }
 
 // ****************************************************************
