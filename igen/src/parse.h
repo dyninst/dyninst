@@ -497,7 +497,7 @@ private:
 };
 
 
-typedef struct func_data {
+typedef struct functype_data {
   remote_func::call_type call;
   bool is_virtual;
 } Type_data;
@@ -520,7 +520,7 @@ union parse_stack {
   bool b;
   cl class_data;
   arg *args;
-  func_data fd;
+  functype_data fd;
   derived_data derived;
   vector<arg*> *arg_vector;
   interface_spec *spec;
