@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.11  1997/06/02 16:39:40  naim
+ * Small change to comment out a warning message - naim
+ *
  * Revision 1.10  1997/05/07 18:59:15  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished - naim
@@ -172,8 +175,10 @@ time64 DYNINSTgetWalltime(void)
   now += (time64) timeNano/ (time64) 1000;
 
   if(prevTime > now) {
-    fprintf(stderr, "ERROR:  prevTime (%f) > now (%f)\n", 
+/*
+    fprintf(stderr, "WARNING:  prevTime (%f) > now (%f)\n", 
 	    (double) prevTime, (double) now);
+*/
     return(prevTime);
   } else {
     prevTime = now;
