@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.18 2005/02/15 17:44:03 legendre Exp $
+ * $Id: PCconstants.C,v 1.19 2005/03/11 00:38:10 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -94,7 +94,7 @@ void TCuseIndividualThresholdsCB (bool newval)
   performanceConsultant::useIndividualThresholds = newval;
 }
 
-void TCuseLoopsCB (bool newval)
+void TCenableLoopsCB (bool newval)
 {
   performanceConsultant::useLoops = newval;
 }
@@ -196,7 +196,7 @@ void initPCconstants ()
     ("EnableLoops", 
      "Changes functionality of the Performance Consultant to use"
         " loops in searches.", 
-     TCuseLoopsCB,
+     TCenableLoopsCB,
      userConstant,
      boolInitializer);
 

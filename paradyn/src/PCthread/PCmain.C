@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.82 2005/01/18 00:51:59 eli Exp $ */
+/* $Id: PCmain.C,v 1.83 2005/03/11 00:38:11 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -74,8 +74,12 @@ bool performanceConsultant::printDataTrace = false;
 bool performanceConsultant::collectInstrTimings = false;
 bool performanceConsultant::useIndividualThresholds  = false;
 bool performanceConsultant::useCallGraphSearch = true;
-
+#if defined(os_linux) && defined(arch_x86)
 bool performanceConsultant::useLoops = false;
+#else
+bool performanceConsultant::useLoops = false;
+#endif
+
 bool performanceConsultant::searchMachineSync = false;
 
 // 0 means no current phase defined  
