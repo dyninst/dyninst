@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.29 2002/02/26 20:26:24 gurari Exp $
+// $Id: irix.C,v 1.30 2002/04/18 19:39:58 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -292,8 +292,14 @@ Address pcFromProc(int proc_fd)
   return (Address)regs[PROC_REG_PC];
 }
 
+bool process::changePC(Address addr, const void *savedRegs, int lwp)
+{
+  return changePC(addr, savedRegs);
+}
+
 bool process::changePC(Address addr, const void *savedRegs)
 {
+  if (!savedRegs) return changePC(addr);
   //fprintf(stderr, ">>> process::changePC(0x%08x)\n", addr);
   assert(status_ == stopped); // process must be stopped (procfs)
 
@@ -1307,8 +1313,9 @@ bool process::setProcfsFlags()
 #endif
 
 // getActiveFrame(): populate Frame object using toplevel frame
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame()
 {
+  Address pc = 0, fp = 0, sp = 0;
   // Get current register values
   gregset_t regs;
   int proc_fd = p->getProcFileDescriptor();
@@ -1317,8 +1324,8 @@ void Frame::getActiveFrame(process *p)
     return;
   }
   
-  pc_ = regs[PROC_REG_PC];
-  sp_ = regs[PROC_REG_SP];
+  pc = regs[PROC_REG_PC];
+  sp = regs[PROC_REG_SP];
   saved_fp = regs[PROC_REG_FP];
 
   //  Determine the value of the conceptual frame pointer
@@ -1326,7 +1333,7 @@ void Frame::getActiveFrame(process *p)
   instPoint     *ip = NULL;
   trampTemplate *bt = NULL;
   instInstance  *mt = NULL;
-  pd_Function *currFunc = findAddressInFuncsAndTramps(p, pc_, ip, bt, mt);
+  pd_Function *currFunc = findAddressInFuncsAndTramps(p, pc, ip, bt, mt);
 
   if ( currFunc )
   {
@@ -1335,51 +1342,54 @@ void Frame::getActiveFrame(process *p)
     Address fn_addr = base_addr + currFunc->getAddress(0);
   
     // adjust $pc for active instrumentation 
-    Address pc_adj = adjustedPC(pc_, fn_addr, ip, bt, mt);
+    Address pc_adj = adjustedPC(pc, fn_addr, ip, bt, mt);
     Address pc_off = pc_adj - fn_addr;
     bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, p);
-    bool basetrampFrameActive = instrFrameActive(pc_, ip, bt, mt);
+    bool basetrampFrameActive = instrFrameActive(pc, ip, bt, mt);
 
     if ( currFunc->uses_fp )
     {
       if ( basetrampFrameActive ) // use s8 value stored in bt frame
       {
-        Address fp_bt = sp_;
+        Address fp_bt = sp;
         fp_bt += bt_frame_size;
         Address fp_addr = fp_bt + bt_fp_slot;
-        fp_ = readAddressInMemory(p, fp_addr, true);
+        fp = readAddressInMemory(p, fp_addr, true);
       }
       else if ( nativeFrameActive )
-        fp_ = saved_fp;
+        fp = saved_fp;
       else
-        fp_ = sp_;
+        fp = sp;
     }
     else
     {
-      fp_ = sp_;
+      fp = sp;
       if ( basetrampFrameActive )
-        fp_ += bt_frame_size;
+        fp += bt_frame_size;
       if ( nativeFrameActive )
-        fp_ += currFunc->frame_size;
+        fp += currFunc->frame_size;
     }
   }
   else
-    fp_ = sp_;
+    fp = sp;
 
   /*
   if ( currFunc )
   {
     fprintf(stderr, "\nin getActiveFrame for function %s\n", currFunc->prettyName().string_of());
-    fprintf(stderr, "  pc_ is      %x\n", pc_);
-    fprintf(stderr, "  sp_ is      %x\n", sp_);
-    fprintf(stderr, "  fp_ is      %x\n", fp_);
+    fprintf(stderr, "  pc is      %x\n", pc);
+    fprintf(stderr, "  sp is      %x\n", sp);
+    fprintf(stderr, "  fp is      %x\n", fp);
     fprintf(stderr, "  saved_fp is %x\n", saved_fp);
     fprintf(stderr, "  uses fp is %s\n\n", currFunc->uses_fp ? "true" : "false");
     }*/
 
   // sometimes the actual $fp is zero
   // (kludge for stack walk code)
-  if (fp_ == 0) fp_ = sp_;
+  if (fp == 0) fp = sp;
+
+  return Frame(pc, fp, sp, getPid(), NULL, 0, true);
+
 }
  
 // determine if the basetramp frame is active

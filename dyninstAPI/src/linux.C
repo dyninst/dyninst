@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.67 2002/04/15 21:48:44 chadd Exp $
+// $Id: linux.C,v 1.68 2002/04/18 19:39:59 bernat Exp $
 
 #include <fstream.h>
 
@@ -281,6 +281,12 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, int addr,
 
 /* ********************************************************************** */
 
+// Not targeting particular LWPs yet
+void *process::getRegisters(unsigned /*lwp*/)
+{
+  return getRegisters();
+}
+
 void *process::getRegisters() {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
@@ -330,19 +336,19 @@ static bool changeBP(int pid, Address loc) {
 }
 
 void printStackWalk( process *p ) {
-	Frame theFrame(p);
-	while (true) {
-		// do we have a match?
-		const Address framePC = theFrame.getPC();
-		inferiorrpc_cerr << "stack frame pc @ " << (void*)framePC << endl;
-		
-		if (theFrame.isLastFrame())
-			// well, we've gone as far as we can, with no match.
-			break;
-		
-		// else, backtrace 1 more level
-		theFrame = theFrame.getCallerFrame(p);
-	}
+  Frame theFrame = p->getActiveFrame();
+  while (true) {
+    // do we have a match?
+    const Address framePC = theFrame.getPC();
+    inferiorrpc_cerr << "stack frame pc @ " << (void*)framePC << endl;
+    
+    if (theFrame.isLastFrame())
+      // well, we've gone as far as we can, with no match.
+      break;
+    
+    // else, backtrace 1 more level
+    theFrame = theFrame.getCallerFrame(p);
+  }
 }
  
 void printRegs( void *save ) {
@@ -367,21 +373,28 @@ void printRegs( void *save ) {
 		<< " eflags: " << (void*)regs->eflags << endl;
 }
 
-bool process::executingSystemCall() {
-	// From the program strace, it appears that a non-negative number
-	// in the ORIG_EAX register of the inferior process indicates
-	// that it is in a system call, and is the number of the system
-	// call. - nash
+bool process::executingSystemCall(unsigned /*lwp*/) 
+{
+  // From the program strace, it appears that a non-negative number
+  // in the ORIG_EAX register of the inferior process indicates
+  // that it is in a system call, and is the number of the system
+  // call. - nash
+  
+  Address regaddr = ORIG_EAX * INTREGSIZE;
+  int res;
+  res = P_ptrace ( PTRACE_PEEKUSER, getPid(), regaddr, 0 );
+  if( res < 0 )
+    return false;
+  
+  inferiorrpc_cerr << "In system call #" << res << " @ " << (void*)getPC( getPid() ) << endl;
+  
+  return true;
+}
 
-	Address regaddr = ORIG_EAX * INTREGSIZE;
-	int res;
-	res = P_ptrace ( PTRACE_PEEKUSER, getPid(), regaddr, 0 );
-	if( res < 0 )
-		return false;
-
-	inferiorrpc_cerr << "In system call #" << res << " @ " << (void*)getPC( getPid() ) << endl;
-
-	return true;
+bool process::changePC(Address loc, const void * /*savedRegs*/, int lwp)
+{
+  assert(status_ == stopped);
+  return ::changePC(pid, loc);
 }
 
 bool process::changePC(Address loc, const void * /* savedRegs */ ) {
@@ -423,13 +436,15 @@ bool process::restoreRegisters(void *buffer) {
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame(unsigned /*lwp*/)
 {
-  fp_ = ptraceKludge::deliverPtraceReturn(p, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
-  if (errno) return;
+  Address pc, fp;
+  fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
+  if (errno) Frame();
 
-  pc_ = ptraceKludge::deliverPtraceReturn(p, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
-  if (errno) return;
+  pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
+  if (errno) Frame();
+  return Frame(pc, fp, getPid(), NULL, 0, true);
 }
 
 // TODO: implement this
@@ -1628,9 +1643,10 @@ Frame Frame::getCallerFrame(process *p) const
   if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
 		       (caddr_t) &addrs, true))
   {
-    Frame ret;
+    Frame ret(*this);
     ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn;
+    ret.uppermost_ = false;
     return ret;
   }
 
@@ -1797,6 +1813,13 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
   P_close(fd);
 
   return now;
+}
+
+class instReqNode;
+
+bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+{
+  return true;
 }
 #endif
 

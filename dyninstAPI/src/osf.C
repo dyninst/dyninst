@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.28 2002/03/23 19:12:09 rchen Exp $
+// $Id: osf.C,v 1.29 2002/04/18 19:40:00 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -152,14 +152,18 @@ bool process::needToAddALeafFrame(Frame, Address &)
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame()
 {
+  Address pc, fp;
+  Frame theFrame();
   gregset_t theIntRegs;
   int proc_fd = p->getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
-    fp_ = theIntRegs.regs[SP_REGNUM];  
-    pc_ = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
+    fp = theIntRegs.regs[SP_REGNUM];  
+    pc = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
+    theFrame = Frame(pc, fp, getPid(), NULL, 0, true);
   }
+  return theFrame;
 }
 
 #ifdef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.114 2002/04/15 21:48:44 chadd Exp $
+// $Id: solaris.C,v 1.115 2002/04/18 19:40:04 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2017,21 +2017,45 @@ int getNumberOfCPUs()
 }  
 
 // getActiveFrame(): populate Frame object using toplevel frame
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame(unsigned lwp)
 {
+  Address fp=0, pc=0;
+  unsigned lwp_id = 0;
+  prgregset_t regs ;
   prstatus_t status;
-#ifdef PURE_BUILD
-  memset(&status, 0, sizeof(prstatus_t));
-#endif
 
-  int proc_fd = p->getProcFileDescriptor();
-  if (ioctl(proc_fd, PIOCSTATUS, &status) != -1) {
-#if defined(MT_THREAD)
-      lwp_id_ = status.pr_who;
-#endif
-      fp_ = status.pr_reg[FP_REG];
-      pc_ = status.pr_reg[PC_REG];
+  if (lwp) {
+    int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &lwp);
+    if (lwp_fd == -1) {
+      cerr << "process::getLWPFrame, cannot get lwp_fd" << endl ;
+      return Frame();
+    }
+    if (-1 != ioctl(lwp_fd, PIOCGREG, &regs)) {
+      fp = regs[FP_REG];
+      pc = regs[PC_REG];
+      close(lwp_fd);
+    }
+    else {
+      close(lwp_fd);
+      return Frame();
+    }
   }
+  else {
+    
+#ifdef PURE_BUILD
+    memset(&status, 0, sizeof(prstatus_t));
+#endif
+    
+    int proc_fd = getProcFileDescriptor();
+    if (ioctl(proc_fd, PIOCSTATUS, &status) != -1) {
+      lwp_id = status.pr_who;
+      fp = status.pr_reg[FP_REG];
+      pc = status.pr_reg[PC_REG];
+    }
+    else
+      return Frame();
+  }
+  return Frame(pc, fp, getPid(), NULL, lwp_id, true);
 }
 
 // It is the caller's responsibility to do a "delete [] (*IDs)"
@@ -2053,29 +2077,11 @@ bool process::getLWPIDs(vector <unsigned> &LWPids) {
    return false ;
 }
 
-bool process::getLWPFrame(int lwp_id, Address* fp, Address *pc) {
-  prgregset_t regs ;
-  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
-  if (-1 == lwp_fd) {
-    cerr << "process::getLWPFrame, cannot get lwp_fd" << endl ;
-    return false ;
-  }
-  if (-1 != ioctl(lwp_fd, PIOCGREG, &regs)) {
-    *fp = regs[FP_REG];
-    *pc = regs[PC_REG];
-    close(lwp_fd);
-    return true ;
-  }
-  close(lwp_fd);
-  return false ;
-}
-
-
 Frame Frame::getCallerFrame(process *p) const
 {
   prgregset_t regs;
   Frame ret;
-  ret.lwp_id_ = lwp_id_;
+  ret.lwp_ = lwp_;
   ret.thread_ = thread_;
 
 #ifdef PURE_BUILD
@@ -2089,8 +2095,8 @@ Frame Frame::getCallerFrame(process *p) const
     if (func) {
       if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	int proc_fd = p->getProcFileDescriptor();
-	if (lwp_id_) { // We have a LWP and are prepared to use it
-	  	  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
+	if (lwp_) { // We have a LWP and are prepared to use it
+	  	  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &lwp_);
 
 	  if (lwp_fd == -1) {
 	    cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
@@ -2107,7 +2113,7 @@ Frame Frame::getCallerFrame(process *p) const
 	}
         else if (thread_)
 	  cerr << "Not implemented yet" << endl;
-	else if (!lwp_id_) {
+	else if (!lwp_) {
 	  if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
 	    Frame ret;
 	    ret.pc_ = regs[R_O7] + 8;
@@ -2233,7 +2239,17 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
    return result;
 }
 
+
+bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+{
+  return true;
+}
 #endif // SHM_SAMPLING
+
+void *process::getRegisters(unsigned /*lwp*/)
+{
+  return getRegisters();
+}
 
 void *process::getRegisters() {
    // Astonishingly, this routine can be shared between solaris/sparc and
@@ -2288,7 +2304,8 @@ void *process::getRegisters() {
    return buffer;
 }
 
-bool process::executingSystemCall() {
+bool process::executingSystemCall(unsigned /*lwp*/)
+{
    prstatus theStatus;
 #ifdef PURE_BUILD
   // explicitly initialize "theStatus" struct (to pacify Purify)
@@ -2315,9 +2332,16 @@ bool process::executingSystemCall() {
    return(false);
 }
 
-bool process::changePC(Address addr, const void *savedRegs) {
-   assert(status_ == stopped);
+bool process::changePC(Address addr, const void *savedRegs, int /*lwp*/)
+{
+  return changePC(addr, savedRegs);
+}
 
+bool process::changePC(Address addr, const void *savedRegs) {
+  if (!savedRegs)
+    return changePC(addr);
+
+   assert(status_ == stopped);
    // make a copy of the registers (on purpose)
    prgregset_t theIntRegs;
    theIntRegs = *(prgregset_t*)const_cast<void*>(savedRegs);

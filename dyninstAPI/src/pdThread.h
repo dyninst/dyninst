@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.12 2001/07/18 20:34:42 bernat Exp $
+// $Id: pdThread.h,v 1.13 2002/04/18 19:40:01 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
+
+class Frame;
 
 class pdThread {
   public:
@@ -130,6 +132,9 @@ class pdThread {
       //delete rid; //deletion of resources is not yet implemented! - naim 1/21/98
       close(fd);
     }
+
+    Frame getActiveFrame();
+
     int            get_tid()           { return(tid); }
     unsigned       get_pos()           { return(pos); }
     unsigned       get_pd_pos()        { return(pd_pos); }

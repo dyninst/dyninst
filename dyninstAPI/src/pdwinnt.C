@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.47 2002/02/26 20:30:05 gurari Exp $
+// $Id: pdwinnt.C,v 1.48 2002/04/18 19:40:02 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -228,9 +228,6 @@ findFunctionFromAddress( process* proc, Address addr )
 
 
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-//winCE does not have StackWalk (or imagehlp.dll or dbghelp.dll) so we
-//use the walkStack defined in process.C
-
 //
 // process::walkStack
 //
@@ -253,10 +250,9 @@ findFunctionFromAddress( process* proc, Address addr )
 // for the VC++ compiler to turn this optimization off.)
 //
 
-void process::walkStack(Frame /* currentFrame */, vector<Address>& pcs,
-                        vector<Address>& /* fps */, bool noPause)
+void process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool paused)
 {
-    bool needToCont = noPause ? false : (status() == running);
+    bool needToCont = paused ? false : (status() == running);
 
 #ifndef BPATCH_LIBRARY
     startTimingStackwalk();
@@ -267,7 +263,7 @@ void process::walkStack(Frame /* currentFrame */, vector<Address>& pcs,
 #endif // DEBUG_STACKWALK
 
     // pause the application if necessary
-    if( !noPause && !pause() )
+    if( !paused && !pause() )
     {
         // pause failed...give up
         cerr << "walkStack: pause failed" << endl;
@@ -280,7 +276,7 @@ void process::walkStack(Frame /* currentFrame */, vector<Address>& pcs,
 
     // establish the current execution context
     CONTEXT cont;
-	HANDLE hThread = (HANDLE)threads[0]->get_handle();
+    HANDLE hThread = (HANDLE)threads[0]->get_handle();
 
     cont.ContextFlags = CONTEXT_FULL;
     if (!GetThreadContext(hThread, &cont))
@@ -401,86 +397,83 @@ void process::walkStack(Frame /* currentFrame */, vector<Address>& pcs,
         // frame if we haven't succeeded by now, we're not going to be
         // able to handle this frame
       	if( walked ) {
+	  
+	  Address pc = NULL;
+	  
+	  // save the PC for this stack frame
+	  // make sure we use the original address in case
+	  // it was outside the original text of the process
+	  if( saved_sf.AddrReturn.Offset == 0 ) {
+	    
+	    // this was the first stack frame, so we had better
+	    // use the original PC
+	    pc = saved_sf.AddrPC.Offset;
+	    
+	  } else {
+	    
+	    // this was not the first stack frame
+	    // use the original return address
+	    pc = saved_sf.AddrReturn.Offset;
+	  }
+	
+	  stackWalk.push_back(Frame(pc, 0, getPid(), NULL, 0, false));
 
-            Address pc = NULL;
-
-            // save the PC for this stack frame
-            // make sure we use the original address in case
-            // it was outside the original text of the process
-            if( saved_sf.AddrReturn.Offset == 0 ) {
-
-                // this was the first stack frame, so we had better
-                // use the original PC
-                pc = saved_sf.AddrPC.Offset;
-
-      	    } else {
-
-                // this was not the first stack frame
-                // use the original return address
-                pc = saved_sf.AddrReturn.Offset;
-	    }
-
-            pcs.push_back(pc);
-
-	    // check whether we reached a known "main" function
-	    // we consider it a complete stack walk iff we see
-	    // a "main" function on the stack
-	    //
-	    // note: this criteria is not likely to be generally 
-            //       applicable - it will fail for walking stacks 
-            //       in non-primary threads
-
-            fp = findFunctionFromAddress( this, pc );
-
-	    if( (fp != NULL) && ((fp == getMainFunction()) || 
-                (fp->prettyName() == "mainCRTStartup") ||
-      	        (fp->prettyName() == "wmainCRTStartup")) ) {
-
-	        reachedMain = true;
-	    }
-
+	  // check whether we reached a known "main" function
+	  // we consider it a complete stack walk iff we see
+	  // a "main" function on the stack
+	  //
+	  // note: this criteria is not likely to be generally 
+	  //       applicable - it will fail for walking stacks 
+	  //       in non-primary threads
+	  
+	  fp = findFunctionFromAddress( this, pc );
+	  
+	  if( (fp != NULL) && ((fp == getMainFunction()) || 
+			       (fp->prettyName() == "mainCRTStartup") ||
+			       (fp->prettyName() == "wmainCRTStartup")) ) {
+	    
+	    reachedMain = true;
+	  }
+	    
 #ifdef DEBUG_STACKWALK
-            cout << "0x" << setw(8) << setfill('0') << hex << pc << ": ";
-
-            if( fp != NULL ) {
-                cout << fp->prettyName();
-            } else {
-                cout << "<unknown>";
-	    }
-
-            if( sf.AddrPC.Offset != pc ) {
-                cout << " (originally 0x" << setw(8) << setfill('0') 
-                     << hex << sf.AddrPC.Offset << ")";
-	    }
-            cout << endl;
+	  cout << "0x" << setw(8) << setfill('0') << hex << pc << ": ";
+	  
+	  if( fp != NULL ) {
+	    cout << fp->prettyName();
+	  } else {
+	    cout << "<unknown>";
+	  }
+	  
+	  if( sf.AddrPC.Offset != pc ) {
+	    cout << " (originally 0x" << setw(8) << setfill('0') 
+		 << hex << sf.AddrPC.Offset << ")";
+	  }
+	  cout << endl;
 #endif
-
-	    } else {
-	        // we tried everything we know to recover - we'll have 
-	        // to fail
-	        done = true;
-	    }
+	  
+	} else {
+	  // we tried everything we know to recover - we'll have 
+	  // to fail
+	  done = true;
+	}
+	
     }
-
 
     // handle incomplete stack walks
     // (defined as a stack on which the main function did not appear)
     if( !reachedMain ) {
-
-        // error - incomplete trace, return an empty vector
-        pcs.resize( 0 );
-
+      stackWalk.resize(0);
     } else {
-        pcs.push_back(NULL);
+      stackWalk.push_back(Frame());
     }
 
     // resume the application if needed
-    if( !noPause && needToCont ) {
+    if( !paused && needToCont ) {
         if( !continueProc() ) {
             cerr << "walkStack: continueProc failed" << endl;
         }
     }
-
+    
 #ifndef BPATCH_LIBRARY
     stopTimingStackwalk();
 #endif
@@ -489,7 +482,60 @@ void process::walkStack(Frame /* currentFrame */, vector<Address>& pcs,
 }
 #endif
 
+#if defined(mips_unknown_ce2_11) //ccw 6 feb 2001 : 29 mar 2001
+//ccw 6 feb 2001 : windows CE does not have the NT walkStack function
+//so we use this one.
 
+void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, 
+			bool paused)
+{
+  bool needToCont = paused ? false : (status() == running);
+  
+  if (pause()) {
+    Address spOld = 0xffffffff;
+
+    while (!currentFrame.isLastFrame()) {
+      Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
+      
+      // successive frame pointers might be the same (e.g. leaf functions)
+      if (spOld < spNew) {
+	
+        // not moving up stack
+        if (!paused && needToCont && !continueProc()) {
+          cerr << "walkStack: continueProc failed" << endl;
+        }
+	
+        vector<Address> ev; // empty vector
+        pcs = ev;
+	
+        return;
+      }
+      
+      spOld = spNew;
+      
+      Address next_pc = currentFrame.getPC();
+      stackWalk.push_back(currentFrame);
+
+      //ccw 6 feb 2001 : at this point, i need to use the 
+      //list of functions parsed from the debug symbols to
+      //determine the frame size for each function and find the 
+      //return value for each (which is the previous fir value)
+      currentFrame = currentFrame.getCallerFrame(this); 
+      
+    }
+    
+    stackWalk.push_back(currentFrame);
+  }
+
+  if (!paused && needToCont) {
+     if (!continueProc()){
+        cerr << "walkStack: continueProc failed" << endl;
+     }
+  }  
+
+  return;
+}
+#endif
 
 /* 
    Loading libDyninstRT.dll
@@ -1194,16 +1240,15 @@ int process::waitProcs(int *status) {
         {
 
             // Parameters for walkStack.
-            Frame currentFrame(p);
-            vector<Address> fps;
-            vector<Address> pcs;
-            p->walkStack(currentFrame, pcs, fps, false);
 
-            for( unsigned i = 0; i < pcs.size(); i++ )
+	  vector<Frame> stackWalk;
+	  p->walkStack(p->getActiveFrame(), stackWalk, false);
+
+            for( unsigned i = 0; i < stackWalk.size(); i++ )
             {
-                function_base* f = p->findFuncByAddr( pcs[i] );
+                function_base* f = p->findFuncByAddr( stackWalk[i].getPC() );
                 const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
-                fprintf( stderr, "%08x: %s\n", pcs[i], szFuncName );
+                fprintf( stderr, "%08x: %s\n", stackWalk[i].getPC(), szFuncName );
             }
         }
 	    //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
@@ -1778,16 +1823,14 @@ int process::waitProcs(int *status) {
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
 
             // Parameters for walkStack.
-            Frame currentFrame(p);
-            vector<Address> fps;
-            vector<Address> pcs;
-            p->walkStack(currentFrame, pcs, fps, false);
+	  vector<Frame> stackWalk;
+	  p->walkStack(p->getActiveFrame(), stackWalk, false);
 
-            for( unsigned i = 0; i < pcs.size(); i++ )
+            for( unsigned i = 0; i < stackWalk.size(); i++ )
             {
-                function_base* f = p->findFunctionIn( pcs[i] );
+                function_base* f = p->findFunctionIn( stackWalk[i].getPC() );
                 const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
-                fprintf( stderr, "%08x: %s\n", pcs[i], szFuncName );
+                fprintf( stderr, "%08x: %s\n", stackWalk[i].getPC(), szFuncName );
             }
 #endif
         }
@@ -2254,34 +2297,36 @@ int getNumberOfCPUs() {
 }  
 
 
-void Frame::getActiveFrame(process *p)
+Frame process::getActiveFrame(unsigned /*lwp*/)
 {
    w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
+   
+   Address pc = 0, fp = 0, sp = 0;
 
     // we must set ContextFlags to indicate the registers we want returned,
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont.ContextFlags = CONTEXT_CONTROL;
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)p->threads[0]->get_handle(), &cont)) {
+    if (BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 #else
-    if (GetThreadContext((HANDLE)p->threads[0]->get_handle(), &cont)) {
+    if (GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 
 #endif
 
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
 
-        fp_ = cont.Ebp;
-	pc_ = cont.Eip;
+      fp = cont.Ebp;
+      pc = cont.Eip;
 #elif mips_unknown_ce2_11
-	pc_ = cont.Fir;
-	sp_ = cont.IntSp;
-	fp_ = cont.IntS8;
+      pc = cont.Fir;
+      sp = cont.IntSp;
+      fp = cont.IntS8;
 #endif
-
-	return;
+      return Frame(pc, fp, sp, getPid(), NULL, 0, true);
     }
     printSysError(GetLastError());
+    return Frame();
 }
 
 #if defined(i386_unknown_nt4_0) //ccw 29 mar 2001
@@ -2344,7 +2389,7 @@ Frame Frame::getCallerFrame(process *p) const
 #endif
 
 #ifdef mips_unknown_ce2_11 //ccw 10 aug 2000 : 29 mar 2001
-void *process::getRegisters(unsigned int thrHandle) {
+void *process::getRegisters(unsigned lwp) {
     w32CONTEXT *cont = new w32CONTEXT; //ccw 27 july 2000
     if (!cont)
 		return NULL;
@@ -2352,11 +2397,16 @@ void *process::getRegisters(unsigned int thrHandle) {
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((void*) thrHandle, cont)) { //ccw 10 aug 2000
+    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((void*) lwp, cont)) { //ccw 10 aug 2000
 		delete cont;
 		return NULL;
     }
     return (void *)cont;
+}
+#else
+void *process::getRegisters(unsigned lwp)
+{
+  return getRegisters();
 }
 #endif
 
@@ -2380,7 +2430,13 @@ void *process::getRegisters() {
     return (void *)cont;
 }
 
+bool process::changePC(Address addr, const void *savedRegs, int lwp)
+{
+  return changePC(addr, savedRegs);
+}
+
 bool process::changePC(Address addr, const void *savedRegs) {
+  if (!savedRegs) return changePC(addr);
     assert(status_ == stopped);
     w32CONTEXT cont = *(w32CONTEXT *)savedRegs; //ccw 27 july 2000 : 29 mar 2001
 //	DebugBreak();
@@ -2495,7 +2551,7 @@ Address process::read_inferiorRPC_result_register(Register reg) { //ccw 17 july 
 #endif
 }
 
-bool process::executingSystemCall() {
+bool process::executingSystemCall(unsigned /*lwp*/) {
    // TODO
    return false;
 }
@@ -2825,6 +2881,12 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
 
   return now;
 }
+
+bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+{
+  return true;
+}
+
 #endif
 
 #ifdef mips_unknown_ce2_11 //ccw 2 aug 2000 : 29 mar 2001
