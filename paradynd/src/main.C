@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.2  1994/02/01 18:46:52  hollings
+ * Revision 1.3  1994/02/24 04:32:33  markc
+ * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
+ *
+ * Revision 1.2  1994/02/01  18:46:52  hollings
  * Changes for adding perfConsult thread.
  *
  * Revision 1.1  1994/01/27  20:31:27  hollings
@@ -27,7 +30,7 @@
 #include "util.h"
 #include "dyninstP.h"
 #include "metric.h"
-
+#include "dyninstRPC.SRVR.h"
 
 dynRPC *tp;
 extern void controllerMainLoop();
@@ -40,10 +43,12 @@ main(int argc, char *argv[])
 
     initLibraryFunctions();
 
-    if (argc != 1) {
-        printf("remote start not supported\n");
-        exit(-1);
-    }
+    // TODO, process args
+    //
+    // if (argc != 1) {
+    //    printf("remote start not supported\n");
+    //    exit(-1);
+    // }
     tp = new dynRPC(0, NULL, NULL);
 
     //

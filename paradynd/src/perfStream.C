@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.1 1994/01/27 20:31:35 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.2 1994/02/24 04:32:35 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.1  1994/01/27 20:31:35  hollings
+ * Revision 1.2  1994/02/24 04:32:35  markc
+ * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
+ *
+ * Revision 1.1  1994/01/27  20:31:35  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.16  1994/01/20  17:47:41  hollings
@@ -101,6 +104,7 @@ extern "C" {
 #include "metric.h"
 #include "primitives.h"
 #include "util.h"
+#include "dyninstRPC.SRVR.h"
 
 extern dynRPC *tp;
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);

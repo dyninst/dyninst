@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.2 1994/02/01 18:46:52 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.3 1994/02/24 04:32:34 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.2  1994/02/01 18:46:52  hollings
+ * Revision 1.3  1994/02/24 04:32:34  markc
+ * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
+ *
+ * Revision 1.2  1994/02/01  18:46:52  hollings
  * Changes for adding perfConsult thread.
  *
  * Revision 1.1  1994/01/27  20:31:28  hollings
@@ -90,6 +93,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
+#include "dyninstRPC.SRVR.h"
 
 extern dynRPC *tp;
 extern int metricCount;
