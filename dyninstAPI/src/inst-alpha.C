@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.49 2002/06/26 21:14:39 schendel Exp $
+// $Id: inst-alpha.C,v 1.50 2002/06/28 17:36:19 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -815,7 +815,7 @@ void installBaseTramp(instPoint *location,
 
   words += generate_nop(code+words);
 
-  assert(words < MAX_BASE_TRAMP);
+  assert(words < static_cast<const unsigned>(MAX_BASE_TRAMP));
 
   tramp.size = words * sizeof(instruction);
   tramp.baseAddr = proc->inferiorMalloc(tramp.size, textHeap, pointAddr);
@@ -1323,8 +1323,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 #ifdef BPATCH_LIBRARY
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost)
+void emitASload(BPatch_addrSpec_NP /*as*/, Register /*dest*/,
+		char* /*baseInsn*/, Address &/*base*/, bool /*noCost*/)
 {
   // TODO ...
 }
@@ -1634,7 +1634,7 @@ void initDefaultPointFrequencyTable()
 trampTemplate *findAndInstallBaseTramp(process *proc, 
 				       instPoint *&location,
 				       returnInstance *&retInstance, 
-				       bool trampRecursiveDesired,
+				       bool /*trampRecursiveDesired*/,
 				       bool /* noCost */,
                                        bool& /*deferred*/)
 {
@@ -1692,7 +1692,7 @@ void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
 	base->cost += base->prevBaseCost;
 	base->prevInstru = true;
 	generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
-    } else if (inst->when == callPostInsn && base->postInstru == false) {
+    } else if (when == callPostInsn && base->postInstru == false) {
 	base->cost += base->postBaseCost;
 	base->postInstru = true;
 	generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
@@ -1859,7 +1859,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   Symbol sym;
   string str;
   Address addr;
-  Address instHeapStart;
+  /* Address instHeapStart; */
 
   // find the main function
   // first look for main or _main
@@ -2078,7 +2078,7 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 // dynamic linking not implemented on this platform
 bool process::findCallee(instPoint &instr, function_base *&target){
 
-    if((target = (function_base *)instr.iPgetCallee())) {
+    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
        return true;
     }
     if (instr.callIndirect && instr.callee) {
@@ -2119,7 +2119,7 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 static const Address lowest_addr = 0x00400000;
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-			       inferiorHeapType type)
+					inferiorHeapType /*type*/)
 {
   if (near)
     {
@@ -2157,7 +2157,7 @@ void emitFuncJump(opCode op,
     assert(op == funcJumpOp);
 
     addr = callee->getEffectiveAddress(proc);
-    Address addr2 = ((function_base *)callee)->getAddress(0);
+    /* Address addr2 = (const_cast<function_base *>(callee))->getAddress(0); */
     instruction *insn = (instruction *) ((void*)&i[base]);
     count = 0;
 
@@ -2254,7 +2254,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
-bool deleteBaseTramp(process *proc, instPoint* location,
+bool deleteBaseTramp(process * /*proc*/, instPoint* /*location*/,
                      trampTemplate *, instInstance * /*lastMT*/)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
@@ -2273,11 +2273,9 @@ bool deleteBaseTramp(process *proc, instPoint* location,
  * address      The address for which to create the point.
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address,
-					 BPatch_point** alternative,
+					 BPatch_point** /*alternative*/,
 					 BPatch_function* bpf)
 {
-    int i;
-
     function_base *func = NULL;
     if(bpf)
         func = bpf->func;
@@ -2314,7 +2312,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 
 int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 {
-    if (maxSize >= sizeof(instruction))
+    if (static_cast<unsigned>(maxSize) >= sizeof(instruction))
         memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
 
     return sizeof(instruction);

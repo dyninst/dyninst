@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.35 2002/06/26 21:14:49 schendel Exp $
+// $Id: irix.C,v 1.36 2002/06/28 17:35:01 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -99,7 +99,7 @@ static const int bt_ra_slot = -512;
 static const int bt_fp_slot = -504;
 static const int bt_frame_size = 512;
 
-static Address adjustedPC(Address pc, Address fn_addr,
+static Address adjustedPC(process *proc, Address pc, Address fn_addr,
 			  instPoint *ip,
 			  trampTemplate *bt,
 			  instInstance *mt);
@@ -1331,7 +1331,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
   int proc_fd = getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
     perror("Frame::Frame(PIOCGREG)");
-    return;
+    return Frame();
   }
   
   pc = regs[PROC_REG_PC];
@@ -1352,7 +1352,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
     Address fn_addr = base_addr + currFunc->getAddress(0);
     
     // adjust $pc for active instrumentation 
-    Address pc_adj = adjustedPC(pc, fn_addr, ip, bt, mt);
+    Address pc_adj = adjustedPC(this, pc, fn_addr, ip, bt, mt);
     Address pc_off = pc_adj - fn_addr;
     bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, this);
     bool basetrampFrameActive = instrFrameActive(pc, ip, bt, mt);
@@ -1513,9 +1513,46 @@ static bool basetrampRegSaved(Address pc, Register reg,
   return false;
 }
 
+/* returns true if successfully finds when, otherwise returns false
+   writes into saveWhen, the when value for the given instPoint and 
+   instInstance */
+bool findWhen(callWhen *saveWhen, process *proc, const instPoint *loc, 
+	     instInstance *inst) {
+   int foundIt = -1;  /* -1 = not found, 0 = PRE, 1 = POST */
+   for(unsigned i=0; i<2; i++) {
+      callWhen curWhen;
+      if(i==0)      curWhen = callPreInsn;
+      else if(i==1) curWhen = callPostInsn;
+      installed_miniTramps_list *mtList;
+      proc->getMiniTrampList(loc, curWhen, &mtList);
+      if(mtList == NULL)  continue;
+      
+      List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+      List<instInstance*>::iterator endMT = mtList->get_end_iter(); 
+
+      for(; curMT != endMT; curMT++) {
+	 instInstance *cur_inst = *curMT;
+	 if(cur_inst == inst) {
+	    foundIt = i;
+	    break;
+	 }
+      }
+   }
+
+   if(foundIt == 0) {
+      *saveWhen = callPreInsn;
+      return true;
+   } else if(foundIt == 1) {
+      *saveWhen = callPostInsn;
+      return true;
+   } else {
+      return false;  /* couldn't find when */
+   }
+}
+
 // return the corresponding $pc in native code
 // (for a $pc in instrumentation code)
-static Address adjustedPC(Address pc, Address fn_addr,
+static Address adjustedPC(process *proc, Address pc, Address fn_addr,
 			  instPoint *ip,
 			  trampTemplate *bt,
 			  instInstance *mt)
@@ -1549,12 +1586,16 @@ static Address adjustedPC(Address pc, Address fn_addr,
   }
 
   else if (mt) {
+    callWhen when;
+    assert(ip!=NULL && mt!=NULL);
+    assert(findWhen(&when, proc, ip, mt));
+
     // $pc in minitramp
-    if (mt->when == callPreInsn) {
+    if (when == callPreInsn) {
       // $pc in pre-insn instr
       // $pc' = address of instr pt
       return pt_addr;
-    } else if (mt->when == callPostInsn) {
+    } else if (when == callPostInsn) {
       // $pc in post-insn instr
       // $pc' = address of insn after instr pt
       return pt_addr + (2*INSN_SIZE);
@@ -1602,7 +1643,7 @@ Frame Frame::getCallerFrame(process *p) const
   */
 
   // adjust $pc for active instrumentation 
-  Address pc_adj = adjustedPC(pc_, fn_addr, ip, bt, mt);
+  Address pc_adj = adjustedPC(p, pc_, fn_addr, ip, bt, mt);
   // $pc' (adjusted $pc) should be inside callee
   /*
   if (pc_adj < fn_addr || pc_adj >= fn_addr + callee->size()) {
@@ -1759,7 +1800,7 @@ Frame Frame::getCallerFrame(process *p) const
       return Frame(); // zero frame
     }
     ra = regs[PROC_REG_RA];
-    caller = p-findAddressInFuncsAndTramps(ra, &ip2, &bt2, &mt2);
+    caller = p->findAddressInFuncsAndTramps(ra, &ip2, &bt2, &mt2);
   }
 
   /* 
