@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.35 2000/03/14 00:49:22 hollings Exp $
+// $Id: test2.C,v 1.36 2000/03/21 00:49:59 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -23,6 +23,8 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
 #endif
 
 #include "BPatch.h"
@@ -807,9 +809,23 @@ main(unsigned int argc, char *argv[])
 	CloseHandle(h);
     }
 #else
-    kill(pid, SIGKILL);
+    int kret;
+
     // Alpha seems to take to kills to work - jkh 3/13/00
-    kill(pid, SIGKILL);		
+    while (1) {
+	kret = kill(pid, SIGKILL);
+	if (kret) {
+	    if (errno == ESRCH) {
+	       break;
+	    } else {
+	       perror("kill");
+	       break;
+	    }
+	}
+	kret = waitpid(pid, NULL, WNOHANG);
+	if (kret == pid) break;
+    }
+
 #endif
 
     delete (ret);
