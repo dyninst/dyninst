@@ -44,14 +44,11 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.46 2001/06/20 20:35:56 schendel Exp $ */
+/* $Id: uimpd.tcl.C,v 1.47 2001/11/02 16:11:32 pcroth Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
 
-extern "C" {
-  int atoi(const char*);
-}
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
