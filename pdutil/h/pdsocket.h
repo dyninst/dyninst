@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdsocket.h,v 1.2 2000/03/23 01:28:49 wylie Exp $
+// $Id: pdsocket.h,v 1.3 2003/07/24 16:42:53 pcroth Exp $
 #ifndef PDSOCKET_H
 #define PDSOCKET_H
 
@@ -77,5 +77,24 @@ typedef	int	PDSOCKET;
 
 #endif /* defined(i386_unknown_nt4_0) */
 
+#if defined(__cplusplus)
+
+struct PdSocket
+{
+    PDSOCKET  s;
+
+    PdSocket( PDSOCKET _s = INVALID_PDSOCKET )
+      : s( _s )
+    { }
+
+    PdSocket( const PdSocket& origSock )
+      : s( origSock.s )
+    { }
+
+    bool operator==( const PdSocket& origSock ) { return origSock.s == s; }
+    bool operator!=( const PdSocket& origSock ) { return origSock.s != s; }
+};
+
+#endif // __cplusplus
 
 #endif /* PDSOCKET_H */

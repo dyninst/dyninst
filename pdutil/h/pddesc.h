@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,22 +39,42 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pddesc.h,v 1.1 1999/03/03 17:31:27 pcroth Exp $
+// $Id: pddesc.h,v 1.2 2003/07/24 16:42:53 pcroth Exp $
 #ifndef PDDESC_H
 #define	PDDESC_H
 
 #if defined(i386_unknown_nt4_0)
 
-#  define	PDDESC	HANDLE
-#  define	INVALID_PDDESC	INVALID_HANDLE_VALUE
+typedef HANDLE  PDDESC;
+#define	INVALID_PDDESC	INVALID_HANDLE_VALUE
 
 #else // defined(i386_unknown_nt4_0)
 
-#  define	PDDESC	int
-#  define	INVALID_PDDESC	(-1)
+typedef int PDDESC;
+#define	INVALID_PDDESC	(-1)
 
 #endif // defined(i386_unknown_nt4_0)
 
 #define	PDDESC_ERROR	(-1)
+
+#if defined(__cplusplus)
+
+struct PdFile
+{
+    PDDESC  fd;
+
+    PdFile( PDDESC _fd = INVALID_PDDESC )
+      : fd( _fd )
+    { }
+
+    PdFile( const PdFile& origFd )
+      : fd( origFd.fd )
+    { }
+
+    bool operator==( const PdFile& testfd ) { return testfd.fd == fd; }
+    bool operator!=( const PdFile& testfd ) { return testfd.fd != fd; }
+};
+
+#endif // __cplusplus
 
 #endif // PDDESC_H
