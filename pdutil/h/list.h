@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.15  1994/03/11 21:01:23  hollings
+ * Revision 1.16  1994/05/30 19:37:39  hollings
+ * added pragma for external g++ functions.
+ *
+ * Revision 1.15  1994/03/11  21:01:23  hollings
  * Changed Boolean from int to char to match X11 convention.
  *
  * Revision 1.14  1994/02/25  00:25:57  hollings
@@ -76,6 +79,8 @@ typedef char Boolean;
 #define FALSE 0
 #define TRUE  1
 #endif
+
+#pragma interface
 
 #define ListHash(ptr, size) (((int)(ptr) % (int)(size)))
 
