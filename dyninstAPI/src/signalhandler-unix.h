@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.8 2003/06/11 20:05:49 bernat Exp $
+/* $Id: signalhandler-unix.h,v 1.9 2003/09/05 16:28:04 schendel Exp $
  */
 
 /*
@@ -220,7 +220,6 @@ int handleSignal(process *proc, procSignalWhat_t what,
 
 int handleForkEntry(process *proc, procSignalInfo_t info);
 int handleExecEntry(process *proc, procSignalInfo_t info);
-int handleExitEntry(process *proc, procSignalInfo_t info);
 
 // And the dispatcher
 int handleSyscallEntry(process *proc, procSignalWhat_t what,
