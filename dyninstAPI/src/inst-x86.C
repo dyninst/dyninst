@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.124 2003/04/02 07:12:25 jaw Exp $
+ * $Id: inst-x86.C,v 1.125 2003/04/04 20:49:18 mirg Exp $
  */
 
 #include <iomanip.h>
@@ -728,24 +728,12 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
       // add instructions after the point
       if (type == ReturnPt && p->address() == funcEnd-1) {
-
-         /* If an instrumentation point at the end of the function does
-            not end on a 4-byte boundary, we claim the bytes up to the
-            next 4-byte boundary as "bonus bytes" for the point, since
-            the next function will (should) begin at or past the
-            boundary.  We tried 8 byte boundaries and found some
-            functions did not begin on 8-byte aligned addresses, so 8 is
-            unsafe. */
-         unsigned bonus;
-#ifndef i386_unknown_nt4_0
-         bonus = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
-#else
-         /* Unfortunately, the Visual C++ compiler generates functions
-            that begin at unaligned boundaries, so forget this scheme on
-            NT. */
-         bonus = 0;
-#endif /* i386_unknown_nt4_0 */
-       //p->setBonusBytes(bonus);
+	 // On Linux, we used to try and scavenge a few extra bytes
+	 // past the end of the function, assuming that the next
+	 // function will start at the 4-byte boundary. However, this
+	 // is no longer true with gcc 3.x and it has never been true
+	 // with Visual C++. Hence, bonus = 0;
+         unsigned bonus = 0;
          unsigned u1;
          for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
             if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
