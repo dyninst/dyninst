@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.52  1997/06/23 17:05:07  tamches
+ * slight changes to #include
+ *
  * Revision 1.51  1997/06/16 22:07:15  ssuen
  * Added `int deleteComp = 1' to end of argument list for function
  *   metricDefinitionNode::removeFromAggregate
@@ -120,6 +123,9 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
+#include "dyninstAPI/src/inst.h" // for "enum callWhen"
+
+class instInstance; // enough since we only use instInstance* in this file
 
 #if defined(SHM_SAMPLING)
 #include "paradynd/src/superTable.h"
