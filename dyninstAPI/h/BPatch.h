@@ -229,6 +229,8 @@ public:
 	 
     bool 	pollForStatusChange();
     bool 	waitForStatusChange();
+
+    bool waitUntilStopped(BPatch_thread *appThread);
 };
 
 #endif /* _BPatch_h_ */
