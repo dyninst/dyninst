@@ -70,13 +70,20 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
     BPatch_image	*img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
     BPatch_Vector<BPatch_function *> * BPfuncs_uninstrumentable;
-    LineInformation* lineInformation;
+
     bool nativeCompiler;
      
 public:
+    // these 3 are used by parseStab, current_func is also used by parseCoff
+    //static char * current_func_name;
+    //static char * current_mangled_func_name; 
+    //static BPatch_function *current_func; 
+
+    pdmodule * getModule() { return mod; }
+
 // The following functions are for internal use by  the library only:
     BPatch_module(process *_proc, pdmodule *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),lineInformation(NULL),nativeCompiler(false) {
+    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };
 
@@ -106,11 +113,6 @@ public:
 
     void dumpMangled(char * prefix);
     void parseTypes();
-
-#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) \
-    && !defined(i386_unknown_nt4_0)
-    void parseFileLineInfo();
-#endif
 
     bool isSharedLib() const;
 
