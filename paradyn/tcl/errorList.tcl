@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.45 2000/03/23 01:30:05 wylie Exp $
+# $Id: errorList.tcl,v 1.46 2000/04/06 18:08:41 pcroth Exp $
 
 #
 # Error message format:
@@ -1016,9 +1016,19 @@ this option.  If you are using the -f[ile] option, you may have\
 obscured executables which Paradyn will not be able to identify.}
 }
 
+set pdError(115) {
+{Unable to start a visi until application is defined.}
+{ui}
+{warning}
+{You must define an application before starting a data visualization. \
+Paradyn needs to have an application defined to define its metrics and \
+resources, which are needed in order to define a metric/focus pair for \
+a visualization.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 114
+    return 115
 }

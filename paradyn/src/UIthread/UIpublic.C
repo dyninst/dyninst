@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.71 1999/12/17 16:24:55 pcroth Exp $
+/* $Id: UIpublic.C,v 1.72 2000/04/06 18:08:32 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -189,6 +189,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   vector<met_name_id> *curr_avail_mets_ptr = dataMgr->getAvailableMetInfo(false);
   vector<met_name_id> &curr_avail_mets = *curr_avail_mets_ptr;
   unsigned numAvailMets = curr_avail_mets.size();
+  assert( numAvailMets > 0 );
   for (unsigned metlcv=0; metlcv < numAvailMets; metlcv++) {
      string metricIdStr = string(curr_avail_mets[metlcv].id);
      

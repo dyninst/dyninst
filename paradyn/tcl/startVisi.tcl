@@ -1,4 +1,4 @@
-# $Id: startVisi.tcl,v 1.8 1998/03/03 23:09:52 wylie Exp $
+# $Id: startVisi.tcl,v 1.9 2000/04/06 18:08:41 pcroth Exp $
 
 proc AcceptProc {} {
    global W 
@@ -40,6 +40,13 @@ if {[catch {set phase}]} {
 #
 proc drawVisiMenu {} {
   global W visiIds vnames vnums vcount
+
+  # make sure that Paradyn knows about at least one application,
+  # so that it has metrics to define
+  if {![paradyn applicationDefined]} {
+	showError 115 {}
+	return
+  }
 
   set W .vStart
   catch {destroy $W}
