@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.206 2001/11/08 19:12:36 bernat Exp $
+// $Id: metricFocusNode.C,v 1.207 2001/11/10 17:28:04 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2371,7 +2371,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
       bool aCompFailedToInsert = false;
       for (u=0; u<c_size; u++)
 	if (!components[u]->insertInstrumentation(func)) {
-          assert (*func != NULL);
+          //assert (*func != NULL);
 	  aCompFailedToInsert = true;
 	}
       if(aCompFailedToInsert) return false;
@@ -2402,7 +2402,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 	  thisComp->markAsDeferred();
 	else {
 	  if (!thisComp->insertInstrumentation(func)) {
-	    assert (*func != NULL);
+	    //assert (*func != NULL);
 	    if(thisComp->hasDeferredInstr()) {
 	      aCompWasDeferred = true;
 	    }
@@ -2469,7 +2469,7 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 	      markAsDeferred();
 	    }
 
-            assert (*func != NULL);
+            //assert (*func != NULL);
 	    return false; // shouldn't we try to undo what's already put in?
 	  }
 	  if (retInst) {
