@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.34 2001/05/24 18:37:24 wxd Exp $
+// $Id: DMmetric.C,v 1.35 2001/06/20 20:35:23 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -47,14 +47,15 @@ extern "C" {
 }
 #include "DMmetric.h"
 #include <iostream.h>
+#include "pdutil/h/pdDebugOstream.h"
 
-extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
-extern void histFoldCallBack(timeStamp, void*, bool);
+extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*, bool);
+extern void histFoldCallBack(const timeLength*, void*, bool);
 
 // trace data streams
 extern void traceDataCallBack(const void*, int, void*);
 
-extern debug_ostream sampleVal_cerr;
+extern pdDebug_ostream sampleVal_cerr;
 
 metric::metric(T_dyninstRPC::metricInfo i){
 
@@ -160,11 +161,12 @@ vector<met_name_id> *metric::allMetricNamesIds(bool all){
 metricInstance::metricInstance(resourceListHandle rl, 
 			       metricHandle m,
 			       phaseHandle ph): 
-    aggSample(metric::getMetric(m)->getAggregate(), 
-	     metAggInfo.get_proportionCalc(metric::getMetric(m)->getStyle())) {
+  enabledTime(timeLength::Zero()), 
+  aggSample(metric::getMetric(m)->getAggregate(), 
+	    metAggInfo.get_proportionCalc(metric::getMetric(m)->getStyle())) 
+{
     met = m;
     focus = rl;
-    enabledTime = 0.0;
     //metric *mp = metric::getMetric(m);
     //sample.aggOp = mp->getAggregate();
     data = 0;
@@ -200,7 +202,7 @@ metricInstance::~metricInstance() {
     allMetricInstances.undef(id);
 }
 
-int metricInstance::getArchiveValues(sampleValue *buckets,int numOfBuckets,
+int metricInstance::getArchiveValues(pdSample *buckets,int numOfBuckets,
 				    int first,phaseHandle phase_id){
 
     // find histogram associated with phase_id
@@ -214,7 +216,7 @@ int metricInstance::getArchiveValues(sampleValue *buckets,int numOfBuckets,
     return -1;
 }
 
-int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
+int metricInstance::getSampleValues(pdSample *buckets,int numOfBuckets,
 				    int first,phaseType phase){
 
     if(phase == CurrentPhase){
@@ -233,20 +235,14 @@ metricInstance::saveOneMI_Histo (ofstream& fptr,
 				 Histogram *hdata,
 				 int phaseid)
 {
-  timeStamp width;
-  timeStamp startTime;
-  sampleValue *buckets = NULL;
-  unsigned count;
-  int numBins;
-
   fptr << "histogram " << getMetricName() << endl <<  
     getFocusName() << endl;
 	
-  numBins = hdata->getNumBins();
-  buckets = new sampleValue [numBins];
-  count = hdata->getBuckets(buckets, numBins, 0);
-  width = hdata->getBucketWidth();
-  startTime = hdata->getStartTime();
+  int numBins = hdata->getNumBins();
+  pdSample *buckets = new pdSample[numBins];
+  unsigned count = hdata->getBuckets(buckets, numBins, 0);
+  timeLength width = hdata->getBucketWidth();
+  relTimeStamp startTime = hdata->getStartTime();
   // header info:  numBuckets, bucketWidth, startTime, count, id 
   fptr << count << " " << width << " " << startTime << " " << 
     " " << phaseid << endl;
@@ -350,6 +346,17 @@ metricInstance *metricInstance::getMI(metricInstanceHandle mh){
         return mih;
     }
     return 0;
+}
+
+timeLength metricInstance::getBucketWidth(phaseType phase) {
+    if(phase == CurrentPhase) {
+        assert(data);
+        return data->getBucketWidth();
+    }
+    else {
+        assert(global_data);
+        return global_data->getBucketWidth();
+    }
 }
 
 // TODO: remove asserts
@@ -473,8 +480,8 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       string focus_machine("/Machine");
 	       string focus_sync("/SyncObject");
 	       int  index=0;
-	       char *pos=NULL;
-	       for (pos = strtok(focus_name_str,","); pos != NULL;pos=strtok(NULL,","))
+	       char *pos = strtok(const_cast<char *>(focus_name_str),",");
+	       for (; pos != NULL; pos=strtok(NULL,","))
 	       {
 	       	    index++;
 		    if (index == 1)
@@ -491,8 +498,8 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       string mi_machine("/Machine");
 	       string mi_sync("/SyncObject");
 	       index=0;
-	       pos=NULL;
-	       for (pos=strtok(mi_focus_str,",");pos != NULL;pos=strtok(NULL,","))
+	       pos = strtok(const_cast<char *>(mi_focus_str),",");
+	       for (; pos; pos=strtok(NULL,","))
 	       {
 	       	    index++;
 		    if (index == 1)
@@ -585,17 +592,20 @@ bool metricInstance::removeComponent(paradynDaemon *daemon) {
 	  sampleVal_cerr << "Last component removed- ";
 	  // the last component was removed
 	  // flush aggregate samples
-	  struct sampleInterval ret;
-	  ret = aggSample.aggregateValues();
+	  struct sampleInterval ret = aggSample.aggregateValues();
 	  while (ret.valid) {
-	    assert(ret.end >= 0.0);
-	    assert(ret.start >= 0.0);
-	    assert(ret.end >= ret.start);
-	    enabledTime += ret.end - ret.start;
+	    relTimeStamp relStartTime = relTimeStamp(ret.start - 
+						     getEarliestFirstTime());
+	    relTimeStamp relEndTime = relTimeStamp(ret.end - 
+						   getEarliestFirstTime());
+	    assert(relStartTime >= relTimeStamp::Zero());
+	    assert(relEndTime   >= relTimeStamp::Zero());
+	    assert(relEndTime   >= relStartTime);
+	    enabledTime += relStartTime - relEndTime;
 	    sampleVal_cerr << " flush aggregation, valid: " << ret.valid 
-			   << "  start: " << ret.start << "  end: " << ret.end 
-			   << "  value: " << ret.value << "\n";
-	    addInterval(ret.start, ret.end, ret.value, false);
+			   << "  start: " << relStartTime << "  end: " 
+			   << relEndTime << "  value: " << ret.value << "\n";
+	    addInterval(relStartTime, relEndTime, ret.value);
 	    ret = aggSample.aggregateValues();
 	  }
 	  if(data) data->flushUnsentBuckets();
@@ -716,6 +726,15 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
     performanceStream::removeAllCurrUsers();
 }
 
+timeStamp metricInstance::getEarliestFirstTime() {
+  unsigned size = components.size();
+  timeStamp earliestTime = timeStamp::ts2200();
+  for(unsigned i=0; i<size; i++) {
+    timeStamp pdETime = components[i]->getDaemon()->getEarliestFirstTime();
+    if(pdETime < earliestTime) earliestTime = pdETime;
+  }
+  return earliestTime;
+}
 
 void metricInstance::addCurrentUser(perfStreamHandle p) {
 
@@ -759,22 +778,22 @@ void metricInstance::newTraceDataCollection(dataCallBack2 dcb) {
 
 void metricInstance::newGlobalDataCollection(metricStyle style, 
 					     dataCallBack dcb, 
-					     foldCallBack fcb) {
-
+					     foldCallBack fcb) 
+{
     // histogram has already been created
     if (global_data) {
 	global_data->setActive();
 	global_data->clearFoldOnInactive();
 	return;  
     }
-    // call constructor for start time 0.0 
-    global_data = new Histogram(style, dcb, fcb, this, 1);
+    global_data = new Histogram(relTimeStamp::Zero(), style, dcb, fcb, 
+				this, 1);
 }
 
 void metricInstance::newCurrDataCollection(metricStyle style, 
 					   dataCallBack dcb, 
-					   foldCallBack fcb) {
-
+					   foldCallBack fcb) 
+{
     // histogram has already been created
     if (data) {
 	data->setActive();
@@ -782,17 +801,10 @@ void metricInstance::newCurrDataCollection(metricStyle style,
         return;  
     }
     // create new histogram
-    timeStamp start_time = phaseInfo::GetLastPhaseStart();
-    if(start_time == 0.0) {
-        data = new Histogram(style, dcb, fcb, this, 0);
-	assert(data);
-	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
-
-    }
-    else {
-        data = new Histogram(start_time, style, dcb, fcb, this, 0);
-	assert(data);
-	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
-    }
+    relTimeStamp start_time = phaseInfo::GetLastPhaseStart();
+    data = new Histogram(start_time, style, dcb, fcb, this, 0);
+    assert(data);
+    phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
 }
+
 

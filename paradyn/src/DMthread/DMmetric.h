@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.34 2001/04/25 18:41:35 wxd Exp $ 
+// $Id: DMmetric.h,v 1.35 2001/06/20 20:35:23 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
-#include "pdutilOld/h/sys.h"
-#include "pdutilOld/h/hist.h"
+#include "pdutil/h/hist.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include <string.h>
@@ -53,7 +52,9 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
-#include "pdutilOld/h/aggregateSample.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+#include "pdutil/h/aggregateSample.h"
 #include "DMinclude.h"
 #include "DMdaemon.h"
 #include "paradyn/src/TCthread/tunableConst.h"
@@ -106,7 +107,7 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void histDataCallBack(sampleValue *, timeStamp , 
+    friend void histDataCallBack(pdSample *, timeStamp , 
 				 int , int , void *, bool);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
     public:
@@ -129,13 +130,12 @@ class metric {
 	static vector<string> *allMetricNames(bool all);
 	static vector<met_name_id> *allMetricNamesIds(bool all);
 	bool isDeveloperMode() { return info.developerMode; }
+        static metric  *getMetric(metricHandle iName); 
 
     private:
 	static dictionary_hash<string, metric*> allMetrics;
 	static vector<metric*> metrics;  // indexed by metric id
 	T_dyninstRPC::metricInfo info;
-
-        static metric  *getMetric(metricHandle iName); 
 };
 
 struct archive_type {
@@ -149,7 +149,7 @@ class metricInstance {
     friend class dataManager;
     friend class metric;
     friend class paradynDaemon;
-    friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
+    friend void histDataCallBack(pdSample *buckets, relTimeStamp, int count, 
 				 int first, void *arg, bool globalFlag);
     friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType> *,
 			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
@@ -161,24 +161,23 @@ class metricInstance {
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
-	float getValue() {
-	    float ret;
+	pdSample getValue() {
+	    pdSample ret;
 	    if (!data) abort();
 	    ret = data->getValue();
-	    ret /= enabledTime;
 	    return(ret);
 	}
-	float getTotValue() {
-	    float ret;
-
+	pdSample getTotValue() {
+	    pdSample ret;
 	    if (!data) abort();
 	    ret = data->getValue();
 	    return(ret);
 	}
 	int currUsersCount(){return(users.size());}
 	int globalUsersCount(){return(global_users.size());}
-	int getSampleValues(sampleValue*, int, int, phaseType);
-	int getArchiveValues(sampleValue*, int, int, phaseHandle);
+	int getSampleValues(pdSample*, int, int, phaseType);
+	int getArchiveValues(pdSample*, int, int, phaseHandle);
+	timeLength getBucketWidth(phaseType phase);
 
         static unsigned  mhash(const metricInstanceHandle &val){
 	    return((unsigned)val);
@@ -191,11 +190,11 @@ class metricInstance {
 	bool convertToIDList(vector<u_int> &rl){
 	    return resourceList::convertToIDList(focus,rl);
         }
-	void addInterval(timeStamp s,timeStamp e,sampleValue v,bool b){
+	void addInterval(relTimeStamp s, relTimeStamp e, pdSample v){
 	     if(data) 
-                 data->addInterval(s,e,v,b);
+                 data->addInterval(s,e,v);
              if(global_data)
-		 global_data->addInterval(s,e,v,b);
+		 global_data->addInterval(s,e,v);
 	}
         
         // trace data streams
@@ -246,10 +245,11 @@ class metricInstance {
         // writes header info plus all values in histogram into file
         bool saveAllData (ofstream&, int &findex, const char *dirname,
 			  SaveRequestType oFlag);
-	static timeStamp GetGlobalWidth(){return(global_bucket_width);}
-	static timeStamp GetCurrWidth(){return(curr_bucket_width);}
-	static void SetGlobalWidth(timeStamp nw){global_bucket_width = nw;}
-	static void SetCurrWidth(timeStamp nw){curr_bucket_width = nw;}
+        static metricInstance *getMI(metricInstanceHandle);
+	static timeLength GetGlobalWidth(){return(global_bucket_width);}
+	static timeLength GetCurrWidth(){return(curr_bucket_width);}
+	static void SetGlobalWidth(timeLength nw){global_bucket_width = nw;}
+	static void SetCurrWidth(timeLength nw){curr_bucket_width = nw;}
 	static phaseHandle GetCurrPhaseId(){return(curr_phase_id);}
 	static void setPhaseId(phaseHandle ph){curr_phase_id = ph;}
 	static void stopAllCurrentDataCollection(phaseHandle);
@@ -263,7 +263,7 @@ class metricInstance {
     private:
 	metricHandle met;
 	resourceListHandle focus;
-	float enabledTime;
+	timeLength enabledTime;
 	bool enabled;    // set if data for mi is currently enabled
 	bool currently_enabling; // set if MI is curr. being enabled 
 	// to keep track of outstanding enable requests for this MI 
@@ -299,8 +299,8 @@ class metricInstance {
 	static u_int next_id;
         // info. about phase data
 	static phaseHandle curr_phase_id;  // TODO: set this on Startphase
-	static timeStamp global_bucket_width;  // updated on fold
-	static timeStamp curr_bucket_width;    // updated on fold
+	static timeLength global_bucket_width;  // updated on fold
+	static timeLength curr_bucket_width;    // updated on fold
 
 	// these values only change on enable, disable, and phase start events
 	// they count the number of active histograms (active means that data
@@ -311,13 +311,13 @@ class metricInstance {
         // trace data streams
         vector<perfStreamHandle> trace_users;  // subscribers to trace data
         dataCallBack2 traceFunc;
-
-        static metricInstance *getMI(metricInstanceHandle);
+	
 	static metricInstance *find(metricHandle, resourceListHandle);
         static vector<metricInstance*> *query(metric_focus_pair); 
 	void flushPerfStreams();
-        void newCurrDataCollection(metricStyle,dataCallBack,foldCallBack);
-        void newGlobalDataCollection(metricStyle,dataCallBack,foldCallBack);
+        void newCurrDataCollection(metricStyle, dataCallBack, foldCallBack);
+        void newGlobalDataCollection(metricStyle, dataCallBack, foldCallBack);
+	timeStamp getEarliestFirstTime();
 	void addCurrentUser(perfStreamHandle p); 
 	void addGlobalUser(perfStreamHandle p); 
 	// clear enabled flag and remove comps and parts
@@ -337,3 +337,5 @@ class metricInstance {
 			      int phaseid);
 };
 #endif
+
+
