@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.4 2002/08/12 04:22:09 schendel Exp $
+// $Id: varTable.C,v 1.5 2002/08/31 16:53:42 mikem Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -52,6 +52,8 @@
 #include "paradynd/src/variableMgr.h"
 #include "paradynd/src/init.h"
 #include "dyninstAPI/src/process.h"
+
+#include "papiMgr.h"
 
 template <class HK>
 varTable<HK>::varTable(const varTable<HK> &parent, variableMgr &vMgr) :
@@ -91,14 +93,15 @@ inst_var_index varTable<HK>::getFreeIndex() {
 }
 
 template <class HK>
-inst_var_index varTable<HK>::allocateVar()
+inst_var_index varTable<HK>::allocateVar(HwEvent* hw)
 {
   // We should check to see if there is a "free" varInstance, and reuse
   // it. For now, we monotonically increase (proof of concept and all that)
 
   inst_var_index new_index = getFreeIndex();
   // HK tells the varInstance how much memory to allocate.
-  baseVarInstance *newVar = new varInstance<HK>(varMgr, HK::initValue);
+ 
+  baseVarInstance *newVar = new varInstance<HK>(varMgr, HK::initValue, hw);
   varInstanceBuf[new_index] = newVar;
   return new_index;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.5 2002/08/12 04:22:12 schendel Exp $
+// $Id: variableMgr.h,v 1.6 2002/08/31 16:53:45 mikem Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -61,6 +61,7 @@ class pdThread;
 class shmMgr;
 class baseVarTable;
 class threadMetFocusNode_Val;
+class HwEvent;
 
 class variableMgr {
  private:
@@ -88,7 +89,7 @@ class variableMgr {
   shmMgr &getShmMgr() { return theShmMgr; }
   process *getApplicProcess() { return applicProcess; }
   
-  inst_var_index allocateForInstVar(inst_var_type varType);
+  inst_var_index allocateForInstVar(inst_var_type varType, HwEvent* hw);
   
   void markVarAsSampled(inst_var_type varType, inst_var_index varIndex,
 		       unsigned thrPos, threadMetFocusNode_Val *thrNval) const;

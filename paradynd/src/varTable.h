@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.4 2002/08/12 04:22:10 schendel Exp $
+// $Id: varTable.h,v 1.5 2002/08/31 16:53:43 mikem Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -60,12 +60,13 @@ class baseVarInstance;
 class threadMetFocusNode_Val;
 class variableMgr;
 class Frame;
+class HwEvent;
 
 class baseVarTable { 
  public:
   virtual ~baseVarTable() { }
 
-  virtual inst_var_index allocateVar() = 0;
+  virtual inst_var_index allocateVar(HwEvent* hw) = 0;
     
   virtual void markVarAsSampled(inst_var_index varIndex, unsigned thrPos,
 				threadMetFocusNode_Val *thrNval) = 0;
@@ -108,7 +109,7 @@ class varTable : public baseVarTable {
   
   ~varTable();
   
-  inst_var_index allocateVar();
+  inst_var_index allocateVar(HwEvent* hw);
   
   void markVarAsSampled(inst_var_index varIndex, unsigned thrPos, 
 			threadMetFocusNode_Val *thrNval);

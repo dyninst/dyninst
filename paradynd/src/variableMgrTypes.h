@@ -42,7 +42,7 @@
 #ifndef _VARIABLE_MGR_TYPES_H_
 #define _VARIABLE_MGR_TYPES_H_
 
-enum inst_var_type { Counter=0, WallTimer, ProcTimer };
+enum inst_var_type { Counter=0, WallTimer, ProcTimer, HwTimer, HwCounter };
 typedef unsigned inst_var_index;
 
 

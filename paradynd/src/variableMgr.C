@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.8 2002/08/12 04:22:11 schendel Exp $
+// $Id: variableMgr.C,v 1.9 2002/08/31 16:53:44 mikem Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -54,7 +54,6 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/varInstance.h"
 
-
 variableMgr::variableMgr(process *proc, shmMgr *shmMgr_, 
 			 unsigned maxNumberOfThreads) : 
   maxNumberOfThreads(maxNumberOfThreads), applicProcess(proc), 
@@ -66,10 +65,12 @@ variableMgr::variableMgr(process *proc, shmMgr *shmMgr_,
 #else
   maxNumberOfThreads = 1;
 #endif
-  varTables.resize(3);
+  varTables.resize(5);
   varTables[Counter] = new varTable<intCounterHK>(*this);
   varTables[WallTimer] = new varTable<wallTimerHK>(*this);
   varTables[ProcTimer] = new varTable<processTimerHK>(*this);
+  varTables[HwTimer] = new varTable<hwTimerHK>(*this);
+  varTables[HwCounter] = new varTable<hwCounterHK>(*this);
   // Insert other timer/counter types here...
 
   // Preallocate for the varTables
@@ -91,7 +92,7 @@ variableMgr::variableMgr(const variableMgr &par, process *proc,
   applicProcess(proc),
   theShmMgr(*shmMgr_)
 {
-  varTables.resize(3);
+  varTables.resize(5);
   for(unsigned i=0; i<par.varTables.size(); i++) {
     switch(i) {
       case Counter:
@@ -106,6 +107,14 @@ variableMgr::variableMgr(const variableMgr &par, process *proc,
 	varTables[ProcTimer] = new varTable<processTimerHK>(
             *dynamic_cast<varTable<processTimerHK>*>(par.varTables[i]), *this);
 	break;
+      case HwTimer:
+	varTables[HwTimer] = new varTable<hwTimerHK>(
+            *dynamic_cast<varTable<hwTimerHK>*>(par.varTables[i]), *this);
+	break;
+      case HwCounter:
+	varTables[HwCounter] = new varTable<hwCounterHK>(
+            *dynamic_cast<varTable<hwCounterHK>*>(par.varTables[i]), *this);
+	break;
       default:
 	assert(false);
     }
@@ -119,9 +128,9 @@ variableMgr::~variableMgr()
   }
 }
 
-inst_var_index variableMgr::allocateForInstVar(inst_var_type varType)
+inst_var_index variableMgr::allocateForInstVar(inst_var_type varType, HwEvent* hw)
 {
-  return varTables[varType]->allocateVar();
+  return varTables[varType]->allocateVar(hw);
 }
 
 void variableMgr::markVarAsSampled(inst_var_type varType, 
@@ -196,6 +205,7 @@ void variableMgr::deleteThread(pdThread *thr)
   for (unsigned iter = 0; iter < varTables.size(); iter++)
     varTables[iter]->deleteThread(thrPos);
 }
+
 
 void variableMgr::initializeVarsAfterFork() {
   for (unsigned iter = 0; iter < varTables.size(); iter++) {
