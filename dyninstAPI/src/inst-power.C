@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.137 2002/06/17 21:31:14 chadd Exp $
+ * $Id: inst-power.C,v 1.138 2002/06/25 20:26:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1897,14 +1897,12 @@ bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool isFu
 #if defined(MT_THREAD)/*
  * offset: if the hash value comes back negative, jump forward this
  *         (effectively skipping the RPC, do we want error handling?)
- * tid:    Use this TID
- * pos:    Use this POS
  */
 
 Address process::generateMTRPCCode(void *insnPtr, Address &base,
 				   unsigned tid, unsigned pos)
 {
-  AstNode *threadPOSTID;
+  AstNode *threadPOS;
   vector<AstNode *>param;
   Address returnVal;
   bool err;
@@ -1916,11 +1914,11 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
   /* Get the hashed value of the thread */
   param += new AstNode(AstNode::Constant, (void *)tid);
   param += new AstNode(AstNode::Constant, (void *)pos);
-  threadPOSTID = new AstNode("DYNINSTthreadPosTID", param);
+  threadPOS = new AstNode("DYNINSTthreadPos", param);
   for (unsigned i=0; i<param.size(); i++) 
     removeAst(param[i]);
 
-  src = threadPOSTID->generateCode(this, regSpace, (char *)insnPtr,
+  src = threadPOS->generateCode(this, regSpace, (char *)insnPtr,
 				   base, 
 				   false, // noCost 
 				   true); // root node
