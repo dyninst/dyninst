@@ -2,6 +2,15 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.26  1996/01/10 02:30:15  tamches
+#  highlightthickness of many tk widgets set to 0 for asthetics;
+#  similarly, borderwidth set to 2.
+#  numMetrics, numResources are no longer global variables; we use the Dg
+#  command to fetch the latest values.  Same for metricNames, metricUnits,
+#  and resourceNames.
+#  bar colors are no longer hard-coded here.
+#  removed getMetricHints
+#
 #  Revision 1.25  1995/12/15 22:34:30  tamches
 #  fixed bug where Wmbar wasn't being made a global vrble
 #
@@ -31,123 +40,6 @@
 #
 # Revision 1.19  1995/07/06  18:54:59  tamches
 # Update for tk4.0
-#
-# Revision 1.18  1995/05/10  22:28:24  tamches
-# Removed warning message in getMetricHints when encountering an
-# unknown metric...but we still default to min=0 max=1.  This information
-# should really be kept in the data manger, imho.
-#
-# Revision 1.17  1995/04/01  01:34:21  tamches
-# Metric axis lines now 2 pix wide, not 1.  Metric key items now more
-# color-coordinated (i.e., now, not just the axis lines are drawn in the
-# bar's color).
-#
-# Revision 1.16  1995/02/26  02:01:45  newhall
-# added callback functions for new visiLib phase info.
-#
-# Revision 1.15  1994/11/11  06:46:34  tamches
-# more configure event handlers for other subwindows has helped fix
-# some resize bugs, especially when switching from short to long
-# names.  Window now does not resize itself when adding new resources
-# with longer names; pack propagate for the toplevel is off.
-#
-# Revision 1.14  1994/11/09  04:44:40  tamches
-# Deleting multiple metrics at a time is now supported.
-#
-# Revision 1.13  1994/11/09  03:26:25  tamches
-# Clicking in a "neutral" area of the resources axis will now un-select
-# anything that may have been selected.
-#
-# Revision 1.12  1994/11/09  02:25:19  tamches
-# Re-implemented a feature of old: Long Names.  The option
-# (which is off by default) is found at the bottom of the options menu.
-# Fixed a bug whereby resourcesAxisWidth stayed unchanged at "1.4i"
-# forever.
-#
-# Revision 1.11  1994/11/06  10:36:48  tamches
-# changed title font to 14 point
-# beefed up validResources(), numValidResources, indirectResources()
-# throughput the code.
-# implemented a maximum individual color height of 25 pixels
-# fixed a major bug when deleted resources (deleted resources were still
-# being counted when calculating resource heights)
-# Fixed deletion bug by having myXScroll do the callback to C++ code
-# that updates bar offsets.
-#
-# Revision 1.10  1994/10/28  21:53:44  tamches
-# Fixed a rather flaming bug that could cause any resource add to
-# potentially crash after doing a sort (c++ code's numResources
-# wasn't updated before ::rethinkIndirectResources was called, leading
-# to an assertion check failure)
-#
-# Revision 1.9  1994/10/14  10:28:49  tamches
-# Swapped the x and y axes -- now resources print vertically and
-# metrics print horizontally.  Can fit many, many more resources
-# on screen at once with no label overlap.  Multiple metrics
-# are now shown in the metrics axis.  Metric names are shown in
-# a "key" in the lower-left.
-#
-# Revision 1.8  1994/10/13  00:51:39  tamches
-# Fixed deletion of resources.
-# Implemented sorting of resources.
-# Reorganized menus to be more standars-ish
-#
-# Revision 1.7  1994/10/11  22:04:18  tamches
-# Fixed bug whereupon a resize while paused would erase the bars
-# until you continued.  Flickers too much on resize now, however...
-#
-# Delete resources should now work
-#
-# Revision 1.6  1994/10/10  23:08:41  tamches
-# preliminary changes on the way to swapping the x and y axes
-#
-# Revision 1.5  1994/10/07  22:06:36  tamches
-# Fixed some bugs w.r.t. resizing the window (bars and resources were
-# sometimes redrawn at the old locations, instead of adapting to the
-# resize).  The problem was related to [winfo width ...] returning
-# the old value while in the middle of a resize event.  The solution
-# was to include %w and %h in the configure-even callback (see the
-# tk "bind" command man page)
-#
-# Revision 1.4  1994/10/04  22:10:56  tamches
-# more color fixing (moved codes from barChart.C to here)
-#
-# Revision 1.3  1994/10/04  19:00:23  tamches
-# implemented resourceWidth algorithm: try to make resources the maximum
-# pixel width, but if they don't all fit in the window, shrink (down
-# to a fixed minimum).  Reapply algorithm when: window resizes, resources
-# are added/deleted.
-#
-# Revision 1.2  1994/10/01  02:22:25  tamches
-# Fixed some bugs related to scrolling; now, the user can't accidentally
-# scroll to the left of the leftmost bar or to the right of the rightmost
-# bar.
-#
-# Revision 1.1  1994/09/29  19:49:50  tamches
-# rewritten for new version of barchart; the bars are now drawn
-# with xlib code in C++ (no more blt_barchart) in barChart.C.
-# See also barChartTcl.C and barChartDriver.C
-#
-# Revision 1.5  1994/09/08  00:10:43  tamches
-# Added preliminary blt_drag&drop interface.
-# changed window title.
-#
-# Revision 1.4  1994/09/04  23:55:29  tamches
-# added 'to do' and 'problems' lists.  tightened code around speed-critical
-# areas.  improved look of resources axis.
-#
-# Revision 1.3  1994/09/03  01:24:40  tamches
-# Cleaned up syntax some more, e.g. longer variable names.
-# Cleaned up menus
-# Added many comments
-#
-# Revision 1.2  1994/09/02  21:00:30  tamches
-# minor get-acquainted formatting cleanups
-#
-# Revision 1.1  1994/08/06  22:50:47  rbi
-# Bar Chart Visi originally written by Sherri Frizell.
-# Initial revision includes bug fixes and cleanups by rbi.
-#
 
 # ######################################################
 # TO DO LIST:
@@ -159,9 +51,9 @@
 #  ################### Default options #################
 
 proc init_barchart_window {} {
-#option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *Data*font *-Helvetica-*-r-*-12-*
-option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
+   #option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
+   option add *Data*font *-Helvetica-*-r-*-12-*
+   option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
    if {[winfo depth .] > 1} {
       # You have a color monitor...
@@ -183,7 +75,6 @@ option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
    global W   
    set W .bargrph
-#   frame $W -class Visi
    frame $W
    
    frame $W.top
@@ -202,9 +93,6 @@ option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
    
    # #################### Paradyn logo #################
    
-   #label $W.top.logo -relief raised \
-   #		  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-   #                  -foreground indianred
    makeLogo $W.top.logo paradynLogo raised 2 indianred
    
    pack $W.top.logo -side right -expand false
@@ -288,32 +176,34 @@ option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
    
    # #######################  Scrollbar ######################
    
-   canvas $W.farLeft
+   canvas $W.farLeft -highlightthickness 0
    pack $W.farLeft -side left -expand false -fill y
       # expand is set to false; if the window is made wider, don't change width
    
    scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
            -background gray -activebackground gray -relief sunken \
-           -command ".bargrph.left.resourcesAxisCanvas yview"
+           -command ".bargrph.left.resourcesAxisCanvas yview" \
+	   -highlightthickness 0
    
    pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
       # expand is set to true; if the window is made taller, we want
       # extra height.
    
-   canvas $W.farLeft.sbPadding -height $metricsAxisHeight -width 16 -relief flat
+   canvas $W.farLeft.sbPadding -height $metricsAxisHeight -width 16 -relief flat \
+	   -highlightthickness 0
    pack $W.farLeft.sbPadding -side bottom -expand false -fill x
       # expand is set to false; if the window is made taller, we don't
       # want any of the extra height.
    
    # #####################  Resources Axis #################
    
-   canvas $W.left -width $resourcesAxisWidth
+   canvas $W.left -width $resourcesAxisWidth -highlightthickness 0
    pack   $W.left -side left -expand false -fill y
       # expand is set to false; if the window is made wider, we don't want
       # any of the extra width
    
    canvas $W.left.metricsKey -height $metricsAxisHeight -width $resourcesAxisWidth\
-           -relief groove
+           -relief groove -highlightthickness 0 -borderwidth 2
    pack   $W.left.metricsKey -side bottom -expand false
       # expand is set to false; if the window is made taller, we don't
       # want any of the extra height
@@ -322,21 +212,24 @@ option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
    set WresourcesCanvas $W.left.resourcesAxisCanvas
    canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
                                 -yscrollcommand myYScroll \
-                                -yscrollincrement 1
+                                -yscrollincrement 1 -highlightthickness 0 \
+				-borderwidth 2
    pack   $WresourcesCanvas -side top -expand true -fill y
       # expand is set to true; if the window is made taller, we want the
       # extra height.
    
    # ####################  Metrics Axis Canvas ############################
    
-   canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove
+   canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove \
+	   -highlightthickness 0 -borderwidth 2
    pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
       # expand is set to false; if the window is made wider, we don't want
       # extra width to go to the metrics axis
    
    # ####################  Barchart Area ($W.body) #################
    
-   canvas $W.body -height 2.5i -width 3.5i -relief groove
+   canvas $W.body -height 2.5i -width 3.5i -relief groove -highlightthickness 0 \
+	   -borderwidth 2
    pack  $W.body -side top -fill both -expand true
       # expand is set to true; if the window is made taller, we want the
       # extra height to go to us
@@ -386,8 +279,7 @@ proc getWindowHeight {wName} {
 # Given: updated numResources
 # Does:  returns number of enabled (non-deleted?) metrics
 proc isMetricValid {mindex} {
-   global numResources
-
+   set numResources [Dg numresources]
    for {set resourcelcv 0} {$resourcelcv<$numResources} {incr resourcelcv} {
       if {[Dg enabled $mindex $resourcelcv]} {
          return 1
@@ -404,8 +296,7 @@ proc isMetricValid {mindex} {
 # Given: updated numMetrics
 # Does:  returns number of enabled (non-deleted?) resources
 proc isResourceValid {rindex} {
-   global numMetrics
-
+   set numMetrics [Dg nummetrics]
    for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
       if {[Dg enabled $metriclcv $rindex]} {
          return 1
@@ -427,21 +318,17 @@ proc Initialize {} {
 
    global W
 
-   global numMetrics numMetricsDrawn
+   global numMetricsDrawn
    global numMetricLabelsDrawn
-   global metricNames
    global validMetrics
 
-   global metricUnits
    global metricMinValues metricMaxValues
 
    global metricsLabelFont resourceNameFont
    global prevLeftSectionWidth
 
-   global numResources
    global numValidResources validResources
    global indirectResources
-   global resourceNames
 
    global currResourceHeight
    global minResourceHeight maxResourceHeight maxIndividualColorHeight minIndividualColorHeight
@@ -451,7 +338,6 @@ proc Initialize {} {
    global numLabelsDrawn numResourcesDrawn
 
    global SortPrefs
-   global barColors numBarColors
 
    set SortPrefs NoParticular
    
@@ -468,11 +354,10 @@ proc Initialize {} {
    set numMetricLabelsDrawn 0
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
-      set metricNames($metriclcv) [Dg metricname  $metriclcv]
       set validMetrics($metriclcv) [isMetricValid $metriclcv]
-      set metricUnits($metriclcv) [Dg metricunits $metriclcv]
-      set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
-      set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
+
+      set metricMinValues($metriclcv) 0.0
+      set metricMaxValues($metriclcv) 1.0
    }
 
    set numValidResources 0
@@ -482,8 +367,6 @@ proc Initialize {} {
          set indirectResources($numValidResources) $resourcelcv
          incr numValidResources
       }
-
-      set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
    }
 
    set minResourceHeight 20
@@ -494,18 +377,6 @@ proc Initialize {} {
       # as resources are added, we try to shrink the resource height down to a minimum of
       # (minResourceHeight) rather than having to invoke the scrollbar.
    set prevLeftSectionWidth 1
-
-   # bar colors: (see /usr/lib/X11/rgb.txt)
-   # purple is reserved for the where axis.
-   # red should not be next to green; they look equal to colorblind
-   # use greyscales if b&w monitor
-#   set barColors(0) "tomato"
-   set barColors(0) "cornflower blue"
-   set barColors(1) "medium sea green"
-   set barColors(2) "hotpink"
-   set barColors(3) "chocolate"
-   set barColors(4) "orange"
-   set numBarColors 5
 
   set resourceNameFont *-Helvetica-*-r-*-12-*
   set metricsLabelFont *-Helvetica-*-r-*-12-*
@@ -530,7 +401,7 @@ proc Initialize {} {
    bind $W.left.resourcesAxisCanvas <Configure> {resourcesAxisConfigureEventHandler %w %h}
    bind $W.metricsAxisCanvas <Configure> {metricsAxisConfigureEventHandler %w %h}
    bind $W.left.metricsKey <Configure> {metricsKeyConfigureEventHandler %w %h}
-   bind $W.body <Expose>    {myExposeEventHandler}
+   bind $W.body <Expose> {exposeCallback}
 }
 
 # selectResource -- assuming this resource was clicked on, select it
@@ -575,8 +446,7 @@ proc processExitResource {widgetName} {
 
 proc clickNeutralResourceArea {} {
    global Wmbar WresourcesCanvas
-   global numResources numResourcesDrawn resourceNames
-   global numValidResources indirectResources
+   global numResourcesDrawn
 
    # unselect whatever was selected
    for {set resourcelcv 0} {$resourcelcv < $numResourcesDrawn} {incr resourcelcv} {
@@ -601,7 +471,7 @@ proc rethinkResourceHeights {screenHeight} {
    # height too small, make it minResourceHeight.
    global minResourceHeight maxResourceHeight
    global currResourceHeight
-   global numResources numValidResources
+   global numValidResources
    global validResources
    global WresourcesCanvas
 
@@ -682,10 +552,9 @@ proc drawResourcesAxis {windowHeight} {
    global resourcesAxisWidth
    global metricsAxisHeight
 
-   global numResources numValidResources
+   global numValidResources
    global validResources
    global numResourcesDrawn
-   global resourceNames
    global indirectResources
 
    global minResourceHeight maxResourceHeight currResourceHeight
@@ -725,7 +594,12 @@ proc drawResourcesAxis {windowHeight} {
       # create a message widget, bind some commands to it, and attach it to
       # the canvas via "create window"
 
-      set theName $resourceNames($actualResource)
+      set theName [Dg resourcename $actualResource]
+      # possibly convert to a short name:
+      global LongNames
+      if {$LongNames==0} {
+         set theName [file tail $theName]
+      }
    
       label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
 	      -font $resourceNameFont
@@ -787,11 +661,11 @@ proc processNewMetricMax {mindex newmaxval} {
 # Algorithm: delete leftover canvas items
 proc drawMetricsAxis {metricsAxisWidth} {
    global W
-   global numMetrics numMetricsDrawn numMetricLabelsDrawn
+   global numMetricsDrawn numMetricLabelsDrawn
 
-   global metricNames validMetrics
+   global validMetrics
 
-   global metricUnits metricUnitTypes
+   global metricUnitTypes
    global metricMinValues metricMaxValues
    global metricsLabelFont
 
@@ -817,15 +691,18 @@ proc drawMetricsAxis {metricsAxisWidth} {
    set labelDrawnCount 0
    set numMetricsDrawn 0
 
+   set numMetrics [Dg nummetrics]
    for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
       if {!$validMetrics($metriclcv)} continue
 
       set numericalStep [expr (1.0 * $metricMaxValues($metriclcv)-$metricMinValues($metriclcv)) / ($numticks-1)]
 
       # draw horiz line for this metric; color-coded for the metric
+      set theMetricColor [getMetricColorName $metriclcv]
+
       $W.metricsAxisCanvas create line $fixedLeft $top $fixedRight $top \
                  -tag metricsAxisTag \
-                 -fill [getMetricColor $metriclcv] \
+                 -fill $theMetricColor \
 		 -width 2
 
       # draw tick marks and create labels for this metric axis
@@ -833,7 +710,7 @@ proc drawMetricsAxis {metricsAxisWidth} {
          set tickx [expr $fixedLeft + ($ticklcv * $tickStepPix)]
          $W.metricsAxisCanvas create line $tickx $top $tickx \
                     [expr $top + $tickHeight] \
-                    -tag metricsAxisTag -fill [getMetricColor $metriclcv] \
+                    -tag metricsAxisTag -fill $theMetricColor \
 		    -width 2
 
          set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
@@ -863,12 +740,12 @@ proc drawMetricsAxis {metricsAxisWidth} {
 
       # Draw "key" entry
       $keyWindow create line 5 $top [expr [getWindowWidth $keyWindow] - 5] \
-              $top -tag metricsAxisTag -fill [getMetricColor $metriclcv] \
+              $top -tag metricsAxisTag -fill $theMetricColor \
 	      -width 2
-      set theText $metricNames($metriclcv)
+      set theText [Dg metricname $metriclcv]
       label $keyWindow.key$numMetricsDrawn -text $theText \
               -font $metricsLabelFont \
-	      -foreground [getMetricColor $metriclcv]
+	      -foreground $theMetricColor
       $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] \
               [expr $top + $tickHeight] -tag metricsAxisTag \
               -window $keyWindow.key$numMetricsDrawn -anchor ne
@@ -895,13 +772,6 @@ proc drawMetricsAxis {metricsAxisWidth} {
 
    $W.farLeft.sbPadding configure -height $newMetricsAxisHeight
    $W.left.metricsKey   configure -height $newMetricsAxisHeight
-}
-
-proc getMetricColor {mindex} {
-   global barColors numBarColors
-
-   set theindex [expr $mindex % $numBarColors]
-   return $barColors($theindex)
 }
 
 proc bodyConfigureEventHandler {newWidth newHeight} {
@@ -944,44 +814,13 @@ proc metricsKeyConfigureEventHandler {newWidth newHeight} {
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 }
 
-# myExposeEventHandler -- handle an expose in the bar sub-window
-#    (no need to handle exposes in the other windows because they're
-#     made of tcl widgets which redraw themselves)
-proc myExposeEventHandler {} {
-   # all tk widgets redraw automatically (though not 'till the next idle)
-
-   # all that's left to do is inform our C++ code of the expose
-   exposeCallback
-}
-
-#proc addResource {rName} {
-#   global numResources
-#   global resourceNames
-#   global W
-#
-#   # first, make sure this resource doesn't already exist
-#   for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-#      if {$validResources($rindex) && $resourceNames($rindex) == $rName} {
-#         puts stderr "detected a duplicate resource: $rname (ignoring addition request)"
-#         return
-#      } 
-#   }
-#
-#   set resourceNames($numResources) $rName
-#   set validResources($numResources) [isResourceValid $numResources]
-#   incr numResources
-#
-#   drawResourcesAxis [getWindowWidth $W.left.resourcesAxisCanvas]
-#}
-
 # del1SelectedResources
 # Given: a true (not sorted) resource number
 # Does: deletes that resource from our internal structures (validResources(),
 #       numValidResources), calls [Dg stop] on all its met/res combos.
 # Does not: redraw anything; update the resources axis, etc.
 proc del1SelectedResource {rindex} {
-   global numResources resourceNames numValidResources validResources
-   global numMetrics
+   global numValidResources validResources
 
    if {!$validResources($rindex)} {
       puts stderr "del1SelectedResource: resource #$rindex is invalid (already deleted?)"
@@ -989,6 +828,7 @@ proc del1SelectedResource {rindex} {
    }
 
    # Inform that visi lib that we don't want anything more from this resource
+   set numMetrics [Dg nummetrics]
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
       if {[Dg enabled $mindex $rindex]} {
          Dg stop $mindex $rindex
@@ -1017,7 +857,6 @@ proc del1SelectedResource {rindex} {
 #       updates sorting order, redraws resources, redraws bars
 proc delSelectedResources {} {
    global numValidResources validResources indirectResources
-   global numResources resourceNames
    global Wmbar WresourcesCanvas W
    global numResourcesDrawn
 
@@ -1054,91 +893,16 @@ proc delSelectedResources {} {
    bodyConfigureEventHandler [getWindowWidth $W.body] [getWindowHeight $W.body]
 }
 
-proc getMetricHints {theMetric} {
-   # #pragma HACK begin
-   # return metric unit type, hinted min, hinted max, hinted step
-   # depending on the metric (a hardcoded temporary hack.  This information
-   # should be [but isn't currently] present in the data manager)
-   switch $theMetric {
-      "exec_time"        {return {percentage 0.0 1.0 0.1}}
-      "hybrid_cost"      {return {real 0.0 1.0 0.1}}
-      "procedure_calls"  {return {integer 0 100 10}}
-      "predicted_cost"   {return {real 0.0 1.0 .1}}
-      "msgs"             {return {integer 0 10 10}}
-      "msg_bytes"        {return {integer 0 100 100}}
-      "pause_time"       {return {percentage 0.0 1.0 .1}}
-      "msg_bytes_sent"   {return {integer 0 100 100}}
-      "msg_bytes_recv"   {return {integer 0 100 100}}
-      "active_processes" {return {integer 0 1 1}}
-      "sync_ops"         {return {real 0.0 5 1}}
-      "observed_cost"    {return {real 0.0 1.0 0.1}}
-      "sync_wait"        {return {integer 0.0 5 1}}
-      "active_slots"     {return {integer 0.0 2 1}}
-      "cpu"              {return {real 0.0 1.0 0.1}}
-   }
-
-#   puts stderr "getMetricHints--unexpected metric: $theMetric...continuing"
-   return {real 0.0 1.0 0.1}
-   # #pragma HACK done
-}
-
-#proc addMetric {theName theUnits} {
-#   global numMetrics
-#   global metricNames
-#   global validMetrics
-#
-#   global metricUnits
-#   global metricUnitTypes
-#   global metricMinValues
-#   global metricMaxValues
-#   global W
-#
-#   puts stderr "Welcome to addMetric; name is $theName; units are $theUnits"
-#
-#   # first make sure that this metric isn't already present (if so, do nothing)
-#   for {set metricIndex 0} {$metricIndex < $numMetrics} {incr metricIndex} {
-#      if {$metricNames($metricIndex) == $theName && $validMetrics($metricIndex)} {
-#         puts stderr "addMetric: ignoring request to add $theName (already present)"
-#         return
-#      }
-#   }
-#
-#   # make the addition
-#   set metricNames($numMetrics) $theName
-#   set metricUnits($numMetrics) $theUnits
-#
-#   set theHints [getMetricHints $theName]
-#
-#   set metricUnitTypes($numMetrics) [lindex $theHints 0]
-#   set metricMinValues($numMetrics) [lindex $theHints 1]
-#   set metricMaxValues($numMetrics) [lindex $theHints 2]
-#
-#   incr numMetrics
-#
-#   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
-#   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
-#}
-
 proc delMetric {delIndex} {
-   global numMetrics
-   global metricNames
-   global metricUnits
    global W
 
    # first, make sure this metric index is valid
+   set numMetrics [Dg nummetrics]
    if {$delIndex < 0 || $delIndex >= $numMetrics} {
       puts stderr "delMetric: ignoring out of bounds index: $delIndex"
       return
    }
 
-   # shift
-   for {set mindex $delIndex} {$mindex < [expr $numMetrics-1]} {incr mindex} {
-      set metricNames($mindex) $metricNames([expr $mindex + 1])
-      set metricUnits($mindex) $metricUnits([expr $mindex + 1])
-   }
-
-   set numMetrics [expr $numMetrics - 1]
-   
    drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 
@@ -1214,15 +978,12 @@ proc DgConfigCallback {} {
 
    global W
 
-   global numMetrics metricNames
    global validMetrics
-   global metricUnits
    global metricMinValues metricMaxValues
 
-   global numResources numValidResources resourceNames
+   global numValidResources
    global validResources
    global numResourcesDrawn
-   global indirectResources
    global LongNames
 
    set numMetrics [Dg nummetrics]
@@ -1230,25 +991,17 @@ proc DgConfigCallback {} {
    set numResources [Dg numresources]
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
-      set metricNames($metriclcv) [Dg metricname  $metriclcv]
-      set metricUnits($metriclcv) [Dg metricunits $metriclcv]
       set validMetrics($metriclcv) [isMetricValid $metriclcv]
 
       # note -- the following 2 lines are very dubious for already-existing
       #         resources (i.e. we should try to stick with the initial
       #         values)
-      set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
-      set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
+      set metricMinValues($metriclcv) 0.0
+      set metricMaxValues($metriclcv) 1.0
    }
 
    set numValidResources 0
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      if {$LongNames==1} {
-         set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
-      } else {
-         set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
-      }
-
       if {[isResourceValid $resourcelcv]} {
          set validResources($resourcelcv) 1
          incr numValidResources
@@ -1321,9 +1074,8 @@ proc rethinkIndirectResources {docallback} {
    # sorting order has changed; rethink indirectResources array
    global SortPrefs
 
-   global numResources numValidResources
+   global numValidResources
    global validResources
-   global resourceNames
    global indirectResources
 
    # sorting works as follows: create a temporary list of {index,name} pairs;
@@ -1331,9 +1083,10 @@ proc rethinkIndirectResources {docallback} {
    set templist {}
 
    # Note that we exclude invalid resources
+   set numResources [Dg numresources]
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       if {$validResources($resourcelcv)} {
-         lappend templist [list $resourcelcv $resourceNames($resourcelcv)]
+         lappend templist [list $resourcelcv [Dg resourcename $resourcelcv]]
       }
    }
 
@@ -1376,38 +1129,27 @@ proc rethinkDataFormat {} {
    # is selected
    global W
    global DataFormat
-   global numMetrics
    global metricMinValues
    global metricMaxValues
-   global metricNames
 
    # reset metrics-axis min & max values
+   set numMetrics [Dg nummetrics]
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
-      set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
-      set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
+      set metricMinValues($metriclcv) 0.0
+      set metricMaxValues($metriclcv) 1.0
    }
 
    # inform our C++ code that the data format has changed
-   dataFormatHasChanged
+   dataFormatHasChanged $DataFormat
 
    # redraw the metrics axis
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 }
 
 proc ProcessLongNamesChange {} {
-   global LongNames W numResources resourceNames
+   global W
 
    # side effect: any selected resources will become un-selected
-
-   # rethink resource names and redraw the resources axis --- that's all that is needed
-   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      if {$LongNames==1} {
-         set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
-      } else {
-         set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
-      }
-   }
-
    drawResourcesAxis [getWindowHeight $W.metricsAxisCanvas]
 }
 
@@ -1419,15 +1161,6 @@ proc GracefulClose {} {
 
    # the above command will render the callback routines harmless
    # by virtue of setting barChartIsValid to false
-   # So, we can delete them at our leisure now...
-   
-   rename rethinkIndirectResourcesCallback ""
-   rename dataFormatHasChanged ""
-   rename newScrollPosition ""
-   rename metricsAxisHasChanged ""
-   rename resourcesAxisHasChanged ""
-   rename exposeCallback ""
-   rename resizeCallback ""
 
    exit
 }
