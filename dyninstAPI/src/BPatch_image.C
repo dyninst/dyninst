@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.68 2005/02/09 03:27:44 jaw Exp $
+// $Id: BPatch_image.C,v 1.69 2005/02/17 21:10:25 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -81,6 +81,7 @@ BPatch_image::BPatch_image(BPatch_thread *_thr) :
    proc(_thr->proc), appThread(_thr), defaultNamespacePrefix(NULL)
 {
     modlist = NULL;
+    modules_parsed = false;
 
     AddrToVarExpr = new AddrToVarExprHash();
 
@@ -183,7 +184,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     Symbol syminfo;
     BPatch_type *type;
     
-    type = mod->moduleTypes->globalVarsByName[name];
+    type = mod->getModuleTypes()->globalVarsByName[name];
     assert(type);
     if (!proc->getSymbolInfo(name, syminfo)) {
 	bperr("unable to find variable %s\n", name);
@@ -219,7 +220,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 	BPatch_module *module = (*mods)[m];
 	char name[255];
 	module->getName(name, sizeof(name));
-	pdvector<pdstring> keys = module->moduleTypes->globalVarsByName.keys();
+	pdvector<pdstring> keys = module->getModuleTypes()->globalVarsByName.keys();
 	int limit = keys.size();
 	for (int j = 0; j < limit; j++) {
 	    pdstring name = keys[j];
@@ -253,39 +254,66 @@ bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
  * upon failure.
  */
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
-  if( modlist ) { return modlist; }
-  
-  modlist = new BPatch_Vector< BPatch_module *>;
+  if( modlist && modules_parsed ) { return modlist; }
+
+  // We may have a singleton bpatch module in the vector
+  if (!modlist) modlist = new BPatch_Vector< BPatch_module *>;
+
   if( modlist == NULL ) { return NULL; }
-  
-  pdvector< module * > * pdModules = proc->getAllModules();
+
+  modules_parsed = true;
+
+  pdvector< module * > * pdModules =proc->getAllModules();
+
+  unsigned int i, j; 
+
   /* Generate the BPatch_functions for every module before
      constructing the BPatch_modules.  This allows us to
      parse the debug information once per image.*/
-  unsigned int i; 
-  for( i = 0; i < pdModules->size(); i++ ) {
-    pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-    pdvector< int_function * > * currentFunctions = currentModule->getFunctions();
-    for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
-      /* The constructor will try to register the bpf with proc's map,
-	 so check first.  This happens when, for instance, when we parse libunwind
-	 during BPatch_thread creation. */
-      if( ! proc->PDFuncToBPFuncMap.defines( (* currentFunctions)[j] ) ) {
-	new BPatch_function( proc, (* currentFunctions)[j], NULL );
-      }
-    } /* end iteration over functions in modules */
-  } /* end initial iteration over modules */
-  
+  // This is done if we've got debug parsing turned on -- otherwise
+  // things turn into a great big mess.
+
+  if (BPatch::bpatch->parseDebugInfo() ||
+      !BPatch::bpatch->delayedParsingOn()) {
+    for( i = 0; i < pdModules->size(); i++ ) {
+      pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
+      pdvector< int_function * > * currentFunctions = currentModule->getFunctions();
+      for(j = 0; j < currentFunctions->size(); j++ ) {
+	/* The constructor will try to register the bpf with proc's map,
+	   so check first.  This happens when, for instance, when we parse libunwind
+	   during BPatch_thread creation. */
+	if( ! proc->PDFuncToBPFuncMap.defines( (* currentFunctions)[j] ) ) {
+	  new BPatch_function( proc, (* currentFunctions)[j], NULL );
+	}
+      } /* end iteration over functions in modules */
+    } /* end initial iteration over modules */
+  }
   /* With all the BPatch_functions created, generate the modules.
      The BPatch_module constructor will set its bpfs to point to itself,
      and the parser will cache per-image type collections. */
   char moduleName[255];   
   BPatch_module * defaultModule = NULL;
+  
+  // We may have created a singleton module already -- check to see that we 
+  // don't double-create
   for( i = 0; i < pdModules->size(); i++ ) {
-    pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-    BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
-    modlist->push_back( bpm );
-    if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { defaultModule = bpm; }
+    BPatch_module *bpm = NULL;
+    pdmodule *pdmod = (pdmodule *)(*pdModules)[i];
+
+    for (j = 0; j < modlist->size(); j++) {
+      if ((*modlist)[j]->getModule() == pdmod) {
+	bpm = (*modlist)[j];
+	break;
+      }
+    }
+    if (!bpm) {
+      bpm = new BPatch_module( proc, pdmod, this );
+      modlist->push_back( bpm );
+    }
+    
+    if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { 
+      defaultModule = bpm; 
+    }
   } /* end of second iteration over modules */		
   assert( defaultModule != NULL ) ;
   
@@ -296,14 +324,13 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
     //char name[255];
     BPatch_function * bpf = * iter;
     if( bpf->getModule() == NULL ) {
-      // /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
+      char name[256];
+      /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
       bpf->setModule( defaultModule );
     }
   } /* end iteration over function map */
-  
   return modlist;
 } /* end getModules() */
-
 
 
 /*
@@ -319,19 +346,32 @@ BPatch_module *BPatch_image::findModuleInt(const char *name)
          __FILE__, __LINE__);
     return NULL;
   }
-  BPatch_Vector<BPatch_module *> *modlist = getModulesInt();
-  BPatch_module *target = NULL;
-  char buf[128];
-  for (unsigned int i = 0; i < modlist->size(); ++i) {
-    BPatch_module *mod = (*modlist)[i];
-    assert(mod);
-    mod->getName(buf, 128); 
-    if (!strcmp(name, buf)) {
-      target = mod;
-      break;
+
+  if (modlist) {
+    BPatch_module *target = NULL;
+    char buf[512];
+    for (unsigned int i = 0; i < modlist->size(); ++i) {
+      BPatch_module *mod = (*modlist)[i];
+      assert(mod);
+      mod->getName(buf, 512); 
+      if (!strcmp(name, buf)) {
+	target = mod;
+	break;
+      }
     }
+    return target;
   }
-  return target;
+  else {
+    // No modlist yet. Don't call getModules since that's massive 
+    // overkill. 
+    pdmodule *pdmod = proc->findModule(pdstring(name));
+    if (!pdmod) return false;
+
+    modlist = new BPatch_Vector<BPatch_module *>;
+    BPatch_module *bpmod = new BPatch_module(proc, pdmod, this);
+    modlist->push_back(bpmod);
+    return bpmod;
+  }
 }
 
 /*
@@ -720,7 +760,6 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
 BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
     pdstring full_name = pdstring("_") + pdstring(name);
-
     Symbol syminfo;
     if (!proc->getSymbolInfo(full_name, syminfo)) {
        pdstring short_name(name);
@@ -745,16 +784,19 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
       return NULL;
     
     BPatch_variableExpr *bpvar = AddrToVarExpr->hash[syminfo.addr()];
-    if (bpvar) return bpvar;
-
+    if (bpvar) {
+      return bpvar;
+    }
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     BPatch_type *type = NULL;
     for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
-	//bperr("The moduleType address is : %x\n", &(module->moduleTypes));
-	type = module->moduleTypes->findVariableType(name);
-	if (type) break;
+	//bperr("The moduleType address is : %x\n", &(module->getModuleTypes()));
+	type = module->getModuleTypes()->findVariableType(name);
+	if (type) {
+	  break;
+	}	  
     }
     if (!type) {
         type = BPatch::bpatch->type_Untyped;
@@ -784,7 +826,6 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
        showErrorCallback(100, msg);
        return NULL;
     }
-
     BPatch_localVar *lv = func->findLocalVar(name);
 
     if (!lv) {
@@ -843,7 +884,7 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
     BPatch_Vector<BPatch_module *> *mods = getModules();
     for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
-	type = module->moduleTypes->findType(name);
+	type = module->getModuleTypes()->findType(name);
 	if (type) return type;
     }
 

@@ -172,42 +172,31 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 		default:
 			setLanguage( BPatch_unknownLanguage );
 			break;
-		} /* end language switch */
-		
-	/* Assign myself my bpfs. */
-    pdvector< int_function * > * functions = mod->getFunctions();
-    for( unsigned int i = 0; i < functions->size(); i++ ) {
-    	/* The bpfs for a shared object module won't have been built by now,
-    	   but generating them on the fly is OK because each .so is a single module
-    	   for our purposes. */
-      int_function * function = (int_function *)( * functions )[i];
-      if( proc->PDFuncToBPFuncMap.defines( function ) ) {
-	BPatch_function * bpf = proc->PDFuncToBPFuncMap[ function ];
-	assert( bpf != NULL );
-	bpf->setModule( this );
-      }
-    } /* end iteration over functions */
-    
-    /* Load the debug information. */
-    moduleTypes = new BPatch_typeCollection;
-#if ! defined( mips_sgi_irix6_4 )
-    if( BPatch::bpatch->parseDebugInfo() ) {
-#if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
-      /* These platforms don't have 2-phase parsing, so init
-	 LineInformation and assume that parseTypes() fills it in. */
-      mod->initLineInformation();
-      parseTypes();
-      mod->cleanupLineInformation();
-#else
-      parseTypes();
-#endif
-    } /* end if we're supposed to parse debug information */
-    else {
-      cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
-		<< mod->fileName() << endl;
-    } /* end if we're not supposed to parse debug information */
-#endif /* ! defined( mips_sgi_irix6_4 ) */
-    
+	} /* end language switch */
+	
+	pdvector< int_function * > * functions = mod->getFunctions();
+	for( unsigned int i = 0; i < functions->size(); i++ ) {
+	  /* The bpfs for a shared object module won't have been built by now,
+	     but generating them on the fly is OK because each .so is a single module
+	     for our purposes. */
+	  int_function * function = ( * functions )[i];
+	  if(!proc->PDFuncToBPFuncMap.defines( function )) {
+	    if (!BPatch::bpatch->delayedParsingOn()) {
+	      // We're not delaying and there's no function. Make one.
+	      BPatch_function *bpf = new BPatch_function(proc, function, this);
+	      assert( bpf != NULL );
+	      proc->PDFuncToBPFuncMap[ function ] = bpf;
+	    }
+	  }
+	  else {
+	    // There's a function... make sure we're its module
+	    proc->PDFuncToBPFuncMap[function]->setModule(this);
+	  }
+	}
+	moduleTypes = NULL;
+	parseTypesIfNecessary();
+
+
 #if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);
@@ -222,7 +211,7 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 
 BPatch_module::~BPatch_module()
 {
-    delete moduleTypes;
+  if (moduleTypes) delete moduleTypes;
 
     for (unsigned int f = 0; f < BPfuncs->size(); f++) {
 	delete (*BPfuncs)[f];
@@ -235,6 +224,34 @@ BPatch_module::~BPatch_module()
       }
       delete BPfuncs_uninstrumentable;
     }    
+}
+
+void BPatch_module::parseTypesIfNecessary() {
+  if (moduleTypes) return;
+
+  moduleTypes = new BPatch_typeCollection;
+#if ! defined( mips_sgi_irix6_4 )
+  if( BPatch::bpatch->parseDebugInfo() ) {
+#if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
+    /* These platforms don't have 2-phase parsing, so init
+       LineInformation and assume that parseTypes() fills it in. */
+    mod->initLineInformation();
+    parseTypes();
+    mod->cleanupLineInformation();
+#else
+    parseTypes();
+#endif
+  } /* end if we're supposed to parse debug information */
+  else {
+    cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
+		<< mod->fileName() << endl;
+  } /* end if we're not supposed to parse debug information */
+#endif /* ! defined( mips_sgi_irix6_4 ) */
+}
+
+BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
+  parseTypesIfNecessary();
+  return moduleTypes;
 }
 
 /*
@@ -287,6 +304,7 @@ BPatch_module::findFunctionInt(const char *name,
     cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
     return NULL;
   }
+
   if ((mod->findFunctionFromAll(pdstring(name), &pdfuncs, 
              regex_case_sensitive, dont_use_regex) == NULL) || 
       !pdfuncs.size())
@@ -297,8 +315,9 @@ BPatch_module::findFunctionInt(const char *name,
         BPatch_reportError(BPatchSerious, 100, msg.c_str());
      }
      return NULL;
-  } 
 
+  } 
+  
   // found function(s), translate to BPatch_functions  
   for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
      if (incUninstrumentable || pdfuncs[i]->isInstrumentable()) 
@@ -388,6 +407,7 @@ extern char *parseStabString(BPatch_module *, int linenum, char *str,
 // and variables
 void BPatch_module::parseTypes()
 {
+
     int i, j;
     int nlines;
     int nstabs;
@@ -692,7 +712,7 @@ void BPatch_module::parseStabTypes()
 #endif
 
   imgPtr = mod->exec();
-
+  imgPtr->analyzeIfNeeded();
   const Object &objPtr = imgPtr->getObject();
 
   //Using the Object to get the pointers to the .stab and .stabstr
@@ -1082,6 +1102,8 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
  
   BPatch_variableExpr *var;
+  parseTypesIfNecessary();
+  
   pdvector<pdstring> keys = moduleTypes->globalVarsByName.keys();
   int limit = keys.size();
   for (int j = 0; j < limit; j++) {
