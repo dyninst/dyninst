@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\mrnet\xplat\include" /I "..\..\mrnet" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D _WIN32_WINNT=0x0500 /FD /TP /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /I "..\..\mrnet" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D _WIN32_WINNT=0x0500 /FD /TP /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -65,7 +65,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\mrnet\xplat\include" /I "..\..\mrnet" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D _WIN32_WINNT=0x0500 /FD /GZ /TP /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /I "..\..\mrnet" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D _WIN32_WINNT=0x0500 /FD /GZ /TP /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -128,6 +128,10 @@ SOURCE=..\..\mrnet\xplat\src\Process.C
 # Begin Source File
 
 SOURCE="..\..\mrnet\xplat\src\SharedObject-win.C"
+# End Source File
+# Begin Source File
+
+SOURCE="..\..\mrnet\xplat\src\SocketUtils-win.C"
 # End Source File
 # Begin Source File
 
