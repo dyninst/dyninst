@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.223 2002/05/04 21:47:29 schendel Exp $
+// $Id: metricFocusNode.C,v 1.224 2002/05/09 21:42:35 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -75,6 +75,7 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
 #include "paradyn/src/met/mdl_data.h"
+#include "paradynd/src/focus.h"
 #ifdef FREEDEBUG
 #include <strstream.h>  // in flush_batch_buffer
 #endif
@@ -156,9 +157,8 @@ const char *typeStr(int i) {
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
 machineMetFocusNode *doInternalMetric(int mid, 
-				      vector< vector<string> >& canon_focus,
-				      vector< vector<string> >&,
-				      string& metric_name, string& flat_name,
+				      const Focus &focus,
+				      const string& metric_name, 
 				      bool enable, bool& matched)
 {
   // called by createMetricInstance, below.
@@ -181,7 +181,7 @@ machineMetFocusNode *doInternalMetric(int mid,
       if (!enable)
 	return (machineMetFocusNode*)-1;
 
-      if (!theIMetric->legalToInst(canon_focus))
+      if (!theIMetric->legalToInst(focus))
 	// Paradyn will handle this case and report appropriate error msg
 	return (machineMetFocusNode*)-2;
 
@@ -189,8 +189,8 @@ machineMetFocusNode *doInternalMetric(int mid,
       // (ie. AGG_MDN or AGG_MDN) in order for setInitialActualValue to send
       // the value the the front-end
       vector<processMetFocusNode*> noParts;
-      mn = new machineMetFocusNode(mid, metric_name, canon_focus,
-		    flat_name, noParts, theIMetric->aggregate(), enable);
+      mn = new machineMetFocusNode(mid, metric_name, focus, noParts, 
+				   theIMetric->aggregate(), enable);
       assert(mn);
       
       unsigned instIndex = theIMetric->enableNewInstance(mn);
@@ -208,11 +208,11 @@ machineMetFocusNode *doInternalMetric(int mid,
 
       costMetric *nc = costMetric::allCostMetrics[i];
 
-      if (!nc->legalToInst(canon_focus))
+      if (!nc->legalToInst(focus))
 	return (machineMetFocusNode*)-2;
       vector<processMetFocusNode*> noParts;
-      mn = new machineMetFocusNode(mid, metric_name, canon_focus,
-		       flat_name, noParts, nc->aggregate(), enable);
+      mn = new machineMetFocusNode(mid, metric_name, focus, noParts, 
+				   nc->aggregate(), enable);
       assert(mn);
 
       nc->enable(mn); 
@@ -225,72 +225,20 @@ machineMetFocusNode *doInternalMetric(int mid,
   return NULL;
 }
 
-
-// the following should probably be made a public static member fn of class metric
-string metricAndCanonFocus2FlatName(const string &metricName,
-				    const vector< vector<string> > &canonFocus) {
-  string result = metricName;
-
-  for (unsigned hierarchy=0; hierarchy < canonFocus.size(); hierarchy++)
-    for (unsigned component=0; component < canonFocus[hierarchy].size();
-	 component++)
-      result += canonFocus[hierarchy][component];
-
-  return result;
-}
-
-
-// the following should probably be made a public static member fn of class metric
-static bool focus2CanonicalFocus(const vector<unsigned> &focus,
-				 vector< vector<string> > &canonFocus,
-				 bool important) {
-  // takes in "focus", writes to "canonFocus".  Returns true iff successful.
-  // if "important" is false, don't print error msg on failure (called by guessCost();
-  // no mi is really being created)
-
-  vector< vector<string> > unCanonFocus;
-  if (!resource::foc_to_strings(unCanonFocus, focus, important)) { // writes to unCanonFocus
-    if (important)
-      cerr << "focus2CanonicalFocus failed since resource::foc_to_strings failed" << endl;
-    return false;
-  }
-
-  resource::make_canonical(unCanonFocus, canonFocus);
-
-  return true;
-}
-
-static void print_focus(pdDebug_ostream &os, vector< vector<string> > &focus) {
-  for (unsigned a=0; a < focus.size(); a++) {
-    for (unsigned b=0; b < focus[a].size(); b++)
-      os << '/' << focus[a][b];
-
-    if (a < focus.size()-1)
-      os << ',';
-  }
-  os << endl;
-}
-
 machineMetFocusNode *createMetricInstance(int mid, string& metric_name, 
-		        vector<u_int>& focus,
+		        vector<u_int>& focusData,
 		        bool enable, // true if for real; false for guessCost()
 		        bool *internal)
 {
-   vector< vector<string> > canonicalFocus;
    // we make third parameter false to avoid printing warning messages in
    // focus2CanonicalFocus ("enable" was here previously) - naim
-   if (!focus2CanonicalFocus(focus, canonicalFocus, false)) {
-      //if (enable) cerr << "createMetricInstance failed because focus2CanonicalFocus failed" << endl;
+   
+   bool errFlag = false;
+   Focus &focus = *(new Focus(focusData, &errFlag));
+   if(errFlag) {
       return NULL;
    }
-   for(unsigned z = 0; z < canonicalFocus.size(); z++) {
-      vector<string> temp_strings = canonicalFocus[z];
-      for(unsigned y = 0; y < temp_strings.size(); y++) {
-      }
-   }
 
-   string flat_name = metricAndCanonFocus2FlatName(metric_name,canonicalFocus);
-   
    if (mdl_can_do(metric_name)) {
       *internal = false;
       
@@ -302,75 +250,60 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 	 returns true.
       */
       vector<process*> procs;
-      vector< vector<pdThread *> > threadsVec;
-
+      
       for (unsigned u = 0; u < processVec.size(); u++) {
-	 if (processVec[u]->status()==exited 
-	     || processVec[u]->status()==neonatal || processVec[u]->isBootstrappedYet()) 
+	 if (processVec[u]->status()==exited || 
+	     processVec[u]->status()==neonatal || 
+	     processVec[u]->isBootstrappedYet()) 
 	 {
 	    procs += processVec[u];
-#if defined(MT_THREAD)
-	    threadsVec += processVec[u]->threads;
-#endif
 	 }
       }
       
-#if defined(MT_THREAD)
-      if (procs.size() == 0 || threadsVec.size() == 0)
-	 // there are no processes or threads to instrument
-#else
-	 if (procs.size() == 0)
-	    // there are no processes to instrument
-#endif
-	 {	    
-	    //printf("createMetricInstance failed, no processes to instrument\n");
-	    return NULL;
-	 }
-
+      if (procs.size() == 0)
+	 // there are no processes to instrument
+      {	    
+	 //printf("createMetricInstance failed, no processes to instrument\n");
+	 return NULL;
+      }
+      
       machineMetFocusNode *machNode = 
-	 mdl_do(mid, canonicalFocus, metric_name, flat_name, procs, 
-		threadsVec, false, enable);
-      //cerr << "  mdl_do returned ";
-      //if (machNode == NULL) {
-      //    cerr << "NULL" << endl;
-      //} else {
-      //    cerr << "Non-NULL" << endl;
-      //}
+	 mdl_do(mid, focus, metric_name, procs, false, enable);
       
       if (machNode == NULL) {
-	//	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
-	// metric_cerr << "metric name was " << metric_name << "; focus was ";
-      metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
-      metric_cerr << "metric name was " << metric_name << "; focus was ";
-	 print_focus(metric_cerr, canonicalFocus);
+	 metric_cerr << "createMetricInstance failed since mdl_do failed\n";
+	 metric_cerr << "metric name was " << metric_name << "; focus was ";
+	 metric_cerr << "createMetricInstance failed since mdl_do failed\n";
       }
       return machNode;
    } else {
       bool matched;
       machineMetFocusNode *machNode = 
-	 doInternalMetric(mid, canonicalFocus, canonicalFocus, metric_name, 
-			  flat_name, enable, matched);
+	 doInternalMetric(mid, focus, metric_name, enable, matched);
       // NULL on serious error; -1 if enable was false; -2 if illegal to
       // instr with given focus [many internal metrics work only for whole
       // program]
 
       if (machNode == (machineMetFocusNode*)-2) {
-	 metric_cerr << "createMetricInstance: internal metric " << metric_name << " isn't defined for focus: ";
-	 print_focus(metric_cerr, canonicalFocus);
+	 metric_cerr << "createMetricInstance: internal metric " 
+		     << metric_name << " isn't defined for focus: " 
+		     << focus.getName() << "\n";
 	 machNode = NULL; // straighten up the return value
       }
       else if (machNode == (machineMetFocusNode*)-1) {
-	 metric_cerr << " createMetricInstance: internal metric not enable: " << metric_name << endl;
+	 metric_cerr << " createMetricInstance: internal metric not enable: " 
+		     << metric_name << endl;
 	 assert(!enable); // no error msg needed
 	 machNode = NULL; // straighten up the return value
       }
       else if (machNode == NULL) {
 	 // more serious error...do a printout
-	 metric_cerr << "createMetricInstance failed since doInternalMetric failed" << endl;
-	 metric_cerr << "metric name was " << metric_name << "; focus was ";
-	 print_focus(metric_cerr, canonicalFocus);
+	 metric_cerr 
+	    << "createMetricInstance failed since doInternalMetric failed\n";
+	 metric_cerr << "metric name was " << metric_name << "; focus was "
+		     << focus.getName() << "\n";
       }
-
+      
       *internal = true;
       return machNode;
    }
@@ -412,12 +345,8 @@ void metricDefinitionNode::propagateToNewProcess(process *) {
       mdl_env::set(this->getMetricID(), vname);
 
       vector<process *> vp(1,p);
-      vector< vector<pdThread *> > threadsVec;
-#if defined(MT_THREAD)
-      threadsVec += p->threads;
-#endif
-      cerr << "mdl_do - B\n";
-      machNode = mdl_do(mid, focus_, met_, flat_name_, vp, threadsVec, false,false);
+
+      machNode = mdl_do(mid, focus_, met_, vp, false,false);
   } else {
     // internal and cost metrics don't need to be propagated (is this correct?)
     machNode = NULL;
@@ -543,24 +472,6 @@ void metricDefinitionNode::handleExec(process *) {
    }
   */
 }
-
-
-
-#if defined(MT_THREAD)
-void metricDefinitionNode::rmCompFlatName(unsigned u) {
-  //assert(COMP_MDN == mdn_type_);  -- bhs
-  unsigned size = comp_flat_names.size();
-  assert(u < size);
-    
-  // -- bhs
-  //if (isKeyDef_processMetFocusBuf(comp_flat_names[u])) {
-  //  undefKey_processMetFocusBuf(comp_flat_names[u]);
-  //}
-  
-  comp_flat_names[u] = comp_flat_names[size-1];
-  comp_flat_names.resize(size-1);
-}
-#endif
 
 // Remove the aggregate metric instances that don't have any components left
 void removeFromMetricInstances(process *proc) {
