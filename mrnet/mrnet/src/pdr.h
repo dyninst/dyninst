@@ -9,9 +9,9 @@ extern "C" {
 #include "mrnet/src/Types.h"
 
 enum pdr_op {
-  PDR_FREE=0,
-  PDR_ENCODE,
-  PDR_DECODE
+    PDR_FREE=0,
+    PDR_ENCODE,
+    PDR_DECODE
 };
 
 /*
@@ -22,33 +22,33 @@ enum pdr_op {
  */
 typedef struct PDR PDR;
 struct pdr_ops {
-  bool_t  (*putchar)(PDR *pdrs, char *cp);
-  bool_t  (*getchar)(PDR *pdrs, char *cp);
-  bool_t  (*putint16)(PDR *pdrs, int16_t *ip);
-  bool_t  (*getint16)(PDR *pdrs, int16_t *ip);
-  bool_t  (*putint32)(PDR *pdrs, int32_t *ip);
-  bool_t  (*getint32)(PDR *pdrs, int32_t *ip);
-  bool_t  (*putint64)(PDR *pdrs, int64_t *ip);
-  bool_t  (*getint64)(PDR *pdrs, int64_t *ip);
-  bool_t  (*putfloat)(PDR *pdrs, float *fp);
-  bool_t  (*getfloat)(PDR *pdrs, float *fp);
-  bool_t  (*putdouble)(PDR *pdrs, double *dp);
-  bool_t  (*getdouble)(PDR *pdrs, double *dp);
-  bool_t  (*putbytes)(PDR *pdrs, char *, uint32_t);
-  bool_t  (*getbytes)(PDR *pdrs, char *, uint32_t);
-  bool_t  (*setpos)(PDR *pdrs, uint32_t ip);
-  uint32_t (*getpos)(PDR *pdrs);
-  int32_t * (*pinline)(PDR *pdrs, int32_t ip);
-  void    (*destroy)(PDR *pdrs);
+    bool_t  (*putchar)(PDR *pdrs, char *cp);
+    bool_t  (*getchar)(PDR *pdrs, char *cp);
+    bool_t  (*putint16)(PDR *pdrs, int16_t *ip);
+    bool_t  (*getint16)(PDR *pdrs, int16_t *ip);
+    bool_t  (*putint32)(PDR *pdrs, int32_t *ip);
+    bool_t  (*getint32)(PDR *pdrs, int32_t *ip);
+    bool_t  (*putint64)(PDR *pdrs, int64_t *ip);
+    bool_t  (*getint64)(PDR *pdrs, int64_t *ip);
+    bool_t  (*putfloat)(PDR *pdrs, float *fp);
+    bool_t  (*getfloat)(PDR *pdrs, float *fp);
+    bool_t  (*putdouble)(PDR *pdrs, double *dp);
+    bool_t  (*getdouble)(PDR *pdrs, double *dp);
+    bool_t  (*putbytes)(PDR *pdrs, char *, uint32_t);
+    bool_t  (*getbytes)(PDR *pdrs, char *, uint32_t);
+    bool_t  (*setpos)(PDR *pdrs, uint32_t ip);
+    uint32_t (*getpos)(PDR *pdrs);
+    int32_t * (*pinline)(PDR *pdrs, int32_t ip);
+    void    (*destroy)(PDR *pdrs);
 };
 
 struct PDR {
-  enum pdr_op p_op;       /* operation; */
-  struct pdr_ops * p_ops; 
+    enum pdr_op p_op;       /* operation; */
+    struct pdr_ops * p_ops; 
 
-  char *        cur;      /* pointer to private data */
-  char *        base;     /* private used for position info */
-  int32_t        space;   /* extra private word */
+    char *        cur;      /* pointer to private data */
+    char *        base;     /* private used for position info */
+    int32_t        space;   /* extra private word */
 };
 
 /*
@@ -64,8 +64,8 @@ typedef bool_t (*pdrproc_t)(PDR *, void *, ...);
 #define NULL_pdrproc_t ((pdrproc_t)0)
 
 /*
- * These are the "generic" pdr routines.
- */
+* These are the "generic" pdr routines.
+*/
 extern bool_t   pdr_void(PDR *pdrs,  char * addr);
 extern bool_t   pdr_char(PDR *pdrs,  char * addr);
 extern bool_t   pdr_uchar(PDR *pdrs,  uchar_t * addr);

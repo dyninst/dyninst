@@ -57,9 +57,4 @@ do
 done
 echo >> $dep_file.tmp
 
-
-if diff $dep_file.tmp $dep_file > /dev/null 2>&1 ; then
-    $RM $dep_file.tmp
-else
-    $MV -f $dep_file.tmp $dep_file
-fi ;
+$MV -f $dep_file.tmp $dep_file

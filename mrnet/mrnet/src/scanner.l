@@ -14,7 +14,7 @@ namespace MRN
 int linenum=1;
 }
 %}
-%option noyywrap
+%option noyywrap never-interactive nounput
 %%
 
 {PORT}  { MRN::mrnlval.port = (unsigned short)atoi(yytext); return(PORT); }

@@ -1,7 +1,7 @@
 #if !defined( filterdefinitions_h )
 #define filterdefinitions_h 1
 
-#include "mrnet/src/Message.h"
+#include "mrnet/src/Packet.h"
 #include <list>
 
 namespace MRN
@@ -12,41 +12,44 @@ namespace MRN
 
 #define AGGR_INT_SUM_ID 2000
 #define AGGR_INT_SUM_FORMATSTR "%d"
-void aggr_Int_Sum(DataElement **, unsigned int,
-                    DataElement ***, unsigned int*, void**);
+void aggr_Int_Sum( std::vector < Packet * >&,
+                   std::vector < Packet * >&,
+                   void** );
 
 #define AGGR_FLOAT_AVG_ID 2001
 #define AGGR_FLOAT_AVG_FORMATSTR "%f"
-void aggr_Float_Avg(DataElement **, unsigned int,
-                    DataElement ***, unsigned int*, void**);
+void aggr_Float_Avg( std::vector < Packet * >&,
+                     std::vector < Packet * >&,
+                     void** );
 
 #define AGGR_FLOAT_MAX_ID 2006
 #define AGGR_FLOAT_MAX_FORMATSTR "%lf"
-void aggr_Float_Max(DataElement **, unsigned int,
-                    DataElement ***, unsigned int*, void**);
+void aggr_Float_Max( std::vector < Packet * >&,
+                     std::vector < Packet * >&,
+                     void** );
 
 #define AGGR_CHARARRAY_CONCAT_ID 2007
 #define AGGR_CHARARRAY_CONCAT_FORMATSTR "%ac"
-void aggr_CharArray_Concat(DataElement **, unsigned int,
-                            DataElement ***, unsigned int*, void**);
+void aggr_CharArray_Concat( std::vector < Packet * >&,
+                            std::vector < Packet * >&,
+                            void** );
 
 #define AGGR_INT_EQ_CLASS_ID    2008
 #define AGGR_INT_EQ_CLASS_FORMATSTR "%aud %aud %aud"
-void aggr_IntEqClass(DataElement**, unsigned int,
-                    DataElement***, unsigned int*, void**);
+void aggr_IntEqClass( std::vector < Packet * >&,
+                      std::vector < Packet * >&,
+                      void** );
 
 #define SYNC_WAITFORALL 2003
-void sync_WaitForAll(std::list <Packet *>&, std::list <Packet *>&,
-                     std::list <RemoteNode *> &, void **);
+void sync_WaitForAll( std::vector < Packet * >&, std::vector < Packet * >&,
+                      std::list < RemoteNode * >&, void ** );
 
 #define SYNC_DONTWAIT 2004
-void sync_DontWait(std::list <Packet *>&, std::list <Packet *>&,
-                   std::list <RemoteNode *> &, void **);
 
 #define SYNC_TIMEOUT 2005
-void sync_TimeOut(std::list <Packet *>&, std::list <Packet *>&,
-                  std::list <RemoteNode *> &, void **);
+void sync_TimeOut( std::vector < Packet * >&, std::vector < Packet * >&,
+                   std::list < RemoteNode * >&, void ** );
 
 } // namespace MRN
 
-#endif /* filterdefinitions_h */
+#endif  /* filterdefinitions_h */

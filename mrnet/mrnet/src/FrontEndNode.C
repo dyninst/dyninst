@@ -9,146 +9,137 @@ namespace MRN
 /*  FrontEndNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
 
-FrontEndNode::FrontEndNode(std::string _hostname, unsigned short _port)
- :ParentNode(false, _hostname, _port),
-  CommunicationNode(_hostname, _port),
-  leafInfoPacket( NULL ),
-  leavesConnectedPacket( NULL )
+FrontEndNode::FrontEndNode( std::string _hostname, unsigned short _port )
+    : ParentNode( false, _hostname, _port ),
+      CommunicationNode( _hostname, _port ),
+      leafInfoPacket( NULL ), leavesConnectedPacket( NULL )
 {
-  RemoteNode::local_parent_node = this;
+    RemoteNode::local_parent_node = this;
 }
 
-FrontEndNode::~FrontEndNode()
+FrontEndNode::~FrontEndNode(  )
 {
 }
 
-int FrontEndNode::proc_DataFromDownStream(Packet *packet)
+int FrontEndNode::proc_DataFromDownStream( Packet * packet )
 {
-  mrn_printf(3, MCFL, stderr, "In frontend.proc_DataFromUpStream()\n");
+    mrn_printf( 3, MCFL, stderr, "In frontend.proc_DataFromUpStream()\n" );
 
-  StreamManager * stream_mgr = StreamManagerById[ packet->get_StreamId() ];
-  std::list<Packet *> packets;
-  std::list<Packet *> ::iterator iter;
+    StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId(  )];
+    std::vector < Packet * >packets;
 
-  stream_mgr->push_packet(packet, packets, true);
+    stream_mgr->push_packet( packet, packets, true );
 
-  if(packets.size() != 0){
-    for(iter = packets.begin(); iter != packets.end(); iter++){
-      Packet *cur_packet = *iter;
-      StreamImpl * stream;
-      stream = StreamImpl::get_Stream(cur_packet->get_StreamId());
+    if( !packets.empty(  ) ) {
+        for( unsigned int i = 0; i < packets.size(  ); i++ ) {
+            Packet *cur_packet = packets[i];
+            StreamImpl *stream;
+            stream = StreamImpl::get_Stream( cur_packet->get_StreamId(  ) );
 
-      if( stream ){
-        mrn_printf(3, MCFL, stderr, "Put packet in stream %d\n", cur_packet->get_StreamId());
-        stream->add_IncomingPacket(cur_packet);
-      }
-      else{
-        mrn_printf(1, MCFL, stderr, "Packet from unknown stream %d\n", cur_packet->get_StreamId());
-        return -1;
-      }
-    }
-  }
-
-  return 0;
-}
-
-int FrontEndNode::proc_PacketsFromDownStream(std::list <Packet *> &packet_list)
-{
-  int retval=0;
-  Packet *cur_packet;
-
-  mrn_printf(3, MCFL, stderr, "In procPacketsFromDownStream()\n");
-
-  std::list<Packet *>::iterator iter=packet_list.begin();
-  for(; iter != packet_list.end(); iter++){
-    cur_packet = (*iter);
-    switch(cur_packet->get_Tag()){
-    case MRN_RPT_SUBTREE_PROT:
-      //printf(3, MCFL, stderr, "Calling proc_newSubTreeReport()\n");
-      if(proc_newSubTreeReport(cur_packet) == -1){
-	mrn_printf(1, MCFL, stderr, "proc_newSubTreeReport() failed\n");
-	retval=-1;
-      }
-      //printf(3, MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
-      break;
-
-    case MRN_GET_LEAF_INFO_PROT:
-        if( proc_getLeafInfoResponse( cur_packet ) == -1 )
-        {
-            mrn_printf(1, MCFL, stderr, "proc_getLeafInfoResponse() failed\n");
-            retval = -1;
+            if( stream ) {
+                mrn_printf( 3, MCFL, stderr, "Put packet in stream %d\n",
+                            cur_packet->get_StreamId(  ) );
+                stream->add_IncomingPacket( cur_packet );
+            }
+            else {
+                mrn_printf( 1, MCFL, stderr,
+                            "Packet from unknown stream %d\n",
+                            cur_packet->get_StreamId(  ) );
+                return -1;
+            }
         }
-        break;
-
-    case MRN_CONNECT_LEAVES_PROT:
-        if( proc_connectLeavesResponse( cur_packet ) == -1 )
-        {
-            mrn_printf(1, MCFL, stderr, "proc_connectLeavesResponse() failed\n");
-            retval = -1;
-        }
-        break;
-
-    default:
-      //Any unrecognized tag is assumed to be data
-      //printf(3, MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
-                 //cur_packet->get_Tag());
-      if(proc_DataFromDownStream(cur_packet) == -1){
-	mrn_printf(1, MCFL, stderr, "proc_DataFromDownStream() failed\n");
-	retval=-1;
-      }
-      //printf(3, MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
     }
-  }
 
-  mrn_printf(3, MCFL, stderr, "proc_PacketsFromDownStream() %s",
-             (retval == -1 ? "failed\n" : "succeeded\n"));
-  packet_list.clear();
-  return retval;
+    return 0;
 }
 
-int FrontEndNode::send(Packet *packet)
+int FrontEndNode::proc_PacketsFromDownStream( std::list <
+                                              Packet * >&packet_list )
 {
-  return send_PacketDownStream(packet);
-}
+    int retval = 0;
+    Packet *cur_packet;
 
-int FrontEndNode::flush()
-{
-  return flush_PacketsDownStream();
-}
+    mrn_printf( 3, MCFL, stderr, "In procPacketsFromDownStream()\n" );
 
-int FrontEndNode::flush(unsigned int stream_id)
-{
-  return flush_PacketsDownStream(stream_id);
+    std::list < Packet * >::iterator iter = packet_list.begin(  );
+    for( ; iter != packet_list.end(  ); iter++ ) {
+        cur_packet = ( *iter );
+        switch ( cur_packet->get_Tag(  ) ) {
+        case MRN_RPT_SUBTREE_PROT:
+            //printf(3, MCFL, stderr, "Calling proc_newSubTreeReport()\n");
+            if( proc_newSubTreeReport( cur_packet ) == -1 ) {
+                mrn_printf( 1, MCFL, stderr,
+                            "proc_newSubTreeReport() failed\n" );
+                retval = -1;
+            }
+            //printf(3, MCFL, stderr, "proc_newSubTreeReport() succeeded\n");
+            break;
+
+        case MRN_GET_LEAF_INFO_PROT:
+            if( proc_getLeafInfoResponse( cur_packet ) == -1 ) {
+                mrn_printf( 1, MCFL, stderr,
+                            "proc_getLeafInfoResponse() failed\n" );
+                retval = -1;
+            }
+            break;
+
+        case MRN_CONNECT_LEAVES_PROT:
+            if( proc_connectLeavesResponse( cur_packet ) == -1 ) {
+                mrn_printf( 1, MCFL, stderr,
+                            "proc_connectLeavesResponse() failed\n" );
+                retval = -1;
+            }
+            break;
+
+        default:
+            //Any unrecognized tag is assumed to be data
+            //printf(3, MCFL, stderr, "Calling proc_DataFromDownStream(). Tag: %d\n",
+            //cur_packet->get_Tag());
+            if( proc_DataFromDownStream( cur_packet ) == -1 ) {
+                mrn_printf( 1, MCFL, stderr,
+                            "proc_DataFromDownStream() failed\n" );
+                retval = -1;
+            }
+            //printf(3, MCFL, stderr, "proc_DataFromDownStream() succeeded\n");
+        }
+    }
+
+    mrn_printf( 3, MCFL, stderr, "proc_PacketsFromDownStream() %s",
+                ( retval == -1 ? "failed\n" : "succeeded\n" ) );
+    packet_list.clear(  );
+    return retval;
 }
 
 int FrontEndNode::recv( bool blocking )
 {
-  std::list <Packet *> packet_list;
-  mrn_printf(3, MCFL, stderr, "In frontend.recv(). Calling recvfromdownstream()\n");
+    std::list < Packet * >packet_list;
+    mrn_printf( 3, MCFL, stderr,
+                "In frontend.recv(). Calling recvfromdownstream()\n" );
 
 
-  if(recv_PacketsFromDownStream(packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "recv_packetsfromdownstream() failed\n");
-    return -1;
-  }
+    if( recv_PacketsFromDownStream( packet_list ) == -1 ) {
+        mrn_printf( 1, MCFL, stderr,
+                    "recv_packetsfromdownstream() failed\n" );
+        return -1;
+    }
 
-  if(packet_list.size() == 0){
-    mrn_printf(3, MCFL, stderr, "No packets read!\n");
-    return 0;
-  }
+    if( packet_list.size(  ) == 0 ) {
+        mrn_printf( 3, MCFL, stderr, "No packets read!\n" );
+        return 0;
+    }
 
-  if(proc_PacketsFromDownStream(packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "proc_packetsfromdownstream() failed\n");
-    return -1;
-  }
-  mrn_printf(3, MCFL, stderr, "Leaving frontend.recv()\n");
+    if( proc_PacketsFromDownStream( packet_list ) == -1 ) {
+        mrn_printf( 1, MCFL, stderr,
+                    "proc_packetsfromdownstream() failed\n" );
+        return -1;
+    }
+    mrn_printf( 3, MCFL, stderr, "Leaving frontend.recv()\n" );
 
-  return 1;
+    return 1;
 }
 
 
-int
-FrontEndNode::deliverConnectLeavesResponse( Packet* pkt )
+int FrontEndNode::deliverConnectLeavesResponse( Packet * pkt )
 {
     //
     // stash the aggregated response for subsequent retrieval
@@ -160,8 +151,7 @@ FrontEndNode::deliverConnectLeavesResponse( Packet* pkt )
     // The packets we construct ourself have data elements that
     //
     //
-    if( this->isLeaf() )
-    {
+    if( this->isLeaf(  ) ) {
         // we constructed the packet ourself -
         // the packet's data element array contains pointers
         // to data that may no longer be valid
@@ -176,15 +166,14 @@ FrontEndNode::deliverConnectLeavesResponse( Packet* pkt )
         // the same process.  But if we're pointing to data on the
         // stack, we don't have the original data anymore anyway.
         //
-        leavesConnectedPacket = new Packet( pkt->get_BufferLen(),
-                                        pkt->get_Buffer() );
+        leavesConnectedPacket = new Packet( pkt->get_BufferLen(  ),
+                                            pkt->get_Buffer(  ) );
 
         // release the given packet
         // TODO (is this safe?)
         delete pkt;
     }
-    else
-    {
+    else {
         // we can use the packet as it is
         leavesConnectedPacket = pkt;
     }
@@ -192,8 +181,7 @@ FrontEndNode::deliverConnectLeavesResponse( Packet* pkt )
     return 0;
 }
 
-int
-FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
+int FrontEndNode::deliverLeafInfoResponse( Packet * pkt )
 {
     //
     // stash the aggregated response for subsequent retrieval
@@ -205,8 +193,7 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
     // The packets we construct ourself have data elements that
     //
     //
-    if( this->isLeaf() )
-    {
+    if( this->isLeaf(  ) ) {
         // we constructed the packet ourself -
         // the packet's data element array contains pointers
         // to data that may no longer be valid
@@ -221,11 +208,11 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
         // the same process.  But if we're pointing to data on the
         // stack, we don't have the original data anymore anyway.
         //
-        unsigned int buflen = pkt->get_BufferLen();
-        char* buf = pkt->get_Buffer();
-        if( (buflen == 0) || (buf == NULL) )
-        {
-            mrn_printf(1, 0,0, stderr, "FE::ParentNode: deliverleafinfo resp: empty buffer\n" );
+        unsigned int buflen = pkt->get_BufferLen(  );
+        char *buf = pkt->get_Buffer(  );
+        if( ( buflen == 0 ) || ( buf == NULL ) ) {
+            mrn_printf( 1, 0, 0, stderr,
+                        "FE::ParentNode: deliverleafinfo resp: empty buffer\n" );
         }
         leafInfoPacket = new Packet( buflen, buf );
 
@@ -235,8 +222,7 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
         delete pkt;
 #endif // READY
     }
-    else
-    {
+    else {
         // we can use the packet as it is
         leafInfoPacket = pkt;
     }
@@ -244,4 +230,4 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
     return 0;
 }
 
-} // namespace MRN
+}                               // namespace MRN

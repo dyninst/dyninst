@@ -1,6 +1,6 @@
 #include <iostream>
-#include "mrnet/h/MR_NetworkC.h"
-#include "mrnet/h/MR_Network.h"
+#include "mrnet/h/MRNetC.h"
+#include "mrnet/h/MRNet.h"
 #include "mrnet/src/StreamImpl.h"
 #include <assert.h>
 

@@ -27,39 +27,6 @@ pthread_sync::~pthread_sync() {
     delete [] registered_conds;
 }
 
-void pthread_sync::lock() {
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "acquiring lock %p (by pthread %d)...\n", &mutex, pthread_self());
-#endif
-    pthread_mutex_lock(mutex);
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "acquired lock %p!\n", &mutex);
-#endif
-}
-
-void pthread_sync::unlock() {
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "releasing lock %p...\n", &mutex);
-#endif
-        pthread_mutex_unlock(mutex);
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "released lock %p!\n", &mutex);
-#endif
-}
-
-void pthread_sync::register_cond(unsigned cond_num) {
-    registered_conds[num_registered_conds++] = cond_num;
-    conds[cond_num] = new pthread_cond_t; 
-    pthread_cond_init(conds[cond_num], NULL);
-}
-
-void pthread_sync::signal(unsigned cond_num) {
-    pthread_cond_signal(conds[cond_num]);
-}
-
-void pthread_sync::wait(unsigned cond_num) {
-    pthread_cond_wait(conds[cond_num], mutex);
-}
 
 } // namespace MRN
 

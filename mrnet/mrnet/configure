@@ -860,7 +860,7 @@ Optional Packages:
   --with-cxxflags             Set C++ compiler flags
   --with-ldflags              Set loader flags
   --with-libfl                Link line for flex library
-  --with-outputlevel          output level (off, *error*, info, lo-debug, mid-debug, hi-debug)
+  --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)
 
 Some influential environment variables:
   CC          C compiler command
@@ -2296,15 +2296,17 @@ fi;
 # Check whether --with-outputlevel or --without-outputlevel was given.
 if test "${with_outputlevel+set}" = set; then
   withval="$with_outputlevel"
-  if test "${withval}" = "off" ; then
+  if test "${withval}" = "0" ; then
                OUTPUT_LEVEL=0;
-             elif test "${withval}" = "info" ; then
+             elif test "${withval}" = "1" ; then
+               OUTPUT_LEVEL=1;
+             elif test "${withval}" = "2" ; then
                OUTPUT_LEVEL=2;
-             elif test "${withval}" = "lo-debug" ; then
+             elif test "${withval}" = "3" ; then
                OUTPUT_LEVEL=3;
-             elif test "${withval}" = "mid-debug" ; then
+             elif test "${withval}" = "4" ; then
                OUTPUT_LEVEL=4;
-             elif test "${withval}" = "hi-debug" ; then
+             elif test "${withval}" = "5" ; then
                OUTPUT_LEVEL=5;
              else
                OUTPUT_LEVEL=1;
@@ -2594,39 +2596,40 @@ _ACEOF
 
 
 
+echo here
 case "$host_os" in
   *aix4.2*)
-    LIBS="$LIBS -lm -lc -lpthread"
+    LIBS="$LIBS -lm -lc -lpthread -ldl"
     CFLAGS="$CFLAGS -Daix -Daix4_2"
     CXXFLAGS="$CXXFLAGS -Daix -Daix4_2"
     ;;
   *aix4.3*)
-    LIBS="$LIBS -lm -lc -lpthread"
+    LIBS="$LIBS -lm -lc -lpthread -ldl"
     CFLAGS="$CFLAGS -Daix -Daix4_3"
     CXXFLAGS="$CXXFLAGS -Daix -Daix4_3"
     ;;
   *aix5*)
-    LIBS="$LIBS -lm -lc -lpthread"
+    LIBS="$LIBS -lm -lc -lpthread -ldl"
     CFLAGS="$CFLAGS -Daix -Daix5"
     CXXFLAGS="$CXXFLAGS -Daix -Daix5"
     ;;
   *solaris*)
-    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread"
+    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
     CFLAGS="$CFLAGS -Dsolaris"
     CXXFLAGS="$CXXFLAGS -Dsolaris"
     ;;
   *sunos*)
-    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread"
+    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
     CFLAGS="$CFLAGS -Dsunos"
     CXXFLAGS="$CXXFLAGS -Dsunos"
     ;;
   *irix*)
-    LIBS="$LIBS -lm -lc -lpthread"
+    LIBS="$LIBS -lm -lc -lpthread -ldl"
     CFLAGS="$CFLAGS -Dirix"
     CXXFLAGS="$CXXFLAGS -Dirix"
     ;;
   *linux*)
-    LIBS="$LIBS -lm -lpthread"
+    LIBS="$LIBS -lm -lpthread -ldl"
     CFLAGS="$CFLAGS -Dlinux"
     CXXFLAGS="$CXXFLAGS -Dlinux"
     ;;

@@ -11,20 +11,20 @@
 #include "mrnet/src/BackEndNode.h"
 #include "mrnet/src/FrontEndNode.h"
 
-#include "mrnet/h/MR_Network.h"
+#include "mrnet/h/MRNet.h"
 
 namespace MRN
 {
 
 class NetworkImpl: public Error {
-  friend class NetworkGraph;
-  friend class CommunicatorImpl;
-  friend class StreamImpl;
+    friend class NetworkGraph;
+    friend class CommunicatorImpl;
+    friend class StreamImpl;
+    friend class Stream;
 
 
-public:
-    class LeafInfoImpl : public Network::LeafInfo
-    {
+ public:
+    class LeafInfoImpl : public Network::LeafInfo {
     private:
         char* host;
         unsigned short id;
@@ -66,37 +66,37 @@ public:
     };
 
  private:
-  std::string filename;          /* Name of topology configuration file */
-  std::string application;       /* Name of application to launch */
-  std::vector <EndPoint *> * endpoints; //BackEnds addressed by communicator
-  static BackEndNode * back_end;
-  FrontEndNode *front_end;
-
-  EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
-  int parse_configfile();
+    std::string filename;          /* Name of topology configuration file */
+    std::string application;       /* Name of application to launch */
+    std::vector <EndPoint *> * endpoints; //BackEnds addressed by communicator
+    static BackEndNode * back_end;
+    FrontEndNode *front_end;
+    
+    EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
+    int parse_configfile();
 
  public:
-  static std::list <NetworkNode *>* hostlist;
-  static std::list <NetworkNode *>* potential_root;
-  static NetworkGraph* parsed_graph;
+    static std::list <NetworkNode *>* hostlist;
+    static std::list <NetworkNode *>* potential_root;
+    static NetworkGraph* parsed_graph;
 
-  NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
-  static void error_str(const char *);
-  static int recv( bool blocking=true );
-  static int send(Packet *);
-  static bool is_FrontEnd();
-  static bool is_BackEnd();
+    NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
+    static void error_str(const char *);
+    static int recv( bool blocking=true );
+    static int send(Packet *);
+    static bool is_FrontEnd();
+    static bool is_BackEnd();
 
-  NetworkImpl(const char * _filename, const char * _application);
-  ~NetworkImpl();
+    NetworkImpl(const char * _filename, const char * _application);
+    ~NetworkImpl();
 
     int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );
 
     int getConnections( int** conns, unsigned int* nConns )
-        {
-            return front_end->getConnections( conns, nConns );
-        }
+    {
+        return front_end->getConnections( conns, nConns );
+    }
 };
 
 } // namespace MRN

@@ -13,11 +13,11 @@ CC  = @CC@
 CXX = @CXX@
 CFLAGS      += $(INCDIR) $(WARNFLAGS)
 CXXFLAGS    += $(INCDIR) $(WARNFLAGS)
+SOFLAGS = -fPIC -shared -rdynamic
 C_AS_CPLUSPLUS  = @C_AS_CPLUSPLUS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
 DEPENDDIR = ./depends
-#DEPENDFLAGS = -MM
 
 GCC_VER := $(shell $(CXX) --version 2> /dev/null )
 ifeq (GCC,$(findstring GCC,$(GCC_VER)))
@@ -59,48 +59,54 @@ endif  #GNU_COMPILER
 #############################
 # System Specific Definitions
 #############################
-TARGETS = $(LIBMC) $(COMMNODE) $(TESTS)
+TARGETS = $(LIBMRNET) $(COMMNODE)
 INCDIR = -I$(SRCDIR)/.. -I. -I$(OBJDIR)
-LIBMC    =$(LIBDIR)/libmrnet.a
+LIBMRNET    =$(LIBDIR)/libmrnet.a
 COMMNODE=$(BINDIR)/mrnet_commnode 
-TESTS   = $(BINDIR)/test_basic_FE $(BINDIR)/test_basic_BE \
-	      $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
-	      $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
 
+TESTS   = $(BINDIR)/microbench_FE \
+          $(BINDIR)/microbench_BE \
+          $(BINDIR)/test_basic_FE \
+          $(BINDIR)/test_basic_BE \
+          $(BINDIR)/test_NativeFilters_FE \
+          $(BINDIR)/test_NativeFilters_BE \
+          $(BINDIR)/test_DynamicFilters_FE \
+          $(BINDIR)/test_DynamicFilters_BE
 
 ###################################
 # Object and Executable Definitions
 ###################################
-MC_OBJS = $(LIBMC_OBJS) $(COMMNODE_OBJS)
-
-LIBMC_SRCS = \
-	         $(SRCDIR)/src/EndPointImpl.C \
-	         $(SRCDIR)/src/CommunicatorImpl.C \
-	         $(SRCDIR)/src/StreamImpl.C \
-	         $(SRCDIR)/src/NetworkImpl.C \
-	         $(SRCDIR)/src/Network.C \
-	         $(SRCDIR)/src/StreamManager.C \
-	         $(SRCDIR)/src/Filter.C \
-	         $(SRCDIR)/src/Message.C \
-	         $(SRCDIR)/src/Errors.C \
-	         $(SRCDIR)/src/NetworkGraph.C \
-	         $(SRCDIR)/src/CommunicationNode.C \
-	         $(SRCDIR)/src/RemoteNode.C \
-	         $(SRCDIR)/src/ParentNode.C \
-	         $(SRCDIR)/src/FrontEndNode.C \
-	         $(SRCDIR)/src/ChildNode.C \
-	         $(SRCDIR)/src/BackEndNode.C \
-	         $(SRCDIR)/src/InternalNode.C \
+LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/utils.C \
 	         $(SRCDIR)/src/pthread_sync.C \
+	         $(SRCDIR)/src/Errors.C \
 	         $(SRCDIR)/src/pdr.c \
 	         $(SRCDIR)/src/pdr_mem.c \
 	         $(SRCDIR)/src/pdr_sizeof.c \
 	         $(SRCDIR)/src/byte_order.c \
 	         $(OBJDIR)/scanner.C \
-	         $(OBJDIR)/parser.tab.C
+	         $(OBJDIR)/parser.tab.C \
+	         $(SRCDIR)/src/NetworkGraph.C \
+	         $(SRCDIR)/src/EndPointImpl.C \
+	         $(SRCDIR)/src/CommunicatorImpl.C \
+	         $(SRCDIR)/src/StreamImpl.C \
+	         $(SRCDIR)/src/NetworkImpl.C \
+	         $(SRCDIR)/src/Network.C \
+	         $(SRCDIR)/src/DataElement.C \
+	         $(SRCDIR)/src/Packet.C \
+	         $(SRCDIR)/src/Message.C \
+	         $(SRCDIR)/src/CommunicationNode.C \
+	         $(SRCDIR)/src/RemoteNode.C \
+	         $(SRCDIR)/src/ParentNode.C \
+	         $(SRCDIR)/src/ChildNode.C \
+	         $(SRCDIR)/src/FrontEndNode.C \
+	         $(SRCDIR)/src/BackEndNode.C \
+	         $(SRCDIR)/src/StreamManager.C \
+	         $(SRCDIR)/src/Filter.C \
+	         $(SRCDIR)/src/FilterDefinitions.C \
+	         $(SRCDIR)/src/InternalNode.C 
 
-LIBMC_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMC_SRCS)))))
+LIBMRNET_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMRNET_SRCS)))))
  
 COMMNODE_SRCS = $(SRCDIR)/src/CommunicationNodeMain.C
 COMMNODE_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(COMMNODE_SRCS)))))
@@ -111,10 +117,12 @@ PDR_SRCS = $(SRCDIR)/src/pdr.c \
 	        $(SRCDIR)/src/byte_order.c
 PDR_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(PDR_SRCS)))))
 
-ALL_SRCS = $(LIBMC_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
+ALL_SRCS = $(LIBMRNET_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
 DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir $(ALL_SRCS)))))
 
 all: DIRS $(TARGETS)
+
+test: all $(TESTS) $(BINDIR)/config_generator
 
 rebuild:
 	make "FRC=force_rebuild"
@@ -130,55 +138,6 @@ $(OBJDIR) $(LIBDIR) $(BINDIR):
 	    { echo "$@ not a writable directory" >&2; exit 1;} \
 	fi 
 
-$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMC)
-	echo Linking `basename $@` ...
-	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMC) $(LIBS)
-
-$(LIBMC): $(LIBMC_OBJS)
-	echo Archiving `basename $@` ...
-	$(AR) $(ARFLAGS) $@ $?
-	$(RANLIB) $@
-
-$(BINDIR)/test_basic_FE: $(LIBMC) $(OBJDIR)/test_basic_FE.o $(OBJDIR)/test_common.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test_basic_FE.o $(OBJDIR)/test_common.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/test_basic_BE: $(LIBMC) $(OBJDIR)/test_basic_BE.o $(OBJDIR)/test_common.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test_basic_BE.o $(OBJDIR)/test_common.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/test1_BE: $(LIBMC) $(OBJDIR)/test1_BE.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/test1_BE.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/FloatAvg_FE: $(LIBMC) $(OBJDIR)/FloatAvg_FE.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_FE.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/FloatAvg_BE: $(LIBMC) $(OBJDIR)/FloatAvg_BE.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/FloatAvg_BE.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/microbench_FE: $(LIBMC) $(OBJDIR)/microbench_FE.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_FE.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/microbench_BE: $(LIBMC) $(OBJDIR)/microbench_BE.o
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/microbench_BE.o $(LIBMC) $(LIBS)
-
-$(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
-
-$(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
-
-$(BINDIR)/xdr_test: tests/xdr_test.c
-	echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
-
 $(OBJDIR)/scanner.C: $(SRCDIR)/src/scanner.l $(OBJDIR)/parser.tab.C $(FRC)
 	echo Building `basename $@` ...
 	$(RM)  $@; $(FLEX) -Pmrn -t $< > $@ 
@@ -189,10 +148,35 @@ $(OBJDIR)/parser.tab.C $(OBJDIR)/parser.tab.h: $(SRCDIR)/src/parser.y $(FRC)
 	mv y.tab.c $(OBJDIR)/parser.tab.C
 	mv y.tab.h $(OBJDIR)/parser.tab.h
 
-parser: $(OBJDIR)/scanner.C $(OBJDIR)/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS) \
-	    src/Network.o
-	echo Building `basename $@`
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/scanner.C $(OBJDIR)/src/parser.tab.C $(LIBMC_OBJS) $(AUX_OBJS)
+$(LIBMRNET): $(LIBMRNET_OBJS)
+	echo Archiving `basename $@` ...
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET)
+	echo Linking `basename $@` ...
+	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
+
+$(BINDIR)/config_generator: $(SRCDIR)/tests/config_generator.C
+	echo "Linking `basename $@` ..."
+	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
+
+$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so
+	echo "Linking `basename $*` ..."
+	$(CXX) $(CXXFLAGS) -Wl,-E -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
+
+$(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
+	echo "Building `basename $@` ..."
+	$(CXX) $(CXXFLAGS) $(SOFLAGS) -o $@ $(SRCDIR)/tests/test_DynamicFilters.C
+
+$(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
+	echo "Linking `basename $@` ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
+
+$(BINDIR)/xdr_test: tests/xdr_test.c
+	echo "Linking `basename $@` ..."
+	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
+
 
 #################################
 # Defining Cleaning rules
@@ -209,11 +193,6 @@ CLEAN:
 
 distclean: CLEAN
 	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
-
-BACKUPDIR = /p/paradyn/development/darnold/mrnet-backups
-tar:
-	echo "Tarring $(files) =>  mrnet.`date +"%d_%b_%H-%M"`.tgz ..."
-	cd ..; tar czf mrnet.`date +"%d_%b_%H-%M"`.tgz $(files)
 
 #################################
 # Defining Default Build rules

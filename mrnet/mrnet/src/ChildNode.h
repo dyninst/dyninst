@@ -11,28 +11,55 @@ namespace MRN
 
 class ChildNode{
  protected:
-  RemoteNode * upstream_node;
+    RemoteNode * upstream_node;
 
  private:
-  std::string hostname;
-  unsigned short port;
-  bool threaded;
+    std::string hostname;
+    unsigned short port;
+    bool threaded;
 
  public:
-  ChildNode(bool, std::string, unsigned short);
-  virtual ~ChildNode(void);
-  virtual int proc_PacketsFromUpStream(std::list <Packet *> &)=0;
-  virtual int proc_DataFromUpStream(Packet *)=0;
+    ChildNode(bool, std::string, unsigned short);
+    virtual ~ChildNode(void);
+    virtual int proc_PacketsFromUpStream(std::list <Packet *> &)=0;
+    virtual int proc_DataFromUpStream(Packet *)=0;
 
-  int recv_PacketsFromUpStream(std::list <Packet *> &packet_list);
-  int send_PacketUpStream(Packet *packet);
-  int flush_PacketsUpStream();
+    int recv_PacketsFromUpStream(std::list <Packet *> &packet_list);
+    int send_PacketUpStream(Packet *packet);
+    int flush_PacketsUpStream();
 
-  std::string get_HostName();
-  unsigned short get_Port();
+    std::string get_HostName();
+    unsigned short get_Port();
 
-  int getConnections( int** conns, unsigned int* nConns );
+    int getConnections( int** conns, unsigned int* nConns );
 };
+
+inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet *>
+                                               &packet_list)
+{
+  return upstream_node->recv(packet_list);
+}
+
+inline int ChildNode::send_PacketUpStream(Packet *packet)
+{
+  return upstream_node->send(packet);
+}
+
+inline int ChildNode::flush_PacketsUpStream()
+{
+  return upstream_node->flush();
+}
+
+inline std::string ChildNode::get_HostName()
+{
+  return hostname;
+}
+
+inline unsigned short ChildNode::get_Port()
+{
+  return port;
+}
+
 
 } // namespace MRN
 
