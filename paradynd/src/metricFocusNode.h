@@ -7,6 +7,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.31  1996/04/29 03:40:03  tamches
+ * added getFocus() member func
+ *
  * Revision 1.30  1996/04/03 14:27:48  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -41,122 +44,6 @@
  * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
  * the application stops only after it starts the CM5 daemon)
  *
- * Revision 1.22  1995/12/15 14:40:57  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.21  1995/11/29  18:45:23  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.20  1995/08/24 15:04:20  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.19  1995/05/18  10:38:57  markc
- * Removed class metric
- *
- * Revision 1.18  1995/02/16  08:53:44  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.17  1995/02/16  08:33:51  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.16  1995/01/30  17:32:13  jcargill
- * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
- *
- * Revision 1.15  1994/11/10  18:58:08  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.14  1994/11/09  18:40:17  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.13  1994/11/02  11:11:24  markc
- * Added classes and removed compiler warnings.
- *
- * Revision 1.12  1994/09/22  02:14:13  markc
- * Changed structs to classes
- *
- * Revision 1.11  1994/09/05  20:33:43  jcargill
- * Bug fix:  enabling certain metrics could cause no instrumentation to be
- * inserted, but still return a mid; this hosed the PC
- *
- * Revision 1.10  1994/07/21  01:34:20  hollings
- * Fixed to skip over null point and ast nodes for addInst calls.
- *
- * Revision 1.9  1994/07/05  03:26:11  hollings
- * observed cost model
- *
- * Revision 1.8  1994/07/02  01:46:42  markc
- * Use aggregation operator defines from util/h/aggregation.h
- * Changed average aggregations to summations.
- *
- * Revision 1.7  1994/06/29  02:52:38  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.6  1994/06/27  18:56:58  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.5  1994/06/02  23:27:58  markc
- * Replaced references to igen generated class to a new class derived from
- * this class to implement error handling for igen code.
- *
- * Revision 1.4  1994/04/11  23:25:23  hollings
- * Added pause_time metric.
- *
- * Revision 1.3  1994/03/26  19:31:37  hollings
- * Changed sample time to be consistant.
- *
- * Revision 1.2  1994/03/24  16:42:01  hollings
- * Moved sample aggregation to lib/util (so paradyn could use it).
- *
- * Revision 1.1  1994/01/27  20:31:29  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.9  1994/01/20  17:48:13  hollings
- * dataReqNode overcome by events.
- *
- * Revision 1.8  1993/10/19  15:27:54  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.7  1993/10/01  21:29:41  hollings
- * Added resource discovery and filters.
- *
- * Revision 1.6  1993/08/20  22:01:51  hollings
- * added getMetricValue and returnCounterInstance.
- *
- * Revision 1.5  1993/08/11  01:52:55  hollings
- * new build before use metrics.
- *
- * Revision 1.4  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.3  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.2  1993/04/27  14:39:21  hollings
- * signal forwarding and args tramp.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
- *
  */
 
 #ifndef METRIC_H
@@ -180,7 +67,6 @@
  */
 typedef enum { INTCOUNTER, TIMER } dataObjectType;
 
-class AstNode;
 class metricDefinitionNode;
 class metric;
 
@@ -279,6 +165,8 @@ public:
   int getMId() const { return id_; }
   string getMetName() const { return met_; }
   string getFullName() const { return flat_name_; }
+  const vector< vector<string> > &getFocus() const {return focus_;}
+
   process *proc() const { return proc_; }
 
   bool nonNull() { return (requests.size() || data.size()); }
