@@ -3,9 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Error-win.C,v 1.2 2004/03/23 01:12:23 eli Exp $
-#include <winsock2.h>
+// $Id: Error-win.C,v 1.3 2005/03/24 04:59:22 darnold Exp $
 #include <windows.h>
+#include <winsock2.h>
 #include "xplat/Error.h"
 
 namespace XPlat

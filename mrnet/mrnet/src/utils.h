@@ -1,10 +1,19 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #ifndef utils_h
 #define utils_h 1
+
+#if defined(os_windows)
+#include <windows.h>
+#include <winsock2.h>
+
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif // defined(os_windows)
 
 #include <vector>
 #include <string>
@@ -13,14 +22,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-
-#if defined(WIN32)
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#endif // defined(WIN32)
 
 #include "xplat/TLSKey.h"
 #include "xplat/Thread.h"

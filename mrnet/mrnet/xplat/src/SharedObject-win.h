@@ -3,12 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: SharedObject-win.h,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: SharedObject-win.h,v 1.3 2005/03/24 04:59:25 darnold Exp $
 #ifndef XPLAT_SHARED_OBJECT_UNIX_H
 #define XPLAT_SHARED_OBJECT_UNIX_H
 
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #include "xplat/SharedObject.h"
 
 namespace XPlat

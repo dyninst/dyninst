@@ -1,14 +1,14 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Types-win.h,v 1.3 2004/06/01 18:23:49 pcroth Exp $
+// $Id: Types-win.h,v 1.4 2005/03/24 04:59:20 darnold Exp $
 #ifndef XPLAT_TYPES_WIN_H
 #define XPLAT_TYPES_WIN_H
 
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #include <limits.h>
 
 // Microsoft's compiler does not provide typedefs for specific-sized integers
