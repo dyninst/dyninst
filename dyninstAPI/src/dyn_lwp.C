@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.25 2004/04/14 19:39:07 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.26 2004/07/23 20:38:58 tlmiller Exp $
  */
 
 #include "common/h/headers.h"
@@ -62,7 +62,7 @@ dyn_lwp::dyn_lwp() :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
   sigStopsQueued(0),
 #endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
@@ -85,7 +85,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
   sigStopsQueued(0),
 #endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
@@ -108,7 +108,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
   sigStopsQueued(0),
 #endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),

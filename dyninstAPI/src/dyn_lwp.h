@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.30 2004/04/11 04:52:09 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.31 2004/07/23 20:38:59 tlmiller Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -185,19 +185,17 @@ class dyn_lwp
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined( os_linux )
   bool deliverPtrace(int req, Address addr, Address data);
   int deliverPtraceReturn(int req, Address addr, Address data);
 #elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
   bool deliverPtrace(int request, void *addr, int data, void *addr2);
 #endif
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined( os_linux )
   bool isRunning() const;
   bool isStopPending() const;
-#endif
 
-#if defined(os_linux) && defined(arch_x86)
   int numStopsPending() { return sigStopsQueued; }
   void deqStop() { if (sigStopsQueued > 0) sigStopsQueued--; }
   void enqStop() { sigStopsQueued++; }
@@ -345,7 +343,7 @@ class dyn_lwp
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
 #endif
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
   int sigStopsQueued;
 #endif
 

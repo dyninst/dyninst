@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.126 2004/04/11 04:52:12 legendre Exp $
+// $Id: unix.C,v 1.127 2004/07/23 20:39:02 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -601,7 +601,7 @@ int handleSigStopNInt(const procevent &event) {
        retval = 1;
    }
    else {
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
      /**
       * Extra sig stops are possible on Linux.  numStopsPending()
       * represents the number of stops we sent to the lwp that
@@ -621,7 +621,7 @@ int handleSigStopNInt(const procevent &event) {
                    << std::flush;
    }
 
-#if defined(os_linux) && defined(arch_x86)
+#if defined( os_linux )
    event.lwp->deqStop();
 #endif
    // Unlike other signals, don't forward this to the process. It's stopped
@@ -671,7 +671,7 @@ int handleSigCritical(const procevent &event) {
     return 1;
  }
 
- int handleSignal(const procevent &event) {
+int handleSignal(const procevent &event) {
     process *proc = event.proc;
     int ret = 0;
 
