@@ -49,10 +49,12 @@ extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;
 
 #ifdef SHM_SAMPLING
-extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr,
-			bool childHasInstr);
+extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr);
 #else
-extern void forkProcess(int pid, int ppid, bool childHasInstr);
+extern void forkProcess(int pid, int ppid);
 #endif
+
+void processNewTSConnection(int tracestream_fd);
+   // either fork or attach
 
 #endif
