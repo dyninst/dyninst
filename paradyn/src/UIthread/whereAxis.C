@@ -4,9 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.9  1995/12/09 04:08:39  tamches
-/* shift-dbl-click now togggles highlight, like ctrl-dbl-click
+/* Revision 1.10  1996/01/11 04:45:37  tamches
+/* getSelections replaced - now returns Whole Program selection separately,
+/* runs faster, and alone with the new parseSelections of uimpd.tcl.C,
+/* avoids adding spurious metric/focus pairs when Whole Program is chosen
 /*
+ * Revision 1.9  1995/12/09 04:08:39  tamches
+ * shift-dbl-click now togggles highlight, like ctrl-dbl-click
+ *
  * Revision 1.8  1995/11/20 03:27:50  tamches
  * overallWindowBorderPix is no longer a global variable.
  * double-click does a toggle_highlight of the parent node; same
@@ -1118,13 +1123,18 @@ bool whereAxis::selectUnSelectFromFullPathName(const string &name, bool selectFl
    return rootPtr->selectUnSelectFromFullPathName(str, selectFlag);
 }
 
-vector< vector<resourceHandle> > whereAxis::getSelections() const {
+vector< vector<resourceHandle> >
+whereAxis::getSelections(bool &wholeProgram,
+			 vector<unsigned> &wholeProgramFocus) const {
    // returns a vector[num-hierarchies] of vector of selections.
    // The number of hierarchies is defined as the number of children of the
-   // root node.
+   // root node.  If "Whole Program" was selection, it isn't returned with
+   // the main result; it's returned by modifying the 2 params
    const unsigned numHierarchies = rootPtr->getNumChildren();
 
    vector < vector<resourceHandle> > result(numHierarchies);
+
+   bool wholeProgramImplicit = true; // so far...
 
    for (unsigned i=0; i < numHierarchies; i++) {
       where4tree<whereAxisRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
@@ -1133,23 +1143,26 @@ vector< vector<resourceHandle> > whereAxis::getSelections() const {
       if (thisHierarchySelections.size()==0)
          // add hierarchy's root item
          thisHierarchySelections += &hierarchyRoot->getNodeData();
-      else if (rootPtr->isHighlighted()) {
-         // the global root node was highlighted --> add hierarchy root, if
-         // not already added.
-         bool hierarchyRootAlreadyAdded = false;
-         for (unsigned j=0; j < thisHierarchySelections.size(); j++)
-            if (thisHierarchySelections[j] == &hierarchyRoot->getNodeData()) {
-               hierarchyRootAlreadyAdded = true;
-               break;
-            }
-         if (!hierarchyRootAlreadyAdded)
-            thisHierarchySelections += &hierarchyRoot->getNodeData();
-
-      }
+      else
+         // since the hierarchy selection was not empty, we do _not_
+         // want to implicitly select whole-program
+         wholeProgramImplicit = false;
 
       result[i].resize(thisHierarchySelections.size());
       for (unsigned j=0; j < thisHierarchySelections.size(); j++)
          result[i][j] = thisHierarchySelections[j]->getUniqueId();
+   }
+
+   wholeProgram = wholeProgramImplicit || rootPtr->isHighlighted();
+   if (wholeProgram) {
+      // write to wholeProgramFocus:
+      wholeProgramFocus.resize(numHierarchies);
+      for (unsigned i=0; i < numHierarchies; i++) {
+         where4tree<whereAxisRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
+         const whereAxisRootNode &hierarchyRootData = hierarchyRoot->getNodeData();
+         unsigned hierarchyRootUniqueId = hierarchyRootData.getUniqueId();
+         wholeProgramFocus[i] = hierarchyRootUniqueId;
+      }
    }
 
    return result;
