@@ -1,0 +1,37 @@
+#
+# Common makefile template for rtinst library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2004/05/11 19:02:18 bernat Exp $
+#
+
+!ifndef TARGET
+TARGET	      = libsharedMutatee.dll
+!endif
+
+MODCC         = $(CC)
+MODCFLAGS     = $(CFLAGS)
+
+all: $(TARGET)
+
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK= true
+
+#$(TARGET): $(OBJS) $(DYNOBJS) $(LIBS)
+#	$(LD) $(LDFLAGS) -out:$(TARGET) $(OBJS) $(LIBS)
+
+#
+# override standard install rule; provide a default DEST if not already set
+#
+!ifndef DEST
+DEST		= $(TO_CORE)\$(LIBRARY_DEST)
+!endif
+
+UNCOMMON_INSTALL= true
+install: $(DEST)/$(TARGET)
+
+$(DEST)/libsharedMutatee.dll:       libsharedMutatee.dll
+	$(CP) libsharedMutatee.dll $(DEST)
