@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.248 2003/04/11 20:02:38 bernat Exp $
+/* $Id: process.h,v 1.249 2003/04/11 22:46:25 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -365,12 +365,7 @@ class process {
           );
      // this is the "attach" ctor
 
-  process(const process &parentProc, int iPid, int iTrace_fd
-#ifdef SHM_SAMPLING
-          , key_t theShmSegKey,
-          void *applShmSegPtr
-#endif
-          );
+  process(const process &parentProc, int iPid, int iTrace_fd);
      // this is the "fork" ctor
 
   protected:  
@@ -433,7 +428,7 @@ class process {
   void Exited();
   bool hasExited() { return (status_ == exited); }
   void Stopped();
-
+  static process *findProcess(int pid);
   bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
          const;
 
@@ -480,24 +475,22 @@ class process {
 
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
-  void postRPCtoDo(AstNode *, bool noCost,
-                   inferiorRPCcallbackFunc, void *data, int, 
-						 bool lowmem=false);
+  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
+                       void *data, bool lowmem=false);
+  
+  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
+                       void *data, dyn_thread *thr, bool lowmem=false);
 
-  void postRPCtoDo(AstNode *, bool noCost,
-                   inferiorRPCcallbackFunc, void *data, int, 
-                   dyn_thread *thr, bool lowmem=false);
-
-  void postRPCtoDo(AstNode *, bool noCost,
-                   inferiorRPCcallbackFunc, void *data, int, 
-                   dyn_lwp *lwp, bool lowmem=false);
+  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
+                       void *data, dyn_lwp *lwp, bool lowmem=false);
 
   bool launchRPCs(bool wasRunning);
 
+  irpcState_t getRPCState(unsigned rpc_id);
+  bool cancelRPC(unsigned rpc_id);
   bool existsRPCPending() const;
   bool existsRPCinProgress() const;
   bool existsRPCWaitingForSyscall() const;
-  void cleanRPCreadyToLaunch(int mid);
 
   bool handleTrapIfDueToRPC();
 
@@ -518,6 +511,7 @@ class process {
 #endif
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
+  void recognize_threads(pdvector<unsigned> *completed_lwps);
 
   int getPid() const { return pid;}
 
@@ -534,7 +528,8 @@ class process {
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
-  static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
+  static void DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
+                                            void *data, void *ret);
   
   // Get the list of inferior heaps from:
   bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
@@ -753,6 +748,12 @@ void saveWorldData(Address address, int size, const void* src);
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
+
+  // the following 3 are used in perfStream.C
+  char buffer[2048];
+  unsigned bufStart;
+  unsigned bufEnd;
+
   //removed for output redirection
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
   procSignalWhat_t exitCode_;                /* termination status code */
@@ -789,6 +790,7 @@ void saveWorldData(Address address, int size, const void* src);
       else
           bootstrapState = state;
   }  
+  string getBootstrapStateAsString() const;
 
   // inferior heap management
  public:
@@ -854,6 +856,11 @@ void saveWorldData(Address address, int size, const void* src);
 
  public:
 
+  static void forkCallback(process *parentProc, process *childProc);
+#if !defined(BPATCH_LIBRARY)
+  void init_shared_memory(process *parentProc);
+#endif
+
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
 #endif
@@ -887,22 +894,6 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool continueWithForwardSignal(int sig); // arch-specific implementation
   
-  // forkProcess: this function should be called when a process we are tracing
-  // forks a child process.
-  // This function returns a new process object associated with the child.
-  // It also writes to "map" s.t. for each instInstance in the parent, we have
-  // the corresponding instInstance in the child.
-#ifndef BPATCH_LIBRARY
-  static process *forkProcess(const process *parent, pid_t childPid,
-                              int iTrace_fd,
-                              key_t theKey,
-                              void *applAttachedAtPtr);
-#else
-  static process *forkProcess(const process *parent, pid_t childPid,
-                              dictionary_hash<instInstance*,instInstance*> &map,
-                              int iTrace_fd);
-#endif
-
   // Used when we get traps for both child and parent of a fork.
   int childPid;
   int parentPid;
@@ -1195,8 +1186,7 @@ void saveWorldData(Address address, int size, const void* src);
   
   bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
 
-  /////////////////////////////////////////////////
-  
+  dyn_thread *getThread(unsigned tid);
   dyn_lwp *getLWP(unsigned lwp_id);
   dyn_lwp *getDefaultLWP() const;
 
@@ -1491,13 +1481,21 @@ private:
    string cwdenv;
    // curr working directory of program, at the time it started
 
+   int invalid_thr_create_msgs;
+
   public:
    const string &getArgv0() const { return argv0; }
    const string &getPathEnv() const { return pathenv; }
    const string &getCwdEnv() const { return cwdenv; }
    
+   int numInvalidThrCreateMsgs() const { return invalid_thr_create_msgs; }
+   void receivedInvalidThrCreateMsg() { invalid_thr_create_msgs++; }
+
  private:
-   static void inferiorMallocCallback(process *proc, void *data, void *result);
+   static void inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
+                                      void *data, void *result);
+
+   bool inInferiorMallocDynamic;
    void inferiorMallocDynamic(int size, Address lo, Address hi);
    void inferiorFreeCompact(inferiorHeap *hp);
    int findFreeIndex(unsigned size, int type, Address lo, Address hi);
