@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.36  1996/03/12 20:48:36  mjrg
+ * Revision 1.37  1996/03/14 14:23:42  naim
+ * Minor change - naim
+ *
+ * Revision 1.36  1996/03/12  20:48:36  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -315,7 +318,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	sprintf(errorLine, "%d bytes requested\n", size);
 	logLine(errorLine);
 	showErrorCallback(66, (const char *) errorLine);
-	abort();
+        fflush(stdout);
+        P__exit(-1);
+	//abort();
     }
 
     if (np->length != size) {
