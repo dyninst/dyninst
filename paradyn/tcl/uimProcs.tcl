@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.1  1994/05/03 06:36:03  karavan
+# Revision 1.2  1994/05/23 01:55:46  karavan
+# its a whole new look for paradyn!
+#
+# Revision 1.1  1994/05/03  06:36:03  karavan
 # Initial version.
 #
 
@@ -31,19 +34,13 @@ proc mkMessage {w {text ""} {pack {top fillx}} args} {
 proc mkButtonBar {w every retval blist} {	
 	upvar $retval retv
         set arg [lindex $blist 0]
-        frame $w.0 -relief sunken -border 1
-        pack append $w $w.0 {left expand padx 20 pady 20}
-        button $w.0.button -text [lindex $arg 0] -width 7 -height 2\
-                -command "[lindex $arg 1]; $every"
-        pack append $w.0 $w.0.button {expand padx 12 pady 12}
-        bind $w <Return> "[lindex $arg 1]; $every"
         focus $w
 
         set i 1
-        foreach arg [lrange $blist 1 end] {
+        foreach arg [lrange $blist 0 end] {
             button $w.$i -text [lindex $arg 0] -width 7 -height 2\
                     -command "$every; [lindex $arg 1]"
-            pack append $w $w.$i {left expand padx 20}
+            pack append $w $w.$i {left expand padx 20 pady 4}
             set i [expr $i+1]
         }
 }
