@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.44  1996/02/15 23:08:02  tamches
-/* added correct support for why vs. where axis refinement in the shg
+/* Revision 1.45  1996/02/21 22:28:10  tamches
+/* correct handling of blank 2d arg to showError
 /*
+ * Revision 1.44  1996/02/15 23:08:02  tamches
+ * added correct support for why vs. where axis refinement in the shg
+ *
  * Revision 1.43  1996/02/11 18:22:48  tamches
  * internal cleanup; more tk window names parameterized
  *
@@ -111,11 +114,15 @@ UIM::readStartupFile(const char *script)
 void
 UIM::showError(int errCode, const char *errString)
 {
-    // custom error info string to be printed
-    string tcommand = string("showError ") + string(errCode);
-    tcommand += string(" {");
-    tcommand += string(errString);
-    tcommand += string("}");
+    // errString -- custom error info string to be printed
+    // Note that UIthread code can make the call to the tcl
+    // routine "showError" directly; no need to call us.
+
+    string tcommand = string("showError ") + string(errCode) + string(" ");
+    if (errString[0] == '\0')
+       tcommand += string("\"\"");
+    else
+       tcommand += string("{") + string(errString) + string("}");
     myTclEval(interp, tcommand);
 }
 
