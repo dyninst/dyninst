@@ -217,6 +217,8 @@ Frame dyn_thread::getActiveFrame()
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
+    stackWalk.clear();
+    
     if (useRPCStack_) {
         stackWalk = RPCstack_;
         return true;
@@ -237,7 +239,6 @@ bool dyn_thread::savePreRPCStack()
 {
     if (useRPCStack_)
         assert(0);
-    RPCstack_.clear();
     
     walkStack(RPCstack_);
     useRPCStack_ = true;

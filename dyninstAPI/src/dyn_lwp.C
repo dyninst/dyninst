@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.10 2003/04/25 16:08:53 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.11 2003/05/14 17:15:19 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -144,17 +144,19 @@ bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
 {
    // If we're in an inferior RPC, return the stack walk
    // from where the process "should" be
-   if (isRunningIRPC) {
-      stackWalk = cachedStackWalk;
-      return true;
-   }
-   
-   // We cheat (a bit): this method is here for transparency, 
-   // but the process class does the work in the walkStackFromFrame
-   // method. We get the active frame and hand off.
-   Frame active = getActiveFrame();
-   
-   return proc_->walkStackFromFrame(active, stackWalk);
+    stackWalk.clear();
+    
+    if (isRunningIRPC) {
+        stackWalk = cachedStackWalk;
+        return true;
+    }
+    
+    // We cheat (a bit): this method is here for transparency, 
+    // but the process class does the work in the walkStackFromFrame
+    // method. We get the active frame and hand off.
+    Frame active = getActiveFrame();
+    
+    return proc_->walkStackFromFrame(active, stackWalk);
 }
 
 bool dyn_lwp::openFD() {
