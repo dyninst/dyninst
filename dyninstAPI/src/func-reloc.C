@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.48 2004/03/23 01:12:03 eli Exp $
+ * $Id: func-reloc.C,v 1.49 2004/04/11 04:52:06 legendre Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -779,7 +779,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
   norm_alt_set.Collapse(); 
 
   // iterate over all instructions in function....
-  while (oldOffset < codeSize) {
+  while (oldOffset < codeSize || nextAlter != NULL) {
 
     // next alteration
     nextAlter = norm_alt_set.iterNext();
@@ -838,8 +838,9 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
     if (nextAlter != NULL) {
 
       // branch or call instruction with relative addressing
-      if(isNearBranchInsn(oldInstructions[oldInsnOffset])  || 
-         isTrueCallInsn(oldInstructions[oldInsnOffset])) {
+      if(oldOffset != codeSize &&
+	 (isNearBranchInsn(oldInstructions[oldInsnOffset])  || 
+	  isTrueCallInsn(oldInstructions[oldInsnOffset]))) {
         int oldDisp = get_disp(&oldInstructions[oldInsnOffset]);
         int oldInsnSize = sizeOfMachineInsn(&oldInstructions[oldInsnOffset]);  
 
@@ -917,7 +918,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       oldOffset += (oldAdr_after - oldAdr_before);
       newOffset += (newAdr_after - newAdr_before);
     }
-  } 
+  }
   
   return true;
 }
