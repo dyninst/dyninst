@@ -57,7 +57,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
     out_stream << Options::type_prefix() << "message_tags"
       << " waitLoop(" 
 	<< "bool specific, "
-	  << Options::type_prefix() << "message_tags mt);\n";
+	  << Options::type_prefix() << "message_tags mt,void *buffer=NULL);\n";
   }
   out_stream << "bool isValidTag(const " 
     << Options::type_prefix() << "message_tags &tag) {\n";
@@ -741,7 +741,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "void) {\n";
   } else {
     out_stream << " bool specific, "
-      << Options::type_prefix() << "message_tags mt) {\n"; 
+      << Options::type_prefix() << "message_tags mt, void *buffer) {\n"; 
   }
 
   out_stream << Options::type_prefix() << "message_tags tag;\n";
@@ -777,7 +777,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "setRequestingThread(msg_recv((unsigned*)&tag, &KLUDGE_msg_buf, &len));\n";
     out_stream << "if (getRequestingThread() == THR_ERR) ";
     out_stream << Options::error_state("igen_read_err", Options::type_prefix()+"error");
-    out_stream << "return switch_on(tag, KLUDGE_msg_buf);\n"; 
+    out_stream << "return switch_on(tag, KLUDGE_msg_buf, buffer);\n"; 
   }
 
 

@@ -1106,6 +1106,11 @@ bool remote_func::handle_request(ofstream &out_stream, const bool srvr, bool spe
     }
   }
 
+  if (Options::ml->address_space() == message_layer::AS_one) {
+    if (special)
+      out_stream << "if (buffer) { *(" << Options::type_prefix() << "msg_buf *)buffer = KLUDGE_msg_buf; break; }\n";
+  }
+
   if (return_arg_.base_type() != "void") 
     out_stream << return_arg_.type() << " ret = ";
   out_stream << name() << "(";
