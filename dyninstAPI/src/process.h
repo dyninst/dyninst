@@ -484,6 +484,11 @@ class process {
   // for this function
   function_base *findOneFunction(const string &func_name);
 
+  // findOneFunctionFromAll: returns the function associated with function "func_name"
+  // This routine checks both the a.out image and any shared object images 
+  // for this function
+  function_base *findOneFunctionFromAll(const string &func_name);
+
   // findFunctionIn: returns the function which contains this address
   // This routine checks both the a.out image and any shared object images 
   // for this function

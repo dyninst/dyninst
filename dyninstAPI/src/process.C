@@ -2057,6 +2057,18 @@ function_base *process::findOneFunction(const string &func_name){
     return(0);
 }
 
+// findOneFunctionFromAll: returns the function associated with func  
+// this routine checks both the a.out image and any shared object
+// images for this resource
+function_base *process::findOneFunctionFromAll(const string &func_name){
+    
+    // first check a.out for function symbol
+    function_base *pdf = symbols->findOneFunctionFromAll(func_name);
+    if(pdf) return pdf;
+
+    return(0);
+}
+
 // findFunctionIn: returns the function containing the address "adr"
 // this routine checks both the a.out image and any shared object
 // images for this resource
