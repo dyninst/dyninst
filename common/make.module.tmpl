@@ -4,7 +4,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/04/05 20:24:12  jcargill
+# Revision 1.6  1995/04/06 22:19:28  jcargill
+# Moved setting of INSTANTIATE_TEMPLATES down into arch-specific Makefiles,
+# since it must be set before make.config is read.
+#
+# Revision 1.5  1995/04/05  20:24:12  jcargill
 # Removed CXXFLAGS brokenness; added INSTANTIATE_TEMPLATES instead
 #
 # Revision 1.4  1995/03/11  06:02:19  krisna
@@ -20,8 +24,6 @@
 # Major build system reorganization
 #
 #
-
-INSTANTIATE_TEMPLATES	= true
 
 TARGET	      = libpdutil.a
 TARGET2	      = libpdutilPVM.a
