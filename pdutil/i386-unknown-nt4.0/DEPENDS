@@ -54,3 +54,5 @@ templates.obj: ../src/templates.C ../../util/h/Vector.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h ../../util/h/hist.h \
  ../../util/h/sys.h ../../util/h/makenan.h
+Types.obj: ../src/Types.C ../../util/h/Types.h
+
