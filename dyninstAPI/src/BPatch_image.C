@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.22 2001/04/16 18:47:38 tikir Exp $
+// $Id: BPatch_image.C,v 1.23 2001/05/07 19:22:35 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -288,6 +288,8 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;
+    if(!pointFunction || !pointFunction->file())
+	return NULL;
     image* pointImage = pointFunction->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.76 2001/05/04 21:22:42 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.77 2001/05/07 19:22:35 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -452,16 +452,43 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
  *   any relative addressing that is present.
  * 
  */
-void relocateInstruction(instruction *insn, 
-                        Address origAddr, Address targetAddr, process *proc)
+void relocateInstruction(instruction*& insn, 
+                        Address origAddr, Address& targetAddr, process *proc)
 {
     int newOffset;
 
     // If the instruction is a CALL instruction, calculate the new
     // offset
     if (isInsnType(*insn, CALLmask, CALLmatch)) {
-	newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
-	insn->call.disp30 = newOffset >> 2;
+	Address callTarget = (Address)(origAddr + (insn->call.disp30 << 2));
+	if(proc && proc->callToDummyStatic.defines(callTarget)){
+		//cout << hex << origAddr << " calls " << callTarget
+		//     << dec << " CAREFUL RELOCATION" << endl;
+		
+		insn->sethi.op = 0x0;
+		insn->sethi.op2 = 0x4;
+		insn->sethi.rd = 0xf;
+		insn->sethi.imm22 = (origAddr >> 10);
+
+		insn++;
+		targetAddr += sizeof(instruction);
+
+		insn->resti.op = 0x2;
+		insn->resti.rd = 0xf;
+		insn->resti.op3 = 0x2;
+		insn->resti.rs1 = 0xf;
+		insn->resti.i = 0x1;
+		insn->resti.simm13 = (0x000003ff & origAddr);
+
+		insn++;
+		targetAddr += sizeof(instruction);
+
+		insn->raw =  proc->callToDummyStatic[callTarget];
+	}
+	else {
+		newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
+		insn->call.disp30 = newOffset >> 2;
+	}
     } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)||
 	       isInsnType(*insn, FBRNCHmask, FBRNCHmatch)) {
 

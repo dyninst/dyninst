@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.7 2001/03/07 21:03:25 pcroth Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.8 2001/05/07 19:22:35 tikir Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -54,8 +54,8 @@
 
 //--------------------------------- SPARC SPECIFIC -----------------------------
 
-extern void relocateInstruction(instruction *insn, 
-                        Address origAddr, Address targetAddr, process *proc);
+extern void relocateInstruction(instruction*& insn, 
+                        Address origAddr, Address& targetAddr, process *proc);
 
 
 bool InsertNops::RewriteFootprint(Address /*oldBaseAdr */, Address &oldAdr, 
@@ -454,9 +454,11 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
         //  the difference in PCs.
       
         newInstr[offset].raw = oldInstr[originalOffset].raw;
-        relocateInstruction(&newInstr[offset++],
+	instruction* tmpInsn = &newInstr[offset++];
+	Address tmpAddr = newAdr + 7 * sizeof(instruction);
+        relocateInstruction(tmpInsn,
 			    oldAdr,
-			    newAdr + 7 * sizeof(instruction),
+			    tmpAddr,
 			    NULL);
             
         // in the case of a "true" call, 17 instructions are generated

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.156 2001/04/25 20:31:37 wxd Exp $
+/* $Id: process.h,v 1.157 2001/05/07 19:22:38 tikir Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -789,6 +789,15 @@ class process {
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
+
+#if defined(sparc_sun_solaris2_4)
+
+  /* maps an address to an instruction to keep track of dummy functions
+     that get the adjustment for static members in shared libraries */
+  dictionary_hash<Address,unsigned> callToDummyStatic;
+
+#endif
+
 #endif
 
   // the following 3 are used in perfStream.C
