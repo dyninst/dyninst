@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.11 2001/10/30 21:02:51 gaburici Exp $
+# $Id: Makefile,v 1.12 2001/11/01 05:00:26 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,10 +30,11 @@ MUTATEE_FFLAGS += -g -Dsparc_sun_solaris2_4 -xs
 #the _ALT PATH is in case the gcc library can't be found in the first path
 ifdef GCC_2_95
 LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
-LIBGCCLOC_ALT = /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
+# Not using the gcc-2.95.3 on tau (in stow); it is broken...
+LIBGCCLOC_ALT = /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 else
 LIBGCCLOC = /p/paradyn/packages/gcc-3/gcc-3.0.1/lib/gcc-lib/PLATFORM/3.0.1
-LIBGCCLOC_ALT = /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
+LIBGCCLOC_ALT = /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 endif
 MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
 
@@ -101,16 +102,15 @@ COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef NATIVE_FC
-#ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+ifeq ($(NATIVE_FC),$(MUTATEE_FC))
 
-# VG: This Fortran thing is badly broken, whoever commited it should fix it...
 COMPILER = f90
 
 # FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
-	-$(NATIVE_FC) -xs $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+	$(NATIVE_FC) -xs $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
 
 $(FORTRAN_BASE)_$(NATIVE_FC).o:
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
@@ -121,6 +121,7 @@ $(FORTRAN_BASE)C_$(NATIVE_FC).o:
 else
 $(TARGET2):  $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $@ $(MUTLIBS) 
+endif
 endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))
