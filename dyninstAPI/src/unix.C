@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.117 2004/03/08 23:46:03 bernat Exp $
+// $Id: unix.C,v 1.118 2004/03/11 22:20:41 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -499,7 +499,6 @@ int handleSigTrap(const procevent &event) {
                 proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
-            
             return 1;
         }
         else if (proc->trapAtEntryPointOfMain()) {
@@ -510,7 +509,6 @@ int handleSigTrap(const procevent &event) {
                 // special case where can't wait to continue process
                 proc->loadDyninstLib();
             }
-            
             return 1;
         }
         else if (proc->trapDueToDyninstLib()) {
@@ -551,11 +549,6 @@ int handleSigTrap(const procevent &event) {
         }
     }
 
-/////////////////////////////////////////////
-// Trap based instrumentation
-/////////////////////////////////////////////
-    // We may use traps to instrument points
-    // and so we forward the signal to the process
     // MT AIX is getting spurious trap instructions. I can't figure out where
     // they are coming from (and they're not at all deterministic) so 
     // we're ignoring them for now. 
@@ -575,7 +568,7 @@ int handleSigTrap(const procevent &event) {
     // As a last resort on AIX, we check to see if this is the
     // cause of the SIGTRAP before we give up.
     if(proc->nextTrapIsFork){
-       proc->continueProc();
+        proc->continueProc();
        proc->nextTrapIsFork = false;
        return 1;
     }
@@ -586,7 +579,6 @@ int handleSigTrap(const procevent &event) {
         proc->continueProc();
         return 1;
     }
-
     return 0;
 }
 
@@ -609,8 +601,7 @@ int handleSigStopNInt(const procevent &event) {
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
-
-   return 1;
+   return 0;
 }
 
 int handleSigCritical(const procevent &event) {
@@ -680,23 +671,29 @@ int handleSigCritical(const procevent &event) {
          proc->nextTrapIsFork = false; 
  #endif
 
+/////////////////////////////////////////////
+// Trap based instrumentation
+/////////////////////////////////////////////
+    // We may use traps to instrument points
+    // and so we forward the signal to the process
+#if defined(os_linux)
+         if (!ret)
+             return forwardSigToProcess(event);
+#endif
          break;
- #if defined(USE_IRIX_FIXES)
+#if defined(USE_IRIX_FIXES)
       case SIGEMT:
- #endif
+#endif
       case SIGSTOP:
       case SIGINT:
-         ret = handleSigStopNInt(event);
-      break;
+          ret = handleSigStopNInt(event);
+          break;
       case SIGILL: 
-         // x86 uses SIGILL for various purposes
-         if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
-            ret = 1;
-         } else {
-            ret = handleSigCritical(event);
-         }
-         break;
-
+          // x86 uses SIGILL for various purposes
+          if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
+              ret = 1;
+          }
+          break;
       case SIGCHLD:
          // Ignore
          ret = 1;
@@ -706,7 +703,7 @@ int handleSigCritical(const procevent &event) {
       case SIGIOT:
       case SIGBUS:
       case SIGSEGV:
-         ret = handleSigCritical(event);
+          // Unhandled 
          break;
       case SIGCONT:
          // Should inform the mutator/daemon that the process is running
@@ -717,11 +714,6 @@ int handleSigCritical(const procevent &event) {
       default:
          ret = 0;
          break;
-    }
-
-    if (!ret) {
-       // Signal was not handled
-       ret = forwardSigToProcess(event);
     }
     return ret;
  }
@@ -953,6 +945,7 @@ int handleSyscallExit(const procevent &event) {
 int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
+
 /*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
         << event.why << ", what: " << event.what << ", lwps: "
@@ -960,6 +953,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
 */
    int ret = 0;
    if(proc->hasExited()) {
+       // Yeah, this was handled... ;)
        return 1;
    }
 
@@ -991,8 +985,6 @@ int signalHandler::handleProcessEvent(const procevent &event) {
      case procInstPointTrap:
      case procForkSigChild:
         ret = handleSignal(event);
-        if (!ret)
-            cerr << "handleSignal failed! " << event.what << endl;
         break;
         // Now the /proc only
         // AIX clones some of these (because of fork/exec/load notification)
