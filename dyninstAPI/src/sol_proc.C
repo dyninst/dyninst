@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.24 2003/04/24 14:28:51 bernat Exp $
+// $Id: sol_proc.C,v 1.25 2003/05/02 20:40:17 mirg Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -835,14 +835,25 @@ void dyn_lwp::closeFD_()
 
 bool process::installSyscallTracing()
 {
-    
+    bool followForksAndExecs = true;
+
+#ifndef BPATCH_LIBRARY
+    if (process::pdFlavor == "mpi") {
+	followForksAndExecs = false;
+    }
+#endif
+
     long command[2];
     command[0] = PCSET;
 
-    long flags = PR_BPTADJ | PR_FORK | PR_MSACCT;
+    long flags = PR_BPTADJ | PR_MSACCT;
     if (!wasCreatedViaAttach()) {
         // Kill the child when the mutator/daemon exits
         flags |= PR_KLC;
+    }
+    if (followForksAndExecs) {
+	// Make children inherit flags on fork
+	flags |= PR_FORK;
     }
 
     command[1] = flags;
@@ -864,33 +875,35 @@ bool process::installSyscallTracing()
         return false;
     //if (!get_entry_syscalls(&status, entryset)) return false;
     //if (!get_exit_syscalls(&status, exitset)) return false;
-    
-    if (SYSSET_MAP(SYS_fork, getPid()) != -1) {
-        praddsysset (exitset, SYSSET_MAP(SYS_fork, getPid()));
-    }
-    
-    if (SYSSET_MAP(SYS_fork1, getPid()) != -1) {
-        praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
-    }
-    
-    if (SYSSET_MAP(SYS_vfork, getPid()) != -1) {
-        praddsysset (exitset, SYSSET_MAP(SYS_vfork, getPid()));
-    }
-
-    if (SYSSET_MAP(SYS_exec, getPid()) != -1)
-        praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
-    if (SYSSET_MAP(SYS_execve, getPid()) != -1)
-        praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
 
     if (SYSSET_MAP(SYS_exit, getPid()) != -1)
         praddsysset (entryset, SYSSET_MAP(SYS_exit, getPid()));
+
+    if (followForksAndExecs) {
+	if (SYSSET_MAP(SYS_fork, getPid()) != -1) {
+	    praddsysset (exitset, SYSSET_MAP(SYS_fork, getPid()));
+	}
     
-    if (SYSSET_MAP(SYS_fork, getPid()) != -1)
-        praddsysset (entryset, SYSSET_MAP(SYS_fork, getPid()));
-    if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
-        praddsysset (entryset, SYSSET_MAP(SYS_fork1, getPid()));
-    if (SYSSET_MAP(SYS_vfork, getPid()) != -1)
-        praddsysset (entryset, SYSSET_MAP(SYS_vfork, getPid()));
+	if (SYSSET_MAP(SYS_fork1, getPid()) != -1) {
+	    praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
+	}
+    
+	if (SYSSET_MAP(SYS_vfork, getPid()) != -1) {
+	    praddsysset (exitset, SYSSET_MAP(SYS_vfork, getPid()));
+	}
+
+	if (SYSSET_MAP(SYS_exec, getPid()) != -1)
+	    praddsysset (exitset, SYSSET_MAP(SYS_exec, getPid()));
+	if (SYSSET_MAP(SYS_execve, getPid()) != -1)
+	    praddsysset (exitset, SYSSET_MAP(SYS_execve, getPid()));
+
+	if (SYSSET_MAP(SYS_fork, getPid()) != -1)
+	    praddsysset (entryset, SYSSET_MAP(SYS_fork, getPid()));
+	if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
+	    praddsysset (entryset, SYSSET_MAP(SYS_fork1, getPid()));
+	if (SYSSET_MAP(SYS_vfork, getPid()) != -1)
+	    praddsysset (entryset, SYSSET_MAP(SYS_vfork, getPid()));
+    }
     
     return set_syscalls(entryset, exitset);    
 }
