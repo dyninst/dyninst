@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.13 2003/03/29 02:02:08 hollings Exp $
+// $Id: BPatch_init.C,v 1.14 2003/09/05 16:27:33 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -51,20 +51,15 @@
 
 extern int getNumberOfCPUs();
 
-int numberOfCPUs;
+int numberOfCPUs_;
 
 pdvector<instMapping*> initialRequests;
-
-#if !defined(BPATCH_LIBRARY) // ccw 19 apr 2002 : SPLIT
-pdvector<instMapping*> initialRequestsPARADYN;
-pdvector<sym_data> syms_to_findPARADYN;
-#endif
 
 pdvector<sym_data> syms_to_find;
 
 bool dyninstAPI_init() {
 
-  numberOfCPUs = getNumberOfCPUs();
+  numberOfCPUs_ = getNumberOfCPUs();
 
   initDefaultPointFrequencyTable();
 
