@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.49 2002/01/31 17:07:52 cortes Exp $
+ * $Id: RTinst.c,v 1.50 2002/02/11 22:07:53 tlmiller Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -85,7 +85,7 @@ int DYNINSTdebugPrintRT = 1;
 int DYNINSTdebugPrintRT = 0;
 #endif
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 extern unsigned DYNINSTtotalTraps;
 #endif
 
@@ -320,7 +320,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
 ************************************************************************/
 static void
 saveFPUstate(float* base) {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
     /* kludge for the pentium: we need to reset the FPU here, or we get 
        strange results on fp operations.
     */
@@ -941,7 +941,7 @@ DYNINSTprintCost(void) {
     stats.userTicks = 0;
     stats.instTicks = 0;
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 	stats.totalTraps = DYNINSTtotalTraps;
 #endif
 

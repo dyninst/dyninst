@@ -15,10 +15,10 @@
 /*
  * menu.c - menu handler code.
  *
- * $Id: menu.c,v 1.6 2001/06/12 19:56:12 schendel Exp $
+ * $Id: menu.c,v 1.7 2002/02/11 22:08:06 tlmiller Exp $
  */
 
-#ifdef i386_unknown_linux2_0
+#ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
 #define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
 #define _HAVE_STRING_ARCH_strsep
 #endif

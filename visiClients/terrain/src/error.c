@@ -15,10 +15,10 @@
 /* 
  * error.c - code to generate an error window when an error occurs.  
  *
- * $Id: error.c,v 1.9 2001/10/08 20:51:45 zandy Exp $
+ * $Id: error.c,v 1.10 2002/02/11 22:08:03 tlmiller Exp $
  */
 
-#ifdef i386_unknown_linux2_0
+#ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
 #define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
 #define _HAVE_STRING_ARCH_strsep
 #endif

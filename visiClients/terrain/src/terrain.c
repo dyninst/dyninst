@@ -20,10 +20,10 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.18 2001/08/23 14:54:22 schendel Exp $
+ * $Id: terrain.c,v 1.19 2002/02/11 22:08:10 tlmiller Exp $
  */
 
-#ifdef i386_unknown_linux2_0
+#ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
 #define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
 #define _HAVE_STRING_ARCH_strsep
 #endif

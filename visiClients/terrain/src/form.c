@@ -16,14 +16,14 @@
  * form.c - define the basic frame of the window.
  *          scroll bars and menu routines.
  *
- * $Id: form.c,v 1.11 2001/06/12 19:56:12 schendel Exp $
+ * $Id: form.c,v 1.12 2002/02/11 22:08:04 tlmiller Exp $
  */
 
 #include <stdio.h>
 
 #define XTSTRINGDEFINES
 
-#ifdef i386_unknown_linux2_0
+#ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
 #define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
 #define _HAVE_STRING_ARCH_strsep
 #endif

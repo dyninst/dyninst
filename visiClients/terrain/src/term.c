@@ -33,10 +33,10 @@
  *
  * term.c - misc terminal routines.
  *
- * $Id: term.c,v 1.4 2001/06/12 19:56:13 schendel Exp $
+ * $Id: term.c,v 1.5 2002/02/11 22:08:09 tlmiller Exp $
  */
 
-#ifdef i386_unknown_linux2_0
+#ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
 #define _HAVE_STRING_ARCH_strcpy  /* gets rid of warnings */
 #define _HAVE_STRING_ARCH_strsep
 #endif
