@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.3 2000/03/04 01:30:26 zandy Exp $ */
+/* $Id: RTheap.c,v 1.4 2000/05/31 17:59:20 nick Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -210,7 +210,7 @@ constrained_mmap(size_t len, Address lo, Address hi,
 
      /* Try to mmap in space between mlo and mhi.  Try nothing here if
 	mlo and mhi are the same. */
-     for (p = mlo; p > mhi; p++) {
+     for (p = mlo; p < mhi; p++) {
 	  try = trymmap(len, END(p), BEG(p+1), psize, fd);
 	  if (try)
 	       return try;
