@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.52 2005/02/09 03:27:44 jaw Exp $
+// $Id: BPatch_function.C,v 1.53 2005/02/17 21:10:24 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -76,15 +76,16 @@ BPatch_function::BPatch_function(process *_proc, int_function *_func,
 {
   // there should be at most one BPatch_func for each int_function per process
   assert( proc->bpatch_thread && ! proc->PDFuncToBPFuncMap.defines( func ) );
-
+  
   _srcType = BPatch_sourceFunction;
+
+  if (mod) getModule()->parseTypesIfNecessary();
 
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
 
   proc->PDFuncToBPFuncMap[_func] = this;
-
 };
 
 /*
@@ -100,6 +101,9 @@ BPatch_function::BPatch_function(process *_proc, int_function *_func,
   assert(!proc->PDFuncToBPFuncMap[_func]);
 
   _srcType = BPatch_sourceFunction;
+
+  getModule()->parseTypesIfNecessary();
+
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
@@ -535,7 +539,6 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
  */
 BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
-
   BPatch_localVar * var = localVariables->findLocalVar(name);
   return (var);
 
@@ -565,7 +568,6 @@ bool BPatch_function::getLineToAddrInt(unsigned short lineNo,
                    BPatch_Vector<unsigned long>& buffer,
                    bool exactMatch)
 {
-
 	//get the line info object and check whether it is available
 	LineInformation* lineInformation = mod->getLineInformation();
 	if(!lineInformation){
@@ -578,6 +580,10 @@ bool BPatch_function::getLineToAddrInt(unsigned short lineNo,
 			lineInformation->getFunctionLineInformation(func->symTabName());
 	if(!fLineInformation){
 	  cerr << __FILE__ << __LINE__ << ":  no file line information!" << endl;
+	  char funcname[128];
+	  getName(funcname, 128);
+	  fprintf(stderr, "... function %s\n", funcname);
+
 		return false;
 	}
 
@@ -658,9 +664,9 @@ BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt()
 
 BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const char *name)
 {
+  getModule()->parseTypesIfNecessary();
     BPatch_Vector<BPatch_variableExpr *> *ret;
     BPatch_localVar *lv = findLocalVar(name);
-
     if (!lv) {
 	// look for it in the parameter scope now
 	lv = findLocalParam(name);
@@ -759,7 +765,7 @@ bool BPatch_function::isSharedLibInt(){
 
 void BPatch_function::fixupUnknown(BPatch_module *module) {
    if (retType != NULL && retType->getDataClass() == BPatch_dataUnknownType) 
-      retType = module->moduleTypes->findType(retType->getID());
+      retType = module->getModuleTypes()->findType(retType->getID());
 
    for (unsigned int i = 0; i < params.size(); i++)
       params[i]->fixupUnknown(module);
