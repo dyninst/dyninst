@@ -586,10 +586,6 @@ class process {
    bool procStopFromDYNINSTinit();
       // returns true iff processed.  If false is returned, no side effects.
 
-   void startWatchingStopSignals(); // clears 'stopSignalsHandled'
-   bool alreadySeenStopSignal(int status);
-   void markStopSignalAsSeen(int status);
-
 private:
   // Since we don't define these, 'private' makes sure they're not used:
   process(const process &); // copy ctor
