@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.111 2002/12/20 07:50:07 jaw Exp $
+// $Id: main.C,v 1.112 2003/02/04 14:59:40 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -223,7 +223,7 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **argv,
       break;
     case 'L':
       // Debugging flag to specify runtime library
-      process::paradynRT_name = optarg;
+      pd_process::defaultParadynRTname = optarg;
       break;
     case 'm':
       // Machine specification. We could do "machine:portname", but there are
@@ -591,9 +591,9 @@ main( int argc, char* argv[] )
          cerr << "=" << pd_attpid;
       }
       cerr << ">" << endl;
-      if (process::paradynRT_name.length())
+      if (pd_process::defaultParadynRTname.length())
       {
-         cerr << "   -L<library=" << process::paradynRT_name << ">" << endl;
+         cerr << "   -L<library=" << pd_process::defaultParadynRTname << ">" << endl;
       }
       if (!aflag)
       {
@@ -614,17 +614,17 @@ main( int argc, char* argv[] )
 #endif
 
 #if !defined(i386_unknown_nt4_0)
-   aflag = RPC_make_arg_list(process::arg_list,
+   aflag = RPC_make_arg_list(pd_process::arg_list,
                              pd_known_socket_portnum, termWin_port,pd_flag, 0,
                              pd_machine, true);
 #else
-   aflag = RPC_make_arg_list(process::arg_list,
+   aflag = RPC_make_arg_list(pd_process::arg_list,
                              pd_known_socket_portnum, pd_flag, 0,
                              pd_machine, true);
 #endif 
    assert(aflag);
    string flav_arg(string("-z")+ pd_flavor);
-   process::arg_list += flav_arg;
+   pd_process::arg_list += flav_arg;
    machine_name = getNetworkName();
    
    //
@@ -771,8 +771,6 @@ main( int argc, char* argv[] )
       {
          pdvector<string> envp;
          // ignore return val (is this right?)
-         extern int pd_createProcess(pdvector<string> &argv, 
-                                     pdvector<string> &envp, string dir);
          pd_createProcess(cmdLine, envp, *dir); 
       } 
       else if (pd_attpid && (pd_flag==2))
@@ -791,10 +789,12 @@ main( int argc, char* argv[] )
    extern void setupTraceSocket();
    setupTraceSocket();
    if (startByAttach) {
-      extern bool pd_attachProcess(const string &progpath, int pid, 
-                                   int afterAttach);
-      bool success = pd_attachProcess("", pd_attpid, 1);
-      if (!success) return(-1);
+       pd_process *p = pd_attachProcess("", pd_attpid);
+       
+       if (!p) return -1;
+       // Leave process paused in this case
+       p->pause();
+
    } else if (startByCreateAttach) {
       if (cmdLine.size()){
          AttachToCreatedProcess(pd_attpid,cmdLine[0]); 

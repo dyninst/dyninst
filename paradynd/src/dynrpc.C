@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.92 2002/12/20 07:50:06 jaw Exp $ */
+/* $Id: dynrpc.C,v 1.93 2003/02/04 14:59:39 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -430,12 +430,11 @@ void dynRPC::MonitorDynamicCallSites(string function_name){
 int dynRPC::addExecutable(pdvector<string> argv, string dir)
 {
   pdvector<string> envp;
-  extern int pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, 
-										string dir);
-  return(pd_createProcess(argv, envp, dir)); // context.C
+  pd_process *p = pd_createProcess(argv, envp, dir);
+  if (p)
+      return 1;
+  return -1;
 }
-
-extern bool pd_attachProcess(const string &progpath, int pid, int afterAttach);
 
 //
 // Attach is the other way to start a process (application?)
@@ -459,8 +458,27 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
     }
 #endif
 
-    return pd_attachProcess(progpath, pid, afterAttach); // process.C
+    pd_process *p = pd_attachProcess(progpath, pid);
+    
+    if (!p) return false;
+    
+    if (afterAttach == 0) {
+        if (p->get_dyn_process()->wasRunningWhenAttached())
+            p->continueProc();
+        else
+            p->pause();
+    }
+    else if (afterAttach == 1) {
+        p->pause();
+    }
+    else if (afterAttach == 2) {
+        p->continueProc();
+    }
+    else
+        assert(0 && "Unknown value for afterAttach");
+    return true;
 }
+
 
 //
 // report the current time 
