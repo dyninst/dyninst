@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.52 2004/04/26 21:09:20 rchen Exp $
+ * $Id: inst-ia64.C,v 1.53 2004/04/26 21:34:48 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -987,16 +987,8 @@ uint64_t signExtend( bool signBit, uint64_t immediate ) {
 /* private refactoring function */
 #define TYPE_20B 0
 #define TYPE_13C 1
+
 void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, unsigned int immediateType, Address allocatedAddress ) {
-	/* We insert a short jump past a long jump to the original target, followed
-	   by the instruction rewritten to branch one bundle backwards.
-	   It's not very elegant, but it's very straightfoward to implement. :) */
-	
-	/* Skip the long branch. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
-	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
-	insnPtr[offset++] = skipInsnBundle.getMachineCode(); size += 16;
 
 	/* Extract the short immediate. */
 	uint64_t immediate;
@@ -1015,42 +1007,21 @@ void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocatio
 			break;
 
 		default:
-			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
+			fprintf( stderr, "Unrecognized immediate type in rewriteShortOffset(), aborting.\n" );
 			abort();
 			break;
 		} /* end immediateType switch */
+	uint64_t branchReg = (machineCode & 0x00000000E0000000) >> ( 6 + ALIGN_RIGHT_SHIFT);
 
 	/* The long branch. */
 	Address originalTarget = ( signExtend( signBit, immediate ) << 4 ) + originalLocation;
 	// /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
-	IA64_instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + size) );
-	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
+
+	IA64_instruction_x longInsn = ((insnToRewrite.getType() == IA64_instruction::DIRECT_CALL)
+								   ? generateLongCallTo( originalTarget - (allocatedAddress + size), branchReg, insnToRewrite.getPredicate() )
+								   : generateLongBranchTo( originalTarget - (allocatedAddress + size), insnToRewrite.getPredicate() ));
+	IA64_bundle longBranchBundle( MLXstop, IA64_instruction( NOP_M ), longInsn );
 	insnPtr[offset++] = longBranchBundle.getMachineCode(); size += 16;
-
-	/* Rewrite the short immediate. */
-	switch( immediateType ) {
-		case TYPE_20B:
-			machineCode =	( machineCode & IMMEDIATE_MASK ) |
-					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0xFFFFF) << (13 + ALIGN_RIGHT_SHIFT) );
-			break;
-
-		case TYPE_13C:
-			machineCode =	( machineCode & SPEC_CHECK_MASK ) |
-					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0xFFF) >> (20 + ALIGN_RIGHT_SHIFT) ) |
-					( ((uint64_t)0x7F) << (6 + ALIGN_RIGHT_SHIFT) );
-			break;
-
-		default:
-			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
-			abort();
-			break;
-		} /* end immediateType switch */
-
-	/* Emit the rewritten immediate. */
-	IA64_instruction rewrittenInsn( machineCode, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
-	insnPtr[offset++] = generateBundleFor( rewrittenInsn ).getMachineCode(); size += 16;
 	} /* end rewriteShortOffset() */
 
 /* private refactoring function */
@@ -1058,7 +1029,7 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 	switch( insnToEmulate.getType() ) {
 		case IA64_instruction::DIRECT_BRANCH:
 		case IA64_instruction::DIRECT_CALL: {
-			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress );
+			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress);
 			break; } /* end direct jump handling */
 
 		case IA64_instruction::BRANCH_PREDICT: {
@@ -2398,7 +2369,7 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 #define MAX_BASE_TRAMP_SIZE (16 * 256)	// FIXME: how do I do an inferiorReAlloc() equivalent?
 										// FIXME: Or do I need to build the whole thing twice, once with a dummy allocatedAddress,
 										// FIXME: and hope that doesn't change the size?
-trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool trampRecursiveDesired = false )
+trampTemplate * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
 { // FIXME: updatecost
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
@@ -2416,12 +2387,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
 	assert( baseAddress % 16 == 0 );
 
-	/* Calculate the aligned address at which we're inserting the base tramp. */
-	Address installationPoint = location->pointAddr();
-	int slotNo = installationPoint % 16;
-	installationPoint = installationPoint - slotNo;
+	Address origBundleAddr = location->pointAddr() & ~0xF;
+	int slotNo = location->pointAddr() % 16;
 
-	// /* DEBUG */ fprintf( stderr, "* Installing base tramp at 0x%lx, slotNo %d.\n", installationPoint + baseAddress, slotNo );
+	// /* DEBUG */ fprintf( stderr, "* Installing base tramp at 0x%lx, emulating instruction at 0x%lx slotNo %d.\n", installationPoint, origBundleAddr + baseAddress, slotNo );
 
 	/* Begin constructing the dynamic unwind information for libunwind. */
 	unw_dyn_info_t * baseTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
@@ -2436,8 +2405,8 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	
 	regionZero->insn_count = 0;
 	regionZero->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", installationPoint + baseAddress );
-	_U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, installationPoint + baseAddress );
+	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
+	_U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
 	_U_dyn_op_stop( & regionZero->op[1] );
 	
 	/* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
@@ -2464,32 +2433,6 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	unsigned int bundleCount = 0;
 	ia64_bundle_t instructions[ MAX_BASE_TRAMP_SIZE ];
 	ia64_bundle_t * insnPtr = instructions;
-
-	/* Acquire the bundle we'll be overwriting, and thus emulating. */
-	Address installationPointAddress = (Address)location->getOwner()->getPtrToInstruction( installationPoint );
-	assert( installationPointAddress % 16 == 0 );
-	IA64_bundle bundleToEmulate( * (const ia64_bundle_t *) installationPointAddress );
-	installationPoint += baseAddress;
-
-	/* Emulate the instruction(s) that may occur before the instrumented instruction. */
-	switch( slotNo ) {
-		case 0:
-			break;
-
-		case 1:
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 0 );	
-			regionOne->insn_count = ( baseTramp->size / 16 ) * 3;
-			break;
-		
-		case 2:
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 0 );
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 1 );
-			regionOne->insn_count = ( baseTramp->size / 16 ) * 3;
-			break;
-			
-		default:
-			assert( 0 );
-		} /* end emulation switch */
 
 	/* CODEGEN: Insert the skipPreInsn nop bundle. */
 	IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
@@ -2529,7 +2472,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 		baseTramp->size += guardCount * 16;
 		bundleCount += guardCount;
 		regionOne->insn_count += guardCount * 3;	
-		}
+	}
 
 	/* Insert the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2544,8 +2487,8 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	/* This third region is the same as the first, in that its state is the same as the instrumented function's. */
 	regionTwo->insn_count = 0;
 	regionTwo->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (middle) to 0x%lx\n", installationPoint );
-	_U_dyn_op_alias( & regionTwo->op[0], _U_QP_TRUE, -1, installationPoint );
+	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (middle) to 0x%lx\n", origBundleAddr + baseAddress );
+	_U_dyn_op_alias( & regionTwo->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
 	_U_dyn_op_stop( & regionTwo->op[1] );	
 
 	/* Update insnPtr to reflect the size of the preservation trailer. */
@@ -2557,13 +2500,17 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	   sure the cost is still updated... not sure why.  See inst.C's
 	   clearBaseBranch(). */
 	baseTramp->updateCostOffset = baseTramp->size;
-
-	/* I'm not actually sure what this does... */
-	baseTramp->emulateInsOffset = baseTramp->size;	
 	
+	/* Prepare bundle for emulation */
+	const ia64_bundle_t *origBundlePtr =
+		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
+	assert( (int)origBundlePtr % 16 == 0 );
+	IA64_bundle bundleToEmulate( *origBundlePtr );
+
 	/* Emulate the instrumented instruction. */
+	baseTramp->emulateInsOffset = baseTramp->size;	
 	unsigned int preEmulationSize = baseTramp->size;
-	emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, slotNo );	
+	emulateBundle( bundleToEmulate, origBundleAddr + baseAddress, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, slotNo );	
 	regionTwo->insn_count = ( (baseTramp->size - preEmulationSize) / 16 ) * 3;
 	
 	/* CODEGEN: Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
@@ -2628,52 +2575,27 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	/* This fifth region is the same as the first and third, in that its state is the same as the instrumented function's. */
 	regionFour->insn_count = 0;
 	regionFour->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (end) to 0x%lx\n", installationPoint );
-	_U_dyn_op_alias( & regionFour->op[0], _U_QP_TRUE, -1, installationPoint );
+	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (end) to 0x%lx\n", origBundleAddr + baseAddress );
+	_U_dyn_op_alias( & regionFour->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
 	_U_dyn_op_stop( & regionFour->op[1] );	
 
 	/* Update insnPtr to reflect the size of the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
 	bundleCount = 0;
 
-	/* Claim that the return instruction offset is _here_ so that when we
-	   skip post-position instrumentation, we still execute the instruction(s)
-	   after the instrumented instruction. */
+	/* The jump to skip post-instrumentation should land here. */
 	baseTramp->returnInsOffset = baseTramp->size;
 
-	/* Emulate the instruction(s) which may occur after the instrumented instruction. */
-	switch( slotNo ) {
-		case 0: {
-			unsigned int preEmulationSize = baseTramp->size;
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 1 );	
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 2 );	
-			regionFour->insn_count = ( (baseTramp->size - preEmulationSize) / 16 ) * 3;
-			} break;
-
-		case 1: {
-			unsigned int preEmulationSize = baseTramp->size;
-			emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, 2 );
-			regionFour->insn_count = ( (baseTramp->size - preEmulationSize) / 16 ) * 3;
-			} break;
-		
-		case 2:
-			break;
-			
-		default:
-			assert( 0 );
-		} /* end emulation switch */
-
-	/* Insert the jump back to normal execution.  (Note: installReturnInstance also does this.
-	   I don't know why.) */
+	/* Insert the jump back to the multi-tramp. */
 	Address returnAddress = installationPoint + 16;
 	IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
 	IA64_bundle returnBundle( MLXstop, memoryNOP, returnFromTrampoline );
 	insnPtr[bundleCount++] = returnBundle.getMachineCode(); baseTramp->size += 16;
-	regionFour->insn_count += 3;	
+	regionFour->insn_count += 3;
 
 	/* Replace the skipPost nop bundle with a jump from it to baseTramp->returnInsOffset. */
 	unsigned int skipPostJumpBundleOffset = baseTramp->skipPostInsOffset / 16;
-	IA64_instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset ); 
+	IA64_instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset );
 	IA64_bundle skipPostJumpBundle( MLXstop, memoryNOP, skipPostJump );
 	instructions[skipPostJumpBundleOffset] = skipPostJumpBundle.getMachineCode();
 
@@ -2681,17 +2603,16 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
 	iAddr.writeBundlesFrom( (unsigned char *)instructions, baseTramp->size / 16  );
 
-	/* Install the jump to the base tramp. */
-	Address originatingAddress = returnAddress - 16;
-	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - originatingAddress );
+	/* Install jump from the multi-tramp. */
+	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - installationPoint );
 	IA64_bundle jumpToBaseBundle( MLXstop, memoryNOP, jumpToBaseInstruction );
-	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( originatingAddress, proc );
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( installationPoint, proc );
 	jAddr.replaceBundleWith( jumpToBaseBundle );
-	
+
 	/* Fill out the dynamic unwind accounting information. */	
 	baseTrampDynamicInfo->start_ip = baseTramp->baseAddr;
 	baseTrampDynamicInfo->end_ip = baseTramp->baseAddr + baseTramp->size + 0x10;
-	baseTrampDynamicInfo->gp = proc->getTOCoffsetInfo( installationPoint );
+	baseTrampDynamicInfo->gp = proc->getTOCoffsetInfo( origBundleAddr + baseAddress );
 	baseTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;
 
 	baseTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: base tramp";
@@ -2707,11 +2628,70 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	free( regionZero );
 	free( baseTrampDynamicInfo );
 
-	// /* DEBUG */ fprintf( stderr, "* Installed base tramp at 0x%lx, from 0x%lx (local 0x%lx)\n", baseTramp->baseAddr, originatingAddress, (Address)instructions );
+	// /* DEBUG */ fprintf( stderr, "* Installed base tramp at 0x%lx, from 0x%lx (local 0x%lx)\n", baseTramp->baseAddr, installationPoint, (Address)instructions );
 	// /* DEBUG */ fprintf( stderr, "Installed base tramp of size 0x%x (of 0x%x) at 0x%lx.\n", baseTramp->size, MAX_BASE_TRAMP_SIZE, allocatedAddress );
 	assert( baseTramp->size < MAX_BASE_TRAMP_SIZE );
 	return baseTramp;
 	} /* end installBaseTramp() */
+
+/* Expands a single bundle to 4 bundles.  One for each instruction,
+   and the long jump back to continue normal execution.  Aids
+   per-instruction (as opposed to per-bundle) instrumentation. */
+Address installMultiTramp(instPoint * & location, process *proc)
+{
+	bool allocErr;
+	Address origBundleAddr = location->pointAddr() & ~0xF;
+	Address allocatedAddress = proc->inferiorMalloc( sizeof(struct ia64_bundle_t) * 4,
+													 anyHeap,
+													 NEAR_ADDRESS,
+													 &allocErr );
+	if( allocErr ) { fprintf( stderr, "Unable to allocate multi tramp, aborting.\n" ); abort(); }
+	allocatedAddress -= allocatedAddress % 16;
+
+    /* Acquire the base address of the object we're instrumenting. */
+    Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
+    assert( baseAddress % 16 == 0 );
+
+	const ia64_bundle_t *origBundlePtr =
+		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
+	assert( (int)origBundlePtr % 16 == 0 );
+	IA64_bundle bundleToEmulate( *origBundlePtr );
+	origBundleAddr += baseAddress;
+
+	unsigned int bundleCount = 0;
+	unsigned int dummySize = 0;
+	ia64_bundle_t insnBuffer[4];
+
+	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
+				   bundleCount, dummySize, allocatedAddress, 0 );
+	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
+				   bundleCount, dummySize, allocatedAddress, 1 );
+	if (!bundleToEmulate.hasLongInstruction()) {
+		emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
+					   bundleCount, dummySize, allocatedAddress, 2 );
+	} else {
+		IA64_bundle nopBundle(MMIstop, NOP_M, NOP_M, NOP_I);
+		insnBuffer[bundleCount++] = nopBundle.getMachineCode();
+	}
+
+    Address returnAddress = origBundleAddr + 16;
+    IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress -
+																	(allocatedAddress + 0x30));
+    IA64_bundle returnBundle( MLXstop, IA64_instruction(NOP_M), returnFromTrampoline );
+    insnBuffer[bundleCount] = returnBundle.getMachineCode();
+
+	/* Copy the instructions into mutatee. */
+    InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
+    iAddr.writeBundlesFrom( (unsigned char *)insnBuffer, 4 );
+
+	/* Replace original bundle */
+	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - origBundleAddr);
+	IA64_bundle jumpToBaseBundle( MLXstop, IA64_instruction(NOP_M), jumpToBaseInstruction );
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( origBundleAddr, proc );
+	jAddr.replaceBundleWith( jumpToBaseBundle );
+
+	return allocatedAddress;
+}
 
 /* Required by inst.C */
 trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
@@ -2726,23 +2706,26 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 	/* "find" */
 	if( proc->baseMap.defines( location ) ) { return proc->baseMap[location]; }
 
+	/* Pre-"install" */
+	Address multiTrampAddress;
+	if( !proc->multiTrampMap.defines( location->pointAddr() & ~0xF )) {
+		multiTrampAddress = installMultiTramp(location, proc);
+		if (!multiTrampAddress) return NULL;
+		proc->multiTrampMap[ location->pointAddr() & ~0xF ] = multiTrampAddress;
+	} else {
+		multiTrampAddress = proc->multiTrampMap[ location->pointAddr() & ~0xF ];
+	}
+	int slotNo = (location->pointAddr() % 16);
+
 	/* "install" */
-	trampTemplate * installedBaseTramp = installBaseTramp( location, proc, trampRecursiveDesired );
+	trampTemplate * installedBaseTramp = installBaseTramp( multiTrampAddress + (slotNo * 0x10), location,
+														   proc, trampRecursiveDesired );
 	/* FIXME */ if( installedBaseTramp == NULL ) { return NULL; }
 	proc->baseMap[location] = installedBaseTramp;
 
-	/* Generate the returnInstance, which will be written to
-	   the mutatee by installReturnInstance().  Note that we do NOT
-	   store a full bundle, because of how things are declared. */
-	IA64_instruction_x * longBranchInstruction = new IA64_instruction_x();
-	Address returnFrom = installedBaseTramp->baseAddr + installedBaseTramp->size - 0x10;
-	Address returnTo; assert( proc->getBaseAddress( location->getOwner(), returnTo ) );
-	returnTo += location->pointAddr() + 0x10;
-	// /* DEBUG */ fprintf( stderr, "* Generating return instance from 0x%lx to 0x%lx\n", returnFrom, returnTo );
-	* longBranchInstruction = generateLongBranchTo( returnTo - returnFrom );
-	IA64_instruction ** instructionSequence = new IA64_instruction *();
-	* instructionSequence = longBranchInstruction;
-	retInstance = new returnInstance( 3, instructionSequence, 16, returnFrom, 16 );
+	/* We've already written the return instruction.  No need for
+	   addInstFunc() to write it again. */
+	retInstance = NULL;
 
 	return installedBaseTramp;
 	} /* end findOrInstallBaseTramp() */
