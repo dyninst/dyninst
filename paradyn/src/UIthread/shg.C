@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.29 1999/03/03 18:16:08 pcroth Exp $
+// $Id: shg.C,v 1.30 2000/03/23 01:37:13 wylie Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -1293,7 +1293,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
 #ifdef PARADYN
 void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
-   // In response to a middle-mouse-click...
+   // In response to a right-mouse-click...
 
    // First, delete what was in the curr-item-description widget
    string commandStr = currItemLabelName + " config -state normal";
