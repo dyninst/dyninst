@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.22 2004/04/02 06:34:12 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.23 2004/04/08 21:15:42 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -119,6 +119,11 @@ dyn_lwp::~dyn_lwp()
 bool dyn_lwp::continueLWP(int signalToContinueWith) {
    if(status_ == running) {
       return true;
+   }
+
+   if (proc()->suppressEventConts())
+   {
+     return false;
    }
 
    // the saved cached register can be cleared since continuing
