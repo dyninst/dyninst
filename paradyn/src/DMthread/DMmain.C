@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.129 2000/03/23 01:36:40 wylie Exp $
+// $Id: DMmain.C,v 1.130 2000/04/28 22:39:20 mirg Exp $
 
 #include <assert.h>
 extern "C" {
@@ -697,25 +697,28 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 					bool runMe)
 {
     // there better be a paradynd running on this machine!
+    paradynDaemon *last_match = 0;
 
     for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
         paradynDaemon *pd = paradynDaemon::allDaemons[i];
 	if (pd->machine.length() && (pd->machine == machine_name)) {
-	    if (!paradynDaemon::addRunningProgram(pid, 
-                  argvString, pd, calledFromExec, runMe))
-	       assert(false);
-
-	    uiMgr->enablePauseOrRun();
-
-	    return;
+	    last_match = pd;
 	}
     }
-
-    // for now, abort if there is no paradynd, this should not happen
-    fprintf(stderr,"process started on %s, can't find paradynd there\n",
-	   machine_name.string_of());
-    fprintf(stderr,"paradyn error #1 encountered\n");
-    //exit(-1);
+    if (last_match != 0) {
+        if (!paradynDaemon::addRunningProgram(pid, argvString, last_match,
+					      calledFromExec, runMe)) {
+	    assert(false);
+	}
+	uiMgr->enablePauseOrRun();
+    }
+    else {
+        // for now, abort if there is no paradynd, this should not happen
+        fprintf(stderr, "process started on %s, can't find paradynd "
+		"there\n", machine_name.string_of());
+	fprintf(stderr,"paradyn error #1 encountered\n");
+	//exit(-1);
+    }
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
