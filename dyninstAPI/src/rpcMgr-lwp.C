@@ -188,7 +188,13 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
 #endif    
 
     // Launch this sucker. Change the PC, and the caller will set running
+#if ! defined( ia64_unknown_linux2_4 )    
     if (!lwp_->changePC(runningRPC_->rpcStartAddr, NULL)) {
+#else    
+    /* Syscalls can actually rewind the PC by 0x10, so we need
+       a bundle _before_ the new PC to check for this. */
+   if (!lwp_->changePC(runningRPC_->rpcStartAddr + 0x10, NULL)) {
+#endif    
         cerr << "launchRPC failed: couldn't set PC" << endl;
         return irpcError;
     }
