@@ -116,7 +116,7 @@ BPatch_type *HandleTQ(char *name, unsigned int tq,
 
   switch(tq) {
   case tqRef:
-	newType = new BPatch_type(name, -1, BPatch_referance, prevType);
+	newType = new BPatch_type(name, -1, BPatch_reference, prevType);
 	break;
 
   case tqPtr:
@@ -241,7 +241,7 @@ BPatch_type *ExploreType(BPatch_module *mod, LDFILE *ldptr, char *name, int inde
 			lastType = new BPatch_type(typeName, -1, BPatch_enumerated);
 			break;
 		case btClass:
-			lastType = new BPatch_type(typeName, -1, BPatch_class, width);
+			lastType = new BPatch_type(typeName, -1, BPatch_typeClass, width);
 			break;
 		case btStruct:
 			lastType = new BPatch_type(typeName, -1, BPatch_structure, width);
@@ -547,8 +547,12 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 			/* get the name of the procedure if available */
 			pSYMR procSym = fileDesc->psym+procedureDesc->isym;
 			string currentFunctionName(fileDesc->pss + procSym->iss);
-			lineInformation->insertSourceFileName(currentFunctionName,
-							      *currentSourceFile);
+
+			FunctionInfo* currentFuncInfo = NULL;
+			FileLineInformation* currentFileInfo = NULL;
+			lineInformation->insertSourceFileName(
+					currentFunctionName,*currentSourceFile,
+					&currentFileInfo,&currentFuncInfo);
 
 			/* no line information for the filedesc is available */
 			if(!fileDesc->pfd->cline || !fileDesc->pline || 
@@ -581,9 +585,9 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 				if(currentLine != fileDesc->pline[linerIndex]){
 					currentLine = fileDesc->pline[linerIndex];
 
-					lineInformation->insertLineAddress(
-						currentFunctionName,
-						*currentSourceFile,
+					if(currentFileInfo)
+					    currentFileInfo->insertLineAddress(
+						currentFuncInfo,
 						fileDesc->pline[linerIndex],
 						instByteCount + currentFunctionBase);
 				}

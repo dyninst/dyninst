@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.39 2001/09/07 21:15:07 tikir Exp $
+// $Id: inst-alpha.C,v 1.40 2001/11/20 20:28:40 tikir Exp $
 
 #include "common/h/headers.h"
 
@@ -582,13 +582,13 @@ void pd_Function::checkCallPoints() {
     } else if (isBsr(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.branch.disp << 2)+4;
       non_lib.push_back(p);
-      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
 
       if (pdf == NULL)
 	{
 	  /* Try alternate entry point in the symbol table */
 	  loc_addr = loc_addr - 8;
-	  pdf = (file_->exec())->findFunction(loc_addr);
+	  pdf = (file_->exec())->findFuncByAddr(loc_addr);
 	}
 
       if (pdf && 1 /*!pdf->isLibTag()*/)
