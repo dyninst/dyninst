@@ -11,6 +11,29 @@ class function_base;
 class process;
 class pdmodule;
 
+// Class for contstruction of trees of nested loops and functions
+// used to create the call graph
+class LoopTreeNode {
+public:
+    LoopTreeNode(BPatch_basicBlockLoop * l): loop(l) {}
+
+    BPatch_basicBlockLoop * loop;
+    BPatch_Vector<LoopTreeNode *> children;
+    BPatch_Vector<function_base *> funcs;
+
+    bool containsAddress(unsigned long addr) { 
+	return loop->containsAddress(addr);
+    }
+
+    ~LoopTreeNode() {
+	delete loop;
+	for (unsigned int i = 0; i < children.size(); i++)
+	    delete children[i];
+	// don't delete funcs!
+    }
+};
+
+
 /** class which represents the control flow graph of a function
   * in a executable code. 
   *
@@ -62,11 +85,15 @@ public:
   /** same as above, but for postdominator/immediate-postdom info 
    */
   void fillPostDominatorInfo();
-  
-  /**
-   * Print the loops in this FG with hierarchical names to stderr
-   */
-  void printLoops(BPatch_Vector<BPatch_basicBlockLoop *>);
+
+  /** insert func into the loop hierarchy */
+  void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
+    
+  /** return root of loop hierarchy  */
+  LoopTreeNode * getLoopHierarchy() { return loopRoot; }
+
+  /** print the loops in this FG to stderr  */
+  void printLoops();
 
  private:
 
@@ -86,6 +113,8 @@ public:
   /** set of all basic blocks that control flow graph has */
   BPatch_Set<BPatch_basicBlock*> allBlocks;
 
+  /** root of the tree of loops */
+  LoopTreeNode * loopRoot;
   
   /** three colors used in depth first search algorithm */
   static const int WHITE;
@@ -119,6 +148,8 @@ public:
 
   void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 
 			      bool outerMostOnly);
+
+  void createLoopHierarchy();
 
 };
 

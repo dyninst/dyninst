@@ -35,7 +35,7 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
                                    pdmodule *mod, 
                                    bool &valid)
   : func(func), proc(proc), mod(mod), 
-    loops(NULL), isDominatorInfoReady(false), isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
+    loops(NULL), loopRoot(NULL), isDominatorInfoReady(false), isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
    // fill the information of the basic blocks after creating
    // them. The dominator information will also be filled
@@ -47,6 +47,8 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
    }
    
    findAndDeleteUnreachable();
+
+   createLoopHierarchy();
 }
 
 BPatch_flowGraph::~BPatch_flowGraph()
@@ -73,6 +75,8 @@ BPatch_flowGraph::~BPatch_flowGraph()
       delete belements [i];
    
    delete[] belements;
+
+   delete loopRoot;
 }
 
 void
@@ -1385,32 +1389,99 @@ getLoopMinMaxSourceLines(BPatch_basicBlockLoop * loop)
 }
 
 
+
 void 
-dfsPrintLoops(BPatch_Vector<BPatch_basicBlockLoop *> loops, 
-				pdstring level)
+dfsCreateLoopHierarchy(LoopTreeNode * parent,
+		       BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
+		       pdstring level)
 {
     for (u_int i = 0; i < loops.size (); i++) {
 	// loop name is hierarchical level
-	pdstring clevel = (level != "") ? level + "." + pdstring(i+1)
+	pdstring clevel = (level != "") 
+	    ? level + "." + pdstring(i+1)
 	    : pdstring(i+1);
-
-
-	// print this loops source lines
-	pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(loops[i]);
-
-	fprintf( stderr, "loop %s (source %d-%d)\n", 
-		 clevel.c_str(), mm.first, mm.second); 
 	
-	// recurse
- 	BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
+	loops[i]->setName((pdstring("loop "+clevel)).c_str());
+	
+	// add new tree nodes to parent
+	LoopTreeNode * child = new LoopTreeNode(loops[i]);
+	parent->children.push_back(child);
+
+	// recurse with this child's outer loops
+	BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
 	loops[i]->getOuterLoops(outerLoops);
-	dfsPrintLoops(outerLoops, clevel);
+	dfsCreateLoopHierarchy(child, outerLoops, clevel);
     }
 }
 
 
 void 
-BPatch_flowGraph::printLoops(BPatch_Vector<BPatch_basicBlockLoop *> loops)
+BPatch_flowGraph::createLoopHierarchy()
 {
-    dfsPrintLoops(loops, "");
+    loopRoot = new LoopTreeNode(NULL);
+    BPatch_Vector<BPatch_basicBlockLoop *> loops;
+    getOuterLoops(loops);
+    dfsCreateLoopHierarchy(loopRoot, loops, "");
+}
+
+
+// return true if any of node's children contain addr. does not need to check
+// recursively since a parent's address ranges includes those of its children.
+bool childrenContainAddress(LoopTreeNode *node, unsigned long addr) 
+{ 
+    for (u_int i = 0; i < node->children.size(); i++) {
+	cerr << "check child " << node->children[i]->loop->name() << endl;
+	if (node->children[i]->loop->containsAddress(addr)) 
+	    return true;
+    }
+    return false;
+}
+
+void
+dfsInsertCalleeIntoLoopHierarchy(LoopTreeNode *node, 
+				 function_base *func,
+				 unsigned long addr)
+{
+    pdstring name = node->loop == NULL ? "root node" : node->loop->name();
+
+    // If a child contains addr then insert func at that child
+    if (childrenContainAddress(node, addr)) {
+	for (u_int i = 0; i < node->children.size(); i++) {
+	    if (node->children[i]->containsAddress(addr)) {
+		// recurse
+		dfsInsertCalleeIntoLoopHierarchy(node->children[i], 
+						 func, 
+						 addr);
+		// no need to check other children, only 1 child can
+		// contain func
+		break;
+	    }
+	}
+    }
+    else {
+	// No children contain addr, func must be at this level
+	node->funcs.push_back(func);
+    }
+}
+
+void 
+BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base * func,
+						unsigned long addr)
+{
+    dfsInsertCalleeIntoLoopHierarchy(loopRoot, func, addr);
+}
+
+
+void 
+BPatch_flowGraph::printLoops()
+{
+    BPatch_Vector<BPatch_basicBlockLoop *> loops;
+    getLoops(loops);
+
+    for (u_int i = 0; i < loops.size(); i++) {
+	pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(loops[i]);
+	
+	fprintf( stderr, "%s (source %d-%d)\n", 
+		 loops[i]->name(), mm.first, mm.second);
+    }
 }
