@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_Vector.h,v 1.5 1999/07/08 00:18:45 nash Exp $
+
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
 
@@ -89,7 +91,7 @@ void BPatch_Vector<T>::reserve(int n)
 	    new_data[i] = data[i];
 
 	// Get rid of the old array and set up to use the new one
-	delete [] data;
+	if( data != NULL ) delete [] data;
 	data = new_data;
 	reserved = n;
     }
@@ -102,10 +104,14 @@ inline void BPatch_Vector<T>::copy_from(const BPatch_Vector &src)
 {
     reserved = src.reserved;
     len      = src.len;
-    data     = new T[reserved];
+	if( reserved == 0 )
+		data = NULL;
+	else {
+		data     = new T[reserved];
 
-    for (int i = 0; i < src.len; i++)
-	data[i] = src.data[i];
+		for (int i = 0; i < src.len; i++)
+			data[i] = src.data[i];
+	}
 }
 
 // Contructor.  Takes one optional parameter, the number of entries for which
@@ -128,7 +134,7 @@ BPatch_Vector<T>::BPatch_Vector(const BPatch_Vector<T> &src)
 template<class T>
 BPatch_Vector<T>::~BPatch_Vector()
 {
-    delete [] data;
+	if( data != NULL ) delete [] data;
 }
 
 // Assignment operator.  Delete the contents of this vector and copy the
@@ -136,7 +142,7 @@ BPatch_Vector<T>::~BPatch_Vector()
 template<class T>
 BPatch_Vector<T>& BPatch_Vector<T>::operator=(const BPatch_Vector<T> &src)
 {
-    delete [] data;
+	if( data != NULL ) delete [] data;
 
     copy_from(src);
 
