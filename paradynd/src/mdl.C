@@ -1178,19 +1178,14 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     }
     case MDL_EXPR_STRING:
     {
-      if (str_literal_ == string("$return"))
-        ast = new AstNode(AstNode::ReturnVal, (void*)0);
-      else
-      {
-        // create another string here and pass it to AstNode(), instead
-        // of using str_literal_.string_of() directly, just to get rid
-        // of the compiler warning of "cast discards const". --chun
-        //
-        char* tmp_str = new char[strlen(str_literal_.string_of())+1];
-        strcpy (tmp_str, str_literal_.string_of());
-        ast = new AstNode(AstNode::ConstantString, tmp_str);
-        delete[] tmp_str;
-      }
+      // create another string here and pass it to AstNode(), instead
+      // of using str_literal_.string_of() directly, just to get rid
+      // of the compiler warning of "cast discards const". --chun
+      //
+      char* tmp_str = new char[strlen(str_literal_.string_of())+1];
+      strcpy (tmp_str, str_literal_.string_of());
+      ast = new AstNode(AstNode::ConstantString, tmp_str);
+      delete[] tmp_str;
       return true;
     }
     case MDL_EXPR_INDEX:
@@ -1476,6 +1471,10 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     }
     case MDL_EXPR_VAR:
     {
+      if (var_ == "$return") {
+        ast = new AstNode(AstNode::ReturnVal, (void*)0);
+        return true;
+      }
       mdl_var get_drn;
       assert (mdl_env::get(get_drn, var_));
       switch (get_drn.type())
