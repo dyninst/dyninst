@@ -20,6 +20,10 @@
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include <unistd.h>
 #endif
+#ifdef i386_unknown_nt4_0
+#include <windows.h>
+#include <winbase.h>
+#endif
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
@@ -40,9 +44,9 @@ BPatch *bpatch;
  * Error callback
  **************************************************************************/
 
-#define NO_ERROR -1
+#define DYNINST_NO_ERROR -1
 
-int expectError = NO_ERROR;
+int expectError = DYNINST_NO_ERROR;
 
 void errorFunc(BPatchErrorLevel level, int num, const char **params)
 {
@@ -714,7 +718,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
 	assert(count < 30000);
     }
-    expectError = NO_ERROR;
+    expectError = DYNINST_NO_ERROR;
 
     int freeCount = 0;
     for (int i =0; i < count; i++) {
@@ -1006,7 +1010,11 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->oneTimeCode(call19_1Expr);
 
     appThread->continueExecution();
+#ifdef i386_unknown_nt4_0
+    Sleep(1000);
+#else
     sleep(1);           /* wait for child to continue */
+#endif
 
     BPatch_function *call19_2func = appImage->findFunction("call19_2");
     if (call19_2func == NULL) {
