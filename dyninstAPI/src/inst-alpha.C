@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.17 1999/08/26 20:02:21 hollings Exp $
+// $Id: inst-alpha.C,v 1.18 1999/11/09 22:11:01 paradyn Exp $
 
 #include "util/h/headers.h"
 
@@ -2127,5 +2127,24 @@ bool process::terminateProc_()
     kill(getPid(), 9);
 
     return true;
+}
+#endif
+
+void emitLoadPreviousStackFrameRegister(Address, Register,
+					char *, Address &, int, bool){
+  assert(0);
+}
+ 
+#ifndef BPATCH_LIBRARY
+bool process::isDynamicCallSite(instPoint *callSite){
+  function_base *temp;
+  if(!findCallee(*(callSite),temp)){
+    return true;
+  }
+  return false;
+}
+ 
+bool process::MonitorCallSite(instPoint *callSite){
+  return false;
 }
 #endif
