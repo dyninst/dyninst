@@ -1,7 +1,12 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.15  1995/09/18 22:39:49  mjrg
+# Revision 1.16  1995/09/26 20:31:08  naim
+# Eliminating error message "eval [list uimpd showError 25 $result]". The idea
+# here is to display a more precise error message if there is an error during
+# process creation
+#
+# Revision 1.15  1995/09/18  22:39:49  mjrg
 # added directory command.
 #
 # Revision 1.14  1995/07/19  23:01:16  tamches
@@ -206,7 +211,8 @@ proc AcceptNewApplicDefn {user machine daemon directory cmd} {
 
   if {$retval == 1} {
     set result "Illegal Process Definition"
-    eval [list uimpd showError 25 $result]
+#    eval [list uimpd showError 25 $result]
+#    The idea here is to display a more precise error code.
   }
 }
 
