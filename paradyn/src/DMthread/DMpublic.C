@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.17  1994/06/02 16:08:16  hollings
+ * Revision 1.18  1994/06/14 15:23:17  markc
+ * Added support for aggregation.
+ *
+ * Revision 1.17  1994/06/02  16:08:16  hollings
  * fixed duplicate naming problem for printResources.
  *
  * Revision 1.16  1994/05/31  19:11:33  hollings
@@ -168,9 +171,10 @@ resource *dataManager::getRootResource()
 
 metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 						  resourceList *rl,
-						  metric *m)
+						  metric *m,
+						  aggregation aggOp)
 {
-    return(ps->enableDataCollection(rl, m));
+    return(ps->enableDataCollection(rl, m, aggOp));
 }
 
 void dataManager::disableDataCollection(performanceStream *ps, 

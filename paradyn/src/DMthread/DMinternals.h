@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.15  1994/06/02 23:25:18  markc
+ * Revision 1.16  1994/06/14 15:22:19  markc
+ * Added support for aggregation.
+ *
+ * Revision 1.15  1994/06/02  23:25:18  markc
  * Added virtual function 'handle_error' to pardynDaemon class which uses the
  * error handling features that igen provides.
  *
@@ -59,6 +62,7 @@
 #include "util/h/hist.h"
 #include "util/h/aggregateSample.h"
 #include "DMresource.h"
+#include "dataManager.h"
 #include <string.h>
 
 //
@@ -163,7 +167,8 @@ class applicationContext {
 	void coreProcess(int pid);
 	String_Array getAvailableMetrics();
 	metric *findMetric(char *name);
-	metricInstance *enableDataCollection(resourceList*, metric*); 
+	metricInstance *enableDataCollection(resourceList*, metric*,
+                                             aggregation aggOp); 
 	float getPredictedDataCost(resourceList*, metric*);
 	void disableDataCollection(metricInstance*);
 
@@ -194,7 +199,8 @@ class performanceStream {
         }
 	void setSampleRate(timeStamp rate) { sampleRate = rate; }
 
-	metricInstance *enableDataCollection(resourceList*, metric*); 
+	metricInstance *enableDataCollection(resourceList*, metric*,
+                                             aggregation aggOp); 
 	void disableDataCollection(metricInstance*);
 	void enableResourceCreationNotification(resource*);
 	void disableResourceCreationNotification(resource*);
@@ -244,6 +250,7 @@ class metric {
 	List<metricInstance*> enabledCombos;
 	static stringPool names;
 	static HTable<metric*> allMetrics;
+	aggregation aggOp;
     private:
 	metricInfo info;
 };
@@ -251,11 +258,14 @@ class metric {
 
 class metricInstance {
     public:
-	metricInstance(resourceList *rl, metric *m) {
+	metricInstance(resourceList *rl, metric *m, aggregation aOp = Sum) {
 	    met = m;
 	    focus = rl;
 	    count = 0;
 	    enabledTime = 0.0;
+            sample.aggOp = aOp;
+	    aggOp = aOp;
+
 	}
 	float getValue() {
 	    float ret;
@@ -281,6 +291,7 @@ class metricInstance {
 	List<performanceStream*> users;
 	Histogram *data;
 	float enabledTime;
+        aggregation aggOp;
     private:
 };
 
