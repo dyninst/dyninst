@@ -2,15 +2,7 @@
 #define HIST
 
 #include "util/h/list.h"
-#include "rtinst/h/trace.h"
-
-typedef double timeStamp;
-
-typedef struct {
-    timeStamp start;
-    timeStamp end;
-    sampleValue value;
-} Interval;
+#include "util/h/sys.h"
 
 typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
@@ -31,7 +23,6 @@ typedef enum { histSplit, histSet } histAddMode;
 typedef enum { EventCounter, SampledFunction } metricStyle;
 
 class Histogram {
-	friend class histDisplay;
 	void newDataFunc(callType type, timeStamp time, void* userData);
     public:
 	~Histogram();
@@ -50,6 +41,7 @@ class Histogram {
 	}
 	static int numBins;		/* max bins to use */
 	static timeStamp bucketSize;	/* width of a bucket */
+	static int lastGlobalBin;	/* global point we have data from */
     private:
 	void foldAllHist();
 	void convertToBins();
@@ -57,7 +49,6 @@ class Histogram {
 		sampleValue value, bool smooth);
 
 	static timeStamp total_time;	/* numBins * bucketSize */
-	static int lastGlobalBin;	/* global point we have data from */
 	static Histogram *allHist;	/* linked list of all histograms */
 
 	Histogram *next;		/* linked list of all histograms */
