@@ -41,6 +41,11 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.24  1997/03/29 02:06:06  sec
+ * Changed /MsgTag to /Message
+ * Added environment variables $constraint[0], $constraint[1], etc.
+ * instead of $constraint
+ *
  * Revision 1.23  1997/02/21 20:20:35  naim
  * Eliminating references to dataReqNode from the ast class - Pre-dyninstAPI
  * commit - naim
@@ -246,7 +251,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
 	  found = true; break;
 	}
       if (!found) {
-	  cout << "unable to find global constraint\n";
+	  cout << "unable to find global constraint " << (*constraints_)[u1]->id_ << endl;
 	  return NULL;            // The global constraint does not exist
       }
     }
@@ -293,7 +298,7 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 	type_ = MDL_T_INT;
       } else if ((*match_path)[1] == "Barrier") {
 	type_ = MDL_T_INT;
-      } else if ((*match_path)[1] == "MsgTag") {
+      } else if ((*match_path)[1] == "Message") {
 	type_ = MDL_T_INT;
       } else if ((*match_path)[1] == "Semaphore") {
 	type_ = MDL_T_INT;
@@ -341,9 +346,11 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * ,
   if (!stmts_ || !match_path_) return false;
   unsigned size = match_path_->size();
   if (!size) return false;
-  string s = "$constraint";
-  if (!mdl_env::add(s, false, type_)) {
-    mdl_env::pop(); return false;
+  for(int dx = 0; dx < size; dx++) {
+    string s = string("$constraint") + string(dx);
+    if (!mdl_env::add(s, false, type_)) {
+      mdl_env::pop(); return false;
+    }
   }
 
   unsigned stmts_size = stmts_->size();
@@ -847,7 +854,7 @@ bool mdl_init() {
   mdl_focus_element fe;
 
   self.name = "SyncObject"; self.type = 0; self.end_allowed = false; 
-  kid.name = "MsgTag"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
+  kid.name = "Message"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "Barrier"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "Semaphore"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "SpinLock"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
