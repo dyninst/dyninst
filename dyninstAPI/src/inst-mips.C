@@ -3894,7 +3894,7 @@ trampTemplate * installBaseTramp( process * p,
 
   // copy basetramp to application
   p->writeDataSpace( ( void * )btAddr, btSize, code );
-  proc->addCodeRange(btAddr, ret);
+  p->addCodeRange(btAddr, ret);
   
   delete[] code;
 
@@ -3984,9 +3984,9 @@ void installTramp(miniTrampHandle *mtHandle, process *proc, char *code, int code
     base->prevInstru = true;
     generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
   } else if (mtHandle->when == callPostInsn && base->postInstru == false) {
-    base->cost += base->postBaseCost;
-    base->postInstru = true;
-    generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
+      base->cost += base->postBaseCost;
+      base->postInstru = true;
+      generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
   }
 
   // debug - csserra
