@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.94 2003/09/17 17:06:29 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.95 2003/09/23 21:01:10 eli Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2364,7 +2364,7 @@ void call37_3()
        the total 1650 = 100 + 50 + 100*10 + (100*10) / 2 */
     for (i = 0; i < 100; i++) {
 	if (0 == (i % 2)) {            
-	    globalVariable37_1++;     
+	    globalVariable37_3++;     
 	}
 	for (j = 0; j < 10; j++) {     
 	    if (0 == (i % 2)) {
