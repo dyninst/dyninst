@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: linux.C,v 1.3 1998/12/25 22:30:16 wylie Exp $
+
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -284,22 +286,22 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return false;
 }
 
-bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
   return false;
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return false;
 }
 #endif
 
-bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return 0;
 }
 
-bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
+bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   return 0;
 }
 
