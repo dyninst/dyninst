@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.63 2002/08/15 20:06:49 bernat Exp $
+ * $Id: RTinst.c,v 1.64 2002/08/16 01:38:08 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -536,8 +536,6 @@ void pDYNINSTinit(int paradyndPid,
       ((Address) RTsharedInShm->daemon_pid + shmBase);
     RTsharedData.observed_cost = 
       (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
-    RTsharedData.trampGuards = (unsigned *)
-      ((Address) RTsharedInShm->trampGuards + shmBase);
     RTsharedData.virtualTimers = (tTimer *)
       ((Address) RTsharedInShm->virtualTimers + shmBase);
     RTsharedData.posToThread = (unsigned *)
@@ -614,9 +612,10 @@ void pDYNINSTinit(int paradyndPid,
   PARADYN_bootstrap_info.ppid = 0; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 #endif 
 
-  //PARADYN_bootstrap_info.tramp_guard_base = (int *)malloc(numThreads*sizeof(int));
-  //for (i = 0; i < numThreads; i++)
-  //PARADYN_bootstrap_info.tramp_guard_base[i] = 1; /* default value */
+  PARADYN_bootstrap_info.tramp_guard_base = (int *)
+    malloc(numThreads*sizeof(int));
+  for (i = 0; i < numThreads; i++)
+    PARADYN_bootstrap_info.tramp_guard_base[i] = 1; /* default value */
 
   /* We do this field last as a way to synchronize; paradynd will ignore what it
      sees in this structure until the event field is nonzero */
