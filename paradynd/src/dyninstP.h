@@ -14,7 +14,10 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.7  1995/02/16 08:53:06  markc
+ * Revision 1.8  1995/02/26 22:45:09  markc
+ * Changed addProcess interface to use reference to string vectors.
+ *
+ * Revision 1.7  1995/02/16  08:53:06  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.6  1995/02/16  08:33:10  markc
@@ -125,7 +128,7 @@ typedef int (*errorHandler)(int errno, char *message);
  *   argv - arguments to command
  *   envp - environment args, for pvm
  */
-int addProcess(vector<string> argv, vector<string> nenv);
+int addProcess(vector<string> &argv, vector<string> &envp);
 
 /*
  * Find out if an application has been.defines yet.
