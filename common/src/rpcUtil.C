@@ -61,7 +61,7 @@ XDRrpc::XDRrpc(char *machine,
 	       xdrIOFunc readRoutine, 
 	       xdrIOFunc writeRoutine)
 {
-    fd = RPCprocessCreate(machine, user, program);
+    fd = RPCprocessCreate(&pid, machine, user, program);
     if (fd >= 0) {
 	__xdrs__ = (XDR *) malloc(sizeof(XDR));
 	if (!readRoutine) readRoutine = RPCdefaultXDRRead;
@@ -99,7 +99,7 @@ bool_t xdr_String(XDR *xdrs, String *str)
     int len;
 
     if (xdrs->x_op == XDR_ENCODE) {
-	len = strlen(*str);
+	len = strlen(*str)+1;
     } else {
 	*str = NULL;
     }
@@ -108,10 +108,9 @@ bool_t xdr_String(XDR *xdrs, String *str)
     return(TRUE);
 }
 
-int RPCprocessCreate(char *hostName, char *userName, char *command)
+int RPCprocessCreate(int *pid, char *hostName, char *userName, char *command)
 {
     int ret;
-    int pid;
     int sv[2];
     int execlERROR;
 
@@ -119,14 +118,14 @@ int RPCprocessCreate(char *hostName, char *userName, char *command)
 	ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
 	if (ret) return(ret);
 	execlERROR = 0;
-	pid = vfork();
-	if (pid == 0) {
+	*pid = vfork();
+	if (*pid == 0) {
 	    close(sv[0]);
 	    dup2(sv[1], 0);
 	    execl(command, command);
 	    execlERROR = errno;
 	    _exit(-1);
-	} else if (pid > 0 && !execlERROR) {
+	} else if (*pid > 0 && !execlERROR) {
 	    close(sv[1]);
 	    return(sv[0]);
 	} else {

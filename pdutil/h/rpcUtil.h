@@ -20,6 +20,7 @@ class XDRrpc {
     XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine);
     XDR *__xdrs__;
     int fd;
+    int pid;		// pid of child;
 };
 
 class THREADrpc {
@@ -49,6 +50,6 @@ class RPCServer {
 };
 
 extern int xdr_String(XDR*, String*);
-extern int RPCprocessCreate(char *hostName, char *userName, char *commandLine);
+extern int RPCprocessCreate(int *pid, char *hostName, char *userName, char *commandLine);
 
 #endif
