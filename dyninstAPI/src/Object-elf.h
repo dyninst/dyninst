@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.58 2004/03/23 01:11:59 eli Exp $
+ * $Id: Object-elf.h,v 1.59 2004/03/29 23:42:20 mirg Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -274,15 +274,10 @@ class Object : public AObject {
   void insert_symbols_shared(pdvector<Symbol> allsymbols);
   void find_code_and_data(Elf *elfp,
        Address txtaddr, Address bssaddr);
-  void insert_symbols_static(pdvector<Symbol> allsymbols,
-       dictionary_hash<pdstring, Symbol> &global_symbols);
-  bool fix_global_symbol_modules_static_stab(
-       dictionary_hash<pdstring, Symbol> &global_symbols,
-       Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
-  bool fix_global_symbol_modules_static_dwarf(
-       dictionary_hash<pdstring, Symbol> &global_symbols, Elf *elfp);
-  void fix_global_symbol_unknowns_static(
-       dictionary_hash<pdstring, Symbol> &global_symbols);
+  void insert_symbols_static(pdvector<Symbol> allsymbols);
+  bool fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp,
+					     Elf_Scn* stabstrscnp);
+  bool fix_global_symbol_modules_static_dwarf(Elf *elfp);
 
   void get_valid_memory_areas(Elf *elfp);
 
