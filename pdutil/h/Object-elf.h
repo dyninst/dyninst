@@ -56,7 +56,7 @@ private:
     void    log_elferror (void (*)(const char *), const char *);
 
     bool      loaded_elf (int, bool &, Elf* &, Elf32_Ehdr* &, Elf32_Phdr* &,
-                          unsigned &, Elf_Scn* &, Elf_Scn* &);
+                          unsigned &, unsigned &, Elf_Scn* &, Elf_Scn* &);
     void     load_object ();
 };
 
@@ -93,7 +93,7 @@ Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
 inline
 bool
 Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
-    Elf32_Phdr*& phdrp, unsigned& txtaddr,
+    Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
     Elf_Scn*& symscnp, Elf_Scn*& strscnp) {
 
     elf_version(EV_CURRENT);
@@ -142,11 +142,15 @@ Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
         }
 
         const char* TEXT_NAME   = ".text";
+        const char* BSS_NAME    = ".bss";
         const char* SYMTAB_NAME = ".symtab";
         const char* STRTAB_NAME = ".strtab";
         const char* name        = (const char *) &shnames[shdrp->sh_name];
         if (strcmp(name, TEXT_NAME) == 0) {
             txtaddr = shdrp->sh_addr;
+        }
+        else if (strcmp(name, BSS_NAME) == 0) {
+            bssaddr = shdrp->sh_addr;
         }
         else if (strcmp(name, SYMTAB_NAME) == 0) {
             symscnp = scnp;
@@ -155,8 +159,8 @@ Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
             strscnp = scnp;
         }
     }
-    if (!txtaddr || !symscnp || !strscnp) {
-        log_elferror(err_func_, "no text/symbol/string section");
+    if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
+        log_elferror(err_func_, "no text/bss/symbol/string section");
         return false;
     }
 
@@ -193,8 +197,9 @@ Object::load_object() {
         Elf_Scn*    symscnp = 0;
         Elf_Scn*    strscnp = 0;
         unsigned    txtaddr = 0;
+        unsigned    bssaddr = 0;
         if (!loaded_elf(fd, did_elf, elfp, ehdrp, phdrp, txtaddr,
-            symscnp, strscnp)) {
+            bssaddr, symscnp, strscnp)) {
             /* throw exception */ goto cleanup;
         }
 
@@ -205,9 +210,19 @@ Object::load_object() {
                 code_off_ = (Address) phdrp[i].p_vaddr;
                 code_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
             }
+            else if ((phdrp[i].p_vaddr <= bssaddr)
+                && ((phdrp[i].p_vaddr+phdrp[i].p_memsz) >= bssaddr)) {
+                data_ptr_ = (Word *) &ptr[phdrp[i].p_offset];
+                data_off_ = (Address) phdrp[i].p_vaddr;
+                data_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
+            }
         }
         if (!code_ptr_ || !code_off_ || !code_len_) {
             log_printf(err_func_, "cannot locate instructions\n");
+            /* throw exception */ goto cleanup;
+        }
+        if (!data_ptr_ || !data_off_ || !data_len_) {
+            log_printf(err_func_, "cannot locate data segment\n");
             /* throw exception */ goto cleanup;
         }
 
