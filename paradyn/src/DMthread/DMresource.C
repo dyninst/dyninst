@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.4 1994/05/31 19:11:34 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.5 1994/06/02 16:08:17 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.4  1994/05/31 19:11:34  hollings
+ * Revision 1.5  1994/06/02 16:08:17  hollings
+ * fixed duplicate naming problem for printResources.
+ *
+ * Revision 1.4  1994/05/31  19:11:34  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
  * Revision 1.3  1994/04/18  22:28:33  hollings
@@ -171,7 +174,7 @@ char *resourceList::getCanonicalName()
     return(fullName);
 }
 
-void printResources()
+void printAllResources()
 {
     HTable<resource*> curr;
 

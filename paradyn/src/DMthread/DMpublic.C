@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.16  1994/05/31 19:11:33  hollings
+ * Revision 1.17  1994/06/02 16:08:16  hollings
+ * fixed duplicate naming problem for printResources.
+ *
+ * Revision 1.16  1994/05/31  19:11:33  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
  * Revision 1.15  1994/05/10  03:57:38  hollings
@@ -241,7 +244,7 @@ int dataManager::getSampleValues(metricInstance *mi,
 
 void dataManager::printResources()
 {
-    printResources();
+    printAllResources();
 }
 
 void dataManager::printStatus(applicationContext *appl)

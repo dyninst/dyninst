@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.3  1994/05/31 19:11:35  hollings
+ * Revision 1.4  1994/06/02 16:08:18  hollings
+ * fixed duplicate naming problem for printResources.
+ *
+ * Revision 1.3  1994/05/31  19:11:35  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
  * Revision 1.2  1994/04/18  22:28:34  hollings
@@ -90,7 +93,7 @@ class resource {
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
-      friend void printResources();
+      friend void printAllResources();
       friend class dynRPCUser;
   public:
     resourceList *getChildren() { return(&children); }
