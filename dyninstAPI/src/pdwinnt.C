@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.74 2003/02/04 14:59:28 bernat Exp $
+// $Id: pdwinnt.C,v 1.75 2003/02/21 20:06:01 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -782,7 +782,6 @@ int process::waitProcs(int *status) {
           p->status_ = stopped;
 	  if( p->handleTrapIfDueToRPC() )
       {
-          
 	      // handleTrapIfDueToRPC calls continueProc()
 	      // however, under Windows NT, it doesn't actually 
 	      // continue the thread until the ContinueDbgEvent call is made
@@ -1434,12 +1433,7 @@ string process::tryToFindExecutable(const string& iprogpath, int pid) {
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
-   /* Can assume: (1) process is paused and (2) in a system call.
-      We want to set a TRAP for the syscall exit, and do the
-      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
-      Returns true iff breakpoint was successfully set. */
-
-    // This is never called on Windows NT
+    // Unimplemented
     assert(false);
     return false;
 }
