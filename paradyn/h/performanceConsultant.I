@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.23  1996/04/07 21:20:47  karavan
+ * combined newSearch and activateSearch and got rid of newSearch.
+ *
  * Revision 1.22  1996/03/18 07:11:12  karavan
  * added new TC, PCcollectInstrTimings
  *
@@ -114,14 +117,13 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 12;
+    $version 13;
 
-    // all initialization for new search; checks first if search already
-    // active for specified phase, to enforce 1 search/phase rule
-    // initializes root node and messages in search display
-    $async void newSearch(phaseType pt);
-
-    // try to make automated refinements.  Up to limit number of steps.
+    // If search is paused, resumes search.  Otherwise, performs
+    // all initialization for new search; initializes root node and 
+    // messages in search display
+    // Assumes phaseID is valid, defined as: DM's phaseID plus one for 
+    // current search,  0 for global search.
     $async void activateSearch(unsigned phaseID);
 
     // stop the automated search process in its tracks.
