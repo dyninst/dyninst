@@ -187,9 +187,6 @@ void pd_process::init() {
     }
     
     FillInCallGraphStatic();
-    if (resource::num_outstanding_creates)
-        lowlevel_proc->setWaitingForResources();
-    
 }
 
 // Creation constructor
