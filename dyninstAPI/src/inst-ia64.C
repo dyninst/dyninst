@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.36 2003/10/21 17:21:59 bernat Exp $
+ * $Id: inst-ia64.C,v 1.37 2003/10/21 18:22:27 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2059,10 +2059,10 @@ instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * 
 
 // Get the absolute address of an instPoint
 Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return addr;
+    if (!p) return myAddress;
     Address baseAddr;
     p->getBaseAddress(iPgetOwner(), baseAddr);
-    return addr + baseAddr;
+    return myAddress + baseAddr;
 }
 
 
