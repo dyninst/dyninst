@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.8  1995/01/26 17:58:47  jcargill
+ * Revision 1.9  1995/02/16 08:19:26  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.8  1995/01/26  17:58:47  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -96,12 +99,12 @@ class focus {
 	focusList enumerateRefinements();
 	focus *constrain(resource *param);
 
-	Boolean operator ==(focus*);	// comparison
-	focus *moreSpecific(resource *parm, Boolean &conflicts);
+	bool operator ==(focus*);	// comparison
+	focus *moreSpecific(resource *parm, bool &conflicts);
 	/* int operator = (focus); */
 	void updateName();
 	stringHandle getName() 	{ return(name); }
-	Boolean getSuppressed()	{ return(suppress); }
+	bool getSuppressed()	{ return(suppress); }
 
 	resourceList *data;
     private:
@@ -115,7 +118,7 @@ class focus {
 	stringHandle name;		// for fast compare.
 	List<focusList*>		magnifyCache;
 	List<focus*>			constrainCache;
-	Boolean suppress;		// don't magnify on me.
+	bool suppress;		// don't magnify on me.
 };
 
 ostream& operator <<(ostream &os, focus& f);
@@ -127,7 +130,7 @@ class focusList: public HTable<focus*> {
 	focus *find(focus *f) { 
 	    return(HTable<focus*>::find((char *) f->getName())); 
 	}
-	Boolean addUnique(focus *f) { 
+	bool addUnique(focus *f) { 
 	    return(HTable<focus*>::addUnique(f, f->getName())); 
 	}
 };

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhy.h,v $
- * Revision 1.5  1994/10/25 22:08:26  hollings
+ * Revision 1.6  1995/02/16 08:19:29  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.5  1994/10/25  22:08:26  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -55,7 +58,7 @@
 // forward ref.
 class testValue;
 
-typedef Boolean (*changeCollectionFunc)(collectMode);
+typedef bool (*changeCollectionFunc)(collectMode);
 typedef void (*evalFunc)(testValue*, float hysteresis); 
 enum statusType { Enabled, Disabled };
 
@@ -90,8 +93,8 @@ typedef void (*explanationFunction)(searchHistoryNode*);
 class hypothesisList;		// forward decl.
 
 class hypothesis {
-	friend Boolean checkPreconditions(hypothesis*, focus*, timeInterval*);
-	friend Boolean checkIfTrue(hypothesis*, focus*, timeInterval*);
+	friend bool checkPreconditions(hypothesis*, focus*, timeInterval*);
+	friend bool checkIfTrue(hypothesis*, focus*, timeInterval*);
     public:
 	hypothesis(hypothesis*, test*, const char *);
 	hypothesis(hypothesis*, test*, const char *, explanationFunction);
@@ -102,7 +105,7 @@ class hypothesis {
 	hypothesisList *children;
 	hypothesis *preCondition;
 	test *testObject;
-	Boolean labeled;		// used by buildTestResultForHypothesis
+	bool labeled;		// used by buildTestResultForHypothesis
 	explanationFunction explanation;
 };
 

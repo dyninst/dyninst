@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.21  1994/12/21 00:46:34  tamches
+ * Revision 1.22  1995/02/16 08:19:20  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.21  1994/12/21  00:46:34  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -147,7 +150,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.21 1994/12/21 00:46:34 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.22 1995/02/16 08:19:20 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -186,11 +189,11 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
     where = f;
     when = t;
     edgeStyle = estyle;
-    status = FALSE;
-    active = FALSE;
-    beenActive = FALSE;
-    beenTrue = FALSE;
-    beenTested = FALSE;
+    status = false;
+    active = false;
+    beenActive = false;
+    beenTrue = false;
+    beenTested = false;
     nodeId = ++nextId;
     children = new(searchHistoryNodeList);
     sprintf(tempName, "%s %s %s", h->name, (char*)f->getName(), t->getName());
@@ -198,8 +201,8 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
     shortName = (char *) malloc(32);
     sprintf(shortName, " %d ", nodeId);
     style = UNTESTEDNODESTYLE;
-    suppressed = FALSE;
-    if (f->getSuppressed()) suppressed = TRUE;
+    suppressed = false;
+    if (f->getSuppressed()) suppressed = true;
 };
 
 ostream& operator <<(ostream &os, searchHistoryNode& shg)
@@ -213,16 +216,16 @@ ostream& operator <<(ostream &os, searchHistoryNode& shg)
 	os << *shg.where, " ";
     }
     if (shg.when) os << *shg.when;
-    if (shg.status == TRUE) 
+    if (shg.status)
 	os << " status = TRUE, ";
     else
 	os << " status = FALSE, ";
-    if (shg.active == TRUE)
-	os << "active = TRUE";
+    if (shg.active)
+        os << "active = TRUE";
     else
 	os << "active = FALSE";
 
-    if (shg.suppressed == TRUE)
+    if (shg.suppressed)
 	os << " suppressed = TRUE";
     else
 	os << " suppressed = FALSE";
@@ -232,20 +235,20 @@ ostream& operator <<(ostream &os, searchHistoryNode& shg)
     return os; // added AT 12/8/94
 }
 
-Boolean searchHistoryNode::print(int parent, FILE *fp)
+bool searchHistoryNode::print(int parent, FILE *fp)
 {
-    Boolean omited;
+    bool omited;
     searchHistoryNodeList curr;
 
     if (!beenTested) {
-	return(True);
+	return(true);
 	// fprintf(fp, "draw %d as Box color yellow label %d;\n", nodeId, nodeId);
     } else if (!ableToEnable) {
 	// omit nodes we can't enable.
-	return(True);
+	return(true);
     } else if (!active) {
 	fprintf(fp, "draw %d as Box color blue pointsize 30 label %d;\n", nodeId, nodeId);
-    } else if (status == TRUE) {
+    } else if (status) {
 	fprintf(fp, "draw %d as Circle color red pointsize 400 label %d;\n", nodeId, nodeId);
     } else {
 	fprintf(fp, "draw %d as Box color green label %d;\n", nodeId, nodeId);
@@ -253,7 +256,7 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
 
     if (parent != -1) fprintf(fp, "path %d %d;\n", parent, nodeId);
 
-    omited = False;
+    omited = false;
     for (curr = *children; *curr; curr++) {
 	omited = omited | (*curr)->print(nodeId, fp);
     }
@@ -263,18 +266,18 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
 	fprintf(fp, "path %d %d.st;\n", parent, nodeId);
 	fprintf(fp, "path %d %d.end;\n", parent, nodeId);
     }
-    return(False);
+    return(false);
 }
 
 inline void searchHistoryNode::changeColor()
 {
   int newStyle;
 
-  if (beenTested == FALSE) {
+  if (!beenTested) {
       newStyle = UNTESTEDNODESTYLE;
   } else {
-      if (active == TRUE) {
-	  if (status == TRUE) {
+      if (active) {
+	  if (status) {
 	      newStyle = ACTIVETRUENODESTYLE;
 	  } else {
 	      newStyle = ACTIVEFALSENODESTYLE;
@@ -292,7 +295,7 @@ inline void searchHistoryNode::changeColor()
 tunableBooleanConstant supressSHG(false, NULL, userConstant, "supressSHG",
     "Don't print the SHG");
 
-void searchHistoryNode::changeActive(Boolean newact)
+void searchHistoryNode::changeActive(bool newact)
 {
     searchHistoryNodeList parent;
 
@@ -300,7 +303,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 #ifdef SHG_ADD_ON_EVAL
     if (!supressSHG.getValue()) {
       if (newact && !beenActive) {
-	beenActive = TRUE;
+	beenActive = true;
         // make sure we have the node in the SHG
 	for (parent = this->parents; *parent; parent++) {
 	    uiMgr->DAGaddNode (SHGid, this->nodeId, UNTESTEDNODESTYLE,
@@ -314,16 +317,16 @@ void searchHistoryNode::changeActive(Boolean newact)
     changeColor();
 }    
 
-void searchHistoryNode::changeStatus(Boolean newstat)
+void searchHistoryNode::changeStatus(bool newstat)
 {
   status = newstat;
-  if (status == TRUE) {
-     beenTrue = TRUE;
+  if (status) {
+     beenTrue = true;
   }
   changeColor();
 }
     
-void searchHistoryNode::changeTested(Boolean newstat)
+void searchHistoryNode::changeTested(bool newstat)
 {
   beenTested = newstat;
   changeColor();
@@ -333,7 +336,7 @@ void searchHistoryNode::resetStatus()
 {
     searchHistoryNodeList curr;
 
-    changeStatus(FALSE);
+    changeStatus(false);
 //    
     if (children) {
 	for (curr = *children; *curr; curr++) {
@@ -347,18 +350,18 @@ void searchHistoryNode::resetStatus()
 //   paths from the root to the current node.  This will work when we have 
 //   multiple nodes.
 //
-Boolean searchHistoryNode::resetActive()
+bool searchHistoryNode::resetActive()
 {
-    Boolean ret;
+    bool ret;
     searchHistoryNodeList curr;
 
-    ret = FALSE;
+    ret = false;
     if (this == currentSHGNode) {
-	ret = TRUE;
+	ret = true;
     } else if (children) {
 	for (curr = *children; *curr; curr++) {
-	    if ((*curr)->resetActive() == TRUE) {
-		ret = TRUE;
+	    if ((*curr)->resetActive()) {
+		ret = true;
 	    }
 	}
     }
@@ -422,7 +425,7 @@ void shgInit()
     allSHGNodes.add(SearchHistoryGraph, SearchHistoryGraph->name);
 
     currentSHGNode = SearchHistoryGraph;
-    currentSHGNode->changeActive(TRUE);
+    currentSHGNode->changeActive(true);
 
     // begin visual display of shg
     SHGid = uiMgr->initSHG();     

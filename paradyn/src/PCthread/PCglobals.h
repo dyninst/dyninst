@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.5  1994/09/05 20:00:57  jcargill
+ * Revision 1.6  1995/02/16 08:19:09  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.5  1994/09/05  20:00:57  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.4  1994/06/12  22:40:48  karavan
@@ -38,7 +41,7 @@
 class statusDisplayObj;
  
 // should we print a message when a metric value is printed.
-extern Boolean fetchPrint;
+extern bool fetchPrint;
 
 // number of times a metric was sampled.
 extern int sampleCount;
@@ -46,12 +49,12 @@ extern int sampleCount;
 extern int traceRead;
 extern double bucket_size;
 
-extern Boolean genHist;
+extern bool genHist;
 extern applicationContext *context;
 
 
 // update the SHG during the search?
-extern Boolean interactiveShgUpdate;
+extern bool interactiveShgUpdate;
 
 extern int SHGid;
 extern dataManagerUser *dataMgr;

@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.22  1994/12/21 00:46:33  tamches
+ * Revision 1.23  1995/02/16 08:19:18  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.22  1994/12/21  00:46:33  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -140,7 +143,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.22 1994/12/21 00:46:33 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.23 1995/02/16 08:19:18 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -231,9 +234,9 @@ const int diskBlockSize = 4096;
 const lockOverhead = 10;
 
 
-Boolean highFuncInst_ENABLE(collectMode newMode)
+bool highFuncInst_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = observedCost.changeCollection(newMode);
     return(status);
@@ -244,10 +247,10 @@ void highFuncInst_TEST(testValue *result, float normalize)
 {
     float oc;
 
-    result->status = FALSE;
+    result->status = false;
     oc = observedCost.value();
     if (oc > highInstOverheadThreshold*normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
     if (pcEvalPrint.getValue()) {
 	cout << "highFuncInst >? V=" << oc << " A="
@@ -256,9 +259,9 @@ void highFuncInst_TEST(testValue *result, float normalize)
     return;
 }
 
-Boolean highSyncToCPURatio_ENABLE(collectMode newMode)
+bool highSyncToCPURatio_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = SyncTime.changeCollection(newMode);
     status = activeProcesses.changeCollection(whereAxis, newMode) && status;
@@ -271,12 +274,12 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
     float active;
     sampleValue st=0;
 
-    result->status = FALSE;
+    result->status = false;
     active = activeProcesses.value(whereAxis);
 
     if (active > 0.0) {
 	if ((st=SyncTime.value())/active > highSyncThreshold * normalize) {
-	    result->status = TRUE;
+	    result->status = true;
 	}
     }
     if (pcEvalPrint.getValue()) {
@@ -295,9 +298,9 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
     return;
 }
 
-Boolean highCPUtoSyncRatio_ENABLE(collectMode newMode)
+bool highCPUtoSyncRatio_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = CPUtime.changeCollection(newMode);
     status = activeProcesses.changeCollection(whereAxis, newMode) && status;
@@ -319,10 +322,10 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     float cpu;
     float factor;
     float processes;
-    Boolean conflict;
+    bool conflict;
     focusList newFoci;
 
-    result->status = FALSE;
+    result->status = false;
     if (!currentFocus->moreSpecific(Procedures, conflict)) {
 	newFoci = whereAxis->magnify(Procedures);
 	// 10% above average.
@@ -338,7 +341,7 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     cpu = CPUtime.value();
     processes = activeProcesses.value(whereAxis);
     if (cpu/processes > factor * normalize) {
-	result->status = TRUE;
+	result->status = true;
 	result->addHint(Procedures, "Lots of cpu time");
     }
 
@@ -353,9 +356,9 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     return;
 }
 
-Boolean criticalSectionTooLarge_ENABLE(collectMode newMode)
+bool criticalSectionTooLarge_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = CPUtime.changeCollection(newMode);
     status = lockHoldingTime.changeCollection(newMode) && status;
@@ -371,9 +374,9 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
     // This really should be blocking lock?  Do we only care if another process
     //   id holding it?
     pctHeld = lockHoldingTime.value() / CPUtime.value();
-    result->status = FALSE;
+    result->status = false;
     if (pctHeld > largeCriticalSectionThreshold * normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
     if (pcEvalPrint.getValue()) {
 	cout << "critSectooLarge >? V=" << pctHeld << " A=" <<
@@ -387,9 +390,9 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
 // for one object is too high - this does not imply any where
 // axis refinement
 //
-Boolean highVariation_ENABLE(collectMode newMode)
+bool highVariation_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
     focusList newFoci;
     focus *i;
 
@@ -411,7 +414,7 @@ void highVariation_TEST(testValue *result, float normalize)
   float share, total;
   focusList allSO;
 
-  result->status = FALSE;
+  result->status = false;
   
   // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
   (void) (allSO = currentFocus->magnify(SyncObject));
@@ -423,7 +426,7 @@ void highVariation_TEST(testValue *result, float normalize)
       share = SyncTime.value(i) / total;
       if (share > .8 * normalize)
 	{
-	  result->status = TRUE;
+	  result->status = true;
 	  // define a hint to refine on the selected sync
 	  if (i != currentFocus)
 	    {
@@ -435,10 +438,10 @@ void highVariation_TEST(testValue *result, float normalize)
   return;
 }
 
-Boolean highSyncRate_ENABLE(collectMode newMode)
+bool highSyncRate_ENABLE(collectMode newMode)
 {
     focusList newFoci;
-    Boolean syncObjStatus = FALSE;
+    bool syncObjStatus = false;
     focus *i;
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
@@ -454,11 +457,11 @@ void highSyncRate_TEST(testValue *result, float normalize)
 {
     focus *newFocus;
 
-    result->status = FALSE;
+    result->status = false;
     newFocus = currentFocus->constrain(Locks);
     if (SyncOps.enabled(newFocus)) {
 	if (SyncOps.value(newFocus) > maxLockRate * normalize) {
-	    result->status = TRUE;
+	    result->status = true;
 	    result->addHint(Locks, "Lots of lock operations");
 	}
     }
@@ -466,23 +469,23 @@ void highSyncRate_TEST(testValue *result, float normalize)
     if (SyncOps.enabled(newFocus)) {
 	if (SyncOps.value(newFocus) > 
 	    maxBarrierRate * highSyncThreshold * normalize) {
-	    result->status = TRUE;
+	    result->status = true;
 	    result->addHint(Barriers, "Lots of barrier operations");
 	}
     }
     newFocus = currentFocus->constrain(Semaphores);
     if (SyncOps.enabled(newFocus)) {
 	if (SyncOps.value(newFocus) > maxSemaphoreRate * normalize) {
-	    result->status = TRUE;
+	    result->status = true;
 	    result->addHint(Semaphores, "Lots of semaphore operations");
 	}
     }
     return;
 }
 
-Boolean smallSyncRegion_ENABLE(collectMode newMode)
+bool smallSyncRegion_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = SyncOps.changeCollection(newMode);
     status = lockHoldingTime.changeCollection(newMode) && status;
@@ -496,17 +499,17 @@ void smallSyncRegion_TEST(testValue *result, float normalize)
     float avgHold;
 
     avgHold = lockHoldingTime.value() / SyncOps.value();
-    result->status = FALSE;
+    result->status = false;
     if ((avgHold / lockOverhead) < (minLockSize * normalize)) {
 	 // lock is too small.
-	 result->status = TRUE;
+	 result->status = true;
     }
     return;
 }
 
-Boolean highIOwait_ENABLE(collectMode newMode)
+bool highIOwait_ENABLE(collectMode newMode)
 {
-    Boolean status;
+    bool status;
 
     status = IOwait.changeCollection(newMode);
     return(status);
@@ -515,9 +518,9 @@ Boolean highIOwait_ENABLE(collectMode newMode)
 /* ARGSUSED */
 void highIOwait_TEST(testValue *result, float normalize)
 {
-    result->status = FALSE;
+    result->status = false;
     if (IOwait.value() > highIOthreshold * normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
 
     if (pcEvalPrint.getValue()) {
@@ -528,9 +531,9 @@ void highIOwait_TEST(testValue *result, float normalize)
 }
 
 
-Boolean smallIO_ENABLE(collectMode newMode)
+bool smallIO_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = IOops.changeCollection(newMode);
     status = IOBytes.changeCollection(newMode) && status;
@@ -545,9 +548,9 @@ void smallIO_TEST(testValue *result, float normalize)
 
     avgRead = IOBytes.value() / IOops.value();
     // should be at least a disk block. 
-    result->status = FALSE;
+    result->status = false;
     if (avgRead < diskBlockSize * normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
 
     if (pcEvalPrint.getValue()) {
@@ -557,9 +560,9 @@ void smallIO_TEST(testValue *result, float normalize)
     return;
 }
 
-Boolean manySeeks_ENABLE(collectMode newMode)
+bool manySeeks_ENABLE(collectMode newMode)
 {
-    Boolean status = TRUE;
+    bool status = true;
 
     status = IOwait.changeCollection(newMode);
     status = seekWait.changeCollection(newMode) && status;
@@ -569,16 +572,16 @@ Boolean manySeeks_ENABLE(collectMode newMode)
 /* ARGSUSED */
 void manySeeks_TEST(testValue *result, float normalize)
 {
-    result->status = FALSE;
+    result->status = false;
     if ((seekWait.value()/IOwait.value()) > seekBoundThreshold * normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
     return;
 }
 
-Boolean highIOops_ENABLE(collectMode newMode)
+bool highIOops_ENABLE(collectMode newMode)
 {
-    Boolean status;
+    bool status;
 
     status = IOops.changeCollection(newMode);
     return(status);
@@ -590,17 +593,17 @@ void highIOops_TEST(testValue *result, float normalize)
     double value;
 
     value = IOops.value();
-    result->status = FALSE;
+    result->status = false;
     if (value/contextSwitchLimit > highIOthreshold * normalize) {
-	result->status = TRUE;
+	result->status = true;
     }
 
     return;
 }
 
-Boolean highPageFaults_ENABLE(collectMode newMode)
+bool highPageFaults_ENABLE(collectMode newMode)
 {
-    Boolean status;
+    bool status;
 
     status = pageFaults.changeCollection(newMode);
     return(status);
@@ -612,9 +615,9 @@ void highPageFaults_TEST(testValue *result, float normalize)
     double value;
 
     value = pageFaults.value();
-    result->status = FALSE;
+    result->status = false;
     if (value/pageFaultLimit > highLossThreshold) {
-	result->status = TRUE;
+	result->status = true;
     }
 
     return;

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.14  1995/01/26 17:58:41  jcargill
+ * Revision 1.15  1995/02/16 08:19:15  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.14  1995/01/26  17:58:41  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -144,8 +147,8 @@ class datum {
 	int		samplesSinceEnable;	// this time enabled.
 
 	timeStamp	time;
-	Boolean		used;
-	Boolean		enabled;
+	bool		used;
+	bool		enabled;
 	int		refCount;
 	metricInstance	*mi;			// when enabled.
 
@@ -167,11 +170,11 @@ class PCmetric {
 	// Constructor - default is Sum to aggregate.
 
 	stringHandle getName() { return(name); }
-	char *getUnits() { 
-	    metricInfo *info;
+	const char *getUnits() { 
+	    T_dyninstRPC::metricInfo *info;
 
 	    info = dataMgr->getMetricInfo(met);
-	    return(info->units); 
+	    return(info->units.string_of()); 
 	}
 	datum *findDatum(focus *f) {
 	  return(samples.find(f->getName()));
@@ -180,9 +183,9 @@ class PCmetric {
 	    samples.add(d, (void *) d->f->getName()); 
 	}
 
-	Boolean changeCollection(collectMode);		// currentFocus
-	Boolean changeCollection(focus*, collectMode);	// explicit focus.
-	Boolean changeCollection(focusList, collectMode);// explicit focus.
+	bool changeCollection(collectMode);		// currentFocus
+	bool changeCollection(focus*, collectMode);	// explicit focus.
+	bool changeCollection(focusList, collectMode);// explicit focus.
 	PCmetric(const char *, int, calcType);
 	PCmetric(const char *);
 
@@ -193,7 +196,7 @@ class PCmetric {
 	sampleValue value(timeStamp,timeStamp);	// for current global state.
 
 	// is this enabled?
-	Boolean enabled(focus*);		// for a single focus object.
+	bool enabled(focus*);		// for a single focus object.
 
 	// for a single focus object.
 	sampleValue value(focus*,timeStamp,timeStamp);

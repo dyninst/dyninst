@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.8  1995/01/26 17:58:45  jcargill
+ * Revision 1.9  1995/02/16 08:19:23  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.8  1995/01/26  17:58:45  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -74,7 +77,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.8 1995/01/26 17:58:45 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.9 1995/02/16 08:19:23 markc Exp $";
 #endif
 
 
@@ -113,8 +116,9 @@ ostream& operator <<(ostream &os, timeInterval& ti)
     if (ti.end == HUGE_VAL) {
 	os << "entire exeuction";
     } else {
-	os << ti.start, " to " , ti.end;
+	os << ti.start << " to " << ti.end;
     }
+    return os;
 }
 
 // This must be before whenAxis so that whenAxis appears in allTimeIntervals.

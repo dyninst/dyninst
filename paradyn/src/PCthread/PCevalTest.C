@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.34  1995/01/26 17:58:36  jcargill
+ * Revision 1.35  1995/02/16 08:19:05  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.34  1995/01/26  17:58:36  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -199,7 +202,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.34 1995/01/26 17:58:36 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.35 1995/02/16 08:19:05 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -243,11 +246,11 @@ tunableBooleanConstant printNodes(false, NULL, developerConstant,
 tunableBooleanConstant printTestResults(false, NULL, developerConstant,
     "printTestResults", 
     "Print out the result of each test as it is computed");
-// Boolean printTestResults = FALSE;
-// Boolean printNodes = FALSE;
+// bool printTestResults = false;
+// bool printNodes = false;
 
 int PCsearchPaused=1;
-extern Boolean textMode;
+extern bool textMode;
 List<datum *> *enabledGroup;
 extern timeStamp PCendTransTime;
 extern timeStamp PCstartTransTime;
@@ -255,12 +258,12 @@ extern int samplesSinceLastChange;
 extern timeStamp PClastTestChangeTime;
 extern timeStamp PCshortestEnableTime;
 
-int testResult::operator == (testResult *arg)
+bool testResult::operator == (testResult *arg)
 {
     if ((t == arg->t) && (at == arg->at) && (f = arg->f))
-	return((int) TRUE);
+	return(true);
     else 
-	return((int) FALSE);
+	return(false);
 }
 
 ostream& operator <<(ostream &os, testResult & tr)
@@ -269,7 +272,7 @@ ostream& operator <<(ostream &os, testResult & tr)
     os << tr.f;
     os << tr.at;
     cout << " == ";
-    if (tr.state.status == TRUE) {
+    if (tr.state.status == true) {
 	cout << "TRUE";
     } else {
 	cout << "FALSE";
@@ -282,41 +285,41 @@ ostream& operator <<(ostream &os, testResult & tr)
 // check the state of the passed hypothesis to see if it is true at the passed
 //   focus.
 //
-Boolean checkIfTrue(hypothesis *why, 
+bool checkIfTrue(hypothesis *why, 
 		    focus *where, 
 		    timeInterval *when, 
 		    hintList **hints)
 {
-    Boolean ret;
+    bool ret;
     testResult *res;
     hypothesisList curr;
 
     if (!why->testObject) {
 	ret = checkPreconditions(why, where, when);
-	if (ret == TRUE) {
+	if (ret) {
 	    // see if any of its children are true.
-	    if (!why->children) return(TRUE);
+	    if (!why->children) return(true);
 	    for (curr = *why->children; *curr; curr++) {
 		ret = checkIfTrue(*curr, where, when, hints);
-		if (ret == TRUE) return(TRUE);
+		if (ret) return(true);
 	    }
 	    *hints = NULL;
 	}
-	return(FALSE);
+	return(false);
     } else {
 	res = currentTestResults->find(why->testObject, where, when);
 	if (!res) {
 	    // we should have results for the test.
 	    *hints = NULL;
-	    return(FALSE);
+	    return(false);
 	}
-	if (res->state.status == TRUE) {
+	if (res->state.status) {
 	    *hints = res->state.hints;
 	    // test meet, now check pre Conditions.
 	    return(checkPreconditions(why, where, when));
 	} else {
 	    *hints = NULL;
-	    return(FALSE);
+	    return(false);
 	}
     }
 }
@@ -325,7 +328,7 @@ Boolean checkIfTrue(hypothesis *why,
 // Check that all of the preCondtions of hypothesis h are meet for the passed
 //  focus f.
 //
-Boolean checkPreconditions(hypothesis *why, focus *where, timeInterval *when)
+bool checkPreconditions(hypothesis *why, focus *where, timeInterval *when)
 {
     testResult *val;
     hypothesis *curr;
@@ -339,14 +342,14 @@ Boolean checkPreconditions(hypothesis *why, focus *where, timeInterval *when)
 		 // Error preCondition 
 		 abort();
 	    }
-	    if (val->state.status != TRUE) break;
+	    if (!val->state.status) break;
 	}
     }
     if (!curr) {
 	// all preCondtions are meet.
-	return(TRUE);
+	return(true);
     } else {
-	return(FALSE);
+	return(false);
     }
 }
 
@@ -366,7 +369,7 @@ void testValue::addHint(focus *f, const char* message)
 void testValue::addHint(resource *res, const char* message)
 {
     focus *f;
-    Boolean conflicts;
+    bool conflicts;
     char *newM;
 
     if (message)
@@ -385,19 +388,19 @@ void testValue::addHint(resource *res, const char* message)
 }
 
 
-Boolean buildTestResultForHypothesis(testResultList *currResults, 
+bool buildTestResultForHypothesis(testResultList *currResults, 
 				  testResultList *prevResults,
 			          hypothesis *why,
 				  focus *where,
 				  timeInterval *when,
-				  Boolean checkChildren = TRUE);
+				  bool checkChildren = true);
 
-Boolean buildTestResultForHypothesis(testResultList *currResults, 
+bool buildTestResultForHypothesis(testResultList *currResults, 
 				  testResultList *prevResults,
 			          hypothesis *why,
 				  focus *where,
 				  timeInterval *when,
-				  Boolean checkChildren)
+				  bool checkChildren)
 
 {
     testResult *r;
@@ -405,17 +408,17 @@ Boolean buildTestResultForHypothesis(testResultList *currResults,
     focus *prevFocus;
     hypothesis *curr;
     hypothesisList kids;
-    Boolean status = FALSE;
+    bool status = false;
 
     // ??? what should this value be??
-    if (why->labeled) return(TRUE);
-    why->labeled = TRUE;
+    if (why->labeled) return(true);
+    why->labeled = true;
     if (why->testObject) {
 	r = new(testResult);
 	r->t = why->testObject;
 	r->at = when;
 	r->f = where;
-	r->state.status = FALSE;
+	r->state.status = false;
 	r->metFociUsed = enabledGroup;
 
 	ret = currResults->find(r);
@@ -425,11 +428,11 @@ Boolean buildTestResultForHypothesis(testResultList *currResults,
 	} else {
 	    ret = prevResults->find(r);
 	    if (ret) {
-		Boolean found;
+		bool found;
 
 		currResults->addUnique(ret);
 		found = prevResults->remove(ret);
-		assert(found == True);
+		assert(found);
 		status = ret->ableToEnable;
 		delete(r);
 	    } else {
@@ -445,18 +448,18 @@ Boolean buildTestResultForHypothesis(testResultList *currResults,
 	}
     } else if (checkChildren && **(why->children)) {
 	assert(why->children); 
-	status = FALSE;
+	status = false;
 	for (kids = *(why->children); curr = *kids; kids++) {
 	    status = buildTestResultForHypothesis(currResults, prevResults,
 		    curr, where, when) || status;
 	}
     } else {
 	// we have enabled nothing (sucessfully).
-	status = TRUE;
+	status = true;
     }
     if (why->preCondition) 
 	status = buildTestResultForHypothesis(currResults, prevResults,
-	    why->preCondition, where, when, FALSE) && status;
+	    why->preCondition, where, when, false) && status;
     return(status);
 }
 
@@ -490,7 +493,7 @@ void configureTests()
 	    whyAxis.unLabel();
 	    // Setting beenTested here assumes that a test that is configured 
 	    //   get run. We really should not assume this.
-	    curr->changeTested(TRUE);
+	    curr->changeTested(true);
 	    curr->metricFoci = new (List<datum*>);
 	    enabledGroup = curr->metricFoci;
 	    curr->ableToEnable = 
@@ -542,15 +545,15 @@ void getTimes(timeStamp *start, timeStamp *end, List<datum*> *items)
 //
 // try the currently enabled tests on all of the data.
 //
-Boolean evalTests()
+bool evalTests()
 {
-    Boolean ret=FALSE;
+    bool ret=false;
     float factor;
     testResult *r;
     float normalize;
     float hysteresis;
     testResultList curr;
-    Boolean previousStatus;
+    bool previousStatus;
     extern tunableBooleanConstant pcEvalPrint;
     float fctr;
 
@@ -586,7 +589,7 @@ Boolean evalTests()
 		cout << *(r->f);
 		cout << " at time " << PCcurrentTime << endl;
 	    }
-	    if (r->state.status == TRUE) {
+	    if (r->state.status) {
 		hysteresis = 1.0 - hysteresisRange.getValue();
 	    } else {
 		hysteresis = 1.0 + hysteresisRange.getValue();
@@ -615,8 +618,8 @@ Boolean evalTests()
 	// always return for now
 	// this is done to pick up changes in shg that are due to
 	// refinements, but that don't require additional tests.
-	ret = TRUE;
-	if ((r->state.status == TRUE) && (previousStatus == FALSE)) {
+	ret = true;
+	if (r->state.status && !previousStatus) {
 	    if (printTestResults.getValue()) {
 		cout << "TEST RETURNED TRUE: \n";
 		cout << *(r->t);
@@ -629,7 +632,7 @@ Boolean evalTests()
 		cout << PCcurrentTime << endl;
 	    }
 	    r->time = PCcurrentTime;
-	    ret = TRUE;
+	    ret = true;
 	} else if (r->state.status != previousStatus) {
 	    if (printTestResults.getValue()) {
 		cout << "TEST BECAME FALSE: ";
@@ -642,7 +645,7 @@ Boolean evalTests()
 		cout << PCcurrentTime << endl;
 	    }
 	    r->time = PCcurrentTime;
-	    ret = TRUE;
+	    ret = true;
 	}
     }
     return(ret);
@@ -651,7 +654,7 @@ Boolean evalTests()
 void hintList::add(focus *f, char* message)
 {
     hint *h;
-    Boolean newItem;
+    bool newItem;
 
     h = new(hint);
     h->why = NULL;
@@ -668,7 +671,7 @@ void hintList::add(focus *f, char* message)
 void hintList::add(hypothesis *w, char* message)
 {
     hint *h;
-    Boolean newItem;
+    bool newItem;
 
     h = new(hint);
     h->why = w;
@@ -685,7 +688,7 @@ void hintList::add(hypothesis *w, char* message)
 void hintList::add(timeInterval *ti, char* message)
 {
     hint *h;
-    Boolean newItem;
+    bool newItem;
 
     h = new(hint);
     h->why = NULL;
@@ -702,23 +705,23 @@ void hintList::add(timeInterval *ti, char* message)
 //
 // call search and then check the status of each active shg node.
 //
-Boolean doScan()
+bool doScan()
 {
-    Boolean change;
-    Boolean ret;
+    bool change;
+    bool ret;
     hintList currHint;
-    Boolean shgStateChanged;
+    bool shgStateChanged;
     searchHistoryNode *shgNode;
     searchHistoryNodeList curr;
 
-    if (PCcurrentTime >= whenAxis.end) return(False);
+    if (PCcurrentTime >= whenAxis.end) return(false);
 
-    shgStateChanged = FALSE;
+    shgStateChanged = false;
     change = evalTests();
     if (change) {
 	// update status of hypotheses.
 	for (curr = allSHGNodes; shgNode = *curr; curr++) {
-	    if (shgNode->getActive() == FALSE) continue;
+	    if (!shgNode->getActive()) continue;
 	    assert(shgNode->why);
 	    ret = checkIfTrue(shgNode->why, shgNode->where, 
 		shgNode->when, &shgNode->hints);
@@ -727,7 +730,7 @@ Boolean doScan()
 
 		if (printNodes.getValue()) {
 		    cout << "SHG Node " << shgNode->nodeId;
-		    if (ret == TRUE) {
+		    if (ret) {
 			cout << " TRUE at time " << PCcurrentTime << endl;
 			if (shgNode->hints) {
 			    for (currHint = *shgNode->hints; 
@@ -740,11 +743,11 @@ Boolean doScan()
 			cout << "FALSE at time " << PCcurrentTime << endl;
 		    }
 		}
-		if (ret == FALSE) {
+		if (!ret) {
 		    delete(shgNode->hints);
 		    shgNode->hints = NULL;
 		}
-		shgStateChanged = TRUE;
+		shgStateChanged = true;
 	    }
 	}
     }
@@ -798,13 +801,13 @@ void resetActiveFlag(searchHistoryNode *curr)
 
     if (curr->children) {
 	for (currNode = *curr->children; curr = *currNode; currNode++) {
-	    if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
+	    if (!curr->getActive()) curr->changeStatus(false);
 	    resetActiveFlag(curr);
 	}
     }
 }
 
-Boolean verifyPreviousRefinements()
+bool verifyPreviousRefinements()
 {
     int i;
     searchHistoryNode *curr;
@@ -812,7 +815,7 @@ Boolean verifyPreviousRefinements()
 
     // verify that the refinement path we took is still true;
     for (i=0; i < PCpathDepth; i++) {
-	if (PCrefinementPath[i]->getStatus() != TRUE) {
+	if (!PCrefinementPath[i]->getStatus()) {
 	    // pauseApplication(context);
 
 	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
@@ -821,20 +824,20 @@ Boolean verifyPreviousRefinements()
 	    // disable all nodes.
 	    UIM_BatchMode++;
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
-		curr->changeTested(FALSE);
-		curr->changeActive(FALSE);
+		curr->changeTested(false);
+		curr->changeActive(false);
 	    }
 	    UIM_BatchMode--;
 
 	    // Find the last point down the PCrefinementPath that has all
 	    // previous nodes true.
-	    SearchHistoryGraph->changeActive(TRUE);
+	    SearchHistoryGraph->changeActive(true);
 	    currentSHGNode = SearchHistoryGraph;
 	    for (i=0; i < PCpathDepth; i++) {
-		if (PCrefinementPath[i]->getStatus() == TRUE) {
+		if (PCrefinementPath[i]->getStatus()) {
 		    currentSHGNode = PCrefinementPath[i];
-		    currentSHGNode->changeTested(TRUE);
-		    currentSHGNode->changeActive(TRUE);
+		    currentSHGNode->changeTested(true);
+		    currentSHGNode->changeActive(true);
 		} else {
 		    // the current one is not true so stop marking.
 		    PCpathDepth = i;
@@ -850,7 +853,7 @@ Boolean verifyPreviousRefinements()
 		for (currNode = *currentSHGNode->children; curr = *currNode; 
 		     currNode++) {
 		    resetActiveFlag(curr);
-		    if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
+		    if (!curr->getActive()) curr->changeStatus(false);
 		}
 	    }
 
@@ -859,17 +862,17 @@ Boolean verifyPreviousRefinements()
 	     "The search has been reset to the bottleneck\n    ");
 	  defaultExplanation(currentSHGNode);
 
-	  return(FALSE);
+	  return(false);
 	}
     }
-    return(TRUE);
+    return(true);
 }
 
 
 void PCevaluateWorld()
 {
-    Boolean changed;
-    Boolean autoTestRefinements();
+    bool changed;
+    bool autoTestRefinements();
     void autoTimeLimitExpired();
 
     //
@@ -899,9 +902,9 @@ void PCevaluateWorld()
 		autoTimeLimitExpired();
 	    }
 	} else if (changed) {
-	    if (verifyPreviousRefinements() == TRUE) {
+	    if (verifyPreviousRefinements()) {
 		dataMgr->pauseApplication(context);
-		PCsearchPaused = TRUE;
+		PCsearchPaused = true;
 		PCstatusDisplay->updateStatusDisplay 
 		  (PC_STATUSDISPLAY, "application paused\n");
 	    } else {
@@ -913,7 +916,7 @@ void PCevaluateWorld()
 }
 
 
-void performanceConsultant::search(Boolean stopOnChange, int limit)
+void performanceConsultant::search(bool stopOnChange, int limit)
 {
     extern void autoSelectRefinements();
 
@@ -932,7 +935,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 	delete(currentTestResults); 
     currentTestResults = NULL;
 
-    if (currentSHGNode->getStatus() != TRUE) {
+    if (!currentSHGNode->getStatus()) {
 	SearchHistoryGraph->resetStatus();
 	SearchHistoryGraph->resetActive();
 	configureTests();
@@ -941,7 +944,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
     // refine one step now and then let it go.
     PCstatusDisplay->updateStatusDisplay 
       (PC_STATUSDISPLAY, "setting limit to %d\n", limit);
-    PCsearchPaused = FALSE;
+    PCsearchPaused = false;
     PCautoRefinementLimit = limit;
     autoSelectRefinements();
     dataMgr->continueApplication(context);
@@ -949,7 +952,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 
 void performanceConsultant::pauseSearch()
 {
-     PCsearchPaused = TRUE;
+     PCsearchPaused = true;
      PCautoRefinementLimit = 0; 
 }
 
@@ -971,16 +974,16 @@ int performanceConsultant::setCurrentSHGnode(int node)
 	printf("paradyn Error #8\n");
 	return(-1);
     }
-    if (n->getActive() != TRUE) {
+    if (!n->getActive()) {
 	printf("Node %d is not active \n", node);
 	return(-1);
     }
-    if (n->getStatus() != TRUE) {
+    if (!n->getStatus()) {
 	printf("Node %d is not true \n", node);
 	return(-1);
     }
     for (i=0; i < PCpathDepth; i++) {
-        if (PCrefinementPath[i]->getStatus() != TRUE) {
+        if (!PCrefinementPath[i]->getStatus()) {
             printf("search history graph ancestor not true\n");
             printf("paradyn Error #9\n");
             return(-1);

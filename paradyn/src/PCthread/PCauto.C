@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.19  1995/01/26 17:58:32  jcargill
+ * Revision 1.20  1995/02/16 08:19:00  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.19  1995/01/26  17:58:32  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -135,7 +138,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.19 1995/01/26 17:58:32 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.20 1995/02/16 08:19:00 markc Exp $";
 #endif
 
 #include <stdlib.h>
@@ -251,7 +254,7 @@ void autoSelectRefinements()
     searchHistoryNodeList refList;
     void autoChangeRefineList();
 
-    if (currentSHGNode->getStatus() != TRUE) {
+    if (!currentSHGNode->getStatus()) {
 	// select this node.
 	refList.add(currentSHGNode); 
     } else {
@@ -287,7 +290,7 @@ void autoChangeRefineList()
     float totalCost = 0.0;
     searchHistoryNode *curr;
     static float batchCost = 0.0;
-    extern Boolean PCsearchPaused;
+    extern bool PCsearchPaused;
     extern tunableFloatConstant sufficientTime;
     extern tunableBooleanConstant printNodes;
 
@@ -334,7 +337,7 @@ void autoChangeRefineList()
 	totalCost += newCost;
 	// printf("totalCost = %f\n", totalCost);
 
-	curr->changeActive(TRUE);
+	curr->changeActive(true);
     }
     UIM_BatchMode--;
 
@@ -348,7 +351,7 @@ void autoChangeRefineList()
 	    "all refinements considered...application paused\n");
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
-	PCsearchPaused = TRUE;
+	PCsearchPaused = true;
 
 	return;
     }
@@ -362,7 +365,7 @@ void autoChangeRefineList()
 	    totalCost, newCost, predictedCostLimit.getValue());
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
-	PCsearchPaused = TRUE;
+	PCsearchPaused = true;
 
 	return;
     }
@@ -383,7 +386,7 @@ void autoTimeLimitExpired()
 	if (i >= refineCount) break;
 	if (printNodes.getValue()) 
 	    cout << "   " << *refinementOptions[i] << endl;
-	refinementOptions[i]->changeActive(FALSE);
+	refinementOptions[i]->changeActive(false);
     }
     UIM_BatchMode--;
     if (printNodes.getValue()) cout << endl;
@@ -392,13 +395,13 @@ void autoTimeLimitExpired()
     autoChangeRefineList();
 }
 
-Boolean autoTestRefinements()
+bool autoTestRefinements()
 {
     int i;
-    Boolean previousOK;
+    bool previousOK;
     searchHistoryNode *curr;
     extern void setCurrentRefinement(searchHistoryNode*);
-    extern Boolean verifyPreviousRefinements();
+    extern bool verifyPreviousRefinements();
 
     previousOK = verifyPreviousRefinements();
     if (!previousOK) {
@@ -408,21 +411,21 @@ Boolean autoTestRefinements()
 
 	// find a a good new refinement to try back of the SHG. 
 	autoSelectRefinements();
-	return(TRUE);
+	return(true);
     }
 
     // see if we found one.
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	curr = refinementOptions[i];
-	if (curr->getStatus() == TRUE) {
+	if (curr->getStatus()) {
 
 	    setCurrentRefinement(curr);
 
 	    // disable other refinement options.
 	    for (i=0; i < refineCount; i++) {
 		if (refinementOptions[i] == curr) continue;
-		refinementOptions[i]->changeActive(FALSE);
+		refinementOptions[i]->changeActive(false);
 	    }
 	    free(refinementOptions);
 	    refinementOptions = NULL;
@@ -432,8 +435,8 @@ Boolean autoTestRefinements()
 
 	    // advance to next refinement canidate list.
 	    autoSelectRefinements();
-	    return(TRUE);
+	    return(true);
 	}
     }
-    return(FALSE);
+    return(false);
 }

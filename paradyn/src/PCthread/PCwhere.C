@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.14  1994/12/21 00:46:36  tamches
+ * Revision 1.15  1995/02/16 08:19:25  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.14  1994/12/21  00:46:36  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -115,7 +118,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.14 1994/12/21 00:46:36 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.15 1995/02/16 08:19:25 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -147,11 +150,11 @@ focus::focus(resourceList *val)
     resource *r;
     int i, limit;
 
-    suppress = FALSE;
+    suppress = false;
     limit = val->getCount();
     for (i=0; i < limit; i++) {
 	r = val->getNth(i);
-	if (r->getSuppress()) suppress = TRUE;
+	if (r->getSuppress()) suppress = true;
     }
 
     data = val;
@@ -180,11 +183,11 @@ void focus::updateName()
     if (data) {
 	limit = data->getCount();
 	names = (stringHandle *) malloc(sizeof(stringHandle) * limit);
-	suppress = FALSE;
+	suppress = false;
 	for (i=0; i < limit; i++) {
 	    res = data->getNth(i);
 	    names[i] = res->getFullName();
-	    if (res->getSuppress()) suppress = TRUE;
+	    if (res->getSuppress()) suppress = true;
 	}
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), stringCompare);
@@ -204,12 +207,12 @@ focus::focus()
     name = NULL;
 }
 
-Boolean focus::operator ==(focus *f)
+bool focus::operator ==(focus *f)
 {
     if (name == f->name)
-	return(TRUE);
+	return(true);
     else
-	return(FALSE);
+	return(false);
 }
 
 ostream& operator <<(ostream &os, focus& f)
@@ -272,7 +275,7 @@ focusList focus::magnify(resource *param)
     resourceList *c;
     focusList *result;
     resourceList *resList;
-    Boolean conflicts;
+    bool conflicts;
 
     // see if we have done this one before.
     result = findMagnifyCache(param);
@@ -286,7 +289,7 @@ focusList focus::magnify(resource *param)
 	result->add(this, (void *) this);
 	count = 1;
       }
-      // do nothing if conflicts = TRUE
+      // do nothing if conflicts = true
     } else {
 	// for each known focus cell.
 	c = param->getChildren();
@@ -377,7 +380,7 @@ focus *focus::constrain(resource *param)
     int i;
     focus *nf;
     focus *ret;
-    Boolean found;
+    bool found;
     resource *curr;
     resourceList *newCellList;
 
@@ -385,14 +388,14 @@ focus *focus::constrain(resource *param)
     ret = findConstrainCache(param);
     if (ret) return(ret);
 
-    found = FALSE;
+    found = false;
     ret = NULL;
     newCellList = new resourceList;
     for (i=0; i < data->getCount(); i++) {
 	curr = data->getNth(i);
-	if (curr->isDescendent(param) == TRUE) {
+	if (curr->isDescendent(param)) {
 	    newCellList->add(param);
-	    found = TRUE;
+	    found = true;
 	} else {
 	    newCellList->add(curr);
 	}
@@ -414,38 +417,38 @@ focus *focus::constrain(resource *param)
 //   (more magnified) than the corresponding resource in the passed focus.
 // If it is return the more specific focus, otherwise return null.
 //
-focus *focus::moreSpecific(resource *parm, Boolean &conflicts)
+focus *focus::moreSpecific(resource *parm, bool &conflicts)
 {
     int i;
     focus *nf;
     int limit;
     focus *ret;
     resource *curr;
-    Boolean found;
+    bool found;
     resourceList *newList;
 
     assert(data);
-    conflicts = FALSE;
+    conflicts = false;
     limit = data->getCount();
     newList = new resourceList;
-    found = FALSE;
+    found = false;
     for (i=0; i < limit; i++) {
 	curr = data->getNth(i);
-	if (curr->isDescendent(parm) == TRUE) {
+	if (curr->isDescendent(parm)) {
 	  newList->add(parm);
-	  found = TRUE;
-	} else if (parm->isDescendent(curr) == TRUE) {
+	  found = true;
+	} else if (parm->isDescendent(curr)) {
           // the current focus is more specific - it will be reused
-	  found = FALSE;
+	  found = false;
 	  break;
 	} else if (strcmp((char *) curr->getName(), (char *) parm->getName()) &&
-		   (curr->sameRoot(parm) == TRUE)) {
+		   (curr->sameRoot(parm))) {
 	  // if the resource and param have the same root, but
 	  // one is not a descendant of the other,
 	  // and they are not the same, then this
 	  // magnification conflicts with the current focus
-	    conflicts = TRUE;
-	    found = FALSE;
+	    conflicts = true;
+	    found = false;
 	    break;
 	} else {
 	    newList->add(curr);

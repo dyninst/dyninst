@@ -16,10 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.27  1995/01/26 17:58:39  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.28  1995/02/16 08:19:11  markc
+/* Changed Boolean to bool
 /*
+ * Revision 1.27  1995/01/26  17:58:39  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.26  1994/09/30  19:18:12  rbi
  * Abstraction interface change.
  *
@@ -106,7 +109,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.27 1995/01/26 17:58:39 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.28 1995/02/16 08:19:11 markc Exp $";
 #endif
 
 #include <assert.h>
@@ -257,12 +260,28 @@ void PCmain(void* varg)
 
     while (1) {
 	tag = MSG_TAG_ANY;
-	from = msg_poll(&tag, TRUE);
+	from = msg_poll(&tag, true);
 	assert(from != THR_ERR);
-	if (dataMgr->isValidUpCall(tag)) {
-	    dataMgr->awaitResponce(-1);
+	if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+	  if (dataMgr->waitLoop(true, (T_dataManager::message_tags)tag) ==
+	      T_dataManager::error) {
+	    // handle error
+	    // TODO
+	    cerr << "Error in PCmain.C, needs to be handled\n";
+	    assert(0);
+	  }
+	} else if (pc->isValidTag((T_performanceConsultant::message_tags)tag)) {
+	  if (pc->waitLoop(true, (T_performanceConsultant::message_tags)tag) ==
+	      T_performanceConsultant::error) {
+	    // handle error
+	    // TODO
+	    cerr << "Error in PCmain.C, needs to be handled\n";
+	    assert(0);
+	  }
 	} else {
-	    pc->mainLoop();
+	  // TODO
+	  cerr << "Message sent that is not recognized in PCmain.C\n";
+	  assert(0);
 	}
-    }
+   }
 }

@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.8  1994/10/25 22:08:03  hollings
+ * Revision 1.9  1995/02/16 08:19:07  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.8  1994/10/25  22:08:03  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -64,20 +67,20 @@
 //
 class testValue {
     public:
-	testValue() { status = FALSE; }
+	testValue() { status = false; }
 	void addHint(focus*, const char*);
 	void addHint(resource*, const char*);
 	void addHint(hypothesis*, char*);
 	void addHint(timeInterval*, char*);
 
-	Boolean status;
+	bool status;
 	hintList *hints;
 };
 
 class hypothesisValue {
     public:
-	hypothesisValue() { status = FALSE; }
-	Boolean status;
+	hypothesisValue() { status = false; }
+	bool status;
 };
 
 //
@@ -85,15 +88,15 @@ class hypothesisValue {
 //
 class testResult {
     public:
-	testResult() 	{ state.hints = NULL; time = 0.0; ableToEnable = FALSE;}
-	int operator == (testResult *);
+	testResult() 	{ state.hints = NULL; time = 0.0; ableToEnable = false;}
+	bool operator == (testResult *);
 	testValue state;
 	test *t;		// which test
 	focus *f;		// at this focus
 	timeInterval *at;	// for this interval.
 	Histogram *hist;
 	timeStamp time;		// time it last changed
-	Boolean ableToEnable;	// could we turn it on?
+	bool ableToEnable;	// could we turn it on?
 	List <datum*> *metFociUsed;	// what does this test need to run.
 };
 
@@ -101,7 +104,7 @@ ostream& operator <<(ostream &os, testResult& tr);
 
 class testResultList: public List<testResult*> {
     public:
-	Boolean addUnique(testResult *res) { 
+	bool addUnique(testResult *res) { 
 	    char str[80];
 	    stringHandle id;
 	    testResult *ret;
@@ -128,7 +131,7 @@ class testResultList: public List<testResult*> {
 	    id = resultPool.findAndAdd(str);
 	    return (List<testResult*>::find(id)); 
 	}
-        Boolean remove(testResult *res) {
+        bool remove(testResult *res) {
             char str[80];
             stringHandle id;
   
@@ -142,7 +145,7 @@ class testResultList: public List<testResult*> {
 	static stringPool resultPool;
 };
 
-extern Boolean doScan();
+extern bool doScan();
 extern void configureTests();
 extern tunableFloatConstant hysteresisRange;
 

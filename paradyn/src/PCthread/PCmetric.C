@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.25  1994/12/21 00:46:31  tamches
+ * Revision 1.26  1995/02/16 08:19:13  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.25  1994/12/21  00:46:31  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -161,7 +164,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.25 1994/12/21 00:46:31 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.26 1995/02/16 08:19:13 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -175,7 +178,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCwhen.h"
 #include "PCauto.h"
 
-Boolean fetchPrint = 0;
+bool fetchPrint = false;
 
 timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
@@ -185,7 +188,7 @@ stringPool PCmetricStrings;
 int samplesSinceLastChange;
 timeStamp PCshortestEnableTime;
 timeStamp PClastTestChangeTime;
-Boolean explainationFlag = FALSE;
+bool explainationFlag = false;
 extern List<datum *> *enabledGroup;
 
 // for debugging
@@ -199,7 +202,7 @@ extern float globalPredicatedCost;
 warningLevel noDataWarning = wNever;
 extern performanceStream *pcStream;
 extern searchHistoryNode *currentSHGNode;
-extern Boolean doAutoRefinement(searchHistoryNode *, int);
+extern bool doAutoRefinement(searchHistoryNode *, int);
 
 PCmetric::PCmetric(const char *id)
 {
@@ -237,14 +240,14 @@ sampleValue PCmetric::value(focus *f)
 }
 
 /* ARGSUSED */
-Boolean PCmetric::enabled(focus *f)
+bool PCmetric::enabled(focus *f)
 {
     datum *val;
 
-    if (!f) return(False);
+    if (!f) return(false);
 
     val = findDatum(f);
-    if (!val) return(False);
+    if (!val) return(false);
 
     return(val->enabled);
 }
@@ -292,7 +295,7 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
 	ret /= (end-start);
     }
 
-    if (fetchPrint == TRUE) {
+    if (fetchPrint) {
 	cout << "value for " << name << " from " << start << " to " << end;
 	cout << " = " << ret << "\n";
     }
@@ -301,16 +304,16 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
 }
 
 /* ARGSUSED */
-Boolean PCmetric::changeCollection(collectMode newMode)
+bool PCmetric::changeCollection(collectMode newMode)
 {
     return(changeCollection(currentFocus, newMode));
 }
 
 /* ARGSUSED */
-Boolean PCmetric::changeCollection(focusList fl, collectMode newMode)
+bool PCmetric::changeCollection(focusList fl, collectMode newMode)
 {
     focus *f;
-    Boolean status = FALSE;
+    bool status = false;
 
     for (; f = *fl; fl++) {
 	status = changeCollection(f, newMode) || status;
@@ -319,7 +322,7 @@ Boolean PCmetric::changeCollection(focusList fl, collectMode newMode)
 }
 
 /* ARGSUSED */
-Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
+bool PCmetric::changeCollection(focus *f, collectMode newMode)
 {
     datum *val;
     extern void printCurrentFocus();
@@ -331,14 +334,14 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
     if (newMode == getCollectionCost) {
 	float predictedCost;
 
-	if (!met) return(FALSE);
+	if (!met) return(false);
 
 	assert(f->data);
 	predictedCost = dataMgr->getPredictedDataCost(context, f->data, met);
 
 	globalPredicatedCost += predictedCost;
 
-	return(TRUE);
+	return(true);
     } else if (newMode == enableCollection) {
 	if (!val) {
 	    val = new(datum);
@@ -346,7 +349,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->metName = name;
 	    val->resList = f->data;
 	    val->hist = new Histogram(EventCounter, NULL, NULL, NULL);
-	    val->enabled = FALSE;
+	    val->enabled = false;
 	    val->refCount = 0;
 	    addDatum(val);
 	}
@@ -355,13 +358,13 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->samplesSinceEnable = 0;
 	    val->lastSampleTime = 0.0;
 	    val->firstSampleTime = 0.0;
-	    val->used = TRUE;
+	    val->used = true;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
 						    met);
 	    if (val->mi) {
 		// only the data that really exists gets enabled.
 		miToDatumMap.add(val, val->mi);
-		val->enabled = TRUE;
+		val->enabled = true;
 	    }
 	}
 	if (val->mi) {
@@ -369,26 +372,26 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    assert(enabledGroup);
 	    enabledGroup->add(val);
 
-	    return(TRUE);
+	    return(true);
 	} else {
-	    return(FALSE);
+	    return(false);
 	}
     } else if (newMode == disableCollection) {
 	assert(val);
 	val->refCount--;
 	if (val->refCount == 0) {
-	    val->enabled = FALSE;
+	    val->enabled = false;
 
 	    if (val->mi) {
 		dataMgr->disableDataCollection(pcStream, val->mi);
 		val->totalUsed += val->lastUsed - val->firstSampleTime;
 	    }
 	}
-	return(TRUE);
+	return(true);
     } else {
 	// unknown mode.
 	abort();
-	return(FALSE);
+	return(false);
     }
 }
 
@@ -414,14 +417,14 @@ sampleValue PCmetric::min(focusList fList, timeStamp start, timeStamp end)
     sampleValue min;
     sampleValue val;
     focus *curr;
-    Boolean first = TRUE;
+    bool first = true;
 
     min = 0.0;
     for (; curr=*fList; fList++) {
 	val = value(curr, start, end);
-	if ((val < min) || (first == TRUE)) {
+	if ((val < min) || first) {
 	    min = value(curr, start, end);
-	    first = FALSE;
+	    first = false;
 	}
     }
     return(min);
@@ -482,8 +485,8 @@ datum::datum()
     lastUsed = 0.0;
     samplesSinceEnable=0;
     time = -1.0;
-    enabled = FALSE;
-    used = FALSE;
+    enabled = false;
+    used = false;
     hist = NULL;
     refCount = 0;
     metName = NULL;
@@ -545,7 +548,7 @@ timeStamp globalMinEnabledTime()
 
 void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 {
-    hist->addInterval(start, end, value, FALSE);
+    hist->addInterval(start, end, value, false);
 
     sample += value;
     samplesSinceEnable++;

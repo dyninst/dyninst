@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.19  1995/01/26 17:58:43  jcargill
+ * Revision 1.20  1995/02/16 08:19:16  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.19  1995/01/26  17:58:43  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -127,7 +130,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.19 1995/01/26 17:58:43 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.20 1995/02/16 08:19:16 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -179,7 +182,7 @@ void performanceConsultant::createInterval(int parent,
 
 searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 {
-    Boolean newArc;
+    bool newArc;
     hypothesis *h;
     hypothesisList hl;
     searchHistoryNode *newNode;
@@ -230,7 +233,7 @@ SHNptr_Array performanceConsultant::getWhyRefinements(searchHistoryNode *node)
 
 searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 {
-    Boolean newArc;
+    bool newArc;
     timeInterval *i;
     timeIntervalList il;
     searchHistoryNodeList ret;
@@ -311,7 +314,7 @@ char *makeShortName(char *parent, char *child)
 searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 {
     focus *f;
-    Boolean newArc;
+    bool newArc;
     focusList newFoci;
     searchHistoryNodeList ret;
     searchHistoryNode *newNode;
@@ -450,7 +453,7 @@ void performanceConsultant::doRefine(int_Array ids)
 	id = ids.data[i];
 	for (curr = allSHGNodes; n = *curr; curr++) {
 	     if (n->nodeId == id) {
-		 n->changeActive(TRUE);
+		 n->changeActive(true);
 		 break;
 	     }
 	}
@@ -467,11 +470,11 @@ void performanceConsultant::resetRefinement()
 
     setCurrentRefinement(SearchHistoryGraph);
     for (ptr = allSHGNodes; curr = *ptr; ptr++) {
-	curr->changeActive(FALSE);
-	curr->changeStatus(FALSE);
-	curr->changeTested(FALSE);
+	curr->changeActive(false);
+	curr->changeStatus(false);
+	curr->changeTested(false);
     }
-    currentSHGNode->changeActive(TRUE);
+    currentSHGNode->changeActive(true);
 }
 
 void printStats()

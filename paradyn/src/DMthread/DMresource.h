@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.15  1995/01/26 17:58:26  jcargill
+ * Revision 1.16  1995/02/16 08:17:54  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.15  1995/01/26  17:58:26  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -116,6 +119,7 @@ class resourceList {
       int getCount()	{ return(count); }
       void print();
       char **convertToStringList();
+      bool convertToStringList(vector<string> &vs);
   private:
       // provide mutex so we can support shared access.
       void lock() { assert(!locked); locked = 1; }
@@ -144,15 +148,15 @@ class resource {
     stringHandle getFullName() { return(fullName); }
     resource *findChild(char *nm) { return(children.find(nm)); }
     int match(char *ptr) { return(ptr == name); }
-    Boolean isDescendent(resource *child);
-    Boolean sameRoot(resource *child);
+    bool isDescendent(resource *child);
+    bool sameRoot(resource *child);
     void print();
     resource *getParent()	{ return(parent); }
     static resource *rootResource;
-    void setSuppress(Boolean nv)	{ suppressSearch = nv; }
-    void setSuppressChildren(Boolean nv){ suppressChildSearch = nv; }
-    Boolean getSuppress()		{ return(suppressSearch); }
-    Boolean getSuppressChildren()	{ return(suppressChildSearch); }
+    void setSuppress(bool nv)	{ suppressSearch = nv; }
+    void setSuppressChildren(bool nv){ suppressChildSearch = nv; }
+    bool getSuppress()		{ return(suppressSearch); }
+    bool getSuppressChildren()	{ return(suppressChildSearch); }
     abstraction *getAbstraction() { return(abstr); }
   protected:
     resource();
@@ -174,8 +178,8 @@ class resource {
     static stringPool names;
     static HTable<resource*> allResources;
 
-    Boolean suppressSearch;		// user wants to ignore this one.
-    Boolean suppressChildSearch;	// user wants to ignore children of
+    bool suppressSearch;		// user wants to ignore this one.
+    bool suppressChildSearch;	// user wants to ignore children of
 					// this one.  Important for top-level
 					// resources, which are in all foci.
 };

@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.11  1994/10/25 22:08:13  hollings
+ * Revision 1.12  1995/02/16 08:19:22  markc
+ * Changed Boolean to bool
+ *
+ * Revision 1.11  1994/10/25  22:08:13  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -99,13 +102,13 @@ class searchHistoryNode {
     public:
 	searchHistoryNode(hypothesis*, focus*, timeInterval*, int estyle);
 	float cost();
-	Boolean print(int parent, FILE *fp);
+	bool print(int parent, FILE *fp);
 	hypothesis *why;
 	focus *where;
 	timeInterval *when;
-	Boolean ableToEnable;		// refine has no data.
-	Boolean resetActive();
-	Boolean marked;			// for print.
+	bool ableToEnable;		// refine has no data.
+	bool resetActive();
+	bool marked;			// for print.
 	searchHistoryNodeList *children;
 	searchHistoryNodeList parents;
 	void resetStatus();
@@ -115,25 +118,25 @@ class searchHistoryNode {
 	hintList *hints;
 	static stringPool shgNames;
 	List<datum *>	*metricFoci;
-	void changeStatus(Boolean newstat);
-	void changeActive(Boolean newact);
-	void changeTested(Boolean newtested);
-	void changeSuppressed(Boolean nv) { suppressed = nv; }
-	Boolean getActive() { return(active); }
-	Boolean getStatus() { return(status); }
-	Boolean getBeenTrue() { return(beenTrue); }
-	Boolean getSuppressed() { return(suppressed); }
+	void changeStatus(bool newstat);
+	void changeActive(bool newact);
+	void changeTested(bool newtested);
+	void changeSuppressed(bool nv) { suppressed = nv; }
+	bool getActive() { return(active); }
+	bool getStatus() { return(status); }
+	bool getBeenTrue() { return(beenTrue); }
+	bool getSuppressed() { return(suppressed); }
     private:
 	void changeColor();		// update node color.
-	Boolean beenActive;		// ever been tried
-	Boolean active;			// currently at or along path to 	
+	bool beenActive;		// ever been tried
+	bool active;			// currently at or along path to 	
 					// root of item(s) under test.
-	Boolean beenTested;	
-	Boolean status;			// true not not true.
-	Boolean beenTrue;		// has it ever been true??
+	bool beenTested;	
+	bool status;			// true not not true.
+	bool beenTrue;		// has it ever been true??
 	int style;			// current color
 	int edgeStyle;                  // which axis is refinement on?
-	Boolean suppressed;		// don't search here
+	bool suppressed;		// don't search here
 };
 
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
