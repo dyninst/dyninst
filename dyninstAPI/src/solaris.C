@@ -719,8 +719,10 @@ bool process::executingSystemCall() {
    prstatus theStatus;
    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
      if (theStatus.pr_syscall > 0) {
+#if defined(SYSCALL_DEBUG)
        sprintf(errorLine,"--> (pid=%d) trying to launch inferiorRPC in the middle of a syscall (pr_syscall=%d)\n",pid,theStatus.pr_syscall);
        logLine(errorLine);
+#endif
        return(true);
      }
    } else assert(0);
