@@ -1678,12 +1678,18 @@ void metricDefinitionNode::updateValue(time64 wallTime, int new_cumulative_value
    const timeStamp sampleTime = wallTime / 1000000.0;
       // yuck; fp division is expensive!!!
    
-   // report only the delta from the last sample
-   assert(new_cumulative_value >= cumulativeValue_float);
+   // report only the delta from the last sample, if style is EventCounter
+   if (style_ == EventCounter )
+      assert(new_cumulative_value >= cumulativeValue_float);
 
    // note: right now, cumulativeValue is a float; we should change it to a union
    // of {float, int, long, long long, double}
-   const float delta_value = new_cumulative_value - cumulativeValue_float;
+   float delta_value ;
+   if (style_ == EventCounter)
+     delta_value = new_cumulative_value - cumulativeValue_float;
+   else
+     delta_value = new_cumulative_value ;
+
    // note: change delta_value to "int" once we get cumulativeValue_int implemented;
 
    // updating cumulativeValue_float is much easier than the float version of
