@@ -99,7 +99,7 @@ int PDYN_get_pvmd_tid();
 
 void PDYN_goodbye(const char *msg)
 {
-  pvm_perror(msg);
+  pvm_perror((char *)msg);
   pvm_exit();
 }
 

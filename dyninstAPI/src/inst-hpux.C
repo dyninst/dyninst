@@ -56,6 +56,7 @@
 #include "perfStream.h"
 #include "context.h"
 #include "showerror.h"
+#include "dyninstP.h" // isApplicationPaused()
 
 string process::getProcessStatus() const {
    char ret[80];
@@ -120,7 +121,6 @@ int flushPtrace()
 {
     return(0);
 }
-
 
 /*
  * Define the various classes of library functions to inst. 

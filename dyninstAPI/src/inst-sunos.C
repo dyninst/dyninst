@@ -43,6 +43,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.42  1996/10/31 08:50:33  tamches
+ * removed a warning
+ *
  * Revision 1.41  1996/10/18 23:54:08  mjrg
  * Solaris/X86 port
  *
@@ -85,6 +88,7 @@
  *
  */
 
+#include "dyninstP.h" // isApplicationPaused()
 #include "os.h"
 #include "metric.h"
 #include "dyninst.h"
@@ -302,4 +306,3 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
 	return(0.0);
     }
 }
-
