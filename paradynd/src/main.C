@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.99 2001/12/05 22:35:49 bernat Exp $
+// $Id: main.C,v 1.100 2001/12/06 01:36:57 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -118,9 +118,9 @@ static int pd_attpid; // by Ana
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 static string pd_flavor;
-#if !defined(i386_unknown_nt4_0)
+// Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
-#endif
+
 
 void configStdIO(bool closeStdIn)
 {
@@ -189,26 +189,15 @@ void cleanUpAndExit(int status) {
   P_exit(status);
 }
 
-// TODO
-// mdc - I need to clean this up
-
-// ANa introduces one new parameter
-
 bool
 RPC_undo_arg_list (string &flavor, unsigned argc, char **argv, 
 		   string &machine, int &well_known_socket,int &termWin_port, int &flag, int &attpid)
 {
   char *ptr;
   int c;
-  extern int optind;
   extern char *optarg;
   bool err = false;
-#if !defined(i386_unknown_linux2_0)
   const char optstring[] = "p:P:vVL:m:l:z:a:r:";
-#else
-  // Linux's optstring has slightly different behavior than default
-  const char optstring[] = "+p:P:vVL:m:l:z:a:r:";
-#endif
 
   // Defaults (for ones that make sense)
   machine = "localhost";
@@ -218,7 +207,7 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **argv,
   termWin_port = 0;
   attpid = 0;
   bool stop = false;
-  while ( (c = getopt(argc, argv, optstring)) != EOF && !stop)
+  while ( (c = P_getopt(argc, argv, optstring)) != EOF && !stop)
     switch (c) {
     case 'p':
       // Port number to connect to for the Paradyn command port
@@ -522,7 +511,6 @@ InitForPVM( char* argv[], const string& pd_machine )
 int
 main( int argc, char* argv[] )
 {
-  
   PauseIfDesired();
   initialize_debug_flag();
   
