@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.37 2003/10/21 18:22:27 bernat Exp $
+ * $Id: inst-ia64.C,v 1.38 2003/10/21 18:30:01 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1682,7 +1682,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	} /* end installBaseTramp() */
 
 /* Required by inst.C */
-trampTemplate * findAndInstallBaseTramp( process * proc, instPoint * & location,
+trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 					returnInstance * & retInstance,
 					bool trampRecursiveDesired,
 					bool noCost, bool & deferred ) {
@@ -1710,7 +1710,7 @@ trampTemplate * findAndInstallBaseTramp( process * proc, instPoint * & location,
 	retInstance = new returnInstance( 3, longBranchInstruction, 16, returnFrom, 16 );
 
 	return installedBaseTramp;
-	} /* end findAndInstallBaseTramp() */
+	} /* end findOrInstallBaseTramp() */
 
 void generateMTpreamble(char *, Address &, process *) {
 	assert( 0 );	// We don't yet handle multiple threads.

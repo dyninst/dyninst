@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.8 2003/10/21 18:22:38 bernat Exp $
+// $Id: aix-ptrace.C,v 1.9 2003/10/21 18:30:00 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1269,7 +1269,7 @@ Address dyn_lwp::getCurrentSyscall(Address aixHACK) {
         // is getting complicated)
         returnInstance *retInstance = NULL;
         bool defer;
-        baseTramp = findAndInstallBaseTramp(proc_,
+        baseTramp = findOrInstallBaseTramp(proc_,
                                             funcExits[0],
                                             retInstance,
                                             false,
