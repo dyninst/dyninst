@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.64 2000/12/13 19:59:02 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.65 2000/12/19 17:10:37 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2294,7 +2294,8 @@ void func33_1()
 {
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
     
     /* The only possible failures occur in the mutator. */
 
@@ -2344,7 +2345,8 @@ void func34_1()
 {
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 34 ] = TRUE;

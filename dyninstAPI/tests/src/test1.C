@@ -2707,7 +2707,8 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
 
     int i;
 
@@ -3008,7 +3009,8 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
 #if defined(sparc_sun_solaris2_4) ||\
     defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1)
+    defined(rs6000_ibm_aix4_1) ||\
+    defined(alpha_dec_osf4_0)
     int i;
 
     BPatch_function *func2 = appImage->findFunction("func34_2");
