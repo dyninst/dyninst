@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.53  1996/04/01 22:34:56  tamches
+# removed tclSelectionState
+#
 # Revision 1.52  1996/02/12 18:31:35  tamches
 # shgInitialize now takes 3 params
 #
@@ -90,7 +93,7 @@ proc changeApplicState {newVal} {
 }
 
 proc drawToolBar {} {
-    global fmap metMenuCtr tclSelectionState
+    global fmap metMenuCtr
 
     # setup fontmap for dumping postscript files
     set fmap(-*-Times-Bold-R-Normal--*-80*)  \
@@ -118,7 +121,6 @@ proc drawToolBar {} {
     # unique id for each menu window
     set metMenuCtr 0 
     # state = 1 during met/res selection, 0 otherwise
-    set tclSelectionState 0 
     if {[winfo depth .] > 1} {
       # . created before options are added
       . config -bg #e830e830e830
