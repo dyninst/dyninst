@@ -45,9 +45,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.13  1997/09/24 19:27:55  tamches
-/* XFontStruct --> Tk_Font for the tcl 8.0 release
+/* Revision 1.14  1997/10/28 20:37:00  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.13  1997/09/24 19:27:55  tamches
+ * XFontStruct --> Tk_Font for the tcl 8.0 release
+ *
  * Revision 1.12  1996/08/16 21:07:46  tamches
  * updated copyright for release 1.1
  *
@@ -87,9 +90,9 @@
 #include "graphicalPath.h"
 
 #ifndef PARADYN
-#include "DictionaryLite.h"
+#include "Dictionary.h"
 #else
-#include "util/h/DictionaryLite.h"
+#include "util/h/Dictionary.h"
 #endif
 
 // Note: whereAxis is no longer a templated type.
@@ -135,7 +138,7 @@ class whereAxis {
       // for example, have different color configurations.
    where4tree<whereAxisRootNode> *rootPtr;
 
-   dictionary_lite<resourceHandle, where4tree<whereAxisRootNode> *> hash;
+   dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
       // associative array: resource unique id --> its corresponding node
 
    string horizSBName; // e.g. ".nontop.main.bottsb"

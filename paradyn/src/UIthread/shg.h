@@ -45,9 +45,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.18  1997/09/24 19:21:16  tamches
-/* XFontStruct --> Tk_Font
+/* Revision 1.19  1997/10/28 20:36:15  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.18  1997/09/24 19:21:16  tamches
+ * XFontStruct --> Tk_Font
+ *
  * Revision 1.17  1997/01/15 00:13:41  tamches
  * removed some warnings
  *
@@ -88,9 +91,9 @@
 #define _SHG_H_
 
 #ifndef PARADYN
-#include "DictionaryLite.h"
+#include "Dictionary.h"
 #else
-#include "util/h/DictionaryLite.h"
+#include "util/h/Dictionary.h"
 #endif
 
 #ifdef PARADYN
@@ -149,11 +152,11 @@ class shg {
       // rechecked at each use
 
    where4tree<shgRootNode> *rootPtr;
-   dictionary_lite<unsigned, where4tree<shgRootNode> *> hash;
+   dictionary_hash<unsigned, where4tree<shgRootNode> *> hash;
       // associative array: shg-node-id --> its corresponding data node
-   dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
+   dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
       // associative array: shg-node --> its parent
-   dictionary_lite<unsigned, vector< where4tree<shgRootNode>* > > shadowNodeHash;
+   dictionary_hash<unsigned, vector< where4tree<shgRootNode>* > > shadowNodeHash;
       // associative array: shg-node-id --> list of shadow nodes
       // An entry exists in this dictionary _only_ if shadow node(s) exist
 

@@ -45,10 +45,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.16  1997/09/24 19:29:05  tamches
-/* XFontStruct --> Tk_Font; use of Tk_GetFontMetrics
-/* for tcl 8.0
+/* Revision 1.17  1997/10/28 20:37:01  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.16  1997/09/24 19:29:05  tamches
+ * XFontStruct --> Tk_Font; use of Tk_GetFontMetrics
+ * for tcl 8.0
+ *
  * Revision 1.15  1996/11/26 16:07:08  naim
  * Fixing asserts - naim
  *
@@ -157,7 +160,7 @@ whereAxis::whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
 		     const string &iVertSBName,
 		     const string &iNavigateMenuName) :
 	     consts(in_interp, theTkWindow),
-	     hash(&whereAxis::hashFunc, 32),
+	     hash(&whereAxis::hashFunc),
 	     horizSBName(iHorizSBName),
 	     vertSBName(iVertSBName),
 	     navigateMenuName(iNavigateMenuName) {
@@ -460,7 +463,7 @@ whereAxis::whereAxis(ifstream &infile, Tcl_Interp *in_interp,
 		     const char *iHorizSBName, const char *iVertSBName,
 		     const char *iNavigateMenuName) :
                               consts(in_interp, theTkWindow),
-			      hash(hashFunc, 32),
+			      hash(hashFunc),
                               horizSBName(iHorizSBName),
                               vertSBName(iVertSBName),
                               navigateMenuName(iNavigateMenuName) {

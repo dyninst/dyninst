@@ -43,6 +43,9 @@
 
 /*
  * $Log: pdLogo.h,v $
+ * Revision 1.5  1997/10/28 20:35:55  tamches
+ * dictionary_lite --> dictionary_hash
+ *
  * Revision 1.4  1996/08/16 21:07:02  tamches
  * updated copyright for release 1.1
  *
@@ -68,10 +71,10 @@
 #include "tkTools.h"
 
 #ifdef PARADYN
-#include "util/h/DictionaryLite.h"
+#include "util/h/Dictionary.h"
 #include "util/h/String.h"
 #else
-#include "DictionaryLite.h"
+#include "Dictionary.h"
 #include "String.h"
 #endif
 
@@ -104,8 +107,8 @@ class pdLogo {
 
    tkInstallIdle installer;
 
-   static dictionary_lite<string, logoStruct> all_installed_logos;
-   static dictionary_lite<string, pdLogo *> all_logos;
+   static dictionary_hash<string, logoStruct> all_installed_logos;
+   static dictionary_hash<string, pdLogo *> all_logos;
    static tcl_cmd_installer createPdLogo; // tkTools.C
 
  private:

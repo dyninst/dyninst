@@ -46,9 +46,12 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.63  1997/10/10 00:21:13  tamches
-/* removed a warning
+/* Revision 1.64  1997/10/28 20:35:31  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.63  1997/10/10 00:21:13  tamches
+ * removed a warning
+ *
  * Revision 1.62  1997/06/02 19:41:57  karavan
  * added new call registerValidVisis.  This single call from Visi Manager to
  * UI thread at startup registers all valid visis as specified in a config
@@ -182,7 +185,7 @@ void UIM::enablePauseOrRun() {
 // ****************************************************************
 
 unsigned metric_name_hash(const unsigned &metid) {return metid;}
-dictionary_lite<unsigned, string> UI_all_metric_names(metric_name_hash);
+dictionary_hash<unsigned, string> UI_all_metric_names(metric_name_hash, 16);
    // met-id (not index!) to name
 bool UI_all_metrics_set_yet = false;
 

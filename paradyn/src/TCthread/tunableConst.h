@@ -43,6 +43,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.7  1997/10/28 20:35:08  tamches
+ * dictionary_lite --> dictionary_hash
+ *
  * Revision 1.6  1996/08/16 21:04:37  tamches
  * updated copyright for release 1.1
  *
@@ -73,7 +76,7 @@
 #include <iostream.h>
 #include <string.h>
 #include "util/h/String.h"
-#include "util/h/DictionaryLite.h"
+#include "util/h/Dictionary.h"
 
 typedef enum tunableUse { developerConstant, userConstant };
 typedef enum tunableType { tunableBoolean, tunableFloat };
@@ -155,7 +158,6 @@ class tunableConstantBase {
 
 class tunableBooleanConstant : public tunableConstantBase {
  friend class tunableConstantRegistry;
- friend class pair<string, tunableBooleanConstant>;
 
  private:
    bool value;
@@ -191,7 +193,6 @@ class tunableBooleanConstant : public tunableConstantBase {
 
 class tunableFloatConstant : public tunableConstantBase {
  friend class tunableConstantRegistry;
- friend class pair<string, tunableFloatConstant>;
 
  private:
    float value;
@@ -240,8 +241,8 @@ class tunableFloatConstant : public tunableConstantBase {
 
 class tunableConstantRegistry {
  private:
-   typedef dictionary_lite<string, tunableBooleanConstant> tunBoolAssocArrayType;
-   typedef dictionary_lite<string, tunableFloatConstant>   tunFloatAssocArrayType;
+   typedef dictionary_hash<string, tunableBooleanConstant> tunBoolAssocArrayType;
+   typedef dictionary_hash<string, tunableFloatConstant>   tunFloatAssocArrayType;
 
    // the central registry is comprised of these two arrays:
    static tunBoolAssocArrayType  allBoolTunables;

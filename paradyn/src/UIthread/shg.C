@@ -45,10 +45,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.26  1997/09/24 19:21:56  tamches
-/* XFontStruct --> Tk_Font
-/* use of Tk_GetFontMetrics
+/* Revision 1.27  1997/10/28 20:36:16  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.26  1997/09/24 19:21:56  tamches
+ * XFontStruct --> Tk_Font
+ * use of Tk_GetFontMetrics
+ *
  * Revision 1.25  1996/11/26 16:06:56  naim
  * Fixing asserts - naim
  *
@@ -157,8 +160,9 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	 const string &iCurrItemLabelName,
 	 bool iHideTrue, bool iHideFalse, bool iHideUnknown, bool iHideNever,
 	 bool iHideActive, bool iHideInactive, bool iHideShadow) :
-	    hash(&hashFunc, 32), hash2(&hashFunc2, 32),
-	    shadowNodeHash(&hashFuncShadow, 32),
+	    hash(&hashFunc),
+            hash2(&hashFunc2),
+	    shadowNodeHash(&hashFuncShadow),
 	    consts(iInterp, theTkWindow),
 	    theShgConsts(iInterp, theTkWindow),
 	    thePhaseId(iPhaseId),

@@ -45,9 +45,12 @@
 */
 
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.38  1997/10/10 00:22:07  tamches
-/* removed a warning
+/* Revision 1.39  1997/10/28 20:36:30  tamches
+/* dictionary_lite --> dictionary_hash
 /*
+ * Revision 1.38  1997/10/10 00:22:07  tamches
+ * removed a warning
+ *
  * Revision 1.37  1997/06/02 19:43:53  karavan
  * changed visi from menu to button.
  * eliminated uimpd drawStartVisiMenu command
@@ -238,7 +241,7 @@ vector<numlist> parseSelections(vector<numlist> &theHierarchy,
        0: "processVisiSelection"
        1: list of selected metrics
 */
-extern dictionary_lite<unsigned, string> UI_all_metric_names;
+extern dictionary_hash<unsigned, string> UI_all_metric_names;
 extern bool UI_all_metrics_set_yet;
 
 int processVisiSelectionCmd(ClientData,

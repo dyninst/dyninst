@@ -43,6 +43,9 @@
 
 /*
  * $Log: pdLogo.C,v $
+ * Revision 1.3  1997/10/28 20:35:56  tamches
+ * dictionary_lite --> dictionary_hash
+ *
  * Revision 1.2  1996/08/16 21:07:01  tamches
  * updated copyright for release 1.1
  *
@@ -53,8 +56,9 @@
 
 #include "pdLogo.h"
 
-dictionary_lite<string, pdLogo::logoStruct> pdLogo::all_installed_logos(string::hash);
-dictionary_lite<string, pdLogo *> pdLogo::all_logos(string::hash);
+dictionary_hash<string, pdLogo::logoStruct> pdLogo::all_installed_logos(string::hash,
+                                                                       9);
+dictionary_hash<string, pdLogo *> pdLogo::all_logos(string::hash, 9);
 
 bool pdLogo::tryFirst() {
    if (theLogo != None)
