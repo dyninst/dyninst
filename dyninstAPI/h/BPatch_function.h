@@ -152,7 +152,7 @@ public:
     bool isSharedLib() const;
 
 #ifdef IBM_BPATCH_COMPAT
-    bool getLineNumbers(unsigned int &start, unsigned int &end);
+    virtual bool getLineNumbers(unsigned int &start, unsigned int &end);
 
     void *getAddress();
     
