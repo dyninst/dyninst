@@ -41,6 +41,11 @@
  */
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.19  1998/01/28 16:31:50  czhang
+ * Check for obsolete words "setCounter", "subCounter", "addCounter",
+ * "functionCall".  If there's any, bail out and warn user.  Fixed a bug about
+ * the inaccuracy of the line number reporting.
+ *
  * Revision 1.18  1998/01/19 21:05:53  czhang
  * Massive changes for MDL expression.
  * Changes to tokens are in metScanner.l.  This includes adding of new
@@ -158,12 +163,6 @@ int getScanChar(FILE *file)
 
 #ifdef FLEX_SCANNER
 #undef YY_INPUT
-//
-//chun??  This doesn't seem quite right. It's trying to make the input
-// processing to occur one character at a time, but getScanChar()
-// consumes a whole line. It's like keeping a private buffer other than
-// that maintained by flex.
-//
 #define YY_INPUT(buf,result,max_size)   \
 {                                       \
     int c = getScanChar(yyin);		\
@@ -273,6 +272,22 @@ COMMENT	{SLASH}{SLASH}
 "void"		{ return(tVOID); }
 "items"         { return(tITEMS); }
 "library"       { return(tLIBRARY); }
+"setCounter"    { yyerror("\'setCounter\' is obsolete. Please make sure "
+                    "that you are using a up-to-date paradyn.rc.");
+                  exit(1); 
+                }
+"subCounter"    { yyerror("\'subCounter\' is obsolete. Please make sure "
+                    "that you are using a up-to-date paradyn.rc.");
+                  exit(1); 
+                }
+"addCounter"    { yyerror("\'addCounter\' is obsolete. Please make sure "
+                    "that you are using a up-to-date paradyn.rc.");
+                  exit(1); 
+                }
+"functionCall"  { yyerror("\'functionCall\' is obsolete.  It's replaced "
+                    "by \'Call\'");
+                  exit(1); 
+                }
 [Tt][Rr][Uu][Ee]	{ return(tTRUE);}
 [Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
 {FIX}		{ 
@@ -280,7 +295,7 @@ COMMENT	{SLASH}{SLASH}
 		  return(tFLOAT);
 		}
 {COMMENT}	BEGIN(mdlcomment);
-<mdlcomment>[^\n]*\n	{lineNo++; BEGIN(INITIAL); }
+<mdlcomment>[^\n]*\n	{ BEGIN(INITIAL); }
 {IDENT}		{
             yylval.sp = new string(yytext);
             return(tIDENT);
@@ -293,7 +308,7 @@ COMMENT	{SLASH}{SLASH}
 		}
 [ \n\t]+		{ }
 \"              BEGIN(mdlstr);
-<mdlstr>\n	{ lineNo++; yyerror("Unterminated string literal"); }
+<mdlstr>\n	{ yyerror("Unterminated string literal"); }
 <mdlstr>\"	{ /* we are done with the string */
 			BEGIN(INITIAL); return (tLITERAL); 
 			}
@@ -304,10 +319,12 @@ COMMENT	{SLASH}{SLASH}
 void yyerror(const char *message)
 {
     int i;
-    printf("line %d, col %d:%s\n", lineNo, curr, message);
+    // curr is one pass the column of the current token --chun
+    printf("line %d, col %d: %s\n", lineNo, curr-1, message);
     printf(line);
-    for (i=0; i < curr; i++) {
+    for (i=0; i < curr-2; i++) {
         printf(" ");
     }
     printf("^\n");
 }
+
