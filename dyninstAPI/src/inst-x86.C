@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.147 2003/11/07 22:56:17 schendel Exp $
+ * $Id: inst-x86.C,v 1.148 2003/11/24 17:37:50 schendel Exp $
  */
 
 #include <iomanip>
@@ -69,6 +69,7 @@
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
@@ -1588,7 +1589,16 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    // get the current instruction that is being executed. If the PC is at a
    // instruction that is being relocated, we must change the PC.
 
-   Frame frame = proc->getRepresentativeLWP()->getActiveFrame();
+   // The code in this function looks like it needs to be updated for
+   // multi-threaded processes.
+
+   dyn_lwp *lwp_to_use = NULL;
+   if(process::IndependentLwpControl() && proc->getRepresentativeLWP() ==NULL)
+      lwp_to_use = proc->getInitialThread()->get_lwp();
+   else
+      lwp_to_use = proc->getRepresentativeLWP();
+
+   Frame frame = lwp_to_use->getActiveFrame();
    Address currentPC = frame.getPC();
 
    // emulate the instructions before the point
@@ -1598,7 +1608,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       --u;
       if (currentPC == origAddr) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getRepresentativeLWP()->changePC(currAddr, NULL);
+         lwp_to_use->changePC(currAddr, NULL);
       }
 
       unsigned newSize = relocateInstruction(location->insnBeforePt(u),
@@ -1639,7 +1649,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getRepresentativeLWP()->changePC(currAddr, NULL);
+         lwp_to_use->changePC(currAddr, NULL);
       }
 
       jccTarget =
@@ -1750,7 +1760,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getRepresentativeLWP()->changePC(currAddr, NULL);
+         lwp_to_use->changePC(currAddr, NULL);
       }
 
       unsigned newSize =
@@ -1845,7 +1855,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    for (u = 0; u < location->insnsAfter(); u++) {
       if (currentPC == origAddr) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         proc->getRepresentativeLWP()->changePC(currAddr, NULL);
+         lwp_to_use->changePC(currAddr, NULL);
       }
       unsigned newSize = relocateInstruction(location->insnAfterPt(u), 
                                              origAddr, currAddr, insn);
