@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.115 2002/08/27 21:19:20 mirg Exp $
+// $Id: ast.C,v 1.116 2002/08/29 04:55:19 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1596,7 +1596,7 @@ Address AstNode::generateCode_phase2(process *proc,
 			    dest, insn, base, noCost);
 	    else 
 #endif
-		src = emitR(getParamOp, (Register)oValue, Null_Register,
+		src = emitR(getParamOp, (Address)oValue, Null_Register,
 			    dest, insn, base, noCost);
 	    if (src != dest) {
 		// Move src to dest. Can't simply return src, since it was not
