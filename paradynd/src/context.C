@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.46  1996/12/06 09:30:10  tamches
+ * check for null processVec entry
+ *
  * Revision 1.45  1996/11/08 23:41:02  tamches
  * change from 3-->1 shm segment per process
  *
@@ -182,7 +185,8 @@ bool continueAllProcesses()
 {
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
-	processVec[u]->continueProc();
+       if (processVec[u] != NULL)
+	  processVec[u]->continueProc();
 
     if (!appPause) return(false);
 
@@ -208,6 +212,7 @@ bool pauseAllProcesses()
 
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
+       if (processVec[u] != NULL)
          processVec[u]->pause();
 
     if (changed)
