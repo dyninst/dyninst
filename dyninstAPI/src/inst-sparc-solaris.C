@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.117 2002/12/20 07:49:57 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.118 2003/01/02 19:51:36 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -50,6 +50,7 @@
 
 #include <sys/utsname.h>
 #include <stdlib.h>
+#include <strstream.h>
 
 extern bool relocateFunction(process *proc, instPoint *&location);
 extern bool branchInsideRange(instruction insn, Address branchAddress, 
@@ -1354,67 +1355,66 @@ Register emitFuncCall(opCode op,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
-        assert(op == callOp);
-        Address addr;
-	bool err;
-	pdvector <Register> srcs;
-	void cleanUpAndExit(int status);
-
-	if (calleefunc) {
-	  addr = calleefunc->getEffectiveAddress(proc);
-        }
-	else {
-
-	     addr = proc->findInternalAddress(callee, false, err);
-
-	     if (err) {
-		  function_base *func = proc->findOneFunction(callee);
-		  if (!func) {
-		       ostrstream os(errorLine, 1024, ios::out);
-		       os << "Internal error: unable to find addr of " << callee << endl;
-		       showErrorCallback(80, (const char *) errorLine);
-		       P_abort();
-		  }
-		  // TODO: is this correct or should we get relocated address?
-		  addr = func->getAddress(0);
-	     }
-	}
-	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, i, base,
-							    noCost, ifForks,
-							    location));
-
-	// TODO cast
-	instruction *insn = (instruction *) ((void*)&i[base]);
-
-        for (unsigned u=0; u<srcs.size(); u++){
-            if (u >= 5) {
-	         string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
-		 fprintf(stderr, msg.c_str());
-	         showErrorCallback(94,msg);
-		 cleanUpAndExit(-1);
-            }
-            genSimpleInsn(insn, ORop3, 0, srcs[u], u+8); insn++;
-            base += sizeof(instruction);
-	    rs->freeRegister(srcs[u]);
-        }
-
-        // As Ling pointed out to me, the following is rather inefficient.  It does:
-        //   sethi %hi(addr), %o5
-        //   jmpl %o5 + %lo(addr), %o7   ('call' pseudo-instr)
-        //   nop
-        // We can do better:
-        //   call <addr>    (but note that the call true-instr is pc-relative jump)
-        //   nop
-        generateSetHi(insn, addr, 13); insn++;
-        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 15); insn++;
-        generateNOOP(insn);
-
-        base += 3 * sizeof(instruction);
-
-        // return value is the register with the return value from the function.
-        // This needs to be %o0 since it is back in the caller's scope.
-        return(REG_O(0));
+   assert(op == callOp);
+   Address addr;
+   bool err;
+   pdvector <Register> srcs;
+   void cleanUpAndExit(int status);
+   
+   if (calleefunc) {
+      addr = calleefunc->getEffectiveAddress(proc);
+   }
+   else {      
+      addr = proc->findInternalAddress(callee, false, err);
+      
+      if (err) {
+         function_base *func = proc->findOneFunction(callee);
+         if (!func) {
+            ostrstream os(errorLine, 1024, ios::out);
+            os << "Internal error: unable to find addr of " << callee << endl;
+            showErrorCallback(80, (const char *) errorLine);
+            P_abort();
+         }
+         // TODO: is this correct or should we get relocated address?
+         addr = func->getAddress(0);
+      }
+   }
+   for (unsigned u = 0; u < operands.size(); u++)
+      srcs.push_back(operands[u]->generateCode_phase2(proc, rs, i, base,
+                                                      noCost, ifForks,
+                                                      location));
+   
+   // TODO cast
+   instruction *insn = (instruction *) ((void*)&i[base]);
+   
+   for (unsigned u=0; u<srcs.size(); u++){
+      if (u >= 5) {
+         string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         fprintf(stderr, msg.c_str());
+         showErrorCallback(94,msg);
+         cleanUpAndExit(-1);
+      }
+      genSimpleInsn(insn, ORop3, 0, srcs[u], u+8); insn++;
+      base += sizeof(instruction);
+      rs->freeRegister(srcs[u]);
+   }
+   
+   // As Ling pointed out to me, the following is rather inefficient.  It does:
+   //   sethi %hi(addr), %o5
+   //   jmpl %o5 + %lo(addr), %o7   ('call' pseudo-instr)
+   //   nop
+   // We can do better:
+   //   call <addr>    (but note that the call true-instr is pc-relative jump)
+   //   nop
+   generateSetHi(insn, addr, 13); insn++;
+   genImmInsn(insn, JMPLop3, 13, LOW10(addr), 15); insn++;
+   generateNOOP(insn);
+        
+   base += 3 * sizeof(instruction);
+   
+   // return value is the register with the return value from the function.
+   // This needs to be %o0 since it is back in the caller's scope.
+   return(REG_O(0));
 }
  
 /****************************************************************************/
@@ -2638,10 +2638,10 @@ bool pd_Function::findInstPoints(const image *owner) {
     // we will need to relocate the function and add nops after exit point
     // instead of claiming prior instructions
     Address insnAddr    = firstAddress;
-    int numInstructions = size() / sizeof(instruction);
+    int num_instructions = size() / sizeof(instruction);
  
     // Iterate over all instructions
-    for (int j=0; j < numInstructions; j++) {
+    for (int j=0; j < num_instructions; j++) {
 
       // Grab the instruction
       instr = instructions[j];
