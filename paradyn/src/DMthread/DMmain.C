@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.125 1999/09/10 14:28:59 nash Exp $
+// $Id: DMmain.C,v 1.126 1999/11/09 19:24:47 cain Exp $
 
 #include <assert.h>
 extern "C" {
@@ -144,8 +144,17 @@ extern void histFoldCallBack(timeStamp, void*, bool);
 void dynRPCUser::CallGraphFillDone(string exe_name){
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
-  cg->callGraphInitialized = true;
+  cg->CallGraphFillDone();
 }
+
+void dynRPCUser::CallGraphAddDynamicCallSiteCallback(string exe_name, string parent){
+  CallGraph *cg;
+  resource *r;
+  cg = CallGraph::FindCallGraph(exe_name);
+  assert(r = resource::string_to_resource(parent));
+  cg->AddDynamicCallSite(r);
+}
+
 
 void dynRPCUser::CallGraphAddProgramCallback(string exe_name){
   CallGraph::AddProgram(exe_name);
@@ -204,16 +213,37 @@ void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name,
     assert(cg);
     // resource whose name is passed in <resource> should have been previously
     //  registered w/ data manager....
-    assert(r = resource::string_to_resource(r_name));
+    r = resource::string_to_resource(r_name);
+    assert(r);
 
     // convert vector of resource names to vector of resource *'s....
     for(u=0;u<children.size();u++) {
-        assert(child = resource::string_to_resource(children[u]));
-	children_as_resources += child;
+      child = resource::string_to_resource(children[u]);
+      assert(child);
+      children_as_resources += child;
     }
 
     cg->SetChildren(r, children_as_resources);
 }
+
+void dynRPCUser::AddCallGraphDynamicChildCallback(string exe_name,
+						  string parent, string child){
+  resource *p, *c;
+  CallGraph *cg;
+  cg = CallGraph::FindCallGraph(exe_name);
+  assert(cg);
+  
+  p = resource::string_to_resource(parent);
+  assert(p);
+  c = resource::string_to_resource(child);
+  assert(c);
+  perfConsult->notifyDynamicChild(p->getHandle(),c->getHandle());
+  cg->AddDynamicallyDeterminedChild(p,c);
+}
+
+
+
+
 
 //
 // IO from application processes.

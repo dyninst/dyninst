@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.39 1999/05/25 22:35:43 nash Exp $
+// $Id: DMdaemon.h,v 1.40 1999/11/09 19:24:47 cain Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -285,6 +285,9 @@ class paradynDaemon: public dynRPCUser {
 	static bool continueProcess(unsigned pid);
   	static bool pauseAll();	
 	static bool continueAll();
+	//Sends message to each daemon telling it to instrument
+	//the dynamic call sites in a certain function.
+	static bool AllMonitorDynamicCallSites(string name);
 	static bool setInstSuppress(resource *, bool);
         static void enableData(vector<metricInstance *> *miVec, 
 			       vector<bool> *done,

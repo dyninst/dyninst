@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.3 1999/07/26 21:47:33 cain Exp $
+// $Id: CallGraph.h,v 1.4 1999/11/09 19:24:46 cain Exp $
 
 /**********************************************************
  *
@@ -88,6 +88,14 @@ class CallGraph {
     //traversing the call graph in displayCallGraph()
     dictionary_hash <resource *, int> visited;
 
+    //Keeps track of those functions (that contain dynamic call sites)
+    //for which we have already issued requests to the daemon to
+    //instrument those dynamic call sites
+    dictionary_hash<resource *, int> instrumented_call_sites;
+    
+    //Vector holding all of those functions that contain dynamic call sites
+    vector<resource *> dynamic_call_sites;
+
     // pointer to root resource for code hierarchy....  This is the resource 
     //  with which searches on a call graph should start.
     // Currently, "/Code" resource
@@ -118,7 +126,7 @@ class CallGraph {
 
  public:
     bool callGraphInitialized;
-
+    bool callGraphDisplayed;
     CallGraph(string exe_name);
     CallGraph(string exe_name, resource *nroot);
 
@@ -153,6 +161,14 @@ class CallGraph {
     // returns false if c was previously known as child (and c not added),
     //  true otherwise (and c added)....
     bool AddDynamicallyDeterminedChild(resource *r, resource *c);
+
+    //Used to notify the call graph of the functions that contain
+    //dynamic call sites.
+    void AddDynamicCallSite(resource *parent);
+
+    //Used to tell the call graph that we are done adding nodes,
+    //so the call graph can create the display if requested.
+    void CallGraphFillDone();
 
     // Equivalent to resource::getChildren - called by the magnify manager
     //  to magnify a resource - but magnify leading to different children
@@ -194,8 +210,20 @@ class CallGraph {
     
     string getExeAndPathName(){ return executableAndPathName;}
 
-    int getId() {return program_id;}
+    int getId() const {return program_id;}
+
+    //Calls isDescendent() for each call graph that we know about
+    //(There may be more than one call graph, however this is 
+    //currently unimplemented).
+    static bool isDescendentOfAny(resource *child, const resource *parent);
+
+    //Returns true if resource child is a descendent of resource
+    //parent in the call graph.
+    bool isDescendent(resource *child, const resource *parent, 
+		      dictionary_hash <resource *, int> have_visited);
 };
+
+
 
 
 

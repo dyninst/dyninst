@@ -39,13 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.4 1999/08/09 05:40:07 csserra Exp $
+// $Id: CallGraph.C,v 1.5 1999/11/09 19:24:46 cain Exp $
 
 #include "CallGraph.h"
+#include "DMdaemon.h"
 #include "paradyn/src/met/mdl.h"
-#include "dyninstAPI/src/util.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/Types.h" // Address
+
+inline unsigned intHash(const int &val) {
+  return val;
+}
+
 // constructors for static data members in call graph class....
 dictionary_hash<int, CallGraph *> CallGraph::directory(intHash);
 resource *CallGraph::rootResource = NULL;
@@ -94,13 +99,18 @@ int CallGraph::name2id(string exe_name){
 
 CallGraph::CallGraph(string exe_name) : 
     children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
+    instrumented_call_sites(hash_dummy),
     executableAndPathName(exe_name)
 {
   resourceHandle h;
   program_id = last_id_issued;
   last_id_issued++;
   callGraphInitialized = false;
-  assert(resource::string_to_handle("/Code", &h));
+  callGraphDisplayed = false;
+  if(!resource::string_to_handle("/Code", &h)){
+    cerr << "Problem converting /Code to resource\n";
+    assert(0);
+  }
   rootResource = resource::handle_to_resource(h);
   assert(rootResource != NULL);
   executableName =stripPathFromExecutableName(executableAndPathName);
@@ -108,22 +118,26 @@ CallGraph::CallGraph(string exe_name) :
   //  know to magnify from it to the entryFunction (specified in 
   //  SetEntryFunc)....
   this->AddResource(rootResource);
+  dynamic_call_sites.resize(0);
 }
 
 CallGraph::CallGraph(string exe_name, 
 		     resource *nroot) : 
-  children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
+  children(hash_dummy), parents(hash_dummy), visited(hash_dummy), 
+  instrumented_call_sites(hash_dummy),
   executableAndPathName(exe_name)
 {
   program_id = last_id_issued;
   last_id_issued++;
   rootResource = nroot;
   callGraphInitialized = false;
+  callGraphDisplayed = false;
   executableName =stripPathFromExecutableName(executableAndPathName);
-  // all call graph should be aware of the root resource, so that they 
+  // all call graphs should be aware of the root resource, so that they 
   //  know to magnify from it to the entryFunction (specified in 
   //  SetEntryFunc)....
-  this->AddResource(rootResource); 
+  this->AddResource(rootResource);
+  dynamic_call_sites.resize(0);
 }
 
 CallGraph::~CallGraph() {
@@ -137,8 +151,9 @@ void CallGraph::AddProgram(string exe_name){
     directory[cg->getId()] = cg;
   }
 }
-
-
+void CallGraph::CallGraphFillDone(){
+  callGraphInitialized = true;
+}
 bool CallGraph::AddResource(resource *r) {
     vector <resource *> empty;
 
@@ -184,7 +199,6 @@ int CallGraph::SetChild(resource *p, resource *c) {
     // assert (p previously seen by call graph) 
     assert(children.defines(p) && parents.defines(p));
     // assert (p had no previously defined children)
-
     //Don't add duplicate children to this resource
     if(children[p].size() != 0)
       return 0;
@@ -194,11 +208,70 @@ int CallGraph::SetChild(resource *p, resource *c) {
     return 1;
 }
 
-bool CallGraph::AddDynamicallyDeterminedChild(resource *r, resource *c) {
-    // dynamically determined children not yet supported....
-    assert(false);
-    assert(r != NULL && c != NULL);
-    return false;
+bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
+  // dynamically determined children not yet supported....
+  assert(p != NULL && c != NULL);
+  assert(children.defines(p) && parents.defines(p));
+  assert(callGraphInitialized);
+  
+  unsigned u;
+  bool already_added = false;
+  //Todo: need to add code here in order to determine whether or not
+  //a dynamic function is recursive
+  //  cerr << "****Dynamic child added in Front-end CallGraph! Parent = " << p->getName() << 
+  //" child = " << c->getName() << endl;
+  
+  //Determine whether or not this dynamic child has already been added 
+  //to the call graph.
+  for(u = 0; u < children[p].size(); u++)
+    if(children[p][u] == c){
+      already_added = true;
+      break;
+    }
+  
+  if(!already_added){
+    AddResource(c);
+    children[p] += c;
+    parents[c] += p;
+
+    //If the new child is the descendent of an uninstrumentable function, 
+    //then it's parent probably isn't in the call graph display, so we 
+    //avoid adding the child to the display
+    dictionary_hash <resource *, int> have_visited(hash_dummy);
+    if(!isDescendent(p, rootResource, have_visited))
+      return false;
+    
+    //TODO!!!: need to determine whether or not the dynamic function is
+    // a recursive call.
+    if(callGraphDisplayed){
+      if(visited[c]){
+	uiMgr->CGaddNode(program_id, p->getHandle(), 
+			 c->getHandle(),c->getName(),
+			 stripCodeFromName(c->getFullName()),
+			 false, //function is not recursive
+			 true); //function is a shadow
+      }
+      else{
+	uiMgr->CGaddNode(program_id, p->getHandle(), 
+			 c->getHandle(),c->getName(),
+			 stripCodeFromName(c->getFullName()),
+			 false, //function is not recursive
+			 false); //function is not a shadow
+	dictionary_hash <resource *, int> callPath(hash_dummy); 
+	//callPath is used to avoid cycles in CG
+	callPath.clear();
+	callPath[c] = 1;
+	addChildrenToDisplay(c,callPath); 
+      }
+      uiMgr->CGDoneAddingNodesForNow(program_id);
+    }
+  }
+  return true;
+}
+
+void CallGraph::AddDynamicCallSite(resource *parent){
+  assert(children.defines(parent) && parents.defines(parent));
+  dynamic_call_sites+= parent;
 }
 
 void CallGraph::SetEntryFunc(resource *r) {
@@ -237,7 +310,7 @@ void CallGraph::displayCallGraph(){
   dictionary_hash <resource *, int> callPath(hash_dummy); 
   //callPath is used to avoid cycles in CG
   callPath.clear();
-  callGraphInitialized = true;
+  callGraphDisplayed = true;
   //add program function to display, which is probably 
   //rooted by the function "main"
 
@@ -259,9 +332,9 @@ void CallGraph::displayAllCallGraphs(){
     cgs[u]->displayCallGraph();
 }
 
-//This function adds all of the children of resource specified by r
+//This function adds all of the children of resource specified by parent
 //to the callGraphDisplay. It then recursively adds all of the children
-//of r to the callGraphDisplay, and their children, ...
+//of parent to the callGraphDisplay, and their children, ...
 void CallGraph::addChildrenToDisplay(resource *parent,
 				     dictionary_hash <resource *, int> 
 				     callPath){
@@ -312,7 +385,6 @@ void CallGraph::addChildrenToDisplay(resource *parent,
 vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     unsigned i;
     vector <resourceHandle> *ret;
-
     // rh should have been registsred w/ call graph....
     assert(children.defines(rh));
 
@@ -320,25 +392,45 @@ vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     //  resource handles....
     ret = new vector<resourceHandle>;
     assert(ret);
+
     for (i=0;i<children[rh].size();i++) {
-        (*ret) += (children[rh])[i]->getHandle();
+      (*ret) += (children[rh])[i]->getHandle();
     }
 
+    for(i = 0; i < dynamic_call_sites.size(); i++)
+      if(dynamic_call_sites[i] == rh && !instrumented_call_sites.defines(rh)){
+	instrumented_call_sites[rh] = 1;
+	paradynDaemon::AllMonitorDynamicCallSites(rh->getFullName());
+      }
     return ret;
 }
 
+bool CallGraph::isDescendentOfAny(resource *child, const resource *parent){
+  dictionary_hash <resource *, int> have_visited(hash_dummy);
+  assert(directory.size() == 1);
+  CallGraph *cg = directory[0];
+  if(cg->isDescendent(child, parent,have_visited))
+    return true;
+  return false;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*if child is a descendent of parent, return true, else false*/
+bool CallGraph::isDescendent(resource *child, const resource *parent,
+			     dictionary_hash <resource *, int> have_visited) {
+  if(child == parent)
+    return true;
+  else {
+    unsigned i;
+    vector<resource *>my_parents = parents[child];
+    for(i = 0; i < my_parents.size(); i++){
+      if(!have_visited[my_parents[i]]){
+	have_visited[my_parents[i]] = 1;
+	if(isDescendent(my_parents[i], parent, have_visited)){
+	  return true;
+	}
+      }
+    }
+  }
+  return false;
+}
 

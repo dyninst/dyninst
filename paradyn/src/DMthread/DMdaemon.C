@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.82 1999/08/09 05:47:42 csserra Exp $
+ * $Id: DMdaemon.C,v 1.83 1999/11/09 19:24:46 cain Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -899,6 +899,19 @@ bool paradynDaemon::pauseProcess(unsigned pid)
         return(true); 
     } else
 	return (false);
+}
+
+//Send message to each daemon to instrument the dynamic call
+//sites in function "func_name"
+bool paradynDaemon::AllMonitorDynamicCallSites(string func_name){
+  paradynDaemon *pd;
+  for(int i = 0; i < paradynDaemon::allDaemons.size(); i++)
+    {
+      pd = paradynDaemon::allDaemons[i];
+      pd->MonitorDynamicCallSites(func_name);
+    }
+
+  return true;
 }
 
 //
