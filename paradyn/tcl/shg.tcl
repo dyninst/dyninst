@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.11  1996/02/12 18:32:07  tamches
+# shgInitialize now takes 3 params
+#
 # Revision 1.10  1996/02/11 18:28:26  tamches
 # "Current Phase" --> "Current Search"
 #
@@ -226,7 +229,7 @@ proc shgClickOnPause {} {
 
 # ####################################################################
 
-proc shgInitialize {iDeveloperMode} {
+proc shgInitialize {iDeveloperMode iDrawKey iDrawTips} {
    if {[winfo exists .shg]} {
 #      puts stderr "(shg window already exists; not creating)"
       wm deiconify .shg
@@ -363,10 +366,14 @@ proc shgInitialize {iDeveloperMode} {
    # -----------------------------------------------------------
 
    shgDrawKeyBase
-   shgDrawKey
+   if {$iDrawKey} {
+      shgDrawKey
+   }
 
    shgDrawTipsBase
-   shgDrawTips
+   if {$iDrawTips} {
+      shgDrawTips
+   }
 
    # -----------------------------------------------------------
 

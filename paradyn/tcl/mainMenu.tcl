@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.52  1996/02/12 18:31:35  tamches
+# shgInitialize now takes 3 params
+#
 # Revision 1.51  1996/02/08 01:01:49  tamches
 # starting a new phase w/ visis greyed out since not yet implemented
 #
@@ -182,7 +185,7 @@ proc drawToolBar {} {
     .parent.menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
-	    -command {set shgHack 1; shgInitialize [uimpd tclTunable getvaluebyname developerMode]}
+	    -command {shgInitialize [uimpd tclTunable getvaluebyname developerMode] [uimpd tclTunable getvaluebyname showShgKey] [uimpd tclTunable getvaluebyname showShgTips]}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants" \
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Where Axis" \
