@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.43 2004/01/23 22:01:23 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.44 2004/02/24 16:50:44 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2192,6 +2192,61 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	return true;
 	} /* end emitInferiorRPCtrailer() */
 
+
+unsigned int installTrampGuardOn(registerSpace *rs, process *proc, ia64_bundle_t *insnPtr)
+{
+	// Assumptions: No need to "allocate" registers from registerSpace.  They are
+	//				scratch registers which just came into existence.
+	//
+	//				The branch in guardOnBundle3 must jump past 3 bundles (Offset +4).
+	//					1 for the miniTramp
+	//					2 for the guardOff bundles
+
+	int maxRegister = rs->getRegisterCount();
+	Register trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
+	Register trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
+
+	IA64_bundle guardOnBundle0( MLXstop,
+								IA64_instruction( NOP_M ),
+								generateLongConstantInRegister( trampGuardFlagAddr, proc->trampGuardAddr() ));
+
+	IA64_bundle guardOnBundle1( MstopMIstop,
+								generateRegisterLoad( trampGuardFlagValue, trampGuardFlagAddr, 4 ),
+								generateComparison( eqOp, 6, trampGuardFlagValue, REGISTER_ZERO ),
+								IA64_instruction( NOP_I ));
+
+	IA64_bundle guardOnBundle2( MLXstop,
+								generateRegisterStore( trampGuardFlagAddr, REGISTER_ZERO, 4, 7),
+								generateLongBranchTo( +4 << 4, 6 ));
+
+	insnPtr[0] = guardOnBundle0.getMachineCode();
+	insnPtr[1] = guardOnBundle1.getMachineCode();
+	insnPtr[2] = guardOnBundle2.getMachineCode();
+
+	return 3; // Number of bundles added to insnPtr
+}
+
+unsigned int installTrampGuardOff(registerSpace *rs, process *proc, ia64_bundle_t *insnPtr)
+{
+	int maxRegister = rs->getRegisterCount();
+    Register trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
+	Register trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
+
+    IA64_bundle guardOffBundle0( MLXstop,
+								 generateShortConstantInRegister( trampGuardFlagValue, 1 ),
+								 generateLongConstantInRegister( trampGuardFlagAddr, proc->trampGuardAddr() ));
+
+    IA64_bundle guardOffBundle1( MMIstop,
+								 generateRegisterStore( trampGuardFlagAddr, trampGuardFlagValue, 4 ),
+								 IA64_instruction( NOP_M ),
+								 IA64_instruction( NOP_I ));
+
+    insnPtr[0] = guardOffBundle0.getMachineCode();
+    insnPtr[1] = guardOffBundle1.getMachineCode();
+
+	return 2; // Number of bundles added to insnPtr
+}
+
 /**
  * We use the same assembler for the basetramp and the header
  * and trailer of an inferior RPC; a basetramp is two header/trailer
@@ -2204,7 +2259,8 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 #define MAX_BASE_TRAMP_SIZE (16 * 256)	// FIXME: how do I do an inferiorReAlloc() equivalent?
 										// FIXME: Or do I need to build the whole thing twice, once with a dummy allocatedAddress,
 										// FIXME: and hope that doesn't change the size?
-trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // FIXME: updatecost
+trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool trampRecursiveDesired = false )
+{ // FIXME: updatecost
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
 	trampTemplate * baseTramp = new trampTemplate(location, proc);
@@ -2284,18 +2340,24 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
 	bundleCount = 0;
 
-	/* FIXME: Insert the recursion header.  If we don't do any instrumentation (that is,
-	   we took the jump at skipPreInsOffset), we don't need to avoid recursing in it.  If
-	   we are doing instrumentation, we don't have to worry about stomping on the
-	   predicate bits.  If the recursion gaurd is set, jump to the second copy of the 
-	   preservation trailer.  If it isn't, use reverse-predicated instructions to set the
-	   recursion guard here, and unset just before the emulated instructions.  (So that if we
-	   skip the instrumentation, we don't unset the guard.) */
-	
+	/* Insert tramp guard (3 bundles) */
+	unsigned int guardCount;
+	if (!trampRecursiveDesired) {
+		guardCount = installTrampGuardOn(regSpace, proc, insnPtr + bundleCount);
+		baseTramp->size += guardCount * 16;
+		bundleCount += guardCount;
+	}
+
 	/* CODEGEN: Insert the localPre nop bundle.  (Jump to first minitramp.) */
 	baseTramp->localPreOffset = baseTramp->size;
 	insnPtr[bundleCount++] = nopBundle.getMachineCode(); baseTramp->size += 16;
 	baseTramp->localPreReturnOffset = baseTramp->size;
+
+	if (!trampRecursiveDesired) {
+		guardCount = installTrampGuardOff(regSpace, proc, insnPtr + bundleCount);
+		baseTramp->size += guardCount * 16;
+		bundleCount += guardCount;
+	}
 
 	/* Insert the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2336,12 +2398,23 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
 	bundleCount = 0;
 
-	/* FIXME: Insert the recursion guard. */
+	/* Insert the recursion guard. */
+	if (!trampRecursiveDesired) {
+		guardCount = installTrampGuardOn(regSpace, proc, insnPtr + bundleCount);
+		baseTramp->size += guardCount * 16;
+		bundleCount += guardCount;
+	}
 
 	/* CODEGEN: Insert the localPost nop bundle. */
 	baseTramp->localPostOffset = baseTramp->size;
 	insnPtr[bundleCount++] = nopBundle.getMachineCode(); baseTramp->size += 16;
 	baseTramp->localPostReturnOffset = baseTramp->size;
+
+	if (!trampRecursiveDesired) {
+		guardCount = installTrampGuardOff(regSpace, proc, insnPtr + bundleCount);
+		baseTramp->size += guardCount * 16;
+		bundleCount += guardCount;
+	}
 
 	/* Insert the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2418,7 +2491,7 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 	if( proc->baseMap.defines( location ) ) { return proc->baseMap[location]; }
 
 	/* "install" */
-	trampTemplate * installedBaseTramp = installBaseTramp( location, proc );
+	trampTemplate * installedBaseTramp = installBaseTramp( location, proc, trampRecursiveDesired );
 	proc->baseMap[location] = installedBaseTramp;
 
 	/* Generate the returnInstance, which will be written to

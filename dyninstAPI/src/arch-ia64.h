@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.20 2004/01/23 22:01:13 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.21 2004/02/24 16:50:58 rchen Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -130,9 +130,9 @@ class IA64_bundle {
 	public:
 		IA64_bundle( uint64_t lowHalfBundle = 0, uint64_t highHalfBundle = 0 );
 		IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 );
-		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction instruction1, IA64_instruction instruction2 );
+		IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction instruction1, const IA64_instruction instruction2 );
 		IA64_bundle( ia64_bundle_t rawBundle );
-		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction_x & instructionLX );
+		IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction_x & instructionLX );
 
 		ia64_bundle_t getMachineCode() const { return myBundle; }
 		const ia64_bundle_t * getMachineCodePtr() const { return & myBundle; }
@@ -208,7 +208,7 @@ IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned in
 
 /* Required by linuxDL.C */
 IA64_instruction generateReturnTo( unsigned int branchRegister );
-IA64_instruction_x generateLongBranchTo( long long int displacement64 );
+IA64_instruction_x generateLongBranchTo( long long int displacement64, Register predicate = 0 );
 
 /* Convience method for inst-ia64.C */
 IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction );
@@ -222,8 +222,8 @@ IA64_instruction generateShortImmediateAdd( Register destination, int immediate,
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
 IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
-IA64_instruction generateRegisterStore( Register address, Register source, int size = 8 );
-IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size = 8 );
+IA64_instruction generateRegisterStore( Register address, Register source, int size = 8, Register predicate = 0 );
+IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size = 8, Register predicate = 0 );
 IA64_instruction generateRegisterLoad( Register destination, Register address, int size = 8 );
 IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size = 8 );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );

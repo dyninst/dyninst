@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.23 2004/02/12 20:46:59 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.24 2004/02/24 16:50:51 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -276,12 +276,12 @@ IA64_bundle::IA64_bundle( ia64_bundle_t rawBundle ) {
 	* this = IA64_bundle( rawBundle.low, rawBundle.high );
 	} /* end IA64_bundle() */
 
-IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction instruction1, IA64_instruction instruction2 ) {
+IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction instruction1, const IA64_instruction instruction2 ) {
 	* this = IA64_bundle( templateID, instruction0.getMachineCode(), instruction1.getMachineCode(), instruction2.getMachineCode() );
 	} /* end IA64_bundle() */
 
 /* This handles the MLX template/long instructions. */
-IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction_x & instructionLX ) {
+IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction_x & instructionLX ) {
 	if( templateID != 0x05 ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
 
 	* this = IA64_bundle( templateID, instruction0, instructionLX.getMachineCode().low, instructionLX.getMachineCode().high );
@@ -485,11 +485,12 @@ IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned in
 	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generateLongCallTo( displacement64 ) */
 
-IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
+IA64_instruction_x generateLongBranchTo( long long int displacement64, Register predicate ) {
 	int64_t displacement60 = displacement64 >> 4;
 
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
 			   ( ((uint64_t)0x0C) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)(predicate & 0x3F)) << (0 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
 	uint64_t rawInsnLow = 0x0000000000000000 |
@@ -732,7 +733,7 @@ IA64_instruction generateIndirectCallTo( Register indirect, Register rp ) {
 			   ( returnRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
-	} /* end generateIndirectBranchTo() */
+	} /* end generateIndirectCallTo() */
 
 IA64_instruction generatePredicatesToRegisterMove( Register destination ) {
 	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
@@ -775,11 +776,11 @@ IA64_instruction generateFillFrom( Register address, Register destination, int64
 	return IA64_instruction( rawInsn );
 	} /* end generateFillFrom() */
 
-IA64_instruction generateRegisterStore( Register address, Register source, int size ) {
-	return generateRegisterStoreImmediate( address, source, 0, size );
+IA64_instruction generateRegisterStore( Register address, Register source, int size, Register predicate ) {
+	return generateRegisterStoreImmediate( address, source, 0, size, predicate );
 	} /* generateRegisterStore() */
 
-IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size ) {
+IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size, Register predicate ) {
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
 	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
@@ -805,7 +806,8 @@ IA64_instruction generateRegisterStoreImmediate( Register address, Register sour
 			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
-			   ( immediate << (6 + ALIGN_RIGHT_SHIFT) );
+			   ( immediate << (6 + ALIGN_RIGHT_SHIFT) ) |
+			   ( predicate << (0 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterStore() */
