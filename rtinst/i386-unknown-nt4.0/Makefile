@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 1999/03/03 20:15:26 pcroth Exp $
+# $Id: Makefile,v 1.9 1999/08/02 22:51:21 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,6 +13,14 @@
 include ../../nmake.config 
 
 # Now make any necessary architecture specific changes to variables:
+
+# Turn off frame pointer omission optimization for this
+# library.  If we allow frame pointer omission, we find that
+# call stacks frequently do not contain reference to main 
+# or mainCRTStartup, and so are considered invalid call stacks.
+!ifndef NO_OPT_FLAG
+OPT_FLAG	= $(OPT_FLAG) -Oy-
+!endif
 
 LD		= link
 LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000
