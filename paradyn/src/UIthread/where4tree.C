@@ -2,9 +2,14 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.1  1995/07/17 04:59:03  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:22  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:59:03  tamches
+ * First version of the new where axis
+ *
  */
 
 /* ******************************************************************
@@ -2198,4 +2203,30 @@ void where4tree<USERNODEDATA>::addChildren(const int numChildrenBeingAdded,
       // nothing was added to the listbox, but something changed w.r.t.
       // expanded-children-stats
       rethink_all_expanded_children_dimensions(tc);
+}
+
+template <class USERNODEDATA>
+vector<USERNODEDATA> where4tree<USERNODEDATA>::getSelections() const {
+   // NOTE: Things would be faster if this function returned void and
+   // takes in a reference to a vector<USERNODEDATA> which is appended to
+   // in-place...
+
+   vector<USERNODEDATA> result; // initially empty
+      
+   if (theRootNode.getHighlighted())
+      result += theUserNodeData;
+
+   for (int i=0; i < theChildren.size(); i++)
+      result += theChildren[i].theTree->getSelections();
+
+   return result;
+}
+
+template <class USERNODEDATA>
+void where4tree<USERNODEDATA>::recursiveClearSelections() {
+   theRootNode.unhighlight();
+  
+   unsigned numChildren = theChildren.size();
+   for (int i=0; i < numChildren; i++)
+      theChildren[i].theTree->recursiveClearSelections();
 }

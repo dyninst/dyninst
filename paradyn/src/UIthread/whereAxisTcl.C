@@ -4,9 +4,14 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.1  1995/07/17 04:59:12  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:27  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:59:12  tamches
+ * First version of the new where axis
+ *
  */
 
 #include "tclclean.h"
@@ -142,6 +147,23 @@ int whereAxisShiftDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
+int whereAxisCtrlDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
+					    int argc, char **argv) {
+   assert(haveSeenFirstGoodWhereAxisWid);
+
+   const int x = atoi(argv[1]);
+   const int y = atoi(argv[2]);
+
+   if (theAbstractions->existsCurrent()) {
+      bool needToRedrawAll=theAbstractions->getCurrent().processCtrlDoubleClick(x, y);
+ 
+      if (needToRedrawAll)
+         initiateWhereAxisRedraw(interp, true);
+   }
+
+   return TCL_OK;
+}
+
 int whereAxisNewVertScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
 					  int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
@@ -213,6 +235,19 @@ int whereAxisNewHorizScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
       initiateWhereAxisRedraw(interp, true);   
    }
 
+   return TCL_OK;
+}
+
+int whereAxisClearSelectionsCommand(ClientData cd, Tcl_Interp *interp,
+				    int argc, char **argv) {
+   assert(haveSeenFirstGoodWhereAxisWid);
+
+   assert(argc == 1);
+   if (theAbstractions->existsCurrent()) {
+      theAbstractions->getCurrent().clearSelections(); // doesn't redraw
+      initiateWhereAxisRedraw(interp, true);
+   }
+ 
    return TCL_OK;
 }
 
@@ -305,12 +340,20 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
 		     whereAxisShiftDoubleClickCallbackCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
+   Tcl_CreateCommand(interp, "ctrlDoubleClickHook",
+		     whereAxisCtrlDoubleClickCallbackCommand,
+		     NULL, // clientData
+		     deleteDummyProc);
    Tcl_CreateCommand(interp, "newVertScrollPosition",
 		     whereAxisNewVertScrollPositionCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
    Tcl_CreateCommand(interp, "newHorizScrollPosition",
 		     whereAxisNewHorizScrollPositionCommand,
+		     NULL, // clientData
+		     deleteDummyProc);
+   Tcl_CreateCommand(interp, "whereAxisClearSelections",
+		     whereAxisClearSelectionsCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
    Tcl_CreateCommand(interp, "navigateTo", whereAxisNavigateToCommand,
@@ -328,8 +371,10 @@ void unInstallWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "findHook");
    Tcl_DeleteCommand(interp, "changeAbstraction");
    Tcl_DeleteCommand(interp, "navigateTo");
+   Tcl_DeleteCommand(interp, "whereAxisClearSelections");
    Tcl_DeleteCommand(interp, "newHorizScrollPosition");
    Tcl_DeleteCommand(interp, "newVertScrollPosition");
+   Tcl_DeleteCommand(interp, "ctrlDoubleClickHook");
    Tcl_DeleteCommand(interp, "shiftDoubleClickHook");
    Tcl_DeleteCommand(interp, "doubleClickHook");
    Tcl_DeleteCommand(interp, "singleClickHook");

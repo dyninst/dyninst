@@ -4,9 +4,14 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.1  1995/07/17 04:59:01  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:20  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:59:01  tamches
+ * First version of the new where axis
+ *
  */
 
 
@@ -460,21 +465,18 @@ class where4tree {
 //                                                const int middlex, const int topy);
 //      // a variant of above routine...recursively highlights each node
 
-   vector<USERNODEDATA> getSelections() const {
-      // NOTE: Things would be faster if this function returned void and
-      // takes in a reference to a vector<USERNODEDATA> which is appended to
-      // in-place...
-
-      vector<USERNODEDATA> result; // initially empty
-      
-      if (theRootNode.getHighlighted())
-         result += theUserNodeData;
-
-      for (int i=0; i < theChildren.size(); i++)
-         result += theChildren[i].theTree->getSelections();
-
-      return result;
+   bool isHighlighted() const {
+      return theRootNode.getHighlighted();
    }
+   void highlight() {
+      theRootNode.highlight();
+   }
+   void unhighlight() {
+      theRootNode.unhighlight();
+   }
+
+   vector<USERNODEDATA> getSelections() const;
+   void recursiveClearSelections();
 };
 
 #endif

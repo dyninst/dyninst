@@ -4,9 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.1  1995/07/17 04:59:08  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:26  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:59:08  tamches
+ * First version of the new where axis
+ *
  */
 
 #include <stdlib.h> // exit()
@@ -543,6 +548,78 @@ bool whereAxis<USERNODEDATA>::processShiftDoubleClick(const int x, const int y) 
 }
 
 template <class USERNODEDATA>
+bool whereAxis<USERNODEDATA>::processCtrlDoubleClick(const int x, const int y) {
+   // returns true iff changes were made
+
+   const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
+      // relative (not absolute) coord.  note: horizScollBarOffset <= 0
+   const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
+      // relative (not absolute) coord.  note: vertScollBarOffset <= 0
+
+   whereNodeGraphicalPath theGraphicalPath(whereNodeGraphicalPathItem(rootPtr->theChildren.size()));
+   const int result = rootPtr->point2GraphicalPath(theGraphicalPath, consts, x, y,
+						   rootNodeCenterX, rootNodeTopY);
+
+      // 1 --> node; 2--> listbox item
+      // 3 --> up-arrow; 4 --> down-arrow
+      // 5 --> pageup;   6 --> pagedown
+
+   if (result != 1)
+      return false;
+
+   //cout << "ctrl-double-click:" << endl;
+
+   // How do we know whether to select-all or unselect-all?
+   // Well, if noone is selected, then we should _definitely_ select all.
+   // And, if everyone is selected, then we should _definitely_ unselect all.
+   // But, if _some_ items are selected, what should we do?  For now, we'll
+   //    say unselect.
+
+   assert(theGraphicalPath.getSize() > 0);
+   
+   where4tree<USERNODEDATA> *clickee = rootPtr;
+   for (int lcv=0; lcv < theGraphicalPath.getSize()-1; lcv++) {
+      const whereNodeGraphicalPathItem &item = theGraphicalPath[lcv];
+      assert(item.childnum >= 0 && item.childnum < clickee->theChildren.size());
+
+      clickee = clickee->theChildren[item.childnum].theTree;
+   }
+   assert(theGraphicalPath.getConstLastItem().childnum == clickee->theChildren.size());
+   
+   if (clickee->theChildren.size()==0)
+      return false;
+
+   bool allChildrenSelected = true;
+   bool noChildrenSelected = true;
+   for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
+      if (clickee->theChildren[childlcv].theTree->isHighlighted()) {
+         noChildrenSelected = false;
+         if (!allChildrenSelected)
+            break;
+      }
+      else {
+         allChildrenSelected = false;
+         if (!noChildrenSelected)
+            break;
+      }
+
+   assert(!(allChildrenSelected && noChildrenSelected));
+
+   if (allChildrenSelected || !noChildrenSelected) {
+      // unselect all children
+      for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
+         clickee->theChildren[childlcv].theTree->unhighlight();
+      return true; // changes were made
+   }
+   else {
+      assert(noChildrenSelected);
+      for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
+         clickee->theChildren[childlcv].theTree->highlight();
+      return true; // changes were made
+   }
+}
+
+template <class USERNODEDATA>
 bool whereAxis<USERNODEDATA>::processDoubleClick(const int x, const int y,
                                                  const bool redrawNow) {
    // returns true iff a complete redraw is called for
@@ -983,4 +1060,51 @@ void whereAxis<USERNODEDATA>::rethinkNavigateMenu() {
          currTree = currTree->theChildren[theItem.childnum].theTree;
       }
    }
+}
+
+template <class USERNODEDATA>
+vector< vector<USERNODEDATA> > whereAxis<USERNODEDATA>::getSelections() const {
+   // returns a vector[num-hierarchies] of vector of selections.
+   // The number of hierarchies is defined as the number of children of the
+   // root node.
+   const unsigned numHierarchies = rootPtr->theChildren.size();
+
+   vector < vector<USERNODEDATA> > result(numHierarchies);
+
+   for (int i=0; i < numHierarchies; i++) {
+      where4tree<USERNODEDATA> *hierarchyRoot = rootPtr->theChildren[i].theTree;
+
+      result[i] = hierarchyRoot->getSelections();
+      if (result[i].size()==0) {
+         // this hierarchy had no selections; therefore, choose the hierarchy's
+         // root item...
+         vector<USERNODEDATA> defaultHierarchy(1);
+         defaultHierarchy[0] = hierarchyRoot->theUserNodeData;
+         result[i] = defaultHierarchy;
+      }
+      else if (rootPtr->isHighlighted()) {
+         // The root node was highlighted --> add this hierarchy's root item,
+         // if not already done.
+         USERNODEDATA hierarchyRootId = hierarchyRoot->theUserNodeData;
+
+         bool hierarchyRootAlreadyAdded = false;
+         for (int j=0; j < result[i].size(); j++) {
+            if (result[i][j] == hierarchyRootId) {
+               hierarchyRootAlreadyAdded = true;
+               break;
+            }
+	 }
+         if (!hierarchyRootAlreadyAdded) {
+//            cout << "adding hierarchy root for hierarchy #" << i << " because the root node was selected" << endl;
+            result[i] += hierarchyRootId;
+         }
+      }
+   }
+
+   return result;
+}
+
+template <class USERNODEDATA>
+void whereAxis<USERNODEDATA>::clearSelections() {
+   rootPtr->recursiveClearSelections();
 }

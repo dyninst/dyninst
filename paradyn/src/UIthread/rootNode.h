@@ -4,9 +4,14 @@
 // Basically, this file exists just to make where4tree.h that much shorter.
 
 /* $Log: rootNode.h,v $
-/* Revision 1.1  1995/07/17 04:58:56  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:18  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:58:56  tamches
+ * First version of the new where axis
+ *
  */
 
 #ifndef _ROOTNODE_H_
@@ -84,6 +89,8 @@ class rootNode {
    void unhighlight(const bool redrawNow,
 		    const where4TreeConstants &tc,
 		    const int middlex, const int topy);
+   void highlight(); // won't redraw
+   void unhighlight(); // won't redraw
 };
 
 #endif

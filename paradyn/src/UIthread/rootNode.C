@@ -2,9 +2,14 @@
 // Ariel Tamches
 
 /* $Log: rootNode.C,v $
-/* Revision 1.1  1995/07/17 04:58:57  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:19  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:58:57  tamches
+ * First version of the new where axis
+ *
  */
 
 #include <assert.h>
@@ -151,3 +156,12 @@ void rootNode::unhighlight(const bool redrawNow,
    if (redrawNow)
       draw(tc, tc.masterWindow, middlex, topy);
 }
+
+void rootNode::highlight() {
+   highlighted = true;
+}
+
+void rootNode::unhighlight() {
+   highlighted = false;
+}
+

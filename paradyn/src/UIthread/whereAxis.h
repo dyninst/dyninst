@@ -4,9 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.1  1995/07/17 04:59:07  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/07/18 03:41:24  tamches
+/* Added ctrl-double-click feature for selecting/unselecting an entire
+/* subtree (nonrecursive).  Added a "clear all selections" option.
+/* Selecting the root node now selects the entire program.
 /*
+ * Revision 1.1  1995/07/17  04:59:07  tamches
+ * First version of the new where axis
+ *
  */
 
 #ifndef _WHEREAXIS_H_
@@ -144,6 +149,7 @@ class whereAxis {
    bool processDoubleClick(const int x, const int y, const bool redrawNow);
       // returns true iff a redraw of everything is still needed
    bool processShiftDoubleClick(const int x, const int y);
+   bool processCtrlDoubleClick(const int x, const int y);
 
    void navigateTo(const int index);
 
@@ -177,27 +183,8 @@ class whereAxis {
 
    void rethinkNavigateMenu();
 
-   vector< vector<USERNODEDATA> > getSelections() const {
-      // returns a vector[num-hierarchies] of vector of selections.
-      // The number of hierarchies is defined as the number of children of the
-      // root node.
-      const unsigned numHierarchies = rootPtr->theChildren.size();
-
-      vector < vector<USERNODEDATA> > result(numHierarchies);
-
-      for (int i=0; i < numHierarchies; i++) {
-         result[i] = rootPtr->theChildren[i].theTree->getSelections();
-         if (result[i].size()==0) {
-            // this hierarchy had no selections; therefore, choose the hierarchy's
-            // root item...
-            vector<USERNODEDATA> defaultHierarchy(1);
-            defaultHierarchy[0] = rootPtr->theChildren[i].theTree->theUserNodeData;
-            result[i] = defaultHierarchy;
-	 }
-      }
-
-      return result;
-   }
+   vector< vector<USERNODEDATA> > getSelections() const;
+   void clearSelections();
 };
 
 #endif
