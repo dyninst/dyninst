@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.h,v $
- * Revision 1.2  1994/08/05 16:01:54  hollings
+ * Revision 1.3  1994/09/02 10:43:58  markc
+ * Moved typedef for stringHandle outside of stringPool.h
+ *
+ * Revision 1.2  1994/08/05  16:01:54  hollings
  * More consistant use of stringHandle vs. char *.
  *
  * Revision 1.1  1994/01/25  20:49:42  hollings
@@ -16,7 +19,7 @@
 #ifndef STRINGPOOL_H
 #define STRINGPOOL_H
 
-typedef void *stringHandle;
+#include "util/h/stringDecl.h"
 
 #define TAB_SIZE 10004
 #define PAGE_SIZE 4090
