@@ -50,7 +50,7 @@ update:         $(DEST)/$(LIBRARY)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-client1.o: ../src/visithread.h ../sparc-sun-sunos4.1.3/visi.CLNT.h
+client1.o: ../h/visithread.h ../sparc-sun-sunos4.1.3/visi.CLNT.h
 client1.o: ../sparc-sun-sunos4.1.3/visi.h ../../util/h/rpcUtil.h
 client1.o: /usr/include/stdio.h /usr/include/strings.h /usr/include/string.h
 client1.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
@@ -64,10 +64,10 @@ client1.o: /usr/include/sys/time.h /usr/include/sys/time.h
 client1.o: /usr/include/unistd.h /usr/include/sys/file.h
 client1.o: /usr/include/rpc/types.h /usr/include/malloc.h
 client1.o: /usr/include/rpc/xdr.h
-server1.o: ../src/visualization.h ../src/datagrid.h /usr/include/string.h
+server1.o: ../h/visualization.h ../h/datagrid.h /usr/include/string.h
 server1.o: /usr/include/sys/stdtypes.h /usr/include/math.h
 server1.o: /usr/include/floatingpoint.h /usr/include/sys/ieeefp.h
-server1.o: /usr/include/values.h ../src/error.h /usr/include/stdio.h
+server1.o: /usr/include/values.h ../h/error.h /usr/include/stdio.h
 server1.o: ../sparc-sun-sunos4.1.3/visi.h ../../util/h/rpcUtil.h
 server1.o: /usr/include/strings.h /usr/include/stdlib.h /usr/include/errno.h
 server1.o: /usr/include/sys/errno.h /usr/include/assert.h
@@ -78,7 +78,7 @@ server1.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
 server1.o: /usr/include/netdb.h /usr/include/sys/time.h
 server1.o: /usr/include/sys/time.h /usr/include/unistd.h
 server1.o: /usr/include/sys/file.h /usr/include/rpc/types.h
-server1.o: /usr/include/malloc.h /usr/include/rpc/xdr.h ../src/mrlist.h
+server1.o: /usr/include/malloc.h /usr/include/rpc/xdr.h ../h/mrlist.h
 server1.o: ../sparc-sun-sunos4.1.3/visi.SRVR.h
 xtext.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
@@ -95,9 +95,9 @@ xtext.o: /usr/include/X11/Xaw/TextSrc.h /usr/include/X11/Xaw/AsciiSrc.h
 xtext.o: /usr/include/X11/Xaw/AsciiSink.h /usr/include/X11/Xaw/Command.h
 xtext.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
 xtext.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
-xtext.o: /usr/include/X11/Xaw/Cardinals.h ../src/visualization.h
-xtext.o: ../src/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
-xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../src/error.h
+xtext.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
+xtext.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
+xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h
 xtext.o: ../sparc-sun-sunos4.1.3/visi.h ../../util/h/rpcUtil.h
 xtext.o: /usr/include/strings.h /usr/include/stdlib.h /usr/include/errno.h
 xtext.o: /usr/include/sys/errno.h /usr/include/assert.h /usr/include/fcntl.h
@@ -107,7 +107,7 @@ xtext.o: /usr/include/netinet/in.h /usr/include/netdb.h
 xtext.o: /usr/include/sys/time.h /usr/include/sys/time.h
 xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
 xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
-xtext.o: /usr/include/rpc/xdr.h ../src/mrlist.h
+xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h
 xtext.o: ../sparc-sun-sunos4.1.3/visi.SRVR.h
 xtext.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
 xtext.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
@@ -124,9 +124,9 @@ xtext.o: /usr/include/X11/Xaw/TextSrc.h /usr/include/X11/Xaw/AsciiSrc.h
 xtext.o: /usr/include/X11/Xaw/AsciiSink.h /usr/include/X11/Xaw/Command.h
 xtext.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
 xtext.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
-xtext.o: /usr/include/X11/Xaw/Cardinals.h ../src/visualization.h
-xtext.o: ../src/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
-xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../src/error.h
+xtext.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
+xtext.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
+xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h
 xtext.o: ../sparc-sun-sunos4.1.3/visi.h ../../util/h/rpcUtil.h
 xtext.o: /usr/include/strings.h /usr/include/stdlib.h /usr/include/errno.h
 xtext.o: /usr/include/sys/errno.h /usr/include/assert.h /usr/include/fcntl.h
@@ -136,5 +136,5 @@ xtext.o: /usr/include/netinet/in.h /usr/include/netdb.h
 xtext.o: /usr/include/sys/time.h /usr/include/sys/time.h
 xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
 xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
-xtext.o: /usr/include/rpc/xdr.h ../src/mrlist.h
+xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h
 xtext.o: ../sparc-sun-sunos4.1.3/visi.SRVR.h
