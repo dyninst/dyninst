@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.61 1999/11/11 20:11:14 nick Exp $
+// $Id: inst-sparc-solaris.C,v 1.62 1999/12/16 22:13:38 paradyn Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2077,18 +2077,22 @@ static inline bool is_set_O7_call(instruction instr, unsigned functionSize,
     Does the specified call instruction call to target inside function
     or outside - may be indeterminate if insn is call %reg instead of 
     call <address> (really call PC + offset)
+    Note: (recursive) calls back to the beginning of the function are OK
+    since we really want to consider these as instrumentable call sites!
  */
 enum fuzzyBoolean {eFalse = 0, eTrue = 1, eDontKnow = 2}; 
-static enum fuzzyBoolean is_call_outside_function(instruction instr, Address 
-				      functionStarts, Address instructionAddress, 
-				      int functionSize) {
+
+static enum fuzzyBoolean is_call_outside_function(const instruction instr,
+                const Address functionStarts, const Address instructionAddress, 
+		const unsigned int functionSize) 
+{
     // call %register - don't know if target inside function....
     if(instr.call.op != CALLop) {
         return eDontKnow;
     }
-    Address call_target = instructionAddress + (instr.call.disp30 << 2);
-    if ((call_target >= functionStarts) && 
-       (call_target < (functionStarts + functionSize))) {
+    const Address call_target = instructionAddress + (instr.call.disp30 << 2);
+    if ((call_target > functionStarts) && 
+        (call_target < (functionStarts + functionSize))) {
         return eFalse;
     }
     return eTrue;
