@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.28 2001/09/07 21:15:07 tikir Exp $
+// $Id: BPatch_image.C,v 1.29 2001/10/04 20:04:43 buck Exp $
 
 #define BPATCH_FILE
 
@@ -323,6 +323,10 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     /* Look in the regular instPoints of the enclosing function. */
     function_base *func = proc->findFuncByAddr((Address)address);
 
+    // If it's in an uninstrumentable function, just return an error.
+    if (!((pd_Function*)func)->isInstrumentable())
+	return NULL;
+
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;
     if(!pointFunction || !pointFunction->file())
@@ -373,33 +377,99 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 
 
 /*
+ * BPatch_image::findFunctionInImage
+ *
+ * Searches a single image (class image object) for all functions of
+ * the given name.  Results are returned in the vector that is passed in.
+ * Note that the vector is not cleared first, so anything in the vector
+ * when it is passed in remains there.
+ *
+ * name		The name of function to look up.
+ * img		The image to search.
+ * funcs	The vector in which to return the results.
+ *
+ * This function would make a lot more sense as a method of the image class,
+ * but it's here since it deals with BPatch_functions and not pd_Functions.
+ */
+void BPatch_image::findFunctionInImage(
+	const char *name, image *img, BPatch_Vector<BPatch_function*>& funcs)
+{
+    pd_Function *pdf;
+    vector<pd_Function*> *pdfv;
+
+    if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
+	assert(pdfv->size() > 0);
+
+	for (int i = 0; i < pdfv->size(); i++)
+	    funcs.push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
+    } else {
+	if ((pdf = img->findFuncByMangled(name)) != NULL)
+	    funcs.push_back(proc->findOrCreateBPFunc(pdf));
+    }
+
+    // Note that we can only return one non instrumentable function right now.
+    if ((pdf = img->findNonInstruFunc(name)) != NULL)
+	funcs.push_back(proc->findOrCreateBPFunc(pdf));
+
+    // Note that we can only return one excluded function right now.
+    if ((pdf = img->findExcludedFunc(name)) != NULL)
+	funcs.push_back(proc->findOrCreateBPFunc(pdf));
+}
+
+
+/*
  * BPatch_image::findFunction
  *
- * Returns a NEW BPatch_function* representing the named function upon success,
+ * Returns a BPatch_function* representing the named function upon success,
  * and NULL upon failure.
  *
  * name		The name of function to look up.
  */
 BPatch_function *BPatch_image::findFunction(const char *name)
 {
-    function_base *func = proc->findOneFunction(name);
+    BPatch_Vector<BPatch_function*> funcs;
 
-    if (func == NULL) {
-	string fullname = string("_") + string(name);
-	func = proc->findOneFunction(fullname);
+    findFunction(name, funcs);
+
+    if (funcs.size() > 0)
+	return funcs[0];
+    else
+	return NULL;
+}
+
+
+/*
+ * BPatch_image::findFunction
+ *
+ * Fills a vector with BPatch_function pointers representing all functions in
+ * the image with the given name.  Returns a pointer to the vector that was
+ * passed in on success, and NULL on error.
+ *
+ * name		The name of function to look up.
+ * funcs	The vector in which to place the results.
+ */
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
+	const char *name, BPatch_Vector<BPatch_function*> &funcs)
+{
+    funcs = BPatch_Vector<BPatch_function*>();
+
+    findFunctionInImage(name, proc->symbols, funcs);
+
+    if (proc->dynamiclinking && proc->shared_objects) {
+	for(int j = 0; j < proc->shared_objects->size(); j++){
+	    const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+	    if (obj_image)
+		findFunctionInImage(name, (image*)obj_image, funcs);
+	}
     }
 
-    if (func == NULL) {
-	string msg = string("Unable to find function: ") + string(name);
-	showErrorCallback(100, msg);
+    if (funcs.size() > 0) {
+	return &funcs;
+    } else {
+        string msg = string("Unable to find function: ") + string(name);
+        BPatch_reportError(BPatchSerious, 100, msg.string_of());
 	return NULL;
     }
-
-    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
-    if (!bpfunc) {
-	bpfunc = new BPatch_function(proc, func, NULL);
-    }
-    return bpfunc;
 }
 
 
@@ -659,15 +729,4 @@ int  BPatch_image::lpType()
 {
     return 0;
 };
-
-BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs)
-{
-    BPatch_function *temp = findFunction(name);
-
-    funcs = BPatch_Vector<BPatch_function*>();
-    if (temp) {
-	funcs.push_back(temp);
-    }
-}
 #endif
-

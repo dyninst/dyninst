@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.163 2001/08/23 14:43:24 schendel Exp $
+/* $Id: process.h,v 1.164 2001/10/04 20:04:44 buck Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -729,6 +729,7 @@ class process {
 #ifdef BPATCH_LIBRARY
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 				    BPatch_procedureLocation pointType);
+  BPatch_function *findOrCreateBPFunc(pd_Function* pdfunc, BPatch_module* bpmod = NULL);
 #endif
 
   //  

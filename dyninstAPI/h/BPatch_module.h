@@ -47,6 +47,7 @@
 #include <BPatch_sourceObj.h>
 
 class pdmodule;
+class process;
 class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
@@ -58,6 +59,7 @@ extern BPatch_builtInTypeCollection * builtInTypes;
 
 class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
 
+    friend class process;
     friend class BPatch_function;
     friend class BPatch_image;
     friend class BPatch_thread;

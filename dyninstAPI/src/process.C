@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.265 2001/09/05 21:59:01 bernat Exp $
+// $Id: process.C,v 1.266 2001/10/04 20:04:44 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6682,14 +6682,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
     return instPointMap[addr];
   } else {
     if (bpfunc == NULL) {
-      function_base *fbptr = const_cast<function_base*>(ip->iPgetFunction());
-      if (PDFuncToBPFuncMap.defines(fbptr)) {
-  	bpfunc = PDFuncToBPFuncMap[fbptr];
-      } else {
-	// XXX Should create with correct module, but we dont' know it --
-	//     it doesn't seem to be used anywhere anyway?
-	bpfunc = new BPatch_function(this, fbptr, NULL);
-      }
+      bpfunc = findOrCreateBPFunc((pd_Function*)ip->iPgetFunction());
     }
 
     BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
@@ -6697,8 +6690,32 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
     return pt;
   }
 }
+
+BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
+					     BPatch_module *bpmod)
+{
+    if (PDFuncToBPFuncMap.defines(pdfunc))
+	return PDFuncToBPFuncMap[pdfunc];
+
+    assert(thread);
+
+    // Find the module that contains the function
+    if (bpmod == NULL && pdfunc->file() != NULL) {
+	BPatch_Vector<BPatch_module *> &mods=*thread->getImage()->getModules();
+	for (int i = 0; i < mods.size(); i++) {
+	    if (mods[i]->mod == pdfunc->file()) {
+		bpmod = mods[i];
+		break;
+	    }
+	}
+	// The BPatch_function may have been created as a side effect
+	// of the above
+        if (PDFuncToBPFuncMap.defines(pdfunc))
+	    return PDFuncToBPFuncMap[pdfunc];
+    }
+
+    BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
+
+    return ret;
+}
 #endif
-
-
-
-

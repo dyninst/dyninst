@@ -58,6 +58,8 @@ class AddrToVarExprHash;
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     process	*proc;
 
+    void findFunctionInImage(const char *name, image *img,
+			     BPatch_Vector<BPatch_function*>& funcs);
 public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
@@ -104,8 +106,9 @@ public:
     char *programName(char *name, unsigned int len);
     char *getProgramName(char *name, unsigned int len);
     int  lpType();
-    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs);
 #endif
+
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs);
 
 private:
     BPatch_Vector<BPatch_module *> *modlist;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.99 2001/09/07 21:15:09 tikir Exp $
+// $Id: symtab.h,v 1.100 2001/10/04 20:04:45 buck Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -318,6 +318,7 @@ class pd_Function : public function_base {
     bool needsRelocation() {return relocatable_;}
     void setRelocatable(bool value) { relocatable_ = value; }
 
+    bool isInstrumentable() { return isInstrumentable_; }
     
 #ifndef BPATCH_LIBRARY
     // Fill in <callees> vector with pointers to all other pd functions
@@ -554,6 +555,7 @@ class pd_Function : public function_base {
     bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
 
     bool isTrap; 		// true if function contains a trap instruct
+    bool isInstrumentable_;     // true if the function is instrumentable
     vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
 
 #if defined(sparc_sun_solaris2_4)
@@ -588,6 +590,7 @@ public:
     Address addr() const { return addr_; }
 
     virtual function_base *findFunction (const string &name) = 0;
+    virtual function_base *findFunctionFromAll(const string &name) = 0;
     virtual void define() = 0;    // defines module to paradyn
     virtual vector<function_base *> *getFunctions() = 0;
 
@@ -634,7 +637,7 @@ public:
   vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
   vector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
-
+  function_base *findFunctionFromAll(const string &name);
 
 private:
 #ifndef BPATCH_LIBRARY
@@ -644,6 +647,7 @@ private:
   lineDict lines_;
   //  list of all found functions in module....
   vector<pd_Function*> funcs;
+  vector<pd_Function*> notInstruFuncs;
   // added as part of exclude support for statically linked objects.
   //  mcheyny, 970928
   //  list of non-excluded found functions in module....
@@ -872,7 +876,7 @@ public:
 
   // Add a function which could not be instrumented.  Sticks it in
   // notInstruFuncs (list)
-  void addNotInstruFunc(pd_Function *func);
+  void addNotInstruFunc(pd_Function *func, pdmodule *mod);
 
   // Determines if a function is instrumentable, and calls add(Not)InstruFunction
   bool newFunc(pdmodule *, const string &name, const Address addr, 

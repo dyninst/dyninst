@@ -151,17 +151,11 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 
     if (BPfuncs == NULL) return NULL;
 
-    // XXX Also, what should we do about getting rid of this?  Should
-    //     the BPatch_functions already be made and kept around as long
-    //     as the process is, so the user doesn't have to delete them?
     vector<function_base *> *funcs = mod->getFunctions();
 
-    for (unsigned int f = 0; f < funcs->size(); f++) {
-	BPatch_function *bpfunc;
-	bpfunc = proc->PDFuncToBPFuncMap[(*funcs)[f]];
-	if (!bpfunc) bpfunc = new BPatch_function(proc, (*funcs)[f], this);
-	BPfuncs->push_back(bpfunc);
-    }
+    for (unsigned int f = 0; f < funcs->size(); f++)
+	BPfuncs->push_back(
+		proc->findOrCreateBPFunc((pd_Function*)(*funcs)[f], this));
 
     return BPfuncs;
 }
@@ -182,14 +176,13 @@ extern bool buildDemangledName(const string &mangled, string &use);
 
 BPatch_function * BPatch_module::findFunction(const char * name)
 {
-
     // Did not find BPatch_function with name match in BPatch_function vector
     // trying pdmodule
-    function_base *func = mod->findFunction(name);
+    pd_Function *func = (pd_Function*)mod->findFunctionFromAll(name);
 
     if (func == NULL) {
 	string fullname = string("_") + string(name);
-	func = mod->findFunction(fullname);
+	func = (pd_Function*)mod->findFunctionFromAll(fullname);
     }
 
     if (func == NULL) {
@@ -197,26 +190,25 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 	string mangled_name = name;
 	string demangled;
 	if (buildDemangledName(mangled_name, demangled))
-		func = mod->findFunction(demangled);
+		func = (pd_Function*)mod->findFunctionFromAll(demangled);
     }
 
     if (func == NULL) {
 	return NULL;
     }
-  
-    BPatch_function * bpfunc; 
-    if ((bpfunc = proc->PDFuncToBPFuncMap[func])) {
-	// we have a BPatch_function for this already
-	return bpfunc;
-    }
+ 
+    bool new_flag = !proc->PDFuncToBPFuncMap.defines(func);
 
-    // Found function in module and creating BPatch_function
-    bpfunc = new BPatch_function(proc, func, this);
+    BPatch_function * bpfunc = proc->findOrCreateBPFunc(func, this);
+
+    if (!new_flag)
+	return bpfunc;
 
 #if defined(sparc_sun_solaris2_4)
     // Adding new BPatch_Function to BPatch_function vector
     if (this->BPfuncs) this->BPfuncs->push_back(bpfunc);
 #endif
+
     return bpfunc;
     
 }

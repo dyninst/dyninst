@@ -122,6 +122,9 @@ public:
 
     char *getModuleName(char *name, int maxLen);
 
+    // Returns true if the function is instrumentable.
+    bool isInstrumentable();
+
 #ifdef IBM_BPATCH_COMPAT
     bool getLineNumbers(unsigned int &start, unsigned int &end);
 

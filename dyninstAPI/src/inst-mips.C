@@ -4939,7 +4939,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 {
     int i;
 
-    function_base *func = proc->findFuncByAddr((Address)address);
+    pd_Function *func = (pd_Function *)proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;
@@ -4988,9 +4988,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 
     /* Check for instrumentation where the delay slot of the jump to the
        base tramp would be a branch target from elsewhere in the function. */
-    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
-    /* XXX Should create here with correct module, but we don't know it. */
-    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
+    BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
 
     BPatch_flowGraph *cfg = bpfunc->getCFG();
     BPatch_Set<BPatch_basicBlock*> allBlocks;

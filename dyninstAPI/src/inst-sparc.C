@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.108 2001/09/25 21:36:29 tikir Exp $
+// $Id: inst-sparc.C,v 1.109 2001/10/04 20:04:44 buck Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1697,9 +1697,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
     image* pointImage = pointFunction->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
-    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
-    /* XXX Should create here with correct module, but we don't know it. */
-    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
+    BPatch_function *bpfunc = proc->findOrCreateBPFunc((pd_Function*)func);
 
     BPatch_flowGraph *cfg = bpfunc->getCFG();
     BPatch_Set<BPatch_basicBlock*> allBlocks;

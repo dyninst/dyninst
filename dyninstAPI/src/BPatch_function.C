@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.14 2001/08/29 23:25:27 hollings Exp $
+// $Id: BPatch_function.C,v 1.15 2001/10/04 20:04:43 buck Exp $
 
 #define BPATCH_FILE
 
@@ -71,7 +71,6 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), func(_func)
 {
-
   // there should be at most one BPatch_func for each function_base per process
   assert(proc->thread && !proc->PDFuncToBPFuncMap[func]);
 
@@ -94,10 +93,14 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), func(_func)
 {
+  assert(!proc->PDFuncToBPFuncMap[_func]);
+
   _srcType = BPatch_sourceFunction;
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
+
+  proc->PDFuncToBPFuncMap[_func] = this;
 };
 
 
@@ -230,6 +233,10 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 {
     // function does not exist!
     if (func == NULL) return NULL;
+
+    // if the function is not instrumentable, we won't find the point
+    if (!isInstrumentable())
+	return NULL;
 
     // function is generally uninstrumentable (with current technology)
     if (func->funcEntry(proc) == NULL) return NULL;
@@ -528,3 +535,14 @@ void BPatch_function::getExcPoints(BPatch_Vector<BPatch_point*> &points) {
 BPatch_variableExpr *BPatch_function::getFunctionRef() { abort(); return NULL; }
 
 #endif
+
+/*
+ * BPatch_function::isInstrumentable
+ *
+ * Returns true if the function is instrumentable, false otherwise.
+ */
+bool BPatch_function::isInstrumentable()
+{
+     return ((pd_Function *)func)->isInstrumentable();
+}
+

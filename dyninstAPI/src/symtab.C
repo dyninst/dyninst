@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.131 2001/09/05 21:59:02 bernat Exp $
+// $Id: symtab.C,v 1.132 2001/10/04 20:04:45 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,7 +239,7 @@ bool image::newFunc(pdmodule *mod, const string &name,
   //  function, add it to notInstruFunction.
   if (err) {
     //delete func;
-    addNotInstruFunc(func);
+    addNotInstruFunc(func, mod);
     return false;
   }
  
@@ -287,8 +287,9 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
     }
 }
 
-void image::addNotInstruFunc(pd_Function *func) {
+void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
     notInstruFunctions[func->prettyName()] = func;
+    mod->notInstruFuncs.push_back(func);
 }
 
 #ifdef DEBUG_TIME
@@ -1447,6 +1448,26 @@ void pdmodule::checkAllCallPoints() {
       funcs[f]->checkCallPoints();
 }
 
+function_base *pdmodule::findFunctionFromAll(const string &name) {
+  unsigned fsize = funcs.size();
+  unsigned f;
+  for (f=0; f<fsize; f++) {
+    if (funcs[f]->symTabName() == name)
+      return funcs[f];
+    else if (funcs[f]->prettyName() == name)
+      return funcs[f];
+  }
+
+  fsize = notInstruFuncs.size();
+  for (f=0; f<fsize; f++) {
+    if (notInstruFuncs[f]->symTabName() == name)
+      return notInstruFuncs[f];
+    else if (notInstruFuncs[f]->prettyName() == name)
+      return notInstruFuncs[f];
+  }
+
+  return NULL;
+}
 
 void image::checkAllCallPoints() {
   dictionary_hash_iter<string, pdmodule*> di(modsByFullName);
@@ -1494,6 +1515,8 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
   relocatable_(false)
 {
   err = findInstPoints(owner) == false;
+
+  isInstrumentable_ = !err;
 }
 
 // This method returns the address at which this function resides
