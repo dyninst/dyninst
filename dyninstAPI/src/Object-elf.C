@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.56 2003/09/18 01:05:26 jodom Exp $
+ * $Id: Object-elf.C,v 1.57 2003/10/23 21:54:43 mirg Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -2105,7 +2105,8 @@ bool parseCompilerType(Object *objPtr)
       break;
     case N_OPT: /* Compiler options */
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
-      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
+      if (strstr(&stabstrs[stabptr[i].name], "Sun") != NULL ||
+	  strstr(&stabstrs[stabptr[i].name], "Forte") != NULL)
 	return true;
 #endif
       return false;
