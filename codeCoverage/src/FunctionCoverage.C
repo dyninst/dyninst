@@ -322,7 +322,7 @@ bool FunctionCoverage::validateBasicBlock(BPatch_basicBlock* bb){
 }
 
 /** method that prints the error codes of this class */
-int FunctionCoverage::errorPrint(int code,char* text=NULL){
+int FunctionCoverage::errorPrint(int code,char* text){
 	cerr << "Error(" << code << ") : ";
 
 	switch(code){
