@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.1  1994/02/02 00:38:14  hollings
+ * Revision 1.2  1994/04/21 04:55:08  karavan
+ * added node and edge style numbers for shg display - klk
+ *
+ * Revision 1.1  1994/02/02  00:38:14  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.5  1993/08/05  19:01:43  hollings
@@ -39,5 +42,15 @@ extern Boolean printNodes;
 
 // update the SHG during the search?
 extern Boolean interactiveShgUpdate;
-
+extern int SHGid;
 extern dataManagerUser *dataMgr;
+
+// styles for SHG display
+
+#define UNTESTEDNODESTYLE 1
+#define INACTIVENODESTYLE 2
+#define ACTIVETRUENODESTYLE 3
+#define ACTIVEFALSENODESTYLE 4
+#define WHEREEDGESTYLE 1
+#define WHYEDGESTYLE 2
+#define WHENEDGESTYLE 3
