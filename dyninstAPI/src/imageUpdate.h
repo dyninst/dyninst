@@ -3,9 +3,8 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: imageUpdate.h,v 1.5 2003/01/31 18:55:42 chadd Exp $ */
+/* $Id: imageUpdate.h,v 1.6 2003/09/05 16:28:37 schendel Exp $ */
 
-#if defined(BPATCH_LIBRARY)
 
 //ccw 28 oct 2001
 // if we are sure BPATCH_SET_MUTATIONS_ACTIVE is always
@@ -85,4 +84,3 @@ typedef struct dataUpdate__ {
 
 #endif
 
-#endif

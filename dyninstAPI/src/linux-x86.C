@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.34 2003/08/05 21:49:22 hollings Exp $
+// $Id: linux-x86.C,v 1.35 2003/09/05 16:27:56 schendel Exp $
 
 #include <fstream>
 
@@ -75,12 +75,9 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include <sstream>
 
-#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 //#include "saveSharedLibrary.h" 
-
-#endif
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -470,8 +467,6 @@ Frame Frame::getCallerFrame(process *p) const
   return Frame(); // zero frame
 }
 
-#ifdef BPATCH_LIBRARY
-
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
 
 	addLibrary addLibraryElf;
@@ -603,8 +598,6 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	return directoryName;	
 
 }
-
-#endif
 
 // Laziness here: this func is used by the iRPC code
 // to get result registers. Don't use it other than that. 

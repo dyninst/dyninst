@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.155 2003/08/05 21:49:23 hollings Exp $
+// $Id: solaris.C,v 1.156 2003/09/05 16:27:57 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -167,8 +167,6 @@ bool process::get_exit_syscalls(pstatus_t *status,
     memcpy(exit, &(status->pr_sysexit), sizeof(sysset_t));
     return true;
 }    
-
-#ifdef BPATCH_LIBRARY
 
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
@@ -389,7 +387,6 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	}
 	return directoryName;
 }
-#endif
 
 bool process::dumpImage(pdstring imageFileName) 
 {

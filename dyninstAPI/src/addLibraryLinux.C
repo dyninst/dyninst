@@ -1,6 +1,6 @@
-/* $Id: addLibraryLinux.C,v 1.8 2003/07/25 15:51:54 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.9 2003/09/05 16:28:34 schendel Exp $ */
 
-#if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0)
 
 #include "addLibraryLinux.h"
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.36 2003/07/25 15:52:10 chadd Exp $
+// $Id: sharedobject.h,v 1.37 2003/09/05 16:28:40 schendel Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -83,29 +83,26 @@ public:
     pdmodule *findModule(pdstring m_name, bool check_excluded);
  
 #else
-
     pdmodule *findModule(pdstring m_name);
 #endif
+
     const pdvector<pd_Function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }
     void  setBaseAddress(Address new_ba){ base_addr = new_ba; }
 
-#if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	bool isinText(Address addr){ 
 		return objs_image->getObject().isinText(addr, base_addr);
 	}
-
 	void openedWithdlopen() { dlopenUsed = true; }; 
 	bool isopenedWithdlopen() { return dlopenUsed; };
 #endif
-#endif
 
     bool  getSymbolInfo(const pdstring &n,Symbol &info) {
-        if(objs_image) {
-	    return (objs_image->symbol_info(n,info));
-	}
-	return false;
+       if(objs_image) {
+          return (objs_image->symbol_info(n,info));
+       }
+       return false;
     }
 
     // from a string that is a complete path name to a function in a module
@@ -122,25 +119,25 @@ public:
 
     // Get list of ALL modules, not just included ones.
     const pdvector<pdmodule *> *getModules() {
-        if(objs_image) {
+       if(objs_image) {
 #ifndef BPATCH_LIBRARY
-	  return (&(objs_image->getAllModules()));
+          return (&(objs_image->getAllModules()));
 #else
-	  return (&(objs_image->getModules()));
+          return (&(objs_image->getModules()));
 #endif
-	}
-	return 0;
+       }
+       return 0;
     }
 
     bool  addImage(image *i){ 
-	if(!processed && (objs_image == 0)) {
+       if(!processed && (objs_image == 0)) {
 	    objs_image = i;
 	    processed = true;
-            return true;
-	}
-	else {
-            return false;
-	}
+       return true;
+       }
+       else {
+          return false;
+       }
     }
     bool removeImage(){ return true;}
 
@@ -189,7 +186,6 @@ public:
         return ret;
     }
 
-#if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk during saveworld 
@@ -206,7 +202,6 @@ public:
 	//need to be saved (as dirty_ would imply).
 	void setDirtyCalled() { dirtyCalled_ = true; }
 	bool isDirtyCalled() { return dirtyCalled_; }
-#endif
 #endif
 
     //

@@ -3,9 +3,9 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: addLibrary.h,v 1.5 2003/07/01 19:57:20 chadd Exp $ */
+/* $Id: addLibrary.h,v 1.6 2003/09/05 16:28:33 schendel Exp $ */
 
-#if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4)
 
 #include <unistd.h>
 #include  <fcntl.h>

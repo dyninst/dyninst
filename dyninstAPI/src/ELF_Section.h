@@ -1,8 +1,7 @@
-/* $Id: ELF_Section.h,v 1.3 2002/03/18 20:03:57 tlmiller Exp $ */
+/* $Id: ELF_Section.h,v 1.4 2003/09/05 16:28:36 schendel Exp $ */
 
 /* ccw 21 nov 2001 */
 
-#if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 
 #ifndef ELF_Section__
@@ -51,6 +50,5 @@ typedef struct {
 #define DT_CHECKSUM 0x6ffffdf8
 #define DT_DEBUG 21
 
-#endif
 #endif
 #endif

@@ -1,9 +1,9 @@
-/* $Id: writeBackElf.h,v 1.11 2003/08/10 20:23:19 chadd Exp $ */
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* $Id: writeBackElf.h,v 1.12 2003/09/05 16:28:43 schendel Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
 
-#if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 
 #include <fcntl.h>
@@ -96,6 +96,5 @@ public:
 	Elf* getElf(){ return newElf; };
 };
 
-#endif
 #endif
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.447 2003/08/11 22:03:25 tlmiller Exp $
+// $Id: process.C,v 1.448 2003/09/05 16:28:02 schendel Exp $
 
 #include <ctype.h>
 
@@ -67,7 +67,7 @@
 
 #include "dyninstAPI/src/rpcMgr.h"
 
-#ifdef BPATCH_LIBRARY
+
 #include "dyninstAPI/h/BPatch.h"
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -77,7 +77,7 @@
 #include "dyninstAPI/src/writeBackXCOFF.h"
 #endif
 
-#else
+#if !defined(BPATCH_LIBRARY)
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/perfStream.h"
@@ -651,7 +651,6 @@ void process::saveWorldData(Address, int, const void*){
 #endif
 }
 
-#ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
 /* || defined(rs6000_ibm_aix4_1)*/
 
@@ -756,7 +755,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
    count = 0;
    for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
       sh_obj = (*shared_objects)[i];
-	//ccw 24 jul 2003
+      //ccw 24 jul 2003
       if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT"))){ //ccw 6 jul 2003
          count ++;
          if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
@@ -766,42 +765,42 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
          //printf(" %s is DIRTY!\n", sh_obj->getName().c_str());
         
 
-	 if( sh_obj->isDirty() && NULL==strstr(sh_obj->getName().c_str(),"libc") ){ 
-		//dont save libc or libdyninstAPI_RT!
-		//if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
-	         Address textAddr, textSize;
-	         char *newName = new char[strlen(sh_obj->getName().c_str()) + 
-        	                          strlen(directoryName) + 1];
-	         memcpy(newName, directoryName, strlen(directoryName)+1);
-        	 const char *file = strrchr(sh_obj->getName().c_str(), '/');
-	         strcat(newName, file);
-         
-	         saveSharedLibrary *sharedObj = new saveSharedLibrary(
-        	                  sh_obj->getBaseAddress(), sh_obj->getName().c_str(),
-                	          newName);
-	         sharedObj->writeLibrary();
-         
-        	 sharedObj->getTextInfo(textAddr, textSize);
-         
-	         char *textSection = new char[textSize];
-        	 readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
-                	       textSize,(void*)textSection, true);
-         
-	         sharedObj->saveMutations(textSection);
-        	 sharedObj->closeLibrary();
-	         /*			
-        	 //this is for the dlopen problem....
-	         if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
-        	 //find the offset of _dl_debug_state in the .plt
-	         dl_debug_statePltEntry = 
-        	 sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
-	         }
-        	 */			
-         	delete [] textSection;
-         	delete [] newName;
- 	}
-        mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
-	mutatedSharedObjectsSize += sizeof(int); //a flag to say if this is only DirtyCalled
+         if( sh_obj->isDirty() && NULL==strstr(sh_obj->getName().c_str(),"libc") ){ 
+            //dont save libc or libdyninstAPI_RT!
+            //if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
+            Address textAddr, textSize;
+            char *newName = new char[strlen(sh_obj->getName().c_str()) + 
+                                     strlen(directoryName) + 1];
+            memcpy(newName, directoryName, strlen(directoryName)+1);
+            const char *file = strrchr(sh_obj->getName().c_str(), '/');
+            strcat(newName, file);
+            
+            saveSharedLibrary *sharedObj =
+               new saveSharedLibrary(sh_obj->getBaseAddress(),
+                                     sh_obj->getName().c_str(), newName);
+            sharedObj->writeLibrary();
+            
+            sharedObj->getTextInfo(textAddr, textSize);
+            
+            char *textSection = new char[textSize];
+            readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
+                          textSize,(void*)textSection, true);
+            
+            sharedObj->saveMutations(textSection);
+            sharedObj->closeLibrary();
+            /*			
+            //this is for the dlopen problem....
+            if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
+            //find the offset of _dl_debug_state in the .plt
+            dl_debug_statePltEntry = 
+            sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+            }
+            */			
+            delete [] textSection;
+            delete [] newName;
+         }
+         mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
+         mutatedSharedObjectsSize += sizeof(int); //a flag to say if this is only DirtyCalled
       }
       //this is for the dlopen problem....
       if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
@@ -1063,7 +1062,6 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 	delete [] data;
 }
 
-#endif
 #endif
 
 
@@ -1621,10 +1619,8 @@ process::process(int iPid, image *iImage, int iTraceLink
  requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   baseMap(ipHash), 
-#ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
-#endif
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -1652,17 +1648,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     
     main_brk_addr = 0;
 
-    preForkData_ = NULL;
-    postForkData_ = NULL;
-    preExecData_ = NULL;
-    postExecData_ = NULL;
-    preExitData_ = NULL;
-    preForkCallback_ = NULL;
-    postForkCallback_ = NULL;
-    preExecCallback_ = NULL;
-    postExecCallback_ = NULL;
-    preExitCallback_ = NULL;
-    
     nextTrapIsFork = false;
     nextTrapIsExec = false;
 
@@ -1801,10 +1786,8 @@ process::process(int iPid, image *iSymbols,
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   baseMap(ipHash),
-#if defined(BPATCH_LIBRARY)
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
-#endif
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -1824,17 +1807,6 @@ process::process(int iPid, image *iSymbols,
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
-    preForkData_ = NULL;
-    postForkData_ = NULL;
-    preExecData_ = NULL;
-    postExecData_ = NULL;
-    preExitData_ = NULL;
-
-    preForkCallback_ = NULL;
-    postForkCallback_ = NULL;
-    preExecCallback_ = NULL;
-    postExecCallback_ = NULL;
-    preExitCallback_ = NULL;
     
     nextTrapIsFork = false;
     nextTrapIsExec = false;
@@ -1865,12 +1837,16 @@ process::process(int iPid, image *iSymbols,
     LWPstoppedFromForkExit = 0;
 
     inInferiorMallocDynamic = false;
-    
     theRpcMgr = new rpcMgr(this);
-    
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
-    shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
+    shmMetaData = new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS);
+               // previously was using maxNumberOfThreads() instead of
+               // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
+               // calls multithread_capable(), which isn't able to be
+               // called yet since the modules aren't parsed.
+               // We'll use the larger size for the ST case.  The increased
+               // size is fairly small, perhaps 2 KB.
 #endif
 
     parent = NULL;
@@ -1878,7 +1854,6 @@ process::process(int iPid, image *iSymbols,
 
     cumObsCost = 0;
     lastObsCostLow = 0;
-
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
@@ -1903,7 +1878,6 @@ process::process(int iPid, image *iSymbols,
     execed_ = false;
 
     splitHeaps = false;
-
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
         // XXXX - move this to a machine dependant place.
 
@@ -1924,7 +1898,6 @@ process::process(int iPid, image *iSymbols,
    // Now the actual attach...the moment we've all been waiting for
 
    attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
-
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
    createLWP(0);
 #endif
@@ -2032,10 +2005,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
-#ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
-#endif
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(parentProc.cached_result),
 #ifndef BPATCH_LIBRARY
@@ -2051,22 +2022,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   lwps(CThash),
   procHandle_(0)
 {
-    tracingRequests = parentProc.tracingRequests;
-
-    // Leave these as NULL... the parent needs to initialize them
-    // (as the data fields for one are probably meaningless)
-    preForkData_ = NULL;
-    postForkData_ = NULL;
-    preExecData_ = NULL;
-    postExecData_ = NULL;
-    preExitData_ = NULL;
-    preForkCallback_ = NULL;
-    postForkCallback_ = NULL;
-    preExecCallback_ = NULL;
-    postExecCallback_ = NULL;
-    preExitCallback_ = NULL;
-    
-
+   tracingRequests = parentProc.tracingRequests;
     
    // This is the "fork" ctor
    bootstrapState = initialized;
@@ -2285,7 +2241,7 @@ extern bool forkNewProcess(pdstring &file, pdstring dir,
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const pdstring File, pdvector<pdstring> argv, 
+process *ll_createProcess(const pdstring File, pdvector<pdstring> argv, 
                        const pdstring dir = "", int stdin_fd=0,
                        int stdout_fd=1, int stderr_fd=2)
 {
@@ -2295,7 +2251,7 @@ process *createProcess(const pdstring File, pdvector<pdstring> argv,
 	// The filename is an absolute pathname if it starts with a '/' on UNIX,
 	// or a letter and colon pair on Windows.
     
-    pdstring file = File;
+   pdstring file = File;
 	if( dir.length() > 0 )
 	{
 #if !defined(i386_unknown_nt4_0)
@@ -2514,7 +2470,7 @@ process *createProcess(const pdstring File, pdvector<pdstring> argv,
 }
 
 
-process *attachProcess(const pdstring &progpath, int pid) 
+process *ll_attachProcess(const pdstring &progpath, int pid) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -2538,8 +2494,8 @@ process *attachProcess(const pdstring &progpath, int pid)
   //           My first guess would be no.  -ari
   //           But although we may ignore the io, we still need the trace stream.
   
-  // When we attach to a process, we don't fork...so this routine is much simpler
-  // than its "competitor", createProcess() (above).
+  // When we attach to a process, we don't fork...so this routine is much
+  // simpler than its "competitor", ll_createProcess() (above).
   
   pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
 
@@ -2896,7 +2852,6 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
-    
     assert(status_ == stopped);
 
    if (reachedBootstrapState(bootstrapped)) {
@@ -2956,14 +2911,7 @@ bool process::finalizeDyninstLib() {
    setBootstrapState(bootstrapped);
    
    if (wasExeced()) {
-       
-       // Make the exec callback
-       if (postExecCallback_) {
-           (*postExecCallback_)(this, postExecData_);
-       }
-#if defined(BPATCH_LIBRARY)
-       BPatch::bpatch->registerExec(thread);
-#endif
+       BPatch::bpatch->registerExec(bpatch_thread);
    }
 
    return true;
@@ -3121,39 +3069,6 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
 } // end of AttachToCreatedProcess
 
 
-#ifndef BPATCH_LIBRARY
-extern void disableAllInternalMetrics();
-void paradyn_handleProcessExit(process *proc, int exitStatus);
-#endif
-
-void handleProcessExit(process *proc, int exitStatus) {
-  proc->exitCode_ = exitStatus;
-
-  if (proc->status() == exited)
-    return;
-
-  --activeProcesses;
-
-  proc->Exited(); // updates status line
-
-#ifndef BPATCH_LIBRARY
-  paradyn_handleProcessExit(proc, exitStatus);
-
-  if (activeProcesses == 0)
-    disableAllInternalMetrics();
-#endif
-
-  // Perhaps these lines can be un-commented out in the future, but since
-  // cleanUpAndExit() does the same thing, and it always gets called
-  // (when paradynd detects that paradyn died), it's not really necessary
-  // here.  -ari
-//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
-//     if (processVec[lcv] == proc) {
-//        delete proc; // destructor removes shm segments...
-//      processVec[lcv] = NULL;
-//     }
-}
-
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
                           timeStamp wallTime,
@@ -3300,9 +3215,9 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                             void *inSelf, bool displayErrMsg) {
   bool needToCont = false;
-
-  if (status_ == exited)
+  if (status_ == exited) {
     return false;
+  }
 
   if (status_ == running) {
     needToCont = true;
@@ -5007,28 +4922,6 @@ bool process::API_detach(const bool cont)
   return API_detach_(cont);
 }
 
-// Exec, Fork, Exit callbacks
-void process::registerPreForkCallback(forkEntryCallback_t callback, void *data) {
-    preForkCallback_ = callback;
-    preForkData_ = data;
-}
-void process::registerPostForkCallback(forkExitCallback_t callback, void *data) {
-    postForkCallback_ = callback;
-    postForkData_ = data;
-}
-void process::registerPreExecCallback(execEntryCallback_t callback, void *data) {
-    preExecCallback_ = callback;
-    preExecData_ = data;
-}
-void process::registerPostExecCallback(execExitCallback_t callback, void *data) {
-    postExecCallback_ = callback;
-    postExecData_ = data;
-}
-void process::registerPreExitCallback(exitEntryCallback_t callback, void *data) {
-    preExitCallback_ = callback;
-    preExitData_ = data;
-}
-
 /*
  * Generic syscall exit handling.
  * Returns true if handling was done
@@ -5076,7 +4969,30 @@ bool process::handleSyscallExit(procSignalWhat_t)
     return false;
 }
 
-              
+void process::handleProcessExit(int exitCode) {
+   exitCode_ = exitCode;
+
+   if (status() == exited) {
+      return;
+   }
+
+   --activeProcesses;
+
+   BPatch::bpatch->registerExit(bpatch_thread, exitCode);
+   
+   status_ = exited;
+   detach(false);
+
+  // Perhaps these lines can be un-commented out in the future, but since
+  // cleanUpAndExit() does the same thing, and it always gets called
+  // (when paradynd detects that paradyn died), it's not really necessary
+  // here.  -ari
+//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
+//     if (processVec[lcv] == proc) {
+//        delete proc; // destructor removes shm segments...
+//      processVec[lcv] = NULL;
+//     }
+}
         
 
 /*
@@ -5088,15 +5004,8 @@ void process::handleForkEntry() {
     // set a flag that is detected
     nextTrapIsFork = true;
     
-    // Make whatever callback is registered
-    if (preForkCallback_) {
-        (*preForkCallback_)(this, preForkData_);
-    }
-#if defined(BPATCH_LIBRARY)
     // Make bpatch callbacks as well
     BPatch::bpatch->registerForkingThread(getPid(), NULL);
-#endif
-
 }
 
 void process::handleForkExit(process *child) {
@@ -5107,16 +5016,7 @@ void process::handleForkExit(process *child) {
     child->init_shared_memory(this);
 #endif
 
-#if defined(BPATCH_LIBRARY)
-    BPatch::bpatch->registerForkedThread(getPid(),
-                                         child->getPid(), child);
-#endif
-    // A lot of this is being done in the signal handler... can any
-    // be moved here?
-    
-    if (postForkCallback_) {
-        (*postForkCallback_)(this, postForkData_, child);
-    }
+    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
 }
 
 void process::handleExecEntry(char *arg0) {
@@ -5128,10 +5028,6 @@ void process::handleExecEntry(char *arg0) {
         cerr << "Failed to read exec argument!" << endl;
     else
         execPathArg = temp;
-    
-    if (preExecCallback_) {
-        (*preExecCallback_)(this, preExecData_, temp);
-    }
 }
 
 /* process::handleExecExit: called when a process successfully exec's.
@@ -5188,10 +5084,8 @@ void process::handleExecExit() {
    memset(trampTable, 0, sizeof(trampTable));
 #endif
    baseMap.clear();
-#ifdef BPATCH_LIBRARY
    instPointMap.clear(); /* XXX Should delete instPoints first? */
    PDFuncToBPFuncMap.clear();
-#endif
    installedMiniTramps_beforePt.clear();
    installedMiniTramps_afterPt.clear();
 
@@ -5294,15 +5188,6 @@ void process::handleExecExit() {
    // more than once if we get multiple exec "exits", plus the proces
    // isn't Dyninst-ready. We make the callback once the RT library is
    // loaded
-}
-
-void process::handleExitEntry(int code) {
-    if (preExitCallback_) {
-        (*preExitCallback_)(this, preExitData_, code);
-    }
-#if defined(BPATCH_LIBRARY)
-    BPatch::bpatch->registerExit(thread, code);
-#endif
 }
 
 bool process::checkTrappedSyscallsInternal(Address syscall)
@@ -5539,27 +5424,6 @@ bool process::dumpCore(const pdstring fileOut) {
   return true;
 }
 
-
-/*
- *  The process has exited. Close it down.  Notify Paradyn.
- */
-void process::Exited() {
-  if (status_ == exited) {
-    // Already done the exit (theoretically)
-    return;
-  }
-
-  // snag the last shared-memory sample:
-  status_ = exited;
-
-  detach(false);
-  // the process will continue to run (presumably, it will finish _very_
-  // soon)
-
-//  status_ = exited;
-
-}
-
 process *process::findProcess(int pid) {
   unsigned size=processVec.size();
   for (unsigned u=0; u<size; u++)
@@ -5724,7 +5588,6 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 
-#ifdef BPATCH_LIBRARY
 BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 					   instPoint *ip,
 					   BPatch_procedureLocation pointType)
@@ -5759,31 +5622,31 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
 					     BPatch_module *bpmod)
 {
-    if (PDFuncToBPFuncMap.defines(pdfunc))
-	return PDFuncToBPFuncMap[pdfunc];
+   if (PDFuncToBPFuncMap.defines(pdfunc))
+      return PDFuncToBPFuncMap[pdfunc];
 
-    assert(thread);
+   assert(bpatch_thread);
 
-    // Find the module that contains the function
-    if (bpmod == NULL && pdfunc->file() != NULL) {
-	BPatch_Vector<BPatch_module *> &mods=*thread->getImage()->getModules();
-	for (unsigned int i = 0; i < mods.size(); i++) {
-	    if (mods[i]->mod == pdfunc->file()) {
-		bpmod = mods[i];
-		break;
-	    }
-	}
-	// The BPatch_function may have been created as a side effect
-	// of the above
-        if (PDFuncToBPFuncMap.defines(pdfunc))
-	    return PDFuncToBPFuncMap[pdfunc];
-    }
-
-    BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
-
-    return ret;
+   // Find the module that contains the function
+   if (bpmod == NULL && pdfunc->file() != NULL) {
+      BPatch_Vector<BPatch_module *> &mods =
+         *(bpatch_thread->getImage()->getModules());
+      for (unsigned int i = 0; i < mods.size(); i++) {
+         if (mods[i]->mod == pdfunc->file()) {
+            bpmod = mods[i];
+            break;
+         }
+      }
+      // The BPatch_function may have been created as a side effect
+      // of the above
+      if (PDFuncToBPFuncMap.defines(pdfunc))
+         return PDFuncToBPFuncMap[pdfunc];
+   }
+   
+   BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
+   
+   return ret;
 }
-#endif
 
 // Add it at the bottom...
 void process::deleteInstInstance(instInstance *delInst)
@@ -6185,4 +6048,5 @@ void process::overrideDefaultLWP(dyn_lwp *lwp) {
 void process::restoreDefaultLWP() {
     lwps[0] = saved_default_lwp;
 }
+
 

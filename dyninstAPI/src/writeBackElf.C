@@ -1,6 +1,6 @@
-/* $Id: writeBackElf.C,v 1.17 2003/08/10 20:23:19 chadd Exp $ */
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* $Id: writeBackElf.C,v 1.18 2003/09/05 16:28:42 schendel Exp $ */
 
-#if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 #include "writeBackElf.h"
@@ -20,37 +20,38 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		fflush(stdout);		
 		return;
 	}
-        if((newfd = (creat(newElfName, 0x1c0)))==-1){
+	if((newfd = (creat(newElfName, 0x1c0)))==-1){
 		//printf("NEWELF_OPEN_FAIL %s", newElfName);
 		char *fileName = new char[strlen(newElfName)+1+3];
 		for(int i=0;newfd == -1 && i<100;i++){
 			sprintf(fileName, "%s%d",newElfName,i);
 			newfd = (open(fileName, O_WRONLY|O_CREAT));
 		}
-                fflush(stdout);
+		fflush(stdout);
 		if(newfd == -1){
-			printf("NEWELF_OPEN_FAIL %s. clean up /tmp/dyninstMutatee*\n", newElfName);
+			printf("NEWELF_OPEN_FAIL %s. clean up /tmp/dyninstMutatee*\n",
+					 newElfName);
 			return; 
 		}
 		delete [] fileName;
 	}
 
-        if(elf_version(EV_CURRENT) == EV_NONE){
+	if(elf_version(EV_CURRENT) == EV_NONE){
 
 		printf(" elf_version failed!\n");
 	} 
-        if ((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) == NULL){
+	if ((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) == NULL){
 		printf("OLDELF_BEGIN_FAIL");
                 fflush(stdout);
 		return;
 	}
-      	if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
+	if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
 		elf_end(oldElf);
 		printf("NEWELF_BEGIN_FAIL");
-                fflush(stdout);
+		fflush(stdout);
 		return;
-        }
-      	//elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
+	}
+	//elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
 	newSections = NULL;
 	newSectionsSize = 0;
 	DEBUG_MSG = debugOutputFlag;
@@ -63,9 +64,9 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		}
 	}	
 	fflush(stdout);
-        mutateeProcess = NULL;
-        mutateeTextSize = 0;
-        mutateeTextAddr = 0;
+	mutateeProcess = NULL;
+	mutateeTextSize = 0;
+	mutateeTextAddr = 0;
 	elf_fill(0);
 	newHeapAddr = 0;
 	parseOldElf();
@@ -82,8 +83,8 @@ writeBackElf::~writeBackElf(){
 			free(newSections);
 		}else{
 			for(unsigned int i = 0;i<newSectionsSize;i++){
-                                delete [] (char*) newSections[i].data;
-                     		delete [] (char*) newSections[i].name; 
+				delete [] (char*) newSections[i].data;
+				delete [] (char*) newSections[i].name; 
 			}
 			delete [] newSections;
 		}
@@ -130,7 +131,8 @@ int writeBackElf::addSection(unsigned int addr, void *data,
 	memcpy(newSection->name, name, strlen(name)+1);
 	newSection->nameIndx = 0;
 	if(DEBUG_MSG){
-		printf(" ADDED SECTION: %x %x\n", newSection->vaddr, *(unsigned int*)newSection->data);
+		printf(" ADDED SECTION: %x %x\n", newSection->vaddr,
+				 *(unsigned int*)newSection->data);
 	}
 	return ++newSectionsSize;
 }
@@ -142,20 +144,19 @@ void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
 
 	if( symtabData && strData){
 
-        Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
+		Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
+		
+		for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
+						
+			if( newHeapAddr && !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
+				symPtr->st_value = newHeapAddr;
+			}
 
-        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
-
-
-                if( newHeapAddr && !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
-                        symPtr->st_value = newHeapAddr;
-                }
-
-                if( newHeapAddr &&  !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
-                        symPtr->st_value = newHeapAddr; 
-                }
-
-        }
+			if( newHeapAddr &&  !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
+				symPtr->st_value = newHeapAddr; 
+			}
+			
+		}
 	}
 }
 
@@ -169,15 +170,15 @@ void writeBackElf::driver(){
 	Elf_Data *data, *newdata, *olddata;
 
 	ehdr = elf32_getehdr(oldElf);
-        if(!(newEhdr = elf32_newehdr(newElf))){
+	if(!(newEhdr = elf32_newehdr(newElf))){
 		printf("newEhdr failed\n");
 		exit(1);
-        }
+	}
 
 
-        if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
-             if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
-       		      if((data = elf_getdata(scn, NULL)) == NULL){
+	if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
+		if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
+			if((data = elf_getdata(scn, NULL)) == NULL){
 				printf(" Failed obtaining .shstrtab data buffer \n");
 				exit(1);
 			}
@@ -190,19 +191,17 @@ void writeBackElf::driver(){
 	memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
 
 
-
-
 	scn = NULL;
 	for (int cnt = 1; (scn = elf_nextscn(oldElf, scn)); cnt++) {
 		//copy sections from oldElf to newElf.
 	
 		shdr = elf32_getshdr(scn);
-               	newScn = elf_newscn(newElf);
-                newsh = elf32_getshdr(newScn);
-                newdata = elf_newdata(newScn);
-                olddata = elf_getdata(scn,NULL);
-                memcpy(newsh, shdr, sizeof(Elf32_Shdr));
-                memcpy(newdata,olddata, sizeof(Elf_Data));
+		newScn = elf_newscn(newElf);
+		newsh = elf32_getshdr(newScn);
+		newdata = elf_newdata(newScn);
+		olddata = elf_getdata(scn,NULL);
+		memcpy(newsh, shdr, sizeof(Elf32_Shdr));
+		memcpy(newdata,olddata, sizeof(Elf_Data));
 
                	//copy data buffer from oldElf 
 		if(olddata->d_buf){
@@ -211,66 +210,66 @@ void writeBackElf::driver(){
 			}else{
 				newdata->d_buf = new char[olddata->d_size];
 			} 
-		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-                }
+			memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+		}
 
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".strtab")){
-                        symStrData = newdata;
-                        elf_update(newElf,ELF_C_NULL);
-                        updateSymbols(symTabData, symStrData);
-                }
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".strtab")){
+			symStrData = newdata;
+			elf_update(newElf,ELF_C_NULL);
+			updateSymbols(symTabData, symStrData);
+		}
+		
 
-
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynstr")){
-                        dynStrData = newdata;
-                        updateSymbols(dynsymData, dynStrData);
-                }
-
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".symtab")){
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynstr")){
+			dynStrData = newdata;
+			updateSymbols(dynsymData, dynStrData);
+		}
+		
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".symtab")){
 			if(newsh->sh_link >= insertPoint){
-                        	newsh->sh_link += newSectionsSize;
+				newsh->sh_link += newSectionsSize;
 			}
-                        symTabData = newdata;
-                }
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynsym")){
-                        dynsymData = newdata;
-                }
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".text")){
-                        textData = newdata;
+			symTabData = newdata;
+		}
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".dynsym")){
+			dynsymData = newdata;
+		}
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".text")){
+			textData = newdata;
 			if(mutateeProcess){
 				mutateeProcess->readTextSpace((const void*) newsh->sh_addr, newdata->d_size, 
-					(void*)newdata->d_buf);
+														(void*)newdata->d_buf);
 				
 			}
 			startAddr = newsh->sh_addr;
 			endAddr = newsh->sh_addr + newsh->sh_size;
-     			textSh = newsh; 
+			textSh = newsh; 
 		}
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".bss")){
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".bss")){
 			createSections();
-                }
-
-                if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".shstrtab")){
+		}
+		
+		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".shstrtab")){
 			addSectionNames(newdata,olddata);
-                }
+		}
 		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".data")){
 			dataData = newdata;
 			dataStartAddress = newsh->sh_addr;
 			elf_update(newElf,ELF_C_NULL);
 		}
 
-        }
+	}
 
-
-        Elf32_Phdr *tmp;
-
-        tmp = elf32_getphdr(oldElf);
-        newEhdr->e_phnum= ehdr->e_phnum; 
-        newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
-
-        memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
-        newEhdr->e_shstrndx+=newSectionsSize;
-
+	
+	Elf32_Phdr *tmp;
+	
+	tmp = elf32_getphdr(oldElf);
+	newEhdr->e_phnum= ehdr->e_phnum; 
+	newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
+	
+	memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
+	newEhdr->e_shstrndx+=newSectionsSize;
+	
 	fixPhdrs();
 }
 
@@ -285,32 +284,32 @@ void writeBackElf::parseOldElf(){
 	insertPoint = 0;
 
 
-        if (((ehdr = elf32_getehdr(oldElf)) != NULL)){
-             if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
-                      if((data = elf_getdata(scn, NULL)) == NULL){
-                                printf(" Failed obtaining .shstrtab data buffer \n");
-                                exit(1);
-                        }
-                }else{
-                        printf(" FAILED obtaining .shstrtab scn\n");
-                }
-        }else{
-                printf(" FAILED obtaining .shstrtab ehdr\n");
-        }
+	if (((ehdr = elf32_getehdr(oldElf)) != NULL)){
+		if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
+			if((data = elf_getdata(scn, NULL)) == NULL){
+				printf(" Failed obtaining .shstrtab data buffer \n");
+				exit(1);
+			}
+		}else{
+			printf(" FAILED obtaining .shstrtab scn\n");
+		}
+	}else{
+		printf(" FAILED obtaining .shstrtab ehdr\n");
+	}
+	
+	
+	
 
-
-
-
-        if (((ehdr = elf32_getehdr(oldElf)) == NULL) ||
-             ((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) == NULL) ||
-             ((data = elf_getdata(scn, NULL)) == NULL)){
-                printf(" Failed obtaining .shstrtab data buffer \n");
-                exit(1);
-        }
-
+	if (((ehdr = elf32_getehdr(oldElf)) == NULL) ||
+		 ((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) == NULL) ||
+		 ((data = elf_getdata(scn, NULL)) == NULL)){
+		printf(" Failed obtaining .shstrtab data buffer \n");
+		exit(1);
+	}
+	
 	scn = NULL;
 	for (int cnt = 1; !insertPoint && (scn = elf_nextscn(oldElf, scn)); cnt++) {
-        	shdr = elf32_getshdr(scn);
+		shdr = elf32_getshdr(scn);
 		if(!(strcmp(".bss",(char*) data->d_buf + shdr->sh_name))){
 			insertPoint = cnt;
 			lastAddr = shdr->sh_addr + shdr->sh_size;
@@ -321,23 +320,23 @@ void writeBackElf::parseOldElf(){
 }
 
 bool writeBackElf::createElf(){
-        unsigned int i;
-        for(i=0;i< newSectionsSize && newSections[i].loadable;i++); // find the last loadable section
+	unsigned int i;
+	for(i=0;i< newSectionsSize && newSections[i].loadable;i++); // find the last loadable section
 	if(i ||  oldLastPage == newSections[0].vaddr/pageSize  ){
 		//if we find a loadable sectin
 		//OR the first section is immediately after
 		//.bss but not loadable
-                if(!i){ //pretend we found a loadalbe seciton at position 0
-                        i++;
-                }
+		if(!i){ //pretend we found a loadalbe seciton at position 0
+			i++;
+		}
 		newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
-
-	        while(newHeapAddr % 0x8){
-       	        	newHeapAddr++;
-        	}
+		
+		while(newHeapAddr % 0x8){
+			newHeapAddr++;
+		}
 	}
-        driver();
-        return true;
+	driver();
+	return true;
 }
 
  
@@ -381,16 +380,16 @@ void writeBackElf::createSections(){
 			printf("ADDING SECTION");
 		}
 		newScn = elf_newscn(newElf);
-	        newsh = elf32_getshdr(newScn);
-	        newdata = elf_newdata(newScn);
-	        newSections[i].shdr=newsh;
-	        elf_update(newElf,ELF_C_NULL);
-	        newsh->sh_addr = newSections[i].vaddr;
-	        newsh->sh_size = newSections[i].dataSize;
-	        newsh->sh_addralign = 0x4;//newSections[i].align;
+		newsh = elf32_getshdr(newScn);
+		newdata = elf_newdata(newScn);
+		newSections[i].shdr=newsh;
+		elf_update(newElf,ELF_C_NULL);
+		newsh->sh_addr = newSections[i].vaddr;
+		newsh->sh_size = newSections[i].dataSize;
+		newsh->sh_addralign = 0x4;//newSections[i].align;
 		if(newSections[i].loadable){
-	        	newsh->sh_flags=  SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC ;//newSections[i].flags;
-	        	newsh->sh_type = SHT_PROGBITS;//newSections[i].type; 
+			newsh->sh_flags=  SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC ;//newSections[i].flags;
+			newsh->sh_type = SHT_PROGBITS;//newSections[i].type; 
 		}else{
 			newsh->sh_flags = 0;
 			newsh->sh_type = SHT_PROGBITS; //SHT_NOTE
@@ -400,12 +399,12 @@ void writeBackElf::createSections(){
 		}else{
 			newdata->d_buf = new char[newSections[i].dataSize];
 		}
-	        newdata->d_size = newSections[i].dataSize;
+		newdata->d_size = newSections[i].dataSize;
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
 		elf_update(newElf, ELF_C_NULL);
 		if(DEBUG_MSG){
 			printf("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
-				newdata->d_size,*(unsigned int*) newdata->d_buf);
+					 newdata->d_size,*(unsigned int*) newdata->d_buf);
 		}
 	}
 }
@@ -416,7 +415,6 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 	int totalSize = olddata->d_size;
 	for(unsigned int i=0;i<newSectionsSize;i++){
 		totalSize += (strlen(newSections[i].name)+1);
-
 	}
 	if(MALLOC){
 	        free(newdata->d_buf);
@@ -428,18 +426,18 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 	}else{
 		newdata->d_buf =new char[totalSize];
 	}
-        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
 
 	int currLoc = olddata->d_size;
-        for(unsigned int k=0;k<newSectionsSize;k++){
+	for(unsigned int k=0;k<newSectionsSize;k++){
 		memcpy(&( ((char*)newdata->d_buf)[currLoc]), 
-			newSections[k].name,strlen(newSections[k].name)+1);
+				 newSections[k].name,strlen(newSections[k].name)+1);
 		if(newSections[k].shdr){
 			newSections[k].shdr->sh_name = currLoc;
 		}
 		currLoc += (strlen(newSections[k].name)+1);
 		newdata->d_size += (strlen(newSections[k].name)+1);
-        }
+	}
 }
 
 
@@ -453,7 +451,8 @@ void writeBackElf::fixPhdrs(){
 }
 
 
-void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
+void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
+														 pdvector<imageUpdate*> &newPatches){
 	int startPage, stopPage;
 	imageUpdate *patch;
 	//this function now returns only ONE section that is loadable.
@@ -471,11 +470,11 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 	while(foundDup){
 		foundDup = false;
 		j =0;
-	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
-       	        	j++;
-        	}
+		while(imagePatches[j]->address==0 && j < imagePatches.size()){
+			j++;
+		}
 		curr = imagePatches[j];
-
+		
 		for(j++;j<imagePatches.size();j++){
 			next = imagePatches[j];		
 			if(curr->address == next->address){
@@ -501,7 +500,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 		if(imagePatches[i]->address!=0){
 			imagePatches[i]->startPage = imagePatches[i]->address- imagePatches[i]->address%pageSize;
 			imagePatches[i]->stopPage = imagePatches[i]->address + imagePatches[i]->size- 
-					(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
+				(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
 
 		}
 	}
@@ -510,10 +509,10 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 
 	while(foundDup){
 		foundDup = false;
-                j =0;
-                while(imagePatches[j]->address==0 && j < imagePatches.size()){
-                        j++;
-                }
+		j =0;
+		while(imagePatches[j]->address==0 && j < imagePatches.size()){
+			j++;
+		}
 		imagePatches.erase(0,j-1);
 		j=0;
 		for(;j<imagePatches.size()-1;j++){
@@ -522,12 +521,12 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
 					imagePatches[j+1]->address = 0;	
 				}else{
-
+					
 					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
 						imagePatches[j]->address;
 					imagePatches[j+1]->address = 0; 
 					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
-                                        	(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
+						(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
 				}
 			}  
 		}
@@ -537,8 +536,8 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 	unsigned int k=0;
 
 	while(imagePatches[k]->address==0 && k < imagePatches.size()){
-	        k++;
-        }
+		k++;
+	}
 
 	startPage = imagePatches[k]->startPage;
 	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
@@ -564,13 +563,13 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 		if(imagePatches[k]->address!=0){
 			if(DEBUG_MSG){
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
-					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
+						 imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{
-
+				
 				patch = new imageUpdate;
 				patch->address = imagePatches[startIndex]->address;
 				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
@@ -578,7 +577,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 				newPatches.push_back(patch);
 				if(DEBUG_MSG){
 					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
-						patch->address, patch->size, startPage,  stopPage);
+							 patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
 				//was k+1	
@@ -597,15 +596,15 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 				} 
 			}
 		}
-
+		
 	}
 
 	if(!finished){
 		patch = new imageUpdate;
-                patch->address = imagePatches[startIndex]->address;
-                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
-                                   imagePatches[stopIndex]->size;
-                newPatches.push_back(patch);
+		patch->address = imagePatches[startIndex]->address;
+		patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+			imagePatches[stopIndex]->size;
+		newPatches.push_back(patch);
 		if(DEBUG_MSG){
 			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 			fflush(stdout);
@@ -634,11 +633,11 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 	while(foundDup){
 		foundDup = false;
 		j =0;
-	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
-       	        	j++;
-        	}
+		while(imagePatches[j]->address==0 && j < imagePatches.size()){
+			j++;
+		}
 		curr = imagePatches[j];
-
+		
 		for(j++;j<imagePatches.size();j++){
 			next = imagePatches[j];		
 			if(curr->address == next->address){
@@ -677,20 +676,21 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 
 			if(DEBUG_MSG){
 				printf(" address %x end addr %x : start page %x stop page %x \n",
-					imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
-					imagePatches[i]->startPage, imagePatches[i]->stopPage);
+						 imagePatches[i]->address,
+						 imagePatches[i]->address + imagePatches[i]->size,
+						 imagePatches[i]->startPage, imagePatches[i]->stopPage);
 			}
-
+			
 		}
 	}
 	foundDup = true;
 
 	while(foundDup){
 		foundDup = false;
-                j =0;
-                while(imagePatches[j]->address==0 && j < imagePatches.size()){
-                        j++;
-                }
+		j =0;
+		while(imagePatches[j]->address==0 && j < imagePatches.size()){
+			j++;
+		}
 		//imagePatches.erase(0,j-1); //is it correct to erase here? 
 		//j = 0;
 		for(;j<imagePatches.size()-1;j++){
@@ -721,8 +721,8 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 		fflush(stdout);
 	}
 	while(imagePatches[k]->address==0 && k < imagePatches.size()){
-	        k++;
-        }
+		k++;
+	}
 
 	startPage = imagePatches[k]->startPage;
 	stopPage = imagePatches[k]->stopPage;
@@ -736,7 +736,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 		if(imagePatches[k]->address!=0){
 			if(DEBUG_MSG){
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
-					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
+						 imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
@@ -750,7 +750,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 				newPatches.push_back(patch);
 				if(DEBUG_MSG){
 					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
-						patch->address, patch->size, startPage,  stopPage);
+							 patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
 				//was k+1	
@@ -774,10 +774,10 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 
 	if(!finished){
 		patch = new imageUpdate;
-                patch->address = imagePatches[startIndex]->address;
-                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
-                                   imagePatches[stopIndex]->size;
-                newPatches.push_back(patch);
+		patch->address = imagePatches[startIndex]->address;
+		patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+			imagePatches[stopIndex]->size;
+		newPatches.push_back(patch);
 		if(DEBUG_MSG){
 			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 			fflush(stdout);
@@ -790,14 +790,14 @@ void writeBackElf::alignHighMem(pdvector<imageUpdate*> imagePatches){
 	unsigned int currPage;
 	unsigned int sizeDiff;
 
-        for(unsigned int i=0;i<imagePatches.size();i++){
+	for(unsigned int i=0;i<imagePatches.size();i++){
 		if(imagePatches[i]->address % pageSize != 0){
 			currPage = imagePatches[i]->address - ( imagePatches[i]->address % pageSize);
 			sizeDiff = imagePatches[i]->address - currPage;
 			imagePatches[i]->address = currPage;
 			imagePatches[i]->size = imagePatches[i]->size + sizeDiff;
 		}
-        }
+	}
  
 }
 
@@ -806,4 +806,4 @@ void writeBackElf::registerProcess(process *proc){
 	mutateeProcess = proc;
 }
 #endif
-#endif
+

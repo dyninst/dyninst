@@ -1,4 +1,3 @@
-#if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 
@@ -119,5 +118,5 @@ class saveSharedLibrary {
 };
 
 #endif
-#endif
+
 
