@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.13 2002/02/26 20:24:38 gurari Exp $
+// $Id: superVector.C,v 1.14 2002/04/05 19:39:06 schendel Exp $
 
 #include <sys/types.h>
-#include <limits.h>
+#include "common/h/Types.h"
 #include "common/h/headers.h"
 #include "paradynd/src/superVector.h"
 #include "paradynd/src/shmSegment.h"
@@ -50,6 +50,18 @@
 #include "paradynd/src/fastInferiorHeap.h"
 #include "rtinst/h/rtinst.h" // for time64
 #include "dyninstAPI/src/pdThread.h"
+
+template <class HK, class RAW>
+HK *superVector<HK, RAW>::getHouseKeeping(unsigned position, 
+					  unsigned allocatedIndex) const
+{
+  assert(theSuperVector[position] != NULL);
+#if defined(MT_THREAD)
+  return(theSuperVector[position]->getHouseKeeping(allocatedIndex));
+#else
+  return &houseKeeping[allocatedIndex];
+#endif
+}
 
 #if !defined(MT_THREAD)
 template <class HK, class RAW>
@@ -113,30 +125,33 @@ superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
 
        firstFreeIndex = parent->firstFreeIndex;
 
-       // Now for the houseKeeping, which is quick tricky on a fork.
-       // We (intentionally) leave every entry undefined for now.
-       // (using a copy-ctor would be a very bad idea, for then we would end up sharing
-       // mi's with the parent process, which is not at all the correct thing to do.
-       // outside code (forkProcess(); context.C) should soon fill in what we left
-       // undefined; for example, the call to metricDefinitionNode::handleFork().)
-       // More specifically: on a fork, dataReqNode->dup() is called for everything in
-       // the parent.  This virtual fn will end up calling the correct fork-ctor for
-       // objects like "samedShmIntCounterReqNode", which will in turn think up a new
-       // HK value for a single allocated entry, and call initializeHKAfterFork() to
-       // fill it in. If, for whatevery reason, some allocated datareqnode doesn't have
-       // its HK filled in by initializeAfterFork(), then the HK is left undefined
-       // (in particular, its mi will be NULL), so we should get an assert error rather
-       // soon...the next shm sample, in fact.
+       // Now for the houseKeeping, which is quick tricky on a fork.  We
+       // (intentionally) leave every entry undefined for now.  (using a
+       // copy-ctor would be a very bad idea, for then we would end up
+       // sharing mi's with the parent process, which is not at all the
+       // correct thing to do.  outside code (forkProcess(); context.C)
+       // should soon fill in what we left undefined; for example, the call
+       // to metricDefinitionNode::handleFork().)  More specifically: on a
+       // fork, dataReqNode->dup() is called for everything in the parent.
+       // This virtual fn will end up calling the correct fork-ctor for
+       // objects like "samedShmIntCounterReqNode", which will in turn think
+       // up a new HK value for a single allocated entry, and call
+       // initializeHKAfterFork() to fill it in. If, for whatevery reason,
+       // some allocated datareqnode doesn't have its HK filled in by
+       // initializeAfterFork(), then the HK is left undefined (in
+       // particular, its mi will be NULL), so we should get an assert error
+       // rather soon...the next shm sample, in fact.
 
-       // Furthermore: we initially turn each allocated entry in the new heap into type
-       // maybeAllocated.  Why do we do this?
-       // Because some of the allocated items of the parent process don't belong in the
-       // child process after all...specifically, those with foci narrowed down to a
-       // specific process --- the parent process.  In such cases, the new process
-       // shouldn't get a copy of mi. On the other hand, what about foci which aren't
-       // specific to any process, and thus should be copied to the new heap?  Well in
-       // such cases, intializeHKAfterFork() will be called...so at that time, we'll
-       // turn the item back to allocated.  A bit ugly, n'est-ce pas?.  --ari
+       // Furthermore: we initially turn each allocated entry in the new heap
+       // into type maybeAllocated.  Why do we do this?  Because some of the
+       // allocated items of the parent process don't belong in the child
+       // process after all...specifically, those with foci narrowed down to
+       // a specific process --- the parent process.  In such cases, the new
+       // process shouldn't get a copy of mi. On the other hand, what about
+       // foci which aren't specific to any process, and thus should be
+       // copied to the new heap?  Well in such cases, intializeHKAfterFork()
+       // will be called...so at that time, we'll turn the item back to
+       // allocated.  A bit ugly, n'est-ce pas?.  --ari
    }
 
    for (lcv=0; lcv < statemap.size(); lcv++) {
@@ -242,7 +257,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
    // See the .h file for extensive documentation on this routine...
    unsigned i;
 
-   if (firstFreeIndex == UINT_MAX) {
+   if (firstFreeIndex == UI32_MAX) {
       // heap is full!  Garbage collect and try a second time.
       cout << "fastInferiorHeap alloc: heap is full; about to garbage collect" << endl;
 
@@ -255,7 +270,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
       inferiorProcess->walkStack(currentFrame, PCs, FPs); // prob expensive
 
       garbageCollect(PCs);
-      if (firstFreeIndex == UINT_MAX) {
+      if (firstFreeIndex == UI32_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.
 	 cout << "fastInferiorHeap alloc: heap is full and garbage collection FAILED" << endl;
          return false; // failure
@@ -273,11 +288,11 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
 
    houseKeeping[allocatedIndex] = iHKValue; // HK::operator=()
 
-   // Write "iValue" to the inferior heap, by writing to the shared memory segment.
-   // Should we grab the mutex lock before writing?  Right now we don't, on the
-   // assumption that no trampoline in the inferior process is yet writing to
-   // this just-allocated memory.  (Mem should be allocated: data first, then initialize
-   // tramps, then actually insert tramps)
+   // Write "iValue" to the inferior heap, by writing to the shared memory
+   // segment.  Should we grab the mutex lock before writing?  Right now we
+   // don't, on the assumption that no trampoline in the inferior process is
+   // yet writing to this just-allocated memory.  (Mem should be allocated:
+   // data first, then initialize tramps, then actually insert tramps)
 
    for (i=0; i<inferiorProcess->threads.size(); i++) {
        unsigned idx;
@@ -290,7 +305,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
        *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
    }
 
-   // update firstFreeIndex to point to next free entry; UINT_MAX if full
+   // update firstFreeIndex to point to next free entry; UI32_MAX if full
    unsigned numberOfIter = 0;
    firstFreeIndex++; 
    while (++numberOfIter < statemap.size()) {
@@ -305,17 +320,17 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
 
    if (numberOfIter == statemap.size()) {
       // inferior heap is now full (but the allocation succeeded)
-      firstFreeIndex = UINT_MAX;
+      firstFreeIndex = UI32_MAX;
       cout << "fastInferiorHeap alloc: alloc succeeded but now full" << endl;
    }
 
-   // sampling set: add to permanent; no need to add to current
-   // note: because allocatedIndex is not necessarily larger than all of the current
-   //       entries in permanentSamplingSet[] (non-increasing allocation indexes can
-   //       happen all the time, once holes are introduced into the statemap due to
-   //       deallocation & garbage collection), we reconstruct the set from scratch;
-   //       it's the only easy way to maintain our invariant that the permanent
-   //       sampling set is sorted.
+   // sampling set: add to permanent; no need to add to current note: because
+   // allocatedIndex is not necessarily larger than all of the current
+   // entries in permanentSamplingSet[] (non-increasing allocation indexes
+   // can happen all the time, once holes are introduced into the statemap
+   // due to deallocation & garbage collection), we reconstruct the set from
+   // scratch; it's the only easy way to maintain our invariant that the
+   // permanent sampling set is sorted.
    for (i=0; i<inferiorProcess->threads.size(); i++) {
        unsigned idx;
        idx = inferiorProcess->threads[i]->get_pd_pos();
@@ -344,7 +359,7 @@ void superVector<HK, RAW>::makePendingFree(unsigned ndx,
    assert((statemap[ndx] == FIHallocated) || (statemap[ndx] == FIHallocatedButDoNotSample));
    statemap[ndx] = FIHpendingfree;
 
-   houseKeeping[ndx].makePendingFree(trampsUsing);
+   houseKeeping[ndx].makePendingFree(trampsUsing, inferiorProcess);
 
    // firstFreeIndex doesn't change
 
@@ -706,9 +721,9 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
 				 bool doNotSample) {
    bool updateFreeIndex = true;
    // See the .h file for extensive documentation on this routine...
-   if (allocatedIndex == UINT_MAX) {
+   if (allocatedIndex == UI32_MAX) {
      // this counter/timer has not been allocated before - naim
-     if (firstFreeIndex == UINT_MAX) {
+     if (firstFreeIndex == UI32_MAX) {
        // heap is full!  Garbage collect and try a second time.
        //cout << "fastInferiorHeap alloc: heap is full; about to garbage collect" << endl;
        
@@ -721,7 +736,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
       inferiorProcess->walkStack(currentFrame, PCs, FPs); // prob expensive
 
       garbageCollect(PCs);
-      if (firstFreeIndex == UINT_MAX) {
+      if (firstFreeIndex == UI32_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.
 	 cerr << "fastInferiorHeap alloc: heap is full and garbage collection FAILED" << endl;
          return false; // failure
@@ -773,7 +788,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
   theSuperVector[idx]->set_houseKeeping(allocatedIndex, iHKValue);
 
   if (updateFreeIndex) {
-     // update firstFreeIndex to point to next free entry; UINT_MAX if full
+     // update firstFreeIndex to point to next free entry; UI32_MAX if full
      unsigned numberOfIter = 0;
      firstFreeIndex++; 
      while (++numberOfIter < statemap.size()) {
@@ -788,7 +803,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
 
      if (numberOfIter == statemap.size()) {
        // inferior heap is now full (but the allocation succeeded)
-       firstFreeIndex = UINT_MAX;
+       firstFreeIndex = UI32_MAX;
        //cout << "fastInferiorHeap alloc: alloc succeeded but now full" << endl;
      }
   }
@@ -843,7 +858,7 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
    }
    assert(pd_pos < theSuperVector.size());
    assert(theSuperVector[pd_pos] != NULL);
-   theSuperVector[pd_pos]->makePendingFree(ndx,trampsUsing);
+   theSuperVector[pd_pos]->makePendingFree(ndx, trampsUsing);
 
    bool updatemap=true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
