@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.56 2003/06/19 18:46:09 pcroth Exp $
+# $Id: make.module.tmpl,v 1.57 2003/07/29 00:32:47 eli Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -37,7 +37,12 @@ SRCS	     += ../src/association.C \
 		../src/internalMetrics.C \
 		../src/costmetrics.C \
 		../src/metricDefs-critPath.C \
+		../../dyninstAPI/src/BPatch_sourceBlock.C \
+		../../dyninstAPI/src/BPatch_basicBlock.C \
+		../../dyninstAPI/src/BPatch_basicBlockLoop.C \
+		../../dyninstAPI/src/BPatch_flowGraph.C \
 		../../dyninstAPI/src/Object.C \
+		../../dyninstAPI/src/MemoryAccess.C \
 		../src/perfStream-def.C \
 		../src/perfStream.C \
 		../../dyninstAPI/src/process.C \
@@ -52,10 +57,12 @@ SRCS	     += ../src/association.C \
 		../../dyninstAPI/src/symtab.C \
 		../../dyninstAPI/src/util.C \
 		../../dyninstAPI/src/sharedobject.C \
+		../../dyninstAPI/src/LineInformation.C \
  		../src/mdl.C \
  		../src/mdld_data.C \
  		../src/focus.C \
 		../src/showerror.C \
+		../../dyninstAPI/src/BPatch_templates.C \
 		../../dyninstAPI/src/templates0.C \
 		../../dyninstAPI/src/templates1.C \
 		../../dyninstAPI/src/templates2.C \
@@ -106,7 +113,7 @@ else
 SYSLIBS         += -liberty
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h
 
 all:    $(TARGET)
 
