@@ -1,8 +1,23 @@
 
 #
 # $Log: errors,v $
-# Revision 1.1  1994/04/19 18:26:56  hollings
+# Revision 1.2  1994/04/19 18:29:48  hollings
+# created error #1
+#
+# Revision 1.1  1994/04/19  18:26:56  hollings
 # Libray of error numbers in paradyn.
 #
 #
 
+
+%N 1
+
+%E Application Process found for machine without paradynd
+%A paradynd
+%S serious
+%X
+An application processes was found to be running on a machine that had no
+paradynd process running.  This is a serious error that indicates either a
+paradynd process could not be started, or that it might have died.  This 
+error should be considered an indication of a bug in the tool.
+%Y
