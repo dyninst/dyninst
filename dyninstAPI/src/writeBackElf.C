@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.13 2003/01/02 19:51:56 schendel Exp $ */
+/* $Id: writeBackElf.C,v 1.14 2003/03/10 15:05:47 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -493,6 +493,10 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 	unsigned int j;
 
 	VECTOR_SORT(imagePatches, imageUpdateSort);
+
+	if(imagePatches.size() == 0){
+		return;
+	}
 
 	while(foundDup){
 		foundDup = false;
