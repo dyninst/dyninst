@@ -1,10 +1,14 @@
 /* $Log: UImain.C,v $
-/* Revision 1.69  1996/01/09 23:55:18  tamches
-/* moved whereAxisDrawTipsCallback to whereAxisTcl.C
-/* added tclPromptCallback to better implement the "tclPrompt"
-/* tunable constant.
-/* On startup, we no longer msg_bind to stdin
+/* Revision 1.70  1996/02/02 18:39:18  tamches
+/* added prelim version of ui_newPhaseDetected
+/* added shgShowKey, shgShowTips tunables
 /*
+ * Revision 1.69  1996/01/09 23:55:18  tamches
+ * moved whereAxisDrawTipsCallback to whereAxisTcl.C
+ * added tclPromptCallback to better implement the "tclPrompt"
+ * tunable constant.
+ * On startup, we no longer msg_bind to stdin
+ *
  * Revision 1.68  1995/12/20 02:27:25  tamches
  * removed some warnings
  *
@@ -219,6 +223,22 @@ applicStateChanged (perfStreamHandle, appState state)
   PDapplicState = state;
 }
 
+int latest_detected_new_phase_id = 0;
+void ui_newPhaseDetected(perfStreamHandle,
+			 const char *name, phaseHandle ph,
+			 timeStamp begin, timeStamp end,
+			 float bucketwidth) {
+   cout << "welcome to new_phase_detected" << endl;
+   cout << "name=" << name << endl;
+   cout << "begin=" << begin << "; end=" << end << endl;
+   cout << "bucketwidth=" << bucketwidth << endl;
+   cout << "bye." << endl;
+
+   // For the benefit of the shg, in the event that the shg window
+   // has not yet been opened, with the result that "theShgPhases"
+   // hasn't yet been constructed:
+   latest_detected_new_phase_id = ph + 1;
+}
 
 /*
  *----------------------------------------------------------------------
@@ -290,6 +310,19 @@ void *UImain(void*) {
 						  whereAxisDrawTipsCallback,
 						  userConstant);
 						  
+    tunableBooleanConstantDeclarator tcShgShowKey("showShgKey",
+						  "If true, the search history graph will be drawn with a key for decoding the meaning of the several background colors, text colors, italics, etc.  A setting of false saves screen real estate.",
+						  true, // initial value
+						  shgDrawKeyCallback,
+						  userConstant);
+						  
+
+    tunableBooleanConstantDeclarator tcShgShowTips("showShgTips",
+						  "If true, the search history graph will be drawn with reminders on shortcuts for expanding, unexpanding, selecting, and scrolling.  A setting of false saves screen real estate.",
+						  true, // initial value
+						  shgDrawTipsCallback,
+						  userConstant);
+						  
 
     tunableBooleanConstantDeclarator tcHideTcl("tclPrompt",
 					       "Allow access to a command-line prompt accepting arbitrary tcl commands in the Paradyn process",
@@ -320,6 +353,7 @@ void *UImain(void*) {
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/applic.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/errorList.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/focusUtils.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/generic.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mets.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
@@ -381,7 +415,7 @@ void *UImain(void*) {
     controlFuncs.fFunc = NULL;
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
-    controlFuncs.pFunc = NULL;
+    controlFuncs.pFunc = ui_newPhaseDetected;
     dataFunc.sample = NULL;
 
     uim_ps_handle = dataMgr->createPerformanceStream
