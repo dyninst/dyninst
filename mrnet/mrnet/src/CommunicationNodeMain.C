@@ -10,11 +10,16 @@
 #include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
 
+void BeDaemon( void );
+
 int main(int argc, char **argv)
 {
   MC_InternalNode *comm_node;
   int i, status;
   std::list <MC_Packet *> packet_list;
+
+  // become a daemon
+  BeDaemon();
 
   if(argc != 6){
     fprintf(stderr, "Usage: %s hostname port phostname pport pid\n",
@@ -59,3 +64,37 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
+void
+BeDaemon( void )
+{
+    // become a background process
+    pid_t pid = fork();
+    if( pid > 0 )
+    {
+        // we're the parent - we want our child to be the real job,
+        // so we just exit
+        exit(0);
+    }
+    else if( pid < 0 )
+    {
+        fprintf( stderr, "BE: fork failed to put process in background\n" );
+        exit(-1);
+    }
+    
+    // we're the child of the original fork
+    pid = fork();
+    if( pid > 0 )
+    {
+        // we're the parent in the second fork - exit
+        exit(0);
+    }
+    else if( pid < 0 )
+    {
+        fprintf( stderr, "BE: second fork failed to put process in background\n" );
+        exit(-1);
+    }
+
+    // we were the child of both forks - we're the one who survives
+}
+
