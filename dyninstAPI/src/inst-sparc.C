@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.107 2001/09/07 21:15:08 tikir Exp $
+// $Id: inst-sparc.C,v 1.108 2001/09/25 21:36:29 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -707,6 +707,29 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
     generateBranchInsn(&insn, disp);
 
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+}
+void generateBranchOrCall(process *proc, Address fromAddr, Address newAddr)
+{
+    int disp;
+    instruction insn;
+
+    disp = newAddr-fromAddr;
+    if (offsetWithinRangeOfBranchInsn(disp)){
+    	generateBranchInsn(&insn, disp);
+        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    }
+    else{
+	genImmInsn(&insn,SAVEop3,14,-112,14);
+        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+
+	fromAddr += sizeof(Address);
+	generateCallInsn(&insn,fromAddr,newAddr);
+        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+
+	fromAddr += sizeof(Address);
+	genSimpleInsn(&insn,RESTOREop3,0,0,0);
+        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    }
 }
 
 /****************************************************************************/

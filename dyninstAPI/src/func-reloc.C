@@ -1117,7 +1117,12 @@ bool pd_Function::relocateFunction(process *proc,
                              relocatedCode);
 
         // branch from original function to relocated function
-        generateBranch(proc, origAddress, ret);
+#if defined(sparc_sun_solaris2_4)
+	extern void generateBranchOrCall(process* , Address , Address);
+        generateBranchOrCall(proc, origAddress, ret);
+#else
+	generateBranch(proc, origAddress, ret);
+#endif
         reloc_info->setInstalled();
 
 #ifdef DEBUG_FUNC_RELOC

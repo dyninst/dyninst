@@ -73,12 +73,10 @@ bool isAJumpInstruction(const instruction i){
   * @param i the instruction value 
   */
 bool isACallInstruction(const instruction i){
-	cout << "CALL called\n";
 	if(i.iform.lk && 
 	   ((i.iform.op == Bop) || (i.bform.op == BCop) ||
 	    ((i.xlform.op == BCLRop) && 
 	     ((i.xlform.xo == 16) || (i.xlform.xo == 528))))){
-		cout << "TIKIR : found CALL\n";
 		return true;
 	}
 	return false;
