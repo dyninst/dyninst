@@ -16,10 +16,14 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.7  1994/09/25 01:58:15  newhall
-/* changed interface definitions to work for new version of igen
-/* changed AddMetricsResources def. to take array of metric/focus pairs
+/* Revision 1.8  1995/02/16 09:32:05  markc
+/* Modified to support machines which do not have NaN(x).
+/* This code has not been tested, but it compiles.
 /*
+ * Revision 1.7  1994/09/25  01:58:15  newhall
+ * changed interface definitions to work for new version of igen
+ * changed AddMetricsResources def. to take array of metric/focus pairs
+ *
  * Revision 1.6  1994/08/03  20:57:03  newhall
  * *** empty log message ***
  *
@@ -42,7 +46,11 @@
 
 #include <stdio.h>
 #include <math.h>
+// TODO -- nan.h is a non-standard header file -- there has to be a portable
+// way to do this -- mdc -- I am not sure if this works, but it compiles
+#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux)
 #include <nan.h>
+#endif /* !defined(i386_unknown_netbsd1_0) */
 
 #define INVALID            0
 #define VALID              1
@@ -60,7 +68,26 @@
 #define VISI_ERROR_MAX    -27
 
 static double visi_nan = 0;
+static float f_visi_nan = 0;
+static nan_created = false;
+// TODO -- NaN is a non standard macro -- it is not portable
+// TODO -- should a float or a double be used here
+#if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux)
 #define ERROR (NaN(visi_nan),visi_nan)
+#else
+#include <assert.h>
+inline float make_ERROR() {
+  if (!nan_created) {
+    visi_nan = sqrt(-3);
+    f_visi_nan = sqrt(-3);
+    nan_created = true;
+  }
+  assert(isnan(f_visi_nan));
+  assert(isnan(visi_nan));
+  return f_visi_nan;
+}
+#define ERROR make_ERROR()
+#endif
 
 //
 // event types associated with events from Paradyn to a visualization

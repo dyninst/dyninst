@@ -16,10 +16,14 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.8  1994/09/25 01:58:13  newhall
-/* changed interface definitions to work for new version of igen
-/* changed AddMetricsResources def. to take array of metric/focus pairs
+/* Revision 1.9  1995/02/16 09:32:03  markc
+/* Modified to support machines which do not have NaN(x).
+/* This code has not been tested, but it compiles.
 /*
+# Revision 1.8  1994/09/25  01:58:13  newhall
+# changed interface definitions to work for new version of igen
+# changed AddMetricsResources def. to take array of metric/focus pairs
+#
 # Revision 1.7  1994/09/22  03:12:24  markc
 # declared arrays at start
 # incremented version number
@@ -50,41 +54,37 @@
 #  */ 
 
 
-$remote typedef struct {
-     char *units;    // how units are measured  i.e. "ms" 
-     char *name;     // for y-axis labeling  
+$remote struct metricType {
+     string units;    // how units are measured  i.e. "ms" 
+     string name;     // for y-axis labeling  
      int     Id;       // unique metric Id
      int     aggregate;  //either SUM or AVE
-} metricType;
+};
 
-$remote typedef struct{
-     char *name;     // obj. name for graph labeling
+$remote struct resourceType {
+     string name;     // obj. name for graph labeling
      int    Id;       // unique resource id
-} resourceType;
+};
 
-$remote typedef struct{
+$remote struct dataValue {
   int 	metricId;
   int 	resourceId;
   int 	bucketNum;
   float data;
-}dataValue;
+};
 
-$remote typedef struct {
+$remote struct visi_matrix {
     resourceType res;
     metricType	 met;
-}visi_matrix;
+};
 
-
-$remote array visi_matrix  visi_matrix_Array;
-$remote array dataValue    dataValue_Array;
-$remote array float	    float_Array;
 
 $remote visualization {
   $base  7000;
-  $version  7;
+  $version  8;
 
   // data: list of new data values from Paradyn 
-  $async void Data(dataValue_Array data);  
+  $async void Data(vector<dataValue> data);  
 
   $async void Fold(double newBucketWidth);
 
@@ -95,7 +95,7 @@ $remote visualization {
   // newElements: a list of new metric-focus matrices
   // bucketWidth: current bucket width for histograms
   // nobuckets:   max number of buckets for histograms
-  $async void AddMetricsResources(visi_matrix_Array newElements,
+  $async void AddMetricsResources(vector<visi_matrix> newElements,
 				  double bucketWidth,
 				  int nobuckets);
   // begin: phase start time
@@ -103,17 +103,17 @@ $remote visualization {
   // name:  phase name
   $async void Phase(double begin,
 		    double end,
-		    char *name);
+		    string name);
 
   // values: array of data values starting from 0th element
   // metricId:   id of metric assoc. with data values
   // resourceId: id of focus assoc. with data values
-  $async void BulkDataTransfer(float_Array values,
+  $async void BulkDataTransfer(vector<float> values,
 			       int metricId,
 			       int resourceId);
 
 
-  $upcall $async void GetMetricResource(char *mets_res,
+  $upcall $async void GetMetricResource(string mets_res,
 					int numElements,
 					int type);
 
@@ -126,5 +126,5 @@ $remote visualization {
   // name:  phase name
   $upcall $async void PhaseName(double begin,
 				double end,
-				char *name);
+				string name);
 };
