@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.11  1994/03/01 01:50:46  markc
+ * Revision 1.12  1994/03/01 21:39:37  jcargill
+ * Rearranged order of includes for igen-generated code, so that it compiles
+ * on MIPS.  Some of the Ultrix headers really suck.
+ *
+ * Revision 1.11  1994/03/01  01:50:46  markc
  * Fixed memory access errors.
  *
  * Revision 1.10  1994/02/25  11:41:32  markc
@@ -201,10 +205,9 @@ void interfaceSpec::generatePVMLoop()
 
 void interfaceSpec::genIncludes()
 {
-    printf("extern \"C\" void free(char*);\n");
-    printf("#include <rpc/types.h>\n");
     printf("#include <stdio.h>\n");
     printf("#include <stdlib.h>\n");
+    printf("#include <rpc/types.h>\n");
     printf("#include <assert.h>\n");
     if (generateTHREAD) {
 	printf("extern \"C\" {\n");
