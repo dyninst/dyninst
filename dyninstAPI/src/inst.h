@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.63 2001/12/14 17:57:02 gaburici Exp $
+// $Id: inst.h,v 1.64 2002/04/09 04:19:37 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -99,6 +99,7 @@ instInstance *addInstFunc(process *proc,
                           bool &deferred,
 			  bool trampRecursionDesired);
 
+void hookupMiniTramp(instInstance *inst);
 
 /* Utility functions */
 

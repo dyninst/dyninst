@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.88 2002/03/14 23:26:35 bernat Exp $
+// $Id: inst.C,v 1.89 2002/04/09 04:19:39 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -228,6 +228,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
 				     noCost, retInstance, deferred,
                                      trampRecursiveDesired);
+    hookupMiniTramp(inst);
     if (retInstance) {
        // Looking at the code for the other addInstFunc below, it seems that
        // this will always be true...retInstance is never NULL.
@@ -399,12 +400,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     ret->returnAddr += ret->trampBase;
 
     ret->when = when;
+    ret->order = order;
     ret->location = (instPoint*)location;
-
-    ret->next = thePoint->inst;
-    ret->prev = NULL;
-    if (thePoint->inst) thePoint->inst->prev = ret;
-    thePoint->inst = ret;
 
     /*
      * Now make the call to actually put the code in place.
@@ -412,60 +409,91 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
      */
     installTramp(ret, (char *)insn, count); // install mini-tramp into inferior addr space
 
-    if (!lastAtPoint) {
-        // jump from the base tramp to the minitramp
-        Address fromAddr = getBaseBranchAddr(proc, ret);
-#if defined(rs6000_ibm_aix4_1)
-	resetBRL(proc, fromAddr, ret->trampBase);
-#else
-	//fprintf(stderr, "Branch from 0x%x to 0x%x\n",
-	//fromAddr, ret->trampBase);
-	generateBranch(proc, fromAddr, ret->trampBase);
-#endif
+    return(ret);
+}
 
+void hookupMiniTramp(instInstance *inst) {
+    instInstance *firstAtPoint = NULL;
+    instInstance *lastAtPoint = NULL;
+
+    point *thePoint;
+    if (!activePoints.find((const instPoint *)inst->location, thePoint)) {
+       thePoint = new point;
+       activePoints[(const instPoint*)inst->location] = thePoint;
+    }
+    
+    process *proc = inst->proc;
+    
+    instInstance *next;
+    for (next = thePoint->inst; next; next = next->next) {
+	if ((next->proc == proc) && (next->when == inst->when)) {
+	    if (!next->nextAtPoint) lastAtPoint = next;
+	    if (!next->prevAtPoint) firstAtPoint = next;
+	}
+    }
+
+    inst->next = thePoint->inst;
+    inst->prev = NULL;
+    if (thePoint->inst) thePoint->inst->prev = inst;
+    thePoint->inst = inst;
+
+    if (!lastAtPoint) {
 	// jump from the minitramp back to the basetramp
 #if defined(rs6000_ibm_aix4_1)
-	resetBR(proc, ret->returnAddr);
+	resetBR(proc, inst->returnAddr);
 #else
-	Address toAddr = getBaseReturnAddr(proc, ret);
-	//fprintf(stderr, "Branch(2) from 0x%x to 0x%x\n",
-	//fromAddr, ret->trampBase);
-	generateBranch(proc, ret->returnAddr, toAddr);
+	Address toAddr = getBaseReturnAddr(proc, inst);
+	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
+	//	inst->returnAddr, toAddr);
+	generateBranch(proc, inst->returnAddr, toAddr);
+#endif
+
+        // jump from the base tramp to the minitramp
+        Address fromAddr = getBaseBranchAddr(proc, inst);
+#if defined(rs6000_ibm_aix4_1)
+	resetBRL(proc, fromAddr, inst->trampBase);
+#else
+	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
+	//	  fromAddr, inst->trampBase);
+	generateBranch(proc, fromAddr, inst->trampBase);
 #endif
 
 	// just activated this slot.
 	//activeSlots->value += 1.0;
-    } else if (order == orderLastAtPoint) {
+    } else if (inst->order == orderLastAtPoint) {
 	/* patch previous tramp to call us rather than return */
-	generateBranch(proc,lastAtPoint->returnAddr,ret->trampBase);
-	lastAtPoint->nextAtPoint = ret;
-	ret->prevAtPoint = lastAtPoint;
+	generateBranch(proc,lastAtPoint->returnAddr,inst->trampBase);
+	lastAtPoint->nextAtPoint = inst;
+	inst->prevAtPoint = lastAtPoint;
 	
 	// jump from the minitramp to the basetramp
 #if defined(rs6000_ibm_aix4_1)
-	resetBR(proc, ret->returnAddr);
+	resetBR(proc, inst->returnAddr);
 #else
-	Address toAddr = getBaseReturnAddr(proc, ret);
-	generateBranch(proc, ret->returnAddr, toAddr);
+	Address toAddr = getBaseReturnAddr(proc, inst);
+	generateBranch(proc, inst->returnAddr, toAddr);
 #endif
     } else {
 	/* first at point */
-	firstAtPoint->prevAtPoint = ret;
-	ret->nextAtPoint = firstAtPoint;
+	firstAtPoint->prevAtPoint = inst;
+	inst->nextAtPoint = firstAtPoint;
 
 	/* branch to the old first one */
-	generateBranch(proc, ret->returnAddr, firstAtPoint->trampBase);
-
+	generateBranch(proc, inst->returnAddr, firstAtPoint->trampBase);
+	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
+	//	inst->returnAddr, firstAtPoint->trampBase);
+	
 	/* base tramp branches to us */
-	Address fromAddr = getBaseBranchAddr(proc, ret);
+	Address fromAddr = getBaseBranchAddr(proc, inst);
 #if defined(rs6000_ibm_aix4_1)
-	resetBRL(proc, fromAddr, ret->trampBase);
+	resetBRL(proc, fromAddr, inst->trampBase);
 #else
-	generateBranch(proc, fromAddr, ret->trampBase);
+	generateBranch(proc, fromAddr, inst->trampBase);
+	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
+	//	fromAddr, inst->trampBase);
+
 #endif
     }
-
-    return(ret);
 }
 
 bool trampTemplate::inBasetramp( Address addr ) {

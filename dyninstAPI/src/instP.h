@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.33 2002/02/21 21:47:49 bernat Exp $
+// $Id: instP.h,v 1.34 2002/04/09 04:19:40 schendel Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -104,6 +104,7 @@ class instInstance {
      }
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
+     callOrder order;           /* orderFirstAtPoint, orderLastAtPoint */
      instPoint *location;       /* where we put the code */
      Address trampBase;         /* base of code */
      Address returnAddr;        /* address of the return from tramp insn */
