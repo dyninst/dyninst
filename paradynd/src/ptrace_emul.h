@@ -2,7 +2,10 @@
  * ptrace_emul.h:  Header file for ptrace emulation stuff.
  *
  * $Log: ptrace_emul.h,v $
- * Revision 1.1  1994/01/27 20:31:40  hollings
+ * Revision 1.2  1994/07/14 14:26:09  jcargill
+ * Changes to ptraceReq header structure to accomodate new node ptrace
+ *
+ * Revision 1.1  1994/01/27  20:31:40  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.1  1993/08/24  21:58:02  jcargill
@@ -11,16 +14,18 @@
  */
 
 
+#include <sys/types.h>
+
 /*
- * Ptrace emulation section.  We send packets of "Modify memory"
- * requests to the instrumentation controller.  The format of a
- * request is as follows:
+ * Node-Ptrace request forwarding protocol.  We send ptrace requests
+ * to the nodes on the CM-5 for execution using the ptrace function in
+ * the node-kernel.  The format of a request is as follows:
  *
  * [ request ] - modify memory request.  Currently the only request.
- * [ req id  ] - Uniq id for purposes of Acknowledgement.
+ * [ req id  ] - Uniq id for purposes of Acknowledgement.     NOTE: OUTDATED
  * [ node id ] - Node id:  0-(partition_size-1) for unique node.  
  *                         0xffffffff to broadcast to all nodes in partition
- * [ address ] - Memory address to modify
+ * [ addr ]    - Memory address to modify; same as addr argument to ptrace
  * [ length  ] - Number of words of data to write
  * [ data    ]
  * [ ...     ]
@@ -36,19 +41,16 @@
 
 typedef struct _ptraceReqHeader {
   u_int request;
-  u_int req_id;
-  u_int dest;			/* target nodes */
-  char *address;		/* memory address */
-  u_int length;
+  u_int pid;			/* pid of CM process on CP */
+  u_int nodeNum;		/* target nodes (0xffffffff = all) */
+  void  *addr;
+  int   data;
+  void  *addr2;
 } ptraceReqHeader;
 
 
-/*
- * Defines for requests to ptrace emulation code in timeslice
- * handlers.  Currently there is only one.
- */
-#define MODIFY_TEXT			1
-#define PTRACE_REQUESTS_AVAILABLE	2
-#define HANDLER_READY			3
-#define PTRACE_REQUESTS_DONE		4
+/* Maximum DATA length for a ptrace request */
+#define MAX_PTRACE_LENGTH	1000
+
+
 
