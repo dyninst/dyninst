@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.11 1994/07/05 03:26:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.12 1994/07/12 19:29:48 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.11  1994/07/05 03:26:12  hollings
+ * Revision 1.12  1994/07/12 19:29:48  jcargill
+ * Changed argument offsets for msgBytes, msgTags; search /Procedure first
+ *
+ * Revision 1.11  1994/07/05  03:26:12  hollings
  * observed cost model
  *
  * Revision 1.10  1994/07/02  01:46:43  markc
@@ -150,12 +153,18 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
     // addCounter(counter, param4 * param5)
     msgBytesAst = new AstNode("addCounter", 
 	    new AstNode(DataValue, dataPtr),
-	    new AstNode(timesOp, new AstNode(Param, (void *) 4), 
-				 new AstNode(Param, (void *) 5)));
+	    new AstNode(Param, (void *) 3));
+
+// WAS:	    new AstNode(timesOp, new AstNode(Param, (void *) 3), 
+//				 new AstNode(Param, (void *) 4)));
+
     if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
 
     for (func = mn->proc->symbols->funcs; func; func = func->next) {
+	printf ("createMsgBytesMetric: considering '%s'\n", func->prettyName);
 	if (funcs->find(func->prettyName)) {
+	    printf ("createMsgBytesMetric: ********************** '%s'\n", 
+		    func->prettyName);
 	    mn->addInst(func->funcEntry, msgBytesAst,
 		callPreInsn, orderLastAtPoint);
 	}
@@ -174,7 +183,7 @@ void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr)
 
 void createMsgBytesRecv(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteSentFunctions, tr);
+    createMsgBytesMetric(mn, &msgByteRecvFunctions, tr);
 }
 
 AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn, 
@@ -191,7 +200,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     data = mn->addIntCounter(0, False);
 
     // (== param2, iTag)
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 2),
+    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
 				new AstNode(Constant, (void *) iTag));
 
     filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
@@ -212,6 +221,9 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 }
 
 resourcePredicate cpuTimePredicates[] = {
+  { "/Procedure",	
+    replaceBase,		
+    (createPredicateFunc) perModuleCPUTime },
   { "/SyncObject/MsgTag",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -224,22 +236,19 @@ resourcePredicate cpuTimePredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleCPUTime },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate wallTimePredicates[] = {
+  { "/Procedure",	
+    replaceBase,		
+    (createPredicateFunc) perModuleWallTime },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleWallTime },
   { "/Machine",	
     nullPredicate,		
     (createPredicateFunc) NULL },
@@ -250,6 +259,9 @@ resourcePredicate wallTimePredicates[] = {
 };
 
 resourcePredicate procCallsPredicates[] = {
+  { "/Procedure",	
+    replaceBase,		
+    (createPredicateFunc) perModuleCalls },
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -259,13 +271,13 @@ resourcePredicate procCallsPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleCalls },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate msgPredicates[] = {
+  { "/Procedure",
+    simplePredicate,	
+    (createPredicateFunc) defaultModulePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -278,13 +290,13 @@ resourcePredicate msgPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) defaultModulePredicate },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate defaultPredicates[] = {
+  { "/Procedure",
+    simplePredicate,	
+    (createPredicateFunc) defaultModulePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -297,13 +309,13 @@ resourcePredicate defaultPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) defaultModulePredicate },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate globalOnlyPredicates[] = {
+  { "/Procedure",
+    simplePredicate,	
+    (createPredicateFunc) NULL },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) NULL },
@@ -316,9 +328,6 @@ resourcePredicate globalOnlyPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) NULL },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
