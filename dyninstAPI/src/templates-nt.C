@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.19 2000/07/12 17:56:06 buck Exp $
+// $Id: templates-nt.C,v 1.20 2000/07/27 15:23:23 hollings Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -49,8 +49,8 @@
  */
 #pragma warning (disable: 4660)
 
-#include "util/src/vectorSet.C"
-#include "util/src/Dictionary.C"
+#include "common/src/vectorSet.C"
+#include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #ifndef BPATCH_LIBRARY

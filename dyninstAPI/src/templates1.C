@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.35 2000/07/12 17:56:06 buck Exp $
+// $Id: templates1.C,v 1.36 2000/07/27 15:23:23 hollings Exp $
 
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #include "util/h/String.h"
 
@@ -198,7 +198,7 @@ template class vector<superVector<wallTimerHK, tTimer> *>;
 template class vector<superVector<processTimerHK, tTimer> *>;
 #endif
 
-#include "util/src/vectorSet.C"
+#include "common/src/vectorSet.C"
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
 
