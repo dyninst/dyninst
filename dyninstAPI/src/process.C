@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.494 2004/04/09 17:23:22 mjbrim Exp $
+// $Id: process.C,v 1.495 2004/04/09 18:03:01 legendre Exp $
 
 #include <ctype.h>
 
@@ -3802,16 +3802,6 @@ bool process::pause() {
        iter++;
      }
      setSuppressEventConts(false);
-     iter = threads.begin();
-     while(iter != threads.end()) {
-       dyn_lwp *lwp = (*iter)->get_lwp();
-       //       while (lwp->isRunning());
-       /*       {
-	 sleep(1);
-	 assert(!lwp->isRunning());
-	 }*/
-       iter++;
-     }
    } else {
       assert(status_ == running);      
       bool res = getRepresentativeLWP()->pauseLWP(true);

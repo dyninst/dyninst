@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.139 2004/04/08 21:15:44 legendre Exp $
+// $Id: linux.C,v 1.140 2004/04/09 18:03:00 legendre Exp $
 
 #include <fstream>
 
@@ -668,8 +668,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
 
    int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
    if (ret == -1) {
-     fprintf(stderr, "State: %d %d\n", (int) isRunning(), status());
-     while (1);
       return false;
    }
 
