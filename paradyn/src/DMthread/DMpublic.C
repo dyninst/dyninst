@@ -73,11 +73,9 @@ void histDataCallBack(sampleValue *buckets,
 //
 void histFoldCallBack(timeStamp width, void *, bool globalFlag)
 {
-
-    // need to check if current phase also starts at 0.0
-    // if it does, then fold applies to both global and curr phase
     if(globalFlag){
-      if(metricInstance::GetGlobalWidth() != width) {
+      // only notify clients if new bucket width is larger than previous one
+      if(metricInstance::GetGlobalWidth() < width) {
 	metricInstance::SetGlobalWidth(width);
 	performanceStream::foldAll(width,GlobalPhase);
 	if(!metricInstance::numCurrHists()){  // change the sampling rate
@@ -86,7 +84,8 @@ void histFoldCallBack(timeStamp width, void *, bool globalFlag)
       }
     }
     else {  // fold applies to current phase
-	if(metricInstance::GetCurrWidth() != width) {
+        // only notify clients if new bucket width is larger than previous one
+	if(metricInstance::GetCurrWidth() <  width) {
 	    metricInstance::SetCurrWidth(width);
 	    performanceStream::foldAll(width,CurrentPhase);
 	    newSampleRate(width); // change sampling rate
@@ -403,10 +402,11 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 	while(allS.next(h,ps)){
 	    if(h == (perfStreamHandle)(ps_handle)){
 	        ps->callDataEnableFunc(response,request_Id);
-		return;
+		break;
 	} }
 	delete request;
 	response = 0;
+	return;
     }
 
     // convert request to vector of metricRLType
@@ -436,8 +436,8 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 		                     u_int persistent_collection,
 				     u_int phase_persistent_data){
 
-    // TODO: if currphase and phaseId != currentPhaseId then make approp.
-    //       response call to client
+    // if currphase and phaseId != currentPhaseId then make approp.
+    // response call to client
     if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
 	// send enable failed response to calling thread
 	vector<metricInstInfo> *response = 
