@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.28 1999/08/26 20:02:36 hollings Exp $
+// $Id: test2.C,v 1.29 1999/10/14 22:30:13 zandy Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -636,23 +636,24 @@ main(unsigned int argc, char *argv[])
     char libname[256];
     libname[0]='\0';
 
-#if !defined(USES_LIBDYNINSTRT_SO)
-    fprintf(stderr,"(Expecting application to be statically linked"
-                        " with libdyninstAPI_RT.)\n");
-#else
-    strcpy((char*) libname, (char*) getenv("DYNINSTAPI_RT_LIB"));
-    if (strlen(libname) == 0) {
-        fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
-#if defined(i386_unknown_nt4_0)
-            "    using standard search strategy for libdyninstAPI_RT.dll\n");
-#else
-                "    set it to the full pathname of libdyninstAPI_RT\n");   
-        exit(-1);
-#endif
-    }
-#endif
 
     unsigned int i;
+
+#if !defined(USES_LIBDYNINSTRT_SO)
+    fprintf(stderr,"(Expecting subject application to be statically linked"
+                        " with libdyninstAPI_RT.)\n");
+#else
+    if (!getenv("DYNINSTAPI_RT_LIB")) {
+	 fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+#if defined(i386_unknown_nt4_0)
+		 "    using standard search strategy for libdyninstAPI_RT.dll\n");
+#else
+	         "    set it to the full pathname of libdyninstAPI_RT\n");   
+         exit(-1);
+#endif
+    } else
+         strcpy((char *)libname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+#endif
 
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {
