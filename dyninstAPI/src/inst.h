@@ -192,8 +192,8 @@ reg getParameter(reg dest, int param);
 #define UINFERIOR_HEAP_BASE    "_DYNINSTdata"
 
 // The following 2 are NOT USED ANYMORE; LET'S FRY 'EM
-#define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
-#define U_GLOBAL_HEAP_BASE      "_DYNINSTglobalData"
+//#define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
+//#define U_GLOBAL_HEAP_BASE      "_DYNINSTglobalData"
 
 class point {
  public:

@@ -702,21 +702,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     addInternalSymbol(str, sym.addr());
   }
 
-  string ghb = GLOBAL_HEAP_BASE;
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = U_GLOBAL_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
-      string msg;
-      msg = string("Cannot find ") + ghb + string(". Exiting");
-      statusLine(msg.string_of());
-      showErrorCallback(50, msg);
-      return false;
-    }
-  }
-  Address instHeapEnd = sym.addr();
-  addInternalSymbol(ghb, instHeapEnd);
-  string ihb = INFERIOR_HEAP_BASE;
+//  string ghb = GLOBAL_HEAP_BASE;
+//  if (!linkedFile.get_symbol(ghb, sym)) {
+//    ghb = U_GLOBAL_HEAP_BASE;
+//    if (!linkedFile.get_symbol(ghb, sym)) {
+//      string msg;
+//      msg = string("Cannot find ") + ghb + string(". Exiting");
+//      statusLine(msg.string_of());
+//      showErrorCallback(50, msg);
+//      return false;
+//    }
+//  }
+//  Address instHeapEnd = sym.addr();
+//  addInternalSymbol(ghb, instHeapEnd);
 
+  string ihb = INFERIOR_HEAP_BASE;
   if (!linkedFile.get_symbol(ihb, sym)) {
     ihb = UINFERIOR_HEAP_BASE;
     if (!linkedFile.get_symbol(ihb, sym)) {
@@ -729,19 +729,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   }
   Address curr = sym.addr();
   addInternalSymbol(ihb, curr);
-  if (curr > instHeapEnd) instHeapEnd = curr;
 
-  // check that we can get to our heap.
-  //if (instHeapEnd > getMaxBranch()) {
-  //  logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-  //  sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
-  //  logLine(errorLine);
-  //  return false;
-  //} else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
-  //  logLine("WARNING: Program text + data could be too big for dyninst\n");
-  //  showErrorCallback(54, "");
-  //  return false;
-  //}
+  // Check that we can patch up user code to jump to our base trampolines
+  // (Perhaps this code is no longer needed for sparc platforms, since we use full
+  // 32-bit jumps)
+  const Address instHeapStart = curr;
+  const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
+
+  if (instHeapEnd > getMaxBranch3Insn()) {
+    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
+    sprintf(errorLine, "    heap starts at %x and ends at %x; maxbranch=%x\n",
+	    instHeapStart, instHeapEnd, getMaxBranch3Insn());
+    logLine(errorLine);
+    return false;
+  }
+
   return true;
 }
 

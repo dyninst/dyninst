@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.7  1997/01/21 00:27:58  tamches
+ * removed uses of DYNINSTglobalData
+ *
  * Revision 1.6  1996/11/26 16:08:08  naim
  * Fixing asserts - naim
  *
@@ -1787,7 +1790,6 @@ int getInsnCost(opCode op)
 // find all DYNINST symbols that are data symbols
 //
 bool image::heapIsOk(const vector<sym_data> &find_us) {
-  Address curr, instHeapEnd;
   Symbol sym;
   string str;
 
@@ -1806,21 +1808,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     addInternalSymbol(str, sym.addr());
   }
 
-  string ghb = GLOBAL_HEAP_BASE;
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = U_GLOBAL_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
-      string msg;
-      msg = string("Cannot find ") + str + string(". Exiting");
-      statusLine(msg.string_of());
-      showErrorCallback(50, msg);
-      return false;
-    }
-  }
-  instHeapEnd = sym.addr();
-  addInternalSymbol(ghb, instHeapEnd);
-  ghb = INFERIOR_HEAP_BASE;
+//  string ghb = GLOBAL_HEAP_BASE;
+//  if (!linkedFile.get_symbol(ghb, sym)) {
+//    ghb = U_GLOBAL_HEAP_BASE;
+//    if (!linkedFile.get_symbol(ghb, sym)) {
+//      string msg;
+//      msg = string("Cannot find ") + str + string(". Exiting");
+//      statusLine(msg.string_of());
+//      showErrorCallback(50, msg);
+//      return false;
+//    }
+//  }
+//  Address instHeapEnd = sym.addr();
+//  addInternalSymbol(ghb, instHeapEnd);
 
+  string ghb = INFERIOR_HEAP_BASE;
   if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = UINFERIOR_HEAP_BASE;
     if (!linkedFile.get_symbol(ghb, sym)) {
@@ -1831,21 +1833,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
-  curr = sym.addr();
+  Address curr = sym.addr();
   addInternalSymbol(ghb, curr);
-  if (curr > instHeapEnd) instHeapEnd = curr;
 
-  // check that we can get to our heap.
+  // Check that we can patch up user code to jump to our base trampolines:
+  const Address instHeapStart = curr;
+  const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
+
   if (instHeapEnd > getMaxBranch()) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+    sprintf(errorLine, "    heap starts at %x and ends at %x\n",
+	    instHeapStart, instHeapEnd);
     logLine(errorLine);
     return false;
-  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    showErrorCallback(54, "");
-    return false;
   }
+
   return true;
 }
 
@@ -1978,6 +1980,8 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &base) {
    // We emit the following here (to set up a fresh stack frame):
    // pushl %ebp        (0x55)
    // movl  %esp, %ebp  (0x89 0xe5)
+   // pushad
+   // pushfd
 
    emitSimpleInsn(PUSH_EBP, insnPtr);
    emitMovRegToReg(EBP, ESP, insnPtr);

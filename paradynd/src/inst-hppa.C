@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.32  1997/01/21 00:24:51  tamches
+ * removed uses of DYNINSTglobalData
+ *
  * Revision 1.31  1996/11/23 22:49:45  lzheng
  * Finished the implementation of inferiorPRC on HPUX platfrom
  *
@@ -1330,12 +1333,13 @@ unsigned emitFuncCall(opCode op,
         // This needs to be %o0 since it is back in the callers scope.
         return(28);
 }
- 
+
 bool process::emitInferiorRPCheader(void *, unsigned &) {
    // Is anything needed here?
    return true;
 }
 
+ 
 void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
@@ -1379,9 +1383,9 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
    // Put 2 special instructions here:
    // the special instructions are:
    // mtsp r21, sr0  (move value from r21 to space register 0)
-   // ble,n 0(sr0, r22) (branch and link external)
+   // ble,n 0(sr0, r22) (branch and link external to space0,reg22)
    //                   (puts offset of return point [4 bytes beyond following instr]
-   //                    into reg 31, and space of following str addr into SR 0)
+   //                    into reg 31, and space of following instr addr into SR 0)
 
    // NOT YET IMPLEMENTED!!!
 
@@ -1716,7 +1720,6 @@ bool pdFunction::findInstPoints(const image *owner) {
 // find all DYNINST symbols that are data symbols
 //
 bool image::heapIsOk(const vector<sym_data> &find_us) {
-  Address curr, instHeapEnd;
   Symbol sym;
   string str;
 
@@ -1735,21 +1738,21 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     addInternalSymbol(str, sym.addr());
   }
 
-  string ghb = GLOBAL_HEAP_BASE;
-  if (!linkedFile.get_symbol(ghb, sym)) {
-    ghb = U_GLOBAL_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
-      string msg;
-      msg = string("Cannot find ") + str + string(". Exiting");
-      statusLine(msg.string_of());
-      showErrorCallback(50, msg);
-      return false;
-    }
-  }
-  instHeapEnd = sym.addr();
-  addInternalSymbol(ghb, instHeapEnd);
-  ghb = INFERIOR_HEAP_BASE;
+//  string ghb = GLOBAL_HEAP_BASE;
+//  if (!linkedFile.get_symbol(ghb, sym)) {
+//    ghb = U_GLOBAL_HEAP_BASE;
+//    if (!linkedFile.get_symbol(ghb, sym)) {
+//      string msg;
+//      msg = string("Cannot find ") + str + string(". Exiting");
+//      statusLine(msg.string_of());
+//      showErrorCallback(50, msg);
+//      return false;
+//    }
+//  }
+//  instHeapEnd = sym.addr();
+//  addInternalSymbol(ghb, instHeapEnd);
 
+  string ghb = INFERIOR_HEAP_BASE;
   if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = UINFERIOR_HEAP_BASE;
     if (!linkedFile.get_symbol(ghb, sym)) {
@@ -1760,22 +1763,22 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
-  curr = sym.addr();
+  Address curr = sym.addr();
   addInternalSymbol(ghb, curr);
-  if (curr > instHeapEnd) instHeapEnd = curr;
-  mprotect(instHeapEnd, SYN_INST_BUF_SIZE, PROT_URWX);
 
-  // check that we can get to our heap.
+  const Address instHeapStart = curr;
+  const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
+
+//  mprotect(instHeapEnd, SYN_INST_BUF_SIZE, PROT_URWX);
+
   if (instHeapEnd > getMaxBranch()) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+    sprintf(errorLine, "    heap starts at %x and ends at %x\n",
+	    instHeapStart, instHeapEnd);
     logLine(errorLine);
     return false;
-  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    showErrorCallback(54, "");
-    return false;
   }
+
   return true;
 }
 
@@ -1805,7 +1808,6 @@ void returnInstance::installReturnInstance(process *proc) {
 }
 
 void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
-
     // if there already is a TRAP set at this pc for this process don't
     // generate a trap instruction again...you will get the wrong original
     // instruction if you do a readDataSpace
