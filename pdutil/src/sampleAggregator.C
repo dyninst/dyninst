@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.4 2001/11/03 06:08:59 schendel Exp $
+// $Id: sampleAggregator.C,v 1.5 2001/11/05 20:01:27 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -136,12 +136,11 @@ void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
   // the leftover is the amount in later intervals
   pdSample addToLeftOver = value - addToCur;
   aggu_cerr << "addToLeftOver: " << addToLeftOver << "\n";
-  if(addToLeftOver > pdSample::Zero()) {
-    // if there's value leftOver (for the next interval) than the timeOfSample
-    // better be later in time than the endIntvl() time
-    assert(timeOfSample > endIntvl() && rightTimeMark==endIntvl());
+
+  // save the remainder of the sample that was after the current interval
+  if(timeOfSample > endIntvl())
     addSamplePt(timeOfSample, addToLeftOver);
-  }
+
   lastProcessedSampleTime = rightTimeMark;
 }
 
