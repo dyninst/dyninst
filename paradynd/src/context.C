@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.86 2003/03/04 19:16:17 willb Exp $ */
+/* $Id: context.C,v 1.87 2003/04/11 22:46:30 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -60,6 +60,7 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/init.h"
 #include "processMgr.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 
 // The following were defined in process.C
@@ -127,42 +128,62 @@ bool applicationDefined()
 #if defined(MT_THREAD)
 
 void createThread(traceThread *fr) {
-    pd_process *proc=NULL;
-    assert(fr);
-    proc = getProcMgr().find_pd_process(fr->ppid);
-    if (!(proc && proc->get_rid())) // 6/2/99 zhichen, a weird situation
-      return ;                // when a threaded-process forks
-    // creating new thread
-    dyn_thread *thr = 
-       proc->get_dyn_process()->createThread(fr->tid, fr->pos, fr->stack_addr,
-		      fr->start_pc, fr->resumestate_p, fr->context==FLAG_SELF);
-    assert(thr);
-    pd_thread *pd_thr = new pd_thread(thr);
-    proc->addThread(pd_thr);
+   assert(fr);
 
-    metricFocusNode::handleNewThread(proc, pd_thr);
+   process *dyn_proc = process::findProcess(fr->ppid);
 
-    // computing resource id
-    string buffer;
-    string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
-    buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
-    resource *rid;
-    rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
-                                buffer, timeStamp::ts1970(), "", MDL_T_STRING,
-                                true);
-    pd_thr->get_dyn_thread()->update_rid(rid);
+   if(fr->tid == 0) {
+      // we see these at times from a multi-threaded forked off child process
+      dyn_proc->receivedInvalidThrCreateMsg();
+      return;
+   }
 
-    // tell front-end about thread start function for newly created threads
-    // We need the module, which could be anywhere (including a library)
-    pd_Function *func = (pd_Function *)thr->get_start_func();
-    pdmodule *foundMod = func->file();
-    assert(foundMod != NULL);
-    resource *modRes = foundMod->getResource();
-    string start_func_str = thr->get_start_func()->prettyName();
-    string res_string = modRes->full_name() + "/" + start_func_str;
-    cerr << start_func_str << ", " << res_string << ", " << foundMod->exec()->file() << endl;
+   dyn_thread *foundThr = dyn_proc->getThread(fr->tid);
+   if(foundThr != NULL) {
+      // received a duplicate thread create, can happen if rpcs launched on
+      // lwps of a MT forked off child process get run on same threads, since
+      // lwps changed between threads
+      dyn_proc->receivedInvalidThrCreateMsg();
+      return;
+   }
     
-    CallGraphSetEntryFuncCallback(proc->getImage()->file(), res_string, thr->get_tid());
+   // creating new thread
+   dyn_thread *thr =
+      dyn_proc->createThread(fr->tid, fr->pos, fr->stack_addr, fr->start_pc,
+                             fr->resumestate_p, fr->context==FLAG_SELF);
+   assert(thr);
+
+   pd_process *proc=NULL;
+   proc = getProcMgr().find_pd_process(fr->ppid);
+
+   if(! proc) {
+      // child pd_process not defined so returning, can happen when handling
+      // forks
+      return;
+   }
+   pd_thread *pd_thr = new pd_thread(thr);
+   proc->addThread(pd_thr);
+   metricFocusNode::handleNewThread(proc, pd_thr);
+
+   // computing resource id
+   string buffer;
+   string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
+   buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
+   resource *rid;
+   rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
+                               buffer, timeStamp::ts1970(), "", MDL_T_STRING,
+                               true);
+   pd_thr->get_dyn_thread()->update_rid(rid);
+
+   // tell front-end about thread start function for newly created threads
+   // We need the module, which could be anywhere (including a library)
+   pd_Function *func = (pd_Function *)thr->get_start_func();
+   pdmodule *foundMod = func->file();
+   assert(foundMod != NULL);
+   resource *modRes = foundMod->getResource();
+   string start_func_str = thr->get_start_func()->prettyName();
+   string res_string = modRes->full_name() + "/" + start_func_str;
+   CallGraphSetEntryFuncCallback(proc->getImage()->file(), res_string, thr->get_tid());
 }
 
 //
@@ -234,59 +255,6 @@ unsigned instInstancePtrHash(instInstance * const &ptr) {
    // would be a static fn but for now aix.C needs it.
    unsigned addr = (unsigned)(Address)ptr;
    return addrHash16(addr); // util.h
-}
-
-void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
-		 void *applAttachedAtPtr) 
-{
-   pd_process *parentProc = getProcMgr().find_pd_process(ppid);
-   if (!parentProc) {
-      logLine("Error in forkProcess: could not find parent process\n");
-      return;
-   }
-
-#ifdef FORK_EXEC_DEBUG
-   timeStamp forkTime = getWallTime();
-#endif
-   process *childDynProc = 
-      process::forkProcess(parentProc->get_dyn_process(), (pid_t)pid, trace_fd,
-			   theKey, applAttachedAtPtr);
-   pd_process *childProc = new pd_process(*parentProc, childDynProc);
-   getProcMgr().addProcess(childProc);
-   // For each mi with a component in parentProc, copy it to the child
-   // process --- if the mi isn't refined to a specific process (i.e. is for
-   // 'any process') NOTE: It's easy to not copy data items (timers, ctrs)
-   // that don't belong in the child.  But for trampolines, it's tricky,
-   // since the fork() syscall will copy all code whether we like it or not
-   // (except on AIX).  Since the meta-data for the conventional inferior
-   // heap has already been copied by the fork-ctor, when we detect code that
-   // shouldn't have been copied, we manually delete it with deleteInst().
-   // "map" is helpful in this context.
-   metricFocusNode::handleFork(parentProc, childProc);
-   // The following routines perform some assertion checks.
-   //   childProc->getTable().forkHasCompleted();
-
-#ifdef FORK_EXEC_DEBUG
-   cerr << "Fork process took " << (getWallTime()-forkTime) << endl;
-#endif
-
-   // Here is where we (used to) continue the parent process...who has been
-   // waiting patiently at a DYNINSTbreakPoint() since the beginning of
-   // DYNINSTfork() while all this hubbub was going on.  But we can't issue
-   // the continueProc().  Why not?  Because it's quite possible that the
-   // signal delivered to paradynd by the DYNINSTbreakPoint() hasn't yet been
-   // processed (yes, this happens in practice), so paradynd still thinks
-   // that parentProc's status is running.  What's the solution?  We create a
-   // stupid new field in the process structure that, when true, tells
-   // paradynd that when the next SIGSTOP is delivered, to continue the
-   // process.  On the other hand, if parentProc's status is stopped, then we
-   // go ahead and issue the continueProc now.  --ari
-
-//   if (parentProc->status() == running)
-//      parentProc->continueAfterNextStop();
-//   else
-//      if (!parentProc->continueProc())
-//         assert(false);
 }
 
 void pd_execCallback(process *proc) {
@@ -443,11 +411,9 @@ bool continueAllProcesses()
 bool pauseAllProcesses()
 {
    bool changed = markApplicationPaused();
-
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
-
       if (p != NULL && p->status() == running) {
          p->pause();
       }
@@ -469,19 +435,22 @@ void processNewTSConnection(int tracesocket_fd) {
    assert(fd >= 0);
 
    unsigned cookie;
-   if (sizeof(cookie) != read(fd, &cookie, sizeof(cookie)))
+   cerr << "processNewTSConnection\n";
+   unsigned rRet = 0;
+   if (sizeof(cookie) != (rRet=read(fd, &cookie, sizeof(cookie)))) {
+      cerr << "error, read return: " << rRet << ", cookieSize: "
+           << sizeof(cookie) << endl;      
       assert(false);
+   }
 
    const unsigned cookie_fork   = 0x11111111;
    const unsigned cookie_attach = 0x22222222;
 
-   bool calledFromFork   = (cookie == cookie_fork);
    bool calledFromAttach = (cookie == cookie_attach);
 
    string str;
-   if (calledFromFork)
-      str = string("getting new connection from forked process");
-   else if (calledFromAttach)
+
+   if (calledFromAttach)
       str = string("getting new connection from attached process");
    else
       str = string("getting unexpected process connection");
@@ -512,89 +481,218 @@ void processNewTSConnection(int tracesocket_fd) {
    if (ptr_size != read(fd, ptr_dst, ptr_size))
       assert(false);
 
-   pd_process *curr = NULL;
+   process *curr = NULL;
 
-   if (calledFromFork) {
-      // the following will (1) call fork ctor (2) call
-      // metricFocusNode::handleFork (3) continue the parent process, who has
-      // been waiting to avoid race conditions.
-      forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
-      curr = getProcMgr().find_pd_process(pid);
-      assert(curr);
-      // continue process...the next thing the process will do is call
-      // DYNINSTinit(-1, -1, -1)
-      string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
-	  forkexec_cerr << str << endl;
-      statusLine(str.c_str());
-	  if( curr->status() == running )
-	  {
-//#if defined(i386_unknown_linux2_0)
-		  curr->continueAfterNextStop();
-//#endif
-	  }
-	  else {
-		  if (!curr->continueProc()) {
-		    assert(false);
-		  }
-	  }
-#if defined(rs6000_ibm_aix4_1)
-      // HACK to compensate for AIX goofiness: as soon as we call
-      // continueProc() above (and not before!), a SIGTRAP appears to
-      // materialize out of thin air, stopping the child process.  Thus,
-      // DYNINSTinit() won't run unless we issue an explicit continue.
-      // (Actually, there may be a semi-legit explanation.  It seems that on
-      // non-solaris platforms, including sunos and aix, if a sigstop is sent
-      // and not handled -- i.e. if we just leave the application in a paused
-      // state, without continuing -- then the sigstop will be sent over and
-      // over again, nonstop, until the application is continued.  So perhaps
-      // the sigtrap we see now was present all along, but we never knew it
-      // because waitpid in the main loop kept returning sigstops.  --ari)
-
-      int wait_status;
-      int wait_result = waitpid(curr->getPid(), &wait_status, WNOHANG);
-      if (wait_result > 0) {
-	 bool was_stopped = WIFSTOPPED(wait_status);
-	 if (was_stopped) {
-	    int sig = WSTOPSIG(wait_status);
-	    if (sig == 5)  { // sigtrap
-	       curr->get_dyn_process()->status_ = stopped;
-	       if (!curr->continueProc())
-		  assert(false);
- 	    }
-        }
-      }
-
-#elif defined(i386_unknown_linux2_0)
-	  int wait_status;
-	  int wait_result = waitpid( curr->getPid(), &wait_status, WUNTRACED );
-	  if( wait_result > 0 && WIFSTOPPED(wait_status) )
-	  {
-		  int sig = WSTOPSIG(wait_status);
-		  forkexec_cerr << "Extra check: stopped on sig " << sig << endl;
-		  if (sig == SIGTRAP || sig == SIGSTOP)
-		  {
-			  curr->get_dyn_process()->status_ = stopped;
-			  if (!curr->continueProc())
-				  assert(false);
-		  }
-	  }
-#endif      
-   }
-
-   else {
-      // This routine gets called when the attached process is in
-      // the middle of running DYNINSTinit.
-      curr = getProcMgr().find_pd_process(pid);
-      assert(curr);
-      curr->get_dyn_process()->traceLink = fd;
-      statusLine("ready");
-   }
+   // This routine gets called when the attached process is in
+   // the middle of running DYNINSTinit.
+   curr = process::findProcess(pid);
+   assert(curr);
+   curr->traceLink = fd;
+   statusLine("ready");
 }
 
 void paradyn_handleProcessExit(process *proc, int exitStatus) {
    pd_process *pd_proc = getProcMgr().find_pd_process(proc);
-   assert(pd_proc != NULL);
-   pd_proc->handleExit(exitStatus);
+   if(pd_proc)
+      pd_proc->handleExit(exitStatus);
+}
+
+bool allThreadCreatesReceived(process *proc, unsigned num_expected) {
+   unsigned num_thrs = proc->threads.size();
+   unsigned invalid_creates = proc->numInvalidThrCreateMsgs();
+   //cerr << "num_thrs: " << num_thrs << ", inv_creates: " << invalid_creates
+   //     << ", total_received: " << num_thrs + invalid_creates 
+   //     << "  [" << num_expected << "]\n";
+   return (num_thrs + invalid_creates >= num_expected);
+}
+
+bool allThreadsCreated(process *proc, const pdvector<unsigned> &par_tids) {
+   for(unsigned i=0; i<par_tids.size(); i++) {
+      bool found_lwp = false;
+      unsigned cur_tid = par_tids[i];
+      //cerr << "looking for tid: " << cur_tid << endl;
+      for(unsigned j=0; j<proc->threads.size(); j++) {
+         dyn_thread *curthr = proc->threads[j];
+
+         if(curthr->get_tid() == cur_tid) {
+            found_lwp = true;
+            break;
+         }
+      }
+      if(found_lwp == false) {
+         //cerr << "still waiting on thr w/ tid " << cur_tid 
+         //     << " to be created\n";
+         return false;
+      }
+   }
+   return true;
+}
+
+extern PDSOCKET traceSocket_fd;
+
+// returns true when all threads created, false if not all have been created
+// yet.  the function will monitor the trace link so that createThread
+// calls can be handled.
+void wait_for_thread_creation(process *childDynProc,
+                              unsigned num_expected) {
+   // recognize and set up meta-data for threads in the child process
+   fd_set readSet;
+   fd_set errorSet;
+   int ct;
+
+   while(! allThreadCreatesReceived(childDynProc, num_expected)) {
+      if(childDynProc->hasExited()) return;
+      //decodeAndHandleProcessEvent(false);
+
+      int width = 0;
+      struct timeval pollTimeStruct;
+      timeLength pollTime(50, timeUnit::ms());
+      pollTimeStruct.tv_sec  = 
+         static_cast<long>(pollTime.getI(timeUnit::sec()));
+      pollTimeStruct.tv_usec = 
+         static_cast<long>(pollTime.getI(timeUnit::us()));
+   
+      FD_ZERO(&readSet);
+      FD_ZERO(&errorSet);
+      if(childDynProc->traceLink >= 0) {
+         FD_SET(childDynProc->traceLink, &readSet);
+      }
+      if(childDynProc->traceLink > width)
+         width = childDynProc->traceLink;
+
+      // add traceSocket_fd, which accept()'s new connections (from processes
+      // not launched via createProcess() [process.C], such as when a process
+      // forks, or when we attach to an already-running process).
+      if (traceSocket_fd != INVALID_PDSOCKET) FD_SET(traceSocket_fd, &readSet);
+      if (traceSocket_fd > width) width = traceSocket_fd;
+
+      // add our igen connection with the paradyn process.
+      FD_SET(tp->get_sock(), &readSet);
+      FD_SET(tp->get_sock(), &errorSet);
+
+      // "width" is computed but ignored on Windows NT, where sockets 
+      // are not represented by nice little file descriptors.
+      if (tp->get_sock() > width) width = tp->get_sock();
+      
+      // TODO - move this into an os dependent area
+      ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
+      
+      if (ct <= 0)  continue;
+
+      if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
+         // Either (1) a process we're measuring has forked, and the child
+         // process is asking for a new connection, or (2) a process we've
+         // attached to is asking for a new connection.
+         processNewTSConnection(traceSocket_fd); // context.C
+      }      
+      
+      if(childDynProc->traceLink >= 0 && 
+         FD_ISSET(childDynProc->traceLink, &readSet)) {
+         processTraceStream(childDynProc);
+         /* in the meantime, the process may have died, setting
+            curProc to NULL */
+         
+         /* clear it in case another process is sharing it */
+         if(childDynProc->traceLink >= 0) {
+            // may have been set to -1
+            FD_CLR(childDynProc->traceLink, &readSet);
+         }
+      }
+   }
+}
+
+void show_proc_threads(process *proc) {
+   cerr << "showing proc threads, pid: " << proc->getPid() << endl;
+   for(unsigned j=0; j<proc->threads.size(); j++) {
+      dyn_thread *curthr = proc->threads[j];
+      if(curthr->get_lwp() == NULL) {
+         cerr << "    thr_id: " << curthr->get_tid() 
+              << ", calling updateLWP\n";
+         curthr->updateLWP();
+         cerr << "    lwp now is " << curthr->get_lwp() << endl;
+      }
+      cerr << "  thr_id: " << curthr->get_tid();
+      if(curthr->get_lwp())
+         cerr << ", lwp_id: " << curthr->get_lwp()->get_lwp_id();
+      cerr << ", pos: " << curthr->get_pos() << endl;
+   }
+}
+
+// This function sets the variable DYNINST_initialize_done to 1 in the
+// multi-threaded rtinst library.  This variable is a way to keep certain
+// rtinst functions from being called, like DYNINSTthreadPos.
+void initMT_AfterFork(process *proc) {
+   bool err = false;
+   err = false;
+   Address initAddr = proc->findInternalAddress("DYNINST_initialize_done",
+                                            true, err);
+   assert(err==false);
+   unsigned newInitVal = 1;
+
+   bool retv = proc->writeTextSpace((caddr_t)initAddr, sizeof(unsigned), 
+                              (caddr_t)&newInitVal);
+   if(retv == false) {
+     cerr << "!!!  Couldn't write DYNINST_initialize_done variable into "
+          << "rt library !!\n";
+   }
+
+}
+
+void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
+   pdvector<unsigned> par_tids;
+   for(unsigned i=0; i<parentDynProc->threads.size(); i++) {
+      unsigned tid = parentDynProc->threads[i]->get_tid();
+      if(tid == 1)
+         continue;
+      par_tids.push_back(tid);
+   }
+
+   unsigned num_expected = 0;
+   pdvector<unsigned> expected_thrs;
+#if defined(sparc_sun_solaris2_4)
+   expected_thrs = par_tids;
+#endif
+   pdvector<unsigned> completed_lwps;
+   do {
+      childDynProc->recognize_threads(&completed_lwps);
+      
+      num_expected += completed_lwps.size();
+      completed_lwps.clear();
+      wait_for_thread_creation(childDynProc, num_expected);
+#if defined(rs6000_ibm_aix4_1)
+      if(childDynProc->threads.size() > 0)
+         expected_thrs.push_back(childDynProc->threads[0]->get_tid());
+#endif
+   } while(! allThreadsCreated(childDynProc, expected_thrs));
+
+   initMT_AfterFork(childDynProc);
+}
+
+void paradyn_forkCallback(process *parentDynProc, process *childDynProc) {
+   assert(childDynProc->status() == stopped);
+
+   if(childDynProc->multithread_capable())
+      MT_lwp_setup(parentDynProc, childDynProc);
+
+   childDynProc->setParadynBootstrap();
+   assert(childDynProc->status() == stopped);
+
+   pd_process *parentProc = 
+      getProcMgr().find_pd_process(parentDynProc->getPid());
+   if (!parentProc) {
+      logLine("Error in forkProcess: could not find parent process\n");
+      return;
+   }
+
+   pd_process *childProc = new pd_process(*parentProc, childDynProc);
+   getProcMgr().addProcess(childProc);
+
+   childProc->initAfterFork(parentProc);
+   metricFocusNode::handleFork(parentProc, childProc);
+
+   assert(childProc->status() == stopped);
+   childProc->continueProc();
+   // parent process will get continued by unix.C/handleSyscallExit
 }
 
 
