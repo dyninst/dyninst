@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.11 2004/03/23 01:11:53 eli Exp $
+// $Id: osfHeaders.h,v 1.12 2004/12/09 05:00:32 rchen Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -95,6 +95,8 @@ extern void P_abort (void);
 extern int P_close (int FILEDES);
 extern int P_dup2 (int OLD, int NEW);
 extern int P_execvp (const char *FILENAME, char *const ARGV[]);
+extern int P_execve (const char* FILENAME,
+		     char* const ARGV[], char* const ENVP[]);
 extern void P__exit (int STATUS);
 extern int P_fcntl (int FILEDES, int command, int arg2);
 extern FILE * P_fdopen (int FILEDES, const char *OPENTYPE);

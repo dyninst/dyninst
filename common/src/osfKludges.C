@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.9 2004/03/23 01:11:54 eli Exp $
+// $Id: osfKludges.C,v 1.10 2004/12/09 05:00:48 rchen Exp $
 
 #include "common/h/headers.h"
 #include <sys/procfs.h>
@@ -75,6 +75,9 @@ int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 //  return (execlp(FILENAME, ARG0, NULL));}
 int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}
+int P_execve (const char* FILENAME, char* const ARGV[], char* const ENVP[]) {
+    return (execve(FILENAME, ARGV, ENVP));
+}
 void P__exit (int STATUS) { _exit(STATUS);}
 int P_fcntl (int filedes, int command, int arg2) {
   return (fcntl(filedes, command, arg2));}

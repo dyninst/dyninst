@@ -103,6 +103,8 @@ extern void P_abort (void);
 extern int P_close (int FILEDES);
 extern int P_dup2 (int OLD, int NEW);
 extern int P_execvp (const char *FILENAME, char *const ARGV[]);
+extern int P_execve (const char* FILENAME,
+		     char* const ARGV[], char* const ENVP[]);
 extern void P__exit (int STATUS);
 extern int P_fcntl (int FILEDES, int command, int arg2);
 extern FILE * P_fdopen (int FILEDES, const char *OPENTYPE);

@@ -82,6 +82,9 @@ int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 //  return (execlp(FILENAME, ARG0, NULL));}
 int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}
+int P_execve (const char* FILENAME, char* const ARGV[], char* const ENVP[]) {
+    return (execve(FILENAME, ARGV, ENVP));
+}
 void P__exit (int STATUS) { _exit(STATUS);}
 int P_fcntl (int filedes, int command, int arg2) {
   return (fcntl(filedes, command, arg2));}
