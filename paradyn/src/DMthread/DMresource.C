@@ -63,8 +63,7 @@ inline unsigned newResourceHandle() {
 //
 resource::resource()
 {
-    string temp = "";
-    // make sure this is only used for root
+    string temp = "ROOT"; 
     assert(allResources.size()==0);
     if(!allResources.defines(temp)){
         name = temp; 
@@ -182,6 +181,32 @@ resourceHandle *resource::findChild(const char *nm) const {
 void resource::print()
 {
     printf("%s ", name.string_of());
+}
+
+void
+resource::saveHierarchiesToFile (ofstream& foo)
+{
+  if (resource::rootResource == NULL) {
+    cout << "ROOT IS NULL" << endl;
+    return;
+  }
+  resource *curr = resource::rootResource;
+  curr->saveHierarchyToFile(foo);
+}  
+  
+void 
+resource::saveHierarchyToFile (ofstream& foo)
+{
+  resource *curr;
+  unsigned childSize = children.size();
+  if (childSize == 0) {
+    foo << name << endl;
+  } else {
+    for (unsigned i = 0; i < childSize; i++) {
+      curr = resource::handle_to_resource(children[i]);
+      curr->saveHierarchyToFile(foo);
+    }
+  }
 }
 
 bool resource::string_to_handle(const string &res, resourceHandle *h) {

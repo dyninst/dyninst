@@ -239,7 +239,9 @@ class metricInstance {
 	// returns false if componet was already on list (not added)
 	bool addComponent(component *new_comp);
         bool removeComponent(paradynDaemon *daemon);
-	//bool addPart(sampleInfo *new_part);
+	// bool addPart(sampleInfo *new_part);
+        // writes header info plus all values in histogram into file
+        void saveAllData (ofstream&, phaseType ph);
 
 	static timeStamp GetGlobalWidth(){return(global_bucket_width);}
 	static timeStamp GetCurrWidth(){return(curr_bucket_width);}

@@ -108,6 +108,9 @@ class resource {
     static const char *getFullName(resourceHandle);
     const vector<string>& getParts() const {return fullName;}
     static bool get_lib_constraints(vector<string>&);
+    static void saveHierarchiesToFile (ofstream& foo);
+    void saveHierarchyToFile (ofstream& foo);
+
   protected:
     resource();
     resource(resourceHandle p_handle,
@@ -128,6 +131,7 @@ class resource {
     vector<string> fullName; 
     bool suppressSearch;
     bool suppressChildSearch;
+
     bool suppressMagnify;  // true if mdl exclude_lib option specifies this 
     abstraction *abstr;  // TODO: change this to a handle later
     vector<resourceHandle> children; 

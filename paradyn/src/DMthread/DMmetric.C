@@ -44,6 +44,7 @@ extern "C" {
 #include <stdio.h>
 }
 #include "DMmetric.h"
+#include <iostream.h>
 
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, bool);
@@ -221,6 +222,57 @@ int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
     }
 
 }
+
+// 
+// write out all data for a single histogram to specified file
+// this routine assumes that fptr points to a valid file open for writing!  
+//
+void 
+metricInstance::saveAllData (ofstream& fptr, phaseType ph)
+{
+  // first locate the histogram
+  timeStamp width;
+  Histogram *hdata;
+  if (ph == GlobalPhase) {
+    hdata = global_data;
+    width = global_bucket_width;
+  } else {
+    hdata = data;
+    width = curr_bucket_width;
+  }
+  if (hdata == NULL)
+    // histogram not created yet for this MI
+    return;
+
+  string writeout;
+  int numBins = hdata->getNumBins();
+  sampleValue *buckets = new sampleValue [numBins];
+  unsigned count = hdata->getBuckets(buckets, numBins, 0);
+  // write header info:  numBuckets, bucketWidth
+  fptr << numBins << " " << width << endl;
+  // write all data values
+  for (unsigned k = 0; k < count; k++) {
+    fptr << string(buckets[k]) << endl;
+  }
+
+  if (ph == CurrentPhase) {
+    // save archived data, if any
+    for (unsigned i = 0; i < old_data.size(); i++) {
+      hdata = (old_data[i])->data;
+      if ( hdata ) {
+	count = hdata->getBuckets(buckets, numBins, 0);
+	// header info:  numBuckets, bucketWidth 
+	fptr << numBins << " " << width << endl;
+	// data
+	for (unsigned k = 0; k < count; k++) {
+	  fptr << buckets[k] << endl;
+	}
+      }
+    }
+  }
+  delete buckets;
+}
+
 
 metricInstance *metricInstance::getMI(metricInstanceHandle mh){
 

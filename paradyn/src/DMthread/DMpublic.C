@@ -44,6 +44,9 @@ extern "C" {
 }
 
 #include <assert.h>
+#include <stdio.h>
+#include <iostream.h>
+#include <fstream.h>
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
@@ -60,6 +63,7 @@ extern "C" {
 #include "DMphase.h"
 #include "DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+#include "paradyn/src/pdMain/paradyn.h"
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
@@ -317,6 +321,95 @@ bool dataManager::detachApplication(bool pause)
    return(paradynDaemon::detachApplication(pause));
 }
 
+// 
+// write all global data to files created in the dirname directory
+// 
+void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag) 
+{
+  int findex = 0;
+  bool success = true;
+  metricInstance *activeMI;
+  string dir = string (dirname);
+  dir += string("/");
+
+  cout << "dm:saveAllData into " << dir.string_of() << " start request" << endl;
+
+  // create index file
+  string indexFileName = dir + "index";
+
+  cout << "index file name " << indexFileName.string_of() << endl;
+  ofstream indexFile (indexFileName.string_of(), ios::out);
+  if (!indexFile) {
+    success = false;
+  } else {
+
+    vector<metricInstanceHandle> allMIHs = 
+      metricInstance::allMetricInstances.keys();
+    for (unsigned i = 0; i < allMIHs.size(); i++) {
+      // try to write data from one metric instance 
+      activeMI = metricInstance::getMI(allMIHs[i]);
+      if (activeMI == NULL)
+	continue;
+
+      if ((optionFlag == Phase) || (optionFlag == All)) {
+	// save all phase data
+	string fileSuffix = string("hist_") + string(findex);
+	string miFileName = dir + fileSuffix;
+
+	cout << "writing to file name " << miFileName.string_of() << endl;
+	ofstream activeFile (miFileName.string_of(), ios::out);
+	if (!activeFile)
+	  continue;
+	activeFile << activeMI->getMetricName() << endl <<  
+	  activeMI->getFocusName() << endl;
+	activeMI->saveAllData (activeFile, CurrentPhase);
+	indexFile << fileSuffix.string_of() << " " << activeMI->getMetricName()
+	  << " " << activeMI->getFocusName() << endl;
+	findex++;  // increment fileid
+	// add index entry
+	activeFile.close();
+      } 
+      if ((optionFlag == Global) || (optionFlag == All)) { 
+	// save all global data
+	string fileSuffix = string("hist_") + string(findex);
+	string miFileName = dir + fileSuffix;
+
+	cout << "writing to file name " << miFileName.string_of() << endl;
+	ofstream activeFile (miFileName.string_of(), ios::out);
+	if (!activeFile)
+	  continue;
+	activeFile << activeMI->getMetricName() << endl <<  
+	  activeMI->getFocusName() << endl;
+	activeMI->saveAllData (activeFile, GlobalPhase);
+	indexFile << fileSuffix.string_of() << " " <<  
+	  activeMI->getMetricName() << " " << activeMI->getFocusName() << endl;
+	findex++;  // increment fileid
+	// add index entry
+	activeFile.close();
+      }
+    }
+    indexFile.close();
+  }
+  uiMgr->allDataSaved(success);
+}
+
+void
+dataManager::saveAllResources (const char *dirname)
+{
+  cout << "DM: saveAllResources request for " << dirname << endl;
+  string dir = string (dirname) + string("/resources");
+
+  ofstream saveFile (dir.string_of(), ios::out);
+  if (!saveFile) {
+    cout << "open file failed" << endl;
+    return;
+  }
+  resource::saveHierarchiesToFile(saveFile);
+  saveFile.close();
+  delete dirname;
+  cout << "DM: saveAllResources complete" << endl;
+}
+
 perfStreamHandle dataManager::createPerformanceStream(dataType dt,
 						      dataCallback dc,
 						      controlCallback cc)
@@ -494,7 +587,7 @@ string unslash(char *s)
         }
         return ret ;
 }
-void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
+void dataManager::getMemoryBounds(perfStreamHandle,
                                   vector<metric_focus_pair> *request)
 {
 //Can be done better
@@ -574,7 +667,7 @@ void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
         }
         dictionary_hash_iter<string, unsigned> upper_iter(upper) ;
         string flat ;
-        unsigned  u, l ;
+        unsigned  u ;
         // TO DO should I send a request to clear up
         // current_upper_bounds and current_lower_bounds?
         // I need to think about it more
