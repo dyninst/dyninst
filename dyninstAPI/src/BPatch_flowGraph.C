@@ -1324,22 +1324,29 @@ void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 		BPatch_basicBlockLoop* l1 = allLoops[i];
 		BPatch_basicBlockLoop* l2 = allLoops[j];
 
-		BPatch_Set<BPatch_basicBlock*> diff(l1->basicBlocks);
-		diff -= l2->basicBlocks;
+		BPatch_Set<BPatch_basicBlock*> diff(l2->basicBlocks);
+		diff -= l1->basicBlocks;
 
 		if (diff.empty()) {
-		    l2->containedLoops += l1;
+		    l1->containedLoops += l2;
 
-		    // if l1's parent has not yet been set
-		    if (NULL == l1->parent) {
-			l1->parent = l2;
+		    // assign l2's parent. l1 may not be l2's real parent, 
+		    // with each l1/l2 comparison we check if l1 is a closer
+		    // ancestor to to l2 than l2's current parent, if so l1
+		    // becomes l2's parent.
+
+		    // l2 has no parent so l1 is closest so far.
+		    if (NULL == l2->parent) {
+			l2->parent = l1;
 		    }
-		    // or if l2 is a more direct ancestor of l1 than l1's 
-		    // current parent (eventually l2 will be l1's parent).
-		    // this is needed because we can't assume the order of
-		    // the loops in the BPatch_set loops is sequential.
-		    else if (l2->hasAncestor(l1->parent)) {
-			l1->parent = l2;
+		    // else if l1 is a more direct ancestor of l2 than l2's 
+		    // current parent. *this assumes allLoops is ordered with
+		    // the outer most loops first, otherwise if l1 is l2's 
+		    // parent but l2 already has parent l0 and l0 is an 
+		    // ancestor of l1 (AND this link has not yet been set)
+		    // then l2->parent will stay l0 when it should be l1.*
+		    else if (l1->hasAncestor(l2->parent)) {
+			l2->parent = l1;
 		    }
 		}
 	    }
