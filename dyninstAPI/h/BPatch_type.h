@@ -186,7 +186,7 @@ public:
 //   version of the common block.
 //
 class BPATCH_DLL_EXPORT BPatch_cblock {
-   friend BPatch_type;
+   friend class BPatch_type;
 
 private:
   // the list of fields
