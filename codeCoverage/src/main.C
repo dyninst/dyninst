@@ -44,6 +44,17 @@ Tk_Window statusMessage = NULL;
 bool executionStarted = false;
 bool isRunning = false;
 
+void statusUpdateProcedure(ClientData clientData){
+	char buffer[1024];
+        CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
+	Tcl_Interp* interp = ((ARGS*)clientData)->interp;
+	
+	if(codeCoverage->getTclStatusUpdateString(buffer,1024))
+		Tcl_Eval(interp,buffer);
+
+	Tcl_CreateTimerHandler(2000,statusUpdateProcedure,clientData);
+}
+
 void* codeCoverageThread(void* arg){
 
 	CodeCoverage* codeCoverage = ((ARGS*)arg)->codeCoverage;
@@ -167,7 +178,7 @@ int Tcl_AppInit(Tcl_Interp* interp){
 Tcl_Interp* initTclTk(CodeCoverage* codeCoverage,int interval){
 
 	Tcl_Interp* interp = Tcl_CreateInterp();
-	if(!interp)
+	if(!interp) 
 		return NULL;
 
 	if(Tcl_Init(interp) == TCL_ERROR)
@@ -448,6 +459,9 @@ int main(int argc,char* argv[]){
 		Tk_CreateEventHandler(refreshButton,ButtonPressMask,
 				      refreshButtonHandler,
 				      (ClientData)passedArguments);
+
+		Tcl_CreateTimerHandler(1000,statusUpdateProcedure,
+				       (ClientData)passedArguments);
 	}
 
 	/** instrument a breakpoint to the beginning of the exit handle

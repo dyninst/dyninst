@@ -81,6 +81,10 @@ protected:
 	unsigned short totalDeletions;
 	unsigned short totalCoveredLines;
 
+	pthread_mutex_t statusUpdateLock;
+	bool tclStatusChanged;
+	char tclStatusBuffer[1024];
+
 protected:
 	/** interval callback function is defined to be friend*/
 	friend void intervalCallback(int signalNo);
@@ -192,6 +196,8 @@ public:
 
 	/** method that prepares the file for menu creation for view only */
 	static int getTclTkMenuListForView(char* fN,ofstream& file);
+
+	bool getTclStatusUpdateString(char* buffer,int length);
 
 	/** destructor of the class */
 	virtual ~CodeCoverage();

@@ -56,9 +56,11 @@ CodeCoverage::CodeCoverage()
 	  deletionInterval(0),appModules(NULL),
 	  instrumentedFunctions(NULL),instrumentedFunctionCount(0),
 	  useDominator(false),globalInterp(NULL),statusBarName(NULL),
-	  whichInterval(0),totalDeletions(0),totalCoveredLines(0)
+	  whichInterval(0),totalDeletions(0),totalCoveredLines(0),
+	  tclStatusChanged(false)
 {
 	pthread_mutex_init(&updateLock,NULL);
+	pthread_mutex_init(&statusUpdateLock,NULL);
 }
 
 /** constructor */
@@ -71,6 +73,7 @@ CodeCoverage::~CodeCoverage()
 	delete[] instrumentedFunctions;
 	delete FILE_EXTENSION;
 	pthread_mutex_destroy(&updateLock);
+	pthread_mutex_destroy(&statusUpdateLock);
 }
 
 /** error printing function that overrides dyninst default 
@@ -490,11 +493,12 @@ int FCSortByFileName(const void* arg1,const void* arg2){
 int CodeCoverage::printCoverageInformation(){
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
 			\"Dumping coverage results to the binary file...\"",
 			statusBarName);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	/** update the execution counts for the last time */
@@ -575,11 +579,12 @@ void CodeCoverage::getTclTkExecutedLines(ofstream& file){
    if(deletionInterval || appThread->isTerminated()) {
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
                         \"Updating executed line information...\"",
-                        statusBarName);
-                Tcl_Eval(globalInterp,tclBuffer);
+			statusBarName);
+		pthread_mutex_unlock(&statusUpdateLock);
         }
 
 	pthread_mutex_lock(&updateLock);
@@ -640,11 +645,12 @@ void CodeCoverage::getTclTkExecutedLines(ofstream& file){
    }
    else {
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
 		 \"Can not update executed line information (no deletion)...\"",
                         statusBarName);
-                Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_unlock(&statusUpdateLock);
         }
    }
 }
@@ -979,4 +985,14 @@ int CodeCoverage::getTclTkMenuListForView(char* fN,ofstream& file){
 	inputFile.close();
 
 	return Error_OK;
+}
+
+bool CodeCoverage::getTclStatusUpdateString(char* buffer,int length){
+	bool ret = false;
+	pthread_mutex_lock(&statusUpdateLock);
+	ret = tclStatusChanged;
+	strncpy(buffer,tclStatusBuffer,length);
+	tclStatusChanged = false;
+	pthread_mutex_unlock(&statusUpdateLock);
+	return ret;
 }

@@ -5,6 +5,7 @@
 #include <iostream.h>
 #include <fstream.h>
 #include <limits.h>
+#include <pthread.h>
 #include <tcl.h>
 #include <tk.h>
 
@@ -45,11 +46,12 @@ int CCOnDemandInstrument::instrumentInitial(){
 	cout << "information: Beginning initial instrumentation..." << endl;
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
 			\"Initial instrumentation is being done...\"",
 			statusBarName);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	int tmpV = -1;
@@ -97,11 +99,12 @@ int CCOnDemandInstrument::run(){
 	     << endl << endl;
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
 			\"Execution of mutatee started...\"",
 			statusBarName);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	int errorCode = Error_OK;
@@ -181,11 +184,12 @@ int CCOnDemandInstrument::run(){
 			addTclTkFrequency();
 
 			if(globalInterp && statusBarName){
-				char tclBuffer[256];
-				sprintf(tclBuffer,"%s configure -text \
+				pthread_mutex_lock(&statusUpdateLock);
+				tclStatusChanged = true;
+				sprintf(tclStatusBuffer,"%s configure -text \
 					\"Interval %d has ended...\"",
 					statusBarName,whichInterval);
-				Tcl_Eval(globalInterp,tclBuffer);
+				pthread_mutex_unlock(&statusUpdateLock);
 			}
 
 			/** assign the handler to the alarm signal and continue
@@ -223,11 +227,12 @@ int CCOnDemandInstrument::run(){
 	     << endl << endl;
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
 			\"Execution of mutatee ended...\"",
 			statusBarName);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	return Error_OK;
@@ -266,11 +271,11 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 	totalDeletions = 0;
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
-		\"Interval %d has started...\"",
-		statusBarName,whichInterval);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
+			\"Interval %d has started...\"",statusBarName,whichInterval);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	cout << endl
@@ -283,11 +288,11 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 	addTclTkFrequency();
 
 	if(globalInterp && statusBarName){
-		char tclBuffer[256];
-		sprintf(tclBuffer,"%s configure -text \
-			\"Interval %d has ended...\"",
-			statusBarName,whichInterval);
-		Tcl_Eval(globalInterp,tclBuffer);
+		pthread_mutex_lock(&statusUpdateLock);
+		tclStatusChanged = true;
+		sprintf(tclStatusBuffer,"%s configure -text \
+			\"Interval %d has ended...\"",statusBarName,whichInterval);
+		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
 	/** assign the alarm interval call back and continue exec */
