@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.6 2001/05/12 21:29:54 ning Exp $
+// $Id: shmSegment-unix.C,v 1.7 2002/05/02 21:29:05 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -376,7 +376,7 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
 
    // First, check for cookie.  If no match, then the segment wasn't created
    // by paradynd and we should not touch it!
-   if (*ptr++ != fastInferiorHeapMgr::cookie) {
+   if (*ptr++ != shmMgr::cookie) {
 #ifdef SHM_SAMPLING_DEBUG
       cerr << "no match on cookie, so leaving shm seg key " << keyToTry << " alone." << endl;
 #endif
