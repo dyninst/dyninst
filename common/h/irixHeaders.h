@@ -230,10 +230,16 @@ inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp(S1, S2,N));}
 inline int P_endservent(void) { endservent(); return 0; }
 
-/* Ugly */
-
+  /* Ugly hack to match ptrace definition in <unistd.h>.
+   * See core/dyninstAPI/mips-sgi-irix6.5/Makefile for explanation.
+   */
+#if defined(HAVE_OLD_UNISTD)
 inline int P_ptrace(int req, pid_t pid, int addr, int data) {
-  return (ptrace(req, pid, addr, data));}
+    return (ptrace(req, pid, addr, data));}
+#else
+inline int P_ptrace(int req, pid_t pid, long addr, long data) {
+    return (ptrace(req, pid, (void *)addr, data));}
+#endif
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
