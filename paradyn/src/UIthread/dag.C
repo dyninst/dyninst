@@ -25,10 +25,10 @@ dag::dag (Tcl_Interp *nterp)
 
   flags = 0;
   mode = ALL;
-  node_internal_width = 10;
-  node_internal_height = 1;
-  graph_x_extent = 200;
-  graph_y_extent = 200;
+  node_internal_width = 6;
+  node_internal_height = 2;
+  graph_x_extent = 100;
+  graph_y_extent = 100;
   graph_internal_width = 10;
   graph_internal_height = 10;
   refresh_flag = 0;
