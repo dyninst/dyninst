@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.3 1997/11/05 00:50:55 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.4 1997/11/05 02:33:42 wylie Exp $
 #
 
 USES_FLEX = TRUE
@@ -35,7 +35,4 @@ parser.obj:
 scanner.obj:
 	$(LEX) -t $(LFLAGS) ../src/$*.l >scanner.C
 	$(CXX) $(CXXFLAGS) -I../src -c $*.C
-
-templates-nt.o: ../src/templates-nt.C 
-	$(CXX) $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates-nt.C
 
