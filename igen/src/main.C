@@ -1102,8 +1102,7 @@ bool remote_func::handle_request(ofstream &out_stream, const bool srvr, bool spe
       out_stream << Options::error_state("igen_decode_err",
 					 Options::type_prefix() + "error");
       if (special)
-        out_stream << "if (buffer) { memcpy(buffer,&message,sizeof("
-	           << call_sig_.type() << ")); break; }\n";
+        out_stream << "if (buffer) { *(" << call_sig_.type() << " *)buffer = message; break; }\n";
     }
   }
 
