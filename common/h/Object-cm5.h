@@ -34,7 +34,6 @@
 ************************************************************************/
 
 #include <util/h/Dictionary.h>
-#include <util/h/Line.h>
 #include <util/h/String.h>
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>

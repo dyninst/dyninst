@@ -18,7 +18,6 @@
 ************************************************************************/
 
 #include <util/h/Dictionary.h>
-#include <util/h/Line.h>
 #include <util/h/String.h>
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>
@@ -38,10 +37,8 @@ class AObject {
 public:
 
     unsigned          nsymbols ()                         const;
-    unsigned            nlines ()                         const;
 
     bool            get_symbol (const string &, Symbol &);
-    bool              get_line (Address, Line &);
 
     const Word*       code_ptr ()                         const;
     unsigned          code_off ()                         const;
@@ -58,7 +55,6 @@ protected:
 
     string                          file_;
     dictionary_hash<string, Symbol> symbols_;
-    dictionary_hash<Address, Line>  lines_;
 
     Word*    code_ptr_;
     unsigned code_off_;
@@ -72,12 +68,11 @@ protected:
 
 private:
     friend class SymbolIter;
-    friend class LineIter;
 };
 
 inline
 AObject::AObject(const string file, void (*err_func)(const char*))
-    : file_(file), symbols_(string::hash), lines_(hash_address),
+    : file_(file), symbols_(string::hash), 
     code_ptr_(0), code_off_(0), code_len_(0),
     data_ptr_(0), data_off_(0), data_len_(0),
     err_func_(err_func) {
@@ -85,7 +80,7 @@ AObject::AObject(const string file, void (*err_func)(const char*))
 
 inline
 AObject::AObject(const AObject& obj)
-    : file_(obj.file_), symbols_(obj.symbols_), lines_(obj.lines_),
+    : file_(obj.file_), symbols_(obj.symbols_), 
     code_ptr_(obj.code_ptr_), code_off_(obj.code_off_),
     code_len_(obj.code_len_),
     data_ptr_(obj.data_ptr_), data_off_(obj.data_off_),
@@ -102,7 +97,6 @@ AObject::operator=(const AObject& obj) {
 
     file_      = obj.file_;
     symbols_   = obj.symbols_;
-    lines_     = obj.lines_;
     code_ptr_  = obj.code_ptr_;
     code_off_  = obj.code_off_;
     code_len_  = obj.code_len_;
@@ -121,28 +115,12 @@ AObject::nsymbols() const {
 }
 
 inline
-unsigned
-AObject::nlines() const {
-    return lines_.size();
-}
-
-inline
 bool
 AObject::get_symbol(const string& name, Symbol& symbol) {
     if (!symbols_.defines(name)) {
         return false;
     }
     symbol = symbols_[name];
-    return true;
-}
-
-inline
-bool
-AObject::get_line(Address addr, Line& line) {
-    if (!lines_.defines(addr)) {
-        return false;
-    }
-    line = lines_[addr];
     return true;
 }
 
@@ -267,47 +245,6 @@ SymbolIter::reset() {
 
 
 
-
-
-/************************************************************************
- * class LineIter
-************************************************************************/
-
-class LineIter {
-public:
-     LineIter (const Object &);
-    ~LineIter ();
-
-    bool  next (Address &, Line &);
-    void reset ();
-
-private:
-    dictionary_hash_iter<Address, Line> li_;
-
-    LineIter            (const LineIter &); // explicitly disallowed
-    LineIter& operator= (const LineIter &); // explicitly disallowed
-};
-
-inline
-LineIter::LineIter(const Object& obj)
-    : li_(obj.lines_) {
-}
-
-inline
-LineIter::~LineIter() {
-}
-
-inline
-bool
-LineIter::next(Address& addr, Line& l) {
-    return li_.next(addr, l);
-}
-
-inline
-void
-LineIter::reset() {
-    li_.reset();
-}
 
 
 
