@@ -2,9 +2,13 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.26  1996/04/16 18:39:05  karavan
-/* changed updateStatusDisplay to take a string
+/* Revision 1.27  1996/04/19 18:26:37  naim
+/* Adding a procedure that will be called from the DM to add a new process,
+/* as it is done using the "paradyn process" command - naim
 /*
+# Revision 1.26  1996/04/16  18:39:05  karavan
+# changed updateStatusDisplay to take a string
+#
  * Revision 1.25  1996/04/13 04:40:24  karavan
  * new interface for batching edge requests
  *
@@ -155,7 +159,7 @@ typedef struct uiSHGrequest uiSHGrequest;
 
 $remote UIM {
 	$base 3000;
-	$version 15;
+	$version 16;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -178,6 +182,10 @@ $remote UIM {
 	// used to tell UI to source a tcl file after initialization
         // (but of course the -s option is for us developers only...)
 	$async void readStartupFile(const char *script);
+
+        // This procedure is used when paradyn create a process after 
+	// reading a configuration file (using option -f).
+	$async void ProcessCmd(string *arguments);
 
 	// 
         // SHG stuff
