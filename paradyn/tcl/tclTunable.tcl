@@ -1,7 +1,10 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.2  1994/10/26 22:45:41  tamches
+# Revision 1.3  1994/10/26 23:15:31  tamches
+# Changed references of "tclTunable" to "uimpd tclTunable"
+#
+# Revision 1.2  1994/10/26  22:45:41  tamches
 # first version
 #
 
@@ -173,8 +176,8 @@ proc drawBoolTunable {lcv} {
    global numTunablesDrawn
    global newTunableValues
 
-   set tunableName        [tclTunable getname $lcv]
-   set tunableDescription [tclTunable getdescription $lcv]
+   set tunableName        [uimpd tclTunable getname $lcv]
+   set tunableDescription [uimpd tclTunable getdescription $lcv]
 
    checkbutton .tune.middle.canvas.tunable$numTunablesDrawn -text $tunableName \
 	   -variable newTunableValues($lcv) \
@@ -227,9 +230,9 @@ proc drawFloatTunable {lcv} {
    global newTunableValues
    global integerScaleFactor
 
-   set tunableName        [tclTunable getname $lcv]
-   set tunableDescription [tclTunable getdescription $lcv]
-   set tunableBounds      [tclTunable getfloatrangebyindex $lcv]
+   set tunableName        [uimpd tclTunable getname $lcv]
+   set tunableDescription [uimpd tclTunable getdescription $lcv]
+   set tunableBounds      [uimpd tclTunable getfloatrangebyindex $lcv]
 
    # if both 0.0, then as far as we're concerned, there are no min/max values.
    set tunableMin [lindex $tunableBounds 0]
@@ -293,15 +296,15 @@ proc drawTunables {newWidth newHeight} {
    }
    .tune.middle.canvas delete tunableTag
 
-   set numTunables [tclTunable getnumtunables]
+   set numTunables [uimpd tclTunable getnumtunables]
    set numTunablesDrawn 0
    set nextStartY 0
 
    # make two passes---draw all boolean tunables, then all float tunables.
    # (looks nicer on screen that way...)
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableType [tclTunable gettypebyindex $lcv]
-      set tunableUse  [tclTunable getusebyindex  $lcv]
+      set tunableType [uimpd tclTunable gettypebyindex $lcv]
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
 
       # If this tunable constant is a "developer" one, and if we
       # are not in developer mode, then skip it.
@@ -312,8 +315,8 @@ proc drawTunables {newWidth newHeight} {
       }
    }
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableType [tclTunable gettypebyindex $lcv]
-      set tunableUse  [tclTunable getusebyindex  $lcv]
+      set tunableType [uimpd tclTunable gettypebyindex $lcv]
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
 
       # If this tunable constant is a "developer" one, and if we
       # are not in developer mode, then skip it.
@@ -354,12 +357,12 @@ proc gatherInitialTunableValues {} {
    global origTunableValues
    global  newTunableValues
 
-   set numTunables [tclTunable getnumtunables]
+   set numTunables [uimpd tclTunable getnumtunables]
 
    for {set lcv 0} {$lcv<$numTunables} {incr lcv} {
-      set tunableType [tclTunable gettypebyindex $lcv]
+      set tunableType [uimpd tclTunable gettypebyindex $lcv]
 
-      set origTunableValues($lcv) [tclTunable getvaluebyindex $lcv]
+      set origTunableValues($lcv) [uimpd tclTunable getvaluebyindex $lcv]
       set newTunableValues($lcv) $origTunableValues($lcv)
 
 #      puts stderr "initial value for #$lcv=$origTunableValues($lcv)"
@@ -370,14 +373,14 @@ proc processCommitFinalTunableValues {} {
    global origTunableValues
    global  newTunableValues
 
-   set numTunables [tclTunable getnumtunables]
+   set numTunables [uimpd tclTunable getnumtunables]
 
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
       if {$newTunableValues($lcv) != $origTunableValues($lcv)} {
-         set tunableName [tclTunable getname $lcv]
+         set tunableName [uimpd tclTunable getname $lcv]
          puts stderr "processFinalTunableValues: tunable #$lcv ($tunableName) has changed from $origTunableValues($lcv) to $newTunableValues($lcv)!"
 
-         tclTunable setvaluebyindex $lcv $newTunableValues($lcv)
+         uimpd tclTunable setvaluebyindex $lcv $newTunableValues($lcv)
       }
    }
   
