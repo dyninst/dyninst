@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.11 2003/10/28 18:35:37 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.12 2004/03/02 17:33:25 pcroth Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -139,6 +139,8 @@ IGEN_ISRCS    = dataManager.I \
 		VM.I
 
 
+# these pathnames can remain forward slashes - perl seems
+# to know what to do with them as forward slashes
 TCL_SRCS	= ../tcl/applic.tcl \
 	../tcl/errorList.tcl \
 	../tcl/focusUtils.tcl \
