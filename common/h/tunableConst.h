@@ -2,7 +2,13 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.5  1994/09/22 03:15:59  markc
+ * Revision 1.6  1994/10/26 22:32:50  tamches
+ * Defaulted min&max to 0 for floats with no min/max in constructor.
+ * Wrote min() and max() functions.
+ * Wrote use() function
+ * other minor changes to get to work with new tclTunable code
+ *
+ * Revision 1.5  1994/09/22  03:15:59  markc
  * changed char* to const char *
  *
  * Revision 1.4  1994/08/05  16:01:55  hollings
@@ -36,6 +42,7 @@ class tunableConstant {
     public:
 	char *getDesc() { return(desc); }
 	stringHandle getName() { return(name); }
+        tunableUse getUse() {return use;} // added 10/21/94 AT
 	static List<tunableConstant*> *allConstants;
 	static stringPool *pool;
 	virtual void print() = NULL;
@@ -86,6 +93,7 @@ class tunableFloatConstant: public tunableConstant {
 	float getValue() { return value; }
 	Boolean setValue(float newVal) {
 	    if ((isValidValue) && isValidValue(newVal)) {
+                // If isValidValue is NULL, we'll always return false!
 		value = newVal;
 		if (newValueCallBack) newValueCallBack(newVal);
 		return(TRUE);
@@ -98,6 +106,8 @@ class tunableFloatConstant: public tunableConstant {
 	    }
 	}
 	virtual void print();
+        float getMin() {return min;} // added 10/21/94 AT
+        float getMax() {return max;} // added 10/21/94 AT
     private:
 	float value;
 	float min, max;
