@@ -54,6 +54,16 @@ class sampleInfo {
 	aggOp = aOp;
         nparts = 0;
     }
+    sampleInfo &operator=(const sampleInfo &src) {
+       firstSampleReceived = src.firstSampleReceived;
+       value = src.value;
+       lastSampleStart = src.lastSampleStart;
+       lastSampleEnd = src.lastSampleEnd;
+       lastSample = src.lastSample;
+       aggOp = src.aggOp;
+       nparts = src.nparts;
+       return *this;
+    }
     bool firstSampleReceived;        // has first sample been recorded
     sampleValue value;                  // cumlative value
     timeStamp   lastSampleStart;        // start time for last sample
