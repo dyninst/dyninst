@@ -5,6 +5,10 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
+# Revision 1.7  1995/08/29 20:18:17  krisna
+# removed the "tmp" directory references
+# changed "cp" BACK TO "mv" for yacc output
+#
 # Revision 1.6  1995/08/24 15:00:55  hollings
 # AIX/SP-2 port (including option for split instruction/data heaps)
 # Tracing of rexec (correctly spawns a paradynd if needed)
@@ -42,9 +46,8 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 ifndef UNCOMMON_LINK
-$(TARGET): $(OBJS) 
-	$(MODCC) -o $(HOME)/tmp/$(TARGET) $(LDFLAGS) $(MODCFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
-	mv $(HOME)/tmp/$(TARGET) $(TARGET)
+$(TARGET): $(OBJS) $(LIBS)
+	$(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
@@ -117,8 +120,7 @@ endif
 
 %.C: %.y
 	$(YACC) $(YFLAGS) $<
-	cp y.tab.c $@
-## change back to mv!! klk
+	mv y.tab.c $@
 
 %.C: %.l
 	$(LEX) -t $(LFLAGS) $< > $@
