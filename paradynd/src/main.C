@@ -39,25 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.119 2003/07/15 22:46:56 schendel Exp $
+// $Id: main.C,v 1.120 2003/07/18 20:06:57 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
 #include "common/h/Ident.h"
 
 
-#if defined(MT_THREAD)
-extern "C" const char V_paradyndMT[];
-#else
 extern "C" const char V_paradynd[];
-#endif //MT_THREAD
 extern "C" const char V_libpdutil[];
 
-#if defined(MT_THREAD)
-Ident V_id(V_paradyndMT,"Paradyn");
-#else
 Ident V_id(V_paradynd,"Paradyn");
-#endif
 Ident V_Uid(V_libpdutil,"Paradyn");
 
 #include "rtinst/h/rtinst.h"
@@ -746,11 +738,7 @@ main( int argc, char* argv[] )
    }
    assert( tp != NULL );
    
-#if defined(MT_THREAD)
-   statusLine(V_paradyndMT);
-#else
    statusLine(V_paradynd);
-#endif
    
    // Note -- it is important that this daemon receives all mdl info
    // before starting a process
