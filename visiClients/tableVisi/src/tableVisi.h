@@ -3,7 +3,10 @@
 
 /*
  * $Log: tableVisi.h,v $
- * Revision 1.2  1995/11/08 21:47:04  tamches
+ * Revision 1.3  1995/12/03 21:09:27  newhall
+ * changed units labeling to match type of data being displayed
+ *
+ * Revision 1.2  1995/11/08  21:47:04  tamches
  * removed some unused members
  *
  * Revision 1.1  1995/11/04 00:45:19  tamches
@@ -122,6 +125,7 @@ class tableVisi {
 
    void addMetric(const string &metricName, const string &metricUnits);
    void addFocus(const string &focusName);
+   void changeUnitsLabel(u_int which, const char *new_name);
 
    void sortMetrics();
    void unsortMetrics();

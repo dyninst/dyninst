@@ -3,7 +3,10 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
- * Revision 1.3  1995/11/15 01:07:15  tamches
+ * Revision 1.4  1995/12/03 21:09:29  newhall
+ * changed units labeling to match type of data being displayed
+ *
+ * Revision 1.3  1995/11/15  01:07:15  tamches
  * redrawing of a cell takes place as soon as new data arrives for it; we no
  * longer redraw only last-common-bucket-among-all-mids
  *
@@ -95,8 +98,15 @@ int Dg2AddMetricsCallback(int) {
    theTableVisi->clearMetrics(mainInterp);
    unsigned newNumMetrics = dataGrid.NumMetrics();
    for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
-      theTableVisi->addMetric(dataGrid.MetricName(metriclcv),
-			      dataGrid.MetricUnits(metriclcv));
+       if (currFormat==0) // current values
+            theTableVisi->addMetric(dataGrid.MetricName(metriclcv),
+			      dataGrid.MetricLabel(metriclcv));
+       else if (currFormat==1) // average values
+            theTableVisi->addMetric(dataGrid.MetricName(metriclcv),
+			      dataGrid.MetricAveLabel(metriclcv));
+       else if (currFormat==2) // total values
+            theTableVisi->addMetric(dataGrid.MetricName(metriclcv),
+			      dataGrid.MetricSumLabel(metriclcv));
 
    theTableVisi->clearFoci(mainInterp);
    unsigned newNumFoci = dataGrid.NumResources();
@@ -290,9 +300,17 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    int dataFormat = atoi(dataFormatStr);
    currFormat = dataFormat;
 
-   if (theTableVisi->tryFirst())
-      tableDrawWhenIdle.install(NULL);
-   
+   for(u_int i =0; i < dataGrid.NumMetrics(); i++){
+       if (currFormat==0) // current values
+            theTableVisi->changeUnitsLabel(i, dataGrid.MetricLabel(i));
+       else if (currFormat==1) // average values
+            theTableVisi->changeUnitsLabel(i, dataGrid.MetricAveLabel(i));
+       else // total values
+            theTableVisi->changeUnitsLabel(i, dataGrid.MetricSumLabel(i));
+   }
+
+   Dg2AddMetricsCallback(0);
+
    return TCL_OK;
 }
 

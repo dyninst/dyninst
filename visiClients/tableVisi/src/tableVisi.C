@@ -3,7 +3,10 @@
 
 /*
  * $Log: tableVisi.C,v $
- * Revision 1.4  1995/11/20 20:20:20  tamches
+ * Revision 1.5  1995/12/03 21:09:19  newhall
+ * changed units labeling to match type of data being displayed
+ *
+ * Revision 1.4  1995/11/20  20:20:20  tamches
  * horizontal & vertical grid lines no longer expand past the
  * last cells.
  *
@@ -622,6 +625,16 @@ void tableVisi::addMetric(const string &metricName, const string &metricUnits) {
    assert(cells.size() == metrics.size());
 }
 
+void tableVisi::changeUnitsLabel(u_int which, const char *new_name){
+
+   if(which < indirectMetrics.size()){
+       const tvMetric &theMetric = metrics[indirectMetrics[which]];
+       const string name = new_name;
+       theMetric.changeUnitsName(name);
+   }
+}
+
+    
 void tableVisi::addFocus(const string &focusName) {
    tvFocus newTvFocus(focusName, focusNameFont);
    foci += newTvFocus;

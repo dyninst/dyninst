@@ -3,7 +3,10 @@
 
 /*
  * $Log: tvMetric.h,v $
- * Revision 1.1  1995/11/04 00:45:58  tamches
+ * Revision 1.2  1995/12/03 21:09:32  newhall
+ * changed units labeling to match type of data being displayed
+ *
+ * Revision 1.1  1995/11/04  00:45:58  tamches
  * First version of new table visi
  *
  */
@@ -42,6 +45,10 @@ class tvMetric {
 
    const string &getName() const {return name;}
    const string &getUnitsName() const {return unitsName;}
+   void changeUnitsName(const string &newname) const { 
+		const char *temp = newname.string_of();
+		((string) unitsName) = temp; 
+   }
    unsigned getNamePixWidth() const {return namePixWidth;}
    unsigned getUnitsPixWidth() const {return unitsPixWidth;}
    unsigned getColPixWidth() const; // width of whole column (incl. horiz padding)
