@@ -203,8 +203,6 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp
     *pc = (long) ptr->start_pc ;
     *lwp = (int) ptr->lwp_id ;
     *rs = &(ptr->t_resumestate);
-    fprintf(stderr, "stk: 0x%x, tid %d, pc 0x%x, lwp %d, rs 0x%x\n",
-	    *stkbase, *tid, *pc, *lwp, *rs);
     break;
   }
   case LIBTHR_SOL27: {
@@ -234,7 +232,6 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp
 int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, void** rs_p) {
   extern void *DYNINST_curthread(void) ;
   void *curthread ;
-  fprintf(stderr, "DYNINST_threadInfo\n");
   if ( (curthread = DYNINST_curthread()) ) {
     DYNINST_ThreadPInfo(curthread,stkbase,tidp,startpc,lwpidp,rs_p);
     return 1 ;

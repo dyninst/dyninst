@@ -18,8 +18,6 @@ int DYNINSTthreadPos ()
     abort();
   }
 
-  fprintf(stderr, "DYNINSTthreadPos on thread %d\n", tid);
-  
   /* Quick method. Could we get away with a logical AND? */
   /*
   if ((curr_pos >= 0) && 
@@ -30,7 +28,6 @@ int DYNINSTthreadPos ()
   */
   /* Slow method */
   curr_pos = DYNINSTthreadPosSLOW(tid);
-  fprintf(stderr, "slow method returned %d\n", curr_pos);
   if (curr_pos == MAX_NUMBER_OF_THREADS) {
     /* Oh, crud. Really slow */
     curr_pos = DYNINSTthreadCreate(tid);
