@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.48  1995/10/13 19:37:26  naim
-/* Minor change for handling PAUSE and RUN buttons when a process is created
-/* from a MDL file - naim
+/* Revision 1.49  1995/10/17 20:54:56  tamches
+/* class abstractions is no longer templated
 /*
+ * Revision 1.48  1995/10/13 19:37:26  naim
+ * Minor change for handling PAUSE and RUN buttons when a process is created
+ * from a MDL file - naim
+ *
  * Revision 1.47  1995/10/06  19:53:32  naim
  * Fixing bug: pressing RUN while defining a process produces a core dump. Now,
  * the RUN and PAUSE keys are disabled while a process is being defined - naim
@@ -784,7 +787,7 @@ int ParadynSHGCmd (ClientData clientData,
   }
 }
 
-extern abstractions<resourceHandle> *theAbstractions;
+extern abstractions *theAbstractions;
 int ParadynWaSetAbstraction(ClientData cd, Tcl_Interp *interp,
 			    int argc, char **argv) {
    if (argc != 2) {
