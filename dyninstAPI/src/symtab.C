@@ -45,6 +45,9 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.48  1996/10/31 09:01:42  tamches
+ * removed some warnings
+ *
  * Revision 1.47  1996/10/18 23:54:18  mjrg
  * Solaris/X86 port
  *
@@ -191,7 +194,7 @@ bool image::newFunc(module *mod, const string name, const Address addr, const un
   string demangled;
   if (!buildDemangledName(out, demangled)) 
     demangled = out;
-  delete out;
+  delete out; // FIXME! calling delete when allocated with malloc() I think!
 
   bool err;
 
@@ -239,13 +242,14 @@ static FILE *timeOut=0;
  */
 image *image::parseImage(const string file)
 {
-
   /*
    * Check to see if we have parsed this image at this offeset before.
    */
   // TODO -- better method to detect same image/offset --> offset only for CM5
-  unsigned i_size = allImages.size();
-  for (unsigned u=0; u<i_size; u++)
+
+  unsigned numImages = allImages.size();
+
+  for (unsigned u=0; u<numImages; u++)
     if (file == allImages[u]->file())
       return allImages[u];
 
@@ -269,9 +273,11 @@ image *image::parseImage(const string file)
 
   // define all modules.
   tp->resourceBatchMode(true);
+
   statusLine("defining modules");
   ret->defineModules();
   statusLine("ready");
+
   tp->resourceBatchMode(false);
   return(ret);
 }
@@ -288,8 +294,10 @@ image *image::parseImage(const string file,u_int baseAddr)
    * Check to see if we have parsed this image at this offeset before.
    */
   // TODO -- better method to detect same image/offset --> offset only for CM5
-  unsigned i_size = allImages.size();
-  for (unsigned u=0; u<i_size; u++)
+
+  unsigned theSize = allImages.size();
+
+  for (unsigned u=0; u<theSize; u++)
     if (file == allImages[u]->file())
       return allImages[u];
 
@@ -349,7 +357,7 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
  * will search for symbol NAME or _NAME
  * returns 0 on failure 
  */
-internalSym *image::findInternalSymbol(const string name, const bool warn){
+internalSym *image::findInternalSymbol(const string &name, const bool warn){
    Symbol lookUp;
    internalSym *ret_sym;
 
@@ -374,15 +382,16 @@ internalSym *image::findInternalSymbol(const string name, const bool warn){
    return 0;
 }
 
-Address image::findInternalAddress(const string name, const bool warn, bool &err)
+Address image::findInternalAddress(const string &name, const bool warn, bool &err)
 {
 
   err = false;
 
-  if (!iSymsMap.defines(name)) {
+  internalSym *theSym; // filled in by find()
+  if (!iSymsMap.find(name, theSym)) {
+    // not found!
     if (warn) {
-      string msg;
-      msg = string("Unable to find symbol: ") + name;
+      string msg = string("Unable to find symbol: ") + name;
       statusLine(msg.string_of());
       showErrorCallback(28, msg);
     }
@@ -390,7 +399,7 @@ Address image::findInternalAddress(const string name, const bool warn, bool &err
     return 0;
   } 
   else
-    return (iSymsMap[name]->getAddr());
+    return (theSym->getAddr());
 }
 
 module *image::findModule(const string &name)
@@ -439,12 +448,13 @@ bool image::findFunction(const string &name, vector<pdFunction*> &retList) {
     return false;
 }
 
-pdFunction *image::findFunction(const Address &addr)
+pdFunction *image::findFunction(const Address &addr) 
 {
-  if (funcsByAddr.defines(addr))
-    return (funcsByAddr[addr]);
-  else 
-    return NULL;
+  pdFunction *result; // filled in by find()
+  if (funcsByAddr.find(addr, result))
+     return result;
+  else
+     return NULL;
 }
   
 pdFunction *image::findFunctionIn(const Address &addr) 
@@ -474,8 +484,8 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
   image *ret;
   module *mod;
 
-  unsigned i_size = image::allImages.size();
-  for (unsigned u=0; u<i_size; u++) {
+  unsigned numImages = image::allImages.size();
+  for (unsigned u=0; u<numImages; u++) {
     ret = image::allImages[u];
     mod = ret->findModule(res->part_name());
     if (mod) {
@@ -500,7 +510,7 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
 /* 
  * return 0 if symbol <symname> exists in image, non-zero if it does not
  */
-bool image::symbolExists(const string symname)
+bool image::symbolExists(const string &symname)
 {
   pdFunction *dummy = findOneFunction(symname);
   return (dummy != NULL);
@@ -606,6 +616,7 @@ void module::define() {
 #endif
 
   unsigned f_size = funcs.size();
+
   for (unsigned f=0; f<f_size; f++) {
     pdFunction *pdf = funcs[f];
 #ifdef DEBUG_MODS
@@ -1244,8 +1255,9 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
 // Note - this must define funcEntry and funcReturn
 // 
 pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
-		       Address adr, const unsigned size, const unsigned tg, image *owner, bool &err)
-: funcEntry_(NULL),
+		       Address adr, const unsigned size, const unsigned tg,
+		       const image *owner, bool &err) :
+  funcEntry_(NULL),
   tag_(tg),
   symTabName_(symbol),
   prettyName_(pretty),
@@ -1257,5 +1269,4 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
 {
   err = findInstPoints(owner) == false;
 }
-
 

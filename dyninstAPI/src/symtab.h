@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -46,6 +47,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.31  1996/10/31 09:01:14  tamches
+ * removed some warnings
+ *
  * Revision 1.30  1996/10/18 23:54:16  mjrg
  * Solaris/X86 port
  *
@@ -145,11 +149,8 @@ typedef enum { langUnknown,
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
-class pdFunction;
-class instPoint;
 class module;
 class image;
-class internalSym;
 class lineTable;
 
 // test if the passed instruction is a return instruction.
@@ -161,10 +162,10 @@ class pdFunction {
 
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
 	       const unsigned size,
-	       const unsigned tg, image *owner, bool &err);
+	       const unsigned tg, const image *owner, bool &err);
     ~pdFunction() { /* TODO */ }
 
-    bool findInstPoints(image *owner);
+    bool findInstPoints(const image *owner);
     void checkCallPoints();
     bool defineInstPoint();
     Address newCallPoint(Address adr, const instruction code, 
@@ -303,8 +304,8 @@ public:
   image(const string &file, u_int baseAddr, bool &err);
   ~image() { /* TODO */ }
 
-  internalSym *findInternalSymbol(const string name, const bool warn);
-  Address findInternalAddress(const string name, const bool warn, bool &err);
+  internalSym *findInternalSymbol(const string &name, bool warn);
+  Address findInternalAddress(const string &name, bool warn, bool &err);
 
   // find the named module 
   module *findModule(const string &name);
@@ -319,11 +320,12 @@ public:
   // report modules to paradyn
   void defineModules();
 
-  bool symbolExists(const string); /* Does the symbol exist in the image? */
+  bool symbolExists(const string &); /* Does the symbol exist in the image? */
   void postProcess(const string);          /* Load .pif file */
 
   // data member access
   inline const Word get_instruction(Address adr) const;
+
   inline unsigned char *getPtrToInstruction(Address adr) const;
 
   string file() {return file_;}
@@ -345,7 +347,11 @@ public:
   inline bool isValidAddress(const Address &where) const;
 
   // Return symbol table information
-  inline bool symbol_info(string& symbol_name, Symbol& ret);
+  inline bool symbol_info(const string& symbol_name, Symbol& ret);
+
+  // Called from the mdl -- lists of functions to look for
+  static void watch_functions(string& name, vector<string> *vs, bool is_lib,
+			      vector<pdFunction*> *updateDict);
 
   // called from function/module destructor, removes the pointer from the watch list
   // TODO
@@ -547,7 +553,7 @@ inline bool image::isData(const Address &where)  const{
 	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
 }
 
-inline bool image::symbol_info(string& symbol_name, Symbol &ret_sym) {
+inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
   if (!linkedFile.get_symbol(symbol_name, ret_sym))
     return false;
   else
