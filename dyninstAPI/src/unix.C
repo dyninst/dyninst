@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.31 1999/11/06 21:38:53 wylie Exp $
+// $Id: unix.C,v 1.32 1999/12/17 16:13:57 pcroth Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -284,7 +284,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
         // hand off info about how to start a paradynd to the application.
 	//   used to catch rexec calls, and poe events.
 	//
-	char paradynInfo[1024];
+	char* paradynInfo = new char[1024];
 	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
 	for (unsigned i=0; i < process::arg_list.size(); i++) {
 	    const char *str;
