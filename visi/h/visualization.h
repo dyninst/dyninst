@@ -170,7 +170,7 @@ extern int visi_GetPhaseHandle();
 //
 // returns the handle of the ith phase or -1 on error
 //
-extern int visi_GetPhaseHandle();
+extern int visi_GetPhaseHandle(u_int phase_num);
 
 //
 // returns phase name for the ith phase, or returns 0 on error
