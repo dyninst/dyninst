@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.61 2004/08/18 21:17:46 rchen Exp $
+ * $Id: inst-ia64.C,v 1.62 2004/10/12 21:42:49 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -562,7 +562,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 
 	/* Acquire the instruction. */
 	Address instructionAddress = (Address)owner->getPtrToInstruction( containingFunction->getAddress( NULL ) );
-	instructionAddress += containingFunction->getAddress( NULL ) - alignedAddress;
+	instructionAddress += alignedAddress - containingFunction->getAddress( NULL );
 	ia64_bundle_t * bundlePtr = (ia64_bundle_t *) instructionAddress;
 	IA64_bundle theBundle( * bundlePtr );
 	
