@@ -49,6 +49,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instReqNode.h"
+#include "paradynd/src/variableMgr.h"
+#include "dyninstAPI/src/pdThread.h"
 
 extern pdDebug_ostream metric_cerr;
 extern pdDebug_ostream sampleVal_cerr;
@@ -569,5 +571,28 @@ vector<dataReqNode *> instrCodeNode::getDataRequests()
   }
   return curDataRequests;
 }
+
+// returns the instrumentation variable index in the superTable
+inst_var_index instrCodeNode::allocateInstVarForThreads(inst_var_type varType)
+{
+  inst_var_index allocatedIndex;
+  vector<unsigned> thrPosBuf;
+  
+  if(! proc()->is_multithreaded()) {
+    thrPosBuf.push_back(0);
+  } else {
+    for(unsigned i=0; i<V.dataNodes.size(); i++) {
+      indivInstrThrDataNode *curDataNode = 
+	dynamic_cast<indivInstrThrDataNode*>(V.dataNodes[i]);
+      unsigned curThrPos = curDataNode->getThreadObj()->get_pd_pos();
+      thrPosBuf.push_back(curThrPos);
+    }
+  }
+
+  variableMgr &varMgr = proc()->getVariableMgr();
+  allocatedIndex = varMgr.allocateForInstVar(varType, thrPosBuf);
+  return allocatedIndex;
+}
+
 
 

@@ -148,6 +148,7 @@ class instrCodeNode {
   bool baseTrampsHookedUp() { return V._baseTrampsHookedUp; }
 
   void addDataNode(instrThrDataNode* part) { V.dataNodes.push_back(part); }
+  inst_var_index allocateInstVarForThreads(inst_var_type varType);
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(vector<Frame> stackWalk);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
