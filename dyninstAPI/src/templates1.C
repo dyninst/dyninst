@@ -156,6 +156,8 @@ template class vector<fastInferiorHeapMgr::oneHeapStats>;
 #endif
 
 #ifdef BPATCH_LIBRARY
+template class  dictionary_hash <string, Symbol>;
+
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 

@@ -141,7 +141,9 @@ void clearBaseBranch(process *proc, instInstance *inst)
 }
 
 // implicit assumption that tramps generate to less than 64K bytes!!!
-static char insn[65536];
+static int insn[65536/sizeof(int)]; // Made into array of int so it would be
+				    // aligned correctly on platoforms that
+				    // need it to be (like SPARC) - BRB
 
 static dictionary_hash<const instPoint*, point*> activePoints(ipHash);
 
@@ -254,7 +256,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 #endif
 
     int trampCost = 0;
-    ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost, noCost);
+    ret->returnAddr = ast->generateTramp(proc, (char *)insn, count, trampCost, noCost);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
     // The ast node might be shared, so remove the changes made to
@@ -290,7 +292,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
      * Now make the call to actually put the code in place.
      *
      */
-    installTramp(ret, insn, count); // install mini-tramp into inferior addr space
+    installTramp(ret, (char *)insn, count); // install mini-tramp into inferior addr space
 
     if (!lastAtPoint) {
         // jump from the base tramp to the minitramp

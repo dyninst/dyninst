@@ -117,15 +117,19 @@ pdmodule *image::newModule(const string &name, const Address addr)
 
     ret = new pdmodule(langUnknown, addr, fullNm, fileNm, this);
 
+#ifndef BPATCH_LIBRARY
     // if module was excluded,stuff it into excludedMods (and dont
     //  index it in modeByFileName && modsByFullName.
     if (module_is_excluded(ret)) {
         excludedMods += ret;
     } else {
+#endif /* BPATCH_LIBRARY */
         modsByFileName[ret->fileName()] = ret;
         modsByFullName[ret->fullName()] = ret;
         includedMods += ret;
+#ifndef BPATCH_LIBRARY
     }
+#endif /* BPATCH_LIBRARY */
 
     return(ret);
 }
@@ -212,9 +216,13 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
     addNotInstruFunc(func);
     return false;
   }
-  
-  addInstruFunction(func, mod, addr, \
+ 
+  addInstruFunction(func, mod, addr,
+#ifdef BPATCH_LIBRARY
+		    false);
+#else
 		    function_is_excluded(func, mod->fileName()));
+#endif
   return true;
 }
 
@@ -862,11 +870,15 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
         print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
         return (vector<function_base *>*)&some_funcs;
     }
+#ifdef BPATCH_LIBRARY /* BPatch Library doesn't know about excluded funcs */
+    some_funcs = funcs;
+#else
     some_funcs.resize(0);
     if (filter_excluded_functions(funcs, some_funcs, fileName()) == FALSE) {
         //cerr << "  about to return NULL";
 	return NULL;
     }
+#endif
     some_funcs_inited = TRUE;
     
     //cerr << "  about to return : " << endl;
@@ -975,6 +987,7 @@ string getFunctionName(string constraint) {
 }
 
 
+#ifndef BPATCH_LIBRARY
 // mcheyney, Oct. 6, 1997
 bool module_is_excluded(pdmodule *module) {
     unsigned i;
@@ -1141,6 +1154,7 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
     
     return TRUE;
 }
+#endif /* BPATCH_LIBRARY */
 
 // I commented this out since gcc says it ain't used --ari 10/97
 // I then uncommented it because non-Solaris platforms need it --ssuen 10/10/97
