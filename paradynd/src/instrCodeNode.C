@@ -143,7 +143,8 @@ instrCodeNode::instrCodeNode(instrCodeNode_Val *val)
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     pd_process *childProc) :
   name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())),
-  hwEvent(par.hwEvent)
+  hwEvent(par.hwEvent), pendingDeletion(par.pendingDeletion),
+  numCallbacks(0)
 {
    if(par.sampledDataNode)
       sampledDataNode = new instrDataNode(*par.sampledDataNode, childProc);
@@ -170,7 +171,7 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
          for (unsigned i = 0; i < affectedNodes.size(); i++) {
             affectedNodes[i]->incRefCount();
          }
-         newInstReq->setAffectedDataNodes(&cleanupDataInCodeNode, this);
+	 registerCallback(newInstReq);
       }
    }
    baseTrampInstances = par.baseTrampInstances;
@@ -185,8 +186,9 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 }
 
 instrCodeNode_Val::~instrCodeNode_Val() {
-  for (unsigned i=0; i<instRequests.size(); i++) {
-     instRequests[i]->disable(proc()); // calls deleteInst()
+  if (!pendingDeletion) {
+    // The first step in deleting the node
+    initiateDelete();
   }
 
   if(sampledDataNode != NULL) {
@@ -206,6 +208,40 @@ instrCodeNode_Val::~instrCodeNode_Val() {
      delete instRequests[j];
 }
 
+// Perform partial cleanup when somebody deletes instrCodeNode. We
+// cannot free the memory right away, because of outstanding
+// callbacks (see bug #507).
+void instrCodeNode_Val::initiateDelete() 
+{
+    assert(!pendingDeletion);
+    pendingDeletion = true;
+
+    for (unsigned i=0; i<instRequests.size(); i++) {
+	instRequests[i]->disable(proc()); // calls deleteInst()
+    }
+}
+
+// Add a minitramp deletion callback
+void instrCodeNode_Val::registerCallback(instReqNode *newInstReq)
+{
+    numCallbacks++;
+    newInstReq->setAffectedDataNodes(&cleanupDataInCodeNode, this);
+}
+
+// A minitramp is being deleted
+void instrCodeNode_Val::handleCallback(miniTrampHandle *mt)
+{
+    assert(numCallbacks > 0);
+    numCallbacks--;
+    cleanupMiniTrampHandle(mt);
+}
+
+// Check if the node can now be safely deleted -- has no outstanding
+// callbacks and the deletion has already been initiated.
+bool instrCodeNode_Val::canBeDeleted() const
+{
+    return (pendingDeletion && numCallbacks == 0);
+}
 
 void instrCodeNode_Val::getDataNodes(pdvector<instrDataNode *> *saveBuf) { 
   if(constraintDataNode != NULL)  (*saveBuf).push_back(constraintDataNode);
@@ -229,7 +265,11 @@ instrCodeNode::~instrCodeNode() {
     }
 #endif    
     allInstrCodeNodeVals.undef(V.getKeyName());
-    delete &V;
+    
+    V.initiateDelete();
+    if (V.canBeDeleted()) {
+	delete &V;
+    }
   }
 }
 
@@ -424,7 +464,7 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
               getDataNodes(&affectedNodes);
               for (unsigned i = 0; i < affectedNodes.size(); i++)
                  affectedNodes[i]->incRefCount();
-              instReq->setAffectedDataNodes(&cleanupDataInCodeNode, &V);
+	      V.registerCallback(instReq);
               break;
            }
       }
@@ -625,9 +665,15 @@ void instrCodeNode::addInst(BPatch_point *point, BPatch_snippet *snip,
   V.instRequests.push_back(newInstReqNode);
 }
 
+// Callbacks seem to happen on two different occasions: when the
+// inferior process execs and when a previously-disabled minitramp has
+// been garbage-collected.
 static void cleanupDataInCodeNode(void *temp, miniTrampHandle *mt)
 {
    instrCodeNode_Val *v = (instrCodeNode_Val *) temp;
-   v->cleanupDataRefNodes();
-   v->cleanupMiniTrampHandle(mt);
+
+   v->handleCallback(mt);
+   if (v->canBeDeleted()) {
+       delete v;
+   }
 }

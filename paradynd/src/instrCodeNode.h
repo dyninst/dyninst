@@ -83,6 +83,8 @@ class instrCodeNode_Val {
   bool dontInsertData_;
   int referenceCount;
   HwEvent* hwEvent;
+  bool pendingDeletion;
+  unsigned numCallbacks;
 
  public:
   static pdstring construct_key_name(const pdstring &metricStr, 
@@ -95,7 +97,8 @@ class instrCodeNode_Val {
      sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
      trampsNeedHookup_(false), needsCatchup_(false), instrDeferred_(false), 
      instrLoaded_(false), proc_(p), dontInsertData_(dontInsertData), 
-     referenceCount(0), hwEvent(hw)
+      referenceCount(0), hwEvent(hw),
+      pendingDeletion(false), numCallbacks(0)
   { }
 
   instrCodeNode_Val(const instrCodeNode_Val &par, pd_process *childProc);
@@ -114,6 +117,21 @@ class instrCodeNode_Val {
   void getDataNodes(pdvector<instrDataNode *> *saveBuf);
   void cleanupDataRefNodes();
   void cleanupMiniTrampHandle(miniTrampHandle *mt);
+
+  // Perform partial cleanup when somebody deletes instrCodeNode. We
+  // cannot free the memory right away, because of outstanding
+  // callbacks (see bug #507).
+  void initiateDelete();
+
+  // Add a minitramp deletion callback
+  void registerCallback(instReqNode *newInstReq);
+
+  // A minitramp is being deleted
+  void handleCallback(miniTrampHandle *mt);
+
+  // Check if the node can now be safely deleted -- has no outstanding
+  // callbacks and the deletion has already been initiated.
+  bool canBeDeleted() const;
 
   pd_process *proc() {  return proc_;  }
   pdstring getName() const { return name; }
