@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.474 2004/03/02 22:46:11 bernat Exp $
+// $Id: process.C,v 1.475 2004/03/03 17:04:32 bernat Exp $
 
 #include <ctype.h>
 
@@ -1591,7 +1591,6 @@ void process::deleteProcess() {
     
     // If this assert fires check whether we're setting the status vrble correctly
     // before calling this function
-    fprintf(stderr, "Calling deleteProcess for pid %d\n", getPid());
     assert(!isAttached());
            
     // Get rid of our syscall tracing.
@@ -1705,7 +1704,6 @@ process::~process()
 {
     // We require explicit detaching if the process still exists.
 
-    fprintf(stderr, "Deleting process %d\n", getPid());
     assert(!isAttached());
     
     // Most of the deletion is encapsulated in deleteProcess
@@ -1716,7 +1714,6 @@ process::~process()
 
 
     for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
-        fprintf(stderr, "Checking %d..\n", lcv);
         if (processVec[lcv] == this) {
             processVec[lcv] = NULL;
         }
@@ -1769,6 +1766,9 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
+    tracedSyscalls_ = NULL;
+    codeRangesByAddr_ = NULL;
+
    shared_objects = 0;
    invalid_thr_create_msgs = 0;
 
@@ -1941,6 +1941,9 @@ process::process(int iPid, image *iSymbols,
   representativeLWP(NULL),
   real_lwps(CThash)
 {
+    tracedSyscalls_ = NULL;
+    codeRangesByAddr_ = NULL;
+
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
@@ -2278,6 +2281,15 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
       set_status(exited);
       return;
    }
+
+#if defined(AIX_PROC)
+   // AIX has a kernel bug -- the child does not stop like it
+   // should. This is (understandably) problematic. So we pause the process
+   // here
+   set_status(running);
+   pause();
+#endif
+
 
    if(! multithread_capable()) {
       // for single thread, add the single thread
@@ -5194,7 +5206,6 @@ bool process::detachProcess(const bool leaveRunning) {
     
     // Detach from the application
     if (!detach(leaveRunning)) {
-        fprintf(stderr, "Failed to detach from process %d\n", getPid());
         return false;
     }
     
