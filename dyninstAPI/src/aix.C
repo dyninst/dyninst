@@ -876,7 +876,7 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  stop_();
+  stop_();     //Send the process a SIGSTOP
 
   bool isStopped = false;
   int waitStatus;
@@ -900,7 +900,13 @@ bool process::loopUntilStopped() {
     }
     int sig = WSTOPSIG(waitStatus);
     if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
-      isStopped = true;
+      if (sig != SIGSTOP) { //Process already stopped, but not by our SIGSTOP
+        extern int handleSigChild(int, int);
+        if (handleSigChild(pid, waitStatus) < 0) 
+	  cerr << "handleSigChild failed for pid " << pid << endl; 
+      } else {              //Process stopped by our SIGSTOP
+	isStopped = true;
+      }
     } else {
       if (ptrace(PT_CONTINUE, pid, (int*)1, sig, 0) == -1) {
 	logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
