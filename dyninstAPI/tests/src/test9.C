@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.1 2003/07/25 15:51:33 chadd Exp $
+// $Id: test9.C,v 1.2 2003/07/25 21:28:17 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -219,7 +219,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
-
+ #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -229,6 +229,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 	}else if(WIFSIGNALED(status)){
 		fprintf(stderr," terminated with signal: %d \n", WTERMSIG(status));
 	}
+#endif
 	return 0; 
 	
 
@@ -284,6 +285,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 #endif
    	}
 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -293,6 +295,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	}else if(WIFSIGNALED(status)){
 		fprintf(stderr," terminated with signal: %d \n", WTERMSIG(status));
 	}
+#endif
 	return 0; 
 	
 
