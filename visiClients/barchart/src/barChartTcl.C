@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.6  1994/10/14 10:29:33  tamches
-/* commented out diagnosted message when gracefully closing
+/* Revision 1.7  1994/11/06 10:24:59  tamches
+/* minor cleanups (especially comments)
 /*
+ * Revision 1.6  1994/10/14  10:29:33  tamches
+ * commented out diagnosted message when gracefully closing
+ *
  * Revision 1.5  1994/10/13  00:52:38  tamches
  * Minor additions to support a new command related to sorting
  * of resources
@@ -41,9 +44,8 @@ int Dg2NewDataCallback(int lastBucket) {
       theBarChart->processNewData(lastBucket);
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int resizeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -55,9 +57,8 @@ int resizeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
       theBarChart->processResizeWindow(atoi(argv[1]), atoi(argv[2]));
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int exposeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -68,9 +69,8 @@ int exposeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
       theBarChart->processExposeWindow();
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int resourcesAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -85,9 +85,8 @@ int resourcesAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, 
 
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int metricsAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -102,9 +101,8 @@ int metricsAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, ch
 
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int newScrollPositionCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -115,9 +113,8 @@ int newScrollPositionCommand(ClientData cd, Tcl_Interp *interp, int argc, char *
       theBarChart->processNewScrollPosition(newPos);
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int dataFormatHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
@@ -125,9 +122,8 @@ int dataFormatHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, cha
       theBarChart->rethinkDataFormat();
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
@@ -135,9 +131,8 @@ int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **a
       theBarChart->rethinkIndirectResources();
       return TCL_OK;
    }
-   else {
+   else
       return TCL_ERROR;
-   }
 }
 
 int launchBarChartCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
