@@ -2,10 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.10  1995/10/17 22:15:12  tamches
-/* The templated class has changed from a unique-id class to a
-/* full root-node class.
+/* Revision 1.11  1995/11/20 03:25:27  tamches
+/* removed obstacles to compiling on g++ 2.7.1: fixed drawTriangle()
+/* declaration and changed vector<NODEDATA *> to vector<const NODEDATA *>.
+/* expansion no longer unhights the node.
 /*
+ * Revision 1.10  1995/10/17 22:15:12  tamches
+ * The templated class has changed from a unique-id class to a
+ * full root-node class.
+ *
  * Revision 1.9  1995/09/20 01:24:13  tamches
  * Major cleanification; too many things to enumerate.  no path items
  * have negative values.  No more uses of graphical paths.
@@ -350,7 +355,7 @@ template <class NODEDATA>
 void where4tree<NODEDATA>::drawTriangle(const where4TreeConstants &tc,
 					Drawable theDrawable,
 					int triangleEndX,
-					int currBaseLine) const {
+					int currBaseLine) {
    // cost is O(XFillPolygon())
    // This is a fairly generic triangle-drawing routine; hence, I made it static.
    const int triangleStartX = triangleEndX - tc.listboxTriangleWidth + 1;
@@ -712,8 +717,7 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
       return; // everything is too far down
 
    if (!listboxOnly)
-      theNodeData.drawAsRoot(theTkWindow, theDrawable,
-			     middlex, topy);
+      theNodeData.drawAsRoot(theTkWindow, theDrawable, middlex, topy);
 
    if (rootOnly || theChildren.size() == 0)
       return; // no children to draw...
@@ -1324,10 +1328,6 @@ bool where4tree<NODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
    assert(pathIndex == pathSize-1);
    unsigned lastItem = thePath.getLastItem();
 
-   // Unhighlight the node    [WHY????????]
-   theChildren[lastItem].theTree->getNodeData().unhighlight();
-      // doesn't redraw
-
    return explicitlyExpandSubchild(tc, lastItem, false); // false --> don't force
 }
 
@@ -1641,15 +1641,17 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
 }
 
 template <class NODEDATA>
-vector<NODEDATA *> where4tree<NODEDATA>::getSelections() const {
+vector<const NODEDATA *> where4tree<NODEDATA>::getSelections() const {
    // NOTE: Things would be faster if this function returned void and
    // takes in a reference to a vector<NODEDATA*> which is appended to
    // in-place...
 
-   vector<NODEDATA *> result; // initially empty
+   vector<const NODEDATA *> result; // initially empty
       
-   if (getNodeData().getHighlighted())
-      result += &getNodeData();
+   if (getNodeData().getHighlighted()) {
+      const NODEDATA &theNodeData = getNodeData();
+      result += &theNodeData;
+   }
 
    for (unsigned i=0; i < theChildren.size(); i++)
       result += theChildren[i].theTree->getSelections();
