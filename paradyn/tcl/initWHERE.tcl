@@ -3,7 +3,10 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.16  1994/11/09 22:35:32  karavan
+# Revision 1.17  1995/06/11 22:58:27  karavan
+# changed nodeID type to unsigned from integer
+#
+# Revision 1.16  1994/11/09  22:35:32  karavan
 # in which Karen gets all the resize functionality exactly the way we want
 # it and concedes defeat on the appearance ofthe initial screen startup...
 #
@@ -123,7 +126,7 @@ proc addDefaultWhereSettings {cname token} {
 
 proc mapRDOdag {rdoID dagID wwindow abs} {
     global currentSelection$dagID tclSelectionState
-    set currentSelection$dagID -1    
+    set currentSelection$dagID 0    
 #    puts "mapRDOdag $wwindow.dag.dag$abs"
     $wwindow.sbutts.1 configure  \
 	    -command "uimpd clearResourceSelection dag $dagID" \
