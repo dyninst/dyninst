@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2001/06/04 19:26:06 bernat Exp $
+# $Id: Makefile,v 1.3 2001/12/11 20:25:34 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,7 +30,8 @@ else
 CC              = gcc
 LD              = gcc
 CFLAGS          += -fpic
-LDFLAGS		= -shared
+LDFLAGS		= -ldl -lelf -shared
+#ccw 19 nov 2001
 endif
 
 #CFLAGS += -DDEBUG_PRINT_RT      # enable debug/trace messages from library
