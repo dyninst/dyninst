@@ -105,7 +105,7 @@ proc drawToolBar {} {
     frame .parent.menub.left.top.title.versionFrame -background #b3331e1b53c7
     pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
 	    
-    label .parent.menub.left.top.title.versionFrame.version -text "v1.2 alpha 1" \
+    label .parent.menub.left.top.title.versionFrame.version -text "v2.0 beta 1" \
 	    -font "*-Helvetica-*-r-*-12-*" \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
