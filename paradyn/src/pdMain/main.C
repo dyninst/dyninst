@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.54 2000/04/20 22:42:24 mirg Exp $
+// $Id: main.C,v 1.55 2000/04/26 18:12:59 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -274,6 +274,11 @@ main (int argc, char **argv)
 
 // get tid of parent
   MAINtid = thr_self();
+
+#if defined(i386_unknown_nt4_0)
+  // enable interaction between thread library and RPC package
+  rpcSockCallback += (RPCSockCallbackFunc)thr_update_socket_data_state;
+#endif // defined(i386_unknown_nt4_0)
 
 // Structure used to pass initial arguments to data manager
 //  init_struct init; init.tid = MAINtid; init.met_file = fname;
