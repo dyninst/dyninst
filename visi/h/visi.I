@@ -16,10 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.15  1995/12/18 23:22:31  newhall
-/* changed metric units type so that it can have one of 3 values (normalized,
-/* unnormalized or sampled)
+/* Revision 1.16  1996/02/23 17:46:10  tamches
+/* added 2 bool params to StartPhase
 /*
+ * Revision 1.15  1995/12/18 23:22:31  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.14  1995/12/15 20:15:11  naim
  * Adding call back function to display error messages from visis - naim
  *
@@ -110,7 +113,7 @@ $remote struct phase_info{
 
 $remote visualization {
   $base  7000;
-  $version  14;
+  $version  15;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
@@ -187,8 +190,9 @@ $remote visualization {
   // request a new phase start from paradyn 
   // begin: phase start time (default of -1 means now)
   // name:  phase name (default of NULL means let paradyn provide name)
-  $upcall $async void StartPhase(double begin, 
-				string name);
+  $upcall $async void StartPhase(double begin, string name,
+	                         bool withPerfConsult,
+	                         bool withVisis);
 
   //
   // call back to Paradyn to display error message
