@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.21 2004/02/24 16:50:58 rchen Exp $
+// $Id: arch-ia64.h,v 1.22 2004/03/12 20:08:03 rchen Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -228,6 +228,7 @@ IA64_instruction generateRegisterLoad( Register destination, Register address, i
 IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size = 8 );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
+IA64_instruction generateRegisterToRegisterMove( Register source, Register destination );
 
 IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 = 0 );
 IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 = 0 );
@@ -276,9 +277,12 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 #define MAJOR_OPCODE_MASK   0xF000000000000000  /* bits 37 - 40 */
 
 /* (right-aligned) Template IDs. */
+const uint8_t MII = 0x00;
 const uint8_t MIIstop = 0x01;
+const uint8_t MLX = 0x04;
 const uint8_t MLXstop = 0x05;
 const uint8_t MMIstop = 0x09;
+const uint8_t MIBstop = 0x11;
 const uint8_t MstopMIstop = 0x0B;
 const uint8_t BBBstop = 0x17;
 const uint8_t MMBstop = 0x19;

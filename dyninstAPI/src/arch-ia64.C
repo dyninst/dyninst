@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.25 2004/02/25 04:36:37 schendel Exp $
+// $Id: arch-ia64.C,v 1.26 2004/03/12 20:07:56 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -282,7 +282,7 @@ IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instructi
 
 /* This handles the MLX template/long instructions. */
 IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction_x & instructionLX ) {
-	if( templateID != 0x05 ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
+	if( templateID != MLXstop && templateID != MLX ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
 
 	* this = IA64_bundle( templateID, instruction0, instructionLX.getMachineCode().low, instructionLX.getMachineCode().high );
 	} /* end IA64_bundle() */
@@ -589,16 +589,17 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	pdvector< Address > allocs = location->pointFunc()->allocs;
 	switch( allocs.size() ) {
 		case 0: {
-			/* Since there's no existing frame, create ours at the bottom. */
+			/* Since we cannot know the current frame without static analysis,
+			   create ours after the largest frame possible (8 local, 0 output). */
 			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = 32 + i;
+				deadRegisterList[i] = 32 + 8 + i;
 				}
 
 			/* Construct the registerSpace reflecting the desired frame. */
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
-			/* Tell generateOriginalAllocFor() to generate an empty frame. */
-			regSpace->originalLocals = 0;
+			/* Tell generateOriginalAllocFor() to generate the largest frame possible. */
+			regSpace->originalLocals = 8;
 			regSpace->originalOutputs = 0;
 			regSpace->originalRotates = 0;
 
@@ -729,6 +730,7 @@ IA64_instruction generateIndirectCallTo( Register indirect, Register rp ) {
 
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (32 + ALIGN_RIGHT_SHIFT) ) |
 			   ( indirectRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( returnRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
@@ -917,6 +919,9 @@ IA64_instruction generateApplicationToRegisterMove( Register source, Register de
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterToApplicationMove() */
+
+IA64_instruction generateRegisterToRegisterMove( Register source, Register destination ) {
+	return generateShortImmediateAdd( destination, 0, source ); }
 
 IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn ) {
 	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
