@@ -17,11 +17,14 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.11  1994/07/30 03:25:25  newhall
-/* added enabled member to gridcell to indicate that the metric associated
-/* w/ this cell has been enabled and data will arrive for it eventually
-/* updated member functions affected by this addition
+/* Revision 1.12  1994/08/11 02:49:35  newhall
+/* removed deleted member to gridcell
 /*
+ * Revision 1.11  1994/07/30  03:25:25  newhall
+ * added enabled member to gridcell to indicate that the metric associated
+ * w/ this cell has been enabled and data will arrive for it eventually
+ * updated member functions affected by this addition
+ *
  * Revision 1.10  1994/07/20  22:17:20  newhall
  * added FirstValidBucket method function to visi_GridCellHisto class
  *
@@ -100,16 +103,13 @@ class Resource{
 // visi_GridCellHisto: 
 // size: number of buckets
 // lastBucketFilled: number of full buckets 
-// deleted: indicates that the cell cannot accept new data values
 // valid:   indicates that the cell contains histogram data  
-// enabled: indicates that the cell can accept data values (if not
-//          currently valid, it will be when data values are added)
-// if deleted == 1 then no values can be added to the data grid
-// if deleted == 0 and valid == 1 then data values are present and
-//                                can be added
-// if deleted == 0 and valid == 0 and enabled == 1 then values are
-//                                not present, but instrumentation
-//                                has been enabled for this cell
+// enabled: indicates that the cell can accept data values 
+// if enabled == 0 then no values can be added to the data grid
+// if enabled == 1 and valid == 1 then data values are present
+// if enabled == 1 and valid == 0 then values are not present, 
+//                                but instrumentation  has been
+//                                enabled for this cell
 ///////////////////////////////////////////////////////////////////
 
 class visi_GridCellHisto {
@@ -118,16 +118,15 @@ class visi_GridCellHisto {
      int   firstValidBucket;  // first index into "value" that is not NaN
      int   size;              // size of array "value"
      int   lastBucketFilled;  // bucket number of last data value added
-     int   deleted;   // set on delete cell element, cleared on add new element
      int   enabled;   // set when data values can be added to this cell
      sampleType *value;   // array of data values
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
 			  userdata = NULL; lastBucketFilled = -1; 
-			  deleted = 0; firstValidBucket = -1; enabled = 0;}
+			  firstValidBucket = -1; enabled = 0;}
      visi_GridCellHisto(int);
-     ~visi_GridCellHisto(){delete[] value;}
+     ~visi_GridCellHisto(){delete[] value; valid = 0; enabled = 0; size = 0;}
      int    LastBucketFilled(){return(lastBucketFilled);}
      sampleType  *Value(){ return(value);}
 
@@ -140,9 +139,6 @@ class visi_GridCellHisto {
 
      int    Size(){return(size);}
      int    Valid(){return(valid);}
-     int    Deleted(){return(deleted);}
-     void   SetDeleted(){deleted = 1;}
-     void   ClearDeleted(){deleted = 0;}
      int    Enabled(){return(enabled);}
      void   SetEnabled(){enabled = 1;}
      void   ClearEnabled(){enabled = 0;}
@@ -155,7 +151,6 @@ class visi_GridCellHisto {
 			 int lbf,
 			 void *ud,
 			 int v, 
-			 int d,
 			 int e){
         
 	if(temp == NULL){
@@ -179,7 +174,6 @@ class visi_GridCellHisto {
 	lastBucketFilled = lbf;
 	userdata = ud;
 	valid = v;
-	deleted = d;
 	enabled = e;
 	return(OK);
      }
@@ -258,7 +252,7 @@ class visi_GridCellHisto {
         
        int j;
 
-       if (deleted){  // if deleted is set, don't add values
+       if (!enabled){ // if this cell has not been enabled don't add values
          return(OK);
        }
        if (!valid){ // if this is the first value create a histo cell array 
@@ -266,7 +260,6 @@ class visi_GridCellHisto {
 	   value = new sampleType[numElements];
 	 size = numElements;
 	 valid = 1;
-	 deleted = 0;
 	 enabled = 1;
 	 for(j=0;j<size;j++){
 	   value[j] = ERROR;
@@ -327,11 +320,6 @@ class  visi_GridHistoArray {
       int    Invalidate(int);
       int    AddNewResources(int);
       int    AddNewValues(visi_GridCellHisto *,int);
-      void   ClearDeleted(){
-        for(int i = 0; i < size; i++){
-	  values[i].ClearDeleted();
-	}
-      }
 
       void   Fold(int method){
         int i;
@@ -413,11 +401,6 @@ class visi_DataGrid {
      int        AddNewResource(int,visi_resourceType *);
      int        ResourceInGrid(int);
      int        MetricInGrid(int);
-     void       ClearDeleted(){
-           for(int i = 0; i < numMetrics; i++){
-               data_values[i].ClearDeleted();
-	   }
-     }
 
      sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
