@@ -1,5 +1,10 @@
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.42  1996/05/31 23:43:10  tamches
+ * removed pid from XDRrpc.  Modified handleRemoteConnect appropriately.
+ * Now paradynd doesn't try to send pid to paradyn (it wasn't being used
+ * and was one cause of paradyn UI freezing on UI startup).
+ *
  * Revision 1.41  1995/11/22 00:06:20  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
@@ -21,88 +26,6 @@
  *
  * Revision 1.38  1995/05/18  11:12:15  markc
  * Added flavor arg to RPC_undo_g_list
- *
- * Revision 1.37  1995/02/16  09:28:10  markc
- * Removed compiler warnings.
- * Changed Boolean to bool
- *
- * Revision 1.35  1994/11/11  06:59:23  markc
- * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
- * support remote executition for paradyndPVM.
- * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
- * support remote executition for paradyndPVM.
- *
- * Revision 1.34  1994/11/06  09:51:03  newhall
- * added error checking, especially the handshaking when paradyn starts up
- * paradynd.
- *
- * Revision 1.33  1994/09/27  22:28:46  jcargill
- * Moved the rexec prototype inside the extern C part
- *
- * Revision 1.32  1994/09/27  19:23:05  jcargill
- * Warning cleanup: prototyped rexec, pushed consts further down
- *
- * Revision 1.31  1994/09/22  03:19:52  markc
- * Changes to remove compiler warnings
- *
- * Revision 1.30  1994/09/20  18:23:58  hollings
- * added option to use rexec as well as fork and rsh to start processes.
- *
- * Revision 1.29  1994/08/18  19:55:04  markc
- * Added ifdef for solaris.
- *
- * Revision 1.28  1994/08/17  18:25:25  markc
- * Added RPCgetArg
- * Change RPC_make_arg_list to avoid leaving a hole at the head of the arg list
- * Changed RPCProcessCreate to use the new version of arg list
- * Changed the execl to execlp
- *
- * Revision 1.27  1994/07/28  22:22:04  krisna
- * changed definitions of ReadFunc and WriteFunc to conform to prototypes
- *
- * Revision 1.26  1994/07/19  18:30:27  markc
- * Made machineName default to zero as last parameter to RPC_make_arg_list.
- * Added typecast to malloc call in RPC_make_arg_list.
- *
- * Added typecast to malloc call in RPC_make_arg_list.
- *
- * Revision 1.25  1994/07/18  19:08:25  hollings
- * added extra arg to RPC_make_arg_list.
- *
- * Revision 1.24  1994/06/22  00:37:13  markc
- * Fixed code to remove warnings.
- *
- * Revision 1.23  1994/06/02  23:36:58  markc
- * Added support for igen error checking.
- *
- * Revision 1.22  1994/05/17  00:14:45  hollings
- * added rcs log entry.
- *
- * Revision 1.21  1994/05/16  04:27:47  hollings
- * Added inlcude of vfork.h on SUNS to prevent problem with optimizer.
- *
- * Revision 1.20  1994/05/12  18:47:51  jcargill
- * Changed make args function to leave room for program name in arg_list[0],
- * and added code to RPCprocessCreate to poke it in there before execv'ing.
- *
- * Revision 1.19  1994/04/21  23:23:49  hollings
- * removed paradynd name from make args function.
- *
- * Revision 1.18  1994/04/06  22:46:12  markc
- * Fixed bug in XDRrpc constructor that clobbered the fd value.  Added feature
- * to RPC_readReady to do blocking select.
- *
- * Revision 1.17  1994/04/01  20:05:27  hollings
- * Removed kill of rsh process (not needed and it causes a race condition).
- *
- * Revision 1.16  1994/04/01  04:59:13  markc
- * Put in support to encode NULL ptrs to strings in xdr_String.
- *
- * Revision 1.15  1994/03/31  22:59:08  hollings
- * added well known port as a paramter to xdrRPC constructor.
- *
- * Revision 1.14  1994/03/31  22:45:04  markc
- * Added Log for rcs.
  *
 */
 
@@ -175,7 +98,7 @@ XDRrpc::~XDRrpc()
 // prepare for RPC's to be done/received on the passed fd.
 //
 XDRrpc::XDRrpc(int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const bool nblock)
-: xdrs(NULL), fd(f), pid(-1)
+: xdrs(NULL), fd(f)
 {
     assert(fd >= 0);
     xdrs = new XDR;
@@ -190,17 +113,17 @@ XDRrpc::XDRrpc(int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const b
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(const string machine,
-	       const string user,
-	       const string program,
+XDRrpc::XDRrpc(const string &machine,
+	       const string &user,
+	       const string &program,
 	       xdr_rd_func readRoutine, 
 	       xdr_wr_func writeRoutine,
 	       const vector<string> &arg_list,
 	       const bool nblock,
 	       int wellKnownPortFd)
-: xdrs(NULL), fd(-1), pid(-1)
+: xdrs(NULL), fd(-1)
 {
-    fd = RPCprocessCreate(pid, machine, user, program, arg_list, wellKnownPortFd);
+    fd = RPCprocessCreate(machine, user, program, arg_list, wellKnownPortFd);
     if (fd >= 0) {
         xdrs = new XDR;
 	if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
@@ -332,6 +255,7 @@ bool RPC_make_arg_list(vector<string> &list,
 }
 
 // returns fd of socket that is listened on, or -1
+// (actually, looks like it returns the port number listened on, or -1)
 int
 RPC_setup_socket (int &sfd,   // return file descriptor
 		  const int family, // AF_INET ...
@@ -370,7 +294,7 @@ XDRrpc::XDRrpc(int family,
 	       const string machine, 
 	       xdr_rd_func readRoutine,
 	       xdr_wr_func writeRoutine,
-	       const bool nblock) : xdrs(NULL), fd(-1), pid(-1)
+	       const bool nblock) : xdrs(NULL), fd(-1)
      // socket, connect using machine
 {
   struct sockaddr_in serv_addr;
@@ -484,7 +408,8 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
 //
 // directly exec the command (local).
 //
-int execCmd(int &pid, const string command, const vector<string> &arg_list, int portFd)
+
+int execCmd(const string command, const vector<string> &arg_list, int portFd)
 {
   int ret;
   int sv[2];
@@ -503,6 +428,7 @@ int execCmd(int &pid, const string command, const vector<string> &arg_list, int 
     new_al[i+1] = P_strdup(arg_list[i].string_of());
   ret = -1;
 
+  int pid;
   pid = vfork();
   // close sv[0] after exec 
   P_fcntl(sv[0],F_SETFD,1);  
@@ -527,34 +453,20 @@ int execCmd(int &pid, const string command, const vector<string> &arg_list, int 
   return ret;
 }
 
-int handleRemoteConnect(int &pid, int fd, int portFd)
-{
-    char *ret;
-    int retFd;
-    FILE *pfp;
-    char line[256];
+int handleRemoteConnect(int fd, int portFd) {
+    // NOTE: This routine is not generic; it is very specific to paradyn
+    // (due to the sscanf(line, "PARADYND %d")...)
+    // Hence it makes absolutely no sense to put it in a so-called library.
+    // It should be put into the paradyn/src tree --ari
 
-    pfp = P_fdopen(fd, "r");
+    FILE *pfp = P_fdopen(fd, "r");
     if (pfp == NULL) {
        cerr << "handleRemoteConnect: fdopen of fd " << fd << " failed." << endl;
        return -1;
     }
 
-    do {
-	ret = P_fgets(line, sizeof(line)-1, pfp);
-	if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
-	    // got the good stuff
-	    sscanf(line, "PARADYND %d", &pid);
-
-	    retFd = RPC_getConnect(portFd);
-	    return(retFd);
-	} else if (ret) {
-	    printf("%s", line);
-	    return (-1);
-	}
-    }  while (ret);
-
-    return(-1);
+    int retFd = RPC_getConnect(portFd); // calls accept(), which blocks (sigh...)
+    return retFd;
 }
 
 //
@@ -567,7 +479,8 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
 // these daemons may get the connection that should be for the first daemon.
 // Daemons should always get a connection before attempting to start other daemons.
 //
-int rshCommand(int &pid, const string hostName, const string userName, 
+
+int rshCommand(const string hostName, const string userName, 
 	       const string command, const vector<string> &arg_list, int portFd)
 {
     int fd[2];
@@ -579,13 +492,10 @@ int rshCommand(int &pid, const string hostName, const string userName,
       total += arg_list[i].length() + 2;
     }
 
-    char *paradyndCommand = (char *) P_malloc(total+2);
+    string paradyndCommand = command + " ";
 
-    sprintf(paradyndCommand, "%s ", command.string_of());
-    for (int j=0; j<arg_list.size(); j++) {
-	P_strcat(paradyndCommand, arg_list[j].string_of());
-	P_strcat(paradyndCommand, " ");
-    }
+    for (int j=0; j < arg_list.size(); j++)
+        paradyndCommand += arg_list[j] + " ";
 
     // need to rsh to machine and setup io path.
 
@@ -602,11 +512,12 @@ int rshCommand(int &pid, const string hostName, const string userName,
 	assert(-1 != close(fd[1]));
 	if (userName.length()) {
 	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
-			 userName.string_of(), "-n", paradyndCommand, "-l0", NULL);
+			 userName.string_of(), "-n", paradyndCommand.string_of(),
+			 "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
 	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-n", 
-			 paradyndCommand, "-l0", NULL);
+			 paradyndCommand.string_of(), "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
 	_exit(-1);
@@ -615,13 +526,11 @@ int rshCommand(int &pid, const string hostName, const string userName,
     } else {
 	// error situation
     }
-    if (paradyndCommand)
-      delete paradyndCommand;
 
-    return(handleRemoteConnect(pid, fd[0], portFd));
+    return(handleRemoteConnect(fd[0], portFd));
 }
 
-int rexecCommand(int &pid, const string hostName, const string userName, 
+int rexecCommand(const string hostName, const string userName, 
 		 const string command, const vector<string> &arg_list, int portFd)
 {
     struct servent *inport;
@@ -630,7 +539,9 @@ int rexecCommand(int &pid, const string hostName, const string userName,
     for (int i=0; i<arg_list.size(); i++) {
       total += arg_list[i].length() + 2;
     }
-    char *paradyndCommand = (char *) P_malloc(total+2);
+
+    char *paradyndCommand = new char[total+2];
+    assert(paradyndCommand);
 
     sprintf(paradyndCommand, "%s ", command.string_of());
     for (int j=0; j<arg_list.size(); j++) {
@@ -653,7 +564,7 @@ int rexecCommand(int &pid, const string hostName, const string userName,
     if (paradyndCommand)
       delete paradyndCommand;
 
-    return(handleRemoteConnect(pid, fd, portFd));
+    return(handleRemoteConnect(fd, portFd));
 }
 
 /*
@@ -662,7 +573,8 @@ int rexecCommand(int &pid, const string hostName, const string userName,
  *
  * if arg_list == NULL, command is the only argument used
  */
-int RPCprocessCreate(int &pid, const string hostName, const string userName,
+
+int RPCprocessCreate(const string hostName, const string userName,
 		     const string command, const vector<string> &arg_list,
 		     int portFd, const bool useRexec)
 {
@@ -674,27 +586,25 @@ int RPCprocessCreate(int &pid, const string hostName, const string userName,
 
     if ((hostName == "") || 
 	(hostName == "localhost") ||
-	(hostName == unm.nodename)) {
-      ret = execCmd(pid, command, arg_list, portFd);
-    } else if (useRexec) {
-      ret = rexecCommand(pid, hostName, userName, command, arg_list, portFd);
-    } else {
-      ret = rshCommand(pid, hostName, userName, command, arg_list, portFd);
-    }
+	(hostName == unm.nodename))
+      ret = execCmd(command, arg_list, portFd);
+    else if (useRexec)
+      ret = rexecCommand(hostName, userName, command, arg_list, portFd);
+    else
+      ret = rshCommand(hostName, userName, command, arg_list, portFd);
+
     return(ret);
-  }
+}
 
-int RPC_getConnect(const int fd)
-{
-  struct in_addr cli_addr;
-  int new_fd;
-
+int RPC_getConnect(int fd) {
   if (fd == -1)
     return -1;
 
+  struct in_addr cli_addr;
   size_t clilen = sizeof(cli_addr);
+  int new_fd = P_accept (fd, (struct sockaddr *) &cli_addr, &clilen);
 
-  if ((new_fd = P_accept (fd, (struct sockaddr *) &cli_addr, &clilen)) < 0)
+  if (new_fd < 0)
     return -1;
   else
     return new_fd;
