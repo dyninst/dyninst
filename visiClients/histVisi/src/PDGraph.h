@@ -47,7 +47,7 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.1 1999/10/05 22:09:06 pcroth Exp $
+// $Id: PDGraph.h,v 1.2 2000/02/09 19:44:18 pcroth Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
@@ -183,6 +183,10 @@ private:
                                     pt.x-1, pt.y-1, 4, 4 );
                 }
 
+		// UpdateMaxActiveValue - determines the max value from the active
+		// data set, considering all data values with index i or larger
+		void	UpdateMaxActiveValue( unsigned int startIdx );
+
     public:
         // domain data
         static const unsigned int   smoothingWindowSize;    // number of points
@@ -196,6 +200,8 @@ private:
         double* pts;            // curve data
         double* spts;           // smoothed curve data
         Group*  group;          // group to which curve belongs
+
+		double	maxActiveValue;	// max value of the active data
 
         // GUI data
         XPoint* xpts;           // X points corresponding to data
@@ -238,6 +244,13 @@ private:
                 return ( isSmoothed ? spts : pts );
             }
 
+
+		// GetMaxActiveValue - determine the maximum value of the 
+		// active data set
+		double GetMaxActiveValue( void ) const
+			{
+				return maxActiveValue;
+			}
 
         // GetName - obtain a string representation of the name that should
         // be used for the curve.  If the active data is the smoothed data,
@@ -314,12 +327,7 @@ private:
 
 
         // Unsmooth - Indicates that we should use raw data as our active data.
-        // Note that we don't have to do any computation, because we are
-        // just switching over to the raw data.  If the user chooses to
-        // smooth the data again, we will recompute smoothed data at that
-        // point.
-        //
-        void    Unsmooth( void )            { isSmoothed = false; }
+        void    Unsmooth( void );
 
 
         // Show - indicate that our data should be visible (drawn in the graph)
@@ -908,6 +916,12 @@ private:
     // the information held in the C++ objects
     //
     void    UpdateGeometry( void );
+
+
+	// UpdateAxisMaxValue - updates the maximum value of an axis, and 
+	// updates the display to reflect the new max value
+	// 
+	void UpdateAxisMaxValue( ValueAxis* axis, double maxValue );
 
 
     // FindGroup - looks up the Group with the given metric label as its title

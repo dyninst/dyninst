@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.8 2000/01/21 22:57:39 pcroth Exp $
+// $Id: PDGraph.C,v 1.9 2000/02/09 19:44:17 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -733,6 +733,12 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
                     {
                         curves[lval]->Unsmooth();
                     }
+
+					if( curves[lval]->GetMaxActiveValue() != curves[lval]->group->axis->maxValue )
+					{
+						UpdateAxisMaxValue( curves[lval]->group->axis,
+							curves[lval]->GetMaxActiveValue() );
+					}
 
                     // update the legend with the curve's new name
                     ostrstream cmdstr;
@@ -1766,63 +1772,10 @@ PDGraph::SetCurveData( CurveID cid,
 
         // draw new points for the curve...
 
-        // ...determine whether we've got a new Y maximum value...
-        double* currPts = curve->GetActiveData();
-        double ymax = group->axis->maxValue;
-        bool newmax = false;
-        int i;
-
-        for( i = 0; i < nSamples; i++ )
+        // ...check if we found a new maximum value so we can rescale...
+        if( curve->GetMaxActiveValue() != group->axis->maxValue )
         {
-            if( !isnan(currPts[firstSample + i]) && 
-                (currPts[firstSample + i] > group->axis->maxValue) )
-            {
-                ymax = currPts[firstSample + i];
-                newmax = true;
-            }
-        }
-
-        // check if we found a new maximum value
-        if( newmax )
-        {
-            // we found a new maximum Y value
-            // update the entire group's view of the new max value and 
-            // recompute the characteristics of the axis
-            group->axis->maxValue = ymax;
-
-            // determine the maxmimum number of ticks we
-            // can support in the given axis height
-            //
-            // Note that we go to great lengths to be sure
-            // that we do our "max ticks" calculation as
-            // signed integer arithmetic, so we can recognize
-            // the case when the window is too short.
-            int valAxisHeight = (Tk_IsMapped( valAxis->GetWindow() ) ? 
-                                    Tk_Height( valAxis->GetWindow() ) : 
-                                    Tk_ReqHeight( valAxis->GetWindow() ));
-            int nTicksMax = (valAxisHeight - 
-                    ((int)timeAxis->DetermineHeight()) - 
-                    ((int)valAxis->DetermineLabelHeight())) / fontm.linespace;
-            if( nTicksMax <= 0 )
-            {
-                // this could happen if we've not yet mapped the
-                // value axis window, or if the window has
-                // become too short
-                //
-                // we still want to compute an interval layout,
-                // so we force the max number of ticks to a 
-                // "reasonable" value
-                nTicksMax = 5;
-            }
-            group->axis->ComputeIntervals( nTicksMax );
-
-            // allow subwindows to recompute its visual information
-            // based on new configuration
-            dataw->UpdateConfiguration();
-
-            // update the display
-            RequestRedraw();
-            valAxis->RequestRedraw();
+			UpdateAxisMaxValue( group->axis, curve->GetMaxActiveValue() );
         }
         else
         {
@@ -1832,6 +1785,52 @@ PDGraph::SetCurveData( CurveID cid,
 }
 
 
+
+// UpdateAxisMaxValue - updates the maximum value of an axis, and 
+// updates the display to reflect the new max value
+// 
+void
+PDGraph::UpdateAxisMaxValue( ValueAxis* axis, double maxValue )
+{
+	// we found a new maximum Y value
+	// update the entire group's view of the new max value and 
+	// recompute the characteristics of the axis
+	axis->maxValue = maxValue;
+
+	// determine the maxmimum number of ticks we
+	// can support in the given axis height
+	//
+	// Note that we go to great lengths to be sure
+	// that we do our "max ticks" calculation as
+	// signed integer arithmetic, so we can recognize
+	// the case when the window is too short.
+	int valAxisHeight = (Tk_IsMapped( valAxis->GetWindow() ) ? 
+							Tk_Height( valAxis->GetWindow() ) : 
+							Tk_ReqHeight( valAxis->GetWindow() ));
+	int nTicksMax = (valAxisHeight - 
+			((int)timeAxis->DetermineHeight()) - 
+			((int)valAxis->DetermineLabelHeight())) / fontm.linespace;
+	if( nTicksMax <= 0 )
+	{
+		// this could happen if we've not yet mapped the
+		// value axis window, or if the window has
+		// become too short
+		//
+		// we still want to compute an interval layout,
+		// so we force the max number of ticks to a 
+		// "reasonable" value
+		nTicksMax = 5;
+	}
+	axis->ComputeIntervals( nTicksMax );
+
+	// allow subwindows to recompute its visual information
+	// based on new configuration
+	dataw->UpdateConfiguration();
+
+	// update the display
+	RequestRedraw();
+	valAxis->RequestRedraw();
+}
 
 // UpdateGeometry - update the geometry of the subwidgets based on
 // the information held in the C++ objects
@@ -2082,6 +2081,7 @@ PDGraph::Curve::Curve( const char* metricName,
     pts( NULL ),
     spts( NULL ),
     group( NULL ),
+	maxActiveValue( DBL_MIN ),
     xpts( NULL ),
     lineSpecIdx( nextLineSpecIdx++ ),
     useColor( true ),
@@ -2184,6 +2184,9 @@ PDGraph::Curve::SetData( unsigned int startIdx,
     {
         ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
     }
+
+	// check for a new maximum value in the active data
+	UpdateMaxActiveValue( startIdx );
 }
 
 
@@ -2536,8 +2539,52 @@ PDGraph::Curve::Smooth( void )
 
         // ensure we have up-to-date smoothed data
         ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
+
+		// reset the max value of the active data
+		maxActiveValue = DBL_MIN;
+		UpdateMaxActiveValue( 0 );
     }
 }
+
+
+
+
+// Unsmooth - Indicates that we should use raw data as our active data.
+//
+void
+PDGraph::Curve::Unsmooth( void )
+{
+    if( isSmoothed )
+    {
+        isSmoothed = false;
+
+		// reset the max value of the active data
+		maxActiveValue = DBL_MIN;
+		UpdateMaxActiveValue( 0 );
+    }
+}
+
+
+
+// UpdateMaxActiveValue - determines the max value from the active
+// data set, considering all data values with index i or larger
+//
+void
+PDGraph::Curve::UpdateMaxActiveValue( unsigned int startIdx )
+{
+	unsigned int i;
+
+
+	double* pts = GetActiveData();
+	for( i = startIdx; i < nPoints; i++ )
+	{
+		if( pts[i] > maxActiveValue )
+		{
+			maxActiveValue = pts[i];
+		}
+	}
+}
+
 
 
 
