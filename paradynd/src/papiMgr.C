@@ -278,7 +278,7 @@ int papiMgr::addHwEvent(int eventCode)
     fprintf(stderr, "paradynd error:  PAPI_add_event() failed with event code 0x%x \n",
             eventCode);
   
-    return -1;
+    i = -1;
   }
 
   if (restartPapi) {

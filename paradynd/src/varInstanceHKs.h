@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.4 2002/08/31 16:53:41 mikem Exp $
+// $Id: varInstanceHKs.h,v 1.5 2002/10/08 16:24:52 mikem Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -206,6 +206,8 @@ class processTimerHK : public genericHK {
   // once per paradynd sample, instead of once per timer per paradynd sample.
 };
 
+#ifdef PAPI
+
 class hwTimerHK : public genericHK {
  private:
   timeLength lastTimeValueUsed;
@@ -263,5 +265,7 @@ class hwCounterHK : public genericHK {
 
   bool perform(const tHwCounter *dataValue, process *);
 };
+
+#endif
 
 #endif

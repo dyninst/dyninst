@@ -77,9 +77,9 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
   if(! foundIt) {
 
     HwEvent* hw = NULL;
-#ifdef PAPI
     /* if PAPI isn't available, hw_cntr_str should always be "" */
     if (hw_cntr_str != "") {
+#ifdef PAPI
       papiMgr* papi;
       papi = proc->getPapiMgr();
       assert(papi);
@@ -89,8 +89,8 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
         showErrorCallback(125,msg.c_str());
         return NULL;
       }
-    }
 #endif
+    }
 
     nodeVal = new instrCodeNode_Val(name_, f, proc, arg_dontInsertData, hw);
     //cerr << "instrCodeNode " << key_name << " (" << nodeVal 

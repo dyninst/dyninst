@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.9 2002/08/31 16:53:44 mikem Exp $
+// $Id: variableMgr.C,v 1.10 2002/10/08 16:25:13 mikem Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -65,12 +65,20 @@ variableMgr::variableMgr(process *proc, shmMgr *shmMgr_,
 #else
   maxNumberOfThreads = 1;
 #endif
+
+#ifdef PAPI
   varTables.resize(5);
+#else
+  varTables.resize(3);
+#endif
+
   varTables[Counter] = new varTable<intCounterHK>(*this);
   varTables[WallTimer] = new varTable<wallTimerHK>(*this);
   varTables[ProcTimer] = new varTable<processTimerHK>(*this);
+#ifdef PAPI
   varTables[HwTimer] = new varTable<hwTimerHK>(*this);
   varTables[HwCounter] = new varTable<hwCounterHK>(*this);
+#endif
   // Insert other timer/counter types here...
 
   // Preallocate for the varTables
@@ -92,7 +100,11 @@ variableMgr::variableMgr(const variableMgr &par, process *proc,
   applicProcess(proc),
   theShmMgr(*shmMgr_)
 {
+#ifdef PAPI
   varTables.resize(5);
+#else
+  varTables.resize(3);
+#endif
   for(unsigned i=0; i<par.varTables.size(); i++) {
     switch(i) {
       case Counter:
@@ -107,6 +119,7 @@ variableMgr::variableMgr(const variableMgr &par, process *proc,
 	varTables[ProcTimer] = new varTable<processTimerHK>(
             *dynamic_cast<varTable<processTimerHK>*>(par.varTables[i]), *this);
 	break;
+#ifdef PAPI
       case HwTimer:
 	varTables[HwTimer] = new varTable<hwTimerHK>(
             *dynamic_cast<varTable<hwTimerHK>*>(par.varTables[i]), *this);
@@ -115,6 +128,7 @@ variableMgr::variableMgr(const variableMgr &par, process *proc,
 	varTables[HwCounter] = new varTable<hwCounterHK>(
             *dynamic_cast<varTable<hwCounterHK>*>(par.varTables[i]), *this);
 	break;
+#endif
       default:
 	assert(false);
     }

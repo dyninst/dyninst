@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.7 2002/08/31 16:53:39 mikem Exp $
+// $Id: varInstanceHKs.C,v 1.8 2002/10/08 16:24:44 mikem Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -530,6 +530,7 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
 
 
 
+#ifdef PAPI
 hwTimerHK &hwTimerHK::operator=(const hwTimerHK &src) {
    if (&src == this)
       return *this; // the usual check for x=x
@@ -547,8 +548,6 @@ hwTimerHK &hwTimerHK::operator=(const hwTimerHK &src) {
 
 bool hwTimerHK::perform(const tHwTimer *theTimer, process *inferiorProc) {
 
-#ifdef PAPI
-   /* TEMP */
 
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
    if(thrNval == NULL) {
@@ -594,9 +593,6 @@ bool hwTimerHK::perform(const tHwTimer *theTimer, process *inferiorProc) {
    thrNval->updateValue(currWallTime, pdSample(valueToUse));
 
    return true;
-#else
-   return false;
-#endif
 }
 
 const tHwTimer hwTimerHK::initValue = { 0, 0, 0,
@@ -618,10 +614,6 @@ hwCounterHK &hwCounterHK::operator=(const hwCounterHK &src) {
 }
 
 bool hwCounterHK::perform(const tHwCounter *dataValue, process *inferiorProc) {
-
-#ifdef PAPI
-
-   /* TEMP */
 
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
    if(thrNval == NULL) {
@@ -646,9 +638,6 @@ bool hwCounterHK::perform(const tHwCounter *dataValue, process *inferiorProc) {
       // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
-#else
-   return false;
-#endif
 }
 
 void hwTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
@@ -657,3 +646,5 @@ void hwTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
   curElem->start = curRawTime;
   curElem->total = 0;
 }
+#endif
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.114 2002/08/31 16:53:34 mikem Exp $
+// $Id: mdl.C,v 1.115 2002/10/08 16:24:23 mikem Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -578,6 +578,12 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
    }
    instrCodeNode *metCodeNode = 
         instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,dontInsertData, hw_cntr_str);
+
+   /* if hw_cntr_str is no good, metCodeNode is NULL */
+   if (metCodeNode == NULL) {
+      return false;
+   }
+
 
    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
    if(! metCodeNodeComplete) {
