@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.321 2002/05/09 19:16:27 chadd Exp $
+// $Id: process.C,v 1.322 2002/05/09 21:43:06 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2074,6 +2074,9 @@ process::process(int iPid, image *iImage, int iTraceLink
 				     1
 #endif
 				     );
+#if defined(MT_THREAD)
+    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
+#endif
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2259,6 +2262,9 @@ process::process(int iPid, image *iSymbols,
 				     1
 #endif
 				     );
+#if defined(MT_THREAD)
+    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
+#endif
     initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
@@ -2492,7 +2498,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				     1
 #endif
 				     );
-    
+#if defined(MT_THREAD)
+    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
+#endif
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
