@@ -2,7 +2,6 @@
 #define __floatavg_h 1
 
 #include "mrnet/tests/timer.h"
-#include "mrnet/src/Filter.h"
 
 #define FLOAT_AVG_PROT 700
 

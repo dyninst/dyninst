@@ -1,47 +1,47 @@
-#if ! defined(__MC_Error_h)
-#define __MC_Error_h
+#if ! defined(__Error_h)
+#define __Error_h
 
 
-enum MC_ErrorCodes{MC_ENONE=0,
-                   MC_EBADCONFIG_IO,
-                   MC_EBADCONFIG_FMT,
-                   MC_ENETWORK_CYCLE,
-                   MC_ENETWORK_NOTCONNECTED,
-                   MC_ENETWORK_FAILURE,
-                   MC_EOUTOFMEMORY,
-                   MC_EFMTSTR_MISMATCH,
-                   MC_ECREATPROCFAILURE,
-                   MC_ECANNOTBINDPORT,
-                   MC_ESOCKETCONNECT,
-                   MC_EPACKING};
+enum ErrorCodes{MRN_ENONE=0,
+                   MRN_EBADCONFIG_IO,
+                   MRN_EBADCONFIG_FMT,
+                   MRN_ENETWORK_CYCLE,
+                   MRN_ENETWORK_NOTCONNECTED,
+                   MRN_ENETWORK_FAILURE,
+                   MRN_EOUTOFMEMORY,
+                   MRN_EFMTSTR_MISMATCH,
+                   MRN_ECREATPROCFAILURE,
+                   MRN_ECANNOTBINDPORT,
+                   MRN_ESOCKETCONNECT,
+                   MRN_EPACKING};
 
-enum MC_ErrorLevels{MC_INFO=0,
-                    MC_WARN,
-                    MC_ERR,
-                    MC_CRIT};
+enum ErrorLevels{MRN_INFO=0,
+                    MRN_WARN,
+                    MRN_ERR,
+                    MRN_CRIT};
 
-enum MC_ErrorResponse{MC_IGNORE=0,
-                      MC_ALERT,
-                      MC_RETRY,
-                      MC_ABORT};
+enum ErrorResponse{MRN_IGNORE=0,
+                      MRN_ALERT,
+                      MRN_RETRY,
+                      MRN_ABORT};
 
-struct MC_ErrorDefs
+struct ErrorDefs
 {
- enum MC_ErrorCodes code;
- enum MC_ErrorLevels level;
- enum MC_ErrorResponse response;
+ enum ErrorCodes code;
+ enum ErrorLevels level;
+ enum ErrorResponse response;
  const char *msg;
 };
 
-class MC_Error{
+class Error{
  protected:
   bool _fail;
-  enum MC_ErrorCodes mc_errno;
+  enum ErrorCodes MRN_errno;
 
  public:
-  MC_Error();
+  Error();
   bool good();
   bool fail();
   void perror(const char *);
 };
-#endif /* __MC_Error_h */
+#endif /* __Error_h */

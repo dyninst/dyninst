@@ -3,20 +3,22 @@
 #include "test1.h"
 #include "timer.h"
 
+using namespace MRN;
+
 int main(int argc, char **argv){
-  MC_Stream * stream;
+  Stream * stream;
   char * buf=NULL;
   int tag, recv_val;
   timer exp_timer("BE:RECV/SEND");
 
-  if( MC_Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
+  if( Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
                                argv[argc-2], argv[argc-1]) == -1){
     fprintf(stderr, "BBB: backend_init() failed\n");
     return -1;
   }
 
   while(1){
-    if ( MC_Stream::recv(&tag, (void **)&buf, &stream) == 1){
+    if ( Stream::recv(&tag, (void **)&buf, &stream) == 1){
       fprintf(stderr, "BBB: recv() succeeded\n");
       break;
     }

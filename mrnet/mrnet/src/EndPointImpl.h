@@ -1,24 +1,25 @@
-#if !defined(mc_endpointimpl_h)
-#define mc_endpointimpl_h 1
+#if !defined(endpointimpl_h)
+#define endpointimpl_h 1
 
 #include <string>
 #include "mrnet/h/MR_Network.h"
+using namespace MRN;
 
-class MC_NetworkNode;
-class MC_EndPointImpl: public MC_EndPoint{
+class NetworkNode;
+class EndPointImpl: public EndPoint{
  private:
   unsigned int id;
   std::string hostname;
   unsigned short port;
-  //MC_NetworkNode * downstream_node;
+  //NetworkNode * downstream_node;
 
  public:
-  MC_EndPointImpl(int _id, const char * _hostname, unsigned short _port);
-  virtual ~MC_EndPointImpl();
+  EndPointImpl(int _id, const char * _hostname, unsigned short _port);
+  virtual ~EndPointImpl();
   virtual const char * get_HostName();
   virtual unsigned short get_Port();
   virtual unsigned int get_Id();
   virtual bool compare(const char * _hostname, unsigned short _port);
 };
 
-#endif /* mc_endpoint_h 1 */
+#endif /* endpoint_h 1 */

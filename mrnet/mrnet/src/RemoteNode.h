@@ -1,5 +1,5 @@
-#if !defined(__mc_remotenode_h) 
-#define __mc_remotenode_h 1
+#if !defined(__remotenode_h) 
+#define __remotenode_h 1
 
 #include <poll.h>
 
@@ -9,13 +9,13 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/pthread_sync.h"
 
-class MC_ChildNode;
-class MC_ParentNode;
-class MC_RemoteNode:public MC_CommunicationNode{
+class ChildNode;
+class ParentNode;
+class RemoteNode:public CommunicationNode{
  private:
-  enum {MC_MESSAGEOUT_NONEMPTY};
+  enum {MRN_MESSAGEOUT_NONEMPTY};
   bool threaded;
-  MC_Message msg_in, msg_out;
+  Message msg_in, msg_out;
 
   int sock_fd;
   bool _is_internal_node;
@@ -24,16 +24,16 @@ class MC_RemoteNode:public MC_CommunicationNode{
   int accept_Connection( int sock_fd, bool doConnect = true );
 
  public:
-  static MC_ParentNode * local_parent_node;
-  static MC_ChildNode * local_child_node;
+  static ParentNode * local_parent_node;
+  static ChildNode * local_child_node;
   static void * recv_thread_main(void * arg);
   static void * send_thread_main(void * arg);
   pthread_t recv_thread_id, send_thread_id;
   bool _is_upstream;
   pthread_sync msg_out_sync;
 
-  MC_RemoteNode(bool threaded, std::string &_hostname, unsigned short _port);
-  MC_RemoteNode(bool threaded, std::string &_hostname, unsigned short _port,
+  RemoteNode(bool threaded, std::string &_hostname, unsigned short _port);
+  RemoteNode(bool threaded, std::string &_hostname, unsigned short _port,
                 unsigned short _id);
   int connect();
   int new_InternalNode(int listening_sock_fd, std::string parent_hostname,
@@ -46,9 +46,9 @@ class MC_RemoteNode:public MC_CommunicationNode{
                       std::string &cmd, std::vector <std::string> &args);
   int accept_Application( int sock_fd );
 
-  int send(MC_Packet *);
+  int send(Packet *);
   int flush();
-  int recv(std::list <MC_Packet *> &); //blocking recv
+  int recv(std::list <Packet *> &); //blocking recv
   bool has_data();
   bool is_backend();
   bool is_internal();
@@ -58,4 +58,4 @@ class MC_RemoteNode:public MC_CommunicationNode{
   int get_sockfd( void ) const              { return sock_fd; }
 };
 
-#endif /* __mc_remotenode_h  */
+#endif /* __remotenode_h  */

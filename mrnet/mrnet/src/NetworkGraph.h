@@ -1,5 +1,5 @@
-#if !defined(MC_NetworkGraph_h)
-#define MC_NetworkGraph_h
+#if !defined(NetworkGraph_h)
+#define NetworkGraph_h
 
 #include <vector>
 #include <map>
@@ -10,30 +10,30 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/Message.h"
 #include "mrnet/h/MR_Network.h"
+using namespace MRN;
 
-class MC_NetworkGraph;
-class MC_EndPoint;
+class NetworkGraph;
 
-class MC_NetworkNode{
-  friend class MC_NetworkGraph;
+class NetworkNode{
+  friend class NetworkGraph;
  private:
   unsigned int id;
   std::string hostname;
   unsigned short port;
-  MC_NetworkGraph * network_graph;
-  std::vector <MC_NetworkNode *> children;
+  NetworkGraph * network_graph;
+  std::vector <NetworkNode *> children;
   bool _visited;
 
  public:
-  MC_NetworkNode(char * _hostname, unsigned short port);
+  NetworkNode(char * _hostname, unsigned short port);
   std::string get_HostName();
   unsigned short get_Port();
-  void add_Child(MC_NetworkNode *);
+  void add_Child(NetworkNode *);
   void visit();
   bool visited();
 };
 
-class MC_SerialGraph{
+class SerialGraph{
  private:
   std::string byte_array;
   unsigned int buf_idx;
@@ -43,9 +43,9 @@ class MC_SerialGraph{
   void find_NumBackends();
 
  public:
-  MC_SerialGraph();
-  MC_SerialGraph(const char *);
-  MC_SerialGraph(std::string);
+  SerialGraph();
+  SerialGraph(const char *);
+  SerialGraph(std::string);
   void add_BackEnd(std::string, unsigned short, unsigned short);
   void add_SubTreeRoot(std::string, unsigned short);
   void end_SubTree();
@@ -55,37 +55,37 @@ class MC_SerialGraph{
   std::string get_RootName();
   unsigned short get_RootPort();
   void set_ToFirstChild();
-  MC_SerialGraph * get_NextChild();
+  SerialGraph * get_NextChild();
   bool has_children();
   int get_Id();
   unsigned int get_NumNodes();
   unsigned int get_NumBackends();
 };
 
-class MC_NetworkGraph{
+class NetworkGraph{
  private:
-  MC_NetworkNode * root;
-  std::map<std::string, MC_NetworkNode*>* nodes; 
+  NetworkNode * root;
+  std::map<std::string, NetworkNode*>* nodes; 
   bool graph_checked;
   unsigned int visited_nodes;
   bool _has_cycle;
 
-  MC_SerialGraph serial_graph;
-  std::vector <MC_EndPoint *> * endpoints;
+  SerialGraph serial_graph;
+  std::vector <EndPoint *> * endpoints;
 
-  void preorder_traversal(MC_NetworkNode *);
+  void preorder_traversal(NetworkNode *);
 
  public:
-  MC_NetworkGraph();
-  void set_Root(MC_NetworkNode * );
-  std::vector <MC_EndPoint *> * get_EndPoints();
-  MC_NetworkNode * get_Root();
-  MC_NetworkNode * find_Node(char *, unsigned short);
+  NetworkGraph();
+  void set_Root(NetworkNode * );
+  std::vector <EndPoint *> * get_EndPoints();
+  NetworkNode * get_Root();
+  NetworkNode * find_Node(char *, unsigned short);
   bool has_cycle();
   bool fully_connected();
   int get_Size();
-  MC_SerialGraph & get_SerialGraph();
-  void add_Node(MC_NetworkNode*);
+  SerialGraph & get_SerialGraph();
+  void add_Node(NetworkNode*);
 };
 
-#endif /* MC_NetworkGraph_h */
+#endif /* NetworkGraph_h */

@@ -35,11 +35,11 @@ Line::Line(const char * buf)
   }
   free(begin);
 
-  mc_printf(MCFL, stderr, "Number of words: %d\n", words.size());
+  mrn_printf(3, MCFL, stderr, "Number of words: %d\n", words.size());
   for(i=0; i<words.size(); i++){
-    mc_printf(MCFL, stderr, "%s ", words[i].c_str());
+    mrn_printf(3, MCFL, stderr, "%s ", words[i].c_str());
   }
-  mc_printf(MCFL, stderr, "\n");
+  mrn_printf(3, MCFL, stderr, "\n");
   return;
 }
 
@@ -60,13 +60,13 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
   struct sockaddr_in server_addr;
   struct hostent * server_hostent;
 
-  mc_printf(MCFL, stderr, "In connect_to_host(%s:%d) ...\n", hostname, port);
+  mrn_printf(3, MCFL, stderr, "In connect_to_host(%s:%d) ...\n", hostname, port);
 
   if(sock == 0){
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if(sock == -1){
-      mc_printf(MCFL, stderr, "socket() failed\n");
+      mrn_printf(1, MCFL, stderr, "socket() failed\n");
       perror("socket()");
       return -1;
     }
@@ -100,20 +100,20 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
                                 sizeof(optVal) );
     if( ssoret == -1 )
     {
-        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+        mrn_printf(1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
     }
 #endif // defined(TCP_NODELAY)
 
   //char *_hostname; unsigned short _p;
   //if(get_socket_peer(sock, &_hostname, &_p) == -1){
-    //mc_printf(MCFL, stderr, "%s", ""));
+    //mrn_printf(MCFL, stderr, "%s", ""));
     //perror("get_socket_peer()");
   //}
   //else{
-    //mc_printf(MCFL, stderr, "really connected to %s:%d\n", _hostname, _p));
+    //mrn_printf(MCFL, stderr, "really connected to %s:%d\n", _hostname, _p));
   //}
 
-  mc_printf(MCFL, stderr, "Leaving Connect_to_host(). Returning sock: %d\n", sock);
+  mrn_printf(3, MCFL, stderr, "Leaving Connect_to_host(). Returning sock: %d\n", sock);
   *sock_in = sock;
   return 0;
 }
@@ -124,7 +124,7 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
   unsigned short port=*port_in;
   struct sockaddr_in local_addr;
 
-  //mc_printf(MCFL, stderr, "In bind_to_port(sock:%d, port:%d)\n", sock, port);
+  mrn_printf(3, MCFL, stderr, "In bind_to_port(sock:%d, port:%d)\n", sock, port);
 
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock == -1){
@@ -160,7 +160,7 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
   }
 
   if(listen(sock, 1) == -1){
-    mc_printf(MCFL, stderr, "%s", "");
+    mrn_printf(1, MCFL, stderr, "%s", "");
     perror("listen()");
     return -1;
   }
@@ -175,14 +175,14 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
                                 sizeof(optVal) );
     if( ssoret == -1 )
     {
-        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+        mrn_printf(1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
     }
 #endif // defined(TCP_NODELAY)
 
   *sock_in = sock;
   *port_in = port;
-  //mc_printf(MCFL, stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
-             //sock, port);
+  mrn_printf(3, MCFL, stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
+             sock, port);
   return 0;
 }
 
@@ -190,11 +190,11 @@ int get_socket_connection(int bound_socket)
 {
   int connected_socket;
 
-  mc_printf(MCFL, stderr, "In get_connection(sock:%d).\n", bound_socket);
+  mrn_printf(3, MCFL, stderr, "In get_connection(sock:%d).\n", bound_socket);
 
   connected_socket = accept(bound_socket, NULL, NULL);
   if(connected_socket == -1){
-    mc_printf(MCFL, stderr, "%s", "");
+    mrn_printf(1, MCFL, stderr, "%s", "");
     perror("accept()");
     return -1;
   }
@@ -209,11 +209,11 @@ int get_socket_connection(int bound_socket)
                                 sizeof(optVal) );
     if( ssoret == -1 )
     {
-        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+        mrn_printf(1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
     }
 #endif // defined(TCP_NODELAY)
 
-  mc_printf(MCFL, stderr, "Leaving get_connection(). Returning sock:%d\n",
+  mrn_printf(3, MCFL, stderr, "Leaving get_connection(). Returning sock:%d\n",
              connected_socket);
   return connected_socket;
 }
@@ -224,23 +224,23 @@ int get_socket_peer(int connected_socket, char **hostname, unsigned short * port
   socklen_t peer_addrlen=sizeof(peer_addr);
   char buf[256];
 
-  mc_printf(MCFL, stderr, "In get_socket_peer()\n");
+  mrn_printf(3, MCFL, stderr, "In get_socket_peer()\n");
 
   if( getpeername(connected_socket, (struct sockaddr *)(&peer_addr), &peer_addrlen) == -1){
-    mc_printf(MCFL, stderr,"%s", "");
+    mrn_printf(1, MCFL, stderr,"%s", "");
     perror("getpeername()");
     return -1;
   }
 
   if(inet_ntop(AF_INET, &peer_addr.sin_addr, buf, sizeof(buf)) == NULL){
-    mc_printf(MCFL, stderr, "%s", "");
+    mrn_printf(1, MCFL, stderr, "%s", "");
     perror("inet_ntop()");
     return -1;
   }
 
   *port = ntohs(peer_addr.sin_port);
   *hostname = strdup(buf);
-  mc_printf(MCFL, stderr, "Leaving get_socket_peer(). Returning %s:%d\n",
+  mrn_printf(3, MCFL, stderr, "Leaving get_socket_peer(). Returning %s:%d\n",
              *hostname, *port);
   return 0;
 }
@@ -332,7 +332,7 @@ int connect_socket_by_IP(int IP, short port){
                                 sizeof(optVal) );
     if( ssoret == -1 )
     {
-        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+        mrn_printf(1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
     }
 #endif // defined(TCP_NODELAY)
 
@@ -347,7 +347,7 @@ const std::string getHostName(const std::string _hostname)
 
   if(_hostname == ""){
     if (gethostname(hostname,sizeof(hostname)) == -1) {
-      mc_printf(MCFL, stderr, "%s", "");
+      mrn_printf(1, MCFL, stderr, "%s", "");
       perror("gethostname()");
       return std::string("");
     }
@@ -384,7 +384,7 @@ const std::string getDomainName (const std::string hostname)
     index++;
 
   if (index == networkname.length()) {
-    mc_printf(MCFL, stderr, "cannot determine network name for %s\n",
+    mrn_printf(1, MCFL, stderr, "cannot determine network name for %s\n",
                hostname.c_str());
     return std::string("");
   }
@@ -393,7 +393,7 @@ const std::string getDomainName (const std::string hostname)
     const std::string domain = networkname.substr(index+1,networkname.length());
     //why can't a hostname contain numerals?
     //if (simplename.regexEquiv("[0-9]*",false)) {
-      //mc_printf(MCFL, stderr, "Got invalid simplename: %s\n", simplename.c_str());
+      //mrn_printf(MCFL, stderr, "Got invalid simplename: %s\n", simplename.c_str());
       //return ("");
     //}
     //else {
@@ -419,7 +419,7 @@ const std::string getNetworkName (const std::string hostname)
 
   hp = gethostbyname(name);
   if (hp == NULL) {
-    mc_printf(MCFL, stderr, "Host information not found for %s\n", name);
+    mrn_printf(3, MCFL, stderr, "Host information not found for %s\n", name);
     return std::string("");
   }
 
@@ -451,7 +451,7 @@ const std::string getNetworkAddr (const std::string hostname)
 
   hp = gethostbyname(name);
   if (hp == NULL) {
-    mc_printf(MCFL, stderr, "Host information not found for %s", name);
+    mrn_printf(3, MCFL, stderr, "Host information not found for %s", name);
     return std::string("");
   }
 
@@ -487,7 +487,7 @@ int execCmd(const std::string command, const std::vector<std::string> &args)
   char **arglist = new char*[arglist_len+2];
   char *cmd = strdup(command.c_str());
 
-  mc_printf(MCFL, stderr, "In execCmd(%s) with %d args\n", cmd, arglist_len);
+  mrn_printf(3, MCFL, stderr, "In execCmd(%s) with %d args\n", cmd, arglist_len);
 
   arglist[0] = strdup(basename(cmd));
   free(cmd); //basename may modify!
@@ -498,7 +498,7 @@ int execCmd(const std::string command, const std::vector<std::string> &args)
 
   ret = fork();
   if (ret == 0) {
-    mc_printf(MCFL, stderr, "Forked child calling execvp:");
+    mrn_printf(3, MCFL, stderr, "Forked child calling execvp:");
     for(i=0; arglist[i] != NULL; i++){
       _fprintf((stderr, "%s ", arglist[i]));
     }
@@ -524,7 +524,7 @@ int remoteCommand(const std::string remoteExecCmd,
   std::vector<std::string> tmp;
   std::string cmd;
 
-  mc_printf(MCFL, stderr, "In remoteCommand()\n");
+  mrn_printf(3, MCFL, stderr, "In remoteCommand()\n");
 #if defined(DEFAULT_RUNAUTH_COMMAND)
   //might be necessary to call runauth to pass credentials
   cmd = DEFAULT_RUNAUTH_COMMAND;
@@ -548,18 +548,18 @@ int remoteCommand(const std::string remoteExecCmd,
   //remoteExecArgList.push_back("-l0");
 
   // execute the command
-  mc_printf(MCFL, stderr, "Calling execCmd: %s ", cmd.c_str());
+  mrn_printf(3, MCFL, stderr, "Calling execCmd: %s ", cmd.c_str());
   for(i=0; i<remoteExecArgList.size(); i++){
     _fprintf((stderr, "%s ", remoteExecArgList[i].c_str()));
   }
   _fprintf((stderr, "\n"));
 
   if( execCmd(cmd, remoteExecArgList ) == -1){
-    mc_printf(MCFL, stderr, "execCmd() failed\n");
+    mrn_printf(1, MCFL, stderr, "execCmd() failed\n");
     return -1;
   }
 
-  mc_printf(MCFL, stderr, "Leaving remoteCommand()\n");
+  mrn_printf(3, MCFL, stderr, "Leaving remoteCommand()\n");
   return 0;
 }
 
@@ -578,15 +578,20 @@ int rshCommand(const std::string &hostName, const std::string &userName,
     rshCmd = rsh;
   }
 
-  mc_printf(MCFL, stderr, "In rshCmd(). Calling remoteCmd(%s, %s, %s)\n",
+  mrn_printf(3, MCFL, stderr, "In rshCmd(). Calling remoteCmd(%s, %s, %s)\n",
 	     rshCmd.c_str(), hostName.c_str(), command.c_str());
   return remoteCommand( rshCmd, hostName, userName, command, arg_list);
 }
 
-int mc_printf(const char * file, int line, FILE * fp, const char * format, ...){
+int mrn_printf(int level, const char * file, int line, FILE * fp,
+	      const char * format, ...)
+{
   int retval;
   va_list arglist;
 
+  if( level > OUTPUT_LEVEL ){
+    return 0;
+  }
 
   // basename modifies 1st arg, so copy
   char tmp_filename[256];

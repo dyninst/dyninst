@@ -50,23 +50,8 @@ int rshCommand(const std::string &hostName, const std::string &userName,
 int execCmd(const std::string command, const std::vector<std::string> &args);
 
 extern unsigned int _count;
-//static char *mc_tmpfilename;
-//for verbose debugging, comment first 3, uncomment next 3
-//#define mc_printf(X) ;
-//#define mc_printf(X) _mc_printf(X);
 
 #include <libgen.h>
-#define _mc_printf(X) \
-do { \
-  mc_tmpfilename=0; \
-  mc_tmpfilename=strdup(__FILE__); /*basename may modify 1st arg, so copy */\
-  assert(mc_tmpfilename); \
-  fprintf(stderr, "***[%d]: tmp:%p &tmp:%p\n", getpid(), mc_tmpfilename, &mc_tmpfilename); \
-  fprintf(stderr, "[%s:%d:%s:%d]: ", getHostName().c_str(), getpid(), basename(mc_tmpfilename), __LINE__); \
-  fprintf(stderr, "***[%d]: tmp:%p &tmp:%p\n", getpid(), mc_tmpfilename, &mc_tmpfilename); \
-  free(mc_tmpfilename); \
-  fprintf X; fflush(stderr);       \
-} while(0)
 
 struct ltstr
 {
@@ -87,7 +72,7 @@ class tsd_t{
 //#define _perror(X) ;
 #define _fprintf(X) fprintf X ;
 #define _perror(X) perror(X); 
-#define MCFL  __FILE__,__LINE__  //used to call mc_printf(MCFL, ...)
-int mc_printf(const char * file, int line, FILE * fp, const char * format, ...);
+#define MCFL  __FILE__,__LINE__  //used to call mrn_printf(MCFL, ...)
+int mrn_printf(int level, const char * file, int line, FILE * fp, const char * format, ...);
 
 #endif /* __utils_h */

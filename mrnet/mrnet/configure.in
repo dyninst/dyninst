@@ -1,6 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src/Network.C)
+AC_CONFIG_HEADER([src/config.h])
 
 AC_CONFIG_AUX_DIR(conf)
 
@@ -12,32 +13,44 @@ dnl *** C Compiler and Options ***
 AC_ARG_WITH(cc,
             [
 ===Begin MRNET Compile Options:
-  --with-cc                      Specify C compiler],
+  --with-cc                   Specify C compiler],
             [CC="${withval}";], CC="gcc")
 
 AC_ARG_WITH(cflags,
-            [  --with-cflags               Set compiler flags
-                                  - (ONLY USE WITH --with-cc)],
+            [  --with-cflags               Set C compiler flags],
             [CFLAGS="${withval}";], CFLAGS="-O2";)
 
 AC_ARG_WITH(cxx,
-            [  --with-cxx                     Specify C++ compiler],
+            [  --with-cxx                  Specify C++ compiler],
             [CXX="${withval}";],CXX="g++";)
 
-AC_ARG_WITH(cxxnooptflags,
-            [  --with-cxxnooptflags           Set non-optimization compiler flags
-                                  - (ONLY USE WITH --with-cxx)],
+AC_ARG_WITH(cxxflags,
+            [  --with-cxxflags             Set C++ compiler flags],
             [CXXFLAGS="${withval}";], CXXFLAGS="-O2")
 
 AC_ARG_WITH(ldflags,
-            [  --with-ldflags                 Set loader flags],
+            [  --with-ldflags              Set loader flags],
             [LDFLAGS="${withval}";])
 
 AC_ARG_WITH(libfl,
-            [  --with-libfl                   Link line for flex library],
+            [  --with-libfl                Link line for flex library],
             [FLEX_LIB="${withval}";], 
             [AC_CHECK_LIB(fl, [printf], FLEX_LIB="-lfl", [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])] )
 
+AC_ARG_WITH(outputlevel,
+            [  --with-outputlevel          output level (off, *error*, info, debug)],
+            [if test "${withval}" = "off" ; then
+               OUTPUT_LEVEL=0;
+             elif test "${withval}" = "info" ; then
+               OUTPUT_LEVEL=2;
+             elif test "${withval}" = "debug" ; then
+               OUTPUT_LEVEL=3;
+             else
+               OUTPUT_LEVEL=1;
+             fi],
+            [OUTPUT_LEVEL=1])
+
+AC_C_BIGENDIAN
 dnl === SETTING MRNET CONFIGURATION DEFAULTS ===
 
 dnl MRNET_ARCH is host returned by config.guess with
@@ -56,6 +69,8 @@ MRNET_ROOT=`pwd`
 MRNET_VERSION="`cat VERSION`"
 changequote([, ])dnl
 
+AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode")
+AC_DEFINE_UNQUOTED(OUTPUT_LEVEL, $OUTPUT_LEVEL)
 AC_SUBST(MRNET_ARCH)
 AC_SUBST(MRNET_OS)
 AC_SUBST(MRNET_ROOT)
@@ -145,19 +160,6 @@ AC_SUBST(BISON)
 AC_PATH_PROG(SHELL, sh)
 AC_SUBST(SHELL)
 
-AC_ARG_WITH(outputlevel,
-            [  --with-outputlevel             output level (debug,view,none)],
-            [if test "${withval}" = "debug" ; then
-               OUTPUT_LEVEL="-DDEBUG";
-             elif test "${withval}" = "none" ; then
-               OUTPUT_LEVEL="-DNONE";
-             else
-               OUTPUT_LEVEL="-DVIEW";
-             fi],
-            [OUTPUT_LEVEL="-DVIEW"])
-AC_SUBST(OUTPUT_LEVEL)
-
-AC_C_BIGENDIAN
 AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
@@ -165,6 +167,5 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
 
-AC_CONFIG_HEADER([src/config.h])
 AC_OUTPUT(conf/Makefile.$MRNET_ARCH.inc:conf/Makefile.generic-arch.in \
           conf/Makefile.inc Makefile:conf/Makefile.in)

@@ -4,44 +4,44 @@
 #include "mrnet/src/utils.h"
 
 /*===================================================*/
-/*  MC_ChildNode CLASS METHOD DEFINITIONS            */
+/*  ChildNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-MC_ChildNode::MC_ChildNode(bool _threaded, std::string _hostname,
+ChildNode::ChildNode(bool _threaded, std::string _hostname,
                            unsigned short _port)
   :hostname(_hostname), port(_port), threaded(_threaded)
 {}
 
-MC_ChildNode::~MC_ChildNode(void)
+ChildNode::~ChildNode(void)
 {}
 
-int MC_ChildNode::recv_PacketsFromUpStream(std::list <MC_Packet *> &packet_list)
+int ChildNode::recv_PacketsFromUpStream(std::list <Packet *> &packet_list)
 {
-  mc_printf(MCFL, stderr, "In recv_PacketsFromUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "In recv_PacketsFromUpStream()\n");
   return upstream_node->recv(packet_list);
 }
 
-int MC_ChildNode::send_PacketUpStream(MC_Packet *packet)
+int ChildNode::send_PacketUpStream(Packet *packet)
 {
-  mc_printf(MCFL, stderr, "In send_PacketUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "In send_PacketUpStream()\n");
   return upstream_node->send(packet);
 }
 
-int MC_ChildNode::flush_PacketsUpStream()
+int ChildNode::flush_PacketsUpStream()
 {
-  mc_printf(MCFL, stderr, "In flush_PacketsUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "In flush_PacketsUpStream()\n");
   return upstream_node->flush();
 }
-std::string MC_ChildNode::get_HostName(){
+std::string ChildNode::get_HostName(){
   return hostname;
 }
 
-unsigned short MC_ChildNode::get_Port()
+unsigned short ChildNode::get_Port()
 {
   return port;
 }
 
 int
-MC_ChildNode::getConnections( int** conns, unsigned int* nConns )
+ChildNode::getConnections( int** conns, unsigned int* nConns )
 {
     int ret = 0;
 

@@ -1,5 +1,5 @@
-#if !defined(MC_Message_h)
-#define MC_Message_h
+#if !defined(Message_h)
+#define Message_h
 
 #include <list>
 #include <vector>
@@ -11,9 +11,9 @@
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/pdr.h"
 
-class MC_RemoteNode;
-class MC_Packet;
-enum MC_DataTypes{UNKNOWN_T, CHAR_T, UCHAR_T,
+class RemoteNode;
+class Packet;
+enum DataTypes{UNKNOWN_T, CHAR_T, UCHAR_T,
                   CHAR_ARRAY_T, UCHAR_ARRAY_T,
                   STRING_T, STRING_ARRAY_T,
                   INT16_T, UINT16_T,
@@ -24,13 +24,13 @@ enum MC_DataTypes{UNKNOWN_T, CHAR_T, UCHAR_T,
                   INT64_ARRAY_T, UINT64_ARRAY_T,
                   FLOAT_T, DOUBLE_T,
                   FLOAT_ARRAY_T, DOUBLE_ARRAY_T};
-typedef enum MC_DataTypes MC_DataTypes; 
+typedef enum DataTypes DataTypes; 
 
-//enum MC_EncodingTypes{ENCODING_NONE, ENCODING_NBO};
-//typedef enum MC_EncodingTypes MC_EncodingTypes; 
+//enum EncodingTypes{ENCODING_NONE, ENCODING_NBO};
+//typedef enum EncodingTypes EncodingTypes; 
 
-enum MC_PacketTypes{TYPE_CTL, TYPE_DATA};
-typedef enum MC_PacketTypes MC_PacketTypes; 
+enum PacketTypes{TYPE_CTL, TYPE_DATA};
+typedef enum PacketTypes PacketTypes; 
 
 typedef union{
     char c;
@@ -40,22 +40,22 @@ typedef union{
     float f;
     double lf;
     void * p; // May need to be allocated by pdr routine
-} MC_DataValue;
+} DataValue;
 
 typedef struct{
-    MC_DataValue val;
-    MC_DataTypes type;
+    DataValue val;
+    DataTypes type;
     unsigned int array_len;
-}MC_DataElement;
+}DataElement;
 
 
-class MC_Message{
-  std::list <MC_Packet *> packets;
+class Message{
+  std::list <Packet *> packets;
 
  public:
-  void add_Packet(MC_Packet *);
+  void add_Packet(Packet *);
   int send(int sock_fd);
-  int recv(int sock_fd, std::list <MC_Packet *> &packets, MC_RemoteNode*);
+  int recv(int sock_fd, std::list <Packet *> &packets, RemoteNode*);
   int size_Packets();
   int size_Bytes();
 };
@@ -66,9 +66,9 @@ class MC_Message{
     | pkt_type | streamid | tag | srcstr | fmtstr | data|
     -----------------------------------------------------
 *******************************************************************************/
-class MC_Packet: public MC_Error{
+class Packet: public Error{
  private:
-  std::vector <MC_DataElement *> data_elements;
+  std::vector <DataElement *> data_elements;
 
   unsigned short stream_id;
   int tag;                  /* Application/Protocol Level ID */
@@ -80,30 +80,30 @@ class MC_Packet: public MC_Error{
   void DataElementArray2ArgList(va_list arg_list);
 
  public: 
-  MC_Packet(int _tag, const char * fmt, ...);
-  MC_Packet(unsigned short stream_id, int _tag, const char * fmt, va_list);
-  MC_Packet(unsigned int _buf_len, char * _buf);
-  MC_Packet(int _tag,
+  Packet(int _tag, const char * fmt, ...);
+  Packet(unsigned short stream_id, int _tag, const char * fmt, va_list);
+  Packet(unsigned int _buf_len, char * _buf);
+  Packet(int _tag,
                 unsigned short _stream_id,
-                MC_DataElement *, const char * fmt);
+                DataElement *, const char * fmt);
 
   int ExtractVaList(const char * fmt, va_list arg_list); 
   int ExtractArgList(const char * fmt, ...); 
 
-  static bool_t pdr_packet(PDR *, MC_Packet *);
+  static bool_t pdr_packet(PDR *, Packet *);
   int get_Tag();
   int get_StreamId();
   char * get_Buffer();
   unsigned int get_BufferLen();
   const char * get_FormatString();
   unsigned int get_NumElements();
-  MC_DataElement * get_Element(unsigned int);
-  MC_RemoteNode * inlet_node;
+  DataElement * get_Element(unsigned int);
+  RemoteNode * inlet_node;
 };
 
-int MC_read(int fd, void * buf, int size);
-int MC_readmsg(int fd, struct msghdr *msg);
-int MC_write(int fd, const void * buf, int size);
+int read(int fd, void * buf, int size);
+int readmsg(int fd, struct msghdr *msg);
+int write(int fd, const void * buf, int size);
 
-MC_DataTypes Fmt2Type(const char * cur_fmt);
-#endif /* MC_Message_h */
+DataTypes Fmt2Type(const char * cur_fmt);
+#endif /* Message_h */

@@ -150,7 +150,7 @@ uint32_t pdr_sizeof (pdrproc_t func, void *data)
   PDR pdrs;
   bool_t stat;
 
-  mc_printf(MCFL, stderr, "In pdr_sizeof()\n");
+  mrn_printf(3, MCFL, stderr, "In pdr_sizeof()\n");
   pdrs.p_op = XDR_ENCODE;
   pdrs.p_ops = &_ops;
   pdrs.space = 4;  //4-byte byte ordering entity
@@ -161,6 +161,6 @@ uint32_t pdr_sizeof (pdrproc_t func, void *data)
   if (pdrs.cur)
     free (pdrs.cur);
 
-  mc_printf(MCFL, stderr, "pdr_sizeof() returning %d\n", pdrs.space);
+  mrn_printf(3, MCFL, stderr, "pdr_sizeof() returning %d\n", pdrs.space);
   return stat == TRUE ? pdrs.space : 0;
 }

@@ -1,14 +1,14 @@
-#if !defined(__mc_childnode_h)
-#define __mc_childnode_h 1
+#if !defined(__childnode_h)
+#define __childnode_h 1
 
 #include <string>
 
 #include "mrnet/src/Message.h"
 #include "mrnet/src/RemoteNode.h"
 
-class MC_ChildNode{
+class ChildNode{
  protected:
-  MC_RemoteNode * upstream_node;
+  RemoteNode * upstream_node;
 
  private:
   std::string hostname;
@@ -16,13 +16,13 @@ class MC_ChildNode{
   bool threaded;
 
  public:
-  MC_ChildNode(bool, std::string, unsigned short);
-  virtual ~MC_ChildNode(void);
-  virtual int proc_PacketsFromUpStream(std::list <MC_Packet *> &)=0;
-  virtual int proc_DataFromUpStream(MC_Packet *)=0;
+  ChildNode(bool, std::string, unsigned short);
+  virtual ~ChildNode(void);
+  virtual int proc_PacketsFromUpStream(std::list <Packet *> &)=0;
+  virtual int proc_DataFromUpStream(Packet *)=0;
 
-  int recv_PacketsFromUpStream(std::list <MC_Packet *> &packet_list);
-  int send_PacketUpStream(MC_Packet *packet);
+  int recv_PacketsFromUpStream(std::list <Packet *> &packet_list);
+  int send_PacketUpStream(Packet *packet);
   int flush_PacketsUpStream();
 
   std::string get_HostName();
@@ -31,4 +31,4 @@ class MC_ChildNode{
   int getConnections( int** conns, unsigned int* nConns );
 };
 
-#endif /* __mc_childnode_h */
+#endif /* __childnode_h */

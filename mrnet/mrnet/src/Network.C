@@ -19,20 +19,21 @@
 #include "mrnet/src/EndPointImpl.h"
 
 #include "mrnet/h/MR_NetworkC.h"
+using namespace MRN;
 
-MC_NetworkImpl * MC_Network::network = NULL;
-MC_BackEndNode * MC_Network::back_end = NULL;
+NetworkImpl * Network::network = NULL;
+BackEndNode * Network::back_end = NULL;
 
 /*===========================================================*/
-/*             MC_Network static function DEFINITIONS        */
+/*             Network static function DEFINITIONS        */
 /*===========================================================*/
-int MC_Network::new_Network(const char * _filename,
+int Network::new_Network(const char * _filename,
                                 const char * _commnode,
                                 const char * _application)
 {
-  MC_Network::network = new MC_NetworkImpl(_filename, _commnode, _application);
+  Network::network = new NetworkImpl(_filename, _commnode, _application);
 
-  if( MC_Network::network->fail() ){
+  if( Network::network->fail() ){
     return -1;
   }
   else{
@@ -41,26 +42,26 @@ int MC_Network::new_Network(const char * _filename,
 }
 
 
-int MC_Network::new_NetworkNoBE( const char* cfgFileName,
+int Network::new_NetworkNoBE( const char* cfgFileName,
                                 const char* commNodeExe,
-                                MC_Network::LeafInfo*** leafInfo,
+                                Network::LeafInfo*** leafInfo,
                                 unsigned int* nLeaves )
 {
     int ret = -1;
 
     // build the network
-    MC_Network::network = new MC_NetworkImpl( cfgFileName, commNodeExe, NULL );
-    if( !MC_Network::network->fail() )
+    Network::network = new NetworkImpl( cfgFileName, commNodeExe, NULL );
+    if( !Network::network->fail() )
     {
         if( (leafInfo != NULL) && (nLeaves != NULL) )
         {
-            MC_Network::network->get_LeafInfo( leafInfo, nLeaves );
+            Network::network->get_LeafInfo( leafInfo, nLeaves );
             ret = 0;
         }
         else
         {
             // TODO is this the right error?
-            ret = MC_ENETWORK_FAILURE;
+            ret = MRN_ENETWORK_FAILURE;
         }
     }
 
@@ -70,14 +71,14 @@ int MC_Network::new_NetworkNoBE( const char* cfgFileName,
 
 
 int
-MC_Network::connect_Backends( void )
+Network::connect_Backends( void )
 {
     // TODO is this the right error?
-    int ret = MC_ENETWORK_FAILURE;
+    int ret = MRN_ENETWORK_FAILURE;
 
-    if( MC_Network::network != NULL )
+    if( Network::network != NULL )
     {
-        ret = MC_Network::network->connect_Backends();
+        ret = Network::network->connect_Backends();
     }
     return ret;
 }
@@ -86,24 +87,24 @@ MC_Network::connect_Backends( void )
 
 
 
-void MC_Network::delete_Network()
+void Network::delete_Network()
 {
-  delete MC_Network::network;
+  delete Network::network;
 }
 
 
 int
-MC_Network::getConnections( int** conns, unsigned int* nConns )
+Network::getConnections( int** conns, unsigned int* nConns )
 {
     int ret = 0;
 
-    if( MC_Network::network != NULL )
+    if( Network::network != NULL )
     {
-        ret = MC_Network::network->getConnections( conns, nConns );
+        ret = Network::network->getConnections( conns, nConns );
     }
     else
     {
-        ret = MC_Network::back_end->getConnections( conns, nConns );
+        ret = Network::back_end->getConnections( conns, nConns );
         assert( (ret != 0) || (*nConns == 1) );
     }
 
@@ -112,7 +113,7 @@ MC_Network::getConnections( int** conns, unsigned int* nConns )
 
 
 
-int MC_Network::init_Backend(const char *_hostname, const char *_port,
+int Network::init_Backend(const char *_hostname, const char *_port,
                              const char *_phostname,
                              const char *_pport, const char *_pid)
 {
@@ -123,7 +124,7 @@ int MC_Network::init_Backend(const char *_hostname, const char *_port,
     return init_Backend(_hostname, port, _phostname, pport, pid );
 }
 
-int MC_Network::init_Backend(const char *_hostname, unsigned int port,
+int Network::init_Backend(const char *_hostname, unsigned int port,
                              const char *_phostname,
                              unsigned int pport, unsigned int pid)
 {
@@ -153,9 +154,9 @@ int MC_Network::init_Backend(const char *_hostname, unsigned int port,
     exit(-1);
   }
 
-  MC_Network::back_end = new MC_BackEndNode(host, port, phost, pport, pid);
+  Network::back_end = new BackEndNode(host, port, phost, pport, pid);
 
-  if( MC_Network::back_end->fail()){
+  if( Network::back_end->fail()){
     return -1;
   }
   else{
@@ -163,59 +164,59 @@ int MC_Network::init_Backend(const char *_hostname, unsigned int port,
   }
 }
 
-void MC_Network::error_str(const char *s)
+void Network::error_str(const char *s)
 {
-  MC_Network::network->perror(s);
+  Network::network->perror(s);
 }
 
 /*================================================*/
-/*             MC_Stream class DEFINITIONS        */
+/*             Stream class DEFINITIONS        */
 /*================================================*/
-MC_Stream * MC_Stream::new_Stream(MC_Communicator *comm, int _filter_id)
+Stream * Stream::new_Stream(Communicator *comm, int _filter_id)
 {
-  //printf(MCFL, stderr, "comm(%p) size:%d\n",
-	     //comm, ((MC_CommunicatorImpl*)(comm))->get_EndPoints()->size());
-  //printf(MCFL, stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints());
-  return new MC_StreamImpl(comm, _filter_id);
+  //printf(3, MCFL, stderr, "comm(%p) size:%d\n",
+	     //comm, ((CommunicatorImpl*)(comm))->get_EndPoints()->size());
+  //printf(3, MCFL, stderr, "comm's endpoint: %p\n", ((CommunicatorImpl*)(comm))->get_EndPoints());
+  return new StreamImpl(comm, _filter_id);
 }
 
-int MC_Stream::recv(int *tag, void **buf, MC_Stream ** stream)
+int Stream::recv(int *tag, void **buf, Stream ** stream)
 {
-  return MC_StreamImpl::recv(tag, buf, stream);
+  return StreamImpl::recv(tag, buf, stream);
 }
 
 
-int MC_Stream::unpack(char * buf, char const *fmt_str, ...)
+int Stream::unpack(char * buf, char const *fmt_str, ...)
 {
     va_list arg_list;
 
     va_start( arg_list, fmt_str );
-    int ret = MC_StreamImpl::unpack( buf, fmt_str, arg_list );
+    int ret = StreamImpl::unpack( buf, fmt_str, arg_list );
     va_end( arg_list );
     return ret;
 }
 
 
 /*======================================================*/
-/*             MC_Communicator class DEFINITIONS        */
+/*             Communicator class DEFINITIONS        */
 /*======================================================*/
-MC_Communicator * MC_Communicator::new_Communicator()
+Communicator * Communicator::new_Communicator()
 {
-  return new MC_CommunicatorImpl;
+  return new CommunicatorImpl;
 }
 
-MC_Communicator * MC_Communicator::get_BroadcastCommunicator()
+Communicator * Communicator::get_BroadcastCommunicator()
 {
-  return MC_CommunicatorImpl::get_BroadcastCommunicator();
+  return CommunicatorImpl::get_BroadcastCommunicator();
 }
 
 /*==================================================*/
-/*             MC_EndPoint class DEFINITIONS        */
+/*             EndPoint class DEFINITIONS        */
 /*==================================================*/
-MC_EndPoint * MC_EndPoint::new_EndPoint(int _id, const char * _hostname,
+EndPoint * EndPoint::new_EndPoint(int _id, const char * _hostname,
                                         unsigned short _port)
 {
-  return new MC_EndPointImpl(_id, _hostname, _port);
+  return new EndPointImpl(_id, _hostname, _port);
 }
 
 

@@ -14,9 +14,9 @@ void BeDaemon( void );
 
 int main(int argc, char **argv)
 {
-  MC_InternalNode *comm_node;
+  InternalNode *comm_node;
   int i, status;
-  std::list <MC_Packet *> packet_list;
+  std::list <Packet *> packet_list;
 
   // become a daemon
   BeDaemon();
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  comm_node = new MC_InternalNode(hostname, port, parent_hostname,
+  comm_node = new InternalNode(hostname, port, parent_hostname,
                                   parent_port, parent_id);
 
   comm_node->waitLoop();

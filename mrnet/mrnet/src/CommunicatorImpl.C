@@ -1,5 +1,5 @@
 /*===========================================================*/
-/*      MC_CommunicatorImpl CLASS METHOD DEFINITIONS             */
+/*      CommunicatorImpl CLASS METHOD DEFINITIONS             */
 /*===========================================================*/
 
 #include <stdio.h>
@@ -7,19 +7,19 @@
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
-MC_CommunicatorImpl * MC_CommunicatorImpl::comm_Broadcast=NULL;
+CommunicatorImpl * CommunicatorImpl::comm_Broadcast=NULL;
 
-MC_CommunicatorImpl * MC_CommunicatorImpl::get_BroadcastCommunicator(void)
+CommunicatorImpl * CommunicatorImpl::get_BroadcastCommunicator(void)
 {
   return comm_Broadcast;
 }
 
-void MC_CommunicatorImpl::create_BroadcastCommunicator(std::vector <MC_EndPoint *> * _endpoints)
+void CommunicatorImpl::create_BroadcastCommunicator(std::vector <EndPoint *> * _endpoints)
 {
   //unsigned int i;
-  comm_Broadcast = new MC_CommunicatorImpl( *_endpoints );
+  comm_Broadcast = new CommunicatorImpl( *_endpoints );
 
-  //mc_printf(MCFL, stderr, "In create_BroadCastComm(). comm_bc: [ ");
+  //mrn_printf(3, MCFL, stderr, "In create_BroadCastComm(). comm_bc: [ ");
   //for(i=0; i<comm_Broadcast->endpoints->size(); i++){
     //_fprintf((stderr, "%s:%d:%d, ",
               //(*comm_Broadcast->endpoints)[i]->get_HostName(),
@@ -28,35 +28,35 @@ void MC_CommunicatorImpl::create_BroadcastCommunicator(std::vector <MC_EndPoint 
   //}
   //_fprintf((stderr, "]\n"));
 
-  //mc_printf(MCFL, stderr, "comm_bc size: %d\n",
+  //mrn_printf(3, MCFL, stderr, "comm_bc size: %d\n",
              //comm_Broadcast->get_EndPoints()->size());
   return;  
 }
 
-MC_CommunicatorImpl::MC_CommunicatorImpl(void)
-  : endpoints( new std::vector<MC_EndPoint*> )
+CommunicatorImpl::CommunicatorImpl(void)
+  : endpoints( new std::vector<EndPoint*> )
 {}
 
-MC_CommunicatorImpl::MC_CommunicatorImpl( const std::vector<MC_EndPoint*>& eps )
-  : endpoints( new std::vector<MC_EndPoint*> )
+CommunicatorImpl::CommunicatorImpl( const std::vector<EndPoint*>& eps )
+  : endpoints( new std::vector<EndPoint*> )
 {
     *endpoints = eps;
 }
 
-MC_CommunicatorImpl::MC_CommunicatorImpl(MC_Communicator &comm)
-  : endpoints( new std::vector<MC_EndPoint*> )
+CommunicatorImpl::CommunicatorImpl(Communicator &comm)
+  : endpoints( new std::vector<EndPoint*> )
 {
-  *endpoints = *(static_cast<MC_CommunicatorImpl&>(comm).endpoints);
+  *endpoints = *(static_cast<CommunicatorImpl&>(comm).endpoints);
 }
 
-MC_CommunicatorImpl::~MC_CommunicatorImpl(void)
+CommunicatorImpl::~CommunicatorImpl(void)
 {
     delete endpoints;
 }
 
-int MC_CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _port)
+int CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _port)
 {
-  MC_EndPoint * new_endpoint = MC_Network::network->get_EndPoint(_hostname, _port);
+  EndPoint * new_endpoint = Network::network->get_EndPoint(_hostname, _port);
 
   if(new_endpoint == NULL){
     return -1;
@@ -66,7 +66,7 @@ int MC_CommunicatorImpl::add_EndPoint(const char * _hostname, unsigned short _po
   return 0;
 }
 
-int MC_CommunicatorImpl::add_EndPoint(MC_EndPoint * new_endpoint)
+int CommunicatorImpl::add_EndPoint(EndPoint * new_endpoint)
 {
   if(new_endpoint){
     endpoints->push_back(new_endpoint);
@@ -77,13 +77,13 @@ int MC_CommunicatorImpl::add_EndPoint(MC_EndPoint * new_endpoint)
   }
 }
 
-unsigned int MC_CommunicatorImpl::size(void) const
+unsigned int CommunicatorImpl::size(void) const
 {
     assert( endpoints != NULL );
     return endpoints->size();
 }
 
-const char * MC_CommunicatorImpl::get_HostName(int id) const
+const char * CommunicatorImpl::get_HostName(int id) const
 {
     const char* ret = NULL;
 
@@ -95,7 +95,7 @@ const char * MC_CommunicatorImpl::get_HostName(int id) const
     return ret;
 }
 
-unsigned short MC_CommunicatorImpl::get_Port(int id) const
+unsigned short CommunicatorImpl::get_Port(int id) const
 {
     //Needs better error code
     unsigned short ret = 0;
@@ -107,7 +107,7 @@ unsigned short MC_CommunicatorImpl::get_Port(int id) const
     return ret;
 }
 
-unsigned int MC_CommunicatorImpl::get_Id(int id) const
+unsigned int CommunicatorImpl::get_Id(int id) const
 {
     //Needs better error code
     unsigned int ret = 0;
@@ -119,7 +119,7 @@ unsigned int MC_CommunicatorImpl::get_Id(int id) const
     return ret;
 }
 
-const std::vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints() const
+const std::vector <EndPoint *> * CommunicatorImpl::get_EndPoints() const
 {
   return endpoints;
 }

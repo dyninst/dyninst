@@ -1,15 +1,17 @@
 #if !defined(mc_network_h)
 #define mc_network_h 1
 
-#ifndef NULL
+#if !defined(NULL)
 #  define NULL (0)
 #endif // NULL
 
-class MC_NetworkImpl;
-class MC_BackEndNode;
+class NetworkImpl;
+class BackEndNode;
 
-
-class MC_Network{
+#include "mrnet/src/FilterDefinitions.h"
+namespace MRN
+{
+class Network{
  public:
     class LeafInfo
     {
@@ -41,13 +43,13 @@ class MC_Network{
   static int getConnections( int** conns, unsigned int* nConns );
   static void error_str(const char *);
 
-  static MC_NetworkImpl * network;
-  static MC_BackEndNode * back_end;
+  static NetworkImpl * network;
+  static BackEndNode * back_end;
 };
 
-class MC_EndPoint{
+class EndPoint{
  public:
-  static MC_EndPoint * new_EndPoint(int _id, const char * _hostname,
+  static EndPoint * new_EndPoint(int _id, const char * _hostname,
                                     unsigned short _port);
   virtual bool compare(const char * _hostname, unsigned short _port) =NULL;
   virtual const char * get_HostName() =NULL;
@@ -55,33 +57,35 @@ class MC_EndPoint{
   virtual unsigned int get_Id() =NULL;
 };
 
-class MC_Communicator{
+class Communicator{
  public:
-  static MC_Communicator * new_Communicator();
-  static MC_Communicator * new_Communicator(MC_Communicator &);
-  static MC_Communicator * get_BroadcastCommunicator();
+  static Communicator * new_Communicator();
+  static Communicator * new_Communicator(Communicator &);
+  static Communicator * get_BroadcastCommunicator();
 
   virtual int add_EndPoint(const char * hostname, unsigned short port)=NULL;
-  virtual int add_EndPoint(MC_EndPoint *)=NULL;
+  virtual int add_EndPoint(EndPoint *)=NULL;
   virtual unsigned int size() const =NULL;
   virtual const char * get_HostName(int) const =NULL; 
   virtual unsigned short get_Port(int) const =NULL;
   virtual unsigned int get_Id(int) const =NULL;
 };
 
-class MC_Stream{
+class Stream{
  public:
-  static MC_Stream * new_Stream(MC_Communicator *, int _filter_id);
-  static int recv(int *tag, void **buf, MC_Stream ** stream);
+  static Stream * new_Stream(Communicator *, int _filter_id);
+  static int recv(int *tag, void **buf, Stream ** stream);
   static int unpack(char * buf, const char * format_str, ...);
 
   virtual int send(int tag, const char * format_str, ...)=NULL;
   virtual int flush()=NULL;
   virtual int recv(int *tag, void **buf)=NULL;
 
-  //static MC_Stream * get_Stream(int stream_id);
-  //static MC_Stream * new_Stream(int stream_id, int * backends=NULL,
+  //static Stream * get_Stream(int stream_id);
+  //static Stream * new_Stream(int stream_id, int * backends=NULL,
   // int num_backends=-1, int filter_id=-1)=NULL;
 };
+
+} /* namespace MRN */
 
 #endif /* mrnet_H */

@@ -7,10 +7,12 @@
 #include "mrnet/tests/timer.h"
 #include "mrnet/tests/microbench.h"
 
+using namespace MRN;
+
 int main(int argc, char **argv){
     char *topology_file, *application, *commnode_exe;
     int num_exps, num_waves;
-    MC_Stream * stream_BC;
+    Stream * stream_BC;
     int tag;
     int i, j;
     char * buf=NULL;
@@ -51,15 +53,15 @@ int main(int argc, char **argv){
     red_thru = new double[num_exps];
     
     startup_start.set_time();
-    if( MC_Network::new_Network(topology_file, application, commnode_exe) == -1){
+    if( Network::new_Network(topology_file, application, commnode_exe) == -1){
         fprintf(stderr, "%s: Network Initialization failed\n", argv[0]);
-        MC_Network::error_str(argv[0]);
+        Network::error_str(argv[0]);
         exit(-1);
     }
     
-    MC_Communicator * comm_BC = MC_Communicator::get_BroadcastCommunicator();
+    Communicator * comm_BC = Communicator::get_BroadcastCommunicator();
     
-    stream_BC = MC_Stream::new_Stream(comm_BC, AGGR_FLOAT_MAX_ID);
+    stream_BC = Stream::new_Stream(comm_BC, AGGR_FLOAT_MAX_ID);
     
     //make a broadcast request for start time, then await result
     if( stream_BC->send(MB_SEND_STARTUP_TIME, "%d", num_waves) == -1 ){
@@ -104,7 +106,7 @@ int main(int argc, char **argv){
         }
         
         for (j = 0; j < num_waves; ){
-            MC_Stream * stream;
+            Stream * stream;
             
             if(stream_BC->recv(&tag, (void **)&buf) > 0){
                 if( j == 0 ){
@@ -127,7 +129,7 @@ int main(int argc, char **argv){
         fprintf(stderr, "%s: stream.send() failed\n", argv[0]);
         exit(-1);
     }
-    MC_Network::delete_Network();
+    Network::delete_Network();
     
     f = fopen(output_filename, "a"); assert(f);
     fprintf(f, "EXP: %s %s num_waves:%d num_exps:%d\n"

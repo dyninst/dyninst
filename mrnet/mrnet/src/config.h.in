@@ -9,8 +9,9 @@
 #define DEFAULT_RUNAUTH_COMMAND "/s/std/bin/runauth"
 #define RSH_COMMAND_ENV "RSH_COMMAND"
 
-#define COMMNODE_EXE @MRNET_ROOT@/bin/@host@/comm_node
-// #define EXE_COMMNODE "/home/darnold/WORK/mrnet/bin/comm_node"
+#undef COMMNODE_EXE
+
+#undef OUTPUT_LEVEL
 
 //Autoconfigured macros below
 #undef WORDS_BIGENDIAN

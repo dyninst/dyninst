@@ -5,10 +5,12 @@
 #include "mrnet/h/MR_Network.h"
 #include "mrnet/tests/FloatAvg.h"
 
+using namespace MRN;
+
 int main(int argc, char **argv){
   char *topology_file, *application, *commnode_exe;
   int num_trials;
-  MC_Stream * stream_BC;
+  Stream * stream_BC;
   int tag;
   float *recv_vals;
   char * buf=NULL;
@@ -26,15 +28,15 @@ int main(int argc, char **argv){
   application = argv[3];
   commnode_exe = argv[4];
 
-  if( MC_Network::new_Network(topology_file, application, commnode_exe) == -1){
+  if( Network::new_Network(topology_file, application, commnode_exe) == -1){
     fprintf(stderr, "%s: Network Initialization failed\n", argv[0]);
-    MC_Network::error_str(argv[0]);
+    Network::error_str(argv[0]);
     exit(-1);
   }
 
-  MC_Communicator * comm_BC = MC_Communicator::get_BroadcastCommunicator();
+  Communicator * comm_BC = Communicator::get_BroadcastCommunicator();
 
-  stream_BC = MC_Stream::new_Stream(comm_BC, AGGR_FLOAT_AVG_ID);
+  stream_BC = Stream::new_Stream(comm_BC, AGGR_FLOAT_AVG_ID);
 
   fprintf(stderr, "%s: sending number of trials to BEs: %d ...\n", argv[0],
           num_trials);
@@ -51,9 +53,9 @@ int main(int argc, char **argv){
   }
 
   for (int i = 0; i < num_trials; ){
-    MC_Stream * stream;
+    Stream * stream;
 
-    if(MC_Stream::recv(&tag, (void **)&buf, &stream) > 0){
+    if(Stream::recv(&tag, (void **)&buf, &stream) > 0){
       stream->unpack(buf, "%f", recv_vals+i);
       fprintf(stderr, "%s: Recieved val: %f from backends\n", argv[0],
               recv_vals[i]);
@@ -61,7 +63,7 @@ int main(int argc, char **argv){
     }
   }
 
-  MC_Network::delete_Network();
+  Network::delete_Network();
   fprintf(stderr, "%s: Experiment Summary:\n\tReceived Values: [", argv[0]);
   for(int i=0; i<num_trials; i++){
     fprintf(stderr, "%f%s", recv_vals[i], (i==num_trials-1? "]": ", "));

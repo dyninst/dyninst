@@ -1,5 +1,5 @@
-#if !defined(mc_networkimpl_h)
-#define mc_networkimpl_h 1
+#if !defined(__networkimpl_h)
+#define __networkimpl_h 1
 
 #include <vector>
 #include <string>
@@ -12,15 +12,16 @@
 #include "mrnet/src/FrontEndNode.h"
 
 #include "mrnet/h/MR_Network.h"
+using namespace MRN;
 
-class MC_NetworkImpl: public MC_Error {
-  friend class MC_NetworkGraph;
-  friend class MC_CommunicatorImpl;
-  friend class MC_StreamImpl;
+class NetworkImpl: public Error {
+  friend class NetworkGraph;
+  friend class CommunicatorImpl;
+  friend class StreamImpl;
 
 
 public:
-    class LeafInfoImpl : public MC_Network::LeafInfo
+    class LeafInfoImpl : public Network::LeafInfo
     {
     private:
         char* host;
@@ -66,25 +67,25 @@ public:
   std::string filename;          /* Name of topology configuration file */
   std::string commnode;          // path to comm_node executable
   std::string application;       /* Name of application to launch */
-  std::vector <MC_EndPoint *> * endpoints; //BackEnds addressed by communicator
-  static MC_BackEndNode * back_end;
-  MC_FrontEndNode *front_end;
+  std::vector <EndPoint *> * endpoints; //BackEnds addressed by communicator
+  static BackEndNode * back_end;
+  FrontEndNode *front_end;
 
-  MC_EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
+  EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
   int parse_configfile();
 
  public:
-  MC_NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
+  NetworkGraph * graph;  /* heirarchical DAG of tree nodes */
   static void error_str(const char *);
   static int recv(void);
-  static int send(MC_Packet *);
+  static int send(Packet *);
 
-  MC_NetworkImpl(const char * _filename,
+  NetworkImpl(const char * _filename,
                     const char * _commnode,
                     const char * _application);
-  ~MC_NetworkImpl();
+  ~NetworkImpl();
 
-    int get_LeafInfo( MC_Network::LeafInfo*** linfo, unsigned int* nLeaves );
+    int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );
 
     int getConnections( int** conns, unsigned int* nConns )
@@ -93,4 +94,4 @@ public:
         }
 };
 
-#endif /* mrnet_H */
+#endif /* __networkimpl_h */

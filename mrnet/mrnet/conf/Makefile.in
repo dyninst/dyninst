@@ -45,10 +45,10 @@ endif  #GNU_COMPILER
 #############################
 # System Specific Definitions
 #############################
-TARGETS = $(LIBMC) $(COMM_NODE) $(TESTS)
+TARGETS = $(LIBMC) $(COMMNODE) $(TESTS)
 INCDIR = -I$(MRNET_ROOT)/..
 LIBMC    =$(LIBDIR)/libmcnetwork.a
-COMM_NODE=$(BINDIR)/comm_node 
+COMMNODE=$(BINDIR)/mrnet_commnode 
 TESTS   = $(BINDIR)/test1_FE $(BINDIR)/test1_BE \
           $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
           $(BINDIR)/microbench_FE $(BINDIR)/microbench_BE $(BINDIR)/config_generator
@@ -118,7 +118,7 @@ $(OBJDIR) $(LIBDIR) $(BINDIR):
         { echo "$@ not a writable directory" >&2; exit 1;} \
     fi 
 
-$(BINDIR)/comm_node: $(COMMNODE_OBJS) $(LIBMC)
+$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMC)
 	echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMC) $(LIBS)
 

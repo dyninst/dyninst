@@ -7,8 +7,10 @@
 #include "mrnet/tests/timer.h"
 #include "mrnet/tests/microbench.h"
 
+using namespace MRN;
+
 int main(int argc, char **argv){
-   MC_Stream * stream;
+   Stream * stream;
    char * buf=NULL;
    int tag, num_waves;
    mb_time be_start, bc_recv;
@@ -16,7 +18,7 @@ int main(int argc, char **argv){
    struct timeval tmp_tv;
 
    be_start.set_time();
-   if( MC_Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
+   if( Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
                                 argv[argc-2], argv[argc-1]) == -1){
       fprintf(stderr, "%s: backend_init() failed\n", argv[0]);
       return -1;
@@ -24,7 +26,7 @@ int main(int argc, char **argv){
 
    while(1){ //keep looping through until we get exit protocol
       while(1){
-         if ( MC_Stream::recv(&tag, (void **)&buf, &stream) == 1){
+         if ( Stream::recv(&tag, (void **)&buf, &stream) == 1){
             break;
          }
       }

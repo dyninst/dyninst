@@ -4,44 +4,44 @@
 #include "mrnet/src/utils.h"
 
 /*======================================*
- *    MC_Filter Class Definition        *
+ *    Filter Class Definition        *
  *======================================*/
-MC_Filter::MC_Filter(unsigned short _filter_id)
+Filter::Filter(unsigned short _filter_id)
   :filter_id(_filter_id)
 {
 }
 
-MC_Filter::~MC_Filter()
+Filter::~Filter()
 {
 }
 
 /*==========================================*
- *    MC_Aggregator Class Definition        *
+ *    Aggregator Class Definition        *
  *==========================================*/
-MC_Aggregator::MC_Aggregator(unsigned short _filter_id)
-  :MC_Filter(_filter_id)
+Aggregator::Aggregator(unsigned short _filter_id)
+  :Filter(_filter_id)
 {
-  aggr_spec = (*MC_ParentNode::AggrSpecById)[filter_id];
+  aggr_spec = (*ParentNode::AggrSpecById)[filter_id];
 }
 
-MC_Aggregator::~MC_Aggregator()
+Aggregator::~Aggregator()
 {
 }
 
-int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
-			        std::list <MC_Packet *> &packets_out)
+int Aggregator::push_packets(std::list <Packet *> &packets_in,
+			        std::list <Packet *> &packets_out)
 {
-  std::list <MC_Packet *>::iterator iter;
-  MC_DataElement **in, **out;
+  std::list <Packet *>::iterator iter;
+  DataElement **in, **out;
   unsigned int in_count=packets_in.size(), out_count=0;
   unsigned int i, j;
 
-  mc_printf(MCFL, stderr, "In aggr.push_packets()\n");
+  mrn_printf(3, MCFL, stderr, "In aggr.push_packets()\n");
 
   if(aggr_spec->filter == NULL){ //do nothing
     packets_out = packets_in;
     packets_in.clear();
-    mc_printf(MCFL, stderr, "NULL FILTER: returning %d packets\n",
+    mrn_printf(3, MCFL, stderr, "NULL FILTER: returning %d packets\n",
               packets_out.size());
     return 0;
   }
@@ -50,7 +50,7 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
   //set of data possibly each downstream_node
   int tag = -1;
   unsigned short streamId = USHRT_MAX;
-  in = new MC_DataElement * [in_count];
+  in = new DataElement * [in_count];
   for(i=0,iter = packets_in.begin(); iter != packets_in.end(); iter++, i++){
 
       assert( aggr_spec->format_str == (*iter)->get_FormatString() );
@@ -63,7 +63,7 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
       }
 
     //for each "downstream node" a packet contains an array of elements
-    in[i] = new MC_DataElement[(*iter)->get_NumElements()] ;
+    in[i] = new DataElement[(*iter)->get_NumElements()] ;
     for(j=0; j<(*iter)->get_NumElements(); j++){
       in[i][j] = *((*iter)->get_Element(j));
     }
@@ -73,41 +73,41 @@ int MC_Aggregator::push_packets(std::list <MC_Packet *> &packets_in,
 
   //put out dataelements in packets and push into packets_out list
   for(i=0; i<out_count; i++){
-    MC_Packet * cur_packet = new MC_Packet(tag,
+    Packet * cur_packet = new Packet(tag,
                                             streamId,
                                             out[i],
                                             aggr_spec->format_str.c_str());
     packets_out.push_back(cur_packet);
-    mc_printf(MCFL, stderr, "filtered packet value: %lf\n", out[i][0].val.lf);
+    mrn_printf(3, MCFL, stderr, "filtered packet value: %lf\n", out[i][0].val.lf);
   }
 
-  mc_printf(MCFL, stderr, "Leaving aggr.push_packets()\n");
+  mrn_printf(3, MCFL, stderr, "Leaving aggr.push_packets()\n");
   return 0;
 }
 
 /*============================================*
- *    MC_Synchronizer Class Definition        *
+ *    Synchronizer Class Definition        *
  *============================================*/
-MC_Synchronizer::MC_Synchronizer(unsigned short _filter_id,
-                                 std::list <MC_RemoteNode *> &nodes)
-  :MC_Filter(_filter_id), downstream_nodes(nodes), object_local_storage(NULL)
+Synchronizer::Synchronizer(unsigned short _filter_id,
+                                 std::list <RemoteNode *> &nodes)
+  :Filter(_filter_id), downstream_nodes(nodes), object_local_storage(NULL)
 {
-  sync = (*MC_ParentNode::SyncById)[filter_id];
+  sync = (*ParentNode::SyncById)[filter_id];
 }
 
-MC_Synchronizer::~MC_Synchronizer()
+Synchronizer::~Synchronizer()
 {
 }
 
-int MC_Synchronizer::push_packets(std::list <MC_Packet *> &packets_in,
-			          std::list <MC_Packet *> &packets_out)
+int Synchronizer::push_packets(std::list <Packet *> &packets_in,
+			          std::list <Packet *> &packets_out)
 {
-  mc_printf(MCFL, stderr, "In sync.push_packets(). Pushing %d packets\n",
+  mrn_printf(3, MCFL, stderr, "In sync.push_packets(). Pushing %d packets\n",
             packets_in.size());
   fsync.lock();
   sync(packets_in, packets_out, downstream_nodes, &object_local_storage);
   fsync.unlock();
-  mc_printf(MCFL, stderr, "Leaving sync.push_packets(). Returning %d packets\n",
+  mrn_printf(3, MCFL, stderr, "Leaving sync.push_packets(). Returning %d packets\n",
             packets_out.size());
   return 0;
 }
@@ -115,8 +115,8 @@ int MC_Synchronizer::push_packets(std::list <MC_Packet *> &packets_in,
 /*==========================================*
  *    Default Aggregator Definitions        *
  *==========================================*/
-void aggr_Int_Sum(MC_DataElement **in_elems, unsigned int in_count,
-                  MC_DataElement ***out_elems, unsigned int *out_count)
+void aggr_Int_Sum(DataElement **in_elems, unsigned int in_count,
+                  DataElement ***out_elems, unsigned int *out_count)
 {
   int sum=0;
 
@@ -125,18 +125,18 @@ void aggr_Int_Sum(MC_DataElement **in_elems, unsigned int in_count,
   }
 
   *out_count = 1;
-  (*out_elems) = new MC_DataElement* [1];
-  (*out_elems)[0] = new MC_DataElement;
+  (*out_elems) = new DataElement* [1];
+  (*out_elems)[0] = new DataElement;
   (*out_elems)[0][0].val.d = sum;
   (*out_elems)[0][0].type = INT32_T;
 }
 
-void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
-                    MC_DataElement ***out_elems, unsigned int *out_count)
+void aggr_Float_Avg(DataElement **in_elems, unsigned int in_count,
+                    DataElement ***out_elems, unsigned int *out_count)
 {
   float avg=0;
 
-  mc_printf(MCFL, stderr, "averaging: [");
+  mrn_printf(3, MCFL, stderr, "averaging: [");
   for(unsigned int i=0; i<in_count; i++){
     _fprintf((stderr, "%f, ", in_elems[i][0].val.f));
     avg += in_elems[i][0].val.f;
@@ -146,18 +146,18 @@ void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
   avg /= (float)in_count;
 
   *out_count = 1;
-  (*out_elems) = new MC_DataElement* [1];
-  (*out_elems)[0] = new MC_DataElement;
+  (*out_elems) = new DataElement* [1];
+  (*out_elems)[0] = new DataElement;
   (*out_elems)[0][0].val.f = avg;
   (*out_elems)[0][0].type = FLOAT_T;
 }
 
-void aggr_Float_Max(MC_DataElement **in_elems, unsigned int in_count,
-                    MC_DataElement ***out_elems, unsigned int *out_count)
+void aggr_Float_Max(DataElement **in_elems, unsigned int in_count,
+                    DataElement ***out_elems, unsigned int *out_count)
 {
   double max=0;
 
-  mc_printf(MCFL, stderr, "max'ing: [");
+  mrn_printf(3, MCFL, stderr, "max'ing: [");
   for(unsigned int i=0; i<in_count; i++){
     _fprintf((stderr, "%lf, ", in_elems[i][0].val.lf));
     if( in_elems[i][0].val.lf > max){
@@ -168,15 +168,15 @@ void aggr_Float_Max(MC_DataElement **in_elems, unsigned int in_count,
 
 
   *out_count = 1;
-  (*out_elems) = new MC_DataElement* [1];
-  (*out_elems)[0] = new MC_DataElement;
+  (*out_elems) = new DataElement* [1];
+  (*out_elems)[0] = new DataElement;
   (*out_elems)[0][0].val.lf = max;
   (*out_elems)[0][0].type = DOUBLE_T;
 }
 
 
-void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
-                           MC_DataElement ***out_elems, unsigned int *out_count)
+void aggr_CharArray_Concat(DataElement **in_elems, unsigned int in_count,
+                           DataElement ***out_elems, unsigned int *out_count)
 {
   int result_array_size=0;
   char *result_array;
@@ -193,8 +193,8 @@ void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
   }
 
   *out_count = 1;
-  (*out_elems) = new MC_DataElement* [1];
-  (*out_elems)[0] = new MC_DataElement;
+  (*out_elems) = new DataElement* [1];
+  (*out_elems)[0] = new DataElement;
   (*out_elems)[0][0].val.p = result_array;
   (*out_elems)[0][0].type = CHAR_ARRAY_T;
 }
@@ -202,8 +202,8 @@ void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
 
 
 void
-aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
-                  MC_DataElement ***out_elems, unsigned int *out_count)
+aggr_IntEqClass(DataElement **in_elems, unsigned int in_count,
+                  DataElement ***out_elems, unsigned int *out_count)
 {
     std::map<unsigned int, std::vector<unsigned int> > classes;
 
@@ -218,7 +218,7 @@ aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
         unsigned int curClassMemIdx = 0;
         for( unsigned int j = 0; j < in_elems[i][0].array_len; j++ )
         {
-            mc_printf( MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
+            mrn_printf(3, MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
                 j,
                 vals[j],
                 memcnts[j] );
@@ -226,10 +226,10 @@ aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
             // update the members for the current class
             for( unsigned int k = 0; k < memcnts[j]; k++ )
             {
-                mc_printf( MCFL, stderr, "%d ", mems[curClassMemIdx+k] );
+                mrn_printf(3, MCFL, stderr, "%d ", mems[curClassMemIdx+k] );
                 classes[vals[j]].push_back( mems[curClassMemIdx+k] );
             }
-            mc_printf( MCFL, stderr, "\n" );
+            mrn_printf(3, MCFL, stderr, "\n" );
             curClassMemIdx += memcnts[j];
         }
     }
@@ -267,8 +267,8 @@ aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
 
     // dump the output classes
     *out_count = 1;
-    (*out_elems) = new MC_DataElement*[1];
-    (*out_elems)[0] = new MC_DataElement[3];
+    (*out_elems) = new DataElement*[1];
+    (*out_elems)[0] = new DataElement[3];
 
     // values
     (*out_elems)[0][0].type = UINT32_ARRAY_T;
@@ -285,21 +285,21 @@ aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
     (*out_elems)[0][2].array_len = nMems;
     (*out_elems)[0][2].val.p = mems;
 
-    mc_printf( MCFL, stderr, "aggrIntEqClass: returning\n" );
+    mrn_printf(3, MCFL, stderr, "aggrIntEqClass: returning\n" );
     unsigned int curMem = 0;
     for( unsigned int i = 0; i < classes.size(); i++ )
     {
-        mc_printf( MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
+        mrn_printf(3, MCFL, stderr, "\tclass %d: val = %u, nMems = %u, mems = ",
             i,
             ((unsigned int*)((*out_elems)[0][0].val.p))[i],
             ((unsigned int*)((*out_elems)[0][1].val.p))[i] );
         for( unsigned int j = 0; j < ((unsigned int*)((*out_elems)[0][1].val.p))[i]; j++ )
         {
-            mc_printf( MCFL, stderr, "%d ", 
+            mrn_printf(3, MCFL, stderr, "%d ", 
                 ((unsigned int*)((*out_elems)[0][2].val.p))[curMem] );
             curMem++;
         }
-        mc_printf( MCFL, stderr, "\n" );
+        mrn_printf(3, MCFL, stderr, "\n" );
     }
 }
 
@@ -307,33 +307,33 @@ aggr_IntEqClass(MC_DataElement **in_elems, unsigned int in_count,
  *    Default Synchronizer Definitions        *
  *============================================*/
 
-void sync_WaitForAll(std::list <MC_Packet *> &packets_in,
-                     std::list <MC_Packet *> &packets_out,
-                     std::list <MC_RemoteNode *> &downstream_nodes,
+void sync_WaitForAll(std::list <Packet *> &packets_in,
+                     std::list <Packet *> &packets_out,
+                     std::list <RemoteNode *> &downstream_nodes,
                      void **object_local_storage)
 {
-  std::map <MC_RemoteNode *, std::list<MC_Packet*> *> * PacketListByNode;
+  std::map <RemoteNode *, std::list<Packet*> *> * PacketListByNode;
 
-  mc_printf(MCFL, stderr, "In sync_WaitForAll()\n");
+  mrn_printf(3, MCFL, stderr, "In sync_WaitForAll()\n");
   if(*object_local_storage == NULL){
-    PacketListByNode = new std::map <MC_RemoteNode *, std::list<MC_Packet*> *>;
+    PacketListByNode = new std::map <RemoteNode *, std::list<Packet*> *>;
     *object_local_storage = PacketListByNode;
 
-    std::list <MC_RemoteNode *>::iterator iter;
-    mc_printf(MCFL, stderr, "Creating Map of %d downstream_nodes\n",
+    std::list <RemoteNode *>::iterator iter;
+    mrn_printf(3, MCFL, stderr, "Creating Map of %d downstream_nodes\n",
               downstream_nodes.size());
     for(iter=downstream_nodes.begin(); iter!=downstream_nodes.end(); iter++){
-      (*PacketListByNode)[(*iter)] = new std::list<MC_Packet*>;
+      (*PacketListByNode)[(*iter)] = new std::list<Packet*>;
     }
   }
   else{
-    PacketListByNode = (std::map <MC_RemoteNode *, std::list<MC_Packet*> *>*)
+    PacketListByNode = (std::map <RemoteNode *, std::list<Packet*> *>*)
                        *object_local_storage;
   }
 
   //place all incoming packets in appropriate list
-  std::list <MC_Packet *>::iterator iter;
-  mc_printf(MCFL, stderr, "Placing %d incoming packets\n", packets_in.size());
+  std::list <Packet *>::iterator iter;
+  mrn_printf(3, MCFL, stderr, "Placing %d incoming packets\n", packets_in.size());
   for(iter = packets_in.begin(); iter != packets_in.end(); iter++){
 
     ((*PacketListByNode)[(*iter)->inlet_node])->push_back(*iter);
@@ -341,8 +341,8 @@ void sync_WaitForAll(std::list <MC_Packet *> &packets_in,
   packets_in.clear();
 
   //check to see if all lists have at least one packet, "a wave"
-  mc_printf(MCFL, stderr, "Checking if all downstream_nodes are ready ...");
-  std::map <MC_RemoteNode *, std::list<MC_Packet*> *>::iterator iter2;
+  mrn_printf(3, MCFL, stderr, "Checking if all downstream_nodes are ready ...");
+  std::map <RemoteNode *, std::list<Packet*> *>::iterator iter2;
   for(iter2=PacketListByNode->begin();
       iter2 != PacketListByNode->end(); iter2++){
     if( ((*iter2).second)->size() == 0 ){
@@ -353,28 +353,28 @@ void sync_WaitForAll(std::list <MC_Packet *> &packets_in,
   }
   _fprintf((stderr, "yes!\n"));
 
-  mc_printf(MCFL, stderr, "Placing outgoing packets\n");
+  mrn_printf(3, MCFL, stderr, "Placing outgoing packets\n");
   //if we get here, all lists ready. push front of all lists onto "packets_out"
   for(iter2=PacketListByNode->begin();
       iter2 != PacketListByNode->end(); iter2++){
     packets_out.push_back( ((*iter2).second)->front() );
     ((*iter2).second)->pop_front();
   }
-  mc_printf(MCFL, stderr, "Returning %d outgoing packets\n", packets_out.size());
+  mrn_printf(3, MCFL, stderr, "Returning %d outgoing packets\n", packets_out.size());
 }
 
-void sync_DontWait(std::list <MC_Packet *> &packets_in,
-                   std::list <MC_Packet *> &packets_out,
-                   std::list <MC_RemoteNode *> &,
+void sync_DontWait(std::list <Packet *> &packets_in,
+                   std::list <Packet *> &packets_out,
+                   std::list <RemoteNode *> &,
                    void **object_local_storage)
 {
   packets_out = packets_in;
   packets_in.clear();
 }
 
-void sync_TimeOut(std::list <MC_Packet *> &packets_in,
-                  std::list <MC_Packet *> &packets_out,
-                  std::list <MC_RemoteNode *> &,
+void sync_TimeOut(std::list <Packet *> &packets_in,
+                  std::list <Packet *> &packets_out,
+                  std::list <RemoteNode *> &,
                   void **object_local_storage)
 {
 }

@@ -6,20 +6,22 @@
 #include "mrnet/src/utils.h"
 #include "mrnet/tests/FloatAvg.h"
 
+using namespace MRN;
+
 int main(int argc, char **argv){
-  MC_Stream * stream;
+  Stream * stream;
   char * buf=NULL;
   int tag, num_trials;
   float *send_vals=0;
 
-  if( MC_Network::init_Backend(argv[argc-5], argv[argc-4],
+  if( Network::init_Backend(argv[argc-5], argv[argc-4],
                                argv[argc-3], argv[argc-2], argv[argc-1]) == -1){
     fprintf(stderr, "%s: backend_init() failed\n", argv[0]);
     return -1;
   }
 
   while(1){
-    if ( MC_Stream::recv(&tag, (void **)&buf, &stream) == 1){
+    if ( Stream::recv(&tag, (void **)&buf, &stream) == 1){
       break;
     }
   }
@@ -40,7 +42,7 @@ int main(int argc, char **argv){
   }
 
   for(int i=0; i<num_trials; i++){
-    mc_printf(MCFL, stderr, "sending float: %f\n", send_vals[i]);
+    mrn_printf(3, MCFL, stderr, "sending float: %f\n", send_vals[i]);
     if(stream->send(FLOAT_AVG_PROT, "%f", send_vals[i]) == -1){
       fprintf(stderr, "%s: stream.send() failed\n", argv[0]);
       exit(-1);

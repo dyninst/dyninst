@@ -4,9 +4,9 @@
 #include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
 
-extern std::list <MC_NetworkNode *>* hostlist;
-extern std::list <MC_NetworkNode *>* potential_root;
-extern MC_NetworkGraph* parsed_graph;
+extern std::list <NetworkNode *>* hostlist;
+extern std::list <NetworkNode *>* potential_root;
+extern NetworkGraph* parsed_graph;
 
 #if defined(__cplusplus)
 extern "C" {
@@ -22,7 +22,7 @@ extern int linenum;
 %union {
   unsigned short port;
   char * hostname;
-  MC_NetworkNode * node_ptr;
+  NetworkNode * node_ptr;
 }
 
 %token <port> PORT 
@@ -35,10 +35,10 @@ config: line config
       | line
           {
 	    if(potential_root->size() != 1){
-	      mc_printf(MCFL, stderr, "graph is not connected\n");
+	      mrn_printf(1, MCFL, stderr, "graph is not connected\n");
 	      YYABORT;
 	    }	   
-            std::list<MC_NetworkNode *>::iterator iter=potential_root->begin();
+            std::list<NetworkNode *>::iterator iter=potential_root->begin();
 	    parsed_graph->set_Root(*iter);
 	    fprintf(stderr, "Graph's Root/FE is %s:%hd\n",
                        (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
@@ -48,9 +48,9 @@ line: host ARROW hosts SEMI
         {
 	  //fprintf(stderr, "%s:%hd's children are:\n",$1->get_HostName().c_str(),
 		     //$1->get_Port() );
-          std::list<MC_NetworkNode *>::iterator iter=hostlist->begin();
+          std::list<NetworkNode *>::iterator iter=hostlist->begin();
           for(; iter != hostlist->end(); iter++){
-	    MC_NetworkNode * cur_node;
+	    NetworkNode * cur_node;
 	    cur_node = (*iter);
 	    potential_root->remove(cur_node); //node cannot be a root, remove
 	    //fprintf(stderr, " %s:%hd\n", cur_node->get_HostName().c_str(),
@@ -78,10 +78,10 @@ hosts: hosts host
 host: HOSTNAME COLON PORT
         {
 	        // fprintf(stderr, "looking for new node(%s:%d)\n", $1, $3);
-          MC_NetworkNode * cur_node = parsed_graph->find_Node($1, $3);
+          NetworkNode * cur_node = parsed_graph->find_Node($1, $3);
           if(cur_node == NULL){
 	        // fprintf(stderr, "creating new node(%s:%d)\n", $1, $3);
-            cur_node = new MC_NetworkNode($1, $3);
+            cur_node = new NetworkNode($1, $3);
             parsed_graph->add_Node(cur_node);
 	        potential_root->push_back(cur_node);
           }

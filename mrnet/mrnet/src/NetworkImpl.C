@@ -1,5 +1,5 @@
 /*===========================================================*/
-/*             MC_Network Class DEFINITIONS                  */
+/*             Network Class DEFINITIONS                  */
 /*===========================================================*/
 #include <stdio.h>
 
@@ -7,11 +7,11 @@
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/utils.h"
 
-std::list <MC_NetworkNode *>* hostlist = NULL;
-std::list <MC_NetworkNode *>* potential_root = NULL;
-MC_NetworkGraph* parsed_graph = NULL;
+std::list <NetworkNode *>* hostlist = NULL;
+std::list <NetworkNode *>* potential_root = NULL;
+NetworkGraph* parsed_graph = NULL;
 
-MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
+NetworkImpl::NetworkImpl(const char * _filename,
                                 const char * _commnode,
                                 const char * _application)
   :filename(_filename),
@@ -21,9 +21,9 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
    front_end( NULL )
 {
     // ensure our variables are set for parsing
-    parsed_graph = new MC_NetworkGraph;
-    hostlist = new std::list<MC_NetworkNode*>;
-    potential_root = new std::list<MC_NetworkNode*>;
+    parsed_graph = new NetworkGraph;
+    hostlist = new std::list<NetworkNode*>;
+    potential_root = new std::list<NetworkNode*>;
 
   if( parse_configfile() == -1){
     return;
@@ -32,7 +32,7 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
   graph = parsed_graph;  
   if ( graph->has_cycle() ){
     //not really a cycle, but graph is not at least tree.
-    mc_errno = MC_ENETWORK_CYCLE;
+    MRN_errno = MRN_ENETWORK_CYCLE;
     _fail=true;
     return;
   }
@@ -60,25 +60,25 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
     exit(-1);
   }
 
-  MC_NetworkImpl::endpoints = graph->get_EndPoints();
-  MC_CommunicatorImpl::create_BroadcastCommunicator(MC_NetworkImpl::endpoints);
+  NetworkImpl::endpoints = graph->get_EndPoints();
+  CommunicatorImpl::create_BroadcastCommunicator(NetworkImpl::endpoints);
 
   //Frontend is root of the tree
-  front_end = new MC_FrontEndNode(graph->get_Root()->get_HostName(),
+  front_end = new FrontEndNode(graph->get_Root()->get_HostName(),
                         graph->get_Root()->get_Port());
-  MC_SerialGraph sg = graph->get_SerialGraph();
+  SerialGraph sg = graph->get_SerialGraph();
   sg.print();
 
   // save the serialized graph string in a variable on the stack,
   // so that we don't build a packet with a pointer into a temporary
   std::string sg_str = sg.get_ByteArray();
-  MC_Packet *packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s%s%s",
+  Packet *packet = new Packet(MRN_NEW_SUBTREE_PROT, "%s%s%s",
                                     sg_str.c_str(),
                                     application.c_str(),
                                     commnode.c_str() );
   if( front_end->proc_newSubTree( packet )
       == -1){
-    mc_errno = MC_ENETWORK_FAILURE;
+    MRN_errno = MRN_ENETWORK_FAILURE;
     _fail=true;
     return;
   }
@@ -90,18 +90,18 @@ extern FILE * mrnin;
 int mrnparse();
 extern int mrndebug;
 
-int MC_NetworkImpl::parse_configfile()
+int NetworkImpl::parse_configfile()
 {
   // mrndebug=1;
   mrnin = fopen(filename.c_str(), "r");
   if( mrnin == NULL){
-    mc_errno = MC_EBADCONFIG_IO;
+    MRN_errno = MRN_EBADCONFIG_IO;
     _fail = true;
     return -1;
   }
 
   if( mrnparse() != 0 ){
-    mc_errno = MC_EBADCONFIG_FMT;
+    MRN_errno = MRN_EBADCONFIG_FMT;
     _fail = true;
     return -1;
   }
@@ -109,47 +109,47 @@ int MC_NetworkImpl::parse_configfile()
   return 0;
 }
 
-MC_NetworkImpl::~MC_NetworkImpl()
+NetworkImpl::~NetworkImpl()
 {
   delete graph;
   delete endpoints;
   delete front_end;
 }
 
-MC_EndPoint * MC_NetworkImpl::get_EndPoint(const char * _hostname,
+EndPoint * NetworkImpl::get_EndPoint(const char * _hostname,
                                            unsigned short _port)
 {
   unsigned int i;
 
-  for(i=0; i<MC_NetworkImpl::endpoints->size(); i++){
-    if((*MC_NetworkImpl::endpoints)[i]->compare(_hostname, _port) == true){
-      return (*MC_NetworkImpl::endpoints)[i];
+  for(i=0; i<NetworkImpl::endpoints->size(); i++){
+    if((*NetworkImpl::endpoints)[i]->compare(_hostname, _port) == true){
+      return (*NetworkImpl::endpoints)[i];
     }
   }
 
   return NULL;
 }
 
-int MC_NetworkImpl::recv(void)
+int NetworkImpl::recv(void)
 {
-  if(MC_Network::network){
-    mc_printf(MCFL, stderr, "In net.recv(). Calling frontend.recv()\n");
-    return MC_Network::network->front_end->recv();
+  if(Network::network){
+    mrn_printf(3, MCFL, stderr, "In net.recv(). Calling frontend.recv()\n");
+    return Network::network->front_end->recv();
   }
   else{
-    mc_printf(MCFL, stderr, "In net.recv(). Calling backend.recv()\n");
-    return MC_Network::back_end->recv();
+    mrn_printf(3, MCFL, stderr, "In net.recv(). Calling backend.recv()\n");
+    return Network::back_end->recv();
   }
 }
 
 
-int MC_NetworkImpl::send(MC_Packet *packet)
+int NetworkImpl::send(Packet *packet)
 {
-  if(MC_Network::network){
-    return MC_Network::network->front_end->send(packet);
+  if(Network::network){
+    return Network::network->front_end->send(packet);
   }
   else{
-    return MC_Network::back_end->send(packet);
+    return Network::back_end->send(packet);
   }
 }
 
@@ -157,8 +157,8 @@ int MC_NetworkImpl::send(MC_Packet *packet)
 
 static
 bool
-leafInfoCompare( const MC_Network::LeafInfo* a,
-                    const MC_Network::LeafInfo* b )
+leafInfoCompare( const Network::LeafInfo* a,
+                    const Network::LeafInfo* b )
 {
     assert( a != NULL );
     assert( b != NULL );
@@ -167,7 +167,7 @@ leafInfoCompare( const MC_Network::LeafInfo* a,
 
 
 int
-MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
+NetworkImpl::get_LeafInfo( Network::LeafInfo*** linfo,
                                 unsigned int* nLeaves )
 {
     int ret = -1;
@@ -177,7 +177,7 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
     assert( nLeaves != NULL );
 
     // request that our leaves give us their leaf info
-    MC_Packet* pkt = new MC_Packet( MC_GET_LEAF_INFO_PROT, "" );
+    Packet* pkt = new Packet( MRN_GET_LEAF_INFO_PROT, "" );
     if( front_end->proc_getLeafInfo( pkt ) != -1 )
     {
         // Gather the response from the tree
@@ -190,12 +190,12 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
         // our caller, so the tool hasn't yet had the opportunity to start
         // using the network.  The only packets flowing should be our own.
         // 
-        MC_Packet* resp = front_end->get_leafInfoPacket();
+        Packet* resp = front_end->get_leafInfoPacket();
         while( resp == NULL )
         {
             if( front_end->recv() == -1 )
             {
-                mc_printf( MCFL, stderr, "failed to receive leaf info from front end node\n" );
+                mrn_printf(1, MCFL, stderr, "failed to receive leaf info from front end node\n" );
             }
 
             // now - sleep?  how do we block while still processing
@@ -235,11 +235,11 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
                     (nHosts == nPRanks) )
                 {
                     // build un-ordered leaf info vector
-                    std::vector<MC_Network::LeafInfo*> linfov;
+                    std::vector<Network::LeafInfo*> linfov;
                     for( unsigned int i = 0; i < nHosts; i++ )
                     {
-                        MC_Network::LeafInfo* li = 
-                            new MC_NetworkImpl::LeafInfoImpl( ids[i],
+                        Network::LeafInfo* li = 
+                            new NetworkImpl::LeafInfoImpl( ids[i],
                                                                 hosts[i],
                                                                 ranks[i],
                                                                 phosts[i],
@@ -252,7 +252,7 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
                     std::sort( linfov.begin(), linfov.end(), leafInfoCompare );
 
                     // copy sorted vector to output array
-                    *linfo = new MC_Network::LeafInfo*[nHosts];
+                    *linfo = new Network::LeafInfo*[nHosts];
                     for( unsigned int i = 0; i < nHosts; i++ )
                     {
                         (*linfo)[i] = linfov[i];
@@ -263,19 +263,19 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
                 }
                 else
                 {
-                    mc_printf( MCFL, stderr, "leaf info packet corrupt: array size mismatch\n" );
+                    mrn_printf(1, MCFL, stderr, "leaf info packet corrupt: array size mismatch\n" );
                 }
             }
             else
             {
-                mc_printf( MCFL, stderr, "failed to extract arrays from leaf info packet\n" );
+                mrn_printf(1, MCFL, stderr, "failed to extract arrays from leaf info packet\n" );
             }
         }
     }
     else
     {
         // we failed to deliver the request 
-        mc_printf( MCFL, stderr, "failed to deliver request\n" );
+        mrn_printf(1, MCFL, stderr, "failed to deliver request\n" );
     }
 
     return ret;
@@ -284,20 +284,20 @@ MC_NetworkImpl::get_LeafInfo( MC_Network::LeafInfo*** linfo,
 
 
 int
-MC_NetworkImpl::connect_Backends( void )
+NetworkImpl::connect_Backends( void )
 {
     int ret = 0;
 
     // broadcast message to all leaves that they 
     // should accept their connections
-    MC_Packet* pkt = new MC_Packet( MC_CONNECT_LEAVES_PROT, "" );
+    Packet* pkt = new Packet( MRN_CONNECT_LEAVES_PROT, "" );
     if( front_end->proc_connectLeaves( pkt ) != -1 )
     {
 #if READY
         // in an ideal world, we don't have to get a response to this
 #else
         // wait for response (?)
-        MC_Packet* resp = front_end->get_leavesConnectedPacket();
+        Packet* resp = front_end->get_leavesConnectedPacket();
         while( resp == NULL )
         {
             // allow the front end node to handle packets
@@ -318,18 +318,18 @@ MC_NetworkImpl::connect_Backends( void )
             {
                 if( nBackends != nBackendsExpected )
                 {
-                    mc_printf( MCFL, stderr, "unexpected backend count %u (expecting %u)\n",
+                    mrn_printf(1, MCFL, stderr, "unexpected backend count %u (expecting %u)\n",
                                     nBackends, nBackendsExpected );
                 }
             }
             else
             {
-                mc_printf( MCFL, stderr, "format mismatch in leaf connection packet\n" );
+                mrn_printf(1, MCFL, stderr, "format mismatch in leaf connection packet\n" );
             }
         }
         else
         {
-            mc_printf( MCFL, stderr, "failed to receive leaf connection packet\n" );
+            mrn_printf(1, MCFL, stderr, "failed to receive leaf connection packet\n" );
             ret = -1;
         } 
 #endif // READY
@@ -337,7 +337,7 @@ MC_NetworkImpl::connect_Backends( void )
     else
     {
         // we failed to deliver the request
-        mc_printf( MCFL, stderr, "failed to deliver request\n" );
+        mrn_printf(1, MCFL, stderr, "failed to deliver request\n" );
         ret = -1;
     }
 

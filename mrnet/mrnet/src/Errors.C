@@ -3,39 +3,39 @@
 
 #include "mrnet/src/Errors.h"
 
-static struct MC_ErrorDefs errors[]= {
-   { MC_ENONE, MC_INFO, MC_IGNORE, "No Error"},
-   { MC_EBADCONFIG_IO, MC_CRIT, MC_ABORT, "Config File Input Error"},
-   { MC_EBADCONFIG_FMT, MC_CRIT, MC_ABORT, "Config File Format Error"},
-   { MC_ENETWORK_CYCLE, MC_CRIT, MC_ABORT,
+static struct ErrorDefs errors[]= {
+   { MRN_ENONE, MRN_INFO, MRN_IGNORE, "No Error"},
+   { MRN_EBADCONFIG_IO, MRN_CRIT, MRN_ABORT, "Config File Input Error"},
+   { MRN_EBADCONFIG_FMT, MRN_CRIT, MRN_ABORT, "Config File Format Error"},
+   { MRN_ENETWORK_CYCLE, MRN_CRIT, MRN_ABORT,
      "Config File Error: Network cycle exists"},
-   { MC_ENETWORK_NOTCONNECTED, MC_CRIT, MC_ABORT,
+   { MRN_ENETWORK_NOTCONNECTED, MRN_CRIT, MRN_ABORT,
      "Config File Error: Network not fully connected"},
-   { MC_ENETWORK_FAILURE, MC_CRIT, MC_ABORT, "Network Failure"}, 
-   { MC_EOUTOFMEMORY, MC_CRIT, MC_ABORT, "Out of Memory"}, 
-   { MC_EFMTSTR_MISMATCH, MC_ERR, MC_ALERT, "Format string mismatch"}, 
-   { MC_ECREATPROCFAILURE, MC_ERR, MC_ALERT, "Cannot create process"}, 
-   { MC_ECANNOTBINDPORT, MC_ERR, MC_ABORT, "Cannot bind to port"}, 
-   { MC_ESOCKETCONNECT, MC_ERR, MC_ABORT, "Cannot connect to socket"}, 
-   { MC_EPACKING, MC_CRIT, MC_ABORT, "PDR encoding/decoding failure"} };
+   { MRN_ENETWORK_FAILURE, MRN_CRIT, MRN_ABORT, "Network Failure"}, 
+   { MRN_EOUTOFMEMORY, MRN_CRIT, MRN_ABORT, "Out of Memory"}, 
+   { MRN_EFMTSTR_MISMATCH, MRN_ERR, MRN_ALERT, "Format string mismatch"}, 
+   { MRN_ECREATPROCFAILURE, MRN_ERR, MRN_ALERT, "Cannot create process"}, 
+   { MRN_ECANNOTBINDPORT, MRN_ERR, MRN_ABORT, "Cannot bind to port"}, 
+   { MRN_ESOCKETCONNECT, MRN_ERR, MRN_ABORT, "Cannot connect to socket"}, 
+   { MRN_EPACKING, MRN_CRIT, MRN_ABORT, "PDR encoding/decoding failure"} };
 
-MC_Error::MC_Error()
-  :mc_errno(MC_ENONE)
+Error::Error()
+  :MRN_errno(MRN_ENONE)
 {
 }
 
-bool MC_Error::good()
+bool Error::good()
 {
-  return (mc_errno == MC_ENONE);
+  return (MRN_errno == MRN_ENONE);
 }
 
-bool MC_Error::fail()
+bool Error::fail()
 {
-  return !(mc_errno == MC_ENONE);
+  return !(MRN_errno == MRN_ENONE);
 }
 
-void MC_Error::perror(const char *str)
+void Error::perror(const char *str)
 {
-  fprintf(stderr, "%s: %s\n", str, errors[mc_errno].msg);
+  fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
   return;
 }

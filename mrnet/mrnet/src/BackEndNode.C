@@ -7,30 +7,30 @@
 #include "mrnet/src/utils.h"
 
 /*=====================================================*/
-/*  MC_BackEndNode CLASS METHOD DEFINITIONS            */
+/*  BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
 
-MC_BackEndNode::MC_BackEndNode(std::string _hostname,
+BackEndNode::BackEndNode(std::string _hostname,
                                unsigned short _backend_id,
                                std::string _parent_hostname,
                                unsigned short _parent_port,
                                unsigned short _parent_id)
-  :MC_ChildNode(false, _hostname, _backend_id), 
-   MC_CommunicationNode(_hostname, _backend_id),
+  :ChildNode(false, _hostname, _backend_id), 
+   CommunicationNode(_hostname, _backend_id),
    backend_id(_backend_id)
 {
-  MC_RemoteNode::local_child_node = this;
-  mc_printf(MCFL, stderr,
+  RemoteNode::local_child_node = this;
+  mrn_printf(3, MCFL, stderr,
     "creating BackEndNode, host=%s, backendId=%u, parHost=%s, parPort=%u, parRank=%u\n",
     _hostname.c_str(), _backend_id, _parent_hostname.c_str(), _parent_port, _parent_id );
-  upstream_node = new MC_RemoteNode(false, _parent_hostname, _parent_port,
+  upstream_node = new RemoteNode(false, _parent_hostname, _parent_port,
                                     _parent_id);
 
   upstream_node->connect();
   upstream_node->_is_upstream = true;
   if(upstream_node->fail() ){
-    mc_printf(MCFL, stderr, "connect() failed\n");
-    mc_errno = MC_ECANNOTBINDPORT;
+    mrn_printf(1, MCFL, stderr, "connect() failed\n");
+    MRN_errno = MRN_ECANNOTBINDPORT;
     return;
   }
   
@@ -39,37 +39,37 @@ MC_BackEndNode::MC_BackEndNode(std::string _hostname,
   int sret = ::send( upstream_node->get_sockfd(), &idBuf, 4, 0 );
   if( sret == -1 )
   {
-    mc_printf(MCFL, stderr, "send of backend id failed\n");
+    mrn_printf(1, MCFL, stderr, "send of backend id failed\n");
   }
 
-  mc_printf(MCFL, stderr, "Leaving BackEndNode()\n");
+  mrn_printf(3, MCFL, stderr, "Leaving BackEndNode()\n");
 }
 
-MC_BackEndNode::~MC_BackEndNode(void){};
+BackEndNode::~BackEndNode(void){};
 
-int MC_BackEndNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
+int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
 {
   int retval=0;
-  MC_Packet *cur_packet;
+  Packet *cur_packet;
 
-  mc_printf(MCFL, stderr, "In proc_PacketsFromUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "In proc_PacketsFromUpStream()\n");
 
-  std::list<MC_Packet *>::iterator iter=packets.begin();
+  std::list<Packet *>::iterator iter=packets.begin();
   for(; iter != packets.end(); iter++){
     cur_packet = (*iter);
     switch(cur_packet->get_Tag()){
-    case MC_DATA_PROT:
-    case MC_NEW_SUBTREE_PROT:
-    case MC_DEL_SUBTREE_PROT:
-    case MC_RPT_SUBTREE_PROT:
-    case MC_NEW_APPLICATION_PROT:
-    case MC_DEL_APPLICATION_PROT:
-    case MC_NEW_STREAM_PROT:
-    case MC_DEL_STREAM_PROT:
-    case MC_GET_LEAF_INFO_PROT:
-    case MC_CONNECT_LEAVES_PROT:
+    case MRN_DATA_PROT:
+    case MRN_NEW_SUBTREE_PROT:
+    case MRN_DEL_SUBTREE_PROT:
+    case MRN_RPT_SUBTREE_PROT:
+    case MRN_NEW_APPLICATION_PROT:
+    case MRN_DEL_APPLICATION_PROT:
+    case MRN_NEW_STREAM_PROT:
+    case MRN_DEL_STREAM_PROT:
+    case MRN_GET_LEAF_INFO_PROT:
+    case MRN_CONNECT_LEAVES_PROT:
       //these protocol tags should never reach backend
-      mc_printf(MCFL,stderr,"BackEndNode::proc_DataFromUpStream saw poison tag: %d\n",
+      mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream saw poison tag: %d\n",
         cur_packet->get_Tag());
       assert(0);
       break;
@@ -78,76 +78,76 @@ int MC_BackEndNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
 
     default:
       //Any Unrecognized tag is assumed to be data
-      //mc_printf(MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",
+      //mrn_printf(3, MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",
       //cur_packet->get_Tag());
       if(proc_DataFromUpStream(cur_packet) == -1){
-	mc_printf(MCFL, stderr, "proc_DataFromUpStream() failed\n");
+	mrn_printf(1, MCFL, stderr, "proc_DataFromUpStream() failed\n");
 	retval=-1;
       }
-      //mc_printf(MCFL, stderr, "proc_DataFromUpStream() succeded\n");
+      //mrn_printf(3, MCFL, stderr, "proc_DataFromUpStream() succeded\n");
       break;
     }
   }
 
   packets.clear();
-  mc_printf(MCFL, stderr, "proc_PacketsFromUpStream() %s",
+  mrn_printf(3, MCFL, stderr, "proc_PacketsFromUpStream() %s",
              (retval == -1 ? "failed\n" : "succeeded\n"));
   return retval;
 }
 
-int MC_BackEndNode::proc_DataFromUpStream(MC_Packet *packet)
+int BackEndNode::proc_DataFromUpStream(Packet *packet)
 {
-  MC_StreamImpl * stream;
+  StreamImpl * stream;
 
-  mc_printf(MCFL, stderr, "In proc_DataFromUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "In proc_DataFromUpStream()\n");
 
-  stream = MC_StreamImpl::get_Stream(packet->get_StreamId());
+  stream = StreamImpl::get_Stream(packet->get_StreamId());
 
   if( stream ){
-    //mc_printf(MCFL, stderr, "Inserting packet into stream %d\n", packet->get_StreamId());
+    //mrn_printf(3, MCFL, stderr, "Inserting packet into stream %d\n", packet->get_StreamId());
     stream->add_IncomingPacket(packet);
   }
   else{
-    //mc_printf(MCFL, stderr, "Inserting packet into NEW stream %d\n", packet->get_StreamId());
-    stream = new MC_StreamImpl(packet->get_StreamId());
+    //mrn_printf(3, MCFL, stderr, "Inserting packet into NEW stream %d\n", packet->get_StreamId());
+    stream = new StreamImpl(packet->get_StreamId());
     stream->add_IncomingPacket(packet);
   }
-  mc_printf(MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
+  mrn_printf(3, MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
   return 0;
 }
 
-int MC_BackEndNode::send(MC_Packet *packet)
+int BackEndNode::send(Packet *packet)
 {
-  mc_printf(MCFL, stderr, "In backend.send(). Calling sendupstream()\n");
+  mrn_printf(3, MCFL, stderr, "In backend.send(). Calling sendupstream()\n");
   return send_PacketUpStream(packet);
 }
 
-int MC_BackEndNode::flush()
+int BackEndNode::flush()
 {
-  mc_printf(MCFL, stderr, "In backend.flush(). Calling flushupstream()\n");
+  mrn_printf(3, MCFL, stderr, "In backend.flush(). Calling flushupstream()\n");
   return flush_PacketsUpStream();
 }
 
-int MC_BackEndNode::recv()
+int BackEndNode::recv()
 {
-  std::list <MC_Packet *> packet_list;
-  mc_printf(MCFL, stderr, "In backend.recv(). Calling recvfromupstream()\n");
+  std::list <Packet *> packet_list;
+  mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromupstream()\n");
 
   if(recv_PacketsFromUpStream(packet_list) == -1){
-    mc_printf(MCFL, stderr, "recv_packetsfromupstream() failed\n");
+    mrn_printf(1, MCFL, stderr, "recv_packetsfromupstream() failed\n");
     return -1;
   }
 
   if(packet_list.size() == 0){
-    mc_printf(MCFL, stderr, "No packets read!\n");
+    mrn_printf(3, MCFL, stderr, "No packets read!\n");
     return 0;
   }
 
   if(proc_PacketsFromUpStream(packet_list) == -1){
-    mc_printf(MCFL, stderr, "proc_packetsfromupstream() failed\n");
+    mrn_printf(1, MCFL, stderr, "proc_packetsfromupstream() failed\n");
     return -1;
   }
 
-  mc_printf(MCFL, stderr, "Leaving backend.recv().\n");
+  mrn_printf(3, MCFL, stderr, "Leaving backend.recv().\n");
   return 1;
 }
