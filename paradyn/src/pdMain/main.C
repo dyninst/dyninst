@@ -40,9 +40,13 @@
  */
 
 /* $Log: main.C,v $
-/* Revision 1.47  1997/04/21 16:55:52  hseom
-/* added support for trace data
+/* Revision 1.48  1998/03/03 23:35:00  wylie
+/* Added "-x <connect_file>" option for remote/manual paradynd start-up
+/* (aka "Globus" support).
 /*
+ * Revision 1.47  1997/04/21 16:55:52  hseom
+ * added support for trace data
+ *
  * Revision 1.46  1996/11/26 16:07:20  naim
  * Fixing asserts - naim
  *
@@ -248,16 +252,20 @@ main (int argc, char **argv)
 
 // parse the command line arguments
   int a_ct=1;
-  char *fname=0, *sname=0;
+  char *fname=0, *sname=0, *xname=0;
   while (argv[a_ct]) {
     if (fname == 0 && !strcmp(argv[a_ct], "-f") && argv[a_ct+1]) {
       fname = argv[++a_ct];
     } else if (sname == 0 && !strcmp(argv[a_ct], "-s") && argv[a_ct+1]) {
       sname = argv[++a_ct];
+    } else if (xname == 0 && !strcmp(argv[a_ct], "-x") && argv[a_ct+1]) {
+      xname = argv[++a_ct];
     } else if (!default_host.length() && (!strcmp(argv[a_ct], "-default_host") || !strcmp(argv[a_ct], "-d")) && argv[a_ct+1]) {
       default_host = argv[++a_ct];
     } else {
-      printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>] [-default_host <hostname>]\n", argv[0]);
+      printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]"
+                      " [-x <connect_filename>] [-default_host <hostname>]\n",
+                 argv[0]);
       exit(-1);
     }
     a_ct++;
@@ -351,6 +359,9 @@ main (int argc, char **argv)
   if (sname)
     uiMgr->readStartupFile (sname);
  
+  if (xname)
+    dataMgr->printDaemonStartInfo (xname);
+
 // wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
