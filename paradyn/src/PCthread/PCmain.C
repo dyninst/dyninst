@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.76 2003/05/27 03:30:25 schendel Exp $ */
+/* $Id: PCmain.C,v 1.77 2003/05/27 22:30:40 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -145,6 +145,8 @@ void PCenableDataCallback(pdvector<metricInstInfo> *bunchostuff, u_int phaseID,
     rawInput = performanceConsultant::currentRawDataServer;
   if (rawInput)
     rawInput-> newDataEnabled(bunchostuff);
+
+  // allocated in metricFocusReqBundle::flushPerfStreamMsgs()
   delete bunchostuff;
 }
 

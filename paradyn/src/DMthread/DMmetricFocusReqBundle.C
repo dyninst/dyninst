@@ -231,6 +231,10 @@ void metricFocusReqBundle::flushPerfStreamMsgs() {
    if(metricInstInfoBuf.size() == 0)
       return;   // already flushed
 
+   // Is deleted by the visi thread or pc thread when it's done with
+   // the vector of metricInstInfo's.  See
+   //    VISIthreadmain.C / VISIthreadEnableCallback()  and
+   //    PCfilter.C / filteredDataServer::newDataEnabled()
    pdvector<metricInstInfo> *psPacket = new pdvector<metricInstInfo>;
    for(unsigned i=0; i<metricInstInfoBuf.size(); i++)
       (*psPacket).push_back(metricInstInfoBuf[i]);

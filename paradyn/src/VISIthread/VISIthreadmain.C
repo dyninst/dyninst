@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.101 2003/05/27 03:30:27 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.102 2003/05/27 22:30:41 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1017,6 +1017,7 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
           }
        }
     }
+    // allocated in metricFocusReqBundle::flushPerfStreamMsgs()
     delete response;  // all done with response vector
 
     // if something was enabled and if process is not started, then start it
