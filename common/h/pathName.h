@@ -44,9 +44,9 @@
 #ifndef _PATH_NAME_H_
 #define _PATH_NAME_H_
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
+// #include "util/h/ByteArray.h"
 
 string expand_tilde_pathname(const string &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.10 1998/09/02 21:35:55 wylie Exp $
+// $Id: templates.C,v 1.11 2000/07/26 23:02:41 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -47,7 +47,7 @@
 #include "util/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #include "parse.h"
 

@@ -43,17 +43,17 @@
 // templates for perf consultant and visis
 
 #pragma implementation "list.h"
-#include "util/h/list.h"
-#include "util/h/String.h"
+#include "common/h/list.h"
+#include "common/h/String.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "BufferPool.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 
 #pragma implementation "Dictionary.C"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
@@ -93,7 +93,7 @@ template class vector<PCmetricInst*>;
 template class dictionary_hash<unsigned, PCsearch*>;
 template class vector<dictionary_hash<unsigned, PCsearch*>::entry>;
 
-#include "util/src/PriorityQueue.C"
+#include "pdutil/src/PriorityQueue.C"
 template class PriorityQueue<unsigned, searchHistoryNode*>; 
 template ostream &operator<<(ostream &, PriorityQueue<unsigned, searchHistoryNode*> &);
 template class vector<PriorityQueue<unsigned, searchHistoryNode*>::pair>;
@@ -118,7 +118,7 @@ template class vector<dictionary_hash<focus, vector<searchHistoryNode*>*>::entry
 template class vector< vector<searchHistoryNode*> *>;
 //template class vector< vector<searchHistoryNode*> *>;
 
-#include "util/src/CircularBuffer.C"
+#include "pdutil/src/CircularBuffer.C"
 #include "paradyn/src/PCthread/PCintern.h"
 template class circularBuffer<Interval, PCdataQSize>;
 

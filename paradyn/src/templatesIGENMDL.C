@@ -44,13 +44,13 @@
 //
 
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"

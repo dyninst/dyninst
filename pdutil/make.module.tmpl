@@ -3,10 +3,13 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.27 2000/02/15 23:56:21 hollings Exp $
+# $Id: make.module.tmpl,v 1.28 2000/07/26 23:02:42 hollings Exp $
 #
 
-TARGET	      = libpdutil.a
+all:
+	echo "For now continue to build util in the util directory."
+
+#TARGET	      = libpdutil.a
 
 ifdef USES_LIBDYNINST_SO
 CXXFLAGS      += -fPIC

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.1 1997/11/05 01:07:49 wylie Exp $
+ * $Id: templates-nt.C,v 1.2 2000/07/26 23:02:41 hollings Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -51,7 +51,7 @@
  */
 #pragma warning (disable: 4660)
 
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 #include "parse.h"
 
 template class dictionary_hash<string, remote_func*>;

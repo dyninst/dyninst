@@ -49,10 +49,9 @@
 #ifndef UTIL_SAMPLE
 #define UTIL_SAMPLE
 
-//#include "util/h/list.h"
-#include "util/h/hist.h"
-#include "util/h/Vector.h"
-#include "util/h/aggregation.h"
+#include "pdutil/h/hist.h"
+#include "common/h/Vector.h"
+#include "pdutil/h/aggregation.h"
 
 //
 // What gets returned when a newValue is called in sampleInfo;

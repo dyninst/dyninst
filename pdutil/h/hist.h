@@ -42,9 +42,9 @@
 #ifndef HIST
 #define HIST
 
-#include "util/h/Vector.h"
-#include "util/h/sys.h"
-#include "util/h/makenan.h"
+#include "common/h/Vector.h"
+#include "pdutil/h/sys.h"
+#include "pdutil/h/makenan.h"
 
 typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;

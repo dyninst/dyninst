@@ -44,13 +44,13 @@
 //
 
 
-#include "util/h/list.h"
+#include "common/h/list.h"
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 /* ******************************
  * TCthread stuff

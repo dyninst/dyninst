@@ -41,6 +41,14 @@
 /*
  * 
  * $Log: stringPool.h,v $
+ * Revision 1.7  2000/07/26 23:02:46  hollings
+ * Spilt util into common and pdutil.  util is still used (for now) to
+ * build pdutil.  Changed included .C files in various templates to find
+ * moved files.
+ *
+ * util/h files are now #include of the renamed files.   Next step is to fixup
+ * existing includes.
+ *
  * Revision 1.6  1996/08/16 21:30:47  tamches
  * updated copyright for release 1.1
  *
@@ -71,7 +79,7 @@
 #ifndef STRINGPOOL_H
 #define STRINGPOOL_H
 
-#include "util/h/stringDecl.h"
+#include "common/h/stringDecl.h"
 
 #define TAB_SIZE 10004
 

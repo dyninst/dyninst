@@ -43,6 +43,14 @@
 
 /*
  * $Log: PriorityQueue.h,v $
+ * Revision 1.5  2000/07/26 23:02:42  hollings
+ * Spilt util into common and pdutil.  util is still used (for now) to
+ * build pdutil.  Changed included .C files in various templates to find
+ * moved files.
+ *
+ * util/h files are now #include of the renamed files.   Next step is to fixup
+ * existing includes.
+ *
  * Revision 1.4  1996/08/16 21:30:12  tamches
  * updated copyright for release 1.1
  *
@@ -73,7 +81,7 @@
 #define _PRIORITY_QUEUE_H_
 
 #include <iostream.h>
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 template <class KEY, class DATA>
 class PriorityQueue {

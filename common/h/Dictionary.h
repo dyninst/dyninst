@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.21 1999/03/19 00:08:55 csserra Exp $
+// $Id: Dictionary.h,v 1.22 2000/07/26 23:02:36 hollings Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -52,7 +52,7 @@
 #include <string.h>
 #endif
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 /************************************************************************
  * template<class K, class V> class dictionary_hash

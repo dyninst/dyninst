@@ -54,7 +54,7 @@
 #pragma interface
 #endif
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 template <class T>
 class vectorSet {

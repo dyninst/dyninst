@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesUIWASHG.C,v 1.6 1999/08/09 05:39:34 csserra Exp $
+// $Id: templatesUIWASHG.C,v 1.7 2000/07/26 23:02:41 hollings Exp $
 
 // templatesUIWASHG.C
 // templates in the UIthread related to the where axis and search history graph
@@ -53,9 +53,9 @@
  * UIthread WhereAxis stuff
  */
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 #include "paradyn/src/UIthread/where4tree.C"
 #include "paradyn/src/UIthread/rootNode.h"

@@ -40,25 +40,22 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.17 1999/08/09 05:39:33 csserra Exp $
+// $Id: templatesDM.C,v 1.18 2000/07/26 23:02:41 hollings Exp $
 // templates for DMthread, excluding igen templates
 //
 
 #pragma implementation "list.h"
-#include "util/h/list.h"
-#include "util/h/String.h"
+#include "common/h/list.h"
+#include "common/h/String.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "BufferPool.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
-
-//#pragma implementation "DictionaryLite.h"
-//#include "util/src/DictionaryLite.C"
+#include "common/src/Dictionary.C"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
@@ -209,7 +206,7 @@ template class dictionary_hash<resource *, int>;
 template class vector<dictionary_hash<resource *, int>::entry>;
 
 #if defined(rs6000_ibm_aix4_1)
-#include "util/h/Symbol.h"
+#include "pdutil/h/Symbol.h"
 template class vector<Symbol>;
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.19 2000/03/23 01:28:24 wylie Exp $
+ * $Id: String.h,v 1.20 2000/07/26 23:02:37 hollings Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -53,8 +53,8 @@
 ************************************************************************/
 
 #include <iostream.h>
-#include "util/h/debugOstream.h"
-#include "util/h/headers.h"
+#include "common/h/debugOstream.h"
+#include "common/h/headers.h"
 
 
 /************************************************************************
@@ -168,7 +168,7 @@ private:
     mutable unsigned key_;
 };
 
-#include "util/h/refCounter.h"
+#include "common/h/refCounter.h"
 
 class string {
    friend class string_counter;

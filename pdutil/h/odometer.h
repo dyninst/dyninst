@@ -44,7 +44,7 @@
 #ifndef _ODOMETER_H_
 #define _ODOMETER_H_
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 class odometer {
  private:

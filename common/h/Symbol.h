@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.15 2000/01/11 21:57:16 altinel Exp $
+ * $Id: Symbol.h,v 1.16 2000/07/26 23:02:37 hollings Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -59,10 +59,10 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
-#include "util/h/Types.h"
+// #include "util/h/ByteArray.h"
+#include "common/h/Types.h"
 
 
 

@@ -45,7 +45,7 @@
 #if !defined(i386_unknown_nt4_0)
 #include <sys/time.h>
 #endif // defined(i386_unknown_nt4_0)
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 
 #ifdef notdef
 timeStamp getCurrentTime(void) {

@@ -42,15 +42,15 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.45 2000/04/26 18:10:52 pcroth Exp $
+// $Id: rpcUtil.h,v 1.46 2000/07/26 23:02:45 hollings Exp $
 
-#include "util/h/headers.h"
-#include "util/h/pdsocket.h"
-#include "util/h/String.h"
+#include "common/h/headers.h"
+#include "pdutil/h/pdsocket.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
-#include "util/h/Vector.h"
-#include "util/h/vectorSet.h"
+#include "pdutil/h/ByteArray.h"
+#include "common/h/Vector.h"
+#include "common/h/vectorSet.h"
 
 
 /* define following variables are needed for linux platform as they are
