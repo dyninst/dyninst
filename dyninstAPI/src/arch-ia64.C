@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.39 2005/03/22 05:56:31 rchen Exp $
+// $Id: arch-ia64.C,v 1.40 2005/04/06 04:26:37 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -196,7 +196,7 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 							( x6 >= 0x20 && x6 <= 0x27 ) )
 							return FP_LOAD;
 
-						if( ( x6 >= 0x30 && x6 <= 0x32 ) || x6 == 0x3B )
+						if( m == 0x0 && ( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3B ) )
 							return FP_STORE;
 
 						if( x6 == 0x2C || x6 == 0x2D || x6 == 0x2E || x6 == 0x2F )
@@ -204,7 +204,7 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 					}
 
 					if( x == 0x1 ) {
-						if( ( x6 >= 0x01 && x6 <= 0x0F ) || ( x6 >= 0x21 && x6 <= 27 ) )
+						if( ( x6 >= 0x01 && x6 <= 0x0F ) || ( x6 >= 0x21 && x6 <= 0x27 ) )
 								 switch ( x6 & 0x3 ) {
 								 	case 0x1: return INTEGER_PAIR_LOAD;
 								 	case 0x2:
