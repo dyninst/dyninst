@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.19  1996/05/06 04:35:07  karavan
+ * Revision 1.20  1996/05/06 17:12:40  newhall
+ * changed arguments to EnableDataRequest2, commented out debug output
+ *
+ * Revision 1.19  1996/05/06  04:35:07  karavan
  * Bug fix for asynchronous predicted cost changes.
  *
  * added new function find() to template classes dictionary_hash and
@@ -464,7 +467,7 @@ metricInstanceHandle *DMenableDataRequestAsync (perfStreamHandle ps_handle,
   // make async request to enable data
   dataMgr->enableDataRequest2(ps_handle, request, request_Id,
 			      type, phaseId, persistent_data,
-			      persistent_collection);
+			      persistent_collection,0);
   
   // KLUDGE wait for DM's async response
   bool ready=false;
@@ -502,7 +505,7 @@ metricInstanceHandle *DMenableDataRequestAsync (perfStreamHandle ps_handle,
   }
   delete response;
   response = 0;
-  cout << "enable REPLY for m=" << met << " f=" << foc << endl;
+  // cout << "enable REPLY for m=" << met << " f=" << foc << endl;
   return curr;
 }
 
