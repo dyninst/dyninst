@@ -423,6 +423,26 @@ vector<string> *paradynDaemon::getAvailableDaemons()
     names = 0;
 }
 
+// For a given machine name, find the appropriate paradynd structure.
+// Returns NULL if an appropriate matching entry can't be found.
+// Warning: In the current implementation, the speed of this routine
+//          doesn't scale gracefully as the # of daemons increases!
+//          (a hash table of (machine-name to paradynDaemon*) would fix
+//           this situation)
+// Question: Can there be more than one daemon on a machine?  If so,
+//           then this routine would have to be able to return _more_ than
+//           one paradynDaemon.  Currently, although there may be more than
+//           one user _process_ per machine, there's always just one
+//           paradynd per machine.
+paradynDaemon *paradynDaemon::machineName2Daemon(const string &theMachineName) {
+   for (unsigned i=0; i < allDaemons.size(); i++) {
+      paradynDaemon *theDaemon = allDaemons[i];
+      if (theDaemon->getDaemonMachineName() == theMachineName)
+	 return theDaemon;
+   }
+   return NULL; // failure; this machine name isn't known!
+}
+
 // TODO: fix this
 //
 // add a new executable (binary) to a program.
@@ -846,7 +866,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 : dynRPCUser(m, u, c, NULL, NULL, args, false, dataManager::sock_fd),
   machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
 {
-  if (!(this->errorConditionFound)) {
+  if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim
     assert(m.length());
     assert(c.length());
@@ -864,16 +884,20 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons+=pd;
   }
+  // else...we leave "errorConditionFound" for the caller to check...
+  //        don't forget to check!
 }
 
 // machine, name, command, flavor and login are set via a callback
 paradynDaemon::paradynDaemon(int f)
 : dynRPCUser(f, NULL, NULL, false), flavor(0), activeMids(uiHash){
-  if (!(this->errorConditionFound)) {
+  if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons += pd;
   }
+  // else...we leave "errorConditionFound" for the caller to check...
+  //        don't forget to check!
 }
 
 bool our_print_sample_arrival = false;
