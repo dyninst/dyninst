@@ -611,7 +611,12 @@ void controllerMainLoop(bool check_buffer_first)
 
 
     while (1) {
-//        doSignals();
+        // we have moved this code at the beginning of the loop, so we will
+        // process signals before igen requets. this is to avoid problems when
+        // an inferiorRPC is waiting for a system call to complete and an igen
+        // requests arrives at that moment - naim
+	extern void checkProcStatus(); // check status of inferior processes
+	checkProcStatus();
 
 	FD_ZERO(&readSet);
 	FD_ZERO(&errorSet);
@@ -766,22 +771,38 @@ void controllerMainLoop(bool check_buffer_first)
 	        cleanUpAndExit(-1);
 	    }
 
-            // Check if something has arrived from Paradyn on our igen link.
-	    if (FD_ISSET(tp->get_fd(), &readSet)) {
-	      bool no_stuff_there = false;
-	      while(!no_stuff_there) {
-		T_dyninstRPC::message_tags ret = tp->waitLoop();
-		if (ret == T_dyninstRPC::error) {
-		  // assume the client has exited, and leave.
-		  cleanUpAndExit(-1);
-		}
-		no_stuff_there = P_xdrrec_eof(tp->net_obj());
+            bool delayIGENrequests=false;
+	    for (unsigned u=0; u<p_size; u++) {
+	      if (processVec[u] == NULL)
+	        continue; // process structure has been deallocated
+ 
+              if (processVec[u]->isRPCwaitingForSysCallToComplete()) {
+		delayIGENrequests=true;
+		break;
 	      }
 	    }
-	    while (tp->buffered_requests()) {
-	      T_dyninstRPC::message_tags ret = tp->process_buffered();
-	      if (ret == T_dyninstRPC::error)
-		cleanUpAndExit(-1);
+
+            // if we are waiting for a system call to complete in order to
+            // launch an inferiorRPC, we will avoid processing any igen
+	    // request - naim
+	    if (!delayIGENrequests) {
+              // Check if something has arrived from Paradyn on our igen link.
+	      if (FD_ISSET(tp->get_fd(), &readSet)) {
+	        bool no_stuff_there = false;
+	        while(!no_stuff_there) {
+		  T_dyninstRPC::message_tags ret = tp->waitLoop();
+		  if (ret == T_dyninstRPC::error) {
+		    // assume the client has exited, and leave.
+		    cleanUpAndExit(-1);
+		  }
+		  no_stuff_there = P_xdrrec_eof(tp->net_obj());
+	        }
+	      }
+	      while (tp->buffered_requests()) {
+	        T_dyninstRPC::message_tags ret = tp->process_buffered();
+	        if (ret == T_dyninstRPC::error)
+		  cleanUpAndExit(-1);
+	      }
 	    }
 
 #ifdef PARADYND_PVM
@@ -813,10 +834,6 @@ void controllerMainLoop(bool check_buffer_first)
 	// already done.
 	reportInternalMetrics(false);
 #endif
-
-//	doSignals();
-	extern void checkProcStatus(); // check status of inferior processes
-	checkProcStatus();
     }
 }
 

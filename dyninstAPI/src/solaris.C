@@ -213,7 +213,7 @@ int process::waitProcs(int *status) {
      int ret = 0;
 
      if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
-	 && (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP)) {
+	 && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP))) {
        switch (stat.pr_why) {
        case PR_SIGNALLED:
 	 // return the signal number
@@ -467,6 +467,7 @@ bool process::continueProc_() {
     fprintf(stderr, "continueProc_: PIOCRUN 2 failed: %s\n", sys_errlist[errno]);
     return false;
   }
+
   return true;
 }
 
