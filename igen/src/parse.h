@@ -2,10 +2,11 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.9  1994/07/28 22:28:07  krisna
- * changed output file definitions to declarations,
- * xdr_array changes to conform to prototype
- * changed "," to "<<"
+ * Revision 1.10  1994/08/17 17:52:00  markc
+ * Added Makefile for Linux.
+ * Support new source files for igen.
+ * Separate source files.  ClassDefns supports classes, typeDefns supports
+ * structures.
  *
  * Revision 1.8  1994/06/02  23:34:27  markc
  * New igen features: error checking, synchronous upcalls.
@@ -40,12 +41,14 @@
 */
 
 #include "util/h/list.h"
+
 #include "util/h/stringPool.h"
+#include "util/h/list.h"
 
 #include <iostream.h>
 #include <fstream.h>
 
-// the files to write the generated code to
+//  the files to write the generated code to
 extern ofstream dot_h;
 extern ofstream dot_c;
 extern ofstream srvr_dot_c;
@@ -53,32 +56,122 @@ extern ofstream srvr_dot_h;
 extern ofstream clnt_dot_c;
 extern ofstream clnt_dot_h;
 
+typedef enum { USER_DEFN, CLASS_DEFN, TYPE_DEFN } TYPE_ENUM;
+typedef enum { ptrIgnore, ptrDetect, ptrHandle } PTR_TYPE;
+extern PTR_TYPE ptrMode;
+
+class userDefn;         // base for user defined types
 class typeDefn;		// forward decl
+class classDefn;        // forward decl
 class remoteFunc;
+class argument;
+class field;
+
+extern stringPool pool;
 
 extern void dump_to_dot_h(char *);
-extern stringPool pool;
-extern List<typeDefn*> types;
-extern typeDefn *foundType;
 
-void addCMember (char *type, char *name, List<char*>*);
-void addSMember (char *type, char *name, List<char*>*);
-void buildPVMfilters();
-void buildPVMincludes();
-void buildPVMargs();
-void genPVMServerCons(char *);
+void addCMember (char *type, char *name, char *stars);
+void addSMember (char *type, char *name, char *stars);
+
+extern void buildPVMfilters();
+extern void buildPVMincludes();
+extern void buildPVMargs();
+extern void buildFlagHeaders();
+
+extern void genPVMServerCons(char *);
 void genXDRServerCons(char *);
+
+enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
+		  asyncUpcall,      // from server to client, async
+		  syncCall,         // from client to server, sync
+		  asyncCall         // from client to server, async
+		  };
+
+class interfaceSpec;
+
+typedef struct type_data {
+  char *cp;
+  int mallocs;
+  int structs;
+} type_data;
+
+typedef struct pvm_args {
+  char *type_name;
+  char *pvm_name;
+  char *arg;
+} pvm_args;
+
+
+struct func_data {
+  enum upCallType uc;
+  int virtual_f;
+} func_data;
+
+class argument {
+  public:
+    argument(char *t, char *n, char *s, int m);
+    char *type;
+    char *name;
+    int mallocs;
+    char *stars;
+
+    IsAPtr() { return 1;}
+};
+
+class field {
+  public:
+      field(char *t, char *n);
+      char *getName() { return(name); }
+      char *getType() { return(type); }
+      void genBundler(ofstream &ofile, char *obj="&(__ptr__->");
+      void genHeader(ofstream &ofile);
+  private: 
+      char *type;
+      char *name;
+};
+
+class remoteFunc {
+ public:
+  remoteFunc(interfaceSpec *sp, char *st, char *n, char *r, 
+	     List <argument*> &a,
+	     enum upCallType uc,
+	     int v_f,
+	     int rs=0);
+  void genSwitch(int, char *, ofstream &);
+  void genStub(char *interfaceName, int forUpcalls, ofstream &ofile);
+  void genXDRStub(char *, ofstream &ofile);
+  void genPVMStub(char *, ofstream &ofile);
+  void genThreadStub(char *, ofstream &outfile);
+  void genHeader();
+  void genMethodHeader(char *className, int in_client, ofstream &output);
+
+  // at least one arg is a pointer
+    int ArgsRPtr() {return 1;}
+  // return type is a pointer
+    int isPointer() {return 1;}
+  char *name;
+  char *retType;
+  char *structName;
+  List<argument*> args;
+  enum upCallType upcall;
+  int retStructs;
+  int virtual_f;
+ private:
+  interfaceSpec *spec;
+};
+
 class interfaceSpec {
   public:
-    interfaceSpec(char *n, int v, int lowTag) {
+    interfaceSpec( char *n, int v, int lowTag) {
 	name = n;
 	version = v;
 	baseTag = boundTag = lowTag;
     }
-    void newMethod(remoteFunc*f) { methods.add(f); }
+    void newMethod(remoteFunc *f) { methods.add(f); }
     void genClass();
     void generateStubs(ofstream &ofile);
-    void genErrHandler(ofstream &ofile, Boolean client);
+    void genErrHandler(ofstream &ofile, int client);
     void generateClientCode();
     void generateThreadLoop();
     void generateXDRLoop();
@@ -101,107 +194,95 @@ class interfaceSpec {
     int version;
     int baseTag;
     int boundTag;
-    List <remoteFunc *> methods;
+    List<remoteFunc*> methods;
 };
 
 extern class interfaceSpec *currentInterface;
 
-class argument {
-  public:
-    argument(char *t, char *n,  List<char *> *s, int m) {
-	type = t;
-	name = n;
-	stars = s;
-	mallocs = m;
+
+class userDefn {
+public:
+  userDefn(char *n, int userD, List<field*> &f);
+  userDefn(char *n, int userD);
+  char *name;
+  int userDefined;
+  List<field*> fields;
+  int arrayType;
+  int do_ptr;
+
+  virtual void genHeader() {printf("called base function, bye\n"); exit(0); }
+  virtual void genBundler()  {printf("called base function, bye\n"); exit(0); }
+  virtual TYPE_ENUM whichType() { return USER_DEFN;}
+};
+
+
+class classDefn : public userDefn {
+public: 
+  classDefn(char *declared_name, List<field*> &f,
+	    char *parent_name, char *pt);
+  int generateClassId() {
+    int ret = nextTypeId;
+    nextTypeId++;
+    if (nextTypeId > 255) {
+      printf("OVERFLOW, TOO MANY CLASSES\n");
+      exit(0);
     }
-    argument(char *t) {
-	type = t;
-	name = currentInterface->genVariable();
-	mallocs = 0;
-    }
-    char *type;
-    char *name;
-    int mallocs;
-    List<char *> *stars;
+    return ret;
+  }
+  void addChild(classDefn *kid);
+
+  // used to unbundle virtual class derived from a base
+  // if I know a class member is a pointer to a class, I
+  // I can call the bundler as a virtual function, and the
+  // correct bundler is invoked
+  // but unbundling is done by looking at a byte stream, so I
+  // must switch on the type id read from the byte stream
+  int type_id;
+
+  // the classes that are derived from this class
+  List<classDefn*> children;
+
+  // the class that this class is derived from
+  classDefn *parent;
+
+  char *parentName;
+  static int nextTypeId;
+
+  virtual TYPE_ENUM whichType() { return CLASS_DEFN;}
+
+  virtual void genHeader();
+  virtual void genBundler();
+
+ private:
+  void genPtrBundlerXDR();
+  void genPtrBundlerPVM();
+  void genBundlerPVM();
+  void genBundlerXDR();
+  char *passThru;
 };
 
-class field {
-  public:
-      field(char *t, char *n) {
-	  type = t;
-	  name = n;
-      }
-      char *getName() { return(name); }
-      char *getType() { return(type); }
-      void genBundler(ofstream &ofile) {
-	  if (generateXDR) {
-	    ofile << "    if (!xdr_" << type << "(__xdrs__, &(__ptr__->" << name << "))) return FALSE;\n";
-	  } else if (generatePVM) {
-	    ofile << "    IGEN_pvm_" << type << "(__dir__, &(__ptr__->" << name << "));\n";
-	  }
-      }
-      void genHeader(ofstream &ofile) {
-	  ofile << "    " << type << " " << name << ";\n";
-      }
-  private: 
-      char *type;
-      char *name;
+class typeDefn : public userDefn {
+public:
+  typeDefn(char *i, List<field*> &f);
+  typeDefn(char *i);
+  typeDefn(char *i, char *t);	// for arrays types.
+
+  virtual TYPE_ENUM whichType() { return TYPE_DEFN;}
+
+  char *type;
+
+  virtual void genHeader();
+  virtual void genBundler();
+
+ private:
+  void genPtrBundlerXDR();
+  void genPtrBundlerPVM();
+  void genBundlerPVM();
+  void genBundlerXDR();
 };
 
-class typeDefn {
-   public:
-       typeDefn(char *i, List<field *> f) {
-	   name = pool.findAndAdd(i);
-	   fields = f;
-	   userDefined = TRUE;
-	   arrayType = FALSE;
-	   types.add(this, name);
-       }
-       typeDefn(char *i) {
-	   name = pool.findAndAdd(i);
-	   userDefined = FALSE;
-	   arrayType = FALSE;
-	   types.add(this, name);
-       }
-       typeDefn(char *i, char *t) {	// for arrays types.
-	   name = pool.findAndAdd(i);
-	   userDefined = TRUE;
-	   arrayType = TRUE;
-	   type = t;
-	   types.add(this, name);
-       }
-       char *name;
-       char *type;
-       Boolean userDefined;
-       Boolean arrayType;
-       List<field *> fields;
-       void genHeader();
-       void genBundler();
-};
-
-
-enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
-		  asyncUpcall,      // from server to client, async
-		  syncCall,         // from client to server, sync
-		  asyncCall         // from client to server, async
-		  };
-
-class interfaceSpec;
-
-struct type_data {
-  char *cp;
-  int mallocs;
-  int structs;
-};
-
-typedef struct type_data type_data;
-
-struct func_data {
-  enum upCallType uc;
-  int virtual_f;
-};
-
-typedef struct func_data func_data;
+extern List<userDefn*> userPool;
+extern stringPool namePool;
 
 union parseStack {
     type_data td;
@@ -213,44 +294,5 @@ union parseStack {
     func_data fd;
     List<argument*> *args;
     List<field*> *fields;
-    List<char*> *cl;
     interfaceSpec *spec;
 };
-
-
-class remoteFunc {
-  public:
-      remoteFunc(interfaceSpec *sp,
-		 List<char *> *st, 
-		 char *n, char *r, 
-		 List <argument *> a, 
-		 enum upCallType uc,
-		 int v_f,
-		 int rs=0) {
-	  spec = sp;
-	  name = n;
-	  retType = r;
-	  structName = spec->genVariable();
-	  args = a;
-	  upcall = uc;
-	  retStructs = rs;
-	  virtual_f = v_f;
-      }
-      void genSwitch(Boolean, char*, ofstream &);
-      void genStub(char *interfaceName, Boolean forUpcalls, ofstream &ofile);
-      void genXDRStub(char *, ofstream &ofile);
-      void genPVMStub(char *, ofstream &ofile);
-      void genThreadStub(char *, ofstream &outfile);
-      void genHeader();
-      void genMethodHeader(char *className, int in_client, ofstream &output);
-      char *name;
-      char *retType;
-      char *structName;
-      List <argument *> args;
-      enum upCallType upcall;
-      int retStructs;
-      int virtual_f;
-  private:
-      interfaceSpec *spec;
-};
-

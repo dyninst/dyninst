@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.6 1994/06/02 23:34:29 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.7 1994/08/17 17:52:03 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -19,13 +19,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/ige
 extern int generatePVM;
 extern int generateXDR;
 #include "parse.h"
-#include "util/h/stringPool.h"
 
 int parsing;
 int cur_line = 1;
 char cur_file[80];
 extern int emitHeader;
-extern stringPool pool;
 
 int yylook();
 int yyback(int*,int);
@@ -81,15 +79,16 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 %%
 \$remote	{ parsing = 1; 	}
 "//".*\n		{ if (!parsing) REJECT; }
-.*\n		{ if (!parsing) {
-		    if (!strncmp(yytext, "$remote", strlen("$remote"))) {
-			REJECT;
+.*\n		{
+                  if (!parsing) {
+		    if (!strncmp(yytext, "$remote",
+				 strlen("$remote"))) {
+		      REJECT;
 		    } else {
-			if (emitHeader) dump_to_dot_h(yytext);
+		      if (emitHeader) dump_to_dot_h(yytext) ;
 		    }
-	          } else {
+                  } else
 		    REJECT;
-		  }
 		}
 \$upcall	{ return(tUPCALL); }
 \$cmember	{ return(tCMEMBER); }
@@ -100,9 +99,6 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 \$version	{ return(tVERSION); }
 \$async		{ return(tASYNC); }
 \$array		{ return(tARRAY); }
-\$server	{ yylval.cp = serverTypeName;
-		  return(tIDENT);
-		}
 "("		{ return(tLPAREN); }
 ")"		{ return(tRPAREN); }
 "{"		{ return(tLBLOCK); }
@@ -110,16 +106,16 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 ","		{ return(tCOMMA); }
 "[]"		{ return(tARRAY); }
 "*"		{ return(tSTAR); }
+":"		{ return(tCOLON); }
 ";"		{ /* parsing = 0; */
 		  return(tSEMI); 
 		}
 "typedef"	{ return(tTYPEDEF); }
 "struct"	{ return(tSTRUCT); }
-{IDENT}		{ /* it's a identifier */
-			  char *temp;
-		  temp = (char *) malloc(strlen(yytext) + 1);
-		  strcpy(temp, yytext);
-		  yylval.cp = pool.findAndAdd(temp);
+"class"		{ return(tCLASS); }
+\$ignore[^$]*\$ignore		{ yylval.cp = strdup(yytext); return(tIGNORE); }
+{IDENT}		{ /* it's an identifier */
+		  yylval.cp = namePool.findAndAdd(yytext);
 		  return(tIDENT);
 		}
 [ \n\t]		{ }
@@ -127,7 +123,6 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 		  yylval.i = atoi(yytext);
 		  return(tINT);
 		}
-
 .       	{ yyerror("invalid character"); }
 %%
 
