@@ -21,15 +21,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.7 1997/05/21 19:15:00 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.8 1997/05/21 21:14:33 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
- * Revision 1.7  1997/05/21 19:15:00  tung
- * Revised.
+ * Revision 1.8  1997/05/21 21:14:33  tung
+ * No restriction on number of resources but a warning message if numRes > 15.
  *
  * Revision 1.6  1997/05/21 02:27:30  tung
  * Revised.
@@ -254,9 +254,9 @@ static void drawData(int is_fold)
     float *data;
 
     for (m = 0; m < 1; m++) {
-       if (visi_NumResources() > 111)
-	  numRes = 11;
-       else
+//       if (visi_NumResources() > 15)
+//	  numRes = 11;
+//       else
 	  numRes = visi_NumResources();
 
         for (r = 0; r < numRes; r++) {
@@ -324,8 +324,8 @@ static int process_datavalues(int parameter)
      if (visi_NumResources() < 2)
          visi_showErrorVisiCallback("Please select more than one resource for the 3D Histogram.\nNo curve will be shown.");
 
-     if (visi_NumResources() > 11)
-        visi_showErrorVisiCallback("Exceed the maximum number(11) of resources.\nOnly 11 of the resources selected will be shown.");
+     if (visi_NumResources() > 15)
+        visi_showErrorVisiCallback("It's advised to have fewer than 15 curves.");
 
      checkError = 0;
   }
@@ -354,6 +354,318 @@ static int process_fold(int parameter)
 /**************************modified section ends ************************************
  ************************************************************************************/
 
+/*-----------------------------------------------------------------------------
+ *   display - display accumulated commands from inboard driver
+ *---------------------------------------------------------------------------*/
+void displayScreen(int action)
+{
+    display(action);
+}
+
+
+int display(int action)
+{
+   /* clean the screen when ReDisplay the Graph is needed */
+   #ifndef MOTIF
+   if (color_disp) { /* Athena needs different erase for color and mono */
+   #endif
+      XSetForeground(dpy, gc, rv.bg);
+      XFillRectangle(dpy, win, gc, 0, 0, W, H);
+      XFillRectangle(dpy, pixmap, gc, 0, 0, W, H);
+      XSetForeground(dpy, gc, rv.fg);
+      XSetBackground(dpy, gc, rv.bg);
+   #ifndef MOTIF
+   }
+   else {
+      XSetFunction(dpy, gc, GXxor);
+      XCopyArea(dpy, win, win, gc, 0, 0, W, H, 0, 0);
+      XSetFunction(dpy, gc, GXcopyInverted);
+   }
+   #endif
+
+
+   /* get and draw the graph */
+   plot3drequest(action); 
+
+   /* trigger expose events to display pixmap */
+   XClearArea(dpy, win, 0, 0, 0, 0, True);
+
+   return 0;
+}
+
+
+
+/*************************************************************************
+* resize - Called by X when the window got resized.  It make a new pixmap
+*          according to the new size of the main viewer, and redraw the
+*          terrain in it.
+*
+*************************************************************************/
+
+
+static void
+resize(w, cd, e) 
+Widget w;
+char *cd;
+XConfigureEvent *e; {
+   if (e->type != ConfigureNotify) return;
+   W = e->width; H = e->height;
+
+   init_pixmap();
+
+   display(SA_RESIZE); 
+
+
+}
+
+
+/*************************************************************************
+*
+* init_pixmap - Create a pixmap corresponding to the current size of the
+*               main viewer.
+*
+*************************************************************************/
+
+int init_pixmap()
+{
+   /* set scaling factor between internal driver & window geometry */
+   xscale = (float)W / 4096.;  yscale = (float)H / 4096.;  
+
+   /* create new pixmap & GC */
+   if (gc) { XFreeGC(dpy, gc); XFreePixmap(dpy, pixmap); }
+   pixmap = XCreatePixmap(dpy, RootWindow(dpy,DefaultScreen(dpy)), W, H, D);
+   gc = XCreateGC(dpy, win, 0, NULL);
+   XSetFont(dpy, gc, rv.font->fid);
+
+   /* the display belongs to w_label */
+   XtSetArg(args[0], XtNbitmap, pixmap);
+   XtSetValues(w_label, args, (Cardinal)1);
+
+
+   return 0;
+}
+
+
+
+
+/*************************************************************************
+*
+* X11_vector - used by GNUPlot to draw axis and the base lines.
+*
+*************************************************************************/
+
+int X11_vector(unsigned int x, unsigned int y)
+{
+      XDrawLine(dpy, win, gc, X(cx), Y(cy), X(x), Y(y));
+
+   XDrawLine(dpy, pixmap, gc, X(cx), Y(cy), X(x), Y(y));
+   cx = x; cy = y;
+
+  return 0;
+}
+
+
+/*************************************************************************
+*
+* X11_move - used by GNUPlot to draw axis and the base lines.
+*
+*************************************************************************/
+
+int X11_move(unsigned int x, unsigned int y)
+{
+   cx = x; cy = y;
+
+   return 0;
+}
+
+
+
+/*************************************************************************
+*
+* X11_put_text - put a string to the specified location in the main viewer
+*
+*************************************************************************/
+
+int X11_put_text(unsigned int x, unsigned int y, char *str)
+{
+   int sw, sl;
+   sl = strlen(str);
+   sw = XTextWidth(rv.font, str, sl);
+
+   switch(jmode) {
+      case LEFT:   sw = 0;     break;
+      case CENTRE: sw = -sw/2; break;
+      case RIGHT:  sw = -sw;   break;
+   }
+
+   if (!color_disp) 
+   {
+	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
+
+      XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
+   }
+   else { 
+      XSetForeground(dpy, gc, colors[0]);
+	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
+
+      XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
+      XSetForeground(dpy, gc, colors[cur_lt+1]);
+   }
+
+   return 0;
+}
+
+
+
+/*************************************************************************
+*
+* X11_justify_text - Set the justify (left, right, middle) mode when
+*                    drawing text.
+*
+*************************************************************************/
+
+int X11_justify_text(enum JUSTIFY mode)
+{
+   jmode = mode;
+   return 1;
+}
+
+
+
+
+/*************************************************************************
+*
+* X11_linetype - Set the current line type.
+*
+*************************************************************************/
+
+int X11_linetype(int lt)
+{ 
+   int width, type;
+
+    lt = (lt+2)%10;
+    width = (lt == 0) ? 2 : 0;
+    if (color_disp) {
+        if (lt != 1) 
+            type = LineSolid;
+        else {
+            type = LineOnOffDash;
+            XSetDashes(dpy, gc, 0, dashes[lt], (signed)strlen(dashes[lt]));
+        }
+        XSetForeground(dpy, gc, colors[lt+1]);
+    } else {
+        type  = (lt == 0 || lt == 2) ? LineSolid : LineOnOffDash;
+	if (dashes[lt][0])
+	    XSetDashes(dpy, gc, 0, dashes[lt], (signed)strlen(dashes[lt]));
+    }
+    XSetLineAttributes( dpy,gc, (unsigned)width, type, CapButt, JoinBevel);
+
+    cur_lt = lt;
+
+    return 0;
+}
+
+
+
+
+
+/*************************************************************************
+*
+* hsv2Rgb - convert a color in HSV system into RGB system.
+*           X11R5 should do a better job than this, but R4 does not even
+*           have this kind of functions.
+*           The algorithm can be found in many graphic text books.
+*
+*************************************************************************/
+
+
+int hsv2Rgb(hue, val, sat, rgb)
+float hue, val, sat;
+XColor *rgb;
+{
+   float minCol;
+
+   hue = (hue/360.0 - ((int)hue)/360)*360.0;
+   minCol = val * (1.0 - sat);
+   if (hue <= 120.0) {
+      rgb->green = minCol;
+      if (hue <= 60.0) {
+	 rgb->red = val;
+	 rgb->blue = minCol + hue * (val - minCol)/(120.0 - hue);
+      } else {
+	 rgb->blue = val;
+	 rgb->red = minCol + (120.0 - hue) * (val - minCol)/hue;
+      }
+   } else if (hue <= 240.0) {
+      rgb->red = minCol;
+      if (hue <= 180.0) {
+	 rgb->blue = val;
+	 rgb->green = minCol + (hue - 120.0) * (val - minCol)/(240 - hue);
+      } else {
+	 rgb->green = val;
+	 rgb->blue = minCol + (240.0 - hue) * (val - minCol)/(hue - 120.0);
+      }
+   } else {
+      rgb->blue = minCol;
+      if (hue <= 300.0) {
+         rgb->green = val;
+	 rgb->red = minCol + (hue - 240.0) * (val - minCol)/(360.0 - hue);
+      } else {
+	 rgb->red = val;
+	 rgb->green = minCol + (360.0 - hue) * (val - minCol)/(hue - 240.0);
+      }
+   }
+
+   return 0;
+
+}
+
+
+
+
+/*************************************************************************
+*
+* NotifyEndThumb - An application action which enable terrain to tell the
+*                  difference between jumping and smooth rotating.
+*                  (Xaw does not have enough action to do this)
+*
+*************************************************************************/
+
+
+XtActionProc
+NotifyEndThumb(w, event, params, num_params)
+Widget w;
+XEvent *event;
+String *params;
+Cardinal *num_params;
+{
+   display(SA_JUMP);
+}
+
+
+/*************************************************************************
+* The following dummy rotines keeps GNUPlot happy
+*************************************************************************/
+
+int X11_init()
+{
+  return 0;
+}
+
+int X11_reset()
+{
+  return 0;
+}
+
+int X11_graphics()
+{
+  return 0;
+}
+
+int X11_text()
+{
+  return 0;
+}
 
 
 
@@ -515,305 +827,4 @@ int main(int argc, char *argv[])
 
    return 0;
 }
-
-/*-----------------------------------------------------------------------------
- *   display - display accumulated commands from inboard driver
- *---------------------------------------------------------------------------*/
-void displayScreen(int action)
-{
-    display(action);
-}
-
-
-void display(int action)
-{
-   /* clean the screen when ReDisplay the Graph is needed */
-   #ifndef MOTIF
-   if (color_disp) { /* Athena needs different erase for color and mono */
-   #endif
-      XSetForeground(dpy, gc, rv.bg);
-      XFillRectangle(dpy, win, gc, 0, 0, W, H);
-      XFillRectangle(dpy, pixmap, gc, 0, 0, W, H);
-      XSetForeground(dpy, gc, rv.fg);
-      XSetBackground(dpy, gc, rv.bg);
-   #ifndef MOTIF
-   }
-   else {
-      XSetFunction(dpy, gc, GXxor);
-      XCopyArea(dpy, win, win, gc, 0, 0, W, H, 0, 0);
-      XSetFunction(dpy, gc, GXcopyInverted);
-   }
-   #endif
-
-
-   /* get and draw the graph */
-   plot3drequest(action); 
-
-   /* trigger expose events to display pixmap */
-   XClearArea(dpy, win, 0, 0, 0, 0, True);
-
-   
-}
-
-
-
-/*************************************************************************
-* resize - Called by X when the window got resized.  It make a new pixmap
-*          according to the new size of the main viewer, and redraw the
-*          terrain in it.
-*
-*************************************************************************/
-
-
-static void
-resize(w, cd, e) 
-Widget w;
-char *cd;
-XConfigureEvent *e; {
-   if (e->type != ConfigureNotify) return;
-   W = e->width; H = e->height;
-
-   init_pixmap();
-
-   display(SA_RESIZE); 
-
-
-}
-
-
-/*************************************************************************
-*
-* init_pixmap - Create a pixmap corresponding to the current size of the
-*               main viewer.
-*
-*************************************************************************/
-
-init_pixmap()
-{
-   /* set scaling factor between internal driver & window geometry */
-   xscale = (float)W / 4096.;  yscale = (float)H / 4096.;  
-
-   /* create new pixmap & GC */
-   if (gc) { XFreeGC(dpy, gc); XFreePixmap(dpy, pixmap); }
-   pixmap = XCreatePixmap(dpy, RootWindow(dpy,DefaultScreen(dpy)), W, H, D);
-   gc = XCreateGC(dpy, win, 0, NULL);
-   XSetFont(dpy, gc, rv.font->fid);
-
-   /* the display belongs to w_label */
-   XtSetArg(args[0], XtNbitmap, pixmap);
-   XtSetValues(w_label, args, (Cardinal)1);
-
-}
-
-
-
-
-/*************************************************************************
-*
-* X11_vector - used by GNUPlot to draw axis and the base lines.
-*
-*************************************************************************/
-
-int X11_vector(unsigned int x, unsigned int y)
-{
-      XDrawLine(dpy, win, gc, X(cx), Y(cy), X(x), Y(y));
-
-   XDrawLine(dpy, pixmap, gc, X(cx), Y(cy), X(x), Y(y));
-   cx = x; cy = y;
-}
-
-
-/*************************************************************************
-*
-* X11_move - used by GNUPlot to draw axis and the base lines.
-*
-*************************************************************************/
-
-int X11_move(unsigned int x, unsigned int y)
-{
-   cx = x; cy = y;
-}
-
-
-
-/*************************************************************************
-*
-* X11_put_text - put a string to the specified location in the main viewer
-*
-*************************************************************************/
-
-int X11_put_text(unsigned int x, unsigned int y, char *str)
-{
-   int sw, sl;
-   sl = strlen(str);
-   sw = XTextWidth(rv.font, str, sl);
-
-   switch(jmode) {
-      case LEFT:   sw = 0;     break;
-      case CENTRE: sw = -sw/2; break;
-      case RIGHT:  sw = -sw;   break;
-   }
-
-   if (!color_disp) 
-   {
-	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
-
-      XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
-   }
-   else { 
-      XSetForeground(dpy, gc, colors[0]);
-	 XDrawString(dpy, win, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
-
-      XDrawString(dpy, pixmap, gc, X(x)+sw, Y(y)+vchar/3, str, sl);
-      XSetForeground(dpy, gc, colors[cur_lt+1]);
-   }
-}
-
-
-
-/*************************************************************************
-*
-* X11_justify_text - Set the justify (left, right, middle) mode when
-*                    drawing text.
-*
-*************************************************************************/
-
-X11_justify_text(mode)
-enum JUSTIFY mode;
-{
-   jmode = mode;
-   return 1;
-}
-
-
-
-
-/*************************************************************************
-*
-* X11_linetype - Set the current line type.
-*
-*************************************************************************/
-
-X11_linetype(lt)
-int lt;
-{ 
-   int width, type;
-
-    lt = (lt+2)%10;
-    width = (lt == 0) ? 2 : 0;
-    if (color_disp) {
-        if (lt != 1) 
-            type = LineSolid;
-        else {
-            type = LineOnOffDash;
-            XSetDashes(dpy, gc, 0, dashes[lt], (unsigned)strlen(dashes[lt]));
-        }
-        XSetForeground(dpy, gc, colors[lt+1]);
-    } else {
-        type  = (lt == 0 || lt == 2) ? LineSolid : LineOnOffDash;
-	if (dashes[lt][0])
-	    XSetDashes(dpy, gc, 0, dashes[lt], (unsigned)strlen(dashes[lt]));
-    }
-    XSetLineAttributes( dpy,gc, width, type, CapButt, JoinBevel);
-
-    cur_lt = lt;
-}
-
-
-
-
-
-/*************************************************************************
-*
-* hsv2Rgb - convert a color in HSV system into RGB system.
-*           X11R5 should do a better job than this, but R4 does not even
-*           have this kind of functions.
-*           The algorithm can be found in many graphic text books.
-*
-*************************************************************************/
-
-
-hsv2Rgb(hue, val, sat, rgb)
-float hue,			/* Where (which angle) the color falls into */
-      val,			/* Maximun value to be returned */
-      sat;			/* Saturation of the color (how much white */
-XColor *rgb;			/* The resulting  RGB value */
-{
-   float minCol;
-
-   hue = (hue/360.0 - ((int)hue)/360)*360.0;
-   minCol = val * (1.0 - sat);
-   if (hue <= 120.0) {
-      rgb->green = minCol;
-      if (hue <= 60.0) {
-	 rgb->red = val;
-	 rgb->blue = minCol + hue * (val - minCol)/(120.0 - hue);
-      } else {
-	 rgb->blue = val;
-	 rgb->red = minCol + (120.0 - hue) * (val - minCol)/hue;
-      }
-   } else if (hue <= 240.0) {
-      rgb->red = minCol;
-      if (hue <= 180.0) {
-	 rgb->blue = val;
-	 rgb->green = minCol + (hue - 120.0) * (val - minCol)/(240 - hue);
-      } else {
-	 rgb->green = val;
-	 rgb->blue = minCol + (240.0 - hue) * (val - minCol)/(hue - 120.0);
-      }
-   } else {
-      rgb->blue = minCol;
-      if (hue <= 300.0) {
-         rgb->green = val;
-	 rgb->red = minCol + (hue - 240.0) * (val - minCol)/(360.0 - hue);
-      } else {
-	 rgb->red = val;
-	 rgb->green = minCol + (360.0 - hue) * (val - minCol)/(hue - 240.0);
-      }
-   }
-}
-
-
-
-
-/*************************************************************************
-*
-* NotifyEndThumb - An application action which enable terrain to tell the
-*                  difference between jumping and smooth rotating.
-*                  (Xaw does not have enough action to do this)
-*
-*************************************************************************/
-
-
-XtActionProc
-NotifyEndThumb(w, event, params, num_params)
-Widget w;
-XEvent *event;
-String *params;
-Cardinal *num_params;
-{
-   display(SA_JUMP);
-}
-
-
-/*************************************************************************
-* The following dummy rotines keeps GNUPlot happy
-*************************************************************************/
-
-X11_init()
-{
-}
-
-X11_reset()
-{
-}
-
-X11_graphics()
-{
-}
-
-X11_text()
-{
-}
-
 

@@ -24,6 +24,9 @@
  * terrain.h - header file of terrain.c.
  *
  * $Log: terrain.h,v $
+ * Revision 1.4  1997/05/21 21:14:34  tung
+ * No restriction on number of resources but a warning message if numRes > 15.
+ *
  * Revision 1.3  1997/05/21 02:27:31  tung
  * Revised.
  *
@@ -74,6 +77,9 @@ extern X11_text();
 extern X11_colorPoly_pixmap();
 
 
+
+
+
 typedef struct {       /* See "X Toolkit Intrinsics Programming Manual"      */
   XFontStruct *font;   /* Nye and O'Reilly, O'Reilly & Associates, pp. 80-85 */
   unsigned long fg;
@@ -96,6 +102,22 @@ extern Widget w_top;
 extern Window win;
 
 extern vchar;			/* Height of the default font */
+
+
+
+static int get_groupId(const char *axis_label);
+static int add_new_curve(unsigned m, unsigned r);
+static void drawData(int is_fold);
+static int process_datavalues(int parameter);
+static int process_fold(int parameter);
+
+
+
+
+
+
+
+
 
 #define X(x) (Dimension) (x * xscale)
 #define Y(y) (Dimension) ((4095-y) * yscale)
