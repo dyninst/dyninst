@@ -39,8 +39,8 @@ FilterId SFILTER_WAITFORALL=0;
 FilterId SFILTER_DONTWAIT=0;
 FilterId SFILTER_TIMEOUT=0;
 
-static inline void max(void *in1, void *in2, void* out, DataType type);
-static inline void min(void *in1, void *in2, void* out, DataType type);
+static inline void mrn_max(void *in1, void *in2, void* out, DataType type);
+static inline void mrn_min(void *in1, void *in2, void* out, DataType type);
 static inline void div(void *in1, int in2, void* out, DataType type);
 static inline void sum(void *in1, void *in2, void* out, DataType type);
 
@@ -212,7 +212,7 @@ void tfilter_Max( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	max( result, &(cur_packet[0]->val.p), result, type );
+	mrn_max( result, &(cur_packet[0]->val.p), result, type );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -283,7 +283,7 @@ void tfilter_Min( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	min( result, &(cur_packet[0]->val.p), result, type );
+	mrn_min( result, &(cur_packet[0]->val.p), result, type );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -724,7 +724,7 @@ static inline void div(void *in1, int in2, void* out, DataType type)
   }
 }
 
-static inline void min(void *in1, void *in2, void* out, DataType type)
+static inline void mrn_min(void *in1, void *in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
@@ -784,7 +784,7 @@ static inline void min(void *in1, void *in2, void* out, DataType type)
   }
 }
 
-static inline void max(void *in1, void *in2, void* out, DataType type)
+static inline void mrn_max(void *in1, void *in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
