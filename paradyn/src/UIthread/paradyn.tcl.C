@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.51  1995/11/03 21:19:55  naim
-/* Adding paradyn exit command - naim
+/* Revision 1.52  1995/11/06 19:27:17  tamches
+/* removed a lot of warnings under g++ 2.7.0
 /*
+ * Revision 1.51  1995/11/03 21:19:55  naim
+ * Adding paradyn exit command - naim
+ *
  * Revision 1.50  1995/10/30  23:07:07  naim
  * Minor fix: eliminating error message from status_line destructor by relocating
  * object declarations to a better place in the code. "static" declarations were
@@ -211,91 +214,84 @@ extern appState PDapplicState;
 
 status_line *app_name=NULL;
 
-int ParadynPauseCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[])
+int ParadynPauseCmd(ClientData,
+		Tcl_Interp *,
+		int,
+		char **)
 {
   dataMgr->pauseApplication();
   return TCL_OK;
 }
 
-int ParadynContCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[])
+int ParadynContCmd(ClientData,
+		Tcl_Interp *,
+		int,
+		char **)
 {
   dataMgr->continueApplication();
   return TCL_OK;
 }
 
-int ParadynStatusCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[])
+int ParadynStatusCmd(ClientData,
+		Tcl_Interp *,
+		int,
+		char **)
 {
   dataMgr->printStatus();
   return TCL_OK;
 }
 
-int ParadynMetricsCmd(ClientData clientData, 
-			Tcl_Interp *interp, 
-			int argc, 
-			char *argv[])
+int ParadynMetricsCmd(ClientData,
+			Tcl_Interp *,
+			int,
+			char **)
 {
-  vector<string> *ml;
-  int i;
-  
-  ml = dataMgr->getAvailableMetrics();
-  for (i=0; i < ml->size(); i++)
+  vector<string> *ml = dataMgr->getAvailableMetrics();
+  for (unsigned i=0; i < ml->size(); i++)
     Tcl_AppendElement(interp, (char *)((*ml)[i]).string_of());
   delete ml;
   return TCL_OK;
 }
 
 
-int ParadynDaemonsCmd(ClientData clientData, 
+int ParadynDaemonsCmd(ClientData,
 		      Tcl_Interp *interp, 
 		      int argc, 
 		      char *argv[])
 {
-  vector<string> *dl;
-  
-  dl = dataMgr->getAvailableDaemons();
-  for (int i=0; i < dl->size(); i++)
+  vector<string> *dl = dataMgr->getAvailableDaemons();
+  for (unsigned i=0; i < dl->size(); i++)
     Tcl_AppendElement(interp, (char *)((*dl)[i]).string_of());
   delete dl;
   return TCL_OK;
 }
 
 
-int ParadynResourcesCmd(ClientData clientData, 
-			Tcl_Interp *interp, 
-			int argc, 
-			char *argv[])
+int ParadynResourcesCmd(ClientData,
+			Tcl_Interp *,
+			int,
+			char **)
 {
   dataMgr->printResources();
   return TCL_OK;
 }
 
-int ParadynListCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		char *argv[])
+int ParadynListCmd(ClientData,
+		Tcl_Interp *,
+		int,
+		char **)
 {
-  vector<string> *ml;
-  int i;
-
   dataMgr->printResources();
-  ml = dataMgr->getAvailableMetrics();
-  for (i=0; i < ml->size(); i++) {
+
+  vector<string> *ml = dataMgr->getAvailableMetrics();
+  for (unsigned i=0; i < ml->size(); i++) {
     cout << ((*ml)[i]).string_of() << endl;
   }
 
   cout << "CONSTANTS" << endl;
 
   vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
-  for (int boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
+  for (unsigned boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
      tunableBooleanConstant &tbc = allBoolConstants[boollcv];
      cout << tbc.getName() << " = ";
      if (tbc.getValue())
@@ -305,7 +301,7 @@ int ParadynListCmd(ClientData clientData,
   }
 
   vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
-  for (int floatlcv = 0; floatlcv < allFloatConstants.size(); floatlcv++) {
+  for (unsigned floatlcv = 0; floatlcv < allFloatConstants.size(); floatlcv++) {
      tunableFloatConstant &tfc = allFloatConstants[floatlcv];
 
      cout << tfc.getName() << " = " << tfc.getValue() << endl;
@@ -317,10 +313,10 @@ int ParadynListCmd(ClientData clientData,
   return TCL_OK;
 }
 
-int ParadynDetachCmd (ClientData clientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      char *argv[])
+int ParadynDetachCmd (ClientData,
+		      Tcl_Interp *,
+		      int,
+		      char **)
 {
   dataMgr->detachApplication(true);
   return TCL_OK;
@@ -345,8 +341,8 @@ MetHandleToStr (metricHandle mh)
   return result;
 }
 
-int ParadynGetTotalCmd (ClientData clientData,
-		     Tcl_Interp *interp,
+int ParadynGetTotalCmd (ClientData,
+		     Tcl_Interp *,
 		     int argc,
 		     char *argv[])
 {
@@ -379,9 +375,9 @@ int ParadynGetTotalCmd (ClientData clientData,
   return TCL_OK;
 }
 
-int ParadynPrintCmd (ClientData clientData,
-		     Tcl_Interp *interp,
-		     int argc,
+int ParadynPrintCmd (ClientData,
+		     Tcl_Interp *,
+		     int,
 		     char *argv[])
 {
   if (argv[1][0] == 'm') {   // print metric
@@ -463,8 +459,8 @@ void enablePAUSEorRUN()
  * Calls data manager service "addExecutable".  
  * Returns TCL_OK or TCL_ERROR
  */
-int ParadynProcessCmd(ClientData clientData,
-		      Tcl_Interp *interp,
+int ParadynProcessCmd(ClientData,
+		      Tcl_Interp *,
 		      int argc,
 		      char *argv[])
 {
@@ -567,7 +563,7 @@ int ParadynProcessCmd(ClientData clientData,
 //
 //  disable  <metid>
 //
-int ParadynDisableCmd (ClientData clientData,
+int ParadynDisableCmd (ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
 		      char *argv[])
@@ -608,7 +604,7 @@ int ParadynDisableCmd (ClientData clientData,
 //  enable <metric> ?<resource>? ...
 //    returns metric id
 //
-int ParadynEnableCmd (ClientData clientData,
+int ParadynEnableCmd (ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
 		      char *argv[])
@@ -668,8 +664,8 @@ int ParadynEnableCmd (ClientData clientData,
   return TCL_OK;
 }
 
-int ParadynCoreCmd (ClientData clientData,
-		    Tcl_Interp *interp,
+int ParadynCoreCmd (ClientData,
+		    Tcl_Interp *,
 		    int argc,
 		    char *argv[])
 {
@@ -688,7 +684,7 @@ int ParadynCoreCmd (ClientData clientData,
   return TCL_OK;
 }
 
-int ParadynSetCmd (ClientData clientData,
+int ParadynSetCmd (ClientData,
 		    Tcl_Interp *interp,
 		    int argc,
 		    char *argv[])
@@ -729,7 +725,7 @@ int ParadynSetCmd (ClientData clientData,
 // paradyn search pause <put-searchType-here>
 // paradyn search <false|true> <put-searchType-here> <put-limit-here>
  
-int ParadynSearchCmd (ClientData clientData,
+int ParadynSearchCmd (ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
 		      char *argv[])
@@ -764,7 +760,7 @@ int ParadynSearchCmd (ClientData clientData,
 }
 
 
-int ParadynSHGCmd (ClientData clientData,
+int ParadynSHGCmd (ClientData,
 		   Tcl_Interp *interp,
 		   int argc,
 		   char *argv[])
@@ -800,7 +796,7 @@ int ParadynSHGCmd (ClientData clientData,
 }
 
 extern abstractions *theAbstractions;
-int ParadynWaSetAbstraction(ClientData cd, Tcl_Interp *interp,
+int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
 			    int argc, char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaSetAbstraction: wrong # args" << endl;
@@ -853,7 +849,7 @@ int ParadynWaSelectUnselect(Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int ParadynWaSelect(ClientData cd, Tcl_Interp *interp,
+int ParadynWaSelect(ClientData, Tcl_Interp *interp,
 		    int argc, char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaSelect: too many arguments" << endl;
@@ -864,7 +860,7 @@ int ParadynWaSelect(ClientData cd, Tcl_Interp *interp,
    return ParadynWaSelectUnselect(interp, argv[1], true);
 }
 
-int ParadynWaUnSelect(ClientData cd, Tcl_Interp *interp,
+int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
 		    int argc, char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaUnselect: too many arguments" << endl;
@@ -875,7 +871,7 @@ int ParadynWaUnSelect(ClientData cd, Tcl_Interp *interp,
    return ParadynWaSelectUnselect(interp, argv[1], false);
 }
 
-int ParadynSuppressCmd (ClientData clientData,
+int ParadynSuppressCmd (ClientData,
 		       Tcl_Interp *interp,
 		       int argc,
 		       char *argv[])
@@ -935,7 +931,7 @@ int ParadynSuppressCmd (ClientData clientData,
   }
 }
 
-int ParadynVisiCmd (ClientData clientData,
+int ParadynVisiCmd (ClientData,
 		    Tcl_Interp *interp,
 		    int argc,
 		    char *argv[])
@@ -955,7 +951,7 @@ int ParadynVisiCmd (ClientData clientData,
     vector<VM_activeVisiInfo> *temp;
 
     temp = vmMgr->VMActiveVisis();
-    for(int i=0; i < temp->size(); i++){
+    for (unsigned i=0; i < temp->size(); i++) {
       printf("active_info %d: name %s TypeId %d visiNum = %d\n",i,
 	     ((*temp)[i]).name.string_of(),
 	     ((*temp)[i]).visiTypeId,((*temp)[i]).visiNum);
@@ -966,7 +962,7 @@ int ParadynVisiCmd (ClientData clientData,
       vector<VM_visiInfo> *visi_info;
 
       visi_info = vmMgr->VMAvailableVisis();
-      for(int i=0; i < visi_info->size();i++){
+      for (unsigned i=0; i < visi_info->size();i++) {
 	printf("visi %d: name %s visiTypeId %d\n",i,
 	       ((*visi_info)[i]).name.string_of(), 
 	       ((*visi_info)[i]).visiTypeId);
