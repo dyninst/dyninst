@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.26  1994/05/18 00:43:28  hollings
+ * Revision 1.27  1994/05/18 02:51:04  hollings
+ * fixed cast one return of malloc.
+ *
+ * Revision 1.26  1994/05/18  00:43:28  hollings
  * added routine to print output of stdout.
  *
  * Revision 1.25  1994/05/17  00:16:38  hollings
@@ -222,7 +225,7 @@ void dynRPCUser::applicationIO(int pid, int len, String data)
 	rest = ptr+1;
 	ptr = strchr(rest, '\n');
     }
-    extra = malloc(strlen(rest)+1);
+    extra = (char *) malloc(strlen(rest)+1);
     strcpy(extra, rest);
 }
 
