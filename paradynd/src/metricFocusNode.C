@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.231 2002/09/07 16:15:26 schendel Exp $
+// $Id: metricFocusNode.C,v 1.232 2002/10/15 17:11:55 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -49,7 +49,7 @@
 #include "rtinst/h/trace.h"
 #include "pdutil/h/sampleAggregator.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -76,6 +76,9 @@
 #include "common/h/timing.h"
 #include "paradyn/src/met/mdl_data.h"
 #include "paradynd/src/focus.h"
+#include "paradynd/src/processMgr.h"
+#include "paradynd/src/pd_process.h"
+
 #ifdef FREEDEBUG
 #if defined(i386_unknown_nt4_0)
 #  include <strstrea.h>
@@ -246,14 +249,15 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 	 ready when it is not in neonatal state and the isBootstrappedYet
 	 returns true.
       */
-      vector<process*> procs;
-      
-      for (unsigned u = 0; u < processVec.size(); u++) {
-	 if (processVec[u]->status()==exited || 
-	     processVec[u]->status()==neonatal || 
-	     processVec[u]->isBootstrappedYet()) 
+      vector<pd_process*> procs;
+
+      processMgr::procIter itr = getProcMgr().begin();
+      while(itr != getProcMgr().end()) {
+	 pd_process *curProc = *itr++;
+	 if(curProc->status()==exited || curProc->status()==neonatal || 
+	    curProc->isBootstrappedYet())
 	 {
-	    procs += processVec[u];
+	    procs += curProc;
 	 }
       }
       
@@ -316,12 +320,13 @@ void metricFocusNode::handleNewProcess(process *p) {
    vector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
 
+   pd_process *pd_proc = getProcMgr().find_pd_process(p);
+
    for (unsigned j=0; j < allMachNodes.size(); j++) {
       machineMetFocusNode *curNode = allMachNodes[j];
-      curNode->propagateToNewProcess(p);
+      curNode->propagateToNewProcess(pd_proc);
    }
 }
-
 
 
 void metricFocusNode::handleExec(process *) {
@@ -596,12 +601,13 @@ bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &,
 
 // called by forkProcess of context.C, just after the fork-constructor was
 // called for the child process.
-void metricFocusNode::handleFork(const process *parent, process *child)
+void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
 {
    vector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
 
    vector<processMetFocusNode *> procNodesToUnfork;
+
    for (unsigned j=0; j < allMachNodes.size(); j++) {
       machineMetFocusNode *curNode = allMachNodes[j];
       curNode->propagateToForkedProcess(parent, child, &procNodesToUnfork);
@@ -611,12 +617,12 @@ void metricFocusNode::handleFork(const process *parent, process *child)
    }
 }
   
-void metricFocusNode::handleNewThread(pdThread *thr) {
-  vector<processMetFocusNode *> MT_procs;
-  processMetFocusNode::getMT_ProcNodes(&MT_procs);
-  for(unsigned i=0; i<MT_procs.size(); i++) {
-    MT_procs[i]->propagateToNewThread(thr);
-  }
+void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
+   vector<processMetFocusNode *> procNodes;
+   processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      procNodes[i]->propagateToNewThread(thr);
+   }
 }
 
 // startCollecting is called by dynRPC::enableDataCollection 
