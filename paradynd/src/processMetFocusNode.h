@@ -42,7 +42,7 @@
 #ifndef PROC_MET_FOCUS_NODE
 #define PROC_MET_FOCUS_NODE
 
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
 
 class machineMetFocusNode;
@@ -52,7 +52,7 @@ class threadMetFocusNode_Val;
 class instrDataNode;
 class Focus;
 
-class processMetFocusNode : public metricDefinitionNode {
+class processMetFocusNode : public metricFocusNode {
  private:
   instrCodeNode *metricVarCodeNode;
   vector<instrCodeNode *> constraintCodeNodes;
@@ -66,12 +66,14 @@ class processMetFocusNode : public metricDefinitionNode {
   bool aggInfoInitialized;
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
-  const Focus &component_focus;
+  const string &metric_name;
+  const Focus &focus;
   bool dontInsertData_;
   bool catchupNotDoneYet_;
 
-  processMetFocusNode(process *p, const Focus &component_foc,
-		      aggregateOp agg_op, bool arg_dontInsertData);
+  processMetFocusNode(process *p, const string &metname,
+		      const Focus &component_foc, aggregateOp agg_op, 
+		      bool arg_dontInsertData);
 
   bool catchupNotDoneYet() { return catchupNotDoneYet_; }
   void manuallyTrigger(int mid);
@@ -82,16 +84,17 @@ class processMetFocusNode : public metricDefinitionNode {
   static vector<processMetFocusNode*> allProcNodes;
 
  public:
-  static void getProcNodes(vector<processMetFocusNode*> *machNodes);
-  static void getProcNodes(vector<processMetFocusNode*> *machNodes, int pid);
+  static void getProcNodes(vector<processMetFocusNode*> *procNodes);
+  static void getProcNodes(vector<processMetFocusNode*> *procNodes, int pid);
+  static void getMT_ProcNodes(vector<processMetFocusNode*> *MT_procNodes);
 
   static processMetFocusNode *newProcessMetFocusNode(process *p, 
-                                 const Focus &component_foc,
+				 const string &metname, const Focus &focus_,
 				 aggregateOp agg_op, bool arg_dontInsertData);
   ~processMetFocusNode();
 
-  const Focus &getComponentFocus() const { 
-    return component_focus;
+  const Focus &getFocus() const { 
+    return focus;
   }
   void setMetricVarCodeNode(instrCodeNode* part);
   void addConstraintCodeNode(instrCodeNode* part);
@@ -139,7 +142,8 @@ class processMetFocusNode : public metricDefinitionNode {
   void doCatchupInstrumentation();
 
   vector<const instrDataNode *> getFlagDataNodes() const;
-  void mapSampledDRNs2ThrNodes();
+  void prepareForSampling();
+  void prepareForSampling(threadMetFocusNode *thrNode);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
   bool needToWalkStack() ;  // const;  , make this const in the future
 
@@ -147,19 +151,6 @@ class processMetFocusNode : public metricDefinitionNode {
   timeStamp getStartTime() { return procStartTime; }
 
   void prepareCatchupInstr();
-
-#if defined(MT_THREAD)
-  void setMetricRelated(unsigned type, bool arg_dontInsertData, 
-			const vector<string> &temp_ctr, 
-			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
-			T_dyninstRPC::mdl_constraint* repl_cons) {
-    type_thr          = type;
-    dontInsertData_thr = arg_dontInsertData;
-    temp_ctr_thr      = temp_ctr;
-    flag_cons_thr     = flag_cons;
-    base_use_thr      = repl_cons;
-  }
-#endif
 };
 
 
