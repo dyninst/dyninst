@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.206 2005/01/17 20:08:11 rutar Exp $
+ * $Id: inst-power.C,v 1.207 2005/01/20 18:30:44 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -1382,14 +1382,9 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       insn++; currAddr += sizeof(instruction);
   }
   
-  /*
-  if (location->getPointType() == otherPoint ||
-      location->getPointType() == callSite)  {
-    saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  }
-  */
-
-  saveFPRegister(insn, currAddr, 10, TRAMP_SPR_OFFSET);
+  //saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+ 
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers
@@ -1502,9 +1497,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   if (location->getPointType() == otherPoint)
       restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
   
-  /*
-  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  */
+  
+  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  
+  restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
 
   // Not in a base tramp any more
@@ -1577,14 +1573,9 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       insn++; currAddr += sizeof(instruction);
   }
   
-  /*
-  if (location->getPointType() == otherPoint ||
-      location->getPointType() == callSite)  {
-    saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  }
-  */
-
-  saveFPRegister(insn, currAddr, 10, TRAMP_SPR_OFFSET);
+  //saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+ 
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
   
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers    
@@ -1689,9 +1680,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   if (location->getPointType() == otherPoint)
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
   
-  /*
-    restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  */
+  
+  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
 
   restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
@@ -2453,11 +2443,11 @@ Register emitFuncCall(opCode /* ocode */,
    genImmInsn(insn, ORILop, 3, retReg, 0);
    insn++;
    base += sizeof(instruction);
-
-   // Save floating point registers
+   
+   // Restore floating point registers
    restoreFPRegisters(insn, base, TRAMP_FPR_OFFSET);
-  
-   //Restore the registers used to save parameters
+   
+   //Restore the registers used to save  parameters
    for(u_int i = 0; i < rs->getRegisterCount(); i++) {
      registerSlot *reg = rs->getRegSlot(i);
      if (reg->beenClobbered) {
