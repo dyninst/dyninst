@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.13  1996/03/08 03:01:35  tamches
-/* constructor now grabs initial hide-node flags from the actual paradyn
-/* tunable constants
+/* Revision 1.14  1996/04/08 19:54:56  tamches
+/* fixed bug in shg message window that could leave some residue when
+/* changing phases.
 /*
+ * Revision 1.13  1996/03/08 03:01:35  tamches
+ * constructor now grabs initial hide-node flags from the actual paradyn
+ * tunable constants
+ *
  * Revision 1.12  1996/03/08 00:22:15  tamches
  * added support for hidden nodes
  *
@@ -117,8 +121,10 @@ shgPhases::shgStruct &shgPhases::getByIDLL(int phaseID) {
       if (theShgPhases[i].getPhaseId() == phaseID)
          return theShgPhases[i];
    }
+
+   cerr << "shgPhases: phase id " << phaseID << " doesn't exist." << endl;
    assert(false);
-   abort();
+   abort(); // placate compiler
 }
 
 shg &shgPhases::getByID(int phaseID) {
@@ -210,12 +216,13 @@ bool shgPhases::changeLL(unsigned newIndex) {
    myTclEval(interp, commandStr);
 
    // Update the message text:
-   commandStr = msgTextWindowName + " delete @0,0 end";
+   commandStr = msgTextWindowName + " delete 1.0 end";
    myTclEval(interp, commandStr);
+
    commandStr = msgTextWindowName + " insert end \"" + theNewShgStruct.msgText + "\"";
    myTclEval(interp, commandStr);
 
-   // We must resize, since newly displayed shg had been set aside (?)
+   // We must resize, since newly displayed shg had been set aside (is this right?)
    theNewShgStruct.theShg->resize(true);
    
    return true;
