@@ -313,7 +313,8 @@ class pd_process {
    ************************************/
   public:
   // Returns once paradyn lib is loaded and initialized
-  bool loadParadynLib();
+   typedef enum { create_load, attach_load, exec_load } load_cause_t;
+   bool loadParadynLib(load_cause_t ldcause);
   
   private:
   libraryState_t paradynRTState;
@@ -330,7 +331,7 @@ class pd_process {
                                            void *data, void *ret);
   
   // Sets the parameters to paradynInit
-  bool setParadynLibParams();
+  bool setParadynLibParams(load_cause_t ldcause);
   // And associated callback function
   static void setParadynLibParamsCallback(process *p, string libname, 
                                           shared_object *libobj, void *data);
