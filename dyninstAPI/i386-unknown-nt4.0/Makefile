@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2001/02/20 21:45:46 gurari Exp $
+# $Id: Makefile,v 1.11 2001/07/09 19:34:50 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,7 +13,7 @@ include ../../nmake.config
 
 # we require an uncommon link
 LD		= link
-LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI
+LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI  /NODEFAULTLIB:libc.lib # ccw 20 june 2001
 
 
 SRCS =		../src/pdwinnt.C \

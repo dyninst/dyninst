@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.14 2000/12/04 21:30:29 zandy Exp $ */
+/* $Id: RTcommon.c,v 1.15 2001/07/09 19:34:51 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -94,6 +94,12 @@ static void initFPU()
        DYNINSTdummydouble *= x;
 }
 
+#ifdef i386_unknown_nt4_0  //ccw 13 june 2001
+// these variables are used by the mutator to pass values to the dll
+// they are only used by the win2k/nt40 dyninstAPI
+int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; //ccw 2 may 2001
+#endif
+
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to
@@ -122,8 +128,37 @@ void DYNINSTinit(int cause, int pid)
 
     DYNINST_mutatorPid = pid;
 
-    DYNINSTbreakPoint();
+#ifndef i386_unknown_nt4_0 //ccw 13 june 2001
+   DYNINSTbreakPoint();
+#endif
 }
+
+#ifdef i386_unknown_nt4_0 //ccw 13 june 2001
+#include <windows.h>
+
+// this function is automatically called when windows loads this dll
+// if we are launching a mutatee to instrument, dyninst will place
+// the correct values in libdyninstAPI_RT_DLL_localPid and
+// libdyninstAPI_RT_DLL_localCause and they will be passed to
+// DYNINSTinit to correctly initialize the dll.  this keeps us
+// from having to instrument two steps from the mutator (load and then 
+// the execution of DYNINSTinit()
+
+BOOL WINAPI DllMain(
+  HINSTANCE hinstDLL,  // handle to DLL module
+  DWORD fdwReason,     // reason for calling function
+  LPVOID lpvReserved   // reserved
+){
+
+
+	if(libdyninstAPI_RT_DLL_localPid != -1 || libdyninstAPI_RT_DLL_localCause != -1){
+		DYNINSTinit(libdyninstAPI_RT_DLL_localCause,libdyninstAPI_RT_DLL_localPid);
+	}
+
+}
+ 
+
+#endif
 
 #if !defined(i386_unknown_nt4_0)
 /*

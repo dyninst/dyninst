@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.159 2001/06/04 18:42:19 bernat Exp $
+/* $Id: process.h,v 1.160 2001/07/09 19:34:51 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -948,12 +948,13 @@ class process {
   bool dlopenDYNINSTlib();
   bool trapDueToDyninstLib();
   bool trapAtEntryPointOfMain();
-  bool wasCreatedViaAttach() { return createdViaAttach; }
+//  bool wasCreatedViaAttach() { return createdViaAttach; }
   bool wasCreatedViaFork() { return createdViaFork; }
   void handleIfDueToDyninstLib();  
   void insertTrapAtEntryPointOfMain();
   void handleTrapAtEntryPointOfMain();
 #endif
+  bool wasCreatedViaAttach() { return createdViaAttach; } //ccw 28 june 2001 : was above
 
   string getProcessStatus() const;
 
@@ -1346,6 +1347,9 @@ private:
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf);
+
+  bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
+
 
   bool writeTextWord_(caddr_t inTracedProcess, int data);
   bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.32 2001/06/15 20:47:49 hollings Exp $
+// $Id: pdwinnt.C,v 1.33 2001/07/09 19:34:50 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -544,6 +544,74 @@ void checkProcStatus() {
 }
 #endif
 
+
+// ccw 2 may 2001 win2k fixes
+// when you launch a process to be debugged with win2k (as in createProcess)
+// the system sends you back at least two debug events before starting the
+// process.  a debug event is also sent back for every dll that is loaded
+// prior to starting main(), these include ntdll.dll and kernel32.dll and any
+// other dlls the process needs that are not loaded with an explicit call
+// to LoadLibrary().
+//
+// dyninst catches the first debug event (CREATE_PROCESS) and initializes
+// various process specific data structures.
+// dyninst catches the second debug event (an EXCEPTION_DEBUG_EVENT) and used this
+// event as a trigger to put in the bit of code that forced the mutatee to
+// load libdyninstAPI_RT.dll.  In win2k, this does not work.  The bit of code
+// is run and the trailing DebugBreak is caught and handled but the Dll will not
+// be loaded.  The EXCEPTION_DEBUG_EVENT must be handled and continued from before
+// LoadLibrary will perform correctly.
+//
+// the fix for this is to handle this EXCEPTION_DEBUG_EVENT, and put a DebugBreak (0xcc) 
+// at the beginning of main() in the mutatee.  catching that DebugBreak allows dyninst
+// to write in the bit of code used to load the libdyninstAPI_RT.dll.
+//
+// after this, dyninst previously instrumented the mutatee to force the execution of
+// DYNINSTinit() in the dll.  in order to take out this bit of complexity, the DllMain()
+// function in the dll, which is run upon loading the dll, is used to automatically call
+// DYNINSTinit().
+//
+// DYNINSTinit() takes two parameters, a flag denoting how dyninst attached to this process
+// and the pid of the mutator.  These are passed from the mutator to the mutatee by
+// finding a variable in the dll and writing the correct values into the mutatee's
+// address space.  When a Dll is loaded, a LOAD_DLL debug event is thrown before the
+// execution of DllMain(), so dyninst catches this event, writes the necessary values
+// into the mutatee memory, then lets DllMain() call DYNINSTinit().
+// the DebugBreak() at the end of DYNINSTinit() is now removed for NT/win2K
+//
+// the bit of code inserted to load the dll fires a DebugBreak() to signal that it is
+// done. dyninst catches this, patches up the code that was used to load the dll, 
+// replaces what was overwritten in main() and resets the instruction pointer (EIP)
+// to the beginning of main().
+
+int secondBkpt = 0; //ccw 30 apr 2001 : used to signal that we have seen the first EXCEPTION_DEBUG_EVENT
+int mungeAddr = 0; //ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
+byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
+byte newOpCode[256]={0x90};// ccw 27 june 2001 : the op code we add in main()
+//ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte does not always cause the
+//instruction cache to be reloaded. 
+
+Address mainAddr=0 ; //ccw 2 may 2001 : the address of main()
+
+//ccw 2 may 2001 : the following function sets the varible name to the value given.
+// returns true if it is successful.
+bool setVariable(process* p, string name, int value){
+    	string full_name = string("_") + string(name);
+	Symbol syminfo;
+	if (!p->getSymbolInfo(full_name, syminfo)) {
+		string short_name(name);
+		if (!p->getSymbolInfo(short_name, syminfo)) {
+		    assert(0);
+		}
+	}
+
+	if( syminfo.type() == Symbol::PDST_FUNCTION)
+   		assert(0); 
+	Address tmpAddr = syminfo.addr();
+	return p->writeDataSpace((void*)tmpAddr, sizeof(int), (void*) &value);
+}
+
+
 /*
    wait for inferior processes to terminate or stop.
 */
@@ -597,26 +665,96 @@ int process::waitProcs(int *status) {
 	    //printf("Debug breakpoint exception, %d, addr = %x\n", 
 	    //       debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
 	    //       debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+	    	if(!secondBkpt && !p->wasCreatedViaAttach()){
+			// if this was created via attach then
+			// we are not at main() so no reason to
+			// put a breakpoint there, we are already
+			// at a state that will allow loadLibrary() to
+			// succeed. 
+			//ccw this is the breakpoint BEFORE main();
+			//i need to insert the 0xcc into main() now.
+			//byte debugOpCode = 0xcc;
+			for(int rr=0;rr<256;rr++){
+				newOpCode[rr]=0x90;
+			}
+	 	    	p->savedRegs = p->getRegisters();
+			newOpCode[0]=0xcc;
+			function_base *mainFunc;
+			//DebugBreak();//ccw 14 may 2001  
+			if (!((mainFunc = p->findOneFunction("main")))){
+				if(!(mainFunc = p->findOneFunction("_main"))){
+					if(!(mainFunc = p->findOneFunction("WinMain"))){
+						if(!(mainFunc = p->findOneFunction("_WinMain"))){
+							assert(0);
+						}
+					}
+				}
+
+			}
+			mainAddr = mainFunc->addr();
+			//ccw save what we overwrite for later.
+			p->readDataSpace_((void*) (mainAddr), 256, (void*)savedOpCode);
+			p->writeDataSpace((void*) (mainAddr), 256, (void*)newOpCode);
+			secondBkpt=1;
+			break;
+		}
+
+
 
 	    if (!p->reachedFirstBreak) {
 
 		if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
 		    Address addr = loadDyninstDll(p, p->savedData);
+	   	    mungeAddr = addr; //ccw 15 june 2001
 		    p->savedRegs = p->getRegisters();
 		    p->changePC(addr);
 		    //p->LoadDyninstTrapAddr = addr + 0xd;
 		    p->isLoadingDyninstLib = true;
 		    break;
-		} else if (p->isLoadingDyninstLib) {
+		} else if (p->isLoadingDyninstLib
+			&& ((int) mungeAddr + 0xd) ==
+			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
+			//ccw 2 may 2001 the above test is changed so that we only
+			// respond to events after
+			// the load library code has completed.  (we know that the 
+			// DebugBreak 0xd bytes from 
+			// the beginning of where we inserted code signals that we
+			// have finished load library) 
+
 		    p->isLoadingDyninstLib = false;
 		    p->hasLoadedDyninstLib = true;
+	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
+			p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
+
+			if(mainAddr){
+			    // patch main() back to its original form
+			    p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+			    // reset the IP to run what we just inserted.
+			    ((CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
+			}
+
 		    p->restoreRegisters(p->savedRegs);
 		    delete p->savedRegs;
 		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
+			if(mainAddr){
+				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
+				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
+				p->readDataSpace_((void*)(mainAddr), 256, (void*) newOpCode);
+				p->writeDataSpace((void*) (mainAddr),256,(void*) savedOpCode); //ccw 2 may 2001
+				//technically, we only need to writeDataSpace once, up at the previous
+				// if statement. BUT writing once does not seem to always flush the 
+				// icache, and neither does FlushInsturctionCache()
+				// the readDataSpace_ is completely spurrious but is here for the same
+				// reason, to get the icache updated correctly with the old op code before
+				// we continue. 
+			}
+	
+	
+		}else{
+			break;  //ccw 20 june 2001 this is the DYNINSTinit breakpoint
 		}
-
 		p->reachedFirstBreak = true;
       
 		if (!p->createdViaAttach) {
@@ -641,13 +779,14 @@ int process::waitProcs(int *status) {
 		    buffer=string("PID=") + string(pid) 
 			 + ", installing call to DYNINSTinit()";
 		    statusLine(buffer.string_of());
-		    p->installBootstrapInst();
+		    //p->installBootstrapInst();//ccw 20 june 2001 
+			// now we dont need to do this,  DLLMain() does it.
       
 		    // now, let main() and then DYNINSTinit() get invoked.  As it
 		    // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
 		    // we read bootstrap information "sent back" (in a global vrble),
 		    // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-		    break;
+		    // break; //ccw 20 june 2001, commented out  with p->installBootstrapInst()
 		} else {
 		    //printf("First breakpoint after attach\n");
 		    p->pause_();
@@ -860,6 +999,7 @@ int process::waitProcs(int *status) {
 	//printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
 	p = findProcess(debugEv.dwProcessId);
 	if (p) {
+	    secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
 	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
 	    if (p->threads.size() == 0) {
 		// define the main thread
@@ -998,6 +1138,24 @@ int process::waitProcs(int *status) {
 #endif 
 	    p->setDynamicLinking();
 	  }
+
+	for(int kk = 0;kk< MAX_PATH && nameBuffer[kk] != '\0';kk++){ //ccw 2 may 2001
+		nameBuffer[kk] = toupper(nameBuffer[kk]);
+	}
+	if(strstr(nameBuffer, "LIBDYNINSTAPI_RT.DLL")){
+	// ccw 2 may 2001
+	//when we load libdyninstAPI_RT.dll we need to find the local
+	//variables in the dll that will hold the cause and pid so when
+	//DLLMain is called they will be correctly passed to DYNINSTinit
+
+		if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
+			assert(0);
+		}
+		if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
+			assert(0);
+		}
+	}
+	
       }
     break;
     case UNLOAD_DLL_DEBUG_EVENT:
@@ -1144,6 +1302,10 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
 
 bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
     return writeDataSpace_(inTraced, amount, inSelf);
+}
+
+bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june 2001
+	return FlushInstructionCache((HANDLE)proc_fd, baseAddr, size);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
