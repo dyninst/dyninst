@@ -39,7 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.80 2003/03/10 23:15:34 bernat Exp $
+// $Id: pdwinnt.C,v 1.81 2003/03/12 01:49:59 schendel Exp $
+
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -738,15 +739,13 @@ DWORD handleException(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 
 // Thread creation
 DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
-    dyn_lwp *l = new dyn_lwp(info.dwThreadId, // ID
-                             info.u.CreateThread.hThread, // fd
-                             proc); // process
+    dyn_lwp *l = proc->createLWP(info.dwThreadId, info.dwThreadId, 
+                                 info.u.CreateThread.hThread);
     l->openFD();
     dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
                                    proc->threads.size()-1, // POS (unused currently)
                                    l); // dyn_lwp object for thread handle
     proc->threads.push_back(t);
-    proc->lwps[info.dwThreadId] = l; // Store in table of lwps
     proc->continueProc();
     return DBG_CONTINUE;
 }
@@ -757,10 +756,8 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
         dyn_lwp *l = proc->getDefaultLWP();
         if (!l) {
             // It's possible we never created the default LWP
-            l = new dyn_lwp(info.dwThreadId,
-                            info.u.CreateProcessInfo.hThread, 
-                            proc);
-            proc->lwps[0] = l;
+            l = proc->createLWP(info.dwThreadId, 0, 
+                                info.u.CreateProcessInfo.hThread);
         }
         if (proc->threads.size() == 0) {
             dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID,
@@ -1036,6 +1033,7 @@ process *decodeProcessEvent(int pid,
       break;
   case EXIT_PROCESS_DEBUG_EVENT:
       why = procProcessExit;
+      what = info.u.ExitProcess.dwExitCode;
       break;
   case LOAD_DLL_DEBUG_EVENT:
       why = procDllLoad;
@@ -1073,8 +1071,14 @@ void OS::osDisconnect(void) {
 #endif
 }
 
+dyn_lwp *process::createLWP(unsigned lwp_id, int index, handleT fd) {
+   dyn_lwp *lwp = new dyn_lwp(lwp_id, fd, this);
+   theRpcMgr->newLwpFound(lwp);
+   lwps[index] = lwp;
+   return lwp;
+}
 
-bool process::attach() {
+bool process::attach_() {
   if (createdViaAttach) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
@@ -1166,7 +1170,7 @@ bool process::pause_() {
    close the file descriptor for the file associated with a process
 */
 bool process::detach_() {
-    return false;
+   return false;
 }
 
 
@@ -2121,14 +2125,14 @@ GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 	return ret;
 }
 
-bool dyn_lwp::openFD()
+bool dyn_lwp::openFD_()
 {
   // Nothing to do here that I know of, since we are handed the FD
   // as part of a debug message
   return true;
 }
 
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
   return;
 }
