@@ -3,6 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.14  1995/10/17 03:21:05  tamches
+ * (really Karen)
+ * Bumped version number from 5 to 6
+ *
  * Revision 1.13  1995/10/17 03:11:54  tamches
  * (really Karen)
  * Added endSearch() igen call
@@ -75,7 +79,7 @@ typedef struct SHNptr_Array {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 5;
+    $version 6;
 
     // for all of the configured tests print their status.
     //  This is intended for debugging only.
