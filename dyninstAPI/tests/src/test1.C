@@ -3352,21 +3352,22 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     /*
      * Check structure of control flow graph.
      */
-    BPatch_Set<BPatch_basicBlock*>* blocks = cfg->getAllBasicBlocks();
-    if (blocks->size() < 4) {
+    BPatch_Set<BPatch_basicBlock*> blocks;
+    cfg->getAllBasicBlocks(blocks);
+    if (blocks.size() < 4) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected %d basic blocks in func33_2, should be at least four.\n", blocks->size());
+	fprintf(stderr, "  Detected %d basic blocks in func33_2, should be at least four.\n", blocks.size());
 	exit(1);
     }
 
-    BPatch_basicBlock **block_elements = new BPatch_basicBlock*[blocks->size()];
-    blocks->elements(block_elements);
+    BPatch_basicBlock **block_elements = new BPatch_basicBlock*[blocks.size()];
+    blocks.elements(block_elements);
 
     bool foundOutDegreeTwo = false;
     bool foundInDegreeTwo = false;
     int blocksNoIn = 0, blocksNoOut = 0;
 
-    for (i = 0; i < blocks->size(); i++) {
+    for (i = 0; i < blocks.size(); i++) {
 	BPatch_Vector<BPatch_basicBlock*> in;
 	BPatch_Vector<BPatch_basicBlock*> out;
 
@@ -3481,20 +3482,21 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	exit(1);
     }
 
-    BPatch_Set<BPatch_basicBlock*>* blocks3 = cfg3->getAllBasicBlocks();
-    if (blocks3->size() < 10) {
+    BPatch_Set<BPatch_basicBlock*> blocks3;
+    cfg3->getAllBasicBlocks(blocks3);
+    if (blocks3.size() < 10) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3->size());
+	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3.size());
 	exit(1);
     }
 
-    block_elements = new BPatch_basicBlock*[blocks3->size()];
-    blocks3->elements(block_elements);
+    block_elements = new BPatch_basicBlock*[blocks3.size()];
+    blocks3.elements(block_elements);
 
     bool foundSwitchIn = false;
     bool foundSwitchOut = false;
     bool foundRangeCheck = false;
-    for (i = 0; i < blocks3->size(); i++) {
+    for (i = 0; i < blocks3.size(); i++) {
 	BPatch_Vector<BPatch_basicBlock*> in;
 	BPatch_Vector<BPatch_basicBlock*> out;
 
@@ -3534,7 +3536,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	exit(1);
     }
 
-    for (i = 0; i < blocks3->size(); i++) {
+    for (i = 0; i < blocks3.size(); i++) {
 	if (!entry3[0]->dominates(block_elements[i])) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Entry block does not dominate all blocks in func33_3\n");
