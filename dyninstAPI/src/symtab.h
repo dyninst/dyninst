@@ -10,6 +10,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.24  1996/07/09 04:06:53  lzheng
+ * Add infomation of unwind table to assist the stack walking on HPUX.
+ *
  * Revision 1.23  1996/05/09 19:21:44  lzheng
  * Minor fix to remove one ifdef for HPUX
  *
@@ -213,8 +216,7 @@ class pdFunction {
 #if defined(hppa1_1_hp_hpux)
     instruction entryPoint;
     instruction exitPoint;
-    struct loadr *lr; 
-    int szOfLr;
+    vector<instPoint*> lr;
 #endif
 
   private:
@@ -424,6 +426,10 @@ public:
   vector<pdFunction*> mdlLib;
   vector<pdFunction*> mdlNormal;
   vector<module*> mods;
+
+#if defined(hppa1_1_hp_hpux)
+  vector<unwind_table_entry> unwind;
+#endif
 
 private:
   string file_;		/* image file name */
