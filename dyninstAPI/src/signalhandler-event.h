@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-event.h,v 1.1 2004/01/19 21:53:50 schendel Exp $
+/* $Id: signalhandler-event.h,v 1.2 2004/02/07 18:34:21 schendel Exp $
  */
 
 /*
@@ -61,8 +61,7 @@ class dyn_lwp;
 class procevent {
  public:
    process *proc;
-   // on Solaris, multiple lwps can be responsible for the event
-   pdvector<dyn_lwp *> lwps;  // the lwps causing the event (no repres. lwps)
+   dyn_lwp *lwp;  // the lwps causing the event (not the representative lwp)
    procSignalWhy_t why;
    procSignalWhat_t what;
    procSignalInfo_t info;
