@@ -18,7 +18,7 @@ int main(int argc, char **argv){
     mb_time startup_start, startup_end;
     struct timeval tmp_tv;
     FILE * f;
-    char output_filename[256]="output";
+    char output_filename[256];
     double avg_red_lat, avg_bc_lat, avg_red_thru;
     double total_red_lat=0, total_bc_lat=0, total_red_thru=0;
     double *bc_lat, *red_lat, *red_thru, startup_lat;
@@ -37,6 +37,9 @@ int main(int argc, char **argv){
     application = argv[4];
     commnode_exe = argv[5];
     
+    // set the output filename
+    sprintf( output_filename, "%s-%d.out", topology_file, getpid() );
+
     bc_start      = new mb_time[num_exps];
     bc_end        = new mb_time[num_exps];
     red_start     = new mb_time[num_exps];
