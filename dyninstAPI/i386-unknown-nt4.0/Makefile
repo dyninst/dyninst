@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2003/05/08 21:46:28 pcroth Exp $
+# $Id: Makefile,v 1.22 2003/10/21 22:38:06 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -39,7 +39,10 @@ OBJS = 		pdwinnt.obj \
 		LocalAlteration-x86.obj \
 		FunctionExpansionRecord.obj \
 		InstrucIter-x86.obj \
-		arch-ia32.obj
+		arch-ia32.obj \
+		codeRange.obj \
+		trampTemplate.obj
+
 #		MapSymbols.obj 
 # ccw 13 july 2001
 
