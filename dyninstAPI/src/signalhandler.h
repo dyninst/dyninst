@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.1 2003/03/08 02:13:30 bernat Exp $
+/* $Id: signalhandler.h,v 1.2 2003/03/08 04:20:56 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -92,8 +92,11 @@ typedef enum {
  *  procRequested: not defined
  */
 
+#if !defined(i386_unknown_nt4_0)
 typedef unsigned int procSignalWhat_t;
-
+#else
+typedef DEBUG_EVENT procSignalWhat_t;
+#endif
 
 // Enumerated types of system calls we have particular
 // reponses for. Used to convert a large if-then tree
