@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2000/12/20 16:08:13 pcroth Exp $
+# $Id: Makefile,v 1.8 2001/02/01 01:08:45 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -52,7 +52,7 @@ SRCS	     += ../src/RTfirst.c \
 		../../dyninstAPI_RT/src/RTlinux.c \
 		../src/RTetc-posix.c \
 		../src/RTetc-linux.c \
-		../src/RThwtimer-x86.c \
+		../src/RThwtimer-linux.c \
 		../src/RTrexec.c
 
 ifdef DETACH_ON_THE_FLY

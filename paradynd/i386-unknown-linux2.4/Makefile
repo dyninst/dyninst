@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2000/11/20 23:14:52 schendel Exp $
+# $Id: Makefile,v 1.5 2001/02/01 01:08:44 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,7 +36,7 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/arch-x86.C \
 		../../dyninstAPI/src/Object-elf.C \
 		../../dyninstAPI/src/unix.C  \
-		../../rtinst/src/RThwtimer-x86.c
+		../../rtinst/src/RThwtimer-linux.c
 
 MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT

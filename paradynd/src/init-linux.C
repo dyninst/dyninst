@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.7 2000/11/20 23:15:25 schendel Exp $
+// $Id: init-linux.C,v 1.8 2001/02/01 01:08:45 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -52,7 +52,7 @@
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 #include "paradynd/src/timeMgr.h"
-#include "rtinst/h/RThwtimer-x86.h"
+#include "rtinst/h/RThwtimer-linux.h"
 
 bool initOS() {
   AstNode *tagArg;
@@ -158,11 +158,13 @@ bool initOS() {
 };
 
 bool dm_isTSCAvail() {
-  return isTSCAvail() == 1;
+  return isTSCAvail() != 0;
 }
 
 rawTime64 dm_getTSC() {
-  return getTSC();
+  rawTime64 v;
+  getTSC(v);
+  return v;
 }
 
 void initWallTimeMgrPlt() {

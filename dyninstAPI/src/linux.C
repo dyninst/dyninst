@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.45 2000/11/20 23:13:59 schendel Exp $
+// $Id: linux.C,v 1.46 2001/02/01 01:08:42 schendel Exp $
 
 #include <fstream.h>
 
@@ -72,7 +72,7 @@
 #endif
 
 #ifdef HRTIME
-#include "rtinst/h/RThwtimer-x86.h"
+#include "rtinst/h/RThwtimer-linux.h"
 #endif
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.19 2000/11/20 23:17:07 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.20 2001/02/01 01:08:46 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -65,7 +65,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "rtinst/h/RThwtimer-x86.h"
+#include "rtinst/h/RThwtimer-linux.h"
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <thread.h>
@@ -228,7 +228,7 @@ DYNINSTgetWalltime_hw(void) {
   rawTime64 now, tmp_wallPrevious=wallPrevious;
   struct timeval tv;
 
-  now = getTSC();
+  getTSC(now);
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {

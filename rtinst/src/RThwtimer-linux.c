@@ -38,52 +38,88 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Id: RThwtimer-x86.h,v 1.2 2001/01/05 16:34:35 pcroth Exp $
- */
-#ifndef __RTHWTIMER_X86__
-#define __RTHWTIMER_X86__
 
-#include "common/h/Types.h"
+/* $Id: RThwtimer-linux.c,v 1.1 2001/02/01 01:08:46 schendel Exp $ */
 
-#ifdef HRTIME
-#include "hrtime.h"
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-  int isTSCAvail(void);
-  rawTime64 getTSC(void);
-#ifdef HRTIME
-  int isLibhrtimeAvail(struct hrtime_struct **hr_cpu_link, int pid);
-  rawTime64 hrtimeGetVtime(struct hrtime_struct *hr_cpu_link);
-#endif
-#ifdef __cplusplus
-}
-#endif
-
-typedef union {
-  rawTime64 t;
-  unsigned long p[2];
-} hrtime_union;
-
-#define rdtsc(low,high) \
-     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high))
+/************************************************************************
+ * RThwtimer-linux.c: linux hardware level timer support functions
+************************************************************************/
 
 
-extern inline rawTime64 getTSC(void) {
-  volatile hrtime_union val;
-  rdtsc(val.p[0], val.p[1]);
-  return val.t;
+#include <stdio.h>
+#include <signal.h>
+#include <setjmp.h>
+#include "rtinst/h/RThwtimer-linux.h"
+
+void int_handler(int errno);
+
+static volatile sig_atomic_t jumpok = 0;
+static sigjmp_buf jmpbuf;
+
+void int_handler(int errno)  {
+  /* removes warning */  errno = errno;
+  if(jumpok == 0)  return;
+  siglongjmp(jmpbuf, 1);
 }
 
+int isTSCAvail(void)  {
+  struct sigaction act, oldact;
+  rawTime64 v;
+  int retVal=0;
+  act.sa_handler = int_handler;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = 0;
+  if(sigaction(SIGSEGV, &act, &oldact) < 0)  {
+    perror("isTSCAvail: Error setting up SIGSEGV handler");
+    exit(1);
+   }
+
+  if(sigsetjmp(jmpbuf, 1)==0)  {
+    jumpok = 1;
+    getTSC(v);
+    retVal=1;
+  } else {
+    retVal=0;
+  }
+  if(sigaction(SIGSEGV, &oldact, NULL) < 0) {
+    perror("isTSCAvail: Error resetting the SIGSEGV handler");
+    exit(1);
+  }
+  return retVal;
+}
+
+
 #ifdef HRTIME
-extern inline rawTime64 hrtimeGetVtime(struct hrtime_struct *hr_cpu_link) {
+#include <unistd.h>
+
+int isLibhrtimeAvail(struct hrtime_struct **hr_cpu_link, int pid) {
+  int error;
+  
+  if(! isTSCAvail()) {
+    return 0;
+  }
+  
+  error = hrtime_init();
+  if (error < 0) {
+    return 0;
+  }
+
+  error = get_hrtime_struct(pid, hr_cpu_link);
+  if (error < 0) {
+    return 0;
+  }
+  return 1;
+}
+
+// this matches the function in RThwtimer-x86.h, used for non-optimizing
+// rtinst library in which case the extern inline function is ignored 
+rawTime64 hrtimeGetVtime(struct hrtime_struct *hr_cpu_link) {
   hrtime_t current;
   get_hrvtime(hr_cpu_link, &current);
   return (rawTime64)(current);
 }
-#endif
 
 #endif
+
+
+
