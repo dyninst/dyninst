@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.71 2001/02/20 21:47:33 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.72 2001/03/02 01:29:29 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3292,7 +3292,7 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
 //     created inst points on error....
 #define CALC_OFFSETS(ip) \
     originalOffset = ((ip->iPgetAddress() + imageBaseAddr) - mutatee); \
-    newOffset = alteration_set.getInstPointShift(originalOffset); \
+    newOffset = alteration_set.getInstPointShift(originalOffset + 1); \
     assert(((originalOffset + newOffset) % sizeof(instruction)) == 0); \
     arrayOffset = ((originalOffset + newOffset) / sizeof(instruction)); \
     tmp = newAdr + originalOffset + newOffset; \
