@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.60 2004/01/19 21:53:44 schendel Exp $
+// $Id: osf.C,v 1.61 2004/02/07 18:35:44 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -388,6 +388,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                         // In this case we return directly
                         procevent *new_event = new procevent;
                         new_event->proc = processVec[u];
+                        new_event->lwp  =processVec[u]->getRepresentativeLWP();
                         new_event->why  = why;
                         new_event->what = what;
                         new_event->info = info;
@@ -473,6 +474,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         foundEvent = true;
         procevent *new_event = new procevent;
         new_event->proc = currProcess;
+        new_event->lwp  = currProcess->getRepresentativeLWP();
         new_event->why  = why;
         new_event->what = what;
         new_event->info = info;
