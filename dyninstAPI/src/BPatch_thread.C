@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.113 2004/12/09 05:00:54 rchen Exp $
+// $Id: BPatch_thread.C,v 1.114 2005/01/18 18:34:00 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -250,7 +250,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     //(void*) getcwd(buf, sizeof(buf));
     //directoryName = buf;
     //#endif
-
+    
     proc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), directoryName,
 			    stdin_fd, stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
@@ -380,21 +380,18 @@ BPatch_thread::~BPatch_thread()
     //     gets taken care of.
     if (!proc) return;
 
+    // If we attached to the process, then we detach and leave it be
+    if (createdViaAttach)
+      proc->detachProcess(true);
+    else {
+      // We want to terminate the process. Note that the process could already
+      // be dead (if the Dyninst mutator killed it and consumed the notification)
+      // so our termination needs to be tolerant.
+      terminateExecution();
+    }
+    delete proc;
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->unRegisterThread(getPid());
-
-    // We detach before we delete the process object 
-
-    if (!detached) {
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-    	if (createdViaAttach)
-    	    proc->detachProcess(true);
-	else
-#endif
-	    terminateExecution();
-    }
-
-    //delete proc;
 }
 
 
@@ -448,7 +445,6 @@ bool BPatch_thread::terminateExecution()
 {
     if (!proc || !proc->terminateProc())
 	return false;
-
     // Wait for the process to die
     while (!isTerminated()) ;
 
