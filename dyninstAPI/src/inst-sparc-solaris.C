@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.111 2002/08/16 16:01:37 gaburici Exp $
+// $Id: inst-sparc-solaris.C,v 1.112 2002/08/27 21:19:31 mirg Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1421,7 +1421,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 /****************************************************************************/
 /****************************************************************************/
 
-Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/, 
+Register emitR(opCode op, Register src1, Register /*src2*/, Register dest, 
               char *i, Address &base, bool /*noCost*/)
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
@@ -1432,42 +1432,62 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
       case getParamOp: {
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // saving CT/vector address on the stack
-        generateStore(insn, REG_MT_POS, REG_FPTR, -40);
-        insn++;
+	generateStore(insn, REG_MT_POS, REG_FPTR, -40);
+        insn++; base += sizeof(instruction);
 #endif
 	// first 8 parameters are in register bank I (24..31)
 	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
-	insn++;
+	insn++; base += sizeof(instruction);
 
-	generateStore(insn, REG_I(src1), REG_SPTR, 68+4*src1); 
-	insn++;
-	      
-	genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
-	insn++;
+	if (src1 < 6) {
+	    // The arg is in an I register. Pass it through the register save
+	    // area
+	    generateStore(insn, REG_I(src1), REG_SPTR, 64+4*src1); 
+	    insn++; base += sizeof(instruction);
 
-	generateLoad(insn, REG_SPTR, 112+68+4*src1, REG_I(src1)); 
-	insn++;
+	    genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
+	    insn++; base += sizeof(instruction);
+
+	    generateLoad(insn, REG_FPTR, 64+4*src1, dest);
+	    insn++; base += sizeof(instruction);
+	}
+	else {
+	    // The arg is on the stack. Pass FP (i6) through the register
+	    // save area to be able to pick the arg off the stack later
+	    generateStore(insn, REG_FPTR, REG_SPTR, 64+4*6); 
+	    insn++; base += sizeof(instruction);
+
+	    genImmInsn(insn, SAVEop3, REG_SPTR, -112, REG_SPTR);
+	    insn++; base += sizeof(instruction);
+
+	    generateLoad(insn, REG_FPTR, 64+4*6, dest); //old fp is in dest now
+	    insn++; base += sizeof(instruction);
+
+	    // Finally, load the arg from the stack
+	    generateLoad(insn, dest, 92 + 4 * (src1 - 6), dest);
+	    insn++; base += sizeof(instruction);
+	}
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // restoring CT/vector address back in REG_MT_POS
         generateLoad(insn, REG_FPTR, -40, REG_MT_POS);
-        insn++;
-        base += 6*sizeof(instruction);
-#else
-	base += 4*sizeof(instruction);
+        insn++; base += sizeof(instruction);
 #endif
 	
-	if (src1 <= 8) {
-	    return(REG_I(src1));
-	}
-	abort();
+	return dest;
       }
     case getSysParamOp: {
-	if (src1 <= 8) {
+	if (src1 < 6) {
+	    // Param is in an I register
 	    return(REG_I(src1));
 	}	
-        abort();
-      }
+	else {
+	    // Param is on the stack
+	    generateLoad(insn, REG_FPTR, 92 + 4 * (src1 - 6), dest);
+	    insn++; base += sizeof(instruction);
+	    return dest;
+	}
+    }
     case getRetValOp: {
 	// return value is in register REG_I(0)==24
 	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
