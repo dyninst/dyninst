@@ -23,13 +23,14 @@ endif
 echo ""
 echo ""
 echo "../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp"
-#../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp
+../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp
 
 echo ""
 echo ""
 if(-e core) then
         echo "\tThe execution is terminated by Segmentation Fault"
 	rm -rf core
+	exit 1
 endif
 
 cd $CWD/cc1
@@ -46,13 +47,14 @@ endif
 echo ""
 echo ""
 echo "../../dyncov $1 --run ./cc1 `ls *.i`"
-#../../dyncov $1 --run ./cc1 `ls *.i`
+../../dyncov $1 --run ./cc1 `ls *.i`
 
 echo ""
 echo ""
 if(-e core) then
         echo "\tThe execution is terminated by Segmentation Fault"
 	rm -rf core
+	exit 2
 endif
 
 echo ""
