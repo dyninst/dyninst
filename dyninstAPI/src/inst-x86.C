@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.171 2004/04/13 03:03:38 lharris Exp $
+ * $Id: inst-x86.C,v 1.172 2004/04/13 04:11:36 legendre Exp $
  */
 #include <iomanip>
 
@@ -605,7 +605,7 @@ void pd_Function::updateFunctionEnd( Address newEnd, image* owner )
     } 
 
     //we might need to correct the end address of the last basic block
-    unsigned n = blockList->size() - 1;
+    int n = blockList->size() - 1;
     if( n >=1 && (*blockList)[n]->getRelEnd() >= newEnd )
     {
         BPatch_basicBlock* blk = (*blockList)[n];
@@ -5549,7 +5549,7 @@ bool pd_Function::PA_attachGeneralRewrites(
     * and is reachable.
     **/
    instr = loadedCode[numInstructions-1];
-   if (0 && !instr.isReturn() && !instr.isUncondJump())
+   if (!instr.isReturn() && !instr.isUncondJump())
    {
 #ifdef DEBUG_FUNC_RELOC
      cerr << std::hex 

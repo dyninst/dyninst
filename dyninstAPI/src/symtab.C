@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.211 2004/04/08 21:14:09 lharris Exp $
+// $Id: symtab.C,v 1.212 2004/04/13 04:11:41 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2179,6 +2179,17 @@ top:
         assert( func1->get_address() != func2->get_address() );
         
         //look for overlapping functions
+#if defined(os_linux) && defined(arch_x86)
+	if ((func2->get_address() < func1->get_address() + func1->get_size()) &&
+	    strstr(func2->prettyName().c_str(), "nocancel") != NULL)
+	{ 
+	  func2->updateFunctionEnd(func2->get_address(), this);
+	  raw_funcs->erase(k+1, k+1);
+	  func1->markAsNeedingRelocation(true);
+	  k--;
+	}
+	else
+#endif
         if( func2->get_address() < func1->get_address() + func1->get_size() )
         {
             //use the start address of the second function as the upper bound
