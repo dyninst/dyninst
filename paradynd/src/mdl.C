@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.72 1998/12/25 23:30:24 wylie Exp $
+// $Id: mdl.C,v 1.73 1999/01/21 23:22:13 wylie Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -236,7 +236,10 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
   temp_ctr_(temp_counters), developerMode_(developerMode),
   unitstype_(unitstype) { assert(0); }
 
-T_dyninstRPC::mdl_metric::mdl_metric() { }
+T_dyninstRPC::mdl_metric::mdl_metric()
+: id_(""), name_(""), units_(""), agg_op_(0), style_(0), type_(0), 
+  stmts_(NULL), flavors_(NULL), constraints_(NULL), temp_ctr_(NULL),
+  developerMode_(false), unitstype_(0) { }
 
 T_dyninstRPC::mdl_metric::~mdl_metric() {
   assert (0);
@@ -286,6 +289,8 @@ static bool other_machine_specified(vector< vector<string> > &focus,
 				    string& machine) {
   assert(focus[resource::machine][0] == "Machine");
 
+  metric_cerr << "other_machine_specified()" << endl;
+
   switch (focus[resource::machine].size()) {
   case 1: break;
   case 2:
@@ -302,6 +307,8 @@ static void add_processes(vector< vector<string> > &focus,
 				 vector<process*> &ip) {
   assert(focus[resource::process][0] == "Process");
   unsigned pi, ps;
+
+  metric_cerr << "add_processes()" << endl;
 
   switch(focus[resource::process].size()) {
   case 1:
@@ -374,6 +381,8 @@ static bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 			      vector<unsigned>& flag_dex, unsigned& base_dex) {
   unsigned size = cons->size();
 
+  metric_cerr << "check_constraints()" << endl;
+
   unsigned foc_size = focus.size();
   for (unsigned fi=0; fi<foc_size; fi++) {
     unsigned el_size = focus[fi].size();
@@ -422,6 +431,7 @@ static bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 // Variable updated: $procedures, $modules, $exit, $start
 static bool update_environment(process *proc) {
 
+  metric_cerr << "update_environment()" << endl;
   // for cases when libc is dynamically linked, the exit symbol is not
   // correct
   string vname = "$exit";
@@ -518,6 +528,8 @@ apply_to_process(process *proc,
 		 vector<string> *temp_ctr,
 		 bool replace_component,
 		 bool computingCost) {
+
+    metric_cerr << "apply_to_process()" << endl;
 
     if (!update_environment(proc)) return NULL;
 
@@ -632,14 +644,17 @@ apply_to_process(process *proc,
     if (base_use) {
       dataReqNode *flag = NULL;
       if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
+        metric_cerr << "base_use->apply()" << endl;
 	if (!computingCost) mn->cleanup_drn();  
         delete mn;
 	return NULL;
       }
     } else {
       unsigned size = stmts->size();
+      metric_cerr << "stmts->apply() x" << size << endl;
       for (unsigned u=0; u<size; u++) {
 	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on stmt type
+          metric_cerr << "apply failed!" << endl;
 	  if (!computingCost) mn->cleanup_drn();  
 	  delete mn;
 	  return NULL;
@@ -648,6 +663,7 @@ apply_to_process(process *proc,
     }
 
     if (!mn->nonNull()) {
+      metric_cerr << "mn->nonNull()" << endl;
       if (!computingCost) mn->cleanup_drn();
       delete mn;
       return NULL;
@@ -670,6 +686,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<string> *temp_ctr,
 				  bool replace_components_if_present,
 				  bool computingCost) {
+  metric_cerr << "apply_to_process_list()" << endl;
 #ifdef DEBUG_MDL
   timer loadTimer, totalTimer;
   static ofstream *of=NULL;
@@ -752,6 +769,8 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   // TODO -- how is folding specified ?
   // TODO -- are lists updated here ?
 
+  metric_cerr << "T_dyninstRPC::mdl_metric::apply" << endl;
+
   mdl_env::push();
   mdl_env::add(id_, false, MDL_T_DRN);
   assert(stmts_);
@@ -789,8 +808,8 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   /* 
      Compute the list of excluded functions here. This is the list of functions
      that should be excluded from the calls sites.
-     We set the global variable global_excluded_functions to the list of excluded
-     functions.
+     We set the global variable global_excluded_functions to the list of
+     excluded functions.
 
      At this point, the $constraint variable is not in the environment yet,
      so anything that uses $constraint will not be added to the list,
@@ -826,7 +845,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
     // create aggregate mi, containing the process components "parts"
     ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
 
-  // cout << "apply of " << name_ << " ok\n";
+  metric_cerr << "apply of " << name_ << " ok" << endl;
   mdl_env::pop();
 
   ////////////////////
@@ -835,10 +854,14 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   return ret;
 }
 
-T_dyninstRPC::mdl_constraint::mdl_constraint() { }
-T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_path,
-					     vector<T_dyninstRPC::mdl_stmt*> *stmts,
-					     bool replace, u_int d_type, bool& error)
+T_dyninstRPC::mdl_constraint::mdl_constraint()
+: id_(""), match_path_(NULL), stmts_(NULL), replace_(false),
+  data_type_(0), hierarchy_(0), type_(0) { }
+
+T_dyninstRPC::mdl_constraint::mdl_constraint(string id, 
+                                        vector<string> *match_path,
+					vector<T_dyninstRPC::mdl_stmt*> *stmts,
+					bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
   data_type_(d_type), hierarchy_(0), type_(0) { assert(0); error = false; }
 T_dyninstRPC::mdl_constraint::~mdl_constraint() {
@@ -935,6 +958,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 					 dataReqNode *&flag,
 					 vector<string>& resource,
 					 process *proc, bool computingCost) {
+  metric_cerr << "T_dyninstRPC::mdl_constraint::apply()" << endl;
   assert(mn);
   switch (data_type_) {
   case MDL_T_COUNTER:
@@ -977,7 +1001,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   global_proc->pause();
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(mn, flags)) { // virtual fn call; several possibilities
-      // cout << "apply of constraint " << id_ << " failed\n";
+      metric_cerr << "apply of constraint " << id_ << " failed\n";
       if (wasRunning) global_proc->continueProc();
       return(false);
     }
@@ -987,9 +1011,10 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   return(true);
 }
 
-T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string> *path,
-						vector<T_dyninstRPC::mdl_stmt*> *stmts,
-						bool replace, u_int d_type) {
+T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
+                                        vector<string> *path,
+					vector<T_dyninstRPC::mdl_stmt*> *stmts,
+					bool replace, u_int d_type) {
   assert (0);
   bool error;
   return (new T_dyninstRPC::mdl_constraint(id, path, stmts, replace, d_type, error));
@@ -997,10 +1022,16 @@ T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string>
 
 T_dyninstRPC::mdl_stmt::mdl_stmt() { }
 
-T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, T_dyninstRPC::mdl_expr *list_exp, T_dyninstRPC::mdl_stmt *body) 
-: for_body_(body), index_name_(index_name), list_expr_(list_exp) {assert(0);}
-T_dyninstRPC::mdl_for_stmt::mdl_for_stmt() { }
-T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
+T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, 
+        T_dyninstRPC::mdl_expr *list_exp, T_dyninstRPC::mdl_stmt *body) 
+: for_body_(body), index_name_(index_name), list_expr_(list_exp) 
+{assert(0);}
+
+T_dyninstRPC::mdl_for_stmt::mdl_for_stmt()
+: for_body_(NULL), index_name_(""), list_expr_(NULL) { }
+
+T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() 
+{
   assert (0);
   delete for_body_;
   delete list_expr_;
@@ -1032,12 +1063,16 @@ bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
   return true;
 }
 
-T_dyninstRPC::mdl_icode::mdl_icode() { }
+T_dyninstRPC::mdl_icode::mdl_icode()
+  : if_expr_(NULL), expr_(NULL) { }
+
 T_dyninstRPC::mdl_icode::mdl_icode(
   T_dyninstRPC::mdl_expr* expr1, T_dyninstRPC::mdl_expr* expr2)
   : if_expr_(expr1), expr_(expr2)
 { assert (0); }
-T_dyninstRPC::mdl_icode::~mdl_icode() { assert(0); delete if_expr_; delete expr_; }
+
+T_dyninstRPC::mdl_icode::~mdl_icode() 
+{ assert(0); delete if_expr_; delete expr_; }
 
 bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) 
 {
@@ -1763,8 +1798,12 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
   return true;
 }
 
-T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body) : expr_(expr), body_(body) {assert(0);}
-T_dyninstRPC::mdl_if_stmt::mdl_if_stmt() { }
+T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body)
+  : expr_(expr), body_(body) {assert(0);}
+
+T_dyninstRPC::mdl_if_stmt::mdl_if_stmt()
+  : expr_(NULL), body_(NULL) { }
+
 T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   assert (0);
   delete expr_; delete body_;
@@ -1793,8 +1832,12 @@ bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
   return body_->apply(mn, flags);
 }
 
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) : stmts_(stmts) { assert (0); }
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt() { }
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts)
+ : stmts_(stmts) { assert (0); }
+
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt() 
+ : stmts_(NULL) { }
+
 T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   assert (0);
   if (stmts_) {
@@ -1822,9 +1865,13 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 					   vector<string> *elems,
 					   bool is_lib, vector<string>* flavor) 
-: type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
-{ assert (0); }
-T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
+  : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
+  { assert (0); }
+
+T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
+  : type_(MDL_T_NONE), id_(""), elements_(NULL), is_lib_(false), flavor_(NULL)
+  { }
+
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() 
 { assert(0); delete elements_; }
 
@@ -1839,10 +1886,10 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
   }
   if (!found) return false;
   if (!elements_) return false;
-  mdl_var expr_var;
   mdl_var list_var(id_, false);
-  unsigned size = elements_->size();
   if (!list_var.make_list(type_)) return false;
+
+  unsigned size = elements_->size();
 
   if (type_ == MDL_T_PROCEDURE_NAME) {
     vector<functionName*> *list_fn;
@@ -1859,16 +1906,20 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
     assert(0);
   } else {
     for (unsigned u=0; u<size; u++) {
-      int i; float f; string s; mdl_var expr_var;
+      int i; float f;
+      mdl_var expr_var(false);
       switch (type_) {
       case MDL_T_INT:
 	if (sscanf((*elements_)[u].string_of(), "%d", &i) != 1) return false;
-	if (!expr_var.set(i)) return false; break;
+	if (!expr_var.set(i)) return false; 
+        break;
       case MDL_T_FLOAT:
 	if (sscanf((*elements_)[u].string_of(), "%f", &f) != 1) return false;
-	if (!expr_var.set(f)) return false; break;
+	if (!expr_var.set(f)) return false; 
+        break;
       case MDL_T_STRING: 
-	if (!expr_var.set((*elements_)[u])) return false; break;
+	if (!expr_var.set((*elements_)[u])) return false; 
+        break;
       default:
 	return false;
       }
@@ -1878,13 +1929,18 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
   return (mdl_env::add(list_var));
 }
 
-T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, T_dyninstRPC::mdl_expr *expr,
+T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, 
+                                      T_dyninstRPC::mdl_expr *expr,
 				      vector<T_dyninstRPC::mdl_icode*> *reqs,
 				      unsigned where, bool constrained) 
-: position_(pos), point_expr_(expr), icode_reqs_(reqs),
+  : position_(pos), point_expr_(expr), icode_reqs_(reqs),
   where_instr_(where), constrained_(constrained) 
 { assert(0); }
-T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt() { }
+
+T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt()
+  : position_(0), point_expr_(NULL), icode_reqs_(NULL),
+  where_instr_(0), constrained_(false) { }
+
 T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   assert (0);
   delete point_expr_;
@@ -2028,7 +2084,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
 	// Make a note to do an inferiorRPC to manually execute this code.
 //	if (!manuallyTrigger)
-//	   cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
+//	   metric_cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
 
 	manuallyTrigger = true;
      }
@@ -2125,6 +2181,8 @@ bool mdl_init(string& flavor) {
 
   vector<mdl_type_desc> field_list;
   mdl_type_desc desc;
+  desc.end_allowed = false;     // random initialization
+
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "calls"; desc.type = MDL_T_LIST_POINT; field_list += desc;
   desc.name = "entry"; desc.type = MDL_T_POINT; field_list += desc;
@@ -2239,10 +2297,10 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
 void dynRPC::send_libs(vector<string> *libs) {
 
     mdl_libs = true;
-    //cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
+    //metric_cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::lib_constraints += (*libs)[i]; 
-	//cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
+	//metric_cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
     }
 
 }
@@ -2266,7 +2324,7 @@ static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool/*is_pr
       }
       else
       {
-        cerr << "Invalid type for operator ++" << endl;
+        metric_cerr << "Invalid type for operator ++" << endl;
         return false;
       }
     }
@@ -2280,7 +2338,7 @@ static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool/*is_pr
       }
       else
       {
-        cerr << "Invalid type for operator -" << endl;
+        metric_cerr << "Invalid type for operator -" << endl;
         return false;
       }
     }
@@ -2647,9 +2705,9 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
   while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
-      cerr << "mdl_get_initial flavor = " << flavor.string_of() \
-	  << " connection = " << connection << \
-          "  error in connection->waitLoop()" << endl;
+      metric_cerr << "mdl_get_initial flavor = " << flavor.string_of()
+	  << " connection = " << connection
+          << "  error in connection->waitLoop()" << endl;
       return false;
     default:
       break;
@@ -2657,9 +2715,9 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
     while (connection->buffered_requests()) {
       switch (connection->process_buffered()) {
       case T_dyninstRPC::error:
-	cerr << "mdl_get_initial flavor = " << flavor.string_of() \
-	  << " connection = " << connection << \
-          "  error in connection->processBuffered()" << endl;
+	metric_cerr << "mdl_get_initial flavor = " << flavor.string_of()
+	  << " connection = " << connection
+          << "  error in connection->processBuffered()" << endl;
 	return false;
       default:
 	break;
@@ -2686,6 +2744,7 @@ void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
     element.units = mdl_data::all_metrics[u]->units_;
     element.developerMode = mdl_data::all_metrics[u]->developerMode_;
     element.unitstype = mdl_data::all_metrics[u]->unitstype_;
+    element.handle = 0; // ignored by paradynd for now
     metInfo += element;
   }
 }
