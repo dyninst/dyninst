@@ -201,10 +201,6 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
     /* get type or variable name */
     char *mangledname = getIdentifier(stabstr, cnt);
-    if (!mangledname) {
-	mangledname = "";
-    }
-
     currentRawSymbolName = mangledname;
     char *name = (char *) malloc(1000 * sizeof(char));
     if (P_cplus_demangle(mangledname, name, 1000, mod->isNativeCompiler())) {
@@ -360,8 +356,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		char prefix[5];
 		strncpy(prefix, current_mangled_func_name, 4);
 		prefix[4] = '\0';
-		mod->dumpMangled(prefix);
-		  return(&stabstr[cnt]);
+		// mod->dumpMangled(prefix);
+		return(&stabstr[cnt]);
 		}
 	      }
 
@@ -752,10 +748,14 @@ char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
 	case ':':
 	case ',':
 	case ';':
-		if (brCnt && stabstr[cnt+i])
+		if ((brCnt) && stabstr[cnt+i]) {
 			i++;
-		else
+		} else if (brCnt) {
+			printf("got to end of stabstr %s\n", stabstr);
 			idChar = false;
+		} else {
+			idChar = false;
+		}
 		break;
 	default:
 		i++;
@@ -763,18 +763,14 @@ char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
 	}
     }
 
-    if (i) {
-	ret = (char *) malloc(i+1);
-	assert(ret);
+    ret = (char *) malloc(i+1);
+    assert(ret);
 
-	strncpy(ret, &stabstr[cnt], i);
-	ret[i] = '\0';
-	cnt += i;
+    strncpy(ret, &stabstr[cnt], i);
+    ret[i] = '\0';
+    cnt += i;
 
-	return ret;
-    } else {
-	return NULL;
-    }
+    return ret;
 }
 
 //
@@ -1384,7 +1380,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 		beg_offset = 0;
 		size = 0;
 		if (typedescr == BPatch_dataMethod) {
-			while(stabstr[cnt]) {
+			while(1) {
 				//Mangling of arguments
 				while(stabstr[cnt] != ';') cnt++;
 
@@ -1430,6 +1426,9 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 					break;
 				}
 			} //While 1
+			if (!stabstr[cnt]) {
+			    printf("error got to end of %s\n", stabstr);
+			}
 		}
 		else {
 			//Static member var
@@ -1599,8 +1598,6 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	while (stabstr[cnt] && (stabstr[cnt] != ';')) {
 	    char *funcName = getIdentifier(stabstr, cnt, true);
 
-	    if (!funcName) break;
-
 	    funcName++;	// skip ppp-code
 
 	    if (*funcName == '-') funcName++; // it's a pure vitual
@@ -1608,15 +1605,13 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    while (isdigit(*funcName)) funcName++; // skip virtual function index
 	    funcName++;
 
-	    char *methodName = (char *) malloc(1000 * sizeof(char));
 	    char *name = (char *) malloc(1000 * sizeof(char));
 	    char *className = strdup(currentRawSymbolName);
 	    className[3] = 'c';
 	    className[strlen(className)-1] = '\0';	// remove tailing "_"
-
-	    assert(name && methodName);
-	    sprintf(methodName, "%s%s_", className, funcName);
-	    if (!P_cplus_demangle(methodName, name, 1000, mod->isNativeCompiler())) {
+	    string methodName = string(className) + string(funcName) + string("_");
+	    if (!P_cplus_demangle(methodName.c_str(), name, 1000, 
+		mod->isNativeCompiler())) {
 		funcName = strrchr(name, ':');
 		if (funcName) {
 		   funcName++;
@@ -1630,7 +1625,6 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 
 	    free(name);
 	    free(className);
-	    free(methodName);
 	    if (stabstr[cnt] == ' ') cnt++;
 	}
     }
