@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 2000/08/23 19:10:30 paradyn Exp $
+# $Id: make.module.tmpl,v 1.18 2000/10/17 17:28:48 schendel Exp $
 #
 
 TARGET	      = barChart
@@ -30,7 +30,7 @@ SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 TCL_SRCS	= ../tcl/barChart.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lvisi -lpdutil 
+LIBS         += -lvisi -lpdutilOld 
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER

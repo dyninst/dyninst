@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: tableVisiTcl.C,v 1.16 2000/07/28 17:23:01 pcroth Exp $
+// $Id: tableVisiTcl.C,v 1.17 2000/10/17 17:28:58 schendel Exp $
 
 #include <iostream.h>
 
 #include "common/h/headers.h"
-#include "pdutil/h/pdsocket.h"
+#include "pdutilOld/h/pdsocket.h"
 #include "visi/h/visualization.h"
 
 #include "tcl.h"

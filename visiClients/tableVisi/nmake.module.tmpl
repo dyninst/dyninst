@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 1999/03/12 23:12:11 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.2 2000/10/17 17:28:57 schendel Exp $
 #
 
 CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) 
@@ -37,7 +37,7 @@ OBJS	= $(OBJS) \
 			$(PD_TMPO:.C=.obj) \
 			$(TCL2C_GEN_SRCS:.C=.obj)
 
-LIBS		= libvisi.lib libpdutil.lib
+LIBS		= libvisi.lib libpdutilOld.lib
 SYSLIBS		= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 
 all:	$(TARGET)

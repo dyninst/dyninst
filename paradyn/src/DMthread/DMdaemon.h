@@ -39,19 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.41 2000/07/28 17:21:42 pcroth Exp $
+// $Id: DMdaemon.h,v 1.42 2000/10/17 17:27:47 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
 
 #include <string.h>
 #include <stdlib.h>
-#include "pdutil/h/sys.h"
+#include "pdutilOld/h/sys.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 // trace data streams
-#include "pdutil/h/ByteArray.h"
+#include "pdutilOld/h/ByteArray.h"
 #include "common/h/machineType.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.91 2000/07/28 17:21:45 pcroth Exp $
+/* $Id: paradyn.tcl.C,v 1.92 2000/10/17 17:27:53 schendel Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -62,7 +62,7 @@
 #include "common/h/pathName.h" // expand_tilde_pathname
 
 #include "Status.h"
-#include "pdutil/h/TclTools.h"
+#include "pdutilOld/h/TclTools.h"
 
 extern bool detachApplication(bool);
 

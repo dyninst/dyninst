@@ -42,7 +42,7 @@
 // dg2.C
 // implementation of the "Dg" tcl command
 
-/* $Id: dg2.C,v 1.10 2000/07/28 17:23:01 pcroth Exp $ */
+/* $Id: dg2.C,v 1.11 2000/10/17 17:28:57 schendel Exp $ */
 
 #include <iostream.h>
 
@@ -51,15 +51,15 @@
 #include "tcl.h"
 #include "tk.h"
 
-#include "pdutil/h/pdsocket.h"
-#include "pdutil/h/pddesc.h"
+#include "pdutilOld/h/pdsocket.h"
+#include "pdutilOld/h/pddesc.h"
 #include "common/h/Types.h"
 #include "visi/h/visualization.h"
 
 #include "dg2.h"
 
 #include "tableVisiTcl.h"
-#include "pdutil/h/TclTools.h"
+#include "pdutilOld/h/TclTools.h"
 
 
 

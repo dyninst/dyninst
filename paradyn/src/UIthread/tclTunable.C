@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.18 2000/07/28 17:22:07 pcroth Exp $ */
+/* $Id: tclTunable.C,v 1.19 2000/10/17 17:27:53 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -53,7 +53,7 @@
 #include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
-#include "pdutil/h/TclTools.h"
+#include "pdutilOld/h/TclTools.h"
 
 struct cmdTabEntry {
    const char *cmdName;

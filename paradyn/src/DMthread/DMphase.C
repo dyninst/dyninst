@@ -42,7 +42,7 @@
 #include "DMphase.h"
 #include "DMperfstream.h"
 #include "DMmetric.h"
-#include "pdutil/h/hist.h"
+#include "pdutilOld/h/hist.h"
 
 phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.8 2000/07/28 17:23:01 pcroth Exp $
+// $Id: main.C,v 1.9 2000/10/17 17:28:56 schendel Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -56,8 +56,8 @@
 #include "common/h/Ident.h"
 extern "C" const char V_phaseTable[];
 Ident V_id(V_phaseTable,"Paradyn");
-extern "C" const char V_libpdutil[];
-Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libpdutilOld[];
+Ident V_Uid(V_libpdutilOld,"Paradyn");
 extern "C" const char V_libvisi[];
 Ident V_Vid(V_libvisi,"Paradyn");
 

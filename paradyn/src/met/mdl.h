@@ -39,19 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.25 2000/07/28 17:22:09 pcroth Exp $
+// $Id: mdl.h,v 1.26 2000/10/17 17:27:55 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
 
 #include "common/h/String.h"
 // trace data streams
-#include "pdutil/h/ByteArray.h"
+#include "pdutilOld/h/ByteArray.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include <iostream.h>
 #include <fstream.h>
-#include "pdutil/h/aggregation.h"
+#include "pdutilOld/h/aggregation.h"
 
 // Toplevel for code in resource heirarchy....
 #define CODE_RH_NAME "Code"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.117 2000/07/28 17:21:43 pcroth Exp $
+// $Id: DMpublic.C,v 1.118 2000/10/17 17:27:49 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -54,10 +54,10 @@ extern "C" {
 #include "dataManager.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "visi.xdr.h"
-#include "pdutil/h/sys.h"
+#include "pdutilOld/h/sys.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "pdutil/h/makenan.h"
+#include "pdutilOld/h/makenan.h"
 #include "DMmetric.h"
 #include "DMdaemon.h"
 #include "DMresource.h"

@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.15 2000/08/21 00:32:31 paradyn Exp $
+ * $Id: terrain.c,v 1.16 2000/10/17 17:29:01 schendel Exp $
  */
 
 #include <stdio.h>
@@ -31,7 +31,7 @@
 #include <string.h>
 
 extern /*"C"*/ const char V_terrain[];
-extern /*"C"*/ const char V_libpdutil[];
+extern /*"C"*/ const char V_libpdutilOld[];
 extern /*"C"*/ const char V_libvisi[];
 
 #define Ncolors 11		/* Number of colors for GNUPlot part */
@@ -42,7 +42,7 @@ extern /*"C"*/ const char V_libvisi[];
 #include "command.h"
 #include "misc.h"
 #include "setshow.h"
-#include "pdutil/h/pdsocket.h"
+#include "pdutilOld/h/pdsocket.h"
 #include "visi/h/visualization.h" 
 
 unsigned long colors[Ncolors];	/* Colors for GNUPlot part */

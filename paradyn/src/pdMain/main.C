@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.56 2000/07/28 17:22:10 pcroth Exp $
+// $Id: main.C,v 1.57 2000/10/17 17:27:58 schendel Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -53,7 +53,7 @@
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
 #include "../UIthread/tkTools.h" // tclpanic
-#include "pdutil/h/makenan.h"
+#include "pdutilOld/h/makenan.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.5 1998/04/01 02:43:35 wylie Exp $
+# $Id: make.module.tmpl,v 1.6 2000/10/17 17:29:00 schendel Exp $
 #
 
 TARGET	      = terrain
@@ -34,7 +34,7 @@ SRCS	     += ../src/FormatBox.c \
 		../src/term.c \
 		../src/terrain.c
 
-LIBS         += -lvisi -lpdutil 
+LIBS         += -lvisi -lpdutilOld 
 SYSLIBS	     += -lstdc++ -lXaw -lXext -lXmu -lXt $(X11_LIB) -lm
 
 all:	$(TARGET)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.94 2000/08/22 17:45:34 pcroth Exp $
+// $Id: UImain.C,v 1.95 2000/10/17 17:27:51 schendel Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -67,7 +67,7 @@
 #include "shgPhases.h"
 #include "shgTcl.h"
 #include "tkTools.h"
-#include "pdutil/h/TclTools.h"
+#include "pdutilOld/h/TclTools.h"
 
 // Paradyn logo:
 #include "pdLogo.h"
@@ -77,8 +77,8 @@
 #include "common/h/Ident.h"
 extern "C" const char V_paradyn[];
 const Ident V_id(V_paradyn,"Paradyn");
-extern "C" const char V_libpdutil[];
-const Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libpdutilOld[];
+const Ident V_Uid(V_libpdutilOld,"Paradyn");
 extern "C" const char V_libpdthread[];
 const Ident V_Tid(V_libpdthread,"Paradyn");
 

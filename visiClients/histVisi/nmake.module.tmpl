@@ -4,7 +4,7 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 1999/12/06 23:10:28 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.3 2000/10/17 17:28:54 schendel Exp $
 #
 
 TARGET	= rthist.exe
@@ -37,7 +37,7 @@ PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
 MY_TMPO	= $(MY_SRCS:../src/=)
 OBJS	= $(OBJS) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(TCL2C_GEN_SRCS:.C=.obj)
 
-LIBS	= $(LIBS) libvisi.lib libpdutil.lib
+LIBS	= $(LIBS) libvisi.lib libpdutilOld.lib
 SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 
 

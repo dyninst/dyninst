@@ -1,4 +1,13 @@
 /* $Log: psuedoparadyn.C,v $
+/* Revision 1.6  2000/10/17 17:28:33  schendel
+/* Modified include statements to use the newly added pdutilOld library.  This
+/* is a library that will be used temporarily during the changes to update the
+/* sample value pipeline in the daemon, front-end, and visis.  The pdutilOld
+/* library is a snapshot of the pdutil library before the changes required for
+/* the pipeline update.  The front-end and visis can be changed to use the
+/* already updated pdutil directory after they themselves have had the pipeline
+/* updates.
+/*
 /* Revision 1.5  2000/07/28 17:22:56  pcroth
 /* Updated #includes to reflect util library split
 /*
@@ -18,7 +27,7 @@
 #include <stream.h>
 #include "common/h/String.h"
 #include "common/h/Vector.h"
-#include "pdutil/h/makenan.h"
+#include "pdutilOld/h/makenan.h"
 #include "visi.xdr.CLNT.h" 
 
 

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.85 2000/07/28 17:21:41 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.86 2000/10/17 17:27:46 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
 #include "common/h/Types.h"
-#include "pdutil/h/aggregation.h"
+#include "pdutilOld/h/aggregation.h"
 #include "paradyn/src/met/mdl.h"
 
 $remote

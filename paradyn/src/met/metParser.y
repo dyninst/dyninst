@@ -41,10 +41,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.34 2000/07/28 17:22:09 pcroth Exp $
+// $Id: metParser.y,v 1.35 2000/10/17 17:27:56 schendel Exp $
 
 #include "paradyn/src/met/metParse.h"
-#include "pdutil/h/hist.h"
+#include "pdutilOld/h/hist.h"
 #include <string.h>
 
 #define YYSTYPE struct parseStack
