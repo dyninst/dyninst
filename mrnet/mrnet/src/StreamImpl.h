@@ -37,6 +37,7 @@ class StreamImpl: public Stream {
   virtual int send(int tag, const char * format_str, ...);
   virtual int flush();
   virtual int recv(int *tag, void **buf, bool blocking=true);
+  virtual unsigned int get_NumEndPoints();
   void add_IncomingPacket(Packet *);
   const std::vector <EndPoint *> * get_EndPoints() const;
 

@@ -33,10 +33,10 @@ StreamImpl::StreamImpl(Communicator *_comm, int _filter_id, int _sync_id)
 
     mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ", stream_id);
     for(i=0; i<endpoints->size(); i++){
-      _fprintf((stderr, "%d, ", (*endpoints)[i]->get_Id()));
+      mrn_printf(4, 0,0, stderr, "%d, ", (*endpoints)[i]->get_Id() );
       backends[i] = (*endpoints)[i]->get_Id();
     }
-    _fprintf((stderr, "]\n"));
+    mrn_printf(4, 0,0, stderr, "]\n");
 
     Packet * packet = new Packet(MRN_NEW_STREAM_PROT, "%d %ad %d %d",
                                        stream_id, backends, endpoints->size(),
@@ -51,11 +51,6 @@ StreamImpl::StreamImpl(int _stream_id, int * backends, int num_backends,
                      int _filter_id, int _sync_id)
   :filter_id(_filter_id), sync_id(_sync_id), stream_id(_stream_id)
 {
-    if( StreamImpl::streams == NULL )
-    {
-        StreamImpl::streams =
-            new std::map<unsigned int,StreamImpl*>;
-    }
     (*StreamImpl::streams)[stream_id] = this;
 }
 
@@ -70,6 +65,36 @@ int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
     Packet * cur_packet=NULL;
 
     mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
+
+    if( streams->empty() && NetworkImpl::is_FrontEnd() ){
+      //No streams exist -- bad for FE
+      mrn_printf(1, MCFL, stderr, "%s recv in FE when no streams "
+		 "exist\n", (blocking? "Blocking" : "Non-blocking") );
+      return -1;
+    }
+
+    if( force_network_recv ){
+        if ( Network::network->recv( false ) == -1 ) {
+	  // broken connection indicator seen - exit the recv
+	  mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
+	  return -1;
+        }
+    }
+
+    // Only BEs can expect to find data when no streams exist.
+    if( streams->empty() && blocking ){
+      if ( Network::network->recv( blocking ) == -1 ){
+	mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
+	return -1;
+      }
+      else{
+	//non-blocking and we already checked for packets above
+	return 0;
+      }
+    }
+
+    //if we get here, at least one stream should exist
+    assert( !streams->empty() );
 
  get_packet_from_stream_label:
     start_idx = cur_stream_idx;
@@ -99,20 +124,6 @@ int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
         cur_stream_idx %= streams->size();
     } while(start_idx != cur_stream_idx);
 
-    if( force_network_recv || !cur_packet ){
-        int rret = Network::network->recv( false );
-        if( rret == 0 ) {
-            // broken connection indicator seen - exit the recv
-            mrn_printf(1, MCFL, stderr, "broken connection 0\n" );
-            return 0;
-        }
-        else if( rret == -1 ) {
-            // broken connection indicator seen - exit the recv
-            mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
-            return -1;
-        }
-    }
-
     if( cur_packet ){
         *tag = cur_packet->get_Tag();
         *stream = (*StreamImpl::streams)[cur_packet->get_StreamId()];
@@ -130,8 +141,12 @@ int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
         return 0;
     }
     else{
-        // No packets, but blocking, start over again.
-        goto get_packet_from_stream_label;
+      // No packets, but blocking, do a recv and start over again.
+      if( Network::network->recv( true ) == -1 ){
+	mrn_printf(1, MCFL, stderr, "Network::recv() failed.\n");
+	return -1;
+      }
+      goto get_packet_from_stream_label;
     }
 
     return 0; //shouldn't get here, but shut up compiler warnings!
@@ -207,6 +222,11 @@ int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
   mrn_printf(4, MCFL, stderr, "packet's tag: %d\n", cur_packet->get_Tag());
   mrn_printf(3, MCFL, stderr, "Leaving StreamImpl::recv().\n");
   return 1;
+}
+
+unsigned int StreamImpl::get_NumEndPoints()
+{
+  return communicator->size();
 }
 
 StreamImpl * StreamImpl::get_Stream(int stream_id)
