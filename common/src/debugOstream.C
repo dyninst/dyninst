@@ -163,4 +163,8 @@ debug_ostream& debug_ostream::operator<<(timeStamp ts) {
   if(on)  actual_ostream << ts;
   return *this;
 }
+debug_ostream& debug_ostream::operator<<(relTimeStamp rts) {
+  if(on)  actual_ostream << rts;
+  return *this;
+}
 #endif

@@ -52,6 +52,7 @@ class timeUnit;
 class timeBase;
 class timeLength;
 class timeStamp;
+class relTimeStamp;
 #endif
 
 class debug_ostream {
@@ -92,6 +93,7 @@ class debug_ostream {
    debug_ostream& operator<<(timeBase   tb);
    debug_ostream& operator<<(timeLength tl);
    debug_ostream& operator<<(timeStamp  ts);
+   debug_ostream& operator<<(relTimeStamp  ts);
 #endif
 };
 
