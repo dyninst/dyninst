@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.70 2002/10/29 22:56:18 bernat Exp $
+// $Id: unix.C,v 1.71 2002/12/14 16:37:45 schendel Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -394,6 +394,47 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
    --mjrg
 */
 
+void checkAndDoExecHandling(process *curr) {
+   if(curr->inExec == false) return;
+
+   // the process has executed a succesful exec, and is now
+   // stopped at the exit of the exec call.
+   
+   forkexec_cerr << "SIGTRAP: inExec is true, so doing "
+                 << "process::handleExec()!\n";
+   
+   string buffer = string("process ") + string(curr->getPid()) +
+      " has performed exec() syscall";
+   statusLine(buffer.c_str());
+   
+   // call handleExec to clean our internal data structures, reparse
+   // symbol table.  handleExec does not insert instrumentation or do any
+   // propagation.  Why not?  Because it wouldn't be safe -- the process
+   // hasn't yet been bootstrapped (run DYNINST, etc.)  Only when we get
+   // the breakpoint at the end of DYNINSTinit() is it safe to insert
+   // instrumentation and allocate timers & counters...
+   curr->handleExec();
+   
+#ifndef BPATCH_LIBRARY
+   // need to start resourceBatchMode here because we will call
+   //  tryToReadAndProcessBootstrapInfo which
+   // calls tp->resourceBatchMode(false)
+   tp->resourceBatchMode(true);
+#else
+   // BPatch::bpatch->registerExec(curr->thread);
+#endif
+      
+   // set reachedFirstBreak to false here, so we execute
+   // the code below, and insert the initial instrumentation
+   // in the new image. (Actually, this is already done by handleExec())
+   curr->reachedFirstBreak = false;
+   
+   // Since exec will 'remove' our library, we must redo the whole process
+   curr->reachedVeryFirstTrap = false;
+   curr->clearDyninstLibLoadFlags();
+   forkexec_cerr <<"About to start exec reconstruction of shared library\n";
+   // fall through...
+}
 
 void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    // Note that there are now several uses for SIGTRAPs in paradynd.  The
@@ -425,7 +466,22 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
            return;
        }
    }
-   
+
+#if defined(rs6000_ibm_aix4_1)
+   // doing special AIX handling of exec (before shared object check)
+
+   // for some reason, on AIX, as opposed to the behaviour on the other
+   // platforms, the function curr->handleIfDueToSharedObjectMapping() is
+   // evaluating as true with the first trap sent from process.  My
+   // hypothesis is that this trap is the trap from within DYNINSTexec, but
+   // the handleIfDueToSharedObjectMapping, since it doesn't check the PC (I
+   // guess it can't use this method on AIX), notices the change in the
+   // shared object mapping at a different time than the other platforms.
+   // because of these reasons, on AIX, doing exec handling before the
+   // checking for changes in the shared object mapping
+   checkAndDoExecHandling(curr);
+#endif
+
    // check to see if trap is due to dlopen or dlcose event
    if(curr->isDynamicallyLinked()){
       if(curr->handleIfDueToSharedObjectMapping()){
@@ -437,7 +493,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 	    if (!curr->detachAndContinue())
 	       assert(0);
 	    return;
-	 }
+	 }         
 	 if (!curr->continueProc()) {
 	    assert(0);
 	 }
@@ -449,7 +505,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 	 return;
       }
    }
-   
+
    // this code has to go after we have handle the trap
    // due to the call to dlopen - naim
    if (curr->trapDueToDyninstLib()) {
@@ -511,46 +567,8 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 #endif
       return;
    }
-
-   if (curr->inExec) {
-      // the process has executed a succesful exec, and is now
-      // stopped at the exit of the exec call.
-      
-      forkexec_cerr << "SIGTRAP: inExec is true, so doing "
-		    << "process::handleExec()!\n";
-      string buffer = string("process ") + string(curr->getPid()) +
-	              " has performed exec() syscall";
-      statusLine(buffer.c_str());
-      
-      // call handleExec to clean our internal data structures, reparse
-      // symbol table.  handleExec does not insert instrumentation or do any
-      // propagation.  Why not?  Because it wouldn't be safe -- the process
-      // hasn't yet been bootstrapped (run DYNINST, etc.)  Only when we get
-      // the breakpoint at the end of DYNINSTinit() is it safe to insert
-      // instrumentation and allocate timers & counters...
-      curr->handleExec();
-
-#ifndef BPATCH_LIBRARY
-      // need to start resourceBatchMode here because we will call
-      //  tryToReadAndProcessBootstrapInfo which
-      // calls tp->resourceBatchMode(false)
-      tp->resourceBatchMode(true);
-#else
-      // BPatch::bpatch->registerExec(curr->thread);
-#endif
-      
-      // set reachedFirstBreak to false here, so we execute
-      // the code below, and insert the initial instrumentation
-      // in the new image. (Actually, this is already done by handleExec())
-      curr->reachedFirstBreak = false;
-      
-      // Since exec will 'remove' our library, we must redo the whole process
-      curr->reachedVeryFirstTrap = false;
-      curr->clearDyninstLibLoadFlags();
-      forkexec_cerr <<"About to start exec reconstruction of shared library\n";
-      
-      // fall through...
-   }
+   
+   checkAndDoExecHandling(curr);
 
    // Now we expect that this TRAP is the initial trap sent when a ptrace'd
    // process completes startup via exec (or when an exec syscall was
@@ -608,11 +626,11 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
       // process the code below yet - naim
       string msg = string("Process ") + string(curr->getPid()) +
 	           string(" was unable to load file \"") + 
-	           process::dyninstName + string("\"");
+	           process::dyninstRT_name + string("\"");
       showErrorCallback(101, msg);
       return;
    }
-   
+
    if (!curr->reachedFirstBreak) { //vrble should be renamed 'reachedFirstTrap'
       string buffer = string("PID=") + string(pid);
       buffer += string(", passed trap at start of program");
@@ -621,7 +639,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
       // If libdyninst is dynamically linked, this can only be
       // called after libdyninst is loaded
       curr->initDyninstLib();
-      
+
       curr->reachedFirstBreak = true;
 #if !defined(BPATCH_LIBRARY) //ccw 23 apr 2002 
       curr->reachedPARADYNBreakPoint = false;
@@ -632,7 +650,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
       statusLine(buffer.c_str());
       
       curr->installBootstrapInst();
-      
+
       // now, let main() and then DYNINSTinit() get invoked.  As it
       // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time we
       // read bootstrap information "sent back" (in a global vrble),
@@ -667,7 +685,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
       }
 #endif
    }
-   
+
    return;
 }
 
@@ -776,6 +794,7 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
 	 return;
       }
    }
+
 #if !defined(BPATCH_LIBRARY)
    // needed for fork
    if(!curr->paradynLibAlreadyLoaded()) {
@@ -791,6 +810,7 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
       forkexec_cerr << "processed SIGSTOP from pDYNINSTinit for pid "
 		    << curr->getPid() << endl << flush;
       stopfromPARADYNinit = 1;
+
       if (result == 1) {
 	 assert(curr->status_ == stopped);
 	 // DYNINSTinit() after normal startup, after fork, or after exec
@@ -1098,7 +1118,7 @@ int handleSigChild(int pid, int status)
       */
       return -1;
    }
-   
+
    // Normal case, actually.
    if (curr->status_ == exited) {
      return 0;
