@@ -43,6 +43,9 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.62  1996/08/20 19:02:21  lzheng
+ * Implementation of moving multiple instructions sequence
+ *
  * Revision 1.61  1996/08/16 21:19:31  tamches
  * updated copyright for release 1.1
  *
@@ -85,6 +88,7 @@ extern "C" {
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
+#include "instP.h" //XXX
 #include "dyninstP.h"
 #include "metric.h"
 #include "util.h"
@@ -370,40 +374,47 @@ int handleSigChild(int pid, int status)
 		/* trap at the start of a ptraced process 
 		 *   continue past it.
 		 */
-
-		if (curr->inExec) {
-		  // the process has executed a succesful exec, and is now
-		  // stopped at the exit of the exec call.
-		  curr->handleExec();
-		  curr->inExec = false;
-		  curr->reachedFirstBreak = false;
+		//If the list is not empty, it means some previous
+		//instrumentation has yet need to be finished.
+		if (!(instWList.empty())) {
+		    curr -> cleanUpInstrumentation();
 		}
-
-		// the process is stopped as a result of the initial SIGTRAP
-		curr->status_ = stopped;
-
-		// query default instrumentation here - not done yet
-		// We must check that this is the first trap since on machines
-		//   where we use ptrace detach, a TRAP is generated on a pause.
-		//   - jkh 7/7/95
-		if (!curr->reachedFirstBreak) {
-		    buffer = string("PID=") + string(pid);
-		    buffer += string(", passed trap at start of program");
-		    statusLine(P_strdup(buffer.string_of()));
-		    installDefaultInst(curr, initialRequests);
-		    curr->reachedFirstBreak = 1;
-
-                    // propagate any metric that is already enabled to the new
-                    // process
-                    vector<metricDefinitionNode *> MIs = allMIs.values();
-                    for (unsigned j = 0; j < MIs.size(); j++) {
-			MIs[j]->propagateMetricInstance(curr);
+		//else, do what we are doing before   
+		else {
+		    if (curr->inExec) {
+			// the process has executed a succesful exec, and is now
+			// stopped at the exit of the exec call.
+			curr->handleExec();
+			curr->inExec = false;
+			curr->reachedFirstBreak = false;
 		    }
-		    costMetric::addProcessToAll(curr);
-
-		    tp->newProgramCallbackFunc(pid, curr->arg_list, 
-					       machineResource->part_name());
-
+		    
+		    // the process is stopped as a result of the initial SIGTRAP
+		    curr->status_ = stopped;
+		    
+		    // query default instrumentation here - not done yet
+		    // We must check that this is the first trap since on machines
+		    //   where we use ptrace detach, a TRAP is generated on a pause.
+		    //   - jkh 7/7/95
+		    if (!curr->reachedFirstBreak) {
+			buffer = string("PID=") + string(pid);
+			buffer += string(", passed trap at start of program");
+			statusLine(P_strdup(buffer.string_of()));
+			installDefaultInst(curr, initialRequests);
+			curr->reachedFirstBreak = 1;
+			
+			// propagate any metric that is already enabled to the new
+			// process
+			vector<metricDefinitionNode *> MIs = allMIs.values();
+			for (unsigned j = 0; j < MIs.size(); j++) {
+			    MIs[j]->propagateMetricInstance(curr);
+			}
+			costMetric::addProcessToAll(curr);
+			
+			tp->newProgramCallbackFunc(pid, curr->arg_list, 
+						   machineResource->part_name());
+			
+		    }
 		}
 		break;
 
