@@ -18,6 +18,7 @@
 
 
 #include <strings.h>
+#include "common/h/Vector.h"
 
 #if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
 #define DO_DEBUG_LIBPDTHREAD 1
@@ -61,22 +62,12 @@ fd_set_populator::visit(PDSOCKET desc)
 {
 	if(!mbox->ready_socks->contains(desc)) {
        
-       // check to see if desc is a valid file descriptor by 
-       // using the GETFL fcntl; if not, don't select on it
-       if(fcntl(desc, F_GETFL) != -1) {
+        thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
            
-           thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
-           
-           FD_SET(desc, fds);
-           if( desc + 1 > max_fd ) {
-               max_fd = desc + 1;
-           }
-       } else {
-           if (errno == EBADF) {
-               fprintf(stderr, "thread library: %d is a bogus file descriptor, unbinding\n", desc);
-               mbox->unbind_sock(desc);
-           }   
-       }
+        FD_SET(desc, fds);
+        if( desc + 1 > max_fd ) {
+           max_fd = desc + 1;
+        }
 	}
 	else
 	{
@@ -133,6 +124,27 @@ ready_socks_populator::visit(PDSOCKET desc)
 }
 
 
+// struct with visit operation for finding invalid sockets from a list of
+// sockets.  Intended to be used on the bound_socks list.
+// 
+struct bad_desc_finder
+{
+    vector<PDSOCKET> socks;
+
+    bool visit(PDSOCKET desc);
+};
+
+bool
+bad_desc_finder::visit( PDSOCKET desc )
+{
+    if( (fcntl(desc, F_GETFL) == -1) && (errno == EBADF) )
+    {
+        socks.push_back( desc );
+    }
+    return true;        // always continue search
+}
+
+
 
 void
 thr_mailbox::wait_for_input( void )
@@ -173,7 +185,34 @@ thr_mailbox::wait_for_input( void )
         thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owned_by, select_status);
 
         if(select_status == -1) {
-            perror("select thread");
+            if( errno == EBADF )
+            {
+                // we have at least one bad file descriptor in our set of
+                // bound descriptors -
+                // (sadly, this can happen when a client socket connection is
+                // broken without unbinding the bad descriptor first)
+                // check them all and unbind the bad descriptor
+                bad_desc_finder bsf;
+                sock_monitor->lock();
+
+                // determine which of our bound descriptors are bad
+                // note that we don't unbind them as part of the visit
+                // to avoid changing bound_socks from underneath the
+                // visit method.
+                bound_socks->visit( &bsf );
+
+                // unbind the bad descriptors
+                for( unsigned int i = 0; i < bsf.socks.size(); i++ )
+                {
+                    unbind_sock( bsf.socks[i],
+                                 false );     // we already have the lock
+                }
+                sock_monitor->unlock();
+            }
+            else
+            {
+                perror("select thread");
+            }
         }
 		else if( select_status > 0 )
 		{
@@ -586,16 +625,22 @@ void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
     sock_monitor->unlock();
 }
 
-void thr_mailbox::unbind_sock(PDSOCKET sock)
+void thr_mailbox::unbind_sock(PDSOCKET sock, bool getlock)
 {
     entity* s = (entity*)(socket_q::socket_from_desc(sock));
     if (s) {
         
         thread_t to_remove = thrtab::get_tid(s);
         
-        sock_monitor->lock();
+        if( getlock )
+        {
+            sock_monitor->lock();
+        }
         bound_socks->yank(sock);    
-        sock_monitor->unlock();
+        if( getlock )
+        {
+            sock_monitor->unlock();
+        }
         
         thrtab::remove(to_remove);
     }

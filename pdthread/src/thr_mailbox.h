@@ -60,7 +60,7 @@ class thr_mailbox : public mailbox {
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0);
 
     void bind_sock(PDSOCKET s, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
-    void unbind_sock(PDSOCKET s);
+    void unbind_sock(PDSOCKET s, bool getlock = true);
 
     bool is_sock_bound(PDSOCKET s);
 
