@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.194 2005/03/01 23:08:03 bernat Exp $
+ * $Id: inst-x86.C,v 1.195 2005/03/02 19:44:47 bernat Exp $
  */
 #include <iomanip>
 
@@ -6469,10 +6469,8 @@ void int_function::addArbitraryPoint(instPoint* location,
 
    instPoint *point;
    int originalOffset, newOffset;
-   //int arrayOffset, 
    int originalArrayOffset, newArrayOffset;
 
-   const LocalAlterationSet alteration_set = reloc_info->getAlterationSet();
    const image* owner = location->getOwner();
 
    Address imageBaseAddr;
@@ -6488,10 +6486,10 @@ void int_function::addArbitraryPoint(instPoint* location,
 
    assert(originalArrayOffset >= 0);
 
-   newOffset = originalOffset + alteration_set.getShift(originalOffset);
+   newOffset = originalOffset + reloc_info->getAlterationSet().getShift(originalOffset);
 
    newArrayOffset = originalArrayOffset +
-      alteration_set.getInstPointShift(originalOffset);
+     reloc_info->getAlterationSet().getInstPointShift(originalOffset);
 
    Address newAdr = reloc_info->get_address() + newOffset;
 
@@ -6503,7 +6501,7 @@ void int_function::addArbitraryPoint(instPoint* location,
    int numAddedInstr = 0;
 
    LocalAlteration *alter =
-      alteration_set.getAlterationAtOffset(originalOffset);
+     reloc_info->getAlterationSet().getAlterationAtOffset(originalOffset);
 
    if(alter) numAddedInstr = alter->numInstrAddedAfter();
 

@@ -121,8 +121,22 @@ class relocatedFuncInfo : public codeRange {
 
  public:
    relocatedFuncInfo(process *p, Address na, unsigned s, int_function *f):
-     proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) {};
-        
+     proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f)
+#if defined(cap_relocation)
+     , alteration_set(f)
+#endif
+     {};
+
+   relocatedFuncInfo(process *p, int_function *f):
+     proc_(p), addr_(0), size_(0), funcEntry_(0), func_(f)
+#if defined(cap_relocation)
+     ,alteration_set(f) 
+#endif
+     {};
+
+   void set_address(Address a) { addr_ = a; };
+   void set_size(unsigned s) { size_ = s; };
+
    ~relocatedFuncInfo(){proc_ = 0;}
 
    Address get_address() const { return addr_;}
