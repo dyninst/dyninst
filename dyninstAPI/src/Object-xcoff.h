@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.4 2001/11/05 19:39:41 bernat Exp $
+ * $Id: Object-xcoff.h,v 1.5 2002/06/14 21:43:32 tlmiller Exp $
 ************************************************************************/
 
 
@@ -170,7 +170,7 @@ public:
     ~Object ();
 
     Object&   operator= (const Object &);
-    int getTOCoffset() const { return toc_offset_; }
+    Address getTOCoffset() const { return toc_offset_; }
     void get_stab_info(char *&stabstr, int &nstabs, Address &stabs, char *&stringpool) {
 	stabstr = (char *) stabstr_;
 	nstabs = nstabs_;
@@ -189,7 +189,7 @@ public:
     bool isEEL() const { return false; }
 
     string member_;
-    int  toc_offset_;
+    Address toc_offset_;
     int  nstabs_;
     int  nlines_;
     Address stabstr_;

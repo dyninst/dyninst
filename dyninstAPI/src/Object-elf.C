@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.40 2002/06/03 17:31:45 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.41 2002/06/14 21:43:32 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1675,7 +1675,7 @@ Address Object::getPltSlot(string funcName) const{
 	relocationEntry re;
 	bool found= false;
 	Address offset=0;
-	for(int i =0;i< relocation_table_.size(); i++){
+	for( unsigned int i = 0; i < relocation_table_.size(); i++ ){
 		if(funcName == relocation_table_[i].name() ){
 			found = true;
 			offset =  relocation_table_[i].rel_addr();

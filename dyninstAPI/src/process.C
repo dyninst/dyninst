@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.331 2002/06/13 19:28:34 bernat Exp $
+// $Id: process.C,v 1.332 2002/06/14 21:43:32 tlmiller Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -233,14 +233,32 @@ disabledItem::disabledItem(const disabledItem &src) :
 
 #endif
 
-/* AIX method defined in aix.C */
-#if !defined(rs6000_ibm_aix4_1)
+/* AIX method defined in aix.C; hijacked for IA-64's GP. */
+#if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )
 Address process::getTOCoffsetInfo(Address /*dest */)
 {
   Address tmp;
   assert(0);
   return tmp; // this is to make the nt compiler happy! - naim
 }
+#else
+Address process::getTOCoffsetInfo(Address dest)
+{
+  // We have an address, and want to find the module the addr is
+  // contained in. Given the probabilities, we (probably) want
+  // the module dyninst_rt is contained in.
+  // I think this is the right func to use
+
+  if (symbols->findFuncByAddr(dest, this))
+    return (symbols->getObject()).getTOCoffset();
+  if (shared_objects)
+    for(u_int j=0; j < shared_objects->size(); j++)
+      if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
+        return (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset();
+  // Serious error! Assert?
+  return 0;
+}
+
 #endif
 
 // Windows NT has its own version of the walkStack function in pdwinnt.C
@@ -787,8 +805,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
       //if ( pd_debug_catchup )
         //cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
     }      
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-|| defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
     if ( point->address() == point->func()->getAddress( this ) ) {
       if ( pd_debug_catchup )
         cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
@@ -6086,7 +6103,7 @@ void process::installBootstrapInst() {
    function_base *func = getMainFunction();
    if (func) {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
        if (func_entry->usesTrap(this)) {
             // we can't instrument main's entry with a trap yet
             // since DYNINSTinit installs our instrumentation trapHandler

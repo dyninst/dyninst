@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.62 2002/05/13 19:52:46 mjbrim Exp $
+// $Id: unix.C,v 1.63 2002/06/14 21:43:32 tlmiller Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -705,7 +705,7 @@ int handleSigChild(int pid, int status)
 		   }
 		}
 		else {
-#if defined(i386_unknown_linux2_0) || (ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 			Address pc = getPC( pid );
 			if( orig_sig == SIGTRAP )
 			{
@@ -751,8 +751,13 @@ int handleSigChild(int pid, int status)
                    the PC past the illegal instruction. */
 		if (fix_ill) {
 		     Address pc = getPC(pid);
+#if defined(i386_unknown_linux2_0)
 		     if (! curr->changePC(pc + 2))
 			  assert(0);
+#else
+			/* Advance past an illegal instruction on IA-64? */
+			assert(0);
+#endif		
 		}
 		fix_ill = 0;
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.200 2002/06/10 21:30:57 bernat Exp $
+/* $Id: process.h,v 1.201 2002/06/14 21:43:31 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -826,8 +826,7 @@ void saveWorldData(Address address, int size, const void* src);
  private:
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 #endif

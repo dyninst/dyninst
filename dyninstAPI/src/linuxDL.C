@@ -55,13 +55,6 @@ extern debug_ostream sharedobj_cerr;
 #include <dirent.h>
 #include <sys/stat.h>
 
-#if defined(i386_unknown_linux2_0)
-#include <sys/reg.h>
-#else
-// From Intel's Software Conventions and Runtime Architecture Guide, sp = r12
-#define	UESP	13
-#endif
-
 static int scandir_select_ld( const struct dirent * entry ) {
   // Select files which could be ld.so, they must start with "ld", and must
   // contain the string ".so".  Hope that's good enough...
@@ -399,8 +392,8 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
     }
 #endif
 
-    instruction trap_insn((const unsigned char*)"\017\013\0220\0220", ILLEGAL, 4);
-    if (!proc->writeDataSpace((void *)r_brk_addr, 4, trap_insn.ptr()))
+    instruction trap_insn = generateTrapInstruction();
+    if (!proc->writeDataSpace((void *)r_brk_addr, trap_insn.size(), trap_insn.ptr()))
         return false;
     //proc->SetIllForTrap();
 
@@ -756,30 +749,6 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
     }
     error_occured = true;
     return 0;
-}
-
-static Address getSP(int pid) {
-   Address regaddr = UESP * sizeof(int);
-   int res;
-   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-   if( errno ) {
-     perror( "getSP" );
-     exit(-1);
-     return 0; // Shut up the compiler
-   } else {
-     assert(res);
-     return (Address)res;
-   }   
-}
-
-static bool changeSP(int pid, Address loc) {
-  Address regaddr = UESP * sizeof(int);
-  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
-    perror( "process::changeSP - PTRACE_POKEUSER" );
-    return false;
-  }
-
-  return true;
 }
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused

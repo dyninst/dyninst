@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.97 2002/06/10 19:24:40 bernat Exp $
+// $Id: aix.C,v 1.98 2002/06/14 21:43:32 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1776,6 +1776,7 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 void process::clear_breakpoint_for_syscall_completion() { return; }
 
+#if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
 Address process::getTOCoffsetInfo(Address dest)
 {
   // We have an address, and want to find the module the addr is
@@ -1793,6 +1794,7 @@ Address process::getTOCoffsetInfo(Address dest)
   // Serious error! Assert?
   return 0;
 }
+#endif
 
 #ifdef USES_PMAPI
 

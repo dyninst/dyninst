@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.13 2002/01/30 22:19:57 hollings Exp $
+// $Id: procfs.C,v 1.14 2002/06/14 21:43:32 tlmiller Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -67,8 +67,6 @@ extern "C" {
 extern int ioctl(int, int, ...);
 extern long sysconf(int);
 };
-
-extern bool isValidAddress(process *proc, Address where);
 
 /*
    osTraceMe is called after we fork a child process to set

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.118 2002/06/10 19:24:52 bernat Exp $
+// $Id: solaris.C,v 1.119 2002/06/14 21:43:32 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -110,7 +110,6 @@ extern debug_ostream signal_cerr;
 #endif
 
 
-extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
 
 /*
