@@ -16,6 +16,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.23  1996/05/03 20:34:45  tamches
+ * sped up addInterval()
+ *
  * Revision 1.22  1996/02/12 19:54:19  karavan
  * bug fix: changed arguments to histFoldCallBack
  *
@@ -283,15 +286,17 @@ void Histogram::addInterval(timeStamp start,
     // delete histograms that it is no longer collection 
     // data values for
     // change this so that lastGlobalbin is max of all lastBins
-    if(startTime == 0.0){
+    if (startTime == 0.0) {
 	if(lastBin > lastGlobalBin)
             lastGlobalBin = lastBin;
-        for (unsigned i=0; i < allHist.size(); i++) {
-	    if(((allHist[i])->startTime == 0.0)
-	       && ((allHist[i])->isActive())){
-	        if (((allHist[i])->lastBin > lastGlobalBin)) {
-	            lastGlobalBin = (allHist[i])->lastBin;
-	    }}
+
+	const unsigned all_hist_size = allHist.size();
+        for (unsigned i=0; i < all_hist_size; i++) {
+	    Histogram *theHist = allHist[i]; // a time saver; call operator[] just once
+
+	    if (theHist->startTime == 0.0 && theHist->isActive())
+	        if (theHist->lastBin > lastGlobalBin)
+	            lastGlobalBin = theHist->lastBin;
 	}
     }
 
