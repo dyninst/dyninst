@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.88 2003/04/15 18:44:39 bernat Exp $ */
+/* $Id: context.C,v 1.89 2003/04/17 20:46:30 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -451,9 +451,19 @@ void processNewTSConnection(int tracesocket_fd) {
    string str;
 
    if (calledFromAttach)
-      str = string("getting new connection from attached process");
+   {
+      str = "getting new connection from attached process";
+   }
    else
-      str = string("getting unexpected process connection");
+   {
+#if !defined(i386_unknown_nt4_0)
+      str = "getting unexpected process connection";
+#else
+      // we expect a 0 cookie value on Windows where CreateProcess
+      // is not the same semantics as fork.
+      str = "getting new connection from created process";
+#endif // !defined(i386_unknown_nt4_0)
+   } 
    statusLine(str.c_str());
 
    int pid;
