@@ -29,7 +29,7 @@ class MC_CommunicatorImpl: public MC_Communicator{
   const std::vector <MC_EndPoint *> * get_EndPoints() const;
   virtual int add_EndPoint(const char * hostname, unsigned short port);
   virtual int add_EndPoint(MC_EndPoint *);
-  virtual int size() const;
+  virtual unsigned int size() const;
   virtual const char * get_HostName(int) const; 
   virtual unsigned short get_Port(int) const;
   virtual unsigned int get_Id(int) const;

@@ -34,6 +34,7 @@ class MC_Network{
   static int init_Backend(const char *hostname, const char *port,
                           const char *phostname, const char *pport,
                           const char *pid);
+  static int getConnections( int** conns, unsigned int* nConns );
   static void error_str(const char *);
 
   static MC_NetworkImpl * network;
@@ -58,7 +59,7 @@ class MC_Communicator{
 
   virtual int add_EndPoint(const char * hostname, unsigned short port)=NULL;
   virtual int add_EndPoint(MC_EndPoint *)=NULL;
-  virtual int size() const =NULL;
+  virtual unsigned int size() const =NULL;
   virtual const char * get_HostName(int) const =NULL; 
   virtual unsigned short get_Port(int) const =NULL;
   virtual unsigned int get_Id(int) const =NULL;

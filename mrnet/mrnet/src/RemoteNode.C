@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <arpa/inet.h>
 
 #include "mrnet/src/RemoteNode.h"
 #include "mrnet/src/utils.h"
@@ -211,16 +212,25 @@ int MC_RemoteNode::connect()
 
 
 int
-MC_RemoteNode::accept_Connection( int listening_sock_fd )
+MC_RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 {
   int retval = 0;
 
 
-  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
-    mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
-    mc_errno = MC_ESOCKETCONNECT;
-    return -1;
+  if( do_connect )
+  {
+    if( (sock_fd = get_socket_connection(lsock_fd)) == -1){
+        mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
+        mc_errno = MC_ESOCKETCONNECT;
+        return -1;
+    }
   }
+  else
+  {
+    // socket is already connected
+    sock_fd = lsock_fd;
+  }
+  assert( sock_fd != -1 );
 
   if(threaded){
     mc_printf(MCFL, stderr, "Creating Downstream recv thread ...\n");
@@ -283,7 +293,9 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_ho
 }
 
 
-int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_host,
+int MC_RemoteNode::new_Application(int listening_sock_fd,
+                                   unsigned int backend_id,
+                                   std::string parent_host,
                                    unsigned short parent_port,
                                    unsigned short parent_id, std::string &cmd,
                                    std::vector <std::string> &args){
@@ -313,14 +325,40 @@ int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_hos
     mc_errno = MC_ECREATPROCFAILURE;
     return -1;
   }
-  return accept_Connection( listening_sock_fd );
+
+  char backend_id_str[32];
+  sprintf(backend_id_str, "%u", backend_id);
+
+  // accept the connection
+  sock_fd = get_socket_connection( listening_sock_fd );
+  if( sock_fd == -1 )
+  {
+    mc_printf(MCFL, stderr, "get_socket_connection() failed\n" );
+    mc_errno = MC_ESOCKETCONNECT;
+    return -1;
+  }
+  mc_printf(MCFL, stderr, "get_socket_connection() returned %d\n", sock_fd );
+
+  // consume the backend id sent from the backend
+  uint32_t idBuf = 0;
+  int rret = ::recv( sock_fd, &idBuf, 4, 0 );
+  if( rret != 4 )
+  {
+    mc_printf(MCFL, stderr, "failed to receive id from backend\n" );
+    mc_errno = MC_ESOCKETCONNECT;
+    return -1;
+  }
+  uint32_t backendId = ntohl(idBuf);
+  assert( backendId == get_Id() );
+
+  return accept_Connection( sock_fd, false );
 }
 
 
 int
-MC_RemoteNode::accept_Application( int listening_sock_fd )
+MC_RemoteNode::accept_Application( int connected_sock_fd )
 {
-    return accept_Connection( listening_sock_fd );    
+    return accept_Connection( connected_sock_fd, false );    
 }
 
 

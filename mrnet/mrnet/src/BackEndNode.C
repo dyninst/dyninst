@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <arpa/inet.h>
 
 #include "mrnet/src/BackEndNode.h"
 #include "mrnet/src/RemoteNode.h"
@@ -10,12 +11,13 @@
 /*=====================================================*/
 
 MC_BackEndNode::MC_BackEndNode(std::string _hostname,
-                               unsigned short _port,
+                               unsigned short _backend_id,
                                std::string _parent_hostname,
                                unsigned short _parent_port,
                                unsigned short _parent_id)
-  :MC_ChildNode(false, _hostname, _port), 
-   MC_CommunicationNode(_hostname, _port)
+  :MC_ChildNode(false, _hostname, _backend_id), 
+   MC_CommunicationNode(_hostname, _backend_id),
+   backend_id(_backend_id)
 {
   MC_RemoteNode::local_child_node = this;
   mc_printf(MCFL, stderr, "In BackEndNode()\n");
@@ -28,6 +30,14 @@ MC_BackEndNode::MC_BackEndNode(std::string _hostname,
     mc_printf(MCFL, stderr, "connect() failed\n");
     mc_errno = MC_ECANNOTBINDPORT;
     return;
+  }
+  
+  // do low-level handshake with our id in the backend id namespace
+  uint32_t idBuf = htonl(backend_id);
+  int sret = ::send( upstream_node->get_sockfd(), &idBuf, 4, 0 );
+  if( sret == -1 )
+  {
+    mc_printf(MCFL, stderr, "send of backend id failed\n");
   }
 
   mc_printf(MCFL, stderr, "Leaving BackEndNode()\n");

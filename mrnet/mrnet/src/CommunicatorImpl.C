@@ -77,7 +77,7 @@ int MC_CommunicatorImpl::add_EndPoint(MC_EndPoint * new_endpoint)
   }
 }
 
-int MC_CommunicatorImpl::size(void) const
+unsigned int MC_CommunicatorImpl::size(void) const
 {
     assert( endpoints != NULL );
     return endpoints->size();

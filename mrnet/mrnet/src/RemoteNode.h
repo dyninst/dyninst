@@ -21,7 +21,7 @@ class MC_RemoteNode:public MC_CommunicationNode{
   bool _is_internal_node;
   struct pollfd poll_struct;
 
-  int accept_Connection( int listening_sock_fd );
+  int accept_Connection( int sock_fd, bool doConnect = true );
 
  public:
   static MC_ParentNode * local_parent_node;
@@ -39,10 +39,12 @@ class MC_RemoteNode:public MC_CommunicationNode{
   int new_InternalNode(int listening_sock_fd, std::string parent_hostname,
                        unsigned short parent_port, unsigned short parent_id,
                        std::string commnode);
-  int new_Application(int listening_sock_fd, std::string parent_hostname,
+  int new_Application(int listening_sock_fd,
+                      unsigned int backend_id,
+                      std::string parent_hostname,
                       unsigned short parent_port, unsigned short parent_id,
                       std::string &cmd, std::vector <std::string> &args);
-  int accept_Application( int listening_sock_fd );
+  int accept_Application( int sock_fd );
 
   int send(MC_Packet *);
   int flush();

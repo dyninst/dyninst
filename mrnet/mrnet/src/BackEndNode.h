@@ -8,8 +8,11 @@
 #include "mrnet/src/Message.h"
 
 class MC_BackEndNode: public MC_ChildNode, public MC_CommunicationNode {
+ private:
+    unsigned int backend_id;    // id in the backend namespace
+                                // TODO does this duplicate "port" in ChildNode?
  public:
-  MC_BackEndNode(std::string _hostname, unsigned short _port,
+  MC_BackEndNode(std::string _hostname, unsigned short _backend_id,
                  std::string _phostname, unsigned short _pport, 
                  unsigned short _pid);
   virtual ~MC_BackEndNode(void);

@@ -82,6 +82,7 @@ class MC_ParentNode{
 
   std::string get_HostName();
   unsigned short get_Port();
+  int getConnections( int** conns, unsigned int* nConns );
 };
 
 bool lt_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2);

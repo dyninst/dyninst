@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <arpa/inet.h>
 
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/NetworkGraph.h"
@@ -155,10 +156,10 @@ int MC_ParentNode::send_PacketDownStream(MC_Packet *packet)
   MC_StreamManager * stream_mgr;
 
   mc_printf(MCFL, stderr, "In send_PacketDownStream()\n");
+  if(threaded){ streammanagerbyid_sync.lock(); }
   mc_printf(MCFL, stderr, "StreamMangerById[%d] = %p\n",
              packet->get_StreamId(),
 	     StreamManagerById[packet->get_StreamId()]);
-  if(threaded){ streammanagerbyid_sync.lock(); }
   stream_mgr = StreamManagerById[packet->get_StreamId()];
   if(threaded){ streammanagerbyid_sync.unlock(); }
 
@@ -302,7 +303,9 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
       if( application.length() > 0 )
       {
           std::vector <std::string> dummy_args;
-          if( cur_node->new_Application(listening_sock_fd, hostname,
+          if( cur_node->new_Application(listening_sock_fd,
+                                        rootid,
+                                        hostname,
                                         port, config_port,
                                         application, dummy_args)== -1){
             mc_printf(MCFL, stderr, "child_node.new_application() failed\n");
@@ -474,8 +477,8 @@ MC_ParentNode::proc_newStream(MC_Packet * packet)
         node_set.erase(del_iter);
     }
     else{
-        iter++;
         mc_printf(MCFL, stderr, "node[%d] in stream %d is %p\n", i, stream_id, *iter);
+        iter++;
     }
   }
 
@@ -582,7 +585,8 @@ int MC_ParentNode::proc_newApplication(MC_Packet * packet)
       std::string cmd_str(cmd);
       std::vector <std::string> dummy_args;
       mc_printf(MCFL, stderr, "Calling child_node.new_application(%s) ...\n", cmd);
-      if( (*iter)->new_Application(listening_sock_fd, hostname, port,
+      // TODO get real backend id
+      if( (*iter)->new_Application(listening_sock_fd, 0, hostname, port,
                                    config_port, cmd_str, dummy_args) == -1){
 	mc_printf(MCFL, stderr, "child_node.new_application() failed\n");
         retval = -1;
@@ -920,20 +924,52 @@ MC_ParentNode::proc_connectLeaves( MC_Packet* pkt )
         mc_printf(MCFL, stderr, "leaf waiting for connections at %s:%u\n", hostname.c_str(), port);
 
         // accept backend connections for all of our children nodes
-        for( std::vector<MC_RemoteNode*>::iterator childIter = 
-                        children_nodes.begin();
-                    childIter != children_nodes.end();
-                    childIter++ )
+        // this is a little tricky because our child RemoteNode objects
+        // know what backend they want to be connected to
+        //
+        // We have to accept a connection, determine which back-end connected
+        // to us, then pass the connection off to the appropriate RemoteNode
+        // object.
+        for( unsigned int i = 0; i < children_nodes.size(); i++ )
         {
-            MC_RemoteNode* child = *childIter;
+            // accept a connection
+            int sock_fd = get_socket_connection( listening_sock_fd );
+            if( sock_fd == -1 )
+            {
+                mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
+                return -1;
+            }
+
+            // determine which backend we are connected to by its id
+            // Note: we are using some low-level send/recv logic here
+            // because we don't yet have our Message/Packet infrastructure
+            // up on this connection.
+            // We expect the back-end to send us its id in four bytes,
+            // in network byte order
+            uint32_t idBuf = 0;
+            int rret = ::recv( sock_fd, &idBuf, 4, 0 );
+            if( rret != 4 )
+            {
+                mc_printf(MCFL, stderr, "failed to receive id from backend\n");
+                return -1;
+            }
+            uint32_t backendId = ntohl(idBuf);
+
+            // set this connection as the one for backend id
+            if( threaded )
+            {
+                childnodebybackendid_sync.lock();
+            }
+            MC_RemoteNode* child = ChildNodeByBackendId[backendId];
+            if( threaded )
+            {
+                childnodebybackendid_sync.unlock();
+            }
             assert( child != NULL );
 
-            if( child->accept_Application( listening_sock_fd ) != 0 )
-            {
-                mc_printf( MCFL, stderr, "failed to accept backend connection\n" );
-                ret = -1;
-                break;
-            }
+            mc_printf(MCFL, stderr, "connecting backend %u to remote node %p\n",
+                backendId, child );
+            child->accept_Application( sock_fd );
         }
 
         if( ret == 0 )
@@ -1039,4 +1075,32 @@ MC_ParentNode::proc_connectLeavesResponse( MC_Packet* pkt )
 }
 
 
+int
+MC_ParentNode::getConnections( int** conns, unsigned int* nConns )
+{
+    int ret = 0;
+
+    if( (conns != NULL) && (nConns != NULL) )
+    {
+        *nConns = children_nodes.size();
+        *conns = new int[*nConns];
+        unsigned int i = 0;
+        for( std::vector<MC_RemoteNode*>::const_iterator iter 
+                    = children_nodes.begin();
+                iter != children_nodes.end();
+                iter++ )
+        {
+            MC_RemoteNode* curNode = *iter;
+            assert( curNode != NULL );
+
+            (*conns)[i] = curNode->get_sockfd();
+            i++;
+        }
+    }
+    else
+    {
+        ret = -1;
+    }
+    return ret;
+}
 
