@@ -489,11 +489,15 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	        mets[numMet].name = NULL;
             else
 	        mets[numMet].name = newElements[i].met.name.c_str();
-            if(!newElements[i].met.units.length())
-	        mets[numMet].units = NULL;
+            if(!newElements[i].met.curr_units.length())
+	        mets[numMet].curr_units = NULL;
             else
-	        mets[numMet].units = newElements[i].met.units.c_str();
-            mets[numMet].Id = newElements[i].met.Id;
+	        mets[numMet].curr_units = newElements[i].met.curr_units.c_str();
+            if(!newElements[i].met.tot_units.length())
+	        mets[numMet].tot_units = NULL;
+            else
+	        mets[numMet].tot_units = newElements[i].met.tot_units.c_str();
+	    mets[numMet].Id = newElements[i].met.Id;
 	    if(newElements[i].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;
 	    }
@@ -565,18 +569,22 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 
           ok = 0;
           for(int k2=0; (k2 < numMet) && !ok; k2++){
-	     if(newElements[i2].met.Id == mets[k2].Id)
-	       ok = 1;
+	    if(newElements[i2].met.Id == mets[k2].Id)
+	      ok = 1;
 	  }
 	  if(!ok){
-	      if(!newElements[i2].met.name.length())
-	          mets[numMet].name = NULL;
-              else
-	          mets[numMet].name = newElements[i2].met.name.c_str();
-              if(!newElements[i2].met.units.length())
-	          mets[numMet].units = NULL;
-              else
-	          mets[numMet].units = newElements[i2].met.units.c_str();
+	    if(!newElements[i2].met.name.length())
+	      mets[numMet].name = NULL;
+	    else
+	      mets[numMet].name = newElements[i2].met.name.c_str();
+	    if(!newElements[i2].met.curr_units.length())
+	      mets[numMet].curr_units = NULL;
+	    else
+	      mets[numMet].curr_units = newElements[i2].met.curr_units.c_str();
+            if(!newElements[i2].met.tot_units.length())
+	      mets[numMet].tot_units = NULL;
+	    else
+	      mets[numMet].tot_units = newElements[i2].met.tot_units.c_str();
             mets[numMet].Id = newElements[i2].met.Id;
 	    if(newElements[i2].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;

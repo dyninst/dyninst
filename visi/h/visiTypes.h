@@ -68,11 +68,12 @@ typedef double visi_timeType;
 typedef enum {UnNormalized, Normalized, Sampled} visi_unitsType;
 
 struct metricStruct {
-     const char *units;                 /* how units are measured */
-     const char *name;                  /* metric name for graph labeling */
-     unsigned  Id;                      /* unique metric Id */
-     int aggregate;                     /* either SUM or AVE */
-     visi_unitsType unitstype;          /* specifies units type */
+  const char *curr_units;   /* how units are measured */
+  const char *tot_units;    /* how total units are measured */
+  const char *name;         /* metric name for graph labeling */
+  unsigned  Id;             /* unique metric Id */
+  int aggregate;            /* either SUM or AVE */
+  visi_unitsType unitstype; /* specifies units type */
 };
 typedef struct metricStruct visi_metricType;
 

@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.14 2002/05/13 19:53:57 mjbrim Exp $
+// $Id: datagridP.h,v 1.15 2002/05/15 21:53:11 mjbrim Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -61,19 +61,22 @@
 #define AVE     1
 
 class Metric{
-     string     units;    // how units are measured  i.e. "ms" 
-     string     name;     // for y-axis labeling  
-     u_int      Id;       // unique metric Id
-     int        aggregate; //either SUM or AVE, for fold operation 
+     string     curr_units;    // how current units are measured 
+     string     tot_units;     // how total units are measured
+     string     name;          // for y-axis labeling  
+     u_int      Id;            // unique metric Id
+     int        aggregate;     // either SUM or AVE, for fold operation 
      visi_unitsType unitstype; // specifies units type
-     string	label;      // for data values, and ave. aggregate
-     string	total_label; // for sum aggregate 
+     string	label;         // for data values, and ave. aggregate
+     string	total_label;   // for sum aggregate 
   public:
-     Metric(){units = ""; name = ""; Id = 0; aggregate=SUM;
-	      unitstype = Normalized; label = ""; total_label = "";}
-     Metric(string,string,u_int,int,visi_unitsType); 
+     Metric() : curr_units(""), tot_units(""),
+                name(""), Id(0), aggregate(SUM),
+	        unitstype(Normalized), label(""), total_label("") {}
+     Metric(string,string,string,u_int,int,visi_unitsType); 
      ~Metric(); 
-     const char *Units(){return(units.c_str());}
+     const char *CurrUnits(){return(curr_units.c_str());}
+     const char *TotUnits(){return(tot_units.c_str());}
      const char *Name(){return(name.c_str());}
      u_int Identifier(){return(Id);}
      int Aggregate(){return(aggregate);}

@@ -14,14 +14,15 @@
  *
  */
 
-/* $Id: visi.I,v 1.20 2002/04/09 18:06:47 mjbrim Exp $ */ 
+/* $Id: visi.I,v 1.21 2002/05/15 21:53:08 mjbrim Exp $ */ 
 
 
 $remote struct metricType {
-     string units;    // how units are measured  i.e. "ms" 
-     string name;     // for y-axis labeling  
-     u_int  Id;       // unique metric Id
-     int    aggregate;  //either SUM or AVE
+     string curr_units; // how units are measured  i.e. "ms" 
+     string tot_units;  // how total units are measured
+     string name;       // for y-axis labeling  
+     u_int  Id;         // unique metric Id
+     int    aggregate;  // either SUM or AVE
      int    unitstype;  // specifies units type 0: unnormalized 1: normalized
 			//                      2: sampled
 };
