@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.156 2003/06/16 18:58:37 bernat Exp $
+// $Id: aix.C,v 1.157 2003/06/16 21:14:37 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1562,14 +1562,127 @@ bool process::get_exit_syscalls(pstatus_t *status,
 
 bool process::dumpCore_(const string coreFile)
 {
-    // Uhhh....
-    return false;
+    pause();
+    
+    if (!dumpImage(coreFile))
+        return false;
+    
+    continueProc();
+    return true;
 }
 
 bool process::dumpImage(const string outFile)
 {
-    // More uhhh....
-    return false;
+    // formerly OS::osDumpImage()
+    const string &imageFileName = symbols->file();
+    // const Address codeOff = symbols->codeOffset();
+    int i;
+    int rd;
+    int ifd;
+    int ofd;
+    int cnt;
+    int ret;
+    int total;
+    int length;
+    Address baseAddr;
+
+    char buffer[4096];
+    struct filehdr hdr;
+    struct stat statBuf;
+    struct aouthdr aout;
+    struct scnhdr *sectHdr;
+    bool needsCont = false;
+    struct ld_info info[64];
+
+    ifd = open(imageFileName.c_str(), O_RDONLY, 0);
+    if (ifd < 0) {
+      sprintf(errorLine, "Unable to open %s\n", imageFileName.c_str());
+      logLine(errorLine);
+      showErrorCallback(41, (const char *) errorLine);
+      perror("open");
+      return true;
+    }
+
+    rd = fstat(ifd, &statBuf);
+    if (rd != 0) {
+      perror("fstat");
+      sprintf(errorLine, "Unable to stat %s\n", imageFileName.c_str());
+      logLine(errorLine);
+      showErrorCallback(72, (const char *) errorLine);
+      return true;
+    }
+    length = statBuf.st_size;
+    ofd = open(outFile.c_str(), O_WRONLY|O_CREAT, 0777);
+    if (ofd < 0) {
+      perror("open");
+      exit(-1);
+    }
+
+    /* read header and section headers */
+    cnt = read(ifd, &hdr, sizeof(struct filehdr));
+    if (cnt != sizeof(struct filehdr)) {
+	sprintf(errorLine, "Error reading header\n");
+	logLine(errorLine);
+	showErrorCallback(44, (const char *) errorLine);
+	return false;
+    }
+
+    cnt = read(ifd, &aout, sizeof(struct aouthdr));
+
+    sectHdr = (struct scnhdr *) calloc(sizeof(struct scnhdr), hdr.f_nscns);
+    cnt = read(ifd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
+    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+	sprintf(errorLine, "Section headers\n");
+	logLine(errorLine);
+	return false;
+    }
+
+    /* now copy the entire file */
+    lseek(ofd, 0, SEEK_SET);
+    lseek(ifd, 0, SEEK_SET);
+    for (i=0; i < length; i += 4096) {
+        rd = read(ifd, buffer, 4096);
+        write(ofd, buffer, rd);
+        total += rd;
+    }
+
+    if (!stopped) {
+        // make sure it is stopped.
+        pause();
+        needsCont = true;
+    }
+    
+    Address textorg = symbols->desc()->addr();
+    baseAddr = aout.text_start - textorg;
+
+    sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
+            baseAddr);
+    logLine(errorLine);
+    sprintf(errorLine, "Code offset = 0x%lx\n", baseAddr);
+    logLine(errorLine);
+    
+
+    lseek(ofd, aout.text_start, SEEK_SET);
+    
+    /* Copy the text segment over */
+    unsigned uncopied_len = aout.tsize;
+    for (i = 0; i < aout.tsize; i += 4096) {
+        length = ((i + 4096) < aout.tsize) ? 4096 : aout.tsize-i;
+        readDataSpace((void *) (baseAddr+i), length, (void *)buffer, false);
+
+        
+        write(ofd, buffer, length);
+    }
+    
+    if (needsCont) {
+        continueProc();
+    }
+    
+    close(ofd);
+    close(ifd);
+    
+    return true;
+
 }
 
 fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitForTrap) {
@@ -1582,28 +1695,37 @@ fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitFor
     int pid = status;
 
     if (waitForTrap) {
-        int stat_fd;
-        sprintf(tempstr, "/proc/%d/status", pid);
-        stat_fd = P_open(tempstr, O_RDONLY, 0);
-        if (stat_fd <= 0) {
-            return NULL;
-        }
         
         pstatus_t pstatus;
         int trapped = 0;
-        while (!trapped) {
-            if (pread(stat_fd, &pstatus, sizeof(pstatus), 0) != sizeof(pstatus))
-                perror("pread failed while waiting for initial trap\n");
+        int timeout = 0;
+        int stat_fd = 0;
+        sprintf(tempstr, "/proc/%d/status", pid);
+        
+        while (!trapped &&
+               (timeout < 100) // 100: arbitrary number
+               ) {
             
-            if ((pstatus.pr_lwp.pr_why == PR_SYSEXIT))
-                trapped = 1;
+            // On slower machines (sp3-cw.cs.wisc.edu) we can enter
+            // this code before the forked child has actually been created.
+            // We attempt to re-open the FD if it failed the first time.
+            if (stat_fd <= 0) 
+                stat_fd = P_open(tempstr, O_RDONLY, 0);
+            if (stat_fd > 0) {
+                if (pread(stat_fd, &pstatus, sizeof(pstatus), 0) != sizeof(pstatus))
+                    perror("pread failed while waiting for initial trap\n");
+                
+                if ((pstatus.pr_lwp.pr_why == PR_SYSEXIT))
+                    trapped = 1;
+            }
+            timeout++;
             usleep(1000);
         }
-
+        
         status = SIGTRAP;
         // Explicitly don't close the FD
     }
-
+    
     int map_fd;
     sprintf(tempstr, "/proc/%d/map", pid);
     map_fd = P_open(tempstr, O_RDONLY, 0);
