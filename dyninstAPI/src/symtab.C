@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.7 1994/07/20 23:23:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.8 1994/07/22 19:21:10 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.7  1994/07/20 23:23:41  hollings
+ * Revision 1.8  1994/07/22 19:21:10  hollings
+ * removed mistaken divid by 1Meg for predicted cost.
+ *
+ * Revision 1.7  1994/07/20  23:23:41  hollings
  * added insn generated metric.
  *
  * Revision 1.6  1994/07/12  19:26:15  jcargill
@@ -293,10 +296,14 @@ image *parseImage(char *file, int offset)
     startUserAddr = (caddr_t) ((startUserFunc) ? startUserFunc->addr : 0x0);
 
     endUserFunc = findInternalSymbol(ret, "DYNINSTendUserCode", False);
-    endUserAddr = (caddr_t) ((endUserFunc && endUserFunc->addr) ? 
-	endUserFunc->addr : 0xffffffff);
+    if (endUserFunc && endUserFunc->addr) {
+	endUserAddr = (caddr_t) endUserFunc->addr;
+    } else {
+	endUserAddr = (caddr_t) startUserAddr;
+    }
 
-    if (endUserFunc) {
+    // if (endUserFunc) {
+    if (1) {
 	for (func = ret->funcs; func; func=func->next) {
 	    if ((func->addr >= endUserAddr) ||
 	        (func->addr <= startUserAddr)) {

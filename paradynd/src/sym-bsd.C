@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.5 1994/07/12 19:38:34 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.6 1994/07/22 19:21:09 hollings Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.5  1994/07/12 19:38:34  jcargill
+ * Revision 1.6  1994/07/22 19:21:09  hollings
+ * removed mistaken divid by 1Meg for predicted cost.
+ *
+ * Revision 1.5  1994/07/12  19:38:34  jcargill
  * Fixed iSymCount problem, improved speed of search for lib functions,
  * removed old/dead CM5 code, and fixed pagemask error
  *
@@ -105,7 +108,8 @@ void findInternalSymbols(image *ret, char **iSym)
 	    str = &strings[stabs[i].n_un.n_strx];
 	    if (!strncmp(str+1, *curr, len))  {
 		ret->iSymCount++;
-		// printf ("Counting internal symbol:  '%s'\n", str);
+		// sprintf(errorLine, "Counting internal symbol:  '%s'\n", str);
+		// logLine(errorLine);
 	    }
 	}
     }

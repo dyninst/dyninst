@@ -7,7 +7,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.3  1994/07/20 23:23:43  hollings
+ * Revision 1.4  1994/07/22 19:21:11  hollings
+ * removed mistaken divid by 1Meg for predicted cost.
+ *
+ * Revision 1.3  1994/07/20  23:23:43  hollings
  * added insn generated metric.
  *
  * Revision 1.2  1994/06/29  02:52:52  hollings
@@ -113,10 +116,12 @@ struct functionRec {
  *   is placed in the image structure.
  *
  */
-typedef struct {
+struct _internalSym {
     char *name;			/* name as it appears in the symbol table. */
     unsigned int addr;		/* absolute address of the symbol */
-} internalSym;
+};
+
+typedef _internalSym internalSym;
 
 struct imageRec {
     char *file;			/* image file name */

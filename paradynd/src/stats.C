@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.7  1994/07/20 23:29:46  hollings
+ * Revision 1.8  1994/07/22 19:21:08  hollings
+ * removed mistaken divid by 1Meg for predicted cost.
+ *
+ * Revision 1.7  1994/07/20  23:29:46  hollings
  * made time in code gen stat stadard.
  *
  * Revision 1.6  1994/07/20  23:23:40  hollings
@@ -66,7 +69,7 @@ void printDyninstStats()
 
     now = getCurrentTime(FALSE);
     sprintf(errorLine, "    totalPredictedCost = %f\n", 
-	totalPredictedCost.getValue()/1000000.0);
+	totalPredictedCost.getValue());
     logLine(errorLine);
 
     sprintf(errorLine, "    %d total points used\n", pointsUsed);
