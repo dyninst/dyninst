@@ -67,11 +67,6 @@ class pd_process {
    unsigned numOfActCounters_is;
    unsigned numOfActProcTimers_is;
    unsigned numOfActWallTimers_is;
-
-   // the following 3 are used in perfStream.C
-   char buffer[2048];
-   unsigned bufStart;
-   unsigned bufEnd;
    
  public:
   // Creation constructor
@@ -129,15 +124,15 @@ class pd_process {
 
    int getPid() const { return dyninst_process->getPid();  }
 
+   bool cancelRPC(unsigned rpc_id) {
+      return dyninst_process->cancelRPC(rpc_id);
+   }
+
    bool existsRPCPending() const {
        return dyninst_process->existsRPCPending();
    }
    
    shmMgr *getSharedMemMgr() {  return dyninst_process->getSharedMemMgr();  }
-
-   void cleanRPCreadyToLaunch(int mid) { 
-      dyninst_process->cleanRPCreadyToLaunch(mid);
-   }
 
    bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
       const {
@@ -186,19 +181,18 @@ class pd_process {
       return dyninst_process->getDefaultLWP();
    }
 
-   void postRPCtoDo(AstNode *action, bool noCost,
-                    inferiorRPCcallbackFunc callbackFunc,
-                    void *userData, int mid, bool lowmem = false) {
-      dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                   mid, lowmem);      
+   unsigned postRPCtoDo(AstNode *action, bool noCost,
+                        inferiorRPCcallbackFunc callbackFunc,
+                        void *userData, bool lowmem = false) {
+      return dyninst_process->postRPCtoDo(action, noCost, callbackFunc,
+                                          userData, lowmem);      
    }
 
-   void postRPCtoDo(AstNode *action, bool noCost,
-                    inferiorRPCcallbackFunc callbackFunc,
-                    void *userData, int mid, dyn_lwp *lwp,
-                    bool lowmem = false) {
-       dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                    mid, lwp, lowmem);
+   unsigned postRPCtoDo(AstNode *action, bool noCost,
+                        inferiorRPCcallbackFunc callbackFunc,
+                        void *userData, dyn_lwp *lwp, bool lowmem = false) {
+      return dyninst_process->postRPCtoDo(action, noCost, callbackFunc,
+                                          userData, lwp, lowmem);
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,
@@ -303,6 +297,8 @@ class pd_process {
       return (*beginThr());
    }
 
+   void initAfterFork(pd_process *parentProc);
+      
   /************************************
    *** Fork and Exec handling       ***
    ************************************/
@@ -332,12 +328,14 @@ class pd_process {
   libraryState_t auxLibState; // Needed for solaris
   
   // We load via an inferior RPC, so we need a callback
-  static void paradynLibLoadCallback(process *, void *data, void *ret);
+  static void paradynLibLoadCallback(process *, unsigned /* rpc_id */,
+                                     void *data, void *ret);
   void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
 
   // Replace with BPatch::loadLibrary
   bool loadAuxiliaryLibrary(string libname);
-  static void loadAuxiliaryLibraryCallback(process *, void *data, void *ret);
+  static void loadAuxiliaryLibraryCallback(process *, unsigned /* rpc_id */,
+                                           void *data, void *ret);
   
   // Sets the parameters to paradynInit
   bool setParadynLibParams();
@@ -348,7 +346,8 @@ class pd_process {
   bool finalizeParadynLib();
   // For when we can't call paradynInit from _init method
   bool iRPCParadynInit();
-  static void paradynInitCompletionCallback(process *, void *data, void *ret);
+  static void paradynInitCompletionCallback(process *, unsigned /* rpc_id */,
+                                            void *data, void *ret);
   
   bool extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record);
 
