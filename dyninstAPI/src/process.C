@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.347 2002/08/02 21:30:29 bernat Exp $
+// $Id: process.C,v 1.348 2002/08/09 21:34:42 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4650,6 +4650,56 @@ pd_Function *process::findFuncByName(const string &name){
     return(0);
 }
 
+// findAllFuncsByName: return a vector of all functions in all images
+// matching the given string
+bool process::findAllFuncsByName(const string &name, vector<function_base *> &res)
+{
+  string lib_name;
+  string func_name;
+  
+  // Split name into library and function
+  getLibAndFunc(name, lib_name, func_name);
+  
+  // If no library was specified, grab the first function we find
+  if (lib_name == "") {
+    
+    // first check a.out for function symbol
+    function_base *pdf = static_cast<function_base *>(symbols->findFuncByName(func_name));
+    if (pdf) 
+      res.push_back(pdf);
+    
+    // search any shared libraries for the file name 
+    if(dynamiclinking && shared_objects){
+      for(u_int j=0; j < shared_objects->size(); j++){
+	pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+	if(pdf){
+	  res.push_back(pdf);
+	}
+      }
+    }
+    
+  } else {
+    
+    // Library was specified, search lib for function func_name 
+    if(dynamiclinking && shared_objects){ 
+      for(u_int j=0; j < shared_objects->size(); j++){
+	shared_object *so = (*shared_objects)[j];
+	
+	// Add prefix wildcard to make name matching easy
+	lib_name = "*" + lib_name;             
+	
+	if(matchLibName(lib_name, so->getName())) {
+	  function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
+	  if (fb) {
+	    res.push_back(fb);
+	  }
+	}
+      }
+    }
+  }
+  return true; 
+}
+
 // Returns the named symbol from the image or a shared object
 bool process::getSymbolInfo( const string &name, Symbol &ret ) 
 {
@@ -4751,45 +4801,29 @@ pd_Function *process::findFunctionIn(Address adr)
 
 pd_Function *process::findFuncByAddr(Address adr)
 {
-
-  vector <pd_Function *> returned_functions;
   pd_Function *pdf;
   // first check a.out for function symbol
   // Search all functions 
   pdf = symbols->findFuncByEntryAddr(adr, this);
-  if (pdf) returned_functions.push_back(pdf);
-  else { // long search
-    pdf = symbols->findFuncByOrigAddr(adr, this);
-    if (pdf) returned_functions.push_back(pdf);
+  if (pdf) return pdf;
+  
+  if (dynamiclinking && shared_objects) {
+    for(u_int j=0; j < shared_objects->size(); j++){
+      pdf = ((*shared_objects)[j])->findFuncByEntryAddr(adr,this);
+      if (pdf) return pdf;
+    }
   }
+
+  pdf = symbols->findFuncByOrigAddr(adr, this);
+  if (pdf) return pdf;
 
   // search any shared libraries for the function 
   if(dynamiclinking && shared_objects){
     for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByEntryAddr(adr,this);
-      if(pdf){
-	returned_functions.push_back(pdf);
-      }
-      else {
-	pdf = ((*shared_objects)[j])->findFuncByOrigAddr(adr, this);
-	if (pdf) returned_functions.push_back(pdf);
-      }
-
+      pdf = ((*shared_objects)[j])->findFuncByOrigAddr(adr, this);
+      if (pdf) return pdf;
     }
   }
-
-  if (returned_functions.size() > 1) { // Got more than one return
-#ifdef DEBUG
-    cerr << "Warning: multiple matches found for address " << adr << endl;
-#endif
-    for (unsigned int i = 0; i < returned_functions.size(); i++)
-      cerr << returned_functions[i]->prettyName() << endl;
-  }
-
-  if (returned_functions.size())
-    return returned_functions[0];
-
-  //cerr << "Checking original address" << endl;
 
   // So we checked by entry points and by absolute addresses, and got no
   // matches. Check by relocated addresses and (possibly) offsets within
@@ -4798,30 +4832,15 @@ pd_Function *process::findFuncByAddr(Address adr)
   // first check a.out for function symbol
   // Search all functions 
   pdf = symbols->findFuncByRelocAddr(adr, this);
-  if (pdf) returned_functions.push_back(pdf);
+  if (pdf) return pdf;
 
   // search any shared libraries for the function 
   if(dynamiclinking && shared_objects){
     for(u_int j=0; j < shared_objects->size(); j++){
       pdf = ((*shared_objects)[j])->findFuncByRelocAddr(adr,this);
-      if(pdf){
-	returned_functions.push_back(pdf);
-      }
+      if (pdf) return pdf;
     }
   }
-
-  if (returned_functions.size() > 1) { // Got more than one return
-#ifdef DEBUG
-    cerr << "Warning: multiple matches found for address " << adr << endl;
-#endif
-    for (unsigned int i = 0; i < returned_functions.size(); i++)
-      cerr << returned_functions[i]->prettyName() << endl;
-  }
-
-  if (returned_functions.size())
-    return returned_functions[0];
-
-
   return NULL;
 }
     
@@ -5733,31 +5752,38 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
     // SYSCALL CHECK
     if (todo.thr) {
-      if (executingSystemCall(todo.lwp)) {
-	// Ah, crud. We're in a system call, so no work is possible.
-	if (!todo.thr->isInSyscall()) {
-	  if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
-	    // Only set inSyscall if we can set a breakpoint at the exit.
-	    // Otherwise we have to spin until the syscall is completed.
-	    todo.thr->setInSyscall();
-	  }
-	  thrInSyscall = true;
-	  was_running_before_RPC_syscall_complete = wasRunning;
-	}
+      if (finishingSysCall) {
+	clear_breakpoint_for_syscall_completion();
+	todo.thr->clearInSyscall();
+      }
+      if (todo.thr->isInSyscall() && !finishingSysCall) {
 	continue;
       }
-      else {
-	// Not in a system call. Clear the flag
-	todo.thr->clearInSyscall();
+
+      if (executingSystemCall(todo.lwp)) {
+	// Ah, crud. We're in a system call, so no work is possible.
+	if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
+	  // Only set inSyscall if we can set a breakpoint at the exit.
+	  // Otherwise we have to spin until the syscall is completed.
+	  todo.thr->setInSyscall();
+	}
+	thrInSyscall = true;
+	was_running_before_RPC_syscall_complete = wasRunning;
+	continue;
       }
     }
     else {
+      if (finishingSysCall) {
+	clearInSyscall();
+	clear_breakpoint_for_syscall_completion();
+      }
       if (isInSyscall() && !finishingSysCall) {
 	continue;
       }
       if (executingSystemCall()) {
-	if (set_breakpoint_for_syscall_completion())
+	if (set_breakpoint_for_syscall_completion()) {
 	  setInSyscall();
+	}
 	was_running_before_RPC_syscall_complete = wasRunning;
 	thrInSyscall = true;
 	continue;
@@ -5793,7 +5819,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       RPCsWaitingToStart.removeOne();
     
     inferiorRPCinProgress inProgress;
-
     // MT: get a thread to run this RPC on
     inProgress.thr = todo.thr;
     inProgress.lwp = todo.lwp;
@@ -6255,8 +6280,7 @@ bool process::handleTrapIfDueToRPC() {
     if (foundIRPC.thr)
       foundIRPC.thr->runIRPC(foundIRPC);
     else
-      currRunningIRPC = foundIRPC;
-
+      currRunningIRPC = foundIRPC;    
   }
 
   if (haveFinishedIRPC) {
@@ -6264,9 +6288,7 @@ bool process::handleTrapIfDueToRPC() {
     /* If the application was paused when it was at a trap, reset the rt library
        flag which indicated this. */
     //SendAppIRPCInfo(0, 0, 0);
-#endif
-    
-    
+#endif    
     // step 1) restore registers:
     // Assumption: LWP has not changed. 
     if (rpcSavesRegs()) {
@@ -6446,58 +6468,74 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 
       instMapping *req = requests[lcv];
 
-      function_base *func = findOneFunction(req->func);
-      if (!func)
-         continue;  // probably should have a flag telling us whether errors
-                    // should be silently handled or not
-      AstNode *ast;
-      if ((req->where & FUNC_ARG) && req->args.size()>0) {
-        ast = new AstNode(req->inst, req->args);
-      } else {
-        AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-        ast = new AstNode(req->inst, tmp);
-        removeAst(tmp);
+      string func_name;
+      string lib_name;
+      vector<function_base *>matchingFuncs;
+
+      getLibAndFunc(req->func, lib_name, func_name);
+
+      if (lib_name != "*") {
+	function_base *func2 = static_cast<function_base *>(findFuncByName(req->func));
+ 	matchingFuncs.push_back(func2);
       }
-      if (req->where & FUNC_EXIT) {
-         const vector<instPoint*> func_rets = func->funcExits(this);
-         for (unsigned j=0; j < func_rets.size(); j++) {
+      else {
+	// Wildcard: grab all functions matching this name
+	findAllFuncsByName(func_name, matchingFuncs);
+      }
+      for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
+	function_base *func = matchingFuncs[funcIter];
+	
+	if (!func)
+	  continue;  // probably should have a flag telling us whether errors
+	// should be silently handled or not
+	AstNode *ast;
+	if ((req->where & FUNC_ARG) && req->args.size()>0) {
+	  ast = new AstNode(req->inst, req->args);
+	} else {
+	  AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
+	  ast = new AstNode(req->inst, tmp);
+	  removeAst(tmp);
+	}
+	if (req->where & FUNC_EXIT) {
+	  const vector<instPoint*> func_rets = func->funcExits(this);
+	  for (unsigned j=0; j < func_rets.size(); j++) {
 	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
 	    miniTrampHandle mtHandle;
             assert(addInstFunc(&mtHandle, this, func_ret, ast,
 			       req->when, req->order, false, false)
 		   == success_res);
-	 }
-
-      }
-
-      if (req->where & FUNC_ENTRY) {
-         instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-	 miniTrampHandle mtHandle;
-         assert(addInstFunc(&mtHandle, this, func_entry, ast,
-			    req->when, req->order, false, false)
-		== success_res);
-		
-
-      }
-
-      if (req->where & FUNC_CALL) {
-         vector<instPoint*> func_calls = func->funcCalls(this);
-         if (func_calls.size() == 0)
+	  }
+	  
+	}
+	
+	if (req->where & FUNC_ENTRY) {
+	  instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
+	  miniTrampHandle mtHandle;
+	  assert(addInstFunc(&mtHandle, this, func_entry, ast,
+			     req->when, req->order, false, false)
+		 == success_res);
+	  
+	  
+	}
+	
+	if (req->where & FUNC_CALL) {
+	  vector<instPoint*> func_calls = func->funcCalls(this);
+	  if (func_calls.size() == 0)
             continue;
-
-         for (unsigned j=0; j < func_calls.size(); j++) {
+	  
+	  for (unsigned j=0; j < func_calls.size(); j++) {
 	    miniTrampHandle mtHandle;
             assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
 			       req->when, req->order, false, false)
 		   == success_res);
-
-	 }
+	    
+	  }
+	}
+	
+	removeAst(ast);
       }
-
-      removeAst(ast);
    }
 }
-
 #ifdef SHM_SAMPLING
 bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 {

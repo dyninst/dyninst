@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.211 2002/08/01 19:58:43 cortes Exp $
+/* $Id: process.h,v 1.212 2002/08/09 21:34:43 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1080,6 +1080,9 @@ void saveWorldData(Address address, int size, const void* src);
   // This routine checks both the a.out image and any shared object images 
   // for this function
   pd_Function *findFuncByName(const string &func_name);
+
+  // And do it, returning a vector if multiple matches
+  bool findAllFuncsByName(const string &func_name, vector<function_base *> &res);
 
   // Check all loaded images for a function containing the given address.
   pd_Function *findFuncByAddr(Address adr);
