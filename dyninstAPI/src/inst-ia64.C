@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.54 2004/04/28 20:25:29 rchen Exp $
+ * $Id: inst-ia64.C,v 1.55 2004/05/18 18:19:58 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -444,14 +444,14 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	Address addressDelta = getAddress( 0 ) - addr;
 
 	/* Generate an instPoint for the function entry. */
-	funcEntry_ = new instPoint( getAddress( 0 ), this, * iAddr, functionEntry);
+	funcEntry_ = new instPoint( getAddress( 0 ), this, * iAddr, functionEntry );
 
 	IA64_instruction * currInsn;
 	for( ; iAddr < lastI; iAddr++ ) {	
 		currInsn = * iAddr;
 		switch( currInsn->getType() ) {
 			case IA64_instruction::RETURN:
-				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, functionExit) );
+				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, functionExit ) );
 				break;
 			case IA64_instruction::DIRECT_CALL:
 			case IA64_instruction::INDIRECT_CALL:
@@ -517,15 +517,17 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	/* Acquire the owner. */
 	const image * owner = containingFunction->file()->exec();
 
-	/* Acquire the instruction. FIXME: VERIFY. */
+	/* Acquire the instruction. */
 	Address instructionAddress = (Address)owner->getPtrToInstruction( containingFunction->getAddress( NULL ) );
 	instructionAddress += containingFunction->getAddress( NULL ) - alignedAddress;
 	ia64_bundle_t * bundlePtr = (ia64_bundle_t *) instructionAddress;
 	IA64_bundle theBundle( * bundlePtr );
-	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
 	
-	/* Finally, build the instPoint. */
-	instPoint * arbitraryInstPoint = new instPoint( (Address)address, containingFunction, theInstruction, otherPoint );
+	/* Construct the instPoint. */
+	Address instPointAddr = (Address)address;
+	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
+	if( theBundle.hasLongInstruction() ) { instPointAddr -= (slotNo - 1); }
+	instPoint * arbitraryInstPoint = new instPoint( instPointAddr, containingFunction, theInstruction, otherPoint );
 	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc );
 	return proc->findOrCreateBPPoint( bpFunction, arbitraryInstPoint, BPatch_arbitrary );
 	} /* end createInstructionInstPoint() */
@@ -1099,6 +1101,10 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 			insnPtr[offset++] = ipMoveBundle.getMachineCode(); size += 16;
 			break; } /* end ip move handling */
 
+		case IA64_instruction::INVALID:
+			fprintf( stderr, "Not emulating INVALID instruction.\n" );
+			break;
+
 		case IA64_instruction::RETURN:
 		case IA64_instruction::INDIRECT_CALL:
 		case IA64_instruction::INDIRECT_BRANCH:
@@ -1138,6 +1144,10 @@ void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_
 	   instrumentation work. */
 	if( bundleToEmulate.hasLongInstruction() && slotNo == 1 ) {
 		emulateLongInstruction( bundleToEmulate.getLongInstruction(), originalLocation, insnPtr, offset, size, allocatedAddress );
+		}
+	else if( bundleToEmulate.hasLongInstruction() && slotNo == 2 ) {
+		fprintf( stderr, "Malformed emulation request: second slot of long instruction, ignoring.\n" );
+		return;
 		}
 	else {
 		/* Which short instruction do we emulate? */
@@ -2533,7 +2543,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	/* Prepare bundle for emulation */
 	const ia64_bundle_t *origBundlePtr =
 		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
-	assert( (int)origBundlePtr % 16 == 0 );
+	assert( (Address)origBundlePtr % 16 == 0 );
 	IA64_bundle bundleToEmulate( *origBundlePtr );
 
 	/* Emulate the instrumented instruction. */
@@ -2685,38 +2695,41 @@ Address installMultiTramp(instPoint * & location, process *proc)
 
 	const ia64_bundle_t *origBundlePtr =
 		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
-	assert( (int)origBundlePtr % 16 == 0 );
+	assert( (Address)origBundlePtr % 16 == 0 );
 	IA64_bundle bundleToEmulate( *origBundlePtr );
 	origBundleAddr += baseAddress;
 
 	unsigned int bundleCount = 0;
-	unsigned int dummySize = 0;
+	unsigned int size = 0;
 	ia64_bundle_t insnBuffer[10];
-	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I);
+	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I );
 
 	// Prepare multi-tramp slot 0
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-				   bundleCount, dummySize, allocatedAddress, 0 );
-	while (bundleCount < 3)
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
+				   bundleCount, size, allocatedAddress, 0 );
+	while( bundleCount < 3 ) {
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		}
 
 	// Prepare multi-tramp slot 1
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-				   bundleCount, dummySize, allocatedAddress, 1 );
-	while (bundleCount < 6)
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
+				   bundleCount, size, allocatedAddress, 1 );
+	while( bundleCount < 6 ) {
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		}
 
 	// Prepare multi-tramp slot 2 (if needed)
 	if (!bundleToEmulate.hasLongInstruction())
 		emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-					   bundleCount, dummySize, allocatedAddress, 2 );
-	while (bundleCount < 9)
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode();
+					   bundleCount, size, allocatedAddress, 2 );
+	while( bundleCount < 9 ) {
+		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		}
 
     IA64_instruction_x returnToOrig = generateLongBranchTo( (origBundleAddr + 0x10) -
-															(allocatedAddress + 0x90));
+															(allocatedAddress + 0x90) );
     IA64_bundle returnBundle( MLXstop, IA64_instruction(NOP_M), returnToOrig );
-    insnBuffer[bundleCount] = returnBundle.getMachineCode();
+    insnBuffer[ bundleCount++ ] = returnBundle.getMachineCode(); size += 16;
 
 	// Copy the instructions into mutatee.
     InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
