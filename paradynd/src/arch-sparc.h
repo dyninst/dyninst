@@ -7,6 +7,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.8  1996/04/29 22:08:44  mjrg
+ * added some extra defines
+ *
  * Revision 1.7  1995/12/11 15:06:41  naim
  * Implementing >, >=, < and <= operators - naim
  *
@@ -114,9 +117,12 @@ typedef union instructUnion instruction;
 #define FP_OP2_FPop2	0x35
 
 /* op = 11 */
+#define LDSTop  3
 #define STop	3
 #define LDop3	0
 #define STop3	4
+#define LDDop3  3
+#define STDop3  7
 
 
 /* mask bits for various parts of the instruction format */
