@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.22  1994/07/07 03:29:35  markc
+ * Revision 1.23  1994/07/14 23:45:54  hollings
+ * added hybrid cost model.
+ *
+ * Revision 1.22  1994/07/07  03:29:35  markc
  * Added interface function to start a paradyn daemon
  *
  * Revision 1.21  1994/07/02  01:43:12  markc
@@ -252,6 +255,11 @@ float dataManager::getPredictedDataCost(applicationContext *a,
 					metric *m)
 {
     return(a->getPredictedDataCost(rl, m));
+}
+
+float dataManager::getCurrentHybridCost(applicationContext *a) 
+{
+    return(a->getCurrentHybridCost());
 }
 
 int dataManager::getSampleValues(metricInstance *mi,

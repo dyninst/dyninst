@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.22  1994/07/07 03:31:20  markc
+ * Revision 1.23  1994/07/14 23:45:53  hollings
+ * added hybrid cost model.
+ *
+ * Revision 1.22  1994/07/07  03:31:20  markc
  * Changed return types for public functions to Boolean to agree with exported
  * functions.
  * Added code to handle relative path names and extract the tail when new
@@ -218,6 +221,7 @@ class applicationContext {
 	metric *findMetric(char *name);
 	metricInstance *enableDataCollection(resourceList*, metric*);
 	float getPredictedDataCost(resourceList*, metric*);
+	float getCurrentHybridCost();
 	void disableDataCollection(metricInstance*);
 
 	static List<performanceStream*> streams;
