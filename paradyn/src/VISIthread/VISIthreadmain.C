@@ -22,9 +22,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.73  1996/05/07 18:05:22  newhall
-/* added call to UI routine threadExiting before exiting VISIthread
+/* Revision 1.74  1996/05/31 23:51:14  tamches
+/* removed globals->pid (no longer used) to correspond to
+/* new syntax of RPCprocessCreate.
 /*
+ * Revision 1.73  1996/05/07 18:05:22  newhall
+ * added call to UI routine threadExiting before exiting VISIthread
+ *
  * Revision 1.72  1996/05/06  17:13:11  newhall
  * changed arguments to enableDataRequest
  *
@@ -652,8 +656,8 @@ int VISIthreadStartProcess(){
       av += ptr->args->argv[index];
       index++;
     }
-    ptr->fd = RPCprocessCreate(ptr->pid, "localhost", "",
-				 ptr->args->argv[0], av);
+    ptr->fd = RPCprocessCreate("localhost", "",
+			       ptr->args->argv[0], av);
     if (ptr->fd < 0) {
       PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
       ERROR_MSG(14,"");
@@ -1256,7 +1260,6 @@ void *VISIthreadmain(void *vargs){
   globals->buffer_next_insert_index = 0;
 
   globals->fd = -1;
-  globals->pid = -1;
   globals->quit = 0;
   globals->bucketWidth = globals->args->bucketWidth;
 
