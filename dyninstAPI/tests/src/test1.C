@@ -3276,6 +3276,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
+    defined(ia64_unknown_linux2_4) || \
     defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0)
