@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.10  1994/05/05 23:35:00  karavan
-/* changed tcl calls to procedures.  removed conflicting def'n of read.
-/* changed name of tcl initialization script.
+/* Revision 1.11  1994/05/07 23:27:21  karavan
+/* eliminated [location-dependent] tcl init file.
 /*
+ * Revision 1.10  1994/05/05  23:35:00  karavan
+ * changed tcl calls to procedures.  removed conflicting def'n of read.
+ * changed name of tcl initialization script.
+ *
  * Revision 1.9  1994/05/02  20:38:30  hollings
  * added search pause command and shg commands.
  *
@@ -246,7 +249,7 @@ UImain(CLargStruct *clargs)
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
-
+    char *temp;
     printf ("starting mainUI\n");
 
     interp = Tcl_CreateInterp();
@@ -310,9 +313,7 @@ UImain(CLargStruct *clargs)
 	Tcl_SetVar(interp, "geometry", geometry, TCL_GLOBAL_ONLY);
     }
 
-    /*
-     * Set the "tcl_interactive" variable.
-     */
+     // initialize tcl and tk 
 
     tty = isatty(0);
     Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
@@ -320,12 +321,9 @@ UImain(CLargStruct *clargs)
     if (Tcl_Init(interp) == TCL_ERROR) {
       fprintf(stderr, "%s\n", interp->result);
     }
-    printf ("tcl initialized\n");
-
     if (Tk_Init(interp) == TCL_ERROR) {
       fprintf (stderr, "%s\n", interp->result);
     }
-
     printf ("tk initialized.\n");
 
      // Add the dag command to the tcl interpreter.
@@ -350,23 +348,17 @@ UImain(CLargStruct *clargs)
 	}
       }
 
-    /*
-     * paradyn tcl initialization script
-     */
-    {
-      FILE *f;
-    
-      f = fopen(tcl_RcFileName, "r");
-      if (f != NULL) {
-	code = Tcl_EvalFile(interp, tcl_RcFileName);
-	if (code != TCL_OK) {
-	  fprintf(stderr, "%s\n", interp->result);
-	}
- 	fclose(f);
-      }
+    /* tell interpreter where the tcl files are */
+    if (!(temp = (char *) getenv("PARADYNTCL"))) {
+      temp = new char[80];
+      strcpy (temp, "/usr/home/paradyn/core/paradyn/tcl");
     }
-   /* display the paradyn main menu tool bar */
 
+    if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",
+		 temp, "]", 0) == TCL_ERROR)
+      printf ("can't set auto_path: %s\n", interp->result);
+
+   /* display the paradyn main menu tool bar */
     if (Tcl_VarEval (interp, "drawToolBar", 0) == TCL_ERROR)
       printf ("NOTOOLBAR:: %s\n", interp->result);
 
@@ -411,20 +403,17 @@ UImain(CLargStruct *clargs)
     retVal = msg_recv (&mtag, UIMbuff, &msgSize);
 
     fprintf (stderr, "UIM thread past barrier\n");
-   // subscribe to DM services
+
+   // subscribe to DM new resource notification service
 
     uim_rootRes = dataMgr->getRootResource();
-
-   // other initialization stuff from Jeff's controller main
     controlFuncs.rFunc = controlFunc;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = foldFunc;
     dataFunc.sample = sampleFunc;
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);
-    printf ("**defaultStream created\n");    
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
-    printf ("**resource creation notification enabled\n");
 
 /********************************
  *    Main Loop for UIM thread.  
