@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.4 1999/06/20 03:36:57 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.5 1999/06/30 23:01:38 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -72,14 +72,12 @@ void test4()
      abort();
 }
 
-int main(int argc, char *argv[])
-{
-    int i;
-#ifndef i386_unknown_nt4_0
-    int pfd;
-#endif
- 
-    int testNum;
+int main(int iargc, char *argv[])
+{                                       // despite different conventions
+    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+    unsigned int i;
+    unsigned int testNum;
+
     if ((argc!=2) || (testNum=atoi(argv[1]))==0) {
 	printf("usage: %s <num>\n", argv[0]);
         printf("given: \"%s", argv[0]);

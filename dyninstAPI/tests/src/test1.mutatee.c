@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.19 1999/06/29 19:02:13 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.20 1999/06/30 23:01:37 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -580,7 +580,7 @@ void func5_2() { dprintf("func5_1 () called\n"); }
 //	variable - use variables in the expressions
 //
 //
-func6_1()
+void func6_1()
 {
     void func6_2();
     func6_2();
@@ -1024,9 +1024,10 @@ void func16_1()
 // Test #17 - return values from func calls
 //	See test1.C for a detailed comment
 //
-func17_1()
+void func17_1()
 {
     int ret17_1;
+    int func17_2();
     void func17_3();
 
     ret17_1 = func17_2();
@@ -1284,9 +1285,10 @@ void func22_1()
 #define USAGE "Usage: test1 [-attach <fd>] [-verbose]"
 #endif
 
-int main(int argc, char *argv[])
-{
-    int i, j;
+int main(int iargc, char *argv[])
+{                                       // despite different conventions
+    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+    unsigned int i, j;
     int allPassed;
     int useAttach = FALSE;
 #ifndef i386_unknown_nt4_0
@@ -1314,8 +1316,8 @@ int main(int argc, char *argv[])
             runAllTests = FALSE;
             for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
             for (j=i+1; j < argc; j++) {
-                int testId;
-                if (testId = atoi(argv[j])) {
+                unsigned int testId;
+                if ((testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = TRUE;
                     } else {

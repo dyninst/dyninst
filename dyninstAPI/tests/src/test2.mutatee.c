@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.13 1999/06/29 19:02:14 hollings Exp $ */
+/* $Id: test2.mutatee.c,v 1.14 1999/06/30 23:01:38 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -113,9 +113,10 @@ void func12_1()
 #define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose]"
 #endif
 
-int main(int argc, char *argv[])
-{
-    int i, j;
+int main(int iargc, char *argv[])
+{                                       // despite different conventions
+    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+    unsigned int i, j;
 #if !defined(i386_unknown_nt4_0)
     int pfd;
 #endif
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
         } else if (!strcmp(argv[i], "-run")) {
             for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
             for (j=i+1; j < argc; j++) {
-                int testId;
+                unsigned int testId;
                 if (argv[j] && isdigit(*argv[j]) && (testId = atoi(argv[j]))) {
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = 1;
@@ -158,7 +159,7 @@ int main(int argc, char *argv[])
             }
             i = j-1;
         } else {
-	    printf("unexpected parameter %s\n", argv[i]);
+	    printf("unexpected parameter '%s'\n", argv[i]);
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
