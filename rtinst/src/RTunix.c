@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.19  1994/09/20 18:26:51  hollings
+ * Revision 1.20  1994/10/09 21:26:05  hollings
+ * Fixed cycles to time conversion.
+ *
+ * Revision 1.19  1994/09/20  18:26:51  hollings
  * added DYNINSTcyclesPerSecond to get cost values no matter the clock speed.
  *
  * removed a race condition in DYNINSTcyclesPerSecond.
@@ -335,7 +338,7 @@ void DYNINSTinit(int skipBreakpoint)
 #endif
 
     /* init these before the first alarm can expire */
-    DYNINSTcyclesToUsec = DYNINSTcyclesPerSecond() * 1000000;
+    DYNINSTcyclesToUsec = (1.0/DYNINSTcyclesPerSecond()) * 1000000;
     DYNINSTlastCPUTime = DYNINSTgetCPUtime();
     DYNINSTlastWallTime = DYNINSTgetWallTime();
 
