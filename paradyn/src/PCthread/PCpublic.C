@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.6  1994/05/02 20:38:13  hollings
+ * Revision 1.7  1994/05/06 06:39:36  karavan
+ * SHG now initialized only upon request
+ *
+ * Revision 1.6  1994/05/02  20:38:13  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.5  1994/04/27  22:55:03  hollings
@@ -61,7 +64,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.6 1994/05/02 20:38:13 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.7 1994/05/06 06:39:36 karavan Exp $";
 #endif
 
 #include <stdio.h>
@@ -79,6 +82,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCevalTest.h"
 #include "performanceConsultant.SRVR.h"
 #include "paradyn.h"
+
+extern void shgInit();
+
 void performanceConsultant::printTestStatus()
 {
     testResultList curr;
@@ -312,6 +318,11 @@ void performanceConsultant::printSHGList()
 void performanceConsultant::printSHGNode(searchHistoryNode *node)
 {
     node->print(-1);
+}
+
+void performanceConsultant::startSHG()
+{
+  shgInit();
 }
 
 void performanceConsultant::doRefine(int_Array ids)

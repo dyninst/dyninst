@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.8  1994/05/02 20:38:10  hollings
-/* added pause search mode, and cleanedup global variable naming.
+/* Revision 1.9  1994/05/06 06:39:34  karavan
+/* SHG now initialized only upon request
 /*
+ * Revision 1.8  1994/05/02  20:38:10  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
  * Revision 1.7  1994/04/21  05:00:10  karavan
  * added global SHGid for visual display.
  *
@@ -23,7 +26,6 @@
 
 performanceStream *pcStream;
 extern void initResources();
-extern void shgInit();
 extern thread_t MAINtid;
 int SHGid;             // id needed for Search History Graph uim dag calls
 
@@ -97,7 +99,6 @@ void PCmain(int arg)
 	met = dataMgr->findMetric(context, mets.data[i]);
 	PCmetricFunc(pcStream, met);
     }
-    shgInit();
 
     while (1) {
 	tag = MSG_TAG_ANY;
