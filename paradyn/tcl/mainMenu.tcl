@@ -41,7 +41,7 @@
 
 #
 # main tool bar
-# $Id: mainMenu.tcl,v 1.70 2004/03/23 19:12:11 eli Exp $
+# $Id: mainMenu.tcl,v 1.71 2005/01/11 22:45:13 legendre Exp $
 #
 
 ## changeApplicState
@@ -116,10 +116,10 @@ proc buildMainWindow {} {
     option add Paradyn*status.Font {Courier 9 roman} widgetDefault
     option add Paradyn*procstatus.Font {Courier 9 roman} widgetDefault
 
-    option add Paradyn*listRootItemFont {Helvetica 10 bold roman} widgetDefault
-    option add Paradyn*listRootItemEmphFont {Helvetica 10 bold italic} widgetDefault
-    option add Paradyn*listItemFont {Helvetica 10 bold roman} widgetDefault
-    option add Paradyn*listItemEmphFont {Helvetica 10 bold italic} widgetDefault
+    option add Paradyn*listRootItemFont {Helvetica 12 bold roman} widgetDefault
+    option add Paradyn*listRootItemEmphFont {Helvetica 12 bold italic} widgetDefault
+    option add Paradyn*listItemFont {Helvetica 12 bold roman} widgetDefault
+    option add Paradyn*listItemEmphFont {Helvetica 12 bold italic} widgetDefault
 
     # the Paradyn main window can be resized horizontally but not vertically:
 ####    wm resizable . 1 0
