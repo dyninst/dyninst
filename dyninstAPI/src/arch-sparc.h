@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.18  1997/05/20 15:46:15  zhichen
+ * Added WRYop3 & RDYop3 for correctly handle DIVop3
+ *
  * Revision 1.17  1997/03/14 15:58:36  lzheng
  * Dealing with complier optimization related to the return value
  *
@@ -192,6 +195,8 @@ typedef union instructUnion instruction;
 #define SUBop3cc	SetCC|SUBop3
 #define SMULop3		11
 #define SDIVop3		15
+#define WRYop3          48      //SDIV needs to set Y register to 0
+#define RDYop3          40
 #define XNORop3		SetCC|7
 #define SAVEop3		60
 #define RESTOREop3	61
