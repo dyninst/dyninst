@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.70 2005/03/07 20:26:44 jaw Exp $
+// $Id: BPatch_image.C,v 1.71 2005/03/22 05:56:51 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -331,7 +331,6 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   } /* end iteration over function map */
   return modlist;
 } /* end getModules() */
-
 
 /*
  * BPatch_image::findModule
@@ -999,7 +998,6 @@ bool BPatch_image::getLineToAddrInt(const char* fileName,unsigned short lineNo,
 	return true;
 }
 
-
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
   const char *imname =  proc->getImage()->name().c_str();
@@ -1009,7 +1007,6 @@ char *BPatch_image::getProgramNameInt(char *name, unsigned int len)
   return name;
 }
 
-  
 char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
 {
   const char *imname =  proc->getImage()->file().c_str();
@@ -1024,13 +1021,8 @@ char *BPatch_image::programNameInt(char *name, unsigned int len) {
     return getProgramName(name, len);
 }
 
-
-
 int  BPatch_image::lpTypeInt() 
 {
     return 0;
 };
 #endif
-
-
-

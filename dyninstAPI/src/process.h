@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.321 2005/03/20 19:24:36 chadd Exp $
+/* $Id: process.h,v 1.322 2005/03/22 05:56:46 rchen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1046,11 +1046,10 @@ char * systemPrelinkCommand;
   bool nextTrapIsFork;
   bool nextTrapIsExec;
 
-  // For platforms where we can't get the path string from the PID
-  // Argument given to exec
-  pdstring execPathArg;
-  // Full path info
-  pdstring execFilePath;
+  // For handleExecExit on platforms where we can't get the
+  // path string from the PID
+  pdstring execPathArg;		// Argument given to exec
+  pdstring execFilePath;	// Full path info
   
   //  wasExeced: returns true is the process did an exec...this is set
   //  in handleExec()
