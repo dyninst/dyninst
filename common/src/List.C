@@ -41,6 +41,8 @@
 
 // $Id: list.C,v
 #if (!defined (__XLC__) && !defined(__xlC__)) || defined (LIST_C_IS_HEADER)
+#ifndef LIST_C
+#define LIST_C
 #include <iostream>
 #include "common/h/List.h"
 
@@ -175,4 +177,5 @@ bool ListBase<DataType, KeyType>::__find_with_val(const DataType &dataVal)
    return false;
 }
 
+#endif
 #endif
