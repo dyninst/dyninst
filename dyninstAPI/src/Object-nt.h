@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.28 2005/02/24 23:24:14 lharris Exp $
+ * $Id: Object-nt.h,v 1.29 2005/03/15 23:19:24 tlmiller Exp $
 ************************************************************************/
 
 
@@ -152,7 +152,7 @@ public:
 
 		void	SetSize( DWORD cb )					{ size = cb; }
 
-        void DefineSymbol( dictionary_hash<pdstring,::Symbol>& syms,
+        void DefineSymbol( dictionary_hash<pdstring, pdvector< ::Symbol > >& syms,
                             const pdstring& modName ) const;
 	};
 
@@ -172,7 +172,7 @@ public:
 			syms.push_back( pSym );
 		}
 
-      void DefineSymbols( dictionary_hash<pdstring,::Symbol>& syms,
+      void DefineSymbols( dictionary_hash<pdstring, pdvector< ::Symbol > >& syms,
                           const pdstring& modName ) const;
       pdstring GetName( void ) const		{ return name; }
 		const pdvector<Symbol*>& GetSymbols( void )	const		{ return syms; }
@@ -202,7 +202,7 @@ public:
 		void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
         void DefineSymbols( const Object* obj,
-                            dictionary_hash<pdstring,::Symbol>& syms ) const;
+                            dictionary_hash<pdstring, pdvector< ::Symbol> > & syms ) const;
 		void BuildSymbolMap( const Object* obj ) const; 
 
       pdstring GetName( void ) const            { return name; }
