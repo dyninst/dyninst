@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.130 2003/05/12 21:29:01 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.131 2003/06/07 12:27:20 pcroth Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3267,7 +3267,7 @@ bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
     }
   }
 
-#endif BPATCH_LIBRARY
+#endif // BPATCH_LIBRARY
   return true;
 }
 
