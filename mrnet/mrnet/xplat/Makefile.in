@@ -2,7 +2,7 @@
 # * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
 # *                  Detailed MRNet usage rights in "LICENSE" file.          *
 # ****************************************************************************/
-# $Id: Makefile.in,v 1.11 2005/04/04 03:55:49 darnold Exp $
+# $Id: Makefile.in,v 1.12 2005/04/05 02:55:42 darnold Exp $
 @SET_MAKE@
 
 AR      = @AR@
@@ -65,9 +65,9 @@ install: $(TARGET)
 	if [ ! -x `echo $(INSTALL) | sed 's/ .*$$//'` ] ; then \
 	    chmod +x `echo $(INSTALL) | sed 's/ .*$$//'` ; \
 	fi
-	$(INSTALL) -m 555 $(TARGET) $(libdir)/
+	$(INSTALL) -p -m 555 $(TARGET) $(libdir)/
 	for hdr in @srcdir@/include/xplat/*.h ; do \
-	    $(INSTALL) -m 444 $$hdr $(includedir)/xplat/ ; \
+	    $(INSTALL) -p -m 444 $$hdr $(includedir)/xplat/ ; \
 	done
 
 clean:

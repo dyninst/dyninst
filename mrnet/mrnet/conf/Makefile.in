@@ -166,12 +166,12 @@ install-local: all
 	    chmod +x `echo $(INSTALL) | sed 's/ .*$$//'` ; \
 	fi
 	@echo Installing binaries
-	$(INSTALL) -m 555 $(COMMNODE) $(IBINDIR)/
+	$(INSTALL) -p -m 555 $(COMMNODE) $(IBINDIR)/
 	@echo Installing libraries
-	$(INSTALL) -m 555 $(LIBMRNET) $(ILIBDIR)/
+	$(INSTALL) -p -m 555 $(LIBMRNET) $(ILIBDIR)/
 	@echo Installing headers
 	for hdr in @srcdir@/h/mrnet/*.h ; do \
-	    $(INSTALL) -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
+	    $(INSTALL) -p -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
 	done
 
 
