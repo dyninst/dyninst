@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.101 2001/03/09 15:58:52 bernat Exp $
+ * $Id: inst-power.C,v 1.102 2001/03/09 19:52:18 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -124,6 +124,8 @@ inline void genImmInsn(instruction *insn, int op, Register rt, Register ra, int 
   // or 0xffff (negative signed)
   // This is because we don't enforce calling us with LOW(immd), and
   // signed ints come in with 0xffff set. C'est la vie.
+  // TODO: This should be a check that the high 16 bits are equal to bit 15,
+  // really.
   assert (((immd & 0xffff0000) == (0xffff0000)) ||
 	  ((immd & 0xffff0000) == (0x00000000)));
 
@@ -187,7 +189,7 @@ inline void genSimpleInsn(instruction *insn, int op,
       xop=ORxop;
     } else {
       // only AND and OR are currently designed to use genSimpleInsn
-      abort();
+      assert(0);
     }
     insn->xform.xo = xop;
     base += sizeof(instruction);
@@ -432,7 +434,7 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
       newOffset = origAddr  - targetAddr + (insn->iform.li << 2);
       if (ABS(newOffset) >= MAX_BRANCH) {
 	logLine("a branch too far\n");
-	abort();
+	assert(0);
       } else {
 	insn->iform.li = newOffset >> 2;
       }
@@ -477,7 +479,7 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
       }
     } else if (insn->iform.op == SVCop) {
       logLine("attempt to relocate a system call\n");
-      abort();
+      assert(0);
     } 
     /* The rest of the instructions should be fine as is */
 }
@@ -491,7 +493,7 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
       newOffset = origAddr  - targetAddr + (insn->iform.li << 2);
       if (ABS(newOffset) > MAX_BRANCH) {
 	logLine("a branch too far\n");
-	abort();
+	assert(0);
       } else {
 	insn->iform.li = newOffset >> 2;
       }
@@ -500,13 +502,13 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
       newOffset = origAddr - targetAddr + (insn->bform.bd << 2);
       if (ABS(newOffset) > MAX_CBRANCH) {
 	logLine("a branch too far\n");
-	abort();
+	assert(0);
       } else {
 	insn->bform.bd = newOffset >> 2;
       }
     } else if (insn->iform.op == SVCop) {
       logLine("attempt to relocate a system call\n");
-      abort();
+      assert(0);
     } 
     /* The rest of the instructions should be fine as is */
 }
@@ -2222,7 +2224,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	return(base - 2*sizeof(instruction));
       }
     default:
-        abort();        // unexpected op for this emit!
+        assert(0);        // unexpected op for this emit!
   }
 }
 
@@ -2277,7 +2279,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       }
     }
     default:
-        abort();        // unexpected op for this emit!
+        assert(0);        // unexpected op for this emit!
   }
 }
 
@@ -2291,15 +2293,21 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	unsigned int top_half = ((constValue & 0xffff0000) >> 16);
 	unsigned int bottom_half = (constValue & 0x0000ffff);
 	assert (constValue == ((top_half << 16) + bottom_half));
-	// really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
-	// This used to optimize for cases where there was no top half,
-	// but it was causing strange bugs. Hrm...
-	genImmInsn(insn, CAUop, dest, 0, top_half);
-	insn++;
-	base += sizeof(instruction);
-	// ori dest,dest,LOW(src1)
-	genImmInsn(insn, ORILop, dest, dest, bottom_half);
-	base += sizeof(instruction);
+	// AIX sign-extends. So if top_half is 0, and the top bit of
+	// bottom_half is 0, then we can use a single instruction. Otherwise
+	// do it the hard way.
+	if (!top_half && !(bottom_half & 0x8000)) {
+	  // single instruction (CALop)
+	  genImmInsn(insn, CALop, dest, 0, bottom_half);
+	  base += sizeof(instruction);
+	}
+	else {
+	  genImmInsn(insn, CAUop, dest, 0, top_half);
+	  insn++;
+	  // ori dest,dest,LOW(src1)
+	  genImmInsn(insn, ORILop, dest, dest, bottom_half);
+	  base += 2*sizeof(instruction);
+	}
     } else if (op ==  loadOp) {
 	int high;
 
@@ -2326,7 +2334,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	int offset = (int) src1;
 
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-	    abort();
+	    assert(0);
 	} else {
 	    genImmInsn(insn, Lop, dest, REG_SP, offset);
 	    insn++;
@@ -2337,14 +2345,14 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	int offset = (int) src1;
 
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-	    abort();
+	  assert(0);
 	} else {
 	    genImmInsn(insn, CALop, dest, REG_SP, offset);
 	    insn++;
 	    base += sizeof(instruction);
 	}
     } else {
-        abort();       // unexpected op for this emit!
+      assert(0);
     }
 }
 
@@ -2398,14 +2406,14 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	// offsets are signed!
 	int offset = (int) dest;
 	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-	    abort();
+	  assert(0);
 	} else {
 	    genImmInsn(insn, STop, src1, REG_SP, offset);
 	    base += sizeof(instruction);
 	    insn++;
 	}
     } else {
-        abort();       // unexpected op for this emit!
+        assert(0);       // unexpected op for this emit!
     }
 }
 
@@ -2488,7 +2496,7 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
 	   regSpace->freeRegister(obsCostAddr);
        } // if !noCost
     } else {
-        abort();       // unexpected op for this emit!
+        assert(0);       // unexpected op for this emit!
     }
 }
 
@@ -2625,7 +2633,6 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 fprintf(stderr, "Invalid op passed to emit, instOp = %d\n", 
                         instOp);
                 assert(0 && "Invalid op passed to emit");
-                abort();
                 break;
         }
         assert((instOp != -1) && (instXop != -1));
@@ -3155,14 +3162,14 @@ bool completeTheFork(process *parentProc, int childpid) {
 	    this_time_len = max_read;
 
 	 if (!parentProc->readDataSpace((const void*)addr, this_time_len, buffer, true))
-	    assert(false);
+	    assert(0);
 
 	 // now write "this_time_len" bytes from "buffer" into the inferior process,
 	 // starting at "addr".
 	 // Will this have problems with the 1024-byte-at-a-time limit?
 	 if (-1 == ptrace(PT_WRITE_BLOCK, childpid, (int*)addr, this_time_len,
 			  (int*)buffer))
-	    assert(false);
+	    assert(0);
 
 	 start_addr += this_time_len;
       }
@@ -3240,12 +3247,12 @@ bool completeTheFork(process *parentProc, int childpid) {
 	if (data == -1 && errno != 0) {
 	  fprintf(stderr, "Error in fork handler, parent proc %d, reading instr at %x\n", parentProc->getPid(), addr);
 	  perror("fork handler");
-	  assert(false);
+	  assert(0);
 	}
       errno = 0;
       if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
 	  errno != 0)
-	 assert(false);
+	 assert(0);
       }
    }
    return true;

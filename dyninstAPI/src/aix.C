@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.77 2001/03/08 23:00:48 bernat Exp $
+// $Id: aix.C,v 1.78 2001/03/09 19:52:18 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1534,8 +1534,6 @@ bool handleAIXsigTraps(int pid, int status) {
 	// parent process.  Stay stopped until the child process has completed
 	// calling "completeTheFork()".
 	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " << pid << endl;
-	fprintf(stderr, "Fork on parent process, pid %d\n",
-		curr->getPid());
 	curr->status_ = stopped;
 
 	seenForkTrapForParent = true;
@@ -1571,7 +1569,6 @@ bool handleAIXsigTraps(int pid, int status) {
 	   process_whenBothForkTrapsReceived();
 	}
 
-	fprintf(stderr, "fork completed, child pid %d\n", pid);
         return true;
       } // child process
     } //  W_SFWTED (stopped-on-fork)
