@@ -1,6 +1,6 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
-UNCOMMON_INSTALL = true
+#UNCOMMON_INSTALL = true
 
 NO_IMPLICIT_TEMPLATES = true
 
