@@ -2,7 +2,10 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
- * Revision 1.2  1995/01/26 17:58:06  jcargill
+ * Revision 1.3  1995/02/16 08:09:22  markc
+ * Made char* args const char*
+ *
+ * Revision 1.2  1995/01/26  17:58:06  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -36,7 +39,7 @@ void abstraction::print()
     printf("%s ", (char *) name);
 }
 
-abstraction *AMfind(char *aname) 
+abstraction *AMfind(const char *aname) 
 {
   abstraction *ret = NULL;
   stringHandle aName;
@@ -47,7 +50,8 @@ abstraction *AMfind(char *aname)
   return ret;
 }
 
-void AMnewMapping(char *abstr, char *type, char *key, char *value) 
+void AMnewMapping(const char *abstr, const char *type, const char *key,
+		  const char *value) 
 {
   abstraction *a;
 
@@ -62,7 +66,7 @@ void AMnewMapping(char *abstr, char *type, char *key, char *value)
 /*
  *  AMnewResource -- new resource 
  */
-void AMnewResource(char *parent, char *name, char *abstr)
+void AMnewResource(const char *parent, const char *name, const char *abstr)
 {
   abstraction *a;
 

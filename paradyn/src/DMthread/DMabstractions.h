@@ -1,7 +1,10 @@
 /*
  * Classes and prototypes for Abstraction specific code
  * $Log: DMabstractions.h,v $
- * Revision 1.2  1994/10/25 19:01:37  karavan
+ * Revision 1.3  1995/02/16 08:09:24  markc
+ * Made char* args const char*
+ *
+ * Revision 1.2  1994/10/25  19:01:37  karavan
  * Protected this header file
  *
  * Revision 1.1  1994/09/30  19:17:42  rbi
@@ -13,7 +16,7 @@
 #define _abstract_h
 
 class abstraction {
-    friend abstraction *AMfind(char *aname);
+    friend abstraction *AMfind(const char *aname);
   public:
     stringHandle getName() { return (name); }
     void print();
@@ -27,7 +30,8 @@ class abstraction {
 
 abstraction *AMfind(char *aname);
 
-void AMnewMapping(char *abstraction, char *type, char *key, char *value);
-void AMnewResource(char *parent, char *name, char *abstraction);
+void AMnewMapping(const char *abstraction, const char *type,
+		  const char *key, const char *value);
+void AMnewResource(const char *parent, const char *name, const char *abstraction);
 
 #endif
