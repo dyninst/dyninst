@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.11 2002/06/06 18:25:18 gaburici Exp $
+// $Id: arch-x86.h,v 1.12 2002/08/04 17:29:52 gaburici Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -64,6 +64,8 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define byteSzB (1)    /* size of a byte operand */
 #define wordSzB (2)    /* size of a word operand */
 #define dwordSzB (4)   /* size of a dword operand */
+#define qwordSzB (8)   /* size of a qword operand */
+#define dqwordSzB (16)   /* size of a double qword (oword) operand */
 
 /* The following values are or'ed together to form an instruction type descriptor */
 /* the instruction types of interest */

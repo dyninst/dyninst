@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.50 2002/06/28 17:36:19 schendel Exp $
+// $Id: inst-alpha.C,v 1.51 2002/08/04 17:29:52 gaburici Exp $
 
 #include "common/h/headers.h"
 
@@ -1327,6 +1327,12 @@ void emitASload(BPatch_addrSpec_NP /*as*/, Register /*dest*/,
 		char* /*baseInsn*/, Address &/*base*/, bool /*noCost*/)
 {
   // TODO ...
+}
+
+void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  emitASload(as, dest, baseInsn, base, noCost);
 }
 #endif
 

@@ -1,4 +1,4 @@
-// $Id: arch-ia32.h,v 1.4 2002/06/17 17:04:04 gaburici Exp $
+// $Id: arch-ia32.h,v 1.5 2002/08/04 17:29:52 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
 #if !(defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0))
@@ -45,13 +45,79 @@ class ia32_prefixes
   unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
 };
 
+//VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
+//             define this IA-32 "specific" class to encapsulate the same info - yuck
+
+struct ia32_memacc
+{
+  bool is;
+  bool read;
+  bool write;
+  bool nt;     // non-temporal, e.g. movnt...
+  bool prefetch;
+
+  bool addr32; // true if 32-bit addressing, false otherwise
+  int imm;
+  int scale;
+  int regs[2]; // register encodings (in ISA order): 0-7
+               // (E)AX, (E)CX, (E)DX, (E)BX
+               // (E)SP, (E)BP, (E)SI, (E)DI
+
+  int size;
+  int sizehack;  // register (E)CX or string based
+  int prftchlvl; // prefetch level
+  int prftchstt; // prefetch state (AMD)
+
+  ia32_memacc() : is(false), read(false), write(false), nt(false), 
+       prefetch(false), addr32(true), imm(0), scale(0), size(0), sizehack(0),
+       prftchlvl(0), prftchstt(0)
+  {
+    regs[0] = -1;
+    regs[1] = -1;
+  }
+
+  void set16(int reg0, int reg1, int disp)
+  { 
+    is = true;
+    addr32  = false; 
+    regs[0] = reg0; 
+    regs[1] = reg1; 
+    imm     = disp;
+  }
+
+  void set32(int reg, int disp)
+  { 
+    is = true;
+    regs[0] = reg; 
+    imm     = disp;
+  }
+
+  void set32sib(int base, int scal, int indx, int disp)
+  {
+    is = true;
+    regs[0] = base;
+    regs[1] = indx;
+    scale   = scal;
+    imm     = disp;
+  }
+
+  void setXY(int reg, int _size, int _addr32)
+  {
+    is = true;
+    regs[0] = reg;
+    size = _size;
+    addr32 = _addr32;
+  }
+};
+
 
 ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
 
 
 struct ia32_entry;
 
-class ia32_instruction {
+class ia32_instruction
+{
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const char* addr, ia32_instruction& instruct);
 #if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
@@ -62,17 +128,29 @@ class ia32_instruction {
     friend ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instruct);
 #endif
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
-                                     const unsigned char* addr, ia32_instruction& instruct);
+                                            const unsigned char* addr, ia32_instruction& instruct,
+                                            ia32_memacc *mac = NULL);
   friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
                                           ia32_instruction& instruct);
   friend unsigned int ia32_emulate_old_type(ia32_instruction& instruct);
+  friend ia32_instruction& ia32_decode_FP(unsigned int opcode, 
+                                          const ia32_prefixes& pref,
+                                          const unsigned char* addr, 
+                                          ia32_instruction& instruct,
+                                          ia32_memacc *mac = NULL);
+
   unsigned int size;
   ia32_prefixes prf;
+  ia32_memacc  *mac;
   unsigned int legacy_type;
 
  public:
+
+  ia32_instruction(ia32_memacc* _mac = NULL) : mac(_mac) {}
+
   unsigned int getSize() const { return size; }
   unsigned int getLegacyType() const { return legacy_type; }
+  const ia32_memacc& getMac(int which) const { return mac[which]; }
 
 };
 
@@ -87,7 +165,7 @@ class ia32_instruction {
 #define IA32_DECODE_MNEMONICS	(1<<1)
 #define IA32_DECODE_OPERANDS	(1<<2)
 #define IA32_DECODE_JMPS	(1<<3)
-#define IA32_DECODE_MOVS	(1<<4)
+#define IA32_DECODE_MEMACCESS	(1<<4)
 #define IA32_DECODE_CONDITIONS	(1<<5)
 
 #define IA32_FULL_DECODER 0xffffffffffffffffu

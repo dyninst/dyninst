@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.27 2002/05/13 19:51:35 mjbrim Exp $
+// $Id: BPatch_function.C,v 1.28 2002/08/04 17:29:50 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -410,10 +410,11 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     //inst = ii.getInstruction();
     Address addr = *ii;     // XXX this gives the address *stored* by ii...
 
-    BPatch_memoryAccess ma = ii.isLoadOrStore();
-
-    //fprintf(stderr, "?????: %x\n", addr);
+    BPatch_memoryAccess* ma = ii.isLoadOrStore();
     ii++;
+    
+    if(!ma)
+      continue;
 
     //BPatch_addrSpec_NP start = ma.getStartAddr();
     //BPatch_countSpec_NP count = ma.getByteCount();
@@ -424,48 +425,40 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     //short int fcn = ma.prefetchType();
     bool skip = false;
 
-    if(findLoads && ma.isALoad()) {
+    if(findLoads && ma->hasALoad()) {
       //fprintf(stderr, "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
-      // XXX this leaks...
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr,
-                                           new BPatch_memoryAccess(ma));
+      BPatch_point* p = createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new BPatch_memoryAccess(ma));
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
       if(p)
         result->push_back(p);
       skip = true;
     }
 
-    if(findStores && !skip && ma.isAStore()) {
+    if(findStores && !skip && ma->hasAStore()) {
       //fprintf(stderr, "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
-      // XXX this leaks...
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr,
-                                           new BPatch_memoryAccess(ma));
+      BPatch_point* p = createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new BPatch_memoryAccess(ma));
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
       if(p)
         result->push_back(p);
       skip = true;
     }
 
-    if(findPrefetch && !skip && ma.isAPrefetch()) {
+    if(findPrefetch && !skip && ma->hasAPrefetch()) {
       //fprintf(stderr, "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
 #ifdef rs6000_ibm_aix4_1
-      BPatch_point* p = createMemInstPoint((void *)addr,
-                                           new BPatch_memoryAccess(ma));
+      BPatch_point* p = createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
-						    new BPatch_memoryAccess(ma));
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
 #endif
       if(p)
         result->push_back(p);

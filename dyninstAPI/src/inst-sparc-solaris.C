@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.109 2002/06/26 21:14:45 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.110 2002/08/04 17:29:52 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1591,6 +1591,12 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
   // get the value of ra from stack into it
   if(rb > -1)
     emitAddOriginal(rb, dest, baseInsn, base, noCost);
+}
+
+void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  emitASload(as, dest, baseInsn, base, noCost);
 }
 #endif
 

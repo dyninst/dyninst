@@ -96,11 +96,11 @@ bool InstrucIter::isAnneal(){
   return true;
 }
 
-#define MK_LD1(bytes, imm, ra) (BPatch_memoryAccess(true, false, (bytes), (imm), (ra), -1))
-#define MK_SD1(bytes, imm, ra) (BPatch_memoryAccess(false, true, (bytes), (imm), (ra), -1))
+#define MK_LD1(bytes, imm, ra) (new BPatch_memoryAccess(true, false, (bytes), (imm), (ra), -1))
+#define MK_SD1(bytes, imm, ra) (new BPatch_memoryAccess(false, true, (bytes), (imm), (ra), -1))
 
-#define MK_LX1(bytes, ra, rb) (BPatch_memoryAccess(true, false, (bytes), 0, (ra), (rb)))
-#define MK_SX1(bytes, ra, rb) (BPatch_memoryAccess(false, true, (bytes), 0, (ra), (rb)))
+#define MK_LX1(bytes, ra, rb) (new BPatch_memoryAccess(true, false, (bytes), 0, (ra), (rb)))
+#define MK_SX1(bytes, ra, rb) (new BPatch_memoryAccess(false, true, (bytes), 0, (ra), (rb)))
 
 #define MK_LD(bytes, i) (MK_LD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
 #define MK_SD(bytes, i) (MK_SD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
@@ -196,7 +196,7 @@ void initOpCodeInfo()
 #define logIS_A(x) 
 //#define logIS_A(x) logLine((x))
 
-BPatch_memoryAccess InstrucIter::isLoadOrStore()
+BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
   const instruction i = getInstruction();
 
@@ -271,9 +271,9 @@ BPatch_memoryAccess InstrucIter::isLoadOrStore()
       return oci->direc ? MK_SI(b, i) : MK_LI(b, i);
     }
     else if(xop == LSXxop || xop == STSXxop) {
-      return BPatch_memoryAccess(oci->direc == 0, oci->direc == 1,
-			   0, i.xform.ra, i.xform.rb,
-			   0, 9999, -1); // FIXME map this 9999 to XER_25:31
+      return new BPatch_memoryAccess(oci->direc == 0, oci->direc == 1,
+                                     0, i.xform.ra, i.xform.rb,
+                                     0, 9999, -1); // 9999 == XER_25:31
     }
   }
   return BPatch_memoryAccess::none;

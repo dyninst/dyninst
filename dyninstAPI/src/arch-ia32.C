@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.5 2002/06/17 17:04:04 gaburici Exp $
+// $Id: arch-ia32.C,v 1.6 2002/08/04 17:29:52 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -15,13 +15,10 @@ enum {
   t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
 };
 
-#define oneB t_done, 0
-#define twoB t_done, 0
-
 // groups
 enum {
-  Grp1=0, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7, Grp8, Grp9,
-  Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, GrpAMD
+  Grp1a=0, Grp1b, Grp1c, Grp1d, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
+  Grp8, Grp9, Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, GrpAMD
 };
 
 // SSE
@@ -51,22 +48,36 @@ enum {
 };
 
 // addressing methods (see appendix A-2)
-enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O,
-       am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg };
+// I've added am_reg (for registers implicitely encoded in instruciton), 
+// and am_stackX for stack operands [this kinda' messy since there are actually two operands:
+// the stack byte/word/dword and the (E)SP register itself - but is better than naught]
+// added: am_reg, am_stack, am_allgprs
+enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
+       am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
+       am_stackH, am_stackP, am_allgprs }; // pusH and poP produce different addresses
 
-// operand types (idem, but I invented lea for consistency; op_ didn't seem a good idea)
-// beware that not all operand types in the tables are explained!!! Guess what they mean...
+// operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, 
-       op_q, op_s,  op_sd, op_ss, op_si, op_v, op_w, op_lea };
+       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_lea, op_allgprs, op_512 };
 
 // registers [only fancy names, not used right now]
-enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, 
-       r_DX,
+enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
+       r_AX, r_DX,
        r_eAX, r_eBX, r_eCX, r_eDX,
        r_EAX, r_EBX, r_ECX, r_EDX,
-       r_DS, r_ES, r_FS, r_GS, r_SS,
+       r_CS, r_DS, r_ES, r_FS, r_GS, r_SS,
        r_eSP, r_eBP, r_eSI, r_eDI,
-       r_ESP, r_EBP, r_ESI, r_EDI };
+       r_ESP, r_EBP, r_ESI, r_EDI,
+       r_EDXEAX, r_ECXEBX };
+// last two are hacks for cmpxch8b which would have 5 operands otherwise!!!
+
+// registers used for memory access
+enum { mEAX=0, mECX, mEDX, mEBX,
+       mESP, mEBP, mESI, mEDI };
+
+enum { mAX=0, mCX, mDX, mBX,
+       mSP, mBP, mSI, mDI };
+
 
 #define Zz   { 0, 0 }
 #define Ap   { am_A, op_p }
@@ -88,10 +99,13 @@ enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
 #define Jb   { am_J, op_b }
 #define Jv   { am_J, op_v }
 #define Ma   { am_M, op_a }
+#define Mb   { am_M, op_b }
 #define Mlea { am_M, op_lea }
 #define Mp   { am_M, op_p }
 #define Ms   { am_M, op_s }
+#define Md   { am_M, op_d }
 #define Mq   { am_M, op_q }
+#define M512 { am_M, op_512 }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
 #define Pd   { am_P, op_d }
@@ -122,14 +136,35 @@ enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
 #define Xv   { am_X, op_v }
 #define Yb   { am_Y, op_b }
 #define Yv   { am_Y, op_v }
+#define STHb { am_stackH, op_b }
+#define STPb { am_stackP, op_b }
+#define STHv { am_stackH, op_v }
+#define STPv { am_stackP, op_v }
+#define STHw { am_stackH, op_w }
+#define STPw { am_stackP, op_w }
+#define STHd { am_stackH, op_d }
+#define STPd { am_stackP, op_d }
+#define STHa { am_stackH, op_allgprs }
+#define STPa { am_stackP, op_allgprs }
+
+#define STKb { am_stack, op_b }
+#define STKv { am_stack, op_v }
+#define STKw { am_stack, op_w }
+#define STKd { am_stack, op_d }
+#define STKa { am_stack, op_allgprs }
+
+
+#define GPRS { am_allgprs, op_allgprs }
 
 #define AH  { am_reg, r_AH }
+#define AX  { am_reg, r_AX }
 #define BH  { am_reg, r_BH }
 #define CH  { am_reg, r_CH }
 #define DH  { am_reg, r_DH }
 #define AL  { am_reg, r_AL }
 #define BL  { am_reg, r_BL }
 #define CL  { am_reg, r_CL }
+#define CS  { am_reg, r_CS }
 #define DL  { am_reg, r_DL }
 #define DX  { am_reg, r_DX }
 #define eAX { am_reg, r_eAX }
@@ -153,12 +188,74 @@ enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
 #define EBP { am_reg, r_EBP }
 #define ESI { am_reg, r_ESI }
 #define EDI { am_reg, r_EDI }
+#define ECXEBX { am_reg, r_ECXEBX }
+#define EDXEAX { am_reg, r_EDXEAX }
 
 
-struct ia32_operand {
+// operand semantic - these make explicit all the implicit stuff in the Intel tables
+// they are needed for memory access, but may be useful for other things: dataflow etc.
+// Instructions that do not deal with memory are not tested, so caveat emptor...
+// Also note that the stack is never specified as an operand in Intel tables, so it
+// has to be dealt with here.
+
+enum { sNONE=0, // the instruction does something that cannot be classified as read/write (by me)
+       s1R,     // reads one operand, e.g. jumps
+       s1W,     // e.g. lea
+       s1RW,    // one operand read and written, e.g. inc
+       s1R2R,   // reads two operands, e.g. cmp
+       s1W2R,   // second operand read, first operand written (e.g. mov)
+       s1RW2R,  // two operands read, first written (e.g. add)
+       s1RW2RW, // e.g. xchg
+       s1W2R3R, // e.g. imul
+       s1W2W3R, // e.g. les
+       s1W2RW3R, // some mul
+       s1W2R3RW, // (stack) push & pop
+       s1RW2R3R, // shld/shrd
+       s1RW2RW3R, // [i]div, cmpxch8b
+}; // should be no more than 2^16 otherwise adjust FPOS below
+
+#define FPOS 16
+
+enum {
+  fNT=1,   // non-temporal
+  fPREFETCHNT,
+  fPREFETCHT0,
+  fPREFETCHT1,
+  fPREFETCHT2,
+  fPREFETCHAMDE,
+  fPREFETCHAMDW,
+  fCALL,
+  fNEARRET,
+  fFARRET,
+  fIRET,
+  fENTER,
+  fLEAVE,
+  fXLAT,
+  fIO,
+  fSEGDESC,
+  fCOND,
+  fCMPXCH,
+  fCMPXCH8,
+  fINDIRCALL,
+  fINDIRJUMP,
+  fFXSAVE,
+  fFXRSTOR,
+  fCLFLUSH
+};
+
+struct ia32_operand {  // operand as given in Intel book tables
   unsigned int admet;  // addressing method
   unsigned int optype; // operand type;
 };
+
+
+// struct ia32_opr_xtra { // additional info extracted page by page from vol 2.
+//   bool read;
+//   bool write;
+//   bool prefetch;
+//   unsigned int hack;
+// };
+
 
 // An instruction table entry
 struct ia32_entry {
@@ -167,721 +264,768 @@ struct ia32_entry {
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
   bool hasModRM;             // true if the instruction has a MOD/RM byte
   ia32_operand operands[3];  // operand descriptors
-  unsigned legacyType;       // legacy type of the instruction (e.g. (IS_CALL | REL_W))
+  unsigned int legacyType;   // legacy type of the instruction (e.g. (IS_CALL | REL_W))
+  // code to decode memory access - this field should be seen as two 16 bit fields
+  // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
+  // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
+  unsigned int opsema;  
 };
+
+// Modded table entry for push/pop, daa, das, aaa, aas, insb/w/d, outsb/w/d, xchg, cbw
+// les, lds, aam, aad, loop(z/nz), cmpxch, lss, mul, imul, div, idiv, cmpxch8, [ld/st]mxcsr
+// clflush, prefetch*
 
 
 // oneByteMap: one byte opcode map
 static ia32_entry oneByteMap[256] = {
   /* 00 */
-  { "add",  t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "add",  t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "add",  t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "add",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "add",  t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "add",  t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "push", t_done, 0, false, { ES, Zz, Zz }, 0 },
-  { "pop",  t_done, 0, false, { ES, Zz, Zz }, 0 },
+  { "add",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "push", t_done, 0, false, { STHw, ES, eSP }, 0, s1W2R3RW },
+  { "pop",  t_done, 0, false, { ES, STPw, eSP }, 0, s1W2R3RW },
   /* 08 */
-  { "or",   t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "or",   t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "or",   t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "or",   t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "or",   t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "or",   t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "push", t_done, 0, false, { ES, Zz, Zz }, 0 },
-  { 0,      t_twoB, 0, false, { Zz, Zz, Zz }, 0 },
+  { "or",   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "push", t_done, 0, false, { STHw, CS, eSP }, 0, s1W2R3RW },
+  { 0,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
-  { "adc",  t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "adc",  t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "adc",  t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "adc",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "adc",  t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "adc",  t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "push", t_done, 0, false, { SS, Zz, Zz }, 0 },
-  { "pop",  t_done, 0, false, { SS, Zz, Zz }, 0 },
+  { "adc",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "push", t_done, 0, false, { STHw, SS, eSP }, 0, s1W2R3RW },
+  { "pop",  t_done, 0, false, { SS, STPw, eSP }, 0, s1W2R3RW },
   /* 18 */
-  { "sbb",  t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "sbb",  t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "sbb",  t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "sbb",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "sbb",  t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "sbb",  t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "push", t_done, 0, false, { DS, Zz, Zz }, 0 },
-  { "pop" , t_done, 0, false, { DS, Zz, Zz }, 0 },
+  { "sbb",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "push", t_done, 0, false, { STHw, DS, eSP }, 0, s1W2R3RW },
+  { "pop" , t_done, 0, false, { DS, STPw, eSP }, 0, s1W2R3RW },
   /* 20 */
-  { "and", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "and", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "and", t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "and", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "and", t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "and", t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { "daa", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "and", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { "daa", t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 28 */
-  { "sub", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "sub", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "sub", t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "sub", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "sub", t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "sub", t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { "das" , t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "sub", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { "das" , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 30 */
-  { "xor", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "xor", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "xor", t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "xor", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "xor", t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "xor", t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { "aaa", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "xor", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { "aaa", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
   /* 38 */
-  { "cmp", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "cmp", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "cmp", t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "cmp", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmp", t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "cmp", t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { 0,     t_ill,  0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { "aas", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "cmp", t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, true, { Gb, Eb, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, true, { Gv, Ev, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, false, { eAX, Iv, Zz }, 0, s1R2R },
+  { 0,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { "aas", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 40 */
-  { "inc", t_done, 0, false, { eAX, Zz, Zz }, 0 }, 
-  { "inc", t_done, 0, false, { eCX, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eDX, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eBX, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eSP, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eBP, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eSI, Zz, Zz }, 0 },
-  { "inc", t_done, 0, false, { eDI, Zz, Zz }, 0 },
+  { "inc", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
+  { "inc", t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 48 */
-  { "dec", t_done, 0, false, { eAX, Zz, Zz }, 0 }, 
-  { "dec", t_done, 0, false, { eCX, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eDX, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eBX, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eSP, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eBP, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eSI, Zz, Zz }, 0 },
-  { "dec", t_done, 0, false, { eDI, Zz, Zz }, 0 },
+  { "dec", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 50 */
-  { "push", t_done, 0, false, { eAX, Zz, Zz }, 0 }, 
-  { "push", t_done, 0, false, { eCX, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eDX, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eBX, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eSP, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eBP, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eSI, Zz, Zz }, 0 },
-  { "push", t_done, 0, false, { eDI, Zz, Zz }, 0 },
+  { "push", t_done, 0, false, { STHv, eAX, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eCX, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eDX, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eBX, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eSP, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eBP, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eSI, eSP }, 0, s1W2R3RW },
+  { "push", t_done, 0, false, { STHv, eDI, eSP }, 0, s1W2R3RW },
   /* 58 */
-  { "pop", t_done, 0, false, { eAX, Zz, Zz }, 0 }, 
-  { "pop", t_done, 0, false, { eCX, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eDX, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eBX, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eSP, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eBP, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eSI, Zz, Zz }, 0 },
-  { "pop", t_done, 0, false, { eDI, Zz, Zz }, 0 },
+  { "pop", t_done, 0, false, { eAX, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eCX, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eDX, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eBX, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eSP, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eBP, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eSI, STPv, eSP }, 0, s1W2R3RW },
+  { "pop", t_done, 0, false, { eDI, STPv, eSP }, 0, s1W2R3RW },
   /* 60 */
-  { "pusha(d)", t_done, 0, false, { Zz, Zz, Zz }, 0 }, 
-  { "popa(d)",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "bound",    t_done, 0, true, { Gv, Ma, Zz }, 0 },
-  { "arpl",     t_done, 0, true, { Ew, Gw, Zz }, 0 },
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_SEG_OVR
-  { 0,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
+  { "pusha(d)", t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
+  { "popa(d)",  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },
+  { "bound",    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R },
+  { "arpl",     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
+  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { 0,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
+  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
   /* 68 */
-  { "push",    t_done, 0, false, { Iv, Zz, Zz }, 0 },
-  { "imul",    t_done, 0, true, { Gv, Ev, Iv }, 0 },
-  { "push",    t_done, 0, false, { Ib, Zz, Zz }, 0 },
-  { "imul",    t_done, 0, true, { Gv, Ev, Ib }, 0 },
-  { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0 },
-  { "insw/d",  t_done, 0, false, { Yv, DX, Zz }, 0 },
-  { "outsb",   t_done, 0, false, { DX, Xb, Zz }, 0 },
-  { "outsw/d", t_done, 0, false, { DX, Xv, Zz }, 0 },
+  { "push",    t_done, 0, false, { STHv, Iv, eSP }, 0, s1W2R3RW },
+  { "imul",    t_done, 0, true, { Gv, Ev, Iv }, 0, s1W2R3R },
+  { "push",    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
+  { "imul",    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
+  { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R }, // X/Y imply (e)SI/DI changed
+  { "insw/d",  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R },
+  { "outsb",   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R },
+  { "outsw/d", t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R },
   /* 70 */
-  { "jo",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jno",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jb/jnaej/j", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnb/jae/j",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jz",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnz",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jbe",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnbe",       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
+  { "jo",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jno",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jb/jnaej/j", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnb/jae/j",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jz",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnz",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jbe",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnbe",       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   /* 78 */
-  { "js",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jns",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jp",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jl",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnl",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jle",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "jnle", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
+  { "js",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jns",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jp",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jl",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnl",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jle",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { "jnle", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   /* 80 */
-  { 0, t_grp, Grp1, true, { Eb, Ib, Zz }, 0 },
-  { 0, t_grp, Grp1, true, { Ev, Iv, Zz }, 0 },
-  { 0, t_grp, Grp1, true, { Eb, Ib, Zz }, 0 }, // this was Ill in the old decoder and in gdb 5.2.
-                                               // the book says Grp1 however;sandpile.org agrees.
-  { 0, t_grp, Grp1, true, { Ev, Ib, Zz }, 0 },
-  { "test", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "test", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "xchg", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "xchg", t_done, 0, true, { Ev, Gv, Zz }, 0 },
+  { 0, t_grp, Grp1a, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp1b, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp1c, true, { Zz, Zz, Zz }, 0, 0 }, // book says Grp1 however;sandpile.org agrees.
+  { 0, t_grp, Grp1d, true, { Zz, Zz, Zz }, 0, 0 },
+  { "test", t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
+  { "test", t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { "xchg", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
   /* 88 */
-  { "mov", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "mov", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "mov", t_done, 0, true, { Gb, Eb, Zz }, 0 },
-  { "mov", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "mov", t_done, 0, true, { Ew, Sw, Zz }, 0 },
-  { "lea", t_done, 0, true, { Gv, Mlea, Zz }, 0 }, // this is just M in the book
-  { "mov", t_done, 0, true, { Sw, Ew, Zz }, 0 },
-  { "pop", t_done, 0, true, { Ev, Zz, Zz }, 0 },
+  { "mov", t_done, 0, true, { Eb, Gb, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Gb, Eb, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Ew, Sw, Zz }, 0, s1W2R },
+  { "lea", t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W }, // this is just M in the book
+                                                        // AFAICT the 2nd operand is not accessed
+  { "mov", t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
+  { "pop", t_done, 0, true, { Ev, STPv, eSP }, 0, s1W2R3RW },
   /* 90 */
-  { "nop",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eCX, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eDX, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eBX, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eSP, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eBP, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eSI, Zz, Zz }, 0 },
-  { "xchg", t_done, 0, false, { eDI, Zz, Zz }, 0 },
+  { "nop",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
+  { "xchg", t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eSP, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eBP, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eSI, eAX, Zz }, 0, s1RW2RW },
+  { "xchg", t_done, 0, false, { eDI, eAX, Zz }, 0, s1RW2RW },
   /* 98 */
-  { "cbw",     t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "cwd/cdq", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "call",    t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX },
-  { "wait",    t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "pushf",   t_done, 0, false, { Fv, Zz, Zz }, 0 },
-  { "pop",     t_done, 0, false, { Fv, Zz, Zz }, 0 },
-  { "sahf",    t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "lahf",    t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { "cbw/cwde", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { "cwd/cdq",  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
+  { "call",     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
+  { "wait",     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "pushf(d)", t_done, 0, false, { STHv, Fv, eSP }, 0, s1W2R3RW },
+  { "popf(d)",  t_done, 0, false, { Fv, STPv, eSP }, 0, s1W2R3RW },
+  { "sahf",     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
+  { "lahf",     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
-  { "mov",   t_done, 0, false, { AL, Ob, Zz }, 0 },
-  { "mov",   t_done, 0, false, { eAX, Ov, Zz }, 0 },
-  { "mov",   t_done, 0, false, { Ob, AL, Zz }, 0 },
-  { "mov",   t_done, 0, false, { Ov, eAX, Zz }, 0 },
-  { "movsb", t_done, 0, false, { Xb, Yb, Zz }, 0 },
-  { "movsw", t_done, 0, false, { Xv, Yv, Zz }, 0 },
-  { "cmpsb", t_done, 0, false, { Xb, Yb, Zz }, 0 },
-  { "cmpsw", t_done, 0, false, { Xv, Yv, Zz }, 0 },
+  { "mov",   t_done, 0, false, { AL, Ob, Zz },  0, s1W2R },
+  { "mov",   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
+  { "mov",   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
+  { "mov",   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
+  { "movsb", t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R }, // X/Y imply (e)SI/DI changed
+  { "movsw/d", t_done, 0, false, { Yv, Xv, Zz },  0, s1W2R }, // XXX: Xv is source, Yv is dest!
+  { "cmpsb", t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R },
+  { "cmpsw", t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R },
   /* A8 */
-  { "test",     t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "test",     t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "stopsb",   t_done, 0, false, { Yb, AL, Zz }, 0 },
-  { "stopsw/d", t_done, 0, false, { Yv, eAX, Zz }, 0 },
-  { "lodsb",    t_done, 0, false, { AL, Xb, Zz }, 0 },
-  { "lodsw",    t_done, 0, false, { eAX, Xv, Zz }, 0 },
-  { "scasb",    t_done, 0, false, { AL, Yb, Zz }, 0 },
-  { "scasw/d",  t_done, 0, false, { eAX, Yv, Zz }, 0 },
+  { "test",     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
+  { "test",     t_done, 0, false, { eAX, Iv, Zz }, 0, s1R2R },
+  { "stosb",    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R },
+  { "stosw/d",  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R },
+  { "lodsb",    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R },
+  { "lodsw",    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R },
+  { "scasb",    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R },
+  { "scasw/d",  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R },
   /* B0 */
-  { "mov", t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { CL, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { DL, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { BL, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { AH, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { CH, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { DH, Ib, Zz }, 0 },
-  { "mov", t_done, 0, false, { BH, Ib, Zz }, 0 },
+  { "mov", t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { DL, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { BL, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { AH, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { CH, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { DH, Ib, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { BH, Ib, Zz }, 0, s1W2R },
   /* B8 */
-  { "mov", t_done, 0, false, { eAX, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eCX, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eDX, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eBX, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eSP, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eBP, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eSI, Iv, Zz }, 0 },
-  { "mov", t_done, 0, false, { eDI, Iv, Zz }, 0 },
+  { "mov", t_done, 0, false, { eAX, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eCX, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eDX, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eBX, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eSP, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eBP, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eSI, Iv, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, false, { eDI, Iv, Zz }, 0, s1W2R },
   /* C0 */
-  { 0, t_grp, Grp2, true, { Eb, Ib, Zz }, 0 },
-  { 0, t_grp, Grp2, true, { Ev, Ib, Zz }, 0 },
-  { "ret near", t_done, 0, false, { Iw, Zz, Zz }, (IS_RET) },
-  { "ret near", t_done, 0, false, { Zz, Zz, Zz }, (IS_RET) },
-  { "les",      t_done, 0, true, { Gv, Mp, Zz }, 0 },
-  { "lds",      t_done, 0, true, { Gv, Mp, Zz }, 0 },
-  { 0, t_grp, Grp11, true, { Eb, Ib, Zz }, 0 },
-  { 0, t_grp, Grp11, true, { Ev, Iv, Zz }, 0 },
+  { 0, t_grp, Grp2, true, { Eb, Ib, Zz }, 0, s1RW2R },
+  { 0, t_grp, Grp2, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { "ret near", t_done, 0, false, { Iw, Zz, Zz }, (IS_RET), s1R | (fNEARRET << FPOS) },
+  { "ret near", t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS },
+  { "les",      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R },
+  { "lds",      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R },
+  { 0, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
+  { 0, t_grp, Grp11, true, { Ev, Iv, Zz }, 0, s1W2R },
   /* C8 */
-  { "enter",   t_done, 0, false, { Iw, Ib, Zz }, 0 },
-  { "leave",   t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "ret far", t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF) },
-  { "ret far", t_done, 0, false, { Zz, Zz, Zz }, (IS_RETF) },
-  { "int 3",   t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "int",     t_done, 0, false, { Ib, Zz, Zz }, 0 },
-  { "into",    t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "iret",    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET) },
+  { "enter",   t_done, 0, false, { Iw, Ib, Zz }, 0, fENTER << FPOS },
+  { "leave",   t_done, 0, false, { Zz, Zz, Zz }, 0, fLEAVE << FPOS },
+  { "ret far", t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF), fFARRET << FPOS },
+  { "ret far", t_done, 0, false, { Zz, Zz, Zz }, (IS_RETF), fFARRET << FPOS },
+  { "int 3",   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "int",     t_done, 0, false, { Ib, Zz, Zz }, 0, sNONE },
+  { "into",    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "iret",    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
   /* D0 */
-  { 0, t_grp, Grp2, true, { Eb, Zz, Zz }, 0 }, // const1
-  { 0, t_grp, Grp2, true, { Ev, Zz, Zz }, 0 }, // --"--
-  { 0, t_grp, Grp2, true, { Eb, CL, Zz }, 0 },
-  { 0, t_grp, Grp2, true, { Ev, CL, Zz }, 0 },
-  { "aam",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "aad",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "salc", t_done, 0, false, { Zz, Zz, Zz }, 0 }, // sandpile.org gives this as SALC; undocumeted
-  { "xlat", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { 0, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
+  { 0, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
+  { 0, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
+  { 0, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
+  { "aam",  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
+  { "aad",  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
+  { "salc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumeted
+  { "xlat", t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS }, // scream
   /* D8 */
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
-  { "loopn",    t_done, 0, false, { Jb, Zz, Zz }, 0 },
-  { "loope",    t_done, 0, false, { Jb, Zz, Zz }, 0 },
-  { "loop",     t_done, 0, false, { Jb, Zz, Zz }, 0 },
-  { "jcxz/jec", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B) },
-  { "in",       t_done, 0, false, { AL, Ib, Zz }, 0 },
-  { "in",       t_done, 0, false, { eAX, Ib, Zz }, 0 },
-  { "out",      t_done, 0, false, { Ib, AL, Zz }, 0 },
-  { "out",      t_done, 0, false, { Ib, eAX, Zz }, 0 },
+  { "loopn",    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R }, // aren't these conditional jumps?
+  { "loope",    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
+  { "loop",     t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
+  { "jcxz/jec", t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
+  { "in",       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | fIO << FPOS },
+  { "in",       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | fIO << FPOS },
+  { "out",      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | fIO << FPOS },
+  { "out",      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | fIO << FPOS },
   /* E8 */
-  { "call", t_done, 0, false, { Jv, Zz, Zz }, (IS_CALL | REL_X) },
-  { "jmp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JUMP | REL_X) },
-  { "jmp",  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX) },
-  { "jmp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B) },
-  { "in",   t_done, 0, false, { AL, DX, Zz }, 0 },
-  { "in",   t_done, 0, false, { eAX, DX, Zz }, 0 },
-  { "out",  t_done, 0, false, { DX, AL, Zz }, 0 },
-  { "out",  t_done, 0, false, { DX, eAX, Zz }, 0 },
+  { "call", t_done, 0, false, { Jv, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
+  { "jmp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JUMP | REL_X), s1R },
+  { "jmp",  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX), s1R },
+  { "jmp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B), s1R },
+  { "in",   t_done, 0, false, { AL, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { "in",   t_done, 0, false, { eAX, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { "out",  t_done, 0, false, { DX, AL, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { "out",  t_done, 0, false, { DX, eAX, Zz }, 0, s1W2R | (fIO << FPOS) },
   /* F0 */
-  { 0,      t_ill,  0, false, { Zz, Zz, Zz }, 0 }, // PREFIX_INSTR
-  { "int1", t_done, 0, false, { Zz, Zz, Zz }, 0 }, // INT1/ICEBP on sandpile; undocumented
-  { 0, t_prefixedSSE, 3, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_prefixedSSE, 1, false, { Zz, Zz, Zz }, 0 },
-  { "hlt",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "cmc",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp3a, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp3b, true, { Zz, Zz, Zz }, 0 },
+  { 0,      t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_INSTR
+  { "int1", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumented
+  { 0, t_prefixedSSE, 3, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_prefixedSSE, 1, false, { Zz, Zz, Zz }, 0, 0 },
+  { "hlt",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "cmc",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { 0, t_grp, Grp3a, true, { Zz, Zz, Zz }, 0, sNONE },
+  { 0, t_grp, Grp3b, true, { Zz, Zz, Zz }, 0, sNONE },
   /* F8 */
-  { "clc", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "stc", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "cli", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "sti", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "cld", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "std", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp4, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp5, true, { Zz, Zz, Zz }, 0 }
+  { "clc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "stc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "cli", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "sti", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "cld", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "std", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { 0, t_grp, Grp4, true, { Zz, Zz, Zz }, 0, sNONE },
+  { 0, t_grp, Grp5, true, { Zz, Zz, Zz }, 0, sNONE }
 };
 
 
 // twoByteMap: two byte opcode instructions (first byte is 0x0F)
 static ia32_entry twoByteMap[256] = {
   /* 00 */
-  { 0, t_grp, Grp6, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp7, false, { Zz, Zz, Zz }, 0 },
-  { "lar",        t_done, 0, true, { Gv, Ew, Zz }, 0  },
-  { "lsl",        t_done, 0, true, { Gv, Ew, Zz }, 0  },
-  { 0,            t_ill,  0, false, { Zz, Zz, Zz },0},
-  { "syscall",    t_done, 0, false, { Zz, Zz, Zz }, 0 }, // AMD
-  { "clts",       t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "sysret",     t_done, 0, false, { Zz, Zz, Zz }, 0 }, // AMD
+  { 0, t_grp, Grp6, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp7, false, { Zz, Zz, Zz }, 0, 0 },
+  { "lar",        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
+  { "lsl",        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
+  { 0,            t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { "syscall",    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // AMD; XXX: fixme for kernel work
+  { "clts",       t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "sysret",     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // AMD; XXX: fixme for kernel work
   /* 08 */
-  { "invd",   t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "wbinvd", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { 0,        t_ill,  0, false, { Zz, Zz, Zz }, 0 },
-  { "ud2",    t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
-  { 0,        t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
-  { "prefetch(w)", t_done,  0, true,  { Zz, Zz, Zz }, 0 }, // AMD
-  { "femms",       t_done,  0, false, { Zz, Zz, Zz }, 0 }, // AMD 
-  { 0,             t_3dnow, 0, true,  { Pq, Qq, Zz }, 0 }, // AMD 3DNOW! suffixes
+  { "invd",   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // only in priviledge 0, so ignored
+  { "wbinvd", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // idem
+  { 0,        t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { "ud2",    t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0,        t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "prefetch(w)", t_grp, GrpAMD, true, { Zz, Zz, Zz }, 0, 0 },    // AMD prefetch group
+  { "femms",       t_done,  0, false, { Zz, Zz, Zz }, 0, sNONE },  // AMD specific
+  // semantic is bogus for the 1st operand - but correct for the 2nd,
+  // which is the only one that can be a memory operand :)
+  // fixing the 1st operand requires an extra table for the 3dnow instructions...
+  { 0,             t_3dnow, 0, true,  { Pq, Qq, Zz }, 0, s1RW2R }, // AMD 3DNow! suffixes
   /* 10 */
-  { 0, t_sse, SSE10, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE11, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE12, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE13, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE14, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE15, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE16, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE17, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE10, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE11, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE12, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE13, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE14, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE15, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE16, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
-  { 0, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
+  { 0, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 20 */
-  { "mov", t_done, 0, true, { Rd, Cd, Zz }, 0 },
-  { "mov", t_done, 0, true, { Rd, Dd, Zz }, 0 },
-  { "mov", t_done, 0, true, { Cd, Rd, Zz }, 0 },
-  { "mov", t_done, 0, true, { Dd, Rd, Zz }, 0 },
-  { "mov", t_done, 0, true, { Rd, Td, Zz }, 0 },
-  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
-  { "mov", t_done, 0, true, { Td, Rd, Zz }, 0 },
-  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
+  { "mov", t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Cd, Rd, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Dd, Rd, Zz }, 0, s1W2R },
+  { "mov", t_done, 0, true, { Rd, Td, Zz }, 0, s1W2R },
+  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mov", t_done, 0, true, { Td, Rd, Zz }, 0, s1W2R },
+  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 28 */
-  { 0, t_sse, SSE28, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE29, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2A, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2B, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2C, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2D, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2E, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE28, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE29, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2A, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2B, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2C, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2D, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2E, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 30 */
-  { "wrmsr", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "rdtsc", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "rdmsr", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "rdpmc", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "sysenter", t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "sysexit",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0}, 
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
+  { "wrmsr", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "rdtsc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE},
+  { "rdmsr", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "rdpmc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "sysenter", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
+  { "sysexit",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 38 */
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0}, 
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0}, 
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 40 */
-  { "cmovo",   t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovno",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnae", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnb",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmove",   t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovne",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovbe",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnbe", t_done, 0, true, { Gv, Ev, Zz }, 0 },
+  { "cmovo",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovno",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnae", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnb",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmove",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovne",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovbe",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnbe", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
   /* 48 */
-  { "cmovs",   t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovns",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovpe",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovpo",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnge", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovng",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0 },
+  { "cmovs",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovns",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovpe",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovpo",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnge", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovng",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
   /* 50 */
-  { 0, t_sse, SSE50, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE51, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE52, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE53, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE54, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE55, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE56, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE57, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE50, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE51, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE52, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE53, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE54, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE55, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE56, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE57, true, { Zz, Zz, Zz }, 0, 0 },
   /* 58 */
-  { 0, t_sse, SSE58, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE59, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5A, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5B, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5C, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5D, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5E, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE5F, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE58, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE59, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5A, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5B, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5C, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5D, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5E, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE5F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 60 */
-  { 0, t_sse, SSE60, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE61, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE62, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE63, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE64, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE65, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE66, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE67, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE60, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE61, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE62, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE63, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE64, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE65, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE66, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE67, true, { Zz, Zz, Zz }, 0, 0 },
   /* 68 */
-  { 0, t_sse, SSE68, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE69, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6A, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6B, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6C, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6D, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6E, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE6F, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE68, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE69, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6A, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6B, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6C, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6D, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6E, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE6F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 70 */
-  { 0, t_sse, SSE70, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp12, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp13, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp14, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE74, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE75, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE76, true, { Zz, Zz, Zz }, 0 },
-  { "emms", t_done, 0, false, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSE70, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp12, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp13, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp14, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
+  { "emms", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   /* 78 */
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0},
-  { 0, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 80 */
-  { "jo",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jno",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jb",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnb",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jz",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnz",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jbe",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnbe", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
+  { "jo",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jno",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jb",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnb",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jz",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnz",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jbe",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnbe", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 88 */
-  { "js",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jns",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jp",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jl",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnl",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jle",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
-  { "jnle", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X) },
+  { "js",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jns",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jp",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jl",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnl",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jle",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnle", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 90 */
-  { "seto",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setno",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setb",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnb",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setz",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnz",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setbe",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnbe", t_done, 0, true, { Eb, Zz, Zz }, 0 },
+  { "seto",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setno",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setb",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnb",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setz",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnz",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setbe",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnbe", t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* 98 */
-  { "sets",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setns",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setp",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnp",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setl",   t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnl",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setle",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "setnle", t_done, 0, true, { Eb, Zz, Zz }, 0 },
+  { "sets",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setns",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setp",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnp",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setl",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnl",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setle",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { "setnle", t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* A0 */
-  { "push",   t_done, 0, false, { FS, Zz, Zz }, 0 },
-  { "pop",    t_done, 0, false, { FS, Zz, Zz }, 0 },
-  { "cpuid",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "bt",     t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "shld",   t_done, 0, true, { Ev, Gv, Ib }, 0 },
-  { "shld",   t_done, 0, true, { Ev, Gv, CL }, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0}, 
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0},
+  { "push",   t_done, 0, false, { STHw, FS, eSP }, 0, s1W2R3RW },
+  { "pop",    t_done, 0, false, { FS, STPw, eSP }, 0, s1W2R3RW },
+  { "cpuid",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "bt",     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { "shld",   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
+  { "shld",   t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* A8 */
-  { "push", t_done, 0, false, { GS, Zz, Zz }, 0 },
-  { "pop",  t_done, 0, false, { GS, Zz, Zz }, 0 },
-  { "rsm",  t_done, 0, false, { Zz, Zz, Zz }, 0 },
-  { "bts",  t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "shrd", t_done, 0, true, { Ev, Gv, Ib }, 0 },
-  { "shrd", t_done, 0, true, { Ev, Gv, CL }, 0 },
-  { 0, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0 }, 
-  { "imul", t_done, 0, true, { Gv, Ev, Zz }, 0 },
+  { "push", t_done, 0, false, { STHw, GS, eSP }, 0, s1W2R3RW },
+  { "pop",  t_done, 0, false, { GS, STPw, eSP }, 0, s1W2R3RW },
+  { "rsm",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "bts",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "shrd", t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
+  { "shrd", t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
+  { 0, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { "imul", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   /* B0 */
-  { "cmpxch", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "cmpxch", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "lss", t_done, 0, true, { Mp, Zz, Zz }, 0 },
-  { "btr", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "lfs", t_done, 0, true, { Mp, Zz, Zz }, 0 },
-  { "lgs", t_done, 0, true, { Mp, Zz, Zz }, 0 },
-  { "movzx", t_done, 0, true, { Gv, Eb, Zz }, 0 },
-  { "movzx", t_done, 0, true, { Gv, Ew, Zz }, 0 },
+  // Assuming this is used with LOCK prefix, the destination gets a write anyway
+  // This is not the case without lock prefix, but I ignore that case
+  // Also, given that the 3rd operand is a register I ignore that it may be written
+  { "cmpxch", t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
+  { "cmpxch", t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
+  { "lss", t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R },
+  { "btr", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "lfs", t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R },
+  { "lgs", t_done, 0, true, { GS, Gv, Mp }, 0, s1W2W3R },
+  { "movzx", t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
+  { "movzx", t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* B8 */
-  {0,t_ill, 0,0,{ Zz, Zz, Zz },0},
-  { "ud2grp10", t_ill, 0, 0, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp8, true, { Ev, Ib, Zz }, 0 },
-  { "btc", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { "bsf", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "bsr", t_done, 0, true, { Gv, Ev, Zz }, 0 },
-  { "movsx", t_done, 0, true, { Gv, Eb, Zz }, 0 },
-  { "movsx", t_done, 0, true, { Gv, Ew, Zz }, 0 },
+  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { "ud2grp10", t_ill, 0, 0, { Zz, Zz, Zz }, 0, sNONE },
+  { 0, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0 },
+  { "btc", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { "bsf", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { "bsr", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { "movsx", t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
+  { "movsx", t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* C0 */
-  { "xadd", t_done, 0, true, { Eb, Gb, Zz }, 0 },
-  { "xadd", t_done, 0, true, { Ev, Gv, Zz }, 0 },
-  { 0, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0 },
-  { "movnti" , t_done, 0, 0, { Ed, Gd, Zz }, 0 },
-  { 0, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_grp, Grp9,  true, { Zz, Zz, Zz }, 0 },
+  { "xadd", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
+  { "xadd", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
+  { 0, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
+  { "movnti" , t_done, 0, 0, { Ed, Gd, Zz }, 0, s1W2R | (fNT << FPOS) },
+  { 0, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_grp, Grp9,  true, { Zz, Zz, Zz }, 0, 0 },
   /* C8 */
-  { "bswap", t_done, 0, false, { EAX, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { ECX, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { EDX, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { EBX, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { ESP, Zz, Zz }, 0 },
-  { "bswap", t_done, 0, false, { EBP, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { ESI, Zz, Zz }, 0 }, 
-  { "bswap", t_done, 0, false, { EDI, Zz, Zz }, 0 }, 
+  { "bswap", t_done, 0, false, { EAX, Zz, Zz }, 0, s1RW }, 
+  { "bswap", t_done, 0, false, { ECX, Zz, Zz }, 0, s1RW },
+  { "bswap", t_done, 0, false, { EDX, Zz, Zz }, 0, s1RW }, 
+  { "bswap", t_done, 0, false, { EBX, Zz, Zz }, 0, s1RW }, 
+  { "bswap", t_done, 0, false, { ESP, Zz, Zz }, 0, s1RW },
+  { "bswap", t_done, 0, false, { EBP, Zz, Zz }, 0, s1RW }, 
+  { "bswap", t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW }, 
+  { "bswap", t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW }, 
   /* D0 */
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED1, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED2, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED3, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED4, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED5, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED6, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED7, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED1, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED2, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED3, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED4, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED5, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED6, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED7, true, { Zz, Zz, Zz }, 0, 0 },
   /* D8 */
-  { 0, t_sse, SSED8, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSED9, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDA, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDB, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDC, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDD, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDE, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEDF, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSED8, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSED9, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDA, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDB, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDC, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDD, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDE, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEDF, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
-  { 0, t_sse, SSEE0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE1, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE2, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE3, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE4, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE5, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE6, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE7, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSEE0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE1, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE2, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE3, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE4, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE5, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE6, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE7, true, { Zz, Zz, Zz }, 0, 0 },
   /* E8 */
-  { 0, t_sse, SSEE8, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEE9, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEEA, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEEB, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEEC, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEED, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEEE, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEEF, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_sse, SSEE8, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEE9, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEEA, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEEB, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEEC, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEED, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEEE, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEEF, true, { Zz, Zz, Zz }, 0, 0 },
   /* F0 */
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF1, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF2, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF3, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF4, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF5, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF6, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF7, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF1, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF2, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF3, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF4, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF5, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF6, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF7, true, { Zz, Zz, Zz }, 0, 0 },
   /* F8 */
-  { 0, t_sse, SSEF8, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEF9, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEFA, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEFB, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0}
+  { 0, t_sse, SSEF8, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEF9, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEFA, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEFB, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 };
 
 static ia32_entry groupMap[][8] = {
- { /* group 1 - only opcode is defined here,
-      operands are defined in the one or two byte maps below */
-  { "add", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "or",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "adc", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "sbb", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "and", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "sub", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "xor", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "cmp", t_done, 0, true, { Zz, Zz, Zz }, 0 }
- },
+  { /* group 1a */
+    { "add", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "or",  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "adc", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "sbb", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "and", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "sub", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "xor", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "cmp", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+  },
+  { /* group 1b */
+    { "add", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "or",  t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "adc", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "sbb", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "and", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "sub", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "xor", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
+    { "cmp", t_done, 0, true, { Ev, Iv, Zz }, 0, s1R2R },
+  },
+  { /* group 1c */
+    { "add", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "or",  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "adc", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "sbb", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "and", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "sub", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "xor", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { "cmp", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+  },
+  { /* group 1d */
+    { "add", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "or",  t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "adc", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "sbb", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "and", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "sub", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "xor", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { "cmp", t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
+  },
+
 
  {  /* group 2 - only opcode is defined here, 
-       operands are defined in the one or two byte maps below */
-  { "rol", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "ror", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "rcl", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "rcr", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "shl/sal", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "shr", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "sar", t_done, 0, true, { Zz, Zz, Zz }, 0 }
+       operands are defined in the one or two byte maps above */
+  { "rol", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "ror", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "rcl", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "rcr", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "shl/sal", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "shr", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "sar", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
  { /* group 3a - operands are defined here */
-  { "test", t_done, 0, true, { Eb, Ib, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "not",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "neg",  t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "mul",  t_done, 0, true, { AL, Eb, Zz }, 0 },
-  { "imul", t_done, 0, true, { AL, Eb, Zz }, 0 },
-  { "div",  t_done, 0, true, { AL, Eb, Zz }, 0 },
-  { "idiv", t_done, 0, true, { AL, Eb, Zz }, 0 }
+  { "test", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "not",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { "neg",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { "mul",  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
+  { "imul", t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R },
+  { "div",  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R },
+  { "idiv", t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R }
  },
 
  { /* group 3b - operands are defined here */
-  { "test", t_done, 0, true, { Ev, Iv, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "not",  t_done, 0, true, { Ev, Zz, Zz }, 0 },
-  { "neg",  t_done, 0, true, { Ev, Zz, Zz }, 0 },
-  { "mul",  t_done, 0, true, { eAX, Ev, Zz }, 0 },
-  { "imul", t_done, 0, true, { eAX, Ev, Zz }, 0 },
-  { "div",  t_done, 0, true, { eAX, Ev, Zz }, 0 },
-  { "idiv", t_done, 0, true, { eAX, Ev, Zz }, 0 }
+  { "test", t_done, 0, true, { Ev, Iv, Zz }, 0, s1R2R },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "not",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { "neg",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { "mul",  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
+  { "imul", t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
+  { "div",  t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R },
+  { "idiv", t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R }
  },
 
  { /* group 4 - operands are defined here */
-  { "inc", t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { "dec", t_done, 0, true, { Eb, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+  { "inc", t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { "dec", t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 5 - operands are defined here */
-  { "inc",  t_done, 0, true, { Ev, Zz, Zz }, 0 },
-  { "dec",  t_done, 0, true, { Ev, Zz, Zz }, 0 },
-  { "call", t_done, 0, true, { Ev, Zz, Zz }, (IS_CALL | INDIR) },
-  { "call", t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR) },
-  { "jmp",  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR) },
-  { "jmp",  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR) },
-  { "push", t_done, 0, true, { Ev, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+  { "inc",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { "dec",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { "call", t_done, 0, true, { Ev, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
+  { "call", t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
+  { "jmp",  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
+  { "jmp",  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
+  { "push", t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 6 - operands are defined here */
-  { "sldt", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "str",  t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "lldt", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "ltr",  t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "verr", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "verw", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+   // these need to be fixed for kernel mode accesses
+  { "sldt", t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { "str",  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { "lldt", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { "ltr",  t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { "verr", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { "verw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 7 - operands are defined here */
-  { "sgdt", t_done, 0, true, { Ms, Zz, Zz }, 0 },
-  { "sidt", t_done, 0, true, { Ms, Zz, Zz }, 0 },
-  { "lgdt", t_done, 0, true, { Ms, Zz, Zz }, 0 },
-  { "lidt", t_done, 0, true, { Ms, Zz, Zz }, 0 },
-  { "smsw", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "lmsw", t_done, 0, true, { Ew, Zz, Zz }, 0 },
-  { "invlpg", t_done, 0, true, { Zz, Zz, Zz }, 0 },
+   // idem
+  { "sgdt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
+  { "sidt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
+  { "lgdt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
+  { "lidt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
+  { "smsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "lmsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { "invlpg", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
  },
 
  { /* group 8 - only opcode is defined here, 
      operands are defined in the one or two byte maps below */
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "bt",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "bts", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "btr", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-  { "btc", t_done, 0, true, { Zz, Zz, Zz }, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { "bt",  t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
+  { "bts", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { "btr", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { "btc", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
  },
 
  { /* group 9 - operands are defined here */
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { "cmpxch8b", t_done, 0, true, { Mq, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  // see comments for cmpxch
+  { "cmpxch8b", t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS) },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
  /* group 10 is all illegal */
 
  { /* group 11, opcodes defined in one byte map */
-   { "mov", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+   { "mov", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  }
 
 };
@@ -893,134 +1037,134 @@ static ia32_entry groupMap[][8] = {
 static ia32_entry groupMap2[][2][8] = {
   { /* group 12 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G12SSE010B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G12SSE100B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G12SSE110B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G12SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G12SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G12SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 13 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G13SSE010B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G13SSE100B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G13SSE110B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G13SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G13SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G13SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 14 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G14SSE010B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G14SSE011B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G14SSE110B, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_grpsse, G14SSE111B, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G14SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G14SSE011B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G14SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_grpsse, G14SSE111B, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 15 */
     {
-      { "fxsave",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "fxrstor", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "ldmxcsr", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "stmxcsr", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { "clflush", t_done, 0, true, { Zz, Zz, Zz }, 0 },
+      { "fxsave",  t_done, 0, true, { M512, Zz, Zz }, 0, s1W | (fFXSAVE << FPOS) },
+      { "fxrstor", t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS) },
+      { "ldmxcsr", t_done, 0, true, { Md, Zz, Zz }, 0, s1R },
+      { "stmxcsr", t_done, 0, true, { Md, Zz, Zz }, 0, s1W },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { "clflush", t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS) },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { "lfence", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "mfence", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "sfence", t_done, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { "lfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+      { "mfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+      { "sfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
     }
   },
   { /* group 16 */
     {
-      { "prefetchNTA", t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "prefetchT0",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "prefetchT1",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "prefetchT2",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { "prefetchNTA", t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS) },
+      { "prefetchT0",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS) },
+      { "prefetchT1",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
+      { "prefetchT2",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* AMD prefetch group */
     {
-      { "prefetch",   t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { "prefetchw",  t_done, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 }, // this is reserved, not illegal, ugh...
+      { "prefetch",   t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDE << FPOS) },
+      { "prefetchw",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDW << FPOS) },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   }
 };
@@ -1028,622 +1172,625 @@ static ia32_entry groupMap2[][2][8] = {
 /* rows are not, F3, 66, F2 prefixed in this order (see book) */
 static ia32_entry sseMap[][4] = {
   { /* SSE10 */
-    { "movups", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "movss",  t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "movupd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "movups", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { "movss",  t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { "movupd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE11 */
-    { "movups", t_done, 0, true, { Wps, Vps, Zz }, 0 },
-    { "movss",  t_done, 0, true, { Wss, Vss, Zz }, 0 },
-    { "movupd", t_done, 0, true, { Wpd, Vpd, Zz }, 0 },
-    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0 }, // FIXME: bug in book?????
+    { "movups", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { "movss",  t_done, 0, true, { Wss, Vss, Zz }, 0, s1W2R },
+    { "movupd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
+    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R }, // FIXME: bug in book?????
   },
   { /* SSE12 */
-    { "movlps/movhlps", t_done, 0, true, { Wq, Vq, Zz }, 0 }, // FIXME: wierd 1st op
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movlpd", t_done, 0, true, { Vq, Ws, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movlps/movhlps", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movlpd", t_done, 0, true, { Vq, Ws, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE13 */
-    { "movlps", t_done, 0, true, { Vq, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movlpd", t_done, 0, true, { Vq, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movlps", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movlpd", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE14 */
-    { "unpcklps", t_done, 0, true, { Vps, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "unpcklpd", t_done, 0, true, { Vpd, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "unpcklps", t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "unpcklpd", t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE15 */
-    { "unpckhps", t_done, 0, true, { Vps, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "unpckhpd", t_done, 0, true, { Vpd, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "unpckhps", t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "unpckhpd", t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE16 */
-    { "movhps/movlhps", t_done, 0, true, { Vq, Wq, Zz }, 0 }, // FIXME: wierd 2nd op
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movhpd", t_done, 0, true, { Vq, Wq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movhps/movlhps", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movhpd", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE17 */
-    { "movhps", t_done, 0, true, { Wq, Vq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movhpd", t_done, 0, true, { Wq, Vq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movhps", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movhpd", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE28 */
-    { "movaps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movapd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movaps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movapd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE29 */
-    { "movaps", t_done, 0, true, { Wps, Vps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movapd", t_done, 0, true, { Wpd, Vpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movaps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movapd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2A */
-    { "cvtpi2ps", t_done, 0, true, { Vps, Qq, Zz }, 0 },
-    { "cvtsi2ss", t_done, 0, true, { Vss, Ed, Zz }, 0 },
-    { "cvtpi2pd", t_done, 0, true, { Vpd, Qdq, Zz }, 0 },
-    { "cvtsi2sd", t_done, 0, true, { Vsd, Ed, Zz }, 0 },
+    { "cvtpi2ps", t_done, 0, true, { Vps, Qq, Zz }, 0, s1W2R },
+    { "cvtsi2ss", t_done, 0, true, { Vss, Ed, Zz }, 0, s1W2R },
+    { "cvtpi2pd", t_done, 0, true, { Vpd, Qdq, Zz }, 0, s1W2R },
+    { "cvtsi2sd", t_done, 0, true, { Vsd, Ed, Zz }, 0, s1W2R },
   },
   { /* SSE2B */
-    { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movntps", t_done, 0, true, { Wpd, Vpd, Zz }, 0 }, // should be movntpd ???
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movntps", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R }, // should be movntpd ???
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2C */
-    { "cvttps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0 },
-    { "cvttss2si", t_done, 0, true, { Gd, Wss, Zz }, 0 },
-    { "cvttpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0 },
-    { "cvttsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0 },
+    { "cvttps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
+    { "cvttss2si", t_done, 0, true, { Gd, Wss, Zz }, 0, s1W2R },
+    { "cvttpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
+    { "cvttsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2D */
-    { "cvtps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0 },
-    { "cvtss2si", t_done, 0, true, { Gd, Wss, Zz }, 0 },
-    { "cvtpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0 },
-    { "cvtsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0 },
+    { "cvtps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
+    { "cvtss2si", t_done, 0, true, { Gd, Wss, Zz }, 0, s1W2R },
+    { "cvtpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
+    { "cvtsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2E */
-    { "ucomiss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "ucomisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "ucomiss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "ucomisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2F */
-    { "comiss", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "comisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "comiss", t_done, 0, true, { Vps, Wps, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "comisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE50 */
-    { "movmskps", t_done, 0, true, { Ed, Vps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movmskpd", t_done, 0, true, { Ed, Vpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movmskps", t_done, 0, true, { Ed, Vps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movmskpd", t_done, 0, true, { Ed, Vpd, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE51 */
-    { "sqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "sqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "sqrtpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "sqrtsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "sqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { "sqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { "sqrtpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { "sqrtsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE52 */
-    { "rsqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "rsqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "rsqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "rsqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE53 */
-    { "rcpps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "rcpss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "rcpps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "rcpss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE54 */
-    { "andps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "andpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "andps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "andpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE55 */
-    { "andnps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "andnpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "andnps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "andnpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE56 */
-    { "orps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "orpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "orps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "orpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE57 */
-    { "xorps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "xorpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "xorps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "xorpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE58 */
-    { "addps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "addss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "addpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "addsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "addps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "addss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "addpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "addsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE59 */
-    { "mulps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "mulss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "mulpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "mulsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "mulps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "mulss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "mulpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "mulsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5A */
-    { "cvtps2pd", t_done, 0, true, { Vpd, Wps, Zz }, 0 },
-    { "cvtss2sd", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "cvtpd2ps", t_done, 0, true, { Vps, Wpd, Zz }, 0 }, // FIXME: book bug ???
-    { "cvtsd2ss", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "cvtps2pd", t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
+    { "cvtss2sd", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { "cvtpd2ps", t_done, 0, true, { Vps, Wpd, Zz }, 0, s1W2R }, // FIXME: book bug ???
+    { "cvtsd2ss", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE5B */
-    { "cvtdq2ps", t_done, 0, true, { Vps, Wdq, Zz }, 0 },
-    { "cvttps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0 }, // book has this and next swapped!!! 
-    { "cvtps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0 },  // FIXME: book bug ???
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "cvtdq2ps", t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R },
+    { "cvttps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R }, // book has this/next swapped!!! 
+    { "cvtps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R },  // FIXME: book bug ???
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE5C */
-    { "subps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "subss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "subpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "subsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "subps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "subss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "subpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "subsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5D */
-    { "minps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "minss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "minpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "minsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "minps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "minss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "minpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "minsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5E */
-    { "divps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "divss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "divpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "divsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "divps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "divss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "divpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "divsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5F */
-    { "maxps", t_done, 0, true, { Vps, Wps, Zz }, 0 },
-    { "maxss", t_done, 0, true, { Vss, Wss, Zz }, 0 },
-    { "maxpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0 },
-    { "maxsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0 },
+    { "maxps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { "maxss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { "maxpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { "maxsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE60 */
-    { "punpcklbw", t_done, 0, true, { Pq, Qd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpcklbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpcklbw", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpcklbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE61 */
-    { "punpcklwd", t_done, 0, true, { Pq, Qd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpcklwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpcklwd", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpcklwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE62 */
-    { "punpcklqd", t_done, 0, true, { Pq, Qd, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpcklqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpcklqd", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpcklqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE63 */
-    { "packsswb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "packsswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "packsswb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "packsswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE64 */
-    { "pcmpgtb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpgtb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpgtb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpgtb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE65 */
-    { "pcmpgtw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpgtw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpgtw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpgtw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE66 */
-    { "pcmpgdt", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpgdt", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpgdt", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpgdt", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE67 */
-    { "packuswb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "packuswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "packuswb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "packuswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE68 */
-    { "punpckhbw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpckhbw", t_done, 0, true, { Pdq, Qdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpckhbw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpckhbw", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE69 */
-    { "punpckhwd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpckhwd", t_done, 0, true, { Pdq, Qdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpckhwd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpckhwd", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6A */
-    { "punpckhdq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpckhdq", t_done, 0, true, { Pdq, Qdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "punpckhdq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpckhdq", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6B */
-    { "packssdw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "packssdw", t_done, 0, true, { Pdq, Qdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "packssdw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "packssdw", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6C */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpcklqld", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpcklqld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6D */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "punpckhqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "punpckhqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6E */
-    { "movd", t_done, 0, true, { Pd, Ed, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movd", t_done, 0, true, { Vdq, Ed, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movd", t_done, 0, true, { Pd, Ed, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movd", t_done, 0, true, { Vdq, Ed, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6F */
-    { "movq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { "movdqu", t_done, 0, false, { Vdq, Wdq, Zz }, 0 }, // book has this and next swapped!!!
-    { "movdqa", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1W2R },
+    { "movdqu", t_done, 0, false, { Vdq, Wdq, Zz }, 0, s1W2R }, // book has this/next swapped!!!
+    { "movdqa", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE70 */
-    { "pshufw", t_done, 0, true, { Pq, Qq, Ib }, 0 },
-    { "pshufhw", t_done, 0, true, { Vdq, Wdq, Ib }, 0 }, // book has this and next swapped!!!
-    { "pshufd", t_done, 0, true, { Vdq, Wdq, Ib }, 0 },
-    { "pshuflw", t_done, 0, true, { Vdq, Wdq, Ib }, 0 },
+    { "pshufw", t_done, 0, true, { Pq, Qq, Ib }, 0, s1W2R3R },
+    { "pshufhw", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }, // book has this/next swapped!!!
+    { "pshufd", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
+    { "pshuflw", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
   },
   { /* SSE74 */
-    { "pcmpeqb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpeqb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpeqb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpeqb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE75 */
-    { "pcmpeqw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpeqw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpeqw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpeqw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE76 */
-    { "pcmpeqd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pcmpeqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pcmpeqd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pcmpeqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7E */
-    { "movd", t_done, 0, true, { Ed, Pd, Zz }, 0 },
-    { "movq", t_done, 0, true, { Vq, Wq, Zz }, 0 }, // book has this and next swapped!!!
-    { "movd", t_done, 0, true, { Ed, Vdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movd", t_done, 0, true, { Ed, Pd, Zz }, 0, s1W2R },
+    { "movq", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
+    { "movd", t_done, 0, true, { Ed, Vdq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7F */
-    { "movq", t_done, 0, true, { Qq, Pq, Zz }, 0 },
-    { "movdqu", t_done, 0, true, { Wdq, Vdq, Zz }, 0 }, // book has this and next swapped!!!
-    { "movdqa", t_done, 0, true, { Wdq, Vdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movq", t_done, 0, true, { Qq, Pq, Zz }, 0, s1W2R },
+    { "movdqu", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
+    { "movdqa", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC2 */
-    { "cmpps", t_done, 0, true, { Vps, Wps, Ib }, 0 },
-    { "cmpss", t_done, 0, true, { Vss, Wss, Ib }, 0 },
-    { "cmppd", t_done, 0, true, { Vpd, Wpd, Ib }, 0 },
-    { "cmpsd", t_done, 0, true, { Vsd, Wsd, Ib }, 0 },
+    { "cmpps", t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
+    { "cmpss", t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
+    { "cmppd", t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
+    { "cmpsd", t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
   },
   { /* SSEC4 */
-    { "pinsrw", t_done, 0, true, { Pq, Ed, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pinsrw", t_done, 0, true, { Vdq, Ed, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pinsrw", t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pinsrw", t_done, 0, true, { Vdq, Ed, Ib }, 0, s1RW2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC5 */
-    { "pextrw", t_done, 0, true, { Gd, Pq, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pextrw", t_done, 0, true, { Gd, Vdq, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pextrw", t_done, 0, true, { Gd, Pq, Ib }, 0, s1W2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pextrw", t_done, 0, true, { Gd, Vdq, Ib }, 0, s1W2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC6 */
-    { "shufps", t_done, 0, true, { Vps, Wps, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "shufpd", t_done, 0, true, { Vpd, Wpd, Ib }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "shufps", t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "shufpd", t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED1 */
-    { "psrlw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psrlw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psrlw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psrlw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED2 */
-    { "psrld", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psrld", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psrld", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psrld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED3 */
-    { "psrlq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psrlq", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psrlq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psrlq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED4 */
-    { "paddq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psrlq", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED5 */
-    { "pmullw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmullw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmullw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmullw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED6 */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movq2dq", t_done, 0, true, { Vdq, Qq, Zz }, 0 }, // lines jumbled in book
-    { "movq", t_done, 0, true, { Wq, Vq, Zz }, 0 },
-    { "movdq2q", t_done, 0, true, { Pq, Wq, Zz }, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movq2dq", t_done, 0, true, { Vdq, Qq, Zz }, 0, s1W2R }, // lines jumbled in book
+    { "movq", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { "movdq2q", t_done, 0, true, { Pq, Wq, Zz }, 0, s1W2R },
   },
   { /* SSED7 */
-    { "pmovmskb", t_done, 0, true, { Gd, Pq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmovmskb", t_done, 0, true, { Gd, Vdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmovmskb", t_done, 0, true, { Gd, Pq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmovmskb", t_done, 0, true, { Gd, Vdq, Zz }, 0, s1W2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED8 */
-    { "psubusb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubusb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED9 */
-    { "psubusw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubusw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDA */
-    { "pminub", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pminub", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pminub", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pminub", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDB */
-    { "pand", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pand", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pand", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pand", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDC */
-    { "paddusb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddusb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDD */
-    { "paddusw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddusw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDE */
-    { "pmaxub", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmaxub", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmaxub", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmaxub", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDF */
-    { "pandn", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pandn", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pandn", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pandn", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE0 */
-    { "pavgb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pavgb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pavgb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pavgb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE1 */
-    { "psraw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psraw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psraw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psraw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE2 */
-    { "psrad", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psrad", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psrad", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psrad", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE3 */
-    { "pavgw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pavgw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pavgw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pavgw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE4 */
-    { "pmulhuw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmulhuw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmulhuw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmulhuw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE5 */
-    { "pmulhw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmulhw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmulhw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmulhw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE6 */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "cvtdq2pd", t_done, 0, true, { Vpd, Wdq, Zz }, 0 }, // lines jumbled in book
-    { "cvttpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0 },
-    { "cvtpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0 },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "cvtdq2pd", t_done, 0, true, { Vpd, Wdq, Zz }, 0, s1W2R }, // lines jumbled in book
+    { "cvttpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
+    { "cvtpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
   },
   { /* SSEE7 */
-    { "movntq", t_done, 0, true, { Wq, Vq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "movntdq", t_done, 0, true, { Wdq, Vdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "movntq", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "movntdq", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE8 */
-    { "psubsb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubsb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE9 */
-    { "psubsw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEA */
-    { "pminsw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pminsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pminsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pminsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEB */
-    { "por", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "por", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "por", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "por", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEC */
-    { "paddsb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddsb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEED */
-    { "paddsw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEE */
-    { "pmaxsw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmaxsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmaxsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmaxsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEF */
-    { "pxor", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pxor", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pxor", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pxor", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF1 */
-    { "psllw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psllw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psllw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psllw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF2 */
-    { "pslld", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pslld", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pslld", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pslld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF3 */
-    { "psllq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psllq", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psllq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psllq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF4 */
-    { "pmuludq", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmuludq", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmuludq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmuludq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF5 */
-    { "pmaddwd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "pmaddwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "pmaddwd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "pmaddwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF6 */
-    { "psadbw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psadbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psadbw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psadbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF7 */
-    { "maskmovq", t_done, 0, true, { Ppi, Qpi, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "maskmovqu", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    // This is non-temporal, although the name doesn't suggest it!
+    // I hope I've got all of these, but there's no easy way to check...
+    { "maskmovq", t_done, 0, true, { Ppi, Qpi, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    // Intel cannot seem to decide if this is maskmovqu [tables] or maskmovdqu [reference]
+    { "maskmovdqu", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF8 */
-    { "psubb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF9 */
-    { "psubw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFA */
-    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFB */ // FIXME: Same????
-    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFC */
-    { "paddb", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddb", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFD */
-    { "paddw", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddw", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFE */
-    { "paddd", t_done, 0, true, { Pq, Qq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
-    { "paddd", t_done, 0, true, { Vdq, Wdq, Zz }, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0 },
+    { "paddd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { "paddd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }
 };
 
@@ -1651,57 +1798,61 @@ static ia32_entry sseMap[][4] = {
 static ia32_entry ssegrpMap[][2] = {
   /* G12SSE010B */
   {
-    { "psrlw", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psrlw", t_done, 0, true, { Pdq, Ib, Zz }, 0 }
+    { "psrlw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psrlw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE100B */
   {
-    { "psraw", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psraw", t_done, 0, true, { Pdq, Ib, Zz }, 0 }
+    { "psraw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psraw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE110B */
   {
-    { "psllw", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psllw", t_done, 0, true, { Pdq, Ib, Zz }, 0 }
+    { "psllw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psllw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE010B */
   {
-    { "psrld", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psrld", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { "psrld", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psrld", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE100B */
   {
-    { "psrad", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psrad", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { "psrad", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psrad", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE110B */
   {
-    { "pslld", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "pslld", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { "pslld", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "pslld", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE010B */
   {
-    { "psrlq", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psrlq", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { "psrlq", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psrlq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE011B */
   {
-    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-    { "psrldq", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { "psrldq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE110B */
   {
-    { "psllq", t_done, 0, true, { Pq, Ib, Zz }, 0 },
-    { "psllq", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { "psllq", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { "psllq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE111B */
   {
-    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0 },
-    { "pslldq", t_done, 0, true, { Wdq, Ib, Zz }, 0 }
+    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { "pslldq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   }
 };
 
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char* addr);
+
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
+                                      const unsigned char* addr,
+                                      ia32_memacc* macadr = NULL);
+
 
 #if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
@@ -1714,6 +1865,9 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   unsigned int table, nxtab;
   unsigned int idx, sseidx = 0;
   ia32_entry *gotit = NULL;
+
+  if(capa & IA32_DECODE_MEMACCESS)
+    assert(instruct.mac != NULL);
 
   ia32_decode_prefixes(addr, pref);
   instruct.size = pref.getCount();
@@ -1755,9 +1909,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       unsigned int reg  = (addr[0] >> 3) & 7;
       if(idx < Grp12)
         switch(idx) {
-        case Grp1:
         case Grp2:
-        case Grp8:
         case Grp11:
           // leave table unchanged because operands are in not defined in group map
           nxtab = groupMap[idx][reg].otable;
@@ -1770,6 +1922,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       else {
         unsigned int mod = addr[0] >> 6;
         gotit = &groupMap2[idx-Grp12][mod==3][reg];
+        nxtab = gotit->otable;
       }
       break;
     }
@@ -1777,14 +1930,16 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       sseidx >>= 1;
       idx = gotit->tabidx;
       gotit = &ssegrpMap[idx][sseidx];
+      nxtab = gotit->otable;
       break;
     case t_coprocEsc:
       instruct.legacy_type = 0;
-      return ia32_decode_FP(pref, addr, instruct);
+      return ia32_decode_FP(idx, pref, addr, instruct, instruct.mac);
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table
       instruct.size += 1;
+      nxtab = t_done;
       break;
     case t_ill:
       instruct.legacy_type = ILLEGAL;
@@ -1795,49 +1950,367 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   }
 
   // addr points after the opcode, and the size has been adjusted accordingly
-  // also the SSE index is set; now 'table' points to the correct instruction map
 
   assert(gotit != NULL);
   instruct.legacy_type = gotit->legacyType;
 
-  ia32_decode_operands(pref, *gotit, addr, instruct); // all but FP
+  ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
 
+  if(capa & IA32_DECODE_MEMACCESS) {
+    int sema = gotit->opsema & ((1<<FPOS)-1);
+    int hack = gotit->opsema >> FPOS;
+    switch(sema) {
+    case sNONE:
+      break;
+    case s1R:
+      instruct.mac[0].read = true;
+      break;
+    case s1W:
+      instruct.mac[0].write = true;
+      break;
+    case s1RW:
+      instruct.mac[0].read = true;
+      instruct.mac[0].write = true;
+      break;
+    case s1R2R:
+      instruct.mac[0].read = true;
+      instruct.mac[1].read = true;
+      break;
+    case s1W2R:
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      break;
+    case s1RW2R:
+      instruct.mac[0].read = true;
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      break;
+    case s1RW2RW:
+      instruct.mac[0].read = true;
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      instruct.mac[1].write = true;
+      break;
+    case s1W2R3R:
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1W2W3R:
+      instruct.mac[0].write = true;
+      instruct.mac[1].write = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1W2RW3R:
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      instruct.mac[1].write = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1W2R3RW:
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      instruct.mac[2].read = true;
+      instruct.mac[2].write = true;
+      break;
+    case s1RW2R3R:
+      instruct.mac[0].read = true;
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1RW2RW3R:
+      instruct.mac[0].write = true;
+      instruct.mac[0].read = true;
+      instruct.mac[1].read = true;
+      instruct.mac[1].write = true;
+      instruct.mac[2].read = true;
+      break;
+    }
+  }
   return instruct;
 }
 
 #if !defined(i386_unknown_nt4_0) || _MSC_VER >= 1300 
 // MS VS 6.0 compiler gives internal compiler error on this
 template ia32_instruction& ia32_decode<0>(const unsigned char* addr, ia32_instruction& instruct);
+template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS>(const unsigned char* addr, ia32_instruction& instruct);
 #endif
 
-ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
-                                 ia32_instruction& instruct)
+ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
+                                 const unsigned char* addr, ia32_instruction& instruct,
+                                 ia32_memacc *mac = NULL)
 {
   unsigned int nib = byteSzB; // modRM
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
+  unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
 
   if (addr[0] <= 0xBF) { // modrm
-    nib += ia32_decode_modrm(addrSzAttr, addr);
-  }
+    nib += ia32_decode_modrm(addrSzAttr, addr, mac);
+    // operand size has to be determined from opcode
+    if(mac)
+      switch(opcode) {
+      case 0xD8: // all single real
+        mac->size = 4;
+        mac->read = true;
+        break;
+      case 0xD9: {
+        unsigned char modrm = addr[0];
+        unsigned char reg = (modrm >> 3) & 7;
+        switch(reg) {
+        case 0:
+          mac->size = 4;
+          mac->read = true;
+          break;
+        case 2:
+        case 3:
+          mac->size = 4;
+          mac->write = true;
+          break;
+        case 1:
+          instruct.legacy_type = ILLEGAL;
+          break;
+        case 4:
+          mac->size = 14 * operSzAttr;
+          mac->read = true;
+          break;
+        case 5:
+        mac->read = true;
+        mac->size = 2;
+        break;
+        case 6:
+          mac->size = 14 * operSzAttr;
+          mac->write = true;
+          break;
+        case 7:
+          mac->write = true;
+          mac->size = 2;
+          break;
+        }
+        break; }
+      case 0xDA:  // all double real
+        mac->size = 8;
+        mac->read = true;
+        break;
+      case 0xDB: {
+        unsigned char modrm = addr[0];
+        unsigned char reg = (modrm >> 3) & 7;
+        switch(reg) {
+        case 0:
+          mac->size = dwordSzB;
+          mac->read = true;
+          break;
+        case 2:
+        case 3:
+          mac->size = dwordSzB;
+          mac->write = true;
+          break;
+        case 1:
+        case 4:
+        case 6:
+          instruct.legacy_type = ILLEGAL;
+          break;
+        case 5:
+          mac->size = 10; // extended real
+          mac->read = true;
+          break;
+        case 7:
+          mac->size = 10; // extended real
+          mac->write = true;
+          break;
+        }
+        break; }
+      case 0xDC:   // all double real
+        mac->size = 8;
+        mac->read = true;
+        break;
+      case 0xDD: {
+        unsigned char modrm = addr[0];
+        unsigned char reg = (modrm >> 3) & 7;
+        switch(reg) {
+        case 0:
+          mac->size = 8;
+          mac->read = true;
+          break;
+        case 2:
+        case 3:
+          mac->size = 8;
+          mac->write = true;
+          break;
+        case 1:
+        case 5:
+          instruct.legacy_type = ILLEGAL;
+          break;
+        case 4:
+          mac->size = operSzAttr == 2 ? 108 : 98;
+          mac->read = true;
+          break;
+        case 6:
+          mac->size = operSzAttr == 2 ? 108 : 98;
+          mac->write = true;
+          break;
+        case 7:
+          mac->size = 2;
+          mac->write = true;
+          break;    
+        }
+        break; }
+      case 0xDE: // all word integer
+        mac->size = wordSzB;
+        mac->write = true;
+        break;
+      case 0xDF: {
+        unsigned char modrm = addr[0];
+        unsigned char reg = (modrm >> 3) & 7;
+        switch(reg) {
+        case 0:
+          mac->size = wordSzB;
+          mac->read = true;
+          break;
+        case 2:
+        case 3:
+          mac->size = wordSzB;
+          mac->write = true;
+          break;
+        case 1:
+          instruct.legacy_type = ILLEGAL;
+          break;
+        case 4:
+          mac->size = 10;
+          mac->read = true;
+          break;
+        case 5:
+          mac->size = 8;
+          mac->read = true;
+          break;
+        case 6:
+          mac->size = 10;
+          mac->write = true;
+          break;
+        case 7:
+          mac->size = 8;
+          mac->write = true;
+          break;
+        }
+        break; }
+      } // switch(opcode)
+  } // if modrm
+  
   instruct.size += nib;
 
   return instruct;
 }
 
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char* addr)
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
+                                      const unsigned char* addr,
+                                      ia32_memacc* macadr = NULL)
 {
   unsigned char modrm = addr[0];
   unsigned char mod = modrm >> 6;
   unsigned char rm  = modrm & 7;
   //unsigned char reg = (modrm >> 3) & 7;
+  ++addr;
 
   if(addrSzAttr == 1) { // 16-bit, cannot have SIB
+    //fprintf(stderr, "16bit addr!\n");
     switch(mod) {
     case 0:
+      //fprintf(stderr, "16bit addr - case 0, rm = %d!\n", rm);
+      if(macadr)
+        switch (rm) {
+        case 0: // [BX+SI]
+          macadr->set16(mBX, mSI, 0);
+          break;
+        case 1:
+          macadr->set16(mBX, mDI, 0);
+          break;
+        case 2:
+          macadr->set16(mBP, mSI, 0);
+          break;
+        case 3:
+          macadr->set16(mBP, mDI, 0);
+          break;
+        case 4:
+          macadr->set16(mSI, -1, 0);
+          break;
+        case 5:
+          macadr->set16(mDI, -1, 0);
+          break;
+        case 6: { // disp16
+          const short int *pdisp16 = (const short int*)addr;
+          //disp16 = (short)addr[0] + ((short)addr[1]) << 8;
+          //fprintf(stderr, "16bit addr - case6!\n");
+          macadr->set16(-1, -1, *pdisp16);
+          break; }
+        case 7:
+          macadr->set16(mBX, -1, 0);
+          break;
+        }
       return rm==6 ? wordSzB : 0;
     case 1:
+      fprintf(stderr, "16bit addr - case1!\n");
+      if(macadr) {
+        const char *pdisp8 = (const char*)addr;
+        switch (rm) {
+        case 0: 
+          macadr->set16(mBX, mSI, *pdisp8);
+          break;
+        case 1:
+          macadr->set16(mBX, mDI, *pdisp8);
+          break;
+        case 2:
+          macadr->set16(mBP, mSI, *pdisp8);
+          break;
+        case 3:
+          macadr->set16(mBP, mDI, *pdisp8);
+          break;
+        case 4:
+          macadr->set16(mSI, -1, *pdisp8);
+          break;
+        case 5:
+          macadr->set16(mDI, -1, *pdisp8);
+          break;
+        case 6:
+          macadr->set16(mBP, -1, *pdisp8);
+          break;
+        case 7:
+          macadr->set16(mBX, -1, *pdisp8);
+          break;
+        }
+      }
       return byteSzB;
     case 2:
+      fprintf(stderr, "16bit addr - case2!\n");
+      if(macadr) {
+        const short int *pdisp16 = (const short int*)addr;
+        switch (rm) {
+        case 0: 
+          macadr->set16(mBX, mSI, *pdisp16);
+          break;
+        case 1:
+          macadr->set16(mBX, mDI, *pdisp16);
+          break;
+        case 2:
+          macadr->set16(mBP, mSI, *pdisp16);
+          break;
+        case 3:
+          macadr->set16(mBP, mDI, *pdisp16);
+          break;
+        case 4:
+          macadr->set16(mSI, -1, *pdisp16);
+          break;
+        case 5:
+          macadr->set16(mDI, -1, *pdisp16);
+          break;
+        case 6:
+          macadr->set16(mBP, -1, *pdisp16);
+          break;
+        case 7:
+          macadr->set16(mBX, -1, *pdisp16);
+          break;
+        }
+      }
+
       return wordSzB;
     case 3:
       return 0; // register
@@ -1851,21 +2324,121 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
     bool hassib = rm == 4;
     unsigned int nsib = 0;
     unsigned char sib;
-    unsigned char base = 0;
+    int base = 0, scale, index;
     if(hassib) {
       nsib = byteSzB;
-      sib = addr[1];
+      sib = addr[0];
+      ++addr;
       base = sib & 7;
+      if(macadr) {
+        scale = sib >> 6;
+        index = (sib >> 3) & 7;
+        if(index == 4)
+          index = -1;
+      }
     }
     switch(mod) {
     case 0: {
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) rm == 4 && base == 5 */
       unsigned char check5 = hassib ? base : rm;
+      if(macadr)
+        switch (rm) {
+        case 0:
+          macadr->set32(mEAX, 0);
+          break;
+        case 1:
+          macadr->set32(mECX, 0);
+          break;
+        case 2:
+          macadr->set32(mEDX, 0);
+          break;
+        case 3:
+          macadr->set32(mEBX, 0);
+          break;
+        case 4:
+          if(base == 5) { // disp32[index<<scale]
+            const int *pdisp32 = (const int*)addr;
+            macadr->set32sib(-1, scale, index, *pdisp32);
+          }
+          else
+            macadr->set32sib(base, scale, index, 0);
+          break;
+        case 5: { // disp32
+          const int *pdisp32 = (const int*)addr;
+          macadr->set32(-1, *pdisp32);
+          break; }
+        case 6:
+          macadr->set32(mESI, 0);
+          break;
+        case 7:
+          macadr->set32(mEDI, 0);
+          break;
+        }
       return nsib + ((check5 == 5) ? dwordSzB : 0);
     }
     case 1:
+      if(macadr) {
+        const char *pdisp8 = (const char*)addr;
+        switch (rm) {
+        case 0:
+          macadr->set32(mEAX, *pdisp8);
+          break;
+        case 1:
+          macadr->set32(mECX, *pdisp8);
+          break;
+        case 2:
+          macadr->set32(mEDX, *pdisp8);
+          break;
+        case 3:
+          macadr->set32(mEBX, *pdisp8);
+          break;
+        case 4:
+          // disp8[EBP + index<<scale] happens naturally here when base=5
+          macadr->set32sib(base, scale, index, *pdisp8);
+          break;
+        case 5:
+          macadr->set32(mEBP, *pdisp8);
+          break;
+        case 6:
+          macadr->set32(mESI, *pdisp8);
+          break;
+        case 7:
+          macadr->set32(mEDI, *pdisp8);
+          break;
+        }
+      }
       return nsib + byteSzB;
     case 2:
+      if(macadr) {
+        const int *pdisp32 = (const int*)addr;
+        switch (rm) {
+        case 0:
+          macadr->set32(mEAX, *pdisp32);
+          break;
+        case 1:
+          macadr->set32(mECX, *pdisp32);
+          break;
+        case 2:
+          macadr->set32(mEDX, *pdisp32);
+          break;
+        case 3:
+          macadr->set32(mEBX, *pdisp32);
+          break;
+        case 4:
+          // disp32[EBP + index<<scale] happens naturally here when base=5
+          macadr->set32sib(base, scale, index, *pdisp32);
+          break;
+        case 5:
+          macadr->set32(mEBP, *pdisp32);
+          break;
+        case 6:
+          macadr->set32(mESI, *pdisp32);
+          break;
+        case 7:
+          macadr->set32(mEDI, *pdisp32);
+          break;
+        }
+      }
       return nsib + dwordSzB;
     default:
       assert(0);
@@ -1875,10 +2448,62 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
 }
 
 
-unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
-                                   const unsigned char* addr, ia32_instruction& instruct)
+static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 {
-  unsigned int nib = 0; /* # of bytes in instruction */
+  switch(optype) {
+  case op_a:
+    return 2 * wordSzB * operSzAttr;
+  case op_b:
+    return byteSzB;
+  case op_c:
+    assert(!"Where is this used, Intel?");
+    return byteSzB * operSzAttr;
+  case op_d:
+    return dwordSzB;
+  case op_dq:
+    return dqwordSzB;
+  case op_p:
+    return wordSzB + wordSzB * operSzAttr; // XXX book says operand size...
+  case op_pd:  // Intel "forgot" to define this in book, but uses it
+    return dqwordSzB;
+  case op_pi:
+    return qwordSzB;
+  case op_ps:
+    return dqwordSzB;
+  case op_q:
+    return qwordSzB;
+  case op_s:
+    return 6;
+  case op_sd:  // another Intel amnesia case
+    return qwordSzB;
+  case op_ss:
+    return dwordSzB;
+  case op_si:
+    assert(!"Where is this used, Intel?");
+    return dwordSzB;
+  case op_v:
+    return wordSzB * operSzAttr;
+  case op_w:
+    return wordSzB;
+  case op_lea:
+    assert(!"Should not be evaluated");
+    return 0;
+  case op_allgprs:
+    return 8 * wordSzB * operSzAttr;
+  case op_512:
+    return 512;
+  default:
+    assert(!"No such type");
+    return -1;
+  }
+}
+
+
+unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
+                                   const unsigned char* addr, ia32_instruction& instruct,
+                                   ia32_memacc *mac = NULL)
+{
+  unsigned int nib = 0 /* # of bytes in instruction */;
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
   unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
 
@@ -1888,11 +2513,25 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
   for(unsigned int i=0; i<3; ++i) {
     const ia32_operand& op = gotit.operands[i];
     if(op.admet) {
+      // At most two operands can be memory, the third is register or immediate
+      //assert(i<2 || op.admet == am_reg || op.admet == am_I);
       switch(op.admet) {
       case am_A: /* address = segment + offset (word or dword) */
         nib += wordSzB;
+        if(mac)
+          fprintf(stderr, "IA32: segment selector ignored [am_A].\n");
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;
+        if(mac) {
+          int offset;
+          assert(addrSzAttr < 3);
+          if(addrSzAttr == 1) // 16-bit offset
+            offset = *((const short int*)addr);
+          else // 32-bit offset
+            offset = *((const int*)addr);
+          mac[i].set32(-1, offset);
+          mac[i].size = type2size(op.optype, operSzAttr);
+        }
         break;
       case am_C:   /* control register */
       case am_D:   /* debug register */
@@ -1904,29 +2543,45 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_T:   /* test register */
       case am_V:   /* XMM register */
       case am_reg: /* register implicitely encoded in opcode */
+      case am_allgprs:
         break;
       case am_E: /* register or memory location, so decoding needed */
       case am_M: /* memory operand, decoding needed; size includes modRM byte */
       case am_Q: /* MMX register or memory location */
       case am_W: /* XMM register or memory location */
-        nib += ia32_decode_modrm(addrSzAttr, addr);
+        if(mac) {
+          nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i]);
+          mac[i].size = type2size(op.optype, operSzAttr);
+        }
+        else
+          nib += ia32_decode_modrm(addrSzAttr, addr);
         break;
       case am_I: /* immediate data */
       case am_J: /* instruction pointer offset */
-        switch(op.optype) {
-        case op_b:
-          nib += byteSzB;
-          break;
-        case op_v:
-          nib += wordSzB * operSzAttr;
-          break;
-        case op_w:
-          nib += wordSzB;
+        nib += type2size(op.optype, operSzAttr);
+        break;
+      /* TODO: rep prefixes, deal with them here? */
+      case am_X: /* memory at DS:(E)SI*/
+        if(mac)
+          mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr == 1);
+        break;
+      case am_Y: /* memory at ES:(E)DI*/
+        if(mac)
+          mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr == 1);
+        break;
+      case am_stackH: /* stack push */
+        if(mac) {
+          // assuming 32-bit stack segment
+          mac[i].set32(mESP, -2 * operSzAttr);
+          mac[i].size = type2size(op.optype, operSzAttr);
         }
         break;
-        /* Don't forget these... */
-      case am_X: /* memory at DS:(E)SI*/
-      case am_Y: /* memory at ES:(E)DI*/
+      case am_stackP: /* stack pop */
+        if(mac) {
+          // assuming 32-bit stack segment
+          mac[i].set32(mESP, 0);
+          mac[i].size = type2size(op.optype, operSzAttr);
+        }
         break;
       default:
         assert(0);

@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.14 2002/08/02 22:36:37 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.15 2002/08/04 17:29:52 gaburici Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -430,10 +430,25 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 			BPatch_point ** alternative, BPatch_function * bpf ) { return NULL; assert( 0 ); }
 
 /* Required by ast.C */
-void emitASload( BPatch_addrSpec_NP as, Register dest, char * baseInsn,
-			Address & base, bool noCost ) { assert( 0 ); }
+void emitASload(BPatch_addrSpec_NP as, Register dest, char * baseInsn,
+                Address & base, bool noCost)
+{
+  assert( 0 );
+}
+
+void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  emitASload(as, dest, baseInsn, base, noCost);
+}
+
+/* FIXME: who actually needs this?
+   ANSWER: The above two are needed by memory instrumentation.
+   They can be safely ignored until that is implemented.
+*/
 
 /* Required by func-reloc.C */
+
 bool PushEIP::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 		Address newBaseAdr, Address & newAdr,
 		instruction oldInstructions[], instruction newInstructions[],

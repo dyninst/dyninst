@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.109 2002/06/26 21:14:47 schendel Exp $
+ * $Id: inst-x86.C,v 1.110 2002/08/04 17:29:53 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -158,10 +158,10 @@ public:
 /****************************************************************************/
 /****************************************************************************/
 
-void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm,
-		   unsigned char * & insn );
-void emitMovImmToMem( Address maddr, int imm,
-		      unsigned char * & insn );
+static void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm,
+                          unsigned char * & insn );
+static void emitMovImmToMem( Address maddr, int imm,
+                             unsigned char * & insn );
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1077,16 +1077,16 @@ void initTramps()
 }
 
 
-void emitJump(unsigned disp32, unsigned char *&insn);
-void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
-void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
-void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
-void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
-void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
-void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
-void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
+static void emitJump(unsigned disp32, unsigned char *&insn);
+static void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
+static void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
+static void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
+static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
+static void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
+static void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
+static void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
-void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
+static void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
                  unsigned char *&insn);
 
 
@@ -1141,53 +1141,67 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 	3. Trap instruction.
      */
 
-     /* Ordinary 5-byte jump */
-     if (point->size() >= JUMP_REL32_SZ) {
-	  // replace instructions at point with jump to base tramp
-	  emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);
-	  return JUMP_REL32_SZ;
-     } 
+  // VG(7/29/02): Added sequence to pad the rest of the point with nops
+  // This is vital if one has to debug the instrumented mutatee...
 
-     /* Extra slot */
-     if (point->canUseExtraSlot(proc)) {
-	  pd_Function *f = point->func();
-	  const instPoint *the_entry = f->funcEntry(proc);
+  int wrote = 0;
 
-	  int displacement = the_entry->jumpAddr() + 5 - point->jumpAddr();
-	  assert(displacement < 0);
-	  assert((displacement-2) > SCHAR_MIN);
-	  assert(point->size() >= 2);
+  /* Ordinary 5-byte jump */
+  if (point->size() >= JUMP_REL32_SZ) {
+    // replace instructions at point with jump to base tramp
+    emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);
+    wrote = JUMP_REL32_SZ;
+  }
+  /* Extra slot */
+  else if (point->canUseExtraSlot(proc)) {
+    pd_Function *f = point->func();
+    const instPoint *the_entry = f->funcEntry(proc);
+    
+    int displacement = the_entry->jumpAddr() + 5 - point->jumpAddr();
+    assert(displacement < 0);
+    assert((displacement-2) > SCHAR_MIN);
+    assert(point->size() >= 2);
 #ifdef INST_TRAP_DEBUG
-          cerr << "Using extra slot in entry of " << f->prettyName()
-               << " to avoid need for trap @" << (void*)point->address() << endl;
+    cerr << "Using extra slot in entry of " << f->prettyName()
+         << " to avoid need for trap @" << (void*)point->address() << endl;
 #endif
-
-	  instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
-	  returnInstance *retInstance;
-
-	  trampTemplate *entryBase =
-	      findAndInstallBaseTramp(proc, nonConstEntry,
-				      retInstance, false, false, deferred);
-	  assert(entryBase);
-	  if (retInstance) {
-	      retInstance->installReturnInstance(proc);
-	  }
-	  generateBranch(proc, the_entry->jumpAddr()+imageBaseAddr+5, baseAddr);
-	  *insn++ = 0xEB;
-	  *insn++ = (char)(displacement-2);
-	  return 2;
-     } 
-
-     /* Trap */
+    
+    instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
+    returnInstance *retInstance;
+    
+    trampTemplate *entryBase =
+      findAndInstallBaseTramp(proc, nonConstEntry,
+                              retInstance, false, false, deferred);
+    assert(entryBase);
+    if (retInstance) {
+      retInstance->installReturnInstance(proc);
+    }
+    generateBranch(proc, the_entry->jumpAddr()+imageBaseAddr+5, baseAddr);
+    *insn++ = 0xEB;
+    *insn++ = (char)(displacement-2);
+    wrote = 2;
+  }
+  else { /* Trap */
 #ifdef INST_TRAP_DEBUG
-     cerr << "Warning: unable to insert jump in function " 
-	  << point->func()->prettyName() << " @" << (void*)point->address()
-	  << ". Using trap!" << endl;
+    cerr << "Warning: unable to insert jump in function " 
+         << point->func()->prettyName() << " @" << (void*)point->address()
+         << ". Using trap!" << endl;
 #endif
-     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
-	  return 0;
-     *insn++ = 0xCC;
-     return 1;
+    if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
+      return 0;
+    *insn++ = 0xCC;
+    wrote = 1;
+  }
+  
+  // VG(8/4/2): For reasons yet to be determined, this breaks test1 (on x86)
+  // So don't enable it unless you are working on test6/memory instrumentation
+#ifdef IA32_NOP_PADDING
+   for(int rest = point->size() - wrote; rest > 0; --rest, ++insn)
+     *insn = 0x90;
+   return point->size();
+#else
+  return wrote;
+#endif
 }
 
 /****************************************************************************/
@@ -1878,8 +1892,15 @@ bool doNotOverflow(int)
 
 
 /* build the MOD/RM byte of an instruction */
-inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM) {
+static inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM)
+{
   return ((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7);
+}
+
+// VG(7/30/02): Build the SIB byte of an instruction */
+static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index, unsigned Base)
+{
+  return ((Scale & 0x3) << 6) + ((Index & 0x7) << 3) + (Base & 0x7);
 }
 
 /* 
@@ -1888,8 +1909,9 @@ inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM) {
    disp is a displacement
    reg_opcode is either a register or an opcode
 */
-void emitAddressingMode(Register base, RegValue disp, int reg_opcode, 
-                        unsigned char *&insn) {
+static inline void emitAddressingMode(Register base, RegValue disp, int reg_opcode, 
+                                      unsigned char *&insn)
+{
   assert(base != ESP);
   if (base == Null_Register) {
     *insn++ = makeModRMbyte(0, reg_opcode, 5);
@@ -1907,15 +1929,56 @@ void emitAddressingMode(Register base, RegValue disp, int reg_opcode,
   }
 }
 
+// VG(7/30/02): emit a fully fledged addressing mode: base+index<<scale+disp
+static inline void emitAddressingMode(Register base, Register index, unsigned int scale,
+                                      RegValue disp, int reg_opcode, unsigned char *&insn)
+{
+  bool needSIB = (base == ESP) || (index != Null_Register);
+
+  if(!needSIB) {
+    emitAddressingMode(base, disp, reg_opcode, insn);
+    return;
+  }
+
+  assert(index != ESP);
+
+  if(index == Null_Register) {
+    assert(base == ESP); // not necessary, but sane
+    index = 4;           // (==ESP) which actually means no index in SIB
+  }
+
+  if(base == Null_Register) { // we have to emit [index<<scale+disp32]
+    *insn++ = makeModRMbyte(0, reg_opcode, 4);
+    *insn++ = makeSIBbyte(scale, index, 5);
+    *((int *)insn) = disp;
+    insn += sizeof(int);
+  }
+  else if(disp == 0 && base != EBP) { // EBP must have 0 disp8; emit [base+index<<scale]
+    *insn++ = makeModRMbyte(0, reg_opcode, 4);
+    *insn++ = makeSIBbyte(scale, index, base);
+  }
+  else if (disp >= -128 && disp <= 127) { // emit [base+index<<scale+disp8]
+    *insn++ = makeModRMbyte(1, reg_opcode, 4);
+    *insn++ = makeSIBbyte(scale, index, base);
+    *((char *)insn++) = (char) disp;
+  }
+  else { // emit [base+index<<scale+disp32]
+    *insn++ = makeModRMbyte(2, reg_opcode, 4);
+    *insn++ = makeSIBbyte(scale, index, base);
+    *((int *)insn) = disp;
+    insn += sizeof(int);
+  }
+}
+
 
 /* emit a simple one-byte instruction */
-void emitSimpleInsn(unsigned op, unsigned char *&insn) {
+static inline void emitSimpleInsn(unsigned op, unsigned char *&insn) {
   *insn++ = op;
 }
 
 // emit a simple register to register instruction: OP dest, src
 // opcode is one or two byte
-void emitOpRegReg(unsigned opcode, Register dest, Register src,
+static inline void emitOpRegReg(unsigned opcode, Register dest, Register src,
                   unsigned char *&insn) {
   if (opcode <= 0xFF)
     *insn++ = opcode;
@@ -1928,7 +1991,7 @@ void emitOpRegReg(unsigned opcode, Register dest, Register src,
 }
 
 // emit OP reg, r/m
-void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
+static inline void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
                  unsigned char *&insn) {
   if (opcode <= 0xff) {
     *insn++ = opcode;
@@ -1940,14 +2003,14 @@ void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
 }
 
 // emit OP r/m, reg
-void emitOpRMReg(unsigned opcode, Register base, int disp, Register src,
+static inline void emitOpRMReg(unsigned opcode, Register base, int disp, Register src,
                  unsigned char *&insn) {
   *insn++ = opcode;
   emitAddressingMode(base, disp, src, insn);
 }
 
 // emit OP reg, imm32
-void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn) {
+static inline void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn) {
   *insn++ = 0x81;
   *insn++ = makeModRMbyte(3, opcode, dest);
   *((int *)insn) = imm;
@@ -1966,8 +2029,8 @@ void emitOpRMImm(unsigned opcode, Register base, int disp, int imm,
 */
 
 // emit OP r/m, imm32
-void emitOpRMImm(unsigned opcode1, unsigned opcode2,
-		 Register base, int disp, int imm, unsigned char *&insn) {
+static inline void emitOpRMImm(unsigned opcode1, unsigned opcode2,
+                               Register base, int disp, int imm, unsigned char *&insn) {
   *insn++ = opcode1;
   emitAddressingMode(base, disp, opcode2, insn);
   *((int *)insn) = imm;
@@ -1975,16 +2038,16 @@ void emitOpRMImm(unsigned opcode1, unsigned opcode2,
 }
 
 // emit OP r/m, imm8
-void emitOpRMImm8(unsigned opcode1, unsigned opcode2,
-		 Register base, int disp, char imm, unsigned char *&insn) {
+static inline void emitOpRMImm8(unsigned opcode1, unsigned opcode2,
+                                Register base, int disp, char imm, unsigned char *&insn) {
   *insn++ = opcode1;
   emitAddressingMode(base, disp, opcode2, insn);
   *insn++ = imm;
 }
 
 // emit OP reg, r/m, imm32
-void emitOpRegRMImm(unsigned opcode, Register dest,
-		 Register base, int disp, int imm, unsigned char *&insn) {
+static inline void emitOpRegRMImm(unsigned opcode, Register dest,
+                                  Register base, int disp, int imm, unsigned char *&insn) {
   *insn++ = opcode;
   emitAddressingMode(base, disp, dest, insn);
   *((int *)insn) = imm;
@@ -1992,44 +2055,44 @@ void emitOpRegRMImm(unsigned opcode, Register dest,
 }
 
 // emit MOV reg, reg
-void emitMovRegToReg(Register dest, Register src, unsigned char *&insn) {
+static inline void emitMovRegToReg(Register dest, Register src, unsigned char *&insn) {
   *insn++ = 0x8B;
   *insn++ = makeModRMbyte(3, dest, src);
 }
 
 // emit MOV reg, r/m
-void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn) {
+static inline void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn) {
   *insn++ = 0x8B;
   emitAddressingMode(base, disp, dest, insn);
 }
 
 // emit MOV r/m, reg
-void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn) {
+static inline void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn) {
   *insn++ = 0x89;
   emitAddressingMode(base, disp, src, insn);
 }
 
 // emit MOV m, reg
-void emitMovRegToM(int disp, Register src, unsigned char *&insn) {
+static inline void emitMovRegToM(int disp, Register src, unsigned char *&insn) {
   *insn++ = 0x89;
   emitAddressingMode(Null_Register, disp, src, insn);
 }
 
 // emit MOV reg, m
-void emitMovMToReg(Register dest, int disp, unsigned char *&insn) {
+static inline void emitMovMToReg(Register dest, int disp, unsigned char *&insn) {
   *insn++ = 0x8B;
   emitAddressingMode(Null_Register, disp, dest, insn);
 }
 
 // emit MOV reg, imm32
-void emitMovImmToReg(Register dest, int imm, unsigned char *&insn) {
+static inline void emitMovImmToReg(Register dest, int imm, unsigned char *&insn) {
   *insn++ = 0xB8 + dest;
   *((int *)insn) = imm;
   insn += sizeof(int);
 }
 
 // emit MOV r/m32, imm32
-void emitMovImmToRM(Register base, int disp, int imm, unsigned char *&insn) {
+static inline void emitMovImmToRM(Register base, int disp, int imm, unsigned char *&insn) {
   *insn++ = 0xC7;
   emitAddressingMode(base, disp, 0, insn);
   *((int*)insn) = imm;
@@ -2037,7 +2100,7 @@ void emitMovImmToRM(Register base, int disp, int imm, unsigned char *&insn) {
 }
 
 // emit MOV mem32, imm32
-void emitMovImmToMem(Address maddr, int imm, unsigned char *&insn) {
+static inline void emitMovImmToMem(Address maddr, int imm, unsigned char *&insn) {
   *insn++ = 0xC7;
   // emit the ModRM byte: we use a 32-bit displacement for the address,
   // the ModRM value is 0x05
@@ -2050,7 +2113,7 @@ void emitMovImmToMem(Address maddr, int imm, unsigned char *&insn) {
 
 
 // emit Add dword ptr DS:[addr], imm
-void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
+static inline void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
   *insn++ = 0x81;
   *insn++ = 0x05;
   *((unsigned *)insn) = addr;
@@ -2060,7 +2123,7 @@ void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
 }
 
 // emit Add reg, imm32
-void emitAddRegImm32(Register reg, int imm, unsigned char *&insn) {
+static inline void emitAddRegImm32(Register reg, int imm, unsigned char *&insn) {
   *insn++ = 0x81;
   *insn++ = makeModRMbyte(3, 0, reg);
   *((int *)insn) = imm;
@@ -2068,7 +2131,7 @@ void emitAddRegImm32(Register reg, int imm, unsigned char *&insn) {
 }
 
 // emit JUMP rel32
-void emitJump(unsigned disp32, unsigned char *&insn) {
+static inline void emitJump(unsigned disp32, unsigned char *&insn) {
   if ((signed)disp32 >= 0)
     assert (disp32 < unsigned(1<<31));
   else
@@ -2079,7 +2142,7 @@ void emitJump(unsigned disp32, unsigned char *&insn) {
 } 
 
 // emit CALL rel32
-void emitCallRel32(unsigned disp32, unsigned char *&insn) {
+inline void emitCallRel32(unsigned disp32, unsigned char *&insn) {
   *insn++ = 0xE8;
   *((int *)insn) = disp32;
   insn += sizeof(int);
@@ -2131,7 +2194,7 @@ void emitRelOpImm(unsigned op, Register dest, Register src1, int src2imm,
 
 }
 
-void emitEnter(short imm16, unsigned char *&insn) {
+static inline void emitEnter(short imm16, unsigned char *&insn) {
   *insn++ = 0xC8;
   *((short*)insn) = imm16;
   insn += sizeof(short);
@@ -2147,7 +2210,7 @@ Register emitFuncCall(opCode op,
 		      const string &callee, process *proc,
 	              bool noCost, const function_base *calleefunc,
 		      const vector<AstNode *> &ifForks,
-		      const instPoint *location) // FIXME: pass it!
+		      const instPoint *location)
 {
   assert(op == callOp);
   Address addr;
@@ -2173,7 +2236,7 @@ Register emitFuncCall(opCode op,
   for (unsigned u = 0; u < operands.size(); u++)
       srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, ibuf,
 								base, noCost, 
-								ifForks));
+								ifForks, location));
 
   unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;
@@ -2292,12 +2355,87 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 
 
 #ifdef BPATCH_LIBRARY
+// VG(07/30/02): Restore mutatee value of GPR reg to dest (real) GPR
+static inline void restoreGPRtoGPR(Register reg, Register dest, unsigned char *&insn)
+{
+  // NOTE: I don't use emitLoadPreviousStackFrameRegister because it saves
+  // the value to a virtual (stack based) register, which is not what I want!
+  emitMovRMToReg(dest, EBP, SAVED_EAX_OFFSET-(reg<<2), insn); //mov eax, offset[ebp]
+}
+
+// VG(07/30/02): Emit a lea dest, [base + index * scale + disp]; dest is a real GPR
+static inline void emitLEA(Register base, Register index, unsigned int scale,
+                           RegValue disp, Register dest, unsigned char *&insn)
+{
+  *insn++ = 0x8D;
+  emitAddressingMode(base, index, scale, disp, (int)dest, insn);
+}
+
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
+		Address &base, bool /* noCost */)
+{
+  unsigned char *insn = (unsigned char *) (&baseInsn[base]);
+  unsigned char *first = insn;
+
+  // TODO 16-bit registers, rep hacks
+  int imm = as.getImm();
+  int ra  = as.getReg(0);
+  int rb  = as.getReg(1);
+  int sc  = as.getScale();
+
+  bool havera = ra > -1, haverb = rb > -1;
+
+  // VG(7/30/02): given that we use virtual (stack allocated) registers for
+  // our inter-snippet temporaries, I assume all real registers to be fair game.
+  // So, we restore the original registers in EAX and EDX - this allows us to
+  // generate a lea (load effective address instruction) that will make the cpu
+  // do the math for us.
+
+  // assuming 32-bit addressing (for now)
+
+  //fprintf(stderr, "ASLOAD: ra=%d rb=%d sc=%d imm=%d\n", ra, rb, sc, imm);
+
+  if(havera)
+    restoreGPRtoGPR(ra, 0, insn);        // mov eax, [saved_ra]
+
+  if(haverb)
+    restoreGPRtoGPR(rb, 2, insn);        // mov edx, [saved_rb]
+
+  // Emit the lea to do the math for us:
+  // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be restored
+  emitLEA((havera ? 0 : Null_Register), (haverb ? 2 : Null_Register), sc, imm, 0, insn);
+
+  emitMovRegToRM(EBP, -(dest<<2), EAX, insn); // mov (virtual reg) dest, eax
+  
+  base += insn - first;
+}
+
+void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
-  // TODO ...
+  // VG(7/30/02): different from ASload on this platform, no LEA business
+  unsigned char *insn = (unsigned char *) (&baseInsn[base]);
+  unsigned char *first = insn;
+
+  // TODO 16-bit registers, rep hacks
+  int imm = as.getImm();
+  int ra  = as.getReg(0);
+  int rb  = as.getReg(1);
+  int sc  = as.getScale();
+
+  // count is at 1 register or constant or hack (aka pseudoregister)
+  assert((rb == -1) && ((ra == -1) || (imm == 0)) && sc == 0);
+
+  if(imm >= 0)
+    emitMovImmToRM(EBP, -(dest<<2), imm, insn);
+  else if(ra > -1)
+    emitMovRegToRM(EBP, -(dest<<2), ra, insn); // TODO: 16-bit & pseudoregisters
+  else
+    assert(!"What?");
+
+  base += insn - first;
 }
 #endif
 
@@ -3014,11 +3152,11 @@ void emitFuncJump(opCode /*op*/,
 }
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
-					Register dest,
-					char *insn,
-					Address &base,
-					int,
-					bool){
+                                        Register dest,
+                                        char *insn,
+                                        Address &base,
+                                        int,
+                                        bool){
   //Previous stack frame register is stored on the stack,
   //it was stored there at the begining of the base tramp.
 
@@ -3326,7 +3464,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 
     if (curr_addr >= begin_addr && curr_addr < end_addr) { 
 	BPatch_reportError(BPatchSerious, 117,
-			   "instrumentation point conflict");
+			   "instrumentation point conflict (1)");
 	if(alternative)
 	    *alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
 	return NULL;
@@ -3341,7 +3479,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 
 	if (curr_addr >= begin_addr && curr_addr < end_addr) {
 	    BPatch_reportError(BPatchSerious, 117,
-			       "instrumentation point conflict");
+			       "instrumentation point conflict (2)");
 	    if(alternative)
 		    *alternative = proc->findOrCreateBPPoint(bpfunc,exits[i],BPatch_exit);
 	    return NULL;
@@ -3357,7 +3495,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 
 	if (curr_addr >= begin_addr && curr_addr < end_addr) {
 	    BPatch_reportError(BPatchSerious, 117,
-			       "instrumentation point conflict");
+			       "instrumentation point conflict (3)");
 	    if(alternative)
 		    *alternative = proc->findOrCreateBPPoint(bpfunc,calls[i],BPatch_subroutine);
 	    return NULL;

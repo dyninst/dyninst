@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2002/06/14 21:50:11 tlmiller Exp $
+# $Id: Makefile,v 1.12 2002/08/04 17:29:50 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -62,8 +62,6 @@ AS		= /usr/bin/as
 CXXFLAGS	+= -DUSES_ELF32_ONLY
 CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
-
-export NO_OPT_FLAG=foobar
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

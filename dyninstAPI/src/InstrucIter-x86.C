@@ -8,6 +8,7 @@
 #include "common/h/Dictionary.h"
 
 #include "arch.h"
+#include "arch-ia32.h"
 #include "util.h"
 #include "process.h"
 #include "symtab.h"
@@ -105,10 +106,45 @@ void initOpCodeInfo()
 {
 }
 
-/* NOT yet implemented. */
-BPatch_memoryAccess InstrucIter::isLoadOrStore()
+BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-  return BPatch_memoryAccess::none;
+  // TODO 16-bit registers
+
+  int nac = 0;
+
+  ia32_memacc mac[3];
+  ia32_instruction i(mac);
+  const unsigned char* addr = instructionPointers[currentAddress-baseAddress];
+
+  BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
+
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+  ia32_decode(IA32_DECODE_MEMACCESS, addr, i);
+#else
+  ia32_decode<IA32_DECODE_MEMACCESS>(addr, i);
+#endif
+  
+  bool first = true;
+
+  for(int j=0; j<3; ++j) {
+    const ia32_memacc& mac = i.getMac(j);
+    if(mac.is) {
+      if(first) {
+        bmap = new BPatch_memoryAccess(mac.read, mac.write, mac.size, mac.imm,
+                                       mac.regs[0], mac.regs[1], mac.scale);
+        first = false;
+      }
+      else
+        bmap->set2nd(mac.read, mac.write, mac.size, mac.imm,
+                     mac.regs[0], mac.regs[1], mac.scale);
+        
+      // TODO: deal with REP prefixes
+      ++nac;
+    }
+  }
+  assert(nac < 3);
+  
+  return bmap;
 }
 
 

@@ -236,17 +236,21 @@ public:
 // created using a method that attaches that info to the point -
 // e.g. using findPoint(const BPatch_Set<BPatch_opCode>& ops) from
 // BPatch_function.
+
+// VG(7/31/02): Since x86 can have 2 addresses per instruction, there is
+// now parameter for the constructor indicating which of these you want.
+// It defaults to the 1st access (#0).
 class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
 {
 public:
-  BPatch_effectiveAddressExpr();
+  BPatch_effectiveAddressExpr(int _which = 0);
 };
 
 // Number of bytes moved
 class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 {
 public:
-  BPatch_bytesAccessedExpr();
+  BPatch_bytesAccessedExpr(int _which = 0);
 };
 
 #endif /* _BPatch_snippet_h_ */

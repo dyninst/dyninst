@@ -2308,6 +2308,12 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 {
   // TODO ...
 }
+
+void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  emitASload(as, dest, baseInsn, base, noCost);
+}
 #endif
 
 

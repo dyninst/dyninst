@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.111 2002/08/01 18:57:09 tlmiller Exp $
+// $Id: ast.C,v 1.112 2002/08/04 17:29:52 gaburici Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -551,6 +551,39 @@ AstNode::AstNode(operandType ot, void *arg) {
     doTypeCheck = true;
 #endif
 };
+
+// VG(7/31/02): Added for x86 memory instrumentation
+#ifdef BPATCH_LIBRARY
+AstNode::AstNode(operandType ot, int which) : whichMA(which)
+{
+  assert(BPatch::bpatch != NULL);
+  assert(BPatch::bpatch->stdTypes != NULL);
+#if defined(ASTDEBUG)
+  ASTcounterNP();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+  astFlag = false;
+#endif
+  referenceCount = 1;
+  useCount = 0;
+  kept_register = Null_Register;
+  type = operandNode; // I assume this means leaf
+  oType = ot;
+  loperand = roperand = eoperand = NULL;
+  switch(ot) {
+  case EffectiveAddr:
+    bptype = BPatch::bpatch->stdTypes->findType("void *");
+    break;
+  case BytesAccessed:
+    bptype = BPatch::bpatch->stdTypes->findType("int");
+    break;
+  default:
+    assert(!"Naah...");
+  }
+  size = bptype->getSize();
+  doTypeCheck = BPatch::bpatch->isTypeChecked();
+};
+#endif
 
 // to create a newly added type for recognizing offset for locating variables
 
@@ -1553,6 +1586,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	  break;
 	case EffectiveAddr:
 	  // VG(11/05/01): get effective address
+          // VG(07/31/02): take care which one
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
@@ -1563,7 +1597,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  start = ma->getStartAddr();
+          if(whichMA >= ma->getNumberOfAccesses()) {
+            fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
+            fprintf(stderr, "Consider using filterPoints()...\n");
+            assert(0);
+          }
+	  start = ma->getStartAddr(whichMA);
 	  emitASload(start, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
@@ -1581,7 +1620,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
 	    assert(0);
 	  }
-	  count = ma->getByteCount();
+          if(whichMA >= ma->getNumberOfAccesses()) {
+            fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
+            fprintf(stderr, "Consider using filterPoints()...\n");
+            assert(0);
+          }
+	  count = ma->getByteCount(whichMA);
 	  emitCSload(count, dest, insn, base, noCost);
 #else
 	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");

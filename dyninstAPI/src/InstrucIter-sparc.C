@@ -105,13 +105,13 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
 
 #define btst(x, bit) ((x) & (1<<(bit)))
 
-#define MK_LDi0(bytes, rs1, rs2) (BPatch_memoryAccess(true, false, (bytes), 0, (rs1), (rs2)))
-#define MK_STi0(bytes, rs1, rs2) (BPatch_memoryAccess(false, true, (bytes), 0, (rs1), (rs2)))
-#define MK_LDi1(bytes, rs1, simm13) (BPatch_memoryAccess(true, false, (bytes), (simm13), (rs1), -1))
-#define MK_STi1(bytes, rs1, simm13) (BPatch_memoryAccess(false, true, (bytes), (simm13), (rs1), -1))
-#define MK_PFi0(rs1, rs2, f) (BPatch_memoryAccess(false, false, true, 0, (rs1), (rs2), \
+#define MK_LDi0(bytes, rs1, rs2) (new BPatch_memoryAccess(true, false, (bytes), 0, (rs1), (rs2)))
+#define MK_STi0(bytes, rs1, rs2) (new BPatch_memoryAccess(false, true, (bytes), 0, (rs1), (rs2)))
+#define MK_LDi1(bytes, rs1, simm13) (new BPatch_memoryAccess(true, false, (bytes), (simm13), (rs1), -1))
+#define MK_STi1(bytes, rs1, simm13) (new BPatch_memoryAccess(false, true, (bytes), (simm13), (rs1), -1))
+#define MK_PFi0(rs1, rs2, f) (new BPatch_memoryAccess(false, false, true, 0, (rs1), (rs2), \
                                            0, -1, -1, (f)))
-#define MK_PFi1(rs1, simm13, f) (BPatch_memoryAccess(false, false, true, (simm13), (rs1), -1, \
+#define MK_PFi1(rs1, simm13, f) (new BPatch_memoryAccess(false, false, true, (simm13), (rs1), -1, \
                                               0, -1, -1, (f)))
 
 #define MK_LD(bytes, in) (in.rest.i ? MK_LDi1(bytes, in.resti.rs1, in.resti.simm13) : \
@@ -120,15 +120,15 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
                                       MK_STi0(bytes, in.rest.rs1, in.rest.rs2))
 #define MK_MA(bytes, in, load, store) \
           (in.rest.i ? \
-              BPatch_memoryAccess((load), (store), (bytes), in.resti.simm13, in.resti.rs1, -1) \
+              new BPatch_memoryAccess((load), (store), (bytes), in.resti.simm13, in.resti.rs1, -1) \
               : \
-              BPatch_memoryAccess((load), (store), (bytes), 0, in.rest.rs1, in.rest.rs2))
+              new BPatch_memoryAccess((load), (store), (bytes), 0, in.rest.rs1, in.rest.rs2))
 #define MK_PF(in) (in.rest.i ? MK_PFi1(in.resti.rs1, in.resti.simm13, in.resti.rd) : \
                                MK_PFi0(in.rest.rs1, in.rest.rs2, in.rest.rd))
 
+
 // VG(09/20/01): SPARC V9 decoding after the architecture manual.
-// One can see this a Huffman tree...
-BPatch_memoryAccess InstrucIter::isLoadOrStore()
+BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
   const instruction i = getInstruction();
 
@@ -164,7 +164,7 @@ BPatch_memoryAccess InstrucIter::isLoadOrStore()
         // the address should always be a doubleword on V9...
         unsigned int b = btst(op3, 1) ? 8 : 4;
         // VG(12/08/01): CAS(X)A uses rs2 as value not address...
-        return BPatch_memoryAccess(true, true, b, 0, i.resti.rs1, -1);
+        return new BPatch_memoryAccess(true, true, b, 0, i.resti.rs1, -1);
       }
     }
     else { // bit 3 zero (1u0xyz) means fp memory op

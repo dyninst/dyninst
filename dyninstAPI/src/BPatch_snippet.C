@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.39 2002/06/27 20:20:31 mirg Exp $
+// $Id: BPatch_snippet.C,v 1.40 2002/08/04 17:29:51 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -915,16 +915,10 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  *
  * Construct a snippet representing an effective address.
  */
-BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr()
+BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 {
-  vector<AstNode *> null_args;
-
-  ast = new AstNode(AstNode::EffectiveAddr, (void *)NULL);
-
-  assert(BPatch::bpatch != NULL);
-  assert(BPatch::bpatch->stdTypes != NULL);
-  ast->setType(BPatch::bpatch->stdTypes->findType("void *"));
-  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+  ast = new AstNode(AstNode::EffectiveAddr, _which);
 };
 
 
@@ -933,14 +927,8 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr()
  *
  * Construct a snippet representing the number of bytes accessed.
  */
-BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr()
+BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
-  vector<AstNode *> null_args;
-
-  ast = new AstNode(AstNode::BytesAccessed, (void *)NULL);
-
-  assert(BPatch::bpatch != NULL);
-  assert(BPatch::bpatch->stdTypes != NULL);
-  ast->setType(BPatch::bpatch->stdTypes->findType("int"));
-  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+  ast = new AstNode(AstNode::BytesAccessed, _which);
 };

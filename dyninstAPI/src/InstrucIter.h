@@ -219,7 +219,7 @@ public:
   bool isACallInstruction();
   bool isAnneal();
   Address getBranchTargetAddress(Address pos);
-  BPatch_memoryAccess isLoadOrStore();
+  BPatch_memoryAccess* isLoadOrStore();
 
 #if defined(rs6000_ibm_aix4_1)
   bool isAIndirectJumpInstruction(InstrucIter);

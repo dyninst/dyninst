@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.7 2002/04/25 22:51:46 gaburici Exp $
+// $Id: test6.C,v 1.8 2002/08/04 17:29:54 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -128,6 +128,17 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
   bpthr->insertSnippet(listXXXCall, *res);
+
+#ifdef i386_unknown_linux2_0
+  BPatch_effectiveAddressExpr eae2(1);
+  BPatch_Vector<BPatch_snippet*> listArgs2;
+  listArgs2.push_back(&eae2);
+
+  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+  
+  const BPatch_Vector<BPatch_point*>* res2 = filterPoints(*res, 2);
+  bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+#endif
 }
 
 void instByteCnt(BPatch_thread* bpthr, const char* fname,
@@ -142,7 +153,18 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 
   BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-  bpthr->insertSnippet(listXXXCall, *res);
+  bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
+
+#ifdef i386_unknown_linux2_0
+  BPatch_bytesAccessedExpr bae2(1);
+  BPatch_Vector<BPatch_snippet*> listArgs2;
+  listArgs2.push_back(&bae2);
+
+  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+  
+  const BPatch_Vector<BPatch_point*>* res2 = filterPoints(*res, 2);
+  bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+#endif
 }
 
 #define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2)))
@@ -151,6 +173,12 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 #define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess(false, false, true, \
                                                   (imm), (rs1), (rs2), \
                                                    0, -1, -1, (f)))
+
+#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), (scale)))
+
+#define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+#define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+
 
 // what we expect to find in the "loadsnstores" function; platform specific
 #ifdef sparc_sun_solaris2_4
@@ -332,7 +360,147 @@ void init_test_data()
 }
 #endif
 
-#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
+#if defined( i386_unknown_linux2_0 )
+const unsigned int nloads = 60;
+const unsigned int nstores = 23;
+const unsigned int nprefes = 0;
+const unsigned int naxses = 78;
+
+BPatch_memoryAccess* loadList[nloads];
+BPatch_memoryAccess* storeList[nstores];
+BPatch_memoryAccess* prefeList[nprefes];
+
+void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+
+void get_vars_addrs(BPatch_image* bip) // from mutatee
+{
+  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
+  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
+  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
+  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
+  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
+
+  divarwp = bpvep_diwarw->getBaseAddr();
+  dfvarsp = bpvep_diwars->getBaseAddr();
+  dfvardp = bpvep_diward->getBaseAddr();
+  dfvartp = bpvep_diwart->getBaseAddr();
+  dlargep = bpvep_dlarge->getBaseAddr();
+}
+
+void init_test_data()
+{
+  int k=-1;
+
+  loadList[++k] = MK_LD(0,0,-1,4);
+  loadList[++k] = MK_LD(0,1,-1,4);
+  loadList[++k] = MK_LD(0,2,-1,4);
+  loadList[++k] = MK_LD(0,3,-1,4);
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
+  loadList[++k] = MK_LD(0,6,-1,4);
+  loadList[++k] = MK_LD(0,7,-1,4);
+
+  loadList[++k] = MK_LD(4,0,-1,4); // l8
+  loadList[++k] = MK_LD(8,1,-1,4);
+  loadList[++k] = MK_LD(4,2,-1,4);
+  loadList[++k] = MK_LD(8,3,-1,4);
+  loadList[++k] = MK_LD(4,5,-1,4);
+  loadList[++k] = MK_LD(8,6,-1,4);
+  loadList[++k] = MK_LD(4,7,-1,4);
+
+  loadList[++k] = MK_LD((int)divarwp-1,0,-1,4); // l15
+  loadList[++k] = MK_LD((int)divarwp+3,1,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+7,2,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+11,3,-1,4);
+  loadList[++k] = MK_LD((int)divarwp-1,5,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+3,6,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+7,7,-1,4);
+
+  loadList[++k] = MK_LD(0,3,6,4); // l22
+  loadList[++k] = MK_LD(0,4,-1,4);
+  loadList[++k] = MK_LDsc(0,3,1,1,4);
+  loadList[++k] = MK_LDsc((int)divarwp,-1,1,1,4);
+  loadList[++k] = MK_LD(4,3,1,4);
+  loadList[++k] = MK_LDsc((int)divarwp,2,2,3,4);
+  loadList[++k] = MK_LDsc(2,5,1,1,4); // l28
+  loadList[++k] = MK_LDsc(4,3,1,2,4);
+  loadList[++k] = MK_LDsc((int)divarwp,5,1,2,4);
+  
+  loadList[++k] = MK_LD(0,4,-1,4);// l31
+  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD2(0,6,-1,1,0,7,-1,1);
+
+  loadList[++k] = MK_LS((int)divarwp,-1,-1,4); // l35
+  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,4);
+//   loadList[++k] = MK_LD((int)divarwp+2,-1,-1,6); // l38
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,1);
+  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4); // l40
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
+
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,8);
+
+  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,16); // l44
+  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,4);
+
+  loadList[++k] = MK_LD((int)dfvardp,-1,-1,16);
+  loadList[++k] = MK_LD((int)dfvardp,-1,-1,8);
+
+  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,8); // l48
+  loadList[++k] = MK_LD((int)dfvarsp+8,-1,-1,8);
+  
+  // FIXME: REP hacks
+  loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
+  
+  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,4);
+  loadList[++k] = MK_LD((int)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((int)dfvartp,-1,-1,10);
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((int)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,8);
+
+  loadList[++k] = MK_LD((int)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((int)dlargep,-1,-1,28);
+
+  loadList[++k] = MK_LD(0,4,-1,4);
+  loadList[++k] = MK_LD(0,4,-1,4);
+  loadList[++k] = MK_LD(0,4,-1,4);
+
+  k=-1;
+
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+  storeList[++k] = MK_ST(-4,4,-1,4);
+
+  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4); // s6
+  storeList[++k] = MK_ST((int)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_LS((int)divarwp,-1,-1,4);
+  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((int)divarwp,-1,-1,4);   // s10
+  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
+
+  storeList[++k] = MK_ST((int)divarwp,-1,-1,8); // s12
+  storeList[++k] = MK_ST(0,7,-1,4);
+  storeList[++k] = MK_ST(0,7,-1,4);
+  storeList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // s15
+  
+  storeList[++k] = MK_ST((int)dfvarsp,-1,-1,4);
+  storeList[++k] = MK_ST((int)dfvardp,-1,-1,8);
+  storeList[++k] = MK_ST((int)dfvartp,-1,-1,10);
+  storeList[++k] = MK_ST((int)divarwp+2,-1,-1,2);
+  storeList[++k] = MK_ST((int)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((int)divarwp+8,-1,-1,8);
+
+  storeList[++k] = MK_ST((int)divarwp,-1,-1,2);
+  storeList[++k] = MK_ST((int)dlargep,-1,-1,28);
+
+}
+#endif
+
+#if defined( ia64_unknown_linux2_4 )
 void init_test_data()
 {
 }
@@ -363,20 +531,69 @@ void init_test_data()
                           fprintf(stderr, "    %s\n", (r)); \
                           exit(1); }
 
-#define dumpvect(res, msg) if(debugPrint) { \
-                             printf("%s: %d\n", msg, res->size()); \
-                             for(unsigned int i=0; i<res->size(); ++i) { \
-                               BPatch_point *bpp = (*res)[i]; \
-                               const BPatch_memoryAccess* ma = bpp->getMemoryAccess(); \
-                               const BPatch_addrSpec_NP& as = ma->getStartAddr_NP(); \
-                               const BPatch_countSpec_NP& cs = ma->getByteCount_NP(); \
-                               printf("%s[%d]: @[r%d+r%d+%d] #[r%d+r%d+%d]\n", msg, i+1, \
-                                      as.getReg(0), as.getReg(1), as.getImm(), \
-                                      cs.getReg(0), cs.getReg(1), cs.getImm()); \
-                             } \
-                           }
 
-bool validate(BPatch_Vector<BPatch_point*>* res, BPatch_memoryAccess* acc[], char* msg)
+static inline void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
+{
+  if(!debugPrint)
+    return;
+
+  printf("%s: %d\n", msg, res->size());
+  for(unsigned int i=0; i<res->size(); ++i) {
+    BPatch_point *bpp = (*res)[i];
+    const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
+    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
+    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
+    if(ma->getNumberOfAccesses() == 1)
+      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+             cs.getReg(0), cs.getReg(1), cs.getImm());
+    else {
+      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
+      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
+      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
+             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+             cs.getReg(0), cs.getReg(1), cs.getImm(),
+             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
+             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
+    }
+  }
+}
+
+
+static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
+{
+  if(!debugPrint)
+    return;
+           
+  printf("%s: %d\n", msg, size);
+
+  for(unsigned int i=0; i<size; ++i) {
+    const BPatch_memoryAccess* ma = exp[i];
+    if(!ma)
+      continue;
+    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
+    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
+    if(ma->getNumberOfAccesses() == 1)
+      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+             cs.getReg(0), cs.getReg(1), cs.getImm());
+    else {
+      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
+      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
+      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
+             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+             cs.getReg(0), cs.getReg(1), cs.getImm(),
+             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
+             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
+    }
+  }
+}
+
+
+static inline bool validate(BPatch_Vector<BPatch_point*>* res,
+                            BPatch_memoryAccess* acc[], char* msg)
 {
   bool ok = true;
 
@@ -385,6 +602,7 @@ bool validate(BPatch_Vector<BPatch_point*>* res, BPatch_memoryAccess* acc[], cha
     ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
     if(!ok) {
       printf("Validation failed at %s #%d.\n", msg, i+1);
+      dumpxpct(acc, res->size(), "Expected");
       return ok;
     }
   }
@@ -396,7 +614,7 @@ bool validate(BPatch_Vector<BPatch_point*>* res, BPatch_memoryAccess* acc[], cha
 void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 1, char* testdesc = "load instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> loads;
@@ -405,7 +623,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", loads);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   dumpvect(res1, "Loads");
 
@@ -424,7 +642,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 2, char* testdesc = "store instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> stores;
@@ -433,7 +651,7 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", stores);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   dumpvect(res1, "Stores");
 
@@ -451,7 +669,7 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 3, char* testdesc = "prefetch instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> prefes;
@@ -460,7 +678,7 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", prefes);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   dumpvect(res1, "Prefetches");
 
@@ -480,7 +698,7 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 4, char* testdesc = "access instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -491,13 +709,13 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
-  dumpvect(res1, "Accesses");
+  //dumpvect(res1, "Accesses");
 
   if((*res1).size() != naxses)
     failtest(testnum, testdesc,
-             "Number of accesses seems wrong in function \"loadsnstores.\"\n");
+             "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
   instCall(bpthr, "Access", res1);
 #endif
@@ -508,7 +726,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5, char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -519,7 +737,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   instEffAddr(bpthr, "EffAddr", res1);
 #endif
@@ -530,7 +748,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 6, char* testdesc = "instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -541,11 +759,11 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
 
   if(!res1)
-    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   if((*res1).size() != naxses)
     failtest(testnum, testdesc,
-             "Number of accesses seems wrong in function \"loadsnstores.\"\n");
+             "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
   instByteCnt(bpthr, "ByteCnt", res1);
 #endif
@@ -603,6 +821,9 @@ void mutatorMAIN(char *pathname)
 
   BPatch_image *bpimg = bpthr->getImage();
 
+#if defined( i386_unknown_linux2_0 )
+  get_vars_addrs(bpimg);
+#endif
   init_test_data();
 
   if (runTest[1]) mutatorTest1(bpthr, bpimg);
@@ -615,7 +836,6 @@ void mutatorMAIN(char *pathname)
   dprintf("starting program execution.\n");
   bpthr->continueExecution();
   //bpthr->detach(false);
-
 
   unsigned int testsFailed = 0;
   for (unsigned int i=1; i <= MAX_TEST; i++) {

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.38 2002/07/31 22:06:35 bernat Exp $
+# $Id: make.module.tmpl,v 1.39 2002/08/04 17:29:50 gaburici Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -38,7 +38,8 @@ LDFLAGS		+= -shared
 LDFLAGS         += $(LIBDIR)
 CFLAGS		+= -fPIC
 CXXFLAGS	+= -fPIC
-TFLAGS		+= -fPIC
+# VG(8/3/2): This is needed so templates get the same debug flags as all other
+TFLAGS		+= $(filter-out -f%,$(CFLAGS)) -fPIC
 endif
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\

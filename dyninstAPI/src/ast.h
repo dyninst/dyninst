@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.56 2002/07/10 17:29:33 mirg Exp $
+// $Id: ast.h,v 1.57 2002/08/04 17:29:52 gaburici Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -305,6 +305,7 @@ class AstNode {
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
+        unsigned int whichMA;       // only for memory access nodes
 #if defined(MT_THREAD)              // for OffsetConstant type for offset
 	bool isLevel;               // true  if lvlOrIdx is level
 	                            // false if lvlOrIdex is idex
@@ -331,6 +332,7 @@ class AstNode {
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
 #ifdef BPATCH_LIBRARY
+	AstNode(operandType ot, int which); // for memory access
 	const BPatch_type *getType() { return bptype; };
 	void		  setType(const BPatch_type *t) { 
 				bptype = t; 

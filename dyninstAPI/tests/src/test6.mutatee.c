@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.12 2002/04/25 22:51:46 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.13 2002/08/04 17:29:54 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,10 +45,10 @@ int doomEA = 0;
 int doomBC = 0;
 
 #ifdef sparc_sun_solaris2_4
-#define loadExp 15
-#define storeExp 13
-#define prefeExp 2
-#define accessExp 26
+/* const */ unsigned int loadExp=15;
+/* const */ unsigned int storeExp=13;
+/* const */ unsigned int prefeExp=2;
+/* const */ unsigned int accessExp=26;
 
 unsigned int bcExp[] = { 4,1,2,8,4,1,1,  4,8,4,  4,4,8,8,16,
                          0,0,  1,2,4,8,  4,8,16,4,8 };
@@ -104,10 +104,10 @@ extern long double dfvarq;
 #endif
 
 #ifdef rs6000_ibm_aix4_1
-#define loadExp 41
-#define storeExp 32
-#define prefeExp 0
-#define accessExp 73
+const unsigned int loadExp=41;
+const unsigned int storeExp=32;
+const unsigned int prefeExp=0;
+const unsigned int accessExp=73;
 
 unsigned int bcExp[] = { 4,  1,1,1,1,  2,2,2,2,  2,2,2,2,  4,4,4,4,
 			 4,4,4,  8,8,8,8,  1,1,1,1,  2,2,2,2,
@@ -179,20 +179,131 @@ extern void* getsp();
 #endif
 
 #if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
-#define loadExp 0
-#define storeExp 0
-#define prefeExp 0
-#define accessExp 1
+unsigned int loadExp=60;
+unsigned int storeExp=23;
+unsigned int prefeExp=0;
+unsigned int accessExp=78;
 
-long loadsnstores(long x, long y, long z)
+struct reduction {
+  unsigned int loadRed;
+  unsigned int storeRed;
+  unsigned int prefeRed;
+  unsigned int axsRed;
+  unsigned int axsShift;
+};
+
+const struct reduction mmxRed = { 2, 1, 0, 3, 48 };
+const struct reduction sseRed = { 2, 0, 0, 2, 51 };
+const struct reduction sse2Red = { 2, 0, 0, 2, 53 };
+const struct reduction amdRed = { 2, 0, 0, 2, 55 };
+
+int eaExpOffset[] =    { 0,0,0,0,  0,0,0,0,0,0,0,  4,8,4,8,4,8,4,  0,
+                         0,4,8,12,0,4,8,  12,0,8,8,8,0,4,8,4,  0,  4,4,4,0,4,0,4,8,0,0,4,0,
+                         0,8,0,  0,0,  0,0,  0,8,  0,12,0,0,  0,0,0,0,4,8,  0,0,0,2,4,8,  0,0,
+                         0,0 };
+
+extern void* eaExp[]; /* forward */
+
+unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
+                         4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4,
+                         4,8,8,  16,4, 16,8, 8,8,  4,4,4,4,   4,8,10,2,4,8, 4,8,10,2,4,8, 2,2,
+                         28,28,  4,4,4 };
+
+extern int ia32features();
+extern int amd_features();
+
+extern int divarw;
+extern float dfvars;
+extern double dfvard;
+extern long double dfvart; // 10 byte hopefully, but it shouldn't matter...
+extern unsigned char dlarge[512];
+
+#define CAP_MMX   (1<<23)
+#define CAP_SSE   (1<<25)
+#define CAP_SSE2  (1<<26)
+#define CAP_3DNOW (1<<31)
+
+void reduce(const struct reduction x)
 {
-  return x + y + z;
+  int i;
+
+  loadExp  -= x.loadRed;
+  storeExp -= x.storeRed;
+  prefeExp -= x.prefeRed;
+
+  for(i=x.axsShift; i<accessExp; ++i)
+    eaExp[i] = eaExp[i+x.axsRed];
+
+  for(i=x.axsShift; i<accessExp; ++i)
+    bcExp[i] = bcExp[i+x.axsRed];
+
+  accessExp -= x.axsRed;
 }
 
-unsigned int bcExp[] = { 0 };
 
 void init_test_data()
 {
+  int caps, i;
+
+  dprintf("&divarw = %p\n", &divarw);
+  dprintf("&dfvars = %p\n", &dfvars);
+  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("&dfvart = %p\n", &dfvart);
+  dprintf("&dlarge = %p\n", &dlarge);
+
+  for(i=4; i<15; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); // skip ebp for now
+  for(i=16; i<18; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=19; i<26; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=26;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=28; i<35; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=36; i<51; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=51; i<53; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  for(i=53; i<55; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  for(i=55; i<57; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  for(i=57; i<60; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=60;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=61;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=62;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=63;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=64; i<67; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=67;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=68;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=69;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=70; i<75; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=75; i<77; ++i)
+    eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+
+  // Order of reductions matters!
+
+  caps = amd_features();
+  if(!(caps & CAP_3DNOW))
+    reduce(amdRed);
+  caps = ia32features();
+  if(!(caps & CAP_SSE2))
+    reduce(sse2Red);
+  if(!(caps & CAP_SSE))
+    reduce(sseRed);
+  if(!(caps & CAP_MMX))
+    reduce(mmxRed);
 }
 #endif
 
@@ -251,10 +362,10 @@ void init_test_data()
 #endif
 
 
-void* eaList[accessExp];
-unsigned int bcList[accessExp];
+void* eaList[1000];
+unsigned int bcList[1000];
 
-void* eaExp[accessExp];
+void* eaExp[1000];
 
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */
 #if !defined(__SUNPRO_C) || (__SUNPRO_C >= 0x530)
@@ -295,7 +406,7 @@ int validateEA(void* ea1[], void* ea2[])
   for(; i<accessExp; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("Validation failed at access #%d.\n", i+1);
+      printf("Validation failed at access #%d. Expecting: %x. Got: %x.\n", i+1, ea1[i], ea2[i]);
       return 0;
     }
   }
@@ -310,7 +421,7 @@ int validateBC(unsigned int bc1[], unsigned int bc2[])
   for(; i<accessExp; ++i) {
     ok = (ok && (bc1[i] == bc2[i]));
     if(!ok) {
-      printf("Validation failed at access #%d.\n", i+1);
+printf("Validation failed at access #%d. Expecting: %d. Got: %d.\n", i+1, bc1[i], bc2[i]);
       return 0;
     }
   }
@@ -344,7 +455,7 @@ void check4()
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(5, "instrumentation w/effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList),
@@ -356,15 +467,11 @@ void check6()
 {
   int i;
 
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
   skiptest(6, "instrumentation w/byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList),
 	     "count accessed bytes snippet", "count sequences are different");
-/*   for(i=0; i<accessExp; ++i) { */
-/*     printf("%d ", bcList[i]); */
-/*   } */
-/*   printf("\n"); */
 #endif
 }
 
@@ -372,6 +479,7 @@ void check6()
 /* functions called by the simple instrumentation points */
 void countLoad()
 {
+  /* fprintf(stderr, "Load!\n"); */
   ++loadCnt;
 }
 
@@ -454,6 +562,11 @@ int main(int iargc, char *argv[])
   }
 
   if (argc==1) exit(0);
+
+  loadCnt = 0;
+  storeCnt = 0;
+  prefeCnt = 0;
+  accessCnt = 0;
 
   result_of_loadsnstores = loadsnstores(2,3,4);
   dprintf("\nresult=0x%x loads=%d stores=%d prefetches=%d accesses=%d\n",
