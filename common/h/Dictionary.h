@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.23 2000/12/01 22:04:36 pcroth Exp $
+// $Id: Dictionary.h,v 1.24 2001/01/04 22:50:22 pcroth Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -73,7 +73,7 @@
  * corresponding to a load factor of 0.7.
  *
  * When adding a new hash table item would break the invariant,
- * #bins is multiplied by bin_grow_factor (another user-settable parameter in ctor),
+ * #bins is multiplied by bin_grow_factor (a compile-time constant),
  * and everything is rehashed (expensive, but not needed often, since growth
  * is exponential).
  * 
@@ -87,13 +87,10 @@ class dictionary_hash {
  public:
    dictionary_hash (unsigned (*hashfunc)(const K &),
                    unsigned int nbins=101,
-                   unsigned int max_bin_load=70,
+                   unsigned int max_bin_load=70
                       // we keep #bins*max_bin_load >= total # items * 100, 
 					  // to make sure that there are enough bins s.t. 
 					  // (assuming a good hash function) collisions are few.
-                   unsigned int bin_grow_factor = 2
-                      // when we need more bins, we grow by this factor
-                      // i.e., new #bins = old #bins * bin_grow_factor
                   );
   ~dictionary_hash () {}
 
@@ -182,7 +179,7 @@ class dictionary_hash {
    //    incrementing #bins (by a factor of bin_grow_factor) if needed to maintain it.
 
    unsigned int max_bin_load;	// percentage of total number of items
-   unsigned int bin_grow_factor;
+   static const unsigned int bin_grow_factor;
 };
 
 // Typical way to use an iterator:

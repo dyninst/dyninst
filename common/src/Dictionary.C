@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,16 +44,17 @@
 #include "common/h/Dictionary.h"
 #include <limits.h> // UINT_MAX
 
+
+template<class K, class V>
+const unsigned int dictionary_hash<K,V>::bin_grow_factor = 2;
+
+
 template<class K, class V>
 dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &),
                                     unsigned nbins,
-                                    unsigned int imax_bin_load,
+                                    unsigned int imax_bin_load
                                        // we keep #bins*max_bin_load <= total # items * 100
-                                    unsigned int ibin_grow_factor
-                                       // when we have to grow, by how much?
    ) {
-   assert(ibin_grow_factor > 1);
-   assert(ibin_grow_factor < 10); // let's not go nuts and grow like crazy!
    assert(imax_bin_load > 0);
    assert(imax_bin_load < 1000); // why would you want to allow so many
                                  // collisions per bin?
@@ -71,7 +72,6 @@ dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &),
    num_removed_elems = 0;
 
    max_bin_load = imax_bin_load;
-   bin_grow_factor = ibin_grow_factor;
 }
 
 
@@ -84,7 +84,6 @@ dictionary_hash<K,V>::dictionary_hash(const dictionary_hash &src) :
    hasher = src.hasher;
    num_removed_elems = src.num_removed_elems;
    max_bin_load = src.max_bin_load;
-   bin_grow_factor = src.bin_grow_factor;
 }
 
 template<class K, class V>
@@ -100,7 +99,6 @@ dictionary_hash<K,V>::operator=(const dictionary_hash &src) {
 
    num_removed_elems = src.num_removed_elems;
    max_bin_load = src.max_bin_load;
-   bin_grow_factor = src.bin_grow_factor;
 
    return *this;
 }
