@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.14  1994/07/16 03:39:30  hollings
+ * Revision 1.15  1994/07/22 19:24:51  hollings
+ * added actual paused time for CM-5.
+ *
+ * Revision 1.14  1994/07/16  03:39:30  hollings
  * stopped using assembly version of clocks (temporary).
  *
  * Revision 1.13  1994/07/15  04:19:47  hollings
@@ -107,6 +110,10 @@ int TRACELIBmustRetry;		/* signal variable from consumer -> producer */
 extern float DYNINSTcyclesToUsec;
 
 time64 getProcessTime();
+time64 DYNINSTgetWallTime();
+extern time64 DYNINSTlastCPUTime;
+extern time64 DYNINSTlastWallTime;
+
 
 struct timer_buf {
     unsigned int high;
@@ -184,6 +191,16 @@ retry:
     end.parts.low = *ni;
     if (timerBuffer.sync != 1) goto retry;
     return(end.value);
+}
+
+inline time64 DYNINSTgetWallTime()
+{
+    time64 now;
+
+    now = getWallTime();
+    now /= NI_CLK_USEC;
+
+    return(now);
 }
 
 void DYNINSTstartWallTimer(tTimer *timer)
@@ -380,6 +397,10 @@ void DYNINSTinit()
     TRACELIBendPtr = TRACELIBtraceBuffer + TRACE_BUF_SIZE - 1;
 
 
+    /* init these before the first alarm can expire */
+    DYNINSTlastCPUTime = DYNINSTgetCPUtime();
+    DYNINSTlastWallTime = DYNINSTgetWallTime();
+
     /*
      * Set up the SIGALRM handler stuff so counters/timers get sampled and
      * traces get puit into the traceBuffer every once in a while.
@@ -404,6 +425,7 @@ void DYNINSTinit()
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 
     DYNINSTinitDone = 1;
+
 }
 
 
@@ -481,7 +503,7 @@ void must_end_timeslice()
 extern int DYNINSTnumReported;
 extern int DYNINSTtotalSamples;
 extern int DYNINSTtotalAlaramExpires;
-extern double DYNINSTtotalSampleTime;
+extern time64 DYNINSTtotalSampleTime;
 
 void DYNINSTprintCost()
 {

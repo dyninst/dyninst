@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.9  1994/07/14 23:35:34  hollings
+ * Revision 1.10  1994/07/22 19:24:53  hollings
+ * added actual paused time for CM-5.
+ *
+ * Revision 1.9  1994/07/14  23:35:34  hollings
  * added return of cost model record.
  *
  * Revision 1.8  1994/07/11  22:47:49  jcargill
@@ -46,21 +49,16 @@
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 
-/* This marks the end of user code in the text file. */
-/* This is to prevent system libraries with symbols compiled into them
- *    from adding extranious material to our inst. environment.
- */
-void DYNINSTendUserCode()
-{
-}
-
-char DYNINSTdata[SYN_INST_BUF_SIZE];
-char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 int DYNINSTnumSampled;
 int DYNINSTnumReported;
 int DYNINSTtotalSamples;
 float DYNINSTsamplingRate;
+time64 DYNINSTlastCPUTime;
+time64 DYNINSTlastWallTime;
 int DYNINSTtotalAlaramExpires;
+char DYNINSTdata[SYN_INST_BUF_SIZE];
+char DYNINSTglobalData[SYN_INST_BUF_SIZE];
+
 
 /*
  * for now costCount is in cycles. 
@@ -163,12 +161,26 @@ int64 DYNINSTgetObservedCycles(Boolean inSignal)
 void DYNINSTreportBaseTramps()
 {
     costUpdate sample;
+    time64 currentCPU;
+    time64 currentWall;
+    time64 elapsedWallTime;
+    time64 currentPauseTime;
     register unsigned int count asm("%g6");
 
     sample.slotsExecuted = count;
 
     sample.observedCost = ((double) DYNINSTgetObservedCycles(1)) *
 	(DYNINSTcyclesToUsec / 1000000.0);
+
+
+    currentCPU = DYNINSTgetCPUtime();
+    currentWall = DYNINSTgetWallTime();
+    elapsedWallTime = currentWall - DYNINSTlastWallTime;
+    currentPauseTime = elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
+    sample.pauseTime = ((double) currentPauseTime);
+    sample.pauseTime /= 1000000.0;
+    DYNINSTlastWallTime = currentWall;
+    DYNINSTlastCPUTime = currentCPU;
 
     DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), 
 	&sample, 0);

@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.13  1994/07/16 03:39:31  hollings
+ * Revision 1.14  1994/07/22 19:24:54  hollings
+ * added actual paused time for CM-5.
+ *
+ * Revision 1.13  1994/07/16  03:39:31  hollings
  * stopped using assembly version of clocks (temporary).
  *
  * Revision 1.12  1994/07/14  23:35:36  hollings
@@ -72,6 +75,9 @@ extern int DYNINSTtotalAlaramExpires;
 extern int DYNINSTtotalSamples;
 extern float DYNINSTsamplingRate;
 extern time64 DYNINSTtotalSampleTime;
+extern time64 DYNINSTlastCPUTime;
+extern time64 DYNINSTlastWallTime;
+
 
 FILE *DYNINSTtraceFp;
 tTimer DYNINSTelapsedTime;
@@ -106,6 +112,19 @@ time64 DYNINSTgetCPUtime()
      now = ru.ru_utime.tv_sec;
      now *= MILLION;
      now += ru.ru_utime.tv_usec;
+
+     return(now);
+}
+
+time64 DYNINSTgetWallTime()
+{
+     time64 now;
+     struct timeval tv;
+
+     gettimeofday(&tv, NULL);
+     now = tv.tv_sec;
+     now *= (time64) MILLION;
+     now += tv.tv_usec;
 
      return(now);
 }
@@ -285,6 +304,10 @@ void DYNINSTinit(int skipBreakpoint)
     asm("mov 0, %g7");
 #endif
 
+    /* init these before the first alarm can expire */
+    DYNINSTlastCPUTime = DYNINSTgetCPUtime();
+    DYNINSTlastWallTime = DYNINSTgetWallTime();
+
     /* define the alarm signal vector. We block all signals while sampling.  
      *  This prevents race conditions where signal handlers cause timers to 
      *  be started and stopped.
@@ -318,6 +341,7 @@ void DYNINSTinit(int skipBreakpoint)
 
     DYNINSTstartWallTimer(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+
 }
 
 
