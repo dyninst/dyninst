@@ -423,7 +423,7 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
     out_stream << "void " << gen_class_prefix(true) << "handle_error() {\n";
-    out_stream << "cerr << \"Error not handled, exiting\n\";\n";
+    out_stream << "cerr << \"Error not handled, exiting\" << endl;\n";
     out_stream << "IGEN_ERR_ASSERT;\n";
     out_stream << "exit(-1);\n";
     out_stream << "}\n\n";
