@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.38 2002/08/12 04:21:42 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.39 2002/09/17 20:08:10 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -105,10 +105,10 @@ bool initOS() {
   
 #if defined(MT_THREAD)
   initialRequestsPARADYN += new instMapping("_thread_start",
-				     "DYNINST_VirtualTimerCREATE",
+				     "DYNINST_dummy_create",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
-
+#if 0
   initialRequestsPARADYN += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
                                      FUNC_ENTRY, callPreInsn, 
 				     orderLastAtPoint);
@@ -155,7 +155,7 @@ bool initOS() {
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
 #endif
-
+#endif
   
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
