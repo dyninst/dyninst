@@ -2258,6 +2258,5 @@ bool pd_process::isStopped() const {return dyninst_process->isStopped();}
 bool pd_process::isTerminated() const {return dyninst_process->isTerminated();}
 bool pd_process::isDetached() const {return dyninst_process->isDetached();}
 bool pd_process::continueProc() { 
-  fprintf(stderr, "pd_process continuing process\n");
   return dyninst_process->continueExecution(); 
 }

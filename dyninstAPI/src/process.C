@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.530 2005/03/14 22:17:51 legendre Exp $
+// $Id: process.C,v 1.531 2005/03/14 22:29:38 legendre Exp $
 
 #include <ctype.h>
 
@@ -6049,7 +6049,6 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 
      pdvector<AstNode *> ast_args;
      AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-	     i, lwp_id);
      unsigned id = getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, lwp, 
 					    false, NULL, lwp);          
      posted_irpcs.push_back(id);
