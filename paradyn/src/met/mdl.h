@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: mdl.h,v 1.19 1999/01/24 00:12:18 wylie Exp $
+
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
 
@@ -282,7 +284,18 @@ public:
   inline mdl_var(bool is_remote=false);
   mdl_var(const string &, bool is_remote);
   inline ~mdl_var();
-  void destroy();
+  void reset();
+
+  mdl_var& operator= (const mdl_var& var) {
+    if (&var != this) {
+        name_ = var.name_;
+        type_ = var.type_;
+        vals_ = var.vals_;
+        remote_ = var.remote_;
+        string_val_ = var.string_val_;
+    }
+    return(*this);
+  }
 
   void dump();
 
@@ -485,75 +498,96 @@ inline void mdl_var::dump() {
   }
 }
 
-inline void mdl_var::destroy() { type_ = MDL_T_NONE; vals_.ptr = NULL; }
+// NB: this was previously somewhat curiously called "destroy"
+inline void mdl_var::reset() { 
+  type_ = MDL_T_NONE; vals_.ptr = NULL; 
+}
 
 inline mdl_var::~mdl_var() {
-  destroy();
+  reset();
 }
 
-inline mdl_var::mdl_var(bool is_remote) : type_(MDL_T_NONE), remote_(is_remote) {
-  vals_.ptr = NULL;
-}
+#if PURE_BUILD
+#define PURE_INIT(__p) memset(__p, '\0', sizeof(*(__p)))
+#else
+#define PURE_INIT(__p)
+#endif
 
-inline mdl_var::mdl_var(const string& nm, bool is_rem)
-: name_(nm), type_(MDL_T_NONE), remote_(is_rem) { vals_.ptr = NULL; }
+inline mdl_var::mdl_var(bool is_remote) 
+: name_(""), type_(MDL_T_NONE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.ptr = NULL; }
 
-inline mdl_var::mdl_var(const string& nm, memory::bounds b, bool is_rem)
-: name_(nm), type_(MDL_T_VARIABLE), remote_(is_rem) { vals_.b = b; }
+inline mdl_var::mdl_var(const string& nm, bool is_remote)
+: name_(nm), type_(MDL_T_NONE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.ptr = NULL; }
 
-inline mdl_var::mdl_var(const string& nm, int i, bool is_rem)
-: name_(nm), type_(MDL_T_INT), remote_(is_rem) { vals_.i = i;}
+inline mdl_var::mdl_var(const string& nm, memory::bounds b, bool is_remote)
+: name_(nm), type_(MDL_T_VARIABLE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.b = b; }
 
-inline mdl_var::mdl_var(const string& nm, float f, bool is_rem)
-: name_(nm), type_(MDL_T_FLOAT), remote_(is_rem) { vals_.f = f;}
+inline mdl_var::mdl_var(const string& nm, int i, bool is_remote)
+: name_(nm), type_(MDL_T_INT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.i = i; }
 
-inline mdl_var::mdl_var(const string& nm, instPoint *p, bool is_rem)
-: name_(nm), type_(MDL_T_POINT), remote_(is_rem) { vals_.point_ = p;}
+inline mdl_var::mdl_var(const string& nm, float f, bool is_remote)
+: name_(nm), type_(MDL_T_FLOAT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.f = f; }
 
-inline mdl_var::mdl_var(const string& nm, function_base *pr, bool is_rem)
-: name_(nm), type_(MDL_T_PROCEDURE), remote_(is_rem) { vals_.pr = pr;}
+inline mdl_var::mdl_var(const string& nm, instPoint *p, bool is_remote)
+: name_(nm), type_(MDL_T_POINT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.point_ = p; }
 
-inline mdl_var::mdl_var(const string& nm, functionName *fn, bool is_rem)
-: name_(nm), type_(MDL_T_PROCEDURE_NAME), remote_(is_rem) { vals_.fn = fn;}
+inline mdl_var::mdl_var(const string& nm, function_base *pr, bool is_remote)
+: name_(nm), type_(MDL_T_PROCEDURE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.pr = pr; }
 
-inline mdl_var::mdl_var(const string& nm, module *md, bool is_rem)
-: name_(nm), type_(MDL_T_MODULE), remote_(is_rem) { vals_.mod = md;}
+inline mdl_var::mdl_var(const string& nm, functionName *fn, bool is_remote)
+: name_(nm), type_(MDL_T_PROCEDURE_NAME), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.fn = fn; }
 
-inline mdl_var::mdl_var(const string& nm, const string& s, bool is_rem)
-: name_(nm), type_(MDL_T_STRING), remote_(is_rem) { string_val_ = s;}
+inline mdl_var::mdl_var(const string& nm, module *md, bool is_remote)
+: name_(nm), type_(MDL_T_MODULE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.mod = md; }
 
-inline mdl_var::mdl_var(const string& nm, process *p, bool is_rem) 
-: name_(nm), type_(MDL_T_PROCESS), remote_(is_rem) { vals_.the_process = p; }
+inline mdl_var::mdl_var(const string& nm, const string& s, bool is_remote)
+: name_(nm), type_(MDL_T_STRING), remote_(is_remote), string_val_(s)
+{ PURE_INIT(&vals_); vals_.ptr = NULL; }
+
+inline mdl_var::mdl_var(const string& nm, process *p, bool is_remote) 
+: name_(nm), type_(MDL_T_PROCESS), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.the_process = p; }
 
 inline mdl_var::mdl_var(const string& nm, vector<function_base*> *vp, bool is_remote) 
-: name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote) { vals_.list_pr = vp; }
+: name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_pr = vp; }
      
 inline mdl_var::mdl_var(const string& nm, vector<functionName*> *vf, bool is_remote) 
-: name_(nm), type_(MDL_T_LIST_PROCEDURE_NAME), remote_(is_remote) { vals_.list_fn = vf; }
+: name_(nm), type_(MDL_T_LIST_PROCEDURE_NAME), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_fn = vf; }
 
 inline mdl_var::mdl_var(const string& nm, vector<module*> *vm, bool is_remote) 
-: name_(nm), type_(MDL_T_LIST_MODULE), remote_(is_remote) { vals_.list_module = vm; }
+: name_(nm), type_(MDL_T_LIST_MODULE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_module = vm; }
 
 inline mdl_var::mdl_var(const string& nm, vector<int> *vi, bool is_remote)
-: name_(nm), type_(MDL_T_LIST_INT), remote_(is_remote) {
-  vals_.list_int = vi;
-}
+: name_(nm), type_(MDL_T_LIST_INT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_int = vi; }
 
 inline mdl_var::mdl_var(const string& nm, vector<float> *vf, bool is_remote)
-: name_(nm), type_(MDL_T_LIST_FLOAT), remote_(is_remote) {
-  vals_.list_float = vf;
-}
+: name_(nm), type_(MDL_T_LIST_FLOAT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_float = vf; }
 
 inline mdl_var::mdl_var(const string& nm, vector<string> *vs, bool is_remote)
-: name_(nm), type_(MDL_T_LIST_STRING), remote_(is_remote) {
-  vals_.list_string = vs;
-}
+: name_(nm), type_(MDL_T_LIST_STRING), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_string = vs; }
 
 inline mdl_var::mdl_var(const string& nm, vector<instPoint*> *vip, bool is_remote)
-: name_(nm), type_(MDL_T_LIST_POINT), remote_(is_remote) { vals_.list_pts = vip; }
+: name_(nm), type_(MDL_T_LIST_POINT), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.list_pts = vip; }
 
 inline mdl_var::mdl_var(const string& nm, dataReqNode *drn, bool is_remote) 
-: name_(nm), type_(MDL_T_DRN), remote_(is_remote) { vals_.drn = drn; }
+: name_(nm), type_(MDL_T_DRN), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.drn = drn; }
 
 inline bool mdl_var::get(memory::bounds &b) {
   if (type_ != MDL_T_VARIABLE) return false;
@@ -644,105 +678,105 @@ inline bool mdl_var::get(vector<instPoint*> *&vip) {
   return true;
 }
 inline bool mdl_var::set(memory::bounds b) {
-        destroy() ;
-        type_ = MDL_T_VARIABLE ;
-        vals_.b = b ;
-        return true ;
+  reset();
+  type_ = MDL_T_VARIABLE;
+  vals_.b = b;
+  return true;
 }
 inline bool mdl_var::set(int i) {
-  destroy();
+  reset();
   type_ = MDL_T_INT;
   vals_.i = i;
   return true;
 }
 inline bool mdl_var::set(float f) {
-  destroy();
+  reset();
   type_ = MDL_T_FLOAT;
   vals_.f = f;
   return true;
 }
 
 inline bool mdl_var::set(instPoint *pt) {
-  destroy();
+  reset();
   type_ = MDL_T_POINT;
-   vals_.point_ = pt;
+  vals_.point_ = pt;
   return true;
 }
 inline bool mdl_var::set(function_base *pr) {
-  destroy();
+  reset();
   type_ = MDL_T_PROCEDURE;
   vals_.pr = pr;
   return true;
 }
 inline bool mdl_var::set(functionName *fn) {
-  destroy();
+  reset();
   type_ = MDL_T_PROCEDURE_NAME;
   vals_.fn = fn;
   return true;
 }
 inline bool mdl_var::set(module *md) {
-  destroy();
+  reset();
   type_ = MDL_T_MODULE;
   vals_.mod = md;
   return true;
 }
 inline bool mdl_var::set(const string& s) {
-  destroy();
+  reset();
   type_ = MDL_T_STRING;
   string_val_ = s;
   return true;
 }
 inline bool mdl_var::set(process *pr) {
-  destroy();
+  reset();
   type_ = MDL_T_PROCESS;
   vals_.the_process = pr;
   return true;
 }
 inline bool mdl_var::set(dataReqNode *drn) {
-  destroy();
+  reset();
   type_ = MDL_T_DRN;
   vals_.drn = drn;
   return true;
 }
 
 inline bool mdl_var::set(vector<function_base*> *vp) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_PROCEDURE;
   vals_.list_pr = vp;
   return true;
 }
 inline bool mdl_var::set(vector<functionName*> *vp) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_PROCEDURE_NAME;
   vals_.list_fn = vp;
   return true;
 }
 inline bool mdl_var::set(vector<module*> *vm) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_MODULE;
   vals_.list_module = vm;
   return true;
 }
 inline bool mdl_var::set(vector<int> *vi) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_INT;
   vals_.list_int = vi;
   return true;
 }
 inline bool mdl_var::set(vector<float> *vf) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_FLOAT;
   vals_.list_float = vf;
   return true;
 }
 inline bool mdl_var::set(vector<string> *vs) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_STRING;
   vals_.list_string = vs;
   return true;
 }
 inline bool mdl_var::set(vector<instPoint*> *vip) {
-  destroy();
+  reset();
   type_ = MDL_T_LIST_POINT;
   vals_.list_pts = vip;
   return true;
@@ -877,7 +911,7 @@ inline unsigned mdl_var::as_list() {
 }
 
 inline void mdl_var::set_type(unsigned type) {
-  destroy();
+  reset();
   type_ = type;
 }
 
