@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.13 1994/04/15 15:37:34 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.14 1994/05/03 05:07:24 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.13  1994/04/15 15:37:34  jcargill
+ * Revision 1.14  1994/05/03 05:07:24  markc
+ * Removed comment on pauseMetric for paradyndPVM.
+ *
+ * Revision 1.13  1994/04/15  15:37:34  jcargill
  * Removed duplicate definition of pauseTimeNode; used initialized version
  *
  * Revision 1.12  1994/04/13  16:48:10  hollings
@@ -864,12 +867,7 @@ void computePauseTimeMetric()
 	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
 	}
 	reportedPauseTime += elapsed;
-#ifndef PARADYND_PVM
-	// this does not work for multiple processes per paradynd
-	// the call to createPaus sets pauseTimeNode to be the last
-	// element on the list, and not the owner of the aggregate
 	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
-#endif
     }
 }
 
