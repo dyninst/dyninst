@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.50 1999/05/31 20:40:23 wylie Exp $
+// $Id: inst-sparc-solaris.C,v 1.51 1999/06/18 14:12:21 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1020,30 +1020,43 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        }
 
        // If for this process, a call to the relocated function has not
-       // yet be installed in its original location, then genterate the
-       // following instructions at the begining of the function:
+       // yet be installed in its original location, then genterate either
+       //   BA,A
+       // or
        //   SAVE;             CALL;         RESTORE.
-       // so that it would jump the start of the relocated function
+       // so that it would jump to the start of the relocated function
        // which is in heap.
        if (!location->func->isInstalled(proc)){
-	  location->func->setInstalled(proc);
-	  u_int e_size = extra_instrs.size();
-	  instruction *insn = new instruction[3 + e_size];
-	  Address adr = location-> func -> getAddress(0);
-	  genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	  generateCallInsn(insn+1, adr+baseAddress+4, 
-			   location->func->getAddress(proc));
-	  genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0); 
-	  for(u_int i=0; i < e_size; i++){
-	     insn[3+i] = extra_instrs[i];
-	  }
-	  retInstance = new returnInstance((instructUnion *)insn, 
-					   (3+e_size)*sizeof(instruction), 
-					   adr+baseAddress, 
-					   location->func->size());
-	  assert(retInstance);
+          location->func->setInstalled(proc);
+          u_int e_size = extra_instrs.size();
+          Address adr = location-> func -> getAddress(0);
+          instruction *insn;
+          unsigned branchSize ;
+          if (in1BranchInsnRange(adr+baseAddress, location->func->getAddress(pro
+c))) {
+            branchSize = 1 ;
+            insn = new instruction[branchSize + e_size];
+            generateBranchInsn(insn,(int)(location->func->getAddress(proc)-(adr+
+baseAddress)));
+          } else {
+            branchSize = 3 ;
+            insn = new instruction[branchSize + e_size];
+            genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+            generateCallInsn(insn+1, adr+baseAddress+4, location->func->getAddre
+ss(proc));
+            genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0);
+          }
+          for(u_int i=0; i < e_size; i++){
+            insn[branchSize+i] = extra_instrs[i];
+          }
+          retInstance = new returnInstance((instructUnion *)insn,
+                                           (branchSize+e_size)*sizeof(instructio
+n),
+                                           adr+baseAddress,
+                                           location->func->size());
+          assert(retInstance);
 
-	  //cerr << "created a new return instance (relocated fn)!" << endl;
+          //cerr << "created a new return instance (relocated fn)!" << endl;
        }
     } else {
        // It's not a trap-function; it's a "normal" function
