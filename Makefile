@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.29 1998/05/21 15:54:27 wylie Exp $
+# $Id: Makefile,v 1.30 1998/05/21 16:43:11 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -29,8 +29,16 @@ dynInstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests
 # "Paradyn" itself is just the list of all Paradyn components
 Paradyn		= $(basicComps) $(subSystems)
 
-# "fullSystem" is the complete list of all Paradyn & DynInstAPI components
-fullSystem	= $(basicComps) $(subSystems) $(dynInstAPI)
+# "fullSystem" is the list of all Paradyn & DynInstAPI components to build:
+# set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
+ifndef DONT_BUILD_PARADYN
+fullSystem	+= $(Paradyn)
+Build_list	+= Paradyn
+endif
+ifndef DONT_BUILD_DYNINST
+fullSystem	+= $(dynInstAPI)
+Build_list	+= dynInstAPI
+endif
 
 # Note that the first rule listed ("all") is what gets made by default,
 # i.e., if make is given no arguments.  Don't add other targets before all!
@@ -80,9 +88,15 @@ ready:
 # unnecessary work.
 
 intro:
-	@echo "Building $(BUILD_ID) starting for $(PLATFORM)!"
+	@echo "Build of $(BUILD_ID) starting for $(PLATFORM)!"
+ifdef DONT_BUILD_PARADYN
+	@echo "Build of Paradyn components skipped!"
+endif
+ifdef DONT_BUILD_DYNINST
+	@echo "Build of DynInstAPI components skipped!"
+endif
 
-world: intro Paradyn dynInstAPI
+world: intro $(Build_list)
 	@echo "Build of $(BUILD_ID) complete for $(PLATFORM)!"
 
 # "make Paradyn" and "make dynInstAPI" are also useful and valid build targets!
