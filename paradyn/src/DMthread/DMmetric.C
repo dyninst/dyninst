@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.43 2003/03/04 19:16:11 willb Exp $
+// $Id: DMmetric.C,v 1.44 2003/04/08 22:22:46 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -49,6 +49,7 @@ extern "C" {
 #include <iostream.h>
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
+#include "pdutil/h/makenan.h"
 
 extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*);
 extern void histFoldCallBack(const timeLength*, void*);
@@ -241,22 +242,46 @@ metricInstance::saveOneMI_Histo (ofstream& fptr,
 				 Histogram *hdata,
 				 int phaseid)
 {
-  fptr << "histogram " << getMetricName() << endl <<  
-    getFocusName() << endl;
+   fptr << "histogram " << getMetricName() << endl
+        << getFocusName() << endl;
+
+   metric *met = metric::getMetric(getMetricHandle());
+   double divisor = 0.0;
+   timeLength bucketWidth = hdata->getBucketWidth();
+   
+   if(met->getStyle() == SampledFunction) {
+      divisor = 1.0;   // sampledFunction metrics aren't normalized
+   } else {
+      double bwidth_ns = bucketWidth.getD(timeUnit::ns());
+      divisor = bwidth_ns;
+   }
 	
-  int numBins = hdata->getNumBins();
-  pdSample *buckets = new pdSample[numBins];
-  unsigned count = hdata->getBuckets(buckets, numBins, 0);
-  timeLength width = hdata->getBucketWidth();
-  relTimeStamp startTime = hdata->getStartTime();
-  // header info:  numBuckets, bucketWidth, startTime, count, id 
-  fptr << count << " " << width << " " << startTime << " " << 
-    " " << phaseid << endl;
-  // data
-  for (unsigned k = 0; k < count; k++) {
-    fptr << buckets[k] << endl;
-  }
-  delete buckets;
+   int numBins = hdata->getNumBins();
+   pdSample *buckets = new pdSample[numBins];
+   unsigned count = hdata->getBuckets(buckets, numBins, 0);
+   relTimeStamp startTime = hdata->getStartTime();
+   // header info:  numBuckets, bucketWidth, startTime, count, id 
+   fptr << count << " " << bucketWidth << " " << startTime << " "
+        << " " << phaseid << endl;
+   // data
+   for (unsigned k = 0; k < count; k++) {
+      // We need to normalize the sample value.  For example, if the sample
+      // is function calls, then its current value is something like 750
+      // function calls in bucket * 10^9 = 750 * 10^9ns/s.  To get
+      // funccalls/second we divide by bucketwidth ns (eg. 200*10^6ns).  The
+      // resultant value would be 3750 funccalls/second for this bucket.
+      pdSample value = buckets[k];
+      double fval;
+      if(value.isNaN()) {
+         fval = make_Nan();
+      } else {
+         double sample = static_cast<double>(value.getValue());
+         fval = static_cast<float>(sample / divisor);
+      }
+      
+      fptr << fval << endl;
+   }
+   delete buckets;
 }
 
 // 
