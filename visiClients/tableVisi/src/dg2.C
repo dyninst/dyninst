@@ -3,6 +3,9 @@
 
 /*
  * $Log: dg2.C,v $
+ * Revision 1.5  1996/02/23 17:49:44  tamches
+ * removed DEFINEPHASE
+ *
  * Revision 1.4  1996/01/19 20:56:18  newhall
  * changes due to visiLib interface changes
  *
@@ -20,8 +23,8 @@
 #include <stdlib.h> // exit()
 #include <iostream.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #include "tableVisiTcl.h"
@@ -37,17 +40,16 @@
 #define   NUMBINS          5
 #define   NUMMETRICS       6
 #define   NUMRESOURCES     7
-#define   DEFINEPHASE      8
-#define   RESOURCENAME     9
-#define   STARTSTREAM      10
-#define   STOPSTREAM       11
-#define   DGSUM            12
-#define   DGVALID          13
-#define   DGENABLED        14
-#define   VALUE            15
-#define   CMDERROR         16
-#define   LASTBUCKET       17
-#define   FIRSTBUCKET      18
+#define   RESOURCENAME     8
+#define   STARTSTREAM      9
+#define   STOPSTREAM       10
+#define   DGSUM            11
+#define   DGVALID          12
+#define   DGENABLED        13
+#define   VALUE            14
+#define   CMDERROR         15
+#define   LASTBUCKET       16
+#define   FIRSTBUCKET      17
 
 struct cmdTabEntry {
    const char *cmdname;
@@ -66,7 +68,6 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
-  {"phase",        DEFINEPHASE,     3},
   {"resourcename", RESOURCENAME,    1},
   {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
@@ -157,10 +158,6 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
 
   case NUMRESOURCES:
     sprintf(interp->result, "%d", visi_NumResources());
-    return TCL_OK;
-
-  case DEFINEPHASE:       
-    visi_DefinePhase(NULL);
     return TCL_OK;
 
   case RESOURCENAME:
