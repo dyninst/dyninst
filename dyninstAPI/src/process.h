@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.162 2001/08/20 19:59:12 bernat Exp $
+/* $Id: process.h,v 1.163 2001/08/23 14:43:24 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -116,27 +116,6 @@ static const unsigned numProcTimers =maxNumMetrics;
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
-
-#ifndef BPATCH_LIBRARY
-// Internal metric stackwalk_time
-extern timeStamp startStackwalk;
-extern timeLength elapsedStackwalkTime;
-extern bool      stackwalking;
-
-#define BEGIN_STACKWALK                      \
-{                                            \
-  startStackwalk = getWallTime();            \
-  stackwalking = true;                       \
-}
-
-#define END_STACKWALK                                                  \
-{                                                                      \
-     stackwalking = false;                                             \
-     if (startStackwalk > timeStamp::ts1970())                         \
-       elapsedStackwalkTime += (getWallTime() - startStackwalk);       \
-}
-
-#endif
 
 class resource;
 class instPoint;
@@ -393,6 +372,7 @@ class Frame {
 #endif
 };
 
+typedef void (*continueCallback)(timeStamp timeOfCont);
 
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
@@ -1315,6 +1295,10 @@ public:
     hasNewPC = true;
   }
 
+  void setCallbackBeforeContinue(continueCallback func) {
+    callBeforeContinue = func;
+  }
+
   inline Address costAddr()  const { return costAddr_; }
   void getObservedCostAddr();   
 
@@ -1350,6 +1334,8 @@ private:
   // for processing observed cost (see method processCost())
   int64_t cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
+
+  continueCallback callBeforeContinue;
 
   Address costAddr_;
   bool execed_;  // true if this process does an exec...set in handleExec
