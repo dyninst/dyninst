@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.10 1994/05/16 22:31:52 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.11 1994/05/18 00:52:29 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.10  1994/05/16 22:31:52  hollings
+ * Revision 1.11  1994/05/18 00:52:29  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.10  1994/05/16  22:31:52  hollings
  * added way to request unique resource name.
  *
  * Revision 1.9  1994/05/03  05:06:19  markc
@@ -103,6 +107,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/time.h>
@@ -157,6 +162,29 @@ Boolean firstSampleReceived;
 
 
 time64 firstRecordTime;
+
+void processAppIO(process *curr)
+{
+    int ret;
+    char lineBuf[1024];
+
+    ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
+    if (ret < 0) {
+	perror("read error");
+	exit(-2);
+    } else if (ret == 0) {
+	/* end of file */
+	curr->ioLink = -1;
+	return;
+    }
+
+    // null terminate it
+    lineBuf[ret] = '\0';
+
+    // forawrd the data to the paradyn process.
+    tp->applicationIO(curr->pid, ret, lineBuf);
+
+}
 
 void processTraceStream(process *curr)
 {
@@ -367,7 +395,7 @@ int PDYN_cs()
   width = fd_ptr[0];
   pollTime.tv_sec = 0;
   pollTime.tv_usec = 50000;
-  ct = select(width+1, &readSet, NULL, NULL, &pollTime);
+  ct = select(width+1, &readSet, NULL, &readSet, &pollTime);
   res = FD_ISSET(fd_ptr[0], &readSet);
   printf("\nIN PDYN_cs() PID=%d sel=%d, res=%d fdnum=%d fd=%d\n", getpid(), ct, res, fdnum, fd_ptr[0]);
   if (ct <= 0) return ct;
@@ -390,6 +418,7 @@ void controllerMainLoop()
     int status;
     process *curr;
     fd_set readSet;
+    fd_set errorSet;
     List<process*> pl;
     struct timeval pollTime;
 
@@ -406,14 +435,19 @@ void controllerMainLoop()
     
     while (1) {
 	FD_ZERO(&readSet);
+	FD_ZERO(&errorSet);
 	width = 0;
 	for (pl=processList; curr=*pl; pl++) {
 	    if (curr->traceLink >= 0) FD_SET(curr->traceLink, &readSet);
 	    if (curr->traceLink > width) width = curr->traceLink;
+
+	    if (curr->ioLink >= 0) FD_SET(curr->ioLink, &readSet);
+	    if (curr->ioLink > width) width = curr->ioLink;
 	}
 
 	// add connection to paradyn process.
 	FD_SET(tp->fd, &readSet);
+	FD_SET(tp->fd, &errorSet);
 	if (tp->fd > width) width = tp->fd;
 
 #ifdef PARADYND_PVM
@@ -425,7 +459,7 @@ void controllerMainLoop()
 #endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
-	ct = select(width+1, &readSet, NULL, NULL, &pollTime);
+	ct = select(width+1, &readSet, NULL, &errorSet, &pollTime);
 	if (ct > 0) {
 	    for (pl=processList; curr=*pl; pl++) {
 		if ((curr->traceLink >= 0) && 
@@ -434,27 +468,35 @@ void controllerMainLoop()
 		    /* clear it in case another process is sharing it */
 		    if (curr->traceLink >= 0) FD_CLR(curr->traceLink, &readSet);
 		}
+
+		if ((curr->ioLink >= 0) && 
+		    FD_ISSET(curr->ioLink, &readSet)) {
+		    processAppIO(curr);
+		}
+	    }
+	    if (FD_ISSET(tp->fd, &errorSet)) {
+		// paradyn is gone so we got too.
+		exit(-1);
 	    }
 	    if (FD_ISSET(tp->fd, &readSet)) {
 		ret = tp->mainLoop();
 		if (ret < 0) {
 		    // assume the client has exited, and leave.
 		    exit(-1);
-		  }
-	      }
+		}
+	    }
 #ifdef PARADYND_PVM
 	    // message on pvmd channel
 	    int res;
             fd_num = pvm_getfds(&fd_ptr);
 	    assert(fd_num == 1);
-	    if (FD_ISSET(fd_ptr[0], &readSet))
-	      {
+	    if (FD_ISSET(fd_ptr[0], &readSet)) {
 		// res == -1 --> error
 		res = PDYN_handle_pvmd_message();
 		// handle pvm message
-	      }
+	    }
 #endif
-	  }
+	}
 
 	/* report pause time */
 	computePauseTimeMetric();

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.6 1994/04/11 23:25:21 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.7 1994/05/18 00:52:23 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.6  1994/04/11 23:25:21  hollings
+ * Revision 1.7  1994/05/18 00:52:23  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.6  1994/04/11  23:25:21  hollings
  * Added pause_time metric.
  *
  * Revision 1.5  1994/04/09  18:34:51  hollings
@@ -159,6 +163,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     ret = allocateProcess(fr->pid, name);
     ret->symbols = parseImage(parent->symbols->file, 0);
     ret->traceLink = parent->traceLink;
+    ret->ioLink = parent->ioLink;
     ret->parent = parent;
 
     copyInferriorHeap(parent, ret);

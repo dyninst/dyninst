@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.12  1994/05/16 22:31:50  hollings
+ * Revision 1.13  1994/05/18 00:52:28  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.12  1994/05/16  22:31:50  hollings
  * added way to request unique resource name.
  *
  * Revision 1.11  1994/04/12  15:29:19  hollings
@@ -50,6 +54,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <fcntl.h>
 
 #include "util/h/list.h"
 #include "rtinst/h/rtinst.h"
@@ -101,9 +106,17 @@ main(int argc, char *argv[])
 
 	pid = fork();
 	if (pid == 0) {
-	    close(0);
-	    close(1);
-	    close(2);
+	    int nullfd;
+
+	    /* now make stdin, out and error things that we can't hurt us */
+	    if ((nullfd = open("/dev/null", O_RDWR, 0)) < 0) {
+		abort();
+	    }
+	    (void) dup2(nullfd, 0);
+	    (void) dup2(nullfd, 1);
+	    (void) dup2(nullfd, 2);
+
+	    if (nullfd > 2) close(nullfd);
 
 	    // setup socket
 	    tp = new dynRPC(family, well_known_socket, type, machine, 

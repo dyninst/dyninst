@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.4 1994/04/09 18:34:53 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.5 1994/05/18 00:52:27 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.4  1994/04/09 18:34:53  hollings
+ * Revision 1.5  1994/05/18 00:52:27  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.4  1994/04/09  18:34:53  hollings
  * Changed {pause,continue}Application to {pause,continue}AllProceses, and
  * made the RPC interfaces use these.  This makes the computation of pause
  * Time correct.
@@ -405,6 +409,7 @@ retry:
 	ret->pid = newpid;
 	ret->symbols = parseImage(parent->symbols->file, 1);
 	ret->traceLink = -1;
+	ret->ioLink = -1;
 	ret->parent = parent;
 	initInferiorHeap(ret, False);
     }

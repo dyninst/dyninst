@@ -10,7 +10,11 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.3  1994/03/31 01:58:33  markc
+ * Revision 1.4  1994/05/18 00:52:32  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.3  1994/03/31  01:58:33  markc
  * Extended arguments to createProcess.
  *
  * Revision 1.2  1994/03/20  01:53:11  markc
@@ -67,6 +71,7 @@ struct freeListRec {
 struct processRec {
     image *symbols;		/* information related to the process */
     int traceLink;		/* pipe to transfer traces data over */
+    int ioLink;			/* pipe to transfer stdout/stderr over */
     processState status;	/* running, stopped, etc. */
     int pid;			/* id of this process */
     int thread;			/* thread id for thread */

@@ -7,7 +7,11 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.7  1994/05/16 22:31:49  hollings
+ * Revision 1.8  1994/05/18 00:52:26  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.7  1994/05/16  22:31:49  hollings
  * added way to request unique resource name.
  *
  * Revision 1.6  1994/04/09  18:34:52  hollings
@@ -62,11 +66,12 @@ typedef double timeStamp;
 typedef struct _resourceRec *resource;		
 
 /* descriptive information about a resource */
-typedef struct {
+struct _resourceInfo {
     char *name;			/* name of actual resource */
     char *fullName;		/* full path name of resource */
     timeStamp creation;		/* when did it get created */
-} resourceInfo;		
+};		
+typedef struct _resourceInfo resourceInfo;
 
 /* list of resources */
 typedef struct _resourceListRec *resourceList;		

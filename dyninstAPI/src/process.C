@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.6 1994/05/16 22:31:53 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.7 1994/05/18 00:52:31 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.6  1994/05/16 22:31:53  hollings
+ * Revision 1.7  1994/05/18 00:52:31  hollings
+ * added ability to gather IO from application processes and forward it to
+ * the paradyn proces.
+ *
+ * Revision 1.6  1994/05/16  22:31:53  hollings
  * added way to request unique resource name.
  *
  * Revision 1.5  1994/03/31  02:00:35  markc
@@ -225,9 +229,16 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
     image *i;
     process *ret;
     char name[20];
+    int ioPipe[2];
     int tracePipe[2];
 
     r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+    if (r) {
+	perror("socketpair");
+	return(NULL);
+    }
+
+    r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
     if (r) {
 	perror("socketpair");
 	return(NULL);
@@ -260,12 +271,19 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 
 	ret->status = neonatal;
 	ret->traceLink = tracePipe[0];
+	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
+	close(ioPipe[1]);
 	return(ret);
     } else if (pid == 0) {
 #ifdef PARADYND_PVM
 	pvmendtask(); 
 #endif   
+	// handle stdio.
+	close(ioPipe[0]);
+	dup2(ioPipe[1], 1);
+	dup2(ioPipe[2], 2);
+
 	close(tracePipe[0]);
 	if (dup2(tracePipe[1], 3) != 3)
 	  {
@@ -290,6 +308,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	execv(file, argv);
 	perror("exev");
 	_exit(-1);
+	return(NULL);
     } else {
 	perror("vfork");
 	free(ret);
