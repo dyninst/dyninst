@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.210 2000/03/06 21:41:10 zhichen Exp $
+// $Id: process.C,v 1.211 2000/03/12 22:20:45 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -156,17 +156,11 @@ process *findProcess(int pid) { // make a public static member fn of class proce
   return NULL;
 }
 
-#ifdef SHM_SAMPLING
-static unsigned numIntCounters=51200; // rather arbitrary; can we do better?
-static unsigned numWallTimers =51200; // rather arbitrary; can we do better?
-static unsigned numProcTimers =51200; // rather arbitrary; can we do better?
-#endif
-
 bool waitingPeriodIsOver()
 {
-static timeStamp previous=0;
-timeStamp current;
-bool waiting=false;
+  static timeStamp previous=0;
+  timeStamp current;
+  bool waiting=false;
 
   if (!previous) {
     previous=getCurrentTime(false);

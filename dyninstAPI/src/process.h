@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.130 2000/03/06 21:41:10 zhichen Exp $
+/* $Id: process.h,v 1.131 2000/03/12 22:20:46 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -86,6 +86,26 @@
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+
+#ifdef SHM_SAMPLING
+/* these maxima selections are still rather arbitrary; can we do better? */
+#ifdef MT_THREAD
+static const unsigned maxNumMetrics=MAX_NUMBER_OF_THREADS*100;
+/* Correct handling of per-thread metrics requires this to be a factor */
+#else
+static const unsigned maxNumMetrics=12800;
+/* Currently set so that the size of shared-memory segments are close to, 
+   but not exceeding, the default maximum size [shmmax] (typically 1MB). */
+/* While this will be inefficient and constraining on most modern machines
+   as yet we don't have the infrastructure for managing multiple segments
+   nor dynamically determining the optimal size based on the current [shmmax].
+   Expect shmget() failures accordingly! */
+#endif
+
+static const unsigned numIntCounters=maxNumMetrics;
+static const unsigned numWallTimers =maxNumMetrics;
+static const unsigned numProcTimers =maxNumMetrics;
+#endif
 
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
