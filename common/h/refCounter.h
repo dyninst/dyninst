@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: refCounter.h,v 1.4 1998/03/01 18:51:02 wylie Exp $
+// $Id: refCounter.h,v 1.5 1999/03/03 17:43:49 pcroth Exp $
 // refCounter.h
 // Ariel Tamches
 
@@ -83,7 +83,10 @@ class refCounter {
       if (theData->dereference())
          delete theData;
    }
-   refCounter(); // explicitly disallowed
+
+   // explicitly disallowed
+   // (Visual C++ still requires a body, however)
+   refCounter() {}
 
  public:
    refCounter(const T &src) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.40  1999/03/03 17:43:49  pcroth
+ * Updated with new support for Windows NT in front end and thread lib
+ *
  * Revision 1.39  1998/08/27 21:22:02  nash
  * Fixed type warnings in header files and removed Linux kludge from
  * makenan.h, as it is not needed.
@@ -112,6 +115,8 @@
  */
 
 #include "util/h/headers.h"
+#include "util/h/pdsocket.h"
+#include "thread/h/thread.h"
 #include "util/h/String.h"
 // trace data streams
 #include "util/h/ByteArray.h"
@@ -129,7 +134,7 @@
 // Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
 // typedef bool Boolean;
 
-extern bool RPC_readReady (int fd, int timeout=0);
+extern bool RPC_readReady (PDSOCKET sock, int timeout=0);
 
 //
 // Functions common to server and client side.
@@ -138,8 +143,8 @@ class XDRrpc {
 public:
   XDRrpc(const string &machine, const string &user, const string &program,
 	 xdr_rd_func r, xdr_wr_func w,
-	 const vector<string> &arg_list, const int nblock, const int wellKnownPortFd);
-  XDRrpc(const int use_fd, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
+	 const vector<string> &arg_list, const int nblock, PDSOCKET wellKnownSock);
+  XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const int nblock);
   XDRrpc(int family, int port, int type, const string machine,
 	 xdr_rd_func readFunc, xdr_wr_func writeFunc, const int nblock);
@@ -147,14 +152,14 @@ public:
   // This function does work on Windows NT. Since it is not being used
   // anywhere, I'm commenting it out -- mjrg
   //void setNonBlock() { if (fd >= 0) fcntl (fd, F_SETFL, O_NONBLOCK); }
-  void closeConnect() {if (fd >= 0) close(fd); fd = -1; }
-  int get_fd() const { return fd; }
-  int readReady(const int timeout=0) { return RPC_readReady (fd, timeout); }
+  void closeConnect() {if (sock != PDSOCKET_ERROR) CLOSEPDSOCKET(sock); sock = INVALID_PDSOCKET; }
+  PDSOCKET get_sock() const { return sock; }
+  int readReady(const int timeout=0) { return RPC_readReady (sock, timeout); }
 
   void setDirEncode() {xdrs->x_op = XDR_ENCODE;}
   void setDirDecode() {xdrs->x_op = XDR_DECODE;}
   XDR *net_obj() { return xdrs;}
-  bool opened() const { return (xdrs && (fd >= 0));}
+  bool opened() const { return (xdrs && (sock != PDSOCKET_ERROR));}
 
  private:
   // Since we haven't defined these, private makes sure they're not used. -ari
@@ -162,7 +167,7 @@ public:
   XDRrpc &operator=(const XDRrpc &);
 
   XDR *xdrs;
-  int fd;
+  PDSOCKET sock;
 };
 
 //
@@ -170,7 +175,7 @@ public:
 //
 class RPCBase {
 public:
-  RPCBase(const int st=0, const int v=0) { err_state = st; versionVerifyDone = v;}
+  RPCBase(const int st=0, bool v=0) { err_state = st; versionVerifyDone = v;}
   // ~RPCBase() { }
   int get_err_state() const { return err_state;}
   void clear_err_state() {err_state = 0;}
@@ -190,30 +195,31 @@ public:
 
 class THREADrpc {
 public:
-  THREADrpc(const unsigned t) { tid = t; }
+  THREADrpc(thread_t t) { tid = t; }
   // ~THREADrpc() { }
-  void setTid(const unsigned id) { tid = id; }
-  unsigned getTid() const { return tid;}
+  void setTid(thread_t id) { tid = id; }
+  thread_t getTid() const { return tid;}
 
   // see not on requestingThread, the use of this may be unsafe
-  unsigned getRequestingThread() const { return requestingThread; }
-  void setRequestingThread(const unsigned t) { requestingThread = t;}
-  unsigned net_obj() const { return tid;}
+  thread_t getRequestingThread() const { return requestingThread; }
+  void setRequestingThread(thread_t t) { requestingThread = t;}
+  thread_t net_obj() const { return tid;}
 
  private:
-  unsigned tid;
+  thread_t tid;
   // these are only to be used by implmentors of thread RPCs.
   //   the value is only valid during a thread RPC.
-  unsigned requestingThread;
+  thread_t requestingThread;
 };
 
-extern int RPC_setup_socket (int &sfd,   // return file descriptor
+extern int RPC_setup_socket (PDSOCKET &sfd,   // return file descriptor
 			     const int family, // AF_INET ...
 			     const int type);   // SOCK_STREAM ...
 
+#if !defined(i386_unknown_nt4_0)
 // setup a unix domain socket
-extern bool RPC_setup_socket_un(int &sfd, const char *path);
-
+extern bool RPC_setup_socket_un(PDSOCKET &sfd, const char *path);
+#endif // !defined(i386_unknown_nt4_0)
 
 extern bool_t xdr_string_pd(XDR*, string*);
 // trace data streams
@@ -229,7 +235,7 @@ inline bool_t P_xdr_byteArray_pd(XDR *x, byteArray *s) {
 inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
   return (xdr_Boolean(x, b));}
 
-extern int RPCprocessCreate(const string hostName, const string userName,
+extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			    const string commandLine,
 			    const vector<string> &arg_list,
 			    int wellKnownPort = 0,
@@ -239,7 +245,7 @@ extern bool RPC_make_arg_list (vector<string> &list, const int port,
 			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
 
-extern int RPC_getConnect (const int fd);
+extern PDSOCKET RPC_getConnect (PDSOCKET fd);
 
 extern bool RPCgetArg(vector<string> &ret, const char *input);
 
@@ -250,7 +256,7 @@ extern string getHostName();
 
 class rpcBuffer {
   public:
-    int fd;
+    PDSOCKET fd;
     char *buf;
     int len;
 };

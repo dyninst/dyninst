@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-98 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Ident.h: build identification functions (for POSIX systems)
- * $Id: Ident.h,v 1.1 1998/04/06 04:15:26 wylie Exp $
+ * $Id: Ident.h,v 1.2 1999/03/03 17:43:47 pcroth Exp $
 ************************************************************************/
 
 
@@ -53,7 +53,7 @@
 ************************************************************************/
 
 #include <iostream.h>
-#include "String.h"
+#include "util/h/String.h"
 
 /************************************************************************
  * class Ident

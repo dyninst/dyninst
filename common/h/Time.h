@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,8 +42,10 @@
 #ifndef time_H
 #define time_H
 
+#if !defined(i386_unknown_nt4_0)
 #include <sys/time.h>
-#include "sys.h"
+#endif // defined(i386_unknown_nt4_0)
+#include "util/h/sys.h"
 
 #ifdef notdef
 timeStamp getCurrentTime(void) {

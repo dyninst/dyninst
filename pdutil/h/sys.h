@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -49,10 +49,10 @@
 typedef double timeStamp;
 typedef float sampleValue;
 
-typedef struct {
+struct Interval {
    timeStamp start;
    timeStamp end;
    sampleValue value;
-} Interval;
+};
 
 #endif

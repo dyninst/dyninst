@@ -3,43 +3,55 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 1998/12/25 21:31:37 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.7 1999/03/03 17:43:09 pcroth Exp $
 #
 
 TARGET	      = libpdutil.lib
 
-SRCS	     = $(SRCS) ../src/String.C \
-		../src/ByteArray.C \
-		../src/Dictionary.C \
-		../src/lprintf.C \
-		../src/rpcUtil-nt.C \
+SRCS	     = $(SRCS) \
 		../src/aggregateSample.C \
-		../src/stringPool.C \
-		../src/hist.C \
-		../src/timing.C \
-		../src/Timer.C \
-		../src/Types.C \
-		../src/Ident.C \
-		../src/makenan.C \
-		../src/pathName.C \
-		../src/Object.C \
-		../src/PriorityQueue.C \
-		../src/odometer.C \
+		../src/ByteArray.C \
 		../src/CircularBuffer.C \
-		../src/vectorSet.C \
-		../src/debugOstream.C
+		../src/debugOstream.C \
+		../src/Dictionary.C \
+		../src/hist.C \
+		../src/Ident.C \
+		../src/lprintf.C \
+		../src/makenan.C \
+		../src/Object.C \
+		../src/odometer.C \
+		../src/pathName.C \
+		../src/PriorityQueue.C \
+		../src/rpcUtil.C \
+		../src/String.C \
+		../src/stringPool.C \
+		../src/Timer.C \
+		../src/timing.C \
+		../src/vectorSet.C
 
-OBJS         = $(OBJS) String.obj ByteArray.obj Dictionary.obj \
-		lprintf.obj rpcUtil.obj aggregateSample.obj \
- 		stringPool.obj hist.obj timing.obj  Timer.obj \
-		Types.obj Ident.obj makenan.obj pathName.obj \
-		PriorityQueue.obj odometer.obj CircularBuffer.obj \
-		vectorSet.obj debugOstream.obj Object.obj
+OBJS         = $(OBJS) \
+		aggregateSample.obj \
+		ByteArray.obj \
+		CircularBuffer.obj \
+		debugOstream.obj \
+		Dictionary.obj \
+		hist.obj \
+		Ident.obj \
+		lprintf.obj \
+		makenan.obj \
+		Object.obj \
+		odometer.obj \
+		pathName.obj \
+		PriorityQueue.obj \
+		rpcUtil.obj \
+		String.obj \
+		stringPool.obj \
+		Timer.obj \
+		timing.obj \
+		vectorSet.obj
 
 all: $(TARGET)
 
 {..\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
-
-
 

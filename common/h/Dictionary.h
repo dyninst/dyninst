@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.19 1998/08/16 23:27:53 wylie Exp $
+// $Id: Dictionary.h,v 1.20 1999/03/03 17:43:46 pcroth Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -245,8 +245,9 @@ class dictionary_hash_iter {
    }
 
  private:
-   // private to make sure they're not used:
-   dictionary_hash_iter &operator=(const dictionary_hash_iter &);
+	// private to make sure they're not used:
+	// Visual C++ requires that it at least have a body
+	dictionary_hash_iter &operator=(const dictionary_hash_iter &) { assert(false); return *this; }
 
    const dictionary_hash<K,V> &dict;
    const dictionary_hash<K,V>::entry *curr;
