@@ -198,7 +198,7 @@ class process {
 	  );
      // this is the "normal" ctor
 
-  process(int iPid
+  process(int iPid, image *iSymbols
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
 	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -206,13 +206,12 @@ class process {
 	  );
      // this is the "attach" ctor
 
-  process(const process &parentProc, int iPid
+  process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
 	  void *applShmSegPtr,
 	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-	  , bool childHasInstrumentation = true
 	  );
      // this is the "fork" ctor
 
@@ -349,6 +348,9 @@ class process {
      // input is the opaque type returned by getRegisters()
 
  public:
+  void installBootstrapInst();
+  void installInstrRequests(const vector<instMapping*> &requests);
+ 
   // These member vrbles should be made private!
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
@@ -400,12 +402,12 @@ class process {
   // It also writes to "map" s.t. for each instInstance in the parent, we have the
   // corresponding instInstance in the child.
   static process *forkProcess(const process *parent, pid_t childPid,
-			      dictionary_hash<instInstance*,instInstance*> &map
+			      dictionary_hash<instInstance*,instInstance*> &map,
+			      int iTrace_fd
 #ifdef SHM_SAMPLING
                               ,key_t theKey,
                               void *applAttachedAtPtr
 #endif
-                              , bool childHasInstrumentation
                               );
 
   // get and set info. specifying if this is a dynamic executable
@@ -517,12 +519,6 @@ class process {
 
   int getProcFileDescriptor(){ return proc_fd;}
 
-  // attachToProcess: attach to an already running process, this routine sets
-  // up the connection to the process, creates a shared memory segment, parses
-  // the executable's image, creates a new process object, and processes
-  // shared objects.  It returns 0 on error.
-  static process *attachToProcess(int pid,string file_name);
-
   static int waitProcs(int *status);
   const process *getParent() const {return parent;}
 
@@ -561,12 +557,10 @@ class process {
 
   void *getObsCostLowAddrInApplicSpace() {
      void *result = inferiorHeapMgr.getObsCostAddrInApplicSpace();
-//     cerr << "obs cost in addr space is @ " << result << endl;
      return result;
   }
   unsigned *getObsCostLowAddrInParadyndSpace() {
      unsigned *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
-//     cerr << "obs cost in paradynd space is @ " << (void*)result << endl;
      return result;
   }
   void processCost(unsigned obsCostLow,
@@ -693,7 +687,7 @@ private:
 };
 
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
-bool attachProcess(int pid);
+bool attachProcess(const string &dir, const string &cmd, int pid);
 
 void handleProcessExit(process *p, int exitStatus);
 
