@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.35 1999/05/03 20:02:04 zandy Exp $
+// $Id: inst-sparc.h,v 1.36 1999/07/07 16:05:41 zhichen Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -68,7 +68,7 @@
 #define REG_MT               23   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
-#define NUM_INSN_MT_PREAMBLE  9   /* number of instructions required for   */
+#define NUM_INSN_MT_PREAMBLE 27   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
 // NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
@@ -96,6 +96,7 @@ inline Address ABS(int x) {
 #define	REG_G7		7
 
 #define REG_O7    	15
+#define REG_I7    	31
 
 #define REG_L0          16
 #define REG_L1          17
@@ -446,6 +447,8 @@ extern bool branchInsideRange(instruction i, Address branchAddress,
       Address firstAddress, Address lastAddress); 
 extern bool trueCallInsideRange(instruction instr, Address callAddress, 
       Address firstAddress, Address lastAddress);
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
+#endif
 
 #endif
