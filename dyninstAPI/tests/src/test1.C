@@ -2251,7 +2251,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 
     // Find the function CALL21_1 in each of the modules
     BPatch_Vector<BPatch_function *> bpmv;
-    if (NULL == modA->findFunction("call21_1", bpmv) || !bpmv.size()) {
+    if (NULL == modA->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameA);
       exit(1);
@@ -2259,7 +2259,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     BPatch_function *funcA = bpmv[0];
 
     bpmv.clear();
-    if (NULL == modB->findFunction("call21_1", bpmv) || !bpmv.size()) {
+    if (NULL == modB->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameB);
       exit(1);
@@ -2282,7 +2282,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     //   regex "^cb" should match all functions that begin with "cb"
     //   We dont use existing "call" functions here since (at least on
     //   linux, we also find call_gmon_start().  Thus the dummy fns.
-    if (NULL == modB->findFunction("^cb", bpmv) || (bpmv.size() != 2)) {
+    if (NULL == modB->findFunction("^cb", bpmv, false, false, true) || (bpmv.size() != 2)) {
 
 	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
          fprintf(stderr, "  Expected 2 functions matching ^cb, got %d\n",
@@ -2295,7 +2295,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     }
 
     bpmv.clear();
-    if (NULL == modB->findFunction("^cbll21", bpmv) || (bpmv.size() != 1)) {
+    if (NULL == modB->findFunction("^cbll21", bpmv, false, false, true) || (bpmv.size() != 1)) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
          fprintf(stderr, "  Expected 1 function matching ^cbll21, got %d\n",
                             bpmv.size());
