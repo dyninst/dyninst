@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.76 2000/11/15 22:56:11 bernat Exp $
+// $Id: symtab.h,v 1.77 2001/02/02 21:19:32 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -69,8 +69,12 @@ extern "C" {
 #include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
 
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 ////#include "dyninstAPI/src/LocalAlteration.h"
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/FunctionExpansionRecord-x86.h"
+#endif
 class LocalAlterationSet;
 
 #define RH_SEPERATOR '/'
@@ -264,6 +268,8 @@ class pd_Function : public function_base {
        // By renaming this fn, we make clear that we're returning (1), not (2).
 
     bool isTrapFunc() {return isTrap;}
+    bool needsRelocation() {return relocatable_;}
+
     
 #ifndef BPATCH_LIBRARY
     // Fill in <callees> vector with pointers to all other pd functions
@@ -359,6 +365,121 @@ class pd_Function : public function_base {
        } InactiveFrameRange;
 
        vector<InactiveFrameRange> inactiveRanges;
+
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+
+    int relocateInstructionWithFunction(bool setDisp, 
+                                        instruction *insn, 
+                                        Address origAddr, 
+                                        Address targetAddr, 
+                                        Address oldFunctionAddr, 
+                                        unsigned originalCodeSize);
+
+    int patchOffset(bool setDisp, LocalAlterationSet *alteration_set, 
+                    instruction& insn, Address adr, 
+                    Address firstAddress, unsigned originalCodeSize);
+
+    bool findAndApplyAlterations(const image *owner, 
+	                         instPoint *&location,
+      			         u_int &newAdr,
+                                 process *proc,
+                                 relocatedFuncInfo *&reloc_info, 
+                                 unsigned &size_change);
+
+    int findAlterations(const image *owner, process *proc, 
+                        instruction *&oldCode,
+                        LocalAlterationSet &normalized_alteration_set,
+                        Address &mutator, Address &mutatee);
+
+    int relocatedSizeChange(const image *owner, process *proc);
+
+    bool loadCode(process *proc, instruction *&oldCode, 
+                  unsigned &totalSize, Address &firstAddress);
+
+    void expandInstPoints(LocalAlterationSet *temp_alteration_set, 
+                          LocalAlterationSet &normalized_alteration_set, 
+                          Address baseAddress, Address mutator, 
+                          Address mutatee, instruction oldCode[], 
+                          unsigned numberOfInstructions);
+
+    bool PA_attachGeneralRewrites(LocalAlterationSet *temp_alteration_set, 
+                                  Address baseAddress, Address firstAddress,
+                                  instruction loadedCode[], int codeSize);
+
+
+    bool PA_attachOverlappingInstPoints(LocalAlterationSet *temp_alteration_set,
+                                        Address baseAddress,
+                                        Address firstAddress,
+	                                instruction loadedCode[], int codeSize);
+
+    bool PA_attachBranchOverlaps(LocalAlterationSet *temp_alteration_set, 
+                                 Address baseAddress, Address firstAddress,
+                                 instruction loadedCode[],
+                                 unsigned  numberOfInstructions, int codeSize);
+
+    bool discoverAlterations(LocalAlterationSet *temp_alteration_set, 
+                             LocalAlterationSet &normalized_alteration_set,
+			     Address baseAddress, Address firstAddress, 
+                             instruction originalCode[], int originalCodeSize); 
+
+    bool applyAlterations(LocalAlterationSet &normalized_alteration_set,
+			  Address mutator, Address mutatee, Address newAdr, 
+                          instruction originalCode[], 
+			  unsigned originalCodeSize, instruction newCode[]);
+
+    LocalAlterationSet* copyAlterationSet(LocalAlterationSet *alt_set);
+
+    bool updateAlterations(LocalAlterationSet *temp_alteration_set,
+                           LocalAlterationSet &normalized_alteration_set,
+                           instruction *oldCode, 
+                           Address baseAddress, Address firstAddress,
+                           int &totalSizeChange);
+
+    bool relocateFunction(process *proc, instPoint *&location);
+
+    void sorted_ips_vector(vector<instPoint*>&fill_in);
+
+    void copyInstruction(instruction &newInsn, instruction &oldInsn,  
+                                               unsigned &codeOffset);
+
+    int expandInstructions(LocalAlterationSet &alteration_set, 
+                           instruction &insn, 
+                           Address offset,
+                           instruction &newCodeInsn);
+
+    void instrAroundPt(instPoint *p, instruction allInstr[], int numBefore, 
+                       int numAfter, unsigned type, int index);
+
+    bool fillInRelocInstPoints(const image *owner, process *proc,
+                               instPoint *&location, 
+                               relocatedFuncInfo *&reloc_info, Address mutatee,
+                               Address mutator, instruction oldCode[],
+                               Address newAdr, instruction newCode[],
+                               LocalAlterationSet &alteration_set);
+
+    void modifyInstPoint(instPoint *&location, process *proc);
+
+    int getArrayOffset(Address adr, instruction code[]);
+
+    bool isNearBranchInsn(const instruction insn);
+
+    bool isTrueCallInsn(const instruction insn);
+ 
+    int fixRelocatedInstruction(bool setDisp, instruction *insn, 
+                                Address origAddr, Address targetAddr);
+
+    bool branchInsideRange(instruction insn, Address branchAddress, 
+                       Address firstAddress, Address lastAddress);
+
+    bool trueCallInsideRange(instruction insn, Address callAddress, 
+                         Address firstAddress, Address lastAddress);
+
+    instPoint *find_overlap(vector<instPoint*> v, Address targetAddress);
+
+    bool canUseExtraSlot(instPoint *&ip) const;
+
+    bool usesTrap(instPoint *&ip);
+
 #elif defined(alpha_dec_osf4_0)
     int             frame_size; // stack frame size
 #endif
