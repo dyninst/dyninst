@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.22  1997/01/30 18:14:12  tamches
+ * skeleton isRunning, tryToFindExecutable, and read_inferiorRPC_result_register
+ *
  * Revision 1.21  1996/11/23 22:46:41  lzheng
  * Finished the implementation of inferiorPRC on HPUX platfrom
  *
@@ -121,6 +124,7 @@ extern struct rusage *mapUarea();
 #include "showerror.h"
 #include "main.h"
 #include "util.h" // getCurrWallTimeULL
+#include "util/h/pathName.h"
 
 #ifdef SHM_SAMPLING
 #include <kvm.h>
@@ -194,7 +198,7 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, void *addr,
 
 /* ********************************************************************** */
 
-void *process::getRegisters(bool &syscall) {
+void *process::getRegisters(bool &) {
    // ptrace - GETREGS call
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
@@ -222,15 +226,11 @@ void *process::getRegisters(bool &syscall) {
    return buffer;
 }
 
-bool process::changePC(unsigned loc, void *savedRegs) {
-   struct regs theIntRegs = *(struct regs *)savedRegs; // makes a copy (on purpose)
-
+static bool changePC(int pid, struct regs &theIntRegs, unsigned loc) {
    assert(loc % 4 == 0);
 
    theIntRegs.r_pc = loc;
    theIntRegs.r_npc = loc+4;
-
-   assert(status_ == stopped);
 
    if (0 != P_ptrace(PTRACE_SETREGS, pid, (char*)&theIntRegs, 0, 0)) {
       cerr << "process::changePC failed" << endl;
@@ -239,6 +239,23 @@ bool process::changePC(unsigned loc, void *savedRegs) {
 
    return true;
 }
+
+bool process::changePC(unsigned loc, const void *savedRegs) {
+   assert(status_ == stopped);
+   struct regs theIntRegs = *(const struct regs*)savedRegs; // makes a copy (on purpose)
+
+   return ::changePC(pid, theIntRegs, loc);
+}
+
+bool process::changePC(unsigned loc) {
+   assert(status_ == stopped);
+   struct regs theIntRegs;
+   int result = P_ptrace(PTRACE_GETREGS, pid, (char*)&theIntRegs, 0, 0);
+   assert(result != -1);
+
+   return ::changePC(pid, theIntRegs, loc);
+}
+
 
 bool process::restoreRegisters(void *buffer) {
    // two ptrace - SETREGS calls
@@ -381,6 +398,14 @@ bool process::attach() {
 
 bool process::attach_() {
    return (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0, 0) != -1);
+}
+
+bool process::isRunning_() const {
+   // determine if a process is running by doing low-level system checks, as
+   // opposed to checking the 'status_' member vrble.  May assume that attach()
+   // has run, but can't assume anything else.
+
+   assert(false); // not yet implemented!   
 }
 
 
@@ -919,4 +944,24 @@ float OS::compute_rusage_inv_cs() {
 int getNumberOfCPUs()
 {
   return(1);
+}
+
+string process::tryToFindExecutable(const string &progpath, int pid) {
+   // returns empty string on failure
+
+   if (progpath.length() == 0)
+      return "";
+
+   if (exists_executable(progpath))
+      return progpath;
+
+   return ""; // failure
+}
+
+unsigned process::read_inferiorRPC_result_register(reg) {
+   // on sparc, the result register is always in o0, so no need to use the input arg.
+   struct regs regs;
+   if (!ptraceKludge::deliverPtrace(this, PTRACE_GETREGS, (char*)&regs, 0, 0))
+      assert(false);
+   return regs.r_o0;
 }

@@ -49,6 +49,7 @@
 #include "main.h"
 #include "symtab.h"
 #include <machine/save_state.h>
+#include "util/h/pathName.h"
 
 class ptraceKludge {
 public:
@@ -307,7 +308,7 @@ static unsigned readCurrPC(int pid) {
     const unsigned saveStateFlags = ptrace(PT_RUREGS, pid, saveStateFlagAddr, 0, \
 					   0);
     if (errno != 0) {
-	perror("process::getRegisters PT_RUREGS");
+	perror("readCurrPC PT_RUREGS");
 	cerr << "ReadCurrPC: the process exited" << endl;
 	assert(0);
 	return (unsigned)-1;
@@ -498,17 +499,15 @@ void *process::getRegisters(bool &syscall) {
    return result;
 }
 
-bool process::changePC(unsigned loc, void *savedRegs) {
-   unsigned flagsReg = *(unsigned *)savedRegs;
-
+static bool changePC_common(int pid, unsigned flagsReg, unsigned loc) {
    // In in a system call then we also set reg #31, setting low 2 bits (privilege)
    // to true
    if (flagsReg & SS_INSYSCALL) {
       unsigned valueToWrite = loc | 0x03;
       errno = 0;
-      ptrace(PT_WUREGS, getPid(), 31 * 4, valueToWrite, 0);
+      ptrace(PT_WUREGS, pid, 31 * 4, valueToWrite, 0);
       if (errno != 0) {
-	 perror("process::changePC");
+	 perror("changePC_common");
 	 cerr << "reg num was 31" << endl;
 	 return false;
       }
@@ -518,21 +517,46 @@ bool process::changePC(unsigned loc, void *savedRegs) {
 
    // Now write reg 33 (PCOQ_HEAD) with loc and reg 35 (PCOQ_TAIL) with loc+4
    errno = 0;
-   ptrace(PT_WUREGS, getPid(), 33 * 4, loc, 0);
+   ptrace(PT_WUREGS, pid, 33 * 4, loc, 0);
    if (errno != 0) {
-      perror("process::changePC");
+      perror("changePC_common");
       cerr << "reg num was 33 (PCOQ_HEAD)" << endl;
       return false;
    }
 
    errno = 0;
-   ptrace(PT_WUREGS, getPid(), 35 * 4, loc, 0);
+   ptrace(PT_WUREGS, pid, 35 * 4, loc, 0);
    if (errno != 0) {
       perror("process::changePC");
       cerr << "reg num was 35 (PCOQ_TAIL)" << endl;
    }
 
    return true;
+}
+
+bool process::changePC(unsigned loc) {
+   // first we need to get the flags register, so we can check to see
+   // if we're in the middle of a system call.
+
+   const unsigned saveStateFlagAddr = saveStateRegAddr(ss_flags);
+   assert(saveStateFlagAddr == 0);
+   errno = 0;
+   unsigned saveStateFlags = ptrace(PT_RUREGS, getPid(), saveStateFlagAddr, 0, 0);
+   if (errno != 0) {
+      perror("process::getRegisters PT_RUREGS");
+      cerr << "addr was " << saveStateFlagAddr << endl;
+      return NULL;
+   }
+
+   if (saveStateFlags & SS_INSYSCALL)
+      saveStateFlags &= ~0x2;
+
+   return changePC_common(pid, saveStateFlags, loc);
+}
+
+bool process::changePC(unsigned loc, const void *savedRegs) {
+   unsigned flagsReg = *(unsigned*)savedRegs;
+   return changePC_common(pid, flagsReg, loc);
 }
 
 bool process::restoreRegisters(void *buffer) {
@@ -824,6 +848,14 @@ bool process::attach_() {
    return (P_ptrace(PT_ATTACH, getPid(), 0, 0, 0) != -1);
 }
 
+bool process::isRunning_() const {
+   // determine if a process is running by doing low-level system checks, as
+   // opposed to checking the 'status_' member vrble.  May assume that attach()
+   // has run, but can't assume anything else.
+
+   assert(false); // not yet implemented!   
+}
+
 
 // TODO is this safe here ?
 bool process::continueProc_() {
@@ -1003,3 +1035,18 @@ int getNumberOfCPUs()
   return(1);
 }
 
+string process::tryToFindExecutable(const string &progpath, int pid) {
+   // returns empty string on failure
+
+   if (progpath.length() == 0)
+      return "";
+
+   if (exists_executable(progpath))
+      return progpath;
+
+   return ""; // failure
+}
+
+unsigned process::read_inferiorRPC_result_register(reg) {
+   assert(false);  // not yet implemented
+}
