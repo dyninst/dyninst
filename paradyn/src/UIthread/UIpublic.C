@@ -30,10 +30,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.16  1994/10/25 17:57:34  karavan
-/* added Resource Display Objects, which support display of multiple resource
-/* abstractions.
+/* Revision 1.17  1994/11/01 05:43:39  karavan
+/* changed window pathname in call to dag::createDisplay() to match
+/* update to createDisplay(); minor performance and warning fixes
 /*
+ * Revision 1.16  1994/10/25  17:57:34  karavan
+ * added Resource Display Objects, which support display of multiple resource
+ * abstractions.
+ *
  * Revision 1.15  1994/10/09  01:24:49  karavan
  * A large number of changes related to the new UIM/visiThread metric&resource
  * selection interface and also to direct selection of resources on the
@@ -89,9 +93,6 @@
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"
-extern "C" {
-  #include "tk.h"
-}
 
 #define PCSTATUSOBJECT 1
 #define GENSTATUSOBJECT 2
@@ -105,9 +106,10 @@ class statusDisplayObject;
 dag *ActiveDags[MAXNUMACTIVEDAGS];
 Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
 extern void initSHGStyles();
-extern dag *baseWhere;
+char *SHGwinName = (char *) NULL;
+
  /* globals for metric resource selection */
-List<metrespair *> uim_VisiSelections;
+metrespair *uim_VisiSelections;
 int uim_VisiSelectionsSize;
 String_Array uim_AvailMets;
 
@@ -150,10 +152,12 @@ UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
 
 statusDisplayObj::statusDisplayObj (int type)
 {
-  if (type == PCSTATUSOBJECT)
-    wname = Tcl_GetVar (interp, "SHGname", TCL_GLOBAL_ONLY);
+  if (type == PCSTATUSOBJECT) {
+    wname = SHGwinName;
+  }
   else {
-    wname = "notawindow";
+    wname = new char [11];
+    strcpy (wname, "notawindow");
     printf ("only PC supported so far!\n");
   }
 }
@@ -197,7 +201,7 @@ statusDisplayObj::updateStatusDisplay (int displayCode,
     *curr = '\0';
   }
 
-  if (Tcl_VarEval (interp, "shgUpdateStatusLine $SHGname {",
+  if (Tcl_VarEval (interp, "shgUpdateStatusLine ", SHGwinName, " {",
 		   newItem, "}", (char *) NULL) == TCL_ERROR)
     fprintf (stderr, "status insert error: %s\n", interp->result);
 
@@ -375,7 +379,6 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_HashEntry *entryPtr;
   int newptr;
   char tcommand[300];
-  int rdoID;
   List<resourceDisplayObj *>tmp;
 
       // store record with unique id and callback function
@@ -410,9 +413,6 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
     (*tmp)->addResource (newResource, parent, name, rname);
     tmp++;
   }
-  // this version used just the base -- obsoleted w/change to rdo's
-  Tcl_SetVar (interp, "CurrentWhereAxes", baseWhere->getCanvasName(), 
-	      TCL_APPEND_VALUE | TCL_LIST_ELEMENT);
   */
 
   tmp = resourceDisplayObj::allRDOs;
@@ -451,7 +451,7 @@ UIM::initSHG()
 {
   int token;
   char tcommand[100];
-  char win[7] = ".shg";
+  char win[20];
   dag *shgdag;
   char tokstr[10];
   token = getDagToken();
@@ -460,31 +460,29 @@ UIM::initSHG()
     return -1;
   }
   sprintf (tokstr, "%d", token);
-  sprintf (win+4, "%02d", token);
-  printf ("creating dag name %s\n", win);
+  sprintf (win, ".shg%02d", token);
   shgdag = new dag (interp);
       /* set global tcl variable to unique window name */
-  Tcl_SetVar (interp, "SHGname", win, 0);
+  SHGwinName = new char [strlen(win)];
+  strcpy (SHGwinName, win);
   
-  if (Tcl_VarEval (interp, "initSHG ", tokstr, (char *) NULL) == TCL_ERROR) {
+  if (Tcl_VarEval (interp, "initSHG ", win, " ", tokstr, (char *) NULL) 
+      == TCL_ERROR) {
     printf ("initSHG error: %s\n", interp->result);
     return -1;
   }
-
+  sprintf (win+6, ".dag");
+#if UIM_DAG_DEBUG
+  printf ("creating dag name %s\n", win);
+#endif
   shgdag->createDisplay (win);
   ActiveDags[token] = shgdag;
 
-  // add default styles for SHG
-  sprintf (tcommand, "addDefaultShgStyles %d", token);
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("addDefaultShgStyles in UIM::initSHG error: %s\n", interp->result);
-    return -1;
-  }
-  // add default bindings for SHG
-  sprintf (tcommand, "addDefaultShgBindings %s %d",
+  // add default bindings and styles for SHG
+  sprintf (tcommand, "addDefaultShgBindingsAndStyles %s %d",
 	   shgdag->getCanvasName(), token);
   if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("initSHGbindings error: %s\n", interp->result);
+    printf ("initSHGbindingsAndStyles error: %s\n", interp->result);
     return -1;
   }
 
