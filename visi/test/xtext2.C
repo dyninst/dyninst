@@ -42,7 +42,7 @@
 #include <X11/Xaw/Cardinals.h>
 
 //////////////////////////////////
-#include "../src/visualization.h"
+#include "../h/visualization.h"
 //////////////////////////////////
 
 static void ClearText(Widget w,XtPointer text_ptr,XtPointer call_data);
