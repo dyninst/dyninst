@@ -2,7 +2,7 @@
  * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.236 2003/01/31 18:55:42 chadd Exp $
+/* $Id: process.h,v 1.237 2003/02/04 14:59:18 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -71,6 +71,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
 #include "dyninstAPI/src/inferiorRPC.h"
+#include "dyninstAPI/src/libState.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 
@@ -148,6 +149,7 @@ typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 }
         inferiorHeapType;
 typedef pdvector<Address> addrVecType;
+typedef enum { unstarted, begun, initialized, loadingRT, loadedRT, bootstrapped } bootstrapState_t;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
@@ -352,7 +354,6 @@ class process {
      // this is the "normal" ctor
 
   process(int iPid, image *iSymbols,
-          int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
           bool& success 
 #ifdef SHM_SAMPLING
           , key_t theShmSegKey
@@ -368,12 +369,6 @@ class process {
           );
      // this is the "fork" ctor
 
-#ifdef SHM_SAMPLING
-  void registerInferiorAttachedSegs(void *inferiorAttachedAtPtr);
-     // Where the inferior attached was left undefined in the constructor; this
-     // routine fills it in (tells paradynd where, in the inferior proc's addr
-     // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
-#endif
   protected:  
   bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
 			  pdvector<Frame> &stackWalk); // return parameter
@@ -481,10 +476,8 @@ class process {
   // And should really be defined in a arch-dependent place, not process.h - bernat
   Address getTOCoffsetInfo(Address);
 
-  bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
-  void markDyninstLibAlreadyLoaded() { 
-     hasLoadedDyninstLib = true;
-  }
+  bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
+
 #if defined(BPATCH_LIBRARY)
   // a kludge so sol_proc.C/handleStopProcess can get at this without
   // adding another friend class in BPatch.h
@@ -492,14 +485,6 @@ class process {
      return BPatch::bpatch->preForkCallback;
   }
 #endif
-
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-  bool paradynLibAlreadyLoaded() { return hasLoadedParadynLib; }
-
-#endif
-  bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
-  void clearDyninstLibLoadFlags() {
-        hasLoadedDyninstLib = isLoadingDyninstLib = false; }
 
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
@@ -563,14 +548,24 @@ class process {
   bool catchupSideEffect(Frame &frame, instReqNode *inst);
 #endif
 
-  void installBootstrapInst();
   void installInstrRequests(const pdvector<instMapping*> &requests);
 
   int getPid() const { return pid;}
 
   bool heapIsOk(const pdvector<sym_data>&);
-  bool initDyninstLib();
 
+
+  /***************************************************************************
+   **** Runtime library initialization code (Dyninst)                     ****
+   ***************************************************************************/
+  bool loadDyninstLib();
+  bool setDyninstLibInitParams();
+  static void dyninstLibLoadCallback(process *, string libname, void *data);
+  bool finalizeDyninstLib();
+  
+  bool iRPCDyninstInit();
+  static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
+  
   // Get the list of inferior heaps from:
   bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
   bool getInfHeapList(const image *theImage,
@@ -625,18 +620,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 #endif
 #endif
-#if defined(i386_unknown_nt4_0) 
-	//ccw 28 aug 2002
-	//These variables are used by Windows during the loading of the
-	//runtime libraries.  They are used to save some state inside
-	//process::waitProcs.  These are class members so that loading
-	//two or more mutatees at once will no step on each other's state
-	int secondBkpt;
-	int mungeAddr;
-	char savedOpCode[256];
-	char newOpCode[256];
-	Address mainAddr;
-#endif
 
 #if !defined(i386_unknown_nt4_0) 
 	//ccw 3 sep 2002
@@ -690,7 +673,8 @@ void saveWorldData(Address address, int size, const void* src);
 
   // Trampoline guard get/set functions
   Address trampGuardAddr(void) { return trampGuardAddr_; }
-
+  void setTrampGuardAddr(Address addr) { trampGuardAddr_ = addr; }
+  
   // Cpu time related functions and members
 #ifndef BPATCH_LIBRARY
  public:
@@ -743,7 +727,8 @@ void saveWorldData(Address address, int size, const void* src);
 #ifdef rs6000_ibm_aix4_1
   bool isPmapiAvail();
 #endif
-
+  public:
+  
   // Verifies that the wall and cpu timer levels chosen by the daemon are
   // also available within the rtinst library.  This is an issue because the
   // daemon chooses the wall and cpu timer levels to use at daemon startup
@@ -755,6 +740,7 @@ void saveWorldData(Address address, int size, const void* src);
   // library by setting a function ptr in the rtinst library to the address
   // of the chosen function.
   void writeTimerLevels();
+  private:
   // helper routines for writeTimerLevels
   void writeTimerFuncAddr(const char *rtinstVar, const char *rtinstHelperFPtr);
   bool writeTimerFuncAddr_(const char *rtinstVar,const char *rtinstHelperFPtr);
@@ -792,12 +778,8 @@ void saveWorldData(Address address, int size, const void* src);
 
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (specifically, argv[0])
-  static pdvector<string> arg_list; // the arguments of paradynd
   static string pdFlavor;
   static string dyninstRT_name; // the filename of the dyninst runtime library
-#if !defined(BPATCH_LIBRARY)
-  static string paradynRT_name; // the filename of the pd runtime library
-#endif
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
@@ -821,12 +803,21 @@ void saveWorldData(Address address, int size, const void* src);
   dictionary_hash<Address, BPatch_point *> instPointMap;
 #endif
 
-  bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
-  bool reachedVeryFirstTrap; 
-
-#if !defined(BPATCH_LIBRARY) //ccw 23 apr 2002 : SPLIT
-	bool reachedPARADYNBreakPoint;
-#endif
+  private:
+  bootstrapState_t bootstrapState;
+  
+  public:
+  // True if we've reached or past a certain state
+  bool reachedBootstrapState(bootstrapState_t state) const { return bootstrapState >= state; }
+  // Strictly increments (we never drop back down)
+  void setBootstrapState(bootstrapState_t state) {
+      // DEBUG
+      if (bootstrapState > state)
+          cerr << "Warning: attempt to revert bootstrap state from "
+               << bootstrapState << " to " << state << endl;
+      else
+          bootstrapState = state;
+  }  
 
   // inferior heap management
  public:
@@ -846,11 +837,9 @@ void saveWorldData(Address address, int size, const void* src);
   //  PRIVATE DATA MEMBERS (and structure definitions)....
   //
  private:
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
-#endif
 #endif
 
   // This structure keeps track of an inferiorRPC that we will start sometime
@@ -909,31 +898,25 @@ void saveWorldData(Address address, int size, const void* src);
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
+#endif
   Address dyninstlib_brk_addr;
-
-	Address paradynlib_brk_addr; //ccw 18 apr 2002 : SPLIT
-	//This is used to see if the paradyn runtime shared library has been
-	//loaded 
-	
   Address main_brk_addr;
-#if !defined(alpha_dec_osf4_0) && !defined(rs6000_ibm_aix4_1)
+#if !defined(alpha_dec_osf4_0) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
   Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
 #endif
-  bool dlopenDYNINSTlib();
+  bool loadDYNINSTlib();
+  bool loadDYNINSTlibCleanup();
   bool trapDueToDyninstLib();
 
-#if !defined(BPATCH_LIBRARY)
-  bool trapDueToParadynLib(); //ccw 18 apr 2002 : SPLIT
-#endif
-
-  bool trapAtEntryPointOfMain();
-//  bool wasCreatedViaAttach() { return createdViaAttach; }
+  // trapAddress is not set on non-NT, we discover it inline
+  bool trapAtEntryPointOfMain(Address trapAddress = 0);
+  bool wasCreatedViaAttach() { return createdViaAttach; }
   bool wasCreatedViaFork() { return createdViaFork; }
-  void handleIfDueToDyninstLib();  
+  bool wasRunningWhenAttached() { return wasRunningWhenAttached_; }
   void insertTrapAtEntryPointOfMain();
   void handleTrapAtEntryPointOfMain();
-#endif
-  bool wasCreatedViaAttach() { return createdViaAttach; } //ccw 28 june 2001 : was above
+
+  
   bool wasCreatedViaAttachToCreated() {return createdViaAttachToCreated; } // Ana
 
   string getProcessStatus() const;
@@ -992,6 +975,22 @@ void saveWorldData(Address address, int size, const void* src);
   // a dlopen or dlclose event then return true
   bool handleIfDueToSharedObjectMapping();
 
+  // Register a callback to be made when a library is detected as loading
+  // (but possibly before it is initialized)
+  bool registerLoadLibraryCallback(string libname,
+                                   loadLibraryCallbackFunc callback,
+                                   void *data);
+  // And delete the above
+  bool unregisterLoadLibraryCallback(string libname);  
+
+  // Run a callback (if appropriate)
+  bool runLibraryCallback(string libname);
+    
+  private:
+  // Hashtable of registered callbacks
+  dictionary_hash<string, libraryCallback *> loadLibraryCallbacks_;
+
+  public:
   // Insert instrumentation necessary to detect shared objects.
   bool initSharedObjects();
   
@@ -1228,6 +1227,10 @@ void saveWorldData(Address address, int size, const void* src);
   }
 
   
+  void registerInferiorAttachedSegs(void *inferiorAttachedAtPtr);
+  // Where the inferior attached was left undefined in the constructor; this
+  // routine fills it in (tells paradynd where, in the inferior proc's addr
+  // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 
   Address initSharedMetaData();
   sharedMetaData *shmMetaData;
@@ -1249,64 +1252,29 @@ void saveWorldData(Address address, int size, const void* src);
 
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
 		   timeStamp processTime);
-
-   bool extractBootstrapStruct(PARADYN_bootstrapStruct *);
 #endif /* shm_sampling */
 
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    bool isBootstrappedYet() const {
-      return hasBootstrapped;
+      return bootstrapState == bootstrapped;
    }
-
-   int procStopFromDYNINSTinit();
-      // returns 0 if not processed, 1 for the usual processed case (process is
-      // now paused), or 2 for the processed-but-still-running-inferiorRPC case
-
-   void handleCompletionOfDYNINSTinit(bool fromAttach);
-      // called by above routine.  Reads bs_record from applic, takes action.
-
-#if !defined(BPATCH_LIBRARY)//ccw 18 apr 2002 : SPLIT
-	//this is the same as above except for pDYNINSTinit
-	//pDYNINSTinit call completion
-	void handleCompletionOfpDYNINSTinit(); 
-	int procStopFrompDYNINSTinit();
-	void callpDYNINSTinit();
-
-	bool attachProcessParadyn(); //ccw 28 apr 2002 : SPLIT2
-
-	bool isPARADYNBootstrappedYet() const {
-      		return PARADYNhasBootstrapped;
-	   }
-
+#if !defined(BPATCH_LIBRARY)
+   void setParadynBootstrap() {
+       // This should be in paradyn's pd_process object, but is
+       // needed for the is_multithreaded check
+       PARADYNhasBootstrapped = true;
+   }
+   bool isParadynBootstrapped() {
+       return PARADYNhasBootstrapped;
+   }
 #endif
-   static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
-      // inferiorRPC callback routine.
-
-#if !defined(BPATCH_LIBRARY) //ccw 18 apr 2002 : SPLIT
-	//this is the same as above EXCEPT it catches the PARADYN runtime lib
-	//pDYNINSTinit call completion
-   static void pDYNINSTinitCompletionCallback(process* theProc, void* userData, void* ret); 
-	bool dlopenPARADYNlib();
-
-#endif
-
+   
 private:
   // Since we don't define these, 'private' makes sure they're not used:
   process &operator=(const process &); // assign oper
 
-  bool hasBootstrapped;
 #if !defined(BPATCH_LIBRARY)  //ccw 22 apr 2002 : SPLIT
   bool PARADYNhasBootstrapped;
-#endif
-     // set to true when we get callback from inferiorRPC call to DYNINSTinit
-
-  // following two variables are used when libdyninstRT is dynamically linked
-  // On other platforms the values are undefined
-  bool hasLoadedDyninstLib; // true iff dyninstlib has been loaded already
-  bool isLoadingDyninstLib; // true iff we are currently loading dyninst lib
-#if !defined(BPATCH_LIBRARY) 
-bool hasLoadedParadynLib; // ccw 19 apr 2002 : SPLIT 
-bool isLoadingParadynLib;
 #endif
   // the next two variables are used when we are loading dyninstlib
   // They are used by the special inferior RPC that makes the call to load the
@@ -1378,7 +1346,7 @@ private:
   // the following 2 are defined only if 'createdViaAttach' is true; action is
   // taken on these vrbles once DYNINSTinit completes.
 
-  bool wasRunningWhenAttached;
+  bool wasRunningWhenAttached_;
   bool needToContinueAfterDYNINSTinit;
 
   // for processing observed cost (see method processCost())
@@ -1578,8 +1546,8 @@ process *createProcess(const string file, pdvector<string> argv,
 		       pdvector<string> envp, const string dir,
 		       int stdin_fd, int stdout_fd, int stderr_fd);
 
-bool attachProcess(const string &progpath, int pid, int afterAttach,
-                   process **newProcess);
+process *attachProcess(const string &progpath, int pid);
+
 bool  AttachToCreatedProcess(int pid, const string &progpath);
 
 void handleProcessExit(process *p, int exitStatus);

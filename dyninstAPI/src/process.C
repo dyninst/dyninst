@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.381 2003/02/02 16:52:58 chadd Exp $
+// $Id: process.C,v 1.382 2003/02/04 14:59:13 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -177,10 +177,8 @@ pdvector<process*> processVec;
 string process::programName;
 string process::dyninstRT_name;
 string process::pdFlavor;
-pdvector<string> process::arg_list;
 
 #ifndef BPATCH_LIBRARY
-string process::paradynRT_name;
 extern string osName;
 #endif
 
@@ -188,6 +186,16 @@ extern string osName;
 int pd_debug_infrpc=0;
 int pd_debug_catchup=0;
 //
+
+extern void checkProcStatus();
+
+bool reachedLibState(libraryState_t lib, libraryState_t state) { return (lib >= state); }
+
+void setLibState(libraryState_t &lib, libraryState_t state) {
+    if (lib > state) cerr << "Error: attempting to revert library state" << endl;
+    else lib = state;
+}
+
 
 process *findProcess(int pid) { // make a public static member fn of class process
   unsigned size=processVec.size();
@@ -1490,7 +1498,6 @@ bool process::initTrampGuard()
   trampGuardAddr_ = sym.getAddr();
   return true;
 }
-  
 
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
@@ -1618,7 +1625,6 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 	      NULL,    // No lwp in particular
 	      true); // But use reserved memory
   
-  extern void checkProcStatus();
   do {
 #ifdef DETACH_ON_THE_FLY
     launchRPCifAppropriate((status()==running || juststopped));
@@ -1811,7 +1817,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    }
 #endif
 #endif
-
    return(h->addr);
 }
 
@@ -1852,73 +1857,6 @@ void process::inferiorFree(Address block)
 #ifdef DETACH_ON_THE_FLY
 extern void initDetachOnTheFly();
 #endif
-
-// initializes all DYNINST lib stuff: init the inferior heap and check for 
-// required symbols.
-// This is only called after we get the first breakpoint (SIGTRAP), because
-// the DYNINST lib can be dynamically linked (currently it is only dynamically
-// linked on Windows NT)
-bool process::initDyninstLib() {
-#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-   /***
-     Kludge for Windows NT: we need to call waitProcs here so that
-     we can load libdyninstRT when we attach to an already running
-     process. The solution to avoid this kludge is to divide 
-     attachProcess in two parts: first we attach to a process,
-     and later, after libdyninstRT has been loaded,
-     we install the call to DYNINSTinit.
-    ***/
-
-   // libDyninstRT should already be loaded when we get here,
-   // except if the process was created via attach
-   if (createdViaAttach) {
-     // need to set reachedFirstBreak to false here, so that
-     // libdyninstRT gets loaded in waitProcs.
-     reachedFirstBreak = false;
-     while (!hasLoadedDyninstLib) { 
-       int status;
-       waitProcs(&status);
-     }
-   }
-   assert(hasLoadedDyninstLib); 
-#endif
-
-  initInferiorHeap();
-  // This must be done after the inferior heap is initialized
-  initTrampGuard();
-  extern pdvector<sym_data> syms_to_find;
-  if (!heapIsOk(syms_to_find))
-    return false;
- 
-#if !defined(BPATCH_LIBRARY)
-  
-#if defined(i386_unknown_nt4_0) //ccw 20 july 2000 : 29 mar 2001
-   /***
-     Kludge for Windows NT: we need to call waitProcs here so that
-     we can load libdyninstRT when we attach to an already running
-     process. The solution to avoid this kludge is to divide 
-     attachProcess in two parts: first we attach to a process,
-     and later, after libdyninstRT has been loaded,
-     we install the call to DYNINSTinit.
-    ***/
-
-   // libDyninstRT should already be loaded when we get here,
-   // except if the process was created via attach
-   if (createdViaAttach) {
-     // need to set reachedFirstBreak to false here, so that
-     // libdyninstRT gets loaded in waitProcs.
-     //reachedFirstBreak = false;
-     while (!hasLoadedParadynLib) { //ccw 7 jun 2002 : SPLIT was hasLoadedDyninstLib
-       int status;
-       waitProcs(&status);
-     }
-	assert(hasLoadedParadynLib);
-   }
-#endif
-#endif 
-
-  return true;
-}
 
 //
 // cleanup when a process is deleted
@@ -2008,6 +1946,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
+  loadLibraryCallbacks_(string::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
@@ -2032,37 +1971,23 @@ process::process(int iPid, image *iImage, int iTraceLink
   pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
-  hasBootstrapped = false;
   save_exitset_ptr = NULL;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
 
-  // the next two variables are used only if libdyninstRT is dynamically linked
-  hasLoadedDyninstLib = false;
-  isLoadingDyninstLib = false;
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-	hasLoadedParadynLib = false;
-	isLoadingParadynLib = false;
-#endif
 
-
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   dyninstlib_brk_addr = 0;
 
   main_brk_addr = 0;
-#endif
 
-#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
-	mainAddr = 0;
-#endif
+    wasRunningWhenAttached_ = false;
+    bootstrapState = unstarted;
 
-    reachedFirstBreak = false; // haven't yet seen first trap
-    wasRunningWhenAttached = false;
-    reachedVeryFirstTrap = false;
     createdViaAttach = false;
     createdViaFork = false;
     createdViaAttachToCreated = false; 
+    wasRunningWhenAttached_ = false; // Technically true...
 
 #ifndef BPATCH_LIBRARY
       if (iTraceLink == -1 ) createdViaAttachToCreated = true;
@@ -2162,6 +2087,7 @@ process::process(int iPid, image *iImage, int iTraceLink
       string msg = string("Warning: unable to attach to specified process :")
                    + string(pid);
       showErrorCallback(26, msg.c_str());
+      cerr << "Process: failed attach!" << endl;
    }
   
 #ifndef BPATCH_LIBRARY
@@ -2179,15 +2105,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 // process. 
 //
 //
-/*
- *
- * this is called from attachProcess. somewhere here is the problem ccw
- *
- *
- *
- */
 process::process(int iPid, image *iSymbols,
-                 int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
                  bool &success
 #if !defined(BPATCH_LIBRARY)
                  , key_t theShmKey
@@ -2208,8 +2126,10 @@ process::process(int iPid, image *iSymbols,
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
+  loadLibraryCallbacks_(string::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
+  PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
@@ -2237,50 +2157,22 @@ process::process(int iPid, image *iSymbols,
    runningRPC_ = false;
    save_exitset_ptr = NULL;
 
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
-#endif
-#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
-	mainAddr = 0;
-#endif
-#if !defined(BPATCH_LIBRARY)
-   //  When running an IRIX MPI program, the IRIX MPI job launcher
-   //  "mpirun" creates all the processes.  When we create process
-   //  objects for these processes we aren't actually "attaching" to
-   //  the program, but we use most of this constructor since we
-   //  don't actually create the processes.
 
-    if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
-      {
-	needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button         
-	reachedFirstBreak = false; // haven't yet seen first trap
-	createdViaAttach = false;
-      }
-    else
-#endif
-      {
-	reachedFirstBreak = true;
 	createdViaAttach = true;
-      }
-    
-    hasBootstrapped = false;
-#if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
-	PARADYNhasBootstrapped = false;
+
+#if !defined(i386_unknown_nt4_0)
+    bootstrapState = initialized;
+#else
+    // We need to wait for the CREATE_PROCESS debug event.
+    // Set to "begun" here, and fix up in the signal loop
+    bootstrapState = begun;
 #endif
 
-    reachedVeryFirstTrap = true;
     createdViaFork = false;
     createdViaAttachToCreated = false; 
     
-    // the next two variables are used only if libdyninstRT is dynamically linked
-    hasLoadedDyninstLib = false;
-    isLoadingDyninstLib = false;
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-	hasLoadedParadynLib = false;
-	isLoadingParadynLib = false;
-#endif
- 
     symbols = iSymbols;
     mainFunction = NULL; // set in platform dependent function heapIsOk
     
@@ -2394,42 +2286,21 @@ process::process(int iPid, image *iSymbols,
    symbols = theImage;
 #endif
 
-#if defined(mips_sgi_irix6_4) && !defined(BPATCH_LIBRARY)
-   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
-   {
-      pause_();
-      insertTrapAtEntryPointOfMain();
-      continueProc();
-   }
-#endif
+   // Record what the process was doing when we attached, for possible
+   // use later.
+   wasRunningWhenAttached_ = isRunning_();
+   if (wasRunningWhenAttached_) 
+       status_ = running;
+   else
+       status_ = stopped;
 
-#if defined(rs6000_ibm_aix4_1)
-   wasRunningWhenAttached = false; /* XXX Or should the default be true? */
-   // We use ptrace of AIX, which stops the process on attach.
-   status_ = stopped;
-#else
-   wasRunningWhenAttached = isRunning_();
-   status_ = running;
-#endif
-
-#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-// Except we still pause on NT.
-    if (!pause())
-        assert(false);
-#endif
-
+   // Now pause the process before we go to work on it.
+   if (!pause())
+       assert(false);
+   
 #if defined(rs6000_ibm_aix4_1)
    resetForkTrapData();
 #endif
-
-   if (afterAttach == 0)
-      needToContinueAfterDYNINSTinit = wasRunningWhenAttached;
-   else if (afterAttach == 1)
-      needToContinueAfterDYNINSTinit = false;
-   else if (afterAttach == 2)
-      needToContinueAfterDYNINSTinit = true;
-   else
-      assert(false);
 
    // Does attach() send a SIGTRAP, a la the initial SIGTRAP sent at the
    // end of exec?  It seems that on some platforms it does; on others
@@ -2450,6 +2321,8 @@ process::process(int iPid, image *iSymbols,
    // Everything worked
    success = true;
 }
+
+
 
 void copyOverInstInstanceObjects(
         dictionary_hash<const instPoint *, installed_miniTramps_list*> *mtdata)
@@ -2499,8 +2372,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
+  loadLibraryCallbacks_(string::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
+  PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
@@ -2527,25 +2402,15 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    save_exitset_ptr = NULL;
 
 
-   hasBootstrapped = true;
+   bootstrapState = initialized;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
    PARADYNhasBootstrapped = false;
-#endif
-
-   // The child of fork ("this") has yet to run DYNINSTinit.
-
-   // the next two variables are used only if libdyninstRT is dynamically linked
-   hasLoadedDyninstLib = true; // TODO: is this the right value?
-   isLoadingDyninstLib = false;
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-   hasLoadedParadynLib = true;
-   isLoadingParadynLib = false;
 #endif
 
    createdViaAttachToCreated = false;
    createdViaFork = true;
    createdViaAttach = parentProc.createdViaAttach;
-   wasRunningWhenAttached = true;
+   wasRunningWhenAttached_ = true;
    needToContinueAfterDYNINSTinit = true;
 
    symbols = parentProc.symbols; //shouldn't a reference count also be bumped?
@@ -2594,17 +2459,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    parent = const_cast<process*>(&parentProc);
     
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
    dyninstlib_brk_addr = 0;
 
    main_brk_addr = 0;
-#endif
-#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
-   mainAddr = 0;
-#endif
 
-   reachedFirstBreak = true; // initial TRAP has (long since) been reached
-   reachedVeryFirstTrap = true;
+   bootstrapState = initialized;
 
    splitHeaps = parentProc.splitHeaps;
 
@@ -2848,10 +2707,11 @@ process *createProcess(const string File, pdvector<string> argv,
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
 		   traceLink, pid, tid, procHandle_temp, thrHandle_temp,
 		   stdin_fd, stdout_fd, stderr_fd)) {
-      // forkNewProcess is responsible for displaying error messages
-      return NULL;
+        // forkNewProcess is responsible for displaying error messages
+        // Note: if the fork succeeds, but exec fails, forkNew...
+        // will return true. 
+        return NULL;
     }
-
 #ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
     // BPatch_thread object).
@@ -2865,16 +2725,18 @@ process *createProcess(const string File, pdvector<string> argv,
     // "true" value is for AIX -- waiting for an initial trap
     // it's ignored on other platforms
     fileDescriptor *desc = getExecFileDescriptor(file, status, true);
-    if (!desc)
-      return NULL;
-
+    if (!desc) {
+        cerr << "Failed to find exec descriptor" << endl;
+        return NULL;
+    }
+    
     image *img = image::parseImage(desc);
     if (!img) {
       // For better error reporting, two failure return values would be
       // useful.  One for simple error like because-file-not-because.
       // Another for serious errors like found-but-parsing-failed 
       //    (internal error; please report to paradyn@cs.wisc.edu)
-      
+        cerr << "Unable to parse target image" << endl;
       string msg = string("Unable to parse image: ") + file;
       showErrorCallback(68, msg.c_str());
       // destroy child process
@@ -2885,7 +2747,7 @@ process *createProcess(const string File, pdvector<string> argv,
     /* parent */
     statusLine("initializing process data structures");
     
-    process *ret = new process(pid, img, traceLink
+    process *theProc = new process(pid, img, traceLink
 			       
 #ifdef SHM_SAMPLING
 			       , 7000 // shm seg key to try first
@@ -2893,33 +2755,33 @@ process *createProcess(const string File, pdvector<string> argv,
 			       );
     // change this to a ctor that takes in more args
     
-    assert(ret);
+    assert(theProc);
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
     //the MIPS instruction generator needs the Gp register value to
     //correctly calculate the jumps.  In order to get it there it needs
     //to be visible in Object-nt, and must be taken from process.
     void *cont;
     //DebugBreak();
-    cont = ret->GetRegisters(thrHandle_temp); //ccw 10 aug 2000 : ADD thrHandle HERE!
+    cont = theProc->GetRegisters(thrHandle_temp); //ccw 10 aug 2000 : ADD thrHandle HERE!
     img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
 #endif
     
-    processVec.push_back(ret);
+    processVec.push_back(theProc);
     activeProcesses++;
     
     // find the signal handler function
-    ret->findSignalHandler(); // should this be in the ctor?
+    theProc->findSignalHandler(); // should this be in the ctor?
     
     // initializing vector of threads - thread[0] is really the 
     // same process
     
 #ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-	 dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, ret);
-	 ret->threads += new dyn_thread(ret, tid, 0, lwp);
-	 ret->lwps[0] = lwp;
+	 dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, theProc);
+	 theProc->threads += new dyn_thread(theProc, tid, 0, lwp);
+	 theProc->lwps[0] = lwp;
 #else
-    ret->threads += new dyn_thread(ret);
+    theProc->threads += new dyn_thread(theProc);
 #endif
 #endif
 
@@ -2935,72 +2797,17 @@ process *createProcess(const string File, pdvector<string> argv,
     
     (void) handleSigChild(pid, status);
 #endif
+    theProc->loadDyninstLib();
     
-    return ret;
-    
-}
-
-#if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 : SPLIT2
-bool process::attachProcessParadyn(){
-
-	/* load the paradyn runtime shared library */
-	   if (!pause()) {
-	     logLine("WARNING: pause failed\n");
-	     assert(0);
-	   }
-
-   	string buffer =  "called attachProcessParadyn";
-   	statusLine(buffer.c_str());
-
-
-	   if (!paradynLibAlreadyLoaded()) {
-	     /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
-        	a zany user links it into their application, leaving no need
-	        to load it again (in fact, we will probably hang if we try to
-	        load it again).  This is checked in the call to
-        	initSharedObjects */
-
-	     if (!dlopenPARADYNlib()) {
-		return false;
-	     }
-   	buffer =  "loaded Paradyn shared object";
-   	statusLine(buffer.c_str());
-
-
-	     // this will set isLoadingDyninstLib to true - naim
-	     if (!continueProc()) {
-	       logLine("WARNING: continueProc failed\n");
-	       assert(0);
-	     }
-	     int status;
-	     while (!paradynLibAlreadyLoaded()) {
-	       waitProcs(&status);
-	     }
-	   }
-
-	return true;
+    while (!theProc->reachedBootstrapState(bootstrapped)) {
+        // We're waiting for something... so wait
+        checkProcStatus();
+    }
+    return theProc;    
 }
 
 
-#endif
-
-void process::DYNINSTinitCompletionCallback(process* theProc,
-                                            void* userData, // user data
-                                            void* /*ret*/) // return value from DYNINSTinit
-{
-   attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
-   if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess")){
-     theProc->handleCompletionOfDYNINSTinit(false);
-   }else{
-     theProc->handleCompletionOfDYNINSTinit(true);
-
-
-   }
-}
-
-
-bool attachProcess(const string &progpath, int pid, int afterAttach, 
-						 process **newProcess) 
+process *attachProcess(const string &progpath, int pid) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -3012,9 +2819,11 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
   // calculate it with a clever enough search of the process' PATH, examining
   // its argv[0], examining its current directory, etc.  /proc gives us this
   // information on solaris...not sure about other platforms...
-  
-  // possible values for afterAttach: 1 --> pause, 2 --> run, 0 --> leave as is
-  
+
+    // No longer take the afterAttach argument. Instead, the process object records
+    // the state of the process at attach, and the user can read and act on this as
+    // they please -- bernat, JAN03
+
   attach_cerr << "welcome to attachProcess for pid " << pid << endl;
 
   // QUESTION: When we attach to a process, do we want to redirect its stdout/stderr
@@ -3027,41 +2836,36 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
   
   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
   if (!fullPathToExecutable.length())
-    return false;
+      return NULL;
       
   int status = pid;
   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 					       status, false);
   if (!desc)
-    return false;
+      return NULL;
   image *theImage = image::parseImage(desc);
   if (theImage == NULL) {
     // two failure return values would be useful here, to differentiate
     // file-not-found vs. catastrophic-parse-error.
     string msg = string("Unable to parse image: ") + fullPathToExecutable;
     showErrorCallback(68, msg.c_str());
-    return false; // failure
+    return NULL;
   }
   
   // NOTE: the actual attach happens in the process "attach" constructor:
   bool success=false;
-  process *theProc = new process(pid, theImage, afterAttach, success
+  process *theProc = new process(pid, theImage, success
 #ifdef SHM_SAMPLING
 				 ,7000 // shm seg key to try first
 #endif                            
 				 );
 
   assert(theProc);
-#if !defined(i386_unknown_nt4_0)
-  //ccw 3 sep 2002
-  theProc->finishedDYNINSTinit = false;
-  theProc->RPCafterDYNINSTinit = 0;
-#endif
 
   if (!success) {
     // XXX Do we need to do something to get rid of theImage, too?
     delete theProc;
-    return false;
+    return NULL;
   }
   
   // Note: it used to be that the attach ctor called pause()...not anymore...so
@@ -3072,130 +2876,18 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
 #ifndef BPATCH_LIBRARY
   theProc->threads += new dyn_thread(theProc);
 #endif
-#if !(defined i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+
   // we now need to dynamically load libdyninstRT.so.1 - naim
   if (!theProc->pause()) {
     logLine("WARNING: pause failed\n");
     assert(0);
   }
   
-  theProc->initSharedObjects();
-  
-  if (!theProc->dyninstLibAlreadyLoaded()) {
-    /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
-       a zany user links it into their application, leaving no need
-       to load it again (in fact, we will probably hang if we try to
-       load it again).  This is checked in the call to
-       initSharedObjects() */
-    
-    if (!theProc->dlopenDYNINSTlib()) {
-      return false;
-    }
-    
-    // this will set isLoadingDyninstLib to true - naim
-    if (!theProc->continueProc()) {
-      logLine("WARNING: continueProc failed\n");
-      assert(0);
-    }
-    int status;
-    while (!theProc->dyninstLibAlreadyLoaded()) {
-      theProc->waitProcs(&status);
-    }
-  }
-#endif
-  theProc->initDyninstLib();
+  // find the signal handler function
+  theProc->findSignalHandler(); // shouldn't this be in the ctor?
 
-   // find the signal handler function
-   theProc->findSignalHandler(); // shouldn't this be in the ctor?
-
-   // Now force DYNINSTinit() to be invoked, via inferiorRPC.
-   string buffer = string("PID=") + string(pid) + ", running DYNINSTinit()...from attach";
-   statusLine(buffer.c_str());
-
-
-	/* we always want to do the DYNINST stuff BUT if we are paradyn dont
-	bother with the following */
-
-   *newProcess = theProc; //ccw 28 apr 2002 : SPLIT2
-   
-#if !defined(i386_unknown_nt4_0) //ccw 6 jun 2002 SPLIT
-   //DYNINSTinit is called by DllMain now....
-   
-#if defined(BPATCH_LIBRARY) || 1 //ccw 28 apr 2002 : SPLIT2
-  
-  pdvector<AstNode*> the_args(2);
-  the_args[0] = new AstNode(AstNode::Constant, (void*)3);
-  the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
-  
-#else /* BPATCH_LIBRARY */
-  attach_cerr << "calling DYNINSTinit with args:" << endl;
-  
-  pdvector<AstNode*> the_args(3);
-  
-#ifdef SHM_SAMPLING
-  AstNode *an1 = new AstNode(AstNode::Constant,
-			     (void*)(theProc->getShmKeyUsed()));
-  attach_cerr << theProc->getShmKeyUsed() << endl;
-  const unsigned shmHeapTotalNumBytes = theProc->getShmHeapTotalNumBytes();
-  AstNode *an2 = new AstNode(AstNode::Constant,
-			     (void*)shmHeapTotalNumBytes);
-  attach_cerr << shmHeapTotalNumBytes << endl;;
-  
-#else
-  // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
-  // would indicate that we're called from fork
-  
-  AstNode an1 = new AstNode(AstNode::Constant, (void*)0);
-  AstNode an2 = new AstNode(AstNode::Constant, (void*)0);
-#endif
-  
-
-  /*
-    The third argument to DYNINSTinit is our (paradynd's) pid. It is used
-    by DYNINSTinit to build the socket path to which it connects to in order
-    to get the trace-stream connection.  We make it negative to indicate
-    to DYNINSTinit that it's being called from attach (sorry for that little
-    kludge...if we didn't have it, we'd probably need to boost DYNINSTinit
-    from 3 to 4 parameters).
-    
-    This socket is set up in controllerMainLoop (perfStream.C).
-  */
-  AstNode *an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
-  attach_cerr << (-1* getpid()) << endl;
-  
-  the_args[0] = an1; 
-  the_args[1] = an2;
-  the_args[2] = an3;
-  
-#endif /* BPATCH_LIBRARY */
-  
-  AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
-  
-  //  Do not call removeAst if Irix MPI, as the initialRequests vector 
-  //  is being used more than once.
-#ifndef BPATCH_LIBRARY
-  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
-#endif
-  for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-  theProc->postRPCtoDo(the_ast,
-		       true, // true --> don't try to update cost yet
-		       process::DYNINSTinitCompletionCallback, // callback
-		       NULL, // user data
-		       -1,   // we use -1 if this is not metric definition
-		       NULL, // No thread in particular (is this right?)
-		       NULL);// Again, no lwp
-    
-  // the rpc will be launched with a call to launchRPCifAppropriate()
-  // in the main loop (perfStream.C).
-  // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
-  // where we left off in the processing of the forwarded SIGSTOP signal.
-  // In other words, there's lots more work to do, but since we can't do it until
-  // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
-  
-  // Note: we used to pause() the process while attaching.  Not anymore.
-  // The attached process is running even as we speak.  (Though we'll interrupt
-  // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
-#endif //ccw 6 jun 2002 : end #if !defined(386_uknown_nt4_0)
+  theProc->loadDyninstLib();
+    // The process is paused at this point. Run if appropriate.
 
 #if defined(alpha_dec_osf4_0)
   // need to perform this after dyninst Heap is present and happy
@@ -3206,10 +2898,332 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
   //theProc->getDyn()->setMappingHooks(theProc);
 #endif
   
-  return true; // successful
+  return theProc; // successful
 }
 
 
+
+
+/***************************************************************************
+ **** Runtime library initialization code (Dyninst)                     ****
+ ***************************************************************************/
+
+/*
+ * Gratuitously large comment. This diagrams the startup flow of 
+ * messages between the mutator and mutatee. Entry points 
+ * for create and attach process are both given.
+ *     Mutator           Signal              Mutatee
+ * Create:
+ *     Fork/Exec
+ *                     <-- Trap              Halted in exec
+ *     Install trap in main             
+ *                     <-- Trap              Halted in main
+ *  Attach: (also paused, not in main)
+ *     Install call to dlopen/
+ *     LoadLibrary       
+ *                     <-- Trap              In library load
+ *     Set parameters in library
+ *                     <-- Trap              Finished loading
+ *     Restore code and leave paused
+ *     Finalize library
+ *       If finalizing fails, 
+ *       init via iRPC
+ */
+
+/*
+ * In all cases, the process is left paused at the entry of main
+ * (create) or where it was (attach). No permanent instrumentation
+ * is inserted.
+ */
+
+// Load and initialize the runtime library: returns when the RT lib
+// is both loaded and initialized.
+// Return val: false=error condition
+
+bool process::loadDyninstLib() {
+    
+    // Wait for the process to get to an initialized (dlopen exists)
+    // state
+    while (!reachedBootstrapState(initialized)) {
+        checkProcStatus();
+    }
+
+    // We've hit the initialization trap, so load dyninst lib and
+    // force initialization
+    string buffer = string("PID=") + string(pid);
+    buffer += string(", initializing shared objects");       
+    statusLine(buffer.c_str());
+    if (!initSharedObjects())
+        assert(0 && "Failed to init shared objects!");
+    if (dyninstLibAlreadyLoaded()) {
+        logLine("ERROR: dyninst library already loaded, we missed initialization!");
+        assert(0);
+    }
+
+#if defined(alpha_dec_osf4_0)
+    // This installs a trap at dlopen/dlclose. Should be wrapped
+    // into initSharedObjects
+    // need to perform this after dyninst Heap is present and happy
+    cerr << "Setting mapping hooks for alpha" << endl;
+    
+    dyn->setMappingHooks(this);
+#endif
+
+    // Set the name of the dyninst RT lib
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
+                                + " has not been defined for process ") + string(pid);
+            showErrorCallback(101, msg);
+            assert(0 && "Dyninst RT lib not defined!");
+        }
+    }
+// Anyone know a Windows equivalent for this?
+#if !defined(i386_unknown_nt4_0)
+    // Check to see if the library given exists.
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        assert(0 && "Dyninst RT lib cannot be accessed!");
+    }
+#endif
+    // Set up a callback to be run when dyninst lib is loaded
+    // NT has some odd naming problems, so we only use the root
+#if defined(i386_unknown_nt4_0)
+    char dllFilename[_MAX_FNAME];
+    _splitpath (dyninstRT_name.c_str(),
+                NULL, NULL, dllFilename, NULL);
+    
+    registerLoadLibraryCallback(string(dllFilename), dyninstLibLoadCallback, NULL);
+#else
+    registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
+#endif
+
+    // Force a call to dlopen(dyninst_lib)
+    buffer = string("PID=") + string(pid);
+    buffer += string(", loading dyninst library");       
+    statusLine(buffer.c_str());
+    loadDYNINSTlib();
+    setBootstrapState(loadingRT);
+    
+    if (!continueProc()) {
+        assert(0);
+    }
+
+    // Loop until the dyninst lib is loaded
+    while (!reachedBootstrapState(loadedRT)) {
+        // Should also check for process termination here
+        checkProcStatus();
+    }
+
+    // Get rid of the callback
+    unregisterLoadLibraryCallback(dyninstRT_name);
+
+    buffer = string("PID=") + string(pid);
+    buffer += string(", initializing mutator-side structures");
+    statusLine(buffer.c_str());    
+    // The following calls depend on the RT library being parsed,
+    // but not on dyninstInit being run
+    initInferiorHeap();
+    // This must be done after the inferior heap is initialized
+    initTrampGuard();
+    extern pdvector<sym_data> syms_to_find;
+    if (!heapIsOk(syms_to_find))
+        return false;
+    
+    // The library is loaded, so do mutator-side initialization
+    buffer = string("PID=") + string(pid);
+    buffer += string(", finalizing RT library");
+    statusLine(buffer.c_str());    
+    int result = finalizeDyninstLib();
+
+    if (!result) {
+        // For some reason we haven't run dyninstInit successfully.
+        // Probably because we didn't set parameters before 
+        // dyninstInit was automatically run. Catchup with
+        // an inferiorRPC is the best bet.
+        buffer = string("PID=") + string(pid);
+        buffer += string(", finalizing library via inferior RPC");
+        statusLine(buffer.c_str());    
+
+        iRPCDyninstInit();
+    }
+
+    buffer = string("PID=") + string(pid);
+    buffer += string(", dyninst RT lib ready");
+    statusLine(buffer.c_str());    
+
+    return true;
+}
+
+// Set up the parameters for DYNINSTinit in the RT lib
+
+bool process::setDyninstLibInitParams() {
+
+   attach_cerr << "process::setDYNINSTinitArguments()" << endl;
+
+   int pid = getpid();
+   
+   // Cause: 
+   // 1 = created
+   // 2 = forked
+   // 3 = attached
+   
+   int cause;
+   if (createdViaAttach)
+       cause = 3;
+   else if (createdViaFork)
+       cause = 2;
+   else 
+       cause = 1;
+   
+   // Now we write these variables into the following global vrbles
+   // in the dyninst library:
+   // libdyninstAPI_RT_init_localCause
+   // libdyninstAPI_RT_init_localPid
+
+   Symbol causeSym;
+   if (!getSymbolInfo("libdyninstAPI_RT_init_localCause", causeSym))
+       if (!getSymbolInfo("_libdyninstAPI_RT_init_localCause", causeSym))
+           assert(0 && "Could not find symbol libdyninstAPI_RT_init_localCause");
+   assert(causeSym.type() != Symbol::PDST_FUNCTION);
+   writeDataSpace((void*)causeSym.addr(), sizeof(int), (void *)&cause);
+   
+   Symbol pidSym;
+   if (!getSymbolInfo("libdyninstAPI_RT_init_localPid", pidSym))
+       if (!getSymbolInfo("_libdyninstAPI_RT_init_localPid", pidSym))
+           assert(0 && "Could not find symbol libdyninstAPI_RT_init_localPid");
+   assert(pidSym.type() != Symbol::PDST_FUNCTION);
+   writeDataSpace((void*)pidSym.addr(), sizeof(int), (void *)&pid);
+   
+#if defined(BPATCH_LIBRARY)
+   
+   if (wasExeced()) {
+       BPatch::bpatch->registerExec(thread);
+   }
+#endif
+   
+   attach_cerr << "process::installBootstrapInst() complete" << endl;
+   
+   return true;
+}
+
+// Callback for the above
+void process::dyninstLibLoadCallback(process *p, string /*ignored*/, void * /*ignored*/) {
+    p->setDyninstLibInitParams();
+}
+
+// Call DYNINSTinit via an inferiorRPC
+bool process::iRPCDyninstInit() {
+    // Duplicates the parameter code in setDyninstLibInitParams()
+    int cause;
+    int pid = getpid();
+
+    if (createdViaAttach)
+        cause = 3;
+    else if (createdViaFork)
+        cause = 2;
+    else 
+        cause = 1;
+    pdvector<AstNode*> the_args(2);
+    the_args[0] = new AstNode(AstNode::Constant, (void*)cause);
+    the_args[1] = new AstNode(AstNode::Constant, (void*)pid);
+    AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
+    removeAst(the_args[0]); removeAst(the_args[1]);
+    
+    postRPCtoDo(dynInit,
+                true, // Don't update cost
+                process::DYNINSTinitCompletionCallback,
+                NULL, // No user data
+                -1, // Not a metric definition
+                NULL, // Don't use a particular thread
+                NULL); // No particular LWP
+
+    // We loop until dyninst init has run (check via the callback)
+    while (!reachedBootstrapState(bootstrapped)) {
+        launchRPCifAppropriate(false); // false: not running
+        checkProcStatus();
+    }
+    return true;
+}
+
+
+
+void process::DYNINSTinitCompletionCallback(process* theProc,
+                                            void* /*userData*/, // user data
+                                            void* /*ret*/) // return value from DYNINSTinit
+{
+    theProc->finalizeDyninstLib();
+}
+
+// Callback: finish mutator-side processing for dyninst lib
+
+bool process::finalizeDyninstLib() {
+
+   assert(status_ == stopped);
+
+   if (reachedBootstrapState(bootstrapped)) {
+       fprintf(stderr, "hasBootstrapped\n");
+       return true;
+   }
+
+   DYNINST_bootstrapStruct bs_record;
+   if (!extractBootstrapStruct(&bs_record))
+      assert(false);
+
+   // Read the structure; if event 0 then it's undefined! (not yet written)
+   if (bs_record.event == 0){
+       return false;
+   }
+
+   assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
+
+   bool calledFromFork = (bs_record.event == 2);
+   bool calledFromAttach = (bs_record.event == 3);
+   
+   if (!calledFromFork) {
+       getObservedCostAddr();
+
+       // Install initial instrumentation requests
+       string str=string("PID=") + string(bs_record.pid) + ", installing default (DYNINST) inst...";
+       statusLine(str.c_str());
+       
+       extern pdvector<instMapping*> initialRequests; // init.C
+       installInstrRequests(initialRequests);
+   }
+   
+#if defined(BPATCH_LIBRARY)
+   if (wasExeced()) BPatch::bpatch->registerExec(thread);
+#endif
+   
+   if (calledFromFork) {
+       process *parentProcess = findProcess(bs_record.ppid);
+       if (parentProcess) {
+           if (parentProcess->status() == stopped) {
+               if (!parentProcess->continueProc())
+                   assert(false);
+           }
+           else
+               parentProcess->continueAfterNextStop();
+       }
+       
+   }
+   
+   if (!calledFromAttach) {
+       string str=string("PID=") + string(bs_record.pid) + ", dyninst ready.";
+       statusLine(str.c_str());
+   }
+
+   // Ready to rock
+   setBootstrapState(bootstrapped);
+    
+   return true;
+}
 
 /*
  * This function is needed in the unique case where we want to 
@@ -3258,7 +3272,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 // We bump up batch mode here; the matching bump-down occurs after 
 // shared objects are processed (after receiving the SIGSTOP indicating
 // the end of running DYNINSTinit; more specifically, 
-// procStopFromDYNINSTinit(). Prevents a diabolical w/w deadlock on 
+// finalizeDyninstInit(). Prevents a diabolical w/w deadlock on 
 // solaris --ari
     tp->resourceBatchMode(true);
 
@@ -3353,66 +3367,6 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 
 } // end of AttachToCreatedProcess
 
-
-
-#ifndef BPATCH_LIBRARY
-bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
-
-   //  This function has been cannibalized from attachProcess.
-   //  IRIX MPI applications appear to present a unique attaching
-   //  scenario: We technically "attach" to processes forked by
-   //  the master MPI app process/daemon (which is started by
-   //  mpirun), but since we haven't passed main yet, we want to
-   //  add a breakpoint at main and call DYNINSTinit then.
-        
-   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
-   if (!fullPathToExecutable.length())
-      return false;
-
-   tp->resourceBatchMode(true);
-      // matching bump-down occurs in procStopFromDYNINSTinit().
-
-   int status = pid;
-   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
-						status,
-						false);
-
-   image *theImage = image::parseImage(desc);
-   if (theImage == NULL) {
-      // two failure return values would be useful here, to differentiate
-      // file-not-found vs. catastrophic-parse-error.
-      string msg = string("Unable to parse image: ") + fullPathToExecutable;
-      showErrorCallback(68, msg.c_str());
-      return false; // failure
-   }
-
-   // NOTE: the actual attach happens in the process "attach" constructor:
-   bool success=false;
-   process *theProc = new process(pid, theImage, afterAttach, success
-#ifdef SHM_SAMPLING
-                                  ,7000  // shm seg key to try first
-#endif                            
-                                  );
-   assert(theProc);
-   if (!success) {
-       delete theProc;
-       return false;
-   }
-
-   processVec += theProc;
-   activeProcesses++;
-
-   theProc->threads += new dyn_thread(theProc);
-
-   if (!costMetric::addProcessToAll(theProc))
-      assert(false);
-
-   // find the signal handler function
-   theProc->findSignalHandler(); // shouldn't this be in the ctor?
-
-   return true; // successful
-}
-#endif  // #ifndef BPATCH_LIBRARY
 
 #ifndef BPATCH_LIBRARY
 extern void disableAllInternalMetrics();
@@ -3869,15 +3823,15 @@ bool process::pause() {
     return false;
   }
 
-  if (status_ == running && reachedFirstBreak) {
-    bool res = pause_();
-    if (!res) {
-      sprintf(errorLine, "warn : in process::pause, pause_ unable to pause process\n");
-    logLine(errorLine);
-      return false;
-    }
-
-    status_ = stopped;
+  if (status_ == running && reachedBootstrapState(initialized)) {
+      bool res = pause_();
+      if (!res) {
+          sprintf(errorLine, "warn : in process::pause, pause_ unable to pause process\n");
+          logLine(errorLine);
+          return false;
+      }
+      
+      status_ = stopped;
   }
   else {
     // The only remaining combination is: status==running but haven't yet
@@ -3902,7 +3856,6 @@ bool process::handleIfDueToSharedObjectMapping(){
    bool error_occured = false;
    bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
                                                    change_type,error_occured);
-
    // if this trap was due to dlopen or dlclose, and if something changed
    // then figure out how it changed and either add or remove shared objects
    if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
@@ -3912,59 +3865,30 @@ bool process::handleIfDueToSharedObjectMapping(){
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
 
          for(u_int i=0; i < changed_objects->size(); i++) {
-            // TODO: currently we aren't handling dlopen because  
-            // we don't have the code in place to modify existing metrics
-            // This is what we really want to do:
-	    // Paradyn -- don't add new symbols unless it's the runtime
-	    // library
-	    // UGLY.
-	    
-#if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
-	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
+             // TODO: currently we aren't handling dlopen because  
+             // we don't have the code in place to modify existing metrics
+             // This is what we really want to do:
+             // Paradyn -- don't add new symbols unless it's the runtime
+             // library
+             // UGLY.
+             
+             if(addASharedObject(*((*changed_objects)[i]))){
+                 (*shared_objects).push_back((*changed_objects)[i]);
 
-            string rtlibrary;
+                 // Check to see if there is a callback registered for this
+                 // library, and if so call it.
+                 string libname =  (*changed_objects)[i]->getName();
+                 
+                 runLibraryCallback(libname);
 
-	    if (multithread_capable())
-               rtlibrary = string(getenv("PARADYN_LIB_MT"));
-	    else 
-               rtlibrary = string(getenv("PARADYN_LIB"));
-            //ccw 22 apr 2002 : SPLIT
-
-            const char * myChar =  ((*changed_objects)[i])->getName().c_str() ;
-            fflush(stdout);
-
-            if (((*changed_objects)[i])->getName() == rtlibrary || //ccw 19 apr 2002 : SPLIT
-		((*changed_objects)[i])->getName() == string(getenv("DYNINSTAPI_RT_LIB"))) {
-#endif
-               if(addASharedObject(*((*changed_objects)[i]))){
-                  (*shared_objects).push_back((*changed_objects)[i]);
-                  if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
-                     hasLoadedDyninstLib = true;
-                     isLoadingDyninstLib = false;
-                     runtime_lib = ((*changed_objects)[i])->getImage();
-                  }
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-                  else if(((*changed_objects)[i])->getImage()->isParadynRTLib()){
-                     hasLoadedParadynLib = true;
-                     isLoadingParadynLib = false;
-                  }
-#endif
-
-               } else {
-                  //logLine("Error after call to addASharedObject\n");
-                  delete (*changed_objects)[i];
-               }
-
-#if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
-	    } else {
-               // for now, just delete shared_objects to avoid memory leeks
-               delete (*changed_objects)[i];
-	    }
-#endif
+             } // addASharedObject, above
+             else {
+                 //logLine("Error after call to addASharedObject\n");
+                 delete (*changed_objects)[i];
+             }
          }
-
          delete changed_objects;
-
+         
       } else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
 
          // TODO: handle this case
@@ -3988,12 +3912,46 @@ bool process::handleIfDueToSharedObjectMapping(){
    return ok;
 }
 
+// Register a callback to be made when a library is detected
+// in handleSharedObjectMapping (above). In many cases this allows
+// a user to modify the library before any associated _init function
+// is run. Note: ordering is NOT guaranteed. This is best-effort.
 
+bool process::registerLoadLibraryCallback(string libname, 
+                                          loadLibraryCallbackFunc callback,
+                                          void *data) {
+    if (loadLibraryCallbacks_.defines(libname)) {
+        cerr << "Possible error: predefined callback for "
+             << libname << " being overwritten!" << endl;
+        // Return false here? For now, continue
+    }
+    libraryCallback *lib = new libraryCallback();
+    lib->callback = callback;
+    lib->data = data;
+    loadLibraryCallbacks_[libname] = lib;
+    return true;    
+}
 
-
+// Unregister the above callback. Arbitrary decision:
+// callbacks are persistent until unregistered.
+bool process::unregisterLoadLibraryCallback(string libname) {
+    if (loadLibraryCallbacks_.defines(libname)) {
+        libraryCallback *lib = loadLibraryCallbacks_[libname];
+        loadLibraryCallbacks_.undef(libname);
+        delete lib;
+        return true;
+    }
+    return false;
+}
 
 //
-
+bool process::runLibraryCallback(string libname) {
+    if (loadLibraryCallbacks_.defines(libname)) {
+        libraryCallback *lib = loadLibraryCallbacks_[libname];
+        (lib->callback)(this, libname, lib->data);
+    }
+    return true;
+}
 
 //
 //  If this process is a dynamic executable, then get all its 
@@ -4008,8 +3966,6 @@ bool process::initSharedObjects(){
     this->getSharedObjects();
 #endif
 
-    // No longer do the call graph here, wait for pdyninstinit to
-    // finish.
     return true;
 }
 
@@ -4088,22 +4044,17 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
-    if (!isLoadingDyninstLib 
-#if !defined(BPATCH_LIBRARY)
-&& !isLoadingParadynLib //ccw 18 jun 2002
-#endif
-
-	&& (ret = check_rtinst(this, &new_obj))) {
-	 if (ret == 1) {
-	      /* The runtime library has been loaded, but not initialized.
-		 Proceed anyway. */
-	      msg = string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
-	      statusLine(msg.c_str());
-	      this->hasLoadedDyninstLib = 1;
-	 } else {
-	      /* The runtime library has been loaded into the inferior
-                 and previously initialized, probably by a previous
-                 run or Dyninst or Paradyn.  Bail.  */
+    if (!(bootstrapState == loadingRT)
+        && (ret = check_rtinst(this, &new_obj))) {
+        if (ret == 1) {
+            /* The runtime library has been loaded, but not initialized.
+               Proceed anyway. */
+            msg = string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
+            statusLine(msg.c_str());
+        } else {
+            /* The runtime library has been loaded into the inferior
+               and previously initialized, probably by a previous
+               run or Dyninst or Paradyn.  Bail.  */
 	      if (ret == 2)
 		   msg = string("This process was previously modified by Dyninst -- cannot reattach");
 	      else if (ret == 3)
@@ -5257,6 +5208,7 @@ bool process::continueProc() {
     return false;
   }
   status_ = running;
+  
   return true;
 }
 
@@ -5302,10 +5254,6 @@ void process::handleExec() {
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
 
-   // since the exec syscall has run, we're not ready to enable any m/f pairs or
-   // sample anything.
-   // So we set hasBootstrapped to false until we run DYNINSTinit again.
-   hasBootstrapped = false;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
@@ -5412,17 +5360,12 @@ void process::handleExec() {
     initInferiorHeap();
 #endif
 
+
+    bootstrapState = begun;
     /* update process status */
-    reachedFirstBreak = false;
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
-    reachedVeryFirstTrap = false;
     
-    //hasLoadedDyninstLib = false;
-    //isLoadingDyninstLib = false;
-#if !defined(BPATCH_LIBRARY)
-    hasLoadedParadynLib = false;
-    isLoadingParadynLib = false;
-#endif
+
 
     status_ = stopped; // was 'exited'
 #if defined(i386_unknown_linux2_0) && !defined(BPATCH_LIBRARY)
@@ -5609,6 +5552,8 @@ bool process::getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs)
   if (readyRPCs.empty()) {
     if (!isRunningIRPC() && !RPCsWaitingToStart.empty()
         && !isIRPCwaitingForSyscall()) {
+        if (isRunningIRPC())
+            fprintf(stderr, "Skipping because iRPC already running\n");
       readyRPCs += RPCsWaitingToStart[0];
     }
   }
@@ -5646,30 +5591,30 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
 
    if (status_ == exited)
    {
-      inferiorrpc_cerr << "Inferior process exited!" << endl;
-      return false;
-    }
+       cerr << "Inferior process exited!" << endl;
+       return false;
+   }
    
    if (!pause()) {
-      cerr << "launchRPCifAppropriate failed because pause failed" << endl;
-      return false;
+       cerr << "launchRPCifAppropriate failed because pause failed" << endl;
+       return false;
    }
-
+   
    for (unsigned i = 0; i < readyRPCs.size(); i++) {
-      /////////////////////////////////////////////////////////////////////////
-      // Determine if it is safe to run the RPC (ie not in syscall)
-      /////////////////////////////////////////////////////////////////////////
-      inferiorRPCtoDo todo = readyRPCs[i];
-      bool isFunclet = false; // FIXME
-      if (todo.thr) {
-         dyn_lwp *currLWP = todo.thr->get_lwp();
-         if (!todo.lwp) todo.lwp = currLWP;
-         else if (todo.lwp && (currLWP != todo.lwp)) {
-            cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
-                 << currLWP << " are not equal! Using current." << endl;
-            todo.lwp = currLWP;
-         }
-      }
+       /////////////////////////////////////////////////////////////////////////
+       // Determine if it is safe to run the RPC (ie not in syscall)
+       /////////////////////////////////////////////////////////////////////////
+       inferiorRPCtoDo todo = readyRPCs[i];
+       bool isFunclet = false; // FIXME
+       if (todo.thr) {
+           dyn_lwp *currLWP = todo.thr->get_lwp();
+           if (!todo.lwp) todo.lwp = currLWP;
+           else if (todo.lwp && (currLWP != todo.lwp)) {
+               cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
+                    << currLWP << " are not equal! Using current." << endl;
+               todo.lwp = currLWP;
+           }
+       }
     
     // SYSCALL CHECK
     if (todo.thr) {
@@ -5687,6 +5632,7 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
     }
     else {
         if (getDefaultLWP()->executingSystemCall()) {
+            cerr << "Default LWP in system call" << endl;
             if (set_breakpoint_for_syscall_completion()) {
                 setIRPCwaitingForSyscall();
             }
@@ -5731,7 +5677,6 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
          todo.thr->popIRPC();
       else
          RPCsWaitingToStart.removeOne();
-    
       inferiorRPCinProgress inProgress;
       // MT: get a thread to run this RPC on
       inProgress.thr = todo.thr;
@@ -6258,114 +6203,6 @@ bool process::handleTrapIfDueToRPC() {
 BPatchSnippetHandle *handle; //ccw 17 jul 2002
 #endif
 
-//ccw 19 apr 2002 : SPLIT
-//this function calls DYNINSTinit in either the DYNINST or PARADYN
-//runtime lib.  NOW after the split it ONLY calls
-//the DYNINST lib!
-void process::installBootstrapInst() {
-   // instrument main to call DYNINSTinit().  Don't use the shm seg for any
-   // temp tramp space, since we can't assume that it's been initialized yet.
-   // We build an ast saying: "call DYNINSTinit() with args
-   // key_base, nbytes, paradynd_pid"
-
-   attach_cerr << "process::installBootstrapInst()" << endl;
-#if defined(BPATCH_LIBRARY) || 1 //ccw 19 apr 2002 : SPLIT
-
-  pdvector<AstNode *> the_args(2);
-
-  the_args[0] = new AstNode(AstNode::Constant, (void*)1);
-  the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
-
-   AstNode *ast = new AstNode("DYNINSTinit", the_args);
-
-   removeAst(the_args[0]) ;
-   removeAst(the_args[1]) ;
-#else
-   pdvector<AstNode *> the_args(3);
-
-   // 2 dummy args when not shm sampling (just don't use -1, which is reserved
-   // for fork)
-   unsigned numBytes = 0;
-   
-   key_t theKey   = getShmKeyUsed();
-   numBytes = getShmHeapTotalNumBytes();
-   if (this->createdViaAttachToCreated) { // If we are dealing with the hybrid case indicated by this flag
-            theKey  *= -1;                 // we should do this trick to indicate DYNINSTinit() this specific
-   }                                      // situation. -- Ana 
-
-#ifdef SHM_SAMPLING_DEBUG
-   cerr << "paradynd inst.C: about to call DYNINSTinit() with key=" << theKey
-        << " and #bytes=" << numBytes << endl;
-#endif
-
-   the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
-   the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
-   //  for IRIX MPI, we want to appear to be attaching 
-   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") 
-                                   && traceConnectInfo > 0 )
-       traceConnectInfo *= -1;
-
-   the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
-
-   AstNode *ast = new AstNode("DYNINSTinit", the_args);
-   for (unsigned j=0; j<the_args.size(); j++) {
-       removeAst(the_args[j]);
-   }
-#endif /* BPATCH_LIBRARY */
-
-   function_base *func = getMainFunction();
-   if (func) {
-       instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
-       if (func_entry->usesTrap(this)) {
-            // we can't instrument main's entry with a trap yet
-            // since DYNINSTinit installs our instrumentation trapHandler
-            showErrorCallback(108,"main() entry uninstrumentable (w/o trap)");
-            //extern void cleanUpAndExit(int);
-            //cleanUpAndExit(-1); 
-            return;
-       }
-#endif
-
-#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
-//see comment at declaration of handle.
-	handle= new BPatchSnippetHandle(this); //ccw 17 jul 2002
-#endif	
-
-       miniTrampHandle *mtHandle= new miniTrampHandle; //ccw 17 jul 2002
-       assert(addInstFunc(mtHandle, this, func_entry, ast, callPreInsn, //ccw 17 jul 2002
-			  orderFirstAtPoint,
-			  true, // true --> tramp code not update the cost
-			  true // Don't care about recursion --it's DYNINSTinit
-			  )
-	      == success_res);
-       // returns an "instInstance", which we ignore (but should we?)
-
-#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
-
-	handle->add(mtHandle); //ccw 17 jul 2002
-#endif
-
-       removeAst(ast);
-       attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
-    } else {
-       //printf("no main function, skipping DYNINSTinit\n");
-       hasBootstrapped = true;
-#if defined(BPATCH_LIBRARY)
-
-       if (wasExeced()) {
-	     BPatch::bpatch->registerExec(thread);
-       }
-#endif
-    }
-
-#if defined(alpha_dec_osf4_0)
-      // need to perform this after dyninst Heap is present and happy
-      dyn->setMappingHooks(this);
-#endif
-    attach_cerr << "process::installBootstrapInst() complete" << endl;
-}
-
 void process::installInstrRequests(const pdvector<instMapping*> &requests) {
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
@@ -6448,57 +6285,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
       }
    }
 }
-#ifdef SHM_SAMPLING
-bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
-{
-   const string vrbleName = "PARADYN_bootstrap_info";
-   internalSym sym;
-   bool flag = findInternalSymbol(vrbleName, true, sym);
-   assert(flag);
-   Address symAddr = sym.getAddr();
-   // bulk read of bootstrap structure
 
-   if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, 
-                      true)) {
-      cerr << "extractBootstrapStruct failed because readDataSpace failed" 
-           << endl;
-      return false;
-   }
-
-   // address-in-memory: re-read pointer field with proper alignment
-   // (see rtinst/h/trace.h)
-   assert(sizeof(int64_t) == 8); // sanity check
-   assert(sizeof(int32_t) == 4); // sanity check
-
-   // read pointer size
-   int32_t ptr_size;
-   internalSym sym2;
-   bool ret2;
-   ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
-   if (!ret2) return false;
-   ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), &ptr_size, 
-                        true);
-   if (!ret2) return false;
-   // problem scenario: 64-bit application, 32-bit paradynd
-   assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
-
-   // re-align pointer if necessary
-   if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
-      // assumption: 32-bit application, 64-bit paradynd
-      printf(" ERROR %d != %d \n", ptr_size, (int) sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
-      assert(ptr_size == sizeof(int32_t));
-      assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
-      assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
-      // read 32-bit pointer from high word
-      Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
-      void *val_p = (void *)val_a;
-      bs_record->appl_attachedAtPtr.ptr = val_p;
-      fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
-   }
-  
-   return true;
-}
-#endif /* SHM_SAMPLING */
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
@@ -6516,7 +6303,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   return true;
 }
 
-#if !defined(BPATCH_LIBRARY)
+#if 0
 bool process::handleStopDueToExecEntry() {
    // returns true iff we are processing a stop due to the entry point of exec
    // The exec hasn't yet occurred.
@@ -6549,93 +6336,11 @@ bool process::handleStopDueToExecEntry() {
    // should we set status_ to neonatal now?  Nah, probably having 
    // the inExec flag set is good enough...
 
-   // shouldn't we be setting reachedFirstBreak to false???
+   // shouldn't we be setting reachedInitializationTrap to false???
 
    return true;
 }
 #endif
-
-int process::procStopFromDYNINSTinit() {
-   // possible return values:
-   // 0 --> no, the stop wasn't the end of DYNINSTinit
-   // 1 --> handled stop at end of DYNINSTinit, leaving program paused
-   // 2 --> handled stop at end of DYNINSTinit...which had been invoked via
-   //       inferiorRPC...so we've continued the process in order to let the
-   //       inferiorRPC get its sigtrap.
-
-   // Note that DYNINSTinit could have been run under several cases:
-   // 1) the normal case     (detect by bs_record.event==1 && execed_ == false)
-   // 2) called after a fork (detect by bs_record.event==2)
-   // 3) called after an exec (detect by bs_record.event==1 and execed_ == true)
-   // 4) called for an attach (detect by bs_record.event==3)
-   // note that bs_record.event == 4 is reserved for "sending" a tr_exec "record".
-   //
-   // The exec case is tricky: we must loop thru all component mi's of this process
-   // and decide now whether or not to carry them over to the new process.
-
-   // if 0 is returned, there must be no side effects.
-   assert(status_ == stopped);
-   if (hasBootstrapped){
-      return 0;
-   }
-
-   DYNINST_bootstrapStruct bs_record;
-   if (!extractBootstrapStruct(&bs_record))
-      assert(false);
-
-   // Read the structure; if event 0 then it's undefined! (not yet written)
-   if (bs_record.event == 0){
-      return 0;
-   }
-
-   forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
-   assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
-#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
-   assert(bs_record.pid == getPid());
-#endif
-#ifndef BPATCH_LIBRARY
-   if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
-#else
-   if (bs_record.event != 3 )
-#endif
-   {
-      // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
-      // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
-      // completes.
-      handleCompletionOfDYNINSTinit(false);
-
-	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
-	// see comment at declaration of handle.
-#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
-	if(collectSaveWorldData){	
-		thread->deleteSnippet(handle);	
-	}
-#endif
-
-      return 1;
-   }
-   else {
-#if defined(i386_unknown_nt4_0) //ccw 6 jun 2002 : SPLIT
-	   //if we attach on Win2k DYNINSTinit is called via
-	   //DllMain so an RPC is never launched....
-	handleCompletionOfDYNINSTinit(true);  
-#else
-
-
-	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
-	//handle 
-#if defined(rs6000_ibm_aix4_1) &&  defined(BPATCH_LIBRARY)
-	// see comment at declaration of handle.
-	if(collectSaveWorldData){	
-		thread->deleteSnippet(handle);	
-	}
-#endif
-      if (!continueProc())
-         assert(false);
-#endif
-      return 2;
-   }
-}
 
 #ifndef BPATCH_LIBRARY
 void process::verifyTimerLevels() {
@@ -6749,396 +6454,16 @@ void process::writeTimerLevels() {
    rtTimerStr[60] = 0;
    string cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
    strncpy(rtTimerStr, cStr.c_str(), 59);
-   writeTimerFuncAddr("pDYNINSTgetCPUtime", rtTimerStr);
+   writeTimerFuncAddr("PARADYNgetCPUtime", rtTimerStr);
    //logStream << "Setting cpu time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
    
    string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
    strncpy(rtTimerStr, wStr.c_str(), 59);
-   writeTimerFuncAddr("pDYNINSTgetWalltime", rtTimerStr);
+   writeTimerFuncAddr("PARADYNgetWalltime", rtTimerStr);
    //logStream << "Setting wall time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
 }
-#endif
-
-#if !defined(BPATCH_LIBRARY)  //ccw 18 apr 2002 : SPLIT
-
-void process::callpDYNINSTinit(){
-   	//lets pretend like we are attaching....
-	// Now force DYNINSTinit() to be invoked, via inferiorRPC.
-   string buffer =  ",callpDYNINSTinit running pDYNINSTinit()...";
-   statusLine(buffer.c_str());
-
-   attach_cerr << "calling DYNINSTinit with args:" << endl;
-
-   // Arguments to pDYNINSTinit:
-   // 1) Paradynd's pid (if attaching, -1*pid)
-   // 2) # of threads supported
-   // 3) Shared memory key, for attaching to shm segment (if attachToCreated -1*key) - Ana
-   // 4) Shared memory size, see above
-   // 5) Offset to info passed in the shared segment
-
-   pdvector<AstNode*> the_args(6);
-
-   // Paradynd pid
-
-   /*
-      The first argument to DYNINSTinit is our (paradynd's) pid. It is used
-      by DYNINSTinit to build the socket path to which it connects to in order
-      to get the trace-stream connection.  We make it negative to indicate
-      to DYNINSTinit that it's being called from attach (sorry for that little
-      kludge...if we didn't have it, we'd probably need to boost DYNINSTinit
-      from 3 to 4 parameters).
-      
-      This socket is set up in controllerMainLoop (perfStream.C).
-   */
-   AstNode *arg1;
-   if(wasCreatedViaAttach() ) {
-     arg1 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
-   }
-   else {
-     arg1 =  new AstNode(AstNode::Constant, (void*)(1 * traceConnectInfo));
-   }
-
-   // # of threads
-   AstNode *arg2 = new AstNode(AstNode::Constant, (void *)maxNumberOfThreads());
-
-   // Shared memory key
-   AstNode *arg3;
-    if ( wasCreatedViaAttachToCreated() ) {
-      arg3 = new AstNode(AstNode::Constant, (void *)(-1 * getShmKeyUsed()));
-    }
-    else {
-     arg3 = new AstNode(AstNode::Constant, (void *)(getShmKeyUsed()));
-    }
-
-   // Shared memory size
-   AstNode *arg4 = new AstNode(AstNode::Constant, (void *)getShmHeapTotalNumBytes());
-
-   // Offset for other data  
-   Address offsetOfShMetaOffsetData = initSharedMetaData();
-   AstNode *arg5 = new AstNode(AstNode::Constant, 
-			       (void *) offsetOfShMetaOffsetData);
-
-   the_args[0] = arg1;
-   the_args[1] = arg2;
-   the_args[2] = arg3;
-   the_args[3] = arg4;
-   the_args[4] = arg5;
-
-   AstNode *the_ast = new AstNode("pDYNINSTinit", the_args);
-#if !defined(i386_unknown_nt4_0) //SPLIT ccw 4 jun 2002
-   
-   //  Do not call removeAst if Irix MPI, as the initialRequests vector 
-   //  is being used more than once.
-   //  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) ) //FIX THIS !!! ccw
-   for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-   postRPCtoDo(the_ast,
-	       true, // true --> don't try to update cost yet
-	       process::pDYNINSTinitCompletionCallback, // callback
-	       NULL, // user data
-	       -1,   // we use -1 if this is not metric definition
-	       NULL,
-	       NULL);
-   // the rpc will be launched with a call to launchRPCifAppropriate()
-   // in the main loop (perfStream.C).
-   // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
-   // where we left off in the processing of the forwarded SIGSTOP signal.
-   // In other words, there's lots more work to do, but since we can't do it until
-   // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
-   
-   // Note: we used to pause() the process while attaching.  Not anymore.
-   // The attached process is running even as we speak.  (Though we'll interrupt
-   // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
-#else
-   
-   /* on Windows, we want to call pDYNINSTinit by instrumenting the
-    * start of main just like we have done before 
-    */
-   
-   function_base *func = getMainFunction();
-   if (func) {
-     instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-     miniTrampHandle mtHandle;
-     addInstFunc(&mtHandle, this, func_entry, the_ast, callPreInsn,
-		 orderFirstAtPoint,
-		 true, // true --> don't try to have tramp code update the cost
-		 true // Don't care about recursion -- it's DYNINSTinit
-		 );   
-     // returns an "instInstance", which we ignore (but should we?)
-     removeAst(the_ast);
-     attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
-   } else {
-     printf("no main function, skipping DYNINSTinit\n");
-     hasBootstrapped = true;
-   }
-   
-   attach_cerr << "process::installBootstrapInst() complete" << endl;
-#endif   
-}
-
-
-/* 	this function checks to see if the stop is due to the
-	break point at the end of pDYNINSTinit
-*/
-int process::procStopFrompDYNINSTinit() {
-   // possible return values:
-   // 0 --> no, the stop wasn't the end of pDYNINSTinit
-   // 1 --> handled stop at end of pDYNINSTinit, leaving program paused
-   // 2 --> handled stop at end of pDYNINSTinit...which had been invoked via
-   //       inferiorRPC...so we've continued the process in order to let the
-   //       inferiorRPC get its sigtrap.
-
-   // Note that pDYNINSTinit could have been run under several cases:
-   // 1) the normal case     (detect by bs_record.event==1 && execed_ == false)
-   // 2) called after a fork (detect by bs_record.event==2)
-   // 3) called after an exec (detect by bs_record.event==1 and execed_ == true)
-   // 4) called for an attach (detect by bs_record.event==3)
-   // note that bs_record.event == 4 is reserved for "sending" a tr_exec "record".
-   //
-   // The exec case is tricky: we must loop thru all component mi's of this process
-   // and decide now whether or not to carry them over to the new process.
-
-   // if 0 is returned, there must be no side effects.
-   assert(status_ == stopped);
-
-  if (PARADYNhasBootstrapped) {
-      return 0;
-  }
-   PARADYN_bootstrapStruct bs_record;
-   if (!extractBootstrapStruct(&bs_record)){
-      assert(false);
-   }
-
-   // Read the structure; if event 0 then it's undefined! (not yet written)
-   if (bs_record.event == 0){
-      return 0;
-   }
-
-   forkexec_cerr << "procStopFrompDYNINSTinit pid " << getPid() << "; got rec" << endl;
-
-   assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
-#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
-   assert(bs_record.pid == getPid());
-#endif
-   const bool calledFromFork   = (bs_record.event == 2);
-
-   if(calledFromFork) {
-     handleCompletionOfpDYNINSTinit();
-     return 1;
-   } else if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
-   {
-      // we don't want to do this stuff (yet) when DYNINSTinit was run via
-      // attach...we want to wait until the inferiorRPC (thru which
-      // DYNINSTinit is being run) completes.
-#if defined(i386_unknown_nt4_0) //ccw 5 jun 2002  : SPLIT
-      handleCompletionOfpDYNINSTinit(); //ccw 23 apr 2002 
-#endif
-      return 1;
-   }
-   else {
-#if defined(i386_unknown_nt4_0) //ccw 5 jun 2002  : SPLIT //ccw 7 jun 2002
-      //On Win2k we dont have to wait for the RPC to finish because none was 
-      //started, we use DllMain....
-
-      handleCompletionOfpDYNINSTinit(); //ccw 23 apr 2002 : SPLIT DO I NEED THIS HERE?
-#endif	   
-      if (!continueProc())
-         assert(false);
-      return 2;
-   }
-}
-
-
-/*
-	This function is called by the ast callback after
-	the pDYNINSTinit function in the paradyn runtime
-	library has completed.
-	
-	It calls handleCompletionOfpDYNINSTinit. 
-*/
-
-void process::pDYNINSTinitCompletionCallback(process* theProc,
-                                            void* userData, // user data
-                                            void* /*ret*/ // return value from DYNINSTinit
-                                            ) {
-   attach_cerr << "Welcome to pDYNINSTinitCompletionCallback" << endl;
-   assert(userData == NULL);
-   theProc->handleCompletionOfpDYNINSTinit();   
-}
-
-/*	this function is called by the ast callback after the
-	pDYNINSTinit function in the paradyn
-	runtime library has completed.  It 
-	retrieves data from the library as in handleCompletionofDYNINSTinit
-
-	very similar to handleCompletionOfDYNINSTinit
-	main change is now all data comes from PARADYN_bootstrapStruct
-	call to installInstrRequests() commented out, done
-	in handleCompletionOfDYNINSTinit
-	
-	invoked	similar to process::DYNINSTinitCompletionCallback
-*/
-
-
-void process::handleCompletionOfpDYNINSTinit() {
-   PARADYNhasBootstrapped = true; // now, shm sampling may safely take place.
-
-   // 'event' values: (1) DYNINSTinit was started normally via paradynd
-   // or via exec, (2) called from fork, (3) called from attach.
-   inferiorrpc_cerr << "handleCompletionOfpDYNINSTinit..." << endl ;
-	// now PARADYN_bootstrapStruct contains all the
-	// DYNINST_bootstrapStruct info
-//DebugBreak();
-   //printf(" HANDLECOMPLETIONOFPDYNINSTinit\n");
-   PARADYN_bootstrapStruct bs_struct;
-   if (!extractBootstrapStruct(&bs_struct))
-      assert(false);
-
-
-   assert(bs_struct.event != 0);
-
-#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
-   assert(bs_struct.pid == getPid());
-#endif
-   // Note: the process isn't necessarily paused at this moment.  In particular,
-   // if we had attached to the process, then it will be running even as we speak.
-   // While we're parsing the shared libraries, we should pause.  So do that now.
-   bool wasRunning;
-
-   if (needToContinueAfterDYNINSTinit) 
-     wasRunning = true;
-   else 
-     wasRunning = status_ == running;
-   (void)pause();
-
-   const bool calledFromExec   = (bs_struct.event == 1 && execed_);
-// jkh - why was the above line commented out??
-   const bool calledFromFork   = (bs_struct.event == 2);
-   const bool calledFromAttach = (bs_struct.event == 3);
-
-   if (!calledFromFork)
-      registerInferiorAttachedSegs(bs_struct.appl_attachedAtPtr.ptr);
-
-   // Override the tramp guard address
-   // Note: the pointers are all from the POV of the runtime library.
-   trampGuardAddr_ = (Address) bs_struct.tramp_guard_base;
-
-   // initSharedObjects gets shared objects, so no need to do it again after a fork.
-   // (question: do we need to do this after an exec???)
-   if (!calledFromFork) {
-       string str=string("PID=") + string(bs_struct.pid) + ", calling initSharedObjects...";
-       statusLine(str.c_str());
-       
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-       if (!initSharedObjects()) {
-           // reads in shared libraries...can take a while
-           logLine("WARNING: initSharedObjects failed\n");
-       }
-#endif
-       
-       // We build the call graph post-init for MT correctness. In particular,
-       // we need to know the TID of the main thread (from pdyninstinit) before
-       // we can inform the frontend.
-       statusLine("building process call graph");
-       this->FillInCallGraphStatic();
-       if(resource::num_outstanding_creates)
-           this->setWaitingForResources();
-
-      // we decrement the batch mode here; it matches the bump-up in createProcess()
-      tp->resourceBatchMode(false);
-
-      str=string("PID=") + string(bs_struct.pid) + ", installing default inst...";
-      statusLine(str.c_str());
-
-      extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
-      installInstrRequests(initialRequestsPARADYN); 
-      str=string("PID=") + string(bs_struct.pid) + ", propagating mi's...";
-      statusLine(str.c_str());
-
-      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
-
-      if (!calledFromExec) {
-         // propagate any metric that is already enabled to the new process.
-         // For a forked process, this isn't needed because handleFork() has
-         // its own special propagation algorithm (it propagates every
-         // aggregate mi having the parent as a component, except for
-         // aggregate mi's whose focus is specifically refined to the
-         // parent).
-	metricFocusNode::handleNewProcess(this);
-      }
-      else {
-         extern void pd_execCallback(process *proc);
-         pd_execCallback(this);
-      }
-
-      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
-   }
-
-   string str=string("PID=") + string(bs_struct.pid) + ", executing new-prog callback...";
-   statusLine(str.c_str());
-
-   timeStamp currWallTime = calledFromExec ? timeStamp::ts1970():getWallTime();
-   if (!calledFromExec && !calledFromFork) {
-      // The following must be done before any samples are sent to
-      // paradyn; otherwise, prepare for an assert fail.
-
-      if (!isInitFirstRecordTime())
-	setFirstRecordTime(currWallTime);
-   }
-   assert(status_ == stopped);
-
-   tp->newProgramCallbackFunc(bs_struct.pid, this->arg_list, 
-                              machineResource->part_name(),
-                              calledFromExec,
-                              wasRunning);
-      // in paradyn, this will call paradynDaemon::addRunningProgram().
-      // If the state of the application as a whole is 'running' paradyn will
-      // soon issue an igen call to us that'll continue this process.
-   if (!calledFromExec) {
-      tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
-							 timeBase::bStd()));
-   }
-   // verify that the wall and cpu timer levels chosen by the daemon
-   // are available in the rt library
-   verifyTimerLevels();
-
-   writeTimerLevels();
-
-   if (calledFromFork) {
-      // the parent proc has been waiting patiently at the start of DYNINSTfork
-      // (i.e. the fork syscall executed but that's it).  We can continue it now.
-      process *parentProcess = findProcess(bs_struct.ppid);
-
-      if (parentProcess) {
-#ifdef DETACH_ON_THE_FLY
-	 parentProcess->specialDetachOnFlyContinue();
-#else
-         if (parentProcess->status() == stopped) {
-            if (!parentProcess->continueProc())
-               assert(false);
-         }
-         else
-            parentProcess->continueAfterNextStop();
-#endif
-      }
-   }
-
-   if (!calledFromAttach || !createdViaAttach) {
-      str=string("PID=") + string(bs_struct.pid) + ", ready.";
-      statusLine(str.c_str());
-   }
-
-   if (calledFromAttach && !wasRunning && createdViaAttach) {
-      statusLine("application paused");
-   }
-
-   assert(status_ == stopped);
-      // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
-   execed_ = false;
-   inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
-}
-
 #endif
 
 #ifdef DETACH_ON_THE_FLY
@@ -7151,112 +6476,6 @@ bool process::specialDetachOnFlyContinue() {
   return true;
 }
 #endif
-
-void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
-   // 'event' values: (1) DYNINSTinit was started normally via paradynd
-   // or via exec, (2) called from fork, (3) called from attach.
-   inferiorrpc_cerr << "handleCompletionOfDYNINSTinit..." << endl ;
-   DYNINST_bootstrapStruct bs_record;
-   if (!extractBootstrapStruct(&bs_record))
-      assert(false);
-
-   if (!fromAttach) // reset to 0 already if attaching, but other fields (attachedAtPtr) ok
-      assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
-#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
-   assert(bs_record.pid == getPid());
-#endif
-   // Note: the process isn't necessarily paused at this moment.  In particular,
-   // if we had attached to the process, then it will be running even as we speak.
-   // While we're parsing the shared libraries, we should pause.  So do that now.
-   bool wasRunning;
-   if (needToContinueAfterDYNINSTinit) 
-     wasRunning = true;
-   else 
-     wasRunning = status_ == running;
-   (void)pause();
-
-   const bool calledFromFork   = (bs_record.event == 2);
-   const bool calledFromAttach = fromAttach || bs_record.event == 3;
-   if (calledFromAttach )
-      assert(createdViaAttach);
-
-   if (!calledFromFork)
-      getObservedCostAddr();
-
-   // initSharedObjects gets shared objects, so no need to do it again after a fork.
-   // (question: do we need to do this after an exec???)
-   if (!calledFromFork) {
-      string str=string("PID=") + string(bs_record.pid) + ", calling initSharedObjects...";
-      statusLine(str.c_str());
-
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-      if (!initSharedObjects()) {
-        // reads in shared libraries...can take a while
-        logLine("WARNING: initSharedObjects failed\n");
-      }
-#endif
-
-      str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
-      statusLine(str.c_str());
-
-      extern pdvector<instMapping*> initialRequests; // init.C
-      installInstrRequests(initialRequests);
-
-      str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
-      statusLine(str.c_str());
-
-      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
-
-      forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
-   }
-
-   hasBootstrapped = true; // now, shm sampling may safely take place.
-#ifdef BPATCH_LIBRARY
-   if (wasExeced()) {
-	 BPatch::bpatch->registerExec(thread);
-   }
-#endif
-
-   string str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
-   statusLine(str.c_str());
-
-   assert(status_ == stopped);
-
-   if (calledFromFork) {
-      // the parent proc has been waiting patiently at the start of DYNINSTfork
-      // (i.e. the fork syscall executed but that's it).  We can continue it now.
-      process *parentProcess = findProcess(bs_record.ppid);
-      if (parentProcess) {
-#ifdef DETACH_ON_THE_FLY
-         if (kill(parentProcess->getPid(), SIGCONT) < 0) {
-            perror("kill error");
-	    assert(false);
-	 }
-#else
-         if (parentProcess->status() == stopped) {
-            if (!parentProcess->continueProc())
-               assert(false);
-         }
-         else
-            parentProcess->continueAfterNextStop();
-#endif
-      }
-   }
-
-   if (!calledFromAttach) {
-      str=string("PID=") + string(bs_record.pid) + ", ready.";
-      statusLine(str.c_str());
-   }
-
-   if (calledFromAttach && !wasRunning) {
-      statusLine("application paused");
-   }
-
-   assert(status_ == stopped);
-      // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
-
-   inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
-}
 
 void process::getObservedCostAddr() {
 
@@ -7659,7 +6878,9 @@ timeStamp process::units2timeStamp(int64_t rawunits) {
 }
 
 timeLength process::units2timeLength(int64_t rawunits) {
-  return cpuTimeMgr->units2timeLength(rawunits, cpuTimeMgr_t::LEVEL_BEST);
+    fprintf(stderr, "Converting value of %lld\n", rawunits);
+    return cpuTimeMgr->units2timeLength(rawunits, cpuTimeMgr_t::LEVEL_BEST);
+
   /* can nicely handle case when we allow exceptions
      } catch(LevelNotInstalled &) {
      cerr << "units2timeStamp: timer level not installed\n";
