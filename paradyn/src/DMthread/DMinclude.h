@@ -39,4 +39,10 @@ struct metNameIdType {
 };
 typedef struct metNameIdType met_name_id;
 
+struct rlNameIdType {
+    resourceListHandle id;
+    string	res_name;	
+};
+typedef struct rlNameIdType rlNameId;
+
 #endif

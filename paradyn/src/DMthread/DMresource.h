@@ -2,7 +2,11 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.24  1995/10/17 20:42:56  tamches
+ * Revision 1.25  1995/12/11 02:25:13  newhall
+ * changed magnify2 to return the resourceList label with each
+ * magnified focus
+ *
+ * Revision 1.24  1995/10/17  20:42:56  tamches
  * Removed reference to the now-obsolete class "dag"
  *
  * Revision 1.23  1995/10/13 22:07:01  newhall
@@ -218,7 +222,7 @@ class resourceList {
       bool isSuppressed(){return(suppressed);}
 
       vector<resourceListHandle> *magnify(resourceHandle rh);
-      vector<resourceListHandle> *magnify();
+      vector<rlNameId> *magnify();
       resourceListHandle *constrain(resourceHandle);
 
       static const char *getName(resourceListHandle rh);

@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.58  1995/12/05 15:58:32  naim
+ * Revision 1.59  1995/12/11 02:25:08  newhall
+ * changed magnify2 to return the resourceList label with each
+ * magnified focus
+ *
+ * Revision 1.58  1995/12/05  15:58:32  naim
  * Fixing bucket_width metric - naim
  *
  * Revision 1.57  1995/12/03  21:31:48  newhall
@@ -744,8 +748,9 @@ vector<resourceListHandle> *dataManager::magnify(resourceHandle rh,
 // This routine returns a list of foci each of which is the result of combining
 // a child of one of the resources with the remaining resource components of
 // rlh, this routine returns 0 if no resource components of rlh have children
+// The DM allocates the vector, the client is responsible for deallocation
 //
-vector<resourceListHandle> *dataManager::magnify2(resourceListHandle rlh){
+vector<rlNameId> *dataManager::magnify2(resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
 	return (rl->magnify());
@@ -1107,18 +1112,6 @@ void dataManagerUser::changeState(appStateChangeCallback cb,
 {
     (cb)(handle, state);
 }
-
-#ifdef ndef
-void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
-                             perfStreamHandle handle,
-                             metricInstanceHandle mi,
-			     int bucketNum,
-			     sampleValue value,
-			     phaseType type)
-{
-    (func)(handle, mi, bucketNum, value, type);
-}
-#endif
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func, 
 				  vector<dataValueType> *data,

@@ -7,7 +7,11 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.31  1995/10/13 22:06:56  newhall
+ * Revision 1.32  1995/12/11 02:25:11  newhall
+ * changed magnify2 to return the resourceList label with each
+ * magnified focus
+ *
+ * Revision 1.31  1995/10/13  22:06:56  newhall
  * Added code to change sampling rate as bucket width changes (this is not
  * completely implemented in daemon code yet, so now it has no effect).
  * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
@@ -480,6 +484,7 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
     return 0;
 }
 
+#ifdef ndef
 // This routine returns a list of foci each of which is the result of combining
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
@@ -492,6 +497,38 @@ vector<resourceListHandle> *resourceList::magnify(){
 				   this->magnify((elements[i])->getHandle());
 	if(next) *return_list += *next;
 	delete next;
+    }
+    if(return_list->size()) return return_list;
+    return 0;
+}
+#endif
+
+// This routine returns a list of foci each of which is the result of combining
+// each child of one of the resources with the remaining resource components of
+// the focus. this is iterated over all resources in the focus.
+// returns 0 if all resources in the focus have no children
+vector<rlNameId> *resourceList::magnify(){
+    
+    vector<rlNameId> *return_list = new vector<rlNameId>;
+    for(unsigned i=0; i < elements.size(); i++){
+	vector<resourceListHandle> *next = 
+				   this->magnify((elements[i])->getHandle());
+        if(next){
+            rlNameId temp;
+            for(unsigned j=0; j < next->size(); j++){
+	        temp.id = (*next)[j];
+		resourceList *new_rl = resourceList::getFocus((*next)[j]);
+		if (new_rl) {
+	            temp.res_name = resource::getName(
+				    (new_rl->elements[i])->getHandle()); 
+		}
+		else {
+                    temp.res_name = string(0);
+		}
+                *return_list += temp;
+	    }
+	    delete next;
+	}
     }
     if(return_list->size()) return return_list;
     return 0;
