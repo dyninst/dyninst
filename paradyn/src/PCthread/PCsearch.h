@@ -20,6 +20,11 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.3  1996/02/22 18:27:04  karavan
+ * changed GUI node styles from #defines to enum
+ *
+ * added status message for PC pause/resume
+ *
  * Revision 1.2  1996/02/09 05:30:59  karavan
  * changes to support multiple per phase searching.
  *
@@ -48,17 +53,8 @@ public:
   static void updateCurrentPhase (timeStamp endTime);
   static PCsearch *findSearch (phaseType pt);
   static bool addSearch (phaseType pt);
-
-  void pause() {     
-    database->unsubscribeAllRawData();
-    if (searchStatus == schRunning)
-      searchStatus = schPaused;
-  }
-  void resume() {
-    database->resubscribeAllRawData();
-    if (searchStatus == schPaused)
-      searchStatus = schRunning;
-  }
+  void pause(); 
+  void resume();
   void terminate(timeStamp searchEndTime) {
     searchStatus = schEnded;
     shg->finalizeSearch(searchEndTime);
@@ -78,7 +74,7 @@ public:
   PriorityQueue<SearchQKey, searchHistoryNode*> SearchQueue;
 
 private:
-  schState searchStatus;  // schPaused/schRunning/schEnded
+  schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search
   phaseType phType;     // global or current; need for DM interface
   PCmetricInstServer *database;

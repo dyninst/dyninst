@@ -20,6 +20,11 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.5  1996/02/22 18:27:00  karavan
+ * changed GUI node styles from #defines to enum
+ *
+ * added status message for PC pause/resume
+ *
  * Revision 1.4  1996/02/22 14:42:58  naim
  * Fixing number of searches that can be done simultaneously (change made by
  * Karen and commited by Oscar) - naim
@@ -104,7 +109,7 @@ PCsearch::addSearch(phaseType pType)
   uiMgr->updateStatusDisplay(phaseID, msg.string_of());
 
   // display root node with style 1 
-  uiMgr->DAGaddNode (phaseID, 0, INACTIVEUNKNOWNNODESTYLE, 
+  uiMgr->DAGaddNode (phaseID, 0, searchHistoryGraph::InactiveUnknownNodeStyle, 
 		     "TopLevelHypothesis", 
 		     "TopLevelHypothesis", 1);
 
@@ -124,6 +129,28 @@ PCsearch::startSearching()
 {
   shg->initPersistentNodes();
   searchStatus = schRunning;
+}
+
+void 
+PCsearch::pause() 
+{     
+  if (searchStatus == schRunning) {
+    searchStatus = schPaused;
+    string msg ("Search Paused by User.\n");
+    shg->updateDisplayedStatus (msg);
+    database->unsubscribeAllRawData();
+  }
+}
+
+void 
+PCsearch::resume() 
+{
+  if (searchStatus == schPaused) {
+    searchStatus = schRunning;
+    database->resubscribeAllRawData();
+    string msg ("Search Resumed.\n");
+    shg->updateDisplayedStatus (msg);
+  }
 }
 
 void 
@@ -163,19 +190,21 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
     bool result;
 
     //** currentSearchCost is WRONG.
-//    float currentSearchCost = (100 * dataMgr->getCurrentSmoothObsCost());
-//    cout << "TOTAL CURRENT SEARCH COST = " << currentSearchCost << endl;
+    //float currentSearchCost = dataMgr->getCurrentSmoothObsCost();
+    //cout << "TOTAL CURRENT SEARCH COST = " << currentSearchCost << endl;
     // tunable constant predictedCostLimit
     float searchCostThreshold = performanceConsultant::predictedCostLimit; 
     // we're using number of experiments only until observed cost is 
     // straightened out
-    float currentSearchCost = PCnumActiveExperiments;
+    float tmpCurrentSearchCost = PCnumActiveExperiments;
     while ((!SearchQueue.empty()) && 
-	   (currentSearchCost < searchCostThreshold)) {
+	   (tmpCurrentSearchCost < searchCostThreshold)) {
       curr = SearchQueue.peek_first_data();
+      float myCost = curr->getEstimatedCost();
+      cout << "estimated cost returns " << myCost << endl;
       result = curr->startExperiment();
       if (result) {
-	currentSearchCost++;
+	tmpCurrentSearchCost++;
 	//currentSearchCost += curr->getEstimatedCost();
       } else {
 	//**
@@ -184,7 +213,6 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
       }
       SearchQueue.delete_first();
     }
-    runQUpdateNeeded = false;
   }
 }
 
