@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.173 1999/06/08 22:14:13 csserra Exp $
+// $Id: process.C,v 1.174 1999/06/17 06:17:46 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -569,9 +569,22 @@ void inferiorMallocCallback(process * /*p*/, void *data, void *result)
   ret->result = result;
   ret->ready = true;
 }
+void alignUp(int &val, int align)
+{
+  assert(val >= 0);
+  assert(align >= 0);
+
+  if (val % align != 0) {
+    val = ((val / align) + 1) * align;
+  }
+}
 // dynamically allocate a new inferior heap segment using inferiorRPC
 void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 {
+  // word-align buffer size 
+  // (see "HEAP_ALIGN" in rtinst/src/RTheap-<os>.c)
+  alignUp(size, 4);
+
   // build AstNode for "DYNINSTos_malloc" call
   string callee = "DYNINSTos_malloc";
   vector<AstNode*> args(3);
@@ -588,28 +601,28 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1);
   extern void checkProcStatus();
   do {
-    p->launchRPCifAppropriate(p->status()==running, false);
+    p->launchRPCifAppropriate((p->status()==running), false);
     checkProcStatus();
   } while (!ret.ready);
 
-  typedef struct seg_t {
-    void *addr;
-    size_t len;
-  } seg_t; //be sure to be consistent with RTsolaris.c
-  seg_t seg;
-
-  if (p->readDataSpace((void*) ret.result, sizeof(seg_t), (void*) &seg, true)) {
-      sprintf(errorLine, "inferiorMallocDynamic(lo=0x%lx, hi=0x%lx), addr=0x%lx, size=%d\n", lo, hi,  (Address)seg.addr, seg.len);
-      inferiorrpc_cerr << errorLine << endl;
-
+  switch ((int)ret.result) {
+  case 0:
+    sprintf(errorLine, "DYNINSTos_malloc() failed\n");
+    logLine(errorLine);
+    break;
+  case -1:
+    // TODO: assert?
+    sprintf(errorLine, "DYNINSTos_malloc(): unaligned buffer size\n");
+    logLine(errorLine);
+    break;
+  default:
     // add new segment to buffer pool
-    if ((Address) ret.result) {
-      heapItem *h = new heapItem((Address)seg.addr, seg.len, anyHeap, true, HEAPfree);
-      p->heap.bufferPool += h;
-      // add new segment to free list
-      heapItem *h2 = new heapItem(h);
-      p->heap.heapFree += h2;
-    }
+    heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
+    p->heap.bufferPool += h;
+    // add new segment to free list
+    heapItem *h2 = new heapItem(h);
+    p->heap.heapFree += h2;
+    break;
   }
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
@@ -651,15 +664,16 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   // attempt 5: allocate new segment (1 MB, unconstrained)
   // attempt 6: allocate new segment (sized, unconstrained)
   int freeIndex = -1;
-  for (int ntry = 0; freeIndex == -1; ntry++) {
+  int ntry = 0;
+  for (ntry = 0; freeIndex == -1; ntry++) {
     switch(ntry) {
     case 0: // as is
       break;
+#if defined(USES_DYNAMIC_INF_HEAP)
     case 1: // deferred free, compact free blocks
-      inferiorFreeDeferred(p, hp, true);
+      inferiorFreeDeferred(p, hp, false);
       inferiorFreeCompact(hp);
       break;
-#if defined(USES_DYNAMIC_INF_HEAP)
     case 2: // allocate new segment (1MB, constrained)
       inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
       break;
@@ -677,7 +691,17 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
     case 6: // allocate new segment (sized, unconstrained)
       inferiorMallocDynamic(p, size, lo, hi);
       break;
+    case 7: // deferred free, compact free blocks
+      inferiorFreeDeferred(p, hp, true);
+      inferiorFreeCompact(hp);
+      break;
+#else /* !(USES_DYNAMIC_INF_HEAP) */
+    case 1: // deferred free, compact free blocks
+      inferiorFreeDeferred(p, hp, true);
+      inferiorFreeCompact(hp);
+      break;
 #endif /* USES_DYNAMIC_INF_HEAP */
+      
     default: // error - out of memory
       sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
 	      "freed, %d bytes requested\n", hp->freed, size);
@@ -1827,8 +1851,8 @@ void process::processCost(unsigned obsCostLow,
    timeStamp newProcessTime = (double)processTime / 1000000.0; // usec to secs
 
    extern costMetric *totalPredictedCost; // init.C
-   extern costMetric *observed_cost; // init.C
-   extern costMetric *smooth_obs_cost; // init.C
+   extern costMetric *observed_cost;      // init.C
+   extern costMetric *smooth_obs_cost;    // init.C
 
    const timeStamp lastProcessTime =
                         totalPredictedCost->getLastSampleProcessTime(this);
@@ -2194,6 +2218,11 @@ bool process::handleStartProcess(){
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj){
+    // debug
+    char *name = const_cast<char*>(new_obj.getName().string_of());
+    char *name_trunc = strrchr(name, '/');
+    if (name_trunc) name = name_trunc + 1;
+
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
@@ -3285,7 +3314,7 @@ Address process::createRPCtempTramp(AstNode *action,
    }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-   generateMTpreamble((char*)insnBuffer, count,this);
+   generateMTpreamble((char*)insnBuffer, count, this);
 #endif
 
    resultReg = (Register)action->generateCode(this, regSpace,
