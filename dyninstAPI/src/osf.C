@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.59 2003/12/08 19:03:31 schendel Exp $
+// $Id: osf.C,v 1.60 2004/01/19 21:53:44 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -353,13 +353,12 @@ int decodeProcStatus(process *proc,
 
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block)
+bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
+                                          int wait_arg, bool block)
 {
-    why = procUndefined;
-    what = 0;
-    info = 0;
+    procSignalWhy_t  why  = procUndefined;
+    procSignalWhat_t what = 0;
+    procSignalInfo_t info = 0;
 
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
@@ -385,9 +384,15 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                         perror("Initial waitpid");
                     }
                     else if (retWait > 1) {
-                        decodeWaitPidStatus(processVec[u], status, why, what);
+                        decodeWaitPidStatus(processVec[u], status, &why,&what);
                         // In this case we return directly
-                        return processVec[u];
+                        procevent *new_event = new procevent;
+                        new_event->proc = processVec[u];
+                        new_event->why  = why;
+                        new_event->what = what;
+                        new_event->info = info;
+                        (*events).push_back(new_event);
+                        return true;
                     }
                 }
             } else {
@@ -409,7 +414,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                         sys_errlist[errno]);
                 selected_fds = 0;
             }
-            return NULL;
+            return false;
         }
         
         // Reset the current pointer to the beginning of the poll list
@@ -442,9 +447,9 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
             // is this the bug??
             // processVec[curr]->continueProc_();
         }
-        if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+        if (!decodeWaitPidStatus(currProcess, status, &why, &what)) {
             cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
-            return NULL;
+            return false;
         }
     } else {
         // Real return from poll
@@ -454,7 +459,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
             if (procstatus.pr_flags & PR_STOPPED ||
                 procstatus.pr_flags & PR_ISTOP) {
                 if (!decodeProcStatus(currProcess, procstatus, why, what, info))
-                    return NULL;
+                   return false;
             }
         }
         else {
@@ -463,7 +468,16 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
     }
     // Skip this FD the next time through
 
+    bool foundEvent = false;
     if (currProcess) {
+        foundEvent = true;
+        procevent *new_event = new procevent;
+        new_event->proc = currProcess;
+        new_event->why  = why;
+        new_event->what = what;
+        new_event->info = info;
+        (*events).push_back(new_event);
+
         currProcess->savePreSignalStatus();
         currProcess->set_status(stopped);
     }
@@ -471,8 +485,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
 
     --selected_fds;
     ++curr;    
-    return currProcess;
-    
+    return foundEvent;
 } 
 
 Frame Frame::getCallerFrame(process *p) const
@@ -729,8 +742,6 @@ bool process::terminateProc_()
 
     // just to make sure it is dead
     kill(getPid(), 9);
-
-    handleProcessExit(0);
 
     return true;
 }
