@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2003/06/22 19:33:09 hollings Exp $
+# $Id: Makefile,v 1.5 2003/06/23 15:06:24 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,7 +21,7 @@ include $(TO_CORE)/make.config
 CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5
 
-MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX51
+MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
 
 MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
 
