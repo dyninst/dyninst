@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.49  1995/09/05 16:25:02  newhall
+ * Revision 1.50  1995/10/13 22:05:53  newhall
+ * added interface routines: getResourceLabelName, getResourceName
+ * added phaseType parameter to sampleDataCallbackFunc
+ *
+ * Revision 1.49  1995/09/05  16:25:02  newhall
  * added interface functions for PC thread
  *
  * Revision 1.48  1995/08/24  15:02:02  hollings
@@ -215,7 +219,8 @@ typedef void (*errorHandler)(int errno, char *message);
 typedef void (*sampleDataCallbackFunc)(perfStreamHandle handle, 
 				       metricInstanceHandle mi,
 				       int bucketNum,
-				       sampleValue value);
+				       sampleValue value,
+				       phaseType type);
 
 /*
  * Handler that gets called when new trace data is available.
@@ -302,7 +307,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 25;
+    $version 26;
 
     //
     // Start a paradyn daemon
@@ -564,14 +569,24 @@ $remote dataManager {
 
     //
     // converts from a resource name to a resourceHandle 
+    // the resource name must be the full name ie. "/Code/blah.c/foo"
     // returns NULL if convertion fails 
     //
     resourceHandle *findResource(const char *name);
 
     //
-    // returns name of resource
+    // returns name of resource (this is not a unique representation of 
+    // the name instead it is the unique name trunctated)
+    // so for "/Code/blah.c/foo" this routine will return "foo"
+    //
+    string *getResourceLabelName(resourceHandle);
+
+
+    //
+    // returns full name of a resource  ie. "/Code/blah.c/foo" 
     //
     string *getResourceName(resourceHandle);
+
 
     //
     // converts from a focus name to a resourceListHandle 
@@ -731,7 +746,8 @@ $remote dataManager {
 				    perfStreamHandle,
 				    metricInstanceHandle mi,
 				    int bucketNum,
-				    sampleValue value);
+				    sampleValue value,
+				    phaseType type);
 
 //    $upcall $async void newPerfData(sampleDataCallbackFunc, 
 //				    perfStreamHandle,
