@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2004/06/24 22:27:46 legendre Exp $
+# $Id: Makefile,v 1.10 2004/11/30 21:10:51 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,19 +16,17 @@ include ../../make.config
 # Set platform-specific variables for this build.
 CC			= $(GCC)
 LD			= $(GCC)
-CFLAGS			+= -I. -I../.. -fpic
-LDFLAGS			+= -shared -ldl -Wl,-init,_start \
-				  -L$(LIBUNWIND_LIB) \
-				  -Wl,--whole-archive -Wl,-Bstatic -lunwind -Wl,-Bdynamic -Wl,--no-whole-archive
+CFLAGS		+= -I. -I../.. -fpic 
+LDFLAGS		+= -shared -ldl -Wl,-init,_start
 
-ASFLAGS			= 
+ASFLAGS		= 
 
-SRCS			+= \
-			../src/RTposix.c \
-			../src/RTlinux.c \
-			../src/RTsig.c \
-			../src/RTheap.c \
-			../src/RTheap-linux.c
+SRCS		+= \
+				../src/RTposix.c \
+				../src/RTlinux.c \
+				../src/RTsig.c \
+				../src/RTheap.c \
+				../src/RTheap-linux.c
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -39,4 +37,3 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
-
