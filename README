@@ -1,6 +1,6 @@
-This directory contains the "core" source code for the paradyn performance 
-tools.  It is divided into subdirectories that represent major functional
-units of the system:
+This directory contains the "core" source code for the paradyn performance
+tools and the Dyninst API.  It is divided into subdirectories that represent
+major functional units of the system:
 
 Each of these directories contain source code that gets compiled into a single
 UNIX executable:
@@ -19,12 +19,19 @@ There are also several libraries that get used in building the executables:
 	visi		- external visualization interface
 	hist		- histogram library used by rthist
 
+Two more directories contain the libraries that make up the Dyninst API:
+
+	dyninstAPI_RT	- runtime instrumentation (linked into the application)
+	dyninstAPI	- the Dyninst API library
+
 There are also two Makefile's at this level:
 	
 	Makefile	A top level makefile to build the entire system
 	make.config	A Makefile that defines global lists, flags, etc that
 			will be included into all other Makefiles in the system.
 
+The top-level Makefile does not build the Dyninst API library.  See the README
+file in core/dyninstAPI for information about installing the API library.
 
 The subdirectories of the "core" directory are organized to promote modularity
 and support compiling the system for multiple platforms in a single source 
