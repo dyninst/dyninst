@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.80 2004/04/02 06:34:13 jaw Exp $
+// $Id: irix.C,v 1.81 2004/05/05 22:34:04 rchen Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1188,6 +1188,24 @@ Frame Frame::getCallerFrame(process *p) const
         ra_addr = fp_bt + bt_ra_slot;
         ra = readAddressInMemory(p, ra_addr, true);
         sprintf(ra_debug, "[$fp - %i]", -bt_ra_slot);
+
+	// The basetramp's caller might have set up a stack frame.
+	// Attempt to detect, and remove it if necessary.
+	//
+	// NOTE: This will not work for tracing through instrumented
+	// leaf functions.  More complex code analysis would be needed.
+        if (ra_saved_native) {
+            Address fp_tmp = fp_bt + callee->frame_size;
+            Address ra_addr_tmp = fp_tmp + ra_save.slot;
+            Address ra_tmp = readAddressInMemory(p, ra_addr_tmp, true);
+
+            if (ra_tmp == ra) {
+                // Stack frame for caller was active.
+                // Remove it from consideration.
+                fp_native += callee->frame_size;
+            }
+        }
+
     } else {
         // $ra not saved in any frame
         // try to read $ra from registers (toplevel only)
