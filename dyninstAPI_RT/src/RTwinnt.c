@@ -40,10 +40,8 @@
  */
 
 /************************************************************************
+ * $Id: RTwinnt.c,v 1.3 1999/11/11 00:55:03 wylie Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
- *
- * RTwinnt.c,v
- *
  ************************************************************************/
 
 #include <assert.h>
@@ -52,9 +50,6 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <errno.h>
-
-#include "dyninstAPI_RT/h/trace.h"
-#include "dyninstAPI_RT/h/rtinst.h"
 
 #ifdef CONTROLLER_FD
 #undef CONTROLLER_FD
@@ -78,12 +73,11 @@ DYNINSTbreakPoint(void) {
 }
 
 
-void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr) {
-  HANDLE h;
+void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr)
+{
   unsigned ioCookie = 0x33333333;
   unsigned pid = GetCurrentProcessId();
   unsigned ppid = paradyndAddr;
   DYNINSTprocHandle = GetCurrentProcess();
-
 }
 

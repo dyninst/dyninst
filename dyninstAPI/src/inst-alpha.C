@@ -39,29 +39,29 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.18 1999/11/09 22:11:01 paradyn Exp $
+// $Id: inst-alpha.C,v 1.19 1999/11/11 00:56:10 wylie Exp $
 
 #include "util/h/headers.h"
 
 #ifdef BPATCH_LIBRARY
-#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #else
 #include "rtinst/h/rtinst.h"
 #endif
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "arch-alpha.h"
-#include "ast.h"
-#include "util.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/arch-alpha.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <sys/procfs.h>
 #ifndef BPATCH_LIBRARY
-#include "internalMetrics.h"
+#include "dyninstAPI/src/internalMetrics.h"
 #endif
-#include "stats.h"
-#include "os.h"
+#include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/os.h"
 
 /*
    This has not been fully tested.

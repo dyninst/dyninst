@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.1 1999/07/13 04:16:09 csserra Exp $ */
+/* $Id: RTheap.h,v 1.2 1999/11/11 00:55:03 wylie Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -47,7 +47,8 @@
 
 #include <sys/types.h>
 #include <sys/procfs.h>
-#include "dyninstAPI_RT/h/rtinst.h" /* RT_Boolean, Address */
+
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" /* RT_Boolean, Address */
 
 
 /* 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-osf.c,v 1.3 1999/07/13 04:16:08 csserra Exp $ */
+/* $Id: RTheap-osf.c,v 1.4 1999/11/11 00:55:03 wylie Exp $ */
 /* RTheap-osf.c: OSF-specific heap components */
 
 #include <stdlib.h>
@@ -51,7 +51,6 @@
 #include <sys/procfs.h>               /* ioctl() */
 #include <unistd.h>                   /* ioctl(), sbrk() */
 #include <sys/mman.h>                 /* mmap() */
-#include "dyninstAPI_RT/h/rtinst.h"   /* RT_Boolean, Address */
 #include "dyninstAPI_RT/src/RTheap.h"
 
 

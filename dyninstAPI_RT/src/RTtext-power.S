@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
+/* $Id: RTtext-power.S,v 1.2 1999/11/11 00:55:04 wylie Exp $
  * create an array to use as a heap for new instructions.
  *
  *    This file is required since AIX has instructions and data are in
@@ -50,7 +50,8 @@
  *       However, AIX permits incremental re-linking and can insert new
  *       code into a existing text segment.
  */
-#include "../h/rtinst.h"
+
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 .csect .text[PR]
 	.globl DYNINSTtext

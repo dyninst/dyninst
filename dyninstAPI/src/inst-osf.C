@@ -39,26 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.3 1998/12/25 22:02:11 wylie Exp $
+// $Id: inst-osf.C,v 1.4 1999/11/11 00:56:10 wylie Exp $
 
-#include "os.h"
+#include "dyninstAPI/src/os.h"
 #ifndef BPATCH_LIBRARY
-#include "metric.h"
+#include "dyninstAPI/src/metric.h"
 #endif
-#include "dyninst.h"
-#ifdef BPATCH_LIBRARY
-#include "dyninstAPI_RT/h/trace.h"
-#else
-#include "rtinst/h/trace.h"
-#endif
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
 
 #ifndef BPATCH_LIBRARY
-#include "perfStream.h"
-#include "context.h"
+#include "paradynd/src/perfStream.h"
+#include "paradynd/src/context.h"
 #endif
+
 string process::getProcessStatus() const {
    char ret[80];
 

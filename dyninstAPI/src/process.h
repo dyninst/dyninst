@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.122 1999/11/09 19:20:05 cain Exp $
+/* $Id: process.h,v 1.123 1999/11/11 00:56:10 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -52,7 +52,7 @@
 #include <stdio.h>
 #include <assert.h>
 #ifdef BPATCH_LIBRARY
-#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #else
 #include "rtinst/h/rtinst.h"
 #endif
@@ -591,8 +591,10 @@ class process {
   unsigned bufStart;
   unsigned bufEnd;
 
+#ifndef BPATCH_LIBRARY
   time64 wallTimeLastTrampSample;
   time64 timeLastTrampSample;
+#endif
 
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
   bool reachedVeryFirstTrap; 
@@ -1049,8 +1051,13 @@ public:
      return theSuperTable;
   }
 #endif
+
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
+#endif
+
   dynamic_linking *getDyn() { return dyn; }
 
   Address currentPC() {
@@ -1103,7 +1110,7 @@ private:
   bool hasNewPC;
 
   // for processing observed cost (see method processCost())
-  int64 cumObsCost; // in cycles
+  int64_t cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
 
   Address costAddr_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.2 1999/08/09 05:55:17 csserra Exp $ */
+/* $Id: RTheap.c,v 1.3 1999/11/11 00:58:16 wylie Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -51,7 +51,6 @@
 #include <sys/procfs.h>               /* ioctl() */
 #include <unistd.h>                   /* ioctl(), sbrk() */
 #include <sys/mman.h>                 /* mmap() */
-#include "dyninstAPI_RT/h/rtinst.h"   /* RT_Boolean, Address */
 #include "dyninstAPI_RT/src/RTheap.h"
 
 

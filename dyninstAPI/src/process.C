@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.196 1999/11/09 19:20:04 cain Exp $
+// $Id: process.C,v 1.197 1999/11/11 00:56:10 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -53,7 +53,9 @@ int pvmendtask();
 #endif
 #include "util/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
+#ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/pdThread.h"
+#endif
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -1086,8 +1088,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 
     proc_fd = -1;
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
+#endif
     currentPC_ = 0;
     hasNewPC = false;
     
@@ -1234,8 +1239,11 @@ process::process(int iPid, image *iSymbols,
 
     proc_fd = -1;
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
+#endif
     currentPC_ = 0;
     hasNewPC = false;
     
@@ -1432,8 +1440,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     proc_fd = -1;
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
+#endif
     currentPC_ = 0;
     hasNewPC = false;
 
@@ -1665,12 +1676,13 @@ tp->resourceBatchMode(true);
         // initializing vector of threads - thread[0] is really the 
         // same process
 
+#ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0)
         ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
 #else
         ret->threads += new pdThread(ret);
 #endif
-
+#endif
         // initializing hash table for threads. This table maps threads to
         // positions in the superTable - naim 4/14/97
 
@@ -1792,7 +1804,9 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    processVec += theProc;
    activeProcesses++;
 
+#ifndef BPATCH_LIBRARY
    theProc->threads += new pdThread(theProc);
+#endif
 
 #if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
    // we now need to dynamically load libdyninstRT.so.1 - naim
@@ -3239,8 +3253,11 @@ void process::handleExec() {
     all_functions = 0;
     all_modules = 0;
     signal_handler = 0;
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
+#endif
     baseMap.clear();
 #ifdef BPATCH_LIBRARY
     instPointMap.clear(); /* XXX Should delete instPoints first? */
@@ -4181,7 +4198,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       }
 
       removeAst(ast);
-}
+   }
 }
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
@@ -4201,16 +4218,16 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 #ifdef SHM_SAMPLING
   // address-in-memory: re-read pointer field with proper alignment
   // (see rtinst/h/trace.h)
-  assert(sizeof(int64) == 8); // sanity check
-  assert(sizeof(int32) == 4); // sanity check
+  assert(sizeof(int64_t) == 8); // sanity check
+  assert(sizeof(int32_t) == 4); // sanity check
 
   // read pointer size
-  int32 ptr_size;
+  int32_t ptr_size;
   internalSym sym2;
   bool ret2;
   ret2 = findInternalSymbol("DYNINST_attachPtrSize", true, sym2);
   if (!ret2) return false;
-  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32), &ptr_size, true);
+  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), &ptr_size, true);
   if (!ret2) return false;
   // problem scenario: 64-bit application, 32-bit paradynd
   assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
@@ -4218,9 +4235,9 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   // re-align pointer if necessary
   if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
     // assumption: 32-bit application, 64-bit paradynd
-    assert(ptr_size == sizeof(int32));
-    assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64));
-    assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32));
+    assert(ptr_size == sizeof(int32_t));
+    assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
+    assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
     // read 32-bit pointer from high word
     Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
     void *val_p = (void *)val_a;
@@ -4805,6 +4822,3 @@ void process::MonitorDynamicCallSites(string function_name){
   }
 }
 #endif
-
-
-

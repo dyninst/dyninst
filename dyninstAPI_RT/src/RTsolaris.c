@@ -40,8 +40,9 @@
  */
 
 /************************************************************************
+ * $Id: RTsolaris.c,v 1.8 1999/11/11 00:55:03 wylie Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
-************************************************************************/
+ ************************************************************************/
 
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -53,7 +54,7 @@
 #include <fcntl.h> /* O_RDONLY */
 #include <unistd.h> /* getpid() */
 
-#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * void DYNINSTos_init(void)

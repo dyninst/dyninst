@@ -40,8 +40,9 @@
  */
 
 /************************************************************************
+ * $Id: RTlinux.c,v 1.5 1999/11/11 00:58:16 wylie Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
-************************************************************************/
+ ************************************************************************/
 
 #include <signal.h>
 #include <assert.h>
@@ -51,7 +52,7 @@
 
 #include <sys/ptrace.h>
 
-#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * void DYNINSTos_init(void)

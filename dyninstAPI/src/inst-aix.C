@@ -39,25 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * inst-aix.C - AIX specifc code for paradynd.
+/* $Id: inst-aix.C,v 1.12 1999/11/11 00:56:10 wylie Exp $
+ * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
  *   have included them here to reduce the number of files changed in the
  *   AIX port. - jkh 6/30/95.
  *	process::getProcessStatus()
  *	computePauseTimeMetric()
- *
- * $log: inst-aix.C,v$
- * Revision 1.1  1995/08/24  15:03:55  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
  */
 
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
@@ -66,11 +55,6 @@
 #include "paradynd/src/metric.h"
 #endif
 #include "dyninstAPI/src/dyninst.h"
-#ifdef BPATCH_LIBRARY
-#include "dyninstAPI_RT/h/trace.h"
-#else
-#include "rtinst/h/trace.h"
-#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

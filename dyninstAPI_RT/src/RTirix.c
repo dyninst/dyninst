@@ -40,16 +40,15 @@
  */
 
 /************************************************************************
+ * $Id: RTirix.c,v 1.5 1999/11/11 00:55:03 wylie Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
-
 
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include "dyninstAPI_RT/h/rtinst.h"
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
 #include <unistd.h>                   /* procfs */

@@ -38,12 +38,18 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-#if !defined(i386_unknown_nt4_0)
+
+/* $Id: RTcommon.c,v 1.6 1999/11/11 00:55:03 wylie Exp $ */
+
+#if defined(i386_unknown_nt4_0)
+#include <process.h>
+#define getpid _getpid
+#else
 #include <unistd.h>
 #endif
 #include <assert.h>
-#include "dyninstAPI_RT/h/rtinst.h"
-#include "dyninstAPI_RT/h/trace.h"
+
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 extern void DYNINSTbreakPoint();
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);
@@ -69,8 +75,8 @@ void DYNINSTinit(int cause, int pid)
 
     /* sanity check */
     assert(sizeof(time64) == 8);
-    assert(sizeof(int64)  == 8);
-    assert(sizeof(int32)  == 4);
+    assert(sizeof(int64_t)  == 8);
+    assert(sizeof(int32_t)  == 4);
 
     DYNINSTos_init(calledByFork, calledByAttach);
 
