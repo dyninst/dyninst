@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.50  1996/11/29 19:41:08  newhall
+ * Cleaned up some code.  Moved code that was duplicated in inst-sparc-solaris.C
+ * and inst-sparc-sunos.C to inst-sparc.C.  Bug fix to process::findFunctionIn.
+ *
  * Revision 1.49  1996/11/26 16:08:09  naim
  * Fixing asserts - naim
  *
@@ -209,8 +213,8 @@ int main(int argc, char *argv[])
     P_uname(&un);
     P_strcpy(machine_name, un.nodename);
 
-    // sigpause(SIGKILL);
- 
+    // kill(getpid(),SIGSTOP);
+
     //
     // See if we should fork an app process now.
     //

@@ -185,39 +185,7 @@ class Frame;
 class process {
  friend class ptraceKludge;
 
-/*
-  process() : baseMap(ipHash), 
-              instInstanceMapping(instInstanceHash),
-              firstRecordTime(0) {
-    symbols = NULL; traceLink = 0; ioLink = 0;
-    status_ = neonatal; pid = 0; thread = 0;
-    aggregate = false; rid = 0; parent = NULL;
-    bufStart = 0; bufEnd = 0; pauseTime = 0.0;
-    reachedFirstBreak = 0; 
-    splitHeaps = false;
-    inExec = false;
-    proc_fd = -1;
-
-    trampTableItems = 0;
-    memset(trampTable, 0, sizeof(trampTable));
-    currentPC_ = 0;
-    hasNewPC = false;
-
-    inhandlestart = false;
-    dynamiclinking = false;
-    dyn = new dynamic_linking;
-    shared_objects = 0;
-    all_functions = 0;
-    all_modules = 0;
-    some_modules = 0;
-    some_functions = 0;
-    waiting_for_resources = false;
-    signal_handler = 0;
-  }
-*/
-
  public:
-
   process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,

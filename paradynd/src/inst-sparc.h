@@ -46,89 +46,363 @@
 #ifndef INST_SPARC_H
 #define INST_SPARC_H
 
-/*
- * $Log: inst-sparc.h,v $
- * Revision 1.8  1996/11/14 14:27:08  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.7  1996/09/12 15:08:23  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.6  1996/08/16 21:19:01  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1995/07/11 20:57:30  jcargill
- * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
- *
- * Revision 1.4  1995/05/30  05:22:21  krisna
- * architecture-os include protection
- *
- * Revision 1.3  1994/11/02  11:07:46  markc
- * Moved defines to arch-sparc.h
- *
- */
+#include "util/h/headers.h"
+#include "rtinst/h/rtinst.h"
+#include "paradynd/src/symtab.h"
+#include "paradynd/src/process.h"
+#include "paradynd/src/inst.h"
+#include "paradynd/src/ast.h"
+#include "paradynd/src/inst-sparc.h"
+#include "paradynd/src/arch-sparc.h"
+#include "paradynd/src/util.h"
+#include "paradynd/src/internalMetrics.h"
+#include "paradynd/src/stats.h"
+#include "paradynd/src/os.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/as-sparc.h"
+#include "paradynd/src/ast.h"
+#include "paradynd/src/instP.h"
 
-/*
- * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
- *
- * $Log: inst-sparc.h,v $
- * Revision 1.8  1996/11/14 14:27:08  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.7  1996/09/12 15:08:23  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.6  1996/08/16 21:19:01  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1995/07/11 20:57:30  jcargill
- * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
- *
- * Revision 1.4  1995/05/30  05:22:21  krisna
- * architecture-os include protection
- *
- * Revision 1.3  1994/11/02  11:07:46  markc
- * Moved defines to arch-sparc.h
- *
- * Revision 1.2  1994/07/26  19:57:28  hollings
- * moved instruction definitions to seperate header file.
- *
- * Revision 1.1  1994/01/27  20:31:23  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.2  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
- *
- */
-
-
-#include "ast.h"
-#include "as-sparc.h"
-
-/* "pseudo" instructions that are placed in the tramp code for the inst funcs
- *   to patch up.   This must be invalid instructions (any instruction with
- *   its top 10 bits as 0 is invalid (technically UNIMP).
- *
- */
-
-extern registerSpace *regSpace;
-
-extern trampTemplate baseTemplate;
-extern trampTemplate noArgsTemplate;
-extern trampTemplate withArgsTemplate;
 
 #define REG_L7          23        /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
-
 #define NUM_INSN_MT_PREAMBLE 9    /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
+
+// NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
+// that case, 2's complement has really changed the bitwise representation!
+// Perhaps an assert should be done!
+#define LOW10(x) ((x) & 0x3ff)
+#define LOW13(x) ((x) & 0x1fff)
+#define HIGH22(x) ((x) >> 10)
+#define ABS(x)		((x) > 0 ? x : -x)
+#define MAX_BRANCH	(0x1<<23)
+#define MAX_IMM13       (4095)
+#define MIN_IMM13       (-4096)
+
+
+#define	REG_G5		5
+#define	REG_G6		6
+#define	REG_G7		7
+
+#define REG_O7    	15
+
+#define REG_L0          16
+#define REG_L1          17
+#define REG_L2          18
+
+#define REG_SP          14
+#define REG_FP          30
+
+extern "C" void baseTramp();
+extern trampTemplate baseTemplate;
+extern registerSpace *regSpace;
+extern int deadList[];
+extern instruction newInstr[1024];
+
+class instPoint {
+public:
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	    Address &adr, const bool delayOK, bool isLeaf,
+	    instPointType ipt);
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+            Address &adr, const bool delayOK, instPointType ipt,   
+	    Address &oldAddr);
+  ~instPoint() {  /* TODO */ }
+
+  // can't set this in the constructor because call points can't be classified until
+  // all functions have been seen -- this might be cleaned up
+  void set_callee(pdFunction *to) { callee = to; }
+
+
+  Address addr;                       /* address of inst point */
+  instruction originalInstruction;    /* original instruction */
+  instruction delaySlotInsn;          /* original instruction */
+  instruction aggregateInsn;          /* aggregate insn */
+  instruction otherInstruction;       
+  instruction isDelayedInsn;  
+  instruction inDelaySlotInsn;
+  instruction extraInsn;   /* if 1st instr is conditional branch this is
+			      previous instruction */
+
+  bool inDelaySlot;            /* Is the instruction in a delay slot */
+  bool isDelayed;		/* is the instruction a delayed instruction */
+  bool callIndirect;		/* is it a call whose target is rt computed ? */
+  bool callAggregate;		/* calling a func that returns an aggregate
+				   we need to reolcate three insns in this case
+				   */
+  pdFunction *callee;		/* what function is called */
+  pdFunction *func;		/* what function we are inst */
+
+  bool isBranchOut;                /* true if this point is a conditional branch, 
+				   that may branch out of the function */
+  int branchTarget;                /* the original target of the branch */
+  bool leaf;                       /* true if the procedure is a leaf     */
+  instPointType ipType;
+  int instId;                      /* id of inst in this function */
+  int size;                        /* size of multiple instruction sequences */
+  const image *image_ptr;	// for finding correct image in process
+  bool firstIsConditional;     /* 1st instruction is conditional branch */
+  bool relocated_;	// true if this instPoint is from a relocated func
+};
+
+inline unsigned getMaxBranch() { return MAX_BRANCH; }
+
+inline void generateNOOP(instruction *insn)
+{
+    insn->raw = 0;
+    insn->branch.op = 0;
+    insn->branch.op2 = NOOPop2;
+
+    // logLine("nop\n");
+}
+
+inline void generateBranchInsn(instruction *insn, int offset)
+{
+    if (ABS(offset) > MAX_BRANCH) {
+	logLine("a Ranch too far\n");
+	//showErrorCallback(52, "");
+	//abort();
+	return;
+    }
+
+    insn->raw = 0;
+    insn->branch.op = 0;
+    insn->branch.cond = BAcond;
+    insn->branch.op2 = BICCop2;
+    insn->branch.anneal = true;
+    insn->branch.disp22 = offset >> 2;
+
+    // logLine("ba,a %x\n", offset);
+}
+
+inline void generateCallInsn(instruction *insn, int fromAddr, int toAddr)
+{
+    int offset = toAddr - fromAddr;
+    insn->call.op = 01;
+    insn->call.disp30 = offset >> 2;
+}
+
+inline void generateJmplInsn(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = 10;
+    insn->resti.rd = rd;
+    insn->resti.op3 = JMPLop3;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}    
+
+inline void genBranch(instruction *insn, int offset, unsigned condition, bool annul)
+{
+    if (ABS(offset) > MAX_BRANCH) {
+	logLine("a branch too far\n");
+	showErrorCallback(52, "");
+	abort();
+    }
+
+    insn->raw = 0;
+    insn->branch.op = 0;
+    insn->branch.cond = condition;
+    insn->branch.op2 = BICCop2;
+    insn->branch.anneal = annul;
+    insn->branch.disp22 = offset >> 2;
+}
+
+inline void generateAnnulledBranchInsn(instruction *insn, int offset)
+{
+    genBranch(insn, offset, BAcond, true);
+}
+
+
+inline void genSimpleInsn(instruction *insn, int op, reg rs1, reg rs2, reg rd)
+{
+    insn->raw = 0;
+    insn->rest.op = RESTop;
+    insn->rest.rd = rd;
+    insn->rest.op3 = op;
+    insn->rest.rs1 = rs1;
+    insn->rest.rs2 = rs2;
+}
+
+inline void genBreakpointTrap(instruction *insn) {
+   insn->raw = BREAK_POINT_INSN; // ta (trap always) 1
+}
+
+inline void genUnimplementedInsn(instruction *insn) {
+   insn->raw = 0; // UNIMP 0
+}
+
+inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
+{
+    insn->raw = 0;
+    insn->resti.op = RESTop;
+    insn->resti.rd = rd;
+    insn->resti.op3 = op;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(immd >= MIN_IMM13 && immd <= MAX_IMM13);
+    insn->resti.simm13 = immd;
+}
+
+inline void genImmRelOp(instruction *insn, int cond, reg rs1,
+		        int immd, reg rd, unsigned &base)
+{
+    // cmp rs1, rs2
+    genImmInsn(insn, SUBop3cc, rs1, immd, 0); insn++;
+    // mov 1, rd
+    genImmInsn(insn, ORop3, 0, 1, rd); insn++;
+
+    // b??,a +2
+    insn->branch.op = 0;
+    insn->branch.cond = cond;
+    insn->branch.op2 = BICCop2;
+    insn->branch.anneal = true;
+    insn->branch.disp22 = 2;
+    insn++;
+
+    // clr rd
+    genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
+    base += 4 * sizeof(instruction);
+}
+
+inline void genRelOp(instruction *insn, int cond, reg rs1,
+		     reg rs2, reg rd, unsigned &base)
+{
+    // cmp rs1, rs2
+    genSimpleInsn(insn, SUBop3cc, rs1, rs2, 0); insn++;
+    // mov 1, rd
+    genImmInsn(insn, ORop3, 0, 1, rd); insn++;
+
+    // b??,a +2
+    insn->branch.op = 0;
+    insn->branch.cond = cond;
+    insn->branch.op2 = BICCop2;
+    insn->branch.anneal = true;
+    insn->branch.disp22 = 2;
+    insn++;
+
+    // clr rd
+    genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
+    base += 4 * sizeof(instruction);
+}
+
+inline void generateSetHi(instruction *insn, int src1, int dest)
+{
+    insn->raw = 0;
+    insn->sethi.op = FMT2op;
+    insn->sethi.rd = dest;
+    insn->sethi.op2 = SETHIop2;
+    insn->sethi.imm22 = HIGH22(src1);
+}
+
+// st rd, [rs1 + offset]
+inline void generateStore(instruction *insn, int rd, int rs1, int offset)
+{
+    insn->resti.op = STop;
+    insn->resti.rd = rd;
+    insn->resti.op3 = STop3;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+// sll rs1,rs2,rd
+inline void generateLShift(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->restix.op = SLLop;
+    insn->restix.op3 = SLLop3;
+    insn->restix.rd = rd;
+    insn->restix.rs1 = rs1;
+    insn->restix.i = 1;
+    insn->restix.x = 0;
+    insn->restix.rs2 = offset;
+}
+
+// sll rs1,rs2,rd
+inline void generateRShift(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->restix.op = SRLop;
+    insn->restix.op3 = SRLop3;
+    insn->restix.rd = rd;
+    insn->restix.rs1 = rs1;
+    insn->restix.i = 1;
+    insn->restix.x = 0;
+    insn->restix.rs2 = offset;
+}
+
+// load [rs1 + offset], rd
+inline void generateLoad(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = LOADop;
+    insn->resti.op3 = LDop3;
+    insn->resti.rd = rd;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+// swap [rs1 + offset], rd
+inline void generateSwap(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = SWAPop;
+    insn->resti.rd = rd;
+    insn->resti.op3 = SWAPop3;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 0;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}    
+
+// std rd, [rs1 + offset]
+inline void genStoreD(instruction *insn, int rd, int rs1, int offset)
+{
+    insn->resti.op = STop;
+    insn->resti.rd = rd;
+    insn->resti.op3 = STDop3;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+// ldd [rs1 + offset], rd
+inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = LOADop;
+    insn->resti.op3 = LDDop3;
+    insn->resti.rd = rd;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+extern bool isPowerOf2(int value, int &result);
+extern void generateNoOp(process *proc, int addr);
+extern void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr,
+		  instruction originalBranch);
+extern trampTemplate *findAndInstallBaseTramp(process *proc,
+				 const instPoint *&location, 
+				 returnInstance *&retInstance, bool noCost);
+
+extern void  generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
+extern void generateCall(process *proc, unsigned fromAddr,unsigned newAddr);
+extern void genImm(process *proc, Address fromAddr,int op, reg rs1, int immd, reg rd);
+extern int callsTrackedFuncP(instPoint *point);
+extern pdFunction *getFunction(instPoint *point);
+extern unsigned emitFuncCall(opCode op, registerSpace *rs, char *i, 
+			     unsigned &base, const vector<AstNode *> &operands,
+			     const string &callee, process *proc, bool noCost);
+
+extern unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
+			unsigned &base, bool noCost);
+
+extern int getInsnCost(opCode op);
+extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+
 #endif

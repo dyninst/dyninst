@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#if !defined(instP_h)
+#define instP_h
 /*
  * Functions that need to be provided by the inst-arch file.
  *
@@ -149,23 +151,19 @@ class instWaitingList {
 
 extern vector<instWaitingList*> instWList;
 
-trampTemplate *findAndInstallBaseTramp(process *proc, 
+extern trampTemplate *findAndInstallBaseTramp(process *proc, 
 				 const instPoint *&location,
 				 returnInstance *&retInstance,
 				 bool noCost);
-void installTramp(instInstance *inst, char *code, int codeSize);
-void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
-void generateReturn(process *proc, int currAddr, instPoint *location);
-void generateEmulationInsn(process *proc, int addr, instPoint *location);
-void generateNoOp(process *proc, int addr);
-void initTramps();
-void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
-void removeTramp(process *proc, instPoint *location);
+extern void installTramp(instInstance *inst, char *code, int codeSize);
+extern void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
+extern void generateReturn(process *proc, int currAddr, instPoint *location);
+extern void generateEmulationInsn(process *proc, int addr, instPoint *location);
+extern void generateNoOp(process *proc, int addr);
+extern void initTramps();
+extern void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
+extern void removeTramp(process *proc, instPoint *location);
 
-int flushPtrace();
+extern int flushPtrace();
 
-
-
-
-
-
+#endif

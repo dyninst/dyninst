@@ -1702,13 +1702,20 @@ pdFunction *process::findFunctionIn(Address adr){
 	        return(pdf);
 	    }
     } }
+
+    if(!all_functions) getAllFunctions();
+
+
     // if the function was not found, then see if this addr corresponds
     // to  a function that was relocated in the heap
-    for(u_int i=0; i < all_functions->size(); i++){
-	Address func_adr = ((*all_functions)[i])->getAddress(this);
-        if((adr>=func_adr) && (adr<=(((*all_functions)[i])->size()+func_adr))){
-	    return((*all_functions)[i]);
-	}
+    if(all_functions){
+        for(u_int i=0; i < all_functions->size(); i++){
+	    Address func_adr = ((*all_functions)[i])->getAddress(this);
+            if((adr>=func_adr) && 
+		(adr<=(((*all_functions)[i])->size()+func_adr))){
+	        return((*all_functions)[i]);
+	    }
+        }
     }
     return(0);
 }
@@ -1977,12 +1984,8 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     bool found = false;
     while(!done){
 	process *p = (instWList[i])->which_proc;
-	Address blah = (instWList[i])->pc_;
-	printf("ith: %d blah = 0x%x pc = 0x%x proc = %d this = %d\n",
-		i,blah,pc,(u_int)p,(u_int)this);
         if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
 	    (instWList[i])->cleanUp(this,pc);
-	    printf("remove item in cleanUpInstrumentation pc = 0x%x\n",pc);
 	    u_int last = instWList.size()-1;
 	    delete (instWList[i]);
 	    instWList[i] = instWList[last];
