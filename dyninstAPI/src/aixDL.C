@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.34 2003/03/08 01:23:46 bernat Exp $
+// $Id: aixDL.C,v 1.35 2003/03/14 23:18:29 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -99,21 +99,6 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
     showErrorCallback(43, "Unable to get loader info about process, application aborted");
     free(ld_info_array);
     return 0;
-  }
-
-  // turn on 'multiprocess debugging', which allows ptracing of both the
-  // parent and child after a fork.  In particular, both parent & child will
-  // TRAP after a fork.  Also, a process will TRAP after an exec (after the
-  // new image has loaded but before it has started to execute at all).
-  // Note that turning on multiprocess debugging enables two new values to be
-  // returned by wait(): W_SEWTED and W_SFWTED, which indicate stops during
-  // execution of exec and fork, respectively.
-  // Should do this in loadSharedObjects
-  // Note: this can also get called when we incrementally find a shared object.
-  // So? :)
-  if (!did_ptrace_multi) {
-    ptrace(PT_MULTI, pid, 0, 1, 0);
-    did_ptrace_multi = true;
   }
 
   if (!ptr->ldinfo_next)
