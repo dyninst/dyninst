@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.116 2002/12/20 07:49:57 jaw Exp $
+ * $Id: inst-x86.C,v 1.117 2003/01/23 17:55:50 tlmiller Exp $
  */
 
 #include <iomanip.h>
@@ -2689,7 +2689,9 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest, 
-             char *ibuf, Address &base, bool /*noCost*/, int /* size */)
+             char *ibuf, Address &base, bool /*noCost*/, int /* size */,
+             const instPoint * /* location */, process * /* proc */,
+             registerSpace * /* rs */ )
 {
     //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.115 2003/01/02 19:51:26 schendel Exp $
+// $Id: symtab.h,v 1.116 2003/01/23 17:55:49 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -197,6 +197,15 @@ public:
     // extra debuggering info....
     ostream & operator<<(ostream &s) const;
     friend ostream &operator<<(ostream &os, function_base &f);
+
+#if defined(ia64_unknown_linux2_4)
+	// We need to know where all the alloc instructions in the
+	// function are to do a reasonable job of register allocation
+	// in the base tramp.  (I'd put this in pd_Function, but
+	// iPgetFunction() returns a function_base...)
+	pdvector< Address > allocs;
+#endif
+
 private:
     pdvector<string> symTabName_;	/* name as it appears in the symbol table */
     pdvector<string> prettyName_;	/* user's view of name (i.e. de-mangled) */

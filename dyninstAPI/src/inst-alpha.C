@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.55 2002/12/20 07:49:56 jaw Exp $
+// $Id: inst-alpha.C,v 1.56 2003/01/23 17:55:50 tlmiller Exp $
 
 #include "common/h/headers.h"
 
@@ -1514,7 +1514,9 @@ void emitVupdate(opCode op, RegValue /* src1 */,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
-	     char *i, Address &base, bool /*noCost*/, int size = 4)
+	     char *i, Address &base, bool /*noCost*/, int size = 4,
+	     const instPoint * /* location */, process * /* proc */,
+	     registerSpace * /* rs */ )
 {
   //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.60 2002/12/20 07:49:56 jaw Exp $
+// $Id: ast.h,v 1.61 2003/01/23 17:55:49 tlmiller Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -149,6 +149,15 @@ class registerSpace {
 	u_int numRegisters;
 	Register highWaterRegister;
 	registerSlot *registers;
+
+#if defined(ia64_unknown_linux2_4)
+
+public:
+	int originalLocals;
+	int originalOutputs;
+	int originalRotates;
+#endif
+
 };
 
 class dataReqNode;

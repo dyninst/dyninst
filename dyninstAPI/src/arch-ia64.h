@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.12 2002/11/06 22:44:20 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.13 2003/01/23 17:55:49 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -88,7 +88,7 @@ class IA64_instruction {
 
 		uint64_t getMachineCode() { return instruction; }
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID };
+		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC };
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
 
@@ -194,9 +194,11 @@ int sizeOfMachineInsn( instruction * insn );
 int addressOfMachineInsn( instruction * insn );
 
 /* Required by linux-ia64.C */
+class registerSpace;
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate );
-IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int newOutput, int newRotate );
-IA64_instruction generateRestoreAlloc( uint64_t allocInsn );
+IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates );
+IA64_instruction generateOriginalAllocFor( registerSpace * rs );
+
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
 IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister );
@@ -221,8 +223,8 @@ IA64_instruction generateRegisterLoad( Register destination, Register address );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
 
-IA64_instruction generateFPSpillTo( Register address, Register source );
-IA64_instruction generateFPFillFrom( Register address, Register destination );
+IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 = 0 );
+IA64_instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 = 0 );
 IA64_instruction generateRegisterToFloatMove( Register source, Register destination );
 IA64_instruction generateFloatToRegisterMove( Register source, Register destination );
 IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs );
@@ -239,7 +241,7 @@ class instPoint;
 class registerSpace;
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
-void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace );
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace );
 
 /* Constants for code generation. */
 #define ALIGN_RIGHT_SHIFT 23
@@ -248,7 +250,7 @@ void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 #define BRANCH_RETURN	0
 #define REGISTER_ZERO	0	/* makes it clearer when I'm using the register and not the value */
 #define REGISTER_GP	1	/* the general pointer */
-#define REGISTER_RP	8	/* return value, if structure/union, pointer. */
+#define REGISTER_RV	8	/* return value, if structure/union, pointer. */
 #define REGISTER_SP	12	/* memory stack pointer */
 #define REGISTER_TP	13	/* thread pointer */
 #define AR_PFS		64	/* application register: previous function state */

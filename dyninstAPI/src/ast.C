@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.120 2002/12/20 07:49:56 jaw Exp $
+// $Id: ast.C,v 1.121 2003/01/23 17:55:49 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -165,7 +165,12 @@ void registerSpace::freeRegister(Register reg)
     for (u_int i=0; i < numRegisters; i++) {
 	if (registers[i].number == reg) {
 	    registers[i].refCount--;
-	    // assert(registers[i].refCount >= 0);
+#if defined(ia64_unknown_linux2_4)
+		if( registers[i].refCount < 0 ) {
+			fprintf( stderr, "Freed free register!\n" );
+			registers[i].refCount = 0;
+			}
+#endif
 	    return;
 	}
     }
@@ -912,7 +917,6 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     regSpace->resetSpace();
 
 #if defined( ia64_unknown_linux2_4 )
-	fprintf( stderr, "Defining base tramp register space for function starting at 0x%lx\n", location->iPgetFunction()->addr() );
 	defineBaseTrampRegisterSpaceFor( location, regSpace );	
 #endif
 
@@ -1334,7 +1338,7 @@ Address AstNode::generateCode_phase2(process *proc,
 								    ifForks,
 								    location);
 	      // tmp now contains address to store into
-	      emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size);
+	      emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
 	      rs->freeRegister(tmp);
 	      loperand->decUseCount(rs);
 	      break;
@@ -1344,7 +1348,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	      if (type == opCodeNode) {
 		// Generate the left hand side, store the right to that address
 		Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-		emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size);
+		emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
 		rs->freeRegister(tmp);
 	      }
 	      else {
@@ -1504,7 +1508,7 @@ Address AstNode::generateCode_phase2(process *proc,
 		}
 	      else
 #endif
-	      emitV(op, src, right_dest, dest, insn, base, noCost);
+	      emitV(op, src, right_dest, dest, insn, base, noCost, size, location, proc, rs);
 	      if (right_dest != Null_Register && right_dest != dest) {
 		  rs->freeRegister(right_dest);
 	      }
@@ -1552,7 +1556,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #else
 	  tSize = sizeof(int);
 #endif
-	  emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize); 
+	  emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize, location, proc, rs); 
 	  rs->freeRegister(src);
 	  break;
 	case DataReg:
@@ -1711,7 +1715,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	rs->freeRegister(tmp);
 #endif
  	dest = roperand->generateCode_phase2(proc, rs, insn, base, 
-					     noCost, ifForks);
+					     noCost, ifForks, location);
     }
 
     // assert (dest != Null_Register); // oh dear, it seems this happens!

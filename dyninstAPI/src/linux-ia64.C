@@ -51,7 +51,34 @@ IA64_bundle generateTrapBundle() {
  * pt_regs only, but only syscalls are that well behaved.
  * We must support running arbitrary code.
  */
-dyn_saved_regs * dyn_lwp::getRegisters() { return NULL; }
+dyn_saved_regs *dyn_lwp::getRegisters()
+{
+    int i;
+    long int *memptr;
+    dyn_saved_regs *result;
+
+    // Bad things happen if you use ptrace on a running process.
+    assert(proc_->status_ == stopped);
+
+    // Allocate memory.
+    result = (dyn_saved_regs *)malloc(sizeof(dyn_saved_regs));
+    assert(result);
+
+    // Save struct pt_regs.
+    memptr = (long int *)(&result->pt);
+    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
+	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
+	++memptr;
+    }
+
+    // Save struct switch_stack.
+    memptr = (long int *)(&result->ss);
+    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
+	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
+	++memptr;
+    }
+    return result;
+}
 
 bool changePC( int pid, Address loc ) { 
 	/* We assume until further notice that all of our jumps
@@ -125,7 +152,29 @@ bool dyn_lwp::executingSystemCall()
     return (pr && instruction == SYSCALL_MASK);
 } /* end executingSystemCall() */
 
-bool dyn_lwp::restoreRegisters( dyn_saved_regs * /* regs */ ) { return false; }
+bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
+{
+    int i;
+    const long int *memptr;
+
+    // Bad things happen if you use ptrace on a running process.
+    assert(proc_->status_ == stopped);
+
+    memptr = (const long int *)(&regs->pt);
+    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
+	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
+	++memptr;
+    }
+
+    memptr = (const long int *)(&regs->ss);
+    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
+	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
+	++memptr;
+    }
+
+    // Should we free regs structure?
+    return true;
+}
 
 Address getPC( int pid ) {
 	
@@ -307,15 +356,25 @@ bool process::dlopenDYNINSTlib() {
 	IA64_instruction integerNOP( NOP_I );
 	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
 	assert( extractAllocatedRegisters( * allocAddr, & allocatedLocal, & allocatedOutput, & allocatedRotate ) );
-	IA64_instruction alteredAlloc = generateAlteredAlloc( * allocAddr, 0, 3, 0 );
 	Register out0 = allocatedLocal + allocatedOutput + 32;
 	Register out1 = out0 + 1; Register out2 = out1 + 1;
+
+	/* Generate a register space for the base tramp 'by hand.' */
+	Register deadRegisterList[3];
+	deadRegisterList[0] = out0;
+	deadRegisterList[1] = out1;
+	deadRegisterList[2] = out2;
+	registerSpace fnCallRegisterSpace( 3, deadRegisterList, 0, NULL );
+	IA64_instruction alteredAlloc = generateAllocInstructionFor( & fnCallRegisterSpace, 0, 3, 0 );
+
+	/* Generate the necessary instructions. */
 	IA64_instruction_x setStringPointer = generateLongConstantInRegister( out0, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
 	IA64_instruction setMode = generateShortConstantInRegister( out1, DLOPEN_MODE );
 	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( out2, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
 
+	/* Bundle and insert them. */
 	dlopenCallBundles[0] = IA64_bundle( MIIstop, alteredAlloc, integerNOP, integerNOP );
 	dlopenCallBundles[1] = IA64_bundle( MLXstop, memoryNOP, setStringPointer );
 	dlopenCallBundles[2] = IA64_bundle( MLXstop, setMode, setReturnPointer );
@@ -404,7 +463,7 @@ bool process::set_breakpoint_for_syscall_completion() {
 bool process::clear_breakpoint_for_syscall_completion() {
     uint64_t codeBase = getPC(pid);
 
-    return writeDataSpace((void *)codeBase, 16, savedCodeBuffer);
+   return writeDataSpace((void *)codeBase, 16, savedCodeBuffer);
 } /* end clear_breakpoint_for_syscall_completion() */
 
 /* Required by linux.C */

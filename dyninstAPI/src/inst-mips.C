@@ -2335,7 +2335,10 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 //  plusOp, minusOp, timesOp, divOp,
 //  orOp, andOp, eqOp, neOp, lessOp, leOp, greaterOp, geOp]
 void emitV(opCode op, Register src1, Register src2, Register dst, 
-	   char *code, Address &base, bool /*noCost*/, int /* size */)
+	   char *code, Address &base, bool /*noCost*/, int /* size */,
+	   const instPoint * /* location */, process * /* proc */,
+	   registerSpace * /* rs */ )
+)
 {
   TRACE_B( "emitV" );
 

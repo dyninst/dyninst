@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.20 2002/12/20 07:49:57 jaw Exp $
+ * $Id: inst-ia64.C,v 1.21 2003/01/23 17:55:49 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -93,9 +93,15 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 	switch( op ) {
 		case loadOp: {
-			/* dest = [src1] */
-			IA64_instruction loadInsn = generateRegisterLoad( dest, src1 );
+			/* Stick the address src1 in the temporary register src2. */
+			emitVload( loadConstOp, src1, 0, src2, ibuf, base, noCost, size );
+
+			/* Load into destination register dest from [src2]. */
+			IA64_instruction loadInsn = generateRegisterLoad( dest, src2 );
 			IA64_bundle loadBundle( MIIstop, loadInsn, NOP_I, NOP_I );
+			
+			/* Insert bundle. */
+			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 			* rawBundlePointer = loadBundle.getMachineCode();
 			base += 16;
 			break; }
@@ -220,6 +226,11 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	emitRegisterToRegisterCopy( REGISTER_GP, savedGPRegister, ibuf, base, rs );
 	rs->incRefCount( savedGPRegister );
 
+	/* save the caller's return value: find a free register in the locals. */
+	unsigned int savedRVRegister = findFreeLocal( rs, "Unable to find free register to save RV, aborting.\n" );
+	emitRegisterToRegisterCopy( REGISTER_RV, savedRVRegister, ibuf, base, rs );
+	rs->incRefCount( savedRVRegister );
+
 	/* set the callee's GP */
 	// fprintf( stderr, "Setting the callee's GP.\n" );
 	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, ibuf, base, false /* ? */, 0 );
@@ -242,12 +253,9 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	// fprintf( stderr, "Saving BRANCH_SCRATCH in general register %d\n", savedBranchRegister );
 	IA64_instruction saveBranchInsn = generateBranchToRegisterMove( BRANCH_SCRATCH, savedBranchRegister );
 	IA64_instruction memoryNOP( NOP_M );	
-
 	IA64_bundle saveBranchRegisters( MIIstop, memoryNOP, saveRPInsn, saveBranchInsn );
 	assert( (((Address)ibuf + base) % 16) == 0 );
 	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-	rawBundlePointer[0] = saveBranchRegisters.getMachineCode();
-	base += 16;
 
 	/* Call the callee.  Since br.call is IP-relative, and we don't know
 	   where this function call will be installed until later, we would have
@@ -275,6 +283,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	IA64_instruction indirectBranchInsn = generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN );
 	IA64_bundle indirectBranchBundle( MMBstop, memoryNOP, memoryNOP, indirectBranchInsn );
 
+	rawBundlePointer[0] = saveBranchRegisters.getMachineCode();
 	rawBundlePointer[1] = loadCalleeBundle.getMachineCode();
 	rawBundlePointer[2] = savePFSAndSetBranchBundle.getMachineCode();
 	rawBundlePointer[3] = indirectBranchBundle.getMachineCode();
@@ -282,7 +291,16 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 		/* Free all the output registers. */
 		rs->freeRegister( outputZero + i );
 		}
-	base += 16 * 3;
+	base += 16 * 4;
+
+	#ifdef WhatWasIThinking
+	IA64_instruction loadSP = generateRegisterLoad( REGISTER_SP, REGISTER_SP );
+	IA64_instruction moveSPUp = generateShortImmediateAdd( REGISTER_SP, 16, REGISTER_SP );
+	IA64_bundle loadSPBundle( MstopMIstop, loadSP, moveSPUp, integerNOP );
+	rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+	rawBundlePointer[ 0 ] = loadSPBundle.getMachineCode();
+	base += 16;
+	#endif
 
 	/* restore the caller's GP */
 	// fprintf( stderr, "Restoring GP saved in general register %d\n", savedGPRegister );
@@ -310,9 +328,13 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 
 	/* copy the result (r8) to a registerSpace register */
 	// fprintf( stderr, "Copying function call result to a known-dead register (%d).\n", savedGPRegister );
-	emitRegisterToRegisterCopy( REGISTER_RP, savedGPRegister, ibuf, base, rs );
+	emitRegisterToRegisterCopy( REGISTER_RV, savedGPRegister, ibuf, base, rs );
 	rs->incRefCount( savedGPRegister );
 	fprintf( stderr, "*** emitted function call in buffer at %p\n", ibuf );
+
+	/* restore the result register */
+	emitRegisterToRegisterCopy( savedRVRegister, REGISTER_RV, ibuf, base, rs );
+	rs->freeRegister( savedRVRegister );
 
 	/* return that register */
 	return savedGPRegister; 
@@ -340,11 +362,11 @@ void pd_Function::checkCallPoints() {
 		calledPdF = owner->findFuncByAddr( targetAddress );
 		if( calledPdF ) {
 			callSite->set_callee( calledPdF );
-			pdfCalls.push_back( callSite );
 			} else {
 			callSite->set_callee( NULL );
-			pdfCalls.push_back( callSite );
 			} /* end calledPdF conditional */
+
+		pdfCalls.push_back( callSite );
 		} /* end callee loop */
 
 	calls = pdfCalls;
@@ -375,6 +397,9 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 			case IA64_instruction::DIRECT_CALL:
 			case IA64_instruction::INDIRECT_CALL:
 				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner, currInsn ) );
+				break;
+			case IA64_instruction::ALLOC:
+				allocs.push_back( iAddr.getEncodedAddress() - addr );
 				break;
 			default:
 				break;
@@ -433,8 +458,27 @@ bool process::replaceFunctionCall( const instPoint * point,
 			const function_base * func ) { assert( 0 ); return false; }
 
 /* Required by ast.C */
+Register deadRegisterList[] = { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
+void initTramps() { 
+	/* Initialize the registerSpace pointer regSpace to the state of the registers
+	   that will exist at the end of the first part of the base tramp's code.  (That
+	   is, for the minitramps.
+
+	   The difficulty here is that the register numbers are expected to be physical
+	   registers, but we can't determine those until we know which function we're
+	   instrumenting...
+
+	   For now, we'll just say 0x1 - 0xF. */
+
+	static bool haveInitializedTramps = false;
+	if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
+
+	regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
+	} /* end initTramps() */
+
+/* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost, int size ) {
+		char * ibuf, Address & base, bool noCost, int size, const instPoint * location, process * proc, registerSpace * rs ) {
 	assert( (((Address)ibuf + base) % 16) == 0 );
 	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
@@ -512,13 +556,41 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			base += (16 * bundleCount);
 			break; }
 
-		case divOp: {
-			/* We would just call out to __udivsi3, but emitV() isn't given
-			   enough information to call emitFuncCall().  So we generate
-			   the equivalent in-line. */
-			
-			
-			
+		case divOp: { /* Call libc's __divsi3(). */
+
+			/* Make sure we've got everything we need to work with. */
+			assert( location );
+			assert( proc );
+			assert( rs );
+			opCode op( callOp );
+
+			/* Generate the operand ASTs. */
+			pdvector< AstNode * > operands;
+			operands.push_back( new AstNode( AstNode::DataReg, (void *)(long long int)src1 ) );
+			operands.push_back( new AstNode( AstNode::DataReg, (void *)(long long int)src2 ) );
+
+			/* Generate the (empty?) ifForks AST. */
+			pdvector< AstNode * > ifForks;
+
+			/* Callers of emitV() expect the register space to be unchanged
+			   afterward, so make sure eFC() doesn't use the source registers
+			   after copying them to the output. */
+
+			/* Call emitFuncCall(). */
+			rs->incRefCount( src1 ); rs->incRefCount( src2 );
+			Register returnRegister = emitFuncCall( op, rs, ibuf, base, operands, "__divsi3", proc, noCost, NULL, ifForks, location );
+			if( returnRegister != dest ) {
+				rs->freeRegister( dest );
+				emitRegisterToRegisterCopy( returnRegister, dest, ibuf, base, rs );
+				rs->incRefCount( dest );
+				rs->freeRegister( returnRegister );
+				}
+			break; }
+
+		case noOp: {
+			IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
+			* rawBundlePointer = nopBundle.getMachineCode();
+			base += 16;			
 			break; }
 
 		default:
@@ -665,25 +737,6 @@ void returnInstance::installReturnInstance( process * proc ) {
 	iAddr.replaceBundleWith( installationBundle );
 	installed = true;
 	} /* end installReturnInstance() */
-
-/* Required by ast.C */
-Register deadRegisterList[] = { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
-void initTramps() { 
-	/* Initialize the registerSpace pointer regSpace to the state of the registers
-	   that will exist at the end of the first part of the base tramp's code.  (That
-	   is, for the minitramps.
-
-	   The difficulty here is that the register numbers are expected to be physical
-	   registers, but we can't determine those until we know which function we're
-	   instrumenting...
-
-	   For now, we'll just say 0x1 - 0xF. */
-
-	static bool haveInitializedTramps = false;
-	if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
-
-	regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
-	} /* end initTramps() */
 
 /* Required by inst.C */
 void generateBranch( process * proc, Address fromAddr, Address newAddr ) {
@@ -968,16 +1021,8 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	
 	/* Initially, we decide if we'll be alloc()ing or saving and restoring
 	   to obtain free (dead) general registers. */
-	bool useSaveAndRestoreMethod = false;
 	registerSpace baseRegisterSpace( 0, NULL, 0, NULL );
-	defineBaseTrampRegisterSpaceFor( location, & baseRegisterSpace );
-	if( baseRegisterSpace.getRegisterCount() == 0 ) {
-		/* We either couldn't find an alloc(), or they didn't all have the same
-		   inputs + locals size. */
-		useSaveAndRestoreMethod = true;
-		}
-
-	IA64_instruction allocInsn;
+	bool useSaveAndRestoreMethod = ! defineBaseTrampRegisterSpaceFor( location, & baseRegisterSpace );
 
 	/* Insert the skipPreInsn nop bundle. */
 	IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
@@ -993,22 +1038,14 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		assert( 0 );
 		} /* end if using save and restore method */
 	else {
-		// FIXME: see defineBTRF().
-		Address fnEntryOffset = location->iPgetFunction()->addr();
-		const unsigned char * fnEntryAddress = location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
-		assert( (Address)fnEntryAddress % 16 == 0 );
-		const ia64_bundle_t * rawBundles = (const ia64_bundle_t *)(Address)fnEntryAddress;
-		IA64_bundle initialBundle( rawBundles[0] );
-		allocInsn = * initialBundle.getInstruction( 0 );
-
-		IA64_instruction alteredAlloc = generateAlteredAlloc( allocInsn.getMachineCode(), NUM_LOCALS, NUM_OUTPUT, 0 );
-		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
+		IA64_instruction allocInsn = generateAllocInstructionFor( & baseRegisterSpace, NUM_LOCALS, NUM_OUTPUT, baseRegisterSpace.originalRotates );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method. */
 
 	/* Save the predicate registers to the memory stack. */
 	Register localZero = baseRegisterSpace.getRegSlot( 0 )->number;
-	IA64_instruction moveSPDown = generateShortImmediateAdd( REGISTER_SP, -8, REGISTER_SP );
+	IA64_instruction moveSPDown = generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ); // We don't need 16 bytes, but the SP has to be aligned mod 16, so...
 	IA64_instruction movePRtoReg = generatePredicatesToRegisterMove( localZero );
 	IA64_instruction storePRCopy = generateRegisterStore( REGISTER_SP, localZero );
 	IA64_bundle savePredicateMoves( MIIstop, moveSPDown, NOP_M, movePRtoReg );
@@ -1016,11 +1053,14 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	insnPtr[bundleCount++] = savePredicateMoves.getMachineCode(); baseTramp->size += 16;
 	insnPtr[bundleCount++] = savePredicateStore.getMachineCode(); baseTramp->size += 16;
 
+	/* FIXME: Save the FP registers to the memory stack.  We don't use any (modulo timesOp, divOp,
+	   which save & restore them) in the minitramps, but they're (almost) all caller-save. */
+	
 	/* FIXME: Insert the recursion check here, if desired.  If we _are_ recursing, predicate
 	   a jump to a copy of the state-restoration code followed by an unconditional jump
 	   back to the mutatee.  (If we restore the predicate registers, we lose _our_
 	   predicate!)  The following instruction(s) (after the predicated jump) should be
-	   reverse-predicated to set the gaurd bit. */
+	   reverse-predicated to set the guard bit. */
 
 	/* Insert the localPre nop bundle. */
 	baseTramp->localPreOffset = baseTramp->size;
@@ -1029,7 +1069,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	/* Restore state for the relocated instructions.  This always includes the predicates. */
 	baseTramp->localPreReturnOffset = baseTramp->size;
 	IA64_instruction loadPRCopy = generateRegisterLoad( localZero, REGISTER_SP );
-	IA64_instruction moveSPUp = generateShortImmediateAdd( REGISTER_SP, 8, REGISTER_SP );
+	IA64_instruction moveSPUp = generateShortImmediateAdd( REGISTER_SP, 16, REGISTER_SP );
 	IA64_instruction moveRegToPr = generateRegisterToPredicatesMove( localZero, 0x1FFFF );
 	IA64_bundle restorePRBundle( MstopMIstop, loadPRCopy, moveSPUp, moveRegToPr );
 	baseTramp->restorePreInsOffset = baseTramp->size;
@@ -1039,15 +1079,12 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		assert( 0 );
 		} /* end if using save and restore method. */
 	else {
-		/* Restore the register frame:
-		   rather than saving & restoring a register around the alloc
-		   (since we have to stick its return value somewhere),
-		   we'll just allocate an extra output register and store it there. */
-		
-		IA64_instruction alteredAlloc = generateRestoreAlloc( allocInsn.getMachineCode() );
-		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
+		IA64_instruction allocInsn = generateOriginalAllocFor( & baseRegisterSpace );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
+
+	/* FIXME: restore the FP registers from the memory stack. */
 
 	/* Emulate the relocated instructions.  Since we're using the owner to read the
 	   instructions, don't adjust by the base pointer. */
@@ -1076,14 +1113,16 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		assert( 0 );
 		} /* end if using save and restore method */
 	else {
-		IA64_instruction alteredAlloc = generateAlteredAlloc( allocInsn.getMachineCode(), NUM_LOCALS, NUM_OUTPUT, 0 );
-		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
+		IA64_instruction allocInsn = generateAllocInstructionFor( & baseRegisterSpace, NUM_LOCALS, NUM_OUTPUT, baseRegisterSpace.originalRotates );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
 
 	/* Save the predicate registers to the memory stack again. */
 	insnPtr[bundleCount++] = savePredicateMoves.getMachineCode(); baseTramp->size += 16;
 	insnPtr[bundleCount++] = savePredicateStore.getMachineCode(); baseTramp->size += 16;
+
+	/* FIXME: save the FP registers to the memory stack. */
 
 	/* Insert the localPost nop bundle. */
 	baseTramp->localPostOffset = baseTramp->size;
@@ -1100,14 +1139,12 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		assert( 0 );
 		} /* end if using save and restore method */
 	else {
-		/* Restore the register frame:
-		   rather than saving & restoring a register around the alloc
-		   (since we have to stick its return value somewhere),
-		   we'll just allocate an extra output register and store it there. */
-		IA64_instruction alteredAlloc = generateRestoreAlloc( allocInsn.getMachineCode() );
-		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
+		IA64_instruction allocInsn = generateOriginalAllocFor( & baseRegisterSpace );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
+
+	/* FIXME: restore the FP registers from the memory stack. */
 
 	/* Insert the jump back to normal execution.
 	   Question: why do we do this if we generate a returnInstance? */
@@ -1196,6 +1233,19 @@ Register emitR( opCode op, Register src1, Register src2, Register dest,
 				return dest;	// Why do we bother doing this?
 				} /* end if it's a parameter in a register. */
 		} break;
+
+                case getRetValOp: {
+                        /* WARNING: According to the Itanium Software Conventions
+                           Guide, the return value can use multiple registers (r8-11).
+                           However, since Dyninst can't handle anything larger than
+                           64 bits (for now), we'll just return r8.
+
+                           This should be valid for the general case.
+                        */
+                        Register retVal = (Register)8;
+                        emitRegisterToRegisterCopy(retVal, dest, ibuf, base, NULL);
+                        return dest;
+                } break;
 
 		default:
 			assert( 0 ) ;
@@ -1315,9 +1365,15 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 
 	switch( op ) {
 		case storeOp: {
-			IA64_instruction storeInsn = generateRegisterStore( dest, src1 );
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_instruction_x loadAddressInsn = generateLongConstantInRegister( src2, dest );
+			IA64_bundle loadBundle( MLXstop, memoryNOP, loadAddressInsn );
+			rawBundlePointer[0] = loadBundle.getMachineCode();
+			base += 16;
+
+			IA64_instruction storeInsn = generateRegisterStore( src2, src1 );
 			IA64_bundle storeBundle( MIIstop, storeInsn, NOP_I, NOP_I );
-			* rawBundlePointer = storeBundle.getMachineCode();
+			rawBundlePointer[1] = storeBundle.getMachineCode();
 			base += 16;
 			break; }
 

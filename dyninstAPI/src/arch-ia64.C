@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.14 2002/09/27 19:38:12 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.15 2003/01/23 17:55:49 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -176,6 +176,7 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 			if(	( opCode == 0x01 && x3 == 0x01 ) || 
 				( opCode == 0x01 && x3 == 0x03 ) ||
 				( opCode == 0x00 && x3 >= 0x04 && x3 <= 0x07 ) ) { return CHECK; }
+			if( opCode == 0x01 && x3 == 0x06 ) { return ALLOC; }
 			break;
 
 		case I:
@@ -339,7 +340,7 @@ bool IA64_bundle::setInstruction(IA64_instruction_x &newInst)
     return true;
 } /* end setInstruction(x) */
 
-/* Used by generateAlteredAlloc(), defineBaseTrampRegisterSpaceFor(), and dlopenDYNINSTlib(). */
+/* private refactoring function */
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate ) {
 	/* Verify that the given instruction is actually, so far as we can tell
 	   (we don't have the template and the offset), an alloc. */
@@ -364,67 +365,42 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 	return true;
         } /* end extractAllocatedRegisters() */
 
-/* For inst-ia64.C */
-IA64_instruction generateRestoreAlloc( uint64_t allocInsn ) {
-	/* Extract the allocated sizes. */
-	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-	if( ! extractAllocatedRegisters( allocInsn, & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
-		fprintf( stderr, "Alleged alloc instruction is not, aborting.\n" );
-		abort();
-		} /* end if not an alloc instruction */
+IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
+	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
+	uint64_t sizeOfFrame = sizeOfLocals + outputs;
+	uint64_t sizeOfRotates = rotates >> 3;
+	uint64_t ar_pfs = rs->getRegSlot( 0 )->number;
 
-	/* Calculate the new sizes.  To avoid overwriting one of the registers
-	   we're trying to save, write the return to a spurious output register. */
-	uint64_t generatedLocal = allocatedLocal;
-	uint64_t generatedOutput = allocatedOutput + 1;
-	uint64_t generatedRotate = allocatedRotate;
-	uint64_t generatedRegister = 32 + allocatedLocal + allocatedOutput;
-
-	/* Generate the altered alloc instruction. */
-	allocInsn = 0x0000000000000000 |
+	uint64_t rawInsn = 0x0000000000000000 |
 		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
 		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
-		    ( generatedLocal << (20 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( ( generatedRotate >> 3) << (27 + ALIGN_RIGHT_SHIFT) ) |
-		    ( ( generatedLocal + generatedOutput ) << (13 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( generatedRegister << (6 + ALIGN_RIGHT_SHIFT) );
-	
-	/* We're done. */
-	return allocInsn;
-	} /* end generateRestoreAlloc() */
+		    ( sizeOfRotates << (27 + ALIGN_RIGHT_SHIFT) ) |
+		    ( sizeOfLocals << (20 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( sizeOfFrame << (13 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( ar_pfs << (6 + ALIGN_RIGHT_SHIFT) );
 
-/* For linux-ia64.C */
-IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int newOutput, int newRotate ) {
-	/* Extract the allocated sizes. */
-	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-	if( ! extractAllocatedRegisters( allocInsn, & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
-		fprintf( stderr, "Alleged alloc instruction is not, aborting.\n" );
-		abort();
-		} /* end if not an alloc instruction */
+	return IA64_instruction( rawInsn );
+	} /* end generateAllocInstructionFor() */
 
-	/* Calculate the new sizes.  To avoid corrupting the NAT bits,
-	   we want to allocate our new locals after the end of the old outputs. */
-	uint64_t generatedLocal = allocatedLocal + allocatedOutput + newLocal;
-	uint64_t generatedOutput = newOutput;
-	uint64_t generatedRotate = newRotate;
+IA64_instruction generateOriginalAllocFor( registerSpace * rs ) {
+	/* Allocate a spurious output register so the ar.pfs doesn't overwrite
+	   one of the registers we're trying to save. */
+	uint64_t sizeOfLocals = rs->originalLocals;
+	uint64_t sizeOfOutputs = rs->originalOutputs + 1;
+	uint64_t sizeOfRotates = rs->originalRotates >> 3;
+	uint64_t sizeOfFrame = sizeOfLocals + sizeOfOutputs;
+	uint64_t ar_pfs = rs->getRegSlot( 0 )->number;
 
-	/* Likewise, to avoid overwriting one of the registers we're trying to preserve,
-	   return into a newly-allocated register. */
-	assert( newLocal + newOutput + newRotate != 0 );
-	uint64_t generatedRegister = 32 + allocatedLocal + allocatedOutput;
-
-	/* Generate the altered alloc instruction. */
-	allocInsn = 0x0000000000000000 |
+	uint64_t rawInsn = 0x0000000000000000 |
 		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
 		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
-		    ( generatedLocal << (20 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( ( generatedRotate >> 3) << (27 + ALIGN_RIGHT_SHIFT) ) |
-		    ( ( generatedLocal + generatedOutput ) << (13 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( generatedRegister << (6 + ALIGN_RIGHT_SHIFT) );
-	
-	/* We're done. */
-	return allocInsn;
-	} /* end generateAlteredAlloc() */
+		    ( sizeOfRotates << (27 + ALIGN_RIGHT_SHIFT) ) |
+		    ( sizeOfLocals << (20 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( sizeOfFrame << (13 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( ar_pfs << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateOriginalAllocFor() */
 
 /* imm22 is assumed to be right-aligned, e.g., an actual value. :) */
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 ) {
@@ -567,33 +543,81 @@ Address IA64_instruction_x::getTargetAddress() {
 /* We don't know which registers we'll be freeing (killing) until we can look
    at the relevant alloc instruction. */
 #include "instPoint-ia64.h"
-void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace ) {
-	/* FIXME: Decode the flagged alloc statements.  As long as their input/local
-	   sizes remain the same, we can use the alloc method: just expand the frame
-	   to the end of the largest alloc.  Otherwise, things get tricky.  (See notes.) */
-
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace ) {
 	Address fnEntryOffset = location->iPgetFunction()->addr();
 	Address fnEntryAddress = (Address)location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
 	assert( fnEntryAddress % 16 == 0 );
-	const ia64_bundle_t * rawBundles = (const ia64_bundle_t *) fnEntryAddress;
-	IA64_bundle initialBundle( rawBundles[0] );
+	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 
-	/* Extract the allocated sizes. */
-	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-	if( ! extractAllocatedRegisters( initialBundle.getInstruction(0)->getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
-		/* Return an empty register space. */
-		registerSpace rs( 0, NULL, 0, NULL );
-		* regSpace = rs;
-		return;
-		} /* end if no alloc was found. */
+	/* Iterate over the flagged alloc statements, verifying that their
+	   input/local sizes remain constant, and recording the largest
+	   number of output registers.  (Since the rotated registers fit
+	   inside the locals, which we won't be using anyway, we won't
+	   worry about them. */
+	unsigned int numLocals = 256;		/* Larger than the largest possible valid. */
+	unsigned int numRotate = 256;		/* Larger than the largest possible valid. */
+	unsigned largestFrame = 0;
+
+fprintf( stderr, "We found %d allocs in '%s'...\n",  location->iPgetFunction()->allocs.size(), location->iPgetFunction()->prettyName().c_str() );
+	for( unsigned int i = 0; i < location->iPgetFunction()->allocs.size(); i++ ) {
+		/* Extract the alloc instruction. */
+		Address encodedAddress = (location->iPgetFunction()->allocs)[i];
+	        unsigned short slotNumber = encodedAddress % 16;
+        	Address alignedOffset = encodedAddress - slotNumber;
+		IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
+
+fprintf( stderr, "Consider alloc #%d, insn %d at 0x%lx\n", i, slotNumber, alignedOffset );
+		
+		/* Extract the allocated sizes. */
+		uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
+		if( ! extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
+fprintf( stderr, "Unable to extract allocated registers...\n" );
+			/* return the empty registerSpace; we can't do anything useful. */
+			registerSpace rs( 0, NULL, 0, NULL );
+			* regSpace = rs;
+			return false;
+			} /* end if extraction failed */
+fprintf( stderr, "Considering alloc %ld %ld %ld...\n", allocatedLocal, allocatedOutput, allocatedRotate );
+		if( numLocals == 256 ) { numLocals = allocatedLocal; }
+		if( numLocals != allocatedLocal ) {
+fprintf( stderr, "Differing number of locals (%d vs %ld), unable to use alloc method.\n", numLocals, allocatedLocal );
+			/* return the empty registerSpace; we can't do anything useful. */
+			registerSpace rs( 0, NULL, 0, NULL );
+			* regSpace = rs;
+			return false;
+			} /* end if locals are of dissimilar size */
+		if( numRotate == 256 ) { numRotate = allocatedRotate; }
+		if( numRotate != allocatedRotate ) {
+fprintf( stderr, "Differing number of rotating registers (%d vs %ld), unable to use alloc method.\n", numRotate, allocatedRotate );
+			/* return the empty registerSpace; we can't do anything useful. */
+			registerSpace rs( 0, NULL, 0, NULL );
+			* regSpace = rs;
+			return false;
+			} /* end rotating registers are of dissimilar size. */
+		if( allocatedOutput + allocatedLocal > largestFrame ) {
+			largestFrame = allocatedOutput + allocatedLocal;
+			} /* end largest-frame tracking */
+		} /* end alloc iteration */
+
+	if( numLocals == 256 || numRotate == 256 ) { 
+		/* We didn't find _any_ allocs, so we need to make this
+		   numbers valid for generateOriginalAlloc().  0 also
+		   happens to be logically correc/consistent. :) */
+		numLocals = 0;
+		numRotate = 0;
+		} /* end if we found no allocs. */
 
 	/* Adjust regSpace to reflect the size of the function's frame. */
 	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
 	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-		deadRegisterList[i] = 32 + allocatedLocal + allocatedOutput + i;
+		deadRegisterList[i] = 32 + largestFrame + i;
 		} /* end deadRegisterList calculation */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+	rs.originalLocals = numLocals;
+	rs.originalOutputs = largestFrame - numLocals;
+	rs.originalRotates = numRotate;
 	* regSpace = rs;
+	return true;
 	} /* end dBTRSF() */
 
 /* For inst-ia64.h */
@@ -765,7 +789,7 @@ IA64_instruction generateApplicationToRegisterMove( Register source, Register de
 	} /* end generateRegisterToApplicationMove() */
 
 IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x7F;
 
 	uint64_t rawInsn = insn.getMachineCode() |
 			   predicateRegister << ALIGN_RIGHT_SHIFT;
@@ -833,7 +857,7 @@ IA64_instruction generateComparison( opCode op, Register destination, Register l
 	} /* end generateComparison() */
 
 IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x7F;
 
 	uint64_t highInsn = insn.getMachineCode().high |
 			   predicateRegister << ALIGN_RIGHT_SHIFT;
@@ -841,35 +865,47 @@ IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instructio
 	return IA64_instruction_x( insn.getMachineCode().low, highInsn, insn.getTemplateID(), insn.getMyBundle() );
 	} /* end predicateLongInstruction() */
 
-IA64_instruction generateFPSpillTo( Register address, Register source ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x3F;
-	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
+IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 ) {
+	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
+	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
+	uint64_t signBit = imm9 < 0 ? 1 : 0;
+	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x07) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT) ) |
 			   ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (iBit) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
-			   ( (sourceRegister) << (13 + ALIGN_RIGHT_SHIFT) );
+			   ( (sourceRegister) << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (immediate) << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
 	} /* end generateFPSpillTo() */
 
-IA64_instruction generateFPFillFrom( Register address, Register destination ) {
-	uint64_t addressRegister = ((uint64_t)address) & 0x3F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+IA64_instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 ) {
+	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	uint64_t immediate = (uint64_t)imm9 & 0x7F;
+	uint64_t signBit = imm9 < 0 ? 1 : 0;
+	uint64_t iBit = ((uint64_t)imm9 & 0x080) >> 7;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x07) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT) ) |
 			   ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (iBit) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (immediate) << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( (destinationRegister) << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
 	} /* end generateFPFillFrom() */
 
 IA64_instruction generateRegisterToFloatMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 	
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
@@ -882,8 +918,8 @@ IA64_instruction generateRegisterToFloatMove( Register source, Register destinat
 	} /* end generateRegisterToFloatMove() */
 
 IA64_instruction generateFloatToRegisterMove( Register source, Register destination ) {
-	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 	
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
@@ -896,9 +932,9 @@ IA64_instruction generateFloatToRegisterMove( Register source, Register destinat
 	} /* end generateFloatToRegisterMove() */
 
 IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs ) {
-	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
-	uint64_t lhsRegister = ((uint64_t)lhs) & 0x3F;
-	uint64_t rhsRegister = ((uint64_t)rhs) & 0x3F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
+	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
 
 	/* FIXME: We're assuming unsigned, and that the lower 64 bits are more interesting,
 		  but this may well not be the case. */
