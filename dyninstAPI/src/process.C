@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.427 2003/05/21 20:12:48 schendel Exp $
+// $Id: process.C,v 1.428 2003/05/22 16:00:42 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -343,8 +343,6 @@ bool process::walkStackFromFrame(Frame startFrame,
     currentFrame.setLeaf(true);
     fpOld = currentFrame.getSP();
     stackWalk.push_back(currentFrame);
-    if (pd_debug_catchup)
-      cerr << "Stack debug: " << currentFrame << endl;
     
     currentFrame = currentFrame.getCallerFrame(this); 
   }
@@ -374,8 +372,6 @@ bool process::walkStackFromFrame(Frame startFrame,
     
     next_pc = currentFrame.getPC();
     stackWalk.push_back(currentFrame);
-    if (pd_debug_catchup)
-      cerr << "Stack debug: " << currentFrame << endl;
     
     currentFrame = currentFrame.getCallerFrame(this); 
   }
@@ -385,6 +381,7 @@ bool process::walkStackFromFrame(Frame startFrame,
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
+
   return true;
 }
 #endif
