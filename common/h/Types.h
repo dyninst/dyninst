@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.16 2002/02/11 22:01:59 tlmiller Exp $
+ * $Id: Types.h,v 1.17 2002/04/09 18:04:38 mjbrim Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -174,6 +174,8 @@ typedef unsigned long uint64_t;
 #define I32_MIN  INT32_MIN
 #define UI32_MAX UINT32_MAX
 #endif
+
+typedef int64_t time64;
 
 typedef long unsigned int Address;
 /* Note the inherent assumption that the size of a "long" integer matches
