@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.53 2002/07/11 19:45:48 bernat Exp $
+ * $Id: rtinst.h,v 1.54 2002/08/19 19:20:26 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -210,7 +210,6 @@ typedef struct RTsharedData_rec {
   unsigned *inferior_pid;
   unsigned *daemon_pid;
   unsigned *observed_cost;
-  unsigned *trampGuards;
   /* MT */
   tTimer *virtualTimers;
   unsigned *posToThread;
