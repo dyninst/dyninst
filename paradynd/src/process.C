@@ -14,6 +14,9 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.58  1996/07/09 04:11:58  lzheng
+ * Implentented the stack walking on HPUX machine
+ *
  * Revision 1.57  1996/06/01 00:01:03  tamches
  * heapActive now uses addrHash16 instead of addrHash
  * extensively commented how paradynd captures & processs stdio of the
@@ -196,6 +199,10 @@ vector<Address> process::walkStack()
 bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) {
   const unsigned disItemPointer = disItem.getPointer();
   const inferiorHeapType disItemHeap = disItem.getHeapType();
+
+#if defined(hppa1_1_hp_hpux)
+  if (proc->freeNotOK) return(false);
+#endif
 
   heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
@@ -537,7 +544,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       logLine(errorLine);
 #endif
 
-#if !defined(hppa1_1_hp_hpux) && !defined(sparc_tmc_cmost7_3)
+#if !defined(sparc_tmc_cmost7_3)
       inferiorFreeDefered(proc, hp, true);
       inferiorFreeCompact(hp);
       secondChance=true;
@@ -655,9 +662,9 @@ static timeStamp worst=0.0;
 static int counter=0;
 t1=getCurrentTime(false);
 #endif
-#if !defined(hppa1_1_hp_hpux)
+
       inferiorFreeDefered(proc, hp, false);
-#endif
+
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
 if (!t3) t3=t1;
