@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.36 2000/10/17 17:42:52 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.37 2002/08/12 04:22:16 schendel Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -74,6 +74,8 @@ extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 
 
 static int procfd = -1;
+rawTime64 cpuPrevious = 0;
+rawTime64 wallPrevious = 0;
 
 /* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
 void PARADYNos_init(int calledByFork, int calledByAttach) {
@@ -93,6 +95,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
    }
    hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+
+  /* needs to be reinitialized when fork occurs */
+   cpuPrevious  = 0;
+   wallPrevious = 0;
 }
 
 
@@ -149,9 +155,8 @@ DYNINSTgetCPUtime_hw(void) {
 */
 rawTime64
 DYNINSTgetCPUtime_sw(void) {
-  static rawTime64 cpuPrevious=0;
-  static int cpuRollbackOccurred=0;
-  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
+  static int cpuRollbackOccurred = 0;
+  rawTime64 now, tmp_cpuPrevious = cpuPrevious;
 
   now = gethrvtime();
 
@@ -188,9 +193,8 @@ DYNINSTgetWalltime_hw(void) {
 */
 rawTime64
 DYNINSTgetWalltime_sw(void) {
-  static rawTime64 wallPrevious=0;
-  static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  static int wallRollbackOccurred = 0;
+  rawTime64 now, tmp_wallPrevious = wallPrevious;
 
   now = gethrtime();
 
@@ -200,7 +204,7 @@ DYNINSTgetWalltime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "Wall time rollback %lld with current time:"
 	      " %lld nsecs, using previous value %lld nsecs.",
-	      tmp_wallPrevious-now, now, tmp_wallPrevious);
+	      tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.32 2002/07/03 22:18:32 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.33 2002/08/12 04:22:14 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -87,6 +87,9 @@
  ************************************************************************/
 
 void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
+
+rawTime64 wallPrevious = 0;
+rawTime64 cpuPrevious  = 0;
 
 #if USES_PMAPI
 /* For the hardware counters */
@@ -174,6 +177,10 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   ret = pm_start_mythread();
   if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
 
+  /* needs to be reinitialized when fork occurs */
+  wallPrevious = 0;
+  cpuPrevious = 0;
+
 #ifdef USES_LIB_TEXT_HEAP
   /* Dummy call to get the library space actually included
      (not pruned by an optimizing linker) */
@@ -188,6 +195,10 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
 #ifdef USES_LIB_TEXT_HEAP
   DYNINSTstaticHeap_1048576_textHeap_libSpace();
 #endif
+
+  /* needs to be reinitialized when fork occurs */
+  wallPrevious = 0;
+  cpuPrevious = 0;
 }
 
 #endif USES_PMAPI
@@ -210,7 +221,6 @@ DYNINSTgetCPUtime_hw(void) {
   pm_data_t data;
   int ret;
   rawTime64 now;
-  static rawTime64 cpuPrevious = 0;
 
   if (!initialized) {
     pm_set_program_mythread(&pdyn_pm_prog);
@@ -255,9 +265,8 @@ DYNINSTgetCPUtime_hw(void) {
 */
 rawTime64
 DYNINSTgetCPUtime_sw(void) {
-  static rawTime64 cpuPrevious = 0;
   static int cpuRollbackOccurred = 0;
-  rawTime64 now, tmp_cpuPrevious=cpuPrevious, us;
+  rawTime64 now, tmp_cpuPrevious = cpuPrevious, us;
   struct rusage ru;
 
   if (getrusage(RUSAGE_SELF, &ru)) {
@@ -277,7 +286,7 @@ DYNINSTgetCPUtime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld us, using previous value %lld us.",
-                tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+                tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -299,9 +308,8 @@ union bigWord {
 /* Hardware Level --- */
 rawTime64
 DYNINSTgetWalltime_hw(void) {
-  static rawTime64 wallPrevious=0;
   static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious;
   struct timebasestruct timestruct;
 
   read_real_time(&timestruct, TIMEBASE_SZ);
@@ -314,7 +322,7 @@ DYNINSTgetWalltime_hw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld fast units, using previous value %lld fast units.",
-                tmp_wallPrevious-now,now,tmp_wallPrevious);
+                tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -334,9 +342,8 @@ DYNINSTgetWalltime_hw(void) {
 */
 rawTime64
 DYNINSTgetWalltime_sw(void) {
-  static rawTime64 wallPrevious=0;
   static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious;
   struct timebasestruct timestruct;
 #if 0
   register unsigned int timeSec asm("5");
@@ -371,7 +378,7 @@ DYNINSTgetWalltime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld ns, using previous value %lld ns.",
-                tmp_wallPrevious-now,now,tmp_wallPrevious);
+                tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.20 2001/02/01 01:08:46 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.21 2002/08/12 04:22:15 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -83,6 +83,9 @@ static int procfd = -1;
 struct hrtime_struct *hr_cpu_map = NULL;
 #endif
 
+rawTime64 cpuPrevious  = 0;
+rawTime64 wallPrevious = 0;
+
 /* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
 void PARADYNos_init(int calledByFork, int calledByAttach) {
 #ifdef HRTIME
@@ -97,6 +100,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   else {
     hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
   }
+
+  /* needs to be reinitialized when fork occurs */
+  cpuPrevious = 0;
+  wallPrevious = 0;
 
 #ifdef notdef   /* Has this ever been active on this platform? */
    /* This must be done once for each process (including forked) children */
@@ -155,9 +162,8 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 */
 rawTime64 
 DYNINSTgetCPUtime_hw(void) {
-  static rawTime64 cpuPrevious=0;
-  static int cpuRollbackOccurred=0;
-  rawTime64 now=0, tmp_cpuPrevious=cpuPrevious;
+  static int cpuRollbackOccurred = 0;
+  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious;
 
 #ifdef HRTIME  
   now = hrtimeGetVtime(hr_cpu_map);
@@ -168,7 +174,7 @@ DYNINSTgetCPUtime_hw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
-	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
@@ -188,9 +194,8 @@ DYNINSTgetCPUtime_hw(void) {
 */
 rawTime64
 DYNINSTgetCPUtime_sw(void) {
-  static rawTime64 cpuPrevious=0;
-  static int cpuRollbackOccurred=0;
-  rawTime64 now=0, tmp_cpuPrevious=cpuPrevious;
+  static int cpuRollbackOccurred = 0;
+  rawTime64 now=0, tmp_cpuPrevious = cpuPrevious;
   struct tms tm;
   
   times( &tm );
@@ -201,7 +206,7 @@ DYNINSTgetCPUtime_sw(void) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld jiffies, using previous value %lld jiffies.",
-	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
@@ -223,9 +228,8 @@ DYNINSTgetCPUtime_sw(void) {
 */
 rawTime64
 DYNINSTgetWalltime_hw(void) {
-  static rawTime64 wallPrevious=0;
-  static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  static int wallRollbackOccurred = 0;
+  rawTime64 now, tmp_wallPrevious = wallPrevious;
   struct timeval tv;
 
   getTSC(now);
@@ -255,9 +259,8 @@ DYNINSTgetWalltime_hw(void) {
 */
 rawTime64
 DYNINSTgetWalltime_sw(void) {
-  static rawTime64 wallPrevious=0;
-  static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  static int wallRollbackOccurred = 0;
+  rawTime64 now, tmp_wallPrevious = wallPrevious;
   struct timeval tv;
 
   if (gettimeofday(&tv,NULL) == -1) {
