@@ -217,20 +217,20 @@ void    thr_update_socket_data_state( PDSOCKET sock );
 
 /* synchronization primitives */
 
-int thr_monitor_create(thread_monitor_t* mon);
-int thr_monitor_destroy(thread_monitor_t* mon);
-int thr_monitor_enter(thread_monitor_t* mon);
-int thr_monitor_leave(thread_monitor_t* mon);
+thread_monitor_t thr_monitor_create();
+int thr_monitor_destroy(thread_monitor_t mon);
+int thr_monitor_enter(thread_monitor_t mon);
+int thr_monitor_leave(thread_monitor_t mon);
 
-int thr_cond_register(thread_monitor_t* mon, unsigned cond_no);
-int thr_cond_wait(thread_monitor_t* mon, unsigned cond_no);
-int thr_cond_signal(thread_monitor_t* mon, unsigned cond_no);
+int thr_cond_register(thread_monitor_t mon, unsigned cond_no);
+int thr_cond_wait(thread_monitor_t mon, unsigned cond_no);
+int thr_cond_signal(thread_monitor_t mon, unsigned cond_no);
 
-int thr_rwlock_create(thread_rwlock_t* rw);
-int thr_rwlock_destroy(thread_rwlock_t* rw);
+thread_rwlock_t thr_rwlock_create(pref_t pref);
+int thr_rwlock_destroy(thread_rwlock_t rw);
 
-int thr_rwlock_acquire(thread_rwlock_t* rw, action_t action);
-int thr_rwlock_release(thread_rwlock_t* rw, action_t action);
+int thr_rwlock_acquire(thread_rwlock_t rw, action_t action);
+int thr_rwlock_release(thread_rwlock_t rw, action_t action);
 
 #if defined(__cplusplus)
 }
