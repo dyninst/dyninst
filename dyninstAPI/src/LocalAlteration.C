@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.3 2001/02/20 21:40:51 gurari Exp $
+// $Id: LocalAlteration.C,v 1.4 2001/03/07 21:02:08 pcroth Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -84,11 +84,11 @@ bool InsertNops::UpdateInstPoints(FunctionExpansionRecord *ips) {
     return UpdateExpansions(ips);
 }
 
-int InsertNops::getOffset() {
+int InsertNops::getOffset() const {
     return beginning_offset;
 }
 
-int InsertNops::getShift() {
+int InsertNops::getShift() const {
     return sizeNopRegion;
 }
 
@@ -133,16 +133,18 @@ void LocalAlterationSet::AddAlteration(LocalAlteration *a) {
     ordered = false;
 }
 
-int order_peephole_alteration_ptrs(const void *a, const void *b) {
-    const LocalAlteration *p1, *p2;
-    p1 = (const LocalAlteration *)a;
-    p2 = (const LocalAlteration *)b;
-    return (p1 - p2);
+int order_peephole_alteration_offsets(const void *a1, const void *a2) {
+    const LocalAlteration* la1 = *(const LocalAlteration**)a1;
+	const LocalAlteration* la2 = *(const LocalAlteration**)a2;
+
+    int offset1 = la1->getOffset();
+    int offset2 = la2->getOffset();
+    return (offset1 - offset2);
 }
 
 void LocalAlterationSet::Order() {
-    if (ordered = true) return;
-    alterations.sort(order_peephole_alteration_ptrs);
+    if (ordered == true) return;
+    alterations.sort(order_peephole_alteration_offsets);
     ordered = true;
 }
 
