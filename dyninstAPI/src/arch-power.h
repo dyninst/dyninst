@@ -44,6 +44,12 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.8  1997/02/18 21:12:56  sec
+ * Redefined most of this include file.  Alot of the representations for
+ * instructions were in the form of PowerPC instructions, not Power2; I modified
+ * it, cleaned it up, reduced some warnings, etc.  Some small bug fixes in what
+ * instructions were used, etc.
+ *
  * Revision 1.7  1997/01/27 19:40:34  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -76,77 +82,89 @@
  *
  */
 
+#include "symtab.h"
 
 /*
  * Define power instruction information.
  *
  */
 
-/*
- * unconditional branch instruction.
- *
- */
-struct iform {
-    unsigned op:6;
-    signed li:24;
-    unsigned aa:1;
-    unsigned lk:1;
+struct genericform {
+  unsigned op : 6;
+  unsigned XX : 26;
 };
 
-/* conditional branch */
-struct bform {
-    unsigned op:6;
-    unsigned bo:5;
-    unsigned bi:5;
-    signed bd:14;
-    unsigned aa:1;
-    unsigned lk:1;
+struct iform {            // unconditional branch + 
+  unsigned op : 6;
+  signed   li : 24;
+  unsigned aa : 1;
+  unsigned lk : 1;
+
+};
+
+struct bform {            // conditional branch +
+  unsigned op : 6;
+  unsigned bo : 5;
+  unsigned bi : 5;
+  signed   bd : 14;
+  unsigned aa : 1;
+  unsigned lk : 1;
 };
 
 struct dform {
-    unsigned op:6;
-    unsigned rt:5;
-    unsigned ra:5;
-    unsigned d_or_si:16;
+    unsigned op : 6;
+    unsigned rt : 5;        // rt, rs, frt, frs, to, bf_l
+    unsigned ra : 5;
+    signed   d_or_si : 16;  // d, si, ui
 };
 
 struct xform {
-    unsigned op:6;
-    unsigned rt:5;
-    unsigned ra:5;
-    unsigned rb:5;
-    unsigned xo:10;
-    unsigned rc:1;
+    unsigned op : 6;
+    unsigned rt : 5;   // rt, frt, bf_l, rs, frs, to, bt
+    unsigned ra : 5;   // ra, fra, bfa_, sr, spr
+    unsigned rb : 5;   // rb, frb, sh, nb, u_
+    unsigned xo : 10;  // xo, eo
+    unsigned rc : 1;
 };
 
-struct mform {
-    unsigned op:6;
-    unsigned rs:5;
-    unsigned ra:5;
-    unsigned sh:5;
-    unsigned mb:5;
-    unsigned me:5;
-    unsigned rc:1;
+struct xlform {
+  unsigned op : 6;
+  unsigned bt : 5;   // rt, bo, bf_
+  unsigned ba : 5;   // ba, bi, bfa_
+  unsigned bb : 5; 
+  unsigned xo : 10;  // xo, eo
+  unsigned lk : 1;
 };
 
 struct xoform {
-    unsigned op:6;
-    unsigned rt:5;
-    unsigned ra:5;
-    unsigned rb:5;
-    unsigned oe:1;
-    unsigned xo:9;
-    unsigned rc:1;
+    unsigned op : 6;
+    unsigned rt : 5;
+    unsigned ra : 5;
+    unsigned rb : 5;
+    unsigned oe : 1;
+    unsigned xo : 9; // xo, eo'
+    unsigned rc : 1;
+};
+
+struct mform {
+    unsigned op : 6;
+    unsigned rs : 5;
+    unsigned ra : 5;
+    unsigned sh : 5;
+    unsigned mb : 5; // mb, sh
+    unsigned me : 5;
+    unsigned rc : 1;
 };
 
 union instructUnion {
-    struct iform branch;
-    struct bform cbranch;
-    struct dform dform;
-    struct xform xform;
+    struct iform  iform;  // branch;
+    struct bform  bform;  // cbranch;
+    struct dform  dform;
+    struct xform  xform;
     struct xoform xoform;
-    struct mform mform;
-    unsigned int raw;
+    struct xlform xlform;
+    struct mform  mform;
+    unsigned int  raw;
 };
 
 typedef union instructUnion instruction;
@@ -154,103 +172,110 @@ typedef union instructUnion instruction;
 
 /*
  * Define the operation codes
- *
  */
-#define CMPIop		11	/* compare imm op */
-#define ADDIop		14	/* add immediate op */
-#define ADDISop		15	/* add immediate shifted op */
+
+// ------------- Op Codes, instruction form I  ------------------
+#define Bop		18	/* (unconditional) branch */
+
+// ------------- Op Codes, instruction form D  ------------------
+#define CMPIop		11	/* compare immediate */
+#define SIop            12      /* subtract immediate */
+#define CALop		14	/* compute address lower -- ADDIop */
+#define CAUop		15	/* compute address upper -- ADDISop*/
+#define ORILop		24	/* (logical) or immediate lower -- ORIop*/
+#define ANDILop         28      /* and immediate lower -- ANDIop*/
+#define Lop		32	/* load (word) (aka lwz op in PowerPC) */
+#define STop		36	/* store (word) -- STWop */
+#define STUop		37	/* store (word) with update -- STWUop */
+
+// ------------- Op Codes, instruction form B  ------------------
 #define BCop		16	/* branch conditional */
-#define SCop		17	/* system call */
-#define Bop		18	/* unconditional branch */
-#define BCLRop		19	/* branch conditional to the link reg */
-#define ORIop		24	/* logical or operation */
-#define XFPop		31	/* extendened fixed point ops (XO form) */
-#define Lop		32	/* load word op (aka lwz op in PowerPC) */
-#define STWop		36	/* store word op */
-#define STWUop		37	/* store word and update op */
 
+// ------------- Op Codes, instruction form X  ------------------
+/* #define XFPop        31      -- extendened fixed point ops */
+#define CMPop           31      /* compare -- XFPop*/
+#define CMPxop		0       /* compare */
+#define ANDop           31      /* and */
+#define ANDxop          28      /* and */
+#define ORop            31      /* or */
+#define ORxop           444     /* or */
+
+// ------------- Op Codes, instruction form XL  -----------------
+#define BCLRop		19	/* branch conditional link register */
+#define BCLRxop		16	/* branch conditional link register */
+
+// ------------- Op Codes, instruction form XO  -----------------
+/* #define XFPop        31      -- extendened fixed point ops */
+#define SFop		31      /* subtract from -- XFPop */
+#define SFxop		8       /* subtract from -- SUBFxop */
+#define MULSop          31      /* multiply short -- XFPop */
+#define MULSxop         235     /* multiply short -- MULLWxop */
+#define CAXop		31      /* compute address -- XFPop */
+#define CAXxop		266     /* compute address -- ADDxop */
+#define DIVSop          31      /* divide short -- XFPop */
+#define DIVSxop         363     /* divide short -- replacing DIVWxop */
+
+// ------------- Op Codes, instruction form SC  -----------------
+#define SVCop		17	/* supervisor call -- used to be SCop */
+
+// ------------- Op Codes, instruction form M  -----------------
+#define RLINMxop        21      /* rotate left immediate then AND with mask
+                                 * -- RLWINMxop */
+
+// -------------------------- Raw instructions ------------------
 /* a few full instructions that are in forms we don't break down by field */
-#define MTLR0		0x7c0803a6	/* move from link reg -- mtlw r0 */
-#define MFLR0		0x7c0802a6	/* move from link reg -- mflr r0 */
-#define BRL		0x4e800021	/* branch and link to link reg */
+// xlform
+#define MTLR0raw       0x7c0803a6	/* move from link reg -- mtlw r0 */
+#define MFLR0raw       0x7c0802a6	/* move from link reg -- mflr r0 */
+#define BCTRraw        0x4e800420      /* bctr instrunction */
+#define BRraw          0x4e800020      /* br instruction */
+#define BRLraw         0x4e800021	/* branch and link to link reg */
+#define NOOPraw        0x60000000       /* noop, d form ORIL 0, 0, 0 */
 
-/* XO fields of XFPop */
-#define CMPxop		0
-#define SUBFxop		8
-#define MULLWxop	235
-#define ADDxop		266
-#define DIVSxop         363
-#define DIVWxop		491
+// -------------------------- Branch fields ------------------------------
+// BO field of branch conditional
+#define BFALSEcond              4
+#define BTRUEcond               12
 
-/* Shift operations */
-#define RLWINMxop       21
-
-/* Immediate operation codes */
-#define SIop            12
-#define ANDIop          28
-
-/* Logical operation codes */
-#define ANDop           31
-#define ANDxop          28
-#define ORop            31
-#define ORxop           444
-
-/* BO field of branch conditional */
-/* This assumes we want to use the default branch prediction.  To override
- * the default branch prediction add a lower order 1 bit to this field. 
- */
-#define BFALSEcond		12
-#define BTRUEcond		4
-
-/* BI field for branch conditional (really bits of the CR to use) */
-/* we assume that we will always use the low bits of the CR (as set by the
- *    compare instruction.
- */
+/* BI field for branch conditional (really bits of the CR Field to use) */
 #define LTcond			0		/* negative */
 #define GTcond			1		/* positive */
 #define EQcond			2		/* zero */
-#define SOcond			4		/* summary overflow */
+#define SOcond			3		/* summary overflow */
 
-/* mask bits for various parts of the instruction format */
-#define OPmask		0xfc000000
+// -------------------------------------------------------------------
+
+/* mask bits for various parts of the more common instruction format */
+#define OPmask		0xfc000000              /* most sig. 6 bits */
 #define AAmask		0x00000002		/* absolutate address */
 #define LLmask		0x00000001		/* set linkage register */
 #define AALKmask	AAmask|LLmask		/* AA | LK bits */
+#define FULLmask	0xffffffff
 
-/* op = 01 -- mask for and match for call (branch and link) instruction */
-#define	CALLop		Bop
-#define RETop		BCLRop
-
-/* instruction plus AA and LK fields */
-#define CALLmask	OPmask|AALKmask
-/* need the 3/4 of third nibble to distinguish from bctr instruction. */
-#define RETmask		0xffffffff
-#define Bmask		OPmask|AAmask
-
-#define CALLmatch	0x48000001 /* pc rel unconditional branch and link */
+#define Bmask		OPmask | AAmask
 #define Bmatch		0x48000000 /* pc relative unconditional branch */
-#define BCmatch		0x46000000 /* pc relative conditional branch */
-#define RETmatch	0x4e800020 /* br instruction */
-#define BCTRmatch	0x4e800420 /* bctr instrunction */
+#define BCmatch		0x40000000 /* pc relative conditional branch */
 
-#define BREAK_POINT_INSN 0x7d821008  /* brpt */
+
+#define BREAK_POINT_INSN 0x7d821008  /* trap */
+// #define BREAK_POINT_INSN 0x7fe00008  -- this form should also work and
+// follows the recommended form outlined in the AIX manual
 
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x)%65536)
 #define HIGH(x) ((x)/65536)
 
+
+
 inline bool isInsnType(const instruction i,
 		       const unsigned mask,
-		       const unsigned match) {
+		       const unsigned match)
+{
   return ((i.raw & mask) == match);
 }
 
-inline bool isCallInsn(const instruction i) {
-  return (isInsnType(i, CALLmask, CALLmatch));
-}
-
-/* catch small ints that are invalid instructions */
-/*
+/* -- CHECK !!!!!
+ * catch small ints that are invalid instructions
  * opcode 0 is really reserved, not illegal (with the exception of all 0's).
  *
  * opcodes 1, 4-6, 56-57, 60-61 are illegal.
@@ -260,18 +285,20 @@ inline bool isCallInsn(const instruction i) {
  *
  * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
  */
-inline bool IS_VALID_INSN(const instruction insn) {
-  return ((insn.branch.op) || ((insn.branch.op == 1) ||
-			     (insn.branch.op == 4) ||
-			     (insn.branch.op == 5) ||
-			     (insn.branch.op == 6) ||
-			     (insn.branch.op == 56) ||
-			     (insn.branch.op == 57) ||
-			     (insn.branch.op == 60) ||
-			     (insn.branch.op == 61)));
+inline bool IS_VALID_INSN(instruction insn)
+{
+  return(insn.iform.op > 0);
 }
 
-/* addresses on power are aligned to word boundaries */
-inline bool isAligned(const Address addr) { return !(addr & 0x3); }
+// addresses on power are aligned to word boundaries
+inline bool isAligned(const Address addr)
+{
+  return(!(addr & 0x3));
+}
+
+// Delcared some other functions in inst-power.C
+// bool isCallInsn(const instruction);
+// bool isReturnInsn(const image *, Address, bool&);
+
 
 #endif
