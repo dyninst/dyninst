@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.42 2003/03/02 22:03:27 schendel Exp $
+// $Id: osf.C,v 1.43 2003/03/04 19:16:04 willb Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -73,8 +73,14 @@
 #define A0_REGNUM 16	/* first param to funcs and syscalls */
 #define RA_REGNUM 26
 extern bool exists_executable(const string &fullpathname);
-extern debug_ostream attach_cerr;
 
+extern unsigned enable_pd_attach_detach_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define attach_cerr if (enable_pd_attach_detach_debug) cerr
+#else
+#define attach_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 int getNumberOfCPUs()
 {

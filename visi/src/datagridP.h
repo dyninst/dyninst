@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.16 2002/12/20 07:50:09 jaw Exp $
+// $Id: datagridP.h,v 1.17 2003/03/04 19:16:20 willb Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -147,7 +147,13 @@ class PhaseInfo{
     visi_timeType getBucketWidth() const{ return(bucketWidth);}
 };
 
-extern debug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 ///////////////////////////////////////////////////////////////////
 // visi_GridCellHisto: 

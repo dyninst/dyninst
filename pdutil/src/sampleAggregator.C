@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.9 2002/12/20 07:50:08 jaw Exp $
+// $Id: sampleAggregator.C,v 1.10 2003/03/04 19:16:19 willb Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -47,11 +47,13 @@
 #include "pdutil/h/sampleAggregator.h"
 #include "pdutil/h/pdDebugOstream.h"
 
-#ifdef AGGREGATE_DEBUG
-pdDebug_ostream aggu_cerr(cerr, true);
+unsigned enable_pd_sample_aggregate_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define aggu_cerr if (enable_pd_sample_aggregate_debug) cerr
 #else
-pdDebug_ostream aggu_cerr(cerr, false);
-#endif
+#define aggu_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 // Essentially, the aggregation is passed a set of graphs that represent the
 // rate of change (ie. derivative) of the sample value and and an initial
@@ -121,7 +123,15 @@ void aggComponent::processSamplePt(timeStamp timeOfSample, pdSample value) {
 
   assert(timeOfSample > startIntvl());
   assert(readyToProcessSamples());
-  assert(! curIntvlFilled());
+
+  // curIntvlFilled() is always false at any of this function's callsites --
+  // therefore, the following assert merely doubles the number of
+  // times that we call curIntvlFilled.  Since the DM spends more time
+  // in curIntvlFilled than in any other function (about 33%), I'm
+  // excising this waste   -- willb 3/2003
+
+  // assert(! curIntvlFilled());
+
   assert(timeOfSample > lastProcessedSampleTime);
 
   timeStamp rightTimeMark = earlier(timeOfSample, endIntvl());

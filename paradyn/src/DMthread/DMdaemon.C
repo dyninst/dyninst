@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.122 2003/02/21 20:06:11 bernat Exp $
+ * $Id: DMdaemon.C,v 1.123 2003/03/04 19:16:11 willb Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -77,7 +77,13 @@ string PROCstatus="Processes";
 bool DMstatus_initialized = false;
 bool PROCstatus_initialized = false;
 
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 // This is from met/metMain.C
 void metCheckDaemonProcess( const string & );
@@ -2521,7 +2527,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// ---------------------------------------------------------------
 	pdSample value= pdSample(static_cast<int64_t>(entry.value*multiplier));
 
-	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
+	if (our_print_sample_arrival) {
 	  cerr << "[" << index << "] mid " << mid << "-   from: " 
 	       << startTimeStamp << "  to: " << endTimeStamp << "   val: "
 	       << value << "  machine: " << machine.c_str() << "\n";
@@ -2530,7 +2536,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	timeStamp newStartTime = this->getAdjustedTime(startTimeStamp);
 	timeStamp newEndTime   = this->getAdjustedTime(endTimeStamp);
 
-	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
+	if (our_print_sample_arrival) {
 	  cerr << "(after adj) [" << index << "] mid " << mid << "-   from: " 
 	       << newStartTime << "  to: " << newEndTime << "   val: "
 	       << value << "  machine: " << machine.c_str() << "\n";

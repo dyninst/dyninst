@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.13 2002/11/25 23:52:57 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.14 2003/03/04 19:16:19 willb Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -51,7 +51,13 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/int64iostream.h"
 
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)

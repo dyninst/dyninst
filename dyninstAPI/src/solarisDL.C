@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.27 2003/01/03 21:57:42 bernat Exp $
+// $Id: solarisDL.C,v 1.28 2003/03/04 19:16:05 willb Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -48,7 +48,13 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
 
-extern debug_ostream sharedobj_cerr;
+extern unsigned enable_pd_sharedobj_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
+#else
+#define sharedobj_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 #include <link.h>
 #include <libelf.h>

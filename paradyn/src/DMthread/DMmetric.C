@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.42 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMmetric.C,v 1.43 2003/03/04 19:16:11 willb Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -56,7 +56,13 @@ extern void histFoldCallBack(const timeLength*, void*);
 // trace data streams
 extern void traceDataCallBack(const void*, int, void*);
 
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 metric::metric(T_dyninstRPC::metricInfo i){
 

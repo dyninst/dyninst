@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.71 2002/12/20 07:50:06 jaw Exp $
+// $Id: init.C,v 1.72 2003/03/04 19:16:18 willb Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -68,7 +68,13 @@
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
 
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 internalMetric *activeProcs = NULL;
 internalMetric *sampling_rate = NULL;

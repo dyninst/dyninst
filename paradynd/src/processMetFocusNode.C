@@ -53,7 +53,13 @@
 
 void checkProcStatus();  
   
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 pdvector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 

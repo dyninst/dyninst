@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.47 2003/02/28 22:13:32 bernat Exp $
+// $Id: irix.C,v 1.48 2003/03/04 19:16:03 willb Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -79,7 +79,14 @@
 #include <sys/hwperftypes.h>  // r10k_counter types
 
 
-extern debug_ostream inferiorrpc_cerr;
+extern unsigned enable_pd_inferior_rpc_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
+#else
+#define inferiorrpc_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
 extern char *Bool[];
 #ifndef BPATCH_LIBRARY
 extern string osName;

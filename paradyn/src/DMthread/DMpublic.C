@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.133 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMpublic.C,v 1.134 2003/03/04 19:16:11 willb Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -82,11 +82,13 @@ extern bool our_print_sample_arrival;
 termWinUser* twUser = NULL;
 #endif //  !defined(i386_unknown_nt4_0)
 
-#ifdef SAMPLEVALUE_DEBUG
-pdDebug_ostream sampleVal_cerr(cerr, true);
+unsigned enable_pd_samplevalue_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
 #else
-pdDebug_ostream sampleVal_cerr(cerr, false);
-#endif
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 void histDataCallBack(pdSample *buckets, relTimeStamp, int count, int first, 
 		      void *callbackData)
@@ -96,7 +98,7 @@ void histDataCallBack(pdSample *buckets, relTimeStamp, int count, int first,
     metricInstance *mi = callbackDataB->miPtr;
     bool globalFlag    = callbackDataB->globalFlag;
 
-    if (our_print_sample_arrival || sampleVal_cerr.isOn()){
+    if (our_print_sample_arrival){
       sampleVal_cerr << "histDataCallBack-  bucket:  " << first 
 		     << "  value(1):" << buckets[0] << "  count: " << count 
 		     << "   bucketwidth " << metricInstance::GetGlobalWidth()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.32 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMperfstream.C,v 1.33 2003/03/04 19:16:11 willb Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -54,7 +54,13 @@ extern "C" {
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "pdutil/h/pdDebugOstream.h"
 
-extern pdDebug_ostream sampleVal_cerr;
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 performanceStream::performanceStream(dataType t, 
 				     dataCallback dc, 

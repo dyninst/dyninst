@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.147 2003/02/21 20:06:05 bernat Exp $
+// $Id: symtab.C,v 1.148 2003/03/04 19:16:05 willb Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +71,13 @@ extern pdvector<sym_data> syms_to_find;
 #endif
 
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
-extern debug_ostream sharedobj_cerr;
+extern unsigned enable_pd_sharedobj_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
+#else
+#define sharedobj_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 pdvector<image*> image::allImages;
 

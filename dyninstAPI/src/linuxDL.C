@@ -46,7 +46,13 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
 
-extern debug_ostream sharedobj_cerr;
+extern unsigned enable_pd_sharedobj_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
+#else
+#define sharedobj_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 #include <link.h>
 #include <libelf.h>

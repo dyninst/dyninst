@@ -45,9 +45,13 @@
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/pd_process.h"
 
+extern unsigned enable_pd_samplevalue_debug;
 
-extern pdDebug_ostream sampleVal_cerr;
-
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 dictionary_hash<string, threadMetFocusNode_Val*> 
              threadMetFocusNode::allThrMetFocusNodeVals(string::hash);

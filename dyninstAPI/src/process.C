@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.389 2003/03/02 22:03:29 schendel Exp $
+// $Id: process.C,v 1.390 2003/03/04 19:16:04 willb Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -111,61 +111,81 @@ extern void generateRPCpreamble(char *insn, Address &base, process *proc,
 
 #include "common/h/Timer.h"
 
-#ifdef ATTACH_DETACH_DEBUG
-debug_ostream attach_cerr(cerr, true);
-#else
-debug_ostream attach_cerr(cerr, false);
-#endif
+unsigned enable_pd_attach_detach_debug = 0;
 
-
-#ifdef INFERIOR_RPC_DEBUG
-debug_ostream inferiorrpc_cerr(cerr, true);
+#if ENABLE_DEBUG_CERR == 1
+#define attach_cerr if (enable_pd_attach_detach_debug) cerr
 #else
-debug_ostream inferiorrpc_cerr(cerr, false);
-#endif
+#define attach_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
-#ifdef SHM_SAMPLING_DEBUG
-debug_ostream shmsample_cerr(cerr, true);
-#else
-debug_ostream shmsample_cerr(cerr, false);
-#endif
+unsigned enable_pd_inferior_rpc_debug = 0;
 
-#ifdef FORK_EXEC_DEBUG
-debug_ostream forkexec_cerr(cerr, true);
+#if ENABLE_DEBUG_CERR == 1
+#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
 #else
-debug_ostream forkexec_cerr(cerr, false);
-#endif
+#define inferiorrpc_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
-#ifdef SIGNAL_DEBUG
-debug_ostream signal_cerr(cerr, true);
-#else
-debug_ostream signal_cerr(cerr, false);
-#endif
+unsigned enable_pd_shm_sampling_debug = 0;
 
-#ifdef SHAREDOBJ_DEBUG
-debug_ostream sharedobj_cerr(cerr, true);
+#if ENABLE_DEBUG_CERR == 1
+#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
 #else
-debug_ostream sharedobj_cerr(cerr, false);
-#endif
+#define shmsample_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+unsigned enable_pd_fork_exec_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
+#else
+#define forkexec_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+unsigned enable_pd_signal_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define signal_cerr if (enable_pd_signal_debug) cerr
+#else
+#define signal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+unsigned enable_pd_sharedobj_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
+#else
+#define sharedobj_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 #ifndef BPATCH_LIBRARY
-#ifdef METRIC_DEBUG
-pdDebug_ostream metric_cerr(cerr, true);
-#else
-pdDebug_ostream metric_cerr(cerr, false);
-#endif
 
-#ifdef SAMPLEVALUE_DEBUG
-pdDebug_ostream sampleVal_cerr(cerr, true);
-#else
-pdDebug_ostream sampleVal_cerr(cerr, false);
-#endif
 
-#ifdef AGGREGATE_DEBUG
-pdDebug_ostream agg_cerr(cerr, true);
+unsigned enable_pd_metric_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define metric_cerr if (enable_pd_metric_debug) cerr
 #else
-pdDebug_ostream agg_cerr(cerr, false);
-#endif
+#define metric_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+unsigned enable_pd_samplevalue_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+unsigned enable_pd_aggregate_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define agg_cerr if (enable_pd_aggregate_debug) cerr
+#else
+#define agg_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
 #endif
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)

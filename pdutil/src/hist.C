@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.43 2002/12/20 07:50:08 jaw Exp $
+// $Id: hist.C,v 1.44 2003/03/04 19:16:19 willb Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -57,11 +57,13 @@ timeLength Histogram::globalBucketSize = timeLength(BASEBUCKETWIDTH_SECS,
 						    timeUnit::sec());
 pdvector<Histogram *> Histogram::allHist;
 
-#ifdef HIST_DEBUG
-pdDebug_ostream hist_cerr(cerr, true);
+unsigned enable_pd_histogram_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define hist_cerr if (enable_pd_histogram_debug) cerr
 #else
-pdDebug_ostream hist_cerr(cerr, false);
-#endif
+#define hist_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 // constructor for histogram that doesn't start at time 0
 Histogram::Histogram(relTimeStamp start, dataCallBack d, 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.159 2003/03/02 22:03:24 schendel Exp $
+ * $Id: inst-power.C,v 1.160 2003/03/04 19:16:03 willb Exp $
  */
 
 #include "common/h/headers.h"
@@ -71,10 +71,38 @@
 #include <strstream.h>
 
 // The following vrbles were defined in process.C:
-extern debug_ostream attach_cerr;
-extern debug_ostream inferiorrpc_cerr;
-extern debug_ostream shmsample_cerr;
-extern debug_ostream forkexec_cerr;
+
+extern unsigned enable_pd_attach_detach_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define attach_cerr if (enable_pd_attach_detach_debug) cerr
+#else
+#define attach_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+extern unsigned enable_pd_inferior_rpc_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
+#else
+#define inferiorrpc_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+extern unsigned enable_pd_shm_sampling_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
+#else
+#define shmsample_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
+
+extern unsigned enable_pd_fork_exec_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
+#else
+#define forkexec_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 //#define perror(a) P_abort();
 

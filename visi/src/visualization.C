@@ -62,11 +62,13 @@ static int (*visi_eventCallbacks[EVENTSIZE])(int);
 static int visi_initDone = 0;
 static visualization *visi_vp;
 
-#ifdef SAMPLEVALUE_DEBUG
-debug_ostream sampleVal_cerr(cerr, true);
+unsigned enable_pd_samplevalue_debug = 0;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
 #else
-debug_ostream sampleVal_cerr(cerr, false);
-#endif
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 int
 visi_callback( void )

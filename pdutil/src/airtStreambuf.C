@@ -3,15 +3,13 @@
 #include "pdutil/h/airtStreambuf.h"
 #include "pdutil/h/pdDebugOstream.h"
 
+unsigned enable_pd_airt_debug = 0;
 
-
-#ifdef AIRT_DEBUG
-pdDebug_ostream airt_cerr(cerr, true);
+#if ENABLE_DEBUG_CERR == 1
+#define airt_cerr if (enable_pd_airt_debug) cerr
 #else
-pdDebug_ostream airt_cerr(cerr, false);
-#endif
-
-
+#define airt_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 airtStreambuf::airtStreambuf(sendStrFuncPtr_t ptr) { 
   sendStrFunc = ptr; 

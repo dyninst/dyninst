@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.26 2002/12/20 07:50:06 jaw Exp $
+// $Id: costmetrics.C,v 1.27 2003/03/04 19:16:17 willb Exp $
 
 #include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
@@ -52,7 +52,14 @@
 #include "paradynd/src/pd_process.h"
 
 pdvector<costMetric*> costMetric::allCostMetrics;
-extern pdDebug_ostream sampleVal_cerr;
+
+extern unsigned enable_pd_samplevalue_debug;
+
+#if ENABLE_DEBUG_CERR == 1
+#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
+#else
+#define sampleVal_cerr if (0) cerr
+#endif /* ENABLE_DEBUG_CERR == 1 */
 
 costMetric::costMetric(const string n, aggregateOp a, const string units,
 		       im_pred_struct& preds, bool developerMode,
