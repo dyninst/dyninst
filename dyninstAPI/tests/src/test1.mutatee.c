@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.90 2003/07/18 15:44:08 schendel Exp $ */
+/* $Id: test1.mutatee.c,v 1.91 2003/08/22 21:15:46 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2365,7 +2365,7 @@ void runTests()
     if (runTest[32]) func32_1();
 
     if (runTest[33]) func33_1();
-    if (runTest[33]) func34_1();
+    if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();    
 }
