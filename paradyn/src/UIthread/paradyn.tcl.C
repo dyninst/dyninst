@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.57  1995/11/28 15:49:36  naim
-/* Adding boolean parameter to getAvailableMetric - naim
+/* Revision 1.58  1995/12/01 06:39:18  tamches
+/* removed some warnings
 /*
+ * Revision 1.57  1995/11/28 15:49:36  naim
+ * Adding boolean parameter to getAvailableMetric - naim
+ *
  * Revision 1.56  1995/11/08  06:25:22  tamches
  * removed some warnings
  *
@@ -1084,10 +1087,9 @@ int ParadynVisiCmd (ClientData,
   return TCL_OK;
 }
 
-int ParadynExitCmd (ClientData clientData,
-		    Tcl_Interp *interp,
-		    int argc,
-	            char *argv[])
+int ParadynExitCmd (ClientData,
+		    Tcl_Interp *,
+		    int, char **)
 {
   exit(0);
 }
