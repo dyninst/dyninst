@@ -47,7 +47,7 @@
 // access to the Visi library from Tcl code.
 //
 //----------------------------------------------------------------------------
-// $Id: DGClient.C,v 1.1 1999/10/05 22:09:03 pcroth Exp $
+// $Id: DGClient.C,v 1.2 1999/10/20 19:35:51 pcroth Exp $
 //----------------------------------------------------------------------------
 #include <iostream.h>
 
@@ -80,24 +80,24 @@ SetInterpResult( Tcl_Interp* interp, ostrstream& ostr )
 
 struct DGClient::CommandInfo DGClient::cmdInfo[] =
 {
-    {"aggregate",         2,  &HandleAggregate},
-    {"binwidth",          0,  &HandleBinWidth},
-    {"firstbucket",       2,  &HandleFirstBucket},
-    {"lastbucket",        2,  &HandleLastBucket},
-    {"metricname",        1,  &HandleMetricName},
-    {"metricunits",       1,  &HandleMetricUnits},
-    {"metricaveunits",    1,  &HandleMetricAverageUnits},
-    {"metricsumunits",    1,  &HandleMetricSumUnits},
-    {"numbins",           0,  &HandleNumBins},
-    {"nummetrics",        0,  &HandleNumMetrics},
-    {"numresources",      0,  &HandleNumResources},
-    {"resourcename",      1,  &HandleResourceName},
-    {"start",             2,  &HandleStartStream},
-    {"stop",              2,  &HandleStopStream},
-    {"sum",               2,  &HandleSum},
-    {"valid",             2,  &HandleValid},
-    {"enabled",           2,  &HandleEnabled},
-    {"value",             3,  &HandleValue},
+    {"aggregate",         2,  &DGClient::HandleAggregate},
+    {"binwidth",          0,  &DGClient::HandleBinWidth},
+    {"firstbucket",       2,  &DGClient::HandleFirstBucket},
+    {"lastbucket",        2,  &DGClient::HandleLastBucket},
+    {"metricname",        1,  &DGClient::HandleMetricName},
+    {"metricunits",       1,  &DGClient::HandleMetricUnits},
+    {"metricaveunits",    1,  &DGClient::HandleMetricAverageUnits},
+    {"metricsumunits",    1,  &DGClient::HandleMetricSumUnits},
+    {"numbins",           0,  &DGClient::HandleNumBins},
+    {"nummetrics",        0,  &DGClient::HandleNumMetrics},
+    {"numresources",      0,  &DGClient::HandleNumResources},
+    {"resourcename",      1,  &DGClient::HandleResourceName},
+    {"start",             2,  &DGClient::HandleStartStream},
+    {"stop",              2,  &DGClient::HandleStopStream},
+    {"sum",               2,  &DGClient::HandleSum},
+    {"valid",             2,  &DGClient::HandleValid},
+    {"enabled",           2,  &DGClient::HandleEnabled},
+    {"value",             3,  &DGClient::HandleValue},
     {NULL,                0,  NULL}
 };
 
