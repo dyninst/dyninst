@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.11 1994/07/15 20:22:00 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.12 1994/07/20 23:23:17 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.11  1994/07/15 20:22:00  hollings
+ * Revision 1.12  1994/07/20 23:23:17  hollings
+ * Added real code for cost model.
+ *
+ * Revision 1.11  1994/07/15  20:22:00  hollings
  * fixed 64 bit record to be 32 bits.
  *
  * Revision 1.10  1994/07/14  23:30:23  hollings
@@ -404,6 +407,10 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 }
 
 
+int inNodePtrace = 0;
+extern int pendingSampleNodes;
+extern void sampleNodes();
+
 /*
  * This routine send ptrace requests via CMMD to the nodes for processing.
  */
@@ -412,6 +419,8 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
 {
     ptraceReqHeader header;
     extern int errno;
+
+    inNodePtrace = 1;
 
     /* Check for node I/O */
     int i;
@@ -445,6 +454,12 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
     logLine ("Sent ptrace request (%d, %d, %d)\n", nodeId, addr, header.length);
 #endif
    
+    inNodePtrace = 0;
+#ifdef notdef
+    if (pendingSampleNodes)
+	sampleNodes();
+#endif
+
     errno = 0;			/* can be hosed by CMMD_poll_for_services() */
     return 0;			/* WHAT SHOULD WE RETURN?  XXX */
 }
@@ -452,8 +467,6 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
 
 #define NS_TO_SEC	1000000000.0
 
-#ifdef notdef
--- need to make this truely cm-5 specific!!! not even on front ends.
 StringList<int> primitiveCosts;
 
 //
@@ -462,48 +475,57 @@ StringList<int> primitiveCosts;
 //
 void initPrimitiveCost()
 {
+    /* Need to add code here to collect values for other machines */
+
+    // these happen async of the rest of the system.
+    primitiveCosts.add(1, (void *) "DYNINSTalarmExpire");
+    primitiveCosts.add(1, (void *) "DYNINSTsampleValues");
+    primitiveCosts.add(1, (void *) "DYNINSTreportTimer");
+    primitiveCosts.add(1, (void *) "DYNINSTreportCounter");
+    primitiveCosts.add(1, (void *) "DYNINSTreportCost");
+    primitiveCosts.add(1, (void *) "DYNINSTreportNewTags");
+    primitiveCosts.add(1, (void *) "DYNINSTprintCost");
+
+    // this doesn't really take any time
+    primitiveCosts.add(1, (void *) "DYNINSTbreakPoint");
+
+    // this happens before we start keeping time.
+    primitiveCosts.add(1, (void *) "DYNINSTinit");
+
     /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
-    primitiveCosts.add(240, (void *) "DYNINSTincrementCounter");
-    primitiveCosts.add(240, (void *) "DYNINSTdecrementCounter");
-    primitiveCosts.add(1056, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(1650, (void *) "DYNINSTstopWallTimer");
-    primitiveCosts.add(1221, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(2130, (void *) "DYNINSTstopProcessTimer");
+#ifdef notdef
+    -- paper numbers
+    primitiveCosts.add(32, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(55, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(37, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(71, (void *) "DYNINSTstopProcessTimer");
+#else
+    // cm-5 no assembly numbers.
+    primitiveCosts.add(77, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(114, (void *) "DYNINSTstopProcessTimer");
+    primitiveCosts.add(72, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(99, (void *) "DYNINSTstopWallTimer");
+#endif
 }
 
 /*
  * return the time required to execute the passed primitive.
  *
  */
-float getPrimitiveCost(char *name)
-{
-    float ret;
-
-    ret = primitiveCosts.find(name);
-    if (ret == 0.0) {
-	sprintf(errorLine, "no cost value for primitive %s, using 10 usec\n", name);
-	logLine(errorLine);
-	ret = 10000/NS_TO_SEC;
-    }
-    ret = 0.0;
-    return(ret);
-}
-#endif
-
-
-/*
- * TEMPORARY:  to get things to compile... -jmc
- *
- */
 int getPrimitiveCost(char *name)
 {
     int ret;
-    ret = 0;
+    static int init;
+
+    if (!init) { init = 1; initPrimitiveCost(); }
+
+    ret = primitiveCosts.find(name);
+    if (ret == 0) {
+	ret = 1000;
+    }
     return(ret);
 }
-
-
 
 /*
  * Not required on this platform.
