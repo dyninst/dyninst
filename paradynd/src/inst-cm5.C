@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.15 1994/08/02 18:21:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.16 1994/09/22 01:55:22 markc Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.15  1994/08/02 18:21:28  hollings
+ * Revision 1.16  1994/09/22 01:55:22  markc
+ * Declare system includes as extern "C"
+ * Remove libraryList typedef, use List<libraryFunc*>
+ * Enter primtiveCosts handles into stringPools
+ *
+ * Revision 1.15  1994/08/02  18:21:28  hollings
  * changed costs to reflect new retries for race conditions in timers.
  *
  * Revision 1.14  1994/07/22  19:16:01  hollings
@@ -138,6 +143,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -146,6 +152,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/errno.h>
 #include <machine/reg.h>
 #include <sys/ptrace.h>
+#include <cm/cmmd.h>
+}
 
 #include "dyninst.h"
 #include "rtinst/h/trace.h"
@@ -158,20 +166,26 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dyninstRPC.SRVR.h"
 #include "util.h"
 
-#include <cm/cmmd.h>
+extern "C" {
+int ptrace(enum ptracereq request, 
+		      int pid, 
+		      char *addr, 
+		      int data, 
+		      char *addr2);
+}
 
-libraryList msgFilterFunctions;
-libraryList msgByteSentFunctions;
-libraryList msgByteRecvFunctions;
-libraryList msgByteFunctions;
-libraryList fileByteFunctions;
-libraryList libraryFunctions;
+List<libraryFunc*> msgFilterFunctions;
+List<libraryFunc*> msgByteSentFunctions;
+List<libraryFunc*> msgByteRecvFunctions;
+List<libraryFunc*> msgByteFunctions;
+List<libraryFunc*> fileByteFunctions;
+List<libraryFunc*> libraryFunctions;
 
 /* Prototypes */
-int nodePtrace (int request, process *proc, int scalarPid, int nodeId, 
+int nodePtrace (enum ptracereq request, process *proc, int scalarPid, int nodeId, 
 		void *addr, int data, void *addr2);
 
-void addLibFunc(libraryList *list, char *name, int arg)
+void addLibFunc(List<libraryFunc*> *list, const char *name, int arg)
 {
     libraryFunc *temp = new libraryFunc(name, arg);
     list->add(temp, (void *) temp->name);
@@ -313,7 +327,7 @@ extern process *nodePseudoProcess;
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
  *
  */
-int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
+int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2)
 {
     int ret;
 //    int code;
@@ -423,7 +437,7 @@ extern void sampleNodes();
 /*
  * This routine send ptrace requests via CMMD to the nodes for processing.
  */
-int nodePtrace (int request, process *proc, int scalarPid, int nodeId, 
+int nodePtrace (enum ptracereq request, process *proc, int scalarPid, int nodeId, 
 		void *addr, int data, void *addr2)
 {
     ptraceReqHeader header;
@@ -432,9 +446,9 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
     inNodePtrace = 1;
 
     /* Check for node I/O */
-    int i;
 
 #ifdef notdef
+    int i;
     for (i=0; i< 1000; i++)
 	while (CMMD_poll_for_services() == 1)
 	    ;			/* TEMPORARY:    XXXXXX */
@@ -445,7 +459,7 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
     header.pid = scalarPid;
     header.nodeNum = nodeId;
     header.addr = (char *) addr;
-    header.data = (char *) data;
+    header.data = data;
     header.addr2 = (char *) addr2;
 
     /* Send the ptrace request to the nodes for execution */
@@ -489,34 +503,34 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
 
     // these happen async of the rest of the system.
-    primitiveCosts.add(1, (void *) "DYNINSTalarmExpire");
-    primitiveCosts.add(1, (void *) "DYNINSTsampleValues");
-    primitiveCosts.add(1, (void *) "DYNINSTreportTimer");
-    primitiveCosts.add(1, (void *) "DYNINSTreportCounter");
-    primitiveCosts.add(1, (void *) "DYNINSTreportCost");
-    primitiveCosts.add(1, (void *) "DYNINSTreportNewTags");
-    primitiveCosts.add(1, (void *) "DYNINSTprintCost");
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTalarmExpire"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTsampleValues"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportTimer"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCounter"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCost"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportNewTags"));
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTprintCost"));
 
     // this doesn't really take any time
-    primitiveCosts.add(1, (void *) "DYNINSTbreakPoint");
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTbreakPoint"));
 
     // this happens before we start keeping time.
-    primitiveCosts.add(1, (void *) "DYNINSTinit");
+    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTinit"));
 
     /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
     // cm-5 no assembly numbers.
     // with fixed getProcess time -- jkh 8/26/94
-    primitiveCosts.add(69, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(176, (void *) "DYNINSTstopProcessTimer");
-    primitiveCosts.add(43, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(70, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(69, pool.findAndAdd( "DYNINSTstartProcessTimer"));
+    primitiveCosts.add(176, pool.findAndAdd( "DYNINSTstopProcessTimer"));
+    primitiveCosts.add(43, pool.findAndAdd( "DYNINSTstartWallTimer"));
+    primitiveCosts.add(70, pool.findAndAdd( "DYNINSTstopWallTimer"));
 #ifdef notdef
     // -- paper numbers
-    primitiveCosts.add(37, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(71, (void *) "DYNINSTstopProcessTimer");
-    primitiveCosts.add(32, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(55, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(37, pool.findAndAdd( "DYNINSTstartProcessTimer"));
+    primitiveCosts.add(71, pool.findAndAdd( "DYNINSTstopProcessTimer"));
+    primitiveCosts.add(32, pool.findAndAdd( "DYNINSTstartWallTimer"));
+    primitiveCosts.add(55, pool.findAndAdd( "DYNINSTstopWallTimer"));
 #endif
 }
 
@@ -551,7 +565,7 @@ char *getProcessStatus(process *proc)
     static char ret[80];
     int status, pid;
 
-    printf ("getting status for process proc=%x, pid=%d\n", proc, proc->pid);
+    printf ("getting status for process proc=%x, pid=%d\n", (unsigned)proc, proc->pid);
     if (proc->pid > MAXPID) {
 
 	PCptrace (PTRACE_STATUS, proc, 0, 0, 0);
@@ -568,7 +582,8 @@ char *getProcessStatus(process *proc)
 //            sprintf(ret, "state = %d\n", val);
 //	    return(ret);
 //	}
-
+	sprintf(ret, "Not SUPPORTED");
+	return (ret);
     } else {
 	pid = waitpid (proc->pid, &status, WNOHANG);
 	printf("status of real unix process is:  %x  (ret = %d, pid = %d)\n", 
