@@ -189,6 +189,10 @@ printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
 }
 
+void dynRPCUser::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>) {
+printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
+}
+
 void dynRPCUser::memoryInfoCallback(int,
                                     string vname,
                                     int va,

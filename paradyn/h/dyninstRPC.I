@@ -444,6 +444,13 @@ $remote struct focusStruct {
   vector<u_int> focus;
 };
 
+$remote struct resourceInfoCallbackStruct {
+   u_int temporaryId;
+   vector<string> resource_name;
+   string abstraction;
+   u_int type;
+};
+
 /*
  * Create a paradynd process.
  *
@@ -456,7 +463,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 51;
+    $version 52;
 
     //
     // Define a program to run. 
@@ -572,6 +579,9 @@ $remote dynRPC {
     $virtual $upcall $async void resourceInfoCallback(u_int temporaryId, 
 					     vector<string> resource_name,
 					     string abstraction, u_int type);
+
+    $virtual $upcall $async void severalResourceInfoCallback(vector<resourceInfoCallbackStruct>);
+
    //
     // Handler that gets called when a new memory is defined.
     //

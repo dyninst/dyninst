@@ -961,6 +961,14 @@ void paradynDaemon::resourceInfoCallback(u_int temporaryId,
     }
 }
 
+void paradynDaemon::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct> items) {
+   for (unsigned lcv=0; lcv < items.size(); lcv++)
+      resourceInfoCallback(items[lcv].temporaryId,
+			   items[lcv].resource_name,
+			   items[lcv].abstraction,
+			   items[lcv].type);
+}
+
 
 //
 // Get the expected delay (as a fraction of the running program) for the passed

@@ -217,6 +217,7 @@ class paradynDaemon: public dynRPCUser {
         virtual void endOfDataCollection(int);
 	virtual void resourceInfoCallback(unsigned int, vector<string> resource_name,
 		    			  string abstr, u_int type);
+	virtual void severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>);
         virtual void resourceBatchMode(bool onNow);  
 	void reportResources();
 
