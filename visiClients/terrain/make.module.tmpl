@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.11 2002/07/25 19:22:58 willb Exp $
+# $Id: make.module.tmpl,v 1.12 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	      = terrain
@@ -18,6 +18,8 @@ IFLAGS	     += -I.  -I$(X11DIR)/include \
 # "visi" checked out in order to compile terrain
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
+VPATH   += ../../auxiliary/src
+
 SRCS	     += ../src/FormatBox.c \
 		../src/action.c \
 		../src/colorize.c \
@@ -31,7 +33,8 @@ SRCS	     += ../src/FormatBox.c \
 		../src/setshow.c \
 		../src/smooth.c \
 		../src/term.c \
-		../src/terrain.c
+		../src/terrain.c \
+        ../../auxiliary/src/NoSoloVisiMsg.C
 
 LIBS         += -lvisi -lpdutil -lpthread
 SYSLIBS	     += -lstdc++ -lXaw -lXext -lXmu -lXt $(X11_LIB) -lm

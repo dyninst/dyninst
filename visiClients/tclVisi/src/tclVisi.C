@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,7 +43,7 @@
  *  tclVisi.C -- This file handles the bare essentials of tcl application
  *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Id: tclVisi.C,v 1.14 2002/02/15 18:35:33 pcroth Exp $
+ *  $Id: tclVisi.C,v 1.15 2003/04/15 18:09:55 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -53,6 +53,7 @@
 
 #include "tcl.h"
 #include "tk.h"
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
@@ -98,6 +99,21 @@ int My_AppInit(Tcl_Interp *interp) {
 }
 
 int main(int argc,char **argv){
+
+    bool sawParadynFlag = false;
+    for( unsigned int i = 1; i < argc; i++ )
+    {
+        if( strcmp( argv[i], "--paradyn" ) == 0 )
+        {
+            sawParadynFlag = true;
+        }
+    }
+
+    if( !sawParadynFlag )
+    {
+        ShowNoSoloVisiMessage( argv[0] );
+    }
+
 //sigpause(0);
     Tk_Main(argc,argv,My_AppInit);
     return 0;

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.20 2002/02/15 18:35:19 pcroth Exp $
+# $Id: make.module.tmpl,v 1.21 2003/04/15 18:09:54 pcroth Exp $
 #
 
 TARGET	      = barChart
@@ -22,6 +22,7 @@ SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
 		$(TO_CORE)/paradyn/src/UIthread/minmax.C \
 		$(TO_CORE)/visiClients/auxiliary/src/Export.C \
+		$(TO_CORE)/visiClients/auxiliary/src/NoSoloVisiMsg.C \
 		../src/barChart.C \
 		../src/barChartTcl.C \
 		../src/barChartDriver.C \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.23 2002/02/15 18:35:21 pcroth Exp $
+// $Id: barChartDriver.C,v 1.24 2003/04/15 18:09:54 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -65,6 +65,7 @@ Ident V_Vid(V_libvisi,"Paradyn");
 #include "barChartTcl.h"
 #include "barChartUtil.h"
 #include "visiClients/auxiliary/h/Export.h"
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 
 // variables used in this file
@@ -81,7 +82,11 @@ void panic(const char *msg) {
 }
 
 int main(int argc, char **argv) {
-   // Loop through the arguments:
+
+    // parse our command line
+    bool sawParadynFlag = false;
+    const char* progName = argv[0];
+
    for (argc--, argv++; argc > 0; argc--, argv++) {
       if (0==strcmp(*argv, "--xsynch"))
          xsynchFlag = true;
@@ -92,15 +97,21 @@ int main(int argc, char **argv) {
 	 sigpause(0);
 #endif // !defined(i386_unknown_nt4_0)
       }
+      else if( strcmp( *argv, "--paradyn" ) == 0 )
+      {
+        sawParadynFlag = true;
+      }
       else {
          cerr << "barChart: unrecognized argument \"" << *argv << "\"" << endl;
          return 5;
       }
    }
 
-   // barChart no longer requires any arguments, thanks to tcl2c.
-   if (argc > 1)
-      panic("barChart: argc should be 1");
+   if( !sawParadynFlag )
+   {
+        ShowNoSoloVisiMessage( progName );
+   }
+
 
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);

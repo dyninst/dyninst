@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.6 2002/02/15 18:35:24 pcroth Exp $
+// $Id: main.C,v 1.7 2003/04/15 18:09:54 pcroth Exp $
 //----------------------------------------------------------------------------
 #include "common/h/headers.h"
 
@@ -61,6 +61,7 @@
 #include "Histogram.h"
 #include "DGClient.h"
 #include "HistVisi.h"
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 
 
@@ -80,9 +81,23 @@ Ident V_Vid(V_libvisi,"Paradyn");
 //---------------------------------------------------------------------------
 
 int
-main( int /* argc */, char* argv[] )
+main( int argc, char* argv[] )
 {
     int ret = 0;
+
+    bool sawParadynFlag = false;
+    for( unsigned int i = 0; i < argc; i++ )
+    {
+        if( strcmp( argv[i], "--paradyn" ) == 0 )
+        {
+            sawParadynFlag = true;            
+        }
+    }
+
+    if( !sawParadynFlag )
+    {
+        ShowNoSoloVisiMessage( argv[0] );
+    }
 
     // set up Tcl and Tk
     Tcl_FindExecutable( argv[0] );

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.7 2002/02/15 18:35:22 pcroth Exp $
+# $Id: make.module.tmpl,v 1.8 2003/04/15 18:09:54 pcroth Exp $
 #
 
 TARGET	      = rthist
@@ -21,6 +21,7 @@ VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread:$(TO_CORE)/visiClients/auxi
 SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
 		$(TO_CORE)/visiClients/auxiliary/src/Export.C \
+		$(TO_CORE)/visiClients/auxiliary/src/NoSoloVisiMsg.C \
 		../src/DGClient.C \
 		../src/HistVisi.C \
 		../src/init.C \

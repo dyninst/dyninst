@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.10 2002/02/15 18:35:27 pcroth Exp $
+// $Id: main.C,v 1.11 2003/04/15 18:09:55 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -52,6 +52,7 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 #include "common/h/Ident.h"
 extern "C" const char V_phaseTable[];
@@ -92,7 +93,22 @@ int app_init() {
     return TCL_OK;
 }
 
-int main(int, char **) {
+int main(int argc, char* argv[]) {
+
+    bool sawParadynFlag = false;
+    for( unsigned int i = 0; i < argc; i++ )
+    {
+        if( strcmp( argv[i], "--paradyn" ) == 0 )
+        {
+            sawParadynFlag = true;
+        }
+    }
+
+    if( !sawParadynFlag )
+    {
+        ShowNoSoloVisiMessage( argv[0] );
+    }
+    
 //sigpause(0);
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);

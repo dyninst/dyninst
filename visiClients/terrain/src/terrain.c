@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.20 2002/02/15 18:35:40 pcroth Exp $
+ * $Id: terrain.c,v 1.21 2003/04/15 18:09:56 pcroth Exp $
  */
 
 #ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
@@ -49,6 +49,7 @@ extern /*"C"*/ const char V_libvisi[];
 #include "setshow.h"
 #include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h" 
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h" 
 
 unsigned long colors[Ncolors];	/* Colors for GNUPlot part */
 char color_keys[Ncolors][30] =   { "text", "border", "axis", 
@@ -655,6 +656,7 @@ int main(int argc, char *argv[])
  
    int fd;
    int i;
+   int sawParadynFlag = 0;
 
    outfile = stdout; /* non-static initialization */
 
@@ -662,7 +664,16 @@ int main(int argc, char *argv[])
      {
        if (strcmp(argv[i],"-V")==0)
           fprintf(stderr,"%s\n",V_terrain);
+       else if( strcmp(argv[i], "--paradyn") == 0 )
+       {
+         sawParadynFlag = 1;
+       }
      }
+
+   if( !sawParadynFlag )
+   {
+     ShowNoSoloVisiMessage( argv[0] );
+   }
 
    fd = visi_Init();
    if (fd < 0)

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.13 2002/02/15 18:35:25 pcroth Exp $
+# $Id: make.module.tmpl,v 1.14 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	      = phaseTable
@@ -12,11 +12,13 @@ SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/minmax.C \
 		../../tclVisi/src/DGclient.C \
+		../../auxiliary/src/NoSoloVisiMsg.C \
 		../src/templates.C \
 		../src/main.C \
 
 VPATH 	     += ../../../paradyn/src/UIthread \
-		../../tclVisi/src
+		../../tclVisi/src \
+        ../../auxiliary/src
 
 IFLAGS	     += -I../../../paradyn/src/UIthread
 

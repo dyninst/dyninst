@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.97 2003/03/04 19:16:17 willb Exp $
+// $Id: VISIthreadmain.C,v 1.98 2003/04/15 18:09:53 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -646,6 +646,7 @@ int VISIthreadStartProcess(){
       av += ptr->args->argv[index];
       index++;
     }
+    av += "--paradyn";      // let visi know it is being started by Paradyn
     visiSock = RPCprocessCreate("localhost","",ptr->args->argv[0],"", av);
 
     if (visiSock == PDSOCKET_ERROR) {

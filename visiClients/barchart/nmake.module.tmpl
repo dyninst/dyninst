@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2003/04/09 18:09:08 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.7 2003/04/15 18:09:54 pcroth Exp $
 #
 
 TARGET	= barChart.exe
@@ -16,7 +16,8 @@ PD_SRCS	= $(TO_CORE)\paradyn\src\UIthread\tkTools.C \
 			$(TO_CORE)\paradyn\src\UIthread\pdLogo.C \
 			$(TO_CORE)\paradyn\src\UIthread\minmax.C
 
-AUX_SRCS = $(TO_CORE)\visiClients\auxiliary\src\Export.C
+AUX_SRCS = $(TO_CORE)\visiClients\auxiliary\src\Export.C \
+            $(TO_CORE)\visiClients\auxiliary\src\NoSoloVisiMsg.C
 
 MY_SRCS	= ..\src\barChart.C \
 			..\src\barChartTcl.C \

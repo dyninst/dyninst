@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2003/04/09 18:09:45 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.5 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	= phaseTable.exe
@@ -18,17 +18,20 @@ PD_SRCS	= ..\..\..\paradyn\src\UIthread\pdLogo.C \
 MY_SRCS	= ..\src\templates.C \
 		..\src\main.C \
 		..\src\main-nt.C
+AUX_SRCS    = ..\..\auxiliary\src\NoSoloVisiMsg.C
 TV_SRCS	= ..\..\tclVisi\src\DGclient.C
-SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TV_SRCS) $(TCL2C_GEN_SRCS)
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TV_SRCS) $(TCL2C_GEN_SRCS) $(AUX_SRCS)
 
 
 PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
 MY_TMPO	= $(MY_SRCS:..\src\=)
 TV_TMPO	= $(TV_SRCS:..\..\tclVisi\src\=)
+AUX_TMP0 = $(AUX_SRCS:..\..\auxiliary\src\=)
 OBJS	= $(OBJS) \
 		$(PD_TMPO:.C=.obj) \
 		$(MY_TMPO:.C=.obj) \
 		$(TV_TMPO:.C=.obj) \
+		$(AUX_TMP0:.C=.obj) \
 		$(TCL2C_GEN_SRCS:.C=.obj)
 
 
@@ -44,6 +47,9 @@ $(TCL2C_GEN_SRCS): $(TCL_SRCS)
 	$(CXX) $(CXXFLAGS) -c $<
 
 {..\..\tclVisi\src}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\..\auxiliary\src}.C{}.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 
 

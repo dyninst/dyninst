@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.18 2002/02/15 18:35:29 pcroth Exp $
+// $Id: main.C,v 1.19 2003/04/15 18:09:55 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -49,7 +49,9 @@
 #include "pdutil/h/pdsocket.h"
 #include "pdutil/h/pddesc.h"
 #include "common/h/Types.h" // Address
+#include "common/h/String.h" // Address
 #include "visi/h/visualization.h"
+#include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 #include "tcl.h"
 #include "tk.h"
@@ -90,21 +92,32 @@ void visiFdReadableHandler(ClientData, int) {
 
 int main(int argc, char **argv) {
 
-   if (argc==2 && 0==strcmp(argv[1], "--debug")) {
-      xsynch_flag = true;
+    bool sawParadynFlag = false;
+
+    for( unsigned int i = 1; i < argc; i++ )
+    {
+        if( strcmp(argv[i], "--debug" ) == 0 )
+        {
+          xsynch_flag = true;
 #if !defined(i386_unknown_nt4_0)
-      cout << "tableVisi at sigpause...pid=" << getpid() << endl;
-      sigpause(0);
+          cout << "tableVisi at sigpause...pid=" << getpid() << endl;
+          sigpause(0);
 #endif // !defined(i386_unknown_nt4_0)
-      argc = 1;
-   }
+        }
+        else if( strcmp( argv[i], "--paradyn" ) == 0 )
+        {
+            sawParadynFlag = true;
+        }
+        else
+        {
+            panic( "unrecognized argument seen" );
+        }
+    }
 
-   // tableVisi requires no arguments, thanks to tcl2c.
-   if (argc == 3)
-      cout << "tableVisi notice: argc should no longer be 3 (ignoring args)" << endl;
-
-   if (argc == 2 || argc>3)
-      panic("tableVisi: incorrect #args (should be none)");
+    if( !sawParadynFlag )
+    {
+        ShowNoSoloVisiMessage( argv[0] );
+    }
 
    mainInterp = Tcl_CreateInterp();
    assert(mainInterp);

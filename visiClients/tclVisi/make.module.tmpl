@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 2002/02/15 18:35:31 pcroth Exp $
+# $Id: make.module.tmpl,v 1.18 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	      = tclVisi
@@ -12,10 +12,11 @@ SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/minmax.C \
 		../src/tclVisi.C \
+		../../auxiliary/src/NoSoloVisiMsg.C \
 		../src/templates.C \
 		../src/DGclient.C
 
-VPATH 	     += ../../../paradyn/src/UIthread
+VPATH 	     += ../../../paradyn/src/UIthread:../../auxiliary/src
 
 IFLAGS	     += -I../../../paradyn/src/UIthread
 

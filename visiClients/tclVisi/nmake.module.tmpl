@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2003/04/09 18:09:45 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.5 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	= tclVisi.exe
@@ -19,12 +19,14 @@ MY_SRCS	= ..\src\tclVisi.C \
 		..\src\templates.C \
 		..\src\DGclient.C \
 		..\src\main-nt.C
-SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS)
+AUX_SRCS    = ..\..\auxiliary\src\NoSoloVisiMsg.C
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(AUX_SRCS)
 	
 
 PD_TMPO	= $(PD_SRCS:..\..\..\paradyn\src\UIthread\=)
 MY_TMPO	= $(MY_SRCS:..\src\=)
-OBJS	= $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)
+AUX_TMP0 = $(AUX_SRCS:..\..\auxiliary\src\=)
+OBJS	= $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(AUX_TMP0:.C=.obj)
 
 
 LIBS	= libvisi.lib libpdutil.lib
@@ -33,6 +35,9 @@ SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
 all: $(TARGET)
 
 {..\..\..\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\..\auxiliary\src}.C{}.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 
 

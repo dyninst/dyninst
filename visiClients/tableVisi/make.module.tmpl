@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.15 2002/02/15 18:35:28 pcroth Exp $
+# $Id: make.module.tmpl,v 1.16 2003/04/15 18:09:55 pcroth Exp $
 #
 
 TARGET	      = tableVisi
@@ -19,7 +19,8 @@ SRCS	     += ../src/tableVisi.C \
 		../src/tableVisiTcl.C \
 		../src/main.C \
 		../src/templates.C \
-		$(TO_CORE)/visiClients/auxiliary/src/Export.C
+		$(TO_CORE)/visiClients/auxiliary/src/Export.C \
+		$(TO_CORE)/visiClients/auxiliary/src/NoSoloVisiMsg.C
 
 VPATH		+= ../src:../../../paradyn/src/UIthread:$(TO_CORE)/visiClients/auxiliary/src
 
