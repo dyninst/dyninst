@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.70 2003/10/24 21:25:52 jaw Exp $
+// $Id: inst-alpha.C,v 1.71 2003/12/11 21:23:17 rchen Exp $
 
 #include "common/h/headers.h"
 
@@ -697,6 +697,15 @@ trampTemplate *installBaseTramp(instPoint *location,
       pointAddr += baseAddress;
   }
 
+  // If the relocated insn is a Jsr or Bsr then 
+  // appropriately set Register Ra
+  if (isCallInsn(location->originalInstruction)) {
+      int remainder;
+      words += generate_address(code+words, REG_RA, pointAddr+4,remainder);
+      if (remainder)
+	words += generate_lda(code+words, REG_RA, REG_RA, remainder, true);
+  }
+
   // Post branch
   instruction *skipPostBranch = &code[words];
   tramp->skipPostInsOffset = words*4;
@@ -732,15 +741,6 @@ trampTemplate *installBaseTramp(instPoint *location,
   // increment stack by 16
   tramp->restorePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
-
-  // If the relocated insn is a Jsr or Bsr then 
-  // appropriately set Register Ra
-  if (isCallInsn(location->originalInstruction)) {
-      int remainder;
-      words += generate_address(code+words, REG_RA, pointAddr+4,remainder);
-      if (remainder)
-	words += generate_lda(code+words, REG_RA, REG_RA, remainder, true);
-  }
 
   // slot for return (branch) instruction
   // actual code after we know its locations
@@ -2075,8 +2075,10 @@ bool process::replaceFunctionCall(const instPoint *point,
     if (baseMap.defines(point))
 	return false;
     instruction newInsn;
-    if (newFunc == NULL) {	// Replace with a NOOP
-      generateNOOP(&newInsn);
+    if (newFunc == NULL) {	// GCC 3.x requires RA to equal PC on ret.
+				// So, actually replace with 0 length branch.
+      generate_branch(&newInsn, REG_RA, 0, OP_BR);
+
     } else {			// Replace with a new call instruction
       generateBSR(&newInsn, newFunc->addr()+sizeof(instruction)-point->addr);
     }
