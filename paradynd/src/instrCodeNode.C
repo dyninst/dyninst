@@ -197,6 +197,14 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 }
 
 instrCodeNode_Val::~instrCodeNode_Val() {
+   // pause on linux is slow
+   bool needToCont = false;  
+   if(proc()->status() == running) {
+      proc()->pause();
+      needToCont = true;
+   }
+
+
   for (unsigned i=0; i<instRequests.size(); i++) {
     instRequests[i]->disable(proc()); // calls deleteInst()
   }
@@ -219,6 +227,10 @@ instrCodeNode_Val::~instrCodeNode_Val() {
 
   for(unsigned j=0; j<instRequests.size(); j++)
      delete instRequests[j];
+
+   if(needToCont) {
+      proc()->continueProc();
+   }
 }
 
 
@@ -257,11 +269,8 @@ void instrCodeNode::cleanup_drn() {
 // A debug function for prepareCatchupInstr
 void prepareCatchupInstr_debug(instReqNode &iRN)
 {
-  //
-  //
-  pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
-    (const_cast<function_base *>
-     (iRN.Point()->iPgetFunction()));
+  pd_Function *instPoint_fn = iRN.Point()->pointFunc();
+     
   if (instPoint_fn) {
     pdvector<pdstring> name = instPoint_fn->prettyNameVector();
     if (name.size())
@@ -276,42 +285,15 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
     cerr << " callPostInsn for ";
     break;
   }
-#if defined(mips_sgi_irix6_4)
-  if( iRN.Point()->type() == IPT_ENTRY )
-    cerr << " FunctionEntry " << endl;
-  else if (iRN.Point()->type() == IPT_EXIT )
-    cerr << " FunctionExit " << endl;
-  else if (iRN.Point()->type() == IPT_CALL )
-    cerr << " callSite " << endl;
-  
-#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-  if( iRN.Point()->ipType == functionEntry )
-    cerr << " Function Entry " << endl;
-  else if( iRN.Point()->ipType == functionExit )
-    cerr << " FunctionExit " << endl;
-  else if( iRN.Point()->ipType == callSite )
-    cerr << " callSite " << endl;
-  
-#elif defined(rs6000_ibm_aix4_1)
-  if( iRN.Point()->ipLoc == ipFuncEntry )
-    cerr << " FunctionEntry " << endl;
-  if( iRN.Point()->ipLoc == ipFuncReturn )
-    cerr << " FunctionExit " << endl;
-  if( iRN.Point()->ipLoc == ipFuncCallPoint )
-    cerr << " callSite " << endl;
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-  if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
-    cerr << " FunctionEntry " << endl;
-  else if ( iRN.Point()->insnAtPoint().isCall() ) 
-    cerr << " calSite " << endl;
+
+  if( iRN.Point()->getPointType() == functionEntry )
+     cerr << " Function Entry " << endl;
+  else if( iRN.Point()->getPointType() == functionExit )
+     cerr << " FunctionExit " << endl;
+  else if( iRN.Point()->getPointType() == callSite )
+     cerr << " callSite " << endl;
   else
-    cerr << " FunctionExit " << endl;
-#else
-#error Check for instPoint type == entry not implemented on this platform
-#endif
-  
-//
-//
+     cerr << " other" << endl;
 }
 
 void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
@@ -341,6 +323,8 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
    {
       instReqNode *curInstReq = V.instRequests[instIter];
       //prepareCatchupInstr_debug(V.instRequests[instIter]);
+      //cerr << "    looking at instReq [" << instIter << "], in func: "
+      //     << curInstReq->Point()->pointFunc()->prettyName().c_str() << endl;
 
       // If the instRequest was not installed, skip...
       if( (curInstReq->getRInstance() != NULL) &&
@@ -360,8 +344,8 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
       {
           bool triggered = 
-          curInstReq->triggeredInStackFrame(stackWalk[frameIter]->frame,
-                                            proc());
+             curInstReq->triggeredInStackFrame(stackWalk[frameIter]->frame,
+                                               proc());
           if(triggered) {
               // Push this instRequest onto the list of ones to execute
               stackWalk[frameIter]->reqNodes.push_back(curInstReq);
@@ -404,8 +388,8 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
       switch(res) {
         case deferred_res:
            markAsDeferred();
-           // cerr << "marking " << (void*)this << " " << u1+1 << " / "
-           //      << inst_size << " as deferred\n";
+           //cerr << "marking " << (void*)this << " " << u1+1 << " / "
+           //     << inst_size << " as deferred\n";
            return inst_insert_deferred;
            break;
         case failure_res:
@@ -413,8 +397,8 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
            return inst_insert_failure;
            break;
         case success_res:
-           // cerr << "instrRequest # " << u1+1 << " / " << inst_size
-           //      << "inserted\n";
+           //cerr << "instrRequest # " << u1+1 << " / " << inst_size
+           //     << "inserted\n";
            // Interesting... it's possible that this minitramp writes to more
            // than one variable (data, constraint, "temp" vector)
            {
@@ -618,7 +602,7 @@ void instrCodeNode::addInst(instPoint *point, AstNode *ast,
   if (!point) return;
 
   //cerr << "codeNode: " << getID() << ", addInst in func: " 
-  //     << point->iPgetFunction()->prettyName() << "\n";
+  //     << point->pointFunc()->prettyName() << "\n";
 
   instReqNode *newInstReqNode = new instReqNode(point, ast, when, o);
   V.instRequests.push_back(newInstReqNode);
