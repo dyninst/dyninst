@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.83 2003/03/17 03:05:43 schendel Exp $
+// $Id: unix.C,v 1.84 2003/03/21 21:19:05 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -68,7 +68,7 @@ extern unsigned enable_pd_attach_detach_debug;
 
 #if ENABLE_DEBUG_CERR == 1
 #define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
+#else 
 #define attach_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
@@ -148,7 +148,7 @@ int pvmendtask();
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 #ifdef BPATCH_LIBRARY
-bool forkNewProcess(string &file, string /*dir*/, pdvector<string> argv, 
+bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
                     pdvector<string> /*envp*/, 
                     string /*inputFile*/, string /*outputFile*/,
                     int & /*traceLink*/, 
@@ -313,6 +313,7 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 
 	/* close if higher */
 	if (tracePipe[1] > 3) close(tracePipe[1]);
+
 
 	if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
 	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
@@ -593,7 +594,6 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // and so it is special-cased here.
 #if defined(i386_unknown_linux2_0)
     if (proc->nextTrapIsExec) {
-        proc->nextTrapIsExec = false;
         return handleExecExit(proc, 0);
     }
 #endif
@@ -711,11 +711,7 @@ int handleSignal(process *proc, procSignalWhat_t what,
 // Unfortunately, there's that 5% difference...
 
 int handleForkEntry(process *proc, procSignalInfo_t info) {
-#if defined(BPATCH_LIBRARY)
-    BPatch::bpatch->registerForkingThread(proc->getPid(), NULL);
-#endif
-    proc->nextTrapIsFork = true;
-    
+    proc->handleForkEntry();
     return 1;
 }
 
@@ -724,28 +720,14 @@ int handleForkEntry(process *proc, procSignalInfo_t info) {
 // This means that the entry will be called multiple times
 // until the exec call gets the path right.
 int handleExecEntry(process *proc, procSignalInfo_t info) {
-    proc->execPathArg = "";
-
-    // On SGI we get the pointer to the exec string
-    // Can do on other platforms as well, actually
-    Address pathStr = (Address) info;
-    char name[512];
-    if (!(proc->readDataSpace((void *)pathStr, sizeof(name), name, false))) {
-        logLine("execve entry: unable to read path argument\n");
-    } else {
-        proc->execPathArg = name;
-    }
-    proc->nextTrapIsExec = true;
-    
+    proc->handleExecEntry((char *)info);
     return 1;
 }
 
 int handleExitEntry(process *proc, procSignalInfo_t info) {
     // Should probably call handlProcessExit here,
     // but it gets called later as well.
-#if defined(BPATCH_LIBRARY)
-    BPatch::bpatch->registerExit(proc->thread, info);
-#endif
+    proc->handleExitEntry(info);
     return 1;
 }
 
@@ -780,7 +762,6 @@ int handleSyscallEntry(process *proc, procSignalWhat_t what,
 int handleForkExit(process *proc, procSignalInfo_t info) {
     proc->nextTrapIsFork = false;
     
-#if defined(BPATCH_LIBRARY)
     // Fork handler time
     extern pdvector<process*> processVec;
     int childPid = info;
@@ -800,6 +781,8 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
         if (i== processVec.size()) {
             // this is a new child, register it with dyninst
             int parentPid = proc->getPid();
+#if defined(BPATCH_LIBRARY)
+            // Need to port to Paradyn.
             process *theChild = new process(*proc, (int)childPid, -1);
             processVec.push_back(theChild);
             activeProcesses++;
@@ -811,27 +794,26 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
             // loaded from disk instead of copied over. This means we 
             // need to reinsert all instrumentation.
             extern bool copyInstrumentationToChild(process *p, process *c);
-            cerr << "Copying over instrumentation to child" << endl;
             copyInstrumentationToChild(proc, theChild);
 #endif
-#if defined(BPATCH_LIBRARY)
             BPatch::bpatch->registerForkedThread(parentPid,
                                                  childPid, theChild);
+#else
+            // Paradyn needs to handle this
 #endif
         }
     }
-#endif
     return 1;
 }
 
 int handleExecExit(process *proc, procSignalInfo_t info) {
+    proc->nextTrapIsExec = false;
     if (info == -1) {
         // Failed exec, do nothing
         return 1;
     }
     else {
         proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
-
         // As of Solaris 2.8, we get multiple exec signals per exec.
         // My best guess is that the daemon reads the trap into the
         // kernel as an exec call, since the process is paused
@@ -872,18 +854,19 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
 #endif
             // Clean out internal data structures for the process
             // We should have an exec "constructor"
-            // handleExec leaves the process in a runnable state:
-            // entry of main() with the dyninst lib loaded
-            proc->handleExec();
+
+            // Unlike fork, handleExecExit doesn't do all processing required.
+            // We finish up when the trap at main() is reached.
+            proc->handleExecExit();
             
             // Note: on Solaris this is called multiple times before anything
             // actually happens. Therefore handleExec must handle being called
             // multiple times. We know that we're done when we hit the trap at main.
             // Oh, and install that here.
         }
-
         proc->setBootstrapState(begun);
         proc->insertTrapAtEntryPointOfMain();
+        proc->continueProc();
     }
     return 1;
 }
@@ -927,8 +910,9 @@ int handleProcessEvent(process *proc,
                        procSignalWhat_t what,
                        procSignalInfo_t info) {
    int ret = 0;
-   if(proc->hasExited())  return 1;
-
+   if(proc->hasExited()) {
+       return 1;
+   }
 
    // One big switch statement
    switch(why) {
