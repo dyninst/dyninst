@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.93 2004/10/19 00:19:14 pack Exp $
+// $Id: rpcUtil.C,v 1.94 2004/10/19 01:23:44 pack Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -59,10 +59,6 @@
 #include "pdutil/h/pdsocket.h"
 #include "pdutil/h/rpcUtil.h"
 #include "common/h/Types.h"  //Address
-//#include "../../mrnet/mrnet/h/mrnet/MRNet.h"
-#include "MRNet.h"
-
-//using namespace MRN;
 
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
@@ -1559,28 +1555,4 @@ const pdstring getNetworkAddr (const pdstring hostname)
     //cerr << "getNetworkAddr=" << inet_ntoa(in) << endl;
     return pdstring(inet_ntoa(in));
 }
-
-//---------------------------------------------------------------------
-MRNETrpc::~MRNETrpc()
-{
-}
-
-//
-// prepare for RPC's to be done/received on the passed fd.
-//
-MRNETrpc::MRNETrpc()
-{
-}
-
-//
-// prepare for RPC's to be done/received on the passed fd.
-//
-MRNETrpc::MRNETrpc(const pdstring &machine,
-		   const pdstring &user,
-		   const pdstring &program,
-		   const pdstring &remote_shell
-		   )
-{
-}
-
 

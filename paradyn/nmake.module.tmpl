@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.15 2004/10/19 00:15:43 pack Exp $
+# $Id: nmake.module.tmpl,v 1.16 2004/10/19 01:23:43 pack Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -116,8 +116,8 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		performanceConsultant.thread.C \
 		performanceConsultant.thread.clnt.C \
 		performanceConsultant.thread.srvr.C \
-		dyninstRPC.mrnet.clnt.C \
-		dyninstRPC.mrnet.srvr.C \
+		dyninstRPC.xdr.C \
+		dyninstRPC.xdr.clnt.C \
 		visi.xdr.clnt.C \
 		visi.xdr.C \
 		VISIthread.thread.C \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.64 2004/10/19 00:14:19 pack Exp $
+// $Id: main.C,v 1.65 2004/10/19 01:23:42 pack Exp $
 
 /*
  * Note: AIX 5.1
@@ -83,7 +83,6 @@ using std::ofstream;
 
 
 std::ifstream Options::input;
-
 ofstream Options::dot_h;
 ofstream Options::dot_c;
 ofstream Options::clnt_dot_h;
@@ -101,10 +100,9 @@ message_layer *Options::ml;
 bool Options::stl_seen = false;
 
 static void usage() {
-  cerr << "igen [-prof] [-shortnames] -xdr | -mrnet | -thread\n";
+  cerr << "igen [-prof] [-shortnames] -xdr | -thread\n";
   cerr << "      [-ignore | -detect | -handle] [-input <file>] <fileName>\n";
   cerr << "  CODE OPTIONS\n";
-  cerr << "    -mrnet   -->  produce code for multicast reduction network\n";
   cerr << "    -xdr     -->  produce code for sockets/xdr\n";
   cerr << "    -thread  -->  produce code for threads\n";
   cerr << "    -sas     -->  produce code for unknown threading systems\n";
@@ -132,11 +130,6 @@ static void do_opts(int argc, char *argv[]) {
       } else if (!strcmp("-xdr", argv[i])) {
          if (!set_ml("xdr")) {
             cerr << "Message layer 'xdr' unknown\n";
-            exit(-1);
-         }
-      } else if (!strcmp("-mrnet", argv[i])) {
-         if (!set_ml("mrnet")) {
-            cerr << "Message layer 'rpc' unknown\n";
             exit(-1);
          }
       } else if (!strcmp("-rpc", argv[i])) {
@@ -242,37 +235,26 @@ static void open_output_files() {
   pdstring base(Options::file_base() + "." + Options::ml->name() + ".");
   pdstring cpp_base(Options::file_base() + "_" + Options::ml->name() + "_");
 
-  pdstring dump_to;
+  pdstring dump_to = base + "temp.C";
+  Options::temp_dot_c.open(dump_to.c_str(), std::ios::out);
+  if (!Options::temp_dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
 
-  if (Options::ml->name() != "mrnet")
-    {
-      dump_to = base + "temp.C";
-      Options::temp_dot_c.open(dump_to.c_str(), std::ios::out);
-      if (!Options::temp_dot_c.good()) 
-	{
-	  cerr << "Could not open " << dump_to << " for output\n";
-	  exit(-1);
-	}
-    }
   dump_to = base + "h";
-
   Options::dot_h.open(dump_to.c_str(), std::ios::out);
   if (!Options::dot_h.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
-  
-  if (Options::ml->name() != "mrnet")
-    {
-      dump_to = base + "C";
-      Options::dot_c.open(dump_to.c_str(), std::ios::out);
-      if (!Options::dot_c.good()) 
-	{
-	  cerr << "Could not open " << dump_to << " for output\n";
-	  exit(-1);
-	}
-      
-    }
+
+  dump_to = base + "C";
+  Options::dot_c.open(dump_to.c_str(), std::ios::out);
+  if (!Options::dot_c.good()) {
+    cerr << "Could not open " << dump_to << " for output\n";
+    exit(-1);
+  }
 
   dump_to = base + "SRVR.h";
   Options::srvr_dot_h.open(dump_to.c_str(), std::ios::out);
@@ -310,56 +292,48 @@ static void init_header_files() {
         + V_id.Suite() + "/" + V_id.Component() + " "
         + V_id.Release() + V_id.BuildNum() + V_id.Revision());
 
-  //  if (Options::ml->name() != "mrnet")
-  //{
-      Options::temp_dot_c << ident << endl;
-      Options::temp_dot_c << "#pragma implementation \"Vector.h\"\n";
-      Options::temp_dot_c << "#include \"common/h/Vector.h\"\n";
-      Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
-      Options::temp_dot_c << "#include \"" << base << "h\"\n";
-      Options::temp_dot_c << "#include \"common/h/String.h\"\n";
-      /* trace data streams */
-      Options::temp_dot_c << "#include \"pdutil/h/ByteArray.h\"\n";
+  Options::temp_dot_c << ident << endl;
+  Options::temp_dot_c << "#pragma implementation \"Vector.h\"\n";
+  Options::temp_dot_c << "#include \"common/h/Vector.h\"\n";
+  Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
+  Options::temp_dot_c << "#include \"" << base << "h\"\n";
+  Options::temp_dot_c << "#include \"common/h/String.h\"\n";
+/* trace data streams */
+  Options::temp_dot_c << "#include \"pdutil/h/ByteArray.h\"\n";
 
-      Options::dot_h << ident << endl;
-      Options::dot_h << "#ifndef " << cpp_base << "BASE_H\n";
-      Options::dot_h << "#define " << cpp_base << "BASE_H\n";
-      
-      Options::dot_h << "#include \"pdutil/h/rpcUtil.h\"\n";
+  Options::dot_h << ident << endl;
+  Options::dot_h << "#ifndef " << cpp_base << "BASE_H\n";
+  Options::dot_h << "#define " << cpp_base << "BASE_H\n";
 
-      if (Options::ml->name() == "mrnet")
-	{
-	  Options::dot_h << "#include \"MRNet.h\"\n";
-	  Options::dot_h << "using namespace MRN;\n";
-	}
-      Options::dot_h << Options::ml->includes() << endl;
+  Options::dot_h << "#include \"pdutil/h/rpcUtil.h\"\n";
+  Options::dot_h << Options::ml->includes() << endl;
 
-      Options::dot_h << "#ifdef IGEN_ERR_ASSERT_ON\n";
-      Options::dot_h << "#ifndef IGEN_ERR_ASSERT\n";
-      Options::dot_h << "#define IGEN_ERR_ASSERT assert(0)\n";
-      Options::dot_h << "#endif\n";
-      Options::dot_h << "#else\n";
-      Options::dot_h << "#define IGEN_ERR_ASSERT\n";
-      Options::dot_h << "#endif\n\n";
+  Options::dot_h << "#ifdef IGEN_ERR_ASSERT_ON\n";
+  Options::dot_h << "#ifndef IGEN_ERR_ASSERT\n";
+  Options::dot_h << "#define IGEN_ERR_ASSERT assert(0)\n";
+  Options::dot_h << "#endif\n";
+  Options::dot_h << "#else\n";
+  Options::dot_h << "#define IGEN_ERR_ASSERT\n";
+  Options::dot_h << "#endif\n\n";
 
-      Options::dot_h << "\n // Errors that can occur internal to igen\n";
-      Options::dot_h << "#ifndef _IGEN_ERR_DEF\n";
-      Options::dot_h << "#define _IGEN_ERR_DEF\n";
-      Options::dot_h << "typedef enum e_IGEN_ERR {\n";
-      Options::dot_h << "                       igen_no_err=0,\n";
-      Options::dot_h << "                       igen_encode_err,\n";
-      Options::dot_h << "                       igen_decode_err,\n";
-      Options::dot_h << "                       igen_send_err,\n";
-      Options::dot_h << "                       igen_read_err,\n";
-      Options::dot_h << "                       igen_request_err,\n";
-      Options::dot_h << "                       igen_call_err,\n";
-      Options::dot_h << "                       igen_proto_err\n";
-      Options::dot_h << "                       }  IGEN_ERR;\n\n";
-      Options::dot_h << "#endif\n";
+  Options::dot_h << "\n // Errors that can occur internal to igen\n";
+  Options::dot_h << "#ifndef _IGEN_ERR_DEF\n";
+  Options::dot_h << "#define _IGEN_ERR_DEF\n";
+  Options::dot_h << "typedef enum e_IGEN_ERR {\n";
+  Options::dot_h << "                       igen_no_err=0,\n";
+  Options::dot_h << "                       igen_encode_err,\n";
+  Options::dot_h << "                       igen_decode_err,\n";
+  Options::dot_h << "                       igen_send_err,\n";
+  Options::dot_h << "                       igen_read_err,\n";
+  Options::dot_h << "                       igen_request_err,\n";
+  Options::dot_h << "                       igen_call_err,\n";
+  Options::dot_h << "                       igen_proto_err\n";
+  Options::dot_h << "                       }  IGEN_ERR;\n\n";
+  Options::dot_h << "#endif\n";
 
-      Options::dot_c << ident << endl;
-      Options::dot_c << "#include \"" << base << "h\"\n";
-      // }
+  Options::dot_c << ident << endl;
+  Options::dot_c << "#include \"" << base << "h\"\n";
+
   Options::clnt_dot_h << ident << endl;
   Options::clnt_dot_h << "#ifndef " << cpp_base << "CLNT_H\n";
   Options::clnt_dot_h << "#define " << cpp_base << "CLNT_H\n";
@@ -374,12 +348,12 @@ static void init_header_files() {
   Options::clnt_dot_c << "#include \"" << base << "CLNT.h\"\n";
   Options::srvr_dot_c << ident << endl;
   Options::srvr_dot_c << "#include \"" << base << "SRVR.h\"\n";
-    }
+}
 
-static void end_header_files() 
-{
+static void end_header_files() {
   Options::dot_h << "\n#endif\n";
   Options::dot_h << endl;
+
   Options::clnt_dot_h << "#endif\n" << endl;
   Options::srvr_dot_h << "#endif\n" << endl;
 }
@@ -387,12 +361,9 @@ static void end_header_files()
 static void close_files() {
   Options::srvr_dot_h.close();
   Options::clnt_dot_h.close();
-
-  if (Options::ml->name() != "mrnet")
-    {
-      Options::dot_c.close();
-    }
+  Options::dot_c.close();
   Options::dot_h.close();
+
   Options::srvr_dot_c.close();
   Options::clnt_dot_c.close();
 }
@@ -475,33 +446,7 @@ static void init_ml() {
 					     "XDR_DECODE", 
 					     "XDR_FREE",
 					     "XDRrpc",
-					     "unsigned int",
-					     "xdrrec_endofrecord(net_obj(), TRUE)",
-					     true,
-					     "xdrrec_skiprecord(net_obj())",
-					     "XXX_RECV",
-					     " ",
-					     true,
-					     "setDirEncode()",
-					     "setDirDecode()",
-					     true);
-  
-  message_layer * mrnet_ml = new message_layer("mrnet",
-					     message_layer::Med_mrnet,
-					     "P_mrnet_",
-					     "bool", // return type of bundler fns
-					     "*",
-					     "MRNet",
-					     "*",
-					     message_layer::AS_many,
-					     "false",
-					     "true",
-					     "x_op",
-					     "MRNET_ENCODE",
-					     "MRNET_DECODE", 
-					     "MRNET_FREE",
-					     "MRNETrpc",
-					     "unsigned int",
+						 "unsigned int",
 					     "xdrrec_endofrecord(net_obj(), TRUE)",
 					     true,
 					     "xdrrec_skiprecord(net_obj())",
@@ -569,10 +514,7 @@ static void init_ml() {
     message_layer tcp_ml("tcp", message_layer::Med_other, "", "bool_t", "*", "XDR", "*",
     message_layer::AS_many, "false", "true");
   */
-  Options::all_ml += xdr_ml;
-  Options::all_ml += thrd_ml; 
-  Options::all_ml += rpc_ml;
-  Options::all_ml += mrnet_ml;
+  Options::all_ml += xdr_ml; Options::all_ml += thrd_ml; Options::all_ml += rpc_ml;
 }
 
 int main(int argc, char *argv[]) {

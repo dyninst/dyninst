@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.117 2004/10/19 00:16:47 pack Exp $
+/* $Id: dyninstRPC.I,v 1.118 2004/10/19 01:23:43 pack Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -747,7 +747,7 @@ $remote dynRPC {
    // resourceList	- a list of resources
    // metric	- what metric to collect data for
    //
-   $async void enableDataCollection(pdvector<focusStruct> focusVector, 
+   $async void enableDataCollection(pdvector<focusStruct> focus, 
                                     pdvector<pdstring> metric,
 				    pdvector<u_int> mi_ids, 
 				    u_int daemon_id,

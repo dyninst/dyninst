@@ -74,10 +74,8 @@ public:
 
   pdstring gen_class_name(bool server) const { 
     return (server ? server_name_ : client_name_); }
-  
   pdstring gen_class_prefix(bool server) const {
     return (server ? server_prefix_ : client_prefix_);}
-  
   bool gen_process_buffered(ofstream &out_stream, bool srvr) const;
   bool gen_await_response(ofstream &out_stream, bool srvr) const;
   bool gen_wait_loop(ofstream &out_stream, bool srvr) const;

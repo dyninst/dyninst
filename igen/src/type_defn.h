@@ -78,19 +78,8 @@ public:
   pdstring gen_bundler_call(const pdstring &obj_name, const pdstring &data_name,
                           const unsigned) const;
   pdstring gen_bundler_call(bool send_routine,
-			    const pdstring &obj_name,
-			    const pdstring &data_name,
-			    const unsigned pointer_count) const;
-
-
-  bool gen_bundler_call_mrnet(ofstream &out_stream,
-			      bool send_routine,
-			      const pdstring &pointer,
-			      const pdstring &obj,
-			      const pdstring &data,
-			      const pdstring &ret_field,
-			      const unsigned pointer_count) const;
-    
+                          const pdstring &obj_name, const pdstring &data_name,
+                          const unsigned pointer_count) const;
   bool gen_bundler_body(bool send_routine,
                         const pdstring &bundler_prefix,
                         const pdstring &class_prefix,
@@ -101,40 +90,7 @@ public:
                        const pdstring &class_prefix,
                        const pdstring &bundler_prefix,
                        ofstream &out_stream) const;
-  //------------------------------------------------------------
-
-  bool gen_bundler_body_mrnet_noVec(bool send_routine, pdstring type_to_do,
-				    pdstring dot_data_name,
-				    pdstring * vec_calc,
-				    pdstring * vec_calc_format,
-				    pdstring * vec_calc_finish,
-				    pdstring * format_str,
-				    pdstring * argument_list,
-				    pdstring * clean_up,
-				    pdstring passed_structure,
-				    pdstring received_field,
-				    int * level,
-				    ofstream &out_stream) const;
-
-  bool gen_bundler_body_mrnet(bool send_routine, pdstring type_to_do,
-			      pdstring dot_data_name,
-			      pdstring * vec_calc,
-			      pdstring * vec_calc_format,
-			      pdstring * vec_calc_finish,
-			      pdstring * format_str,
-			      pdstring * argument_list,
-			      pdstring * clean_up,
-			      pdstring passed_structure,
-			      pdstring received_field,
-			      int * level,
-			      ofstream &out_stream) const;
-
-  pdstring getFormatType(pdstring old_type)const;
-
-  //------------------------------------------------------
-
-
- bool gen_bundler_ptr(const pdstring &class_prefix,
+  bool gen_bundler_ptr(const pdstring &class_prefix,
                        ofstream &out_c, ofstream &out_h) const;
   bool gen_class(const pdstring bundler_prefix, ofstream &out_stream);
 

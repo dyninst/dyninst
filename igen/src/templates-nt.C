@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.8 2004/10/19 00:14:20 pack Exp $
+ * $Id: templates-nt.C,v 1.9 2004/10/19 01:23:42 pack Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 

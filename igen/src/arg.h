@@ -27,7 +27,7 @@
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
-* Even if advised of the possibility of such damages, under no
+ * Even if advised of the possibility of such damages, under no
  * circumstances shall we (or any other person or entity with
  * proprietary rights in the software licensed hereunder) be liable
  * to you or any third party for direct, indirect, or consequential
@@ -66,8 +66,6 @@ public:
                    ofstream &outStream, const pdstring &obj_name,
                    const pdstring &data_name) const;
 
-  pdstring gen_bundler_type(pdstring * data_name);
-
   const pdstring &pointers() const { return pointers_; }
   const pdstring &base_type() const { return type_;}
   pdstring type(const bool use_const=false, const bool use_ref=false) const;
@@ -78,8 +76,6 @@ public:
   unsigned stars() const { return stars_;}
   bool is_ref() const { return is_ref_;}
   pdstring deref(const bool local) const;
-  bool tag_bundle_send_mrnet(ofstream &out_stream, const pdstring &return_value,
-		       const pdstring &req_tag,const pdstring &fnc_name) const;
 
 private:
   pdstring pointers_;
@@ -97,12 +93,6 @@ private:
                             const pdstring bundle_value, 
                             const pdstring tag_value,
                             const pdstring return_value) const;
-  pdstring getFormatType(pdstring old_type)const;
-
-  bool tag_bundle_send_many_mrnet(ofstream &out_stream,
-                            const pdstring &return_value,
-                            const pdstring &req_tag,
-			    const pdstring &fnc_name ) const;
 };
 
 #endif

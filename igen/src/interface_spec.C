@@ -63,191 +63,84 @@ bool interface_spec::gen_dtor_hdr(ofstream &out_stream, bool server,
 }
 
 bool interface_spec::gen_ctor_hdr(ofstream &out_stream, bool server) const {
-  if (Options::ml->address_space() == message_layer::AS_many)
-    {
-      gen_ctor_1(out_stream, server, true);
-      gen_ctor_2(out_stream, server, true);
-      gen_ctor_3(out_stream, server, true);
-    } 
-  else
-    {
-      gen_ctor_4(out_stream, server, true);
-    }
+  if (Options::ml->address_space() == message_layer::AS_many) {
+    gen_ctor_1(out_stream, server, true);
+    gen_ctor_2(out_stream, server, true);
+    gen_ctor_3(out_stream, server, true);
+  } else {
+    gen_ctor_4(out_stream, server, true);
+  }
 
-  if (server)
-    {
-      if (Options::ml->address_space() == message_layer::AS_many) 
-	{
-	  out_stream << "private:\n";
-	  out_stream << "  bool verify_protocol(bool tag_read=false);\n";
-	  out_stream << "public:\n";
-	}
-    } 
-  else
-    {
-      if (Options::ml->address_space() == message_layer::AS_many) {
-	out_stream << "private:\n";
-	
-	if (Options::ml->name() != "mrnet")
-	  {
-	    out_stream << "  virtual bool verifyProtocolAndVersion();\n";
-	  }
-	//else
-	//{ Leave out verify for mrnet for now
-	    // out_stream << "  virtual bool verifyProtocolAndVersion(Stream * stream);\n";
-	//}
-	out_stream << "public:\n";
-	out_stream << "  bool errorConditionFound;\n";
-      }
+  if (server) {
+    if (Options::ml->address_space() == message_layer::AS_many) {
+      out_stream << "private:\n";
+      out_stream << "  bool verify_protocol(bool tag_read=false);\n";
+      out_stream << "public:\n";
     }
+  } else {
+    if (Options::ml->address_space() == message_layer::AS_many) {
+      out_stream << "private:\n";
+      out_stream << "  virtual bool verifyProtocolAndVersion();\n";
+      out_stream << "public:\n";
+      out_stream << "  bool errorConditionFound;\n";
+    }
+  }
 
-  if (Options::ml->address_space() == message_layer::AS_many) 
-    {
-      out_stream << "  " << Options::type_prefix() << "message_tags";
-
-      if (Options::ml->name() != "mrnet")
-	{
-	  out_stream << " waitLoop(void);\n";
-	}
-      else
-	{
-	  out_stream << " waitLoop(Network * ntwrk);\n";
-	}
-    }
-  else
-    {
-      out_stream << "  " << Options::type_prefix() << "message_tags";
-      out_stream << " waitLoop("; 
-	if (Options::ml->name() == "mrnet")
-	  {
-	    out_stream << "Network ntwrk, ";
-	  }
-	out_stream << "bool specific, ";
-	out_stream << Options::type_prefix() << "message_tags mt,void** buffer=NULL);\n";
-    }
+  if (Options::ml->address_space() == message_layer::AS_many) {
+    out_stream << "  " << Options::type_prefix() << "message_tags"
+	       << " waitLoop(void);\n";
+  } else {
+    out_stream << "  " << Options::type_prefix() << "message_tags"
+	       << " waitLoop(" 
+	       << "bool specific, "
+	       << Options::type_prefix() << "message_tags mt,void** buffer=NULL);\n";
+  }
   out_stream << "  bool isValidTag(const " 
 	     << Options::type_prefix() << "message_tags &tag) {\n";
   out_stream << "  return((tag >= " << Options::type_prefix() << "verify) && "
 	     << "(tag <= " << Options::type_prefix() << "last));\n}\n";
 
-  out_stream << "  " << Options::type_prefix() << "message_tags switch_on(";
-  if (Options::ml->name() == "mrnet")
-    {
-      out_stream << "Stream * stream, ";
-    }
-  out_stream << Options::type_prefix() << "message_tags m";
-
+  out_stream << "  " << Options::type_prefix() << "message_tags switch_on("
+	     << Options::type_prefix() << "message_tags m";
   if (Options::ml->address_space() == message_layer::AS_one) 
-    {
-      out_stream << ", void* msgBuf";
-    }
-
-
-    if (Options::ml->name() == "mrnet")
-      {
-	out_stream << ",char* recv_buffer, void** buffer=NULL, bool execute = true);\n";
-      }
-    else
-      {
-	out_stream << ", void** buffer=NULL);\n";
-      }
-
-
+  {
+    out_stream << ", void* msgBuf";
+  }
+  out_stream << ", void** buffer=NULL);\n";
 
   if (Options::ml->serial()) {
     out_stream << "  // returns true if any requests are buffered\n";
-    if (Options::ml->name() == "mrnet")
-      {
-	out_stream << "  bool buffered_requests(Stream * stream) {\n"
-		   << "    return (async_buffer.size() > 0);\n}\n";
-      }
-    else
-      {
-	out_stream << "  bool buffered_requests() {\n"
-		   << "    return (async_buffer.size() > 0);\n}\n";
-      }
+    out_stream << "  bool buffered_requests() {\n"
+	       << "    return (async_buffer.size() > 0);\n}\n";
+
     out_stream << "  // Wait until this mesage tag is received, or is found buffered\n";
+    out_stream << "  bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
+    out_stream << "  bool wait_for_and_read(" << Options::type_prefix() << "message_tags m, void** buffer);\n";
 
-    if (Options::ml->name() != "mrnet")
-      {
-	out_stream << "  bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
-      }
-    else
-      {
-	out_stream << "  bool wait_for( Stream * stream,"  << Options::type_prefix() << "message_tags m);\n";
-      }
-
-     if (Options::ml->name() != "mrnet")
-      {
-	out_stream << "  bool wait_for_and_read(" << Options::type_prefix() << "message_tags m, void** buffer);\n";
-      }
-     else
-       {
-	out_stream << "  bool wait_for_and_read(Stream * stream, " << Options::type_prefix() << "message_tags m, void** buffer);\n";
-       }
-     if (Options::ml->name() != "mrnet")
-       {
-	 out_stream << "  bool is_buffered(" << Options::type_prefix() << "message_tags m) {\n";
-       }
-     else
-       {
-	 out_stream << "  bool is_buffered(Stream * stream, " << Options::type_prefix() << "message_tags m) {\n";
-       }
+    out_stream << "  bool is_buffered(" << Options::type_prefix() << "message_tags m) {\n";
     out_stream << "  unsigned size = async_buffer.size();\n";
     out_stream << "  for (unsigned u=head; u<size; u++) \n";
     out_stream << "    if (async_buffer[u]->data_type == m) return true;\n";
     out_stream << "    return false;\n   }\n";
 
     out_stream << "  // Handles any buffered request\n";
-     if (Options::ml->name() != "mrnet")
-      {
-	out_stream << "  "
-		   << Options::type_prefix() << "message_tags process_buffered();\n";
-      }
-     else
-       {
-	out_stream << "  "
-		   << Options::type_prefix() << "message_tags process_buffered(Stream * stream);\n";
-       }
+    out_stream << "  "
+	       << Options::type_prefix() << "message_tags process_buffered();\n";
+
     out_stream << "private:\n";
-      if (Options::ml->name() != "mrnet")
-      {
-	out_stream << "  " 
-		   << Options::type_prefix()
-		   << "message_tags process_buffered(unsigned dex);\n";
-      }
-    else
-      {
-	out_stream << "  " 
-		   << Options::type_prefix()
-		   << "message_tags process_buffered(Stream *stream, unsigned dex);\n";
-      }
-
-      out_stream << "  bool awaitResponse(const " << Options::type_prefix()
-		   << "message_tags &,";
-
-      if (Options::ml->name() == "mrnet")
-	{
-	  out_stream << " char* recv_buf, Stream * stream,";
-	}
-      out_stream << " bool wait=true, bool *response=NULL);\n";
-      if (Options::ml->name() != "mrnet")
-	{
-	  out_stream << "   " << Options::type_prefix()
-		     << "message_tags delete_buffer(unsigned dex);\n";
-	}
-      else
-	{
-	  out_stream << "   " << Options::type_prefix()
-		     << "message_tags delete_buffer(Stream * stream, unsigned dex);\n";
-	}
-        out_stream << "public:\n";
+    out_stream << "  " 
+	       << Options::type_prefix()
+	       << "message_tags process_buffered(unsigned dex);\n";
+    out_stream << "  bool awaitResponse(const " << Options::type_prefix()
+	       << "message_tags &, bool wait=true, bool *response=NULL);\n";
+    out_stream << "   " << Options::type_prefix()
+	       << "message_tags delete_buffer(unsigned dex);\n";
+    out_stream << "public:\n";
   }
   return true;
 }
 
 bool interface_spec::gen_prelude(ofstream &out_stream, bool server) const {
-
   out_stream << "\nclass " << gen_class_name(server) << ":" 
              << " public RPCBase, public " << Options::ml->rpc_parent() << " {" << endl;
   out_stream << " public:" << endl;
@@ -269,7 +162,6 @@ bool interface_spec::gen_prelude(ofstream &out_stream, bool server) const {
 }
 
 bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
-
   out_h << "class " << Options::type_class() << "  {\npublic:\n";
 
   bool first = true;
@@ -317,26 +209,20 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
 
   out_h << endl;
 
-  //---------------------------------------------------------------------------
+  if (Options::ml->name() == "xdr") {
+    out_h << "inline bool P_xdr_send(XDR *xdr, const " << Options::type_class()
+	  << "::message_tags &tag) {" << endl;
+    out_h << "   return P_xdr_send(xdr, (int32_t)tag);" << endl;
+    out_h << "}" << endl;
 
-
-  if (Options::ml->name() == "xdr")
-    {
-      out_h << "inline bool P_xdr_send(XDR *xdr, const " << Options::type_class()
-	    << "::message_tags &tag) {" << endl;
-      out_h << "   return P_xdr_send(xdr, (int32_t)tag);" << endl;
-      out_h << "}" << endl;
-      
-      out_h << "inline bool P_xdr_recv(XDR *xdr, " << Options::type_class()
-	    << "::message_tags &tag) {" << endl;
-      out_h << "   int32_t tag_int;" << endl;
-      out_h << "   if (!P_xdr_recv(xdr, tag_int)) return false;" << endl;
-      out_h << "   tag = (" << Options::type_class() << "::message_tags)tag_int;" << endl;
-      out_h << "   return true;" << endl;
-      out_h << "}" << endl;
-    }
-
- //---------------------------------------------------------------------------
+    out_h << "inline bool P_xdr_recv(XDR *xdr, " << Options::type_class()
+	  << "::message_tags &tag) {" << endl;
+    out_h << "   int32_t tag_int;" << endl;
+    out_h << "   if (!P_xdr_recv(xdr, tag_int)) return false;" << endl;
+    out_h << "   tag = (" << Options::type_class() << "::message_tags)tag_int;" << endl;
+    out_h << "   return true;" << endl;
+    out_h << "}" << endl;
+  }
   
   for (unsigned u1=0; u1<Options::vec_types.size(); u1++) {
     type_defn *td = Options::vec_types[u1];
@@ -346,65 +232,51 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
         // therefore, no need to prepend class prefix when using
 	td->gen_class(Options::ml->bundler_prefix(), out_h);
 
-
- //---------------------------------------------------------------------------
-
       if (Options::ml->address_space() == message_layer::AS_many) {
 	const pdstring b_pfx = Options::ml->bundler_prefix(); // e.g. P_xdr
 	const pdstring t_pfx = Options::type_prefix(); // e.g. T_visi::
- //---------------------------------------------------------------------------
+
 	out_h << endl;
 
 	bool is_abst = td->is_abstract();
 	bool printed = false;
 
-	if (Options::ml->name() != "mrnet")
-	  {
-	    if( !is_abst ) {
-	      // don't generate bundlers for abstract classes
-	      td->gen_bundler_sig(true,
-				  false, // just the prototype
-				  true, // the send routine
-				  t_pfx, b_pfx, out_h); out_h << std::flush;
-	      td->gen_bundler_sig(true,
-				  false, // just the prototype
-				  false, // the recv routine
-				  t_pfx, b_pfx, out_h); out_h << std::flush;
-	    }
-
-
-	    out_c << endl;
-	    if ( td->numFields() > 0 ) {
-	      // only generate bundler implementations for those structs/classes
-	      // that were completely declared in the .I file and have non-virtual
-	      // members
-
-
-	      if( ! printed )
-		out_c << "// xdr send & recv routines for "
-		      << td->bundle_name() << endl;
-	      
-	      td->gen_bundler_body(true, // the send routine
-				   b_pfx, t_pfx, out_c); out_c << std::flush;
-	      td->gen_bundler_body(false, // false --> the receive routine
-				   b_pfx, t_pfx, out_c); out_c << std::flush;
-	      td->gen_bundler_ptr(t_pfx, out_c, out_h);
-	    }
-	    if( is_abst ) {
-	      // do generate bundlers for pointers to abstract classes
-	      if( ! printed )
-		out_c << "// xdr send & recv routines for "
-		      << td->bundle_name() << endl;
-	      td->gen_bundler_ptr(t_pfx, out_c, out_h);
-	    }
-	  }
+	if( !is_abst ) {
+	  // don't generate bundlers for abstract classes
+	  td->gen_bundler_sig(true,
+			      false, // just the prototype
+			      true, // the send routine
+			      t_pfx, b_pfx, out_h); out_h << std::flush;
+	  td->gen_bundler_sig(true,
+			      false, // just the prototype
+			      false, // the recv routine
+			      t_pfx, b_pfx, out_h); out_h << std::flush;
+	}
+	out_c << endl;
+	if ( td->numFields() > 0 ) {
+	  // only generate bundler implementations for those structs/classes
+          // that were completely declared in the .I file and have non-virtual
+          // members
+	  if( ! printed )
+	    out_c << "// xdr send & recv routines for "
+		  << td->bundle_name() << endl;
+	  td->gen_bundler_body(true, // the send routine
+			       b_pfx, t_pfx, out_c); out_c << std::flush;
+	  td->gen_bundler_body(false, // false --> the receive routine
+			       b_pfx, t_pfx, out_c); out_c << std::flush;
+	  td->gen_bundler_ptr(t_pfx, out_c, out_h);
+	}
+	if( is_abst ) {
+	  // do generate bundlers for pointers to abstract classes
+	  if( ! printed )
+	    out_c << "// xdr send & recv routines for "
+		  << td->bundle_name() << endl;
+	  td->gen_bundler_ptr(t_pfx, out_c, out_h);
+	}
 	out_h << endl;
       }
     }
   }
-
-
- //---------------------------------------------------------------------------
 
   return true;
 }
@@ -423,14 +295,7 @@ bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
     out_stream << std::flush;
   }
 
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream << "\nprotected:\n virtual void handle_error();\n";
-    }
-  else
-    {
-      out_stream << "\nprotected:\n virtual void handle_error_mrnet();\n";
-    }
+  out_stream << "\nprotected:\n virtual void handle_error();\n";
   if (Options::ml->serial()) {
     out_stream << "pdvector<" << Options::type_prefix()
 	       << "buf_struct*> async_buffer;\n";
@@ -444,10 +309,6 @@ bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
 }
 
 bool interface_spec::gen_ctor_helper(ofstream &out_stream, bool server) const {
-
-    if (Options::ml->name() == "mrnet")
-      return true;
-
   if (!server) {
     out_stream << "if (!opened())\n";
     out_stream << "  errorConditionFound=true;\n";
@@ -479,32 +340,16 @@ bool interface_spec::gen_ctor_4(ofstream &out_stream, bool server,
 
 bool interface_spec::gen_ctor_1(ofstream &out_stream, bool server,
 				bool hdr) const {
-  out_stream << (!hdr ? gen_class_prefix(server) : pdstring(""));
-  out_stream << gen_class_name(server); 
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream << "(PDSOCKET use_sock, int (*r)(void *,caddr_t,int), int (*w)(void *,caddr_t,int), const int nblock)";
-    }
-  else
-    {
-      out_stream << "(void)";
-    }
+  out_stream << (!hdr ? gen_class_prefix(server) : pdstring(""))
+	     << gen_class_name(server) 
+	     << "(PDSOCKET use_sock, int (*r)(void *,caddr_t,int), int (*w)(void *,caddr_t,int), const int nblock)";
   if (hdr) {
     out_stream << ";\n";
     return true;
   }
   
-  out_stream << "\n: RPCBase(igen_no_err, 0),\n";
-
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream << Options::ml->rpc_parent() << "(use_sock, r, w, nblock) ";
-    }
-  else
-    {
-      out_stream << Options::ml->rpc_parent() << "() ";
-    }
-
+  out_stream << "\n: RPCBase(igen_no_err, 0),\n"
+	     << Options::ml->rpc_parent() << "(use_sock, r, w, nblock) ";
   if (Options::ml->serial()) out_stream << " , head(0) ";
   out_stream << "\n";
   return true;
@@ -520,17 +365,8 @@ bool interface_spec::gen_ctor_2(ofstream &out_stream, bool server,
     out_stream << ";\n";
     return true;
   }
-  out_stream << "\n: RPCBase(igen_no_err, 0),\n";
-
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream << Options::ml->rpc_parent() << "(family, port, type, host, r, w, nblock)";
-    }
-  else
-    {
-      out_stream << Options::ml->rpc_parent() << "(family, port, type, host)";
-    }
-  
+  out_stream << "\n: RPCBase(igen_no_err, 0),\n"
+	     << Options::ml->rpc_parent() << "(family, port, type, host, r, w, nblock)";
   if (Options::ml->serial()) out_stream << ", head(0)";
   out_stream << "\n";
   return true;
@@ -546,46 +382,33 @@ bool interface_spec::gen_ctor_3(ofstream &out_stream, bool server,
     out_stream << ";\n";
     return true;
   }
-  out_stream << "\n: RPCBase(igen_no_err, 0),\n";
-
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream  << Options::ml->rpc_parent() << "(machine, login, program, remote_shell, rf, wf, args, nblock, port_fd)";
-    }
-  else
-    {
-      out_stream << Options::ml->rpc_parent() << "(machine, login, program, remote_shell)";
-    }
-
+  out_stream << "\n: RPCBase(igen_no_err, 0),\n"
+	     << Options::ml->rpc_parent() << "(machine, login, program, remote_shell, rf, wf, args, nblock, port_fd)";
   if (Options::ml->serial()) out_stream << ", head(0) ";
   out_stream << "\n";
  
   return true;
 }
 
-bool interface_spec::gen_ctor_body(ofstream &out_stream, bool server) const 
-{
-  if (Options::ml->address_space() == message_layer::AS_many) 
-    {
-      gen_ctor_1(out_stream, server, false);
-      out_stream << "{\n";
-      gen_ctor_helper(out_stream, server);
-      out_stream << "}\n";
-      
-      gen_ctor_2(out_stream, server, false);
-      out_stream << "{\n";
-      gen_ctor_helper(out_stream, server);
-      out_stream << "}\n";
+bool interface_spec::gen_ctor_body(ofstream &out_stream, bool server) const {
+  if (Options::ml->address_space() == message_layer::AS_many) {
+    gen_ctor_1(out_stream, server, false);
+    out_stream << "{\n";
+    gen_ctor_helper(out_stream, server);
+    out_stream << "}\n";
 
-      gen_ctor_3(out_stream, server, false);
-      out_stream << "{\n";
-      gen_ctor_helper(out_stream, server);
-      out_stream << "}\n";
-    } 
-  else
-    {
-      // do nothing
-    }
+    gen_ctor_2(out_stream, server, false);
+    out_stream << "{\n";
+    gen_ctor_helper(out_stream, server);
+    out_stream << "}\n";
+
+    gen_ctor_3(out_stream, server, false);
+    out_stream << "{\n";
+    gen_ctor_helper(out_stream, server);
+    out_stream << "}\n";
+  } else {
+    // do nothing
+  }
   return true;
 }
 
@@ -596,209 +419,98 @@ bool interface_spec::gen_dtor_body(ofstream &/*out_stream*/, bool /*server*/) co
 }
 
 bool interface_spec::gen_server_verify(ofstream &out_stream) const {
-  if (!Options::dont_gen_handle_err) 
-    {
-      if (Options::ml->name() != "mrnet")
-	{
-	  out_stream << "void " << gen_class_prefix(true) << "handle_error() {" << endl;
-	}
-      else
-	{
-	  out_stream << "void " << gen_class_prefix(true) << "handle_error_mrnet() {" << endl;
-	}
-      out_stream << "  cerr << \"Error not handled, exiting\" << endl;" << endl;
-      out_stream << "  IGEN_ERR_ASSERT" << endl;
-      out_stream << "  exit(-1);" << endl;
-      out_stream << "}" << endl << endl;
-    }
+  if (!Options::dont_gen_handle_err) {
+    out_stream << "void " << gen_class_prefix(true) << "handle_error() {" << endl;
+    out_stream << "  cerr << \"Error not handled, exiting\" << endl;" << endl;
+    out_stream << "  IGEN_ERR_ASSERT;" << endl;
+    out_stream << "  exit(-1);" << endl;
+    out_stream << "}" << endl << endl;
+  }
 
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
 
   out_stream << "bool " << gen_class_prefix(true)
 	     << "verify_protocol(bool tag_read) {\n";
-
-  if (Options::ml->name() == "mrnet") 
-    {
-      out_stream << "\treturn true;\n}";
-      return true;
-    }
-
-
   out_stream << "  unsigned tag;\n";
   out_stream << "  if (!tag_read) {\n";
+  out_stream << "  " << Options::set_dir_decode() << ";\n";
 
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << "  " << Options::set_dir_decode() << ";\n";
-      if (Options::ml->skip())
-	{
-	  out_stream << "if (!" << Options::ml->skip_message() << ") ";
-	  out_stream << Options::error_state(true, 6, "igen_read_err", "false");
-	}
+  if (Options::ml->skip()) {
+    out_stream << "if (!" << Options::ml->skip_message() << ") ";
+    out_stream << Options::error_state(true, 6, "igen_read_err", "false");
+  }
 
-      out_stream << "  if (!" << Options::ml->bundler_prefix()
-		 << "recv(net_obj(), tag)) ";
-    }
-  else
-    {
-      out_stream <<"\tStream * stream;\n";
-      out_stream <<"\tchar* recv_buffer = NULL;"<<endl;
-      out_stream << "\tif( Network::recv( &tag,(void **)&recv_buffer,&stream,true) !=1)\n\t"<<endl;
-    }
+  out_stream << "  if (!" << Options::ml->bundler_prefix()
+	     << "recv(net_obj(), tag)) ";
   out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
   out_stream << "  if (tag != " << Options::type_prefix() << "verify) ";
   out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
   out_stream << "  }" << endl;
 
   out_stream << endl;
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << "  " << Options::set_dir_encode() << ";\n";
-    }
+  out_stream << "  " << Options::set_dir_encode() << ";\n";
   out_stream << "  tag = " << Options::type_prefix() << "verify;\n";
   out_stream << "  unsigned version = " << version() << ";\n";
   out_stream << "  pdstring name = " << "\"" << name() << "\";\n";
-  
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << "  if (!" << Options::ml->bundler_prefix()
-		 << "send(net_obj(), tag) || \n      !"
-		 << Options::ml->bundler_prefix() 
-		 << "send(net_obj(), name) || \n      !"
-		 << Options::ml->bundler_prefix()
-		 << "send(net_obj(), version)) ";
-    }
-  else
-    {
-      out_stream << "\n//interface 1\n\tint sret = stream->send(tag,\"s ud\",name,version);\n";
-      out_stream << "\tint fret = -1;" << endl;
-      out_stream << "\tif( sret != -1 ) {" << endl;
-      out_stream << "\t  fret = stream->flush();\n\t}" << endl;
-      out_stream << "\tif( (sret == -1) || (fret == -1) )\n\t ";
-    }
+  out_stream << "  if (!" << Options::ml->bundler_prefix()
+	     << "send(net_obj(), tag) || \n      !"
+	     << Options::ml->bundler_prefix() 
+	     << "send(net_obj(), name) || \n      !"
+	     << Options::ml->bundler_prefix()
+	     << "send(net_obj(), version)) ";
   out_stream << Options::error_state(true, 6, "igen_encode_err", "false");
 
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << "  if (!" << Options::ml->send_message() << ") ";
-      out_stream << Options::error_state(true, 6, "igen_send_err", "false");
-    }
+  out_stream << "  if (!" << Options::ml->send_message() << ") ";
+  out_stream << Options::error_state(true, 6, "igen_send_err", "false");
   out_stream << "  setVersionVerifyDone();\n";
-  out_stream << "  return true;\n" << endl;
-  out_stream << "}" << endl;
+  out_stream << "  return true;\n}" << endl;
+
   return true;
 }
 
 bool interface_spec::gen_client_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
-    if (Options::ml->name() != "mrnet")
-      {
-	out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
-      }
-    else
-      {
-	out_stream << "void " << gen_class_prefix(false) << "handle_error_mrnet() {\n";
-      }
+    out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
     out_stream << "cerr << \"Error condition found - handle_error\" << endl;\n";
     out_stream << "}\n\n";
   }
 
-
-  if (Options::ml->name() == "mrnet")// leave out the verify stuff for mrnet for now
-    {
-      return true;
-    }
-
-
   if (Options::ml->address_space() == message_layer::AS_many) {
+    out_stream << "bool  " << gen_class_prefix(false)
+               << "verifyProtocolAndVersion() {\n";
 
-
-    if (Options::ml->name() != "mrnet") 
-      {
-	out_stream << "bool  " << gen_class_prefix(false)
-		   << "verifyProtocolAndVersion() {\n";
-      }
-    else
-      {
-	out_stream << "bool  " << gen_class_prefix(false)
-		   << "verifyProtocolAndVersion(Stream * stream) {\n";
-      }
     out_stream << "  unsigned tag = " << Options::type_prefix() << "verify;\n";
+    out_stream << Options::set_dir_encode() << ";\n";
+    out_stream << "  if (!" << Options::ml->bundler_prefix()
+               << "send(net_obj(), tag)) ";
+    out_stream << Options::error_state(true, 6, "igen_encode_err", "false");
 
-    if (Options::ml->name() != "mrnet") 
-      {
-	out_stream << Options::set_dir_encode() << ";\n";
-	out_stream << "  if (!" << Options::ml->bundler_prefix()
-		   << "send(net_obj(), tag)) ";
-	out_stream << Options::error_state(true, 6, "igen_encode_err", "false");
+    out_stream << "  if (!" << Options::ml->send_message() << ") ";
+    out_stream << Options::error_state(true, 6, "igen_send_err", "false");
 
-	out_stream << "  if (!" << Options::ml->send_message() << ") ";
-	out_stream << Options::error_state(true, 6, "igen_send_err", "false");
-      }
-    else
-      {
-	out_stream << "\n//interface 2\n\tint sret = stream->send(tag,\"\",0);\n";
+    out_stream << "  if (!awaitResponse(" << Options::type_prefix() << "verify)) ";
+    out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
 
-	out_stream << "\tint fret = -1;" << endl;
-	out_stream << "\tif( sret != -1 ) {" << endl;
-	out_stream << "\t  fret = stream->flush();\n\t}" << endl;
-	
-	out_stream << "\tif( (sret == -1) || (fret == -1) )\n\t ";
-	out_stream << Options::error_state(true, 6, "igen_encode_err", "false");
-	
-	out_stream << std::flush;
-      }
-
+    out_stream << "  " << Options::set_dir_decode() << ";\n";
     out_stream << "  pdstring proto;\n";
- 
-   if (Options::ml->name() != "mrnet") 
-     {
-       //out_stream << "\tif( stream->recv( &tag,(void **)&buf,true) !=1)\n\t"<<endl;
-       out_stream << "  if (!awaitResponse(" << Options::type_prefix() << "verify)) ";
-       out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
-       out_stream << "  " << Options::set_dir_decode() << ";\n";
-       out_stream << "  if (!" << Options::ml->bundler_prefix()
-		  << "recv(net_obj(), proto) ||" << endl
-		  << "      !" << Options::ml->bundler_prefix() << "recv(net_obj(), tag)) {\n";
-       out_stream << "    set_err_state(igen_proto_err);\n";
-       out_stream << "    cerr << \"Protocol verify - bad response from server\" << endl;";
-       out_stream << "    handle_error(); exit(-1); return false;" << endl;
-       out_stream << "  }" << endl;
-
-     }
-   else
-     {
-       out_stream << "\tchar* buf;"<<endl;
-
-       out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
-
-       out_stream << "\tchar* proto_temp;\n";
-       out_stream << "\tif(Stream::unpack( buf,\"s\",proto_temp) == -1)\n\t{"<<endl;
-       out_stream << "\t    set_err_state(igen_proto_err);\n";
-       out_stream << "\t    cerr << \"Recieve error\" << endl;\n";
-       out_stream << "\t    handle_error_mrnet();\n";
-       out_stream << "\t    //exit(-1);\n";
-       out_stream << "\t    return false;" << endl;
-       out_stream << "\t}" << endl;
-       out_stream << "\tproto = proto_temp;\n";
-     }
+    out_stream << "  if (!" << Options::ml->bundler_prefix()
+               << "recv(net_obj(), proto) ||" << endl
+               << "      !" << Options::ml->bundler_prefix() << "recv(net_obj(), tag)) {\n";
+    out_stream << "    set_err_state(igen_proto_err);\n";
+    out_stream << "    cerr << \"Protocol verify - bad response from server\" << endl;";
+    out_stream << "    handle_error(); exit(-1); return false;" << endl;
+    out_stream << "  }" << endl;
+    
     out_stream << "  if ((tag != " << version() << " || proto != \""
                << name() << "\")) {" << endl;
     out_stream << "     cerr << \" Protocol " << name() << " version " << version()
-               << " expected\" << endl;"<<endl;
-    out_stream << "     cerr << \" Found Protocol \" << proto << \" version \" << tag << endl;"<<endl;
+               << " expected\" << endl;";
+    out_stream << "     cerr << \" Found Protocol \" << proto << \" version \" << tag << endl;";
     out_stream << "     set_err_state(igen_proto_err);\n";
 
-   if (Options::ml->name() != "mrnet") 
-     {
-       out_stream << "     handle_error();\n    return false;" << endl;
-     }
-   else
-     {
-       out_stream << "     handle_error_mrnet();\n    return false;" << endl;
-     }
+    out_stream << "     handle_error(); return false;" << endl;
     out_stream << "  }" << endl;
     // removed the exit(-1) so the caller can look at errorCondition flag
     // and do the polite thing.  Of course this raises a danger; the caller
@@ -809,14 +521,11 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
   return true;
 }
 
-//---------------------------------------------------------------------------
-
 bool interface_spec::gen_interface() const {
-
   // Generate <file>.xdr.h and <file>.xdr.C:
   gen_scope(Options::dot_h, Options::dot_c);
 
-  // Generate <file>.CLNT.xdr.h:
+   // Generate <file>.CLNT.xdr.h:
   gen_header(Options::clnt_dot_h, false); Options::clnt_dot_h << std::flush;
 
   // Generate <file>.SRVR.xdr.h:
@@ -853,21 +562,16 @@ bool interface_spec::gen_interface() const {
 
   Options::clnt_dot_c << endl;
   gen_client_verify(Options::clnt_dot_c); Options::clnt_dot_c << std::flush;
-     
+
   Options::srvr_dot_c << endl;
   gen_server_verify(Options::srvr_dot_c); Options::srvr_dot_c << endl;
-      
+
   if (Options::stl_seen) {
     gen_stl_temps();
   }
 
   return true;
 }
-
-
- //---------------------------------------------------------------------------
-
-
 
 // I am assuming that Vector has already been included
 bool interface_spec::gen_stl_temps() const {
@@ -965,51 +669,28 @@ bool interface_spec::gen_stl_temps() const {
 bool interface_spec::gen_process_buffered(ofstream &out_stream, bool srvr) const {
   if (!Options::ml->serial())
     return true;
-  if (Options::ml->name() == "mrnet")
-    {
-      out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
-		 << "process_buffered(Stream * stream) {\n";
-      out_stream << "if (!async_buffer.size()) return "
-		 << Options::type_prefix() << "error;\n";
-      out_stream << "return (delete_buffer(stream, head));\n";
-      out_stream << "}\n";
-      out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
-		 << "process_buffered(Stream *stream, unsigned index) {\n";
-      out_stream << "if (!async_buffer.size()) return "
-		 << Options::type_prefix() << "error;\n";
-      out_stream << "return (delete_buffer(stream, index));\n";
-      out_stream << "}\n";
-    }
-  else
-    {
-      out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
-		 << "process_buffered() {\n";
-      out_stream << "if (!async_buffer.size()) return "
-		 << Options::type_prefix() << "error;\n";
-      out_stream << "return (delete_buffer(head));\n";
-      out_stream << "}\n";
-      out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
-		 << "process_buffered(unsigned index) {\n";
-      out_stream << "if (!async_buffer.size()) return "
-		 << Options::type_prefix() << "error;\n";
-      out_stream << "return (delete_buffer(index));\n";
-      out_stream << "}\n";
-    }
+
+  out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
+	     << "process_buffered() {\n";
+  out_stream << "if (!async_buffer.size()) return "
+	     << Options::type_prefix() << "error;\n";
+
+  out_stream << "return (delete_buffer(head));\n";
+  out_stream << "}\n";
+
+  out_stream << Options::type_prefix() << "message_tags " << gen_class_prefix(srvr)
+	     << "process_buffered(unsigned index) {\n";
+  out_stream << "if (!async_buffer.size()) return "
+	     << Options::type_prefix() << "error;\n";
+  out_stream << "return (delete_buffer(index));\n";
+  out_stream << "}\n";
 
   out_stream << endl << endl;
 
   
-   if (Options::ml->name() == "mrnet")
-    {
-       out_stream << Options::type_prefix() << "message_tags "
-		  << gen_class_prefix(srvr) << "delete_buffer(Stream * stream, unsigned index) {\n";
-    }
-   else
-     { 
-       out_stream << Options::type_prefix() << "message_tags "
-		  << gen_class_prefix(srvr) << "delete_buffer(unsigned index) {\n";
-     }
-
+  
+  out_stream << Options::type_prefix() << "message_tags "
+             << gen_class_prefix(srvr) << "delete_buffer(unsigned index) {\n";
   out_stream << "  unsigned asize = async_buffer.size();" << endl;
   out_stream << "  assert(index < asize);" << endl;
   out_stream << "  " << Options::type_prefix()
@@ -1060,45 +741,22 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
 
   out_stream << "bool " << gen_class_prefix(srvr)
 	     << "awaitResponse(const " << Options::type_prefix()
-	     << "message_tags &target_tag,";
-
-  if (Options::ml->name() == "mrnet")
-    {
-      out_stream << " char* recv_buffer, Stream *stream,";
-    }
-
-  out_stream << " bool wait, bool *response) {" << endl;
+	     << "message_tags &target_tag, bool wait, bool *response) {" << endl;
   out_stream << "  unsigned tag;" << endl;
   out_stream << "  if (!wait) *response = false;" << endl;
   out_stream << "  if (get_err_state() != igen_no_err) return false;" << endl;
-  if (Options::ml->name() != "mrnet")
-    {
-      out_stream << "  " << Options::set_dir_decode() << ";" << endl;
-    }
+  out_stream << "  " << Options::set_dir_decode() << ";" << endl;
+
   out_stream << "  do {" << endl;
 
-  if (Options::ml->name() != "mrnet")
-    {
-      if (Options::ml->records_used())
-	{
-	  out_stream << "    if (!" << Options::ml->skip_message() << ") ";
-	  out_stream << Options::error_state(true, 9, "igen_read_err", "false");
-	}
-      out_stream << "    if (!" << Options::ml->recv_tag("net_obj()", "tag") << ") ";
-      out_stream << Options::error_state(true, 9, "igen_read_err", "false");
-    }
-  else
-    {
-      //out_stream << "\tMRN::Stream * stream;\n";
-      out_stream << "\tif( stream->recv( (int*)&tag,(void **)&recv_buffer,true) !=1)\n\t{"<<endl;
-      out_stream << "\t    set_err_state(igen_proto_err);\n";
-      out_stream << "\t    cerr << \"Protocol verify - bad response from server\" << endl;\n";
-      out_stream << "\t    handle_error_mrnet();\n";
-      out_stream << "\t    //exit(-1);\n";
-      out_stream << "\t    return false;" << endl;
-      out_stream << "\t}" << endl;
+  if (Options::ml->records_used()) {
+    out_stream << "    if (!" << Options::ml->skip_message() << ") ";
+    out_stream << Options::error_state(true, 9, "igen_read_err", "false");
+  }
 
-    }
+  out_stream << "    if (!" << Options::ml->recv_tag("net_obj()", "tag") << ") ";
+  out_stream << Options::error_state(true, 9, "igen_read_err", "false");
+
   out_stream << "    if (tag == (unsigned)target_tag) {" << endl;
   out_stream << "      if (!wait) *response = true;" << endl;
   out_stream << "      return true;" << endl;
@@ -1107,7 +765,6 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
   out_stream << "    switch (tag) {" << endl;
 
   out_stream << std::flush;
-
   for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->save_async_request("         ", out_stream, srvr);
     out_stream << std::flush;
@@ -1127,80 +784,53 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
 
   return true;
 }
-//------------------------------------------------------------------------------------
+
 bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
   out_stream << Options::type_prefix() << "message_tags "
 	     << gen_class_prefix(srvr) << "waitLoop(";
   
- 
-  if (Options::ml->address_space() == message_layer::AS_many)
-    {
-      if (Options::ml->name() == "mrnet")
-	out_stream << "Network * ntwrk";
-      out_stream << ") {\n";
-    }
-  else
-    {
-      if (Options::ml->name() == "mrnet")
-	out_stream << "Network * ntwrk, ";
-      out_stream << " bool specific, "
-		 << Options::type_prefix() << "message_tags mt, void** buffer) {\n"; 
-    }
-  
+  if (Options::ml->address_space() == message_layer::AS_many) {
+    out_stream << ") {\n";
+  } else {
+    out_stream << " bool specific, "
+	       << Options::type_prefix() << "message_tags mt, void** buffer) {\n"; 
+  }
+
   out_stream << "  " << Options::type_prefix() << "message_tags tag;\n";
-  
+
   out_stream << "  if (get_err_state() != igen_no_err) return "
 	     << Options::type_prefix() << "error;" << endl;
-  //------------------------------
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << "  " << Options::set_dir_decode() << ";" << endl;
-      
-      if (Options::ml->records_used()) {
-	if (Options::ml->skip()) {
-	  out_stream << "  if (!" << Options::ml->skip_message() << ") ";
-	  out_stream << Options::error_state(true, 6, "igen_read_err",
-					     Options::type_prefix()+"error");
-	}
-      }
-      
-      if (Options::ml->address_space() != message_layer::AS_one) 
-	{
-	  out_stream << "  if (!" << Options::ml->recv_tag("net_obj()", "tag") << ") ";
-	  out_stream << Options::error_state(true, 6, "igen_read_err",
-					   Options::type_prefix()+"error");
-	  out_stream << "  return switch_on(tag);" << endl;
-	}
-      else 
-	{
-	out_stream << "  if (!specific)" << endl;
-	out_stream << "    tag = " << Options::type_prefix() << "message_tags(MSG_TAG_ANY);\n";
-	out_stream << "  else \n";
-	out_stream << "    tag = mt;\n";
 
-	out_stream << "  void* msgBuf = NULL;\n";
-	out_stream << "  thread_t tid = THR_TID_UNSPEC;\n";
-	out_stream << "  int err = msg_recv(&tid, (unsigned*)&tag, &msgBuf);\n";
-	out_stream << "  setRequestingThread((err == THR_ERR) ? (unsigned)err : tid);\n";
-	out_stream << "  if (getRequestingThread() == THR_ERR) ";
-	out_stream << Options::error_state(true, 6, "igen_read_err",
-					   Options::type_prefix()+"error");
-	out_stream << "  return switch_on(tag, msgBuf, buffer);\n"; 
-      }
-    }
-  else
-    {
-      out_stream << "\tchar* recv_buffer = NULL;\n";
-      out_stream << "\tStream * stream;\n";
-      out_stream << "\tint sret = ntwrk->recv((int*)&tag,(void **)&recv_buffer,&stream,true);\n";
+  out_stream << "  " << Options::set_dir_decode() << ";" << endl;
 
-      out_stream << "\tif( sret != 1)\n\t ";
+  if (Options::ml->records_used()) {
+    if (Options::ml->skip()) {
+      out_stream << "  if (!" << Options::ml->skip_message() << ") ";
       out_stream << Options::error_state(true, 6, "igen_read_err",
 					 Options::type_prefix()+"error");
-      out_stream << "  return switch_on(stream, tag, recv_buffer );" << endl;
-      out_stream << std::flush;
     }
-  //-------------------------------------
+  }
+
+  if (Options::ml->address_space() != message_layer::AS_one) {
+    out_stream << "  if (!" << Options::ml->recv_tag("net_obj()", "tag") << ") ";
+    out_stream << Options::error_state(true, 6, "igen_read_err",
+				       Options::type_prefix()+"error");
+    out_stream << "  return switch_on(tag);" << endl;
+  } else {
+    out_stream << "  if (!specific)" << endl;
+    out_stream << "    tag = " << Options::type_prefix() << "message_tags(MSG_TAG_ANY);\n";
+    out_stream << "  else \n";
+    out_stream << "    tag = mt;\n";
+
+    out_stream << "  void* msgBuf = NULL;\n";
+    out_stream << "  thread_t tid = THR_TID_UNSPEC;\n";
+    out_stream << "  int err = msg_recv(&tid, (unsigned*)&tag, &msgBuf);\n";
+    out_stream << "  setRequestingThread((err == THR_ERR) ? (unsigned)err : tid);\n";
+    out_stream << "  if (getRequestingThread() == THR_ERR) ";
+    out_stream << Options::error_state(true, 6, "igen_read_err",
+				       Options::type_prefix()+"error");
+    out_stream << "  return switch_on(tag, msgBuf, buffer);\n"; 
+  }
 
   out_stream << "}" << endl;
   out_stream << endl;
@@ -1208,25 +838,12 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
   out_stream << Options::type_prefix() << "message_tags" << endl;
    
   out_stream << gen_class_prefix(srvr)
-	     << "switch_on(";
-  if (Options::ml->name() == "mrnet") 
-    {
-      out_stream << "Stream * stream, ";
-    }
-  out_stream << Options::type_prefix() << "message_tags tag";
+	     << "switch_on(" << Options::type_prefix() << "message_tags tag";
   if (Options::ml->address_space() == message_layer::AS_one) 
   {
     out_stream << ", void* msgBuf";
   }
-
-  if (Options::ml->name() != "mrnet") 
-    {
-      out_stream << ", void** buffer) {" << endl;
-    }
-  else
-    {
-      out_stream << ",char* recv_buffer, void** buffer, bool execute) {" << endl;
-    }
+  out_stream << ", void** buffer) {" << endl;
 
   if (Options::ml->address_space() == message_layer::AS_one) {
     out_stream << "  int val = THR_OKAY;\n";
@@ -1262,96 +879,40 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
 
    
   out_stream << endl;
-  if (Options::ml->address_space() != message_layer::AS_one) 
-    {
-      if(Options::ml->name() != "mrnet")
-	{
-	  out_stream << "bool " << gen_class_prefix(srvr)
-		     << "wait_for(" << Options::type_prefix() << "message_tags tag) {\n";
-	}
-      else
-	{
-	  out_stream << "bool " << gen_class_prefix(srvr)
-		     << "wait_for(Stream * stream, " << Options::type_prefix() << "message_tags tag) {\n";
-	}     
-      out_stream << "  unsigned size = async_buffer.size();\n";
-      out_stream << "  for (unsigned u=head; u<size; u++) \n";
-      out_stream << "    if (async_buffer[u]->data_type == tag) {\n";
+  if (Options::ml->address_space() != message_layer::AS_one) {
+    out_stream << "bool " << gen_class_prefix(srvr)
+	       << "wait_for(" << Options::type_prefix() << "message_tags tag) {\n";
 
-      if(Options::ml->name() == "mrnet")
-	{
-	  out_stream << "      if (process_buffered(stream, u) != tag) \n return false;\n";
-	}
-      else
-	{
-	  out_stream << "      if (process_buffered(u) != tag) \n return false;\n";
-	}
+    out_stream << "  unsigned size = async_buffer.size();\n";
+    out_stream << "  for (unsigned u=head; u<size; u++) \n";
+    out_stream << "    if (async_buffer[u]->data_type == tag) {\n";
+    out_stream << "      if (process_buffered(u) != tag) \n return false;\n";
+    out_stream << "      else \n return true;\n";
+    out_stream << "    }\n";
 
+    out_stream << "  if (!awaitResponse(tag)) ";
+    out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
+    
+    out_stream << "  if (!switch_on(tag)) \n return false;\n";
+    out_stream << "  else \n return true;\n";
+    out_stream << "}\n";
 
-      out_stream << "      else \n return true;\n";
-      out_stream << "    }\n";
-      
-      if(Options::ml->name() == "mrnet")
-	{
-	  out_stream << "  char* recv_buffer = NULL;" << endl; 
-	  //out_stream << "\tif( stream->recv( (int*)&tag,(void **)&recv_buffer,true) !=1)\n\t"<<endl;
-	  out_stream << "  if (!awaitResponse(tag, recv_buffer, stream)) ";
-	  out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
-	  
-	  out_stream << "  if (!switch_on(stream, tag, recv_buffer)) \n return false;\n";
-	  out_stream << "  else \n return true;\n";
-	  out_stream << "}\n";
-	}
-      else
-	{
-	  out_stream << "  if (!awaitResponse(tag)) ";
-	  out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
-	  
-	  out_stream << "  if (!switch_on(tag)) \n return false;\n";
-	  out_stream << "  else \n return true;\n";
-	  out_stream << "}\n";
-	}
     // New procedure required for async enableData requests
-    if(Options::ml->name() != "mrnet")
-      {
-	out_stream << "bool " << gen_class_prefix(srvr)
-		   << "wait_for_and_read(" << Options::type_prefix() 
-		   << "message_tags tag, void** buffer) {\n";
-	out_stream << "  bool response;\n";
-      }
-    else
-      {
- 	out_stream << "bool " << gen_class_prefix(srvr)
-		   << "wait_for_and_read(Stream *stream, " << Options::type_prefix() 
-		   << "message_tags tag, void** buffer) {\n";
-	out_stream << "  bool response;\n";
-     }
-
-    if(Options::ml->name() == "mrnet")
-      {
-	out_stream << "   char* recv_buffer = NULL;"<<endl;
-
-	//out_stream << "\tif( stream->recv( (int*)&tag,(void **)&recv_buffer,true) ==1)\n\t{\n\t"<<endl;
-	out_stream << "  if (awaitResponse(tag,recv_buffer,stream,false,&response)) {\n";
-	out_stream << "    if (response && switch_on(stream, tag, recv_buffer, buffer, false))\n";
-	out_stream << "\t\treturn(true);\n";
-	out_stream << "\t}\n";
-      }
-    else
-      {
-	out_stream << "  if (awaitResponse(tag,false,&response)) {\n";
-	out_stream << "    if (response && switch_on(tag,buffer))\n";
-	out_stream << "      return(true);\n";
-	out_stream << "  }\n";
-      }
-
+    out_stream << "bool " << gen_class_prefix(srvr)
+	       << "wait_for_and_read(" << Options::type_prefix() 
+	       << "message_tags tag, void** buffer) {\n";
+    out_stream << "  bool response;\n";
+    out_stream << "  if (awaitResponse(tag,false,&response)) {\n";
+    out_stream << "    if (response && switch_on(tag,buffer))\n";
+    out_stream << "      return(true);\n";
+    out_stream << "  }\n";
     out_stream << "  return(false);\n";    
     out_stream << "}\n";   
   }
   
   return true;
 }
-//---------------------------------------------------------------------------------
+
 bool interface_spec::new_remote_func(const pdstring *name, pdvector<arg*> *arglist,
 				     const remote_func::call_type &callT,
 				     bool is_virtual, const arg &return_arg,

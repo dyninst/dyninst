@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.19 2004/10/19 00:14:20 pack Exp $
+// $Id: templates.C,v 1.20 2004/10/19 01:23:42 pack Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
