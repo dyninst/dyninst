@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.44  1994/11/04 16:30:38  rbi
+ * Revision 1.45  1994/11/04 20:13:32  karavan
+ * added a status line.
+ *
+ * Revision 1.44  1994/11/04  16:30:38  rbi
  * added getAvailableDaemons()
  *
  * Revision 1.43  1994/11/03  20:54:01  karavan
@@ -180,6 +183,7 @@ double   quiet_nan(int unused);
 #include "DMinternals.h"
 #include "util/h/tunableConst.h"
 #include "util/h/kludges.h"
+#include "../UIthread/Status.h"
 
 tunableBooleanConstant printChangeCollection(FALSE, NULL, developerConstant,
     "printChangeCollection", 
@@ -443,7 +447,8 @@ Boolean applicationContext::addExecutable(char  *machine,
   executable *exec;
   paradynDaemon *daemon;
   String_Array programToRun; 
-
+  static status_line pidnum("Processes");
+  static char tmp_buf[256];
 
   if ((daemon = getDaemonHelper(machine, login, name)) ==
       (paradynDaemon*) NULL)
@@ -469,7 +474,9 @@ Boolean applicationContext::addExecutable(char  *machine,
   // did the application get started ok?
   if (pid > 0 && !daemon->did_error_occur()) {
     // TODO
-    fprintf (stderr, "PID is %d\n", pid);
+    sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
+    pidnum.message(tmp_buf);
+
     exec = new executable(pid, argc, argv, daemon);
     programs.add(exec);
     return (TRUE);
