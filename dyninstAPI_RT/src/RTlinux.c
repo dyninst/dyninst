@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.21 2003/06/10 17:45:32 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.22 2003/06/27 20:58:07 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -104,7 +104,8 @@ void _start( void ) {
 	fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 	}
 
-void R_BRK_TARGET() { // We may (have) want(ed) to make this an array, but I think it's better to make sure it's executable, for now.
+/* Ensure we an executable block of memory. */
+void R_BRK_TARGET() {
         /* Make sure we've got room for two bundles. */
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
@@ -293,7 +294,7 @@ int DYNINSTloadLibrary(char *libname)
   void *res;
   char *err_str;
   gLoadLibraryErrorString[0]='\0';
-  
+
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
     // An error has occurred
     perror( "DYNINSTloadLibrary -- dlopen" );
