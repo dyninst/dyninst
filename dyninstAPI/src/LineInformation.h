@@ -267,4 +267,20 @@ public:
 	void print();
 };
 
+#ifdef rs6000_ibm_aix4_1
+// This is only used in BPatch_module.C; the only reason it needs to be in a
+// header file is so that BPatch_templates.C can include it to instantiate
+// BPatch_Vector<IncludeFileInfo>.
+class IncludeFileInfo {
+public:
+	unsigned int begin;
+	unsigned int end;
+	string       name;
+
+	IncludeFileInfo() : begin(0), end(0) {};
+	IncludeFileInfo(int _begin, const char *_name) :
+		begin(_begin), end(0), name(_name) {};
+};
+#endif
+
 #endif /*_LineInformation_h_*/

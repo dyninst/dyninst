@@ -211,17 +211,8 @@ extern char *parseStabString(BPatch_module *, int linenum, char *str,
 #include <linenum.h>
 #include <syms.h>
 
-#define INC_FILE_SIZE 255
-
-typedef struct {
-	int count;
-	unsigned begin[INC_FILE_SIZE];	
-	unsigned end[INC_FILE_SIZE];
-	string* name[INC_FILE_SIZE];
-} IncludeFiles;
-
 void parseLineInformation(process* proc,LineInformation* lineInformation,
-			  IncludeFiles& includeFiles,string* currentSourceFile,
+			  BPatch_Vector<IncludeFileInfo>& includeFiles,string* currentSourceFile,
 			  char* symbolName,
 			  SYMENT *sym,
 			  Address linesfdptr,char* lines,int nlines)
@@ -230,17 +221,17 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
       union auxent *aux;
 
       /* if it is beginning of include files then update the data structure 
-         that keeps the beginning of the incoude files. If the include files contain 
+         that keeps the beginning of the include files. If the include files contain 
          information about the functions and lines we have to keep it */
       if (sym->n_sclass == C_BINCL){
-		includeFiles.begin[includeFiles.count] = (sym->n_value-linesfdptr)/LINESZ;
-		includeFiles.name[includeFiles.count] = new string(symbolName);
+		includeFiles.push_back(IncludeFileInfo((sym->n_value-linesfdptr)/LINESZ, symbolName));
       }
       /* similiarly if the include file contains function codes and line information
          we have to keep the last line information entry for this include file */
       else if (sym->n_sclass == C_EINCL){
-		includeFiles.end[includeFiles.count] = (sym->n_value-linesfdptr)/LINESZ;
-		includeFiles.count++;
+		if (includeFiles.size() > 0) {
+			includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
+		}
       }
       /* if the enrty is for a function than we have to collect all info
          about lines of the function */
@@ -284,22 +275,22 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 		aux = (union auxent*)((char*)bfsym+SYMESZ);
 		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
 
-		string* whichFile = currentSourceFile;
+		string whichFile = *currentSourceFile;
 		/* find in which file is it */
-		for(j=0;j<includeFiles.count;j++)
-			if((includeFiles.begin[j] <= (unsigned)initialLineIndex) &&
-			   (includeFiles.end[j] >= (unsigned)initialLineIndex)){
-				whichFile = includeFiles.name[j];
+		for(j=0;j<includeFiles.size();j++)
+			if((includeFiles[j].begin <= (unsigned)initialLineIndex) &&
+			   (includeFiles[j].end >= (unsigned)initialLineIndex)){
+				whichFile = includeFiles[j].name;
 				break;
 			}
 		lineInformation->insertSourceFileName(currentFunctionName,
-						     *whichFile);
+						      whichFile);
 		for(j=initialLineIndex+1;j<nlines;j++){
 			LINENO* lptr = (LINENO*)(lines+j*LINESZ);
 			if(!lptr->l_lnno)
 				break;
 	    		lineInformation->insertLineAddress(
-				currentFunctionName,*whichFile,
+				currentFunctionName,whichFile,
 				lptr->l_lnno+initialLine-1,
 				(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
 		}
@@ -329,7 +320,7 @@ void BPatch_module::parseTypes()
     BPatch_variableExpr *commonBlockVar;
     string* currentSourceFile = NULL;
 
-    IncludeFiles includeFiles;
+    BPatch_Vector<IncludeFileInfo> includeFiles;
 
     //Using pdmodule to get the image Object.
     imgPtr = mod->exec();
@@ -344,8 +335,6 @@ void BPatch_module::parseTypes()
 
 
     objPtr->get_line_info(nlines,lines,linesfdptr); 
-
-    includeFiles.count = 0;
 
     bool parseActive = true;
     for (i=0; i < nstabs; i++) {
@@ -499,8 +488,6 @@ void BPatch_module::parseTypes()
 	  }
       }
     }
-    for(i=0;i<includeFiles.count;i++)
-	delete includeFiles.name[i];
 }
 
 #endif

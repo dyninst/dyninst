@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.6 2001/02/01 16:22:41 pcroth Exp $
+// $Id: BPatch_Vector.h,v 1.7 2001/02/27 20:44:51 buck Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -72,7 +72,7 @@ public:
     void	push_back(const T& x);
     void	push_front(const T& x);
 
-    const T&	operator[](int n) const;
+    T&		operator[](int n) const;
 };
 
 // Reserve space for at least n entries in the vector
@@ -173,7 +173,7 @@ void BPatch_Vector<T>::push_front(const T& x)
 
 // Reference the nth element of the vector.
 template<class T>
-const T& BPatch_Vector<T>::operator[](int n) const
+T& BPatch_Vector<T>::operator[](int n) const
 {
     assert(data != NULL && n >= 0 && n < len);
     return data[n];

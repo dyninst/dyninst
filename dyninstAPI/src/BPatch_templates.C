@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.14 2000/12/13 19:57:47 tikir Exp $
+// $Id: BPatch_templates.C,v 1.15 2001/02/27 20:44:52 buck Exp $
 
 #include <sys/types.h>
 
@@ -59,6 +59,9 @@
 #include "common/h/refCounter.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
+#if defined(rs6000_ibm_aix4_1)
+#include "LineInformation.h"
+#endif
 
 class BPatch_point;
 class BPatch_field;
@@ -86,6 +89,9 @@ template class BPatch_Vector<instInstance *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<char *>;
 template class BPatch_Vector<unsigned long>;
+#if defined(rs6000_ibm_aix4_1)
+template class BPatch_Vector<IncludeFileInfo>;
+#endif
 
 template struct comparison<unsigned short>;
 template class BPatch_Set<unsigned short>;

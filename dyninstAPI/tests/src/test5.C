@@ -211,7 +211,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
-#if !defined(i386_unknown_nt4_0)
+#if defined(sparc_sun_solaris2_4)
     BPatch_Vector<BPatch_point *> *point2_1 =
        appImage->findProcedurePoint("overload_func_test::func_cpp", BPatch_subroutine);
     if (!point2_1 || (point2_1->size() < 2)) {
