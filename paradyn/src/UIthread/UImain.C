@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.42  1995/02/16 08:20:48  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages
+/* Revision 1.43  1995/02/27 18:55:43  tamches
+/* Minor include change to placate compiler.
 /*
+ * Revision 1.42  1995/02/16  08:20:48  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages
+ *
  * Revision 1.41  1995/01/26  17:58:57  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -217,8 +220,15 @@ static char *geometry = NULL;
  */
 
 extern "C" {
+  // "Type qualifiers conflict with previous declaration:", so I commented it out -AT 1/23/95
+  // (besides, why not just #include <stdlib.h>?)
+//  void		exit _ANSI_ARGS_((int status));
+
+  char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
+
   /* void		exit _ANSI_ARGS_((int status)); */
   /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
+
   int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
         Tcl_Interp *interp, int argc, char **argv));
 }
