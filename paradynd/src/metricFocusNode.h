@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.76 2001/09/05 19:06:38 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.77 2001/09/07 15:22:28 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -841,6 +841,9 @@ public:
   bool checkAndInstallInstrumentation();
 
   bool isOkayedToSample() { return okayedToSample; }
+  bool childrenMdnNeedingInitializing() { return partsNeedingInitializing; }
+  void notifyMdnsOfNewParts();
+  void initChildrenMdnPartsWhereNeeded(timeStamp t, pdSample s);
 
   timeLength originalCost() const { return originalCost_; }
 
@@ -1068,7 +1071,7 @@ private:
   // samples[i] is the sample of aggregators[i].
 
   bool okayedToSample;  // set to true when okayToSample
-
+  bool partsNeedingInitializing;
 #if defined(MT_THREAD)
                                        //  following 5 memorizing stuff --- for PROC_COMP only
   // data required to add threads - naim
