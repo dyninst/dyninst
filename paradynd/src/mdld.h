@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdld.h,v 1.15 2002/05/09 21:42:54 schendel Exp $
+// $Id: mdld.h,v 1.16 2002/05/10 18:37:38 schendel Exp $
 
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
 
-#include "paradynd/src/metric.h"
+#include "pdutil/h/metricStyle.h"
 #include "paradynd/src/comm.h"
 
 typedef struct {
@@ -62,7 +62,7 @@ extern machineMetFocusNode *mdl_do(int mid,
 				   bool, bool);
 extern bool mdl_can_do(string& metric_name);
 
-//extern metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
+//extern metricFocusNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
 //					       string& met_name,
 //					       string& flat_name,
 //					       vector<process *> procs);

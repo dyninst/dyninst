@@ -44,6 +44,12 @@
 
 /* 
  * $Log: metricDef.h,v $
+ * Revision 1.8  2002/05/10 18:37:39  schendel
+ * add ability in daemon to adjust existing metric-focuses for thread creation
+ *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ * removed extraneous header file, metric.h;
+ * changed name of class from metricDefinitionNode to metricFocusNode;
+ *
  * Revision 1.7  1997/02/21 20:16:00  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -76,67 +82,66 @@
  */
 
 #include "dyninstAPI/src/ast.h"
-#include "metric.h"
 
 // os independent predicate functions
 // the following functions return a predicate (counter) that can
 // be used to evaluate a condition
-extern AstNode *defaultModulePredicate(metricDefinitionNode *mn,
+extern AstNode *defaultModulePredicate(metricFocusNode *mn,
 				       char *constraint,
 				       AstNode *pred);
 
-extern AstNode *defaultProcessPredicate(metricDefinitionNode *mn,
+extern AstNode *defaultProcessPredicate(metricFocusNode *mn,
 					char *process,
 					AstNode *pred);
 
-extern AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn, 
+extern AstNode *defaultMSGTagPredicate(metricFocusNode *mn, 
 				       char *tag,
 				       AstNode *trigger);
 
-extern AstNode *defaultProcessPredicate(metricDefinitionNode *mn,
+extern AstNode *defaultProcessPredicate(metricFocusNode *mn,
 					char *constraint,
 					AstNode *trigger);
 
 // Note - the following functions always return NULL since they
 // are predicates that are used to replace a base metric, they
 // do not return a predicate that can be used to evaluate a condition
-extern AstNode *perModuleWallTime(metricDefinitionNode *mn, 
+extern AstNode *perModuleWallTime(metricFocusNode *mn, 
 				  char *constraint, 
 				  AstNode *trigger);
 
-extern AstNode *perModuleCPUTime(metricDefinitionNode *mn, 
+extern AstNode *perModuleCPUTime(metricFocusNode *mn, 
 				 char *constraint, 
 				 AstNode *trigger);
 
-extern AstNode *perModuleCalls(metricDefinitionNode *mn, 
+extern AstNode *perModuleCalls(metricFocusNode *mn, 
 			       char *constraint, 
 			       AstNode *trigger);
 
 // os independent metric functions
-extern void createCPUTime(metricDefinitionNode *mn, AstNode *pred);
-extern void createProcCalls(metricDefinitionNode *mn, AstNode *pred);
-extern void createObservedCost(metricDefinitionNode *mn, AstNode *pred);
-extern void createCPUTime(metricDefinitionNode *mn, AstNode *pred);
-extern void createExecTime(metricDefinitionNode *mn, AstNode *pred);
-extern void createSyncOps(metricDefinitionNode *mn, AstNode *trigger);
-extern void createMsgs(metricDefinitionNode *mn, AstNode *trigger);
-extern void dummyCreate(metricDefinitionNode *mn, AstNode *trigger);
+extern void createCPUTime(metricFocusNode *mn, AstNode *pred);
+extern void createProcCalls(metricFocusNode *mn, AstNode *pred);
+extern void createObservedCost(metricFocusNode *mn, AstNode *pred);
+extern void createCPUTime(metricFocusNode *mn, AstNode *pred);
+extern void createExecTime(metricFocusNode *mn, AstNode *pred);
+extern void createSyncOps(metricFocusNode *mn, AstNode *trigger);
+extern void createMsgs(metricFocusNode *mn, AstNode *trigger);
+extern void dummyCreate(metricFocusNode *mn, AstNode *trigger);
 
 // os dependent metric functions
-extern void createSyncWait(metricDefinitionNode *mn, AstNode *trigger);
-extern void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr);
-extern void createMsgBytesRecv(metricDefinitionNode *mn, AstNode *tr);
-extern void createMsgBytesTotal(metricDefinitionNode *mn, AstNode *tr);
+extern void createSyncWait(metricFocusNode *mn, AstNode *trigger);
+extern void createMsgBytesSent(metricFocusNode *mn, AstNode *tr);
+extern void createMsgBytesRecv(metricFocusNode *mn, AstNode *tr);
+extern void createMsgBytesTotal(metricFocusNode *mn, AstNode *tr);
 
-extern void createIOBytesTotal(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOBytesRead(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOBytesWrite(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOOps(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOWait(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOReadWait(metricDefinitionNode *mn, AstNode *tr);
-extern void createIOWriteWait(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOBytesTotal(metricFocusNode *mn, AstNode *tr);
+extern void createIOBytesRead(metricFocusNode *mn, AstNode *tr);
+extern void createIOBytesWrite(metricFocusNode *mn, AstNode *tr);
+extern void createIOOps(metricFocusNode *mn, AstNode *tr);
+extern void createIOWait(metricFocusNode *mn, AstNode *tr);
+extern void createIOReadWait(metricFocusNode *mn, AstNode *tr);
+extern void createIOWriteWait(metricFocusNode *mn, AstNode *tr);
 
-extern void instAllFunctions(metricDefinitionNode *nm,
+extern void instAllFunctions(metricFocusNode *nm,
 			     unsigned tag,		/* bit mask to use */
 			     AstNode *enterAst,
 			     AstNode *leaveAst);
