@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.23  1994/11/03 16:05:31  rbi
+ * Revision 1.24  1994/11/09 18:38:36  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.23  1994/11/03  16:05:31  rbi
  * eliminated argc from addExecutable interface
  *
  * Revision 1.22  1994/11/02  11:41:27  markc
@@ -88,7 +91,7 @@ int createDaemon(char *machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 20;
+    $version 21;
 
     //
     // Define a program to run. 
@@ -155,6 +158,13 @@ $remote dynRPC {
 						       double startTimeStamp, 
 						       double endTimeStamp, 
 						       double value);
+
+   // 
+   // Handler that reports the initial time for which a daemon reports a sample
+   // The earliest (absolute) initial time will become the base time (0)
+   //
+   $virtual $upcall $async void firstSampleCallback(int program,
+                                                    double time);
 
     //
     // Handler that gets called when a new resource is defined.
@@ -243,6 +253,11 @@ $remote dynRPC {
     // stdio or stderr from an application.
     //
     $upcall $async void applicationIO(int pid, int len, char *line);
+
+    //
+    // stdio or stderr from an application.
+    //
+    $virtual $upcall $async void reportStatus(const char *line);
 
     //
     // Debugger style calls.

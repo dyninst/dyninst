@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.32 1994/11/06 18:29:56 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.33 1994/11/09 18:40:31 rbi Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.32  1994/11/06 18:29:56  rbi
+ * Revision 1.33  1994/11/09 18:40:31  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.32  1994/11/06  18:29:56  rbi
  * hid some debugging output.
  *
  * Revision 1.31  1994/11/02  11:14:21  markc
@@ -255,6 +258,11 @@ void logLine(const char *line)
     }
 }
 
+void statusLine(const char *line)
+{
+  tp->reportStatus(line);
+}
+
 void processTraceStream(process *curr)
 {
     int ret;
@@ -263,13 +271,9 @@ void processTraceStream(process *curr)
     traceHeader header;
     struct _association *a;
 
-    // each process has its own buffer
-    // int bufStart;		/* current starting point */
+    ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), 
+	       sizeof(curr->buffer)-curr->bufEnd);
 
-    // static char buffer[2048];	/* buffer for data */
-    // static int bufEnd = 0;	/* last valid data in buffer */
-
-    ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), sizeof(curr->buffer)-curr->bufEnd);
     if (ret < 0) {
         logLine("read error, exiting");
 	exit(-2);
@@ -314,19 +318,24 @@ void processTraceStream(process *curr)
 	recordData = &(curr->buffer[curr->bufStart]);
 	curr->bufStart +=  header.length;
 
+	if (!firstRecordTime)
+	    firstRecordTime = header.wall;
+
 	/*
 	 * convert header to time based on first record.
 	 *
 	 */
-	if (!firstRecordTime) {
+	if (!curr->getFirstRecordTime()) {
 	    double st;
 
-	    firstRecordTime = header.wall;
-	    st = firstRecordTime/1000000.0;
-	    sprintf(errorLine, "started at %f\n", st);
-	    logLine(errorLine);
+	    curr->setFirstRecordTime(header.wall);
+	    st = curr->getFirstRecordTime() / 1000000.0;
+	    /* sprintf(errorLine, "started at %f\n", st);*/
+	    /* logLine(errorLine);*/
+	    // report sample here
+	    tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
 	}
-	header.wall -= firstRecordTime;
+	// header.wall -= curr->firstRecordTime();
 
 	switch (header.type) {
 	    case TR_FORK:
@@ -343,14 +352,15 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_MULTI_FORK:
-		logLine("got TR_MULTI_FORK record\n");
 		CMMDhostless = true;
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);
+		statusLine("node daemon started");
 		break;
 
 	    case TR_SAMPLE:
 		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
 		// logLine(errorLine);
+		assert(curr->getFirstRecordTime());
 		processSample(&header, (traceSample *) recordData);
 		firstSampleReceived = true;
 		break;
@@ -467,7 +477,10 @@ int handleSigChild(int pid, int status)
 	    case SIGCONT:
 		// printf("caught signal, forwarding...  (sig=%d)\n", 
 		//       WSTOPSIG(status));
-		osForwardSignal(pid, WSTOPSIG(status));
+		if (osForwardSignal(pid, WSTOPSIG(status))) {
+                     logLine("error  in forwarding  signal\n");
+                     abort();
+                }
 		break;
 
 	    default:

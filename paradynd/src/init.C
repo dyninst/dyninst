@@ -1,8 +1,8 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.2  1994/11/07 16:15:43  jcargill
- * Fixed bug in predicate list defns; observed_cost and default preds
+ * Revision 1.3  1994/11/09 18:40:01  rbi
+ * the "Don't Blame Me" commit
  *
  * Revision 1.1  1994/11/01  16:56:42  markc
  * Environment code that is shared by all environs (pvm, cm5, sunos)
@@ -29,6 +29,8 @@ resourcePredicate *procCallsPredicates = NULL;
 resourcePredicate *msgPredicates = NULL;
 resourcePredicate *globalOnlyPredicates = NULL;
 resourcePredicate *defaultPredicates = NULL;
+resourcePredicate *ioPredicates = NULL;
+
 instMapping *initialRequests = NULL;
 metric *DYNINSTallMetrics = NULL;
 int metricCount = 0;

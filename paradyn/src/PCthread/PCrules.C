@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.20  1994/10/25 22:08:10  hollings
+ * Revision 1.21  1994/11/09 18:39:46  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.20  1994/10/25  22:08:10  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -132,7 +135,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.20 1994/10/25 22:08:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.21 1994/11/09 18:39:46 rbi Exp $";
 #endif
 
 #include <stdio.h>
@@ -337,7 +340,8 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     if (pcEvalPrint.getValue()) {
 	cout << "highCPUtoSyncRatio " << (char *) currentFocus->getName();
 	cout << " >? V=";
-	cout << (cpu / processes) << " A=" << (factor * normalize) << "\n";
+	cout << "(" << cpu << "/" << processes << ")" << (cpu / processes) << " A=" <<
+	  "(" << factor << "*" << normalize << ")" << (factor * normalize) << "\n";
 	if (factor < highCPUtoSyncRatioThreshold)
 	    cout << "    factor was " << factor << "\n";
     }

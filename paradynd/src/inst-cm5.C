@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.20 1994/11/02 11:06:16 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.21 1994/11/09 18:40:05 rbi Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.20  1994/11/02 11:06:16  markc
+ * Revision 1.21  1994/11/09 18:40:05  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.20  1994/11/02  11:06:16  markc
  * Removed redundant code into inst.C
  * Provide "tag" dictionary for known functions.
  *
@@ -378,3 +381,5 @@ float computePauseTimeMetric()
     return(max);
 }
 
+void osDependentInst(process *proc) {
+}

@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.9  1994/11/02 11:18:03  markc
+ * Revision 1.10  1994/11/09 18:40:42  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.9  1994/11/02  11:18:03  markc
  * Instantiated new classes here.
  *
  * Revision 1.8  1994/09/22  02:27:18  markc
@@ -68,6 +71,7 @@ typedef vector<heapItem*> a4;
 typedef vector<resourcePredicate*> a5;
 typedef vector<Symbol> a6;
 
+typedef dictionary_hash <int, dataReqNode*> lb;
 typedef dictionary_hash <Address, Symbol*> la;
 typedef dictionary_hash <instPoint*, point*> l0;
 typedef dictionary_hash <string, unsigned> l1;

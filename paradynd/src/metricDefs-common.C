@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.9 1994/11/02 11:12:52 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.10 1994/11/09 18:40:22 rbi Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.9  1994/11/02 11:12:52  markc
+ * Revision 1.10  1994/11/09 18:40:22  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.9  1994/11/02  11:12:52  markc
  * Removed static lists and replaced them with lists initialized
  * int init-<>.C
  *
@@ -88,6 +91,9 @@ extern "C" {
 #include "rtinst/h/trace.h"
 #include "metricDef.h"
 #include "os.h"
+
+// this flag is checked on writes to determine how to use the cost
+static dictionary_hash<int, dataReqNode*> msgFlags(intHash);
 
 //
 // input: 
@@ -164,12 +170,14 @@ void createDefaultFuncPred(metricDefinitionNode *mn,
 
     enterNode = createPrimitiveCall("setCounter", dataPtr, 1);
     leaveNode = createPrimitiveCall("setCounter", dataPtr, 0);
-
+    assert(enterNode);
+    assert(leaveNode);
     if (pred) {
 	enterNode = createIf(pred, enterNode);
 	leaveNode = createIf(pred, leaveNode);
     }
-
+    assert(enterNode);
+    assert(leaveNode);
     for (i = 0; i < func->calls.size(); i++) {
       if (callsTrackedFuncP(func->calls[i])) {
 	mn->addInst(func->calls[i], leaveNode,
@@ -225,6 +233,7 @@ AstNode *defaultModulePredicate(metricDefinitionNode *mn,
     }
 
     dataPtr = mn->addIntCounter(0, false);
+    assert(dataPtr);
 
     if (func) {
       // function in a module
@@ -255,8 +264,9 @@ void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
     dataReqNode *counter;
 
     counter = mn->addIntCounter(0, true);
+    assert(counter);
     newCall = createPrimitiveCall("addCounter", counter, 1);
-
+    assert(newCall);
     dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
     unsigned u; pdFunction *pdf;
     while (fi.next(u, pdf)) {
@@ -297,50 +307,16 @@ void createObservedCost(metricDefinitionNode *mn, AstNode *pred)
     dataReqNode *dataPtr;
 
     dataPtr = mn->addIntCounter(0, false);
+    assert(dataPtr);
 
     sampler = (mn->proc->symbols)->findOneFunction("DYNINSTsampleValues");
     assert(sampler);
     reportNode = new AstNode("DYNINSTreportCost", 
 		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
+    assert(reportNode);
     mn->addInst(sampler->funcEntry, reportNode, callPreInsn, orderLastAtPoint);
 }
 
-void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
-{
-    pdFunction *func;
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(processTime);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (pred) startNode = createIf(pred, startNode);
-
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (pred) stopNode = createIf(pred, stopNode);
-
-    instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
-
-    func = (mn->proc->symbols)->findOneFunction("main");
-    assert(func);
-    mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
-
-    mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
-
-    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
-    assert(func);
-
-    mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
-
-    // TODO - why is this in a common file -> CM is a CM-5 function
-    func = (mn->proc->symbols)->findOneFunction("CMNA_dispatch_idle"); 
-    if (func) {
-      mn->addInst(func->funcReturn, startNode, callPreInsn,orderLastAtPoint); 
-      mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint); 
-    } 
-}
 
 void createExecTime(metricDefinitionNode *mn, AstNode *pred)
 {
@@ -349,12 +325,16 @@ void createExecTime(metricDefinitionNode *mn, AstNode *pred)
     AstNode *startNode, *stopNode;
 
     dataPtr = mn->addTimer(wallTime);
-
+    assert(dataPtr);
     startNode = createPrimitiveCall("DYNINSTstartWallTimer", dataPtr, 0);
+    assert(startNode);
     if (pred) startNode = createIf(pred, startNode);
+    assert(startNode);
 
     stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
+    assert(stopNode);
     if (pred) stopNode = createIf(pred, stopNode);
+    assert(stopNode);
 
     func = (mn->proc->symbols)->findOneFunction("main");
     assert(func);
@@ -374,9 +354,11 @@ void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
     dataReqNode *counter;
     
     counter = mn->addIntCounter(0, true);
-
+    assert(counter);
     newSyncOp = createPrimitiveCall("addCounter", counter, 1);
+    assert(newSyncOp);
     if (trigger) newSyncOp = createIf(trigger, newSyncOp);
+    assert(newSyncOp);
 
     instAllFunctions(mn, TAG_CPU_STATE, newSyncOp, NULL);
 }
@@ -394,10 +376,11 @@ void createMsgs(metricDefinitionNode *mn, AstNode *trigger)
     dataReqNode *counter;
     
     counter = mn->addIntCounter(0, true);
-
+    assert(counter);
     newMsgOp = createPrimitiveCall("addCounter", counter, 1);
+    assert(newMsgOp);
     if (trigger) newMsgOp = createIf(trigger, newMsgOp);
-
+    assert(newMsgOp);
     instAllFunctions(mn, TAG_MSG_SEND | TAG_MSG_RECV, newMsgOp, NULL);
 }
 
@@ -417,13 +400,16 @@ void perProcedureWallTime(metricDefinitionNode *mn,
     AstNode *startNode, *stopNode;
 
     if (!dataPtr) dataPtr = mn->addTimer(wallTime);
+    assert(dataPtr);
 
     startNode = createPrimitiveCall("DYNINSTstartWallTimer", dataPtr, 0);
+    assert(startNode);
     if (pred) startNode = createIf(pred, startNode);
-
+    assert(startNode);
     stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
+    assert(stopNode);
     if (pred) stopNode = createIf(pred, stopNode);
-
+    assert(stopNode);
     for (i = 0; i < func->calls.size(); i++) {
       if (callsTrackedFuncP(func->calls[i])) {
 	mn->addInst(func->calls[i], stopNode,
@@ -452,6 +438,7 @@ AstNode *perModuleWallTime(metricDefinitionNode *mn,
   }
 
   result = mn->addTimer(wallTime);
+  assert(result);
 
   if (func) {
     // do one function in one module
@@ -479,15 +466,17 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
     AstNode *startNode, *stopNode;
 
     if (!dataPtr) dataPtr = mn->addTimer(processTime);
-
+    assert(dataPtr);
     startNode = new AstNode("DYNINSTstartProcessTimer", 
 	new AstNode(DataValue, dataPtr), NULL);
+    assert(startNode);
     if (trigger) startNode = createIf(trigger, startNode);
-
+    assert(startNode);
     stopNode = new AstNode("DYNINSTstopProcessTimer", 
 	new AstNode(DataValue, dataPtr), NULL);
+    assert(stopNode);
     if (trigger) stopNode = createIf(trigger, stopNode);
-
+    assert(stopNode);
     for (i = 0; i < func->calls.size(); i++) {
       if (callsTrackedFuncP(func->calls[i])) {
 	mn->addInst(func->calls[i], stopNode,
@@ -520,6 +509,7 @@ AstNode *perModuleCPUTime(metricDefinitionNode *mn,
   }
 
   result = mn->addTimer(processTime);
+  assert(result);
 
   if (func) {
     // do one function in one module
@@ -547,8 +537,9 @@ AstNode *perProcedureCalls(metricDefinitionNode *mn,
     assert(counter);
 
     newCall = createPrimitiveCall("addCounter", counter, 1);
+    assert(newCall);
     if (trigger) newCall = createIf(trigger, newCall);
-
+    assert(newCall);
     mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
     return NULL;
 }
@@ -570,6 +561,7 @@ AstNode *perModuleCalls(metricDefinitionNode *mn,
   }
 
   counter = mn->addIntCounter(0, true);
+  assert(counter);
 
   if (func) {
     // do one function in one module
@@ -584,5 +576,6 @@ AstNode *perModuleCalls(metricDefinitionNode *mn,
     return NULL;
   }
 }
+
 
 

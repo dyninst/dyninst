@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.20 1994/11/02 11:15:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.21 1994/11/09 18:40:33 rbi Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.20  1994/11/02 11:15:17  markc
+ * Revision 1.21  1994/11/09 18:40:33  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.20  1994/11/02  11:15:17  markc
  * Started to make process into a class.
  *
  * Revision 1.19  1994/10/13  07:24:56  krisna
@@ -396,6 +399,7 @@ process *createProcess(char *file, int argvCount, char *argv[],
 	}
 
 	/* parent */
+	statusLine("initializing process data structures");
 	// sprintf(name, "%s", (char*)img->name);
 	ret = allocateProcess(pid, img->name);
 	ret->symbols = img;
@@ -406,6 +410,7 @@ process *createProcess(char *file, int argvCount, char *argv[],
 	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
 	close(ioPipe[1]);
+	statusLine("ready");
 	return(ret);
     } else if (pid == 0) {
 #ifdef PARADYND_PVM

@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.15  1994/11/02 11:06:18  markc
+ * Revision 1.16  1994/11/09 18:40:08  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.15  1994/11/02  11:06:18  markc
  * Removed redundant code into inst.C
  * Provide "tag" dictionary for known functions.
  *
@@ -59,7 +62,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.15 1994/11/02 11:06:18 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.16 1994/11/09 18:40:08 rbi Exp $";
 
 #include "util/h/kludges.h"
 
@@ -180,7 +183,6 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
-
     tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT | TAG_CPU_STATE;
     tagDict["read"] =  TAG_LIB_FUNC | TAG_IO_IN | TAG_CPU_STATE;
     tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
@@ -190,14 +192,11 @@ void initLibraryFunctions()
     tagDict["pvm_bufinfo"] = TAG_LIB_FUNC;
     tagDict["pvm_getsbuf"] = TAG_LIB_FUNC;
     tagDict["pvm_getrbuf"] = TAG_LIB_FUNC;
-    tagDict["pvm_barrier"] = TAG_LIB_FUNC | TAG_SYNC_FUNC | TAG_CPU_STATE;
+    // tagDict["pvm_barrier"] = TAG_LIB_FUNC | TAG_SYNC_FUNC | TAG_CPU_STATE;
+    // tagDict["pvm_mcast"] =  TAG_LIB_FUNC | TAG_MSG_FUNC | TAG_CPU_STATE;
 
-    /* DONT COLLECT DATA FOR THIS NOW
-       tagDict["pvm_mcast"] =  TAG_LIB_FUNC | TAG_MSG_FUNC | TAG_CPU_STATE;
-       */
-
-    tagDict["pvm_send"] = TAG_LIB_FUNC | TAG_MSG_SEND | TAG_CPU_STATE;
-    tagDict["pvm_recv"] = TAG_LIB_FUNC | TAG_MSG_RECV | TAG_CPU_STATE;
+    tagDict["pvm_send"] = TAG_LIB_FUNC | TAG_MSG_SEND;
+    tagDict["pvm_recv"] = TAG_LIB_FUNC | TAG_MSG_RECV;
 }
 
 void instCleanup()
@@ -218,7 +217,7 @@ float computePauseTimeMetric()
     now = getCurrentTime(false);
     if (firstRecordTime && firstSampleReceived) {
 	elapsed = elapsedPauseTime - reportedPauseTime;
-	if (applicationPaused) {
+	if (isApplicationPaused()) {
 	    elapsed += now - startPause;
 	}
 	assert(elapsed >= 0.0); 
@@ -228,5 +227,6 @@ float computePauseTimeMetric()
 	return(0.0);
     }
 }
+
 
 

@@ -7,7 +7,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
- * Revision 1.5  1994/11/02 11:18:52  markc
+ * Revision 1.6  1994/11/09 18:40:44  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.5  1994/11/02  11:18:52  markc
  * Remove old malloc wrappers.
  *
  * Revision 1.4  1994/09/22  02:27:52  markc
@@ -35,6 +38,7 @@
 #include "util/h/kludges.h"
 
 extern void logLine(const char *line);
+extern void statusLine(const char *line);
 extern char errorLine[];
 extern int intComp(const void *, const void *);
 

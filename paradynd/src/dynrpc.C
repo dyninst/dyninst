@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.12 1994/11/06 09:53:08 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.13 1994/11/09 18:39:58 rbi Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.12  1994/11/06 09:53:08  jcargill
+ * Revision 1.13  1994/11/09 18:39:58  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.12  1994/11/06  09:53:08  jcargill
  * Fixed early paradynd startup problem; resources sent by paradyn were
  * being added incorrectly at the root level.
  *
@@ -182,6 +185,7 @@ double dynRPC::getPredictedDataCost(String_Array focusString, char *metName)
 
 double dynRPC::getCurrentHybridCost(void)
 {
+    statusLine("returning cost measurements");
     return(currentHybridValue);
 }
 
@@ -190,6 +194,8 @@ void dynRPC::disableDataCollection(int mid)
     float cost;
     metricDefinitionNode *mi;
 
+//    commented out because it seems to perturb PC  -rbi 11/8/94
+//    statusLine("altering instrumentation");  
     if (!allMIs.defines(mid)) {
       sprintf(errorLine, "disableDataCollection mid %d not found\n", mid);
       logLine(errorLine);
@@ -252,6 +258,9 @@ int dynRPC::enableDataCollection(String_Array focusString, char *met)
     start = tv.tv_sec * 1000000 + tv.tv_usec;
 #endif
 
+//  commented out because it seems to perturb PC  -rbi 11/8/94
+//    statusLine("altering instrumentation");
+
     m = findMetric(met);
     l = findFocus(focusString.count, focusString.data);
     if (!l) return(-1);
@@ -269,6 +278,7 @@ int dynRPC::enableDataCollection(String_Array focusString, char *met)
 #endif
 
     totalInstTime += (end - start);
+
     return(id);
 }
 
@@ -292,6 +302,7 @@ Boolean dynRPC::detachProgram(int program,Boolean pause)
 void dynRPC::continueApplication(void)
 {
     continueAllProcesses();
+    statusLine("application running");
 }
 
 //
@@ -312,6 +323,7 @@ void dynRPC::continueProgram(int program)
 Boolean dynRPC::pauseApplication(void)
 {
     pauseAllProcesses();
+    statusLine("application paused");
     return TRUE;
 }
 
@@ -331,6 +343,7 @@ Boolean dynRPC::pauseProgram(int program)
 
 Boolean dynRPC::startProgram(int program)
 {
+    statusLine("starting application");
     continueAllProcesses();
     return(False);
 }

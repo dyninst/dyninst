@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.51  1994/11/03 21:58:49  karavan
+ * Revision 1.52  1994/11/09 18:39:34  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.51  1994/11/03  21:58:49  karavan
  * Allow blank string for parent resource name so paradyndSIM will work
  *
  * Revision 1.50  1994/11/03  20:54:13  karavan
@@ -191,7 +194,7 @@ double   quiet_nan(int unused);
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
-
+#include "../UIthread/Status.h"
 
 tunableBooleanConstant printSampleArrival(False, NULL, developerConstant,
     "printSampleArrival", 
@@ -332,6 +335,8 @@ void dynRPCUser::applicationIO(int pid, int len, char *data)
     strcpy(extra, rest);
 }
 
+extern status_line *DMstatus;
+
 void dynRPCUser::resourceBatchMode(Boolean onNow)
 {
     int prev;
@@ -368,6 +373,12 @@ void dynRPCUser::resourceInfoCallback(int program,
     resource *parent;
     stringHandle iName;
 
+//
+//  Commented out because it slows resource 
+//  movement from paradynd to paradyn
+//
+//    (*DMstatus) << "receiving resources";
+
     // create the resource.
     if (parentString && *parentString) {
 	// non-null string.
@@ -378,6 +389,12 @@ void dynRPCUser::resourceInfoCallback(int program,
 	parent = resource::rootResource;
     }
     createResource(parent, name, abstr);
+
+//
+//  Commented out because it slows resource 
+//  movement from paradynd to paradyn
+//
+//    (*DMstatus) << "ready";
 }
 
 void dynRPCUser::mappingInfoCallback(int program,
@@ -471,6 +488,18 @@ void dynRPCUser::newMetricCallback(metricInfo info)
     addMetric(info);
 }
 
+void dynRPCUser::firstSampleCallback (int program,
+                                      double firstTime) {
+
+  assert(0 && "Invalid virtual function");
+}
+
+void paradynDaemon::firstSampleCallback(int program,
+					double firstTime) {
+  assert(dm);
+  setEarliestFirstTime(dm->firstSampleTime(program, firstTime));
+}
+
 void dynRPCUser::sampleDataCallbackFunc(int program,
 					   int mid,
 					   double startTimeStamp,
@@ -489,6 +518,13 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     component *part;
     metricInstance *mi;
     struct sampleInterval ret;
+
+    // get the earliest first time that had been reported by any paradyn daemon
+    // to use as the base (0) time
+    
+    assert(getEarliestFirstTime());
+    startTimeStamp -= getEarliestFirstTime();
+    endTimeStamp -= getEarliestFirstTime();
 
     if (printSampleArrival.getValue()) {
       cout << "mid " << mid << " " << value << " from " 
@@ -583,6 +619,8 @@ paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
   } else {
     machine = strdup(m);
     command = strdup(p);
+    status = new status_line(machine);
+
     switch (flavor) {
     case metPVM:
       name = strdup("pvmd"); 
@@ -597,9 +635,23 @@ paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
       dm->appContext->removeDaemon(this, TRUE);
       printf("paradyn daemon reported bad flavor, removed\n");
     }
-    printf("paradyn daemon pid %d reported\n", getPid());
   }
   return;
+}
+
+void 
+dynRPCUser::reportStatus (const char *line)
+{
+    assert(0 && "Invalid virtual function");
+}
+
+//
+// When a paradynd reports status, send the status to the user
+//
+void 
+paradynDaemon::reportStatus (const char *line)
+{
+  status->message(line);
 }
 
 // 
@@ -617,6 +669,7 @@ DMsetupSocket (int &sockfd, int &known_sock)
   dm->socket = known_sock;
   dm->sock_fd = sockfd;
 
+  dm->firstTime = 0;
   // bind fd for this thread
   msg_bind (sockfd, TRUE);
 }

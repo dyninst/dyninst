@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.4 1994/11/02 11:13:46 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.5 1994/11/09 18:40:29 rbi Exp $";
 #endif
 
 
@@ -29,7 +29,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * still need this after changing to synchronous sampling of the nodes?
  *
  * $Log: perfStream-cm5.C,v $
- * Revision 1.4  1994/11/02 11:13:46  markc
+ * Revision 1.5  1994/11/09 18:40:29  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.4  1994/11/02  11:13:46  markc
  * Removed compiler warnings.
  *
  * Revision 1.3  1994/07/26  20:00:52  hollings
@@ -151,9 +154,9 @@ void processArchDependentTraceStream()
 
 		firstRecordTime = header.wall;
 		st = firstRecordTime/1000000.0;
-		printf("started at %f\n", st);
+//		printf("started at %f\n", st);
 	    }
-	    header.wall -= firstRecordTime;
+	    // header.wall -= firstRecordTime;
 
 	    switch (header.type) {
 

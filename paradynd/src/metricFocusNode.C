@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.41 1994/11/02 11:10:59 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.42 1994/11/09 18:40:14 rbi Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.41  1994/11/02 11:10:59  markc
+ * Revision 1.42  1994/11/09 18:40:14  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.41  1994/11/02  11:10:59  markc
  * Attempted to clean up metric instrumentation requests with classes.
  * Removed string handles.
  *
@@ -262,17 +265,16 @@ List<internalMetric*>internalMetric::activeInternalMetrics;
 #define DELETED_MI 1
 #define MILLION	1000000.0
 
-metricDefinitionNode::metricDefinitionNode(process *p, int agg_style)
+metricDefinitionNode::metricDefinitionNode(process *p, int agg_style) : sample(agg_style)
 {
-    memset((char*)this, '\0', sizeof(metricDefinitionNode));
-
+    met = NULL;
+    originalCost = 0.0;
+    resList = NULL;
+    id = -1;
     proc = p;
+    inform=false;
     aggregate = false;
-    sample.lastSampleEnd = 0.0;
-    sample.lastSampleStart = 0.0;
-    sample.aggOp = agg_style;            // set aggregation style
-                                         // aggSum, ...
-
+    inserted=false;
 }
 
 float metricDefinitionNode::getMetricValue()
@@ -291,17 +293,17 @@ float metricDefinitionNode::getMetricValue()
 }
 
 metricDefinitionNode::metricDefinitionNode(metric *m, 
-					    List<metricDefinitionNode*> parts)
+					   List<metricDefinitionNode*> parts) :
+					   met(m), components(parts),
+					   sample(m->info.aggregate)
 {
-
-    memset((char*)this, '\0', sizeof(metricDefinitionNode));
-
-    met = m;
+    originalCost = 0.0;
+    resList = NULL;
+    id = -1;
+    proc = NULL;
+    inform=false;
+    inserted=false;
     aggregate = true;
-    components = parts;
-    inform = false;             // change this latter.
-    sample.aggOp = m->info.aggregate;     // set aggregation style
-                                          // aggSum, ...
 
     for (; *parts; parts++) {
 	(*parts)->aggregators.add(this);
@@ -643,6 +645,7 @@ bool metricDefinitionNode::insertInstrumentation()
     if (inserted) return(true);
 
     /* check all proceses are in an ok state */
+
     if (!isApplicationPaused()) {
 	pauseAllProcesses();
 	needToCont = true;
@@ -661,8 +664,16 @@ bool metricDefinitionNode::insertInstrumentation()
 	    (*req)->insertInstrumentation();
 	}
     }
+    // TODO mdc
+    struct timeval tv;
+    timeStamp now;
+    gettimeofday(&tv, NULL);
+    now = ((tv.tv_sec*MILLION) + tv.tv_usec - firstRecordTime)/MILLION;
+//    sprintf(errorLine, "metric %d installed at %f, aggregate=%d\n", id, now, aggregate);
+//    logLine(errorLine);
 
     if (needToCont) continueAllProcesses();
+
     return(true);
 }
 
@@ -746,6 +757,10 @@ metricDefinitionNode::~metricDefinitionNode()
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
 				       sampleValue value)
 {
+  // TODO mdc
+    assert(start >= (firstRecordTime/MILLION));
+    assert(end >= (firstRecordTime/MILLION));
+    assert(end > start);
     tp->sampleDataCallbackFunc(0, id, start, end, value);
 }
 
@@ -762,6 +777,13 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // node processes. (brought it back jkh 11/9/93).
     sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
+
+// TODO mdc
+//    if (!sample.firstSampleReceived) {
+//      sprintf(errorLine, "First for %s:%d at %f\n", met->info.name.string_of(), id,
+//	      sampleTime-(firstRecordTime/MILLION));
+//      logLine(errorLine);
+//    }
 
     if (met->info.style == EventCounter) {
 	// only use delta from last sample.
@@ -780,6 +802,12 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     }
 
     ret = sample.newValue(valueList, sampleTime, value);
+//    if (!ret.valid && inform) {
+//       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
+//	      met->info.name.string_of(), id, sampleTime-(firstRecordTime/MILLION),
+//	      value, inform);
+//      logLine(errorLine);
+//    }
 
     for (curr = aggregators; *curr; curr++) {
 	(*curr)->updateAggregateComponent(this, sampleTime, value);
@@ -797,6 +825,10 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 	if (ret.start < 0.0) ret.start = 0.0;
 	assert(ret.end >= 0.0);
 	assert(ret.end >= ret.start);
+
+	// TODO mdc
+//	assert(ret.start >= (firstRecordTime/ MILLION));
+//	assert(ret.end >= (firstRecordTime/MILLION));
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
 }
@@ -809,6 +841,9 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 
     ret = sample.newValue(valueList, sampleTime, value);
     if (ret.valid) {
+        assert(ret.end > ret.start);
+	assert(ret.start >= (firstRecordTime/MILLION));
+	assert(ret.end >= (firstRecordTime/MILLION));
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
 }
@@ -884,11 +919,10 @@ void processSample(traceHeader *h, traceSample *s)
       return;
     }
     mi = midToMiMap[s->id.id];
-    // sprintf(errorLine, "Process %d, mid%d\n", mi->proc->pid, s->id.id);
-    // logLine(errorLine);
-//    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
-//	((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
-//    logLine(errorLine);
+
+    //    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
+    //	((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
+    //    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
 }
@@ -961,6 +995,7 @@ instReqNode::instReqNode(process *iProc,
     ast = iAst;
     when = iWhen;
     order = o;
+    instance = NULL;
 
     assert(proc && point);
 }
@@ -1069,6 +1104,19 @@ intCounterHandle *dataReqNode::createCounterInstance()
     return(ret);
 }
 
+// allow a global "variable" to be inserted
+// this will not report any values
+// it is used internally by generated code -- see metricDefs-pvm.C
+void dataReqNode::insertGlobal() {
+  if (type == intCounter) {
+    intCounterHandle *ret;
+    ret = createCounterInstance();
+    instance = (void *) ret;
+    id = ret->data.id;
+  } else 
+    abort();
+}
+
 void dataReqNode::insertInstrumentation(metricDefinitionNode *mi) 
 {
     if (type == intCounter) {
@@ -1142,12 +1190,14 @@ void reportInternalMetrics()
     timeStamp start;
     sampleValue value;
 
-    static timeStamp end=0;
+    static timeStamp end=0.0;
 
     // see if we have a sample to establish time base.
     if (!firstRecordTime) return;
+    if (end==0.0)
+      end = firstRecordTime/MILLION;
 
-    now = getCurrentTime(true);
+    now = getCurrentTime(false);
 
     //  check if it is time for a sample
     if (now < end + samplingRate) 

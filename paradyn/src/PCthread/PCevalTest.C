@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.30  1994/11/04 13:02:46  markc
+ * Revision 1.31  1994/11/09 18:39:40  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.30  1994/11/04  13:02:46  markc
  * Moved calculation of the compensationFactor to the inner loop so each hypothesis
  * will get get a normalization factor for the interval over which it is collected.
  *
@@ -184,7 +187,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.30 1994/11/04 13:02:46 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.31 1994/11/09 18:39:40 rbi Exp $";
 #endif
 
 #include <stdio.h>
@@ -231,7 +234,7 @@ tunableBooleanConstant printTestResults(False, NULL, developerConstant,
 // Boolean printTestResults = FALSE;
 // Boolean printNodes = FALSE;
 
-int PCsearchPaused;
+int PCsearchPaused=1;
 extern Boolean textMode;
 List<datum *> *enabledGroup;
 extern timeStamp PCendTransTime;
@@ -856,6 +859,7 @@ void PCevaluateWorld()
     // see that we are actively searching before trying to eval tests!
     //
     if (PCsearchPaused) {
+//        printf("Returning: PCsearchPaused=TRUE\n");
 	return;
     }
 

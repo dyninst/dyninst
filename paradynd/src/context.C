@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.22 1994/11/02 11:02:34 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.23 1994/11/09 18:39:55 rbi Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.22  1994/11/02 11:02:34  markc
+ * Revision 1.23  1994/11/09 18:39:55  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.22  1994/11/02  11:02:34  markc
  * Replaced old-style iterators and string-handles.
  *
  * Revision 1.21  1994/10/13  07:24:32  krisna
@@ -234,43 +237,39 @@ bool startApplication()
 
 timeStamp endPause = 0.0;
 timeStamp startPause = 0.0;
-bool applicationPaused = false;
 
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
 timeStamp elapsedPauseTime = 0.0;
+static bool appPause = false;
 
 bool markApplicationPaused()
 {
-
-    if (applicationPaused) return(false);
-    applicationPaused = true;
-
+  if (!appPause) {
     // get the time when we paused it.
-
     startPause = getCurrentTime(false);
     // sprintf(errorLine, "paused at %f\n", startPause);
     // logLine(errorLine);
-    
-    return(true);
+    appPause = true;
+    return true;
+  } else 
+    return false;
 }
 
 bool isApplicationPaused()
 {
-    return(applicationPaused);
+  return appPause;
 }
 
 bool continueAllProcesses()
 {
-
     dictionary_hash_iter<int, process*> pi(processMap);
     int i; process *proc;
-    while (pi.next(i, proc)) {
+    while (pi.next(i, proc))
       continueProcess(proc);
-    }
 
-    if (!applicationPaused) return(false);
-    applicationPaused = false;
+    if (!appPause) return(false);
+    appPause = false;
 
     endPause = getCurrentTime(false);
     if (!firstSampleReceived) {

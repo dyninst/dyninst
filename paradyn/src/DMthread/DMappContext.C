@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.45  1994/11/04 20:13:32  karavan
+ * Revision 1.46  1994/11/09 18:39:30  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.45  1994/11/04  20:13:32  karavan
  * added a status line.
  *
  * Revision 1.44  1994/11/04  16:30:38  rbi
@@ -191,6 +194,8 @@ tunableBooleanConstant printChangeCollection(FALSE, NULL, developerConstant,
 
 List<performanceStream*> applicationContext::streams;
 
+status_line *DMstatus;
+
 void paradynDdebug(int pid)
 {
 }
@@ -301,6 +306,7 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
   paradynDaemon *daemon;
   List<paradynDaemon*> curr;
   daemonEntry *def;
+  char statusLine[256];
 
   // if name is null, use the default daemon name
   if (!name) 
@@ -331,8 +337,14 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
     strcpy(machine, hostStr);
   }
 
+  sprintf(statusLine, "Starting daemon on %s",machine);
+  (*DMstatus) << statusLine;
+
   daemon = new paradynDaemon(machine, login, def->getCommand(), def->getName(),
 			     NULL, NULL, def->getFlavor());
+
+  (*DMstatus) << "ready";
+
   if (daemon->getFd() < 0) {
     //printf("unable to start paradynd: %s\n", def->getCommand());
     //printf("paradyn Error #6\n");
@@ -450,6 +462,10 @@ Boolean applicationContext::addExecutable(char  *machine,
   static status_line pidnum("Processes");
   static char tmp_buf[256];
 
+  if (! DMstatus) {
+    DMstatus = new status_line("Data Manager");
+  }
+
   if ((daemon = getDaemonHelper(machine, login, name)) ==
       (paradynDaemon*) NULL)
     return FALSE;
@@ -474,6 +490,7 @@ Boolean applicationContext::addExecutable(char  *machine,
   // did the application get started ok?
   if (pid > 0 && !daemon->did_error_occur()) {
     // TODO
+
     sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
     pidnum.message(tmp_buf);
 

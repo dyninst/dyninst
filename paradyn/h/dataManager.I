@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.33  1994/11/07 14:57:44  jcargill
+ * Revision 1.34  1994/11/09 18:38:33  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.33  1994/11/07  14:57:44  jcargill
  * Added ability to suppress search on children of a resource, rather than
  * the resource itself.
  *
@@ -559,9 +562,18 @@ $remote dataManager {
 				    performanceStream *ps, 
 				    appState state);
 
+    // called to establish a base time to allow absolute times to be converted
+    // to relative times, since the program execution is viewed as starting at
+    // time 0
+    double firstSampleTime(int program, double firstTime);
+
     $smember applicationContext *appContext;
     $smember int socket;
     $smember int sock_fd;
+
+    // This is set in DMsetupSocket,
+    // TODO mdc - make this be set in the constructor
+    $smember double firstTime;
 };
 
 #endif

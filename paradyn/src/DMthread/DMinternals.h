@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.31  1994/11/04 16:30:39  rbi
+ * Revision 1.32  1994/11/09 18:39:32  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.31  1994/11/04  16:30:39  rbi
  * added getAvailableDaemons()
  *
  * Revision 1.30  1994/09/30  19:17:43  rbi
@@ -121,6 +124,7 @@
 #include "dataManager.h"
 #include <string.h>
 #include "util/h/machineType.h"
+#include "../UIthread/Status.h"
 #include <stdlib.h>
 
 // an entry in the daemon dictionary
@@ -163,7 +167,7 @@ class paradynDaemon: public dynRPCUser {
     public:
 	paradynDaemon(char *m, char *u, char *c, char *n,
 		      xdrIOFunc r, xdrIOFunc w, int f):
-			dynRPCUser(m, u, c, r, w, args) {
+			dynRPCUser(m, u, c, r, w, args), earliestFirstTime(0) {
 	        char *loc;
 		char *newm;
 
@@ -189,15 +193,17 @@ class paradynDaemon: public dynRPCUser {
 		  u = 0;
 		flavor = f;
 
+		status = new status_line(machine);
 		allDaemons.add(this);
 	}
 	// machine, name, command, flavor and login are set via a callback
 	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
-	  dynRPCUser(f, r, w) {
+	  dynRPCUser(f, r, w), earliestFirstTime(0) {
 	        machine = 0;
 		login = 0;
                 command = 0;
 		name = 0;
+		status = 0;
 		allDaemons.add(this);
 	}
 
@@ -227,6 +233,18 @@ class paradynDaemon: public dynRPCUser {
 
 	// replace the igen provided error handler
 	virtual void handle_error();
+
+	virtual void firstSampleCallback(int program, double firstTime);
+	double getEarliestFirstTime() const { return earliestFirstTime;}
+	void setEarliestFirstTime(double f) { 
+	  if (!earliestFirstTime) 
+	    earliestFirstTime = f;
+	}
+
+        virtual void reportStatus(const char *);
+    private:
+      double earliestFirstTime;
+      status_line *status;
 };
 
 

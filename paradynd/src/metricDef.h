@@ -4,7 +4,10 @@
 
 /* 
  * $Log: metricDef.h,v $
- * Revision 1.1  1994/11/01 16:58:06  markc
+ * Revision 1.2  1994/11/09 18:40:18  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.1  1994/11/01  16:58:06  markc
  * Prototypes
  *
  */
@@ -55,6 +58,7 @@ extern void createExecTime(metricDefinitionNode *mn, AstNode *pred);
 extern void createSyncOps(metricDefinitionNode *mn, AstNode *trigger);
 extern void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger);
 extern void createMsgs(metricDefinitionNode *mn, AstNode *trigger);
+extern void dummyCreate(metricDefinitionNode *mn, AstNode *trigger);
 
 // os dependent metric functions
 extern void createSyncWait(metricDefinitionNode *mn, AstNode *trigger);
@@ -62,6 +66,17 @@ extern void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr);
 extern void createMsgBytesRecv(metricDefinitionNode *mn, AstNode *tr);
 extern void createMsgBytesTotal(metricDefinitionNode *mn, AstNode *tr);
 
+extern void createIOBytesTotal(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOBytesRead(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOBytesWrite(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOOps(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOWait(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOReadWait(metricDefinitionNode *mn, AstNode *tr);
+extern void createIOWriteWait(metricDefinitionNode *mn, AstNode *tr);
 
+extern void instAllFunctions(metricDefinitionNode *nm,
+			     int tag,		/* bit mask to use */
+			     AstNode *enterAst,
+			     AstNode *leaveAst);
 
 #endif

@@ -10,7 +10,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.9  1994/11/02 11:17:46  markc
+ * Revision 1.10  1994/11/09 18:40:40  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.9  1994/11/02  11:17:46  markc
  * Added class support for image, module, function.
  *
  * Revision 1.7  1994/09/30  19:47:17  rbi
@@ -350,10 +353,12 @@ public:
 	      (isCode(where) || isData(where)));
     }
     bool isCode(const Address where) const {
-      return ((where >= codeOffset) && (where < (codeOffset+(codeLen<<2))));
+      return (linkedFile.code_ptr() && 
+	      (where >= codeOffset) && (where < (codeOffset+(codeLen<<2))));
     }
     bool isData(const Address where) const {
-      return ((where >= dataOffset) && (where < (dataOffset+(dataLen<<2))));
+      return (linkedFile.data_ptr() && 
+	      (where >= dataOffset) && (where < (dataOffset+(dataLen<<2))));
     }
 
     // TODO 

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.33  1994/11/07 08:24:37  jcargill
+ * Revision 1.34  1994/11/09 18:39:36  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.33  1994/11/07  08:24:37  jcargill
  * Added ability to suppress search on children of a resource, rather than
  * the resource itself.
  *
@@ -454,3 +457,10 @@ String_Array dataManager::getAvailableDaemons(applicationContext *ap)
 {
     return(ap->getAvailableDaemons());
 }
+
+double dataManager::firstSampleTime(int program, double first) {
+  if (!firstTime)
+    firstTime = first;
+  return firstTime;
+}
+

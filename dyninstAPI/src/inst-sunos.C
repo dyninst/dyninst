@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.17  1994/11/02 11:06:19  markc
+ * Revision 1.18  1994/11/09 18:40:10  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.17  1994/11/02  11:06:19  markc
  * Removed redundant code into inst.C
  * Provide "tag" dictionary for known functions.
  *
@@ -69,7 +72,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.17 1994/11/02 11:06:19 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.18 1994/11/09 18:40:10 rbi Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -237,9 +240,8 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
-    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT | TAG_CPU_STATE;
-    tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN | TAG_CPU_STATE;
-
+    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
+    tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN;
 
     tagDict["DYNINSTalarmExpire"] = TAG_LIB_FUNC;
     tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
@@ -267,7 +269,7 @@ float computePauseTimeMetric()
     now = getCurrentTime(false);
     if (firstRecordTime && firstSampleReceived) {
 	elapsed = elapsedPauseTime - reportedPauseTime;
-	if (applicationPaused) {
+	if (isApplicationPaused()) {
 	    elapsed += now - startPause;
 	}
 	assert(elapsed >= 0.0); 
@@ -278,3 +280,5 @@ float computePauseTimeMetric()
     }
 }
 
+void osDependentInst(process *proc) {
+}

@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.10  1994/11/04 16:30:00  rbi
+# Revision 1.11  1994/11/09 18:39:51  rbi
+# the "Don't Blame Me" commit
+#
+# Revision 1.10  1994/11/04  16:30:00  rbi
 # Auto placement of process defn dialog, and radio buttons for daemons.
 #
 # Revision 1.9  1994/11/03  20:23:17  karavan
@@ -131,13 +134,14 @@ proc AcceptNewApplicDefn {user machine daemon cmd} {
 
   set pcmd [concat $pcmd $cmd]
  
+  destroy .pDefn
+
   set retval [catch $pcmd]
 
   if {$retval == 1} {
     set result "Illegal Process Definition"
     eval [list uimpd showError 25 $result]
   }
-  destroy .pDefn
 }
 
 

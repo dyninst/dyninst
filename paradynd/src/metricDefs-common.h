@@ -16,7 +16,10 @@
 
 /*
  * $Log: metricDefs-common.h,v $
- * Revision 1.2  1994/07/05 03:26:14  hollings
+ * Revision 1.3  1994/11/09 18:40:24  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.2  1994/07/05  03:26:14  hollings
  * observed cost model
  *
  * Revision 1.1  1994/06/29  02:52:42  hollings
@@ -28,44 +31,3 @@
  *
  *
  */
-AstNode *defaultModulePredicate(metricDefinitionNode *mn, char *constraint,
-    AstNode *pred);
-
-AstNode *defaultProcessPredicate(metricDefinitionNode *mn, char *process,
-    AstNode *pred);
-
-void createProcCalls(metricDefinitionNode *mn, AstNode *pred);
-
-void instAllFunctions(metricDefinitionNode *nm,
-		      int tag,		/* bit mask to use */
-		      AstNode *enterAst,
-		      AstNode *leaveAst);
-
-dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred);
-dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred);
-
-void createExecTime(metricDefinitionNode *mn, AstNode *pred);
-
-void createSyncOps(metricDefinitionNode *mn, AstNode *trigger);
-
-void createActiveProcesses(metricDefinitionNode *mn, AstNode *trigger);
-
-void createMsgs(metricDefinitionNode *mn, AstNode *trigger);
-
-void dummyCreate(metricDefinitionNode *mn, AstNode *trigger);
-
-void createSyncWait(metricDefinitionNode *mn, AstNode *trigger);
-
-void perModuleWallTime(metricDefinitionNode *mn, 
-			  char *constraint, 
-			  AstNode *pred);
-
-void perModuleCPUTime(metricDefinitionNode *mn, 
-		      char *constraint, 
-		      AstNode *trigger);
-
-void perModuleCalls(metricDefinitionNode *mn, 
-		    char *constraint, 
-		    AstNode *trigger);
-
-extern resourcePredicate observedCostPredicates[];

@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.23  1994/11/04 12:59:53  markc
+ * Revision 1.24  1994/11/09 18:39:42  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.23  1994/11/04  12:59:53  markc
  * Set start of interval to time of first sample if that interval start is earlier.
  *
  * Revision 1.22  1994/10/25  22:08:05  hollings
@@ -153,7 +156,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.23 1994/11/04 12:59:53 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.24 1994/11/09 18:39:42 rbi Exp $";
 #endif
 
 #include <stdio.h>
@@ -466,19 +469,18 @@ datum::datum()
 {
     f = NULL;
     resList = NULL;
-
     sample = 0.0;
     totalUsed = 0.0;
-
     firstSampleTime = 0.0;
+    lastSampleTime = 0.0;
     lastUsed = 0.0;
-
+    samplesSinceEnable=0;
     time = -1.0;
     enabled = FALSE;
     used = FALSE;
     hist = NULL;
-
     refCount = 0;
+    metName = NULL;
 }
 
 //
@@ -525,7 +527,11 @@ timeStamp globalMinEnabledTime()
 
 	// earliest last sample 
 	if ((d->enabled) && (d->lastSampleTime < PCendTransTime)) {
-	    PCendTransTime = d->lastSampleTime;
+	  PCendTransTime = d->lastSampleTime;
+	  // TODO mdc
+	  // if (!PCendTransTime) {
+	  // printf("0 at %s:%s\n", (char*) d->metName, (char*)d->f->getName());
+	  // }
 	}
     }
     return(min);
@@ -545,6 +551,10 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 	firstSampleTime = start;
     }
 
+    // TODO mdc
+    if (!end) {
+      printf("newSample 0 at %s:%s\n", (char*) metName, (char*)f->getName());
+    }
     samplesSinceLastChange = globalMinSampleCount();
     PCshortestEnableTime = globalMinEnabledTime();
 }

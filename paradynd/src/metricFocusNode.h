@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.13  1994/11/02 11:11:24  markc
+ * Revision 1.14  1994/11/09 18:40:17  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.13  1994/11/02  11:11:24  markc
  * Added classes and removed compiler warnings.
  *
  * Revision 1.12  1994/09/22  02:14:13  markc
@@ -118,6 +121,7 @@ class dataReqNode {
 	~dataReqNode();
 	float getMetricValue();
 	float cost();
+	void insertGlobal();    // allow a global "variable" to be inserted
 	void insertInstrumentation(metricDefinitionNode *mi);
 	void disable();
 
@@ -187,12 +191,14 @@ class metricDefinitionNode {
 
 	    tp = new dataReqNode(intCounter, proc, inititalValue,
 		report,processTime);
+	    assert(tp);
 	    data.add(tp);
 	    return(tp);
 	};
 	dataReqNode *addTimer(timerType type) {
 	    dataReqNode *tp;
 	    tp = new dataReqNode(timer,proc,0,true,type);
+	    assert(tp);
 	    data.add(tp);
 	    return(tp);
 	};
@@ -200,6 +206,7 @@ class metricDefinitionNode {
  	    instReqNode *temp;
 	    if (!point || !ast) return;
             temp = new instReqNode(proc, point, ast, when, o);
+	    assert(temp);
 	    requests.add(temp);
         };
 

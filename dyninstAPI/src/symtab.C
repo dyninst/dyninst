@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.17 1994/11/02 11:17:23 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.18 1994/11/09 18:40:38 rbi Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.17  1994/11/02 11:17:23  markc
+ * Revision 1.18  1994/11/09 18:40:38  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.17  1994/11/02  11:17:23  markc
  * Made symbol table parsing machine independent.
  *
  * Revision 1.15  1994/10/13  07:25:04  krisna
@@ -305,6 +308,7 @@ image *parseImage(const string file)
     /*
      * load the symbol table. (This is the a.out format specific routine).
      */
+    statusLine("loading symbol table");
     ostrstream os;
     os << file << ends;
     char *temp = os.str();
@@ -501,7 +505,7 @@ void image::postProcess(const string pifname)
 {
   FILE *Fil;
   string fname;
-  char temp[5000], errorstr[5000], key[5000];
+  char errorstr[5000], key[5000];
   char tmp1[5000], abstraction[500];
   resource *parent;
 
@@ -578,8 +582,10 @@ void image::defineModules() {
   string pds; module *mod;
   dictionary_hash_iter<string, module*> mi(modsByFileName);
 
+  statusLine("defining modules");
   while (mi.next(pds, mod))
     mod->define();
+  statusLine("ready");
 
 }
 
@@ -727,13 +733,19 @@ image::image(char *fileName, bool &err)
   modsByFileName(string::hash), modsByFullName(string::hash),
   linkedFile(fileName, pd_log_perror)
 {
+  char sline[256];
+  int count=0;
+
   codeOffset = linkedFile.code_off();
   dataOffset = linkedFile.data_off();
   codeLen = linkedFile.code_len();
   dataLen = linkedFile.data_len();
 
-  if ((codeLen <= 0) || (dataLen <= 0) ||
-      !linkedFile.code_ptr() || !linkedFile.data_ptr()) {
+  if (!codeLen || !linkedFile.code_ptr()) {
+    if (!codeLen) logLine ("codeLen == 0\n");
+    logLine("File is\n");
+    logLine(fileName);
+    if (!linkedFile.code_ptr()) logLine ("code_ptr == NULL\n");
     logLine("Could not open executable file\n");
     err = true;
     return;
@@ -763,6 +775,7 @@ image::image(char *fileName, bool &err)
   bool startBound=false, endBound=false;
 
   // find the "user" code boundaries
+  statusLine("finding user code boundaries");
   startBound = findStartSymbol(linkedFile, startUserAddr);
   endBound = findEndSymbol(linkedFile, endUserAddr);
 
@@ -781,6 +794,12 @@ image::image(char *fileName, bool &err)
   char nameBuf[300];
 
   while (symIter.next(symString, lookUp)) {
+
+    count++;
+    if ((count % 25) == 0) {
+      sprintf(sline,"processed %d syms", count);
+      statusLine(sline);
+    }
 
     // TODO - mdc - this lookup is being done again, doesn't have to be
     addInternalSymbol(symString, lookUp.addr());
@@ -840,12 +859,16 @@ image::image(char *fileName, bool &err)
   }
     
   // sort the modules by address
+  statusLine("sorting modules");
   mods.sort(symCompare);
 
   // define all of the functions
+  statusLine("winnowing functions");
   addAllFunctions(mods, almostFuncs, libModule, dynModule, startBound, startUserAddr,
 		  endBound, endUserAddr);
+  statusLine("checking call points");
   checkAllCallPoints();
+  statusLine("ready");
 }
 
 void module::checkAllCallPoints() {

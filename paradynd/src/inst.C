@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.11 1994/11/02 11:08:28 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.12 1994/11/09 18:40:12 rbi Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.11  1994/11/02 11:08:28  markc
+ * Revision 1.12  1994/11/09 18:40:12  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.11  1994/11/02  11:08:28  markc
  * Moved redundant code to here from inst-< >.C.
  *
  * Revision 1.10  1994/09/30  19:47:07  rbi
@@ -196,6 +199,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     } else
       thePoint = activePoints[location];
 
+    assert(thePoint);
     for (ret= thePoint->inst; ret; ret = ret->next) {
 	if ((ret->proc == proc) && (ret->when == when)) {
 	    if (!ret->nextAtPoint) lastAtPoint = ret;
@@ -204,6 +208,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     }
 
     ret = new instInstance;
+    assert(ret);
     ret->proc = proc;
 
     /* make sure the base tramp has been installed for this point */
@@ -407,6 +412,8 @@ void installDefaultInst(process *proc, instMapping *initialReqs)
 	}
 	delete(ast);
     }
+    // Supercomputing hack - mdc
+    osDependentInst(proc);
 }
 
 void pauseProcess(process *proc)

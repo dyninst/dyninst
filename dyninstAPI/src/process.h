@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.12  1994/11/02 11:15:38  markc
+ * Revision 1.13  1994/11/09 18:40:35  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.12  1994/11/02  11:15:38  markc
  * Added prototypes.
  *
  * Revision 1.11  1994/09/22  02:23:44  markc
@@ -128,12 +131,12 @@ inline unsigned ipHash(const instPoint *&ip) {
 
 class process {
  public:
-    process() : heapActive(uiHash), baseMap(ipHash) {
+    process() : heapActive(uiHash), baseMap(ipHash), firstRecordTime(0) {
       symbols = NULL; traceLink = 0; ioLink = 0;
       status = neonatal; pid = 0; thread = 0;
       aggregate = false; rid = 0; parent = NULL;
       bufStart = 0; bufEnd = 0; pauseTime = 0.0;
-      freed = 0; reachedFirstBreak = 0;
+      freed = 0; reachedFirstBreak = 0; 
     }
     image *symbols;		/* information related to the process */
     int traceLink;		/* pipe to transfer traces data over */
@@ -155,6 +158,13 @@ class process {
 				   jkh 7/21/94 */
     int freed;
     int reachedFirstBreak;
+
+    time64 getFirstRecordTime() const { return firstRecordTime;}
+    void setFirstRecordTime(time64 to) { firstRecordTime = to;}
+    int getPid() const { return pid;}
+
+  private:
+    time64 firstRecordTime;
 };
 
 extern dictionary_hash<int, process*> processMap;

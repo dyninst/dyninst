@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.12  1994/10/25 22:08:06  hollings
+ * Revision 1.13  1994/11/09 18:39:44  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.12  1994/10/25  22:08:06  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -166,7 +169,9 @@ class PCmetric {
 	    info = dataMgr->getMetricInfo(met);
 	    return(info->units); 
 	}
-	datum *findDatum(focus *f) { return(samples.find(f->getName())); }
+	datum *findDatum(focus *f) {
+	  return(samples.find(f->getName()));
+	}
 	void addDatum(datum *d) { 
 	    samples.add(d, (void *) d->f->getName()); 
 	}

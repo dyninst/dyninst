@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.15 1994/11/02 11:12:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.16 1994/11/09 18:40:27 rbi Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.15  1994/11/02 11:12:50  markc
+ * Revision 1.16  1994/11/09 18:40:27  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.15  1994/11/02  11:12:50  markc
  * Removed static lists and replaced them with lists initialized
  * int init-<>.C
  *
@@ -138,8 +141,35 @@ extern "C" {
 #include "metric.h"
 #include "ast.h"
 #include "rtinst/h/trace.h"
-#include "metricDefs-common.h"
+#include "metricDef.h"
+#include "os.h"
 
+// this flag is checked on writes to determine how to use the cost
+static dictionary_hash<int, dataReqNode*> msgFlags(intHash);
+
+// Allows write to be multiplexed.  If write is reached when this counter is 0,
+// then the write will be counted as a write.  The flag must be global, since
+// the io functions need to know its location.
+void osDependentInst(process *proc) {
+  assert(!msgFlags.defines(proc->getPid()));
+
+  dataReqNode *msgFlag = new dataReqNode(intCounter, proc, 0, false, processTime);
+  msgFlag->insertGlobal();
+  msgFlags[proc->getPid()] = msgFlag;
+
+  AstNode *setNode = createPrimitiveCall("setCounter", msgFlag, 1);
+  AstNode *unsetNode = createPrimitiveCall("setCounter", msgFlag, 0);
+  dictionary_hash_iter<unsigned, pdFunction*> fi(proc->symbols->funcsByAddr);
+  unsigned u; pdFunction *func;
+
+  while (fi.next(u, func)) {
+    if (func->tag & (TAG_MSG_SEND | TAG_MSG_RECV)) {
+      addInstFunc(proc, func->funcEntry, setNode, callPreInsn, orderLastAtPoint);
+      addInstFunc(proc, func->funcReturn, unsetNode, callPreInsn, orderFirstAtPoint);
+    }
+  }
+}
+ 
 // A wall timer is used because the process timer will be stopped
 // on blocking system calls.
 
@@ -159,6 +189,41 @@ void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
     if (trigger) stopNode = createIf(trigger, stopNode);
 
     instAllFunctions(mn, TAG_MSG_SEND | TAG_MSG_RECV, startNode, stopNode);
+}
+
+// A wall timer is used because the process timer will be stopped
+// on blocking system calls.
+
+void createIOWait(metricDefinitionNode *mn, AstNode *trigger)
+{
+    dataReqNode *dataPtr;
+    AstNode *stopNode, *startNode;
+
+    dataPtr = mn->addTimer(wallTime);
+
+    dataReqNode *msgFlag;
+    assert(msgFlags.defines(mn->proc->getPid()));
+    msgFlag = msgFlags[mn->proc->getPid()];
+
+    AstNode *msgFlagTest = new AstNode(eqOp, new AstNode(Constant, (void*)0),
+				       new AstNode(DataValue, msgFlag));
+
+    startNode = new AstNode("DYNINSTstartWallTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+
+    startNode = createIf(msgFlagTest, startNode);
+    if (trigger) startNode = createIf(trigger, startNode);
+
+    AstNode *endTest = new AstNode(eqOp, new AstNode(Constant, 0),
+				   new AstNode(DataValue, msgFlag));
+
+    stopNode = new AstNode("DYNINSTstopWallTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+
+    stopNode = createIf(endTest, stopNode);
+    if (trigger) stopNode = createIf(trigger, stopNode);
+
+    instAllFunctions(mn, TAG_IO_IN | TAG_IO_OUT, startNode, stopNode);
 }
 
 
@@ -313,9 +378,154 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
+void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
+{
+    pdFunction *func;
+    dataReqNode *dataPtr;
+    AstNode *stopNode, *startNode;
 
+    dataPtr = mn->addTimer(processTime);
+    assert(dataPtr);
 
+    startNode = new AstNode("DYNINSTstartProcessTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+    assert(startNode);
+    if (pred) startNode = createIf(pred, startNode);
+    assert(startNode);
+    stopNode = new AstNode("DYNINSTstopProcessTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+    assert(stopNode);
+    if (pred) stopNode = createIf(pred, stopNode);
+    assert(stopNode);
 
+    instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
+
+    func = (mn->proc->symbols)->findOneFunction("main");
+    assert(func);
+    mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
+
+    mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
+
+    func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
+    assert(func);
+
+    mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
+}
+
+void createIOOps(metricDefinitionNode *mn, AstNode *trigger) {
+  AstNode *newSyncOp;
+  dataReqNode *counter;
+
+  dataReqNode *msgFlag;
+  assert(msgFlags.defines(mn->proc->getPid()));
+  msgFlag = msgFlags[mn->proc->getPid()];
+
+  AstNode *msgFlagTest = new AstNode(eqOp, new AstNode(Constant, 0),
+				     new AstNode(DataValue, msgFlag));
+
+  counter = mn->addIntCounter(0, true);
+  assert(counter);
+  newSyncOp = createPrimitiveCall("addCounter", counter, 1);
+  assert(newSyncOp);
+  newSyncOp = createIf(msgFlagTest, newSyncOp);
+
+  if (trigger) newSyncOp = createIf(trigger, newSyncOp);
+  assert(newSyncOp);
+  
+  instAllFunctions(mn, TAG_IO_IN | TAG_IO_OUT, newSyncOp, NULL);
+}
+
+void IOBytesRead(metricDefinitionNode *mn, AstNode *trigger,
+		 AstNode *msgTest, dataReqNode *counter) {
+  if (!counter)
+    counter = mn->addIntCounter(0, true);
+
+  // the number of bytes read is returned in R0
+  // TODO - mdc , 
+  AstNode *readAst = new AstNode("addCounter",
+				  new AstNode(DataValue, counter),
+				  new AstNode(Param, (void*) 0));
+
+  readAst = createIf(msgTest, readAst);
+
+  if (trigger)
+    readAst = createIf(trigger, readAst);
+
+  dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+  unsigned u;
+  pdFunction *func;
+
+  while (fi.next(u, func)) {
+    if (func->tag & TAG_IO_IN)
+      mn->addInst(func->funcReturn, readAst, callPreInsn, orderFirstAtPoint);
+  }
+}
+
+void IOBytesWrite(metricDefinitionNode *mn, AstNode *trigger,
+		  AstNode *msgTest, dataReqNode *counter) {
+  if (!counter)
+    counter = mn->addIntCounter(0, true);
+
+  // the number of bytes to write is the third parameter, starting at 0
+  AstNode *writeAst = new AstNode("addCounter",
+				  new AstNode(DataValue, counter),
+				  new AstNode(Param, (void*) 2));
+
+  writeAst = createIf(msgTest, writeAst);
+
+  if (trigger)
+    writeAst = createIf(trigger, writeAst);
+
+  dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+  unsigned u;
+  pdFunction *func;
+
+  while (fi.next(u, func)) {
+    if (func->tag & TAG_IO_OUT)
+      mn->addInst(func->funcEntry, writeAst, callPreInsn, orderFirstAtPoint);
+  }
+}
+
+void createIOBytesRead(metricDefinitionNode *mn, AstNode *trigger) {
+
+  dataReqNode *msgFlag;
+  assert(msgFlags.defines(mn->proc->getPid()));
+  msgFlag = msgFlags[mn->proc->getPid()];
+
+  AstNode *msgFlagTest = new AstNode(eqOp, new AstNode(Constant, 0),
+				     new AstNode(DataPtr, msgFlag));
+
+  dataReqNode *counter = mn->addIntCounter(0, true);
+  IOBytesRead(mn, trigger, msgFlagTest, counter);
+}
+
+void createIOBytesWrite(metricDefinitionNode *mn, AstNode *trigger) {
+
+  dataReqNode *msgFlag;
+  assert(msgFlags.defines(mn->proc->getPid()));
+  msgFlag = msgFlags[mn->proc->getPid()];
+
+  AstNode *msgFlagTest = new AstNode(eqOp, new AstNode(Constant, 0),
+				     new AstNode(DataPtr, msgFlag));
+
+  dataReqNode *counter = mn->addIntCounter(0, true);
+  IOBytesWrite(mn, trigger, msgFlagTest, counter);
+}
+
+void createIOBytesTotal(metricDefinitionNode *mn, AstNode *trigger) {
+
+  dataReqNode *msgFlag;
+  assert(msgFlags.defines(mn->proc->getPid()));
+  msgFlag = msgFlags[mn->proc->getPid()];
+
+  AstNode *msgFlagTest = new AstNode(eqOp, new AstNode(Constant, 0),
+				     new AstNode(DataPtr, msgFlag));
+
+  dataReqNode *counter = mn->addIntCounter(0, true);
+
+  IOBytesRead(mn, trigger, msgFlagTest, counter);
+  IOBytesWrite(mn, trigger, msgFlagTest, counter);
+}
 
 
 

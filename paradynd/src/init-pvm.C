@@ -1,7 +1,10 @@
 
 /*
  * $Log: init-pvm.C,v $
- * Revision 1.1  1994/11/01 16:55:54  markc
+ * Revision 1.2  1994/11/09 18:40:00  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.1  1994/11/01  16:55:54  markc
  * Environment specific initialization. (pvm, cm5, sun sequential)
  *
  */
@@ -53,6 +56,14 @@ bool initOS() {
   msgPredicates[4].set("/Process", nullPredicate, NULL);
   msgPredicates[5].set((char*)NULL, nullPredicate, NULL, false);
 
+  // TODO mdc - these should be provided for all flavors
+  ioPredicates = new resourcePredicate[5];
+  ioPredicates[0].set("/Procedure", simplePredicate, defaultModulePredicate);
+  ioPredicates[1].set("/SyncObject", nullPredicate, NULL);
+  ioPredicates[2].set("/Machine", nullPredicate, NULL);
+  ioPredicates[3].set("/Process", nullPredicate, NULL);
+  ioPredicates[4].set((char*)NULL, nullPredicate, NULL, false);
+  
   defaultPredicates = new resourcePredicate[6];
   defaultPredicates[0].set("/Procedure", simplePredicate, defaultModulePredicate);
   defaultPredicates[1].set("/SyncObject/MsgTag", simplePredicate,		
@@ -79,8 +90,8 @@ bool initOS() {
 	  observedCostPredicates
 	  );
 
-  DYNINSTallMetrics = new metric[11];
-  metricCount = 11;
+  DYNINSTallMetrics = new metric[14];
+  metricCount = 13;
 
   DYNINSTallMetrics[0].set("active_processes", SampledFunction,
 			   aggSum, "Processes", createActiveProcesses,
@@ -115,7 +126,18 @@ bool initOS() {
 			   createSyncOps, msgPredicates);
 
   DYNINSTallMetrics[10].set("sync_wait", EventCounter, aggSum, "# Waiting",
-			    createSyncWait, msgPredicates, false);
+			    createSyncWait, msgPredicates);
+
+  DYNINSTallMetrics[11].set("io_wait", EventCounter, aggSum, "# Waiting",
+			    createIOWait, ioPredicates);
+
+  DYNINSTallMetrics[12].set("io_ops", EventCounter, aggSum, "Ops/sec",
+			    createIOOps, ioPredicates, false);
+
+  /*
+  DYNINSTallMetrics[13].set("io_bytes", EventCounter, aggSum, "Bytes/Sec",
+			    createIOBytesTotal, ioPredicates, false);
+			    */
 
   initialRequests = new instMapping[8];
 
