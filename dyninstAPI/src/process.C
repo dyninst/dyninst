@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.193 1999/10/14 22:27:28 zandy Exp $
+// $Id: process.C,v 1.194 1999/10/19 05:16:23 nick Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2543,10 +2543,10 @@ bool process::addASharedObject(shared_object &new_obj){
 #ifdef BPATCH_LIBRARY
 
     assert(BPatch::bpatch);
-    vector<module *>*modlist = ((vector<module *> *)(new_obj.getModules()));
+    const vector<pdmodule *> *modlist = new_obj.getModules();
     if (modlist != NULL) {
       for (unsigned i = 0; i < modlist->size(); i++) {
-	pdmodule *curr = (pdmodule *) (*modlist)[i];
+	pdmodule *curr = (*modlist)[i];
 	string name = curr->fileName();
 
 	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
@@ -4041,10 +4041,14 @@ bool process::handleTrapIfDueToRPC() {
 
    inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
 
+   // This is ridiculous.  Allocated in process::getRegisters as char *
+   // except, of course, on NT, returned as a void *, and cast back to void *
+   // whenever it is deleted, except, of course, on NT.  If there was any
+   // struct more in need of a constructor and destructor, this would be it.  
 #if defined(i386_unknown_nt4_0)
    delete    theStruct.savedRegs;       // not an array on WindowsNT
 #else
-   delete [] theStruct.savedRegs;
+   delete [] static_cast<char *>(theStruct.savedRegs);
 #endif
 
    return true;
@@ -4652,7 +4656,8 @@ mutationRecord::mutationRecord(Address _addr, int _size, const void *_data) {
 
 mutationRecord::~mutationRecord()
 {
-    delete data;
+    // allocate it as a char[], might as well delete it as a char[]...
+    delete [] static_cast<char *>(data);
 }
 
 mutationList::~mutationList() {
