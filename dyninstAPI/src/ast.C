@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.116 2002/08/29 04:55:19 mirg Exp $
+// $Id: ast.C,v 1.117 2002/08/31 16:53:08 mikem Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1983,6 +1983,27 @@ AstNode *createTimer(const string &func, void *dataPtr,
   var_base = getTimerAddress(dataPtr, sizeof(tTimer));
   ast_args += assignAst(var_base);
   removeAst(var_base);
+  timer = new AstNode(func, ast_args);
+  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+  return(timer);
+}
+
+
+AstNode *createHwTimer(const string &func, void *dataPtr, 
+                     vector<AstNode *> &ast_args, int hwCntrIndex)
+{
+  AstNode *var_base=NULL,*timer=NULL;
+  AstNode *hw_var=NULL;
+
+  var_base = new AstNode(AstNode::DataPtr, dataPtr);
+  hw_var = new AstNode(AstNode::Constant, (void*)hwCntrIndex);
+
+  ast_args += assignAst(var_base);
+  ast_args += assignAst(hw_var);
+   
+  removeAst(var_base);
+  removeAst(hw_var);
+
   timer = new AstNode(func, ast_args);
   for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
   return(timer);

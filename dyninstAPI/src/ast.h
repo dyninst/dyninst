@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.58 2002/08/16 16:01:36 gaburici Exp $
+// $Id: ast.h,v 1.59 2002/08/31 16:53:10 mikem Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -350,6 +350,9 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
 AstNode *getTimerAddress(void *base, unsigned struct_size);
 AstNode *getCounterAddress(void *base, unsigned struct_size);
 AstNode *createCounter(const string &func, void *, AstNode *arg);
+AstNode *createHwTimer(const string &func, void *, 
+                     vector<AstNode *> &arg_args, int hwCntrIndex);
+
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 // VG(11/06/01): This should be in inst.h I suppose; moved there...
