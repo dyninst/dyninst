@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.82 2003/07/15 22:46:01 schendel Exp $
+/* $Id: UIpublic.C,v 1.83 2003/07/24 16:48:58 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -818,7 +818,7 @@ UIM::showTclPrompt( bool show )
         // on the command line
 
         //cout << "binding to stdin:" << endl;
-        msg_bind(fileno(stdin),
+        msg_bind_file(fileno(stdin),
             1, // we dequeue messages ourselves - we just want notificaton
             NULL,
             NULL,

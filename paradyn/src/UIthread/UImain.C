@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.110 2003/07/18 15:44:35 schendel Exp $
+// $Id: UImain.C,v 1.111 2003/07/24 16:48:57 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -741,6 +741,9 @@ void *UImain(void*) {
         {
             // we only have one file bound - stdin
             StdinInputHandler( interp );
+
+            // tell the thread library we've consumed the input
+            clear_ready_file( thr_file( pollsender ) );
 
             // The above processing may have created some pending tk DoWhenIdle
             // requests.  If so, process them now.
