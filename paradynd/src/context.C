@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/context.C,v 1.3
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.41  1996/08/12 16:27:20  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.40  1996/05/16 19:29:53  mjrg
  * Fixed a bug in the computation of elapsedPauseTime
  *
@@ -256,13 +259,11 @@ void forkProcess(traceFork *fr)
 }
 
 
-// TODO mdc
-int addProcess(vector<string> &argv, vector<string> &envp, string dir, bool stopAtFirstBrk)
+int addProcess(vector<string> &argv, vector<string> &envp, string dir)
 {
     process *proc = createProcess(argv[0], argv, envp, dir);
 
     if (proc) {
-      proc->stopAtFirstBreak = stopAtFirstBrk;
       return(proc->pid);
     }
     else
@@ -348,25 +349,3 @@ bool pauseAllProcesses()
     return(changed);
 }
 
-
-//
-// This function is used for CM5 processes only. The process must stop after the 
-// CM5 node daemon is started. When the node daemon is ready, it sends a
-// nodeDaemonReady message to paradyn, which calls the continueProcWaitingForDaemon 
-// to resume the application.
-//
-void continueProcWaitingForDaemon(void) {
-  for (unsigned u = 0; u < processVec.size(); u++) {
-    process *p = processVec[u];
-    if (p->waitingForNodeDaemon) {
-      p->waitingForNodeDaemon = false;
-      if (!appPause) {
-        // application is running. Continue the process that is waiting.
-	statusLine("application running");
-	p->continueProc();
-      }
-      else
-	statusLine("application paused");
-    }
-  }
-}

@@ -7,6 +7,9 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.60  1996/08/12 16:27:03  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.59  1996/05/13 15:44:48  mjrg
  * Check the pid of a TR_EXEC record
  *
@@ -310,7 +313,6 @@ extern "C" {
 #include "inst.h"
 #include "dyninstP.h"
 #include "metric.h"
-#include "primitives.h"
 #include "util.h"
 #include "comm.h"
 #include "stats.h"
@@ -331,7 +333,6 @@ extern "C" {
 
 void createResource(int pid, traceHeader *header, struct _newresource *r);
 
-bool CMMDhostless = false;
 bool synchronousMode = false;
 bool firstSampleReceived = false;
 
@@ -488,11 +489,8 @@ void processTraceStream(process *curr)
 	    /* logLine(errorLine);*/
 	    // report sample here
 	    
-	    // If we are running a CM5 process, we don't send a first sample.
-	    // The CM5 node daemon will send a sample when it is ready.
-	    if (!CMMDhostless) {
-	      tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
-	    }
+	    tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
+
 	}
 	// header.wall -= curr->firstRecordTime();
 	switch (header.type) {
@@ -507,17 +505,6 @@ void processTraceStream(process *curr)
 	    case TR_NEW_ASSOCIATION:
 		a = (struct _association *) ((void*)recordData);
 		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
-		break;
-
-	    case TR_MULTI_FORK:
-		// logLine("got TR_MULTI_FORK record\n");
-		CMMDhostless = true;
-		forkNodeProcesses(curr, &header, (traceFork *) ((void*)recordData));
-		statusLine("node daemon started");
-		// the process stops itself after writing this trace record
-		// and must wait until the daemon is ready.
-		curr->waitingForNodeDaemon = true;
-		curr->status_ = stopped;
 		break;
 
 	    case TR_SAMPLE:
@@ -640,20 +627,6 @@ int handleSigChild(int pid, int status)
 		    }
 		    costMetric::addProcessToAll(curr);
 
-                    if (CMMDhostless) {
-		       // This is a cm5 process and we must run it so it can start
-		       // the node daemon.
-		       if (!OS::osForwardSignal(pid, 0)) {
-			 assert(0);
-		       }
-                       statusLine("starting node daemon ...");
-		       // The application will stop itself after it starts the 
-		       // node daemon. Setting waitingForNodeDaemon here will
-		       // prevent the application from running again before
-		       // the node daemon is ready.
-		       curr->waitingForNodeDaemon = true;
-		    }
-
 		    tp->newProgramCallbackFunc(pid, curr->arg_list, 
 					       machineResource->part_name());
 
@@ -662,14 +635,6 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 	    case SIGINT:
-
-		if (curr->waitingForNodeDaemon) {
-		  // CM5 kludge: the application stops after writing the TR_MULTI_FORK
-		  // trace record to start the node daemon. It will be re-started
-		  // by paradyn when the node daemon is ready.
-		  // no need to update status here
-		  break;
-		}
 
 		if (curr->reachedFirstBreak == false && curr->status() == neonatal) {
 		  // forked process
@@ -721,17 +686,6 @@ int handleSigChild(int pid, int status)
                      //P_abort();
                 }
 		break;
-
-#ifdef CM5_SIGXCPU_KLUDGE
-	      // don't forward SIGXCPU so that applications may run for more
-	      // than the max CPUtime limit
-	      case SIGXCPU:
-	      case SIGKILL:
-//		sprintf(errorLine,"Process %d received signal SIGXCPU or SIGKILL. Not forwarded.\n",pid);
-//		logLine(errorLine);
-		OS::osForwardSignal(pid,0);
-		break;
-#endif
 
 #ifdef notdef
 	    // XXXX for debugging

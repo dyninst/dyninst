@@ -14,6 +14,9 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.102  1996/08/12 16:27:07  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.101  1996/07/25 23:24:03  mjrg
  * Added sharing of metric components
  *
@@ -486,12 +489,6 @@ void metricDefinitionNode::handleFork(process *parent, process *child) {
 // in particular, it sets the crucial vrble "id_"
 int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
 {
-    // TODO -- why is this here?
-    // If CMMDhostless is true, this daemon is running a CM5 application,
-    // and it should not enable any metrics. Only the CM5 node daemon 
-    // will enable metrics for the application.
-    if (CMMDhostless == true) return(-1);
-
     bool internal = false;
 
     // Make the unique ID for this metric/focus visible in MDL.
@@ -850,49 +847,6 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     }
 }
 
-void metricDefinitionNode::updateCM5AggValue(time64 wallTime, 
-                                       sampleValue value,
-				       int num_processes,
-				       bool is_agg)
-{
-    // sampleInterval ret;
-    timeStamp sampleTime = wallTime / 1000000.0; 
-
-    assert(value >= -0.01);
-    if (style_ == EventCounter) { 
-      // only use delta from last sample.
-      if (value < cumulativeValue) {
-        if ((value/cumulativeValue) < 0.99999) {
-          assert(value  >= cumulativeValue);
-        } else {
-          // floating point rounding error ignore
-          cumulativeValue = value;
-        }
-      }
-      value -= cumulativeValue;
-      cumulativeValue += value;
-
-      // if this is an average aggregated value then get ave. from sum
-      if((is_agg) && (aggOp != aggSum)){
-              value /= num_processes;
-      }
-    }
-
-    for (unsigned u = 0; u < samples.size(); u++) {
-      if (samples[u]->firstValueReceived())
-	samples[u]->newValue(sampleTime, value);
-      else {
-	samples[u]->startTime(sampleTime);
-	cumulativeValue = value;
-      }
-    }
-
-    unsigned a_size = aggregators.size();
-    for (unsigned a=0; a<a_size; a++) {
-      aggregators[a]->updateAggregateComponent();
-    }
-
-}
 
 void metricDefinitionNode::updateAggregateComponent()
 {
@@ -963,28 +917,6 @@ void processSample(traceHeader *h, traceSample *s)
     //  ((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
     //    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
-    samplesDelivered++;
-}
-
-void processCM5Sample(traceHeader *h, traceSample *s,int num_processes)
-{
-    unsigned mid = s->id.id;
-    if (!midToMiMap.defines(mid)) {
-      // this is an okay thang, it can happen when an MI hase been disabled 
-#ifdef ndef
-      sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
-              s->id.id);
-      logLine(errorLine);
-#endif
-      return;
-    }
-    metricDefinitionNode *mi = midToMiMap[mid];
-    if(s->id.aggregate){
-        mi->updateCM5AggValue(h->wall,s->value,num_processes,true);
-    }
-    else {
-        mi->updateValue(h->wall, s->value);
-    }
     samplesDelivered++;
 }
 
@@ -1271,11 +1203,7 @@ void reportInternalMetrics()
 	  extern float currSamplingRate;
 	  value = (end - start) * currSamplingRate;
         } else if (theIMetric->name() == "number_of_cpus") {
-#ifdef sparc_tmc_cmost7_3
-	  value = (end - start) * getNumberOfCPUs();
-#else
           value = (end - start) * numberOfCPUs;
-#endif
         } else if (theIMetric->style() == EventCounter) {
           value = theInstance.getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);

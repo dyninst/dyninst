@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
+ * Revision 1.14  1996/08/12 16:27:01  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.13  1996/05/15 18:32:53  naim
  * Fixing bug in inferiorMalloc and adding some debugging information - naim
  *
@@ -108,7 +111,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
 #include "process.h"
 #include "inst.h"
 #include "instP.h"
-#include "primitives.h"
 #include "ast.h"
 #include "util.h"
 

@@ -7,6 +7,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.35  1996/08/12 16:27:05  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.34  1996/07/25 23:24:07  mjrg
  * Added sharing of metric components
  *
@@ -191,7 +194,6 @@ public:
   ~metricDefinitionNode();
   void disable();
   void updateValue(time64, sampleValue);
-  void updateCM5AggValue(time64, sampleValue,int,bool);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
   int getMId() const { return id_; }
@@ -319,5 +321,13 @@ int startCollecting(string& metricName, vector<u_int>& focus);
  *    perturbation expected (i.e. 0.10 == 10% slow down expected).
  */
 float guessCost(string& metric_name, vector<u_int>& focus);
+
+
+/*
+ * process a sample ariving from an inferior process
+ *
+ */
+void processSample(traceHeader*, traceSample *);
+
 
 #endif

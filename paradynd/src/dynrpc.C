@@ -27,6 +27,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.50  1996/08/12 16:27:18  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.49  1996/05/15 18:32:42  naim
  * Fixing bug in inferiorMalloc and adding some debugging information - naim
  *
@@ -474,10 +477,10 @@ bool dynRPC::attachProgram(int id)
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak)
+int dynRPC::addExecutable(vector<string> argv, string dir)
 {
   vector<string> envp;
-  return(addProcess(argv, envp, dir, stopAtFirstBreak));
+  return(addProcess(argv, envp, dir));
 }
 
 
@@ -488,11 +491,3 @@ double dynRPC::getTime() {
   return getCurrentTime(false);
 }
 
-
-//
-// CM5 processes only: continue the process that is stopped waiting for the CM5 node
-// daemon to start.
-//
-void dynRPC::nodeDaemonReady() {
-  continueProcWaitingForDaemon();
-}

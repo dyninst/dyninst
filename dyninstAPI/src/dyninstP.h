@@ -14,7 +14,10 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.11  1995/10/19 22:36:37  mjrg
+ * Revision 1.12  1996/08/12 16:27:19  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
+ * Revision 1.11  1995/10/19  22:36:37  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -98,11 +101,8 @@ typedef int (*errorHandler)(int errno, char *message);
  *   argv - arguments to command
  *   envp - environment args, for pvm
  *   dir  - the directory where the program will run
- *   stopAtFirstbrk - if true, the process pauses when it reaches the trap at the start
- *                      of the program. If false, paradynd will start running the process
- *                      automatically.
  */
-int addProcess(vector<string> &argv, vector<string> &envp, string dir = "", bool stopAtFirstBrk = false);
+int addProcess(vector<string> &argv, vector<string> &envp, string dir = "");
 
 /*
  * Find out if an application has been.defines yet.

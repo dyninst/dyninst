@@ -561,7 +561,7 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 // Routine that checks whether a particular address is valid before deleting
 // the corresponding instrumentation associated to it.
 //
-bool isValidAddress(process *proc, Address where)
+bool isValidAddress(process * , Address )
 {
   bool result=true;
   //
@@ -586,8 +586,6 @@ bool isValidAddress(process *proc, Address where)
 
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
-    AstNode *ast;
-
     unsigned ir_size = initialReqs.size(); 
     for (unsigned u=0; u<ir_size; u++) {
       instMapping *item = initialReqs[u];
@@ -639,9 +637,6 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       }
     }
 
-    // Supercomputing hack - mdc
-    // TODO
-    osDependentInst(proc);
 }
 
 /*
@@ -663,7 +658,7 @@ unsigned getPrimitiveCost(const string name)
 
 
 // find any tags to associate semantic meaning to function
-unsigned findTags(const string funcName) {
+unsigned findTags(const string ) {
   return 0;
 #ifdef notdef
   if (tagDict.defines(funcName))

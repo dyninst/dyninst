@@ -2,6 +2,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.46  1996/08/12 16:27:08  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.45  1996/07/18 19:39:14  naim
  * Minor fix to give proper error message when the pvm daemon runs out of
  * virtual memory - naim
@@ -162,14 +165,6 @@ int main(int argc, char *argv[])
 		 cmdLine += argv[i];
 	     }
 	}
-    }
-
-    // If the flavor is cm5, this daemon's only function is to insert the initial
-    // instrumentation to fork a CM5 node daemon, and to start/stop the 
-    // application. We set the variable CMMDhostless here to prevent any
-    // metric from being enabled by this daemon.
-    if (pd_flavor == "cm5") {
-      CMMDhostless = true;
     }
 
 #ifdef PARADYND_PVM

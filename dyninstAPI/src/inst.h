@@ -11,6 +11,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.23  1996/08/12 16:27:09  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.22  1996/05/08 23:54:49  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -334,9 +337,6 @@ extern float computePauseTimeMetric(const metricDefinitionNode *);
 extern process *nodePseudoProcess;
 
 extern void initLibraryFunctions();
-extern void forkNodeProcesses(process *curr,
-			      traceHeader *hr,
-			      traceFork *fr);
 
 extern unsigned getMaxBranch();
 

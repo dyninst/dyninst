@@ -80,72 +80,6 @@ int flushPtrace()
     return(0);
 }
 
-void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
-{
-    printf("why is forkNodeProcesses being called on HPUX\n");
-
-    int childPid;
-    char command[256];
-    char application[256];
-    char app_pid[20];
-    char num_nodes[20];	
- 
-    process *parent = findProcess(fr->ppid);
-    if (!parent) {
-      sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
-      statusLine(errorLine);
-      showErrorCallback(51, (const char *) errorLine);
-      return;
-    }
-
-    /* Build arglist */
-    sprintf (command, "%sCM5", process::programName.string_of());
-    sprintf (application, "%s", (curr->symbols->file()).string_of());
-    sprintf (app_pid, "%d", curr->pid);
-    sprintf (num_nodes, "%d", fr->npids);
-
-    /*
-     * It would be nice if this weren't sensitive to the size of
-     * arg_list.  For the moment, only arg_list[0] --> arg_list[6]
-     * are written by RPC_make_arg_list
-     * This is a small-time hack.
-     */
-
-    char *argv[20];
-    argv[0] = command;
-    argv[1] = application;
-    argv[2] = app_pid;
-    argv[3] = num_nodes;
-
-    // IF these are change, check out the delete below
-    argv[4] = P_strdup(process::arg_list[0].string_of());
-    argv[5] = P_strdup(process::arg_list[1].string_of());
-    argv[6] = P_strdup(process::arg_list[2].string_of());
-    argv[7] = P_strdup(process::arg_list[3].string_of());
-    argv[8] = P_strdup(process::arg_list[4].string_of());
-    argv[9] = NULL;
-
-    if ((childPid=fork()) == 0) {		/* child */
-      P_execvp (command, argv);
-      logLine("Exec failed in paradynd to start paradyndCM5\n");
-      showErrorCallback(56, "");
-      P_abort();
-    } else {			/* parent */
-      sprintf (errorLine, "forked child process (pid=%d)", childPid);
-      statusLine(errorLine);
-    }
-
-    for (int di=4; di<9; di++)
-      delete argv[di];
-
-    // There is no need to stop the process here, since the process stops itself
-    // after calling forkNodeProcess.
-
-    /* Mark the cm-process as running now */
-    // curr->status = running;
-    //    pauseAllProcesses();
-}
-
 
 /*
  * Define the various classes of library functions to inst. 
@@ -210,5 +144,3 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
     }
 }
 
-void osDependentInst(process *proc) {
-}

@@ -13,36 +13,18 @@ static AstNode tidArg(Param, (void *) 0);
 
 bool initOS() {
 
-  initialRequests += new instMapping("cmmd_debug", "DYNINSTnodeCreate", FUNC_ENTRY);
-  initialRequests += new instMapping("CMRT_init", "DYNINSTnodeCreate", FUNC_ENTRY);
-  initialRequests += new instMapping("cmmd_debug", "DYNINSTparallelInit", FUNC_EXIT);
-  initialRequests += new instMapping("CMRT_init", "DYNINSTparallelInit", FUNC_ENTRY);
-  initialRequests += new instMapping("cmmd_debug", "DYNINSTbreakPoint", FUNC_EXIT);
-  initialRequests += new instMapping("CMRT_init", "DYNINSTbreakPoint", FUNC_ENTRY);
+  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
-  initialRequests += new instMapping("fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG, &tidArg);  initialRequests += new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, &tidArg);
+  initialRequests += new instMapping("fork", "DYNINSTfork",
+				     FUNC_EXIT|FUNC_ARG, &tidArg);
+  initialRequests += new instMapping("execve", "DYNINSTexec", 
+				     FUNC_ENTRY|FUNC_ARG, &tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
-  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);
-  initialRequests += new instMapping("CMMD_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG,
-				 &tagArg);
-  initialRequests += new instMapping("CMMD_receive", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
-  initialRequests += new instMapping("CMMD_receive_block", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
-  initialRequests += new instMapping("CMMD_send_block", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
-  initialRequests += new instMapping("CMMD_send_async", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
-  initialRequests += new instMapping("CMMD_receive_async", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, &tagArg);
-  initialRequests += new instMapping("rexec", "DYNINSTrexec",
-				 FUNC_ENTRY|FUNC_ARG, &cmdArg);
-
 
 #ifdef PARADYND_PVM
   char *doPiggy;

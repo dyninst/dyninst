@@ -125,11 +125,6 @@ int flushPtrace()
     return(0);
 }
 
-void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
-{
-    abort();
-}
-
 
 /*
  * Define the various classes of library functions to inst. 
@@ -160,4 +155,3 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
     }
 }
 
-void osDependentInst(process *proc) { }

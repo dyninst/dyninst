@@ -4,6 +4,9 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.18  1996/08/12 16:27:15  mjrg
+ * Code cleanup: removed cm5 kludges and some unused code
+ *
  * Revision 1.17  1996/02/13 06:17:29  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
@@ -84,7 +87,6 @@ extern costMetric *smooth_obs_cost;
 
 extern bool init();
 extern bool initOS();
-extern void osDependentInst(process *proc);
 extern vector<instMapping*> initialRequests;
 extern vector<metric*> globalMetricVec;
 
