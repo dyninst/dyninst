@@ -1485,12 +1485,14 @@ bool pdFunction::checkInstPoints(const image *owner) {
 	return true;
 
     // The function is too small to be worthing instrumenting.
-    if (size() <= 12)
+    if (size() <= 12){
 	return false;
+    }
 
     // No function return! return false;
-    if (sizeof(funcReturns) == 0)
+    if (sizeof(funcReturns) == 0) {
 	return false;
+    }
 
     instruction instr;
     Address adr = getAddress(0);
@@ -1512,18 +1514,18 @@ bool pdFunction::checkInstPoints(const image *owner) {
 
 	    if ((target > funcEntry_->addr)&&
 		(target < (funcEntry_->addr + funcEntry_->size))) {
-		if (adr > (funcEntry_->addr+funcEntry_->size))
+		if (adr > (funcEntry_->addr+funcEntry_->size)){
 		    //cout << "Function " << prettyName_ <<" entry" << endl;
 		    return false;
-	    }
+	    } }
 
 	    for (u_int i = 0; i < funcReturns.size(); i++) {
 		if ((target > funcReturns[i]->addr)&&
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
 		    if ((adr < funcReturns[i]->addr)||
-			(adr > (funcReturns[i]->addr + funcReturns[i]->size)))
+			(adr > (funcReturns[i]->addr + funcReturns[i]->size))){
 			return false;
-		}
+		} }
 	    }
 	}
     }
@@ -1542,9 +1544,9 @@ bool pdFunction::checkInstPoints(const image *owner) {
 	if(func_entry >= funcReturns[i]->addr){
 	   return false;
         }
-	if(i > 1){ // check if return points overlap
+	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
-	    if(funcReturns[i]->addr >= prev_exit) {
+	    if(funcReturns[i]->addr < prev_exit) {
 		return false;
 	    } 
 	}
