@@ -3,7 +3,12 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.6  1994/10/26 22:34:03  tamches
+ * Revision 1.7  1994/11/04 15:54:02  tamches
+ * Added "developerMode" tunable constant, which is a boolean tc in user mode.
+ * The user interface (tcl) will now look at this tc to determine whether it
+ * is in developer mode or not.
+ *
+ * Revision 1.6  1994/10/26  22:34:03  tamches
  * Set min/max to 0 for float constructor that did not define them.
  *
  * Revision 1.5  1994/09/22  03:18:47  markc
@@ -31,8 +36,14 @@
 #include "util/h/tunableConst.h"
 #include <string.h>
 
-List<tunableConstant*> *tunableConstant::allConstants;
-stringPool *tunableConstant::pool;
+List<tunableConstant*> *tunableConstant::allConstants=NULL;
+stringPool *tunableConstant::pool=NULL;
+
+tunableBooleanConstant tcInDeveloperMode(false,
+         NULL, // presently, no callback function			 
+	 userConstant,
+	 "developerMode",
+	 "Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)");
 
 tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
 					       booleanChangeValCallBackFunc cb,
@@ -122,7 +133,6 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
     allConstants->add(this, name);
 }
 
-void tunableFloatConstant::print()
-{
+void tunableFloatConstant::print() {
     cout << (char*) name << " = " << value << "\n";
 }
