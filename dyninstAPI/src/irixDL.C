@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.2 1999/05/21 17:33:11 wylie Exp $
+// $Id: irixDL.C,v 1.3 1999/06/08 07:10:29 csserra Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h> // gregset_t
@@ -62,10 +62,6 @@ extern Address pcFromProc(int proc_fd); // csserra
 extern void print_proc_flags(int fd);
 extern void print_proc_regs(int fd);
 extern void cleanUpAndExit(int);
-
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-char *Bool[] = { "false", "true" };
 
 /*
 static void print_mmaps(process *p)
@@ -174,6 +170,11 @@ dynamic_linking::getRldObjects(process *p, int &libc_fd, Address &libc_base)
     // read rld object
     p->readDataSpace(next, sizeof(Elf32_Obj_Info), &obj, true);
 
+    // debug
+    prpsinfo_t info;
+    int proc_fd = p->getProcFileDescriptor();
+    ioctl(proc_fd, PIOCPSINFO, &info);
+
     // DSO name
     int name_len = obj.oi_pathname_len + 1;
     char *name_buf = new char[name_len];
@@ -184,7 +185,8 @@ dynamic_linking::getRldObjects(process *p, int &libc_fd, Address &libc_base)
     // first object in map is executable (skip)
     // TODO: check against PIOCPSINFO strings
     if (dso_name == p->getImage()->file() ||
-	dso_name == p->getImage()->name()) 
+	dso_name == p->getImage()->name() || 
+	dso_name == p->getArgv0()) 
       {
 	continue;
       }
@@ -419,11 +421,12 @@ bool process::dlopenDYNINSTlib()
   Address codeAddr = baseAddr + bufSize;
   registerSpace *regs = new registerSpace(nDead, Dead, 0, (Register *)0);
   vector<AstNode*> args(2);
+  int dlopen_mode = RTLD_NOW | RTLD_GLOBAL;
   AstNode *call;
   string callee = "dlopen";
   // inferior dlopen(): build AstNodes
   args[0] = new AstNode(AstNode::Constant, (void *)libAddr);
-  args[1] = new AstNode(AstNode::Constant, (void *)DLOPEN_MODE);
+  args[1] = new AstNode(AstNode::Constant, (void *)dlopen_mode);
   call = new AstNode(callee, args);
   removeAst(args[0]);
   removeAst(args[1]);
@@ -498,7 +501,6 @@ char *dso2str(dsoEventType_t t)
   return "unknown";
 }
 
-// TODO: cleanup (remove?) single-step method
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p, 
 				vector<shared_object *> **changed_objs,
 				u_int &change_type, 
@@ -559,7 +561,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	// DSO name
 	string dso_name = "";
 	getObjectPath(p, dso_addr, dso_name);
-      
+
 	// return new shared_object
 	vector<shared_object *> *newVec = new vector<shared_object *>;
 	(*newVec) += new shared_object(dso_name, dso_addr, false, true, true, 0);

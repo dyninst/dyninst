@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf32.C,v 1.9 1999/06/08 03:36:19 csserra Exp $
+// $Id: Object-elf32.C,v 1.10 1999/06/08 07:12:20 csserra Exp $
 
 /**********************************************
  *
@@ -933,7 +933,6 @@ bool Object::fix_global_symbol_modules_static_stab(
     unsigned stabstr_nextoffset = 0;
 
     bool is_fortran = false;  // is the current module fortran code?
-  fprintf(stderr, ">>> start parsing .stab\n");
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
@@ -945,13 +944,11 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    // We use this value to compute the offset of the next string table.
 	    stabstr_nextoffset = stabstr_offset + stabsyms[i].val;
 	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
-	    //fprintf(stderr, "@@@ stab module 1 \"%s\"\n", module.string_of());
 	    break;
 
 	case N_ENDM: /* end of object file */
 	    is_fortran = false;
 	    module = "DEFAULT_MODULE";
-	    //fprintf(stderr, "@@@ stab module 2 \"%s\"\n", module.string_of());
 	    break;
 
 	case N_SO: /* compilation source or file name */
@@ -959,7 +956,6 @@ bool Object::fix_global_symbol_modules_static_stab(
 	      is_fortran = true;
 
 	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
-	    //fprintf(stderr, "@@@ stab module 3 \"%s\"\n", module.string_of());
 	    break;
 
         case N_ENTRY: /* fortran alternate subroutine entry point */

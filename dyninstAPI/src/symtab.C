@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.94 1999/05/24 21:42:55 cain Exp $
+// $Id: symtab.C,v 1.95 1999/06/08 07:10:30 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +57,8 @@
 #include "util/h/Timer.h"
 #include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
-#include "dyninstAPI/src/process.h" // for process::getBaseAddress()
+#include "util/h/pathName.h"          // extract_pathname_tail()
+#include "dyninstAPI/src/process.h"   // process::getBaseAddress()
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
@@ -1230,66 +1231,68 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs,
 
 #endif /* BPATCH_LIBRARY */
 
-// I commented this out since gcc says it ain't used --ari 10/97
-// I then uncommented it because non-Solaris platforms need it --ssuen 10/10/97
-static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
-		       string &modName, Address &modAddr, const string &def) {
-  int start=0, end=mods.size()-1, index;
-  bool found=false;
-
-  if (!mods.size()) {
+// identify module name from symbol address (binary search)
+// based on module tags found in file format (ELF/COFF)
+static void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
+			   string &modName, Address &modAddr, 
+			   const string &defName)
+{
+  if (mods.size() == 0) {
     modAddr = 0;
-    modName = def;
+    modName = defName;
     return;
   }
 
+  Address symAddr = lookUp.addr();
+  int index;
+  int start = 0;
+  int end = mods.size() - 1;
+  int last = end;
+  bool found = false;
   while ((start <= end) && !found) {
     index = (start+end)/2;
-
-    if ((index == (((int)mods.size())-1)) ||
-	((mods[index].addr() <= lookUp.addr()) && (mods[index+1].addr() > lookUp.addr()))) {
+    if ((index == last) ||
+	((mods[index].addr() <= symAddr) && 
+	 (mods[index+1].addr() > symAddr))) {
       modName = mods[index].name();
       modAddr = mods[index].addr();      
       found = true;
-    } else if (lookUp.addr() < mods[index].addr()) {
+    } else if (symAddr < mods[index].addr()) {
       end = index - 1;
     } else {
       start = index + 1;
     }
   }
-  if (!found) {
-    modName = mods[0].name();
-    modAddr = mods[0].addr();
+  if (!found) { 
+    // must be (start > end)
+    modAddr = 0;
+    modName = defName;
+    //modName = mods[0].name();
+    //modAddr = mods[0].addr();
   }
 }
 
-// COMMENTS????
-// 
+// addOneFunction(): find name of enclosing module and define function symbol
+//
+// module information comes from one of three sources:
+//   #1 - debug format (stabs, DWARF, etc.)
+//   #2 - file format (ELF, COFF)
+//   #3 - file name (a.out, libXXX.so)
+// (in order of decreasing reliability)
 bool image::addOneFunction(vector<Symbol> &mods,
 			   pdmodule *lib,
-			   pdmodule *,
-			   const Symbol &lookUp, pd_Function  *&retFunc) {
-  // TODO mdc
-  // find the module
-  // this is a "user" symbol
-  string modName = lookUp.module();
+			   pdmodule * /*dyn*/,
+			   const Symbol &lookUp, pd_Function *&retFunc) 
+{
+  // find module name
   Address modAddr = 0;
-  
-  string progName = name_ + "_module";
-
-#if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) || defined (rs6000_ibm_aix4_1)
-  // In solaris there is no address for modules in the symbol table, 
-  // so the binary search will not work. The module field in a symbol
-  // already has the correct module name for a symbol, if it can be
-  // obtained from the symbol table, otherwise the module is an empty
-  // string.
-  if (modName == "") {
-    modName = progName;
+  string modName = lookUp.module();
+  if (modName == "DEFAULT_MODULE") {
+      string modName_3 = modName;
+      findModByAddr(lookUp, mods, modName, modAddr, modName_3);
   }
-#else
-  binSearch(lookUp, mods, modName, modAddr, progName);
-#endif
 
+  // add symbol definition
   return (defineFunction(lib, lookUp, modName, modAddr, retFunc));
 }
 
@@ -1462,8 +1465,8 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 
   bool is_libdyninstRT = false; // true if this image is libdyninstRT
 #if defined(i386_unknown_nt4_0)
-  if (linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)
-      || linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp))
+  if (linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) ||
+      linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp))
     is_libdyninstRT = true;
 #endif
 
@@ -1700,14 +1703,9 @@ void image::initialize(const string &fileName, bool &err,
     }
     statusLine(msg.string_of());
 
-    const char *nm = fileName.string_of();
-    const char *pos = P_strrchr(nm, '/');
-
+    // short file name
+    name_ = extract_pathname_tail(fileName);
     err = false;
-    if (pos)
-        name_ = pos + 1;
-    else
-        name_ = fileName;
 
     // use the *DUMMY_MODULE* until a module is defined
     pdmodule *dynModule = newModule(DYN_MODULE, 0);
@@ -1750,9 +1748,11 @@ void image::initialize(const string &fileName, bool &err,
     // I am guessing are modules
     vector<Symbol> uniq;
 
+    int num_zeros = 0;
     // must use loop+1 not mods.size()-1 since it is an unsigned compare
     //  which could go negative - jkh 5/29/95
     for (unsigned loop=0; loop < tmods.size(); loop++) {
+        if (tmods[loop].addr() == 0) num_zeros++;
         if ((loop+1 < tmods.size()) && 
 	        (tmods[loop].addr() == tmods[loop+1].addr())) {
             if (!tmods[loop].kludge())
@@ -1761,6 +1761,8 @@ void image::initialize(const string &fileName, bool &err,
 	else
           uniq += tmods[loop];
     }
+    // avoid case where all (ELF) module symbols have address zero
+    if (num_zeros == tmods.size()) uniq.resize(0);
 
     // define all of the functions
     statusLine("winnowing functions");
