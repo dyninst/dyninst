@@ -86,7 +86,11 @@ class aggComponent {
   bool isReadyToReceiveSamples() const {
     return isInitialStartTimeSet() && (!curActualVal.isNaN());
   }
+  bool isInitialActualValueSet() const {
+    return !initActualVal.isNaN();
+  }
   void setInitialActualValue(pdSample v) {  
+    assert(initActualVal.isNaN());
     initActualVal = v;  
     curActualVal = v;
   }
