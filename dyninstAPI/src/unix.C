@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.115 2004/03/02 22:46:14 bernat Exp $
+// $Id: unix.C,v 1.116 2004/03/05 16:51:45 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -460,6 +460,7 @@ int forwardSigToProcess(const procevent &event) {
 
 int handleSigTrap(const procevent &event) {
     process *proc = event.proc;
+    
     // SIGTRAP is our workhorse. It's used to stop the process at a specific
     // address, notify the mutator/daemon of an event, and a few other things
     // as well.
@@ -585,15 +586,6 @@ int handleSigTrap(const procevent &event) {
         proc->continueProc();
         return 1;
     }
-
-    // We get spurious traps on AIX 4.3 on multi-threaded programs
-#if defined(rs6000_ibm_aix4_1)  && !defined(AIX_PROC)
-    if(proc->multithread_ready()) {
-       cerr << "   unexpected trap on AIX-ptrace, ignoring it\n";
-       proc->continueProc();
-       return 1;
-    }
-#endif
 
     return 0;
 }
@@ -811,52 +803,14 @@ int handleForkExit(const procevent &event) {
                 
                 theChild->set_status(stopped);
 
-#if defined(rs6000_ibm_aix4_1)
-                // AIX has interesting fork behavior: the program image is
-                // loaded from disk instead of copied over. This means we 
-                // need to reinsert all instrumentation.
-                extern bool copyInstrumentationToChild(process *p, process *c);
-                copyInstrumentationToChild(proc, theChild);
-#endif
                 proc->handleForkExit(theChild);
-
-#if defined(rs6000_ibm_aix4_1)
-                //on AIX 4.3 we receive an extra SIGTRAP from within __fork() from
-                //the child. I dont know why.  If we catch it and eat it
-                //and continue the child process we are good.  This flag
-                //lets us know (in handleSigTrap) that the next SIGTRAP should be eaten
-                theChild->nextTrapIsFork = true;  
-                
-                // On AIX, we don't continue the process elsewhere because we
-                // want to wait until we've seen the fork exit in both the
-                // parent and the child.  This is so that the
-                // copyInstrumentationToChild above will work - without
-                // leaving the parent paused, it may, for instance, exit
-                // before we copy the instrumentation.  Now that we've handled
-                // that, continue both the parent and the child.
-                proc->continueProc();
-                theChild->continueProc();
-#endif
             }
             else {
                 // Can happen if we're forking something we can't trace
-                cerr << "Process forked, but unable to initialize child" << endl;
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-                // It's not clear what we want to do on AIX with the parent
-                // in this case.  For now, we'll just continue it.
                 proc->continueProc();
-#endif
             }
         }
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-        else {
-            // Continue both parent and child (see above)
-            proc->continueProc();
-            processVec[i]->continueProc();
-        }
-#endif
     }
-
     return 1;
 }
 
