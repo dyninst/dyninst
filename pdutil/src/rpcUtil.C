@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.46  1997/01/16 20:52:21  tamches
+ * removed RPC_undo_arg_list (to paradynd)
+ *
  * Revision 1.45  1996/11/26 16:09:37  naim
  * Fixing asserts - naim
  *
@@ -209,60 +212,6 @@ RPC_readReady (int fd, int timeout)
   return (FD_ISSET (fd, &readfds));
 }
 
-// TODO
-// mdc - I need to clean this up
-bool
-RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
-		   int &well_known_socket, int &flag,
-		   int &firstPVM)
-{
-  int loop;
-  char *ptr;
-  bool b_well_known=false, b_first=false,
-  b_machine = false, b_flag = false, b_flavor=false;
-
-  for (loop=0; loop < argc; ++loop)
-    {
-      // stop at the -runme argument since the rest are for the application
-      //   process we are about to spawn
-      if (!strcmp(arg_list[loop], "-runme")) break;
-      if (!P_strncmp(arg_list[loop], "-p", 2))
-	{
-	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_well_known = true;
-	}
-      else if (!P_strncmp(arg_list[loop], "-v", 2))
-	{
-	  firstPVM = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_first = true;
-	}
-      else if (!P_strncmp(arg_list[loop], "-m", 2))
-	{
-	  machine = (arg_list[loop] + 2);
-	  if (!machine.length()) return false;
-	  b_machine = true;
-	}
-      else if (!P_strncmp(arg_list[loop], "-l", 2))
-	{
-	  flag = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_flag = true;
-	}
-      else if (!P_strncmp(arg_list[loop], "-z", 2))
-	{
-	  flavor = (arg_list[loop]+2);
-	  if (!flavor.length()) return false;
-	  b_flavor = true;
-	}
-    }
-  return (b_flag && b_first && b_machine && b_well_known && b_flavor);
-}
-
 /*
  * Build an argument list starting at position 0.
  * Note, this arg list will be used in an exec system call
@@ -311,11 +260,10 @@ RPC_setup_socket (int &sfd,   // return file descriptor
 		  const int family, // AF_INET ...
 		  const int type)   // SOCK_STREAM ...
 {
-  struct sockaddr_in serv_addr;
-
   if ((sfd = P_socket(family, type, 0)) < 0)
     return -1;
 
+  struct sockaddr_in serv_addr;
   P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = (short) family;
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
