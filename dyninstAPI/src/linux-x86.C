@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.57 2005/01/21 23:44:40 bernat Exp $
+// $Id: linux-x86.C,v 1.58 2005/02/02 17:27:29 bernat Exp $
 
 #include <fstream>
 
@@ -1435,7 +1435,7 @@ bool process::loadDYNINSTlib() {
   // called from outside libc.  We'll disable those features by finding the
   // function that implements them and writing 'return 0' over the top of
   // the function.
-  int_function *dlcheck = findOnlyOneFunctionFromAll("_dl_check_caller");
+  int_function *dlcheck = findOnlyOneFunction("_dl_check_caller");
   if (dlcheck != NULL)
   {
     if (!dlcheck->setReturnValue(this, 0))
