@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.21  1995/12/16 00:21:26  tamches
+ * added a template needed by blizzard
+ *
  * Revision 1.20  1995/12/05 01:52:38  zhichen
  * Added some instanciation of templates for paradyn+blizzard
  *
@@ -246,5 +249,4 @@ template class dictionary_hash <unsigned, sampleVec *>  ;
 template class dictionary_hash <unsigned, traceHeaderVec *>  ;
 template class dictionary_hash_iter<unsigned, sampleVec *> ;
 template class dictionary_hash_iter<unsigned, per_mid_buffer *> ;
-
-
+template class dictionary_hash<unsigned, per_mid_buffer *>;
