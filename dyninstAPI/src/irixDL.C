@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.17 2003/04/14 21:50:00 bernat Exp $
+// $Id: irixDL.C,v 1.18 2003/04/15 18:44:31 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -210,28 +210,33 @@ bool process::trapAtEntryPointOfMain(Address)
    defined in a shared library.  If main() cannot be found, then we
    check if the executable image contained a call to main().  This is
    usually inside __start(). */
-void process::insertTrapAtEntryPointOfMain()
+bool process::insertTrapAtEntryPointOfMain()
 {
-  // insert trap near "main"
-  main_brk_addr = lookup_fn(this, "main");
-  if (main_brk_addr == 0) {
-    main_brk_addr = getImage()->get_main_call_addr();
-  }
-  assert(main_brk_addr);
-
-  // save original instruction
-  readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
-
-  // insert trap instruction
-  instruction trapInsn;
-  genTrap(&trapInsn);
-  writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn);
+    // insert trap near "main"
+    main_brk_addr = lookup_fn(this, "main");
+    if (main_brk_addr == 0) {
+        main_brk_addr = getImage()->get_main_call_addr();
+    }
+    if (!main_brk_addr) return false;
+    
+    // save original instruction
+    if (!readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true))
+        return false;
+    
+    // insert trap instruction
+    instruction trapInsn;
+    genTrap(&trapInsn);
+    if (!writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn))
+        return false;
+    return true;
 }
 
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
   // restore original instruction to entry point of main()
-  writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer);
+    if (!writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer))
+        return false;
+    return true;
 }
 
 static bool is_a_out(process *p, const string &dso_name)

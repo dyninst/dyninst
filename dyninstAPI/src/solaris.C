@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.142 2003/04/14 21:50:07 bernat Exp $
+// $Id: solaris.C,v 1.143 2003/04/15 18:44:36 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -464,54 +464,54 @@ bool process::trapAtEntryPointOfMain(Address)
     return checkAllThreadsForBreakpoint(this, main_brk_addr);
 }
 
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
     assert(main_brk_addr);
     
   // restore original instruction 
 #if defined(sparc_sun_solaris2_4)
-  writeDataSpace((void *)main_brk_addr, 
-                 sizeof(instruction), (char *)savedCodeBuffer);
+    writeDataSpace((void *)main_brk_addr, 
+                   sizeof(instruction), (char *)savedCodeBuffer);
 #else // x86
-  writeDataSpace((void *)main_brk_addr, 2, 
-                 (char *)savedCodeBuffer);
+    writeDataSpace((void *)main_brk_addr, 2, 
+                   (char *)savedCodeBuffer);
 #endif
-  main_brk_addr = 0;
+    main_brk_addr = 0;
+    return true;
 }
 
-void process::insertTrapAtEntryPointOfMain()
+bool process::insertTrapAtEntryPointOfMain()
 {
 
-  function_base *f_main = findOnlyOneFunction("main");
-  if (!f_main) {
-    // we can't instrument main - naim
-    showErrorCallback(108,"main() uninstrumentable");
-    //extern void cleanUpAndExit(int);
-    //cleanUpAndExit(-1); 
-    return;
-  }
-  assert(f_main);
-  Address addr = f_main->addr(); 
- // save original instruction first
+    function_base *f_main = findOnlyOneFunction("main");
+    if (!f_main) {
+        // we can't instrument main - naim
+        showErrorCallback(108,"main() uninstrumentable");
+        return false;
+    }
+    assert(f_main);
+    Address addr = f_main->addr(); 
+    // save original instruction first
 #if defined(sparc_sun_solaris2_4)
-  readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
+    readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
 #else // x86
-  readDataSpace((void *)addr, 2, savedCodeBuffer, true);
+    readDataSpace((void *)addr, 2, savedCodeBuffer, true);
 #endif
-
-  // and now, insert trap
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-
+    
+    // and now, insert trap
+    instruction insnTrap;
+    generateBreakPoint(insnTrap);
+    
 #if defined(sparc_sun_solaris2_4)
-  writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
+    writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
 #else //x86. have to use SIGILL instead of SIGTRAP
-  writeDataSpace((void *)addr, 2, insnTrap.ptr());  
+    writeDataSpace((void *)addr, 2, insnTrap.ptr());  
 #endif
-  main_brk_addr = addr;
-
-  char buffer[256];
-  readDataSpace((void *)addr, sizeof(instruction), buffer, true);
+    main_brk_addr = addr;
+    
+    char buffer[256];
+    readDataSpace((void *)addr, sizeof(instruction), buffer, true);
+    return true;
 }
 
 bool process::getDyninstRTLibName() {

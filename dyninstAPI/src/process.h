@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.250 2003/04/14 21:50:06 bernat Exp $
+/* $Id: process.h,v 1.251 2003/04/15 18:44:37 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -856,7 +856,6 @@ void saveWorldData(Address address, int size, const void* src);
 
  public:
 
-  static void forkCallback(process *parentProc, process *childProc);
 #if !defined(BPATCH_LIBRARY)
   void init_shared_memory(process *parentProc);
 #endif
@@ -879,8 +878,8 @@ void saveWorldData(Address address, int size, const void* src);
   bool wasCreatedViaAttach() { return createdViaAttach; }
   bool wasCreatedViaFork() { return createdViaFork; }
   bool wasRunningWhenAttached() { return wasRunningWhenAttached_; }
-  void insertTrapAtEntryPointOfMain();
-  void handleTrapAtEntryPointOfMain();
+  bool insertTrapAtEntryPointOfMain();
+  bool handleTrapAtEntryPointOfMain();
 
   
   bool wasCreatedViaAttachToCreated() {return createdViaAttachToCreated; } // Ana

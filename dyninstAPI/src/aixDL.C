@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.37 2003/04/14 21:49:58 bernat Exp $
+// $Id: aixDL.C,v 1.38 2003/04/15 18:44:30 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -357,16 +357,19 @@ bool process::trapAtEntryPointOfMain(Address)
  * which is a chunk of space we use for dlopening the RT library.
  */
 
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
-    assert(main_brk_addr);
-  // Put back the original insn
-  writeDataSpace((void *)main_brk_addr, 
-                 sizeof(instruction), (char *)savedCodeBuffer);
-
-  // And zero out the main_brk_addr so we don't accidentally
-  // trigger on it.
-  main_brk_addr = 0x0;
+    
+    if (!main_brk_addr) return false;
+    // Put back the original insn
+    if (!writeDataSpace((void *)main_brk_addr, 
+                        sizeof(instruction), (char *)savedCodeBuffer))
+        return false;
+    
+    // And zero out the main_brk_addr so we don't accidentally
+    // trigger on it.
+    main_brk_addr = 0x0;
+    return true;
 }
 
 /*
@@ -375,15 +378,13 @@ void process::handleTrapAtEntryPointOfMain()
  * we can dlopen the RT library.
  */
 
-void process::insertTrapAtEntryPointOfMain()
+bool process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOnlyOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
-    extern void cleanUpAndExit(int);
-    cleanUpAndExit(-1); 
-    return;
+    return false;
   }
   assert(f_main);
   Address addr = f_main->addr();
@@ -396,6 +397,7 @@ void process::insertTrapAtEntryPointOfMain()
   generateBreakPoint(insnTrap);
   writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
   main_brk_addr = addr;
+  return true;
 }
 
 bool process::getDyninstRTLibName() {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.31 2003/04/14 21:50:03 bernat Exp $
+// $Id: osfDL.C,v 1.32 2003/04/15 18:44:34 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -501,7 +501,7 @@ void osfWaitProc(int fd)
  *    main.  All we need to do is wait for a SIGTRAP that the loader gives
  *    us just after it completes loading.
  */
-void process::insertTrapAtEntryPointOfMain()
+bool process::insertTrapAtEntryPointOfMain()
 {
   // XXX - Should check if it's statically linked and skip the prod. - jkh
   // continueProc_();
@@ -519,9 +519,7 @@ void process::insertTrapAtEntryPointOfMain()
   if (!main_brk_addr) {
       // failed to locate main
       showErrorCallback(108,"Failed to locate main().\n");
-      extern void cleanUpAndExit(int);
-      cleanUpAndExit(-1);
-      return;
+      return false;
   }
   assert(main_brk_addr);
 
@@ -546,11 +544,9 @@ void process::insertTrapAtEntryPointOfMain()
       if (--countdown < 0) {
 	  // looped too many times.
 	  showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
-	  extern void cleanUpAndExit(int);
-	  cleanUpAndExit(-1);
-	  return;
+	  return false;
       }
-
+      
       continueProc_();
       osfWaitProc(getDefaultLWP()->get_fd());
   }
@@ -561,7 +557,7 @@ void process::insertTrapAtEntryPointOfMain()
   generateBreakPoint(trapInsn);
 
   writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn);
-
+  return true;
 }
 
 bool process::trapAtEntryPointOfMain(Address)
@@ -580,7 +576,7 @@ bool process::trapAtEntryPointOfMain(Address)
   return ret;
 }
 
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
     // restore original instruction to entry point of main()
     writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer);
@@ -594,27 +590,28 @@ void process::handleTrapAtEntryPointOfMain()
 oc" << endl;
          assert(false);
       }
-      return;
+      return false;
    }
    theIntRegs.regs[PC_REGNUM] -= 4;
    getDefaultLWP()->changePC(theIntRegs.regs[PC_REGNUM], NULL);
-
-  prstatus info;
-  ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
-  while (!prismember(&info.pr_flags, PR_STOPPED))
-  {
-     sleep(1);
-     ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
-  }
+   
+   prstatus info;
+   ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
+   while (!prismember(&info.pr_flags, PR_STOPPED))
+   {
+       sleep(1);
+       ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
+   }
    if (ioctl(getDefaultLWP()->get_fd(), PIOCSREG, &theIntRegs) == -1) {
-      perror("dyn_lwp::getRegisters PIOCGREG");
-      if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /pr
+       perror("dyn_lwp::getRegisters PIOCGREG");
+       if (errno == EBUSY) {
+           cerr << "It appears that the process was not stopped in the eyes of /pr
 oc" << endl;
-         assert(false);
-      }
-      return;
-    }
+           assert(false);
+       }
+       return false;
+   }
+   return true;
 }
 
 

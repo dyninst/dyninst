@@ -198,39 +198,39 @@ Address getPC( int pid ) {
 	return pc;
 	} /* end getPC() */
 
-void process::handleTrapAtEntryPointOfMain() {
+bool process::handleTrapAtEntryPointOfMain() {
 	function_base *f_main = findOneFunction("main");
 	assert(f_main);
 	Address addr = f_main->addr();
-
+	
 	/* See comment below in iTAEPOM(). */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
 	fprintf( stderr, "*** Handled trap at entry point of main().\n" );
-	} /* end handleTrapAtEntryPointOfMain() */
+	return true;
+} /* end handleTrapAtEntryPointOfMain() */
 
-void process::insertTrapAtEntryPointOfMain() {
+bool process::insertTrapAtEntryPointOfMain() {
 	function_base * f_main = 0;
 	f_main = findOneFunction( "main" );
 
 	if ( ! f_main ) {     // we can't instrument main - naim
 		showErrorCallback( 108, "main() uninstrumentable" );
-		extern void cleanUpAndExit( int );
-		cleanUpAndExit( -1 );
-		return;
-		}
-
+		return false;
+	}
+	
 	assert( f_main );
-
+	
 	Address addr = f_main->addr();
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.saveMyBundleTo( savedCodeBuffer );
 	iAddr.replaceBundleWith( generateTrapBundle() );
-  
+	
 	main_brk_addr = addr;
 	fprintf( stderr, "*** Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
-	} /* end insertTrapAtEntryPointOfMain() */
+	return true;
+} /* end insertTrapAtEntryPointOfMain() */
 
 Address dyn_lwp::readRegister( Register ) {
 	assert( 0 );

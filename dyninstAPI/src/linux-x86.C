@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.24 2003/04/14 21:50:02 bernat Exp $
+// $Id: linux-x86.C,v 1.25 2003/04/15 18:44:33 bernat Exp $
 
 #include <fstream.h>
 
@@ -398,46 +398,50 @@ bool process::loadDYNINSTlibCleanup()
   return true;
 }
 
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
     assert(main_brk_addr);
     // restore original instruction 
-    writeDataSpace((void *)main_brk_addr, 2, (char *)savedCodeBuffer);
+    if (!writeDataSpace((void *)main_brk_addr, 2, (char *)savedCodeBuffer))
+        return false;
     main_brk_addr = 0;
+    return true;
 }
 
-void process::insertTrapAtEntryPointOfMain()
+bool process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = 0;
   pdvector<pd_Function *> *pdfv=NULL;
  
   // first check a.out for function symbol
   if (NULL == (pdfv = symbols->findFuncVectorByPretty("main")) || !pdfv->size()) {
-    // we can't instrument main - naim
-    showErrorCallback(108,"main() uninstrumentable");
-    extern void cleanUpAndExit(int);
-    cleanUpAndExit(-1); 
-    return;
+      // we can't instrument main - naim
+      // Paradyn: this pops up an error window which requires user input
+      //showErrorCallback(108,"main() uninstrumentable");
+      return false;
   }
-
+  
   if (pdfv->size() > 1) {
-    cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
+      cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
   }
   f_main = (function_base *) (*pdfv)[0];
   assert(f_main);
   Address addr = f_main->addr();
-
+  
   // save original instruction first
-  readDataSpace((void *)addr, 2, savedCodeBuffer, true);
+  if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true))
+      return false;
 
   // and now, insert trap
   instruction insnTrap;
   generateBreakPoint(insnTrap);
 
   // x86. have to use SIGILL instead of SIGTRAP
-  writeDataSpace((void *)addr, 2, insnTrap.ptr());  
+  if (!writeDataSpace((void *)addr, 2, insnTrap.ptr()))
+      return false;
 
   main_brk_addr = addr;
+  return true;
 }
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);

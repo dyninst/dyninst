@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.93 2003/04/14 22:52:46 schendel Exp $
+// $Id: pdwinnt.C,v 1.94 2003/04/15 18:44:35 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -2180,7 +2180,7 @@ void dyn_lwp::closeFD_()
 
 // Insert a breakpoint at the entry of main()
 
-void process::insertTrapAtEntryPointOfMain() {
+bool process::insertTrapAtEntryPointOfMain() {
     // if this was created via attach then
     // we are not at main() so no reason to
     // put a breakpoint there, we are already
@@ -2193,11 +2193,11 @@ void process::insertTrapAtEntryPointOfMain() {
         if(!(mainFunc = findOnlyOneFunction("_main"))){
             if(!(mainFunc = findOnlyOneFunction("WinMain"))){
                 if(!(mainFunc = findOnlyOneFunction("_WinMain"))){
-		    if(!(mainFunc = findOnlyOneFunction("wWinMain"))){
-			if(!(mainFunc = findOnlyOneFunction("_wWinMain"))){
-			    assert(0);
-			}
-		    }
+                    if(!(mainFunc = findOnlyOneFunction("wWinMain"))){
+                        if(!(mainFunc = findOnlyOneFunction("_wWinMain"))){
+                            return false;
+                        }
+                    }
                 }
             }
         }
@@ -2214,6 +2214,7 @@ void process::insertTrapAtEntryPointOfMain() {
     writeDataSpace((void*) (main_brk_addr), sizeof(trapInsn), 
                    (void*)&trapInsn);
     flushInstructionCache_( (void*)main_brk_addr, sizeof(trapInsn) );
+    return true;
 }
 
 // True if we hit the trap at the entry of main
@@ -2228,7 +2229,7 @@ bool process::trapAtEntryPointOfMain(Address trapAddr) {
 
 
 // Clean up after breakpoint in main() is hit
-void process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain()
 {
     // Rewrite saved registers and code buffer
     assert(main_brk_addr);
@@ -2242,6 +2243,7 @@ void process::handleTrapAtEntryPointOfMain()
 
     // Don't trap here accidentally
     main_brk_addr = 0;
+    return true;
 }
 
 bool process::getDyninstRTLibName() {
