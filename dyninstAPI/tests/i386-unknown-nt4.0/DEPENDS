@@ -4,7 +4,10 @@ test1.obj: ../src/test1.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
 test2.obj: ../src/test2.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
  ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
  ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
-test3.obj: ../src/test2.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+test3.obj: ../src/test3.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test4.obj: ../src/test4.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
  ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
  ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
 test_util.obj: ../src/test_util.C ../../h/BPatch_Vector.h \
@@ -12,5 +15,7 @@ test_util.obj: ../src/test_util.C ../../h/BPatch_Vector.h \
  ../../h/BPatch_snippet.h ../../h/BPatch_module.h
 test1.mutatee.obj: ../src/test1.mutatee.c
 test2.mutatee.obj: ../src/test2.mutatee.c
-test3.mutatee.obj: ../src/test2.mutatee.c
+test3.mutatee.obj: ../src/test3.mutatee.c
+test4a.mutatee.obj: ../src/test4a.mutatee.c
+test4b.mutatee.obj: ../src/test4b.mutatee.c
 
