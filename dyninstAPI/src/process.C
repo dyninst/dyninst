@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.466 2003/12/11 21:23:38 rchen Exp $
+// $Id: process.C,v 1.467 2003/12/18 17:15:38 schendel Exp $
 
 #include <ctype.h>
 
@@ -1309,6 +1309,7 @@ void alignUp(int &val, int align)
     val = ((val / align) + 1) * align;
   }
 }
+
 // dynamically allocate a new inferior heap segment using inferiorRPC
 void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 {
@@ -2457,7 +2458,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     //    know the base addresses until we get the load info via ptrace.
     //    In general it is even harder, since dynamic libs can be loaded
     //    at any time.
-    handleProcessEvent(theProc, procSignalled, fileDescSignal, 0);
+    handleProcessEvent(theProc, NULL, procSignalled, fileDescSignal, 0);
     
 #endif
 
@@ -3080,7 +3081,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
     // know the base addresses until we get the load info via ptrace.
     // In general it is even harder, since dynamic libs can be loaded
     // at any time.
-    handleProcessEvent(ret, procSignalled, fileDescSignal, 0);    
+    handleProcessEvent(ret, NULL, procSignalled, fileDescSignal, 0);    
 #endif
     
     return(true);
@@ -3205,7 +3206,7 @@ dyn_lwp *process::query_for_stopped_lwp() {
             break;
          }
       }
-      if(foundLWP == NULL)
+      if(foundLWP == NULL  &&  getRepresentativeLWP() != NULL)
          if(getRepresentativeLWP()->status() == stopped ||
             getRepresentativeLWP()->status() == neonatal)
             foundLWP = getRepresentativeLWP();
@@ -3469,7 +3470,7 @@ void process::clearProcessEvents() {
                                          false);
 
       if(proc) {
-         handleProcessEvent(proc, why, what, info);
+         handleProcessEvent(proc, lwp, why, what, info);
          handledEvent = true;
       } else
          handledEvent = false;
@@ -5015,7 +5016,7 @@ bool process::continueProc() {
    if (status_ == running) {
       return true;
    }
-
+   
    if(IndependentLwpControl()) {
       pdvector<dyn_thread *>::iterator iter = threads.begin();
 
@@ -5047,12 +5048,10 @@ bool process::continueProc() {
 bool process::detach(const bool paused) {
     // paused appears to be ignored...
 
-   assert(getRepresentativeLWP());  // we expect this to be defined
-   // Though on linux, if process found to be MT, there will be no
-   // representativeLWP since there is no lwp which controls the entire
-   // process for MT linux.
-
-   getRepresentativeLWP()->detach();   
+   // On linux, if process found to be MT, there will be no representativeLWP
+   // since there is no lwp which controls the entire process for MT linux.
+   if(getRepresentativeLWP()) 
+      getRepresentativeLWP()->detach();   
 
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
