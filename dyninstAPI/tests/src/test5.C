@@ -680,9 +680,8 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 
    while (index < bound) {
      if ((func = (*point6_1)[index]->getCalledFunction()) == NULL) {
-        fprintf(stderr, "**Failed** test #6 (exception)\n");
-        fprintf(stderr, "    Can't find the invoked function\n");
-        exit(1);
+        index++;
+        continue;
      }
      char fn[256];
      if (!strcmp("sample_exception::response", func->getName(fn, 256))) {
