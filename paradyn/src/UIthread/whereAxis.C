@@ -4,11 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.10  1996/01/11 04:45:37  tamches
-/* getSelections replaced - now returns Whole Program selection separately,
-/* runs faster, and alone with the new parseSelections of uimpd.tcl.C,
-/* avoids adding spurious metric/focus pairs when Whole Program is chosen
+/* Revision 1.11  1996/02/07 19:15:06  tamches
+/* removed include of whereAxisMisc.h, except for the test program
 /*
+ * Revision 1.10  1996/01/11 04:45:37  tamches
+ * getSelections replaced - now returns Whole Program selection separately,
+ * runs faster, and alone with the new parseSelections of uimpd.tcl.C,
+ * avoids adding spurious metric/focus pairs when Whole Program is chosen
+ *
  * Revision 1.9  1995/12/09 04:08:39  tamches
  * shift-dbl-click now togggles highlight, like ctrl-dbl-click
  *
@@ -62,7 +65,12 @@
 #endif
 
 #include "whereAxis.h"
+
+#ifndef PARADYN
+// only the where axis test program needs this
 #include "whereAxisMisc.h"
+#endif
+
 #include "tkTools.h"
 
 XFontStruct *whereAxis::theRootItemFontStruct = NULL;
