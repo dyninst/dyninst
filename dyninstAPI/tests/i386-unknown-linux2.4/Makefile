@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.31 2003/07/25 15:52:54 chadd Exp $
+# $Id: Makefile,v 1.32 2003/07/28 20:18:46 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -134,16 +134,16 @@ libtestB.so: libtestB.o
 	$(CC) -shared -o libtestB.so libtestB.o
 
 libLoadMe.o:  libLoadMe.c
-	$(CC) $(PICOP) -c ../src/libLoadMe.c
+	$(CC) -fpic -c ../src/libLoadMe.c
 
 libLoadMe.so: libLoadMe.o
-	$(CC)  $(SHAREDOP) -z initarray=loadMe_init libLoadMe.o -o libLoadMe.so
+	$(CC)  -shared -z initarray=loadMe_init libLoadMe.o -o libLoadMe.so
 
 libInstMe.o:  libInstMe.c
-	$(CC) $(PICOP) -c ../src/libInstMe.c
+	$(CC) -fpic -c ../src/libInstMe.c
 
 libInstMe.so: libInstMe.o
-	$(CC)  $(SHAREDOP) libInstMe.o -o libInstMe.so
+	$(CC)  -shared libInstMe.o -o libInstMe.so
 
 
 # Include the "standard program template".  This defines all the
