@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates05.C,v 1.13 2003/01/02 19:51:28 schendel Exp $
+// $Id: templates05.C,v 1.14 2003/01/02 21:43:27 schendel Exp $
 
 //  #pragma implementation "Dictionary.h"
 //  #include "common/src/Dictionary.C"
 
-//  #pragma implementation "list.h"
+//  #pragma implementation "List.h"
 //  #include "common/h/List.h"
 
 //  #include "common/h/String.h"

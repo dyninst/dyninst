@@ -42,8 +42,8 @@
 // templatesPCV.C
 // templates for perf consultant and visis
 
-#pragma implementation "list.h"
-#include "common/h/list.h"
+#pragma implementation "List.h"
+#include "common/h/List.h"
 #include "common/h/String.h"
 
 #pragma implementation "Vector.h"

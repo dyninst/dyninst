@@ -42,6 +42,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
+ * Revision 1.12  2003/01/02 21:43:34  schendel
+ * renamed list.h to List.h because Solaris native compiler was mistakenly
+ * including the STL list.h;
+ *
  * Revision 1.11  2000/07/28 17:22:35  pcroth
  * Updated #includes to reflect util library split
  *
@@ -78,7 +82,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "pdutil/h/stringPool.h"
 
 #define SP_PAGE_SIZE 4090

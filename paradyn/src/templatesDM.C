@@ -40,12 +40,12 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.27 2002/12/20 07:50:01 jaw Exp $
+// $Id: templatesDM.C,v 1.28 2003/01/02 21:43:29 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
-#pragma implementation "list.h"
-#include "common/h/list.h"
+#pragma implementation "List.h"
+#include "common/h/List.h"
 #include "common/h/String.h"
 
 #pragma implementation "Vector.h"
@@ -172,7 +172,7 @@ template class pdvector<perfStreamEntry>;
 template class dictionary_hash<string,unsigned>;
 template class pdvector<dictionary_hash<string,unsigned>::entry>;
 
-#include <common/src/list.C>
+#include <common/src/List.C>
 template class List<aggComponent*>;
 template class ListBase<aggComponent*, void*>;
 

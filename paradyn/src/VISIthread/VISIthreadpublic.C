@@ -48,7 +48,7 @@
 #include <math.h>
 #include "../pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "pdutil/h/rpcUtil.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"

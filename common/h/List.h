@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: list.h,v
+// $Id: List.h,v
 
 #ifndef LIST_H
 #define LIST_H

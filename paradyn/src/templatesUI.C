@@ -43,7 +43,7 @@
 // UI and tunable constant templates
 //
 
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "common/h/String.h"
 #include "common/h/Vector.h"
 #include "common/src/Dictionary.C"
@@ -69,7 +69,7 @@ template class pdvector<dictionary_hash<string, tunableFloatConstant>::entry>;
  */
 #include "VM.thread.h"
 #include "../src/UIthread/UIglobals.h"
-#include "common/src/list.C"
+#include "common/src/List.C"
 template class ListWithKey<metricInstInfo *, metricInstanceHandle>;
 template class ListBase<metricInstInfo *, metricInstanceHandle>;
 template class pdvector<VM_activeVisiInfo>;

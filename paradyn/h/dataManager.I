@@ -1,12 +1,12 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.107 2002/12/20 07:50:00 jaw Exp $
+ * $Id: dataManager.I,v 1.108 2003/01/02 21:43:28 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
 #define MMTHREAD_H
 
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 #include "dyninstRPC.xdr.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCintern.h,v 1.18 2002/07/25 19:22:30 willb Exp $
+// $Id: PCintern.h,v 1.19 2003/01/02 21:43:32 schendel Exp $
 // Included by PC modules only
 
 #ifndef PC_INTERN_H
@@ -48,7 +48,7 @@
 #include <iostream.h>
 
 #include "../pdMain/paradyn.h"
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "pdutil/h/PriorityQueue.h"
 #include "pdthread/h/thread.h"
 #include "dataManager.thread.CLNT.h"
