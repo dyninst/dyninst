@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.13 2000/06/20 22:40:59 wylie Exp $
+// $Id: timing.C,v 1.14 2000/07/05 16:20:57 wylie Exp $
 
 #include "util/h/Timer.h"
 
@@ -62,9 +62,8 @@
 double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
   const double MILLION = 1.0e6;
   unsigned       i, j;
-  double         speed;
   timer stopwatch;
-  double max_speed=0;
+  double speed=0, max_speed=0;
 
   for (j=0; j<TRIES; j++) {
     stopwatch.start();
