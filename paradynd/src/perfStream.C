@@ -7,6 +7,9 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.58  1996/05/11 00:30:47  mjrg
+ * Added new calls to handleProcessExit
+ *
  * Revision 1.57  1996/05/08 23:54:59  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -355,6 +358,9 @@ void processAppIO(process *curr)
 	/* end of file */
         P_close(curr->ioLink);
 	curr->ioLink = -1;
+	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
+	statusLine(msg.string_of());
+        handleProcessExit(curr,0);
 	return;
     }
 
@@ -422,8 +428,11 @@ void processTraceStream(process *curr)
 	//buffer += string(" has exited unexpectedly");
 	//statusLine(P_strdup(buffer.string_of()));
 	//showErrorCallback(11, P_strdup(buffer.string_of()));
+	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
+	statusLine(msg.string_of());
 	P_close(curr->traceLink);
   	curr->traceLink = -1;
+        handleProcessExit(curr,0);
 	return;
     }
 
@@ -524,10 +533,7 @@ void processTraceStream(process *curr)
 		printDyninstStats();
   		P_close(curr->traceLink);
   		curr->traceLink = -1;
-		// for processes that are our direct children, we handle exit
-		// when we find that the process exited with waitpid.
-		if (curr->parent)
-		  handleProcessExit(curr, 0);
+		handleProcessExit(curr, 0);
 		break;
 
 	    case TR_COST_UPDATE:
