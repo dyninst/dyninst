@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.255 2001/07/17 22:33:23 bernat Exp $
+// $Id: process.C,v 1.256 2001/07/18 13:29:13 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1497,7 +1497,6 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   hp->totalFreeMemAvailable -= size;
   inferiorMemAvailable = hp->totalFreeMemAvailable;
   assert(h->addr);
-  fprintf(stderr, "Allocated memory at %x to %x\n", h->addr, h->addr+h->length);
   return(h->addr);
 }
 
