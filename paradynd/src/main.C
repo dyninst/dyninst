@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.94 2001/04/25 20:34:16 wxd Exp $
+// $Id: main.C,v 1.95 2001/05/24 18:38:45 wxd Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -562,6 +562,18 @@ main( int argc, char* argv[] )
 			cleanUpAndExit(-1);
 		}
     }
+
+#if !defined(i386_unknown_nt4_0)
+extern PDSOCKET connect_Svr(string machine,int port);
+    PDSOCKET stdout_fd=INVALID_PDSOCKET;
+    if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
+	cleanUpAndExit(-1);
+    if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
+	cleanUpAndExit(-1);
+
+    dup2(stdout_fd,1);
+    dup2(stdout_fd,2);
+#endif
 
 #if !defined(i386_unknown_nt4_0)
     aflag = RPC_make_arg_list(process::arg_list,

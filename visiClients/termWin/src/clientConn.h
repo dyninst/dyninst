@@ -48,13 +48,17 @@ class clientConn {
 	thread_t tid;
 	struct sockaddr addr;
 	size_t sock_len;
+	int	ready;
 	int	done;
+	int	from_paradynd;
 
 	clientConn(PDSOCKET m_sock, thread_t m_tid)
 	{
 		sock = m_sock;
 		tid = m_tid;
+		ready = 0;
 		done = 0;
+		from_paradynd = 0;
 	}
 };
 #endif /* !defined(_clientConn_h_) */

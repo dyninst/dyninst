@@ -50,7 +50,7 @@ pack .top -side top -fill x
 frame .top.left 
 pack .top.left -side left -fill both -expand 1
 
-label .top.left.title -relief raised -text "Term Win" \
+label .top.left.title -relief raised -text "Application Output" \
       -foreground white -background Green4
 
 pack .top.left.title -side top -fill both -expand true
@@ -66,7 +66,7 @@ pack .top.left.menubar -side top -fill x
 # 
 menubutton .top.left.menubar.file -text "File" -menu .top.left.menubar.file.m
 menu .top.left.menubar.file.m
-.top.left.menubar.file.m add command -label "Dump to file" -command {SaveFile }
+.top.left.menubar.file.m add command -label "Save" -command {SaveFile }
 .top.left.menubar.file.m add command -label "Close" -command Shutdown
 
 #
@@ -105,9 +105,11 @@ pack  .textarea -side top -fill both -expand true
 
 text .textarea.text -borderwidth 2 -width 40 -height 15 -relief sunken \
 	-font { Helvetica 12 } \
-	-yscrollcommand ".textarea.sb set" \
-	-selectbackground black
+	-yscrollcommand ".textarea.sb set" 
+
 pack .textarea.text -side left -fill both -expand true
+.textarea.text tag configure paradyn_tag -foreground Red
+.textarea.text tag configure app_tag -foreground Black
 
 scrollbar .textarea.sb -relief sunken \
 	-command ".textarea.text yview"
@@ -127,7 +129,7 @@ proc Shutdown {} {
 
 proc SaveFile {} {
   set content [.textarea.text get 1.0 end]
-  set filename [tk_getSaveFile -parent .textarea.text -title "Dump to File"]
+  set filename [tk_getSaveFile -parent .textarea.text -title "Save to File"]
   if {$filename != ""} {
      set fileid [open $filename w+ 0644]
      puts $fileid $content

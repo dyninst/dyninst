@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.68 2001/04/25 20:34:16 wxd Exp $ */
+/* $Id: context.C,v 1.69 2001/05/24 18:38:45 wxd Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -237,17 +237,16 @@ void forkProcess(int pid, int ppid, int trace_fd
 //         assert(false);
 }
 
-int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
 #if !defined(i386_unknown_nt4_0)
-  if (termWin_port == -1)
-  	return -1;
-  
+
+PDSOCKET connect_Svr(string machine,int port)
+{
   PDSOCKET stdout_fd = INVALID_PDSOCKET;
-  
+
   struct sockaddr_in serv_addr;
   struct hostent *hostptr = 0;
   struct in_addr *inadr = 0;
-  if (!(hostptr = P_gethostbyname(pd_machine.string_of())))
+  if (!(hostptr = P_gethostbyname(machine.string_of())))
     {
       cerr << "CRITICAL: Failed to find information for host " << pd_machine.string_of() << "." << endl;
       assert(0);
@@ -257,12 +256,12 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
   P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr = *inadr;
-  serv_addr.sin_port = htons(termWin_port);
+  serv_addr.sin_port = htons(port);
 
   if ( (stdout_fd = P_socket(AF_INET,SOCK_STREAM , 0)) == PDSOCKET_ERROR)
   {
     stdout_fd = INVALID_PDSOCKET;
-    return -1;
+    return stdout_fd;
   }
 
   //connect() may timeout if lots of Paradynd's are trying to connect to
@@ -276,15 +275,33 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
 //#endif
     {
       stdout_fd = INVALID_PDSOCKET;
-      return -1;
+      return stdout_fd;
     } 
     CLOSEPDSOCKET(stdout_fd);
     if ((stdout_fd = P_socket(AF_INET,SOCK_STREAM, 0)) == PDSOCKET_ERROR)
     {
       stdout_fd = INVALID_PDSOCKET;
-      return -1;
+      return stdout_fd;
     }
     errno = 0;
+  }
+
+  return stdout_fd;
+}
+#endif
+
+int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
+#if !defined(i386_unknown_nt4_0)
+  if (termWin_port == -1)
+  	return -1;
+  
+  PDSOCKET stdout_fd = INVALID_PDSOCKET;
+  if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
+  	return -1;
+  if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
+  {
+    	CLOSEPDSOCKET(stdout_fd);
+  	return -1;
   }
 #endif
 
@@ -297,6 +314,9 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
     if (proc) {
       return(proc->getPid());
     } else {
+#if !defined(i386_unknown_nt4_0)
+      CLOSEPDSOCKET(stdout_fd);
+#endif
       return(-1);
     }
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.1 2001/04/25 20:11:56 wxd Exp $
+// $Id: main.C,v 1.2 2001/05/24 18:39:00 wxd Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -115,6 +115,21 @@ void processPendingTkEventsNoBlock()
 	while (Tk_DoOneEvent(TK_DONT_WAIT) > 0)
 		;
 }
+
+void print_data(char *buffer,int num, int from_paradynd)
+{
+	if (num <= 0)
+		return ;
+	char command[2048];
+	if (from_paradynd)
+		sprintf(command,".textarea.text insert end {%.*s} paradyn_tag",num,buffer);
+	else sprintf(command,".textarea.text insert end {%.*s} app_tag",num,buffer);
+	Tcl_Eval(MainInterp,command);
+
+	sprintf(command,".textarea.text yview -pickplace end");
+	Tcl_Eval(MainInterp,command);
+}
+
 int main(int argc, char **argv) {
 //sigpause(0);
    PDSOCKET serv_sock = -1;
@@ -257,12 +272,21 @@ int main(int argc, char **argv) {
 				buffer[num]=0x00;
 				//printf("%s\n",buffer);
 		
-				char command[2048];
-				sprintf(command,".textarea.text insert end {%s}",buffer);
-				Tcl_Eval(MainInterp,command);
-				
-				sprintf(command,".textarea.text yview -pickplace end");
-				Tcl_Eval(MainInterp,command);
+				if (client->ready)
+					print_data(buffer,num,client->from_paradynd);
+				else {
+					char *buf_pos=NULL;
+					if (!strncmp(buffer,"from_paradynd",strlen("from_paradynd")))
+					{
+						buf_pos = buffer + strlen("from_paradynd\n");
+						client->from_paradynd = 1;
+					}else {
+						buf_pos = buffer + strlen("from_app\n");
+						client->from_paradynd = 0;
+					}
+					client->ready = 1;
+					print_data(buf_pos,buffer+num-buf_pos,client->from_paradynd);
+				}
 			}
 		}
 		if (!client_is_sender)
