@@ -88,7 +88,7 @@ status_line::~status_line() {
         fprintf(stderr, "status_line::~status_line: command `%s' -> `%s'\n",
             buf, interp_->result);
     }
-    assert(ret == TCL_OK);
+    // assert(ret == TCL_OK);
 }
 
 inline
@@ -102,7 +102,7 @@ status_line::message(const char* msg) {
         fprintf(stderr, "status_line::message: command `%s' -> `%s'\n",
             buf, interp_->result);
     }
-    assert(ret == TCL_OK);
+    // assert(ret == TCL_OK);
 }
 
 inline
@@ -123,7 +123,7 @@ status_line::state(State st) {
         fprintf(stderr, "status_line::state: command `%s' -> `%s'\n",
             buf, interp_->result);
     }
-    assert(ret == TCL_OK);
+    // assert(ret == TCL_OK);
 }
 
 inline
@@ -144,7 +144,7 @@ status_line::create(const char* title) {
         fprintf(stderr, "status_line::create: command `%s' -> `%s'\n",
             buf, interp_->result);
     }
-    assert(ret == TCL_OK);
+    // assert(ret == TCL_OK);
 }
 
 

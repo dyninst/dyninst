@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.29  1994/11/01 05:42:35  karavan
-/* some minor performance and warning fixes
+/* Revision 1.30  1994/11/03 20:25:08  krisna
+/* added status_lines for application name and application status
 /*
+ * Revision 1.29  1994/11/01  05:42:35  karavan
+ * some minor performance and warning fixes
+ *
  * Revision 1.28  1994/09/25  01:54:12  newhall
  * updated to support changes in VM, and UI interface
  *
@@ -119,6 +122,8 @@
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include <assert.h>
+
+#include "Status.h"
 
 extern Boolean detachApplication(applicationContext,Boolean);
 
@@ -354,6 +359,13 @@ int ParadynProcessCmd(ClientData clientData,
 	    return TCL_ERROR;
 	}
     }
+
+    static status_line app_name("Application name");
+    static char tmp_buf[1024];
+    sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
+	argv[i], machine?machine:"(local)", user?user:"(self)",
+	paradynd?paradynd:"(default)");
+    app_name.message(tmp_buf);
 
     if (dataMgr->addExecutable(context, machine, user, paradynd, (char*)0,
 			       argc-i, &argv[i]) == False)

@@ -1,9 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.36  1994/11/03 06:16:14  karavan
-/* status display and where axis added to main window and the look cleaned
-/* up a little bit.  Added option to ResourceDisplayObj class to specify
-/* a parent window for an RDO with the constructor.
+/* Revision 1.37  1994/11/03 20:25:05  krisna
+/* added status_lines for application name and application status
 /*
+ * Revision 1.36  1994/11/03  06:16:14  karavan
+ * status display and where axis added to main window and the look cleaned
+ * up a little bit.  Added option to ResourceDisplayObj class to specify
+ * a parent window for an RDO with the constructor.
+ *
  * Revision 1.35  1994/11/03  02:44:58  krisna
  * status lines are now added into paradyn.
  *
@@ -269,14 +272,20 @@ void resourceBatchChanged(performanceStream *ps, batchMode mode)
 void
 applicStateChanged (performanceStream*, appState state) 
 {
+	static status_line app_status("Application status");
+
   if ((state == appRunning) && (PDapplicState == appPaused)) { 
     if (Tcl_VarEval (interp, "changeApplicState 1", 0) == TCL_ERROR) {
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
+	app_status.state(status_line::NORMAL);
+	app_status.message("application is now RUNNING");
   } else if ((state == appPaused) && (PDapplicState == appRunning)) {
     if (Tcl_VarEval (interp, "changeApplicState 0", 0) == TCL_ERROR) {
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
+	app_status.state(status_line::URGENT);
+	app_status.message("application is now PAUSED");
   }
     PDapplicState = state;
 }
