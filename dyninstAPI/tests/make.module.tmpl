@@ -3,17 +3,25 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
+# $Id: make.module.tmpl,v 1.6 1998/04/01 02:18:28 wylie Exp $
 #
 
-VPATH	     +=
+SUITE_NAME	= DynInst
+RELEASE_NUM	= 1.1
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGET        = test1 test2 test1.mutatee test2.mutatee
+TARGETS        = test1 test2 test1.mutatee test2.mutatee
+#TARGET        = test1 test2 test1.mutatee test2.mutatee
 SRCS	     += ../src/test1.C ../src/test2.C ../src/test_util.C \
 		../src/test1.mutatee.c ../src/test2.mutatee.c
 endif
+
+VPATH	     +=
 
 CXXFLAGS     += -I../../h
 CFLAGS       += -I../../h
@@ -30,3 +38,10 @@ pc:
 	$(MAKE) purecov TARGET=test2 TARGET2=test2.mutatee
 
 aTest:	$(TARGET) $(TARGET2)
+
+UNCOMMON_INSTALL=true
+
+install: all
+	-@$(MKDIR) $(DEST)
+	$(CP) $(TARGETS) $(DEST)
+

@@ -1,10 +1,13 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-
-TO_CORE=../../..
+# $Id: Makefile,v 1.2 1998/04/01 02:18:36 wylie Exp $
+#
 
 # Define any symbols needed to invoke configuration changes in nmake.config
+
+TO_CORE=..\..\..
+NO_OPT_FLAG=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -20,8 +23,10 @@ CFLAGS = /Z7
 
 !include ../nmake.module.tmpl
 
+!ifdef TARGET2
 $(TARGET2): $(TARGET2:.exe=.obj)
 	link -out:$(TARGET2) -debug -debugtype:coff $(TARGET2:.exe=.obj)
+!endif
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
