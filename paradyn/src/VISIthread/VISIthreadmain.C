@@ -25,9 +25,14 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.6  1994/06/07 18:16:32  newhall
-/* support for adding metrics/resources to an existing set
+/* Revision 1.7  1994/06/14 15:19:15  markc
+/* Added new param to enableDataCollection call which specifies how a metric is
+/* to be aggregated.  This is probably temporary, since the data manager or the
+/* configuration language should specify this info.
 /*
+ * Revision 1.6  1994/06/07  18:16:32  newhall
+ * support for adding metrics/resources to an existing set
+ *
  * Revision 1.5  1994/06/03  18:22:51  markc
  * Changes to support igen error handling.
  *
@@ -359,7 +364,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
         if((currMetInst = 
 	     ptr->dmp->enableDataCollection(ptr->perStream,
-	     focusChoice,currMetric)) 
+	     focusChoice,currMetric, Sum)) 
 	     != NULL){
 	    PARADYN_DEBUG(("after enable metric/focus\n"));
             ptr->mrlist->add(currMetInst,currMetInst);
@@ -402,7 +407,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
 	  if(!found){ // enable
               if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
-		  focusChoice, currMetric)) != NULL){
+		  focusChoice, currMetric, Sum)) != NULL){
 
                   ptr->mrlist->add(currMetInst,currMetInst);
 	          newEnabled[numEnabled] = currMetInst;
