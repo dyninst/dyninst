@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.22 2004/01/23 22:01:38 tlmiller Exp $
+// $Id: test6.C,v 1.23 2004/01/27 22:02:14 tlmiller Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -973,7 +973,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5,
                   const char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1011,7 +1011,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 6,
                   const char* testdesc ="instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1049,7 +1049,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
                   const char* testdesc = "conditional instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1085,7 +1085,7 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
 void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
                   const char* testdesc = "conditional instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;

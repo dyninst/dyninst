@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.22 2004/01/23 22:01:39 tlmiller Exp $ */
+/* $Id: test6.mutatee.c,v 1.23 2004/01/27 22:02:15 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -517,13 +517,17 @@ void check3()
 
 void check4()
 {
+#if ! defined( ia64_unknown_linux2_4 )
   passorfail(4, accessCnt == accessExp, "access instrumentation", "access counter seems wrong.");
   dprintf("accessCnt = %d    accessExp = %d\n", accessCnt, accessExp);
+#else
+  skiptest(4, "access instrumentation" );
+#endif
 }
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(5, "instrumentation w/ [unconditional] effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList, accessExp),
@@ -533,7 +537,7 @@ void check5()
 
 void check6()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(6, "instrumentation w/ [unconditional] byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList, accessExp),
@@ -543,7 +547,7 @@ void check6()
 
 void check7()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(7, "instrumentation w/ conditional effective address snippet");
 #else
   passorfail(7, !doomEAcc && validateEA(eaExpCC, eaListCC, accessExpCC),
@@ -553,7 +557,7 @@ void check7()
 
 void check8()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && !defined( ia64_unknown_linux2_4 )
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(8, "instrumentation w/ conditional byte count snippet");
 #else
   passorfail(8, !doomBCcc && validateBC(bcExpCC, bcListCC, accessExpCC),

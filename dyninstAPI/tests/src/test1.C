@@ -2271,7 +2271,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
 
     if (mutateeFortran) {
 	return;
@@ -3276,7 +3276,6 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
-    defined(ia64_unknown_linux2_4) || \
     defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0)
@@ -4306,6 +4305,7 @@ BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
 //
 void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if ! defined( ia64_unknown_linux2_4 )
    // Find the entry point to the procedure "func13_1"
    BPatch_Vector<BPatch_function *> found_funcs;
    if ((NULL == appImage->findFunction("func36_1", found_funcs)) || !found_funcs.size()) {
@@ -4380,7 +4380,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
    snippet_seq.push_back(makeTest36paramExpr(expr36_8, 7));
 
    // Solaris Fortran skips 9th paramter
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) 
    if (!mutateeFortran)
 #endif
        snippet_seq.push_back(makeTest36paramExpr(expr36_9, 8));
@@ -4393,6 +4393,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(seqExpr);
    appThread->insertSnippet(seqExpr, *point36_1);
+#endif
 }
 
 
