@@ -1,7 +1,12 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.9  1994/11/08 06:09:57  tamches
+# Revision 1.10  1994/11/11 07:00:16  tamches
+# fixed a bug that would change the background of all future windows
+# to grey.  In other words, the "option add ..." in tcl was affecting
+# more than just tunable windows, which was not nice.
+#
+# Revision 1.9  1994/11/08  06:09:57  tamches
 # An entire float tunable gets "hilited" when the mouse enters, just like
 # a checkbutton.
 # Added numbering information to the left and right of the scale
@@ -47,7 +52,6 @@
 #    we'll get confused because tunable descriptions will still be true.
 #    Would like to detect when a window is destroyed, and set tunable descriptions
 #    false.  Something tells me this is doable in tcl.
-# 2) box around float tunables, if it would look better
 
 # #################### Some Misc Routines #####################
 proc max {x y} {
@@ -97,14 +101,22 @@ proc tunableInitialize {} {
       # You have a color monitor...
       # change primary background color from 'bisque' to 'grey'
       .tune config -bg grey
-      option add *Background grey
-      option add *activeBackground LightGrey
-      option add *activeForeground black
-      option add *Scale.activeForeground grey
+      option add *tune*Background grey
+      option add *tune*activeBackground LightGrey
+      option add *tune*activeForeground black
+      option add *tune*Scale.activeForeground grey
+
+      option add *tunableDescriptions*Background grey
+      option add *tunableDescriptions*activeBackground LightGrey
+      option add *tunableDescriptions*activeForeground black
+      option add *tunableDescriptions*Scale.activeForeground grey
    } else {
       # You don't have a color monitor...
-      option add *Background white
-      option add *Foreground black
+      option add *tune*Background white
+      option add *tune*Foreground black
+
+      option add *tunableDescriptions*Background white
+      option add *tunableDescriptions*Foreground black
    }
 
    # .tune.top -- stuff at the top (menu bar, title bar, logo, other miscellanea)
