@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.62 2000/03/23 01:33:08 wylie Exp $
+ * $Id: PCshg.C,v 1.63 2000/04/20 22:42:46 mirg Exp $
  */
 
 #include "PCintern.h"
@@ -809,7 +809,9 @@ searchHistoryNode::makeFalse()
   //Notify the originalParent of this node, so that it might continue
   //its search down a different branch of the resource hierarchy if we
   //are its final expanded child.
-  originalParent->notifyParentAboutFalseChild();
+  if (originalParent) {
+	  originalParent->notifyParentAboutFalseChild();
+  }
 }
 
 void searchHistoryNode::notifyParentAboutFalseChild(){
