@@ -84,8 +84,10 @@ bool InstrucIter::isAIndirectJumpInstruction(InstrucIter ah)
 
 	if((i.xlform.op == BCLRop) && (i.xlform.xo == BCLRxop) &&
 	   (i.xlform.bt & 0x10) && (i.xlform.bt & 0x4)){
-		--ah;--ah;
-		if(!ah.hasMore())
+		if(!ah.hasPrev())
+			return false;
+                --ah;
+		if(!ah.hasPrev())
 			return false;
 		instruction j = ah.getInstruction();
 		if((j.xfxform.op == 31) && (j.xfxform.xo == 467) &&
@@ -489,7 +491,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 		if((check.dform.op == Lop))
 			adjustEntry = check.dform.d_or_si;
 
-		while(hasMore()){
+		while(hasPrev()){
 			instruction check = getInstruction();
 			if((check.dform.op == Lop) && (check.dform.ra == 2)){
 				tableStartAddress = 
@@ -563,7 +565,6 @@ bool InstrucIter::delayInstructionSupported()
 
 bool InstrucIter::hasMore()
 {
-    return true;
 	if((currentAddress < (baseAddress + range )) &&
 	   (currentAddress >= baseAddress))
 		return true;
