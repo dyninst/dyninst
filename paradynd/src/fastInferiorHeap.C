@@ -75,6 +75,13 @@ fastInferiorHeap(process *iInferiorProcess,
 				    0);
    if (trueBaseAddrInParadynd == (void*)-1) {
       perror("fastInferiorHeap: shmat()");
+      if (errno == EMFILE)
+	 cerr << "Perhaps the # of shm segments attached to paradynd would exceed the system-imposed limit? (EMFILE)" << endl;
+      else if (errno == ENOMEM)
+	 cerr << "Not enough memory? (ENOMEM)" << endl;
+
+      cerr << "paradynd (pid " << getpid() << ") for process pid="
+	   << iInferiorProcess->getPid() << ": failed to attach to shm segment!  Exiting paradynd now..." << endl;
       exit(5);
    }
 
@@ -152,11 +159,12 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &par
 
    // The pid is now out of date (will contain the pid of the parent process; we change
    // it now to the pid of the child process).
-   // First, verify that the pid doesn't match that of the child
+   // First, verify that the pid is that of the parent
    int actual_pid_contents;
    memcpy(&actual_pid_contents, (char*)trueBaseAddrInParadynd + sizeof(cookie), sizeof(int));
    assert(actual_pid_contents == newProc->getParent()->getPid());
 
+   // Change the pid to that of the child:
    int temp_pid = inferiorProcess->getPid();
    memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie),
 	  &temp_pid, sizeof(temp_pid));
@@ -168,9 +176,9 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &par
 	  sizeof(int));
    assert(actual_paradyndpid_contents == getpid());
 
-   temp_pid=getpid();
-   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie) + sizeof(temp_pid),
-	  &temp_pid, sizeof(temp_pid));
+//   temp_pid=getpid();
+//   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie) + sizeof(temp_pid),
+//	  &temp_pid, sizeof(temp_pid));
    
    firstFreeIndex = parent.firstFreeIndex;
 
