@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.10 2001/10/10 20:43:05 buck Exp $
+// $Id: arch-x86.h,v 1.11 2002/06/06 18:25:18 gaburici Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -89,6 +89,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define PREFIX_SEG  (1<<21) /* segment override prefix */
 #define PREFIX_OPR  (1<<22) /* operand size override */
 #define PREFIX_ADDR (1<<23) /* address size override */
+
 /* end of instruction type descriptor values */
 
 

@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.14 2001/10/29 16:00:36 zandy Exp $
+// $Id: arch-x86.C,v 1.15 2002/06/06 18:25:18 gaburici Exp $
 // x86 instruction decoder
 
 #include <assert.h>
+#include <stdio.h>
 #include "common/h/Types.h"
-#include "dyninstAPI/src/arch-x86.h"
-
+#include "arch-x86.h"
+#include "arch-ia32.h"
 
 // opcode descriptors (from the Pentium manual)
 enum {
@@ -873,9 +874,8 @@ static unsigned doOperands(unsigned operands[3],
 }
 
 
-/* decode instruction at address addr, return size of instruction */
-unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
-  
+unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
+{
   bool instrPrefix = false;
   bool addrSzPrefix = false;
   bool oprSzPrefix = false;
@@ -1025,6 +1025,34 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
 
   return (nextb - addr);
 }
+
+/* decode instruction at address addr, return size of instruction */
+unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
+  int r1, r2;
+  unsigned insnType1, insnType2;
+
+  ia32_instruction i;
+  ia32_decode<0>(addr, i);
+  r1 = i.getSize();
+  insnType1 = ia32_emulate_old_type(i);
+  r2 = get_instruction2(addr, insnType2);
+  if(r1 != r2) {
+    fprintf(stderr, "[L] %d!=%d @ %p:", r1, r2, addr);
+    for(int i=0; i<10; ++i)
+      fprintf(stderr, " %x", addr[i]);
+    fprintf(stderr, "\n");
+  }
+  if(insnType1 != insnType2) {
+    fprintf(stderr, "[T] %x!=%x @ %p:", insnType1, insnType2, addr);
+    for(int i=0; i<10; ++i)
+      fprintf(stderr, " %x", addr[i]);
+    fprintf(stderr, "\n");
+  }
+
+  insnType = insnType1;
+  return r1;
+}
+
 
 /* CODE ADDED FOR FUNCTION RELOCATION */
 
@@ -1338,24 +1366,34 @@ skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp)
   isWordAddr = false;
   isWordOp = false;
 
-  x86_insn *desc;
-  unsigned code;
+//   x86_insn *desc;
+//   unsigned code;
 
-  do {
-    desc = &oneByteMap[*addr++];
-    code = desc->escape_code;
-    if ((code == PREFIX_INSTR) || (code == PREFIX_SEG_OVR))
-	continue;
-    else if (code == PREFIX_ADDR_SZ)
-	isWordAddr = true;
-    else if (code == PREFIX_OPR_SZ)
-	isWordOp = true;
-    else
-      // no more prefixes
-      break;
-  } while (true);
-  return --addr;
+//   do {
+//     desc = &oneByteMap[*addr++];
+//     code = desc->escape_code;
+//     if ((code == PREFIX_INSTR) || (code == PREFIX_SEG_OVR))
+// 	continue;
+//     else if (code == PREFIX_ADDR_SZ)
+// 	isWordAddr = true;
+//     else if (code == PREFIX_OPR_SZ)
+// 	isWordOp = true;
+//     else
+//       // no more prefixes
+//       break;
+//   } while (true);
+//   return --addr;
+
+  ia32_prefixes prefs;
+
+  ia32_decode_prefixes(addr, prefs);
+  if(prefs.getPrefix(2) == PREFIX_SZOPER)
+    isWordOp = true;
+  if(prefs.getPrefix(3) == PREFIX_SZADDR)
+    isWordAddr = true;
+  return addr+prefs.getCount();
 }
+
 bool insn_hasSIB(unsigned ModRMbyte,unsigned& Mod,unsigned& Reg,unsigned& RM){
     Mod = (ModRMbyte >> 6) & 0x03;
     Reg = (ModRMbyte >> 3) & 0x07;
