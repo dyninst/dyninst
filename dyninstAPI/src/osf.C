@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.31 2002/06/18 21:35:55 rchen Exp $
+// $Id: osf.C,v 1.32 2002/06/26 21:14:50 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -769,7 +769,7 @@ Frame Frame::getCallerFrame(process *p) const
     if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
       ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
-      currFunc = findAddressInFuncsAndTramps(p, ret.pc_, ip, bt, mt);
+      currFunc = p->findAddressInFuncsAndTramps(ret.pc_, &ip, &bt, &mt);
       if (currFunc && currFunc->frame_size) {
 	  ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
 	  ret.sp_ = theIntRegs.regs[SP_REGNUM];
@@ -792,7 +792,7 @@ Frame Frame::getCallerFrame(process *p) const
       // fp_ + frame_size = saved fp
       ret.pc_ = values[0];
 
-      currFunc = findAddressInFuncsAndTramps(p, ret.pc_, ip, bt, mt);
+      currFunc = p->findAddressInFuncsAndTramps(ret.pc_, &ip, &bt, &mt);
       if (currFunc && currFunc->frame_size) {
 	  ret.sp_ = fp_;		/* current stack pointer is old fp */
 	  ret.fp_ = fp_ + currFunc->frame_size;  

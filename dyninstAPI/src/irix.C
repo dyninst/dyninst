@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.34 2002/06/14 19:39:05 tlmiller Exp $
+// $Id: irix.C,v 1.35 2002/06/26 21:14:49 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1343,8 +1343,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
   instPoint     *ip = NULL;
   trampTemplate *bt = NULL;
   instInstance  *mt = NULL;
-  pd_Function *currFunc = findAddressInFuncsAndTramps(this, pc, ip, bt,
-mt);
+  pd_Function *currFunc = findAddressInFuncsAndTramps(pc, &ip, &bt, &mt);
 
   if ( currFunc )
   {
@@ -1576,7 +1575,7 @@ Frame Frame::getCallerFrame(process *p) const
   instPoint     *ip = NULL;
   trampTemplate *bt = NULL;
   instInstance  *mt = NULL;
-  pd_Function *callee = findAddressInFuncsAndTramps(p, pc_, ip, bt, mt);
+  pd_Function *callee = p->findAddressInFuncsAndTramps(pc_, &ip, &bt, &mt);
   // non-NULL "ip" means that $pc is in instrumentation
   // non-NULL "bt" means that $pc is in basetramp
   // non-NULL "mt" means that $pc is in minitramp
@@ -1719,7 +1718,7 @@ Frame Frame::getCallerFrame(process *p) const
   instPoint *ip2 = NULL;
   trampTemplate *bt2 = NULL;
   instInstance *mt2 = NULL;
-  pd_Function *caller = findAddressInFuncsAndTramps(p, ra, ip2, bt2, mt2);
+  pd_Function *caller = p->findAddressInFuncsAndTramps(ra, &ip2, &bt2, &mt2);
 
   // Check for saved $fp value
   Address fp2;
@@ -1760,7 +1759,7 @@ Frame Frame::getCallerFrame(process *p) const
       return Frame(); // zero frame
     }
     ra = regs[PROC_REG_RA];
-    caller = findAddressInFuncsAndTramps(p, ra, ip2, bt2, mt2);
+    caller = p-findAddressInFuncsAndTramps(ra, &ip2, &bt2, &mt2);
   }
 
   /* 
