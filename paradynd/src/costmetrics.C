@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.27 2003/03/04 19:16:17 willb Exp $
+// $Id: costmetrics.C,v 1.28 2003/03/10 21:08:37 pcroth Exp $
 
 #include "common/h/Types.h"
+#include "common/h/int64iostream.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/process.h"
