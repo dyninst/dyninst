@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.19 2002/02/11 22:02:03 tlmiller Exp $
+// $Id: timing.C,v 1.20 2002/03/17 20:10:59 tlmiller Exp $
 
 #include <iostream.h>
 #include "common/h/Timer.h"
@@ -57,6 +57,8 @@
 #  else
 #define NOPS_4  ; ; ; 
 #  endif
+#elif defined(ia64_unknown_linux2_4)
+#define NOPS_4  asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0");
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
