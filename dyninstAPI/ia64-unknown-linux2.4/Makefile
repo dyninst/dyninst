@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.17 2004/05/12 22:37:46 legendre Exp $
+# $Id: Makefile,v 1.18 2004/06/24 22:27:44 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -42,8 +42,8 @@ SRCS =	../src/linux.C \
 		../src/ia64-template.s	\
 		../src/syscall-linux.C
 
-MYFLAGS		+=  -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR) \
-			   -I$(LIBUNWINDDIR)/include -I$(LIBELFDIR)/include \
+MYFLAGS		+=  -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
+			   -I$(LIBUNWIND_INC) -I$(LIBELF_INC) \
             -I/usr/include/libelf
 
 CXXFLAGS	+= $(MYFLAGS)
@@ -55,13 +55,18 @@ TFLAGS		+= $(MYFLAGS)
 
 SYSLIBS		= -ldl
 
-LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBELFDIR)/bin
+LIBS		= -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+ifdef LIBDWARFSTATIC
+LIBS    += -Wl,-Bstatic -ldwarf -Wl,-Bdynamic
+else
+LIBS    += -ldwarf
+endif
 ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
+LIBS    += -Wl,-Bstatic -lelf -Wl,-Bdynamic
 else
 LIBS    += -lelf
 endif
-LIBS    += -L$(LIBUNWINDDIR)/lib -Wl,-Bstatic -lunwind -Wl,-Bdynamic
+LIBS    += -L$(LIBUNWIND_LIB) -Wl,-Bstatic -lunwind -Wl,-Bdynamic
 
 AS		= /usr/bin/as
 

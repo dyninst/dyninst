@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.22 2004/05/12 22:37:48 legendre Exp $
+# $Id: Makefile,v 1.23 2004/06/24 22:27:47 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -56,12 +56,17 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/syscall-linux.C
 
 MYFLAGS		+= -DNO_MDL_PRINT
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
-MYFLAGS     += -I$(LIBELFDIR)/include
+MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
+MYFLAGS     += -I$(LIBELF_INC)
 MYFLAGS		+= -I/usr/include/libelf
 
 SYSLIBS  = -ldl
-LIBS     = -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBELFDIR)/bin
+LIBS     = -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+ifdef LIBDWARFSTATIC
+LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
+else
+LIBS    += -ldwarf
+endif
 ifdef LIBELFSTATIC
 LIBS    += -Wl,-static -lelf -Wl,-call_shared
 else

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2004/05/12 22:37:47 legendre Exp $
+# $Id: Makefile,v 1.15 2004/06/24 22:27:45 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,9 +25,9 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
-CFLAGS          += -I. -I../.. -I$(LIBELFDIR)/include -I/usr/include/libelf -fpic 
+CFLAGS          += -I. -I../.. -I$(LIBELF_INC) -I/usr/include/libelf -fpic 
 
-LIBS 		+= -ldl -L$(LIBELFDIR)/bin
+LIBS 		+= -ldl -L$(LIBELF_LIB)
 ifdef LIBELFSTATIC
 LIBS    += -Wl,-static -lelf -Wl,-call_shared
 else

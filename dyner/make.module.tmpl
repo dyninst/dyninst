@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.20 2004/04/28 20:20:04 rchen Exp $
+# $Id: make.module.tmpl,v 1.21 2004/06/24 22:27:41 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -33,7 +33,7 @@ endif
 
 LIBS         += -ldyninstAPI 
 
-SYSLIBS      += -liberty -L$(TCLTK_DIR) $(TCL_LIB)
+SYSLIBS      += -liberty -L$(TCLTK_LIB_DIR) $(TCL_LIB)
 
 all: $(TARGET) $(TEST_TARGET)
 

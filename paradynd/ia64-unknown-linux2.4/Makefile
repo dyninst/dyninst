@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2004/05/12 22:37:49 legendre Exp $
+# $Id: Makefile,v 1.5 2004/06/24 22:27:48 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -43,11 +43,11 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c
 
-MYFLAGS		+= -I$(LIBELFDIR)/include -I/usr/include/libelf
+MYFLAGS		+= -I$(LIBELF_INC) -I/usr/include/libelf
 MYFLAGS		+= -DNO_MDL_PRINT
 
 SYSLIBS  = -ldl
-LIBS = -L$(LIBELFDIR)/bin
+LIBS = -L$(LIBELF_LIB)
 ifdef LIBELFSTATIC
 LIBS    += -Wl,-static -lelf -Wl,-call_shared
 else
