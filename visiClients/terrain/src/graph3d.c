@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.4 1997/05/20 22:31:15 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.5 1997/05/20 23:11:00 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.5  1997/05/20 23:11:00  tung
+ * Revised on changing position when rotating.
+ *
  * Revision 1.4  1997/05/20 22:31:15  tung
  * Change the label position when rotating.
  *
@@ -631,11 +634,16 @@ transform_matrix mat;
 			this_label=this_label->next ) {
 	    int x,y;
 
-            if (surface_rot_z < 100 || surface_rot_z > 250)
+            if (surface_rot_z < 180 || surface_rot_z == 360)
                this_label->x = plots->x_max;
             else
                this_label->x = 0;
 
+            if (surface_rot_z < 90 || (surface_rot_z > 180 && 
+		surface_rot_z < 270) || surface_rot_z == 360)
+	       this_label->pos = LEFT;
+	    else
+	       this_label->pos = RIGHT;
 
 	    xtemp = this_label->x;
 	    ytemp = this_label->y;
