@@ -401,10 +401,10 @@ void performanceStream::addTraceUser(perfStreamHandle p){
     if(ps->my_traceBuffer_size < DM_DATABUF_LIMIT) {
         ps->my_traceBuffer_size++;
     }
-    if(ps->num_trace_mis){
-        ps->my_traceBuffer_size = 10;
-        assert(ps->my_traceBuffer_size);
-    }
+    //if(ps->num_trace_mis){ 
+    //    ps->my_traceBuffer_size = 10;
+    //    assert(ps->my_traceBuffer_size);
+    //}
 
 }
 
