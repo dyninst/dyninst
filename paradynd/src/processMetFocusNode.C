@@ -504,7 +504,6 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
    doCatchupInstrumentation();
-   cerr << "Back from doCatchup" << endl;
 
    // Changes for MT: process will be continued by inferior RPCs
    // This is because the inferior RPCs may complete after the instrumentation
@@ -547,7 +546,6 @@ void processMetFocusNode::doCatchupInstrumentation() {
    prepareCatchupInstr();
    bool catchupPosted = postCatchupRPCs();
    if (!catchupPosted) {
-       cerr << "Manually continuing process...." << endl;
        continueProcess();
        return;
    }
@@ -559,7 +557,6 @@ void processMetFocusNode::doCatchupInstrumentation() {
    //    our purposes
    // 3) Waiting for a system call, no trap. Nothing we can do but
    //    wait and pick it up somewhere else.
-   cerr << "Launching RPCs" << endl;
    proc_->launchRPCs(true);
    currentlyPaused = false;
 }

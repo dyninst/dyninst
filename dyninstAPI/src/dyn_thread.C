@@ -255,9 +255,7 @@ bool dyn_thread::readyIRPC() const
 // wasRunning: once the RPC is finished, leave process paused (false) or running (true)
 irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
 {
-    cerr << "Launching thr-specific RPC" << endl;
     if (!readyIRPC()) {
-        cerr << "No thread IRPC to run" << endl;
         return irpcNoIRPC;
     }
     

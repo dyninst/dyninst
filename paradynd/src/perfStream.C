@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.144 2003/02/21 20:06:25 bernat Exp $
+// $Id: perfStream.C,v 1.145 2003/02/21 20:40:13 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -822,8 +822,6 @@ void controllerMainLoop(bool check_buffer_first)
 	    pd_process *curProc = *itr++;
 	    if(curProc == NULL)
 	       continue; // process structure has been deallocated
-	    cerr << "Checking trace link" << endl;
-        
 	    if(curProc && curProc->getTraceLink() >= 0 && 
 	       FD_ISSET(curProc->getTraceLink(), &readSet)) {
             processTraceStream(curProc);

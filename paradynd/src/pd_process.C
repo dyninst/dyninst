@@ -117,7 +117,6 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
     string buffer = string("PID=") + string(proc->getPid());
     buffer += string(", ready");
     statusLine(buffer.c_str());
-    cerr << "createProcess finished" << endl;
     
     return proc;
 }

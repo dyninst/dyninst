@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.385 2003/02/21 20:06:02 bernat Exp $
+// $Id: process.C,v 1.386 2003/02/21 20:39:35 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3111,7 +3111,6 @@ bool process::iRPCDyninstInit() {
                 NULL); // No particular LWP
 
     // We loop until dyninst init has run (check via the callback)
-    cerr << "Launching RPC to run DYNINSTinit" << endl;
     while (!reachedBootstrapState(bootstrapped)) {
         launchRPCs(false); // false: not running
         checkProcStatus();
@@ -5358,11 +5357,9 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
     theStruct.lwp = lwp;
   theStruct.seq_num = sequence_num++;
   if (theStruct.thr) {
-      cerr << "Posted thr-specific RPC" << endl;
       thr->postIRPC(theStruct);
   }
   else {
-      cerr << "Posted whole-process RPC" << endl;
       RPCsWaitingToStart += theStruct;   
   }
   //fprintf(stderr, "Posted RPC with sequence num %d, thr %x, lwp %x\n",
@@ -5413,7 +5410,6 @@ bool process::readyIRPC() const
 {
     // If we're running an RPC, we're not ready to start one
     if (isRunningIRPC())  {
-        cerr << "RPC already running, returning false" << endl;
         return false;
     }
     
@@ -5475,7 +5471,6 @@ bool process::distributeRPCsOverThreads()
             continue;
         }
         // Assign this RPC to the thread
-        cerr << "Running process-scope RPC on thread " << thr_iter << endl;
         inferiorRPCtoDo rpc = RPCsWaitingToStart[0];
         rpc.thr = thr;
         rpc.lwp = thr->get_lwp();
@@ -5507,25 +5502,21 @@ bool process::launchRPCs(bool wasRunning) {
     // First, idiot check. If there aren't any RPCs to run, then
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
-    cerr << "in process::launchRPCs" << endl;
     processState state_before_paused = status();
 
     unsigned thr_iter; // Useful iterator
     bool RPCwasLaunched = false;
     bool readyRPC = false;
     if (readyIRPC()) {
-        cerr << "Process-level RPC ready" << endl;
         readyRPC = true;
     }    
     else for (thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
         if (threads[thr_iter]->readyIRPC()) {
-            cerr << "Thread level RPC ready: " << thr_iter << endl;
             readyRPC = true;
             break;
         }
     }
     if (!readyRPC) {
-        cerr << "No ready RPCS" << endl;
         return false;
     }
     
@@ -5552,9 +5543,7 @@ bool process::launchRPCs(bool wasRunning) {
     if (threads.size()) {
         // Loop over all threads and tell them to go run themselves
         for (thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
-            cerr << "Thread " << thr_iter << "... checking RPC" << endl;
             if (threads[thr_iter]->readyIRPC()) {
-                cerr << "Thread has a ready RPC" << endl;
                 irpcLaunchState_t thr_state;
                 thr_state = threads[thr_iter]->launchThreadIRPC(wasRunning);
                 if (thr_state == irpcStarted ||
@@ -5568,7 +5557,6 @@ bool process::launchRPCs(bool wasRunning) {
         // This code is a (near) carbon copy of the thread RPC
         // launch mechanisms. The only difference is in the thread/lwp
         // variables
-        cerr << "Old style RPC launching" << endl;
         irpcLaunchState_t proc_state;
         proc_state = launchProcessIRPC(wasRunning);
         if (proc_state == irpcStarted ||
@@ -5598,24 +5586,20 @@ bool process::launchRPCs(bool wasRunning) {
 irpcLaunchState_t process::launchProcessIRPC(bool wasRunning) {
     
     if (!readyIRPC()) {
-        cerr << "launchProcessIRPC: error, no RPCs ready" << endl;
         return irpcNoIRPC;
     }
-    cerr << RPCsWaitingToStart.size() << " rpcs being launched" << endl;
     inferiorRPCtoDo todo = RPCsWaitingToStart[0];
     // Note: we don't remove the RPC until we're sure that we
     // can run it.
 
     if (getDefaultLWP()->executingSystemCall()) {
         if (set_breakpoint_for_syscall_completion()) {
-            cerr << "Process in syscall, trap set" << endl;
             irpcState_ = irpcWaitingForTrap;
             wasRunningBeforeSyscall_ = wasRunning;
             // Effectively, we've launched an RPC... it will
             // just take a little longer to run
             return irpcTrapSet;
         } else {
-            cerr << "Process in syscall, trap not set" << endl;
             irpcState_ = irpcNotReadyForIRPC;
             return irpcAgain;
         }
@@ -6012,7 +5996,6 @@ bool process::handleTrapIfDueToRPC() {
 
     // We will return this parameter to say whether the 
     // trap was something we needed or should be passed along
-    cerr << "handleTrapIfDue..." << endl;
 
     bool handledTrap = false;
     // If true: we did whatever work was associated with the trap,
@@ -6069,10 +6052,8 @@ bool process::handleTrapIfDueToRPC() {
         unsigned thr_iter;
         for (thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
             if (threads[thr_iter]->isIRPCwaitingForSyscall()) {
-                cerr << "Thread " << thr_iter << " is labeled as waiting for a system call" << endl;
                 threads[thr_iter]->updateLWP();
                 if (!threads[thr_iter]->get_lwp()->executingSystemCall()) {
-                    cerr << "Thread " << thr_iter << " no longer in syscall" << endl;
                     // Fascinating... a system call that is no longer there.
                     clear_breakpoint_for_syscall_completion();
                     irpcLaunchState_t launchState;
@@ -6092,7 +6073,6 @@ bool process::handleTrapIfDueToRPC() {
                     Address retvalAddr = threads[thr_iter]->getIRPCRetValAddr();                
                     Address completedAddr = threads[thr_iter]->getIRPCFinishedAddr();
                     if (activeFrame.getPC() == retvalAddr) {
-                        cerr << "Trap due to retval IRPC on thread " << thr_iter << endl;
                         threads[thr_iter]->handleRetValIRPC();
                         ateTrap = true;
                         handledTrap = true;
@@ -6101,7 +6081,6 @@ bool process::handleTrapIfDueToRPC() {
                     else if (activeFrame.getPC() == completedAddr) {
                         // handleCompleted returns true if the process
                         // should be run, false otherwise
-                        cerr << "Trap due to completed IRPC on thread " << thr_iter << endl;
                         if (threads[thr_iter]->handleCompletedIRPC())
                             runProcess = true;
                         ateTrap = true;
@@ -6665,9 +6644,6 @@ void process::FillInCallGraphStatic()
   thr = 1;
   
 #endif
-  
-  cerr << "Forwarding thread id " << thr << endl;
-
   CallGraphSetEntryFuncCallback(symbols->file(), 
                                 entry_pdf->ResourceFullName(), thr);
     
