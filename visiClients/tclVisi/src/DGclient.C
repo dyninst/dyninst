@@ -2,6 +2,9 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
+ * Revision 1.14  1996/02/23 17:51:11  tamches
+ * DEFINEPHASE now takes 3 params instead of 1
+ *
  * Revision 1.13  1996/02/11 21:25:09  tamches
  * added param to start-phase
  *
@@ -182,7 +185,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
-  {"phase",        DEFINEPHASE,     1},
+  {"phase",        DEFINEPHASE,     3},
   {"resourcename", RESOURCENAME,    1},
   {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
@@ -224,7 +227,7 @@ int findCommand(Tcl_Interp *interp,
   return CMDERROR;
 }
 
-int Dg_TclCommand(ClientData clientData,
+int Dg_TclCommand(ClientData,
 		  Tcl_Interp *interp, 
 		  int argc, 
 		  char *argv[]) {
@@ -279,9 +282,20 @@ int Dg_TclCommand(ClientData clientData,
     sprintf(interp->result, "%d", visi_NumResources());
     return TCL_OK;
 
-  case DEFINEPHASE:       
-    visi_DefinePhase(argv[2]); // argv[2] --> flags (plain, pc, visis, or both)
+  case DEFINEPHASE: {
+    // argv[2] --> phase name (currently unused!)
+    // argv[3] --> with perf consult (boolean value)
+    // argv[4] --> with visis (boolean value)
+
+    int withPerfConsult = 0;
+    int withVisis = 0;
+    (void)Tcl_GetBoolean(interp, argv[3], &withPerfConsult);
+    (void)Tcl_GetBoolean(interp, argv[4], &withVisis);
+
+    visi_DefinePhase(NULL, (bool)withPerfConsult, (bool)withVisis);
+       // let paradyn pick the phase's name
     return TCL_OK;
+  }
 
   case RESOURCENAME:
     r = atoi(argv[2]);
