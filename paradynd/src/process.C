@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.1 1994/01/27 20:31:38 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.2 1994/02/05 23:09:56 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.1  1994/01/27 20:31:38  hollings
+ * Revision 1.2  1994/02/05 23:09:56  hollings
+ * Added extern for sys_errlist[] (g++ version 2.5.7).
+ *
+ * Revision 1.1  1994/01/27  20:31:38  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.8  1993/10/04  21:38:41  hollings
@@ -61,6 +64,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "util.h"
 
 List<process*> processList;
+
+extern char *sys_errlist[];
 
 /* root of process resource list */
 resource processResource;
