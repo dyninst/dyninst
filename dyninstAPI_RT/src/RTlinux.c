@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.10 2000/07/13 19:58:53 zandy Exp $
+ * $Id: RTlinux.c,v 1.11 2000/08/08 15:03:43 wylie Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -54,6 +54,13 @@
 #include <sys/ptrace.h>
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+extern struct sigaction DYNINSTactTrap;
+extern struct sigaction DYNINSTactTrapApp;
+#ifdef DETACH_ON_THE_FLY 
+extern struct sigaction DYNINSTactIll;
+extern struct sigaction DYNINSTactIllApp;
+#endif
 
 #ifdef DETACH_ON_THE_FLY 
 /* We should try to unify how we store the process id of the paradynd
@@ -88,7 +95,11 @@ static int daemon_or_dyninst_pid()
    daemon/mutator of DYNINSTbreakPoint calls and to implement a
    synchronizing stop event in the test suite.  This handler also
    works for these events.  */
-static void sigill_handler(int sig, struct sigcontext uap)
+
+/* DYNINSTillHandler completely preempts any handler the subject application 
+   may have already installed or may subsequently try to install for SIGILL. */
+
+static void DYNINSTillHandler(int sig, struct sigcontext uap)
 {
      int saved_errno;
      unsigned char* eip;
@@ -139,43 +150,73 @@ static void sigill_handler(int sig, struct sigcontext uap)
 /************************************************************************
  * void DYNINSTos_init(void)
  *
- * os initialization function
+ * OS initialization function
 ************************************************************************/
 
-void DYNINSTtrapHandler(int sig, struct sigcontext uap );
+/* this handler's sigcontext arg is an undocumented feature of Linux    */
+/* (requires the non-siginfo handler to be installed by sigaction.)     */
+void DYNINSTtrapHandler(int sig, struct sigcontext uap);
 
 void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+    RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
+
     /*
-       Install trap handler.
-       This is currently being used only on the x86 platform.
+       Install trap handler.  Currently being used only on x86 platforms.
     */
     
-    struct sigaction act;
-    act.sa_handler = (void(*)(int))DYNINSTtrapHandler;
-    act.sa_flags = 0;
-    sigfillset(&act.sa_mask);
-    if (sigaction(SIGTRAP, &act, 0) != 0) {
-        perror("sigaction(SIGTRAP)");
+    DYNINSTactTrap.sa_handler = (void(*)(int))DYNINSTtrapHandler;
+    DYNINSTactTrap.sa_flags = 0;
+    sigfillset(&DYNINSTactTrap.sa_mask);
+    if (sigaction(SIGTRAP, &DYNINSTactTrap, &DYNINSTactTrapApp) != 0) {
+        perror("sigaction(SIGTRAP) install");
 	assert(0);
 	abort();
     }
     
-    sigfillset(&act.sa_mask);
-    sigdelset(&act.sa_mask, SIGILL);
-    sigdelset(&act.sa_mask, SIGTRAP);
-    sigdelset(&act.sa_mask, SIGSTOP);
+    RTprintf("DYNINSTtrapHandler installed @ 0x%08X\n", DYNINSTactTrap.sa_handler);
+
+    if (DYNINSTactTrapApp.sa_flags&SA_SIGINFO) {
+        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
+            RTprintf("App's TRAP sigaction @ 0x%08X displaced!\n",
+                   DYNINSTactTrapApp.sa_sigaction);
+        }
+    } else {
+        if (DYNINSTactTrapApp.sa_handler != NULL) {
+            RTprintf("App's TRAP handler @ 0x%08X displaced!\n",
+                   DYNINSTactTrapApp.sa_handler);
+        }
+    }
+
 #ifdef DETACH_ON_THE_FLY
-    act.sa_handler = (void(*)(int))sigill_handler;
-    act.sa_flags = SA_NOMASK; /* FIXME: Really allow recursive SIGILL handling? */
-    if (0 > sigaction(SIGILL, &act, NULL)) {
-	 perror("sigaction(SIGILL)");
+    sigfillset(&DYNINSTactIll.sa_mask);
+    sigdelset(&DYNINSTactIll.sa_mask, SIGILL);
+    sigdelset(&DYNINSTactIll.sa_mask, SIGTRAP);
+    sigdelset(&DYNINSTactIll.sa_mask, SIGSTOP);
+    DYNINSTactIll.sa_handler = (void(*)(int))DYNINSTillHandler;
+    DYNINSTactIll.sa_flags = SA_NOMASK; /* FIXME: Really allow recursive SIGILL handling? */
+    if (0 > sigaction(SIGILL, &DYNINSTactIll, &DYNINSTactIllApp)) {
+	 perror("sigaction(SIGILL) install");
 	 assert(0);
+    }
+
+    RTprintf("DYNINSTillHandler installed @ 0x%08X\n", DYNINSTactIll.sa_handler);
+
+    if (DYNINSTactIllApp.sa_flags&SA_SIGINFO) {
+        if (DYNINSTactIllApp.sa_sigaction != NULL) {
+            RTprintf("App's ILL sigaction @ 0x%08X displaced!\n",
+                   DYNINSTactIllApp.sa_sigaction);
+        }
+    } else {
+        if (DYNINSTactIllApp.sa_handler != NULL) {
+            RTprintf("App's ILL handler @ 0x%08X displaced!\n",
+                   DYNINSTactIllApp.sa_handler);
+        }
     }
 #endif /* DETACH_ON_THE_FLY */
 
-    ptrace( PTRACE_TRACEME, 0, 0, 0 );
+    ptrace(PTRACE_TRACEME, 0, 0, 0);
 }
 
 
@@ -210,7 +251,7 @@ static unsigned lookup(unsigned key) {
     abort();
 }
 
-void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
+void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
     unsigned pc = uap.eip;
     unsigned nextpc;
 
@@ -270,13 +311,41 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
     }
 
     if (nextpc) {
-      /* WARNING -- Remove before using in real use, it could KILL anything
-	 that instruments libc */
-      /*fprintf( stderr, "DYNINST trap %#.8x -> %#.8x\n", pc, nextpc );*/
+      RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
+               DYNINSTtotalTraps, pc, nextpc);
       uap.eip = nextpc;
     } else {
-      assert(0);
-      abort();
+      if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
+        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
+          siginfo_t info; /* dummy */
+          void (*handler)(int,siginfo_t*,void*) =
+                (void(*)(int,siginfo_t*,void*))DYNINSTactTrapApp.sa_sigaction;
+          RTprintf("DYNINST trap [%d] 0x%08X DEFERED to A0x%08X!\n",
+                DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
+          memset(&info,0,sizeof(info));
+          sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
+          (*handler)(sig,&info,NULL);
+          sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
+        } else {
+          printf("DYNINST trap [%d] 0x%08X missing SA_SIGACTION!\n",
+                  DYNINSTtotalTraps, pc);
+          abort();
+        }
+      } else {
+        if (DYNINSTactTrapApp.sa_handler != NULL) {
+          void (*handler)(int,struct sigcontext) =
+              (void(*)(int,struct sigcontext))DYNINSTactTrapApp.sa_handler;
+          RTprintf("DYNINST trap [%d] 0x%08X DEFERED to H0x%08X!\n",
+                DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_handler);
+          sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
+          (*handler)(sig,uap);
+          sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
+        } else {
+          printf("DYNINST trap [%d] 0x%08X missing SA_HANDLER!\n",
+                  DYNINSTtotalTraps, pc);
+          abort();
+        }
+      }
     }
     DYNINSTtotalTraps++;
 }

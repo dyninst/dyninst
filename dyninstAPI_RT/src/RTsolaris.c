@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.11 2000/03/17 21:56:19 schendel Exp $
+ * $Id: RTsolaris.c,v 1.12 2000/08/08 15:03:43 wylie Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -56,10 +56,17 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
+#ifdef i386_unknown_solaris2_5
+void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap);
+
+extern struct sigaction DYNINSTactTrap;
+extern struct sigaction DYNINSTactTrapApp;
+#endif
+
 /************************************************************************
  * void DYNINSTos_init(void)
  *
- * os initialization function
+ * OS initialization function
 ************************************************************************/
 
 extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
@@ -67,20 +74,33 @@ extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+    RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
+#ifdef i386_unknown_solaris2_5
     /*
        Install trap handler.
        This is currently being used only on the x86 platform.
     */
-#ifdef i386_unknown_solaris2_5
-    void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap);
-    struct sigaction act;
-    act.sa_handler = DYNINSTtrapHandler;
-    act.sa_flags = 0;
-    sigfillset(&act.sa_mask);
-    if (sigaction(SIGTRAP, &act, 0) != 0) {
-        perror("sigaction(SIGTRAP)");
+    DYNINSTactTrap.sa_handler = DYNINSTtrapHandler;
+    DYNINSTactTrap.sa_flags = 0;
+    sigfillset(&DYNINSTactTrap.sa_mask);
+    if (sigaction(SIGTRAP, &DYNINSTactTrap, &DYNINSTactTrapApp) != 0) {
+        perror("sigaction(SIGTRAP) install");
 	assert(0);
 	abort();
+    }
+
+    RTprintf("DYNINSTtrapHandler installed @ 0x%08X\n", DYNINSTactTrap.sa_handler);
+
+    if (DYNINSTactTrapApp.sa_flags&SA_SIGINFO) {
+        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
+            RTprintf("App's TRAP sigaction @ 0x%08X displaced!\n",
+                   DYNINSTactTrapApp.sa_sigaction);
+        }
+    } else {
+        if (DYNINSTactTrapApp.sa_handler != NULL) {
+            RTprintf("App's TRAP handler @ 0x%08X displaced!\n",
+                   DYNINSTactTrapApp.sa_handler);
+        }
     }
 #endif
 
@@ -103,7 +123,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 
 #ifdef i386_unknown_solaris2_5
 trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
-unsigned DYNINSTtotalTraps = 0;
+/*static unsigned*/ int DYNINSTtotalTraps = 0;
+/* native CC type/name decorations aren't handled yet by dyninst */
 
 static unsigned lookup(unsigned key) {
     unsigned u;
@@ -172,13 +193,43 @@ void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     }
 
     if (nextpc) {
+      RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
+               DYNINSTtotalTraps, pc, nextpc);
       uap->uc_mcontext.gregs[PC] = nextpc;
     } else {
-      assert(0);
-      abort();
+      if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
+          if (DYNINSTactTrapApp.sa_sigaction != NULL) {
+              void (*handler)(int,siginfo_t*,ucontext_t*) =
+                  (void(*)(int,siginfo_t*,ucontext_t*))DYNINSTactTrapApp.sa_sigaction;
+              RTprintf("DYNINST trap [%d] 0x%08X DEFERED to 0x%08X!\n",
+                       DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
+              sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
+              (*handler)(sig,info,uap);
+              sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
+          } else {
+              printf("DYNINST trap [%d] 0x%08X missing SA_SIGACTION!\n",
+                    DYNINSTtotalTraps, pc);
+              abort();
+          }
+      } else {
+          if (DYNINSTactTrapApp.sa_handler != NULL) {
+              void (*handler)(int,siginfo_t*,ucontext_t*) =
+                  (void(*)(int,siginfo_t*,ucontext_t*))DYNINSTactTrapApp.sa_sigaction;
+              RTprintf("DYNINST trap [%d] 0x%08X DEFERED to 0x%08X!\n",
+                    DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
+              sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
+              (*handler)(sig,info,uap);
+              sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
+          } else {
+              printf("DYNINST trap [%d] 0x%08X missing SA_HANDLER!\n",
+                    DYNINSTtotalTraps, pc);
+              abort();
+          }
+      }
     }
     DYNINSTtotalTraps++;
 }
+
 #endif
 
 int DYNINSTloadLibrary(char *libname)
