@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.131 2004/03/15 01:52:20 tlmiller Exp $
+// $Id: linux.C,v 1.132 2004/03/15 03:36:23 tlmiller Exp $
 
 #include <fstream>
 
@@ -321,13 +321,15 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
 			}
 		else {
 			/* Iterate over all the processes. */
+			bool allExited = true;
 			for( unsigned i = 0; i < processVec.size(); i++ ) {
 				if( processVec[i] != NULL ) {
 					process * proc = processVec[i];
 					
-					if( proc->status() == exited ) { return false; }
+					if( proc->status() != exited ) { allExited = false; }
 					}
 				}
+			if( allExited ) { return false; }
 			} /* end multiple-process wait */
 		} /* end if we're blocking */
 		
@@ -406,20 +408,16 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            // Linux fork() sends a SIGCHLD once the fork has been created
            why = procForkSigChild;
            break;
-        case SIGILL:
-           // The following is more correct, but breaks.  Problem is getting
-           // the frame requires a ptrace...  which calls
-           // loopUntilStopped. Which calls us.
-           //Frame frame = proc->getDefaultLWP()->getActiveFrame();
-           //Address pc = frame.getPC();
-           Address pc = getPC(pertinentPid);
+        case SIGILL: {
+           Address pc = getPC( pertinentPid );
+           // /* DEBUG */ fprintf( stderr, "SIGILL: PC = 0x%lx\n", pc );
            
-           if(pc == pertinentProc->dyninstlib_brk_addr ||
-              pc == pertinentProc->main_brk_addr || 
-              pertinentProc->getDyn()->reachedLibHook(pc)) {
+           if( pc == pertinentProc->dyninstlib_brk_addr ||
+               pc == pertinentProc->main_brk_addr || 
+               pertinentProc->getDyn()->reachedLibHook(pc) ) {
                what = SIGTRAP;
-           }
-           break;
+           	   }
+           } break;
       }
    }
 
