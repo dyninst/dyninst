@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.17  1994/03/25 20:57:02  hollings
+ * Revision 1.18  1994/03/25 22:35:21  hollings
+ * Get the test for callErr right.
+ *
+ * Revision 1.17  1994/03/25  20:57:02  hollings
  * Changed all asserts to set the error member variable.  This makes it
  * possible to detect/continue when the remote process dies.
  *
@@ -968,7 +971,7 @@ void remoteFunc::genXDRStub(char *className)
 		 (*lp)->type, (*lp)->name);
     }
     printf("        !xdrrec_endofrecord(__xdrs__, TRUE)) {\n");
-    printf("            callErr == -1;\n");
+    printf("            callErr = -1;\n");
     printf("            return");
     if (retS) printf("(%s)", retVar);
     printf(";\n    }\n");
