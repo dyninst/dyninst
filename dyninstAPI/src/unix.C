@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.43 2000/08/18 19:19:45 hollings Exp $
+// $Id: unix.C,v 1.44 2000/08/24 20:26:10 hollings Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -371,7 +371,10 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
 #ifdef BPATCH_LIBRARY
 	// define our own session id so we don't get the mutators signals
+
+#ifndef rs6000_ibm_aix4_1
  	setsid();
+#endif
 #endif
 
 	/* indicate our desire to be traced */
