@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.61 2001/07/02 22:45:17 gurari Exp $
+// $Id: inst.h,v 1.62 2001/11/28 05:44:12 gaburici Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -52,6 +52,8 @@
 #include "common/h/Time.h"
 #ifndef BPATCH_LIBRARY
 #include "pdutil/h/pdSample.h"
+#else
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #endif
 
 /****************************************************************************/
@@ -242,6 +244,19 @@ void     emitVupdate(opCode op, RegValue src1, Register src2, Address dst,
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
                 char *insn, Address &base, bool noCost);
+
+#ifdef BPATCH_LIBRARY
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost);
+
+#define emitCSload emitASload
+#endif
+
+// VG(11/06/01): moved here and added location
+Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
+		      const vector<AstNode *> &operands, const string &func,
+		      process *proc, bool noCost, const function_base *funcbase,
+		      const instPoint *location = NULL);
 
 int getInsnCost(opCode t);
 

@@ -82,22 +82,26 @@ bool isACallInstruction(const instruction i){
 	}
 	return false;
 }
-bool isAnneal(const instruction i){
+bool isAnneal(const instruction /*i*/){
         return true;
 }
 
 #define MK_LD1(bytes, imm, ra) (MemoryAccess(true, false, (bytes), (imm), (ra), -1))
 #define MK_SD1(bytes, imm, ra) (MemoryAccess(false, true, (bytes), (imm), (ra), -1))
+
 #define MK_LX1(bytes, ra, rb) (MemoryAccess(true, false, (bytes), 0, (ra), (rb)))
 #define MK_SX1(bytes, ra, rb) (MemoryAccess(false, true, (bytes), 0, (ra), (rb)))
 
-//#define MK_LD(bytes, i) (MK_LD1((bytes), getDinD(i), getRA(i)))
 #define MK_LD(bytes, i) (MK_LD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
 #define MK_SD(bytes, i) (MK_SD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
-#define MK_LX(bytes, i) (MK_LX1((bytes), i.xform.ra, i.xform.rb))
-#define MK_SX(bytes, i) (MK_SX1((bytes), i.xform.ra, i.xform.rb))
+
+// VG(11/20/01): X-forms ignore ra if 0, but not rb...
+#define MK_LX(bytes, i) (MK_LX1((bytes), (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
+#define MK_SX(bytes, i) (MK_SX1((bytes), (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
+
 #define MK_LDS(bytes, i) (MK_LD1((bytes), (i.dsform.d << 2), (signed)i.dsform.ra))
 #define MK_SDS(bytes, i) (MK_SD1((bytes), (i.dsform.d << 2), (signed)i.dsform.ra))
+
 #define MK_LI(bytes, i) (MK_LX1((bytes), i.xform.ra, -1))
 #define MK_SI(bytes, i) (MK_SX1((bytes), i.xform.ra, -1))
 
@@ -178,6 +182,10 @@ void initOpCodeInfo()
 // Alternatively one could write this based on bits in opcode. E.g. if bit 3
 // is 0 then the instruction is most likely a load, else it is likely a store.
 // I also assume that no invalid instructions occur: e.g.: LU with RA=0, etc.
+
+#define logIS_A(x) 
+//#define logIS_A(x) logLine((x))
+
 MemoryAccess isLoadOrStore(const instruction i)
 {
   int op = i.dform.op;
@@ -186,49 +194,49 @@ MemoryAccess isLoadOrStore(const instruction i)
   if(op > LXop) { // try D-forms
     if(op < STHop)
       if(op < STop) {
-	logLine("IS_A: l-lbzu");
+	logIS_A("IS_A: l-lbzu");
 	b = op < LBZop ? 4 : 1;
 	return MK_LD(b, i);
       } else if (op < LHZop) {
-	logLine("IS_A: st-stbu");
+	logIS_A("IS_A: st-stbu");
 	b = op < STBop ? 4 : 1;
 	return MK_SD(b, i);
       } else {
-	logLine("IS_A: lhz-lhau");
+	logIS_A("IS_A: lhz-lhau");
 	return MK_LD(2, i);
       }
     else if(op < STFSop)
       if(op < LFSop)
 	if(op < LMop) {
-	  logLine("IS_A: sth-sthu");
+	  logIS_A("IS_A: sth-sthu");
 	  return MK_SD(2, i);
 	}
 	else if(op < STMop) {
-	  logLine("IS_A: lm");
+	  logIS_A("IS_A: lm");
 	  return MK_LD((32 - i.dform.rt)*4, i);
 	}
 	else {
-	  logLine("IS_A: stm");
+	  logIS_A("IS_A: stm");
 	  return MK_SD((32 - i.dform.rt)*4, i);
 	}
       else {
-	logLine("IS_A: lfs-lfdu");
+	logIS_A("IS_A: lfs-lfdu");
 	b = op < LFDop ? 4 : 8;
 	return MK_LD(b, i);
       }
     else if(op <= STFDUop) {
-      logLine("IS_A: stfs-stfdu");
+      logIS_A("IS_A: stfs-stfdu");
       b = op < STFDop ? 4 : 8;
       return MK_SD(b, i);
     }
     else if(op == LDop) {
-      logLine("IS_A: ld-lwa");
+      logIS_A("IS_A: ld-lwa");
       b = i.dsform.xo < 2 ? 8 : 4;
       assert(i.dsform.xo < 3);
       return MK_LDS(b, i);
     }
     else if(op == STDop) {
-      logLine("IS_A: std-stdu");
+      logIS_A("IS_A: std-stdu");
       assert(i.dsform.xo < 2);
       return MK_SDS(8, i);
     }
@@ -237,10 +245,10 @@ MemoryAccess isLoadOrStore(const instruction i)
   }
   else if(op == LXop) { // X-forms
     unsigned int xop = i.xform.xo;
-    char buf[100];
+    //char buf[100];
 
-    snprintf(buf, 100, "XOP:: %d\n", xop);
-    logLine(buf);
+    //snprintf(buf, 100, "XOP:: %d\n", xop);
+    //logIS_A(buf);
 
     opCodeInfo *oci = xopCodes[xop];
 
@@ -427,46 +435,3 @@ Address AddressHandle::operator--(int){
 Address AddressHandle::operator*(){
 	return currentAddress;
 }
-
-
-// match on opcode set
-bool AddressHandle::matchesOpCodes(const BPatch_Set<BPatch_opCode>& ops)
-{  
-  // FIXME: sort of attempt to get some performance out of it:
-  // use a hash to remember op sets we have seen
-  // We need this because BPatch_set does not support
-  // iteration right now, only copy-out...
-
-  int osize = ops.size();
-  BPatch_opCode* opa = new BPatch_opCode[osize];
-  ops.elements(opa);
-
-  return matchesOpCodes(opa, osize);
-}
-
-// match on opcode array
-bool AddressHandle::matchesOpCodes(const BPatch_opCode* opa, unsigned int size)
-{
-  bool matches = false;
-
-  for(unsigned int i=0; i<size; ++i)
-    matches |= matchesOpCode(opa[i]);
-  
-  return matches;
-}
-
-// match on opcode descriptor (actually many opcodes...)
-bool AddressHandle::matchesOpCode(BPatch_opCode op)
-{
-  switch(op) {
-  case BPatch_opLoad:
-    return true;
-    break;
-  case BPatch_opStore:
-    return true;
-    break;
-  }
-
-  return false;
-}
-

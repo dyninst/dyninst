@@ -2300,6 +2300,18 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
   return ret;
 }
 
+
+#ifdef BPATCH_LIBRARY
+// VG(11/07/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  // TODO ...
+}
+#endif
+
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -3355,7 +3367,9 @@ void initTramps()
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
 		      const vector<AstNode *> &params, const string &calleeName,
-		      process *p, bool noCost, const function_base *callee)
+		      process *p, bool noCost, const function_base *callee,
+		      const instPoint *location) // FIXME: pass it!
+  // Note: MIPSPro compiler complains about redefinition of default argument
 {
   TRACE_B( "emitFuncCall" );
 

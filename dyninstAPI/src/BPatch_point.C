@@ -54,6 +54,17 @@
 
 
 /*
+ * Private constructor
+ */
+BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
+	     BPatch_procedureLocation _pointType, MemoryAccess* _ma) :
+  // Note: MIPSPro compiler complains about redefinition of default argument
+  proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma)
+{
+  point->bppoint = this;
+}
+
+/*
  * BPatch_point::getCalledFunction
  *
  * For a BPatch_point representing a call site, returns a pointer to a

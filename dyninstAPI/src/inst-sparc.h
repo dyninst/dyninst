@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.48 2001/11/06 19:20:20 bernat Exp $
+// $Id: inst-sparc.h,v 1.49 2001/11/28 05:44:11 gaburici Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -475,7 +475,8 @@ extern pd_Function *getFunction(instPoint *point);
 extern Register emitFuncCall(opCode op, registerSpace *rs, char *i, 
 			     Address &base, const vector<AstNode *> &operands,
 			     const string &callee, process *proc, bool noCost,
-			     const function_base *calleefunc);
+			     const function_base *calleefunc,
+                             const instPoint *location = NULL);
 
 extern void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                     char *i, Address &base, bool noCost);

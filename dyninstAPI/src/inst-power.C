@@ -41,13 +41,15 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.115 2001/11/06 19:20:20 bernat Exp $
+ * $Id: inst-power.C,v 1.116 2001/11/28 05:44:11 gaburici Exp $
  */
 
 #include "common/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
+#else
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -252,14 +254,18 @@ inline void loadImmIntoReg(instruction *&insn, Register rt, unsigned value)
   }
 }
 
+// VG(11/06/01): Shouldn't this be placed in instPoint-power.h?
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
-		     const image *, Address adr, bool, ipFuncLoc fLoc) 
+		     const image *, Address adr, bool, ipFuncLoc fLoc)
 		      : addr(adr), originalInstruction(instr), 
 			callIndirect(false), callee(NULL), func(f), ipLoc(fLoc)
 {
    // inDelaySlot = false;
    // isDelayed = false;
    // callAggregate = false;
+#ifdef BPATCH_LIBRARY
+  bppoint = NULL;
+#endif
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -691,6 +697,51 @@ void initTramps()
  *             ... |                      |
  */
 
+
+/* VG(11/18/01): The above picture is not entirely correct.
+   The order actually is:
+
+0x10001d70:     stw     r12,-24636(r1)
+0x10001d74:     stw     r11,-24632(r1)
+0x10001d78:     stw     r10,-24628(r1)
+0x10001d7c:     stw     r9,-24624(r1)
+0x10001d80:     stw     r8,-24620(r1)
+0x10001d84:     stw     r7,-24616(r1)
+0x10001d88:     stw     r6,-24612(r1)
+0x10001d8c:     stw     r5,-24608(r1)
+0x10001d90:     stw     r4,-24604(r1)
+0x10001d94:     stw     r3,-24600(r1)
+0x10001d98:     stw     r0,-24588(r1)
+0x10001d9c:     mflr    r10
+0x10001da0:     stw     r10,-24640(r1)
+0x10001da4:     mfctr   r10
+0x10001da8:     stw     r10,-24652(r1)
+0x10001dac:     mfcr    r10
+0x10001db0:     stw     r10,-24644(r1)
+0x10001db4:     mfxer   r10
+0x10001db8:     stw     r10,-24648(r1)
+0x10001dbc:     mfmq    r10
+0x10001dc0:     stw     r10,-24656(r1)
+0x10001dc4:     stfd    f0,-24672(r1)
+0x10001dc8:     stfd    f1,-24680(r1)
+0x10001dcc:     stfd    f2,-24688(r1)
+0x10001dd0:     stfd    f3,-24696(r1)
+0x10001dd4:     stfd    f4,-24704(r1)
+0x10001dd8:     stfd    f5,-24712(r1)
+0x10001ddc:     stfd    f6,-24720(r1)
+0x10001de0:     stfd    f7,-24728(r1)
+0x10001de4:     stfd    f8,-24736(r1)
+0x10001de8:     stfd    f9,-24744(r1)
+0x10001dec:     stfd    f10,-24752(r1)
+0x10001df0:     stfd    f11,-24760(r1)
+0x10001df4:     stfd    f12,-24768(r1)
+0x10001df8:     stfd    f13,-24776(r1)
+0x10001dfc:     mffs    f13
+0x10001e00:     stfd    f13,-24664(r1)
+
+*/
+
+
 /* PROBLEM WITH MT_THREAD -- stacks are only 8K!!! */
 #define STKPAD ( 24 * 1024 )
 #define STKLR    ( -(8 + (13+1)*4) )
@@ -1021,6 +1072,7 @@ static void restoreRegister(instruction *&insn, Address &base, Register reg,
 		      int dest, int offset)
 {
   genImmInsn(insn, Lop, dest, 1, -1*((reg+1)*4 + offset + STKPAD));
+  //fprintf(stderr, "rr:%d\n", -1*((reg+1)*4 + offset + STKPAD));
   insn++;
   base += sizeof(instruction);
 }
@@ -2031,7 +2083,8 @@ Register emitFuncCall(opCode /* ocode */,
 		      char *iPtr, Address &base, 
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc, bool noCost,
-		      const function_base *calleefunc)
+		      const function_base *calleefunc,
+		      const instPoint *location = NULL)
 {
   Address dest;
   Address toc_anchor;
@@ -2072,7 +2125,7 @@ Register emitFuncCall(opCode /* ocode */,
 	genImmInsn(insn, CALop, dummyReg, 0, 0);
 	base += sizeof(instruction);
     }
-    srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false));
+    srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false, location));
   }
   
   // generateCode can shift the instruction pointer, so reset insn
@@ -2430,8 +2483,108 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
   }
 }
 
+#ifdef BPATCH_LIBRARY
+// VG(11/16/01): Say if we have to restore a register to get its original value
+static inline bool needsRestore(Register x)
+{
+  return (x == 0) || ((x >= 3) && (x <= 12)) || (x == 9999);
+}
+
+static inline unsigned int stackOffset(Register x)
+{
+  return (x >= 3) ? 8 : 0;
+}
+
+// VG(11/16/01): Emit code to add the original value of a register to
+// another. The original value may need to be restored from stack...
+static inline void emitAddOriginal(Register src, Register acc, 
+			    char* baseInsn, Address &base, bool noCost)
+{
+  bool nr = needsRestore(src);
+  instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+  Register temp;
+
+  if(nr) {
+    // this needs baseInsn because it uses emitV...
+    temp = regSpace->allocateRegister(baseInsn, base, noCost);
+
+    // Looking at allocateRegister, I'd say that jkh's hack is no longer
+    // useful on AIX (see naim's comment); no code is generated...
+    /*insn = (instruction *) ((void*)&baseInsn[base]);*/
+
+    // Emit code to restore the original ra register value in temp.
+    // The offset compensates for the gap 0, 3, 4, ...
+    // This writes at insn, and updates insn and base.
+
+    if(src == 9999) { // hack for XER_25:31
+      //fprintf(stderr, "XER_25:31\n");
+      restoreRegister(insn, base, 15, temp, 8); // get orignal XER value
+      // keep only bits 32+25:32+31; extrdi temp, temp, 7 (n bits), 32+25 (start at b)
+      // which is actually: rldicl temp, temp, 32+25+7 (b+n), 64-7 (64-n)
+      // which is the same as: clrldi temp,temp,57 because 32+25+7 = 64
+      insn->raw = 0;
+      insn->mdform.op = RLDop;
+      insn->mdform.rs = temp;
+      insn->mdform.ra = temp;
+      insn->mdform.sh = 0;  //(32+25+7) % 32;
+      insn->mdform.mb_or_me = (64-7) % 32;
+      insn->mdform.mb_or_me2 = (64-7) / 32;
+      insn->mdform.xo = 0;  // rldicl
+      insn->mdform.sh2 = 0; //(32+25+7) / 32;
+      insn->mdform.rc = 0;
+      ++insn;
+      base += sizeof(instruction);
+    }
+    else
+      restoreRegister(insn, base, src, temp, stackOffset(src));
+  }
+  else
+    temp = src;
+
+  // add temp to dest;
+  // writes at baseInsn+base and updates base, we must update insn...
+  emitV(plusOp, temp, acc, acc, baseInsn, base, noCost, 0);
+  insn = (instruction *) ((void*)&baseInsn[base]);
+
+  if(nr) {
+    regSpace->freeRegister(temp);
+  }
+}
+
+// VG(11/07/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  //instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+  int imm = as.getImm();
+  int ra  = as.getReg(0);
+  int rb  = as.getReg(1);
+  
+  // TODO: optimize this to generate the minimum number of
+  // instructions; think about schedule
+
+  // emit code to load the immediate (constant offset) into dest; this
+  // writes at baseInsn+base and updates base, we must update insn...
+  emitVload(loadConstOp, (Address)imm, dest, dest, baseInsn, base, noCost);
+  //insn = (instruction *) ((void*)&baseInsn[base]);  
+
+  // Right now I have no idea which registers are touched by the tramp
+  
+  // If ra is used in the address spec, allocate a temp register and
+  // get the value of ra from stack into it
+  if(ra > -1)
+    emitAddOriginal(ra, dest, baseInsn, base, noCost);
+
+  // If rb is used in the address spec, allocate a temp register and
+  // get the value of ra from stack into it
+  if(rb > -1)
+    emitAddOriginal(rb, dest, baseInsn, base, noCost);
+}
+#endif
+
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
-	      char *baseInsn, Address &base, bool /*noCost*/, int size)
+	       char *baseInsn, Address &base, bool /*noCost*/, int /*size*/)
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
@@ -3684,7 +3837,7 @@ bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
  * address      The address for which to create the point.
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address,
-                                         BPatch_point** alternative)
+                                         BPatch_point** /*alternative*/)
 {
     function_base *func = proc->findFuncByAddr((Address)address);
 
@@ -3693,7 +3846,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
-    
+
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;
     image* pointImage = pointFunction->file()->exec();

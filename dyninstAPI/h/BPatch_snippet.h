@@ -217,4 +217,26 @@ public:
     BPatch_breakPointExpr();
 };
 
+// VG(11/05/01): This nullary snippet will return the effective
+// address of a memory access when inserted at an instrumentation
+// point that is a memory access.  In other words, the instruction at
+// the point where it is inserted is the one to get effective address
+// for.  Furthermore, there must be memory access information about
+// the inst. point; this basically means that the point must have been
+// created using a method that attaches that info to the point -
+// e.g. using findPoint(const BPatch_Set<BPatch_opCode>& ops) from
+// BPatch_function.
+class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
+{
+public:
+  BPatch_effectiveAddressExpr();
+};
+
+// Number of bytes moved
+class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
+{
+public:
+  BPatch_bytesAccessedExpr();
+};
+
 #endif /* _BPatch_snippet_h_ */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.17 2001/11/20 01:12:51 tikir Exp $
+// $Id: BPatch_function.C,v 1.18 2001/11/28 05:44:10 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -363,7 +363,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 		   relativeAddress, getSize());
   
   instruction inst;
-  int xx = -1;
+  //int xx = -1;
 
   while(ah.hasMore()) {
 
@@ -375,13 +375,13 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     MemoryAccess ma = isLoadOrStore(inst);
 
-    AddrSpec start = ma.getStartAddr();
-    CountSpec count = ma.getByteCount();
-    int imm = start.getImm();
-    int ra  = start.getReg(0);
-    int rb  = start.getReg(1);
-    int cnt = count.getImm();
-    short int fcn = ma.prefetchType();
+    //AddrSpec start = ma.getStartAddr();
+    //CountSpec count = ma.getByteCount();
+    //int imm = start.getImm();
+    //int ra  = start.getReg(0);
+    //int rb  = start.getReg(1);
+    //int cnt = count.getImm();
+    //short int fcn = ma.prefetchType();
     bool skip = false;
 
     if(findLoads && ma.isALoad()) {
@@ -599,7 +599,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
     }
 }
 
-bool BPatch_function::getVariables(BPatch_Vector<BPatch_variableExpr *> &vect)
+bool BPatch_function::getVariables(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
 {
     	return false;
 }

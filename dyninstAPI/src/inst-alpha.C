@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.40 2001/11/20 20:28:40 tikir Exp $
+// $Id: inst-alpha.C,v 1.41 2001/11/28 05:44:10 gaburici Exp $
 
 #include "common/h/headers.h"
 
@@ -1319,6 +1319,18 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
   return(Null_Register);        // should never get here!
 }
 
+
+#ifdef BPATCH_LIBRARY
+// VG(11/07/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  // TODO ...
+}
+#endif
+
+
 void emitVload(opCode op, Address src1, Register, Register dest,
 	     char *i, Address &base, bool, int size=4)
 {
@@ -1910,7 +1922,8 @@ emitFuncCall(opCode /* op */,
 	     char *i, Address &base, 
 	     const vector<AstNode *> &operands,
 	     const string &callee, process *proc, bool noCost,
-	     const function_base *calleebase)
+	     const function_base *calleebase,
+             const instPoint *location = NULL) // FIXME: pass it!
 {
   vector <Register> srcs;
 

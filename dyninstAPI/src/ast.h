@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.47 2001/08/29 23:25:27 hollings Exp $
+// $Id: ast.h,v 1.48 2001/11/28 05:44:10 gaburici Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -66,7 +66,6 @@ class function_base;
 // typedef int reg; // see new Register type in "common/h/Types.h"
 
 typedef enum { plusOp,
-
                minusOp,
                timesOp,
                divOp,
@@ -101,7 +100,8 @@ typedef enum { plusOp,
 	       saveRegOp,
 	       updateCostOp,
 	       funcJumpOp,        // Jump to function without linkage
-	       branchOp} opCode;
+	       branchOp
+} opCode;
 
 class registerSlot {
  public:
@@ -147,8 +147,8 @@ class AstNode {
 			   DataValue, DataPtr,  // restore AstNode::DataValue and AstNode::DataPtr
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr, FrameAddr,
-			   SharedData, PreviousStackFrameDataReg};
-
+			   SharedData, PreviousStackFrameDataReg,
+			   EffectiveAddr, BytesAccessed };
         AstNode(); // mdl.C
 	AstNode(const string &func, AstNode *l, AstNode *r);
         AstNode(const string &func, AstNode *l); // needed by inst.C
@@ -173,12 +173,14 @@ class AstNode {
 
        ~AstNode();
 
-        Address generateTramp(process *proc, char *i, Address &base,
-			      int &trampCost, bool noCost);
+        Address generateTramp(process *proc, const instPoint *location, char *i,
+			      Address &base, int &trampCost, bool noCost);
 	Address generateCode(process *proc, registerSpace *rs, char *i, 
-			     Address &base, bool noCost, bool root);
+			     Address &base, bool noCost, bool root,
+			     const instPoint *location = NULL);
 	Address generateCode_phase2(process *proc, registerSpace *rs, char *i, 
-				    Address &base, bool noCost);
+				    Address &base, bool noCost,
+				    const instPoint *location = NULL);
 
 	int cost() const;	// return the # of instruction times in the ast.
 	void print() const;
@@ -276,9 +278,13 @@ AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 #endif
+// VG(11/06/01): This should be in inst.h I suppose; moved there...
+/*
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
-		      process *proc, bool noCost, const function_base *funcbase);
+		      process *proc, bool noCost, const function_base *funcbase,
+		      const instPoint *location = NULL);
+*/
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
 					char *insn,

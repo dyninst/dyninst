@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.15 2001/10/10 20:43:05 buck Exp $
+// $Id: instPoint-x86.h,v 1.16 2001/11/28 05:44:12 gaburici Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -47,6 +47,10 @@
 #include "dyninstAPI/src/symtab.h"
 
 class process;
+
+#ifdef BPATCH_LIBRARY
+class BPatch_point;
+#endif
 
 /************************************************************************
  *
@@ -244,6 +248,25 @@ class instPoint {
                          // has been relocated, and this instPoint has been 
                          // updated to reflect that relocation. 
   bool conservative_;    // true for arbitrary inst points
+
+  // VG(11/06/01): there is some common stuff amongst instPoint
+  // classes on all platforms (like addr and the back pointer to
+  // BPatch_point). 
+  // TODO: Merge these classes and put ifdefs for platform-specific
+  // fields.
+#ifdef BPATCH_LIBRARY
+ private:
+  // We need this here because BPatch_point gets dropped before
+  // we get to generate code from the AST, and we glue info needed
+  // to generate code for the effective address snippet/node to the
+  // BPatch_point rather than here.
+  friend class BPatch_point;
+  BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
+  			 // is created afterwards, so it needs to set this
+ public:
+  const BPatch_point* getBPatch_point() const { return bppoint; }
+#endif
+
 };
 
 #endif

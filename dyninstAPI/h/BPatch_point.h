@@ -96,8 +96,11 @@ typedef enum eBPatch_opCode {
   BPatch_opPrefetch
 } BPatch_opCode;
 
-/* VG (09/17/01) Added memory access pointer */
+/* VG(09/17/01) Added memory access pointer */
 
+/* VG(11/06/01) Moved constructor to implementation file because it
+   needs to link instPoint back pointer (and we don't want to include
+   that here) */
 class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
@@ -116,8 +119,7 @@ class BPATCH_DLL_EXPORT BPatch_point {
     MemoryAccess *memacc;
 
     BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType, MemoryAccess* _ma = NULL) :
-	proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma) {};
+		 BPatch_procedureLocation _pointType, MemoryAccess* _ma = NULL);
 public:
     //~BPatch_point() { delete memacc; };
 
@@ -125,7 +127,7 @@ public:
     const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
-    MemoryAccess* getMemoryAccess() { return memacc; }
+    const MemoryAccess* getMemoryAccess() const { return memacc; }
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { getAddress(); }

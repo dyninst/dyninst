@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.19 2001/10/30 21:02:44 gaburici Exp $
+// $Id: arch-power.h,v 1.20 2001/11/28 05:44:10 gaburici Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -142,6 +142,18 @@ struct mform {
     unsigned rc : 1;
 };
 
+struct mdform {
+    unsigned op : 6;
+    unsigned rs : 5;
+    unsigned ra : 5;
+    unsigned sh : 5;
+    unsigned mb_or_me : 5;
+    unsigned mb_or_me2 : 1;
+    unsigned xo : 3;
+    unsigned sh2 : 1;
+    unsigned rc : 1;
+};
+
 union instructUnion {
     struct iform  iform;  // branch;
     struct bform  bform;  // cbranch;
@@ -153,6 +165,7 @@ union instructUnion {
     struct xfxform xfxform;
     struct xflform xflform;
     struct mform  mform;
+    struct mdform  mdform;
     struct genericform generic;
     unsigned int  raw;
 };
@@ -184,6 +197,7 @@ typedef union instructUnion instruction;
 #define CAUop		15	/* compute address upper -- ADDISop*/
 #define ORILop		24	/* (logical) or immediate lower -- ORIop*/
 #define ANDILop         28      /* and immediate lower -- ANDIop*/
+#define RLDop		30	/* RLD* family -- rotate left doubleword */
 #define Lop		32	/* load (word) (aka lwz op in PowerPC) */
 #define LUop		33
 #define LBZop		34

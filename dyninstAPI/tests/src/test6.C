@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.1 2001/10/30 21:02:52 gaburici Exp $
+// $Id: test6.C,v 1.2 2001/11/28 05:44:13 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -31,12 +31,10 @@ bool forceRelocation = false;  // Force relocation upon instrumentation
 #define dprintf if (debugPrint) printf
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 4;
+const unsigned int MAX_TEST = 6;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 bool failedTest[MAX_TEST+1];
-int threadCount = 0;
-BPatch_thread *mythreads[25];
 
 BPatch *bpatch;
 
@@ -112,12 +110,39 @@ void instCall(BPatch_thread* bpthr, const char* fname,
   snprintf(buf, 30, "count%s", fname);
 
   BPatch_Vector<BPatch_snippet*> callArgs;
-
   BPatch_function *countXXXFunc = bpthr->getImage()->findFunction(buf);
-
   BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
-
   bpthr->insertSnippet(countXXXCall, *res);
+}
+
+void instEffAddr(BPatch_thread* bpthr, const char* fname,
+		 const BPatch_Vector<BPatch_point*>* res)
+{
+  char buf[30];
+  snprintf(buf, 30, "list%s", fname);
+
+  BPatch_Vector<BPatch_snippet*> listArgs;
+  BPatch_effectiveAddressExpr eae;
+  listArgs.push_back(&eae);
+
+  BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
+  BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+  bpthr->insertSnippet(listXXXCall, *res);
+}
+
+void instByteCnt(BPatch_thread* bpthr, const char* fname,
+		 const BPatch_Vector<BPatch_point*>* res)
+{
+  char buf[30];
+  snprintf(buf, 30, "list%s", fname);
+
+  BPatch_Vector<BPatch_snippet*> listArgs;
+  BPatch_bytesAccessedExpr bae;
+  listArgs.push_back(&bae);
+
+  BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
+  BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+  bpthr->insertSnippet(listXXXCall, *res);
 }
 
 #define MK_LD(imm, rs1, rs2, bytes) (new MemoryAccess(true, false, (bytes), (imm), (rs1), (rs2)))
@@ -138,7 +163,6 @@ const unsigned int naxses = 26;
 MemoryAccess* loadList[nloads];
 MemoryAccess* storeList[nstores];
 MemoryAccess* prefeList[nprefes];
-MemoryAccess* axsesList[naxses];
 
 void init_test_data()
 {
@@ -184,105 +208,77 @@ void init_test_data()
 
   prefeList[++k] = MK_PF(0,17,0,2);
   prefeList[++k] = MK_PF(0,20,0,0);
-
-  k=-1;
-
-  axsesList[++k] = MK_LD(0,17,0,4);
-  axsesList[++k] = MK_LD(3,17,-1,1);
-  axsesList[++k] = MK_LD(2,17,-1,2);
-  axsesList[++k] = MK_LD(0,17,0,8);
-  axsesList[++k] = MK_LD(0,17,0,4);
-
-  axsesList[++k] = MK_LS(3,17,-1,1); // ldstub
-  axsesList[++k] = MK_LD(3,17,-1,1);
-
-  axsesList[++k] = MK_LS(0,17,18,4); // cas
-  axsesList[++k] = MK_LS(0,17,18,8); // casx
-  axsesList[++k] = MK_LS(0,17,0,4);  // swap
-
-  axsesList[++k] = MK_LD(0,17,0,4);
-  axsesList[++k] = MK_LD(0,17,0,4);
-  axsesList[++k] = MK_LD(0,17,0,8);
-  axsesList[++k] = MK_LD(0,17,0,8);
-  axsesList[++k] = MK_LD(0,17,0,16);
-
-  axsesList[++k] = MK_PF(0,17,0,2);
-  axsesList[++k] = MK_PF(0,20,0,0);
-
-  axsesList[++k] = MK_ST(7,21,-1,1);
-  axsesList[++k] = MK_ST(6,21,-1,2);
-  axsesList[++k] = MK_ST(4,21,-1,4);
-  axsesList[++k] = MK_ST(0,21,0,8);
-  axsesList[++k] = MK_ST(0,17,0,4);
-  axsesList[++k] = MK_ST(0,17,0,8);
-  axsesList[++k] = MK_ST(0,18,0,16);
-  axsesList[++k] = MK_ST(4,21,-1,4);
-  axsesList[++k] = MK_ST(0,21,0,8);
 }
 
 #endif
 
 #ifdef rs6000_ibm_aix4_1
-const unsigned int nloads = 38;
+const unsigned int nloads = 41;
 const unsigned int nstores = 32;
 const unsigned int nprefes = 0;
-const unsigned int naxses = 70;
+const unsigned int naxses = 73;
 
 MemoryAccess* loadList[nloads];
 MemoryAccess* storeList[nstores];
 MemoryAccess* prefeList[nprefes];
-MemoryAccess* axsesList[naxses];
 
 void init_test_data()
 {
   int k=-1;
 
-  loadList[++k] = MK_LD(0, 7, -1, 1);
+  loadList[++k] = MK_LD(0, 7, -1, 4); // from la, l sequence
+
+  loadList[++k] = MK_LD(17, 7, -1, 1);
   loadList[++k] = MK_LD(3, 7, -1, 1);
 
   loadList[++k] = MK_LD(0, 3, 8, 1);
   loadList[++k] = MK_LD(0, 3, 9, 1);
 
-  loadList[++k] = MK_LD(0, 3, -1, 2);
+  loadList[++k] = MK_LD(0, 3, -1, 2); // l6
   loadList[++k] = MK_LD(4, 3, -1, 2);
   loadList[++k] = MK_LD(2, 3, -1, 2);
   loadList[++k] = MK_LD(0, 3, -1, 2);
 
-  loadList[++k] = MK_LD(0, 7, 9, 2);
+  loadList[++k] = MK_LD(0, 7, 9, 2); // l10
   loadList[++k] = MK_LD(0, 7, 8, 2);
   loadList[++k] = MK_LD(0, 7, 9, 2);
   loadList[++k] = MK_LD(0, 7, 8, 2);
 
-  loadList[++k] = MK_LD(0, 7, -1, 4);
+  loadList[++k] = MK_LD(0, 7, -1, 4); // l14
   loadList[++k] = MK_LD(4, 7, -1, 4);
   loadList[++k] = MK_LD(0, 3, 9, 4);
   loadList[++k] = MK_LD(0, 3, 9, 4);
 
-  loadList[++k] = MK_LD(4, 3, -1, 4);
-  loadList[++k] = MK_LD(0, 7, 0, 4);  // fixme: 0 should be -1 for rs2...
+  loadList[++k] = MK_LD(4, 3, -1, 4); // l18
+  loadList[++k] = MK_LD(0, 7, 0, 4);  // 0 is 0 for rb...
   loadList[++k] = MK_LD(0, 7, 8, 4);
 
-  loadList[++k] = MK_LD(0, 7, -1, 8);
+  loadList[++k] = MK_LD(0, 7, -1, 8); // l21
   loadList[++k] = MK_LD(0, 3, -1, 8);
   loadList[++k] = MK_LD(0, 7, 9, 8);
   loadList[++k] = MK_LD(0, 3, 9, 8);
 
-  loadList[++k] = MK_LD(0, 8, 3, 2);
+  loadList[++k] = MK_LD(0, 8, 3, 2);  // l25
   loadList[++k] = MK_LD(0, 9, 3, 4);
 
-  loadList[++k] = MK_LD(-76, 1, -1, 76);
+  loadList[++k] = MK_LD(-76, 1, -1, 76);  // l27
   loadList[++k] = MK_LD(0, 4, -1, 24);
   loadList[++k] = new MemoryAccess(true, false,
 				   0, 1, 9,
 				   0, 9999, -1); // 9999 means XER_25:31
 
-  loadList[++k] = MK_LD(0, 0, 3, 4);
-  loadList[++k] = MK_LD(0, 0, 7, 8);
+  loadList[++k] = MK_LD(0, -1, 3, 4);  // l30, 0 is -1 in ra...
+  loadList[++k] = MK_LD(0, -1, 7, 8);  // l31, idem
+
+  loadList[++k] = MK_LD(0, 4, -1, 4); // from la, l sequence
 
   loadList[++k] = MK_LD(0, 4, -1, 4);
   loadList[++k] = MK_LD(0, 4, 6, 4);
   loadList[++k] = MK_LD(0, 4, -1, 4);
   loadList[++k] = MK_LD(0, 6, 4, 4);
+
+  loadList[++k] = MK_LD(0, 6, -1, 4); // from la, l sequence
+
   loadList[++k] = MK_LD(0, 6, -1, 8);
   loadList[++k] = MK_LD(0, 6, 9, 8);
   loadList[++k] = MK_LD(8, 6, -1, 8);
@@ -294,14 +290,17 @@ void init_test_data()
   storeList[++k] = MK_ST(1, 7, -1, 1);
   storeList[++k] = MK_ST(0, 3, 8, 1);
   storeList[++k] = MK_ST(0, 8, 3, 1);
+
   storeList[++k] = MK_ST(2, 7, -1, 2);
   storeList[++k] = MK_ST(6, 7, -1, 2);
   storeList[++k] = MK_ST(0, 3, 9, 2);
   storeList[++k] = MK_ST(0, 9, 3, 2);
+
   storeList[++k] = MK_ST(0, 7, -1, 4);
   storeList[++k] = MK_ST(4, 7, -1, 4);
   storeList[++k] = MK_ST(0, 3, 9, 4);
   storeList[++k] = MK_ST(0, 9, 3, 4);
+
   storeList[++k] = MK_ST(0, 7, -1, 8);
   storeList[++k] = MK_ST(0, 7, -1, 8);
   storeList[++k] = MK_ST(0, 7, 8, 8);
@@ -317,114 +316,19 @@ void init_test_data()
 				    0, 1, 9,
 				    0, 9999, -1); // 9999 means XER_25:31
 
-  storeList[++k] = MK_ST(0, 0, 3, 4);
-  storeList[++k] = MK_ST(0, 0, 7, 8);
+  storeList[++k] = MK_ST(0, -1, 3, 4); // 0 means -1 (no register) in ra
+  storeList[++k] = MK_ST(0, -1, 7, 8);
 
-  storeList[++k] = MK_ST(4, 4, -1, 4);
+  storeList[++k] = MK_ST(4, 4, -1, 4); // s24
   storeList[++k] = MK_ST(0, 4, 0, 4);
   storeList[++k] = MK_ST(0, 4, -1, 4);
-  storeList[++k] = MK_ST(0, 0, 4, 4);
+  storeList[++k] = MK_ST(0, -1, 4, 4);  // 0 means -1 (no register) in ra
   storeList[++k] = MK_ST(0, 6, -1, 8);
   storeList[++k] = MK_ST(0, 6, 9, 8);
   storeList[++k] = MK_ST(8, 6, -1, 8);
   storeList[++k] = MK_ST(0, 9, 7, 8);
 
-  storeList[++k] = MK_ST(0, 0, 4, 4);
-
-  k=-1;
-
-  axsesList[++k] = MK_LD(0, 7, -1, 1);
-  axsesList[++k] = MK_LD(3, 7, -1, 1);
-
-  axsesList[++k] = MK_LD(0, 3, 8, 1);
-  axsesList[++k] = MK_LD(0, 3, 9, 1);
-
-  axsesList[++k] = MK_LD(0, 3, -1, 2);
-  axsesList[++k] = MK_LD(4, 3, -1, 2);
-  axsesList[++k] = MK_LD(2, 3, -1, 2);
-  axsesList[++k] = MK_LD(0, 3, -1, 2);
-
-  axsesList[++k] = MK_LD(0, 7, 9, 2);
-  axsesList[++k] = MK_LD(0, 7, 8, 2);
-  axsesList[++k] = MK_LD(0, 7, 9, 2);
-  axsesList[++k] = MK_LD(0, 7, 8, 2);
-
-  axsesList[++k] = MK_LD(0, 7, -1, 4);
-  axsesList[++k] = MK_LD(4, 7, -1, 4);
-  axsesList[++k] = MK_LD(0, 3, 9, 4);
-  axsesList[++k] = MK_LD(0, 3, 9, 4);
-
-  axsesList[++k] = MK_LD(4, 3, -1, 4);
-  axsesList[++k] = MK_LD(0, 7, 0, 4);  // fixme: 0 should be -1 for rs2...
-  axsesList[++k] = MK_LD(0, 7, 8, 4);
-
-  axsesList[++k] = MK_LD(0, 7, -1, 8);
-  axsesList[++k] = MK_LD(0, 3, -1, 8);
-  axsesList[++k] = MK_LD(0, 7, 9, 8);
-  axsesList[++k] = MK_LD(0, 3, 9, 8);
-
-  axsesList[++k] = MK_ST(3, 7, -1, 1);
-  axsesList[++k] = MK_ST(1, 7, -1, 1);
-  axsesList[++k] = MK_ST(0, 3, 8, 1);
-  axsesList[++k] = MK_ST(0, 8, 3, 1);
-  axsesList[++k] = MK_ST(2, 7, -1, 2);
-  axsesList[++k] = MK_ST(6, 7, -1, 2);
-  axsesList[++k] = MK_ST(0, 3, 9, 2);
-  axsesList[++k] = MK_ST(0, 9, 3, 2);
-  axsesList[++k] = MK_ST(0, 7, -1, 4);
-  axsesList[++k] = MK_ST(4, 7, -1, 4);
-  axsesList[++k] = MK_ST(0, 3, 9, 4);
-  axsesList[++k] = MK_ST(0, 9, 3, 4);
-  axsesList[++k] = MK_ST(0, 7, -1, 8);
-  axsesList[++k] = MK_ST(0, 7, -1, 8);
-  axsesList[++k] = MK_ST(0, 7, 8, 8);
-  axsesList[++k] = MK_ST(0, 8, 7, 8);
-
-  axsesList[++k] = MK_LD(0, 8, 3, 2);
-  axsesList[++k] = MK_LD(0, 9, 3, 4);
-
-  axsesList[++k] = MK_ST(0, 8, 7, 2);
-  axsesList[++k] = MK_ST(0, 9, 7, 4);
-
-  axsesList[++k] = MK_ST(-76, 1, -1, 76);
-  axsesList[++k] = MK_LD(-76, 1, -1, 76);
-
-  axsesList[++k] = MK_LD(0, 4, -1, 24);
-  axsesList[++k] = MK_ST(0, 4, -1, 20);
-
-  axsesList[++k] = new MemoryAccess(true, false,
-				   0, 1, 9,
-				   0, 9999, -1); // 9999 means XER_25:31
-
-  axsesList[++k] = new MemoryAccess(false, true,
-				    0, 1, 9,
-				    0, 9999, -1); // 9999 means XER_25:31
-
-  axsesList[++k] = MK_LD(0, 0, 3, 4);
-  axsesList[++k] = MK_ST(0, 0, 3, 4);
-
-  axsesList[++k] = MK_LD(0, 0, 7, 8);
-  axsesList[++k] = MK_ST(0, 0, 7, 8);
-
-  axsesList[++k] = MK_LD(0, 4, -1, 4);
-  axsesList[++k] = MK_LD(0, 4, 6, 4);
-  axsesList[++k] = MK_LD(0, 4, -1, 4);
-  axsesList[++k] = MK_LD(0, 6, 4, 4);
-  axsesList[++k] = MK_LD(0, 6, -1, 8);
-  axsesList[++k] = MK_LD(0, 6, 9, 8);
-  axsesList[++k] = MK_LD(8, 6, -1, 8);
-  axsesList[++k] = MK_LD(0, 9, 7, 8);
-
-  axsesList[++k] = MK_ST(4, 4, -1, 4);
-  axsesList[++k] = MK_ST(0, 4, 0, 4);
-  axsesList[++k] = MK_ST(0, 4, -1, 4);
-  axsesList[++k] = MK_ST(0, 0, 4, 4);
-  axsesList[++k] = MK_ST(0, 6, -1, 8);
-  axsesList[++k] = MK_ST(0, 6, 9, 8);
-  axsesList[++k] = MK_ST(8, 6, -1, 8);
-  axsesList[++k] = MK_ST(0, 9, 7, 8);
-
-  axsesList[++k] = MK_ST(0, 0, 4, 4);
+  storeList[++k] = MK_ST(0, -1, 4, 4);  // 0 means -1 (no register) in ra
 }
 #endif
 
@@ -453,9 +357,7 @@ void init_test_data()
 #endif
 
 
-#define skiptest(i,d) { printf("Skipping test #%d (%s)\n", (i), (d)); \
-                        printf("    not implemented on this platform\n"); \
-                        passedTest[(i)] = true; }
+#define skiptest(i,d) passedTest[(i)] = true;
 
 #define failtest(i,d,r) { fprintf(stderr, "**Failed** test #%d (%s)\n", (i), (d)); \
                           fprintf(stderr, "    %s\n", (r)); \
@@ -466,7 +368,7 @@ void init_test_data()
                              for(unsigned int i=0; i<res->size(); ++i) { \
                                BPatch_point *bpp = (*res)[i]; \
                                void* a = bpp->getAddress(); \
-                               printf("%s[%d]: %p\n", msg, i, a); \
+                               printf("%s[%d]: %p\n", msg, i+1, a); \
                              } \
                            }
 
@@ -478,7 +380,7 @@ bool validate(BPatch_Vector<BPatch_point*>* res, MemoryAccess* acc[], char* msg)
     BPatch_point* bpoint = (*res)[i];
     ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
     if(!ok) {
-      printf("Validation failed at %s #%d.\n", msg, i);
+      printf("Validation failed at %s #%d.\n", msg, i+1);
       return ok;
     }
   }
@@ -587,19 +489,62 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
 
-  dumpvect(res1, "Accesses");
+  //dumpvect(res1, "Accesses");
 
   if((*res1).size() != naxses)
     failtest(testnum, testdesc,
              "Number of accesses seems wrong in function \"loadsnstores.\"\n");
 
-  if(!validate(res1, axsesList, "access"))
-    failtest(testnum, testdesc, "Access sequence failed validation.\n");
-
   instCall(bpthr, "Access", res1);
 #endif
 }
 
+
+// Instrument all accesses with an effective address snippet
+void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
+                  int testnum = 5, char* testdesc = "instrumentation w/effective address snippet")
+{
+#if !defined(rs6000_ibm_aix4_1)
+  skiptest(testnum, testdesc);
+#else
+  BPatch_Set<BPatch_opCode> axs;
+  axs.insert(BPatch_opLoad);
+  axs.insert(BPatch_opStore);
+  axs.insert(BPatch_opPrefetch);
+
+  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+
+  if(!res1)
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+
+  instEffAddr(bpthr, "EffAddr", res1);
+#endif
+}
+
+// Instrument all accesses with a byte count snippet
+void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
+                  int testnum = 6, char* testdesc = "instrumentation w/byte count snippet")
+{
+#if !defined(rs6000_ibm_aix4_1)
+  skiptest(testnum, testdesc);
+#else
+  BPatch_Set<BPatch_opCode> axs;
+  axs.insert(BPatch_opLoad);
+  axs.insert(BPatch_opStore);
+  axs.insert(BPatch_opPrefetch);
+
+  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+
+  if(!res1)
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
+
+  if((*res1).size() != naxses)
+    failtest(testnum, testdesc,
+             "Number of accesses seems wrong in function \"loadsnstores.\"\n");
+
+  instByteCnt(bpthr, "ByteCnt", res1);
+#endif
+}
 
 void mutatorMAIN(char *pathname)
 {
@@ -659,6 +604,8 @@ void mutatorMAIN(char *pathname)
   if (runTest[2]) mutatorTest2(bpthr, bpimg);
   if (runTest[3]) mutatorTest3(bpthr, bpimg);
   if (runTest[4]) mutatorTest4(bpthr, bpimg);
+  if (runTest[5]) mutatorTest5(bpthr, bpimg);
+  if (runTest[6]) mutatorTest6(bpthr, bpimg);
 
   dprintf("starting program execution.\n");
   bpthr->continueExecution();

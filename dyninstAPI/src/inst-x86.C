@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.95 2001/11/05 01:59:34 buck Exp $
+ * $Id: inst-x86.C,v 1.96 2001/11/28 05:44:12 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -2157,7 +2157,8 @@ Register emitFuncCall(opCode op,
 		      char *ibuf, Address &base,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
-	              bool noCost, const function_base *calleefunc)
+	              bool noCost, const function_base *calleefunc,
+		      const instPoint *location = NULL) // FIXME: pass it!
 {
   assert(op == callOp);
   Address addr;
@@ -2297,6 +2298,18 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     }
   return(Null_Register);        // should never be reached!
 }
+
+
+#ifdef BPATCH_LIBRARY
+// VG(11/07/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  // TODO ...
+}
+#endif
+
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
              char *ibuf, Address &base, bool /*noCost*/, int /* size */)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.97 2001/11/10 02:59:07 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.98 2001/11/28 05:44:11 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1604,7 +1604,8 @@ Register emitFuncCall(opCode op,
 		      char *i, Address &base, 
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
-		      bool noCost, const function_base *calleefunc)
+		      bool noCost, const function_base *calleefunc,
+		      const instPoint *location = NULL) // FIXME: pass this!
 {
         assert(op == callOp);
         Address addr;
@@ -1833,6 +1834,16 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
         abort();        // unexpected op for this emit!
     }
 }
+
+#ifdef BPATCH_LIBRARY
+// VG(11/07/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(AddrSpec as, Register dest, char* baseInsn,
+		Address &base, bool noCost)
+{
+  // TODO ...
+}
+#endif
 
 /****************************************************************************/
 /****************************************************************************/

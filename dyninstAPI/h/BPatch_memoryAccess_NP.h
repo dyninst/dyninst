@@ -17,7 +17,7 @@ public:
   int getImm() { return imm; }
   int getReg(unsigned i) { return regs[i]; }
 
-  bool equals(const AddrSpec& ar)
+  bool equals(const AddrSpec& ar) const
   {
     return
       (imm == ar.imm) &&
@@ -35,6 +35,7 @@ extern void initOpCodeInfo();
 class MemoryAccess
 {
   friend class BPatch_function;
+  friend class AstNode;
 
   bool isLoad;  // can both be true on some arches like x86 (or even SPARC)
   bool isStore;
@@ -49,8 +50,8 @@ class MemoryAccess
   bool isAPrefetch_NP() { return isPrefetch; }
   short prefetchType_NP() { return preFcn; }
 
-  AddrSpec getStartAddr_NP() { return start; }
-  CountSpec getByteCount_NP() { return count; }
+  AddrSpec getStartAddr_NP() const { return start; }
+  CountSpec getByteCount_NP() const { return count; }
 
 protected:
   bool isALoad() { return isLoad; }
@@ -58,8 +59,8 @@ protected:
   bool isAPrefetch() { return isPrefetch; }
   short prefetchType() { return preFcn; }
 
-  AddrSpec getStartAddr() { return start; }
-  CountSpec getByteCount() { return count; }
+  AddrSpec getStartAddr() const { return start; }
+  CountSpec getByteCount() const { return count; }
 
 public:
   static const MemoryAccess none;
@@ -94,9 +95,9 @@ public:
       preFcn(_preFcn)
     {}
 
-  bool equals(const MemoryAccess* mp) { return equals(*mp); }
+  bool equals(const MemoryAccess* mp) const { return equals(*mp); }
 
-  bool equals(const MemoryAccess& rp)
+  bool equals(const MemoryAccess& rp) const
   {
     return
       (isLoad == rp.isLoad) &&

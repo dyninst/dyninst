@@ -145,16 +145,6 @@ public:
 
 	/** postfix decrement operation */
 	Address operator-- (int);
-
-	// match on opcode set (not used due to performace issue with BPatch_Set)
-	bool matchesOpCodes(const BPatch_Set<BPatch_opCode>& ops);
-
-	// actually useful: match on an array
-	// (the set has to be converted to an array by the caller)
-	bool matchesOpCodes(const BPatch_opCode* opa, unsigned int size);
-
-	// match on single opcode
-	bool matchesOpCode(BPatch_opCode);
 };
 
 #endif /* _AddressHandle_h_ */

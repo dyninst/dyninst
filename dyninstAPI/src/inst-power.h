@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.14 2001/11/06 19:20:20 bernat Exp $
+ * $Id: inst-power.h,v 1.15 2001/11/28 05:44:11 gaburici Exp $
  */
 
 #ifndef INST_POWER_H
@@ -79,7 +79,6 @@ enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
 #else
 enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint };
 #endif
-
 
 bool isCallInsn(const instruction);
 bool isReturnInsn(const image *, Address);

@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.85 2001/11/06 19:20:20 bernat Exp $
+// $Id: ast.C,v 1.86 2001/11/28 05:44:10 gaburici Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
@@ -53,6 +54,8 @@
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_type.h"
+#include "dyninstAPI/h/BPatch_point.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/BPatch_collections.h"
 #else
 #include "dyninstAPI/src/pdThread.h"
@@ -843,8 +846,11 @@ void terminateAst(AstNode *&ast) {
   }
 }
 
-Address AstNode::generateTramp(process *proc, char *i, 
-			       Address &count, 
+// VG(11/05/01): The name of this function is misleading, as it
+// generates the code for the ast, not just for the trampoline
+// VG(11/06/01): Added location, needed by effective address AST node
+Address AstNode::generateTramp(process *proc, const instPoint *location,
+			       char *i, Address &count,
 			       int &trampCost, bool noCost) {
     static AstNode *trailer=NULL;
     if (!trailer) trailer = new AstNode(trampTrailer); // private constructor
@@ -876,7 +882,7 @@ Address AstNode::generateTramp(process *proc, char *i,
         Register tmp;
 	preamble->generateCode(proc, regSpace, i, count, noCost, true);
         removeAst(preamble);
-	tmp = (Register)generateCode(proc, regSpace, i, count, noCost, true);
+	tmp = (Register)generateCode(proc, regSpace, i, count, noCost, true, location);
         regSpace->freeRegister(tmp);
         ret = trailer->generateCode(proc, regSpace, i, count, noCost, true);
     } else {
@@ -977,7 +983,9 @@ void AstNode::printUseCount(void)
 Address AstNode::generateCode(process *proc,
 			      registerSpace *rs,
 			      char *insn, 
-			      Address &base, bool noCost, bool root) {
+			      Address &base, bool noCost, bool root,
+			      const instPoint *location) {
+  // Note: MIPSPro compiler complains about redefinition of default argument
   if (root) {
     cleanUseCount();
     setUseCount();
@@ -987,7 +995,7 @@ Address AstNode::generateCode(process *proc,
   }
 
   // note: this could return the value "(Address)(-1)" -- csserra
-  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost);
+  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost, location);
 
 #if defined(ASTDEBUG)
   if (root) {
@@ -998,10 +1006,13 @@ Address AstNode::generateCode(process *proc,
   return(tmp);
 }
 
+// VG(11/06/01): Make sure location is passed to all descendants
 Address AstNode::generateCode_phase2(process *proc,
 				     registerSpace *rs,
 				     char *insn, 
-				     Address &base, bool noCost) {
+				     Address &base, bool noCost,
+				     const instPoint *location) {
+  // Note: MIPSPro compiler complains about redefinition of default argument
     Address addr;
     Address fromAddr;
     Address startInsn;
@@ -1011,6 +1022,10 @@ Address AstNode::generateCode_phase2(process *proc,
     Register right_dest = Null_Register;
 
     useCount--;
+#if defined(ASTDEBUG)
+    sprintf(errorLine,"### location: %p ###\n", location);
+    logLine(errorLine);
+#endif
     if (kept_register!=Null_Register) { 
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
@@ -1037,11 +1052,11 @@ Address AstNode::generateCode_phase2(process *proc,
             (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
         } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	    startInsn = base;
 	    fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
-            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
             rs->freeRegister(tmp);
 
 	    // Is there and else clause?  If yes, generate branch over it
@@ -1058,7 +1073,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    if (eoperand) {
 		// If there's an else clause, we need to generate code for it.
 		tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
-						    base, noCost);
+						    base, noCost, location);
 		rs->freeRegister(tmp);
 
 		// We also need to fix up the branch at the end of the "true"
@@ -1068,12 +1083,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	} else if (op == whileOp) {
 	    Address top = base ;
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	    startInsn = base;
 	    fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
 	    if (roperand) {
-                Register tmp=(Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+                Register tmp=(Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
                 rs->freeRegister(tmp);
 	    }
 	    //jump back
@@ -1105,7 +1120,7 @@ Address AstNode::generateCode_phase2(process *proc,
 		//    expression, so we simple generate the left child's 
 		//    code to get the address 
 		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-		     rs, insn, base, noCost);
+		     rs, insn, base, noCost, location);
 	    } else {
 		// error condition
 		assert(0);
@@ -1127,7 +1142,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #endif
                 loperand->kept_register=Null_Register;
 	    }
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	    src2 = rs->allocateRegister(insn, base, noCost);
 	    if (loperand->oType == DataAddr ) {
 		addr = (Address) loperand->oValue;
@@ -1142,7 +1157,7 @@ Address AstNode::generateCode_phase2(process *proc,
 		// store to a an expression (e.g. an array or field use)
 		// *(+ base offset) = src1
 		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-		     rs, insn, base, noCost);
+		     rs, insn, base, noCost, location);
 		// dest now contains address to store into
 		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
 	    } else {
@@ -1153,8 +1168,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
 	} else if (op == storeIndirOp) {
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
-            dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+            dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
             emitV(op, src1, 0, dest, insn, base, noCost);          
 	    rs->freeRegister(src1);
             rs->freeRegister(dest);
@@ -1224,7 +1239,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 
 	    if (left)
-	      src = (Register)left->generateCode_phase2(proc, rs, insn, base, noCost);
+	      src = (Register)left->generateCode_phase2(proc, rs, insn, base, noCost, location);
 
 	    rs->freeRegister(src);
 	    dest = rs->allocateRegister(insn, base, noCost);
@@ -1269,7 +1284,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	    else {
 	      if (right)
-		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost);
+		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, location);
               rs->freeRegister(right_dest);
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
@@ -1319,7 +1334,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	  assert(addr != 0); // check for NULL
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 #ifdef BPATCH_LIBRARY
 	    BPatch_type *Type = const_cast<BPatch_type *> (getType());
 	    assert(Type);
@@ -1385,6 +1400,41 @@ Address AstNode::generateCode_phase2(process *proc,
 	  Register temp = rs->allocateRegister(insn, base, noCost);
 	  emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost);
 	  rs->freeRegister(temp);
+	} else if (oType == EffectiveAddr) {
+	  // VG(11/05/01): get effective address
+#ifdef BPATCH_LIBRARY
+	  // 1. get the point being instrumented & memory access info
+	  assert(location);
+	  const MemoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  if(!ma) {
+	    fprintf(stderr, "Memory access information not available at this point.\n");
+	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
+	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+	    assert(0);
+	  }
+	  AddrSpec start = ma->getStartAddr();
+	  emitASload(start, dest, insn, base, noCost);
+#else
+	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
+	  assert(0);
+#endif
+	} else if (oType == BytesAccessed) {
+#ifdef BPATCH_LIBRARY
+	  // 1. get the point being instrumented & memory access info
+	  assert(location);
+	  const MemoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	  if(!ma) {
+	    fprintf(stderr, "Memory access information not available at this point.\n");
+	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
+	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+	    assert(0);
+	  }
+	  CountSpec count = ma->getByteCount();
+	  emitCSload(count, dest, insn, base, noCost);
+#else
+	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");
+	  assert(0);
+#endif
 	} else if (oType == ConstantString) {
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
@@ -1395,17 +1445,20 @@ Address AstNode::generateCode_phase2(process *proc,
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} 
     } else if (type == callNode) {
-	 dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost,
-			     calleefunc);
-        if (useCount>0) {
-          kept_register=dest;
-          rs->keep_register(dest);
-        }
+      // VG(11/06/01): This platform independent fn calls a platfrom
+      // dependent fn which calls it back for each operand... Have to
+      // fix those as well to pass location...
+      dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost,
+			  calleefunc, location);
+      if (useCount>0) {
+	kept_register=dest;
+	rs->keep_register(dest);
+      }
     } else if (type == sequenceNode) {
 #if defined(BPATCH_LIBRARY_F)
-	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 #else
-	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	rs->freeRegister(tmp);
 #endif
  	return roperand->generateCode_phase2(proc, rs, insn, base, noCost);
@@ -1570,6 +1623,9 @@ void AstNode::print() const {
 	logLine(errorLine);
       } else if (oType == FrameAddr)  {
 	sprintf(errorLine, " [$fp + %d]", (int)(Address) oValue);
+	logLine(errorLine);
+      } else if (oType == EffectiveAddr)  {
+	sprintf(errorLine, " <<effective address>>");
 	logLine(errorLine);
       } else {
 	logLine(" <Unknown Operand>");
