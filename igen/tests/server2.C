@@ -38,7 +38,7 @@ int test::intString(string *s) {
 
 string *test::stringString(string *s) { return(s); }
 
-int test::add(int a, int b) { return(a+b); }
+int test::add(const int a, const int b) { return(a+b); }
 
 int test::sumVector(vector<int> *nums) {
   int i, total;

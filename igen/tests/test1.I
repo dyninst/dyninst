@@ -11,6 +11,9 @@ $remote struct boolStruct {
   bool b;
 };
 
+$remote class basicClass {
+  bool b;
+};
 
 /*
  *

@@ -32,7 +32,7 @@ $remote test {
     s2 *isSp(s2*);
     void nullStruct(intStruct);
     int intString(string*);
-    int add(int, int);
+    int add(const int, const int);
     int sumVector(vector<int>*);
     vector<int> *retVector(int len, int start);
     string *stringString(string*);
