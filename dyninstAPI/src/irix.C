@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.45 2003/01/03 21:57:34 bernat Exp $
+// $Id: irix.C,v 1.46 2003/02/04 15:18:58 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -632,26 +632,6 @@ int process::waitProcs(int *status)
 	    // return the signal number
 	    *status = stat.pr_what << 8 | 0177;
 	    ret = p->getPid();
-	    if (!p->dyninstLibAlreadyLoaded() && 
-		p->wasCreatedViaAttach()) 
-	      {
-		// make sure we are stopped in the eyes of paradynd - naim
-		bool wasRunning = (p->status() == running);
-		if (p->status() != stopped) p->Stopped();   
-
-		// check for dlopen() of libdyninstRT.so.1
-		if(p->isDynamicallyLinked()) {
-		  bool objectWasMapped = p->handleIfDueToSharedObjectMapping();
-		  if (p->dyninstLibAlreadyLoaded()) {
-		    // libdyninstRT.so.1 was just loaded so cleanup "_start"
-		    assert(objectWasMapped);
-		    p->handleIfDueToDyninstLib();
-		  }
-		}
-		if (wasRunning) {
-		  assert(p->continueProc());
-		}
-	      }
 	  } break;
 	  case PR_SYSEXIT: {
 	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_SYSEXIT\n", curr);
@@ -686,8 +666,6 @@ int process::waitProcs(int *status)
 		     process *theParent = processVec[curr];
 		     process *theChild = new process(*theParent, (int)childPid, -1);
 		     // the parent loaded it!
-		     theChild->hasLoadedDyninstLib = true;
-
 		     processVec.push_back(theChild);
 		     activeProcesses++;
 
@@ -712,7 +690,7 @@ int process::waitProcs(int *status)
 		     proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
 
 	         // only handle if this is in the child - is this right??? jkh
-	         if (proc->reachedFirstBreak) {
+	         if (proc->reachedBootstrapState(initialized)) {
 		     // mark this for the sig TRAP that will occur soon
 		     proc->inExec = true;
 

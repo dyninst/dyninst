@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.39 2002/12/20 07:49:58 jaw Exp $
+// $Id: osf.C,v 1.40 2003/02/04 15:18:57 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -363,90 +363,58 @@ int process::waitProcs(int *status)
 	}
 
 	curr = 0;
-
-      if (selected_fds > 0) {
+    
+    if (selected_fds > 0) {
         while (fds[curr].revents == 0) {
             ++curr;
-	    if (curr == processVec.size()) abort();
-	}
-
+            if (curr == processVec.size()) abort();
+        }
+        
         // fds[curr] has an event of interest
         prstatus_t stat;
         int ret = 0;
-
-// Re added code here
-        if (!processVec[curr]->dyninstLibAlreadyLoaded() &&
-             processVec[curr]->wasCreatedViaAttach()) {
-           bool wasRunning = (processVec[curr]->status() == running);
-           if (processVec[curr]->status() != stopped)
-             processVec[curr]->Stopped();
-           if(processVec[curr]->isDynamicallyLinked()) {
-             processVec[curr]->handleIfDueToSharedObjectMapping();
-           }
-           if (processVec[curr]->trapDueToDyninstLib()) {
-             // we need to load libdyninstRT.so.1 - naim
-             processVec[curr]->handleIfDueToDyninstLib();
-             if (wasRunning) processVec[curr]->continueProc();
-           }
-        }
-
-	if (fds[curr].revents & POLLHUP) {
-	    do {
-		ret = waitpid(processVec[curr]->getPid(), status, 0);
-	    } while ((ret < 0) && (errno == EINTR));
-	    if (ret < 0) {
-		// This means that the application exited, but was not our child
-		// so it didn't wait around for us to get it's return code.  In
-		// this case, we can't know why it exited or what it's return
-		// code was.
-		printf("grand child exited\n");
-		ret = processVec[curr]->getPid();
-		*status = 0;
-	    }
-	    ret = processVec[curr]->getPid();
-	} else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
-	    if (stat.pr_why == PR_DEAD) {
-	        do {
-		    ret = waitpid(processVec[curr]->getPid(), status, 0);
-	        } while ((ret < 0) && (errno == EINTR));
-		if (ret < 0) {
-		    // This means that the application exited, but was not our child
-		    // so it didn't wait around for us to get it's return code.  In
-		    // this case, we can't know why it exited or what it's return
-		    // code was.
-		    ret = processVec[curr]->getPid();
-		    *status = 0;
-		}
-		assert(ret == processVec[curr]->getPid());
-	    } else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
-		switch (stat.pr_why) {
+        
+        if (fds[curr].revents & POLLHUP) {
+            do {
+                ret = waitpid(processVec[curr]->getPid(), status, 0);
+            } while ((ret < 0) && (errno == EINTR));
+            if (ret < 0) {
+                // This means that the application exited, but was not our child
+                // so it didn't wait around for us to get it's return code.  In
+                // this case, we can't know why it exited or what it's return
+                // code was.
+                printf("grand child exited\n");
+                ret = processVec[curr]->getPid();
+                *status = 0;
+            }
+            ret = processVec[curr]->getPid();
+        } else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
+            if (stat.pr_why == PR_DEAD) {
+                do {
+                    ret = waitpid(processVec[curr]->getPid(), status, 0);
+                } while ((ret < 0) && (errno == EINTR));
+                if (ret < 0) {
+                    // This means that the application exited, but was not our child
+                    // so it didn't wait around for us to get it's return code.  In
+                    // this case, we can't know why it exited or what it's return
+                    // code was.
+                    ret = processVec[curr]->getPid();
+                    *status = 0;
+                }
+                assert(ret == processVec[curr]->getPid());
+            } else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
+                switch (stat.pr_why) {
 		      case PR_SIGNALLED: {
-			    process *p = processVec[curr];
-			    p->status_ = stopped;
-			    // return the signal number
-			    if (p->handleTrapIfDueToRPC()) {
-				continue;
-			    // } else if (stat.pr_what == SIGTRAP) {
-				// ------------------------------------------
-				// I'm not sure why this code was added, but
-				// it causes a race condition later in the
-				// code.  So I'm removing it.
-				//
-				// Ray Chen 03/22/02
-				// ------------------------------------------
-
-				// we ignore sigtraps
-				// some Alpha processors produce a sigTRAP when
-				// we continue a process at a new address
-			        // processVec[curr]->continueProc_();
-			    } else {
-				*status = stat.pr_what << 8 | 0177;
-				ret = processVec[curr]->getPid();
-				break;
-			    }
+                  process *p = processVec[curr];
+                  // return the signal number
+                  *status = stat.pr_what << 8 | 0177;
+                  fprintf(stderr, "Process received signal %d\n");
+                  
+                  ret = processVec[curr]->getPid();
+                  break;
 		      }
 		      case PR_SYSEXIT: {
-			 // exit of a system call.
+                  // exit of a system call.
 		         process *p = processVec[curr];
 
 			 if (p->isAnyIRPCwaitingForSyscall()) {
@@ -481,9 +449,6 @@ int process::waitProcs(int *status)
 
 				     process *theParent = processVec[curr];
 				     process *theChild = new process(*theParent, (int)childPid, -1);
-				     // the parent loaded it!
-				     theChild->hasLoadedDyninstLib = true;
-
 				     processVec.push_back(theChild);
 				     activeProcesses++;
 
@@ -512,7 +477,7 @@ int process::waitProcs(int *status)
 			     proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
 
 			     // only handle if this is in the child - is this right??? jkh
-			     if (proc->reachedFirstBreak) {
+			     if (proc->reachedBootstrapState(initialized)) {
 				 // mark this for the sig TRAP that will occur soon
 				 proc->inExec = true;
 
