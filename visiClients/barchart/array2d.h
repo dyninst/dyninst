@@ -2,9 +2,12 @@
 // gives dynamic two-dimensional array capabilities to C++
 
 /* $Log: array2d.h,v $
-/* Revision 1.2  1994/09/29 20:05:29  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/11/06 10:18:41  tamches
+/* more descriptive reporting on assertion failures
 /*
+ * Revision 1.2  1994/09/29  20:05:29  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:47:16  tamches
  * initial implementation
  *
@@ -46,7 +49,10 @@ class dynamic1dArray {
    }
    T &operator[](const int index) {
       if (index < 0) panic("index < 0");
-      if (index >= maxNumElems) panic("index >= maxNumElems");
+      if (index >= maxNumElems) {
+         cerr << "operator[]: index " << index << " too high (valid range=0," << maxNumElems-1 << ")";
+         panic("");
+      }
 
       return data[index];
    }
@@ -54,8 +60,8 @@ class dynamic1dArray {
       if (newmaxNumElems < 0) panic("negative numElems request");
 
       delete [] data;
-      data = new T [newmaxNumElems];
-      maxNumElems = newmaxNumElems;
+      data = new T [maxNumElems=newmaxNumElems];
+      if (data == NULL) panic("out of memory");
    }
 };
 
@@ -77,7 +83,10 @@ class dynamic2dArray {
    }
    dynamic1dArray<T> &operator[] (const int indexDim1) {
       if (indexDim1 < 0) panic("index < 0");
-      if (indexDim1 >= maxNumElems) panic("index >= maxNumElems");
+      if (indexDim1 >= maxNumElems) {
+         cerr << "operator[]: index " << indexDim1 << " too high (valid range=0," << maxNumElems-1 << ")" << endl;
+         panic("");
+      }
 
       return data[indexDim1];
    }
@@ -88,6 +97,7 @@ class dynamic2dArray {
       delete [] data;
       maxNumElems = newmaxDim1;
       data = new dynamic1dArray<T> [maxNumElems] (newmaxDim2);
+      if (data == NULL) panic("out of memory");
    }
 };
 
