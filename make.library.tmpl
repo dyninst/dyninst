@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.12 1998/04/01 02:59:50 wylie Exp $
+# $Id: make.library.tmpl,v 1.13 1999/05/21 17:35:41 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -60,7 +60,7 @@ ifndef UNCOMMON_INSTALL
 install: $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET):  $(TARGET)
-	$(CP) $(TARGET) $(DEST)
+	-$(CP) $(TARGET) $(DEST)
 	$(RANLIB) $(DEST)/$(TARGET)
 
 #
@@ -70,7 +70,7 @@ ifdef TARGET2
 install: $(DEST)/$(TARGET2)
 
 $(DEST)/$(TARGET2):  $(TARGET2)
-	$(CP) $(TARGET2) $(DEST)
+	-$(CP) $(TARGET2) $(DEST)
 	$(RANLIB) $(DEST)/$(TARGET2)
 endif
 
@@ -81,7 +81,7 @@ ifdef TARGET3
 install: $(DEST)/$(TARGET3)
 
 $(DEST)/$(TARGET3):  $(TARGET3)
-	$(CP) $(TARGET3) $(DEST)
+	-$(CP) $(TARGET3) $(DEST)
 endif
 
 endif      # ifndef UNCOMMON_INSTALL

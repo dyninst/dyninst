@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.15 1998/05/06 01:19:38 wylie Exp $
+# $Id: make.program.tmpl,v 1.16 1999/05/21 17:35:41 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -77,7 +77,7 @@ ifndef UNCOMMON_INSTALL
 install:  $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET): $(TARGET)
-	cp $(TARGET) $(DEST)
+	-$(CP) $(TARGET) $(DEST)
 endif
 
 .PHONY : depend
