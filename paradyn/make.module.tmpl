@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.40 2002/04/09 18:05:38 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.41 2002/04/15 15:07:24 mjbrim Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -124,20 +124,20 @@ IGEN_ISRCS    = dataManager.I \
 		termWin.I
 
 
-TCL_SRCS	= ../tcl/applic.tcl \
-				../tcl/callGraph.tcl \
-				../tcl/errorList.tcl \
-				../tcl/focusUtils.tcl \
-				../tcl/generic.tcl \
-				../tcl/mainMenu.tcl \
-				../tcl/mets.tcl \
-				../tcl/save.tcl \
-				../tcl/shg.tcl \
-				../tcl/startVisi.tcl \
-				../tcl/status.tcl \
-				../tcl/tclTunable.tcl \
-				../tcl/uimProcs.tcl \
-				../tcl/whereAxis.tcl
+TCL_SRCS 	= ../tcl/applic.tcl \
+		../tcl/callGraph.tcl \
+		../tcl/errorList.tcl \
+		../tcl/focusUtils.tcl \
+		../tcl/generic.tcl \
+		../tcl/mainMenu.tcl \
+		../tcl/mets.tcl \
+		../tcl/save.tcl \
+		../tcl/shg.tcl \
+		../tcl/startVisi.tcl \
+		../tcl/status.tcl \
+		../tcl/tclTunable.tcl \
+		../tcl/uimProcs.tcl \
+		../tcl/whereAxis.tcl
 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
@@ -145,6 +145,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 IFLAGS       += -DPARADYN
 
 LIBS 	     += -lpdutil -lpdthread $(THREADSLIB)
+
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm $(FLEX_LIB)
 
 CFLAGS       += -DNO_MDL_PRINT
