@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.90  1996/03/01 22:46:59  mjrg
+ * Revision 1.91  1996/03/05 16:12:20  naim
+ * Making enableDataCollection asynchronous in order to improve performance - naim
+ *
+ * Revision 1.90  1996/03/01  22:46:59  mjrg
  * Added type to resources.
  *
  * Revision 1.89  1996/02/26 20:33:18  tamches
@@ -501,6 +504,14 @@ class uniqueName {
     int nextId;
     stringHandle name;
 };
+
+//
+// Upcall to tell paradyn that all daemons are ready after a metric
+// enable request
+//
+void dynRPCUser::enableDataCallback(int daemon_id, int return_id)
+{
+}
 
 //
 // Display errors using showError function from the UIM class

@@ -449,7 +449,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 33;
+    $version 34;
 
     //
     // Define a program to run. 
@@ -595,7 +595,16 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    int enableDataCollection(vector<u_int> focus, string metric,int id);
+    $async void enableDataCollection(vector<u_int> focus, string metric,
+				     int id, int daemon_id);
+
+    int enableDataCollection2(vector<u_int> focus, string metric, int id);
+
+    //
+    // Upcall to tell paradyn that all daemons are ready after a metric 
+    // enable request
+    //
+    $upcall $async void enableDataCallback(int daemon_id, int return_id);
 
     //
     // stop collecting data for the named mi.

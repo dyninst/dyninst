@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.37  1996/03/01 22:35:52  mjrg
+ * Revision 1.38  1996/03/05 16:14:02  naim
+ * Making enableDataCollection asynchronous in order to improve performance - naim
+ *
+ * Revision 1.37  1996/03/01  22:35:52  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
  *
@@ -296,16 +299,26 @@ void dynRPC::resourceInfoResponse(vector<string> resource_name, u_int resource_i
 }
 
 // TODO -- startCollecting  Returns -1 on failure ?
-int dynRPC::enableDataCollection(vector<u_int> focus, string met, int gid)
+void dynRPC::enableDataCollection(vector<u_int> focus, string met, 
+				  int gid, int daemon_id)
 {
     int id;
     totalInstTime.start();
     id = startCollecting(met, focus, gid);
     totalInstTime.stop();
     // cout << "Enabled " << met << " = " << id << endl;
-    return(id);
+    enableDataCallback(daemon_id, id);
 }
 
+int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
+{
+  int id;
+  totalInstTime.start();
+  id = startCollecting(met, focus, gid);
+  totalInstTime.stop();
+  // cout << "Enabled " << met << " = " << id << endl;
+  return(id);
+}
 
 //
 // computes new sample multiple value, and modifies the value of the

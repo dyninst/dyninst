@@ -7,7 +7,10 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.54  1996/03/01 22:37:23  mjrg
+ * Revision 1.55  1996/03/05 16:14:05  naim
+ * Making enableDataCollection asynchronous in order to improve performance - naim
+ *
+ * Revision 1.54  1996/03/01  22:37:23  mjrg
  * Added a type to resources.
  * Added function handleProcessExit to handle exiting processes.
  *
@@ -639,6 +642,7 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
+                assert(0); //TEST
 		handleProcessExit(curr);
 		// ???
 		// should really log this to the error reporting system.

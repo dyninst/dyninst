@@ -608,7 +608,34 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
 
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        id = pd->enableDataCollection(vs, (const char*) m->getName(), mi->id);
+        pd->enableDataCollection(vs, (const char*) m->getName(), mi->id, i);
+    }
+
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::enableDataCallback_REQ;
+	unsigned tag2 = MSG_TAG_FILE;
+        int ready_fd;
+        T_dyninstRPC::T_enableDataCallback buffer;
+
+        //
+        // Since enableDataCollection is now async, we have to wait until
+        // every daemon is finished with its enable request
+        //
+        bool foundDaemon;
+        do {
+          foundDaemon=false;
+          ready_fd = msg_poll(&tag2, true);
+          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
+            pd = paradynDaemon::allDaemons[j];
+            if (pd->get_fd() == ready_fd) {
+              foundDaemon=true;
+              break;
+	    }
+	  }
+        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
+
+        id = buffer.return_id;
+
         if (printChangeCollection.getValue()) {
             cout << "EDC:  " << m->getName()
    	            << rl->getName() << " " << id <<"\n";
@@ -669,7 +696,7 @@ void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
 	  vector<u_int> vs;
 	  assert(rl->convertToIDList(vs));
 
-	  int id = daemon->enableDataCollection(vs, (const char *) m->getName(), mi->id);
+	  int id = daemon->enableDataCollection2(vs, (const char *) m->getName(), mi->id);
 
 	  if (id > 0 && !daemon->did_error_occur()) {
 	    component *comp = new component(daemon, id, mi);
