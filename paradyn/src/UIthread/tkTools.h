@@ -45,7 +45,7 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/* $Id: tkTools.h,v 1.8 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: tkTools.h,v 1.9 1999/12/22 21:28:56 wylie Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
@@ -116,7 +116,7 @@ class tcl_cmd_installer {
  public:
    tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc) {
 
-       char* cmdName = new char[tclCmdName.length()];
+       char* cmdName = new char[tclCmdName.length()+1];
 	   P_strcpy( cmdName, tclCmdName.string_of() );
        Tcl_CreateCommand(interp, cmdName, proc, NULL, &dummy_delete_proc);
        delete[] cmdName;
@@ -124,7 +124,7 @@ class tcl_cmd_installer {
 
    tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc, ClientData cd) {
 
-       char* cmdName = new char[tclCmdName.length()];
+       char* cmdName = new char[tclCmdName.length()+1];
 	   P_strcpy( cmdName, tclCmdName.string_of() );
        Tcl_CreateCommand(interp, cmdName, proc, cd, &dummy_delete_proc);
        delete[] cmdName;
