@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.132 2002/07/25 22:46:53 bernat Exp $
+// $Id: perfStream.C,v 1.133 2002/08/21 19:42:06 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -685,6 +685,7 @@ void setupTraceSocket()
 #endif
 }
 
+
 /*
  * Wait for a data from one of the inferiors or a request to come in.
  *
@@ -692,260 +693,174 @@ void setupTraceSocket()
 
 void controllerMainLoop(bool check_buffer_first)
 {
-    int ct;
-    int width;
-    fd_set readSet;
-    fd_set errorSet;
-    struct timeval pollTimeStruct;
+   int ct;
+   int width;
+   fd_set readSet;
+   fd_set errorSet;
+   struct timeval pollTimeStruct;
+   
+   while (1) {
+      // we have moved this code at the beginning of the loop, so we will
+      // process signals before igen requests: this is to avoid problems when
+      // an inferiorRPC is waiting for a system call to complete and an igen
+      // requests arrives at that moment - naim
+      extern void checkProcStatus(); // check status of inferior processes
+      checkProcStatus();
+      
+      FD_ZERO(&readSet);
+      FD_ZERO(&errorSet);
+      width = 0;
+      unsigned p_size = processVec.size();
+      for (unsigned u=0; u<p_size; u++) {
+	 if (processVec[u] == NULL)
+	    continue;
+	 
+	 if (processVec[u]->traceLink >= 0)
+	    FD_SET(processVec[u]->traceLink, &readSet);
+	 if (processVec[u]->traceLink > width)
+	    width = processVec[u]->traceLink;
+      }
+      
+      // add traceSocket_fd, which accept()'s new connections (from processes
+      // not launched via createProcess() [process.C], such as when a process
+      // forks, or when we attach to an already-running process).
+      if (traceSocket_fd != INVALID_PDSOCKET) FD_SET(traceSocket_fd, &readSet);
+      if (traceSocket_fd > width) width = traceSocket_fd;
 
-    while (1) {
-        // we have moved this code at the beginning of the loop, so we will
-        // process signals before igen requests: this is to avoid problems when
-        // an inferiorRPC is waiting for a system call to complete and an igen
-        // requests arrives at that moment - naim
-	extern void checkProcStatus(); // check status of inferior processes
-	checkProcStatus();
-
-	FD_ZERO(&readSet);
-	FD_ZERO(&errorSet);
-	width = 0;
-	unsigned p_size = processVec.size();
-	for (unsigned u=0; u<p_size; u++) {
-	    if (processVec[u] == NULL)
-	       continue;
-
-	    if (processVec[u]->traceLink >= 0)
-	      FD_SET(processVec[u]->traceLink, &readSet);
-	    if (processVec[u]->traceLink > width)
-	      width = processVec[u]->traceLink;
-
-	    //removed for output redirection
-	    //if (processVec[u]->ioLink >= 0)
-	    //  FD_SET(processVec[u]->ioLink, &readSet);
-	    //if (processVec[u]->ioLink > width)
-	    //  width = processVec[u]->ioLink;
-	}
-
-	// add traceSocket_fd, which accept()'s new connections (from processes
-	// not launched via createProcess() [process.C], such as when a process
-	// forks, or when we attach to an already-running process).
-	if (traceSocket_fd != INVALID_PDSOCKET) FD_SET(traceSocket_fd, &readSet);
-	if (traceSocket_fd > width) width = traceSocket_fd;
-
-	// add our igen connection with the paradyn process.
-	FD_SET(tp->get_sock(), &readSet);
-	FD_SET(tp->get_sock(), &errorSet);
-
-	// "width" is computed but ignored on Windows NT, where sockets 
-	// are not represented by nice little file descriptors.
-	if (tp->get_sock() > width) width = tp->get_sock();
-
-#ifdef PARADYND_PVM
-	// add connection to pvm daemon.
-	/***
-	  There is a problem here since pvm_getfds is not implemented on 
-	  libpvmshmem which we use on solaris (a call to pvm_getfds returns
-	  PvmNotImpl).
-	  If we cannot use pvm_getfds here, the only alternative is to use polling.
-	  To keep the code simple, I am using polling in all cases.
-	***/
-#ifdef notdef // not in use because pvm_getfds is not implemented on all platforms
-	fd_num = pvm_getfds(&fd_ptr);
-	assert(fd_num == 1);
-	FD_SET(fd_ptr[0], &readSet);
-	if (fd_ptr[0] > width)
-	  width = fd_ptr[0];
-#endif
-#endif
-
-	doDeferredRPCs();
+      // add our igen connection with the paradyn process.
+      FD_SET(tp->get_sock(), &readSet);
+      FD_SET(tp->get_sock(), &errorSet);
+      
+      // "width" is computed but ignored on Windows NT, where sockets 
+      // are not represented by nice little file descriptors.
+      if (tp->get_sock() > width) width = tp->get_sock();
+      doDeferredRPCs();
 
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-        doDeferredInstrumentation();
+      doDeferredInstrumentation();
 #endif
 
-	extern void doDeferedRPCasyncXDRWrite();
-	doDeferedRPCasyncXDRWrite();
+      extern void doDeferedRPCasyncXDRWrite();
+      doDeferedRPCasyncXDRWrite();
 
 #if !defined(i386_unknown_nt4_0)
-	timeLength pollTime(50, timeUnit::ms());
-           // this is the time (rather arbitrarily) chosen fixed time length
-           // in which to check for signals, etc.
+      timeLength pollTime(50, timeUnit::ms());
+      // this is the time (rather arbitrarily) chosen fixed time length
+      // in which to check for signals, etc.
 #else
-	// Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
-	timeLength pollTime = timeLength::Zero();
+      // Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
+      timeLength pollTime = timeLength::Zero();
 #endif
+      
+      checkAndDoShmSampling(&pollTime);
+      // does shm sampling of each process, as appropriate.
+      // may update pollTimeUSecs.
 
-        checkAndDoShmSampling(&pollTime);
-           // does shm sampling of each process, as appropriate.
-           // may update pollTimeUSecs.
+      pollTimeStruct.tv_sec  = 
+	 static_cast<long>(pollTime.getI(timeUnit::sec()));
+      pollTimeStruct.tv_usec = 
+	 static_cast<long>(pollTime.getI(timeUnit::us()));
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-#ifndef DETACH_ON_THE_FLY
-        pollTime = timeLength::Zero(); // hack for fairer trap servicing on Linux
-
-        // Linux select has a granularity of 100Hz, i.e., 10000usecs
-        // meaning that it can at best service 100 traps/second
-	// when we're attached to the inferior.
-#endif /* not DETACH_ON_THE_FLY */
-#endif
-
-	pollTimeStruct.tv_sec  = static_cast<long>(pollTime.getI(
-							   timeUnit::sec()));
-	pollTimeStruct.tv_usec = static_cast<long>(pollTime.getI(
-                                                           timeUnit::us()));
-
-	// This fd may have been read from prior to entering this loop
-	// There may be some bytes lying around
-	if (check_buffer_first) {
-	  bool no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	  while (!no_stuff_there) {
+      // This fd may have been read from prior to entering this loop
+      // There may be some bytes lying around
+      if (check_buffer_first) {
+	 bool no_stuff_there = P_xdrrec_eof(tp->net_obj());
+	 while (!no_stuff_there) {
 	    T_dyninstRPC::message_tags ret = tp->waitLoop();
 	    if (ret == T_dyninstRPC::error) {
-	      // assume the client has exited, and leave.
-	      cleanUpAndExit(-1);
+	       // assume the client has exited, and leave.
+	       cleanUpAndExit(-1);
 	    }
 	    no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	  }
-	}
+	 }
+      }
 
-	// TODO - move this into an os dependent area
-	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
+      // TODO - move this into an os dependent area
+      ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
 
-	if (ct > 0) {
-
-	    if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
-	      // Either (1) a process we're measuring has forked, and the child
-	      // process is asking for a new connection, or (2) a process we've
-	      // attached to is asking for a new connection.
-
-	      processNewTSConnection(traceSocket_fd); // context.C
+      if (ct > 0) {
+	 if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
+	    // Either (1) a process we're measuring has forked, and the child
+	    // process is asking for a new connection, or (2) a process we've
+	    // attached to is asking for a new connection.
+	    
+	    processNewTSConnection(traceSocket_fd); // context.C
+	 }
+	 unsigned p_size = processVec.size();
+	 for (unsigned u=0; u<p_size; u++) {
+	    if (processVec[u] == NULL)
+	       continue; // process structure has been deallocated
+	    
+	    if (processVec[u] && processVec[u]->traceLink >= 0 && 
+		FD_ISSET(processVec[u]->traceLink, &readSet)) {
+	       processTraceStream(processVec[u]);	       
+	       /* in the meantime, the process may have died, setting
+		  processVec[u] to NULL */
+	       
+	       /* clear it in case another process is sharing it */
+	       if (processVec[u] &&
+		   processVec[u]->traceLink >= 0)
+		  // may have been set to -1
+		  FD_CLR(processVec[u]->traceLink, &readSet);
 	    }
-
-            unsigned p_size = processVec.size();
-	    for (unsigned u=0; u<p_size; u++) {
-	        if (processVec[u] == NULL)
-		   continue; // process structure has been deallocated
-
-		if (processVec[u] && processVec[u]->traceLink >= 0 && 
-		       FD_ISSET(processVec[u]->traceLink, &readSet)) {
-		    processTraceStream(processVec[u]);
-
-		    /* in the meantime, the process may have died, setting
-		       processVec[u] to NULL */
-
-		    /* clear it in case another process is sharing it */
-		    if (processVec[u] &&
-			processVec[u]->traceLink >= 0)
-		           // may have been set to -1
-		       FD_CLR(processVec[u]->traceLink, &readSet);
-		}
-
-		/* removed for output redirection
-		if (processVec[u] && processVec[u]->ioLink >= 0 && 
-    		       FD_ISSET(processVec[u]->ioLink, &readSet)) {
-		    processAppIO(processVec[u]);
-
-		    // app can (conceivably) die in processAppIO(), resulting
-		    // in a processVec[u] to NULL.
-
-		    // clear it in case another process is sharing it 
-		    if (processVec[u] && processVec[u]->ioLink >= 0)
-		       // may have been set to -1
-		       FD_CLR(processVec[u]->ioLink, &readSet);
-		}
-		*/
-	    }
-
+	 }
 #if !defined(i386_unknown_nt4_0)
-	    if (FD_ISSET(tp->get_sock(), &errorSet)) {
-		// paradyn is gone so we go too.
-	        cleanUpAndExit(-1);
-	    }
+	 if (FD_ISSET(tp->get_sock(), &errorSet)) {
+	    // paradyn is gone so we go too.
+	    cleanUpAndExit(-1);
+	 }
 #else // !defined(i386_unknown_nt4_0)
-
-        // WinSock indicates the socket closed
-        // as a read event.  When reading on
-        // the socket, the number of bytes available
-        // is zero.
-
-        if( FD_ISSET( tp->get_sock(), &readSet ))
-        {
+	 
+	 // WinSock indicates the socket closed as a read event.  When
+	 // reading on the socket, the number of bytes available is zero.
+	 
+	 if( FD_ISSET( tp->get_sock(), &readSet )) {
             int junk;
-            int nbytes = recv( tp->get_sock(),
-                                (char*)&junk,
-                                sizeof(junk),
-                                MSG_PEEK );
-            if( nbytes == 0 )
-            {
-                // paradyn is gone so we go too
-                cleanUpAndExit(-1);
+            int nbytes = recv(tp->get_sock(), (char*)&junk, sizeof(junk),
+			      MSG_PEEK );
+            if( nbytes == 0 ) {
+	       // paradyn is gone so we go too
+	       cleanUpAndExit(-1);
             }
-        }
+	 }
 #endif // !defined(i386_unknown_nt4_0)
-
-            bool delayIGENrequests=false;
-	    for (unsigned u1=0; u1<p_size; u1++) {
-	      if (processVec[u1] == NULL)
-	        continue; // process structure has been deallocated
- 
-              if (processVec[u1]->isInSyscall() &&
-		  processVec[u1]->status() == running) {
-		delayIGENrequests=true;
-		break;
-	      }
+	 
+	 bool delayIGENrequests=false;
+	 for (unsigned u1=0; u1<p_size; u1++) {
+	    if (processVec[u1] == NULL)
+	       continue; // process structure has been deallocated
+	    
+	    if (processVec[u1]->isInSyscall() &&
+		processVec[u1]->status() == running) {
+	       delayIGENrequests=true;
+	       break;
 	    }
-
-            // if we are waiting for a system call to complete in order to
-            // launch an inferiorRPC, we will avoid processing any igen
-	    // request - naim
-	    if (!delayIGENrequests) {
-              // Check if something has arrived from Paradyn on our igen link.
-	      if (FD_ISSET(tp->get_sock(), &readSet)) {
-	        bool no_stuff_there = false;
-	        while(!no_stuff_there) {
+	 }
+	 // if we are waiting for a system call to complete in order to
+	 // launch an inferiorRPC, we will avoid processing any igen
+	 // request - naim
+	 if (!delayIGENrequests) {
+	    // Check if something has arrived from Paradyn on our igen link.
+	    if (FD_ISSET(tp->get_sock(), &readSet)) {
+	       bool no_stuff_there = false;
+	       while(!no_stuff_there) {
 		  T_dyninstRPC::message_tags ret = tp->waitLoop();
 		  if (ret == T_dyninstRPC::error) {
-		    // assume the client has exited, and leave.
-		    cleanUpAndExit(-1);
+		     // assume the client has exited, and leave.
+		     cleanUpAndExit(-1);
 		  }
 		  no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	        }
-	      }
-	      while (tp->buffered_requests()) {
-	        T_dyninstRPC::message_tags ret = tp->process_buffered();
-	        if (ret == T_dyninstRPC::error)
+	       }
+	    }
+	    while (tp->buffered_requests()) {
+	       T_dyninstRPC::message_tags ret = tp->process_buffered();
+	       if (ret == T_dyninstRPC::error)
 		  cleanUpAndExit(-1);
-	      }
 	    }
-
-#ifdef PARADYND_PVM
-#ifdef notdef // not in use because of the problems with pvm_getfds. See comment above.
-	    // message on pvmd channel
-	    int res;
-            fd_num = pvm_getfds(&fd_ptr);
-	    assert(fd_num == 1);
-	    if (FD_ISSET(fd_ptr[0], &readSet)) {
-		// res == -1 --> error
-		res = PDYN_handle_pvmd_message();
-		// handle pvm message
-	    }
-#endif
-#endif
-	}
-
-#ifdef PARADYND_PVM
-	// poll for messages from the pvm daemon, and handle the message if 
-	// there is one.
-	// See comments above on the problems with pvm_getfds.
-	if (pvm_running) {
-	  PDYN_handle_pvmd_message();
-	}
-#endif
-
-    }
+	 }
+      }
+   }
 }
-
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r)
 {
