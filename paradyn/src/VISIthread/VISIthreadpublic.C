@@ -14,10 +14,15 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.8  1995/02/16 19:10:59  markc
-/* Removed start slash from comments
-/* Removed start slash from comments
+/* Revision 1.9  1995/02/26 02:08:37  newhall
+/* added some of the support for the phase interface
+/* fix so that the vector of data values are being
+/* correctly filled before call to BulkDataTransfer
 /*
+ * Revision 1.8  1995/02/16  19:10:59  markc
+ * Removed start slash from comments
+ * Removed start slash from comments
+ *
  * Revision 1.7  1995/02/16  08:22:32  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages - check for buffered messages
@@ -47,8 +52,8 @@
  * added new file VISIthreadpublic.C
  * */
 /////////////////////////////////////////////////////////////////////
-// * visualizationUser routines:  GetMetricResource, PhaseName
-//		StopMetricResource
+// * visualizationUser routines:  GetMetricResource, StartPhase
+//		StopMetricResource 
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 #include <signal.h>
@@ -186,14 +191,13 @@ void visualizationUser::StopMetricResource(int metricId,
 
 
 ///////////////////////////////////////////////////////////////////
-//  PhaseName: visualizationUser routine (called by visi process)
+//  StartPhase: visualizationUser routine (called by visi process)
 //  input: name of phase, begining and ending timestamp for phase 
 //
 //  not currently implemented
 ///////////////////////////////////////////////////////////////////
-void visualizationUser::PhaseName(double begin,
-				  double end,
-				  string name){
+void visualizationUser::StartPhase(double begin,
+				   string name){
 
  VISIthreadGlobals *ptr;
 
@@ -202,6 +206,9 @@ void visualizationUser::PhaseName(double begin,
     ERROR_MSG(13,"thr_getspecific in VISIthread::PhaseName");
     return;
   }
+
+  // call datamanager start phase routine
+  ptr->dmp->StartPhase((timeStamp)-1.0, NULL);
 
 }
 

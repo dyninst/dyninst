@@ -19,13 +19,18 @@
 //		VISIthreadshowMsgREPLY, VISIthreadshowErrorREPLY
 // * Callback routines for DataManager Upcalls:  VISIthreadDataCallback  
 //   		VISIthreadnewMetricCallback, VISIthreadFoldCallback 
-//   		VISIthreadnewResourceCallback
+//   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.37  1995/02/16 19:10:56  markc
-/* Removed start slash from comments
-/* Removed start slash from comments
+/* Revision 1.38  1995/02/26 02:08:34  newhall
+/* added some of the support for the phase interface
+/* fix so that the vector of data values are being
+/* correctly filled before call to BulkDataTransfer
 /*
+ * Revision 1.37  1995/02/16  19:10:56  markc
+ * Removed start slash from comments
+ * Removed start slash from comments
+ *
  * Revision 1.36  1995/02/16  08:22:29  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages - check for buffered messages
@@ -158,12 +163,14 @@
 #include <memory.h>
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
-#include "../VMthread/VMtypes.h"
+#include "util/h/sys.h"
+#include "paradyn/src/VMthread/VMtypes.h"
 #include "VISIthread.thread.SRVR.h"
 #include "VISIthreadTypes.h"
-#include "../pdMain/paradyn.h"
+#include "paradyn/src/pdMain/paradyn.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "../DMthread/DMinternals.h"
+#include "paradyn/src/DMthread/DMinternals.h"
+#include "paradyn/src/DMthread/DMphase.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
@@ -250,7 +257,6 @@ if((bucketNum % 100) == 0){
   // if buffer is full, send buffer to visualization
   if(ptr->bufferSize >= ptr->maxBufferSize) {
 
-    PARADYN_DEBUG(("sending %d dataBuckets",ptr->bufferSize));
     // temp.count = ptr->bufferSize;
     // temp.data = ptr->buffer;
     for (unsigned ve=0; ve<ptr->bufferSize; ve++) {
@@ -343,7 +349,6 @@ void VISIthreadFoldCallback(performanceStream *ps,
  VISIthreadGlobals *ptr;
  vector<T_visi::dataValue> temp;
 
-
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
      PARADYN_DEBUG(("thr_getspecific in VISIthreadFoldCallback"));
      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadFoldCallback");
@@ -390,6 +395,44 @@ void VISIthreadFoldCallback(performanceStream *ps,
         return;
      }
   }
+
+}
+///////////////////////////////////////////////////////
+//  VISIthreadPhaseCallback: callback for dataManager
+//     new phase definition upcall 
+//
+///////////////////////////////////////////////////////
+void VISIthreadPhaseCallback(performanceStream *ps, phaseInfo *newPhase){
+
+   VISIthreadGlobals *ptr;
+   string name; 
+
+   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadPhaseCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadPhaseCallback");
+      return;
+   }
+
+   //fprintf(stderr,"in VISIthreadPhaseCallback\n");
+   //fprintf(stderr,"phase name = %s\n",newPhase->PhaseName());
+   //fprintf(stderr,"phase begin = %f\n",(double)newPhase->GetStartTime());
+   //fprintf(stderr,"phase end = %f\n",(double)newPhase->GetEndTime());
+   //fprintf(stderr,"phase width = %f\n",newPhase->GetBucketWidth());
+   //fprintf(stderr,"phase handle = %d\n",(int)newPhase->GetPhaseHandle());
+   // send visi phase end call for current phase
+   if(ptr->currPhaseHandle != -1){
+       ptr->visip->PhaseEnd((double)newPhase->GetStartTime(),
+			    ptr->currPhaseHandle);
+   }
+   name = newPhase->PhaseName(); 
+   ptr->currPhaseHandle = newPhase->GetPhaseHandle();
+
+   // send visi phase start call for new phase
+   ptr->visip->PhaseStart((double)newPhase->GetStartTime(),
+			  (double)newPhase->GetEndTime(),
+			  newPhase->GetBucketWidth(),
+			  name,
+			  (int)newPhase->GetPhaseHandle());
 
 }
 
@@ -614,8 +657,9 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	if(howmany > 0){
             // bulk_data.count = howmany; 
             // bulk_data.data = buckets; 
-	    for (unsigned ve=0; ve<bulk_data.size(); ve++)
-	      bulk_data += buckets[i];
+	    for (unsigned ve=0; ve<howmany; ve++){
+	      bulk_data += buckets[ve];
+            }
             ptr->visip->BulkDataTransfer(bulk_data,
 		   (int)newEnabled[i]->met,
 		   (int)newEnabled[i]->focus->getCanonicalName());
@@ -626,6 +670,9 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
                 free(newMetRes);
                 return;
             }
+	    for(int j=bulk_data.size(); j>0; j--){
+               bulk_data.resize(bulk_data.size()-1);
+	    }
 	}
     }
     // if remenuFlag is set and retry list is not empty
@@ -709,8 +756,9 @@ void *VISIthreadmain(void *vargs){
   globals->vmp = vmMgr;
   globals->dmp = dataMgr;
   globals->args = (visi_thread_args *) vargs;
-  globals->visip = NULL;     // assigned value in VISIthreadchooseMetRes 
-  globals->perStream = NULL; // assigned value in VISIthreadchooseMetRes
+  globals->visip = NULL;     // assigned value in VISIthreadStartProcess 
+  globals->perStream = NULL; 
+  globals->currPhaseHandle = -1;
 
   globals->start_up = 1;
   globals->bufferSize = 0;
@@ -726,6 +774,7 @@ void *VISIthreadmain(void *vargs){
   callbacks.rFunc = (resourceInfoCallback)
 		      VISIthreadnewResourceCallback;
   callbacks.fFunc = (histFoldCallback)VISIthreadFoldCallback;
+  callbacks.pFunc = (newPhaseCallback)VISIthreadPhaseCallback;
   callbacks.sFunc = NULL;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
@@ -738,6 +787,8 @@ void *VISIthreadmain(void *vargs){
       ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
       globals->quit = 1;
   }
+
+  PARADYN_DEBUG(("performance stream = %d in visithread",(int)globals->perStream));
 
   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
       PARADYN_DEBUG(("Error in thr_setspecific"));
@@ -898,7 +949,7 @@ void visiUser::handle_error()
   VISIthreadGlobals *ptr;
 
    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-      PARADYN_DEBUG(("thr_getspecific in visualizationUser::PhaseName"));
+      PARADYN_DEBUG(("thr_getspecific in handle_error"));
       ERROR_MSG(13,"thr_getspecific in visiUser::handle_error");
    }
 

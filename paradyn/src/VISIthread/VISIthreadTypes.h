@@ -16,10 +16,15 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.13  1995/02/16 19:10:52  markc
-/* Removed start slash from comments
-/* Removed start slash from comments
+/* Revision 1.14  1995/02/26 02:08:32  newhall
+/* added some of the support for the phase interface
+/* fix so that the vector of data values are being
+/* correctly filled before call to BulkDataTransfer
 /*
+ * Revision 1.13  1995/02/16  19:10:52  markc
+ * Removed start slash from comments
+ * Removed start slash from comments
+ *
  * Revision 1.12  1995/02/16  08:22:26  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages - check for buffered messages
@@ -101,6 +106,7 @@ struct VISIGlobalsStruct {
   double bucketWidth;
   visi_thread_args* args;
   int start_up;
+  int currPhaseHandle;
   List<metricInstance *> *mrlist;  // data and key are metricInstance *
 
 };
