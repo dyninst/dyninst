@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.75 2004/03/09 21:36:21 bernat Exp $
+// $Id: BPatch.C,v 1.76 2004/03/11 22:20:28 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -851,53 +851,54 @@ bool BPatch::getThreadEventOnly(bool block)
 {
    bool	result = false;
 
-   pdvector<procevent *> foundEvents;
-   bool res = getSH()->checkForProcessEvents(&foundEvents, -1, block);
-   if(!res) {
-       return false;
-   }
-   for(unsigned i=0; i<foundEvents.size(); i++)
-   {
-      procevent *cur_event = foundEvents[i];
-      process *proc = cur_event->proc;
-      procSignalWhy_t why   = cur_event->why;
-      procSignalWhat_t what = cur_event->what;
+   // Handles all process (object)-level events.
+   pdvector<procevent *> unhandledEvents = getSH()->checkForAndHandleProcessEvents(block);
 
-      // There's been a change in a child process
-      result = true;
-      // Since we found something, we don't want to block anymore
-      block = false;
+   for(unsigned i=0; i < unhandledEvents.size(); i++)
+   {
+       // The only thing we expect to see in here is a SIGSTOP from DYNINSTbreakPoint...
+       procevent *cur_event = unhandledEvents[i];
+       process *proc = cur_event->proc;
+       procSignalWhy_t why   = cur_event->why;
+       procSignalWhat_t what = cur_event->what;
        
-      bool exists;
-      BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
-      if (thread == NULL) {
-         if (exists) {
-            if (didProcExit(why) || didProcExitOnSignal(why))
-               unRegisterThread(proc->getPid());
-         } else {
-            fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
-                    proc->getPid());
-         }
-      }
-      if (thread != NULL) {
-          if (didProcReceiveSignal(why)) {
-              thread->lastSignal = what;
-              thread->setUnreportedStop(true);
-          }
-          else if (didProcExitOnSignal(why)) {
-              thread->lastSignal = what;
-              thread->setUnreportedTermination(true);
-          }
-          else if (didProcExit(why)) {
-              thread->setExitedNormally();
-              thread->lastSignal = 0; /* XXX Make into some constant */
-              thread->setUnreportedTermination(true);
-          }
-      }
-       
-      // Do standard handling
-      getSH()->handleProcessEvent(*cur_event);
-      delete cur_event;
+       bool exists;
+       BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
+       if (thread == NULL) {
+           if (exists) {
+               fprintf(stderr, "Warning: event on an existing thread, but can't find thread handle\n");
+           } else {
+               fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
+                       proc->getPid());
+           }
+       }
+       else { // found a thread
+#if !defined(os_windows)
+           if (didProcReceiveSignal(why)) {
+               thread->lastSignal = what;
+#if defined(os_irix)
+               int stop_sig = SIGEMT;
+#else
+               int stop_sig = SIGSTOP;
+#endif
+               if (what != stop_sig) {
+                   forwardSigToProcess(*cur_event);
+               }
+               else {
+                   thread->setUnreportedStop(true);
+               }
+           }
+           else {
+               fprintf(stderr, "Unhandled event (why %d, what %d) on process %d\n",
+                       why, what, proc->getPid());
+               thread->setUnreportedStop(true);
+           }
+           
+#else // os_windows
+           thread->setUnreportedStop(true);
+#endif
+       }
+       delete unhandledEvents[i];
    }
 
    return result;
@@ -930,9 +931,6 @@ bool BPatch::havePendingEvent()
         if (thread != NULL &&
             (thread->pendingUnreportedStop() ||
              thread->pendingUnreportedTermination())) {
-            fprintf(stderr, "Thread %p: unrep stop %d, term %d\n",
-                    thread, thread->pendingUnreportedStop(),
-                    thread->pendingUnreportedTermination());
             return true;
         }
     }
@@ -971,7 +969,6 @@ bool BPatch::pollForStatusChange()
 bool BPatch::waitForStatusChange()
 {
     if (havePendingEvent()) {
-        fprintf(stderr, "Unclaimed event, returning true\n");
         return true;
     }
     
