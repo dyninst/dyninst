@@ -7,6 +7,10 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.54  1996/03/01 22:37:23  mjrg
+ * Added a type to resources.
+ * Added function handleProcessExit to handle exiting processes.
+ *
  * Revision 1.53  1996/02/09 22:13:53  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
@@ -305,7 +309,7 @@ extern "C" {
 // paradyndCM5.
 //extern "C" void bzero(char *b, int length);
 
-void createResource(traceHeader *header, struct _newresource *r);
+void createResource(int pid, traceHeader *header, struct _newresource *r);
 
 bool CMMDhostless = false;
 bool synchronousMode = false;
@@ -384,8 +388,8 @@ void processTraceStream(process *curr)
 	  string buffer = string("Process ") + string(curr->pid);
 	  buffer += string(" has exited unexpectedly");
 	  statusLine(P_strdup(buffer.string_of()));
-//	  showErrorCallback(11, P_strdup(buffer.string_of()));
-	  curr->Exited();
+	  showErrorCallback(11, P_strdup(buffer.string_of()));
+	  handleProcessExit(curr);
 	}
 	curr->traceLink = -1;
 	return;
@@ -447,14 +451,13 @@ void processTraceStream(process *curr)
 	    }
 	}
 	// header.wall -= curr->firstRecordTime();
-
 	switch (header.type) {
 	    case TR_FORK:
 		forkProcess(&header, (traceFork *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_RESOURCE:
-		createResource(&header, (struct _newresource *) ((void*)recordData));
+		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_ASSOCIATION:
@@ -487,7 +490,7 @@ void processTraceStream(process *curr)
 		printAppStats((struct endStatsRec *) ((void*)recordData),
 			      cyclesPerSecond);
 		printDyninstStats();
-		curr->Exited();
+  		handleProcessExit(curr);
 		break;
 
 	    case TR_COST_UPDATE:
@@ -503,6 +506,7 @@ void processTraceStream(process *curr)
 		sprintf(errorLine, "Got record type %d on sid %d\n", 
 		    header.type, sid);
 		logLine(errorLine);
+		sprintf(errorLine, "Received bad trace data from process %d.", curr->getPid());
 		showErrorCallback(37,(const char *) errorLine);
 	}
     }
@@ -559,6 +563,7 @@ int handleSigChild(int pid, int status)
                     for (unsigned j = 0; j < MIs.size(); j++) {
 			MIs[j]->propagateMetricInstance(curr);
 		    }
+		    costMetric::addProcessToAll(curr);
 
 #ifdef notdef
 		    if (! curr->stopAtFirstBreak) {
@@ -608,7 +613,11 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 	    case SIGINT:
+
 		if (curr->waitingForNodeDaemon) {
+		  // CM5 kludge: the application stops after writing the TR_MULTI_FORK
+		  // trace record to start the node daemon. It will be re-started
+		  // by paradyn when the node daemon is ready.
 		  // no need to update status here
 		  break;
 		}
@@ -630,7 +639,7 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		dumpProcessImage(curr, true);
 		OS::osDumpCore(pid, "core.real");
-		curr->Exited();
+		handleProcessExit(curr);
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
@@ -690,13 +699,13 @@ int handleSigChild(int pid, int status)
 	logLine(errorLine);
 
 	printDyninstStats();
-	curr->Exited();
+        handleProcessExit(curr);
 	statusLine(errorLine);
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));
 	logLine(errorLine);
-	curr->Exited();
+	handleProcessExit(curr);
 	statusLine(errorLine);
     } else {
 	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->pid);
@@ -873,13 +882,48 @@ void controllerMainLoop(bool check_buffer_first)
 }
 
 
-void createResource(traceHeader *header, struct _newresource *r)
+void createResource(int pid, traceHeader *header, struct _newresource *r)
 {
     char *tmp;
     char *name;
-    resource *res;
-    resource *parent;
+    // resource *res;
+    vector<string> parent_name;
+    resource *parent = NULL;
+    unsigned type;
+    
+    switch (r->type) {
+    case RES_TYPE_STRING: type = MDL_T_STRING; break;
+    case RES_TYPE_INT:    type = MDL_T_INT; break;
+    default: 
+      string msg = string("Invalid resource type reported on trace stream from PID=")
+	           + string(pid);
+      showErrorCallback(36,msg);
+      return;
+    }
 
+    name = r->name;
+    do {
+	tmp = strchr(name, '/');
+	if (tmp) {
+	    *tmp = '\0';
+	    tmp++;
+	    parent_name += name;
+	    name = tmp;
+	}
+    } while (tmp);
+
+    if ((parent = resource::findResource(parent_name)) && name != r->name) {
+      resource::newResource(parent, NULL, r->abstraction, name,
+			    header->wall, "", type);
+    }
+    else {
+      string msg = string("Unknown resource '") + string(r->name) +
+	           string("' reported on trace stream from PID=") +
+		   string(pid);
+      showErrorCallback(36,msg);
+    }
+
+#ifdef notdef
     name = r->name;
     parent = rootResource;
     while (name) {
@@ -893,5 +937,7 @@ void createResource(traceHeader *header, struct _newresource *r)
 	parent = res;
 	name = tmp;
     }
+#endif
+
 }
 

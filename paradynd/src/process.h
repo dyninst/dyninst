@@ -10,6 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.28  1996/03/01 22:37:20  mjrg
+ * Added a type to resources.
+ * Added function handleProcessExit to handle exiting processes.
+ *
  * Revision 1.27  1996/02/13 06:17:36  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
@@ -360,6 +364,7 @@ inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t
 
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
 process *allocateProcess(int pid, const string name);
+void handleProcessExit(process *p);
 
 void initInferiorHeap(process *proc, bool globalHeap, bool textHeap);
 void copyInferiorHeap(process *from, process *to);

@@ -14,6 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.34  1996/03/01 22:37:19  mjrg
+ * Added a type to resources.
+ * Added function handleProcessExit to handle exiting processes.
+ *
  * Revision 1.33  1996/02/13 06:17:34  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
@@ -388,7 +392,7 @@ process *allocateProcess(int pid, const string name)
     P_uname(&un);
     buffer = string(pid) + string("_") + string(un.nodename);
     ret->rid = resource::newResource(processResource, (void*)ret, nullString, name,
-				     0.0, P_strdup(buffer.string_of()));
+				     0.0, P_strdup(buffer.string_of()), MDL_T_STRING);
     ret->bufEnd = 0;
 
     // this process won't be paused until this flag is set
@@ -640,5 +644,11 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	free(ret);
 	return(NULL);
     }
+}
+
+void handleProcessExit(process *proc) {
+  if (proc->status() != exited) {
+    proc->Exited();
+  }
 }
 
