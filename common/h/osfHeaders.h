@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.6 2003/03/21 23:40:38 jodom Exp $
+// $Id: osfHeaders.h,v 1.7 2003/04/10 19:01:08 rchen Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -76,8 +76,6 @@ extern "C" {
 #include <sys/un.h>
 #include <sys/stat.h>
 
-#include <strstream.h>
-
 extern int fork();
 extern int vfork();
 
@@ -89,6 +87,8 @@ typedef int (*P_xdrproc_t)(XDR*, ...);
 #if defined(__cplusplus)
 };
 #endif /* defined(__cplusplus) */
+
+#include <strstream.h>
 
 extern char *sys_errlist[];
 
