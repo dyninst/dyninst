@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: pdwinnt.C,v 1.6 1998/06/05 23:47:42 wylie Exp $
+
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1172,7 +1174,20 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 
 char *cplus_demangle(char *c, int) { 
     char buf[1000];
-    if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
+    if (c[0]=='_') {
+        // VC++ 5.0 seems to decorate C symbols differently to C++ symbols
+        // and the UnDecorateSymbolName() function provided by imagehlp.lib
+        // doesn't manage (or want) to undecorate them, so it has to be done
+        // manually, removing a leading underscore from functions & variables
+        // and the trailing "$stuff" from variables (actually "$Sstuff")
+        unsigned i;
+        for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
+           { buf[i-1]=c[i]; }
+        if (i==1) return 0; // avoid null names which seem to annoy Paradyn
+        buf[i-1]='\0';
+        return strdup(buf);
+      }
+    else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
 	//printf("Undecorate: %s = %s\n", c, buf);
 
         // many symbols have a name like foo@4, we must remove the @4
