@@ -2705,11 +2705,6 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
 
 void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
-
     int i;
 
     BPatch_function *func2 = appImage->findFunction("func33_2");
@@ -2978,8 +2973,6 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     }
 
     delete [] block_elements;
-
-#endif
 }
 
 /*******************************************************************************/
@@ -3007,10 +3000,6 @@ int numBackEdges(BPatch_basicBlockLoop *loop)
 //
 void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
     int i;
 
     BPatch_function *func2 = appImage->findFunction("func34_2");
@@ -3066,7 +3055,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 
     bool foundFirstLoop = false;
     int deepestLoops = 0;
-    for (int i = 0; i < insideOuterLoop.size(); i++) {
+    for (i = 0; i < insideOuterLoop.size(); i++) {
 	BPatch_Vector<BPatch_basicBlockLoop*> tmpLoops;
 	insideOuterLoop[i]->getContainedLoops(tmpLoops);
 
@@ -3127,7 +3116,6 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr, "  Could not find all the deepest level loops.\n");
 	exit(1);
     }
-#endif
 }
 
 /*******************************************************************************/

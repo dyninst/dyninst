@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.65 2000/12/19 17:10:37 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.66 2001/01/04 19:10:21 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2292,20 +2292,10 @@ int func33_3(int x)
 
 void func33_1()
 {
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
-    
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 33 ] = TRUE;
     printf( "Passed test #33 (control flow graphs)\n" );
-#else
-    passedTest[ 33 ] = TRUE;
-    printf( "Skipped test #33 (control flow graphs)\n" );
-    printf( "\t- not implemented on this platform\n" );
-#endif
 }
 
 /****************************************************************************/
@@ -2343,19 +2333,10 @@ void func34_2()
 
 void func34_1()
 {
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 34 ] = TRUE;
     printf( "Passed test #34 (loop information)\n" );
-#else
-    passedTest[ 34 ] = TRUE;
-    printf( "Skipped test #34 (loop information)\n" );
-    printf( "\t- not implemented on this platform\n" );
-#endif
 }
 
 /****************************************************************************/
