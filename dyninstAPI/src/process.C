@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.366 2002/10/15 20:32:36 bernat Exp $
+// $Id: process.C,v 1.367 2002/10/16 22:11:41 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5568,10 +5568,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       inferiorrpc_cerr << "Inferior process exited!" << endl;
       return false;
     }
-  
-  if (status_ == neonatal)
-    // not sure if this should be some kind of error...is the inferior ready
-    // to execute inferior RPCs??? For now, we'll allow it.
 
   if (!pause()) {
     cerr << "launchRPCifAppropriate failed because pause failed" << endl;
