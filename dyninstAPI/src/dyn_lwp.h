@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.23 2003/12/04 19:15:01 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.24 2003/12/08 19:03:36 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -79,6 +79,7 @@ class papiMgr;
 #define INVALID_HANDLE_VALUE 0
 #endif
 #endif
+
 
 /*
  * The dyn_lwp class wraps a kernel thread (lightweight process, or LWP)
@@ -154,9 +155,12 @@ class dyn_lwp
   bool markRunningIRPC();
   void markDoneRunningIRPC();
   bool waitUntilStopped();
-  processState status_;
+
   processState status() const { return status_;}
-  void set_status(processState st);
+  // to set dyn_lwp status, use process::set_lwp_status()
+  void internal_lwp_set_status___(processState st) {
+     status_ = st;
+  }
 
   bool pauseLWP(bool shouldWaitUntilStopped = true);
   bool stop_(); // formerly OS::osStop
@@ -197,6 +201,8 @@ class dyn_lwp
   // Continue, forwarding signals
   bool continueWithSignal();
   bool get_status(lwpstatus_t *status) const;
+  //should only be called from process::set_status() or process::set_lwp_status
+
   bool isRunning() const;
 #endif  
   
@@ -276,6 +282,8 @@ class dyn_lwp
 #endif
   
  private:
+  processState status_;
+
   bool representativeLWP_attach_();  // os specific
   bool realLWP_attach_();   // os specific
   void representativeLWP_detach_();   // os specific

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.279 2003/12/04 19:15:11 schendel Exp $
+/* $Id: process.h,v 1.280 2003/12/08 19:03:37 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -391,7 +391,7 @@ class process {
   void set_status(processState st);
 
   // update the status of the process and one particular lwp in the process
-  void set_status(processState st, dyn_lwp *whichLWP);
+  void set_lwp_status(dyn_lwp *whichLWP, processState st);
 
   Address previousSignalAddr() const { return previousSignalAddr_; }
   void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
