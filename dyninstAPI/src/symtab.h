@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.144 2004/02/25 04:36:48 schendel Exp $
+// $Id: symtab.h,v 1.145 2004/02/28 00:26:36 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -122,6 +122,7 @@ class image;
 class lineTable;
 class process;
 class pd_Function;
+class Frame;
 
 // if a function needs to be relocated when it's instrumented then we need
 // to keep track of new instrumentation points for this function on a per
@@ -331,7 +332,7 @@ class pd_Function : public function_base {
    // passing in a value of 0 for p will return the original address
    // otherwise, if the process is relocated it will return the new address
    Address getAddress(const process *p){
-      if(p && relocatable_) { 
+      if(p && needs_relocation_) { 
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) 
                return (relocatedByProcess[i])->address();
@@ -340,7 +341,7 @@ class pd_Function : public function_base {
    }
    Address getEffectiveAddress(const process *p) const;
    instPoint *funcEntry(const process *p) const {
-      if(p && relocatable_) { 
+      if(p && needs_relocation_) { 
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) {
                return (relocatedByProcess[i])->funcEntry();
@@ -349,7 +350,7 @@ class pd_Function : public function_base {
       return funcEntry_;
    }
    const pdvector<instPoint*> &funcExits(const process *p) const {
-      if(p && relocatable_) {
+      if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) 
                return (relocatedByProcess[i])->funcReturns();
@@ -357,7 +358,7 @@ class pd_Function : public function_base {
       return funcReturns;
    }
    const pdvector<instPoint*> &funcArbitraryPoints(const process *p) const {
-      if(p && relocatable_) {
+      if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) 
                return (relocatedByProcess[i])->funcArbitraryPoints();
@@ -375,7 +376,7 @@ class pd_Function : public function_base {
     defined(i386_unknown_linux2_0) || \
     defined(sparc_sun_solaris2_4)
     
-      if(insp && p && relocatable_)
+      if(insp && p && needs_relocation_)
          for(u_int i=0; i < relocatedByProcess.size(); i++)
             if((relocatedByProcess[i])->getProcess() == p) {
                addArbitraryPoint(insp, p, relocatedByProcess[i]);
@@ -394,7 +395,7 @@ class pd_Function : public function_base {
    const pdvector<instPoint*> &funcCalls(const process *p) {
       if (!call_points_have_been_checked) checkCallPoints();
 
-      if(p && relocatable_) {
+      if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) 
                return (relocatedByProcess[i])->funcCallSites();
@@ -402,7 +403,7 @@ class pd_Function : public function_base {
       return calls;
    }
    bool hasBeenRelocated(process *p){
-      if(p && relocatable_) {
+      if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++) {
             if((relocatedByProcess[i])->getProcess() == p) 
                return true;
@@ -417,9 +418,9 @@ class pd_Function : public function_base {
    bool makesNoCalls() const {return makesNoCalls_;}
 
    bool isTrapFunc() {return isTrap;}
-   bool needsRelocation() {return relocatable_;}
    bool mayNeedRelocation() {return mayNeedRelocation_;}
-   void setRelocatable(bool value) { relocatable_ = value; }
+   bool needsRelocation() {return needs_relocation_;}
+   void markAsNeedingRelocation(bool value) { needs_relocation_ = value; }
    bool canBeRelocated() { return canBeRelocated_; }
 
    bool isInstrumentable() { return isInstrumentable_; }
@@ -431,6 +432,11 @@ class pd_Function : public function_base {
    // Returns false if unable to fill in that information....
    bool getStaticCallees(process *proc, pdvector <pd_Function *> &callees);
 #endif
+
+   bool is_on_stack(process *proc,
+                    const pdvector<pdvector<Frame> > &stackWalks);
+   bool think_is_long_running(process *proc,
+                              const pdvector<pdvector<Frame> > &stackWalks);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
 
@@ -511,12 +517,6 @@ class pd_Function : public function_base {
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
-   // modifyInstPoint: change the value of the instPoint if it is wrong: 
-   // if this instPoint is from a function that was just relocated, then
-   // it may not have the correct address.  This routine finds the correct
-   // address for the instPoint
-   void modifyInstPoint(const instPoint *&location, process *proc);
-
    bool isNearBranchInsn(const instruction insn);
 
    bool fillInRelocInstPoints(const image *owner, process *proc,
@@ -594,7 +594,7 @@ class pd_Function : public function_base {
                           Address baseAddress, Address firstAddress,
                           int &totalSizeChange);
 
-   bool relocateFunction(process *proc, instPoint *&location, bool &deferred);
+   bool relocateFunction(process *proc, instPoint *&location);
 
    void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 
@@ -658,7 +658,7 @@ class pd_Function : public function_base {
 #endif
     
    // these are for relocated functions
-   bool relocatable_;		   // true if func will be relocated when instr
+   bool needs_relocation_;		   // true if func will be relocated when instr
    bool mayNeedRelocation_;       // True if func needs to be relocated to
    // enable call sequence transfers to
    // base trampolines 
