@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.8  1994/07/07 03:26:24  markc
-/* Added calls to parser routines.
+/* Revision 1.9  1994/07/19 23:52:58  markc
+/* Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
+/* dependencies.
 /*
+ * Revision 1.8  1994/07/07  03:26:24  markc
+ * Added calls to parser routines.
+ *
  * Revision 1.7  1994/05/18  00:51:03  hollings
  * We don't want SIGPIPEs to kill us.
  *
@@ -38,6 +42,7 @@
 
 #include "paradyn.h"
 #include "thread/h/thread.h"
+#include "paradyn/src/met/metricExt.h"
 
 extern void *UImain(CLargStruct *clargs);
 extern void *DMmain(int arg);
