@@ -43,6 +43,7 @@
 #include "paradynd/src/process.h"
 
 vector<costMetric*> costMetric::allCostMetrics;
+extern vector<process*> processVec;
 
 costMetric::costMetric(const string n,
 		     metricStyle style,
