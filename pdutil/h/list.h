@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.10  1994/02/08 00:30:32  hollings
+ * Revision 1.11  1994/02/09 22:37:09  hollings
+ * Added print routines to list and hash table.
+ *
+ * Revision 1.10  1994/02/08  00:30:32  hollings
  * Make libutil more compatable with ATT CC.
  *
  * Revision 1.9  1994/02/03  23:30:43  hollings
@@ -47,6 +50,7 @@
 #ifndef LIST_H
 #define LIST_H
 #include <stdio.h>
+#include <iostream.h>
 #include <stdlib.h>
 
 typedef int Boolean;
@@ -72,6 +76,8 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
+	friend ostream &operator<<(ostream&, List<Type>&);
+	void print();
 	List() { head = NULL; }
 	void add(Type data, void *key);
 	void add(Type data);
@@ -120,6 +126,29 @@ template <class Type> class List {
     protected:
 	ListItem<Type>	*head;
 };
+
+template <class Type> ostream &operator<<(ostream &os, List<Type> &data)
+{
+    List<Type> curr;
+
+    for (curr= data; *curr; curr++) {
+        os << *curr << endl;
+    }
+    return os;
+}
+
+//
+// Warning this function should be replaced by the stream operator above, but
+//   g++ is broken and won't create it.
+// 
+template <class Type> void List<Type>::print()
+{
+    ListItem<Type> *curr;
+
+    for (curr=head; curr; curr=curr->next) {
+        cout << (curr->data) << endl;
+    }
+}
 
 template <class Type> void List<Type>::add(Type data, void *key)
 {
@@ -183,7 +212,9 @@ template <class Type> Type List<Type>::find(void *data)
 template <class Type> class HTable {
 
     public:
-	HTable(Type data) { HTable(); add(data, (void *) data); }
+	friend ostream &operator<<(ostream&, HTable<Type>&);
+	void print();
+	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
 	HTable(); 
 	void add(Type data, void *key);
 	Boolean addUnique(Type data, void *key) {
@@ -237,6 +268,36 @@ template <class Type> class HTable {
 	int currHid;
 	int tableSize;
 };
+
+template <class Type> ostream &operator<<(ostream &os, HTable<Type> &data)
+{
+    int i, total;
+
+    total = 0;
+    for (i=0; i < data.tableSize; i++) {
+	if (data.table[i]) {
+            os << *data.table[i];
+	}
+    }
+    return os;
+}
+
+
+//
+// Warning this function should be replaced by the stream operator above, but
+//   g++ is broken and won't create it.
+// 
+template <class Type> void HTable<Type>::print()
+{
+    int i, total;
+
+    total = 0;
+    for (i=0; i < tableSize; i++) {
+	if (table[i]) {
+            table[i]->print();
+	}
+    }
+}
 
 template <class Type> HTable<Type>::HTable()
 { 
