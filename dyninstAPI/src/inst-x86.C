@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.178 2004/06/08 22:03:14 legendre Exp $
+ * $Id: inst-x86.C,v 1.179 2004/06/10 19:08:31 lharris Exp $
  */
 #include <iomanip>
 
@@ -628,7 +628,7 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
 ******************************************************************************/
 bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                                   const image *i_owner ) 
-{
+{ 
     // sorry this this hack, but this routine can modify the image passed in,
     // which doesn't occur on other platforms --ari
     image *owner = const_cast<image *>(i_owner); // const cast
@@ -953,18 +953,17 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
 
                 if( !owner->isValidAddress( target ) )
                     break;
-                
+                 
                 owner->addJumpTarget( target );
                 if( target >= funcBegin && target <= funcBegin + 5 )
                     has_jump_to_first_five_bytes = true;
                 
-                if( owner->findFuncByEntry( target ) && target != funcBegin )
-                    break;
-		
+                		
                 //check if tailcall
                 numInsns = allInstructions.size() - 1;
 
-                if( ( *allInstructions[ numInsns ].ptr() == POP_EBP ||
+                if( owner->findFuncByEntry( target ) || 
+                    ( *allInstructions[ numInsns ].ptr() == POP_EBP ||
                       allInstructions[ numInsns ].isLeave() )
                     && window )
                 {
@@ -1162,8 +1161,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     {
         points_[u].point->checkInstructions();
     }
-    
-    //sorted_ips_vector expects funcReturns and calls to be sorted
+
+   //sorted_ips_vector expects funcReturns and calls to be sorted
     VECTOR_SORT( funcReturns, instPointCompare );
     VECTOR_SORT( calls, instPointCompare );
     
