@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.69 2002/06/18 18:54:43 chadd Exp $
+ * $Id: RTetc-posix.c,v 1.70 2002/09/11 15:05:20 chadd Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -82,11 +82,13 @@
 ************************************************************************/
 
 /* ccw 22 apr 2002 :  from dyninstAPI_RT/src/RTposix.c*/
-void DYNINSTbreakPoint(void)
+void pDYNINSTbreakPoint(void) /* ccw 5 sep 2002 */
 {
 #ifdef DETACH_ON_THE_FLY
-     extern DYNINSTsigill();
-     DYNINSTsigill();
+     extern pDYNINSTsigill();  /* ccw 5 sep 2002 */
+
+     pDYNINSTsigill(); /* ccw 5 sep 2002 */
+
      return;
 #endif /* DETACH_ON_THE_FLY */
 
@@ -115,7 +117,7 @@ PARADYNbreakPoint(void) {
        Use of SIGILL is complex.  If there's a problem with it here,
        specialize this function to avoid it. */
 #endif
-    DYNINSTbreakPoint();
+    pDYNINSTbreakPoint();/* ccw 5 sep 2002 */
     DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
 }
 

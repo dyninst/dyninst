@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.216 2002/08/31 16:53:14 mikem Exp $
+/* $Id: process.h,v 1.217 2002/09/11 15:05:20 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -664,6 +664,14 @@ void saveWorldData(Address address, int size, const void* src);
 	Address mainAddr;
 #endif
 
+#if !defined(i386_unknown_nt4_0) 
+	//ccw 3 sep 2002
+	//These variables are used by UNIX.C during the loading
+	//of the runtime libraries.
+	//
+	bool finishedDYNINSTinit;
+	int RPCafterDYNINSTinit;
+#endif
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount,

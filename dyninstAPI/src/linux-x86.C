@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.5 2002/08/28 21:16:12 chadd Exp $
+// $Id: linux-x86.C,v 1.6 2002/09/11 15:05:19 chadd Exp $
 
 #include <fstream.h>
 
@@ -339,6 +339,12 @@ Address getPC(int pid) {
    Address regaddr = EIP * INTREGSIZE;
    int res;
    res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+   if(errno == ESRCH){ //ccw 6 sep 2002
+	//pause and try again, let the mutatee have time
+	//to ptrace(TRACEME)
+	sleep(2);
+	res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+   }
    if( errno ) {
      perror( "getPC" );
      exit(-1);
@@ -830,6 +836,7 @@ instruction generateTrapInstruction() {
 //and to edit dlopenDYNINSTlib
 #if !defined(BPATCH_LIBRARY)
 bool process::dlopenPARADYNlib() {
+
 #if false && defined(PTRACEDEBUG)
   debug_ptrace = true;
 #endif

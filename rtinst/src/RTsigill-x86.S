@@ -66,8 +66,8 @@
 */
 
     .text
-    .globl DYNINSTsigill
+    .globl pDYNINSTsigill
 
-DYNINSTsigill:
+pDYNINSTsigill:
     ud2
     ret

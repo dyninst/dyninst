@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.354 2002/09/10 17:15:21 mikem Exp $
+// $Id: process.C,v 1.355 2002/09/11 15:05:19 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2127,6 +2127,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   dyninstlib_brk_addr = 0;
+
   main_brk_addr = 0;
 #endif
   
@@ -2682,6 +2683,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyninstlib_brk_addr = 0;
+
     main_brk_addr = 0;
 #endif
 #if defined(alpha_dec_osf4_0)
@@ -3158,7 +3160,14 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 				 ,7000 // shm seg key to try first
 #endif                            
 				 );
+
   assert(theProc);
+#if !defined(i386_unknown_nt4_0)
+  //ccw 3 sep 2002
+  theProc->finishedDYNINSTinit = false;
+  theProc->RPCafterDYNINSTinit = 0;
+#endif
+
   if (!success) {
     // XXX Do we need to do something to get rid of theImage, too?
     delete theProc;
@@ -5924,7 +5933,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     
     //ccw 20 july 2000 : 29 mar 2001
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
-    inProgress.origPC = currentPC(inProgress.lwp);
+    inProgress.origPC = currentPC(inProgress.lwp); 
 #endif
     if (!changePC(RPCImage, theSavedRegs, inProgress.lwp))
       {
@@ -7169,7 +7178,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       statusLine(str.c_str());
 
       extern vector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
-      installInstrRequests(initialRequestsPARADYN);
+      installInstrRequests(initialRequestsPARADYN); 
 
       str=string("PID=") + string(bs_struct.pid) + ", propagating mi's...";
       statusLine(str.c_str());

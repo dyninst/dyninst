@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.67 2002/08/12 04:21:30 schendel Exp $
+// $Id: unix.C,v 1.68 2002/09/11 15:05:20 chadd Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -394,9 +394,6 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 */
 
 
-bool finishedDYNINSTinit = false; //ccw 29 apr 2002 
-int RPCafterDYNINSTinit =0; //ccw 29 apr 2002 
-
 void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    // Note that there are now several uses for SIGTRAPs in paradynd.  The
    // original use was to detect when a ptraced process had started up.
@@ -509,13 +506,13 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    if (curr->handleTrapIfDueToRPC()) {
       inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
 #if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
-      if(curr->wasCreatedViaAttach() && finishedDYNINSTinit && 
+      if(curr->wasCreatedViaAttach() && curr->finishedDYNINSTinit && 
 	 !curr->paradynLibAlreadyLoaded()) { //ccw 19 apr 2002 
-	 RPCafterDYNINSTinit ++;
+	 curr->RPCafterDYNINSTinit ++;
 	 //curr->attachProcessParadyn();
 	 //finishedDYNINSTinit = false;
-	 if(RPCafterDYNINSTinit == 2  ){
-	    finishedDYNINSTinit = false;
+	 if(curr->RPCafterDYNINSTinit == 2  ){ 
+	    curr->finishedDYNINSTinit = false;
 	    curr->attachProcessParadyn();
 	 }
       }
@@ -735,8 +732,17 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    if (dof_fix_ill) {
       Address pc = getPC(pid);
 #if defined(i386_unknown_linux2_0)
-      if (! curr->changePC(pc + 2))
-	 assert(0);
+	//ccw 6 sep 2002 
+	char buf[2];
+	
+	curr->readDataSpace((void*) pc, 2,(void*)buf,true);
+	//
+	//check to make SURE this is really a ud2 -- dont assume
+	//if its not a ud2 just continue like nothing happened
+	if( buf[0] == 0x0f && buf[1] == 0x0b ){ //ccw 6 sep 2002
+	      if (! curr->changePC(pc + 2))
+		 assert(0);
+	}
 #else
       /* Advance past an illegal instruction on IA-64? */
       assert(0);
@@ -759,7 +765,7 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    if (result != 0) {		
 #if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
       if(!curr->paradynLibAlreadyLoaded()) { //ccw 19 apr 2002 
-	 finishedDYNINSTinit = true;
+	 curr->finishedDYNINSTinit = true;
       }
 #endif
       forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid "
@@ -781,7 +787,7 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
 #if !defined(BPATCH_LIBRARY)
    // needed for fork
    if(!curr->paradynLibAlreadyLoaded()) {
-      finishedDYNINSTinit = true;
+      curr->finishedDYNINSTinit = true; 
    }
 #endif
 
