@@ -94,46 +94,6 @@ process *instrThrDataNode::proc() {
   return parentNode->proc();
 }
 
-#if defined(MT_THREAD)
-//
-// reUseIndex only works at the presence of an aggregator.
-// We always need a dummy aggregator for threads metrics, and it is 
-// implemented in mdl.C apply_to_process
-//
-void instrThrDataNode::reUseIndexAndLevel(unsigned &p_allocatedIndex, 
-					  unsigned &p_allocatedLevel)
-{
-   p_allocatedIndex = UI32_MAX;
-   p_allocatedLevel = UI32_MAX;
-
-   instrCodeNode_Val *codeNode = getParent();
-   vector<instrThrDataNode *> dataNodes = codeNode->getDataNodes();
-
-   for (unsigned i=0; i<dataNodes.size(); i++) {
-      instrThrDataNode *dataNode = dataNodes[i];
-      
-      if (dataNode != this) {
-	 dataReqNode *p_dataRequest;
-	 // Assume for all metrics, data are allocated in the same order
-	 // we get the one that was created the earliest
-	 
-	 if (dataNode->numDataRequests() > this->numDataRequests()) {
-	    vector<dataReqNode *> otherThrDRNs = dataNode->getDataRequests();
-	    p_dataRequest = otherThrDRNs[otherThrDRNs.size()-1];
-	    p_allocatedIndex = p_dataRequest->getAllocatedIndex();
-	    p_allocatedLevel = p_dataRequest->getAllocatedLevel();
-#if defined(TEST_DEL_DEBUG)
-	    sprintf(errorLine,"=====> re-using level=%d, index=%d\n",
-		    p_allocatedLevel, p_allocatedIndex);
-	    cerr << errorLine << endl;
-#endif
-	    break;
-	 }
-      }
-   }
-}
-#endif //MT_THREAD
-
 vector<dataReqNode *> instrThrDataNode::getDataRequests() { 
   vector<dataReqNode*> buff;
   if(sampledDataReq != NULL)  buff.push_back(sampledDataReq);
@@ -155,17 +115,11 @@ dataReqNode *instrThrDataNode::makeIntCounter(pdThread *thr,
 {
    dataReqNode *result = NULL;
 
-#ifdef MT_THREAD
    // shared memory sampling of a reported intCounter
    result = new sampledShmIntCounterReqNode(thr, initialValue,
                                             incrementCounterId(), proc(),
 					    dontInsertData_, doNotSample,
 					    *index, *level);
-#else
-   result = new sampledShmIntCounterReqNode(initialValue,
-                                            incrementCounterId(), proc(),
-					    dontInsertData_, doNotSample);
-#endif //MT_THREAD
    *level = result->getAllocatedLevel();
    *index = result->getAllocatedIndex();
       // implicit conversion to base class
@@ -262,15 +216,9 @@ dataReqNode *instrThrDataNode::makeWallTimer(pdThread *thr, unsigned *level,
 {
    dataReqNode *result = NULL;
 
-#if defined(MT_THREAD)
    result = new sampledShmWallTimerReqNode(thr, incrementCounterId(), 
 					   proc(), dontInsertData_, 
 					   *index, *level);
-      // implicit conversion to base class
-#else
-   result = new sampledShmWallTimerReqNode(incrementCounterId(), proc(), 
-					   dontInsertData_);
-#endif //MT_THREAD
    *level = result->getAllocatedLevel();
    *index = result->getAllocatedIndex();
 
@@ -300,15 +248,9 @@ dataReqNode *instrThrDataNode::makeProcessTimer(pdThread *thr, unsigned *level,
 {
    dataReqNode *result = NULL;
 
-#if defined(MT_THREAD)
    result = new sampledShmProcTimerReqNode(thr, incrementCounterId(), 
 					   proc(), dontInsertData_, 
 					   *index, *level);
-      // implicit conversion to base class
-#else
-   result = new sampledShmProcTimerReqNode(incrementCounterId(), proc(),
-					   dontInsertData_);
-#endif //MT_THREAD
    *level = result->getAllocatedLevel();
    *index = result->getAllocatedIndex();
 
