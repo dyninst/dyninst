@@ -1,7 +1,13 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.8  1994/11/04 15:57:45  tamches
+# Revision 1.9  1994/11/08 06:09:57  tamches
+# An entire float tunable gets "hilited" when the mouse enters, just like
+# a checkbutton.
+# Added numbering information to the left and right of the scale
+# Improved sizing algorithms.  Now have a good minsize.
+#
+# Revision 1.8  1994/11/04  15:57:45  tamches
 # Developmode flag is now read from the "developerMode" tc, and is treated
 # as any other tc.  "Enter Developer Mode" menu removed; only the help
 # menu remains.
@@ -37,13 +43,11 @@
 #
 
 # To do list:
-# 1) buttons in the center
-# 2) if user deletes tunable descriptions window (using window mgr), then
+# 1) if user deletes tunable descriptions window (using window mgr), then
 #    we'll get confused because tunable descriptions will still be true.
 #    Would like to detect when a window is destroyed, and set tunable descriptions
 #    false.  Something tells me this is doable in tcl.
-# 3) Align checkboxes
-# 4) expand scale widgets on window resize, while keeping aligned
+# 2) box around float tunables, if it would look better
 
 # #################### Some Misc Routines #####################
 proc max {x y} {
@@ -54,47 +58,31 @@ proc max {x y} {
    }
 }
 
+# warning!  These routines will return an old number if an important
+# event (i.e. resize) happened but idle routines haven't yet kicked in.
+# --> *** In such cases, be sure to grab the latest information directly
+#         from the event structure instead of calling these routines!!!!
 proc getWindowWidth {wName} {
-   # warning!  This routine will return an old number if an important
-   # event (i.e. resize) happened but idle routines haven't yet kicked in.
-   # --> *** In such cases, be sure to grab the latest information directly
-   #         from the event structure instead of calling this routine!!!!
-
    set result [winfo width $wName]
    if {$result == 1} {
       # hack for a window that hasn't yet been mapped
       set result [winfo reqwidth $wName]
    }
-
    return $result
 }
 
 proc getWindowHeight {wName} {
-   # warning!  This routine will return an old number if an important
-   # event (i.e. resize) happened but idle routines haven't yet kicked in.
-   # --> *** In such cases, be sure to grab the latest information directly
-   #         from the event structure instead of calling this routine!!!!
-
    set result [winfo height $wName]
    if {$result == 1} {
-      # hack for a window that hasn't yet been mapped
       set result [winfo reqheight $wName]
    }
-
    return $result
 }
 # #############################################################
 
 proc tunableInitialize {} {
-   global tunableMinWidth
    global tunableMinHeight
-   global tunableMaxWidth
-   global tunableMaxHeight
-
-   set tunableMinWidth 275
    set tunableMinHeight 175
-   set tunableMaxWidth 700
-   set tunableMaxHeight 600
 
    toplevel .tune -class Tunable
    wm title .tune "Tunable Constants"
@@ -141,26 +129,12 @@ proc tunableInitialize {} {
    pack  .tune.top.left.mbar -side bottom -fill x -expand false
       # expand is false; if the window is made taller, we don't want the extra height
    
-#   menubutton .tune.top.left.mbar.file -text File -menu .tune.top.left.mbar.file.m
-#   menu .tune.top.left.mbar.file.m
-#   .tune.top.left.mbar.file.m add command -label "Accept Change(s)" \
-#               -command processCommitFinalTunableValues
-#   .tune.top.left.mbar.file.m add command -label "Cancel" \
-#               -command processDiscardFinalTunableValues
-
-#   menubutton .tune.top.left.mbar.options -text Options -menu .tune.top.left.mbar.options.m
-#   menu .tune.top.left.mbar.options.m
-#   .tune.top.left.mbar.options.m add command -label "Enter Developer Mode" \
-#               -command processDeveloperModeChange
-
    menubutton .tune.top.left.mbar.help -text Help -menu .tune.top.left.mbar.help.m
    menu .tune.top.left.mbar.help.m
    .tune.top.left.mbar.help.m add command -label "Show Tunable Descriptions" \
                -command processShowTunableDescriptions
 
-#   pack .tune.top.left.mbar.options -side left -padx 4
    pack .tune.top.left.mbar.help -side right -padx 4
-#   tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.options .tune.top.left.mbar.help
    tk_menuBar .tune.top.left.mbar .tune.top.left.mbar.help
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
@@ -212,17 +186,13 @@ proc tunableInitialize {} {
    pack propagate .tune.middle.canvas false
    pack   .tune.middle.canvas -side left -fill both -expand true
       # expand is true; we want extra height & width is the window is resized
-
-   # without the following 2 lines, fvwm doesn't let us resize the window
-   wm minsize .tune $tunableMinWidth $tunableMinHeight
-#   wm maxsize .tune $tunableMaxWidth $tunableMaxHeight
 }
 
 proc procNewScrollPosition {newTop} {
    # invoked to change the view of the canvas associated with this scrollbar.
    # called when the scrollbar is repositioned.
-   # interestingly, the screen is not yet updated with the new scrollbar position!
-   # that happens in "myScroll" (below) which is invoked as a result of the canvas
+   # Interestingly, the screen is not yet updated with the new scrollbar position!
+   # That happens in "myScroll" (below) which is invoked as a result of the canvas
    # view change that we do here (...canvas.yview $newTop)
    if {$newTop < 0} {
       set newTop 0
@@ -248,8 +218,7 @@ proc myScroll {totalSize visibleSize left right} {
    # gets called whenever the canvas view changes or gets resized.
    # This includes every scroll the user makes (yikes)
    # Gives us a chance to rethink the bounds of the scrollbar
-   global lastVisibleHeight
-   global lastVisibleWidth
+   global lastVisibleHeight lastVisibleWidth
 
 #   puts stderr "Welcome to myScroll; total=$totalSize, visible=$visibleSize, left=$left, right=$right"
 
@@ -313,10 +282,15 @@ proc tunableBoolLabelRelease {lcv} {
    $valuesLabelWin configure -relief flat
 }
 
+proc buttonBind {theButton lcv} {
+   bind $theButton <Enter> "tunableBoolLabelEnter $lcv"
+   bind $theButton <Leave> "tunableBoolLabelLeave $lcv"
+   bind $theButton <ButtonPress-1> "tunableBoolLabelPress $lcv"
+   bind $theButton <ButtonRelease-1> "tunableBoolLabelRelease $lcv"
+}
 proc drawBoolTunable {lcv} {
    global nextStartY
    global namesWidth
-#   global valuesWidth
 
    global numTunablesDrawn
    global newTunableValues
@@ -343,9 +317,10 @@ proc drawBoolTunable {lcv} {
    pack $valuesWin.dummy -side left -fill y
 
    # In order to get the appearance of a checkbutton with the on/off red square
-   # on the right instead of on the left, we use 2 checkbuttons: the leftmost
+   # on the right instead of on the left, we use 3 checkbuttons: the leftmost
    # one has the title but has -selector "" to turn off the square; the second
-   # one (to the right) has a square but no text.
+   # one (to the right) has a square but no text.  A third is used for padding
+   # in the middle
    # why not a label plus a square?  Because labels cannot be highlighted
    # as checkbuttons can
 
@@ -362,25 +337,12 @@ proc drawBoolTunable {lcv} {
    set dummyButton $valuesWin.dummy
    set rightButton $valuesLabelWin
 
-   bind $leftButton <Enter> "tunableBoolLabelEnter $numTunablesDrawn"
-   bind $leftButton <Leave> "tunableBoolLabelLeave $numTunablesDrawn"
-   bind $leftButton <ButtonPress-1> "tunableBoolLabelPress $numTunablesDrawn"
-   bind $leftButton <ButtonRelease-1> "tunableBoolLabelRelease $numTunablesDrawn"
-
-   bind $dummyButton <Enter> "tunableBoolLabelEnter $numTunablesDrawn"
-   bind $dummyButton <Leave> "tunableBoolLabelLeave $numTunablesDrawn"
-   bind $dummyButton <ButtonPress-1> "tunableBoolLabelPress $numTunablesDrawn"
-   bind $dummyButton <ButtonRelease-1> "tunableBoolLabelRelease $numTunablesDrawn"
-
-   bind $rightButton <Enter> "tunableBoolLabelEnter $numTunablesDrawn"
-   bind $rightButton <Leave> "tunableBoolLabelLeave $numTunablesDrawn"
-   bind $rightButton <ButtonPress-1> "tunableBoolLabelPress $numTunablesDrawn"
-   bind $rightButton <ButtonRelease-1> "tunableBoolLabelRelease $numTunablesDrawn"
+   buttonBind $leftButton $numTunablesDrawn
+   buttonBind $dummyButton $numTunablesDrawn
+   buttonBind $rightButton $numTunablesDrawn
 
    set namesWidth  [max $namesWidth [getWindowWidth $leftButton]]
    set namesWidth  [max $namesWidth [getWindowWidth $namesWin]]
-#   set valuesWidth [max $valuesWidth [getWindowWidth $rightButton]]
-#   set valuesWidth [max $valuesWidth [getWindowWidth $valuesWin]]
 
    set theHeight [max [getWindowHeight $leftButton] [getWindowHeight $rightButton]]
 
@@ -410,12 +372,64 @@ proc everyChangeCommand {lcv newValue} {
    # entry widget had its -textvariable set to this vrble
 }
 
+proc bindFloatEnter {lcv} {
+   .tune.middle.canvas.names.tunable$lcv.label configure -background lightGray
+   if {[winfo exists .tune.middle.canvas.names.tunable$lcv.padding]} {
+      .tune.middle.canvas.names.tunable$lcv.padding configure -background lightGray
+   }
+
+   .tune.middle.canvas.values.tunable$lcv.label configure -background lightGray
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.top]} {
+      .tune.middle.canvas.values.tunable$lcv.left.top configure -background lightGray
+   }
+   .tune.middle.canvas.values.tunable$lcv.left configure -background lightGray
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.leftTick]} {
+      .tune.middle.canvas.values.tunable$lcv.left.leftTick configure -background lightGray
+      .tune.middle.canvas.values.tunable$lcv.left.rightTick configure -background lightGray
+   }
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.padAfterRightTick]} {
+      .tune.middle.canvas.values.tunable$lcv.left.padAfterRightTick configure -background lightGray
+   }
+
+   set entryWin .tune.middle.canvas.values.tunable$lcv.right.top.entry
+   if {[winfo exists $entryWin]} {
+      $entryWin configure -background lightGray
+   }
+}
+proc bindFloatLeave {lcv} {
+   .tune.middle.canvas.names.tunable$lcv.label configure -background gray
+   if {[winfo exists .tune.middle.canvas.names.tunable$lcv.padding]} {
+      .tune.middle.canvas.names.tunable$lcv.padding configure -background gray
+   }
+
+   .tune.middle.canvas.values.tunable$lcv.label configure -background gray
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.top]} {
+      .tune.middle.canvas.values.tunable$lcv.left.top configure -background gray
+   }
+   .tune.middle.canvas.values.tunable$lcv.left configure -background gray
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.leftTick]} {
+      .tune.middle.canvas.values.tunable$lcv.left.leftTick configure -background gray
+      .tune.middle.canvas.values.tunable$lcv.left.rightTick configure -background gray
+   }
+   if {[winfo exists .tune.middle.canvas.values.tunable$lcv.left.padAfterRightTick]} {
+      .tune.middle.canvas.values.tunable$lcv.left.padAfterRightTick configure -background gray
+   }
+
+   set entryWin .tune.middle.canvas.values.tunable$lcv.right.top.entry
+   if {[winfo exists $entryWin]} {
+      $entryWin configure -background gray
+   }
+}
+
 proc dummySuppressChar {} {
 }
-proc drawFloatTunable {lcv} {
+proc valueBind {theWindow lcv} {
+   bind $theWindow <Enter> "bindFloatEnter $lcv"
+   bind $theWindow <Leave> "bindFloatLeave $lcv"
+}
+proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
    global nextStartY
    global namesWidth
-#   global valuesWidth
 
    global numTunablesDrawn
    global newTunableValues
@@ -432,76 +446,120 @@ proc drawFloatTunable {lcv} {
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
    
-   # sub-window (will hold scale and entry widgets)
-#   frame $namesWin
-#   place $namesWin -x 0 -y $nextStartY -relwidth 1.0
-#   pack  $namesWin -side top -fill x -expand true
-      # expand is false; if the window is made taller, we don't want the extra height
-
    # label widget for the floating tunable's name
-   set labelFont *-Helvetica-*-r-*-14-*
-   label $namesWin -text $tunableName -anchor w -font $labelFont -height 1
-#   entry $namesWin -text $tunableName -font $labelFont
-   pack  $namesWin -side top -fill x
-
    frame $valuesWin
    pack  $valuesWin -side top -fill x -expand true
 
    # dummy label widget (so the right side of the screen will be as tall as the left)
+   set labelFont *-Helvetica-*-r-*-14-*
    label $valuesWin.label -relief flat -height 1 -font $labelFont
-   pack $valuesWin.label -side left -fill y
+   pack  $valuesWin.label -side left -fill y
+   valueBind $valuesWin.label $numTunablesDrawn
 
+   frame $valuesWin.left
+   pack  $valuesWin.left -side left -fill both -expand true
+   valueBind $valuesWin.left $numTunablesDrawn
+
+   frame $valuesWin.right
+   pack  $valuesWin.right -side right -fill y
+
+   frame $valuesWin.right.top
+   pack  $valuesWin.right.top -side top -fill x
+   
+   frame $valuesWin.right.bottom
+   pack  $valuesWin.right.bottom -side bottom -fill both -expand true
+   
    # entry widget
-   # [other options to try: -font -width (# chars, not #pix)]
-   entry $valuesWin.entry -relief sunken \
-	   -textvariable newTunableValues($lcv) -width 8 -font $labelFont
-   # for debugging:
-#   bind $valuesWin.entry <Key> {puts stderr "hello %K"}
+   set entryWin $valuesWin.right.top.entry
+   entry $entryWin -relief sunken -textvariable newTunableValues($lcv) -width 8 -font $labelFont
 
    # turn off some useless characters (such as "return" key)
-   bind $valuesWin.entry <Return>   {dummySuppressChar}
-   bind $valuesWin.entry <Tab>      {dummySuppressChar}
-   bind $valuesWin.entry <KP_Enter> {dummySuppressChar}
+#   bind $entryWin <Key> {puts stderr "hello %K"}
+   bind $entryWin <Return>   {dummySuppressChar}
+   bind $entryWin <Tab>      {dummySuppressChar}
+   bind $entryWin <KP_Enter> {dummySuppressChar}
+   valueBind $entryWin $numTunablesDrawn
 
-   pack $valuesWin.entry -side right -expand false
+   pack $entryWin -side right -expand false
       # expand is false; if the window is made taller, we don't want the extra height
 
    # scale widget 
+   set tickFont *-Helvetica-*-r-*-12-*
+
+   set tickWin $valuesWin.left
+   # a bit of padding between the rightmost tick and the entry widget
+   # (even if a rightmost tick doesn't exist)
+   frame $tickWin.padAfterRightTick -width 10
+   pack  $tickWin.padAfterRightTick -side right
+   valueBind $tickWin.padAfterRightTick $numTunablesDrawn
+
    if {$tunableMin!=0 || $tunableMax!= 0} {
+      label $tickWin.leftTick -text $tunableMin -font $tickFont -width $leftTickWidth -anchor e
+      pack $tickWin.leftTick -side left
+      valueBind $tickWin.leftTick $numTunablesDrawn
+
+      label $tickWin.rightTick -text $tunableMax -font $tickFont -width $rightTickWidth -anchor w
+      pack $tickWin.rightTick -side right -fill y
+      valueBind $tickWin.rightTick $numTunablesDrawn
+
       # [other options to try: -font -length -sliderlength -width -showValue]
-      scale $valuesWin.scale -orient horizontal \
+      set scaleWin $valuesWin.left.top
+
+      scale $scaleWin -orient horizontal \
 	      -relief flat \
 	      -command "everyChangeCommand $lcv" \
 	      -from [expr $integerScaleFactor * $tunableMin] \
 	      -to   [expr $integerScaleFactor * $tunableMax] \
 	      -showvalue false
-      pack $valuesWin.scale -side left -fill x -expand true
+
+#	      -width [winfo reqheight $entryWin] (makes it too tall for some reason)
+
+      valueBind $scaleWin $numTunablesDrawn
 
       # initialize the scale setting
-      $valuesWin.scale set [expr round($integerScaleFactor * $newTunableValues($lcv))]
+      $scaleWin set [expr round($integerScaleFactor * $newTunableValues($lcv))]
+      pack $scaleWin -side top -fill x -expand true
    }
 
-   set namesWidth  [max $namesWidth [getWindowWidth $namesWin]]
-#   set valuesWidth [max $valuesWidth [getWindowWidth $valuesWin.entry]]
-   set theHeight [max [getWindowHeight $namesWin] [getWindowHeight $valuesWin.entry]]
-
+   # finding the height of the values window is difficult; the frames don't
+   # seem to have a size at this point, even though they and all their children
+   # have been packed.   
+   set valuesWinHeight [getWindowHeight $entryWin]
    if {$tunableMin!=0 || $tunableMax!=0} {
-#      set valuesWidth [max $valuesWidth [getWindowWidth $valuesWin.scale]]
-      set theHeight   [max $theHeight   [getWindowHeight $valuesWin.scale]]
+      set valuesWinHeight [max $valuesWinHeight [getWindowHeight $scaleWin]]
    }
 
-   set theHeight [max $theHeight [getWindowHeight $valuesWin]]
+   # Now for the left (the name label widget)
+   frame $namesWin -height $valuesWinHeight
+   pack  $namesWin -side top -fill x -expand true
+
+   label $namesWin.label -text $tunableName -anchor w -font $labelFont -height 1
+   pack  $namesWin.label -side top -fill x
+   valueBind $namesWin.label $numTunablesDrawn
+
+   set paddingHeight [expr $valuesWinHeight - [getWindowHeight $namesWin.label]]
+#   puts stderr "paddingHeight=$paddingHeight"
+   if {$paddingHeight > 0} {
+      frame $namesWin.padding -height $paddingHeight
+      pack  $namesWin.padding -side bottom -fill both
+      valueBind $namesWin.padding $numTunablesDrawn
+   }
+
+   # finding the height of the left window is easy; it has no frames to confuse us
+   set namesWinHeight [max [getWindowHeight $namesWin] [getWindowHeight $namesWin.label]]
+
+   set theHeight [max $namesWinHeight $valuesWinHeight]
 
    # update the frames' (plural) heights so they're equal
-#   $namesWin  configure -height $theHeight
+#   puts stderr "theHeight=$theHeight"
+
+   $namesWin  configure -height $theHeight
    $valuesWin configure -height $theHeight
 
-   set namesWidth  [max $namesWidth  [getWindowWidth $namesWin]]
-#   set valuesWidth [max $valuesWidth [getWindowWidth $valuesWin]]
+   set namesWidth  [max $namesWidth  [getWindowWidth $namesWin.label]]
 
-   set lh [getWindowHeight $namesWin]
-   set rh [getWindowHeight $valuesWin]
    set nextStartY [expr $nextStartY + $theHeight]
+#   puts stderr "nextStartY now $nextStartY"
    incr numTunablesDrawn
 }
 
@@ -509,10 +567,8 @@ proc drawTunables {newWidth newHeight} {
    global numTunablesDrawn
    global nextStartY
    global namesWidth
-#   global valuesWidth
    global DeveloperModeFlag
-
-#   puts stderr "Welcome to drawTunables; width=$newWidth, height=$newHeight"
+   global tunableMinWidth tunableMinHeight
 
    # First, erase old stuff on the screen
    .tune.middle.canvas delete tunableTag
@@ -531,7 +587,26 @@ proc drawTunables {newWidth newHeight} {
 
    set nextStartY 0
    set namesWidth 0
-#   set valuesWidth 0
+
+   # Determine the max # chars needed for the ticks
+   set leftTickWidth 0
+   set rightTickWidth 0
+   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
+      set tunableType [uimpd tclTunable gettypebyindex $lcv]
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+
+      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
+      set tunableBounds      [uimpd tclTunable getfloatrangebyindex $lcv]
+
+      # if both 0.0, then as far as we're concerned, there are no min/max values.
+      set tunableMin [lindex $tunableBounds 0]
+      set tunableMax [lindex $tunableBounds 1]
+
+      if {$tunableMin!=0 || $tunableMax!=0} {
+         set leftTickWidth [max $leftTickWidth [string length $tunableMin]]
+         set rightTickWidth [max $rightTickWidth [string length $tunableMax]]
+      }
+   }
 
    # make two passes---draw all boolean tunables, then all float tunables.
    # (looks nicer on screen that way...)
@@ -541,23 +616,15 @@ proc drawTunables {newWidth newHeight} {
 
       # If this tunable constant is a "developer" one, and if we
       # are not in developer mode, then skip it.
-      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
-
-      if {$tunableType == "bool"} {
-         drawBoolTunable $lcv
-      }
+      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="bool"} continue
+      drawBoolTunable $lcv
    }
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
       set tunableType [uimpd tclTunable gettypebyindex $lcv]
       set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
 
-      # If this tunable constant is a "developer" one, and if we
-      # are not in developer mode, then skip it.
-      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
-
-      if {$tunableType == "float"} {
-         drawFloatTunable $lcv
-      }
+      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
+      drawFloatTunable $lcv $leftTickWidth $rightTickWidth
    }
 
    # the above calls will have updated:
@@ -565,18 +632,31 @@ proc drawTunables {newWidth newHeight} {
    # nextStartY (will now be total height, in pixels, of the canvas)
 
    set namesWidth  [max $namesWidth  [getWindowWidth .tune.middle.canvas.names]]
-#   set valuesWidth [max $valuesWidth [getWindowWidth .tune.middle.canvas.values]]
+   set valuesWidth [expr [getWindowWidth .tune.middle.canvas] - $namesWidth]
 
    .tune.middle.canvas create window 0 0 \
 	-anchor nw -tag tunableTag \
 	-window .tune.middle.canvas.names
 
-   set valuesWidth [expr [getWindowWidth .tune.middle.canvas] - $namesWidth]
-
    .tune.middle.canvas create window $namesWidth 0 \
 	   -anchor nw -tag tunableTag \
 	   -window .tune.middle.canvas.values \
 	   -width $valuesWidth
+
+   set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 240]
+   wm minsize .tune $goodMinWidth $tunableMinHeight
+
+   set oldGeometry [wm geometry .tune]
+   if {$oldGeometry!="1x1+0+0"} {
+      set numscanned [scan $oldGeometry "%dx%d+%d+%d" oldWidth oldHeight oldx oldy]
+      if {$numscanned==4} {
+         if {$oldWidth < $goodMinWidth} {
+            wm geometry .tune [format "%dx%d+%d+%d" $goodMinWidth $oldHeight $oldx $oldy]
+         }
+      } else {
+         puts stderr "tclTunable.tcl: could not scan geometry...won't try to resize"
+      }
+   }
 
    rethinkScrollBarRegions [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]
 }
@@ -614,8 +694,7 @@ proc rethinkScrollBarRegions {newWidth newHeight} {
 }
 
 proc gatherInitialTunableValues {} {
-   global origTunableValues
-   global  newTunableValues
+   global origTunableValues newTunableValues
 
    set numTunables [uimpd tclTunable getnumtunables]
 
@@ -624,14 +703,11 @@ proc gatherInitialTunableValues {} {
 
       set origTunableValues($lcv) [uimpd tclTunable getvaluebyindex $lcv]
       set newTunableValues($lcv) $origTunableValues($lcv)
-
-#      puts stderr "initial value for #$lcv=$origTunableValues($lcv)"
    }
 }
 
 proc processCommitFinalTunableValues {} {
-   global origTunableValues
-   global  newTunableValues
+   global origTunableValues newTunableValues
 
    set numTunables [uimpd tclTunable getnumtunables]
 
@@ -647,32 +723,6 @@ proc processCommitFinalTunableValues {} {
    tunableExitPoint
 }
 
-#proc processDeveloperModeChange {} {
-#   global DeveloperModeFlag
-#   global tunableDescriptionsIsUp
-#
-#   set DeveloperModeFlag [expr 1-$DeveloperModeFlag]
-#
-#   if {$DeveloperModeFlag == 1} {
-#      .tune.top.left.mbar.options.m entryconfigure 1 -label "Leave Developer Mode"
-##      puts stderr "Warning: you are now in 'developer mode'"
-#   } else {
-#      .tune.top.left.mbar.options.m entryconfigure 1 -label "Enter Developer Mode"
-##      puts stderr "Leaving 'developer mode'..."
-#   }
-#
-#   # simulate a configure event in the canvas
-#   set newWidth  [getWindowWidth  .tune.middle.canvas]
-#   set newHeight [getWindowHeight .tune.middle.canvas]
-#
-#   drawTunables $newWidth $newHeight
-#
-#   # and if the descriptions window is up, make some changes there too
-#   if {$tunableDescriptionsIsUp == 1} {
-#      drawTunableDescriptions
-#   }
-#}
-
 proc processDiscardFinalTunableValues {} {
    tunableExitPoint
 }
@@ -680,22 +730,15 @@ proc processDiscardFinalTunableValues {} {
 # ******************* Tunable Descriptions Stuff *****************
 
 proc processShowTunableDescriptions {} {
-   global tunableDescriptionsIsUp
    global numTunableDescriptionsDrawn
-   global tunableTitleFont
-   global tunableDescriptionFont
-   global tunableDescriptionsMinWidth
-   global tunableDescriptionsMinHeight
-   global tunableDescriptionsMaxWidth
-   global tunableDescriptionsMaxHeight
-   global lastVisibleDescriptionsWidth
-   global lastVisibleDescriptionsHeight
+   global tunableTitleFont tunableDescriptionFont
+   global tunableDescriptionsMinWidth tunableDescriptionsMinHeight
+   global tunableDescriptionsMaxWidth tunableDescriptionsMaxHeight
+   global lastVisibleDescriptionsWidth lastVisibleDescriptionsHeight
 
-   if {$tunableDescriptionsIsUp == 1} {
-#      puts stderr "tunable descriptions are already up!"
+   if {[winfo exists .tunableDescriptions]} {
       return
    }
-   set tunableDescriptionsIsUp 1
 
    set numTunableDescriptionsDrawn 0
 
@@ -704,8 +747,6 @@ proc processShowTunableDescriptions {} {
 
    set tunableDescriptionsMinWidth  150
    set tunableDescriptionsMinHeight 150
-   set tunableDescriptionsMaxWidth  800
-   set tunableDescriptionsMaxHeight 800
 
    set lastVisibleDescriptionsWidth 0
    set lastVisibleDescriptionsHeight 0
@@ -743,7 +784,6 @@ proc processShowTunableDescriptions {} {
       # expand is true; we want extra width & height if window is resized
 
    wm minsize .tunableDescriptions $tunableDescriptionsMinWidth $tunableDescriptionsMinHeight
-   wm maxsize .tunableDescriptions $tunableDescriptionsMaxWidth $tunableDescriptionsMaxHeight
 
    drawTunableDescriptions
 }
@@ -833,23 +873,17 @@ proc drawTunableDescriptions {} {
    # to keep in sync with .tune, we draw boolean ones first
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
       set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
-      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
-
       set tunableType [uimpd tclTunable gettypebyindex $lcv]
+      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="bool"} continue
 
-      if {$tunableType == "bool"} {
-         draw1TunableDescription $lcv
-      }
+      draw1TunableDescription $lcv
    }
    for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
       set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
-      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
-
       set tunableType [uimpd tclTunable gettypebyindex $lcv]
+      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
 
-      if {$tunableType == "float"} {
-         draw1TunableDescription $lcv
-      }
+      draw1TunableDescription $lcv
    }
 
    rethinkTunableDescriptionsScrollbarRegion
@@ -889,13 +923,10 @@ proc myDescriptionsScroll {totalSize visibleSize left right} {
    global lastVisibleDescriptionsHeight
    global lastVisibleDescriptionsWidth
 
-#   puts stderr "Welcome to myDescriptionsScroll; total=$totalSize, visible=$visibleSize, left=$left, right=$right"
-
    set newWidth  [getWindowWidth  .tunableDescriptions.top.canvas]
    set newHeight [getWindowHeight .tunableDescriptions.top.canvas]
 
    if {$lastVisibleDescriptionsHeight != $newHeight || $lastVisibleDescriptionsWidth != $newWidth} {
-#      puts stderr "myDescriptionsScroll: performing expensive redraw"
       drawTunableDescriptions
    } else {
       .tunableDescriptions.top.scrollbar set $totalSize $visibleSize $left $right
@@ -933,12 +964,9 @@ proc tunableDescriptionsNewScrollPosition {newTop} {
 }
 
 proc closeTunableDescriptions {} {
-   global tunableDescriptionsIsUp
    global numTunableDescriptionsDrawn
-
    set numTunableDescriptionsDrawn 0
 
-   set tunableDescriptionsIsUp 0
    destroy .tunableDescriptions
 }
 
@@ -949,17 +977,17 @@ proc tunableEntryPoint {} {
    global nextStartY
    global integerScaleFactor
    global DeveloperModeFlag
-   global tunableDescriptionsIsUp
-   global lastVisibleWidth
-   global lastVisibleHeight
+   global lastVisibleWidth lastVisibleHeight
+
+   if {[winfo exists .tune]} {
+      # tunable constants is already up!
+      return
+   }
 
    set DeveloperModeFlag [uimpd tclTunable getvaluebyname developerMode]
-#   puts stderr "Welcome to tunableEntryPoint (tcl): developerMode=$DeveloperModeFlag"
 
    set lastVisibleWidth 0
    set lastVisibleHeight 0
-
-   set tunableDescriptionsIsUp 0
 
    tunableInitialize
 
@@ -968,10 +996,7 @@ proc tunableEntryPoint {} {
    set nextStartY 0
    set integerScaleFactor 20
 
-   set newWidth  [getWindowWidth  .tune.middle.canvas]
-   set newHeight [getWindowHeight .tune.middle.canvas]
-
-   drawTunables $newWidth $newHeight
+   drawTunables [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]
 }
 
 proc tunableExitPoint {} {
@@ -979,22 +1004,18 @@ proc tunableExitPoint {} {
    global nextStartY
    global integerScaleFactor
    global DeveloperModeFlag
-   global origTunableValues
-   global  newTunableValues
-   global tunableMinWidth
+   global origTunableValues newTunableValues
    global tunableMinHeight
-   global tunableMaxWidth
-   global tunableMaxHeight
-   global tunableDescriptionsIsUp
+   global lastVisibleWidth lastVisibleHeight
 
    # destroy our toplevel windows (and all their subwindows)
    destroy .tune
 
-   if {$tunableDescriptionsIsUp == 1} {
-      set tunableDescriptionsIsUp false
+   if {[winfo exists .tunableDescriptions]} {
       destroy .tunableDescriptions
    }
 
-   unset numTunablesDrawn nextStartY integerScaleFactor origTunableValues newTunableValues
-   unset DeveloperModeFlag tunableMaxWidth tunableMaxHeight tunableDescriptionsIsUp
+   unset numTunablesDrawn nextStartY integerScaleFactor origTunableValues
+   unset newTunableValues DeveloperModeFlag tunableMinHeight
+   unset lastVisibleWidth lastVisibleHeight
 }
