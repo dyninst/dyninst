@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.14 2002/11/25 23:52:33 schendel Exp $ */
+/* $Id: rootNode.C,v 1.15 2003/03/06 18:50:23 willb Exp $ */
 
 #include <assert.h>
 
@@ -60,9 +60,20 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
    highlighted = false;
    retired = false;
 
+   const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
+   mfl = mfl ? mfl : "0";
+   int abbrevLength = atoi(mfl);
+   if(name.length() > abbrevLength && abbrevLength != 0) {
+       abbrevName = name.substr(0, abbrevLength / 2);
+       abbrevName += string("...");
+       abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
+   } else {
+       abbrevName = name;
+   }
+   
    pixWidthAsRoot = borderPix + horizPad +
       Tk_TextWidth(whereAxis::getRootItemFontStruct(),
-                   name.c_str(), name.length()) +
+                   abbrevName.c_str(), abbrevName.length()) +
                    horizPad + borderPix;
 
    Tk_FontMetrics rootItemFontMetrics; // filled in
@@ -73,7 +84,7 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
                      vertPad + borderPix;
 
    pixWidthAsListboxItem = Tk_TextWidth(whereAxis::getListboxItemFontStruct(),
-                                        name.c_str(), name.length());
+                                        abbrevName.c_str(), abbrevName.length());
 }
 
 void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
@@ -119,8 +130,8 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
    }
 
    Tk_DrawChars(Tk_Display(theTkWindow), theDrawable, textGC,
-		whereAxis::getRootItemFontStruct(), name.c_str(), 
-                name.length(), textLeft, textBaseLine);
+		whereAxis::getRootItemFontStruct(), abbrevName.c_str(), 
+                abbrevName.length(), textLeft, textBaseLine);
 }
 
 GC whereAxisRootNode::getGCforListboxRay(const whereAxisRootNode &, // parent
@@ -196,7 +207,7 @@ void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
 
    Tk_DrawChars(Tk_Display(theTkWindow), theDrawable, textGC,
                 whereAxis::getRootItemFontStruct(),	// is this correct?
-		name.c_str(), name.length(), textLeft, textBaseline);
+		abbrevName.c_str(), abbrevName.length(), textLeft, textBaseline);
 }
 
 

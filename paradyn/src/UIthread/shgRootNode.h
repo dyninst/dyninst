@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.9 2002/11/25 23:52:31 schendel Exp $ */
+/* $Id: shgRootNode.h,v 1.10 2003/03/06 18:50:23 willb Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -67,6 +67,7 @@ class shgRootNode {
 
    unsigned id;
    string label;
+   string abbrevLabel;
    string fullInfo;
       // note: now that we have a perf cons igen call getNodeInfo(), perhaps
       // keeping "fullInfo" here is a mistake?

@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.10 2002/11/25 23:52:34 schendel Exp $ */
+/* $Id: rootNode.h,v 1.11 2003/03/06 18:50:23 willb Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -61,6 +61,8 @@
 #include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
 
+#include <unistd.h>
+
 // This class is intended to be used as the template type of where4tree<>
 // for the where axis.  For the search history graph, try some other type.
 // In particular, this class contains a resourceHandle, while is not applicable
@@ -71,6 +73,7 @@ class whereAxisRootNode {
    resourceHandle uniqueId;
 
    string name; // name of the root of this subtree
+   string abbrevName;
    bool highlighted;
    bool retired;
 
@@ -90,6 +93,18 @@ class whereAxisRootNode {
 
    whereAxisRootNode(resourceHandle uniqueId, const string &init_str);
    whereAxisRootNode(const whereAxisRootNode &src)  : name(src.name) {
+
+      const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
+      mfl = mfl ? mfl : "0";
+      int abbrevLength = atoi(mfl);
+      if(name.length() > abbrevLength && abbrevLength != 0) {
+          abbrevName = name.substr(0, abbrevLength / 2);
+          abbrevName += string("...");
+          abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
+      } else {
+          abbrevName = name;
+      }
+      
       uniqueId = src.uniqueId;
       highlighted = src.highlighted;
       retired = src.retired;

@@ -42,7 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Id: shgRootNode.C,v 1.11 2002/05/13 19:53:28 mjbrim Exp $ */
+/* $Id: shgRootNode.C,v 1.12 2003/03/06 18:50:23 willb Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"
@@ -60,6 +60,18 @@ void shgRootNode::initialize(unsigned iId,
    hidden = iHidden;
 
    label = iLabel;
+
+   const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
+   mfl = mfl ? mfl : "0";
+   int abbrevLength = atoi(mfl);
+   if(label.length() > abbrevLength && abbrevLength != 0) {
+       abbrevLabel = label.substr(0, abbrevLength / 2);
+       abbrevLabel += string("...");
+       abbrevLabel += label.substr(label.length() - (abbrevLength / 2), label.length());
+   } else {
+       abbrevLabel = label;
+   }
+
    fullInfo = iFullInfo;
 
    id = iId;
@@ -76,7 +88,7 @@ void shgRootNode::initialize(unsigned iId,
 
    pixWidthAsRoot = borderPix + horizPad // static members
                   + Tk_TextWidth(rootItemFontStruct,
-                                 label.c_str(), label.length()) +
+                                 abbrevLabel.c_str(), abbrevLabel.length()) +
                   + horizPad + borderPix;
 
    Tk_FontMetrics rootItemFontMetrics;
@@ -88,7 +100,7 @@ void shgRootNode::initialize(unsigned iId,
 
    Tk_Font listboxItemFontStruct = shg::getListboxItemFontStruct(shadowNode);
    pixWidthAsListboxItem = Tk_TextWidth(listboxItemFontStruct,
-                                       label.c_str(), label.length());
+                                       abbrevLabel.c_str(), abbrevLabel.length());
 }
 
 shgRootNode::shgRootNode(unsigned iId,
@@ -111,6 +123,7 @@ shgRootNode::shgRootNode(unsigned iId, bool iActive,
 }
 
 shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
+                                                   abbrevLabel(src.abbrevLabel),
                                                    fullInfo(src.fullInfo) {
    hidden = src.hidden;
    id = src.id;
@@ -126,6 +139,8 @@ shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
 
 shgRootNode &shgRootNode::operator=(const shgRootNode &src) {
    label = src.label;
+   abbrevLabel = src.abbrevLabel;
+   
    fullInfo = src.fullInfo;
    
    hidden = src.hidden;
@@ -195,7 +210,7 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 		theDrawable,
 		shg::getRootItemTextGC(active, shadowNode),
 		shg::getRootItemFontStruct(shadowNode),
-		label.c_str(), label.length(),
+		abbrevLabel.c_str(), abbrevLabel.length(),
 		textLeft, textBaseLine );
 }
 
@@ -289,7 +304,7 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
 		theDrawable,
 		shg::getListboxItemGC(active, shadowNode),
 		shg::getRootItemFontStruct(shadowNode),
-		label.c_str(), label.length(),
+		abbrevLabel.c_str(), abbrevLabel.length(),
 		textLeft, textBaseline);
 }
 
