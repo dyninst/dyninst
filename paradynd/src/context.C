@@ -7,14 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.18 1994/08/17 18:05:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.19 1994/09/22 01:48:30 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.18  1994/08/17 18:05:50  markc
+ * Revision 1.19  1994/09/22 01:48:30  markc
+ * Standardized ptrace, PCptrace signatures
+ * Instantiate classes as classes, not structs
+ * cast stringHandles for printing
+ * cast args for PCptrace
+ *
+ * Revision 1.18  1994/08/17  18:05:50  markc
  * Moved call to install default instrumentation to SIGTRAP handler to
  * ensure no code is installed until the child process is stopped.
  *
@@ -118,6 +124,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -127,6 +135,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/ptrace.h>
 #include <sys/signal.h>
 #include <sys/wait.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -147,12 +156,9 @@ extern "C" {
 
 int ptrace(enum ptracereq request, 
 		      int pid, 
-		      int *addr, 
+		      char *addr, 
 		      int data, 
-		      void *addr2);
-
-// <sys/time.h> should define this
-int gettimeofday(struct timeval *tp, struct timezone *tzp);
+		      char *addr2);
 }
 
 /*
@@ -218,7 +224,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     process *ret;
     char name[80];
     process *parent;
-    struct executableRec *newExec;
+    executableRec *newExec;
 
     parent = findProcess(fr->ppid);
     assert(parent);
@@ -230,9 +236,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
         return;
     }
 
-    sprintf(name, "%s[%d]", parent->symbols->name, fr->pid);
+    sprintf(name, "%s[%d]", (char*) parent->symbols->name, fr->pid);
     ret = allocateProcess(fr->pid, name);
-    ret->symbols = parseImage(parent->symbols->file, 0);
+    ret->symbols = parseImage((char*)parent->symbols->file, 0);
     ret->traceLink = parent->traceLink;
     ret->ioLink = parent->ioLink;
     ret->parent = parent;
@@ -240,8 +246,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     copyInferriorHeap(parent, ret);
     // installDefaultInst(ret, initialRequests);
 
-    newExec = (struct executableRec *) calloc(1, sizeof(struct executableRec));
-
+    newExec = new executableRec;
     newExec->name = name;
     newExec->type = selfTermination;
     newExec->state = neonatal;
@@ -251,9 +256,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 int addProcess(int argc, char *argv[], int nenv, char *envp[])
 {
     int i;
-    struct executableRec *newExec;
+    executableRec *newExec;
 
-    newExec = (struct executableRec *) calloc(1, sizeof(struct executableRec));
+    newExec = new executableRec;
 
     newExec->argc = argc;
     newExec->argv = (char **) calloc(argc+1, sizeof(char *));
@@ -276,11 +281,11 @@ int addProcess(int argc, char *argv[], int nenv, char *envp[])
 
 Boolean detachProcess(int pid, Boolean paused)
 {
-    struct List<process *> curr;
+    List<process *> curr;
 
     for (curr = processList; *curr; curr++) {
 	if ((*curr)->pid == pid) {
-	    PCptrace(PTRACE_DETACH, *curr, (int*) 1, SIGCONT, NULL);
+	    PCptrace(PTRACE_DETACH, *curr, (void*) 1, SIGCONT, NULL);
 	    if (paused) {
 		(void) kill((*curr)->pid, SIGSTOP);
 		sprintf(errorLine, "detaching process %d leaving it paused\n", 
@@ -336,7 +341,7 @@ Boolean isApplicationPaused()
 
 Boolean continueAllProcesses()
 {
-    struct List<process *> curr;
+    List<process *> curr;
 
     for (curr = processList; *curr; curr++) {
 	continueProcess(*curr);
@@ -360,7 +365,7 @@ Boolean continueAllProcesses()
 Boolean pauseAllProcesses()
 {
     Boolean changed;
-    struct List<process *> curr;
+    List<process *> curr;
 
     changed = markApplicationPaused();
     for (curr = processList; *curr; curr++) {
