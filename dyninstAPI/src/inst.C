@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.103 2003/01/31 18:55:42 chadd Exp $
+// $Id: inst.C,v 1.104 2003/02/21 20:05:58 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -367,13 +367,19 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
    proc->getMiniTrampList(location, when, &mtList);
 
    if (mtList->numMiniTramps() == 0) // We are the only mini in the chain
-      near_ = 0;
+       // Arbitrary address in the text heap
+       near_ = 0x1e000000;
    else // Other minis. so let's try and get near them
-      if (order == orderLastAtPoint)
-	 near_ = mtList->getLastMT()->returnAddr;
-      else // First at point
-	 near_ = mtList->getFirstMT()->trampBase;
+       if (order == orderLastAtPoint) {
+           near_ = mtList->getLastMT()->returnAddr;
+       }
+       else {
+           // First at point
+           near_ = mtList->getFirstMT()->trampBase;
+       }
+   
 #else
+
    // Non-AIX, old behavior
    near_ = mtInfo->baseInstance->baseAddr;
 #endif
@@ -400,7 +406,7 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
 	mtInfo->trampBase = proc->inferiorMalloc(count,htype,near_, &err);
 #endif
 
-   //fprintf(stderr, "Got %d bytes at 0x%x\n", count, (*mtInfo)->trampBase);
+    //fprintf(stderr, "Got %d bytes at 0x%x, near 0x%x\n", count, mtInfo->trampBase, near_);
    
    if (err) {
       cerr << "Returning inst.C:line 369" << endl;
@@ -486,10 +492,8 @@ void hookupMiniTramp(process *proc, const miniTrampHandle &mtHandle,
 #endif
    } else if(order == orderFirstAtPoint) {
       /* branch to the old first one */
-      //fprintf(stderr, "3-  Branch from 0x%x to 0x%x\n",
-      //     inst->returnAddr, firstAtPoint->trampBase);
-      generateBranch(proc, inst->returnAddr, firstAtPoint->trampBase);
-      
+       generateBranch(proc, inst->returnAddr, firstAtPoint->trampBase);
+       
       /* base tramp branches to us */
       Address fromAddr = getBaseBranchAddr(proc, inst, when);
 #if defined(rs6000_ibm_aix4_1)
