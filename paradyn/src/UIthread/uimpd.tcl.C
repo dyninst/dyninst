@@ -3,13 +3,16 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.22  1995/10/17 22:12:24  tamches
-/* commented out closeDAGCmd, addEStyleCmd, addNStyleCmd,
-/* refineSHGCmd, hideSubgraphCmd, showAllNodesCmd, shgShortExplainCmd,
-/* highlightNodeCmd, and unhighlightNodeCmd.  These things were either
-/* obsoleted for the new shg or (as in the case of refine) haven't
-/* been implemented yet.
+/* Revision 1.23  1995/11/06 02:35:05  tamches
+/* removed some warnings w/g++2.7
 /*
+ * Revision 1.22  1995/10/17 22:12:24  tamches
+ * commented out closeDAGCmd, addEStyleCmd, addNStyleCmd,
+ * refineSHGCmd, hideSubgraphCmd, showAllNodesCmd, shgShortExplainCmd,
+ * highlightNodeCmd, and unhighlightNodeCmd.  These things were either
+ * obsoleted for the new shg or (as in the case of refine) haven't
+ * been implemented yet.
+ *
  * Revision 1.21  1995/10/13 22:08:07  newhall
  * added call to dataManager::getResourceLabelName
  *
@@ -98,10 +101,10 @@ extern "C" {
 
 void printMFPlist (vector<metric_focus_pair> *list) 
 {
-  for (int i = 0; i < list->size(); i++) {
+  for (unsigned i = 0; i < list->size(); i++) {
     cout << "   metric: " <<  
       dataMgr->getMetricName (((*list)[i]).met) << "||| focus: ";
-    for (int j = 0; j < ((*list)[i]).res.size(); j++)
+    for (unsigned j = 0; j < ((*list)[i]).res.size(); j++)
       cout << dataMgr->getResourceLabelName (((*list)[i]).res[j]);
     cout << endl;
   }
@@ -118,9 +121,9 @@ void printMFPlist (vector<metric_focus_pair> *list)
    note: space allocated for chosenMets and localFocusList must be 
          freed by the visi thread which gets the callback.
 */
-int sendVisiSelectionsCmd(ClientData clientData, 
+int sendVisiSelectionsCmd(ClientData,
 		Tcl_Interp *interp, 
-		int argc, 
+		int,
 		char *argv[])
 {
   Tcl_HashEntry *entry;
@@ -184,13 +187,14 @@ int sendVisiSelectionsCmd(ClientData clientData,
   return TCL_OK;
 }
 
+typedef vector<unsigned> numlist;
 void printResSelectList (vector<numlist> *v, char *name)
 {
   cout << "[Focus List " << name << "|" << v->size() << "] "; 
-  for (int i = 0; i < v->size(); i++) {
+  for (unsigned i = 0; i < v->size(); i++) {
     numlist temp = (*v)[i];
     cout << "                    ";
-    for (int j = 0; j < temp.size(); j++) 
+    for (unsigned j = 0; j < temp.size(); j++) 
       cout << temp[j] << " ";
     cout << endl;
   }
@@ -247,9 +251,9 @@ parseSelections (vector<numlist> &bytree) {
        1: rdo token
        2: list of selected metrics
 */
-int processVisiSelectionCmd(ClientData clientData, 
+int processVisiSelectionCmd(ClientData,
 			    Tcl_Interp *interp, 
-			    int argc, 
+			    int,
 			    char *argv[])
 {
    extern abstractions *theAbstractions;
@@ -531,9 +535,9 @@ int compare_visi_names (const void *viptr1, const void *viptr2) {
   return strcmp (p1->name.string_of(), p2->name.string_of());
 }
 
-int drawStartVisiMenuCmd (ClientData clientData, 
+int drawStartVisiMenuCmd (ClientData,
                 Tcl_Interp *interp, 
-                int argc, 
+                int,
                 char *argv[])
 {
   int i;
@@ -577,9 +581,9 @@ int drawStartVisiMenuCmd (ClientData clientData,
  * argv[1] = error number
  * argv[2] = error string
  */
-int showErrorCmd (ClientData clientData, 
-                Tcl_Interp *interp, 
-                int argc, 
+int showErrorCmd (ClientData,
+                Tcl_Interp *,
+                int,
                 char *argv[])
 {
   int code = atoi(argv[1]);
