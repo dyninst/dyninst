@@ -104,3 +104,4 @@ template class vector<dictionary_hash<string, Symbol>::entry>;
 template class vector<FERNode>;
 
 template class dictionary_hash<string, string>;
+template class vector<dictionary_hash<string, string>::entry>;
