@@ -2,6 +2,9 @@
 
 /*
  * $Log: pdLogo.h,v $
+ * Revision 1.2  1995/12/26 19:58:17  tamches
+ * tclclean/tkclean --> tcl/tk.h; cleaned up include of String.h w.r.t. directory
+ *
  * Revision 1.1  1995/11/29 00:19:35  tamches
  * first version of pdLogo
  *
@@ -13,16 +16,16 @@
 #include <assert.h>
 #include <iostream.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
-
-#include "String.h"
 
 #ifdef PARADYN
 #include "util/h/DictionaryLite.h"
+#include "util/h/String.h"
 #else
 #include "DictionaryLite.h"
+#include "String.h"
 #endif
 
 class pdLogo {
