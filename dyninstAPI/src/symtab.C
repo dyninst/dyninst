@@ -721,6 +721,8 @@ bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
   string modName = lookUp.module();
   Address modAddr = 0;
   
+  string progName = name_ + "_module";
+
 #if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) 
   // In solaris there is no address for modules in the symbol table, 
   // so the binary search will not work. The module field in a symbol
@@ -728,7 +730,6 @@ bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
   // obtained from the symbol table, otherwise the module is an empty
   // string.
   if (modName == "") {
-    string progName = name_ + "_module";
     modName = progName;
   }
 #else
