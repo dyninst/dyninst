@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2001/02/01 01:04:38 schendel Exp $
+# $Id: Makefile,v 1.8 2001/02/02 21:24:24 gurari Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,6 +20,9 @@ SRCS =		../src/pdwinnt.C \
 		../src/init-winnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
+		../src/func-reloc.C \
+		../src/LocalAlteration-x86.C \
+		../src/FunctionExpansionRecord-x86.C \
 		../src/arch-x86.C \
 		../../rtinst/src/RThwtimer-winnt.c
 
@@ -28,6 +31,9 @@ OBJS = 		pdwinnt.obj \
 		init-winnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
+		func-reloc.obj \
+		LocalAlteration-x86.obj \
+		FunctionExpansionRecord-x86.obj \
 		arch-x86.obj \
 		RThwtimer-winnt.obj
 
