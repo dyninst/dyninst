@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.69 1998/02/24 23:37:39 wylie Exp $
+// $Id: main.C,v 1.70 1998/04/01 21:23:25 ssuen Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -354,8 +354,13 @@ int main(unsigned argc, char *argv[]) {
 #else
 
     if(pd_flavor == string("mpi")) {
-      // not put here, only up above since PARADYND_PVM is always set
-      assert(0);
+      // the executables which are started by poe (for mpi daemon) must report to paradyn
+      // the pdRPC is allocated and reportSelf is called
+      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+		     pd_machine, NULL, NULL, 2);
+      assert(tp);
+
+      tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
     } else if (pd_flag == 2) {
        // manual startup
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
