@@ -78,9 +78,9 @@ typedef void (*Sa_Handler)();
 
 
 
-#if defined(sparc_sun_solaris2_3)
+#if defined(sparc_sun_solaris2_4)
 
-#endif /* defined(sparc_sun_solaris2_3) */
+#endif /* defined(sparc_sun_solaris2_4) */
 
 
 
