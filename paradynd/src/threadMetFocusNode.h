@@ -66,6 +66,8 @@ class threadMetFocusNode_Val {
   pdThread *pdThr;
   int referenceCount;
 
+  void updateAllAggInfoInitialized( void );
+
  public:
   static string construct_key_name(const string &metricStr, 
 				   const string &focusStr) {
@@ -102,8 +104,6 @@ class threadMetFocusNode : public metricFocusNode {
  private:
   threadMetFocusNode_Val &V;
   processMetFocusNode *parent;
-
-  void updateAllAggInfoInitialized();
 
  protected:
   static dictionary_hash<string, threadMetFocusNode_Val*> 

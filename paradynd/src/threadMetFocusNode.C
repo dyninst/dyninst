@@ -105,16 +105,6 @@ void threadMetFocusNode::recordAsParent(processMetFocusNode *procNode,
   V.recordAsParent(procNode, childAggInfo);
 }
 
-void threadMetFocusNode::updateAllAggInfoInitialized() {
-  bool allInitialized = true;
-  for(unsigned i=0; i<V.parentsBuf.size(); i++) {
-    aggComponent *curAggInfo = V.parentsBuf[i].childNodeAggInfo;
-    if(! curAggInfo->isReadyToReceiveSamples())
-      allInitialized = false;
-  }
-  V.allAggInfoInitialized = allInitialized;
-}
-
 void threadMetFocusNode::print() {
    cerr << "T:" << (void*)this << "\n";
 }
@@ -218,7 +208,34 @@ void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
       parentsBuf.erase(i);
     }
   }
+
+  // assuming we removed one or more parents, we may have just changed
+  // things so that the all remaining parents' childAggInfos are 
+  // ready to receive samples
+  updateAllAggInfoInitialized();
 }
+
+
+void
+threadMetFocusNode_Val::updateAllAggInfoInitialized( void )
+{
+	bool allInitialized = true;
+
+	for( vector<parentDataRec<processMetFocusNode> >::const_iterator parIter = parentsBuf.begin();
+		  parIter != parentsBuf.end();
+		  parIter++ )
+	{
+		const parentDataRec<processMetFocusNode>& currPdr = *parIter;
+		aggComponent* currAggComp = currPdr.childNodeAggInfo;
+		if( !(currAggComp->isReadyToReceiveSamples()) )
+		{
+			allInitialized = false;
+			break;
+		}
+	}
+	allAggInfoInitialized = allInitialized;
+}
+
 
 string threadMetFocusNode_Val::getKeyName() {
   return construct_key_name(metric_name, focus.getName());
@@ -246,7 +263,7 @@ void threadMetFocusNode::initAggInfoObjects(timeStamp startTime,
 	 }
       }
    }
-   updateAllAggInfoInitialized();
+   V.updateAllAggInfoInitialized();
    //cerr << "    allAggInfoInitialized = " << V.hasAggInfoBeenInitialized() 
    //     << "\n";
 }
