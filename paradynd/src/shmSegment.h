@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.h,v 1.3 2004/03/23 01:12:37 eli Exp $
+// $Id: shmSegment.h,v 1.4 2004/05/11 19:02:00 bernat Exp $
 //----------------------------------------------------------------------------
 //
 // Declaration of ShmSegment class.
@@ -50,6 +50,11 @@
 //----------------------------------------------------------------------------
 #ifndef SHMSEGMENT_H
 #define SHMSEGMENT_H
+
+#include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/h/BPatch_thread.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 #if defined(i386_unknown_nt4_0)
 typedef HANDLE  shmid_t;
@@ -64,27 +69,84 @@ private:
     shmid_t seg_id;     // "id" for the segment
     key_t   seg_key;    // key that "names" segment
     unsigned int seg_size;  // size of segment
-    void*   seg_addr;   // address at which segment is
-                        // attached to current process
+    // Attached at values
+    Address baseAddrInDaemon;
+    Address baseAddrInApplic;
+    // 
+    unsigned freespace;
+    // Offset from start of segment
+    Address highWaterMark;
+
+    bool attached;
+    
     bool leaveSegmentAroundOnExit;  // for example, if we attach to process
 
-    ShmSegment( shmid_t id, key_t key, unsigned int size, void* addr )
-       : seg_id( id ), seg_key( key ), seg_size( size ), seg_addr( addr ), 
-         leaveSegmentAroundOnExit(false)
-    {}
+    // Constructor: does nothing but initialize
+    ShmSegment(shmid_t id, key_t key, unsigned int size, Address addrInDaemon)
+    : seg_id( id ), seg_key( key ), seg_size( size ),
+    baseAddrInDaemon(addrInDaemon), baseAddrInApplic(0),
+    freespace(size), highWaterMark(0), attached(false),
+    leaveSegmentAroundOnExit(false)
+    {
+        // We fill the first unsigned with a cookie
+        *((unsigned *)addrInDaemon) = ShmSegment::cookie;
+        freespace -= sizeof(unsigned);
+        highWaterMark += sizeof(unsigned);
+    }
 
 public:
-    static  ShmSegment* Create( key_t& key, unsigned int size, void* addr = NULL );
-    static  ShmSegment* Open( key_t key, unsigned int size, void* addr = NULL );
+    static const unsigned cookie;
 
+    static  ShmSegment* Create( key_t& key, unsigned int size, bool freeWhenDeleted );
+    static  ShmSegment* Open( key_t key, unsigned int size, void *addr);
+
+    ShmSegment* Copy(BPatch_thread *child_thr, bool sameAddress);
+
+    bool attach(BPatch_thread *appthread, Address baseAddr = 0);
+    bool detach(BPatch_thread *appthread);
+    
     ~ShmSegment( void );
 
+    Address malloc(unsigned size);
+    void free(Address addr);
+    
     shmid_t GetId( void ) const             { return seg_id; }
     key_t   GetKey( void ) const            { return seg_key; }
     unsigned int    GetSize( void ) const   { return seg_size; }
-    void*   GetMappedAddress( void ) const  { return seg_addr; }
 
+    // Is in the segment (from the perspective of the daemon)
+    bool addrInSegmentDaemon(Address addr) const {
+        return ((addr - baseAddrInDaemon) <= seg_size);
+    }
+    // Is in the segment (from the perspective of the application)
+    bool addrInSegmentApplic(Address addr) const {
+        return ((addr - baseAddrInApplic) <= seg_size);
+    }
+
+    Address applicToDaemon(Address addr) const {
+        return addr - baseAddrInApplic + baseAddrInDaemon;
+    }
+    Address daemonToApplic(Address addr) const {
+        return addr - baseAddrInDaemon + baseAddrInApplic;
+    }
+
+    Address offsetInDaemon(Address addr) const {
+        return addr - baseAddrInDaemon;
+    }
+    Address offsetInApplic(Address addr) const {
+        return addr - baseAddrInApplic;
+    }
+    Address   getAddrInDaemon( Address offset ) const  {
+        return offset + baseAddrInDaemon;
+    }
+    Address   getAddrInApplic( Address offset ) const  {
+        return offset + baseAddrInApplic;
+    }
+    
+    
     void markAsLeaveSegmentAroundOnExit() { leaveSegmentAroundOnExit = true; }
+
+    bool attachToApplication();
 };
 
 #endif // SHMSEGMENT_H

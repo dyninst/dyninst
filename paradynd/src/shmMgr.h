@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.12 2004/03/23 01:12:36 eli Exp $
+/* $Id: shmMgr.h,v 1.13 2004/05/11 19:01:58 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -52,8 +52,14 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
+#if defined(os_windows)
+#define SHARED_MUTATEE_LIB "libsharedMutatee.dll"
+#else
+#define SHARED_MUTATEE_LIB "libsharedMutatee.so.1"
+#endif
+
+class BPatch_thread;
 class ShmSegment;
-class process;
 
 class shmMgrPreallocInternal
 {
@@ -61,9 +67,6 @@ class shmMgrPreallocInternal
  private:
   Address baseAddr_; // Where the preallocated segment starts
 
-  // makes easier to set baseAddr_ for shmMgrPreallocInternals created when
-  // forking
-  Address offsetIntoSegment;
   unsigned size_; // size of each element
   unsigned numElems_; // Number of elements
   char *bitmap_;
@@ -74,11 +77,10 @@ class shmMgrPreallocInternal
   shmMgrPreallocInternal(const shmMgrPreallocInternal &);
 
  public:
-  shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr,
-			 Address offset);
+  shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr);
   ~shmMgrPreallocInternal();
-  shmMgrPreallocInternal(const shmMgrPreallocInternal &par,
-			 const shmMgr &tShmMgr);
+  shmMgrPreallocInternal(const shmMgrPreallocInternal *par,
+                         Address newBaseAddr);
 
   Address malloc();
   void free(Address addr);
@@ -87,81 +89,52 @@ class shmMgrPreallocInternal
 
 
 class shmMgr {
+    key_t nextKeyToTry;
+    unsigned shmSegSize;
+    
+    pdvector<ShmSegment *> theShms;
+    unsigned totalShmSize;
+    unsigned freespace;
+    pdvector<shmMgrPreallocInternal *> prealloc;
 
-  key_t keyUsed;
-  ShmSegment* theShm;
-  unsigned shmSize;
-  unsigned freespace;
-  Address baseAddrInDaemon;
-  Address baseAddrInApplic;
-  Address highWaterMark;
-  pdvector<shmMgrPreallocInternal *> prealloc;
-  unsigned num_allocated; // Allocated tracker
+    BPatch_thread *app_thread;
 
- public:
-  static const unsigned cookie;
+    bool freeWhenDeleted;
+    
+  public:
+    
+    shmMgr();
+    shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel = true);
+    shmMgr(const shmMgr *par, BPatch_thread *child_thr, bool sameAddress);
+    ~shmMgr();
 
-  shmMgr();
-  shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_);
-  shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
-         process *childProc);
-  ~shmMgr();
+    bool initialize();
+    
+    // Tell the manager to preallocate a chunk of space
+    // Can be called repeatedly to allocate multiple sizes
+    bool preMalloc(unsigned size, unsigned num);
+    
+    /* Do all the work of creating a new shared memory segment
+       and getting the RT lib to hook to it */
+    void addShmSegment(Address /*size*/);
+    
+    Address malloc(unsigned size, bool align = true);
+    void free(Address addr);
+    
+    // detach from old segment (and delete it); create new segment & attach to
+    // it...inferior attached at undefined.  Pretty much like a call to the
+    // dtor following by a call to constructor (maybe this should be
+    // operator=() for maximum cuteness)
+    void handleExec();
 
-  // Tell the manager to preallocate a chunk of space
-  // Can be called repeatedly to allocate multiple sizes
-  void preMalloc(unsigned size, unsigned num);
-  unsigned getNumAllocated() { return num_allocated; }
+    Address applicToDaemon(Address addr) const;
+    Address daemonToApplic(Address addr) const;
+    Address getOffsetDaemon(Address addr) const;
+    Address getOffsetApplic(Address addr) const;
 
-  /* Do all the work of creating a new shared memory segment
-     and getting the RT lib to hook to it */
-  void addShmSegment(Address /*size*/) {assert(0);};
-
-  key_t getShmKey() const { return keyUsed; };
-  unsigned getHeapTotalNumBytes() const { return shmSize; }
-  unsigned memAllocated() { return highWaterMark; }
-  void *getAddressInApplic(void *addressInDaemon) {
-      unsigned offset = reinterpret_cast<Address>(addressInDaemon) - 
-      baseAddrInDaemon;
-      Address retAddr = baseAddrInApplic + offset;
-      return reinterpret_cast<void*>(retAddr);
-  }
-
-  void *applicAddrToDaemonAddr(void *addressInApplic) {
-    unsigned offset = reinterpret_cast<Address>(addressInApplic) - 
-                      baseAddrInApplic;
-    Address retAddr = baseAddrInDaemon + offset;
-    return reinterpret_cast<void*>(retAddr);
-  }
-
-  void *getBaseAddrInDaemon() {
-    return (void *)baseAddrInDaemon;
-  }
-
-  Address getBaseAddrInDaemon2() const {
-    return baseAddrInDaemon;
-  }
-
-  /* Reserve a set piece of space */
-  void malloc(Address base, Address size)
-  {
-    if (highWaterMark < base+size) {
-      freespace -= (base+size)-highWaterMark;
-      highWaterMark = base+size;
-    }
-  }
-
-  void registerInferiorAttachedAt(void *applicAttachedAt) { 
-    baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
-  }
-
-  Address malloc(unsigned size, bool align = true);
-  void free(Address addr);
-
-  void handleExec() { }
-  // detach from old segment (and delete it); create new segment & attach to
-  // it...inferior attached at undefined.  Pretty much like a call to the
-  // dtor following by a call to constructor (maybe this should be
-  // operator=() for maximum cuteness)
+    Address translateFromParentDaemon(Address addr, const shmMgr *parent);
+    Address translateFromParentApplic(Address addr, const shmMgr *parent);
+    
 };
 
 

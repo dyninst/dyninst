@@ -39,137 +39,159 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.19 2004/03/23 01:12:36 eli Exp $
+/* $Id: shmMgr.C,v 1.20 2004/05/11 19:01:57 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
  */
 
-#include <iostream>
+#include <iostream.h>
 #include "shmMgr.h"
 #include "shmSegment.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/h/BPatch_thread.h"
 
-const unsigned shmMgr::cookie = 0xabcdefab;
 
 shmMgr::shmMgr()
 {
 }
 
-shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
-  shmSize(shmSize_), baseAddrInDaemon(0), baseAddrInApplic(0),
-  num_allocated(0)
+shmMgr::shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel) :
+        nextKeyToTry(shmSegKey), shmSegSize(shmSize_), totalShmSize(0), freespace(0),
+        app_thread(thr), freeWhenDeleted(freeWhenDel)
 {
-  // Try to allocate shm segment now
-  key_t key = shmSegKey;
-
-  theShm = ShmSegment::Create( key, shmSize);
-  if( theShm == NULL )
-  {
-    cerr << "  we failed to create the shared memory segment\n";
-    return;
-  }
-  if(proc->wasCreatedViaAttach())
-     theShm->markAsLeaveSegmentAroundOnExit();
-
-  keyUsed = key;
-
-  // Now, let's initialize some meta-data: cookie, process pid, paradynd pid,
-  // cost.
-  baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
-  freespace = shmSize;
-  highWaterMark = baseAddrInDaemon;
 }
 
-shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
-               process *childProc) :
-   keyUsed(theShmKey), shmSize(par.shmSize), num_allocated(par.num_allocated)
+bool shmMgr::initialize() {
+    // Load the shared memory library via Dyninst's loadLibrary
+    if (!app_thread->loadLibrary(SHARED_MUTATEE_LIB, true)) {
+        fprintf(stderr, "Failed to load shared memory library\n");
+        return false;
+    }
+    
+    // Proactively make the first segment
+    ShmSegment *new_seg = ShmSegment::Create(nextKeyToTry, shmSegSize, freeWhenDeleted);
+    if (new_seg == NULL) {
+        // No luck
+        fprintf(stderr, "Failed creation\n");
+        return false;
+    }
+    if (!new_seg->attach(app_thread)) {
+        fprintf(stderr, "Failed attach\n");
+        return false;
+    }
+    
+    nextKeyToTry++;
+    totalShmSize += shmSegSize;
+    freespace += shmSegSize;
+    theShms.push_back(new_seg);
+
+    return true;
+}
+
+
+shmMgr::shmMgr(const shmMgr *par, BPatch_thread *child_thr, bool sameAddress) :
+        nextKeyToTry(par->nextKeyToTry), shmSegSize(par->shmSegSize), 
+        totalShmSize(par->totalShmSize), freespace(par->freespace),
+        app_thread(child_thr), freeWhenDeleted(par->freeWhenDeleted)
 {  
-  if(applShmSegPtr != reinterpret_cast<void*>(par.baseAddrInApplic)) {
-    cerr << "Serious error in fastInferiorHeapMgr fork-constructor. It "
-	 << "appears that\nthe child process hasn't attached the shm seg in"
-	 << "the same location as in the parent process.  This leaves\nall"
-	 << " mini-tramps data references pointing to invalid memory locs!";
-    abort();
-  }
 
-  // open the existing segment
-  theShm = ShmSegment::Open(keyUsed, shmSize);
-  if(theShm == NULL) {
-    // we were unable to open the existing segment
-    // in the future, we could throw an exception and handle this gracefully
-    cerr << "Paradyn is unable to monitor applications for which it cannot "
-	 << "create a shared memory segment for the process's instrumentation "
-	 << "data.\n";
-    abort();
-    return;
-  }
-  if(childProc->wasCreatedViaAttach())
-     theShm->markAsLeaveSegmentAroundOnExit();
+    for (unsigned iter = 0; iter < par->theShms.size(); iter++) {
+        ShmSegment *new_seg = par->theShms[iter]->Copy(app_thread, sameAddress);
+        if (new_seg) {
+            theShms.push_back(new_seg);
+        }
+        else {
+            assert(0 && "Failed to copy parent's shared memory segment");            
+        }
+    }
 
-  baseAddrInApplic = reinterpret_cast<Address>(applShmSegPtr);
-  baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
-  memcpy(theShm->GetMappedAddress(), par.theShm->GetMappedAddress(),shmSize);
-
-  freespace = par.freespace;
-  unsigned highWaterMarkOffset = par.highWaterMark - par.baseAddrInDaemon;
-  highWaterMark = baseAddrInDaemon + highWaterMarkOffset;
-
-  for(unsigned i=0; i<par.prealloc.size(); i++) {
-    shmMgrPreallocInternal *new_prealloc = 
-       new shmMgrPreallocInternal(*par.prealloc[i], *this);
-    prealloc.push_back(new_prealloc);
-  }
+    for(unsigned i=0; i<par->prealloc.size(); i++) {
+        Address newBaseAddr = translateFromParentDaemon(par->prealloc[i]->baseAddr_, 
+                                                        par);
+        shmMgrPreallocInternal *new_prealloc = 
+        new shmMgrPreallocInternal(par->prealloc[i], newBaseAddr);
+        prealloc.push_back(new_prealloc);
+    }
 }
 
 shmMgr::~shmMgr()
 {
-  //cerr << "~shmMgr: " << this << ", num_allocated = " << num_allocated
-  //     << ", prealloc.size: " << prealloc.size() << "\n";
   // free the preMalloced memory
   for (unsigned i = 0; i < prealloc.size(); i++) {
-    num_allocated--;  // prealloc objects are included in num_allocated total
-    delete prealloc[i];
+      delete prealloc[i];
   }
   
-  //cerr << "num_allocated = " << num_allocated << "\n";
-  if(num_allocated > 0)
-     cerr << "WARNING, shmMgr contains unfreed allocations\n";
-
-  if(theShm) {
-     delete theShm;  // detaches from the shared memory segment
-  }
+  for (unsigned iter = 0; iter < theShms.size(); iter++) {
+      delete theShms[iter];
+  }  
 }
 
 Address shmMgr::malloc(unsigned size, bool /* align = true*/) {
-  //  fprintf(stderr, "Allocating size %d\n", size);
-    if (freespace < size)
-        return 0;
-    num_allocated++;
-    // Next, check to see if this size matches any of the preallocated
-    // chunks
-    for (unsigned i = 0; i < prealloc.size(); i++) {
-        if ((size == prealloc[i]->size_) &&
-            (prealloc[i]->oneAvailable())) {
-            Address ret = prealloc[i]->malloc();
-            return ret;
+    if (freespace < size) {
+        // No way to get any allocation, try to allocate new shared memory segment
+        ShmSegment *new_seg = ShmSegment::Create(nextKeyToTry, shmSegSize, freeWhenDeleted);
+        if (new_seg == NULL) {
+            // No luck
+            fprintf(stderr, "Failed creation\n");
+            return 0;
+        }
+        if (!new_seg->attach(app_thread)) {
+            fprintf(stderr, "Failed attach\n");
+            return 0;
         }
         
+        nextKeyToTry++;
+        totalShmSize += shmSegSize;
+        freespace += shmSegSize;
+        theShms.push_back(new_seg);
     }
     
-    // Grump. Nothing available.. so do it the hard way
-    // Cheesed, again
-    Address retAddr = highWaterMark;
-    Address oldWaterMark = highWaterMark;
-    highWaterMark += size;
-    
-    if (retAddr % size) {
-        retAddr += size - (retAddr % size);
-        highWaterMark = retAddr + size;
+    // Next, check to see if this size matches any of the preallocated
+    // chunks
+    bool size_prealloced = false;
+    for (unsigned i = 0; i < prealloc.size(); i++) {
+        if ((size == prealloc[i]->size_)) {
+            size_prealloced = true; // used to determine if we should prealloc more
+            if ((prealloc[i]->oneAvailable())) {
+                Address ret = prealloc[i]->malloc();
+                freespace -= size;
+                return ret;
+            }
+        }
     }
-    
-    freespace -= (highWaterMark - oldWaterMark);
-    return retAddr;
+
+    // If the size matches a preallocation cluster, but there was never space, preallocate
+    // more (figuring that we're going to need more
+    if (size_prealloced) {
+        // preMalloc calls ::malloc... recursive calls should be okay, as 
+        // we continue increasing allocation size (and will either succeed
+        // or fail)
+        if (preMalloc(size, 50)) {
+            // Allocated a new one
+            if (prealloc[prealloc.size()-1]->oneAvailable()) {
+                Address ret = prealloc[prealloc.size()-1]->malloc();
+                freespace -= size;
+                return ret;
+            }
+            else {
+                // Made a new prealloc and nothing available?
+                assert(0 && "Odd case in shmMgr::malloc");
+            }
+        }
+        // preMalloc failed, fall through
+    }
+
+    // Grump. Nothing available, so pass it to our shared memory
+    // segments
+
+    for (unsigned iter = 0; iter < theShms.size(); iter++) {
+        Address addr = theShms[iter]->malloc(size);
+        if (addr) {
+            freespace -= size;
+            return addr;
+        }
+    }
+    return 0;
 }
 
 void shmMgr::free(Address addr) 
@@ -180,11 +202,16 @@ void shmMgr::free(Address addr)
       if ((addr >= prealloc[i]->baseAddr_) &&
           (addr < (prealloc[i]->baseAddr_ + (prealloc[i]->size_*prealloc[i]->numElems_)))) {
          prealloc[i]->free(addr);
+         freespace += prealloc[i]->size_;
          break;
       }
    }
-  num_allocated--;
-  // Otherwise ignore (for now)
+   // Pass along to the shared segments
+   for (unsigned iter = 0; iter < theShms.size(); iter++) {
+       if (theShms[iter]->addrInSegmentDaemon(addr)) {
+           theShms[iter]->free(addr);
+       }
+   }
 }
 
 // Preallocates a chunk of memory for a certain number of elements,
@@ -193,27 +220,27 @@ void shmMgr::free(Address addr)
 // Question... is allocating more than one 'chunk' with a given 
 // data size allowable? For now I'll say yes.
 
-void shmMgr::preMalloc(unsigned size, unsigned num)
+bool shmMgr::preMalloc(unsigned size, unsigned num)
 {
     Address baseAddr = this->malloc((num+1)*size, false); // We'll align
     // We allocate an extra for purposes of alignment -- we should align on
     // a <size> boundary
-    if (!baseAddr) return;
+    if (!baseAddr) return false;
     baseAddr += size - (baseAddr % size);
-    
-    Address offset = baseAddr - reinterpret_cast<Address>(getBaseAddrInDaemon());
-    shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr, offset);
+
+    shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
     prealloc.push_back(new_prealloc);
+    return true;
 }
 
 shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, 
-					   Address baseAddr, Address offset)
+                                               Address baseAddr)
 {
   baseAddr_ = baseAddr;
   size_ = size;
   numElems_ = num;
   currAlloc_ = 0;
-  offsetIntoSegment = offset;
+  
   // Round up to 8 for purposes of bitmapping.
   unsigned rounded_num = num;
   if (rounded_num % 8) {
@@ -239,14 +266,13 @@ shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num,
 }
 
 shmMgrPreallocInternal::shmMgrPreallocInternal(
-              const shmMgrPreallocInternal &par, const shmMgr &tShmMgr) :
-   baseAddr_(tShmMgr.getBaseAddrInDaemon2() + par.offsetIntoSegment), 
-   offsetIntoSegment(par.offsetIntoSegment),
-   size_(par.size_), numElems_(par.numElems_),
-   bitmap_size_(par.bitmap_size_), currAlloc_(par.currAlloc_)
+    const shmMgrPreallocInternal *par, Address newBaseAddr) :
+        baseAddr_(newBaseAddr),
+        size_(par->size_), numElems_(par->numElems_),
+        bitmap_size_(par->bitmap_size_), currAlloc_(par->currAlloc_)
 {
-   bitmap_ = new char[bitmap_size_];
-   memcpy(bitmap_, par.bitmap_, bitmap_size_);
+    bitmap_ = new char[bitmap_size_];
+    memcpy(bitmap_, par->bitmap_, bitmap_size_);
 }
 
 shmMgrPreallocInternal::~shmMgrPreallocInternal()
@@ -307,3 +333,84 @@ void shmMgrPreallocInternal::free(Address addr)
    bitmap_[freed_block] = bitmap_[freed_block] - (0x1 << freed_slot);
    currAlloc_--;
 }
+
+Address shmMgr::applicToDaemon(Address applic) const {
+    for (unsigned i = 0; i < theShms.size(); i++)
+        if (theShms[i]->addrInSegmentApplic(applic)) {
+            Address ret = theShms[i]->applicToDaemon(applic);
+
+            return ret;
+        }
+    return 0;
+}
+
+Address shmMgr::daemonToApplic(Address daemon) const {
+    for (unsigned i = 0; i < theShms.size(); i++)
+        if (theShms[i]->addrInSegmentDaemon(daemon)) {
+            Address ret = theShms[i]->daemonToApplic(daemon);
+            return ret;
+        }
+    return 0;
+}
+
+#if 0
+void *shmMgetBaseAddrInDaemon() {
+    return (void *)baseAddrInDaemon;
+}
+
+Address getBaseAddrInDaemon2() const {
+    return baseAddrInDaemon;
+}
+
+/* Reserve a set piece of space */
+void malloc(Address base, Address size)
+{
+    if (highWaterMark < base+size) {
+        freespace -= (base+size)-highWaterMark;
+        highWaterMark = base+size;
+    }
+}
+
+void registerInferiorAttachedAt(void *applicAttachedAt) { 
+    baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
+}
+
+#endif
+
+void shmMgr::handleExec() {
+    assert(0);
+}
+
+// Given an address from a different shared manager, translate
+// to the current (used when cloning shared segments)
+
+// Assumption: the vectors of shared segments in each manager
+// are equivalent
+Address shmMgr::translateFromParentDaemon(Address addr, const shmMgr *parShmMgr) {
+    for (unsigned i = 0; i < parShmMgr->theShms.size(); i++) {
+        if (parShmMgr->theShms[i]->addrInSegmentDaemon(addr)) {
+            Address offset = parShmMgr->theShms[i]->offsetInDaemon(addr);
+            assert(theShms.size() > i);
+            return theShms[i]->getAddrInDaemon(offset);
+        }
+    }
+    assert(0 && "Translation failed");
+    return 0;
+}
+
+
+
+// Assumption: the vectors of shared segments in each manager
+// are equivalent
+Address shmMgr::translateFromParentApplic(Address addr, const shmMgr *parShmMgr) {
+    for (unsigned i = 0; i < parShmMgr->theShms.size(); i++) {
+        if (parShmMgr->theShms[i]->addrInSegmentApplic(addr)) {
+            Address offset = parShmMgr->theShms[i]->offsetInApplic(addr);
+            assert(theShms.size() > i);
+            return theShms[i]->getAddrInApplic(offset);
+        }
+    }
+    assert(0 && "Translation failed");
+    return 0;
+}
+

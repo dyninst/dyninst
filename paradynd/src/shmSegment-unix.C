@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.11 2004/03/23 01:12:36 eli Exp $
+// $Id: shmSegment-unix.C,v 1.12 2004/05/11 19:01:59 bernat Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -48,11 +48,13 @@
 // paradynd.
 //
 //----------------------------------------------------------------------------
-#include "common/h/headers.h"
-#include "dyninstAPI/src/showerror.h"
+
+#include <iostream.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/shm.h>
 #include "shmSegment.h"
-#include "main.h"
-#include "paradynd/src/shmMgr.h"
+#include "shmMgr.h"
 
 
 // enumeration for return values from TryToReleaseShmSegment function,
@@ -74,26 +76,25 @@ static gcResult TryToReleaseShmSegment( key_t, unsigned int size );
 //
 ShmSegment::~ShmSegment( void )
 {
-    assert( seg_addr != NULL );
-
+    sleep(5);
+    assert(baseAddrInDaemon != (Address) -1);
     // unmap the segment from our address space
-    if( P_shmdt( seg_addr ) == -1 )
+    if( shmdt( (void *)baseAddrInDaemon ) == -1 )
     {
         perror( "ShmSegment dtor shmdt" );
     }
-    seg_addr = NULL;
+    baseAddrInDaemon = (Address) -1;
 
     if(! leaveSegmentAroundOnExit) {
        // destroy the segment
-       if( P_shmctl( seg_id, IPC_RMID, 0 ) == -1 )
+       if( shmctl( seg_id, IPC_RMID, 0 ) == -1 )
        {
           perror( "ShmSegment dtor shmctl" );
        }
        seg_id = -1;
+       baseAddrInApplic = (Address) -1;
     }
 }
-
-
 
 //
 // ShmSegment::Create
@@ -103,7 +104,7 @@ ShmSegment::~ShmSegment( void )
 // our address space at the indicated address (if specified).
 // 
 ShmSegment*
-ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
+ShmSegment::Create( key_t& key, unsigned int size, bool freeWhenDeleted )
 {
     ShmSegment* seg = NULL;
     
@@ -112,20 +113,16 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
     while (true) {
       errno = 0;
 
-      shmid_t shmid = P_shmget(key, size, 0666 | IPC_CREAT | IPC_EXCL);
+      shmid_t shmid = shmget(key, size, 0666 | IPC_CREAT | IPC_EXCL);
       if (shmid == -1) {
          // failure...but why?  If because seg already exists, then increase
          // 'firstKeyToTry' and retry!  (But first, try to garbage collect it
          // and if successful, retry without increasing 'firstKeyToTry'!)
 
-             if (errno == EINVAL) {
-                cerr << "ShmSegment::Create failed for segment of size "
-                     << size << " bytes, due to system-imposed limits." << endl;
-                pdstring msg = "Size of shared memory segment requested mapped"
-                    " to this process (" + pdstring(size) + ") exceeds OS limit.";
-	        showErrorCallback(102,msg);
-	        cleanUpAndExit(-1);
-             }
+          if (errno == EINVAL) {
+              cerr << "Failed to create shared memory segment due to system-imposed limits" << endl;
+              return NULL;
+          }
 
 	     if (errno == EEXIST) {
 	        // The shm segment already exists; try to garbage collect it.
@@ -184,7 +181,7 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
       // to attach to it.
       assert(errno == 0);
 
-      void* mapAddr = P_shmat(shmid, NULL, 0);
+      void* mapAddr = shmat(shmid, NULL, 0);
       if (mapAddr == (void*)-1) {
 	     if (errno == EMFILE) {
 	        // the # of shm segments mapped to this process would exceed the
@@ -193,25 +190,20 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
 	        // #segments system-wide, but not #segments we've shmat()'d to.
 	        // So, give up: undo the shmget, then throw an exception.
 
-	        cerr << "ShmSegment::Create: shmat failed -- "
-                     << "number of shm segments attached to paradynd" << endl;
-	        cerr << "would exceed a system-imposed limit." << endl;
-	        
-	        showErrorCallback(102,"Number of shared memory segments"
-                        " mapped to this process exceeds OS limit.");
-	        cleanUpAndExit(-1);
-	     }
+             cerr << "Failed to map: # of attached segments" << endl;
+             return NULL;
+         }
 
 	     perror("ShmSegment::Create shmat");
 
              // release the segment we created
-	     (void)P_shmctl(shmid, IPC_RMID, NULL);
+	     (void)shmctl(shmid, IPC_RMID, NULL);
 	     break; // throw an exception
       }
 
       // Okay, the shmget() worked, and the shmat() worked too.
       // build an object to represent the segment
-      seg = new ShmSegment( shmid, key, size, mapAddr );
+      seg = new ShmSegment( shmid, key, size, (Address) mapAddr );
       break;
 
     } // while (true)
@@ -244,6 +236,9 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
         }
     }
 
+    if (!freeWhenDeleted)
+        seg->markAsLeaveSegmentAroundOnExit();
+
     return seg;
 }
 
@@ -260,19 +255,18 @@ ShmSegment::Open( key_t key, unsigned int size, void* addr )
 {
     ShmSegment* seg = NULL;
 
-
     // access an existing shared memory segment with the given key
     errno = 0;
-    shmid_t shmid = P_shmget(key, size, 0666);
+    shmid_t shmid = shmget(key, size, 0666);
     if( shmid != -1 )
     {
         // map the shared memory segment into our address space
-        void* mapAddr = P_shmat(shmid, addr, 0);
+        void* mapAddr = shmat(shmid, addr, 0);
         if( mapAddr != (void*)-1 )
         {
             // we were able to access and map the shared memory
             // build an object to represent it
-            seg = new ShmSegment( shmid, key, size, mapAddr );
+            seg = new ShmSegment( shmid, key, size, (Address) mapAddr );
         }
         else
         {
@@ -289,7 +283,38 @@ ShmSegment::Open( key_t key, unsigned int size, void* addr )
     return seg;
 }
 
+// sameAddr: if true, attempt to attach at the same address and fail
+// if different
 
+ShmSegment *
+ShmSegment::Copy(BPatch_thread *child_thr, bool sameAddr) {
+    // Now, create a new segment of the same size as this one,
+    // and attach the child in the same place
+    key_t key = GetKey();
+    ShmSegment *child_seg = ShmSegment::Create(key, GetSize(), !leaveSegmentAroundOnExit);
+
+    Address storedBaseAddr = baseAddrInApplic;
+    // First, detach the shared segment from the child
+    if (!detach(child_thr))
+        return NULL;
+    // detach zeroes out our base address in the application, which is undesireable
+    // in this case. Fix that.
+    baseAddrInApplic = storedBaseAddr;
+
+    if (!child_seg)
+        return NULL;
+    if (!child_seg->attach(child_thr, (sameAddr) ? baseAddrInApplic : 0))
+        return NULL;
+    
+    // Copy contents from this segment to the new one
+    memcpy((void *)child_seg->baseAddrInDaemon, (void *)baseAddrInDaemon, GetSize());
+    child_seg->freespace = freespace;
+    child_seg->highWaterMark = highWaterMark;
+    child_seg->leaveSegmentAroundOnExit = leaveSegmentAroundOnExit;
+
+    // Return the new shared segment, attached and ready to go.
+    return child_seg;
+}
 
 static
 gcResult
@@ -300,7 +325,7 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
    // If successful, then try to shmctl(IPC_RMID) to fry it.
    // Return true iff garbage collection succeeded.
 
-   shmid_t shmid = P_shmget(keyToTry, size, 0666);
+   shmid_t shmid = shmget(keyToTry, size, 0666);
 
    if (shmid == -1 && errno == ENOENT)
       // the shm segment doesn't exist...which means garbage collection
@@ -318,7 +343,7 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
 
    shmid_ds shm_buf;
    errno = 0;
-   int result = P_shmctl(shmid, IPC_STAT, &shm_buf);
+   int result = shmctl(shmid, IPC_STAT, &shm_buf);
    if (result == -1) {
       // some possible errors:
       // EACCES -- read access was denied; this shm seg must not belong to us!
@@ -362,7 +387,7 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
    // So if we get this far, we expect to succeed in garbage collecting
    // this segment.
 
-   void *segPtr = P_shmat(shmid, NULL, 0);
+   void *segPtr = shmat(shmid, NULL, 0);
    if (segPtr == (void*)-1) {
       // we can't examine the contents...give up.  No need to undo the effects
       // of shmget(), since we know that the segment already exists so that
@@ -378,20 +403,21 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
 
    // First, check for cookie.  If no match, then the segment wasn't created
    // by paradynd and we should not touch it!
-   if (*ptr++ != shmMgr::cookie) {
+   if (*ptr != ShmSegment::cookie) {
 #ifdef SHM_SAMPLING_DEBUG
       cerr << "no match on cookie, so leaving shm seg key " << keyToTry << " alone." << endl;
 #endif
-      (void)P_shmdt(segPtr);
+      (void)shmdt(segPtr);
       return gcDidntHappen;
    }
 
+#if 0
    // Next, check the 2 pids (pid of applic, pid of paradynd)
    int pid1 = (int)(*ptr++);
    int pid2 = (int)(*ptr++);
 
    errno = 0;
-   result = P_kill(pid1, 0);
+   result = kill(pid1, 0);
    if (result == 0)
       // the process definitely exists.  So, don't garbage collect.
       return gcDidntHappen;
@@ -402,17 +428,17 @@ TryToReleaseShmSegment( key_t keyToTry, unsigned int size )
    }
 
    errno = 0;
-   result = P_kill(pid2, 0);
+   result = kill(pid2, 0);
    if (result == 0)
       return gcDidntHappen; // process exists; unsafe to gc
    else if (errno != ESRCH) {
       perror("kill");
       return gcDidntHappen; // unexpected
    }
-
+#endif
    // Okay, neither process exists.  Looks like we may fry the segment now!
-   (void)P_shmdt(segPtr);
-   (void)P_shmctl(shmid, IPC_RMID, NULL);
+   (void)shmdt(segPtr);
+   (void)shmctl(shmid, IPC_RMID, NULL);
 
    return gcHappened; // but see above comment...so, is this always right?
 }
