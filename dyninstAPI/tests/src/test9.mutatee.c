@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.4 2003/09/11 18:21:03 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.5 2003/09/12 00:53:52 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -8,7 +8,10 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+
+#if defined(rs6000_ibm_aix4_1)
 #include <sys/ldr.h>
+#endif
 
 
 #include <unistd.h>
