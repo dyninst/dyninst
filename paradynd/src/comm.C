@@ -3,7 +3,10 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.3  1994/09/22 01:46:42  markc
+ * Revision 1.4  1994/11/02 11:01:57  markc
+ * Replace printf's with logLine calls.
+ *
+ * Revision 1.3  1994/09/22  01:46:42  markc
  * Made system includes extern "C"
  * Access igen members via methods
  *
@@ -19,14 +22,16 @@
 
 extern "C" {
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 }
 
 #include "comm.h"
+#include "util.h"
 
 // handle_error is a virtual function in the igen generated code
 // defining it allows for custom error handling routines to be implemented
-// the error types are defined in igen generated code, but should be
+// the error types are.defines in igen generated code, but should be
 // relatively stable
 //
 // THESE are elaborated in the igen documentation (coming soon)
@@ -46,31 +51,34 @@ void pdRPC::handle_error()
     {
     case igen_encode_err:
     case igen_decode_err:
-      fprintf(stderr, "Could not (un)marshall parameters, dumping core, pid=%d\n",
+      sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%d\n",
 	      getpid());
+      logLine(errorLine);
       abort();
       break;
 
     case igen_call_err:
-      fprintf(stderr, "can't do sync call here, pid=%d\n",
-	      getpid());
+      sprintf(errorLine, "can't do sync call here, pid=%d\n", getpid());
+      logLine(errorLine);
       abort();
       break;
 
     case igen_request_err:
-      fprintf(stderr, "unknown message tag pid=%d\n",
-	      getpid());
+      sprintf(errorLine, "unknown message tag pid=%d\n", getpid());
+      logLine(errorLine);
       abort();
       break;
 
     case igen_no_err:
-      fprintf(stderr, "Why is handle error called for err_state = igen_no_err\n");
+      sprintf(errorLine, "Why is handle error called for err_state = igen_no_err\n");
+      logLine(errorLine);
       // fall thru
     case igen_send_err:
     case igen_read_err:
       // if paradyn quits either of these errors can occur, so don't dump core
     default:
-      fprintf(stderr, "Error: err_state = %d\n", get_err_state());
+      sprintf(errorLine, "Error: err_state = %d\n", get_err_state());
+      logLine(errorLine);
       exit(-1);
     }
 }
