@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.163 2004/03/25 21:29:36 lharris Exp $
+ * $Id: inst-x86.C,v 1.164 2004/04/01 00:48:22 lharris Exp $
  */
 
 #include <iomanip>
@@ -1073,7 +1073,10 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     if( !ah.isIndir() && 
                         ( target < currAddr || target > currAddr + insnSize ))
                     {
-                        callTargets.push_back( target );
+                        
+                        if( !owner->funcsByEntryAddr.defines( target ) &&
+                            owner->isCode( target ) )
+                            callTargets.push_back( target );
                     }		    
                 } 
                 else 
@@ -1219,6 +1222,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             b2->addSource( b1 );	            
         }        
     }    
+    
     isInstrumentable_ = true;
     return true;    
 }
