@@ -3,7 +3,11 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.11  1994/08/01 00:24:13  markc
+ * Revision 1.12  1994/08/17 18:10:59  markc
+ * Added pvm_getrbuf and pvm_getsbuf to initLibraryFuncs for pvm since these
+ * functions are used for message accounting.
+ *
+ * Revision 1.11  1994/08/01  00:24:13  markc
  * Added computePauseTimeMetric to allow paradyndPVM to compile.
  *
  * Revision 1.10  1994/07/12  20:11:06  jcargill
@@ -47,7 +51,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.11 1994/08/01 00:24:13 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.12 1994/08/17 18:10:59 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,7 +187,6 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     errno = 0;
     ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
     assert(errno == 0);
-
     if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
       (!wasStopped)) {
 	(void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
@@ -222,7 +225,7 @@ void initLibraryFunctions()
     addLibFunc(&msgByteRecvFunctions, "pvm_recv", TAG_LIB_FUNC);
     addLibFunc(&msgByteSentFunctions, "pvm_mcast", TAG_LIB_FUNC);
     */
-    
+
     addLibFunc(&fileByteFunctions, "write",
 	    TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
     addLibFunc(&fileByteFunctions, "read",
@@ -233,6 +236,8 @@ void initLibraryFunctions()
     addLibFunc(&libraryFunctions, "fork", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "main", 0);
     addLibFunc(&libraryFunctions, "pvm_bufinfo", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "pvm_getsbuf", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "pvm_getrbuf", TAG_LIB_FUNC);
 
     addLibFunc(&msgByteSentFunctions, "pvm_barrier", 
 	TAG_LIB_FUNC|TAG_SYNC_FUNC|TAG_CPU_STATE);
