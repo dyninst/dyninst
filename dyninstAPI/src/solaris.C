@@ -240,6 +240,12 @@ int process::waitProcs(int *status) {
 bool process::attach() {
   char procName[128];
 
+  // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
+  // to paradynd in all cases?  How about when we are attaching to an
+  // already-running process?  (Seems that in the latter case, no SIGTRAP
+  // is automatically generated)
+
+  // step 1) /proc open: attach to the inferior process
   sprintf(procName,"/proc/%05d", (int)pid);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
@@ -247,8 +253,9 @@ bool process::attach() {
     return false;
   }
 
-  /* we don't catch any child signals, except SIGSTOP (and, on sparc, SIGTRAP;
-     on x86, SIGILL, to implement inferiorRPC) */
+  // step 2) /proc PIOCSTRACE: define which signals should be forwarded to daemon
+  //   These are (1) SIGSTOP and (2) either SIGTRAP (sparc) or SIGILL (x86), to
+  //   implement inferiorRPC completion detection.
   sigset_t sigs;
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
@@ -267,11 +274,12 @@ bool process::attach() {
     return false;
   }
 
-  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
-     the process to be killed when paradynd exits.
-     Also, any child of this process will stop at the exit of an exec call.
-     The breakpoint trap pc adjustment flag is used for the X86 platform.
-  */
+  // Step 3) /proc PIOCSET:
+  // a) turn on the kill-on-last-close flag (kills inferior with SIGKILL when
+  //    the last writable /proc fd closes)
+  // b) turn on inherit-on-fork flag (tracing flags inherited when child forks).
+  // c) turn on breakpoint trap pc adjustment (x86 only).
+  // Also, any child of this process will stop at the exit of an exec call.
   long flags = PR_KLC | PR_FORK | PR_BPTADJ;
   if (ioctl (fd, PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
@@ -333,6 +341,8 @@ bool process::continueProc_() {
 */
 bool process::pause_() {
   ptraceOps++; ptraceOtherOps++;
+
+  // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
   return (ioctl(proc_fd, PIOCSTOP, 0) != -1);
 }
 
