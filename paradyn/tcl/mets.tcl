@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.11  1995/09/26 20:47:49  naim
+# Revision 1.12  1995/10/06 19:52:25  naim
+# Minor change: DONE key is disabled if there are no metrics selected - naim
+#
+# Revision 1.11  1995/09/26  20:47:49  naim
 # Minor comment about error message displaying
 #
 # Revision 1.10  1994/11/07  05:41:27  karavan
@@ -125,9 +128,32 @@ proc endSelection {visiToken rdoToken cancelflag win} {
 } 
 
 proc clearMetSelects {} {
-    global metCount metmenuCB
+    global metCount metmenuCB metSelected
     for {set i 0} {$i < $metCount} {incr i} {
 	set metmenuCB([expr $i]) 0
+    }
+    set metSelected 0
+}
+
+#
+# metSelectedProc
+# Counts how many metrics have been selected
+# This value, stored in metSelected, is used ir
+# order to enable and disable the DONE button
+# (i.e. DONE button is enabled iff metSelected>0)
+#
+
+proc metSelectedProc {i w} {
+    global metSelected metmenuCB
+    if {[expr $metmenuCB($i)]>0} {
+      incr metSelected
+    } else {
+      incr metSelected -1
+    }
+    if {$metSelected>0} {
+      $w.bot.b2 configure -state normal 
+    } else {
+      $w.bot.b2 configure -state disabled
     }
 }
 
@@ -137,13 +163,13 @@ proc clearMetSelects {} {
 
 proc getMetsAndRes {metsAndResID rdo} {
     global metCount metList metMenuCtr tclSelectionState 
+    global metSelected metmenuCB
 
     set tclSelectionState 1
     incr metMenuCtr
     set w .metmenunew$metMenuCtr
     set ret 0
     set msg3 "No Metrics Currently Defined"
-#    puts "getMetsAndRes $rdo"
     # toplevel window
     toplevel $w  -bd 0
     wm title $w "Paradyn Metrics Menu"
@@ -170,10 +196,17 @@ proc getMetsAndRes {metsAndResID rdo} {
 	}
 	set colNum 1
 	set cCnt 1
+	set metSelected 0
 	for {set i 0} {$i < $metCount} {incr i} {
 	    checkbutton $w.top.$colNum.cb$i  -width 20 -anchor w -padx 2 \
 		    -variable metmenuCB([expr $i]) \
-		    -text [lindex $metList [expr $i]]
+		    -text [lindex $metList [expr $i]] \
+		    -command "metSelectedProc $i $w"
+
+            if {[expr $metmenuCB($i)]>0} {
+	      incr metSelected
+	    }
+
 	    pack $w.top.$colNum.cb$i -side top
 	    if { $cCnt >= $colSize} { 
 		incr colNum
@@ -196,6 +229,10 @@ proc getMetsAndRes {metsAndResID rdo} {
 
     button $w.bot.b2 -text "DONE" -width 12 \
 	    -command "endSelection $metsAndResID $rdo 0 $w"
+
+    if {$metSelected==0} {
+      $w.bot.b2 configure -state disabled
+    } 
 
     pack $w.bot.b0 $w.bot.b1 $w.bot.b2 -side left -padx 20 -expand 1 \
 	    -pady 4
