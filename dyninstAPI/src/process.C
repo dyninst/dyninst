@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.312 2002/03/19 22:57:21 jaw Exp $
+// $Id: process.C,v 1.313 2002/03/22 21:55:17 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -74,6 +74,12 @@ int pvmendtask();
 
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch.h"
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/writeBackElf.h"
+#include "dyninstAPI/src/saveSharedLibrary.h" 
+#endif
+
 #else
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -1242,7 +1248,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
  */
 void process::saveWorldData(Address address, int size, const void* src){
 #ifdef BPATCH_LIBRARY
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	dataUpdate *newData = new dataUpdate;
 	newData->address= address;
 	newData->size = size;
@@ -1250,7 +1256,7 @@ void process::saveWorldData(Address address, int size, const void* src){
 	memcpy(newData->value, src, size);
 	dataUpdates.push_back(newData);
 #else /* Get rid of annoying warnings */
-#if !defined(i386_unknown_linux2_0) && !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1)
 	Address tempaddr = address;
 	int tempsize = size;
 	const void *bob = src;
@@ -1258,6 +1264,294 @@ void process::saveWorldData(Address address, int size, const void* src){
 #endif
 #endif
 }
+
+#ifdef BPATCH_LIBRARY
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+
+char* process::saveWorldFindDirectory(){
+
+	char* directoryNameExt = "_dyninstsaved";
+	int dirNo = 0;
+        char* directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
+                        strlen(directoryNameExt) + 3+1+1];
+	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+        while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
+                 if(errno == EEXIST){
+                         dirNo ++;
+                 }else{
+                         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+                         delete [] directoryName;
+                         return NULL;
+                 }
+                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().string_of(),
+                         directoryNameExt,dirNo);
+        }
+	if(dirNo == 0x1000){
+	         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
+	         delete [] directoryName;
+	         return NULL;
+	}
+	return directoryName;
+
+}
+
+unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize, 
+		char* directoryName){
+	shared_object *sh_obj;
+	unsigned int dl_debug_statePltEntry=0;
+	bool dlopenUsed = false;
+
+	//In the mutated binary we need to catch the dlopen events and
+	//adjust the instrumentation of the shared libraries (and 
+	//jumps into the shared libraries) as the base address of the
+	//shared libraries different for the base addresses during the
+	//original mutator/mutatee run.
+	//
+	//the r_debug interface ensures that a change to the dynamic linking
+	//information causes _dl_debug_state to be called.  This is because
+	//dlopen is too small and odd to instrument/breakpoint.  So our code will
+	//rely on this fact. (all these functions are contained in ld-linux.so)
+	//
+	//Our method:  The Procedure Linking Table (.plt) for ld-linux contains an
+	//entry that jumps to a specified address in the .rel.plt table. To
+	//call a function, the compiler generates a jump to the correct .plt
+	//entry which reads its jump value out of the .rel.plt.  
+	//
+	//On the sly, secretly replace the entry in .rel.plt with folgers crystals
+	//and poof, we jump to our own function in RTcommon.c (dyninst_dl_debug_state)
+	//[actually we replace the entry in .rel.plt with the address of
+	//dyninst_dl_debug_state].  To ensure correctness, dyninst_dl_debug_state
+	//contains a call to the real _dl_debug_state immediately before it returns,
+	//thus ensuring any code relying on that fact that _dl_debug_state is actually
+	//run remains happy.
+	//
+	//It is very important then, that we know the location of the entry in the
+	//.rel.plt table.  We need to record the offset of this entry with 
+	//respect to the base address of ld-linux.so (for obvious reasons)
+	//This offset is then sent to RTcommon.c, and here is the slick part, 
+	//by assigning it to the 'load address' of the section 
+	//"dyninstAPI_SharedLibraries," which contains the shared library/basei
+	//address pairs used to fixup the saved binary. This way when checkElfFile()
+	//reads the section the offset will be there in the section header.
+	//
+	//neat, eh?
+	// this is how it will work in the future, currently this is 
+	// not yet fully implemented and part of the cvs tree.
+	//
+
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if(sh_obj->isDirty()){
+			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
+				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
+				dlopenUsed = true;
+			}			
+			//printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
+		
+			Address textAddr, textSize;
+			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
+					strlen(directoryName) + 1];
+			memcpy(newName, directoryName, strlen(directoryName)+1);
+      			file = strrchr( sh_obj->getName().string_of(), '/');
+			strcat(newName,file);
+ 	
+	  		saveSharedLibrary *sharedObj = new saveSharedLibrary(
+				sh_obj->getBaseAddress(), sh_obj->getName().string_of(),
+				newName);
+                	sharedObj->writeLibrary();
+
+                	sharedObj->getTextInfo(textAddr, textSize);
+
+                	char *textSection = new char[textSize];
+                	readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
+				textSize,(void*)textSection, true);
+
+                	sharedObj->saveMutations(textSection);
+                	sharedObj->closeLibrary();
+			/*
+			//this is for the dlopen problem....
+			if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
+				//find the offset of _dl_debug_state in the .plt
+				dl_debug_statePltEntry = 
+					sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+			}
+			*/
+			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
+			delete [] textSection;
+			delete [] newName;
+		}
+		//this is for the dyninst_SharedLibraries section
+		//we need to find out the length of the names of each of
+		//the shared libraries to create the data buffer for the section
+
+		dyninst_SharedLibrariesSize += strlen(sh_obj->getName().string_of())+1;
+		//add the size of the address
+		dyninst_SharedLibrariesSize += sizeof(unsigned int);
+	}
+
+	dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
+
+	return dl_debug_statePltEntry;
+}
+	
+char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize){
+	//dyninst_SharedLibraries
+	//the SharedLibraries sections contains a list of all the shared libraries
+	//that have been loaded and the base address for each one.
+	//The format of the sections is:
+	//
+	//sharedlibraryName
+	//baseAddr
+	//...
+	//sharedlibraryName
+	//baseAddr
+	//'\0'
+	
+	char *dyninst_SharedLibrariesData = new char[dyninst_SharedLibrariesSize];
+	char *ptr= dyninst_SharedLibrariesData;
+	int size = shared_objects->size();
+	shared_object *sh_obj;
+
+	for(int i=0;shared_objects && i<size ; i++) {
+		sh_obj = (*shared_objects)[i];
+
+		memcpy((void*) ptr, sh_obj->getName().string_of(), strlen(sh_obj->getName().string_of())+1);
+		//printf(" %s : ", ptr);
+		ptr += strlen(sh_obj->getName().string_of())+1;
+
+		unsigned int baseAddr = sh_obj->getBaseAddress();
+		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
+		//printf(" 0x%x \n", *(unsigned int*) ptr);
+		ptr += sizeof(unsigned int);
+	}
+       	memset( (void*)ptr, '\0' , 1);
+
+	return dyninst_SharedLibrariesData;
+}
+
+void process::saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHighmemUpdates, 
+				vector<imageUpdate*> &highmemUpdates, void *ptr){
+
+	unsigned int trampGuardValue;
+	Address guardFlagAddr= trampGuardAddr();
+
+	unsigned int pageSize = getpagesize();
+        unsigned int startPage, stopPage;
+        unsigned int numberUpdates=1;
+        int startIndex, stopIndex;
+	void *data;
+	char name[50];
+	writeBackElf *newElf = (writeBackElf*) ptr;
+	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),(void*) &trampGuardValue, true);
+
+	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),(void*) &numberUpdates);
+
+        for(unsigned int j=0;j<compactedHighmemUpdates.size();j++){
+	  //the layout of dyninstAPIhighmem_%08x is:
+	  //pageData
+	  //address of update
+	  //size of update
+	  // ...
+	  //address of update
+	  //size of update
+	  //number of updates
+
+		startPage =  compactedHighmemUpdates[j]->address - compactedHighmemUpdates[j]->address%pageSize;
+		stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
+		  (compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size )%pageSize;
+                numberUpdates = 0;
+                startIndex = -1;
+                stopIndex = -1;
+
+			
+                for(unsigned index = 0;index < highmemUpdates.size(); index++){
+			//here we ignore anything with an address of zero.
+			//these can be safely deleted in writeBackElf
+		  	if( highmemUpdates[index]->address && startPage <= highmemUpdates[index]->address &&
+		     		highmemUpdates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
+		    		numberUpdates ++;
+		    		stopIndex = index;
+		    		if(startIndex == -1){
+		      			startIndex = index;
+		    		}
+				//printf(" HighMemUpdates address 0x%x \n", highmemUpdates[index]->address );
+		  	}
+                }
+                unsigned int dataSize = compactedHighmemUpdates[j]->size + sizeof(unsigned int) +
+		  (2*(stopIndex - startIndex + 1) /*numberUpdates*/ * sizeof(unsigned int));
+
+                (char*) data = new char[dataSize];
+
+                //fill in pageData
+                readDataSpace((void*) compactedHighmemUpdates[j]->address, compactedHighmemUpdates[j]->size,
+			      data, true);
+
+                unsigned int *dataPtr = (unsigned int*) ( (char*) data + compactedHighmemUpdates[j]->size);
+
+                //fill in address of update
+                //fill in size of update
+                for(unsigned index = startIndex; index<=stopIndex;index++){ 
+		  	memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));
+			dataPtr ++;
+		  	memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
+		  	dataPtr++;
+			//printf("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
+			//highmemUpdates[index]->address, highmemUpdates[index]->size);
+                }
+                //fill in number of updates
+                memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
+		//printf(" NUMBER OF UPDATES 0x%x\n\n",numberUpdates);
+                sprintf(name,"dyninstAPIhighmem_%08x",j);
+
+                newElf->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
+
+                //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
+                delete [] (char*) data;
+        }
+	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), (void*)&trampGuardValue);
+
+
+}
+
+void process::saveWorldCreateDataSections(void* ptr){
+
+	writeBackElf *newElf = (writeBackElf*)ptr;
+
+	char *dataUpdatesData;
+	int sizeofDataUpdatesData=0;
+	for(unsigned int m=0;m<dataUpdates.size();m++){
+		sizeofDataUpdatesData += (sizeof(int) + sizeof(Address)); //sizeof(size) +sizeof(Address);
+		sizeofDataUpdatesData += dataUpdates[m]->size;
+	}
+
+
+	if(dataUpdates.size() > 0) {
+		dataUpdatesData = new char[sizeofDataUpdatesData+(sizeof(int) + sizeof(Address))];
+		char* ptr = dataUpdatesData;
+		for(unsigned int k=0;k<dataUpdates.size();k++){
+			memcpy(ptr, &dataUpdates[k]->size, sizeof(int));
+			ptr += sizeof(int);
+			memcpy(ptr, &dataUpdates[k]->address, sizeof(Address));
+			ptr+=sizeof(Address);
+			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
+			ptr+=dataUpdates[k]->size;
+			//printf(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
+		//	dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
+
+		}
+		*(int*) ptr=0;
+		ptr += sizeof(int);
+		*(unsigned int*) ptr=0;
+		newElf->addSection(0/*lastCompactedUpdateAddress*/, dataUpdatesData, 
+			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), "dyninstAPI_data", false);
+		delete [] (char*) dataUpdatesData;
+	}
+
+}
+
+#endif
+#endif
+
 
 /*
  * Given an image, add all static heaps inside it
@@ -1543,6 +1837,7 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 
 const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
+//unsigned int totalSizeAlloc = 0;
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
                        Address near_, bool *err)
@@ -1672,24 +1967,28 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 			imagePatch->address = h->addr;
 			imagePatch->size = size;
 			p->imageUpdates.push_back(imagePatch);
-			//printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size); 
+			//totalSizeAlloc += size;
+		//	printf(" PUSHBACK %x %x --- %x\n", imagePatch->address, imagePatch->size, totalSizeAlloc); 
+			
 		}else{
-			//printf(" HIGHMEM UPDATE %x %x\n", h->addr, size);
+		//	totalSizeAlloc += size;
+		//	printf(" HIGHMEM UPDATE %x %x %x\n", h->addr, size,totalSizeAlloc);
                 	imageUpdate *imagePatch=new imageUpdate;
 	                imagePatch->address = h->addr;
         	        imagePatch->size = size;
                 	p->highmemUpdates.push_back(imagePatch);
 	                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
+			
+			
 
 		}
-		//fflush(stdout);
+		fflush(stdout);
 	}
 #endif
 #endif
 
   return(h->addr);
 }
-
 void inferiorFree(process *p, Address block, 
                   const vector<addrVecType> &pointsToCheck)
 {

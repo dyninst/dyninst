@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.7 2002/03/18 19:17:47 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.8 2002/03/22 21:55:18 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -6,7 +6,6 @@
 #include "writeBackElf.h"
 #define MALLOC 0 
 #define DYNAMIC 1 
-#define SHIFTSIZE  0x20
 
 unsigned int elf_version(unsigned int);
 
@@ -28,7 +27,7 @@ writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFl
 		fflush(stdout);		
 		return;
 	}
-        if((newfd = (open(newElfName, O_WRONLY|O_CREAT)))==-1){
+        if((newfd = (creat(newElfName, 0x1c0)))==-1){
 		//printf("NEWELF_OPEN_FAIL %s", newElfName);
 		char *fileName = new char[strlen(newElfName)+1+3];
 		for(int i=0;newfd == -1 && i<100;i++){
@@ -54,10 +53,10 @@ writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFl
                 fflush(stdout);
 		return;
         }
+      	//elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
 	newSections = NULL;
 	newSectionsSize = 0;
 	DEBUG_MSG = debugOutputFlag;
-	shiftSize = 0;
 	pageSize = getpagesize();
 	if(!DYNAMIC){
 		if(MALLOC){
@@ -131,9 +130,6 @@ int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSiz
 	newSection->name = new char[strlen(name)+1];
 	memcpy(newSection->name, name, strlen(name)+1);
 	newSection->nameIndx = 0;
-	if(loadable){
-		shiftSize +=SHIFTSIZE;
-	}
 	if(DEBUG_MSG){
 		printf(" ADDED SECTION: %x %x\n", newSection->vaddr, *(unsigned int*)newSection->data);
 	}
@@ -177,25 +173,6 @@ unsigned int writeBackElf::findAddressOf(char *objName){
 }
 
 
-void writeBackElf::fixData(Elf_Data* newdata, unsigned int startAddress){
-//this needs fixed. is p.3 always right there?
-//why do i need to fix it?
-
-	unsigned int p3Address;
-	unsigned int *tmp;
-	tmp = (unsigned int * ) newdata->d_buf;
-	p3Address = findAddressOf("p.3");
-
-	while(startAddress != p3Address){
-		startAddress+=sizeof(*tmp);
-		tmp ++;
-	}	
-	if(startAddress && tmp){//ccw 8 feb 2002
-		(*tmp) +=shiftSize;//this fixes p.3!
-	}
-}
-
-
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
 
@@ -227,11 +204,6 @@ void writeBackElf::driver(){
 
 
 
-	if(oldLastPage == newSections[0].vaddr/pageSize ){
-		//ok, the .bss section an the first newSection must
-		//be merged. aint that nice? 
-		shiftSize -=SHIFTSIZE;
-	}
 	scn = NULL;
 	for (int cnt = 1; (scn = elf_nextscn(oldElf, scn)); cnt++) {
 		//copy sections from oldElf to newElf.
@@ -254,9 +226,6 @@ void writeBackElf::driver(){
 		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
                 }
 
-                if(newsh->sh_addr<lastAddr){
-                        newsh->sh_addr +=shiftSize;
-                }
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".strtab")){
                         symStrData = newdata;
                         elf_update(newElf,ELF_C_NULL);
@@ -271,7 +240,7 @@ void writeBackElf::driver(){
 
                 if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".symtab")){
 			if(newsh->sh_link >= insertPoint){
-                        	newsh->sh_link += newSectionsSize;//(shiftSize/SHIFTSIZE);
+                        	newsh->sh_link += newSectionsSize;
 			}
                         symTabData = newdata;
                 }
@@ -303,17 +272,14 @@ void writeBackElf::driver(){
 		}
 
         }
-	fixData(dataData, dataStartAddress);
         Elf32_Phdr *tmp;
 
         tmp = elf32_getphdr(oldElf);
-        newEhdr->e_phnum= ehdr->e_phnum + shiftSize/SHIFTSIZE; //ccw 8 feb 2002 
-	// is this a diff in libelf? better imple on linux than lsolaris?
+        newEhdr->e_phnum= ehdr->e_phnum; 
         newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
 
         memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
-        newEhdr->e_shstrndx+=newSectionsSize;//(shiftSize/SHIFTSIZE);
-        newEhdr->e_entry+=shiftSize;
+        newEhdr->e_shstrndx+=newSectionsSize;
 
 	fixPhdrs((int) ehdr->e_phnum-1);
 
@@ -360,7 +326,6 @@ void writeBackElf::parseOldElf(){
                 exit(1);
         }
 
-
 	scn = NULL;
 	for (int cnt = 1; !insertPoint && (scn = elf_nextscn(oldElf, scn)); cnt++) {
         	shdr = elf32_getshdr(scn);
@@ -370,14 +335,20 @@ void writeBackElf::parseOldElf(){
 			oldLastPage = lastAddr / pageSize;
 		}			
 	}
-
+	//oldLastPage = 0;	// ccw 20 mar
 }
 
 bool writeBackElf::createElf(){
         unsigned int i;
         for(i=0;i< newSectionsSize && newSections[i].loadable;i++); // find the last loadable section
-	if(i){
-        	newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
+	if(i ||  oldLastPage == newSections[0].vaddr/pageSize  ){
+		//if we find a loadable sectin
+		//OR the first section is immediately after
+		//.bss but not loadable
+                if(!i){ //pretend we found a loadalbe seciton at position 0
+                        i++;
+                }
+		newHeapAddr = newSections[i-1].vaddr +newSections[i-1].dataSize;
 
 	        while(newHeapAddr % 0x8){
        	        	newHeapAddr++;
@@ -405,6 +376,8 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 	Elf_Data *newdata;
 
 	unsigned int i=0;
+/*  this is the expansion of the bss section ccw 20 mar 
+    it is not longer needed
 
 	if(oldLastPage == newSections[0].vaddr/pageSize){
 		bssSh->sh_size = newSections[0].vaddr - bssSh->sh_addr;// + newSections[0].dataSize;
@@ -426,7 +399,7 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 		bssSh->sh_type = SHT_PROGBITS;
 		elf_update(newElf,ELF_C_NULL);
 	}
-
+*/
 
 	for(;i<newSectionsSize;i++){
 		if(DEBUG_MSG){
@@ -502,32 +475,6 @@ void writeBackElf::fixPhdrs(int oldPhdrs){
 	if(oldLastPage == newSections[0].vaddr/pageSize){
 		i=1;
 	}
-        for(;i<newSectionsSize;i++){
-		if(newSections[i].loadable){
-        		newPhdr[oldPhdrs+i].p_vaddr = newSections[i].vaddr;
-	        	newPhdr[oldPhdrs+i].p_paddr=0;
-	        	newPhdr[oldPhdrs+i].p_filesz =newSections[i].dataSize;
-	        	newPhdr[oldPhdrs+i].p_flags =  PF_R|PF_X|PF_W;
-	        	newPhdr[oldPhdrs+i].p_type = PT_LOAD ;
-	        	newPhdr[oldPhdrs+i].p_memsz =newSections[i].dataSize;
-	        	newPhdr[oldPhdrs+i].p_align = 0x10000;//newSections[i].align;
-	        	newPhdr[oldPhdrs+i].p_offset = newSections[i].shdr->sh_offset;
-		}
-	}	
-
-        newPhdr[0].p_filesz += shiftSize;
-        newPhdr[0].p_memsz += shiftSize;
-        newPhdr[1].p_offset += shiftSize;
-        newPhdr[2].p_filesz += shiftSize;
-        newPhdr[2].p_memsz += shiftSize;
-	if(oldLastPage == newSections[0].vaddr/pageSize){
-		newPhdr[3].p_filesz =  newSections[0].vaddr - newPhdr[3].p_vaddr + newSections[0].dataSize;
-		newPhdr[3].p_memsz =  newSections[0].vaddr- newPhdr[3].p_vaddr + newSections[0].dataSize;
-	}
-        newPhdr[3].p_offset += shiftSize;
-        newPhdr[3].p_vaddr += shiftSize;
-        newPhdr[4].p_offset += shiftSize;
-        newPhdr[4].p_vaddr += shiftSize;
 }
 
 
@@ -539,6 +486,9 @@ void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, v
 	imageUpdate *curr, *next;
 	bool foundDup=true;
 	unsigned int j;
+
+	VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+
 	while(foundDup){
 		foundDup = false;
 		j =0;
@@ -585,6 +535,8 @@ void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, v
                 while(imagePatches[j]->address==0 && j < imagePatches.size()){
                         j++;
                 }
+		imagePatches.erase(0,j-1);
+		j=0;
 		for(;j<imagePatches.size()-1;j++){
 			if(imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
 				foundDup = true;
@@ -612,7 +564,7 @@ void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, v
 	startPage = imagePatches[k]->startPage;
 	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
 	int startIndex=k, stopIndex=imagePatches.size()-1;
-	if(DEBUG_MSG){
+	/*if(DEBUG_MSG){
 		printf("COMPACTING....\n");	
 		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
@@ -623,7 +575,65 @@ void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, v
         newPatches.push_back(patch);
 	if(DEBUG_MSG){
 		printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+	}*/
+	bool finished = false;
+	if(DEBUG_MSG){
+		printf("COMPACTING....\n");	
+		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
+	for(;k<imagePatches.size();k++){
+		if(imagePatches[k]->address!=0){
+			if(DEBUG_MSG){
+				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
+			}
+			if(imagePatches[k]->startPage <= stopPage){
+				stopIndex = k;
+				stopPage = imagePatches[k]->stopPage;
+			}else{
+
+				patch = new imageUpdate;
+				patch->address = imagePatches[startIndex]->address;
+				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
+						imagePatches[stopIndex]->size;
+				newPatches.push_back(patch);
+				if(DEBUG_MSG){
+					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+						patch->address, patch->size, startPage,  stopPage);
+				}
+				finished = true;
+				//was k+1	
+				if(k < imagePatches.size()){
+					while(imagePatches[k]->address==0 && k < imagePatches.size()){
+						k++;
+					}
+					startIndex = k;
+					stopIndex = k;
+					startPage = imagePatches[k]->startPage;
+					stopPage  = imagePatches[k]->stopPage;
+					finished = false;
+					if(k == imagePatches.size()){
+						finished = true;
+					}
+				} 
+			}
+		}
+
+	}
+
+	if(!finished){
+		patch = new imageUpdate;
+                patch->address = imagePatches[startIndex]->address;
+                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+                                   imagePatches[stopIndex]->size;
+                newPatches.push_back(patch);
+		if(DEBUG_MSG){
+			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+			fflush(stdout);
+		}
+	}	
+
+	
 }
 
 void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches){

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.36 2002/03/21 23:33:23 gaburici Exp $
+// $Id: BPatch_snippet.C,v 1.37 2002/03/22 21:55:17 chadd Exp $
 
 #define BPATCH_FILE
 
@@ -813,7 +813,7 @@ bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
 {
     if (size) {
 	proc->writeDataSpace(address, size, src);
-#ifdef sparc_sun_solaris2_4	
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	if(saveWorld) { //ccw 26 nov 2001
 		proc->saveWorldData((Address) address,size,src);
 	}
@@ -836,7 +836,7 @@ bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
  */
 void BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
 {
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
     if(saveWorld) { //ccw 26 nov 2001
 	proc->saveWorldData((Address) address,len,src);
     }

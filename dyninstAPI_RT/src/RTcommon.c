@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.21 2002/02/21 21:48:01 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.22 2002/03/22 21:55:20 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -147,6 +147,7 @@ int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 
 
 unsigned int checkAddr;
 int isElfFile=0;
+char *buffer;
 
 int checkSO(char* soName){
 	Elf32_Shdr *shdr;
@@ -195,7 +196,7 @@ int checkElfFile(){
         Elf_Data *elfData,*strData;
         Elf_Scn *scn;
         char execStr[256];
-	int retVal = 0;
+	int retVal = 0, result;
 	unsigned int mmapAddr;
 	int pageSize;
 	Address dataAddress;
@@ -207,6 +208,7 @@ int checkElfFile(){
 	char* oldPageData;
 	Dl_info dlip;
 	int soError = 0; 
+	int sawFirstHeapTrampSection = 0;
 	elf_version(EV_CURRENT);
 
 #if defined(sparc_sun_solaris2_4)
@@ -221,8 +223,8 @@ int checkElfFile(){
 		return;
         }
         if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-                RTprintf("%s %s \n",execStr, elf_errmsg(elf_errno()));
-                RTprintf("cannot elf_begin\n");
+                printf("%s %s \n",execStr, elf_errmsg(elf_errno()));
+                printf("cannot elf_begin\n");
 		fflush(stdout);
                 close(fd);
                 return;
@@ -250,7 +252,22 @@ int checkElfFile(){
 			}
 
 		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){
+			char *tmpStr;
 			retVal = 1; /* this is a restored run */
+			tmpStr = strchr((char *)strData->d_buf + shdr->sh_name,'_'); 
+			tmpStr ++;
+			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
+				/* this is a heap tramp section */
+				if( sawFirstHeapTrampSection ){
+					result = mmap((void*) shdr->sh_addr, shdr->sh_size, 
+					PROT_READ|PROT_WRITE|PROT_EXEC,
+					MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
+				}else{
+					elfData = elf_getdata(scn, NULL);
+					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
+					sawFirstHeapTrampSection = 1;
+				}
+			}
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_mutatedSO")){
 			/* make sure the mutated SOs are loaded, not the original ones */
@@ -385,13 +402,15 @@ int checkElfFile(){
 
 #endif
 
-#if defined(i386_unknown_linux2_0) 
+#if defined(i386_unknown_linux2_0)  || defined (sparc_sun_solaris2_4) 
 /* with solaris, the mutatee has a jump from
  * main() to a trampoline that calls DYNINSTinit() the
  * trampoline resides in the area that was previously
  * the heap, this trampoline is loaded as part of the
  * data segment
- *
+ * UPDATE: now the heap tramps are not loaded by the loader
+ * but rather this file so _init is necessary
+ * 
  * with linux the trampolines are ALL in the big
  * array at the top of this file and so are not loaded
  * by the loader as part of the data segment. this
@@ -399,8 +418,15 @@ int checkElfFile(){
  * main() jumps to the big array
  */ 
 void _init(){
-
+/* this buffer is allocated to clear
+   the first page on the heap. This is necessary
+   because loading the heap tramps uses mmap, which
+   is going to eat the heap if the heap begins on 
+   the same page the heap tramps end on (almost certain)
+*/
+	buffer = (char*) malloc(getpagesize());
 	isElfFile =checkElfFile();
+	free(buffer);
 }
 #endif
 

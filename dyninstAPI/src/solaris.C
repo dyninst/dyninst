@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.112 2002/03/12 18:40:04 jaw Exp $
+// $Id: solaris.C,v 1.113 2002/03/22 21:55:18 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -168,88 +168,40 @@ bool process::continueWithForwardSignal(int) {
 
 
 #ifdef BPATCH_LIBRARY
+
 char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
 	addLibrary *addLibraryElf;
-	void *data;
+	void *data, *paddedData;
 	unsigned int errFlag=0;
 	char name[50];	
 	vector<imageUpdate*> compactedUpdates;
 	vector<imageUpdate*> compactedHighmemUpdates;
 	Address guardFlagAddr= trampGuardAddr();
-	unsigned int lastCompactedUpdateAddress;
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
-	int dirNo =0;
 	char *directoryName = 0;
-	char *directoryNameExt = "_dyninstsaved";
-	bool dlopenUsed = false;	
+	shared_object *sh_obj;
 	if(!collectSaveWorldData){
 		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
 		return NULL;
 	}
 
-	directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
-			 strlen(directoryNameExt) + 3+1+1];
 
-	sprintf(directoryName,"%s%s%0*3x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
-	while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
-		if(errno == EEXIST){
-			dirNo ++;
-		}else{
-			BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
-			delete [] directoryName;
-			return NULL;
-		}
-		sprintf(directoryName, "%s%s%0*3x",(char*)getImage()->file().string_of(),
-			 directoryNameExt,dirNo);
-	}
+	directoryName = saveWorldFindDirectory();
 
-	if(dirNo == 0x1000){
-		BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
-		delete [] directoryName;
+	if(!directoryName){
 		return NULL;
 	}
-
 	strcat(directoryName, "/");
 
-	shared_object *sh_obj;
-	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if(sh_obj->isDirty()){
-			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
-				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
-				dlopenUsed = true;
-			}			
-			//printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
-		
-			Address textAddr, textSize;
-			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
-					strlen(directoryName) + 1];
-			memcpy(newName, directoryName, strlen(directoryName)+1);
-      			file = strrchr( sh_obj->getName().string_of(), '/');
-			strcat(newName,file);
- 	
-	  		saveSharedLibrary *sharedObj = new saveSharedLibrary(
-				sh_obj->getBaseAddress(), sh_obj->getName().string_of(),
-				newName);
-                	sharedObj->writeLibrary();
+	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
+	unsigned int dyninst_SharedLibrariesSize = 0;
 
-                	sharedObj->getTextInfo(textAddr, textSize);
+	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
+		dyninst_SharedLibrariesSize,directoryName);
 
-                	char *textSection = new char[textSize];
-                	readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
-				textSize,(void*)textSection, true);
-
-                	sharedObj->saveMutations(textSection);
-                	sharedObj->closeLibrary();
-
-			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
-			delete [] textSection;
-			delete [] newName;
-		}
-	}
 	if(mutatedSharedObjectsSize){
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
 		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
@@ -263,6 +215,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 			}
 		}	
 	}
+	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 
 	newElf = new writeBackElf(( char*) getImage()->file().string_of(),
 		"/tmp/dyninstMutatee",errFlag);
@@ -285,19 +238,17 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
 	newElf->alignHighMem(compactedHighmemUpdates);
-//in practice only one dyninstAPI_ section is created
-//because the tramps are so close together in memory. 
-//so we force this to be the case (in theory there could be
-//two or more sections) so that we know that there is
-//no new loadable segment added, and NOTHING is shifted
-//in the file, which simpilifies writeBackElf ALOT!
 
-	//for loop to add sections.....
-	//for(unsigned int i=0;i<compactedUpdates.size();i++){
-	if(compactedUpdates.size() > 1){
-		printf(" ERROR! compacted updates contains too many sections\n");
-	}
-	unsigned int i = 0;
+	int sectionsAdded = 0;
+	unsigned int newSize, nextPage, paddedDiff;
+	unsigned int pageSize = getpagesize();
+
+
+	//This adds the LOADABLE HEAP TRAMP sections
+	//if new platforms require this it will be moved
+	//to process.C proper. Right now, only solaris uses it
+	for(unsigned int i=0;i<compactedUpdates.size();i++){
+
 		(char*) data = new char[compactedUpdates[i]->size];
 		readDataSpace((void*) compactedUpdates[i]->address, compactedUpdates[i]->size, 	
 			data, true);	
@@ -313,102 +264,58 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
                         }
 		}
 
-		sprintf(name,"dyninstAPI_%08x",i);
-		newElf->addSection(compactedUpdates[i]->address,data ,compactedUpdates[i]->size,name); 
-		delete [] (char*) data;
-	//}
+		sprintf(name,"dyninstAPI_%08x",sectionsAdded);
 
-	unsigned int pageSize = getpagesize();
-	unsigned int startPage, stopPage;
-	unsigned int numberUpdates;
-	int startIndex, stopIndex;
-	for(unsigned int j=0;j<compactedHighmemUpdates.size();j++){
-		//the layout of dyninstAPIhighmem_%08x is:
-		//pageData
-		//address of update
-		//size of update
-		// ...
-		//address of update
-		//size of update
-		//number of updates 
+		// what i want to do is this: 
+		// I want MMAP rather than MEMCPY as much into place 
+		// as i can. 
+		// My assumptions:
+		// there can be any number of heap trampoline sections
+		// Only the first section could have valid (non heap tramp) data on the
+		// beginning of its first page. Any subsequent sections will begin on
+		// a different page than the previous page ends on [by the way 
+		// compactLoadableSections works] and the heap has been moved
+		// beyond the last heap tramp section so the mutatee cannot
+		// put data there.
+		// 
+		// for the first section, i=0, make
+		// two sections, where the first one is everything up to the first
+		// page break, which will be memcpy'ed to memory
+		// the second and subsequent sections will be aligned to be
+		// mmaped ..... which means some sections will get bigger.
+		
+		if( i == 0 ){
+			/* create memcpy section */
+			nextPage = compactedUpdates[i]->address - (compactedUpdates[i]->address%pageSize);
+			nextPage +=pageSize;
+			newSize = nextPage - compactedUpdates[i]->address;	
+			newElf->addSection(compactedUpdates[i]->address,data ,newSize,name);
+			sectionsAdded ++;
 
-		startPage =  compactedHighmemUpdates[j]->address - compactedHighmemUpdates[j]->address%pageSize;
-		stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
-                                        (compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size )%pageSize; 
-		numberUpdates = 0;
-		startIndex = -1;
-		stopIndex = -1;	
-		for(unsigned index = 0;index < highmemUpdates.size(); index++){
-			if(startPage <= highmemUpdates[index]->address && 
-				highmemUpdates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
-				numberUpdates ++;
-				stopIndex = index;
-				if(startIndex == -1){
-					startIndex = index;
-				}
-			}
+			/* create mmap section */
+			sprintf(name,"dyninstAPI_%08x",sectionsAdded);
+			newElf->addSection(nextPage, &(((char*) data)[newSize]) ,
+				compactedUpdates[i]->size- newSize,name);
+			sectionsAdded ++;
+		}else{
+			/* create section padded out backwards to a page boundry */
+			paddedDiff = (compactedUpdates[i]->address%pageSize);
+			paddedData = new char[paddedDiff + compactedUpdates[i]->size];
+			memset(paddedData, '\0', paddedDiff + compactedUpdates[i]->size); //necessary?
+			memcpy(&( ((char*) paddedData)[paddedDiff]), data, compactedUpdates[i]->size);
+
+			newElf->addSection(compactedUpdates[i]->address-paddedDiff, paddedData,
+				paddedDiff + compactedUpdates[i]->size, name);
+			delete [] (char*) paddedData;
+				
 		}
-		unsigned int dataSize = compactedHighmemUpdates[j]->size + sizeof(unsigned int) + 
-			(2*numberUpdates * sizeof(unsigned int));
-
-		(char*) data = new char[dataSize];
-
-               	//fill in pageData 
-		readDataSpace((void*) compactedHighmemUpdates[j]->address, compactedHighmemUpdates[j]->size,
-                        data, true);
-
-		unsigned int *dataPtr = (unsigned int*) ( (char*) data + compactedHighmemUpdates[j]->size);
-
-		//fill in address of update
-		//fill in size of update
-		for(unsigned index = startIndex; index< highmemUpdates.size() && index<=stopIndex;index++){
-			memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));	
-			dataPtr ++;
-			memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
-			dataPtr++;
-		}
-
-		//fill in number of updates
-		memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
-
-                sprintf(name,"dyninstAPIhighmem_%08x",j);
-                
-		newElf->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
-
-		lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
 		delete [] (char*) data;
 	}
 
-	char *dataUpdatesData;
-	int sizeofDataUpdatesData=0;
-	for(unsigned int m=0;m<dataUpdates.size();m++){
-		sizeofDataUpdatesData += (sizeof(int) + sizeof(Address)); //sizeof(size) +sizeof(Address);
-		sizeofDataUpdatesData += dataUpdates[m]->size;
-	}
+	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newElf);
 
 
-	if(dataUpdates.size() > 0) {
-		dataUpdatesData = new char[sizeofDataUpdatesData+(sizeof(int) + sizeof(Address))];
-		char* ptr = dataUpdatesData;
-		for(unsigned int k=0;k<dataUpdates.size();k++){
-			memcpy(ptr, &dataUpdates[k]->size, sizeof(int));
-			ptr += sizeof(int);
-			memcpy(ptr, &dataUpdates[k]->address, sizeof(Address));
-			ptr+=sizeof(Address);
-			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
-			ptr+=dataUpdates[k]->size;
-			//printf(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
-		//	dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
-
-		}
-		*(int*) ptr=0;
-		ptr += sizeof(int);
-		*(unsigned int*) ptr=0;
-		newElf->addSection(lastCompactedUpdateAddress, dataUpdatesData, 
-			sizeofDataUpdatesData, "dyninstAPI_data", false);
-		delete [] (char*) dataUpdatesData;
-	}
-
+	saveWorldCreateDataSections((void*)newElf);
 
 	if(mutatedSharedObjectsSize){
 		newElf->addSection(0 ,mutatedSharedObjects, 
@@ -431,14 +338,21 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
                 delete compactedHighmemUpdates[k];
         }
 
+	//the following is for the dlopen problem
+	//newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
+	//dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
+	delete [] dyninst_SharedLibrariesData;
+
+
 	newElf->createElf();
-	addLibraryElf = new addLibrary(newElf->getElf(),"libdyninstAPI_RT.so.1",errFlag);
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
 	strcpy(fullName, directoryName);
 	strcat(fullName, (char*)imageFileName.string_of());
-	addLibraryElf->outputElf(fullName);
+	
+	addLibraryElf = new addLibrary();
+	elf_update(newElf->getElf(), ELF_C_WRITE);
+	addLibraryElf->driver(newElf->getElf(),fullName,"libdyninstAPI_RT.so.1");
 	delete [] fullName;
-	//delete [] directoryName;
 	if(mutatedSharedObjects){
 		delete [] mutatedSharedObjects;
 	}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.189 2002/03/14 23:26:36 bernat Exp $
+/* $Id: process.h,v 1.190 2002/03/22 21:55:18 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -664,14 +664,27 @@ class process {
     }
 #endif
 
+void saveWorldData(Address address, int size, const void* src);
+
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   vector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   vector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   vector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
+
+
+
+	char* saveWorldFindDirectory();
+
+	unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize,
+		 char* directoryName);
+	char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
+
+	void saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHighmemUpdates, 
+		vector<imageUpdate*> &highmemUpdates, void *newElf);
+	void saveWorldCreateDataSections(void* ptr);
 #endif
 #endif
-	void saveWorldData(Address address, int size, const void* src);
 
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);

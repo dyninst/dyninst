@@ -70,7 +70,8 @@
 
 typedef int handleT; // a /proc file descriptor
 
-#include "saveSharedLibrary.h" //ccw 13 jan 2002
+//#include "saveSharedLibrary.h" //ccw 13 jan 2002
 #include "writeBackElf.h" //ccw 28 oct 2001
+
 #include "addLibrary.h" //ccw 3 dec 2001
 #endif

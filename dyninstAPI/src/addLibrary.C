@@ -1,727 +1,558 @@
-/* $Id: addLibrary.C,v 1.3 2002/02/12 15:42:03 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.4 2002/03/22 21:55:17 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
-
 #include "addLibrary.h"
+#define BASEADDR 0x10000
 
-unsigned int elf_version(unsigned int);
+/*
+ * this is the addLibraryLinux.C file, i am trying to
+ * turn it into the solaris version.
+ */
 
-void addLibrary::updateDynamic(Elf_Data* dynamicData, unsigned int dynstrAddr, unsigned int dynsymAddr){
+/* 
+ * This class will add a library to an existing Linux ELF binary
+ * You must pass it an open Elf * (from libelf) pointer and a library
+ * name, and a name for the new file.
+ *
+ * How it works:
+ * Basically the .dynstr section contains all the strings associated
+ * with the dynamic symbol table and dynamic loading functionality (ie shared
+ * libraries).  The .dynamic table contains a list of dynamic linking
+ * information, including a list of pointers in to the .dynstr table
+ * denoting which shared libraries should be loaded at startup.
+ *
+ * First we must add a string to .dynstr.  Since .dynstr is in the
+ * middle of the text segment we cannot expand it as it will shift
+ * all the following instructions to different addresses in memory
+ * causing much chaos.  So we expand it and shift it up as many
+ * bytes as we expand it, so it ends on the same offset within the
+ * file.  There are no instructions above .dynstr so any movement up
+ * there is ok.  The sections above .dynstr are all accessed through
+ * the Program Header Table or .dynamic table and those pointers
+ * can be patched up easily
+ *
+ * Of course the next question is how do you keep from shifting
+ * up past the beginning of the file? Well and ELF file has as its
+ * first 0x34 bytes the Elf Header.  This is a mandatory position.
+ * Followed by that ELF files usually (ie if they are produced by
+ * gcc) have their Program Header Table (usually 0xc0 bytes) then
+ * the actual data follows that.  The Program Header Table can
+ * be anywhere in the file (*).  So we shift it to either the
+ * end of the text segment or the beginning of the data segment and
+ * patch up the entries in the Program Header Table as needed.  
+ * How do we know we can do this? There is always one memory page
+ * between the end of the text segment and the beginnig of the data
+ * segment.  So either there will be a gap of > 0xc0 bytes between
+ * the end of the text segment and the next page boundry or the start
+ * of the data segment and the previous page boundry.  Note that it
+ * is possible but highly unlikely that the Program Header Table is
+ * greater than 0xc0 bytes, though it would need to grow quite large
+ * for this to be a problem.
+ *
+ * Note that all the assumptions except the placement of the
+ * ELF Header are merely convention, not a standard.  But they are 
+ * followed by gcc and the like.
+ *
+ * (*) The Program Header Table should be able to be located
+ * anywhere in the file and loaded to any place in memory.
+ * The Linux loader does not seem to like it if the PHT
+ * is loaded anywhere except in the text or data segment.
+ * I have not been able to find any code to support this,
+ * its all experimental evidence
+ */
+void addLibrary::createNewElf(){
 
-        __Elf32_Dyn *dynData;
+	Elf32_Ehdr *oldEhdr;
+	Elf32_Phdr *oldPhdr;
+	Elf32_Shdr *oldShdr;
+	Elf_Scn *oldScn;
+	Elf_Data *oldData;
 
-        for ( dynData = (__Elf32_Dyn*) dynamicData->d_buf;  dynData->d_tag  != DT_NULL;dynData++){
-                if(dynData->d_tag == DT_STRTAB){
-                        dynData->d_un.d_val=dynstrAddr;
-                }else if(dynData->d_tag == DT_SYMTAB){
-                        dynData->d_un.d_val=dynsymAddr;
+	// get Ehdr
+	oldEhdr = elf32_getehdr(oldElf);
+
+	newElfFileEhdr = (Elf32_Ehdr*) new char[oldEhdr->e_ehsize];
+	memcpy(newElfFileEhdr, oldEhdr, oldEhdr->e_ehsize);
+
+	// get Phdr
+	oldPhdr = elf32_getphdr(oldElf);
+	
+	newElfFilePhdr = (Elf32_Phdr*) new char[oldEhdr->e_phentsize * oldEhdr->e_phnum];
+	memcpy(newElfFilePhdr, oldPhdr, oldEhdr->e_phentsize * oldEhdr->e_phnum);
+
+	newElfFileSec = (Elf_element *) new char[sizeof(Elf_element) * (oldEhdr->e_shnum + 1)];
+	memset(newElfFileSec, '\0',sizeof(Elf_element) * (oldEhdr->e_shnum + 1)); 
+	arraySize = oldEhdr->e_shnum;
+
+	oldScn = NULL;
+	_pageSize = newElfFilePhdr[3].p_align;
+	phdrSize = oldEhdr->e_phentsize * oldEhdr->e_phnum;
+	numberExtraSegs=0;
+	for(int cnt = 0; (oldScn = elf_nextscn(oldElf, oldScn));cnt++){
+                oldData=elf_getdata(oldScn,NULL);
+                oldShdr = elf32_getshdr(oldScn);
+
+		newElfFileSec[cnt].sec_hdr = new Elf32_Shdr;
+		newElfFileSec[cnt].sec_data = new Elf_Data;
+
+                memcpy(newElfFileSec[cnt].sec_hdr, oldShdr, sizeof(Elf32_Shdr));
+                memcpy(newElfFileSec[cnt].sec_data,oldData, sizeof(Elf_Data));
+
+                if(oldData->d_buf && oldData->d_size){
+                        newElfFileSec[cnt].sec_data->d_buf = new char[oldData->d_size];
+                        memcpy(newElfFileSec[cnt].sec_data->d_buf, oldData->d_buf, oldData->d_size);
                 }
-         }
-
-
-}
-
-void addLibrary::remakeHash(Elf_Data* hashData, Elf_Data* dynsymData, Elf_Data* dynstrData){
-        Elf32_Sym* symPtr=(Elf32_Sym*) dynsymData->d_buf;
-        int nbucket= *((Elf32_Word*) hashData->d_buf), nchain, symSize= dynsymData->d_size/(sizeof(Elf32_Sym)) ;
-        nchain = ((Elf32_Word*) hashData->d_buf)[1];
-        int counter =0;
-        Elf32_Word* bucket, *chain;
-        hashData->d_size = (nbucket+nchain+2) * (sizeof(Elf32_Word));
-        bucket = &(((Elf32_Word*) hashData->d_buf)[2]);
-        chain  = &(((Elf32_Word*) hashData->d_buf)[2+nbucket]);
-        memset(hashData->d_buf, '\0', hashData->d_size);
-        *(Elf32_Word*) hashData->d_buf = nbucket;
-        ((Elf32_Word*) hashData->d_buf)[1]= nchain;
-        while(!symPtr->st_name){
-                symPtr++;
-                counter++;
-        }
-        int oldhashValue, hashValue;
-        char *currentName=NULL;
-        while(counter<symSize){
-                currentName = (char*) dynstrData->d_buf+ symPtr->st_name;
-                hashValue = elf_hash(currentName) % nbucket;
-                if(debugFlag){
-                        printf("\n %s %d-->%lx", currentName,hashValue , bucket[hashValue]);
-                }
-                if(bucket[hashValue]==0){
-                        /* success, we can put it here*/
-                        bucket[hashValue] = counter;
-                }else{
-                        /* fail, cant put it here */
-			oldhashValue = hashValue;
-                        hashValue = bucket[oldhashValue];
-                        while(((unsigned int) hashValue) <= ((unsigned int) symSize) && chain[hashValue]){
-                                if(debugFlag){
-                                        printf("inWHILE %d-->%lx ",hashValue,chain[hashValue]);
-					fflush(stdout);
-                                }
-                      		oldhashValue = hashValue; 
-		        	hashValue = chain[hashValue];
-                        
-			}
-                        if((unsigned int) hashValue > symSize){
-				hashValue = oldhashValue;
-			}
-			if(debugFlag){
-                                printf("outWHILE %d-->%lx ",hashValue,chain[hashValue]);
-                        }
-                        chain[hashValue]=counter;
-                }
-                counter++;
-                symPtr++;
-        }
-}
-
-void addLibrary::updateRela(Elf_Data* newData,int shift, unsigned int shiftIndex){
-
-        Elf32_Rela *rData;
-        unsigned int newValue, rOldvalue, oldValue;
-
-        rData= (Elf32_Rela*)newData->d_buf;
-        for(unsigned int i = 0;i< newData->d_size/(sizeof(Elf32_Rela));i++,rData++){
-                if(ELF32_R_SYM(rData->r_info) >= shiftIndex){
-                        newValue = 0;
-                        rOldvalue = 0;
-                        oldValue = 0;
-                        newValue = 0x000000ff & rData->r_info;
-                        rOldvalue= rData->r_info;
-                        oldValue = ELF32_R_SYM(rData->r_info);
-                        oldValue +=shift;
-                        newValue = newValue | (oldValue<<8);
-
-                        rData->r_info = newValue;
-                        if(debugFlag){
-                                printf("RELA %x --> %lx  %d --> %lx\n",rOldvalue, rData->r_info,
-                                        ELF32_R_SYM(rOldvalue),ELF32_R_SYM(rData->r_info));
-                        }
-                }
-        }
-
-}
-
-void addLibrary::updateSymbols(Elf_Data* symtabData, Elf_Data *oldsymData,
-                       RelocationData relocData, int maxShndx){
-
-        Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
-        Elf32_Sym *oldsymPtr= (Elf32_Sym*)oldsymData->d_buf;
-
-
-        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,oldsymPtr++){
-
-                if(i==relocData.newdynsymIndx){
-                        oldsymPtr--;
-                        memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
-                        symPtr->st_shndx = relocData.newdynsymIndx;
-                        symPtr->st_value = relocData.newdynsymAddr;
-                        if(debugFlag){
-                                printf("1: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
-                                        symPtr->st_value, symPtr->st_shndx);
-                        }
-
-                }else if(i==relocData.newdynstrIndx){
-                        oldsymPtr--;
-                        memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
-                        symPtr->st_shndx = relocData.newdynstrIndx;
-                        symPtr->st_value = relocData.newdynstrAddr;
-                        if(debugFlag){
-                                printf("2: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
-                                        symPtr->st_value, symPtr->st_shndx);
-                        }
-                }else if(i==relocData.newdynamicIndx){
-                        oldsymPtr--;
-                        memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
-                        symPtr->st_shndx = relocData.newdynamicIndx;
-                        symPtr->st_value = relocData.newdynamicAddr;
-                        if(debugFlag){
-                                printf("3: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
-                                        symPtr->st_value, symPtr->st_shndx);
-                        }
-                }else{
-                        memcpy(symPtr,oldsymPtr,sizeof(Elf32_Sym));
-                        if(symPtr->st_shndx < maxShndx){
-                                if(symPtr->st_shndx>=relocData.newdynstrIndx &&
-                                        symPtr->st_shndx<relocData.newdynamicIndx-2){
-                                        symPtr->st_shndx+=2;
-                                }else if(symPtr->st_shndx>=relocData.newdynamicIndx-2){
-                                        symPtr->st_shndx+=3;
-                                }
-                        }
-
-                        if(debugFlag){
-                                printf("4: %d: %lx %d --> %lx %d \n",i,oldsymPtr->st_value, oldsymPtr->st_shndx,
-                                        symPtr->st_value, symPtr->st_shndx);
-                        }
-                }
-		if(oldsymPtr->st_shndx==relocData.olddynamicIndx){
-                        symPtr->st_shndx=relocData.newdynamicIndx;
-                }
-                if(oldsymPtr->st_value == relocData.olddynamicAddr){
-                        symPtr->st_value = relocData.newdynamicAddr;
-                }
-                if(oldsymPtr->st_value == relocData.olddynstrAddr){
-                        symPtr->st_value = relocData.newdynstrAddr;
-                }else if(oldsymPtr->st_value == relocData.olddynsymAddr){
-                        symPtr->st_value = relocData.newdynsymAddr;
-                }
-                symPtr++;
-        }
-
-
-}
-void addLibrary::updateSh_link(Elf32_Word *sh_link,RelocationData relocData){
-
-        if(debugFlag){
-                printf("UPDATES SHLINK %lx \n", (*sh_link));
-        }
-        if(relocData.newdynstrIndx && *sh_link>relocData.newdynstrIndx){
-                (*sh_link)++;
-        }
-
-        if(relocData.newdynsymIndx && *sh_link>relocData.newdynsymIndx){
-                (*sh_link)++;
-
-        }
-        if(relocData.newdynamicIndx&& *sh_link>relocData.newdynamicIndx){
-                (*sh_link)++;
-        }
-        if(debugFlag){
-                printf("UPDATED SHLINK: %lx %d %d\n", *sh_link,relocData.newdynstrIndx,relocData.newdynsymIndx);
-        }
-
-}
-
-void addLibrary::updateSectionHdrs(Elf * newElf){
-Elf_Scn *scn;
-Elf32_Shdr *shdr;
-int index;
-int fix,newAddr;
-        for (scn = NULL; (scn = elf_nextscn(newElf, scn)); ) {
-                shdr = elf32_getshdr(scn);
-                index = 0;
-                newAddr = shdr->sh_addr;
-                while(shdr->sh_addr >= relocations[index].d_addr && index<relocIndex){
-                        newAddr += relocations[index].d_size;
-                        fix=0;
-                        if(newAddr % shdr->sh_addralign){
-                                while((newAddr+ ++fix) % shdr->sh_addralign);
-                                if(index == relocIndex){
-                                        relocations[relocIndex].d_size = fix;
-                                        relocations[relocIndex++].d_addr = newAddr;
-                                        index++;
-                                }else{
-
-                                        int shift=relocIndex;
-                                        for(;shift>0;shift--){
-                                                memcpy(&(relocations[shift]), &(relocations[shift-1]),8);
-                                        }
-                                        relocations[index+1].d_size = fix;
-                                        relocations[index+1].d_addr = newAddr;
-                                        index++;
-                                        relocIndex++;
-                                        for(int xx=0;xx<relocIndex;xx++){
-                                                if(debugFlag){
-                                                        printf(" [ %lx %lx ] \n",relocations[xx].d_size, 
-								relocations[xx].d_addr);
-                                                }
-                                        }
-                                }
-                                //relocations[index].d_size+=fix;
-                                newAddr+=fix;
-                        }
-                        if(debugFlag){
-                                printf(" ADDING %x->%lx %lx\n", newAddr,shdr->sh_addr,relocations[index].d_size);
-                        }
-                        index++;
-                }
-                shdr->sh_addr = newAddr;
-        }
-}
-
-void addLibrary::updateProgramHdrs(Elf *newElf,int size, unsigned int gotOffset, Elf32_Word dynamicAddr,
-            Elf32_Word dynamicOffset, int bssSize,int dynamicSize, int dynSize){
-
-	int index;
-        Elf32_Phdr *phdr,*phdrPtr;
-
-        phdr= elf32_getphdr(newElf);
-
-        phdr[3/*2*/].p_filesz+=size;
-        phdr[3/*2*/].p_memsz+=size;
-
-        if(debugFlag){
-                printf(" updateProgramHdrs %x %x %lx %lx %x %x\n", size, gotOffset, dynamicAddr,
-                        dynamicOffset, bssSize,  dynamicSize);
-        }
-        phdrPtr = &phdr[5];
-        for( ; phdrPtr->p_type != PT_NULL; phdrPtr++){
-                phdrPtr->p_offset += (dynSize);
-        }
-        int cnt=0;
-        for ( ;  phdr->p_type != PT_NULL;phdr++){
-                index = 0;
-                int newAddr = phdr->p_vaddr;
-                while(phdr->p_vaddr >= relocations[index].d_addr && index<relocIndex){
-                        newAddr += relocations[index++].d_size;
-                        if(debugFlag){
-                                printf("%d ADDING PHDR %lx %lx %lx\n",cnt, phdr->p_offset,phdr->p_vaddr,
-					relocations[index-1].d_size);
-                        }
-                }
-                phdr->p_vaddr = newAddr;
-                cnt++;
-        }
-
-}
-
-void addLibrary::padData(Elf32_Shdr* newDataShdr, Elf32_Shdr* newDynamicShdr, Elf_Scn *dynSec, 
-		Elf_Data* newDataData){
-
-        if(newDynamicShdr->sh_addr + newDynamicShdr->sh_size != newDataShdr->sh_addr){
-
-		newDataShdr ->sh_addralign /=2;
-		newDataData->d_align /= 2;	
-
-		Elf_Data* padData = elf_newdata(dynSec);
-		padData->d_buf = new char[4];
-		padData->d_size = 4;
-		((char*) padData->d_buf)[0]=0x4a;
-                ((char*) padData->d_buf)[1]=0x65;
-                ((char*) padData->d_buf)[2]=0x66;
-                ((char*) padData->d_buf)[3]=0x66;
-		elf_update(newElf, ELF_C_NULL);
+		if(cnt + 1 == newElfFileEhdr->e_shstrndx) {
+			strTabData = newElfFileSec[cnt].sec_data;
+		}
 	}
+
 }
 
-void addLibrary::driver(){
+void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned int dynsymOff,
+	unsigned int dynstrOff){
+/*
+	for(unsigned int k =(newData->d_size/sizeof(Elf32_Dyn))-1 ; k>0;k--){
+		memcpy( &(((Elf32_Dyn*) (newData->d_buf))[k]),&(((Elf32_Dyn*) (newData->d_buf))[k-1]),
+				sizeof(Elf32_Dyn));	
+	}
+	((Elf32_Dyn*) (newData->d_buf))[0].d_tag = DT_NEEDED;
+        ((Elf32_Dyn*) (newData->d_buf))[0].d_un.d_val = libnameIndx;
 
-        Elf_Data* newDataData;
-        Elf_Scn *newScnDynamic;
-        Elf32_Shdr *newShdrDynamic=NULL,*newDataShdr,*GOTShdr;
-        Elf_Scn * scn,*newScn;
-        Elf_Data *     data,*newData;
-        Elf32_Shdr *   shdr,*newShdr;
-	int cnt;
-        unsigned int pageSize = getpagesize();
+	//ok, if we do the above, and remove DT_NULL if below, we are reordering
+	//the _DYNAMIC table, putting libdyninstAPI_RT.so in the first position
+	//this reorders the load of the SO and moves it! once i get the
+	//dlopen problem fixed then this will be handled ok.
+*/	
+        for(unsigned int counter=0;counter<newData->d_size/sizeof(Elf32_Dyn);counter++){
 
-
-	newEhdr = elf32_newehdr(newElf);
-        memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
-
-        for(cnt = 0, scn = NULL; (scn = elf_nextscn(oldElf, scn));cnt++){
-                data=elf_getdata(scn,NULL);
-                shdr = elf32_getshdr(scn);
-
-                newScn = elf_newscn(newElf);
-                newShdr = elf32_getshdr(newScn);
-                newData = elf_newdata(newScn);
-
-                memcpy(newShdr, shdr, sizeof(Elf32_Shdr));
-                memcpy(newData,data, sizeof(Elf_Data));
-                if(data->d_buf && data->d_size){
-                        if(debugFlag){
-                                printf(" COPYING %s \n", (char *)strData->d_buf + shdr->sh_name);
-                        }
-                        newData->d_buf = malloc(data->d_size);
-                        memcpy(newData->d_buf, data->d_buf, data->d_size);
-                }
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".symtab")){
-                        symtabData = newData;
-                        delete [] (char*)newData->d_buf;
-                        newData->d_buf = malloc(newData->d_size+ 3*(sizeof(Elf32_Sym)));
-                        newData->d_size +=3*(sizeof(Elf32_Sym));
-                        memset(newData->d_buf,'\0',newData->d_size);
-                        sizeChange += 3*(sizeof(Elf32_Sym));
-                        oldsymtabData = data;
-                        updateSh_link(&(newShdr->sh_link),relocData);//was 2*
-                        newShdr->sh_link--;//keep this???
-                }
-
-                if( !strncmp((char *)strData->d_buf+shdr->sh_name,"dyninstAPIhighmem_",18)){
-                        //this needs to be aligned on the pageSize
-                        elf_update(newElf, ELF_C_NULL);
-                        int pageFix = newShdr->sh_offset % pageSize;
-                        pageFix = pageSize - pageFix; // how much do we need to move
-                                                        // the data so it is on a page boundry?
-                        newShdr->sh_size +=pageFix;
-                        newData->d_size += pageFix;
-                        char* tmpHighMem = (char*) malloc(newData->d_size);
-                        memset(tmpHighMem, '\0', newData->d_size);
-                        memcpy( &(tmpHighMem[pageFix]), newData->d_buf, newData->d_size - pageFix);
-                        delete [] (char*) newData->d_buf;
-                        newData->d_buf = tmpHighMem;
-                }
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".strtab")){
-                        symstrData = newData;
-                }
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".got")){
-                        GOTData = newData;
-                        GOTShdr = newShdr;
-                }
-		if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".shstrtab")){
-			newStrData = newData;
+		if( 	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_HASH ){
+			 ((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = hashOff;
 		}
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".SUNW_version")){
-                        newShdr->sh_link = relocData.newdynstrIndx;
-                }
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".dynstr")){
-                        dynstrData = data;
-                        dynstrShdr = shdr;
-                        newShdr->sh_name=0;
-                        newShdr->sh_type= SHT_PROGBITS;//  SHT_NOTE;
-                        memset(newData->d_buf, '\0',newData->d_size);
-                        dynstrOffset= newData->d_size;
-                }
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".dynsym")){
-                        dynsymData=data;
-                        olddynsymData = data;
-                        dynsymShdr = newShdr;
-                        memset(newData->d_buf, '\0',newData->d_size);
-                }
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dynamic")){
-                        dynamicDataNew = newData;
-			newShdrDynamic = newShdr;
-                        newShdr->sh_link = relocData.newdynstrIndx;
-                        relocData.newdynamicIndx = cnt+1;
-                        relocData.newdynamicAddr = newShdr->sh_addr;
-                        for(unsigned int counter=0;counter<newData->d_size/sizeof(__Elf32_Dyn);counter++){
-                                if( ((__Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
-                                        ((__Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
-                                }else if( ((__Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_CHECKSUM){
-                                        ((__Elf32_Dyn*) (newData->d_buf))[counter].d_tag = DT_NEEDED;
-                                        ((__Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = dynstrOffset;
-                                }
-                        }
-               		newScnDynamic = newScn; 
+		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_SYMTAB ){
+			 ((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = dynsymOff;
 		}
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, ".hash")){
-                        newShdr->sh_link=relocData.newdynsymIndx;
-                        hashData= newData;
-                }
-                if( !strcmp((char*)strData->d_buf+shdr->sh_name,".rela.got")){
-                        newShdr->sh_link=relocData.newdynsymIndx;
-                        updateSh_link(&newShdr->sh_info,relocData);
-                        updateRela(newData,3,relocData.newdynstrIndx);
-                }
-                if( !strcmp((char*)strData->d_buf+shdr->sh_name,".rela.bss")){
-                        newShdr->sh_link=relocData.newdynsymIndx;
-                        //updateSh_link(&newShdr->sh_info,relocData);
-                        updateRela(newData,3,relocData.newdynstrIndx);
-                }
-
-                if( !strcmp((char*)strData->d_buf+shdr->sh_name,".rela.plt")){
-                        newShdr->sh_link=relocData.newdynsymIndx;
-                        updateSh_link(&newShdr->sh_info,relocData);
-                        updateRela(newData,3,relocData.newdynstrIndx);
-                }
-                if( !strcmp((char*)strData->d_buf+shdr->sh_name,".text")){
-                        textData = newData;
-                }
-
-               	if( !strcmp((char*)strData->d_buf+shdr->sh_name,".data")){
-                        elf_update(newElf,ELF_C_NULL);
-    			newDataShdr = newShdr;
-			newDataData = newData; 
- 
+		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_STRTAB ) {
+			((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = dynstrOff;
 		}
 
-                if( !strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_00000000")){//".rodata")){
-                        if(dynstrData){
+		if( 	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_STRSZ ){
+			((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val += libnameLen;
+		}
 
-                                newScn = elf_newscn(newElf);
-                                newShdr = elf32_getshdr(newScn);
-                                newData = elf_newdata(newScn);
-                                memcpy(newShdr, dynstrShdr, sizeof(Elf32_Shdr));
-                                memcpy(newData,dynstrData, sizeof(Elf_Data));
-                                if(debugFlag){
-                                        printf("MOVING SECTION  %s %lx %lx %lx\n",(char *)strData->d_buf + shdr->sh_name,
-                                        shdr->sh_offset, shdr->sh_size, shdr->sh_addr );
-                                }
-	                        /* insert lib */
-                        	char *tmpBuf = (char*) malloc(newData->d_size+strlen(libraryName)+1);
-                        	memcpy(tmpBuf, dynstrData->d_buf, dynstrData->d_size);
-                        	memcpy(&(tmpBuf[dynstrData->d_size]), libraryName, strlen(libraryName)+1);
-                        	delete [] (char*) newData->d_buf;
-                        	newData->d_buf = tmpBuf;
-                        	newData->d_size +=strlen(libraryName)+1;
-                        	newShdr->sh_size+=strlen(libraryName)+1;
-                        	if(debugFlag){
-                                	printf("NEW RELOCATION %lx %lx \n", relocations[relocIndex-1].d_addr,
-                                        	relocations[relocIndex-1].d_size);
-                        	}
+                if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
+                    	((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
 
+		}
+		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_CHECKSUM) {
+		       	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag = DT_NEEDED;
+        		((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = libnameIndx;
+			//counter = newData->d_size/sizeof(Elf32_Dyn)+ 1;
+		}
+	}
 
-                                sizeChange += newShdr->sh_size;
-                                newEhdr->e_shstrndx++;
-                                newEhdr->e_shnum++;
-                                relocData.newdynstrAddr = shdr->sh_addr + shdr->sh_size;
-                                newShdr->sh_addr = relocData.newdynstrAddr;
-                                dynstrData = newData;
-                                dynstrShdr->sh_type  = SHT_PROGBITS ;// SHT_NOTE;
-
-
-
-                        }
-
-                        if(dynsymData){
-                                relocData.newdynsymAddr = relocData.newdynstrAddr+newShdr->sh_size;
-                                newScn = elf_newscn(newElf);
-                                newShdr = elf32_getshdr(newScn);
-                                newData = elf_newdata(newScn);
-                                while(relocData.newdynsymAddr % dynsymShdr->sh_addralign !=0){
-                                        relocData.newdynsymAddr++;
-                                }
-                                memcpy(newShdr, dynsymShdr, sizeof(Elf32_Shdr));
-                                memcpy(newData,dynsymData, sizeof(Elf_Data));
-                                dynsymShdr->sh_name = 0;
-                                if(debugFlag){
-                                        printf("MOVING SECTION %s %lx %lx %lx\n",(char *)strData->d_buf + shdr->sh_name,
-                                        shdr->sh_offset, shdr->sh_size, shdr->sh_addr );
-                                }
-                                newEhdr->e_shstrndx++;
-                                newEhdr->e_shnum++;
-                                newShdr->sh_addr = relocData.newdynsymAddr;
-                                newShdr->sh_link = relocData.newdynstrIndx;
-                                dynsymShdr->sh_type = SHT_PROGBITS;// SHT_NOTE ;
-                                dynsymShdr->sh_flags = 1;
-
-                                newData->d_buf = malloc(dynsymData->d_size + 3*(sizeof(Elf32_Sym)));
-                                newData->d_size +=3*(sizeof(Elf32_Sym));
-                                memset(newData->d_buf,'\0',newData->d_size);
-                                dynsymData = newData;
-                                newShdr->sh_size += 3*(sizeof(Elf32_Sym));
-                                sizeChange += newShdr->sh_size;
-
-
-                        }
-                }
-
-
-
-        }
-
-
-	elf_update(newElf, ELF_C_NULL);
-	
-        Elf32_Phdr *phdr;
-        Elf32_Phdr *tmp;
-        int dynamicOffset;
-        tmp = elf32_getphdr(oldElf);
-        phdr=elf32_newphdr(newElf,ehdr->e_phnum);
-
-        memcpy(phdr, tmp, ehdr->e_phnum * ehdr->e_phentsize);
-        updateSectionHdrs(newElf);
-        if(relocData.newdynstrAddr && relocData.newdynsymAddr){
-	        if(debugFlag){
-                        printf("UPDATING DYNAMIC");
-                }
-                updateDynamic(dynamicDataNew, relocData.newdynstrAddr, relocData.newdynsymAddr);
-        }
-	
-        elf_update(newElf, ELF_C_NULL);
-        for (scn = NULL,cnt=0; (scn = elf_nextscn(newElf, scn)); cnt++) {
-                shdr=elf32_getshdr(scn);
-                if(!strcmp(".dynamic", (char *)strData->d_buf + shdr->sh_name)){
-                        dynamicOffset = shdr->sh_offset;
-                }else if(!strcmp(".got",(char *)strData->d_buf + shdr->sh_name )){
-                        gotAddr = shdr->sh_offset;
-                }
-        }
-        if(debugFlag){
-                printf("::size change: %x gotAddr: %x dynamicAddr: %lx\n", sizeChange, gotAddr, relocData.newdynamicAddr);
-                printf("oldynanmicIndx %x newdynamicIndx %x oldynamicAddr %lx newdynamicAddr %lx\n",
-                relocData.olddynamicIndx, relocData.newdynamicIndx, relocData.olddynamicAddr, relocData.newdynamicAddr);
-        }
-        updateProgramHdrs(newElf,sizeChange,gotAddr, relocData.newdynamicAddr,dynamicOffset,bssSize,
-                dynamicDataNew->d_size, dynsymData->d_size + dynstrData->d_size);
-        updateSymbols(dynsymData, olddynsymData,relocData,newEhdr->e_shnum-1);
-        updateSymbols(symtabData, oldsymtabData,relocData,newEhdr->e_shnum-1);
-        remakeHash(hashData, dynsymData, dynstrData);
-
-        elf_update(newElf, ELF_C_NULL);
 
 }
 
-void addLibrary::parseOldElf(){
-
-	Elf_Scn * scn;
-	Elf_Data *data;
-	Elf32_Shdr *shdr;
-        ehdr = elf32_getehdr(oldElf);
-        scn = elf_getscn(oldElf, ehdr->e_shstrndx);
-        strData = elf_getdata(scn,NULL);
-
-        relocations=(addrReloc*) malloc(sizeof(addrReloc) * 100);
-	int cnt;
-        for(cnt = 0, scn = NULL; (scn = elf_nextscn(oldElf, scn));cnt++){
-                data=elf_getdata(scn,NULL);
-                shdr = elf32_getshdr(scn);
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dynamic")){
-                        relocData.olddynamicIndx = cnt+1;
-                        relocData.olddynamicAddr = shdr->sh_addr;
-                }
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dynstr")){
-                        relocData.olddynstrIndx = cnt+1;
-                        relocData.olddynstrAddr = shdr->sh_addr;
-                }
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dynsym")){
-                        relocData.olddynsymIndx = cnt+1;
-                        relocData.olddynsymAddr = shdr->sh_addr;
-                }
-
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name,"dyninstAPI_00000000")){ // ".rodata")){
-                        relocData.newdynstrIndx = cnt+2;
-                        relocData.newdynsymIndx = cnt+3;
-
-                }
-                if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".got")){
-                        relocData.newdynamicIndx = cnt+2;
-                        if(relocData.newdynsymIndx && relocData.newdynamicIndx>relocData.newdynsymIndx){
-                                relocData.newdynamicIndx++;
-                        }
-                        if(relocData.newdynstrIndx && relocData.newdynamicIndx>relocData.newdynstrIndx){
-                                relocData.newdynamicIndx++;
-                        }
-                }
-        }
-
-}
-
-
-addLibrary::addLibrary(char*oldElfName, char* libname, int debugOutputFlag){
+int addLibrary::findSection(char* name){
 	
-	int oldfd;
-
-
-        if((oldfd = open(oldElfName, O_RDONLY)) == -1){
-                printf(" OLDELF_OPEN_FAIL ");
-                return;
-        }
-        elf_version(EV_CURRENT);
-        if ((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) == NULL){
-                printf("OLDELF_BEGIN_FAIL");
-                return;
-        }
-        debugFlag = debugOutputFlag;
-        libraryName = new char[strlen(libname)+1];
-        memcpy(libraryName, libname, strlen(libname)+1);
-        relocations = NULL;
-        relocIndex = 0;
-        dynamicData = NULL;
-        dynstrData = NULL;
-        sizeChange = 0;
-        dynstrOffset = 0;
-	elf_fill(0);
-
-        parseOldElf();
-	 
+	for(int cnt = 0 ; cnt < arraySize; cnt ++ ){
+		if (newElfFileSec[cnt].sec_hdr && 
+			!strcmp(name, (char *)strTabData->d_buf+newElfFileSec[cnt].sec_hdr->sh_name) ) {
+			return cnt;
+		}
+	}
+	return -1;
 }
 
-addLibrary::addLibrary(Elf *oldElfPtr, char *libname, int debugOutputFlag){
-	debugFlag = debugOutputFlag; 
-	libraryName = new char[strlen(libname)+1];
-	memcpy(libraryName, libname, strlen(libname)+1);
 
-	oldElf = oldElfPtr;
+void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset, Elf32_Shdr **newSegs){
 
-	relocations = NULL;
-	relocIndex = 0;
-	dynamicData = NULL;
-	dynstrData = NULL;
-	sizeChange = 0;
-	dynstrOffset = 0;
-	elf_fill(0);
+
+	//update PT_PHDR
+	phdr[0].p_offset = newPhdrOffset;
+	phdr[0].p_vaddr =  newPhdrAddr ;
+	phdr[0].p_paddr = phdr[0].p_vaddr;
+
+	if(gapFlag == TEXTGAP){
+		//update TEXT SEGMENT
+		phdr[2].p_memsz += phdr[0].p_filesz;
+		phdr[2].p_filesz += phdr[0].p_filesz;
+
+	}else if(gapFlag == DATAGAP){
+		//update DATA SEGMENT
+		phdr[3].p_memsz += phdr[0].p_filesz;
+		phdr[3].p_filesz += phdr[0].p_filesz;
+		phdr[3].p_offset = newPhdrOffset;
+		phdr[3].p_vaddr = newPhdrAddr;
+		phdr[3].p_paddr = newPhdrAddr;
+
+	}
+
+	for(int i=0;i<newElfFileEhdr->e_phnum;i++){
+		if(phdr[i].p_offset && phdr[i].p_offset < dynstrOffset){
+			phdr[i].p_offset -= libnameLen;
+			if(phdr[i].p_vaddr){
+				phdr[i].p_vaddr -= libnameLen;
+				phdr[i].p_paddr -= libnameLen;
+			}
+		}else if(phdr[i].p_type != PT_PHDR && phdr[i].p_vaddr > newPhdrAddr){
+			phdr[i].p_offset +=_pageSize;
+		}
+	}
+/*
+	int current;	
+	for(int i=0;i<numberExtraSegs;i++){
+		current = newElfFileEhdr->e_phnum - (numberExtraSegs - i);
+		//start off from a valid PT_LOAD phdr
+		memcpy(&(phdr[current]), &(phdr[2]), sizeof(Elf32_Phdr));
+
+		phdr[current].p_offset = newSegs[i]->sh_offset;
+		phdr[current].p_vaddr = newSegs[i]->sh_addr;
+		phdr[current].p_paddr = phdr[current].p_vaddr;
+		phdr[current].p_memsz = newSegs[i]->sh_size;
+		phdr[current].p_filesz =phdr[current].p_memsz; 
+	}
+*/
+} 
+
+
+void addLibrary::addStr(Elf_Data *newData,Elf_Data *oldData ,char* libname){
+
+	newData->d_size += libnameLen;
 	
-	parseOldElf();
-}	
+	delete [] (char*) newData->d_buf;
+	
+        newData->d_buf = new char[newData->d_size];
+        memcpy(newData->d_buf, oldData->d_buf,oldData->d_size);	
 
-addLibrary::~addLibrary(){
-	delete [] libraryName;	
-	delete [] relocations;
+	memcpy(&(((char*) newData->d_buf)[newData->d_size-libnameLen]), libname, libnameLen);
+	libnameIndx = newData->d_size-libnameLen;			
+
 }
 
+int addLibrary::writeNewElf(char* filename, char* libname){
 
-bool addLibrary::outputElf(char* filename){
+	Elf32_Ehdr *realEhdr;
+	Elf32_Phdr *realPhdr;
+	Elf_Scn *realScn;
+	Elf32_Shdr *realShdr;
+	Elf_Data *realData, *strTabData;
+	unsigned int dynstrOffset;
 
+	Elf32_Shdr **newSegments;
+
+	int foundDynstr = 0;
+	
 	//open newElf
-	int fd2; 
-	if((fd2 = open(filename, O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
-               	printf("cannot open: %s %d\n",filename,errno);
+	//if the following call is to open() instead of creat()
+	//and dyninst is compiled with gcc 3.0.[2|4] with -O3 
+	//this file is written as all zeros and the permissions are 
+	//odd ( u=--- g=--S o=r--)
+	
+	//if((newFd = open(filename,  O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
+	//S_IRWXU is not defined in gcc < 3.0
+        if((newFd = creat(filename,0x1c0 /*S_IRWXU*/)) == -1) { 
+                printf("cannot creat: %s %d\n",filename,errno);
                 switch(errno){
- 	       	case EACCES:
+                case EACCES:
                         printf("EACCESS \n");
                         break;
                 }
-                exit(1);
+                return -1;
         }
 
-        if((newElf = elf_begin(fd2, ELF_C_WRITE, NULL)) == NULL){
+        if((newElf = elf_begin(newFd, ELF_C_WRITE, NULL)) == NULL){
 		printf(" elf_begin failed for newElf");
-		exit(1);
+		return -1;
         }
-	driver();
+
+	elf_flagelf(newElf,ELF_C_SET, ELF_F_LAYOUT);
+
+	// ehdr
+	realEhdr = elf32_newehdr(newElf);
+        memcpy(realEhdr,newElfFileEhdr , sizeof(Elf32_Ehdr));
+
+	// phdr
+//	realEhdr->e_phnum += numberExtraSegs;
+	realPhdr = elf32_newphdr(newElf, realEhdr->e_phnum);
+	memset(realPhdr, '\0', realEhdr->e_phnum * realEhdr->e_phentsize);
+	memcpy(realPhdr, newElfFilePhdr, (realEhdr->e_phnum/*-numberExtraSegs*/) * realEhdr->e_phentsize);
+
+	realEhdr ->e_phoff = newPhdrOffset;
+
+	strTabData = newElfFileSec[findSection(".shstrtab")].sec_data; 
+	//section data
 	
-	//verifyNewFile();
-	//write file	
-	return writeOutNewElf();
-}
+	int pastPhdr = 0;
 
+	unsigned int hashOffset, dynsymOffset, dynstrOffsetNEW;
+	unsigned int hashAlign, dynsymAlign, dynstrAlign;
 
-void addLibrary::verifyNewFile(){
+	hashOffset = newElfFileSec[findSection(".hash")].sec_hdr->sh_offset;
+	dynsymOffset = newElfFileSec[findSection(".dynsym")].sec_hdr->sh_offset;
+	dynstrOffsetNEW = newElfFileSec[findSection(".dynstr")].sec_hdr->sh_offset;
+	hashAlign =  newElfFileSec[findSection(".hash")].sec_hdr->sh_addralign;
 
-	unsigned int oldAddr, oldOff, oldSize;
-	bool afterDynsym = false;
-	unsigned int lastPage, thisPage;
-	Elf_Scn *scn, *prevScn;
-	Elf32_Shdr *shdr, *prevShdr;
-	unsigned int pageSize = getpagesize();
-	Elf_Data *data;
+	dynsymAlign =  newElfFileSec[findSection(".dynsym")].sec_hdr->sh_addralign;
+	dynstrAlign =  newElfFileSec[findSection(".dynstr")].sec_hdr->sh_addralign;
 
+	dynstrOffsetNEW -= libnameLen;
+	while(dynstrOffsetNEW % dynstrAlign){
+		dynstrOffsetNEW --;
+		dynsymOffset --;
+		hashOffset --;
+	}
+	dynsymOffset -= libnameLen;
 
-	scn=elf_nextscn(newElf,NULL);
-	shdr = elf32_getshdr(scn);
-	oldAddr = shdr->sh_addr;
-	oldOff = shdr->sh_offset;
-	oldSize = shdr->sh_size;
-	prevScn = scn;
-	prevShdr = shdr;
+	while(dynsymOffset % dynsymAlign){
+		dynsymOffset --;
+		hashOffset --;
+	}
 
-        for(; (scn = elf_nextscn(newElf, scn));){
-                shdr = elf32_getshdr(scn);	
-		lastPage = (oldAddr + oldSize ) - ((oldAddr + oldSize )%pageSize);
-		thisPage = shdr->sh_addr - (shdr->sh_addr % pageSize);
-		if( afterDynsym && (shdr->sh_flags & 0x2 ) && (lastPage == thisPage)) {
-			if(oldAddr + oldSize != shdr->sh_addr){
-				data = elf_getdata(scn,NULL);
-				padData(shdr, prevShdr, prevScn, data);
+	hashOffset -=libnameLen;	
+	while(hashOffset % hashAlign){
+		hashOffset--;
+	}
+	//.interp has align of 1
 
+	unsigned int foundExtraSegment=0, extraSegmentPad=0;
+
+	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * numberExtraSegs];
+	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
+		realScn = elf_newscn(newElf);
+                realShdr = elf32_getshdr(realScn);
+                realData = elf_newdata(realScn);
+
+		// data
+                memcpy(realShdr,newElfFileSec[cnt].sec_hdr, sizeof(Elf32_Shdr));
+                memcpy(realData,newElfFileSec[cnt].sec_data, sizeof(Elf_Data));
+                if(newElfFileSec[cnt].sec_data->d_buf && newElfFileSec[cnt].sec_data->d_size){
+                        realData->d_buf = new char[newElfFileSec[cnt].sec_data->d_size];
+                        memcpy(realData->d_buf, newElfFileSec[cnt].sec_data->d_buf, newElfFileSec[cnt].sec_data->d_size);
+                }
+
+		if(!foundDynstr){
+			if(!strcmp(".hash", (char *)strTabData->d_buf+realShdr->sh_name)){
+				realShdr->sh_offset = hashOffset;
+			}else if(!strcmp(".dynsym", (char *)strTabData->d_buf+realShdr->sh_name)){
+				realShdr->sh_offset = dynsymOffset;
+			}else if(!strcmp(".hash", (char *)strTabData->d_buf+realShdr->sh_name)){
+				realShdr->sh_offset = dynstrOffsetNEW;
+			}else{ // .interp 
+				realShdr->sh_offset -= libnameLen;
 			}
 		}
-	        oldAddr = shdr->sh_addr;
-       		oldOff = shdr->sh_offset;
-        	oldSize = shdr->sh_size;
-		prevShdr = shdr;
-		prevScn = scn;
-		if( !strcmp((char *)newStrData->d_buf + shdr->sh_name, ".dynsym")){
-			afterDynsym = true;
+
+		if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) ) {
+			updateDynamic(realData, hashOffset+BASEADDR, dynsymOffset+BASEADDR, dynstrOffsetNEW+BASEADDR);
+		}
+		
+		if( !strcmp(".dynstr", (char *)strTabData->d_buf+realShdr->sh_name) ){
+			dynstrOffset = realShdr->sh_offset;
+			addStr(realData,newElfFileSec[cnt].sec_data, libname);
+			realShdr->sh_size += libnameLen;
+			foundDynstr = 1;
+		}
+		if( pastPhdr || realShdr->sh_addr >= newPhdrAddr){
+			realShdr->sh_offset+=_pageSize;
+			pastPhdr = 1;
+		}
+		if( !strncmp("dyninstAPI_",(char *)strTabData->d_buf+realShdr->sh_name, 11)){
+			if(strcmp("dyninstAPI_mutatedSO", (char *)strTabData->d_buf+realShdr->sh_name)  &&
+				strcmp("dyninstAPI_data", (char *)strTabData->d_buf+realShdr->sh_name) 	){
+	
+				realShdr->sh_offset += extraSegmentPad;
+				while( (realShdr->sh_addr - realShdr->sh_offset)%0x10000 ){
+					realShdr->sh_offset ++;
+					extraSegmentPad++;
+	
+				}
+				foundExtraSegment = 1;
+				newSegments[atoi(& ( ((char *)strTabData->d_buf+realShdr->sh_name )[11]))] = realShdr;
+			} else{
+				realShdr->sh_offset += extraSegmentPad;
+			}	
+		}else if(foundExtraSegment){
+			realShdr->sh_offset += extraSegmentPad;
+
+			if(!strncmp("dyninstAPIhighmem_",(char *)strTabData->d_buf+realShdr->sh_name, 18)){
+				//since this is not loaded by the loader, ie it is mmaped (maybe)
+				//by libdyninstAPI_RT.so it only needs aligned on the real pag size
+				while( (realShdr->sh_addr - realShdr->sh_offset)%realPageSize ){
+					realShdr->sh_offset ++;
+					extraSegmentPad++;
+				}
+			}
+		}
+	}
+	realEhdr ->e_shoff += _pageSize + extraSegmentPad;;	
+	elf_update(newElf, ELF_C_NULL);
+
+	updateProgramHeaders(realPhdr, dynstrOffset,newSegments);
+	
+	elf_update(newElf, ELF_C_WRITE);
+	return gapFlag;
+}
+
+//if we cannot edit the file (no space at the top, no space
+//in the text/data gap etc) we return 0.
+//otherwise we return 1 or 2, depending on if we use the
+//text gap (1) or the data gap (2)
+//
+//If we cannot open the new file we return -1
+int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
+
+	libnameLen = strlen(libname) +1;
+	oldElf = elf;	
+	//_pageSize = getpagesize();
+	_pageSize = 0x10000;
+	realPageSize = getpagesize();
+	
+	createNewElf();
+	elf_end(elf);
+	checkFile();
+	if(gapFlag){
+		findNewPhdrAddr();
+		findNewPhdrOffset();
+		
+		gapFlag = writeNewElf(newfilename, libname);
+		elf_end(newElf);
+	}else{
+		//error
+	}
+	return gapFlag;
+}
+
+addLibrary::addLibrary(){
+
+	newElfFileSec = NULL;
+	newElfFileEhdr = NULL;
+	newElfFilePhdr = NULL;
+}
+
+addLibrary::~addLibrary(){
+	if(newElfFileSec != NULL){
+		
+		for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
+			delete [] newElfFileSec[cnt].sec_hdr;
+			if( newElfFileSec[cnt].sec_data->d_buf ){
+				delete [] (char*) newElfFileSec[cnt].sec_data->d_buf ;
+			}
+			delete []  newElfFileSec[cnt].sec_data;
 		}
 
+		if(newElfFileEhdr){
+			delete [] newElfFileEhdr;
+		}
+		if(newElfFilePhdr){
+			delete [] (char*) newElfFilePhdr;
+		}
+
+		delete [] newElfFileSec;
 	}
-}
-
- 
-bool addLibrary::writeOutNewElf(){
-
-	verifyNewFile();
-        elf_update(newElf, ELF_C_WRITE);
-        return !elf_end(newElf);
 
 }
+int addLibrary::findNewPhdrAddr(){
+        Elf32_Shdr *tmpShdr;
 
+        if(gapFlag == TEXTGAP){
+                tmpShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
+                newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
+        }else if(gapFlag == DATAGAP){
+                tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
+                newPhdrAddr = tmpShdr->sh_addr - phdrSize;
+	}
+
+	while(newPhdrAddr %4){
+		newPhdrAddr ++;
+	}	
+
+        return 0;		
+}
+
+int addLibrary::findNewPhdrOffset(){
+	Elf32_Shdr *tmpShdr;
+
+	if(gapFlag == TEXTGAP){
+		tmpShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
+		newPhdrOffset = tmpShdr->sh_offset + tmpShdr->sh_size;
+	}else if(gapFlag == DATAGAP){
+		tmpShdr = newElfFileSec[findSection(".data")].sec_hdr;
+		newPhdrOffset = tmpShdr->sh_offset - phdrSize + _pageSize;
+	}
+	while(newPhdrOffset %4){
+		newPhdrOffset ++;
+	}	
+
+
+	return 0;	
+}
+
+
+int addLibrary::checkFile(){
+	int result=0;
+        Elf32_Shdr *roDataShdr, *dataShdr;
+        unsigned int endrodata, startdata;
+	char extraSegName[20];
 	
-Elf* addLibrary::getNewElf(){
+	//is there space at the beginning?
+	
+	//must be space between 0x34 (end of the ehdr) and
+	//the text segment start.
+	
+	if(newElfFileSec[0].sec_hdr->sh_offset < (unsigned int) (sizeof(Elf32_Ehdr)+libnameLen) ){
+		//there is not enough room
+		gapFlag = 0;
+		return 0;
+	}
 
-	return newElf;
+        roDataShdr = newElfFileSec[findSection(".rodata")].sec_hdr;
+        dataShdr = newElfFileSec[findSection(".data")].sec_hdr;
+
+	numberExtraSegs = 0;
+	sprintf(extraSegName,"dyninstAPI_%08x", numberExtraSegs);
+
+	while ( findSection(extraSegName) != -1 ){
+		numberExtraSegs ++;
+		sprintf(extraSegName,"dyninstAPI_%08x", numberExtraSegs);
+	}	
+
+        endrodata = roDataShdr->sh_addr + roDataShdr->sh_size;
+
+        startdata = dataShdr -> sh_addr;
+
+        if( startdata - endrodata >= phdrSize ){
+
+		//where to put the phdr?
+		//find the gap between the text segment
+		//end and the next page boundry
+		unsigned int nextPage = endrodata >> 12;
+		nextPage ++;
+		nextPage = nextPage << 12;
+
+		unsigned int textSideGap = nextPage - endrodata;
+
+		//find the gap between the data segment start
+		//and the previous page boundry
+                unsigned int prevPage = startdata >> 12;
+                prevPage = prevPage << 12;
+		unsigned int dataSideGap = startdata - prevPage;
+
+		if(textSideGap >= phdrSize ){ // i prefer the text side gap, no real reason
+			result = TEXTGAP;
+		}else if(dataSideGap >= phdrSize){
+			result = DATAGAP;
+		} 
+        }else{
+		result = 0;
+        }
+	gapFlag = result;
+
+	return result;
+
 }
+
+
+
 #endif

@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.3 2002/03/13 19:53:15 tlmiller Exp $ */
+/* $Id: writeBackElf.h,v 1.4 2002/03/22 21:55:18 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -72,7 +72,6 @@ private:
         int mutateeTextSize;
         unsigned int mutateeTextAddr;
 
-	void fixData(Elf_Data* newdata, unsigned int startAddress);
 
 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData);
 	void updateDynamic(Elf_Data* dynamicData);

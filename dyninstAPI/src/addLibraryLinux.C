@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.4 2002/03/18 21:34:33 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.5 2002/03/22 21:55:17 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -76,6 +76,8 @@ void addLibrary::createNewElf(){
 	memcpy(newElfFilePhdr, oldPhdr, oldEhdr->e_phentsize * oldEhdr->e_phnum);
 
 	newElfFileSec = (Elf_element *) new char[sizeof(Elf_element) * (oldEhdr->e_shnum + 1)];
+	memset(newElfFileSec, '\0', sizeof(Elf_element) * (oldEhdr->e_shnum + 1));
+
 	arraySize = oldEhdr->e_shnum;
 	oldScn = NULL;
 	phdrSize = oldEhdr->e_phentsize * oldEhdr->e_phnum;
