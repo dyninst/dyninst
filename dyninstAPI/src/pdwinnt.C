@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.78 2003/03/08 01:23:43 bernat Exp $
+// $Id: pdwinnt.C,v 1.79 2003/03/10 21:06:04 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -874,11 +874,11 @@ int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
         }
         (*(proc->shared_objects)).push_back(so);
 #ifndef BPATCH_LIBRARY
-        tproc->resourceBatchMode(true);
+        tp->resourceBatchMode(true);
 #endif 
         proc->addASharedObject(*so,(Address) debugEv.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
-        tproc->resourceBatchMode(false);
+        tp->resourceBatchMode(false);
 #endif 
         proc->setDynamicLinking();
         
