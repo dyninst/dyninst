@@ -43,6 +43,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.51  1997/06/16 22:07:15  ssuen
+ * Added `int deleteComp = 1' to end of argument list for function
+ *   metricDefinitionNode::removeFromAggregate
+ * to control whether or not to `delete' the `comp' argument.
+ *
  * Revision 1.50  1997/06/05 18:04:20  naim
  * Cleaning up dataReqNodes for certain cases of deletion of metricDefinitionNodes
  * - naim
@@ -726,7 +731,7 @@ private:
 
   void removeComponent(metricDefinitionNode *comp);
   void endOfDataCollection();
-  void removeFromAggregate(metricDefinitionNode *comp);
+  void removeFromAggregate(metricDefinitionNode *comp, int deleteComp = 1);
 
   void updateAggregateComponent();
 
