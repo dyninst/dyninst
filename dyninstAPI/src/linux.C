@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.28 2000/03/24 19:15:40 nick Exp $
+// $Id: linux.C,v 1.29 2000/04/25 21:34:44 schendel Exp $
 
 #include <fstream.h>
 
@@ -1483,7 +1483,7 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
     }
 
     fclose( tmp );
-    realHZ = (int)floor( (double)uptimeJiffies / uptimeReal + 0.5 );
+    realHZ = (int) ((double)uptimeJiffies/uptimeReal + 0.5);
     //fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
   }
 
