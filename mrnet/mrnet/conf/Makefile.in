@@ -87,7 +87,10 @@ endif  #GNU_COMPILER
 LIBMRNET    = $(LIBDIR)/libmrnet.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I.
+INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. \
+            -I$(SRCDIR)/xplat/include \
+            -I$(SRCDIR)/h \
+            -I.
 
 TESTS   = $(BINDIR)/microbench_FE \
 	      $(BINDIR)/microbench_BE \
@@ -171,7 +174,7 @@ install-local: all
 	@echo Installing libraries
 	$(INSTALL) -m 555 $(LIBMRNET) $(ILIBDIR)/
 	@echo Installing headers
-	for hdr in @srcdir@/h/*.h ; do \
+	for hdr in @srcdir@/h/mrnet/*.h ; do \
 	    $(INSTALL) -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
 	done
 
