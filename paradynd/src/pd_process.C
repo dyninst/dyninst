@@ -90,7 +90,6 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
         return NULL;
     }
 #endif
-    
 	// NEW: We bump up batch mode here; the matching bump-down occurs after
 	// shared objects are processed (after receiving the SIGSTOP indicating
 	// the end of running DYNINSTinit; more specifically,
@@ -109,7 +108,9 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
 #endif
         return NULL;
     }
+
     // Load the paradyn runtime lib
+    proc->getSharedMemMgr()->initialize();
     proc->loadParadynLib(pd_process::create_load);
     
     // Run necessary initialization
@@ -139,6 +140,7 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid) {
 
     if (!proc || !proc->get_dyn_process()) return NULL;
 
+    proc->getSharedMemMgr()->initialize();
     proc->loadParadynLib(pd_process::attach_load);
     proc->init();
 
@@ -257,11 +259,16 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 
     initCpuTimeMgr();
 
-    // Dyninst process create currently also builds and attaches
-    // to the shared segment. That should be moved here. In the
-    // meantime....
-    sharedMetaDataOffset = llproc->initSharedMetaData();
-
+    // Initialize the shared memory segment
+    sharedMemManager = new shmMgr(dyninst_process,
+                                  7000, // Arbitrary constant for shared key
+                                  SHARED_SEGMENT_SIZE,
+                                  false // Don't leave around -- if we're attached, then the
+                                  // inferior process will have the segment as long is it 
+                                  // exists
+                                  );
+    shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
+    
     // Set the paradyn RT lib name
     if (!getParadynRTname())
         assert(0 && "Need to do cleanup");
@@ -303,10 +310,16 @@ pd_process::pd_process(const pdstring &progpath, int pid)
 
     initCpuTimeMgr();
 
-    // Dyninst process create currently also builds and attaches
-    // to the shared segment. That should be moved here. In the
-    // meantime....
-    sharedMetaDataOffset = llproc->initSharedMetaData();
+    // Initialize the shared memory segment
+    sharedMemManager = new shmMgr(dyninst_process,
+                                  7000, // Arbitrary constant for shared key
+                                  SHARED_SEGMENT_SIZE,
+                                  false // Don't leave around -- if we're attached, then the
+                                  // inferior process will have the segment as long is it 
+                                  // exists
+                                  );
+    shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
+
     // Set the paradyn RT lib name
     if (!getParadynRTname())
         assert(0 && "Need to do cleanup");
@@ -328,6 +341,21 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    process *llproc = dyninst_process->lowlevel_process();
    img = new pd_image(llproc->getImage(), this);
 
+   // Call fork initialization code
+   BPatch_Vector<BPatch_snippet *>fork_init_args;
+   BPatch_Vector<BPatch_function *>fork_init_func;
+
+   if ((NULL == dyninst_process->getImage()->findFunction("PARADYN_init_child_after_fork",
+                                                    fork_init_func)) ||
+       fork_init_func.size() == 0) {
+       assert(0 && "Failed to find post-fork initialization function");
+   }
+   BPatch_funcCallExpr fork_init_expr(*(fork_init_func[0]), fork_init_args);
+
+    
+   if (dyninst_process->oneTimeCode(fork_init_expr) != (void *)123)
+       fprintf(stderr, "Error running forked child init function\n");
+   
    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
    rid = resource::newResource(machineResource, // parent
                                (void*)this, // handle
@@ -371,6 +399,15 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                                     thr->get_tid());
    }
 
+   // Okay, time to rock and roll... that is, make a copy of the parent's
+   // shared memory
+   sharedMemManager = new shmMgr(parent.sharedMemManager, childDynProc,
+                                 true /* Attach at same addr as in parent */);
+   // Already initialized
+   shmMetaData = new sharedMetaData(parent.shmMetaData, sharedMemManager);
+   // Don't need to update observed cost addr -- the application side (that
+   // the process class cares about) hasn't changed.
+
    theVariableMgr = new variableMgr(*parent.theVariableMgr, this,
                                     getSharedMemMgr());
    theVariableMgr->initializeVarsAfterFork();
@@ -380,7 +417,8 @@ pd_process::~pd_process() {
    cpuTimeMgr->destroyMechTimers(this);
 
    delete theVariableMgr;
-   //delete dyninst_process;
+   delete sharedMemManager;
+   delete dyninst_process;
 }
 
 bool pd_process::doMajorShmSample() {
@@ -423,8 +461,7 @@ bool pd_process::doMajorShmSample() {
    }
 
    // Now sample the observed cost.
-   unsigned *costAddr = (unsigned *)dyn_proc->getObsCostLowAddrInParadyndSpace();
-   const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
+   const unsigned theCost = *(shmMetaData->getObservedCost());
 
    dyn_proc->processCost(theCost, curWallTime, theProcTime);
 
@@ -493,6 +530,7 @@ void pd_process::handleExit(int exitStatus) {
 
    if (activeProcesses == 0)
       disableAllInternalMetrics();
+
 }
 
 void pd_process::initAfterFork(pd_process * /*parentProc*/) {
@@ -575,8 +613,10 @@ void pd_process::postForkHandler(BPatch_thread *child) {
    childProc->initAfterFork(parentProc);
    metricFocusNode::handleFork(parentProc, childProc);
 
-   if (childProc->status() == stopped)
-       childProc->continueProc();
+   // I don't think we want to continue the process here... hand it back
+   // to Dyninst -- bernat, 28APR04
+   //if (childProc->status() == stopped)
+   //childProc->continueProc();
    // parent process will get continued by unix.C/handleSyscallExit
 }
 
@@ -590,8 +630,23 @@ void pd_process::execHandler() {
     process *llproc = dyninst_process->lowlevel_process();
     img = new pd_image(llproc->getImage(), this);
 
-    // Renew the metadata: it's been scribbled on
-    sharedMetaDataOffset = initSharedMetaData();
+    // The shared segment is gone... so delete and remake
+    delete shmMetaData;
+    delete sharedMemManager;
+
+    // Sigh... the library's gone as well
+
+    sharedMemManager = new shmMgr(dyninst_process,
+                                  7000, // Arbitrary constant for shared key
+                                  SHARED_SEGMENT_SIZE,
+                                  false // Don't leave around -- if we're attached, then the
+                                  // inferior process will have the segment as long is it 
+                                  // exists
+                                  );
+    shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
+
+    // Initialize shared memory before we re-load the paradyn lib
+    sharedMemManager->initialize();
     loadParadynLib(exec_load);
 }
 
@@ -663,11 +718,11 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     while (!reachedLibState(paradynRTState, libLoaded)) {
         if(hasExited()) return false;
         launchRPCs(false);
-        
         getSH()->checkForAndHandleProcessEvents(true);
     }
-    removeAst(loadLib);
 
+    removeAst(loadLib);
+    
     // Unregister callback now that the library is loaded
     llproc->unregisterLoadLibraryCallback(paradynRTname);
 
@@ -701,30 +756,24 @@ void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
 // Mimics the argument creation in iRPC... below
 bool pd_process::setParadynLibParams(load_cause_t ldcause)
 {
-    // Now we write these variables into the following global vrbles
-    // in the dyninst library:
-    
-    /*
-      int libparadynRT_init_localparadynPid=-1;
-      int libparadynRT_init_localCreationMethod=-1;
-      int libparadynRT_init_localmaxThreads=-1;
-      int libparadynRT_init_localtheKey=-1;
-      int libparadynRT_init_localshmSegNumBytes=-1;
-      int libparadynRT_init_localoffset=-1;
-    */
-
     Symbol sym;
     Address baseAddr;
     // TODO: this shouldn't be paradynPid, it should be traceConnectInfo
     int paradynPid = traceConnectInfo;
     // UNIX: the daemon's PID. NT: a socket.
 
+    // We can now initialize the shared metadata, since the library exists
+    if (!shmMetaData->initialize()) {
+        assert(0 && "Failed to allocate required shared metadata variables");
+    }
+    
+    
+
     if (!getSymbolInfo("libparadynRT_init_localparadynPid", sym, baseAddr))
         if (!getSymbolInfo("_libparadynRT_init_localparadynPid", sym, baseAddr))
             assert(0 && "Could not find symbol libparadynRT_init_localparadynPid");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&paradynPid);
-    //fprintf(stderr, "Set localParadynPid to %d\n", paradynPid);
 
     int creationMethod;
     if(ldcause == create_load)      creationMethod = 0;
@@ -737,7 +786,6 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
             assert(0 && "Could not find symbol libparadynRT_init_localcreationMethod");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&creationMethod);
-    //fprintf(stderr, "Set localCreationMethod to %d\n", creationMethod);
 
     int maxThreads = maxNumberOfThreads();
     if (!getSymbolInfo("libparadynRT_init_localmaxThreads", sym, baseAddr))
@@ -745,34 +793,27 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
             assert(0 && "Could not find symbol libparadynRT_init_localmaxThreads");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&maxThreads);
-    //fprintf(stderr, "Set localMaxThreads to %d\n", maxThreads);
     
-    process *llproc = dyninst_process->lowlevel_process();
-    int theKey = llproc->getShmKeyUsed();
-    if (!getSymbolInfo("libparadynRT_init_localtheKey", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localtheKey", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localtheKey");
+    
+    Address virtTimers = getSharedMemMgr()->daemonToApplic((Address)shmMetaData->getVirtualTimers());
+    if (!getSymbolInfo("libparadynRT_init_localVirtualTimers", sym, baseAddr))
+        if (!getSymbolInfo("_libparadynRT_init_localVirtualTimers", sym, baseAddr))
+            assert(0 && "Could not find symbol libparadynRT_init_localVirtualTimers");
     assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&theKey);
-    //fprintf(stderr, "Set localTheKey to %d\n", theKey);
+    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(Address), (void *)&virtTimers);
 
+    // And now that we have our new (shared) observed cost address, update the
+    // internal process one
+    Address obsCostInApplic = getSharedMemMgr()->daemonToApplic((Address)shmMetaData->getObservedCost());
 
-    int shmSegNumBytes = llproc->getShmHeapTotalNumBytes();
-    if (!getSymbolInfo("libparadynRT_init_localshmSegNumBytes", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localshmSegNumBytes", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localshmSegNumBytes");
+    dyninst_process->lowlevel_process()->updateObservedCostAddr(obsCostInApplic);
+
+    if (!getSymbolInfo("libparadynRT_init_localObservedCost", sym, baseAddr))
+        if (!getSymbolInfo("_libparadynRT_init_localObservedCost", sym, baseAddr))
+            assert(0 && "Could not find symbol libparadynRT_init_localObservedCost");
     assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&shmSegNumBytes);
-    //fprintf(stderr, "Set localShmSegNumBytes to %d\n", shmSegNumBytes);
+    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(Address), (void *)&obsCostInApplic);
 
-
-    int offset = (int) sharedMetaDataOffset;
-    if (!getSymbolInfo("libparadynRT_init_localoffset", sym, baseAddr))
-        if (!getSymbolInfo("_libparadynRT_init_localoffset", sym, baseAddr))
-            assert(0 && "Could not find symbol libparadynRT_init_localoffset");
-    assert(sym.type() != Symbol::PDST_FUNCTION);
-    writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&offset);
-    //fprintf(stderr, "Set localOffset to %d\n", offset);
 
     return true;
 }
@@ -803,8 +844,10 @@ bool pd_process::finalizeParadynLib() {
     }
     
     // Read the structure; if event 0 then it's undefined! (not yet written)
-    if (bs_record.event == 0) return false;
-
+    if (bs_record.event == 0) {
+        return false;
+    }
+    
     assert(bs_record.pid == getPid());
     
     const bool calledFromFork   = (bs_record.event == 2);
@@ -814,7 +857,9 @@ bool pd_process::finalizeParadynLib() {
     // Override tramp guard address
     process *llproc = dyninst_process->lowlevel_process();
     llproc->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
-    llproc->registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
+
+    // Override thread index address
+    llproc->updateThreadIndexAddr((Address) bs_record.thread_index_base);
 
     if (!calledFromFork) {
         // MT: need to set Paradyn's bootstrap state or the instrumentation
@@ -954,7 +999,10 @@ bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
              << endl;
         return false;
     }
-    
+
+#if 0 
+    // DEPRECATED
+
     // address-in-memory: re-read pointer field with proper alignment
     // (see rtinst/h/trace.h)
     assert(sizeof(int64_t) == 8); // sanity check
@@ -983,9 +1031,8 @@ bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
         Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
         void *val_p = (void *)val_a;
         bs_record->appl_attachedAtPtr.ptr = val_p;
-        fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
     }
-    
+#endif    
     return true;
 }
 
@@ -1457,6 +1504,13 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
 bool reachedLibState(libraryState_t lib, libraryState_t state) {
    return (lib >= state);
 }
+
+virtualTimer *pd_process::getVirtualTimer(unsigned index) {
+    virtualTimer *virt_base = (virtualTimer *)shmMetaData->getVirtualTimers();
+    return &(virt_base[index]);
+}
+
+
 
 bool process::triggeredInStackFrame(Frame &frame,
                                     instPoint *point,

@@ -53,81 +53,36 @@ class sharedMetaOffsetData;
 
 class sharedMetaData {
  private:
-  shmMgr &theShmMgr;
-   
-  unsigned maxThreads;
-  unsigned *cookie;
-  unsigned *inferior_pid;
-  unsigned *daemon_pid;
-  unsigned *observed_cost;
-  /* MT */
-  virtualTimer *virtualTimers;
-  unsigned *indexToThread;
+  shmMgr *theShmMgr;
 
-  enum { rpcSize = sizeof(rpcToDo), rpcPtrSize = sizeof(rpcToDo*),
-         numRPCs = MAX_PENDING_RPC, 
-	 // the size of the (per thread) buffer that contains the rpcs
-	 perThrRpcBufferSize = rpcSize * numRPCs };
-  // the size of the array that contains all of the pointers to the
-  // buffers, where there is a buffer for each thread that stores the
-  // rpcs
-  const unsigned rpcPtrBufferSize;  
-  rpcToDo **pendingIRPCs; /* By INDEX, then by number */
+  unsigned maxThreads;
+  
+  // Daemon's perspective
+  Address observed_cost;
+  Address virtualTimers;
 
   bool malloced;
-  Address curBaseAddr;
   sharedMetaData& operator=(const sharedMetaData &from);
-
+  
  public:
 
-  sharedMetaData(shmMgr &shmMgrToUse, unsigned maxNumberOfThreads) : 
-    theShmMgr(shmMgrToUse), maxThreads(maxNumberOfThreads),
-    rpcPtrBufferSize(rpcPtrSize * maxThreads), malloced(false), 
-    curBaseAddr(0)
+  sharedMetaData(shmMgr *shmMgrToUse, unsigned maxNumberOfThreads) :
+  theShmMgr(shmMgrToUse), maxThreads(maxNumberOfThreads),
+  malloced(false)
   { 
-    pendingIRPCs = reinterpret_cast<rpcToDo **>(malloc(rpcPtrBufferSize *
-						       maxThreads));
   }
-  sharedMetaData(const sharedMetaData &par, shmMgr &shmMgrToUse);
+  sharedMetaData(const sharedMetaData *par, shmMgr *shmMgrToUse);
 
   ~sharedMetaData();  // free the memory from shmMgr we allocated
 
-  unsigned *getObservedCost() { return observed_cost; }
-  virtualTimer *getVirtualTimers() { return virtualTimers; }
-  virtualTimer *getVirtualTimer(int index) { return &virtualTimers[index]; }
-  unsigned getIndexToThread(int index) const { return indexToThread[index]; }
-  void setIndexToThread(int index, unsigned v) { indexToThread[index] = v; }
+  unsigned *getObservedCost() { return (unsigned *)observed_cost; }
+  virtualTimer *getVirtualTimers() { return (virtualTimer *)virtualTimers; }
+  virtualTimer *getVirtualTimer(int index) { return &(((virtualTimer *)virtualTimers)[index]); }
 
   // malloc some memory for the sharedMetaData in shared memory
-  void mallocInShm();
-  void initialize(unsigned cookie_a, int dmnPid, int appPid);
-  void initializeForkedProc(unsigned cookie_a, int appPid);
-
-  // adjust the addresses of shmMem malloced memory to be relative to
-  // a new, given base address
-  void adjustToNewBaseAddr(Address newBaseAddr);
-
-  // save the offsets of the shmMem malloced memory into a structure
-  // which can be given to the run time library
-  void saveOffsetsIntoRTstructure(sharedMetaOffsetData *offsetData);
+  bool initialize();
+  void initializeForkedProc();
 };
-
-
-class sharedMetaOffsetData {
-  shmMgr &theShmMgr;
-  RTsharedData_t *rtData;
-
- public:
-  sharedMetaOffsetData(shmMgr &shmMgrToUse, int maxNumThreads);
-  sharedMetaOffsetData(shmMgr &shmMgrToUse, sharedMetaOffsetData &parentData);
-
-  ~sharedMetaOffsetData();
-
-  Address getAddrInDaemon() { 
-    return reinterpret_cast<Address>(rtData);
-  }
-};
-
 
 
 #endif   // SHARED_META_DATA

@@ -51,6 +51,9 @@
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
+#include "paradynd/src/shmMgr.h"
+#include "paradynd/src/sharedMetaData.h"
+#include "paradynd/src/variableMgr.h"
 
 
 class pd_image;
@@ -231,13 +234,9 @@ class pd_process {
    }
 
    shmMgr *getSharedMemMgr() {
-      return dyninst_process->lowlevel_process()->getSharedMemMgr();
+       return sharedMemManager;
    }
    
-   Address initSharedMetaData() {
-      return dyninst_process->lowlevel_process()->initSharedMetaData();
-   }
-
    bool findInternalSymbol(const pdstring &name, bool warn,
                            internalSym &ret_sym) const {
       return dyninst_process->lowlevel_process()->findInternalSymbol(name, warn, ret_sym);
@@ -422,10 +421,7 @@ class pd_process {
       return llproc->getProcessStatus();
    }
 
-   virtualTimer *getVirtualTimer(int pos) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getVirtualTimer(pos);
-   }
+   virtualTimer *getVirtualTimer(unsigned index);
 
 #ifdef PAPI
    papiMgr* getPapiMgr() {  return dyninst_process->getPapiMgr();  }
@@ -515,10 +511,15 @@ class pd_process {
  private:
    
    bool inExec;
-  
-   Address sharedMetaDataOffset;
-  
+
    pdstring paradynRTname;
+
+   /*************************************************************
+    **** Shared Memory handling                              ****
+    *************************************************************/
+   shmMgr *sharedMemManager;
+   sharedMetaData *shmMetaData;
+   
 };
 
 
