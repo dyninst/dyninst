@@ -20,7 +20,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.4 1994/10/25 22:16:34 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.5 1994/11/02 11:01:27 markc Exp $";
 #endif
 
 /*
@@ -30,9 +30,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * This may need to be made specific to different platforms.
  *
  * $Log: clock.C,v $
- * Revision 1.4  1994/10/25 22:16:34  hollings
- * added default clock speed to prevent divide by zero problems with
- * the cost model.
+ * Revision 1.5  1994/11/02 11:01:27  markc
+ * Removed compiler warnings.
  *
  * Revision 1.3  1994/10/13  07:24:30  krisna
  * solaris porting and updates
@@ -46,11 +45,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <string.h>
-}
-
+#include "util/h/kludges.h"
 #include "util.h"
 
 //
@@ -58,11 +53,10 @@ extern "C" {
 //
 float guessClock()
 {
-    printf("pid %d: using default clock speed of %d\n", getpid(), 33000000);
-    return(33000000.0);
+    return(0.0);
 }
 
-#if defined(SPARC_SUN_SUNOS4_1_3)
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
 #define PATTERN	"\tclock-frequency:"
 //
 // find the number of cycles per second on this machine.
@@ -94,7 +88,7 @@ float getCyclesPerSecond()
 }
 #endif
 
-#if defined(SPARC_SUN_SOLARIS2_3)
+#if defined(sparc_sun_solaris2_3)
 
 /************************************************************************
  * header files.
@@ -110,7 +104,7 @@ float getCyclesPerSecond()
 /************************************************************************
  * float getCyclesPerSecond()
  *
- * need a well-defined method for finding the CPU cycle speed
+ * need a well.defines method for finding the CPU cycle speed
  * on each CPU.
 ************************************************************************/
 
