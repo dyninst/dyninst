@@ -523,6 +523,8 @@ Address rpcMgr::createRPCImage(AstNode *action,
      bperr( "0x%x\n", ((int *)insnBuffer)[i]);
      bperr("\n\n\n\n\n");
    */
+   
+   assert( count < 8192 );
    if (!proc_->writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
