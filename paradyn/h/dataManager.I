@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.51  1995/10/19 22:39:53  mjrg
+ * Revision 1.52  1995/11/13 14:49:14  naim
+ * Fixing return value for function DM_sequential_init - naim
+ *
+ * Revision 1.51  1995/10/19  22:39:53  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -793,7 +796,7 @@ $remote dataManager {
     $signore
     static int socket;
     static int sock_fd;
-    static int DM_sequential_init(const char*);
+    static bool DM_sequential_init(const char*);
     static int DM_post_thread_create_init(int);
     static dataManager *dm;  // need this so can call setTid which is
 			     // not a static function, otherwise could

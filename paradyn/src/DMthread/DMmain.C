@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.79  1995/11/11 00:45:58  tamches
+ * Revision 1.80  1995/11/13 14:48:59  naim
+ * Fixing return value for function DM_sequential_init - naim
+ *
+ * Revision 1.79  1995/11/11  00:45:58  tamches
  * added a callback func for the tunable constant printSampleArrival (DMdaemon.C)
  *
  * Revision 1.78  1995/11/03 00:05:21  newhall
@@ -651,7 +654,7 @@ void DM_eFunction(int errno, char *message)
 }
 
 
-int dataManager::DM_sequential_init(const char* met_file){
+bool dataManager::DM_sequential_init(const char* met_file){
    string mfile = met_file;
    return(metMain(mfile)); 
 }
