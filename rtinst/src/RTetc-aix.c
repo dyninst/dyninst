@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.20 2000/03/23 01:25:20 wylie Exp $
+ * $Id: RTetc-aix.c,v 1.21 2000/07/27 14:09:49 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -92,8 +92,8 @@ void
 DYNINSTos_init(int calledByFork, int calledByAttach) {
 }
 
-/*static int MaxRollbackReport = 0; /* don't report any rollbacks! */
-/*static int MaxRollbackReport = 1; /* only report 1st rollback */
+/*static int MaxRollbackReport = 0;*/ /* don't report any rollbacks! */
+/*static int MaxRollbackReport = 1;*/ /* only report 1st rollback */
 static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 
@@ -207,6 +207,8 @@ time64 DYNINSTgetWalltime(void)
   static time64 wallPrevious=0;
   static int wallRollbackOccurred=0;
   time64 now, tmp_wallPrevious=wallPrevious;
+  struct timebasestruct timestruct;
+#if 0
   register unsigned int timeSec asm("5");
   register unsigned int timeNano asm("6");
   register unsigned int timeSec2 asm("7");
@@ -227,11 +229,17 @@ time64 DYNINSTgetWalltime(void)
   now += (time64) timeNano;
   /* But we want to return microseconds, so divide back out */
   now /= 1000;
+#endif
 
-  /*
   read_real_time(&timestruct, TIMEBASE_SZ);
   time_base_to_time(&timestruct, TIMEBASE_SZ);
-  */
+  /* ts.tb_high is seconds, ts.tb_low is nanos */
+  now = (time64) timestruct.tb_high;
+  now *= (time64) 1000000000;
+  now += (time64) timestruct.tb_low;
+  /* Return microseconds */
+  now /= 1000;
+
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {

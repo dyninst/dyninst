@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.33 2000/07/13 18:01:24 zandy Exp $
+ * $Id: RTinst.c,v 1.34 2000/07/27 14:09:49 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -182,8 +182,13 @@ int DYNINSTtoAddr;
 short *DYNINSTprofBuffer;
 #endif
 
-
-double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
+/*
+ * New heap naming scheme: we encode the size and type of the heap
+ * in the name, instead of having it implicitly known. The format is:
+ * DYNINSTstaticHeap_<size>_<type>_garbage
+ */
+double DYNINSTstaticHeap_32K_lowmemHeap_1[(32*1024)/sizeof(double)];
+double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
    when SHM_SAMPLING is defined, for example.  But in any event,
@@ -460,8 +465,8 @@ DYNINSTstopWallTimer(tTimer* timer) {
 #define NOPS_4  { __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 }
 #elif defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
-//#elif defined(mips_sgi_irix6_4)
-//#define NOPS_4 ; ; ;
+/*#elif defined(mips_sgi_irix6_4) */
+/*#define NOPS_4 ; ; ;            */
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif

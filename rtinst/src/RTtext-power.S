@@ -50,11 +50,10 @@
  *       However, AIX permits incremental re-linking and can insert new
  *       code into a existing text segment.
  */
-#include "../h/rtinst.h"
 
 .csect .text[PR]
-	.globl DYNINSTtext
-	.globl .DYNINSTtext
-DYNINSTtext:
-.DYNINSTtext:
-	.space	SYN_INST_BUF_SIZE
+	.globl DYNINSTstaticHeap_4M_textHeap_1
+	.globl .DYNINSTstaticHeap_4M_textHeap_1
+DYNINSTstaticHeap_4M_textHeap_1:
+.DYNINSTstaticHeap_4M_textHeap_1:
+	.space	4194304
