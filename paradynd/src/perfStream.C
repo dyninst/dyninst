@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.166 2004/01/19 21:54:00 schendel Exp $
+// $Id: perfStream.C,v 1.167 2004/03/11 22:20:43 bernat Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -784,9 +784,25 @@ void controllerMainLoop(bool check_buffer_first)
       // requests arrives at that moment - naim
       if( isInfProcAttached )
       {
-         getSH()->checkForAndHandleProcessEvents(false);
-      }
-      
+          pdvector <procevent *> events = getSH()->checkForAndHandleProcessEvents(false);
+          if (events.size()) {
+              // Unhandled events... we don't want this, as we don't
+              // expect to have signals etc. occur outside of the
+              // process (object)-layer code
+              for (unsigned i = 0; i < events.size(); i++) {
+                  fprintf(stderr, "Unhandled event: (why %d, what %d) on process %d\n",
+                          events[i]->why,
+                          events[i]->what,
+                          events[i]->proc->getPid());
+#if !defined(os_windows)
+                  if (events[i]->why == procSignalled)
+                      forwardSigToProcess(*(events[i]));
+#endif
+              }
+          }
+          
+      } 
+     
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);
       width = 0;
