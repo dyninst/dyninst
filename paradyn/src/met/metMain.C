@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.11  1994/12/21 05:50:15  tamches
+ * Revision 1.12  1994/12/21 07:38:43  tamches
+ * Removed uses of tunableConstant::allConstants, which became a private
+ * class variable.
+ *
+ * Revision 1.11  1994/12/21  05:50:15  tamches
  * Used the new tunableConstant::findTunableConstant() instead of
  * manually tinkering with tunable constant internal vrbles, which
  * is no longer allowed.
@@ -266,35 +270,23 @@ int metDoProcess()
 
 void set_tunable (tunableMet *the_ts)
 {
-//  void *sp=0;
-  tunableConstant *curr;
-  tunableFloatConstant *fConst;
-  tunableBooleanConstant *bConst;
+  tunableConstant *curr = tunableConstant::findTunableConstant(the_ts->name);
+  if (curr == NULL)
+     return;
 
-  // the_ts->dump();
-  if (!tunableConstant::allConstants)
-    return;
-
-//  sp = tunableConstant::pool->find(the_ts->name);
-//  if (sp && (curr = tunableConstant::allConstants->find(sp))) {
-  curr = tunableConstant::findTunableConstant(the_ts->name);
-  if (curr) {
-    if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
-      fConst = (tunableFloatConstant*) curr;
-      if (!fConst->setValue(the_ts->Fvalue)) {
-	; 
-	// error
-      }
-    } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
-      bConst = (tunableBooleanConstant*) curr;
-      if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
-	; 
-	// error
-      }
-    } else {
-      ;
-      // unknown tunableConst type or type mismatch
+  if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
+    tunableFloatConstant *fConst = (tunableFloatConstant*) curr;
+    if (!fConst->setValue(the_ts->Fvalue)) {
+      ; // error
     }
+  } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
+    tunableBooleanConstant *bConst = (tunableBooleanConstant*) curr;
+    if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
+       ; // error 
+    }
+  } else {
+    ;
+    // unknown tunableConst type or type mismatch
   }
 }
 

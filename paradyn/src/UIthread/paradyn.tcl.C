@@ -5,10 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.35  1994/12/21 00:43:14  tamches
-/* used the new findTunableConstant() method function, instead of doing it
-/* by looking into tc's data members (which is no longer allowed).
+/* Revision 1.36  1994/12/21 07:39:51  tamches
+/* Removed uses of tunableConstant::allConstants, which became a private
+/* class variable.
 /*
+ * Revision 1.35  1994/12/21  00:43:14  tamches
+ * used the new findTunableConstant() method function, instead of doing it
+ * by looking into tc's data members (which is no longer allowed).
+ *
  * Revision 1.34  1994/11/11  15:12:35  rbi
  * causing serious illness to debugging printf()
  *
@@ -242,20 +246,24 @@ int ParadynListCmd(ClientData clientData,
 		char *argv[])
 {
   String_Array ml;
-  tunableConstant *c;
   int i;
-  List<tunableConstant*> curr;
 
   dataMgr->printResources();
   ml = dataMgr->getAvailableMetrics(context);
   for (i=0; i < ml.count; i++) {
     printf("%s\n", ml.data[i]);
   }
+
   printf("CONSTANTS\n");
-  assert(tunableConstant::allConstants);
-  for (curr = *tunableConstant::allConstants; c = *curr; curr++) {
-    c->print();
+  
+  List<tunableConstant *> listPtr = tunableConstant::beginIteration();
+  tunableConstant *tc;
+  while ((tc=*listPtr) != NULL) {
+     tc->print();
+
+     listPtr++;
   }
+
   printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
   printf("number of buckets = %d\n", dataMgr->getMaxBins());
   dataMgr->printDaemons(context);
