@@ -60,7 +60,11 @@ $remote dynRPC {
     // Gets called when a new application is started that is not visible to
     //   paradyn (e.g. pvm_spawn).
     //
-    $upcall $async void newProgramCallbackFunc(int program);
+    $upcall $async void newProgramCallbackFunc( int pid, 
+						int argc, 
+						$array String argv, 
+						String machine);
+				
 
     //
     // Handler that gets called when new sample data is delivered.
@@ -137,6 +141,6 @@ $remote dynRPC {
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
-    $virtual $upcall void reportSelf(String machine, String program, int pid);
+    $virtual $upcall $async void reportSelf(String machine, String program, int pid);
     $cmember int my_pid;
 };

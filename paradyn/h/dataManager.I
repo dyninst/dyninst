@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.5  1994/03/08 17:39:23  hollings
+ * Revision 1.6  1994/03/20 01:48:51  markc
+ * Added support for paradyn daemon name.  igen function to store name.
+ *
+ * Revision 1.5  1994/03/08  17:39:23  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.4  1994/02/24  04:34:14  markc
@@ -347,7 +350,13 @@ $remote dataManager {
 				 performanceStream *ps, 
 				 timeStamp width);
 
+      // informs that dataManager server of the name of the paradynd
+      // executable (paradynd, paradyndPVM, ...)
+    void sendParadyndName (String name);
     $smember applicationContext *appContext;
+    $smember String paradynd_name;
+    $smember int socket;
+    $smember int sock_fd;
 };
 
 #endif
