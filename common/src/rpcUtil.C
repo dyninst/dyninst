@@ -29,8 +29,11 @@ int RPCdefaultXDRWrite(int handle, char *buf, u_int len)
     do {
 	ret = write(handle, buf, len);
     } while (ret < 0 && errno == EINTR);
-    assert(ret == len);
-    return (ret);
+
+    if (ret != len) 
+	return(-1);
+    else
+	return (ret);
 }
 
 XDRrpc::~XDRrpc()
