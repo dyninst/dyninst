@@ -2,6 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.44  1996/05/31 23:57:48  tamches
+ * code to change send socket buffer size moved to comm.h
+ * removed handshaking code w/paradyn (where we sent "PARADYND" plus
+ * the pid) [wasn't being used and contributed to freeze in paradyn UI]
+ *
  * Revision 1.43  1996/05/09 21:27:42  newhall
  * increased the socket send buffer size from 4K to 32K on sunos and hpux
  *
@@ -21,164 +26,6 @@
  * Daemons don't enable internal metrics when they are not running any processes
  * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
  * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.39  1995/12/20 20:19:00  newhall
- * removed matherr.h
- *
- * Revision 1.38  1995/12/15 22:26:50  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.37  1995/11/30 15:13:41  krisna
- * added call to matherr in main.C
- * added code templates for callOp in inst-hppa.C
- *
- * Revision 1.36  1995/11/22 00:02:18  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.35  1995/09/18  22:41:35  mjrg
- * added directory command.
- *
- * Revision 1.34  1995/08/24  15:04:13  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.33  1995/05/18  10:38:17  markc
- * deleted metric callbacks -- these are now requested from the daemon
- * initialize mdl data before parsing an image
- *
- * Revision 1.32  1995/02/26  22:46:19  markc
- * Fixed for pvm version.  The pvm ifdefs are still ugly, but they compile.
- *
- * Revision 1.31  1995/02/16  08:53:38  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.30  1995/02/16  08:33:38  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.29  1994/11/11  07:04:25  markc
- * Fixed the code to allow paradyndPVM to be started via rsh/rexec.  This had been
- * ignored in the past and paradyndPVM would block on rsh starts.
- *
- * Revision 1.28  1994/11/10  22:22:58  markc
- * "Ported" remote execution to pvm.  It was only working for the non-pvm case.
- * Made all cases of remote execution call report_self.
- *
- * Revision 1.27  1994/11/06  09:58:20  newhall
- * fix to support remote paradynd start, replaced logLine with fprintf
- * to stdout (this is the handshaking signal sent to paradyn).  logLine
- * requires an initialized "tp" variable, but it was NULL.
- *
- * Revision 1.26  1994/11/02  11:10:22  markc
- * Removed compiler warnings.
- *
- * Revision 1.25  1994/10/13  07:24:49  krisna
- * solaris porting and updates
- *
- * Revision 1.24  1994/09/22  02:10:45  markc
- * access metricList using method
- *
- * Revision 1.23  1994/09/20  18:18:26  hollings
- * added code to use actual clock speed for cost model numbers.
- *
- * Revision 1.22  1994/08/17  18:14:03  markc
- * Added extra parameter to reportSelf call.
- *
- * Revision 1.21  1994/07/14  23:30:28  hollings
- * Hybrid cost model added.
- *
- * Revision 1.20  1994/07/14  14:29:20  jcargill
- * Renamed connection-related variables (family, port, ...), and moved all the
- * standard dynRPC functions to another file.
- *
- * Revision 1.19  1994/07/05  03:26:08  hollings
- * observed cost model
- *
- * Revision 1.18  1994/06/29  02:52:34  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.17  1994/06/27  21:28:11  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.16  1994/06/27  18:56:53  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.15  1994/06/22  03:46:31  markc
- * Removed compiler warnings.
- *
- * Revision 1.14  1994/06/02  23:27:56  markc
- * Replaced references to igen generated class to a new class derived from
- * this class to implement error handling for igen code.
- *
- * Revision 1.13  1994/05/18  00:52:28  hollings
- * added ability to gather IO from application processes and forward it to
- * the paradyn proces.
- *
- * Revision 1.12  1994/05/16  22:31:50  hollings
- * added way to request unique resource name.
- *
- * Revision 1.11  1994/04/12  15:29:19  hollings
- * Added samplingRate as a global set by an RPC call to control sampling
- * rates.
- *
- * Revision 1.10  1994/04/09  18:34:54  hollings
- * Changed {pause,continue}Application to {pause,continue}AllProceses, and
- * made the RPC interfaces use these.  This makes the computation of pause
- * Time correct.
- *
- * Revision 1.9  1994/04/06  21:35:39  markc
- * Added correct machine name reporting.
- *
- * Revision 1.8  1994/04/01  20:06:41  hollings
- * Added ability to start remote paradynd's
- *
- * Revision 1.7  1994/03/31  01:57:27  markc
- * Added support for pauseProcess, continueProcess.  Added pvm interface code.
- *
- * Revision 1.6  1994/03/20  01:53:09  markc
- * Added a buffer to each process structure to allow for multiple writers on the
- * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
- * int.
- *
- * Revision 1.5  1994/02/28  05:09:42  markc
- * Added pvm hooks and ifdefs.
- *
- * Revision 1.4  1994/02/25  13:40:55  markc
- * Added hooks for pvm support.
- *
- * Revision 1.3  1994/02/24  04:32:33  markc
- * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
- *
- * Revision 1.2  1994/02/01  18:46:52  hollings
- * Changes for adding perfConsult thread.
- *
- * Revision 1.1  1994/01/27  20:31:27  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
  *
  */
 
@@ -228,7 +75,7 @@ int ready;
  * start up other paradynds (such as on the CM5), and need this later.
  */
 static string pd_machine;
-static int pd_known_socket;
+static int pd_known_socket_portnum;
 static int pd_flag;
 static string pd_flavor;
 
@@ -255,11 +102,6 @@ int main(int argc, char *argv[])
     vector<string> cmdLine;
     vector<string> envp;
 
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   int num_bytes =0;
-   int size = sizeof(num_bytes);
-#endif
-
     // for debugging
     // { int i= 1; while (i); }
 
@@ -271,9 +113,9 @@ int main(int argc, char *argv[])
     // pd_flag == 1 --> started by paradyn
     int pvm_first;
     assert (RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket, pd_flag, pvm_first));
+			       pd_known_socket_portnum, pd_flag, pvm_first));
     assert (RPC_make_arg_list(process::arg_list,
-			      pd_known_socket, pd_flag, 0,
+			      pd_known_socket_portnum, pd_flag, 0,
 			      pd_machine, true));
     string flav_arg(string("-z")+ pd_flavor);
     process::arg_list += flav_arg;
@@ -294,7 +136,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-    // If the flavor is cm5, this daemon only function is to insert the initial
+    // If the flavor is cm5, this daemon's only function is to insert the initial
     // instrumentation to fork a CM5 node daemon, and to start/stop the 
     // application. We set the variable CMMDhostless here to prevent any
     // metric from being enabled by this daemon.
@@ -304,7 +146,7 @@ int main(int argc, char *argv[])
 
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
-    //     started by pvm_spawn from first paradyndPVM, must report back
+    //     started by pvm_spawn from first paradynd -- must report back
     //     started by rsh, rexec, ugly code --> connect via socket
     //     started by exec --> use pipe
     
@@ -326,28 +168,17 @@ int main(int argc, char *argv[])
     if (pvm_running && pvmParent != PvmNoParent) {
       // started by pvm_spawn
       // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 0)) {
+      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 0)) {
 	cleanUpAndExit(-1);
       }
 
-      tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
-
-// set socket buffer size to 64k to avoid write-write deadlock
-// between paradyn and paradynd
-//
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   num_bytes = 32768;
-   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
-		(char *)&num_bytes ,size) < 0){
-           fprintf(stdout,"DAEMON: setsockopt error\n");
-   }
-#endif
+      tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+      assert(tp);
 
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
     } else if (!pd_flag) {
-      // started via rsh/rexec --> use socket
-      int pid;
-      pid = fork();
+      // not started by pvm_spawn; rather, started via rsh/rexec --> use socket
+      int pid = fork();
       if (pid == 0) {
 	// configStdIO(true);
 	// setup socket
@@ -356,113 +187,69 @@ int main(int argc, char *argv[])
 	// We must get a connection with paradyn before starting any other daemons,
 	// or else one of the daemons we start (in PDYN_initForPVM), may get our
 	// connection.
-	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+	assert(tp);
 
-//
-// set socket buffer size to 16k to avoid write-write deadlock
-// between paradyn and paradynd
-//
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   num_bytes = 32768;
-   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
-		(char *)&num_bytes ,size) < 0){
-      fprintf(stdout,"DAEMON: setsockopt error\n");
-   }
-#endif
-
-	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1)) {
+	if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
 	    cleanUpAndExit(-1);
 	}
 
       } else if (pid > 0) {
-	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
-	sprintf(errorLine, "PARADYND %d\n", pid);
-	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
-	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
-	fflush(stdout);
+//	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
+//	sprintf(errorLine, "PARADYND %d\n", pid);
+//	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+//	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
+//	fflush(stdout);
 	P__exit(-1);
       } else {
-	fprintf(stdout, "Fatal error on paradyn daemon: fork failed.\n");
-	fflush(stdout);
+	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
+	cerr.flush();
 	cleanUpAndExit(-1);
       }
-     } else {
+    } else {
        // started via exec   --> use pipe
        // TODO -- report error here
-      if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1)) {
+      if (pvm_running && !PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1)) {
 	  cleanUpAndExit(-1);
       }
       // already setup on this FD.
       // disconnect from controlling terminal 
       OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
-//
-// set socket buffer size to 64k to avoid write-write deadlock
-// between paradyn and paradynd
-//
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   num_bytes = 32768;
-   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
-		(char *)&num_bytes ,size) < 0){
-           fprintf(stdout,"DAEMON: setsockopt error\n");
-   }
-#endif
-
+      assert(tp);
     }
     assert(tp);
 #else
 
     if (!pd_flag) {
-      int pid;
-
-      pid = fork();
+      int pid = fork();
       if (pid == 0) {
 	// configStdIO(true);
 	// setup socket
 
-	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, 
+	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, pd_machine, 
 		       NULL, NULL, false);
+	assert(tp);
 
-//
-// set socket buffer size to 64k to avoid write-write deadlock
-// between paradyn and paradynd
-//
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   num_bytes = 32768;
-   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
-		(char *)&num_bytes ,size) < 0){
-           fprintf(stdout,"DAEMON: setsockopt error\n");
-   }
-#endif
 	if (cmdLine.size()) {
 	    tp->reportSelf(machine_name, argv[0], getpid(), metPVM);
 	}
       } else if (pid > 0) {
-	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
-	sprintf(errorLine, "PARADYND %d\n", pid);
-	// logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
-	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
-	fflush(stdout);
+//	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
+//	sprintf(errorLine, "PARADYND %d\n", pid);
+//	// logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+//	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
+//	fflush(stdout);
 	P__exit(-1);
       } else {
-	fprintf(stdout, "Fatal error on paradyn daemon: fork failed.\n");
-	fflush(stdout);
+	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
+	cerr.flush();
 	cleanUpAndExit(-1);
       }
     } else {
       OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
-//
-// set socket buffer size to 64k to avoid write-write deadlock
-// between paradyn and paradynd
-//
-#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
-   num_bytes = 32768;
-   if(setsockopt(tp->get_fd(),SOL_SOCKET,SO_SNDBUF,
-		(char *)&num_bytes ,size) < 0){
-           fprintf(stdout,"DAEMON: setsockopt error\n");
-   }
-#endif
+      assert(tp);
 
       // configStdIO(false);
     }
@@ -489,7 +276,7 @@ int main(int argc, char *argv[])
     */
     traceSocket = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
     if (traceSocket < 0) {
-      fprintf(stderr, "Cannot create socket: %s\n", sys_errlist[errno]);
+      perror("paradynd -- cannot create socket");
       cleanUpAndExit(-1);
     }
 
