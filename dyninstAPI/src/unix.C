@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.113 2004/01/23 22:01:30 tlmiller Exp $
+// $Id: unix.C,v 1.114 2004/02/07 18:34:23 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -507,7 +507,6 @@ int handleSigTrap(const procevent &event) {
             // If we're in an exec, this is when we know it is actually finished
             if (proc->wasExeced()) {
                 // special case where can't wait to continue process
-                getSH()->continueLockedProcesses();
                 proc->loadDyninstLib();
             }
             
@@ -531,7 +530,7 @@ int handleSigTrap(const procevent &event) {
     // New and improved RPC handling, takes care of both
     // an RPC which has reached a breakpoint and whether
     // we're waiting for a syscall to complete
-    if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
+    if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
         signal_cerr << "processed RPC response in SIGTRAP" << endl;
         return 1;
     }
@@ -582,47 +581,19 @@ int handleSigTrap(const procevent &event) {
 #endif
 
     // Check to see if this is a syscall exit
-    if (proc->handleSyscallExit(0)) {
+    if (proc->handleSyscallExit(0, event.lwp)) {
         proc->continueProc();
         return 1;
     }
 
-    // Okay... on AIX and Solaris we get spurious traps, IE the instruction
-    // at the PC is _not_ a trap instruction. Until I can figure out _why_
-    // this is, we'll hand-check and see whether to ignore a trap.
-    bool real_trap = true;
-#if defined(AIX_PROC) || defined(sparc_sun_solaris2_4) 
-    real_trap = false;
-    for(unsigned i=0; i<event.lwps.size(); i++) {
-       dyn_lwp *instigating_lwp = event.lwps[i];
-       lwpstatus_t status;
-
-       instigating_lwp->get_status(&status);
-    
-       instruction foo;
-#if defined(AIX_PROC) 
-       proc->readDataSpace((void *)status.pr_reg.__iar, 
-                           sizeof(instruction),
-                           (void *)&foo, false);
-#elif defined(sparc_sun_solaris2_4)
-       proc->readDataSpace((void *)status.pr_reg[R_PC], 
-                           sizeof(instruction),
-                           (void *)&foo, false);
-#endif
-       if (foo.raw == BREAK_POINT_INSN) {
-          real_trap = true;
-       }
-    }
-#endif
-
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-    real_trap = false;
-#endif
-
-    if(! real_trap) {
+    // We get spurious traps on AIX 4.3 on multi-threaded programs
+#if defined(rs6000_ibm_aix4_1)  && !defined(AIX_PROC)
+    if(proc->multithread_ready()) {
+       cerr << "   unexpected trap on AIX-ptrace, ignoring it\n";
        proc->continueProc();
        return 1;
     }
+#endif
 
     return 0;
 }
@@ -633,7 +604,7 @@ int handleSigStopNInt(const procevent &event) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
-   if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
+   if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
        inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
        // don't want to execute ->Stopped() which changes status line
        return 1;
@@ -646,23 +617,6 @@ int handleSigStopNInt(const procevent &event) {
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
-
-// AIX, Linux MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
-#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
-   if(proc->multithread_capable()) {
-      if( event.what == SIGSTOP )
-      {
-         if(process::IndependentLwpControl()) { // eg. linux
-            for(unsigned i=0; i<event.lwps.size(); i++) {
-               event.lwps[i]->continueLWP();
-            }
-         } else {
-            // we saw an unexpected SIGSTOP, continue the process
-            proc->continueProc();
-         }
-      }
-   }
-#endif
 
    return 1;
 }
@@ -744,7 +698,7 @@ int handleSignal(const procevent &event) {
      break;
      case SIGILL: 
         // x86 uses SIGILL for various purposes
-        if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
+        if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
            ret = 1;
         } else {
            ret = handleSigCritical(event);
@@ -997,7 +951,7 @@ int handleSyscallExit(const procevent &event) {
     
     // Check to see if a thread we were waiting for exited a
     // syscall
-    int wasHandled = proc->handleSyscallExit(event.what);
+    int wasHandled = proc->handleSyscallExit(event.what, event.lwp);
 
     // Fall through no matter what since some syscalls have their
     // own handlers.
@@ -1032,19 +986,14 @@ int handleSyscallExit(const procevent &event) {
         return 0;
 }
 
-int signalHandler::handleProcessEventInternal(const procevent &event) {
+int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
 
    /*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
-        << event.why << ", what: " << event.what << ", lwps: ";
-
-   for(unsigned i=0; i<event.lwps.size(); i++) {
-      if(i>0) cerr << ", ";
-      cerr << event.lwps[i]->get_lwp_id();
-   }
-   cerr << endl;
+        << event.why << ", what: " << event.what << ", lwps: "
+        << event.lwp->get_lwp_id() << endl;
    */
 
    int ret = 0;
