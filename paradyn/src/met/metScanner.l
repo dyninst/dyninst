@@ -1,6 +1,50 @@
 %{
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+/*
  * $Log: metScanner.l,v $
+ * Revision 1.14  1996/10/08 21:52:18  mjrg
+ * changed the evaluation of resource lists
+ * removed warnings
+ *
  * Revision 1.13  1996/09/26 19:03:27  newhall
  * added "exclude_lib" mdl option
  *
@@ -47,9 +91,7 @@
  * Revision 1.3  1995/02/07  21:59:56  newhall
  * added a force option to the visualization definition, this specifies
  * if the visi should be started before metric/focus menuing
- * removed compiler warnings
- *
- * Revision 1.2  1994/08/22  15:53:30  markc
+ * removed compiler warning * Revision 1.2  1994/08/22  15:53:30  markc
  * Config language version 2.
  *
  * Revision 1.1  1994/07/07  03:25:28  markc
@@ -57,12 +99,6 @@
  *
  *
  */
-#ifndef lint
-static char Copyright[] =
-    "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
-
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradyn/src/met/metScanner.l,v 1.4 1995/05/18 10:58:35 markc Exp";
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +115,7 @@ int yylook();
 int yyback(int*,int);
 
 
-extern void yyerror(char *);
+extern void yyerror(const char *);
 
 int curr;
 int len;
@@ -280,7 +316,7 @@ void doString()
     }
 }
 
-void yyerror(char *message)
+void yyerror(const char *message)
 {
     int i;
     printf("line %d, col %d:%s\n", lineNo, curr, message);

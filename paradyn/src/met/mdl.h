@@ -81,9 +81,11 @@
 #define MDL_T_PROCESS 41
 #define MDL_T_DRN     42
 #define MDL_T_COUNTER_PTR 43
-#define MDL_T_SCALAR_END 43
+#define MDL_T_PROCEDURE_NAME 44
+#define MDL_T_SCALAR_END 44
 
-#define MDL_T_LIST_BASE 53
+#define MDL_T_LIST_BASE 52
+#define MDL_T_LIST_PROCEDURE_NAME 52
 #define MDL_T_LIST_INT 53
 #define MDL_T_LIST_FLOAT 54
 #define MDL_T_LIST_STRING 55
@@ -145,6 +147,8 @@
 #define MDL_RES_MACHINE    503
 
 #define MDL_T_CONSTRAINT   600
+
+
 
 typedef struct {
   unsigned type;
@@ -241,14 +245,24 @@ class metricDefinitionNode;
 class AstNode;
 #endif
 
+
+class functionName {
+ public:
+  functionName(const string &nm) { name = nm; }
+  string get() const { return name; }
+ private:
+  string name;
+};
+
+
 class mdl_var;
 
 class mdl_var {
 public:
 
-  mdl_var(bool is_remote=false);
+  inline mdl_var(bool is_remote=false);
   mdl_var(string &, bool is_remote);
-  ~mdl_var();
+  inline ~mdl_var();
   void destroy();
 
   void dump();
@@ -257,10 +271,12 @@ public:
   mdl_var(string& nm, float f, bool is_remote);
   mdl_var(string& nm, instPoint *p, bool is_remote);
   mdl_var(string& nm, pdFunction *pr, bool is_remote);
+  mdl_var(string& nm, functionName *fn, bool is_remote);
   mdl_var(string& nm, module *mod, bool is_remote);
   mdl_var(string& nm, string& s, bool is_remote);
   mdl_var(string& nm, process *pr, bool is_remote);
   mdl_var(string& nm, vector<pdFunction*> *vp, bool is_remote);
+  mdl_var(string& nm, vector<functionName*> *vp, bool is_remote);
   mdl_var(string& nm, vector<module*> *vm, bool is_remote);
   mdl_var(string& nm, vector<int> *vi, bool is_remote);
   mdl_var(string& nm, vector<float> *vf, bool is_remote);
@@ -272,10 +288,12 @@ public:
   bool get(float &f);
   bool get(instPoint *&p);
   bool get(pdFunction *&pr);
+  bool get(functionName *&fn);
   bool get(module *&mod);
   bool get(string& s);
   bool get(process *&pr);
   bool get(vector<pdFunction*> *&vp);
+  bool get(vector<functionName*> *&vp);
   bool get(vector<module*> *&vm);
   bool get(vector<int> *&vi);
   bool get(vector<float> *&vf);
@@ -287,10 +305,12 @@ public:
   bool set(float f);
   bool set(instPoint *p);
   bool set(pdFunction *pr);
+  bool set(functionName *f);
   bool set(module *mod);
   bool set(string& s);
   bool set(process *pr);
   bool set(vector<pdFunction*> *vp);
+  bool set(vector<functionName*> *vp);
   bool set(vector<module*> *vm);
   bool set(vector<int> *vi);
   bool set(vector<float> *vf);
@@ -318,9 +338,11 @@ private:
     float f;
     instPoint *point_;
     pdFunction *pr;
+    functionName *fn;
     process *the_process;
     module *mod;
     vector<pdFunction*>  *list_pr;
+    vector<functionName*> *list_fn;
     vector<int>          *list_int;
     vector<float>        *list_float;
     vector<string>       *list_string;
@@ -351,10 +373,12 @@ public:
   static bool set(float f, string& var_name);
   static bool set(instPoint *p, string& var_name);
   static bool set(pdFunction *pr, string& var_name);
+  static bool set(functionName *fn, string& var_name);
   static bool set(module *mod, string& var_name);
   static bool set(string& s, string& var_name);
   static bool set(process *pr, string& var_name);
   static bool set(vector<pdFunction*> *vp, string& var_name);
+  static bool set(vector<functionName*> *vp, string& var_name);
   static bool set(vector<module*> *vm, string& var_name);
   static bool set(vector<int> *vi, string& var_name);
   static bool set(vector<float> *vf, string& var_name);
@@ -396,6 +420,9 @@ inline void mdl_var::dump() {
   case MDL_T_PROCEDURE:
     cout << "MDL_T_PROCEDURE\n";
     break;
+  case MDL_T_PROCEDURE_NAME:
+    cout << "MDL_T_PROCEDURE_NAME\n";
+    break;
   case MDL_T_MODULE:
     cout << "MDL_T_MODULE\n";
     break;
@@ -416,6 +443,9 @@ inline void mdl_var::dump() {
     break;
   case MDL_T_LIST_PROCEDURE:
     cout << "MDL_T_LIST_PROCEDURE\n";
+    break;
+  case MDL_T_LIST_PROCEDURE_NAME:
+    cout << "MDL_T_LIST_PROCEDURE_NAME\n";
     break;
   case MDL_T_LIST_MODULE:
     cout << "MDL_T_LIST_MODULE\n";
@@ -456,6 +486,9 @@ inline mdl_var::mdl_var(string& nm, instPoint *p, bool is_rem)
 inline mdl_var::mdl_var(string& nm, pdFunction *pr, bool is_rem)
 : name_(nm), type_(MDL_T_PROCEDURE), remote_(is_rem) { vals.pr = pr;}
 
+inline mdl_var::mdl_var(string& nm, functionName *fn, bool is_rem)
+: name_(nm), type_(MDL_T_PROCEDURE_NAME), remote_(is_rem) { vals.fn = fn;}
+
 inline mdl_var::mdl_var(string& nm, module *md, bool is_rem)
 : name_(nm), type_(MDL_T_MODULE), remote_(is_rem) { vals.mod = md;}
 
@@ -467,7 +500,10 @@ inline mdl_var::mdl_var(string& nm, process *p, bool is_rem)
 
 inline mdl_var::mdl_var(string& nm, vector<pdFunction*> *vp, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_PROCEDURE), remote_(is_remote) { vals.list_pr = vp; }
-     
+
+inline mdl_var::mdl_var(string& nm, vector<functionName*> *vf, bool is_remote) 
+: name_(nm), type_(MDL_T_LIST_PROCEDURE_NAME), remote_(is_remote) { vals.list_fn = vf; }
+
 inline mdl_var::mdl_var(string& nm, vector<module*> *vm, bool is_remote) 
 : name_(nm), type_(MDL_T_LIST_MODULE), remote_(is_remote) { vals.list_module = vm; }
 
@@ -513,6 +549,11 @@ inline bool mdl_var::get(pdFunction *&pr) {
   pr = vals.pr;
   return true;
 }
+inline bool mdl_var::get(functionName *&fn) {
+  if (type_ != MDL_T_PROCEDURE_NAME) return false;
+  fn = vals.fn;
+  return true;
+}
 inline bool mdl_var::get(module *&md) {
   if (type_ != MDL_T_MODULE) return false;
   md = vals.mod;
@@ -537,6 +578,11 @@ inline bool mdl_var::get(dataReqNode *&drn) {
 inline bool mdl_var::get(vector<pdFunction*> *&vp) {
   if (type_ != MDL_T_LIST_PROCEDURE) return false;
   vp = vals.list_pr;
+  return true;
+}
+inline bool mdl_var::get(vector<functionName*> *&vp) {
+  if (type_ != MDL_T_LIST_PROCEDURE_NAME) return false;
+  vp = vals.list_fn;
   return true;
 }
 inline bool mdl_var::get(vector<module*> *&vm) {
@@ -590,6 +636,12 @@ inline bool mdl_var::set(pdFunction *pr) {
   vals.pr = pr;
   return true;
 }
+inline bool mdl_var::set(functionName *fn) {
+  destroy();
+  type_ = MDL_T_PROCEDURE_NAME;
+  vals.fn = fn;
+  return true;
+}
 inline bool mdl_var::set(module *md) {
   destroy();
   type_ = MDL_T_MODULE;
@@ -619,6 +671,12 @@ inline bool mdl_var::set(vector<pdFunction*> *vp) {
   destroy();
   type_ = MDL_T_LIST_PROCEDURE;
   vals.list_pr = vp;
+  return true;
+}
+inline bool mdl_var::set(vector<functionName*> *vp) {
+  destroy();
+  type_ = MDL_T_LIST_PROCEDURE_NAME;
+  vals.list_fn = vp;
   return true;
 }
 inline bool mdl_var::set(vector<module*> *vm) {
@@ -666,9 +724,11 @@ inline unsigned mdl_var::list_size() const {
   case MDL_T_LIST_FLOAT:
     return (vals.list_float->size());
   case MDL_T_LIST_STRING:
-    return (vals.list_string->size());
+    return (vals.list_string->size()); 
   case MDL_T_LIST_PROCEDURE:
     return (vals.list_pr->size());
+  case MDL_T_LIST_PROCEDURE_NAME:
+    return (vals.list_fn->size());
   case MDL_T_LIST_MODULE:
     return (vals.list_module->size());
   default:
@@ -687,6 +747,8 @@ inline bool mdl_var::get_ith_element(mdl_var &ret, unsigned ith) const {
   case MDL_T_LIST_STRING:
     return (ret.set((*vals.list_string)[ith]));
   case MDL_T_LIST_PROCEDURE:
+    assert(0); return false;
+  case MDL_T_LIST_PROCEDURE_NAME:
     assert(0); return false;
   case MDL_T_LIST_MODULE:
     assert(0); return false;
@@ -724,6 +786,7 @@ inline bool mdl_var::make_list(unsigned element_type) {
   vector<float> *vf;
   vector<module*> *vm;
   vector<pdFunction*> *vp;
+  vector<functionName*> *fn;
 
   switch (element_type) {
   case MDL_T_INT:
@@ -741,6 +804,10 @@ inline bool mdl_var::make_list(unsigned element_type) {
   case MDL_T_PROCEDURE:
     vp = new vector<pdFunction*>;
     if (!set(vp)) return false;
+    break;
+  case MDL_T_PROCEDURE_NAME:
+    fn = new vector<functionName*>;
+    if (!set(fn)) return false;
     break;
   case MDL_T_MODULE:
     vm = new vector<module*>;
@@ -762,6 +829,8 @@ inline unsigned mdl_var::as_list() {
     return MDL_T_LIST_STRING;
   case MDL_T_PROCEDURE:
     return MDL_T_LIST_PROCEDURE;
+  case MDL_T_PROCEDURE_NAME:
+    return MDL_T_LIST_PROCEDURE_NAME;
   case MDL_T_MODULE:
     return MDL_T_LIST_MODULE;
   default:
@@ -785,6 +854,7 @@ inline unsigned mdl_var::element_type() const {
   case MDL_T_LIST_FLOAT:      return MDL_T_FLOAT;
   case MDL_T_LIST_STRING:     return MDL_T_STRING;
   case MDL_T_LIST_PROCEDURE:  return MDL_T_PROCEDURE;
+  case MDL_T_LIST_PROCEDURE_NAME:  return MDL_T_PROCEDURE_NAME;
   case MDL_T_LIST_MODULE:     return MDL_T_MODULE;
   case MDL_T_LIST_POINT:      return MDL_T_POINT;
   default:                    return MDL_T_NONE;
@@ -902,6 +972,14 @@ inline bool mdl_env::set(pdFunction *pr, string& var_name) {
   return true;
 }
 
+inline bool mdl_env::set(functionName *fn, string& var_name) {
+  unsigned index;
+  if (!mdl_env::find(index, var_name))
+    return false;
+  mdl_env::all_vars[index].set(fn);
+  return true;
+}
+
 inline bool mdl_env::set(module *mod, string& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
@@ -935,6 +1013,13 @@ inline bool mdl_env::set(dataReqNode *drn, string& var_name) {
 }
 
 inline bool mdl_env::set(vector<pdFunction*> *vp, string& var_name) {
+  unsigned index;
+  if (!mdl_env::find(index, var_name))
+    return false;
+  mdl_env::all_vars[index].set(vp);
+  return true;
+}
+inline bool mdl_env::set(vector<functionName*> *vp, string& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;

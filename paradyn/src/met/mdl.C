@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.20  1996/10/08 21:52:14  mjrg
+ * changed the evaluation of resource lists
+ * removed warnings
+ *
  * Revision 1.19  1996/09/26 19:03:25  newhall
  * added "exclude_lib" mdl option
  *
@@ -521,7 +525,7 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * ,
   case MDL_T_INT: list_type = MDL_T_LIST_INT; break;
   case MDL_T_FLOAT: list_type = MDL_T_LIST_FLOAT; break;
   case MDL_T_STRING: list_type = MDL_T_LIST_STRING; break;
-  case MDL_T_PROCEDURE: list_type = MDL_T_LIST_PROCEDURE; break;
+  case MDL_T_PROCEDURE_NAME: list_type = MDL_T_LIST_PROCEDURE_NAME; break;
   case MDL_T_MODULE: list_type = MDL_T_LIST_MODULE; break;
   default: 
       // this should only happen if there is a parser error.
@@ -680,6 +684,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
       vector<mdl_type_desc> found;
       unsigned v_index = 0, v_max = fields_.size();
       unsigned current_type = temp.type();
+      if (current_type == MDL_T_PROCEDURE_NAME)
+	current_type = MDL_T_PROCEDURE;
 
       while (v_index < v_max) {
 	if (!mdl_data::fields.defines(current_type)) return false;
