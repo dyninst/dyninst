@@ -4,6 +4,9 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
+ * Revision 1.42  1996/05/16 22:20:36  mjrg
+ * commented out a debugging message
+ *
  * Revision 1.41  1996/04/09 22:20:53  newhall
  * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
  * errors when applications are linked with libdyninstRT_cp.a
@@ -249,7 +252,7 @@ volatile struct timer_buf timerBuffer;
 
 int  must_end_timeslice()      /* changed to return int */
 {
-  printf ("Need to end timeslice!!!\n");
+  /*printf ("Need to end timeslice!!!\n");*/
   return(0);
   /*
    * We still don't do anything good for this case.
