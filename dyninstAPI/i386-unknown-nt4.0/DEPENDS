@@ -131,8 +131,7 @@ inst-x86.obj: ../src/inst-x86.C ../../common/h/headers.h \
   ../../dyninstAPI/src/dyn_thread.h ../../dyninstAPI/src/func-reloc.h \
   ../../dyninstAPI/src/LocalAlteration.h \
   ../../dyninstAPI/src/LocalAlteration-x86.h
-arch-x86.obj: ../src/arch-x86.C ../../common/h/Types.h ../src/arch-x86.h \
-  ../src/arch-ia32.h
+arch-x86.obj: ../src/arch-x86.C ../../common/h/Types.h ../src/arch-x86.h
 func-reloc.obj: ../src/func-reloc.C ../../dyninstAPI/src/func-reloc.h \
   ../../common/h/headers.h ../../common/h/Types.h \
   ../../common/h/ntHeaders.h \
@@ -302,7 +301,7 @@ FunctionExpansionRecord.obj: ../src/FunctionExpansionRecord.C \
 InstrucIter-x86.obj: ../src/InstrucIter-x86.C ../../common/h/Types.h \
   ../../common/h/Vector.h ../../common/h/language.h \
   ../../common/h/Dictionary.h ../../common/h/Pair.h ../src/arch.h \
-  ../src/arch-x86.h ../src/arch-ia32.h ../src/util.h \
+  ../src/arch-x86.h ../src/util.h \
   ../../common/h/headers.h ../../common/h/ntHeaders.h \
   ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../dyninstAPI/src/Object.h \
   ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -339,8 +338,6 @@ InstrucIter-x86.obj: ../src/InstrucIter-x86.C ../../common/h/Types.h \
   ../../dyninstAPI/src/dynamiclinking.h ../../dyninstAPI/src/ntDL.h \
   ../../common/h/Time.h ../../common/h/fraction.h ../src/symtab.h \
   ../src/instPoint.h ../src/instPoint-x86.h ../src/InstrucIter.h
-arch-ia32.obj: ../src/arch-ia32.C ../../common/h/Types.h ../src/arch-ia32.h \
-  ../src/arch-x86.h
 codeRange.obj: ../src/codeRange.C ../src/codeRange.h ../../common/h/Types.h
 trampTemplate.obj: ../src/trampTemplate.C \
   ../../dyninstAPI/src/trampTemplate.h ../../common/h/Types.h \

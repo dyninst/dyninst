@@ -376,9 +376,7 @@ FunctionExpansionRecord.obj:  \
   ../../common/h/Vector.h ../../common/h/language.h \
   ../../common/h/std_namesp.h
 arch-x86.obj: ../../dyninstAPI/src/arch-x86.C ../../common/h/Types.h \
-  ../../dyninstAPI/src/arch-x86.h ../../dyninstAPI/src/arch-ia32.h
-arch-ia32.obj: ../../dyninstAPI/src/arch-ia32.C ../../common/h/Types.h \
-  ../../dyninstAPI/src/arch-ia32.h ../../dyninstAPI/src/arch-x86.h
+  ../../dyninstAPI/src/arch-x86.h
 RThwtimer-winnt.obj: ../../rtinst/src/RThwtimer-winnt.c \
   ../../rtinst/h/RThwtimer-winnt.h ../../common/h/Types.h \
   ../../rtinst/h/rtinst.h ../../rtinst/src/RTconst.h \
@@ -387,7 +385,7 @@ InstrucIter-x86.obj: ../../dyninstAPI/src/InstrucIter-x86.C \
   ../../common/h/Types.h ../../common/h/Vector.h \
   ../../common/h/language.h ../../common/h/Dictionary.h \
   ../../common/h/Pair.h ../../dyninstAPI/src/arch.h \
-  ../../dyninstAPI/src/arch-x86.h ../../dyninstAPI/src/arch-ia32.h \
+  ../../dyninstAPI/src/arch-x86.h \
   ../../dyninstAPI/src/util.h ../../common/h/headers.h \
   ../../common/h/ntHeaders.h \
   ../../common/h/Time.h ../../common/h/fraction.h \
