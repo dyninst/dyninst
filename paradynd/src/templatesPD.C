@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.21 2002/04/05 19:38:47 schendel Exp $
+// $Id: templatesPD.C,v 1.22 2002/04/09 18:05:59 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -149,5 +149,3 @@ template class timeMgr<process, int>;
 
 template class parentDataRec<processMetFocusNode>;
 template class vector< parentDataRec<processMetFocusNode> >;
-
-

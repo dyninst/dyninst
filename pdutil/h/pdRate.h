@@ -49,7 +49,6 @@
 #include "common/h/headers.h"   // for isnan on NT
 #include "pdutil/h/pdSample.h"
 
-
 // -----------------------------------------------------------------------
 // pdRate class definition ----------------------------------------
 class pdRate {
@@ -189,14 +188,3 @@ inline bool operator<=(const pdRate a, const pdRate b) {
 ostream& operator<<(ostream&s, const pdRate &sm);
 
 #endif
-
-
-
-
-
-
-
-
-
-
-

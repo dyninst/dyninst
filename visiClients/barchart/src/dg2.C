@@ -42,7 +42,7 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.28 2002/02/15 18:35:21 pcroth Exp $ */
+/* $Id: dg2.C,v 1.29 2002/04/09 18:06:03 mjbrim Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
@@ -66,9 +66,6 @@
 #include "barChart.h"
 #include "barChartUtil.h"
 #include "pdutil/h/TclTools.h"
-
-
-
 
 void my_visi_callback(void*, int*, long unsigned int*) {
 

@@ -42,7 +42,7 @@
 // dg2.C
 // implementation of the "Dg" tcl command
 
-/* $Id: dg2.C,v 1.12 2002/02/15 18:35:29 pcroth Exp $ */
+/* $Id: dg2.C,v 1.13 2002/04/09 18:06:08 mjbrim Exp $ */
 
 #include <iostream.h>
 
@@ -60,8 +60,6 @@
 
 #include "tableVisiTcl.h"
 #include "pdutil/h/TclTools.h"
-
-
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1

@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.16 2002/02/15 18:35:24 pcroth Exp $
+// $Id: PDGraph.C,v 1.17 2002/04/09 18:06:07 mjbrim Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -84,8 +84,6 @@
 #define ZOOM_THUMB_SIZE             (0.2)
 #define ZOOM_UNIT_SIZE              (0.05)
 #define PAN_UNIT_SIZE               (0.05)
-
-
 
 //---------------------------------------------------------------------------
 // utility functions for use in this file

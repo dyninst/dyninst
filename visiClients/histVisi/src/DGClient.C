@@ -47,7 +47,7 @@
 // access to the Visi library from Tcl code.
 //
 //----------------------------------------------------------------------------
-// $Id: DGClient.C,v 1.6 2002/02/15 18:35:24 pcroth Exp $
+// $Id: DGClient.C,v 1.7 2002/04/09 18:06:04 mjbrim Exp $
 //----------------------------------------------------------------------------
 #include <iostream.h>
 
@@ -60,8 +60,6 @@
 #include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h"
 #include "pdutil/h/TclTools.h"
-
-
 
 struct DGClient::CommandInfo DGClient::cmdInfo[] =
 {

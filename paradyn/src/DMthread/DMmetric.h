@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.37 2001/12/15 02:44:19 schendel Exp $ 
+// $Id: DMmetric.h,v 1.38 2002/04/09 18:05:54 mjbrim Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -112,7 +112,7 @@ class metric {
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
     public:
 	metric(T_dyninstRPC::metricInfo i); 
-	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
+	const T_dyninstRPC::metricInfo *getInfo() { return(&info); }
 	const char *getName() { return((info.name.string_of()));}
 	const char *getUnits() { return((info.units.string_of()));}
 	dm_MetUnitsType  getUnitsType() { 
@@ -170,7 +170,7 @@ class metricInstance {
     // trace data streams
     friend void traceDataCallBack(const void *data, int length, void *arg);
     public:
-	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
+	metricInstance(resourceListHandle rl, metricHandle m, phaseHandle ph);
 	~metricInstance(); 
 	pdSample getValue() {
 	    pdSample ret;

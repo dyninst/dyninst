@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.102 2002/02/11 22:02:45 tlmiller Exp $
+// $Id: main.C,v 1.103 2002/04/09 18:05:58 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -688,7 +688,7 @@ extern PDSOCKET connect_Svr(string machine,int port);
 	  }
 	
       }
-    
+ 
     // by now, we should have a connection to our front end
     if( tp == NULL )
       {
@@ -714,7 +714,7 @@ extern PDSOCKET connect_Svr(string machine,int port);
     // before starting a process
     aflag = mdl_get_initial(pd_flavor, tp);
     assert(aflag);
-    
+
     initLibraryFunctions();
     if (!init()) 
       {
@@ -767,18 +767,14 @@ extern PDSOCKET connect_Svr(string machine,int port);
 				   pd_attpid,
 				   1);
       if (!success) return(-1);
-    } else if (startByCreateAttach)
-      {
-	if (cmdLine.size()){
-	  AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
-	}else{
-	   AttachToCreatedProcess(pd_attpid,"");
-	}
+    } else if (startByCreateAttach) {
+      if (cmdLine.size()){
+	AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
+      } else {
+	AttachToCreatedProcess(pd_attpid,"");
       }
+    }
    
     controllerMainLoop(true);
     return(0);
 }
-
-
-

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.127 2001/11/05 22:19:58 pcroth Exp $
+// $Id: DMpublic.C,v 1.128 2002/04/09 18:05:55 mjbrim Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -74,7 +74,7 @@ extern "C" {
 #endif //  !defined(i386_unknown_nt4_0)
 
 // the argument list passed to paradynds
-vector<string> paradynDaemon::args = 0;
+vector<string> paradynDaemon::args(0);
 extern bool our_print_sample_arrival;
 
 #if !defined(i386_unknown_nt4_0)
@@ -279,7 +279,7 @@ bool dataManager::addExecutable(const char *machine,
 				const char *dir,
 				const vector<string> *argv)
 {
-	bool added = false;
+  bool added = false;
 
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
@@ -290,18 +290,17 @@ bool dataManager::addExecutable(const char *machine,
 
 
 #if !defined(i386_unknown_nt4_0)
-    startTermWin();
-  	if( twUser != NULL )
-	{
-		// we have a termWin, so try to start the executable
-		added = paradynDaemon::newExecutable(m, l, n, d, *argv);
-	}
+  startTermWin();
+  if( twUser != NULL ) {
+    // we have a termWin, so try to start the executable
+    added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+  }
 #else
-	// Windows does not yet support the termWin
-	added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+  // Windows does not yet support the termWin
+  added = paradynDaemon::newExecutable(m, l, n, d, *argv);
 #endif
 
-	return added;
+  return added;
 }
 
 

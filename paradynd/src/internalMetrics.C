@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.11 2002/04/05 19:39:19 schendel Exp $
+// $Id: internalMetrics.C,v 1.12 2002/04/09 18:05:57 mjbrim Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
@@ -69,7 +69,7 @@ void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
     assert(!node->sentInitialActualValue());
     pdSample initActVal;
     if(getInitActualValuePolicy() == zero_ForInitActualValue) {
-      // we set the cumativeValue to the value of this first sample
+      // we set the cumulativeValue to the value of this first sample
       // because we want to "throw away" any value of this metric before
       // this.  eg. for pause_time, we want the pause_time to graph
       // starting at zero, even if the application was paused and
@@ -237,3 +237,4 @@ internalMetric *internalMetric::newInternalMetric(
   allInternalMetrics += im;
   return im;
 }
+

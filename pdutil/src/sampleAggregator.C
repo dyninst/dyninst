@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.6 2001/12/15 02:44:23 schendel Exp $
+// $Id: sampleAggregator.C,v 1.7 2002/04/09 18:06:01 mjbrim Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -47,13 +47,11 @@
 #include "pdutil/h/sampleAggregator.h"
 #include "pdutil/h/pdDebugOstream.h"
 
-
 #ifdef AGGREGATE_DEBUG
 pdDebug_ostream aggu_cerr(cerr, true);
 #else
 pdDebug_ostream aggu_cerr(cerr, false);
 #endif
-
 
 // Essentially, the aggregation is passed a set of graphs that represent the
 // rate of change (ie. derivative) of the sample value and and an initial

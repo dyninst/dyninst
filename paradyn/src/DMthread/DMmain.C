@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.137 2001/11/27 16:44:01 pcroth Exp $
+// $Id: DMmain.C,v 1.138 2002/04/09 18:05:52 mjbrim Exp $
 
 #include <assert.h>
 extern "C" {
@@ -1020,22 +1020,22 @@ void *DMmain(void* varg)
 
     dataManager::DM_post_thread_create_init(mainTid);
 
-	thread_t tid;
+    thread_t tid;
     unsigned int tag;
     paradynDaemon *pd = NULL;
-	int err;
+    int err;
 
     while (1) {
         for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-			pd = paradynDaemon::allDaemons[i]; 
-			// handle up to max async requests that may have been buffered
-			// while blocking on a sync request
-			while (pd->buffered_requests()){
-				if(pd->process_buffered() == T_dyninstRPC::error) {
-					cout << "error on paradyn daemon\n";
-					paradynDaemon::removeDaemon(pd, true);
-				}
-			}
+	  pd = paradynDaemon::allDaemons[i]; 
+	  // handle up to max async requests that may have been buffered
+	  // while blocking on a sync request
+	  while (pd->buffered_requests()){
+	    if(pd->process_buffered() == T_dyninstRPC::error) {
+	      cout << "error on paradyn daemon\n";
+	      paradynDaemon::removeDaemon(pd, true);
+	    }
+	  }
 	}
 
 		// wait for next message from anyone, blocking till available
