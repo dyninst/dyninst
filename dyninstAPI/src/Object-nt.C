@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.27 2004/04/14 21:40:44 pcroth Exp $
+// $Id: Object-nt.C,v 1.28 2004/04/16 22:58:28 lharris Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -495,12 +495,16 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
         if (obj->GetDescriptor()->isSharedObject()) {
             baseAddr = obj->get_base_addr();
         }
-		pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
-												pSymInfo->Address - baseAddr,
-												symType,
-												symLinkage,
-												pSymInfo->Size,
-												lineInfo.LineNumber ) );
+
+		if( !obj->isForwarded( pSymInfo->Address - baseAddr ) )
+		{
+			pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
+												  pSymInfo->Address - baseAddr,
+												  symType,
+												  symLinkage,
+												  pSymInfo->Size,
+												  lineInfo.LineNumber ) );
+		}
     }
 
     // keep enumerating symbols
@@ -562,7 +566,8 @@ Object::ParseDebugInfo( void )
     assert( hFile != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
-    FindInterestingSections( hProc, hFile );
+	cerr << file_.c_str();	
+	FindInterestingSections( hProc, hFile );
 
     // load symbols for this module
     DWORD64 dw64BaseAddr = (DWORD64)baseAddr;
@@ -660,7 +665,8 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
     // the .text and .data sections
     assert( peHdr == NULL );
     peHdr = ImageNtHeader( mapAddr );
-    assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
+
+	assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
 
     assert( curModule != NULL );
     curModule->SetIsDll( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL );
@@ -670,14 +676,14 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
                                     sizeof(DWORD) +         // for signature
                                     sizeof(IMAGE_FILE_HEADER) +
                                     peHdr->FileHeader.SizeOfOptionalHeader);
-
+ 		
     for( unsigned int i = 0; i < nSections; i++ )
     {
         if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 )
         {
             // note that section numbers are one-based
             textSectionId = i + 1;
-
+ 
             code_ptr_    = (Word*)(((char*)mapAddr) +
                             pScnHdr->PointerToRawData);
             if (GetDescriptor()->isSharedObject())
@@ -704,4 +710,28 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
     }
 }
 
+
+bool Object::isForwarded( Address addr )
+{
+	//calls to forwarded symbols are routed to another dll and 
+    //are not in the current dll's code space
+	//we MUST NOT try to parse these - bad things happen
+	
+	//we detect forwarded symbols by checking if the relative 
+    //virtual address of the symbol falls within the dll's exports section
+	if( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL )
+	{
+		PIMAGE_DATA_DIRECTORY dataDir = peHdr->OptionalHeader.DataDirectory;
+	    Address exportStart = dataDir->VirtualAddress;
+		Address exportEnd = exportStart + dataDir->Size;
+
+		if( addr >= exportStart && addr < exportEnd )
+			return true;  //this sym is forwarded
+	}
+
+	return false;
+}
+
+
+	
 

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.24 2004/03/23 01:11:59 eli Exp $
+ * $Id: Object-nt.h,v 1.25 2004/04/16 22:58:30 lharris Exp $
 ************************************************************************/
 
 
@@ -237,7 +237,7 @@ public:
 
 	virtual ~Object( void );
 
-
+	bool isForwarded( Address addr );
 	bool isEEL() const { return false; }
 
 	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000
@@ -265,6 +265,7 @@ private:
 #endif
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
+	PIMAGE_OPTIONAL_HEADER optHdr;
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)
