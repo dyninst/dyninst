@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.106 2004/03/23 01:12:32 eli Exp $
+// $Id: VISIthreadmain.C,v 1.107 2004/04/12 18:37:43 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1309,6 +1309,15 @@ void *VISIthreadmain(void *vargs){
          }
       } else if (tag == MSG_TAG_SOCKET){
          assert(globals->visip);
+
+#if defined(os_windows)
+            unsigned long nBytesAvailable = 0;
+            if( (ioctlsocket( thr_socket(from), FIONREAD, &nBytesAvailable ) == SOCKET_ERROR) ||
+            (nBytesAvailable == 0) )
+            {
+                continue;
+            }
+#endif // defined(os_windows)
          assert(thr_socket(from) == globals->visip->get_sock());
          if (globals->visip->waitLoop() == T_visi::error) {
             PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.155 2004/03/23 01:12:25 eli Exp $
+// $Id: DMmain.C,v 1.156 2004/04/12 18:37:41 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -825,18 +825,13 @@ void *DMmain(void* varg)
 #if defined(i386_unknown_nt4_0)
             
             {
-                timeval zeroTimeout;
-                zeroTimeout.tv_sec = 0;
-                zeroTimeout.tv_usec = 0;
-                fd_set fds;
-                FD_ZERO( &fds );
-                FD_SET( fromSock, &fds );
-                int sret = select( 0, &fds, NULL, NULL, &zeroTimeout );
-                if( sret != 1 )
+                unsigned long nAvailableBytes = 0;
+                if( (ioctlsocket( fromSock, FIONREAD, &nAvailableBytes ) == SOCKET_ERROR) ||
+                    (nAvailableBytes == 0) )
                 {
-                    // spurious wakeup - 
-                    // no data on indicated socket
-                    break;
+                    // spurious wakeup -
+                    // WHY are we still getting these?
+                    continue;
                 }
             }
 #endif // defined(i386_unknown_nt4_0)
