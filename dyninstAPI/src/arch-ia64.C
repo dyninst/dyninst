@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.30 2004/04/02 06:34:11 jaw Exp $
+// $Id: arch-ia64.C,v 1.31 2004/04/06 16:37:09 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -543,24 +543,24 @@ IA64_instruction generateReturnTo( unsigned int branchRegister ) {
 	} /* end generateReturnTo */
 
 /* Required by func-reloc.C to calculate relative displacements. */
-int get_disp( instruction *insn ) {
+int get_disp( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
 	} /* end get_disp() */
                 
 /* Required by func-reloc.C to correct relative displacements after relocation. */
-int set_disp( bool setDisp, instruction * insn, int newOffset, bool outOfFunc ) {
+int set_disp( bool /* setDisp */, instruction * /* insn */, int /* newOffset */, bool /* outOfFunc */ ) {
 	assert( 0 );
 	return 0;
 	} /* end set_disp() */
 
 /* Convience methods for func-reloc.C */
-int sizeOfMachineInsn( instruction * insn ) {
+int sizeOfMachineInsn( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
 	} /* end sizeOfMachineInsn() */
 
-int addressOfMachineInsn( instruction * insn ) {
+int addressOfMachineInsn( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
 	} /* end addressOfMachineInsn */
