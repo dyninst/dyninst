@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.50 2000/03/20 22:54:48 mihai Exp $
+// $Id: test1.C,v 1.51 2000/03/22 03:56:25 tikir Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -2221,9 +2221,13 @@ void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 {
+  unsigned n;
+  unsigned long baseAddr,lastAddr;
+  unsigned int call30_1_line_no;
+  unsigned short lineNo;
+  char fileName[256];
 
-  unsigned int call30_1_line_number_in_test1_mutatee_c = 548;
-
+	//instrument with the function that will set the line number
 	BPatch_Vector<BPatch_point *> *point30_1 =
 		appImage->findProcedurePoint("func30_1", BPatch_entry);
 	if (!point30_1 || (point30_1->size() < 1)) {
@@ -2241,66 +2245,107 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	checkCost(call30_1Expr);
     	appThread->insertSnippet(call30_1Expr, *point30_1);
 
-	BPatch_variableExpr *expr30_3 =appImage->findVariable("globalVariable30_3");
+	//get the line number of the function call30_1
+	BPatch_variableExpr *expr30_7 = 
+		appImage->findVariable("globalVariable30_7");
+	if (expr30_7 == NULL) {
+        	fprintf(stderr, "**Failed** test #30 (line information)\n");
+        	fprintf(stderr, "    Unable to locate globalVariable30_7\n");
+        	exit(1);
+    	}
+	expr30_7->readValue(&n);
+	call30_1_line_no = (unsigned)(n+1);
+
+	//get the base addr and last addr of the function call30_1
+	baseAddr = (unsigned long)(call30_1func->getBaseAddr());
+	lastAddr = baseAddr + call30_1func->getSize();
+
+	//now write the base address and last address of the function
+	BPatch_variableExpr *expr30_8 = 
+			appImage->findVariable("globalVariable30_8");
+	if (expr30_8 == NULL) {
+		fprintf(stderr, "**Failed** test #30 (line information)\n");
+		fprintf(stderr, "    Unable to locate globalVariable30_8\n");
+	}
+
+	BPatch_variableExpr *expr30_9 = 
+			appImage->findVariable("globalVariable30_9");
+	if (expr30_9 == NULL) {
+		fprintf(stderr, "**Failed** test #30 (line information)\n");
+		fprintf(stderr, "    Unable to locate globalVariable30_9\n");
+	}
+
+	expr30_8->writeValue(&baseAddr);
+	expr30_9->writeValue(&lastAddr);
+	
+	
+	//check getLineAddr for appImage
+	BPatch_variableExpr *expr30_3 =
+			appImage->findVariable("globalVariable30_3");
 	if (expr30_3 == NULL) {
         	fprintf(stderr, "**Failed** test #30 (line information)\n");
         	fprintf(stderr, "    Unable to locate globalVariable30_3\n");
         	exit(1);
     	}
 	BPatch_Vector<unsigned long> buffer1; 
-	if(appImage->getLineToAddr("test1.mutatee.c",
-				   call30_1_line_number_in_test1_mutatee_c,buffer1)){
-    		int n = buffer1[0];
+	if(appImage->getLineToAddr("test1.mutatee.c",call30_1_line_no,buffer1))
+	{
+    		n = buffer1[0];
     		expr30_3->writeValue(&n);
 	}
 
-	BPatch_variableExpr *expr30_4 =appImage->findVariable("globalVariable30_4");
+	//check getLineAddr for module
+	BPatch_variableExpr *expr30_4 =
+			appImage->findVariable("globalVariable30_4");
 	if (expr30_4 == NULL) {
         	fprintf(stderr, "**Failed** test #30 (line information)\n");
         	fprintf(stderr, "    Unable to locate globalVariable30_4\n");
         	exit(1);
     	}
-
 	BPatch_Vector<BPatch_module*>* appModules = appImage->getModules();
 	for(int i=0;i<appModules->size();i++){
 		char mname[256];
 		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
-		if(!strcmp(mname,"test1.mutatee.c")){
+		if(!strncmp(mname,"test1.mutatee.c",15)){
 			BPatch_Vector<unsigned long> buffer2;
-			if((*appModules)[i]->
-			   getLineToAddr(call30_1_line_number_in_test1_mutatee_c,buffer2)){
-				int n = buffer2[0];
+			if((*appModules)[i]->getLineToAddr(
+					call30_1_line_no,buffer2))
+			{
+				n = buffer2[0];
 				expr30_4->writeValue(&n);
 			}
 			break;
 		}
 	}
 
-	BPatch_variableExpr *expr30_5 =appImage->findVariable("globalVariable30_5");
+	//check getLineAddr works for the function
+	BPatch_variableExpr *expr30_5 =
+		appImage->findVariable("globalVariable30_5");
 	if (expr30_5 == NULL) {
         	fprintf(stderr, "**Failed** test #30 (line information)\n");
         	fprintf(stderr, "    Unable to locate globalVariable30_5\n");
         	exit(1);
 	}
 	BPatch_Vector<unsigned long> buffer3; 
-	BPatch_function* appFunc = appImage->findBPFunction("call30_1");
-	if(appFunc->getLineToAddr(call30_1_line_number_in_test1_mutatee_c,buffer3)){
-		int n = buffer3[0];
+	if(call30_1func->getLineToAddr(call30_1_line_no,buffer3))
+	{
+		n = buffer3[0];
 		expr30_5->writeValue(&n);
 	}
 
-	BPatch_variableExpr *expr30_6 =appImage->findVariable("globalVariable30_6");
+	//check whether getLineFile works for appThread
+	BPatch_variableExpr *expr30_6 =
+		appImage->findVariable("globalVariable30_6");
 	if (expr30_6 == NULL) {
         	fprintf(stderr, "**Failed** test #30 (line information)\n");
         	fprintf(stderr, "    Unable to locate globalVariable30_6\n");
         	exit(1);
 	}
-
-	unsigned short lineNo;
-	char fileName[256];
-	unsigned long addr = (unsigned long)(appFunc->getBaseAddr());
-	if(appThread->getLineAndFile(addr,lineNo,fileName,256)){
-		int n = lineNo;
+	/* since the first line address of a function changes with the
+	   compiler type (gcc,native) we need to check with next address
+	   etc. Instead I use the last address of the function*/
+	if(appThread->getLineAndFile(lastAddr-1,lineNo,fileName,256)){
+		n = lineNo;
 		expr30_6->writeValue(&n);
 	}
 }

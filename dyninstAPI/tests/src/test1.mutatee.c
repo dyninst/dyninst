@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.36 2000/03/20 22:54:48 mihai Exp $ */
+/* $Id: test1.mutatee.c,v 1.37 2000/03/22 03:56:25 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -183,13 +183,13 @@ int globalVariable22_2 = 0;
 int globalVariable22_3 = 0;
 int globalVariable22_4 = 0;
 
-int globalVariable30_1 = 0;
-int globalVariable30_2 = 0;
+unsigned globalVariable30_1 = 0;
+unsigned globalVariable30_2 = 0;
 
-int globalVariable30_3 = 0;
-int globalVariable30_4 = 0;
-int globalVariable30_5 = 0;
-int globalVariable30_6 = 0;
+unsigned globalVariable30_3 = 0;
+unsigned globalVariable30_4 = 0;
+unsigned globalVariable30_5 = 0;
+unsigned globalVariable30_6 = 0;
 
 int globalVariable31_1 = 0;
 int globalVariable31_2 = 0;
@@ -545,7 +545,10 @@ void call22_7(int x)
      globalVariable22_4 += MAGIC22_7;
 }
 
-void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (int)call30_1;}
+/* this function has to be only 1 line for test30 to pass */
+/* these two lines has to be together otherwise test30 will fail */
+unsigned globalVariable30_7 = __LINE__;
+void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned)call30_1;}
 
 /*
  * This is a series of nearly empty functions to attach code to 
@@ -1896,40 +1899,50 @@ void func30_2()
     DUMMY_FN_BODY;
 }
 
-
+/* variables to keep the base addr and last addr of call30_1 */
+unsigned globalVariable30_8 = 0;
+unsigned globalVariable30_9 = 0;
 int func30_1()
 {
     func30_2();
     /*printf("VALUE %d  %x\n",globalVariable30_1,globalVariable30_2);*/
-    func30_2();
 
-    passedTest[30] = 
-    !(globalVariable30_3 && (globalVariable30_2 != globalVariable30_3));
+    if(globalVariable30_8 != globalVariable30_2){
+	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+	return 0;
+    }
+
+    passedTest[30] = !globalVariable30_3 ||
+		     ((globalVariable30_2 <= globalVariable30_3) &&
+		      (globalVariable30_3 <= globalVariable30_9));
     if (!passedTest[30]){ 
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
-    passedTest[30] = 
-    !(globalVariable30_4 && (globalVariable30_2 != globalVariable30_4));
+    passedTest[30] = !globalVariable30_4 ||
+		     ((globalVariable30_2 <= globalVariable30_4) &&
+		      (globalVariable30_4 <= globalVariable30_9));
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
-    passedTest[30] = 
-    !(globalVariable30_5 && (globalVariable30_2 != globalVariable30_5));
+    passedTest[30] = !globalVariable30_5 ||
+		     ((globalVariable30_2 <= globalVariable30_5) &&
+		      (globalVariable30_5 <= globalVariable30_9));
     if (!passedTest[30]){ 
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
    
-    passedTest[30] = 
-    !(globalVariable30_6 && (globalVariable30_1 != globalVariable30_6));
+    passedTest[30] = !globalVariable30_6 ||
+		     (globalVariable30_1 == globalVariable30_6);
     if (!passedTest[30]){ 
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
+
     printf("Passed test #30 (line information)\n");
 
     return 1;
