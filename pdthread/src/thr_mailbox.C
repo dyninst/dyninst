@@ -565,6 +565,18 @@ void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
     sock_monitor->unlock();
 }
 
+void thr_mailbox::unbind_sock(PDSOCKET sock)
+{
+    entity* s = (entity*)(socket_q::socket_from_desc(sock));
+    thread_t to_remove = thrtab::get_tid(s);
+
+    sock_monitor->lock();
+    bound_socks->yank(sock);    
+    sock_monitor->unlock();
+
+    thrtab::remove(to_remove);
+}
+
 bool thr_mailbox::is_sock_bound(PDSOCKET sock)
 {
     sock_monitor->lock();

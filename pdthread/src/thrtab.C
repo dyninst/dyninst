@@ -16,6 +16,8 @@
 #undef DO_DEBUG_LIBPDTHREAD
 
 refarray<entity,1> thrtab::entries;
+hashtbl<entity*,thread_t,pthread_sync> thrtab::entity_registry;
+
 dllist<thread_t,pthread_sync> thrtab::joinables(list_types::fifo);
 
 unsigned thrtab::initialized = thrtab::create_main_thread();
@@ -41,6 +43,8 @@ unsigned thrtab::create_main_thread() {
     main_thr->init(new thr_mailbox(main_tid), NULL, NULL);
 
     main_thr = lwp::get_main();    
+
+    entity_registry.put((entity*)main_thr, main_tid);
 }
 
 thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
@@ -52,6 +56,8 @@ thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
     if(start)
         thread->start();
     thr_debug_msg(CURRENT_FUNCTION, "done creating thread with tid %d\n", new_tid);
+    entity_registry.put((entity*)thread, new_tid);
+
     return new_tid;
 }
 
@@ -60,6 +66,8 @@ thread_t thrtab::create_file(PDDESC fd, thread_t owner, int (*will_block_func)(v
     thread_t new_tid = entries.push_back((entity*)new_file);
     new_file->init(new_tid);
     thr_debug_msg(CURRENT_FUNCTION, "creating new file with tid %d\n", new_tid);
+    entity_registry.put((entity*)new_file, new_tid);
+
     return new_tid;
 }
 
@@ -71,6 +79,7 @@ thread_t thrtab::create_socket(PDSOCKET sock, thread_t owner, int
     thread_t new_tid = entries.push_back((entity*)new_socket);
     new_socket->init(new_tid);
     thr_debug_msg(CURRENT_FUNCTION, "creating new socket with tid %d\n", new_tid);
+    entity_registry.put((entity*)new_socket, new_tid);
 
     return new_tid;
 }
@@ -80,6 +89,18 @@ entity* thrtab::get_entry(thread_t tid) {
     entity* retval = thrtab::entries[tid];
     thr_debug_msg(CURRENT_FUNCTION, "seeking entity at %d; it is %p\n", tid, retval);
     return retval;
+}
+
+thread_t thrtab::get_tid(entity* e) {
+    thread_t tid = entity_registry.get(e);
+    thr_debug_msg(CURRENT_FUNCTION, "seeking tid for entity %p; it is %d\n", e, tid);
+    return tid;
+}
+
+void thrtab::remove(thread_t t) {
+    entity* e = thrtab::entries[t];
+    thrtab::entries.set_elem_at(t,NULL);
+    delete e;
 }
 
 bool thrtab::is_io_entity(thread_t tid) {

@@ -87,11 +87,6 @@ int msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, t
     assert(false);
 }
 
-void dummy_breakpoint() {
-    fprintf(stderr, "");
-}
-
-
 int msg_bind_sig(int sig, thread_t* tid) {
     fprintf(stderr,"binding signals to message queues not implemented; aborting...\n");
     assert(false);
@@ -117,8 +112,14 @@ int msg_bind_wmsg(thread_t* tid);
 #endif /* defined(i386_unknown_nt4_0) */
 
 int msg_unbind(thread_t tid) {
-    ;
-    return -1;
+    thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", tid);
+    int ret = THR_OKAY;
+
+    thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
+    thread_t me = thr_self();
+    my_mail->unbind_sock(tid);
+
+  done:
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
+    return ret;
 }
-
-

@@ -146,7 +146,7 @@ class hashtbl {
         if(result_bucket)
             retval = result_bucket->value;
         else
-            retval = NULL;
+            retval = (value_t)NULL;
         
         monitor.unlock();
         return retval;
