@@ -31,7 +31,7 @@ Line::Line() {
 }
 
 inline
-Line::Line(unsigned dummy) {
+Line::Line(unsigned) {
 }
 
 inline

@@ -17,6 +17,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.29  1995/10/26 21:07:28  tamches
+ * removed some warnings
+ *
  * Revision 1.28  1995/09/26 20:34:44  naim
  * Minor fix: change all msg char[100] by string msg everywhere, since this can
  * cause serious troubles. Adding some error messages too.
@@ -481,8 +484,7 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
       // more than one function may have this name --> templates, statics
       vector<pdFunction*> pdfA;
       if (ret->findFunction(res->part_name(), pdfA)) {
-	int i;
-	for (i=0; i<pdfA.size(); ++i) {
+	for (unsigned i=0; i<pdfA.size(); ++i) {
 	  if (setSuppress) 
 	    pdfA[i]->tagAsLib();
 	  else

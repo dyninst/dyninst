@@ -101,7 +101,7 @@ Symbol::Symbol()
 }
 
 inline
-Symbol::Symbol(unsigned dummy)
+Symbol::Symbol(unsigned)
     : name_("*bad-symbol*"), module_("*bad-module*"),
     type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {

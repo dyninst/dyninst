@@ -16,6 +16,9 @@ static char rcsid[] = "@(#) $Header: /p/paradyn/CVSROOT/core/paradynd/src/inst.C
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
+ * Revision 1.20  1995/10/26 21:06:37  tamches
+ * removed some warnings
+ *
  * Revision 1.19  1995/09/26 20:17:48  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
@@ -402,7 +405,6 @@ void deleteInst(instInstance *old)
 
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
-    int i;
     AstNode *ast;
     instMapping *item;
 
@@ -444,7 +446,7 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 	  logLine(errorLine);
 	  showErrorCallback(64, (const char *) errorLine);
 	} else {
-	  for (i = 0; i < func->calls.size(); i++) {
+	  for (unsigned i = 0; i < func->calls.size(); i++) {
 	    (void) addInstFunc(proc, func->calls[i], ast,
 			       callPreInsn, orderLastAtPoint);
 	  }
