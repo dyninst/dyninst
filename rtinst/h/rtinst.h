@@ -40,10 +40,9 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.40 1999/11/11 15:28:05 wylie Exp $
- * This file contains the standard insrumentation functions that are provied
+ * $Id: rtinst.h,v 1.41 2000/03/12 22:11:40 wylie Exp $
+ * This file contains the standard instrumentation functions that are provided
  *   by the instrumentation layer.
- *
  */
 
 #ifndef _RTINST_H
@@ -83,7 +82,7 @@ struct endStatsRec {
     int userTicks;
     int instTicks;
 #if defined(i386_unknown_linux2_0)
-	int totalTraps;
+    int totalTraps;
 #endif
 };
 
@@ -94,8 +93,9 @@ struct intCounterRec {
    sampleId id;
     
    unsigned char theSpinner;
-   /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
-      updating and (2) so multiple LWPs or threads won't update at the same time */ 
+   /* mutex serving 2 purposes:
+      (1) so paradynd won't sample while we're in middle of updating and
+      (2) so multiple LWPs or threads won't update at the same time */ 
 };
 typedef struct intCounterRec intCounter;
 
@@ -112,7 +112,7 @@ struct tTimerRec {
    volatile int counter;
    volatile sampleId id; /* can be made obsolete in the near future */
 #if defined(MT_THREAD)
-   volatile int lwp_id;  /* we need to save the lwp id so paradynd can get in sync */
+   volatile int lwp_id;  /* we need to save the lwp id so paradynd can sync */
    volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
    volatile struct tTimerRec  *vtimer; /* position in the threadTable */
 #endif
@@ -129,7 +129,7 @@ struct tTimerRec {
 };
 #else
 struct tTimerRec {
-    volatile int 	counter;	/* must be 0 to start; must be 1 to stop */
+    volatile int 	counter;	/* must be 0 to start; 1 to stop */
     volatile time64	total;
     volatile time64	start;
     volatile time64     lastValue;      /* to check for rollback */
@@ -137,16 +137,12 @@ struct tTimerRec {
 					   during st/stp */
     volatile int	normalize;	/* value to divide total by to 
 					   get seconds */
-                                        /* always seems to be MILLION; can we get rid
-                                           of this? --ari */
+                                        /* always seems to be MILLION; 
+                                           can we get rid of this? --ari */
     volatile timerType 	type;
     volatile sampleId 	id;
     volatile char mutex;
     /*volatile char sampled;*/
-
-    /*volatile unsigned char theSpinner;*/
-   /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
-      updating and (2) so multiple LWPs or threads won't update at the same time */ 
 };
 #endif
 typedef struct tTimerRec tTimer;
@@ -188,8 +184,7 @@ struct trampTableEntryStruct {
 
 /*
  * Define the size of the per process data area.
- *
- *  This should be a power of two to reduce paging and chacing shifts.
+ * This should be a power of two to reduce paging and caching shifts.
  */
 
 /* The only possible problem with 1024*1024 instead of 1024*256 is that
@@ -197,6 +192,6 @@ struct trampTableEntryStruct {
  * this problem until the size gets much bigger...
  */
 
-#define SYN_INST_BUF_SIZE	1024*1024*4
+#define SYN_INST_BUF_SIZE (1024*1024*4)
 
 #endif
