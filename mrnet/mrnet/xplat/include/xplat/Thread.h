@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Thread.h,v 1.2 2004/03/23 01:12:22 eli Exp $
+// $Id: Thread.h,v 1.3 2004/07/23 20:39:05 tlmiller Exp $
 #ifndef XPLAT_THREAD_H
 #define XPLAT_THREAD_H
 
@@ -14,7 +14,7 @@ class Thread
 {
 public:
     typedef void* (*Func)( void* );
-    typedef int Id;
+    typedef long Id;
 
     static int Create( Func func, void* data, Id* id );
     static Id GetId( void );
