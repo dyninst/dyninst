@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.48  1996/05/16 06:58:40  karavan
+ * increased max num experiments and also min time to conclusion.
+ *
  * Revision 1.47  1996/05/15 04:35:22  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -399,6 +402,9 @@ searchHistoryNode::expand ()
   for (unsigned m = 0; m < parentFocus->size(); m++) {
     currHandle = (*parentFocus)[m];
     altFlag = (currHandle == Processes);
+    if (altFlag && (where == topLevelFocus))
+      // it is never useful to refine along process from the top level
+      continue;
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
       kids = dataMgr->magnify(currHandle, where);

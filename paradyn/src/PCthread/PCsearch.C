@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.17  1996/05/16 06:58:37  karavan
+ * increased max num experiments and also min time to conclusion.
+ *
  * Revision 1.16  1996/05/15 04:35:17  karavan
  * bug fixes: changed pendingCost pendingSearches and numexperiments to
  * break down by phase type, so starting a new current phase updates these
@@ -166,7 +169,7 @@ int PCsearch::PendingCurrentSearches = 0;
 //** this is currently being studied!! (klk)
 const float costFudge = 0.1;
 const int MaxPendingSearches = 30;
-const int MaxActiveExperiments = 100;
+const int MaxActiveExperiments = 200;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
