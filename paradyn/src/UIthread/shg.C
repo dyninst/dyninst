@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.30 2000/03/23 01:37:13 wylie Exp $
+// $Id: shg.C,v 1.31 2001/02/15 16:57:03 pcroth Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -1314,7 +1314,34 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    if (inDeveloperMode)
       dataString += string(theNode.getId()) + " ";
 
+#if defined(i386_unknown_nt4_0)
+    // the full name may include a pathname, which will include backslashes
+    // which must be escaped to be acceptable to the Tk widget displaying the
+    // name string
+    string nameStr = theNode.getLongName();
+    char tmpstr[2];
+    tmpstr[1] = '\0';
+    for( unsigned int i = 0; i < nameStr.length(); i++ )
+    {
+        // this approach for building up a new string seems horribly
+        // ugly, but the string class provides no tokenizer support,
+        // and we have no "append a character" operator.
+        //
+        // we would like to avoid having to create a new string object
+        // just to add a character to an existing string, but it
+        // appears from the current implementation that a new string
+        // object would be created anyway, since the underlying reference-
+        // counted object might be shared
+        tmpstr[0] = nameStr[i];
+        dataString += tmpstr;
+        if( nameStr[i] == '\\' )
+        {
+            dataString += tmpstr;
+        }
+    }
+#else
    dataString += theNode.getLongName();
+#endif // defined(i386_unknown_nt4_0)
 
    // The igen call isn't implemented in shg test program
    if (inDeveloperMode) {
