@@ -4,6 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.9  1996/01/10 02:22:03  tamches
+# added an intelligent -I flag: the user no longer needs to have the visilib
+# checked out in order to compile barChart
+#
 # Revision 1.8  1995/12/20 02:10:35  tamches
 # removed TCL2C and TCL2C_GEN_SRCS (now in make.config)
 #
@@ -33,14 +37,20 @@
 
 TARGET	      = barChart
 
-IFLAGS	     += -I../../../paradyn/src/UIthread \
-		-I../../../util/h
+IFLAGS	     += -I.. -I$(TO_CORE)/paradyn/src/UIthread \
+		-I$(TO_CORE)/util/h
 
-VPATH	     += ../../../paradyn/src/UIthread
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile barChart.
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
 
-SRCS	     += ../../../paradyn/src/UIthread/tkTools.C \
-		../../../paradyn/src/UIthread/pdLogo.C \
-		../../../paradyn/src/UIthread/minmax.C \
+VPATH	     += $(TO_CORE)/paradyn/src/UIthread
+
+SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
+		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
+		$(TO_CORE)/paradyn/src/UIthread/minmax.C \
 		../barChart.C \
 		../barChartTcl.C \
 		../barChartDriver.C \
