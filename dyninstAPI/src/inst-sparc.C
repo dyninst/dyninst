@@ -233,13 +233,10 @@ float getPointFrequency(instPoint *point)
         func = point->func;
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
-      if (func->isLibTag()) {
-	return(100);
-      } else {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-	return(100); 
-      }
+      // Changing this value from 250 to 100 because predictedCost was
+      // too high - naim 07/18/96
+      return(100); 
+      
     } else {
       return (funcFrequencyTable[func->prettyName()]);
     }
@@ -423,7 +420,7 @@ int callsTrackedFuncP(instPoint *point)
     if (point->callIndirect) {
         return(true);
     } else {
-	if (point->callee && !(point->callee->isLibTag())) {
+	if (point->callee) {
 	    return(true);
 	} else {
 	    return(false);
@@ -718,7 +715,8 @@ bool pd_Function::relocateFunction(process *proc,
     u_int ret = 0;
     if(!reloc_info){
         //Allocate the heap for the function to be relocated
-        ret = inferiorMalloc(proc, size()+32, textHeap);
+        ret = inferiorMalloc(proc, size()+RELOCATED_FUNC_EXTRA_SPACE, \
+			     textHeap);
 	if(!ret)  return false;
         reloc_info = new relocatedFuncInfo(proc,ret);
 	relocatedByProcess += reloc_info;
@@ -726,7 +724,8 @@ bool pd_Function::relocateFunction(process *proc,
     if(!(findNewInstPoints(location->image_ptr, location, ret, proc, 
 			   extra_instrs, reloc_info))){
     }
-    proc->writeDataSpace((caddr_t)ret, size()+32,(caddr_t) newInstr);
+    proc->writeDataSpace((caddr_t)ret, size()+RELOCATED_FUNC_EXTRA_SPACE \
+			 ,(caddr_t) newInstr);
     return true;
 }
 

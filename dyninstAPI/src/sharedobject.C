@@ -35,56 +35,32 @@ char *shared_object::getModulePart(string &full_path_name) {
 // mdl option
 vector<pd_Function *> *shared_object::getSomeFunctions(){
     if(objs_image) {
-      if(some_funcs) return some_funcs;
-      // return (&(objs_image->mdlNormal));
-      // check to see if this module occurs in the list of modules from
-      // exclude_funcs mdl option...if it does then we need to check
-      // function by function
-      some_funcs = new vector<pd_Function *>;
-      *some_funcs +=  *(getAllFunctions());
-      vector<string> func_constraints;
 
-      if(mdl_get_lib_constraints(func_constraints)) {
-	for(u_int i=0; i < func_constraints.size(); i++) {
+        if(some_funcs) return some_funcs;
+        // return (&(objs_image->mdlNormal));
+        // check to see if this module occurs in the list of modules from
+        // exclude_funcs mdl option...if it does then we need to check
+        // function by function
+        some_funcs = new vector<pd_Function *>;
 
-	  // if this is not a lib constraint of the form "module/function" 
-	  // then this is one that specifies an entire library and  
-	  // we ignore it here
-	  char *blah = 0;
-	  char *next = P_strdup(func_constraints[i].string_of());
-          if(next && (blah = P_strchr(next,'/'))) {
-	    char *mod_part = getModulePart(func_constraints[i]);
-	    char *mod_name = P_strdup(name.string_of());
-	    if(mod_name && mod_part && (P_strstr(mod_name,mod_part))){
-	        // find corresponding function in the list of
-	        // some_funcs and remove it
-	        char *temp = P_strdup(func_constraints[i].string_of());
-	        char *func_name = P_strrchr(temp,'/'); 
-	        func_name++;
-	        if(func_name){
-	           string blah(func_name);
-		   pd_Function *pf = findOneFunction(blah,false);
-		   if(pf) {
-		     // remove this function from the somefunctions list
-		     u_int size = some_funcs->size();
-		     for(u_int j=0; j < size; j++) {
-		        if(pf == (*some_funcs)[j]){
-		          (*some_funcs)[j] = (*some_funcs)[size - 1];
-			  some_funcs->resize(size - 1);
-			  break;
-		   } } }
-	        }
-	    }
-	    if(mod_name) delete mod_name;
-	    if(mod_part) delete mod_part;
-          }
-	  if(next) free(next); // strdup allocs via malloc, so we use free() here
+        vector<pd_Function *> temp = *(getAllFunctions());
 
-      } }
-
-      return some_funcs;
+        if (filter_excluded_functions(temp, *some_funcs, name) == FALSE) {
+	    // WRONG!!!!  Leads to memory leak!!!!
+            //  some_funcs = 0;
+            // correct :
+            delete some_funcs;
+            some_funcs = NULL;
+            return NULL;
+        }
+        return some_funcs;
     }
-    some_funcs = 0;
-    return 0;
-}
+    return NULL;    
+} 
 #endif /* BPATCH_LIBRARY */
+
+
+
+
+
+

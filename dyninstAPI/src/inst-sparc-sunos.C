@@ -205,7 +205,7 @@ void pd_Function::checkCallPoints() {
       // Direct call
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
-      if (pdf && !pdf->isLibTag()) {
+      if (pdf) {
 	p->callee = pdf;
 	non_lib += p;
       } else {

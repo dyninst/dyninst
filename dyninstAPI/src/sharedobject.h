@@ -56,7 +56,8 @@ public:
 
     vector<pd_Function *> *getAllFunctions(){
         if(objs_image) {
-	    return (&(objs_image->mdlNormal));
+	    // previously objs_image->mdlNormal....
+	    return (&(objs_image->getAllFunctions()));
 	}
 	return 0;
     }
@@ -72,9 +73,10 @@ public:
     vector<pd_Function *> *getSomeFunctions();
 #endif
 
+    // Get list of ALL modules, not just included ones.
     vector<pdmodule *> *getModules() {
         if(objs_image) {
-	    return (&(objs_image->mods));
+	    return (&(objs_image->getAllModules()));
 	}
 	return 0;
     }
@@ -160,7 +162,10 @@ public:
 	return (0);
     }
 
-				
+
+    //
+    //     PRIVATE DATA MEMBERS
+    //				
 private:
     string  name;	// full file name of the shared object
     u_int   base_addr;  // base address of where the shared object is mapped
@@ -170,6 +175,8 @@ private:
     bool include_funcs; // if true include the the functions from this shared
 			// object in the set of all instrumentable functions
 			// (this is for foci not refined on the Code heirarchy)
+			// - Conceptually assumes that shared object has 1
+			// and only 1 module.
     image  *objs_image; // pointer to image if processed is true 
     vector<pd_Function *> *some_funcs; // all functions not excluded by 
 				       // exclude_func option

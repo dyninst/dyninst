@@ -264,7 +264,7 @@ void pd_Function::checkCallPoints() {
     if(isCallInsn(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
-      if (pdf && !pdf->isLibTag()) {
+      if (pdf) {
         p->callee = pdf;
         non_lib += p;
       } else {
@@ -361,13 +361,9 @@ float getPointFrequency(instPoint *point)
         func = point->func;
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
-      if (func->isLibTag()) {
-	return(100);
-      } else {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-	return(100);
-      }
+      // Changing this value from 250 to 100 because predictedCost was
+      // too high - naim 07/18/96
+      return(100);
     } else {
       return (funcFrequencyTable[func->prettyName()]);
     }
@@ -1129,7 +1125,7 @@ int callsTrackedFuncP(instPoint *point)
 #endif
         return(true);
     } else {
-	if (point->callee && !(point->callee->isLibTag())) {
+	if (point->callee) {
 	    return(true);
 	} else {
 	    return(false);

@@ -229,6 +229,10 @@ class process {
  friend class BPatch_image;
 #endif
 
+  //  
+  //  PUBLIC MEMBERS FUNCTIONS
+  //  
+
  public:
   process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
@@ -290,11 +294,6 @@ class process {
   void Exited();
   void Stopped();
 
-  // the following 2 vrbles probably belong in a different class:
-  static string programName; // the name of paradynd (more specifically, its argv[0])
-  static vector<string> arg_list; // the arguments of paradynd
-  static string pdFlavor ;
-
   bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym) const;
 
   Address findInternalAddress(const string &name, bool warn, bool &err) const;
@@ -313,6 +312,129 @@ class process {
   // this is only used on aix so far - naim
   vector<int> getTOCoffsetInfo() const;
 
+  bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
+  bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
+  unsigned numOfActCounters_is;
+  unsigned numOfActProcTimers_is;
+  unsigned numOfActWallTimers_is; 
+  bool deferredContinueProc;
+  void updateActiveCT(bool flag, CTelementType type);
+  void cleanRPCreadyToLaunch(int mid);
+  void postRPCtoDo(AstNode *, bool noCost,
+		   void (*)(process *, void *, unsigned), void *, int);
+  bool existsRPCreadyToLaunch() const;
+  bool existsRPCinProgress() const;
+  bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
+     // returns true iff anything was launched.
+     // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
+     // if currRunningRPCs.size()==0 (the latter for safety)
+     // If we're gonna launch, then we'll stop the process (a necessity).
+     // Pass wasRunning as true iff you want the process  to continue after
+     // receiving the TRAP signifying completion of the RPC.
+  bool isRPCwaitingForSysCallToComplete() const {
+     return RPCs_waiting_for_syscall_to_complete;
+  }
+  void setRPCwaitingForSysCallToComplete(bool flag) {
+     RPCs_waiting_for_syscall_to_complete = flag;
+  }
+
+  bool handleTrapIfDueToRPC();
+     // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
+     // true iff found.  Also, if true is being returned, then additionally does
+     // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
+  bool changePC(unsigned addr);
+
+
+  void installBootstrapInst();
+  void installInstrRequests(const vector<instMapping*> &requests);
+
+
+  int getPid() const { return pid;}
+
+  bool heapIsOk(const vector<sym_data>&);
+  bool initDyninstLib();
+
+  void initInferiorHeap(bool textHeap);
+     // true --> text heap, else data heap
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  bool isAddrInHeap(Address addr) {
+	    if ((addr >= heaps[dataHeap].base &&
+		 addr < heaps[dataHeap].base + heaps[dataHeap].size) ||
+		(splitHeaps && addr >= heaps[textHeap].base &&
+		 addr < heaps[textHeap].base + heaps[textHeap].size))
+		return true;
+	    else
+		return false;
+	};
+#endif
+
+  bool writeDataSpace(void *inTracedProcess,
+		      int amount, const void *inSelf);
+  bool readDataSpace(const void *inTracedProcess, int amount,
+		     void *inSelf, bool displayErrMsg);
+
+  bool writeTextSpace(void *inTracedProcess, int amount, const void *inSelf);
+  bool writeTextWord(caddr_t inTracedProcess, int data);
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  bool readTextSpace(const void *inTracedProcess, int amount,
+		     const void *inSelf);
+#endif
+  bool continueProc();
+#ifdef BPATCH_LIBRARY
+  bool terminateProc() { return terminateProc_(); }
+#endif
+  bool pause();
+
+  bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
+
+  bool dumpCore(const string coreFile);
+  bool detach(const bool paused); // why the param?
+  bool API_detach(const bool cont); // XXX Should eventually replace detach()
+  bool attach();
+
+  //  
+  //  PUBLIC DATA MEMBERS
+  //  
+
+  // the following 2 vrbles probably belong in a different class:
+  static string programName; // the name of paradynd (more specifically, its argv[0])
+  static vector<string> arg_list; // the arguments of paradynd
+  static string pdFlavor ;
+
+
+  // These member vrbles should be made private!
+  int traceLink;		/* pipe to transfer traces data over */
+  int ioLink;			/* pipe to transfer stdout/stderr over */
+  processState status_;	        /* running, stopped, etc. */
+  vector<pdThread *> threads;	/* threads belonging to this process */
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+  hashTable *threadMap;         /* mapping table for threads into superTable */
+#endif
+  bool continueAfterNextStop_;
+  // on some platforms we use one heap for text and data so textHeapFree is not
+  // used.
+  bool splitHeaps;		/* are the inferior heap split I/D ? */
+  inferiorHeap	heaps[2];	/* the heaps text and data */
+  resource *rid;		/* handle to resource for this process */
+
+  /* map an inst point to its base tramp */
+  dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
+
+  // the following 3 are used in perfStream.C
+  char buffer[2048];
+  unsigned bufStart;
+  unsigned bufEnd;
+
+  time64 wallTimeLastTrampSample;
+  time64 timeLastTrampSample;
+
+  bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
+  bool reachedVeryFirstTrap; 
+
+  //
+  //  PRIVATE DATA MEMBERS (and structure definitions)....
+  //
  private:
 #if defined(USES_LIBDYNINSTRT_SO)
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
@@ -368,40 +490,11 @@ class process {
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
 
- public:
-  bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
-  bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
-  unsigned numOfActCounters_is;
-  unsigned numOfActProcTimers_is;
-  unsigned numOfActWallTimers_is; 
-  bool deferredContinueProc;
-  void updateActiveCT(bool flag, CTelementType type);
-  void cleanRPCreadyToLaunch(int mid);
-  void postRPCtoDo(AstNode *, bool noCost,
-		   void (*)(process *, void *, unsigned), void *, int);
-  bool existsRPCreadyToLaunch() const;
-  bool existsRPCinProgress() const;
-  bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
-     // returns true iff anything was launched.
-     // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
-     // if currRunningRPCs.size()==0 (the latter for safety)
-     // If we're gonna launch, then we'll stop the process (a necessity).
-     // Pass wasRunning as true iff you want the process  to continue after
-     // receiving the TRAP signifying completion of the RPC.
-  bool isRPCwaitingForSysCallToComplete() const {
-     return RPCs_waiting_for_syscall_to_complete;
-  }
-  void setRPCwaitingForSysCallToComplete(bool flag) {
-     RPCs_waiting_for_syscall_to_complete = flag;
-  }
 
-  bool handleTrapIfDueToRPC();
-     // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
-     // true iff found.  Also, if true is being returned, then additionally does
-     // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
-  bool changePC(unsigned addr);
+  //
+  //  PRIVATE MEMBER FUNCTIONS
+  // 
 
- private:
   // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, unsigned &base);
   bool emitInferiorRPCtrailer(void *, unsigned &base,
@@ -434,81 +527,6 @@ class process {
   unsigned read_inferiorRPC_result_register(reg);
 
  public:
-  void installBootstrapInst();
-  void installInstrRequests(const vector<instMapping*> &requests);
- 
-  // These member vrbles should be made private!
-  int traceLink;		/* pipe to transfer traces data over */
-  int ioLink;			/* pipe to transfer stdout/stderr over */
-  processState status_;	        /* running, stopped, etc. */
-  vector<pdThread *> threads;	/* threads belonging to this process */
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  hashTable *threadMap;         /* mapping table for threads into superTable */
-#endif
-  bool continueAfterNextStop_;
-  // on some platforms we use one heap for text and data so textHeapFree is not
-  // used.
-  bool splitHeaps;		/* are the inferior heap split I/D ? */
-  inferiorHeap	heaps[2];	/* the heaps text and data */
-  resource *rid;		/* handle to resource for this process */
-
-  /* map an inst point to its base tramp */
-  dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
-
-  // the following 3 are used in perfStream.C
-  char buffer[2048];
-  unsigned bufStart;
-  unsigned bufEnd;
-
-  time64 wallTimeLastTrampSample;
-  time64 timeLastTrampSample;
-
-  bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
-  bool reachedVeryFirstTrap; 
-
-  int getPid() const { return pid;}
-
-  bool heapIsOk(const vector<sym_data>&);
-  bool initDyninstLib();
-
-  void initInferiorHeap(bool textHeap);
-     // true --> text heap, else data heap
-
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool isAddrInHeap(Address addr) {
-	    if ((addr >= heaps[dataHeap].base &&
-		 addr < heaps[dataHeap].base + heaps[dataHeap].size) ||
-		(splitHeaps && addr >= heaps[textHeap].base &&
-		 addr < heaps[textHeap].base + heaps[textHeap].size))
-		return true;
-	    else
-		return false;
-	};
-#endif
-
-  bool writeDataSpace(void *inTracedProcess,
-		      int amount, const void *inSelf);
-  bool readDataSpace(const void *inTracedProcess, int amount,
-		     void *inSelf, bool displayErrMsg);
-
-  bool writeTextSpace(void *inTracedProcess, int amount, const void *inSelf);
-  bool writeTextWord(caddr_t inTracedProcess, int data);
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool readTextSpace(const void *inTracedProcess, int amount,
-		     const void *inSelf);
-#endif
-  bool continueProc();
-#ifdef BPATCH_LIBRARY
-  bool terminateProc() { return terminateProc_(); }
-#endif
-  bool pause();
-
-  bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
-
-  bool dumpCore(const string coreFile);
-  bool detach(const bool paused); // why the param?
-  bool API_detach(const bool cont); // XXX Should eventually replace detach()
-  bool attach();
 
 #if defined(USES_LIBDYNINSTRT_SO)
   unsigned dyninstlib_brk_addr;
@@ -583,7 +601,8 @@ class process {
 
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any
-  // shared object images for this function
+  // shared object images for this function.  
+  // mcheyney - should return NULL if function is excluded!!!!
   function_base *findOneFunction(resource *func,resource *mod);
 
 #ifndef BPATCH_LIBRARY

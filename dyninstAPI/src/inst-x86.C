@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.29  1997/11/26 21:44:48  mcheyney
+ * *** empty log message ***
+ *
  * Revision 1.28  1997/10/28 20:24:16  tamches
  * changed entry to the_entry to avoid a conflict
  *
@@ -328,10 +331,10 @@ void pd_Function::checkCallPoints() {
       file()->exec()->addJumpTarget(loc_addr);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
 
-      if (pdf && !pdf->isLibTag()) {
+      if (pdf) {
         p->set_callee(pdf);
         non_lib += p;
-      } else if(!pdf){
+      } else {
 	   // if this is a call outside the fuction, keep it
 	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
                 non_lib += p;
@@ -339,9 +342,7 @@ void pd_Function::checkCallPoints() {
 	   else {
 	       delete p;
 	   }
-      } else {
-          delete p;
-	}
+      } 
     } else {
       // Indirect call -- be conservative, assume it is a call to
       // an unnamed user function
@@ -2288,13 +2289,9 @@ float getPointFrequency(instPoint *point)
       func = point->func();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
-      if (func->isLibTag()) {
-	return(100.0);
-      } else {
-        // Changing this value from 250 to 100 because predictedCost was
-        // too high - naim 07/18/96
-	return(100.0); 
-      }
+      // Changing this value from 250 to 100 because predictedCost was
+      // too high - naim 07/18/96
+      return(100.0);       
     } else {
       return ((float)funcFrequencyTable[func->prettyName()]);
     }

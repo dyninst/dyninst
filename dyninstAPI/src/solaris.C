@@ -804,9 +804,16 @@ bool process::terminateProc_()
 */
 bool process::pause_() {
   ptraceOps++; ptraceOtherOps++;
+  int ioctl_ret;
 
   // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
-  return (ioctl(proc_fd, PIOCSTOP, 0) != -1);
+  ioctl_ret = ioctl(proc_fd, PIOCSTOP, 0);
+  if (ioctl_ret == -1) {
+      sprintf(errorLine, "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
+      perror("warn : process::pause_ ioctl PICOSTOP: ");
+      logLine(errorLine);
+  }
+  return (ioctl_ret != -1);
 }
 
 /*
@@ -1406,6 +1413,34 @@ unsigned process::read_inferiorRPC_result_register(reg) {
 #endif
 }
 
+void print_read_error_info(const relocationEntry entry, 
+      pd_Function *&target_pdf, Address base_addr) {
+
+    sprintf(errorLine, "  entry      : target_addr 0x%x\n", \
+	    entry.target_addr());
+    logLine(errorLine);
+    sprintf(errorLine, "               rel_addr 0x%x\n", entry.rel_addr());
+    logLine(errorLine);
+    sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
+    logLine(errorLine);
+
+    sprintf(errorLine, "  target_pdf : symTabName %s\n", \
+	    (target_pdf->symTabName()).string_of());
+    logLine(errorLine);    
+    sprintf(errorLine , "              prettyName %s\n", \
+	    (target_pdf->symTabName()).string_of());
+    logLine(errorLine);
+    sprintf(errorLine , "              size %i\n", \
+	    target_pdf->size());
+    logLine(errorLine);
+    sprintf(errorLine , "              addr 0x%x\n", \
+	    target_pdf->addr());
+    logLine(errorLine);
+
+    sprintf(errorLine, "  base_addr  0x%x\n", base_addr);
+    logLine(errorLine);
+}
+
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
@@ -1430,8 +1465,9 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address bound_addr = 0;
     if(!readDataSpace((const void*)got_entry, sizeof(Address), 
 			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n",got_entry,pid);
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",got_entry,pid);
 	logLine(errorLine);
+	print_read_error_info(entry, target_pdf, base_addr);
         return false;
     }
 
@@ -1462,9 +1498,10 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address next_insn_addr = entry.target_addr() + base_addr + 4; 
     if( !(readDataSpace((caddr_t)next_insn_addr, sizeof(next_insn), 
 		       (char *)&next_insn, true)) ) {
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x (readDataSpace next_isin_addr returns 0)\n",
 		next_insn_addr);
 	logLine(errorLine);
+	print_read_error_info(entry, target_pdf, base_addr);
     }
     // if this is a b,a instruction, then the function has not been bound
     if((next_insn.branch.op == FMT2op)  && (next_insn.branch.op2 == BICCop2) 
@@ -1477,9 +1514,10 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address third_addr = entry.target_addr() + base_addr + 8; 
     if( !(readDataSpace((caddr_t)third_addr, sizeof(third_insn), 
 		       (char *)&third_insn, true)) ) {
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x (readDataSpace third_addr returns 0)\n",
 		third_addr);
 	logLine(errorLine);
+	print_read_error_info(entry,target_pdf, base_addr);
     }
 
     // get address of bound function, and return the corr. pd_Function

@@ -210,6 +210,8 @@ void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
+  //cerr << "pd_Function:: checkCallPoints called, *this = " << *this;
+
   vector<instPoint*> non_lib;
 
   for (unsigned i=0; i<calls.size(); ++i) {
@@ -218,26 +220,31 @@ void pd_Function::checkCallPoints() {
     assert(p);
 
     if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
+      //cerr << " isIsinType TRUE" << endl;
       // Direct call
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
-      if (pdf && !pdf->isLibTag()) {
+      if (pdf) {
 	p->callee = pdf;
 	non_lib += p;
+	//cerr << "  pdf (called func?) non-NULL = " << *pdf;
       } else if(!pdf){
+	   //cerr << "  pdf (called func) NULL" << endl;
 	   // if this is a call outside the fuction, keep it
 	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
+	        //cerr << "   apparent call outside function, adding p to non_lib" \
+			<< endl;
 	        p->callIndirect = true;
                 p->callee = NULL;
                 non_lib += p;
 	   }
 	   else {
+	       //cerr << "   apparent call inside function, deleting p" << endl;
 	       delete p;
 	   }
-      } else {
-          delete p;
-      }
+      } 
     } else {
+      //cerr << " isIsinType FALSE, assuming call to unnamed user function" << endl;
       // Indirect call -- be conservative, assume it is a call to 
       // an unnamed user function
       assert(!p->callee); assert(p->callIndirect);
@@ -1484,7 +1491,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
  */
 bool pd_Function::findInstPoints(const image *owner) {
 
+
+   //cerr << "pd_Function::findInstPoints called " << *this;
    if (size() == 0) {
+     //cerr << " size = 0, returning FALSE" << endl;
      return false;
    }
 
@@ -1494,8 +1504,10 @@ bool pd_Function::findInstPoints(const image *owner) {
    Address adr1 = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr1);
-   if (!IS_VALID_INSN(instr))
+   if (!IS_VALID_INSN(instr)) {
+     //cerr << " IS_VALID_ISIN(adr1) == 0, returning FALSE" << endl;
      return false;
+   }
 
    // If it contains an instruction, I assume it would be s system call
    // which will be treat differently. 
@@ -1510,6 +1522,7 @@ bool pd_Function::findInstPoints(const image *owner) {
        // to the heap
        if (isInsnType(instr, TRAPmask, TRAPmatch)) {
 	   isTrap = true;
+	   //cerr << " TRAP instrcution detected, returning findInstPoints" << endl;
 	   return findInstPoints(owner, getAddress(0), 0);
        } 
 
@@ -1522,25 +1535,27 @@ bool pd_Function::findInstPoints(const image *owner) {
        //  This is only done if libc is statically linked...if the
        //  libTag is set, otherwise we instrument read and _read
        //  both for the dynamically linked case
-       if (isLibTag()) {
-	   if (isCallInsn(instr)) {
-	       instruction nexti; 
-	       nexti.raw = owner->get_instruction(adr1+4);
+       
+       if (isCallInsn(instr)) {
+	   instruction nexti; 
+	   nexti.raw = owner->get_instruction(adr1+4);
 	       
-	       if (nexti.rest.op == 2 
-		   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
+	   if (nexti.rest.op == 2 
+	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 		       || nexti.rest.op3 == RESTOREop3)) {
-		   isTrap = true;
-		   return findInstPoints(owner, getAddress(0), 0);
-	       }
-	   }   
-       }
+	       isTrap = true;
+	       //cerr << " tail call optimization pattern detected, returning findInstPoints" << endl;
+	       return findInstPoints(owner, getAddress(0), 0);
+	   }
+       }   
+       
 
        // The function Entry is defined as the first SAVE instruction plus
        // the instructions after this.
        // ( The first instruction for the nonleaf function is not 
        //   necessarily a SAVE instruction. ) 
        if (isInsnType(instr, SAVEmask, SAVEmatch) && !func_entry_found) {
+	   //cerr << " save instruction found" << endl;
 	   noStackFrame = false;
 
 	   func_entry_found = true;
@@ -1554,6 +1569,7 @@ bool pd_Function::findInstPoints(const image *owner) {
    // If there's no SAVE instruction found, this is a leaf function and
    // and function Entry will be defined from the first instruction
    if (noStackFrame) {
+       //cerr << " noStackFrame, apparently leaf function" << endl;
        adr = getAddress(0);
        instr.raw = owner->get_instruction(adr);
        funcEntry_ = new instPoint(this, instr, owner, adr, true,
@@ -1600,7 +1616,8 @@ bool pd_Function::findInstPoints(const image *owner) {
            Address call_target = adr + (instr.call.disp30 << 2);
            if(call_target == adr){ 
 	        return false;
-       }}
+	   }
+       }
        // first, check for tail-call optimization: a call where the instruction 
        // in the delay slot write to register %o7(15), usually just moving
        // the caller's return address, or doing a restore
@@ -1674,7 +1691,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
      }
  }
-
+   
  return (checkInstPoints(owner)); 
 }
 
@@ -1788,19 +1805,31 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
    funcEntry_ = point;
 
    // if the second instruction in a relocated function is a call instruction
-   // or a branch instruction, then we can't deal with this 
+   // or a branch instruction, then we can't deal with this.
+   // New: only problem if call is to location outside of function, or
+   //  a jump to itself....
    if(size() > sizeof(instruction)){
        Address second_adr = adr + sizeof(instruction);
        instruction second_instr;
        second_instr.raw =  owner->get_instruction(second_adr); 
-       if ((isCallInsn(second_instr)) || 
-		      (second_instr.branch.op == 0 && 
-		      (second_instr.branch.op2 == 2 || 
-		      second_instr.branch.op2 == 6))) {
-	   return false;
+
+       if (isCallInsn(second_instr)) {
+           Address call_target = second_adr + (second_instr.call.disp30 << 2);
+	   // if call dest. is outside of function, assume real
+	   //  call site.  Assuming cant deal with this case!!!!
+           if (!(call_target >= adr && call_target <= adr + size()) || \
+	       (call_target == second_adr)) {
+	       return false;
+	   }
        }
-   }
-   
+
+       if (second_instr.branch.op == 0 && 
+   		      (second_instr.branch.op2 == 2 || 
+   		      second_instr.branch.op2 == 6)) {
+   	   return false;
+       }
+   }    
+
    assert(funcEntry_);
    int retId = 0;
    int callsId = 0; 
@@ -1943,6 +1972,10 @@ bool pd_Function::findNewInstPoints(const image *owner,
    }
    assert(reloc_info);
 
+   // Note : newInstr defined as array 1024 long in inst-sparc.h
+   //  bad things (tm) can happen if thats not true....
+   assert((size() + RELOCATED_FUNC_EXTRA_SPACE) <= NEW_INSTR_ARRAY_LEN);
+
    Address adr = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr);
@@ -2034,20 +2067,25 @@ bool pd_Function::findNewInstPoints(const image *owner,
        if (nexti.rest.op == 2 
 	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 	      || nexti.rest.op3 == RESTOREop3)) {
-
 	    // Undoing the tail-call optimazation when the function
 	    // is relocated. Here is an example:
 	    //   before:          --->             after
 	    // ---------------------------------------------------
-	    //   call  %g1                        restore    
-	    //   restore                          st  %i0, [ %fp + 0x44 ]
+	    //   call  %reg                       mov %reg %g1
+	    //   restore                          restore    
+	    //                                    st  %i0, [ %fp + 0x44 ]
 	    //                                    mov %o7 %i0
 	    //                                    call %g1 
 	    //                                    nop
 	    //                                    mov %i0,%o7
 	    //                                    st  [ %fp + 0x44 ], %i0
-	    //         			    retl
+	    //         			          retl
             //                                    nop
+	 //    Note : Assuming that %g1 is safe to use, since g1 is scratch
+	 //     register that is defined to be volatile across procedure
+	 //     calls.
+         //    My barf for hand written assembly code which violates this
+         //     assumption.
 	    // Q: Here the assumption that register i1 is available 
 	    //    might be an question, is it?
 	    // A: I think it is appropriate because:
@@ -2064,10 +2102,23 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //    ( If you could give an counter-example, please
 	    //      let me know.                         --ling )
 
+	    // added extra mv *, g1
+	    // translation : mv inst %1 %2 is syn. inst. implemented as
+	    //  orI %1, 0, %2  
+	    genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
+ 
 	    genSimpleInsn(&newInstr[i++], RESTOREop3, 0, 0, 0);
-	    generateStore(&newInstr[i++], 24, REG_FP, 0x44); 
+	    generateStore(&newInstr[i++], 24, REG_FP, 0x44);
 	    genImmInsn(&newInstr[i++], ORop3, 15, 0, 24); 
-	    newInstr[i++].raw = owner->get_instruction(adr);
+
+	    // note: changed here.
+	    // origional was : 
+            //  replicate origional jump instruction from target code.
+	    //  newInstr[i++].raw = owner->get_instruction(adr);
+	    // new is :
+	    //  generate <call %g1>
+	    generateJmplInsn(&newInstr[i++], 1, 0, 15);
+
 	    generateNOOP(&newInstr[i++]);
 	    genImmInsn(&newInstr[i++], ORop3, 24, 0, 15);
 	    generateLoad(&newInstr[i++], REG_FP, 0x44, 24);  	    

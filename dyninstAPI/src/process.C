@@ -1850,12 +1850,17 @@ bool process::readDataSpace(const void *inTracedProcess, int size,
 
   if (status_ == running) {
     needToCont = true;
-    if (! pause())
+    if (! pause()) {
+      sprintf(errorLine, "in readDataSpace, status_ = running, but unable to pause()\n");
+      logLine(errorLine);
       return false;
+    }
   }
 
   if (status_ != stopped && status_ != neonatal) {
     showErrorCallback(38, "Internal paradynd error in process::readDataSpace");
+    sprintf(errorLine, "Internal paradynd error in process::readDataSpace");
+    logLine(errorLine);
     return false;
   }
 
@@ -1865,13 +1870,21 @@ bool process::readDataSpace(const void *inTracedProcess, int size,
       string msg;
       msg=string("System error: unable to read from process data space:")
           + string(sys_errlist[errno]);
+      sprintf(errorLine, msg.string_of());
+      logLine(errorLine);
       showErrorCallback(38, msg);
     }
     return false;
   }
 
-  if (needToCont)
-    return this->continueProc();
+  if (needToCont) {
+    needToCont = this->continueProc();
+    if (!needToCont) {
+        sprintf(errorLine, "warning : readDataSpace, needToCont FALSE, returning FALSE\n");
+	logLine(errorLine);
+    }
+    return needToCont;
+  }
   return true;
 
 }
@@ -1999,13 +2012,19 @@ bool process::pause() {
   if (status_ == stopped || status_ == neonatal)
     return true;
 
-  if (status_ == exited)
+  if (status_ == exited) {
+    sprintf(errorLine, "warn : in process::pause, trying to pause exited process, returning FALSE");
+    logLine(errorLine);
     return false;
+  }
 
   if (status_ == running && reachedFirstBreak) {
     bool res = pause_();
-    if (!res)
+    if (!res) {
+      sprintf(errorLine, "warn : in process::pause, pause_ unable to pause process");
+    logLine(errorLine);
       return false;
+    }
 
     status_ = stopped;
   }
@@ -2161,6 +2180,11 @@ bool process::addASharedObject(shared_object &new_obj){
         }
     }
 
+    // This looks a bit wierd at first glance, but apparently is ok -
+    //  A shared object has 1 module.  If that module is excluded,
+    //  then new_obj.includeFunctions() should return FALSE.  As such,
+    //  the some_modules += new_obj.getModules() is OK as long as
+    //  shared objects have ONLY 1 module.
     if(new_obj.includeFunctions()){
         if(some_modules) {
             *some_modules += *((vector<module *> *)(new_obj.getModules())); 
@@ -2216,7 +2240,10 @@ bool process::getSharedObjects() {
 
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
-// images for this resource
+// images for this resource.
+// Semantics of excluded functions - Once "exclude" works for both
+// static and dynamically linked objects, this should return NULL
+// if the function being sought is excluded....
 #ifndef BPATCH_LIBRARY
 function_base *process::findOneFunction(resource *func,resource *mod){
     
@@ -2277,8 +2304,13 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
     }
 
     // this must be an a.out module so just return the list associated
-    // with the module
-    return(mod->getFunctions());
+    // with the module.
+    // Now that exclude should work for both static and dynamically
+    // linked executables, probably need to either filter excluded
+    // files here, or let the module do it and pass the information not
+    // to include excluded functions along with this proc call....
+    // mcheyney 970927
+    return(mod->getIncludedFunctions());
 }
 #endif /* BPATCH_LIBRARY */
 
@@ -2422,12 +2454,17 @@ module *process::findModule(const string &mod_name,bool check_excluded){
     }
 
     // check a.out for function symbol
+    //  Note that symbols is data member of type image* (comment says
+    //  "information related to the process"....
     return(symbols->findModule(mod_name));
 }
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
 // this routine starts looking a.out for symbol and then in shared objects
-// baseAddr is set to the base address of the object containing the symbol
+// baseAddr is set to the base address of the object containing the symbol.
+// This function appears to return symbol info even if module/function
+// is excluded.  In extending excludes to statically linked executable,
+// we preserve these semantics....
 bool process::getSymbolInfo(const string &name, Symbol &info, Address &baseAddr) const {
     
     // first check a.out for symbol
@@ -2458,7 +2495,7 @@ vector<function_base *> *process::getAllFunctions(){
     // else create the list of all functions
     all_functions = new vector<function_base *>;
     const vector<function_base *> &blah = 
-		    (vector<function_base *> &)(symbols->getNormalFuncs());
+		    (vector<function_base *> &)(symbols->getAllFunctions());
     *all_functions += blah;
 
     if(dynamiclinking && shared_objects){
@@ -2475,6 +2512,7 @@ vector<function_base *> *process::getAllFunctions(){
       
 // getAllModules: returns a vector of all modules defined in the
 // a.out and in the shared objects
+// Includes "excluded" modules....
 vector<module *> *process::getAllModules(){
 
     // if the list of all modules has already been created, the return it
@@ -2482,7 +2520,7 @@ vector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new vector<module *>;
-    *all_modules += *((vector<module *> *)(&(symbols->mods)));
+    *all_modules += *((vector<module *> *)(&(symbols->getAllModules())));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
@@ -2501,15 +2539,20 @@ vector<module *> *process::getAllModules(){
 // TODO: what to do about duplicate function names?
 vector<function_base *> *process::getIncludedFunctions(){
 
+    //cerr << "process " << programName << " :: getIncludedFunctions() called" \
+	 << endl;
     // if this list has already been created, return it
     if(some_functions) 
 	return some_functions;
 
     // else create the list of all functions
     some_functions = new vector<function_base *>;
-    const vector<function_base *> &normal_funcs = 
-	(vector<function_base *> &)(symbols->getNormalFuncs());
-        *some_functions += normal_funcs;
+    const vector<function_base *> &incl_funcs = 
+	(vector<function_base *> &)(symbols->getIncludedFunctions());
+        *some_functions += incl_funcs;
+
+    //cerr << " (process::getIncludedFunctions), about to add incl_funcs to some_functions, incl_funcs = " << endl;
+    //print_func_vector_by_pretty_name(string(">>>"), &incl_funcs);
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
@@ -2523,6 +2566,10 @@ vector<function_base *> *process::getIncludedFunctions(){
 		} 
             } 
     } } 
+
+    //cerr << " about to return fucntion list : ";
+    //print_func_vector_by_pretty_name(string("  "), some_functions);
+
     return some_functions;
 }
 #endif /* BPATCH_LIBRARY */
@@ -2537,7 +2584,7 @@ vector<module *> *process::getIncludedModules(){
 
     // else create the list of all modules
     some_modules = new vector<module *>;
-    *some_modules += *((vector<module *> *)(&(symbols->mods)));
+    *some_modules += *((vector<module *> *)(&(symbols->getIncludedModules())));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){

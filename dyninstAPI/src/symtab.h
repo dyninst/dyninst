@@ -66,6 +66,8 @@ extern "C" {
 #include "util/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
 
+#define RH_SEPERATOR '/'
+
 /*
  * List of supported languages.
  *
@@ -155,6 +157,9 @@ public:
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
        // By renaming this fn, we make clear that we're returning (1), not (2).
 
+    // extra debuggering info....
+    ostream & operator<<(ostream &s) const;
+    friend ostream &operator<<(ostream &os, function_base &f);
 private:
     string symTabName_;		/* name as it appears in the symbol table */
     string prettyName_;		/* user's view of name (i.e. de-mangled) */
@@ -318,6 +323,7 @@ public:
     virtual function_base *findFunction (const string &name) = 0;
     virtual void define() = 0;    // defines module to paradyn
     virtual vector<function_base *> *getFunctions() = 0;
+    virtual vector<function_base *> *getIncludedFunctions() = 0;
 
 private:
     string fileName_;                   // short file 
@@ -329,9 +335,11 @@ private:
 class pdmodule: public module {
 friend class image;
 public:
-   pdmodule(supportedLanguages lang, Address adr, string &fullNm,
+  pdmodule(supportedLanguages lang, Address adr, string &fullNm,
 	   string &fileNm, image *e): module(lang,adr,fullNm,fileNm),
-	   exec_(e){}
+	   exec_(e){
+    some_funcs_inited = FALSE;
+  }
   ~pdmodule() { /* TODO */ }
 
   void setLineAddr(unsigned line, Address addr) {
@@ -345,14 +353,35 @@ public:
   inline void changeLibFlag(const bool setSuppress);
   void define();    // defines module to paradyn
   vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
+  vector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
-
 
 private:
   image *exec_;                      // what executable it came from 
   lineDict lines_;
+  //  list of all found functions in module....
   vector<pd_Function*> funcs;
+  // added as part of exclude support for statically linked objects.
+  //  mcheyny, 970928
+  //  list of non-excluded found functions in module....
+  vector<pd_Function*> some_funcs;
+  bool some_funcs_inited;
 };
+
+
+extern bool mdl_get_lib_constraints(vector<string> &);
+
+void print_func_vector_by_pretty_name(string prefix, \
+				      vector<function_base *>*funcs);
+void print_module_vector_by_short_name(string prefix, \
+                                      vector<pdmodule*> *mods);
+string getModuleName(string constraint);
+string getFunctionName(string constraint);
+//used by both sharedobject and pdmodule class....
+bool filter_excluded_functions(vector<pd_Function*> all_funcs, \
+    vector<pd_Function*>& some_funcs, string module_name);
+bool function_is_excluded(pd_Function *func, string module_name);
+bool module_is_excluded(pdmodule *module);
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know
@@ -373,9 +402,34 @@ private:
 };
 
 
-
+// modsByFileName
+// modsbyFullName
+// includedMods
+// excludedMods
+// allMods
+// includedFunctions
+// excludedFunctions
+// instrumentableFunctions
+// notInstruFunctions
+// funcsByAddr
+// funcsByPretty
+// file_
+// name_
+// codeOffset_
+// codeLen_
+// dataOffset_
+// dataLen_
+// linkedFile
+// iSymsMap
+// allImages
+// varsByPretty
+// knownJumpTargets
 class image {
    friend class process;
+
+   //
+   // ****  PUBLIC MEMBER FUBCTIONS  ****
+   //
 public:
   static image *parseImage(const string file);
   static image *parseImage(const string file,u_int baseAddr);
@@ -387,19 +441,34 @@ public:
   image(const string &file, u_int baseAddr, bool &err);
   ~image() { /* TODO */ }
 
+  // True if symbol can be found, regardless of whether it is
+  // excluded!!!! 
   bool findInternalSymbol(const string &name, const bool warn, internalSym &iSym);
+  // Non-NULL if symbol can be found, even if it it is excluded!!!!
   Address findInternalAddress(const string &name, const bool warn, bool &err);
 
-  // find the named module 
-  pdmodule *findModule(const string &name);
+  // find the named module - 
+  // mcheyey - Should this work if function is excluded?? 
+  pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);
 
   // find the function by name, address, or the first by name
-  bool findFunction(const string &name, vector<pd_Function*> &flist);
-  pd_Function *findFunction(const Address &addr);
+  // find_if_excluded specifies whether to include "excluded" 
+  // functions in search.
+  bool findFunction(const string &name, vector<pd_Function*> &flist, \
+    bool find_if_excluded = FALSE);
+  // find_if_excluded specifies whether to include "excluded" 
+  // functions in search.
+  pd_Function *findFunction(const Address &addr, \
+    bool find_if_excluded = FALSE);
+
+  // return NULL if function is excluded!!!!
   pd_Function *findOneFunction(const string &name);
+  // not NULL if function can be found, even if excluded!!!!
   pd_Function *findOneFunctionFromAll(const string &name);
 
+  // non-NULL even if function is excluded!!!!
   pd_Function *findFunctionIn(const Address &addr,const process *p) const;
+  // as per findFunctionIn....
   pd_Function *findFunctionInInstAndUnInst(const Address &addr, const process *p) const;
 
   // report modules to paradyn
@@ -407,6 +476,16 @@ public:
 
   bool symbolExists(const string &); /* Does the symbol exist in the image? */
   void postProcess(const string);          /* Load .pif file */
+
+
+  void addJumpTarget(Address addr) {
+    if (!knownJumpTargets.defines(addr)) knownJumpTargets[addr] = addr; 
+  }
+
+  bool isJumpTarget(Address addr) { 
+    return knownJumpTargets.defines(addr); 
+  }
+
 
   // data member access
   inline const Word get_instruction(Address adr) const;
@@ -423,14 +502,6 @@ public:
   inline bool isData(const Address &where) const;
   const Object &getObject() const { return linkedFile; }
 
-
-  // functions by address for all modules
-  dictionary_hash <Address, pd_Function*> funcsByAddr;
-
-  // TODO -- get rid of one of these
-  dictionary_hash <string, pdmodule *> modsByFileName;
-  dictionary_hash <string, pdmodule*> modsByFullName;
-
   inline bool isValidAddress(const Address &where) const;
 
   // Return symbol table information
@@ -440,36 +511,113 @@ public:
   static void watch_functions(string& name, vector<string> *vs, bool is_lib,
 			      vector<pd_Function*> *updateDict);
 
-  const vector<pd_Function*> &getNormalFuncs() const { return mdlNormal; }
+  // origionally return mdlNormal;....
+  // Note that (unlike name), this returns ONLY functions for which
+  // necessary instrumentation info could be found)!!!!
+  const vector<pd_Function*> &getAllFunctions();
 
-  vector<pd_Function*> mdlLib;
-  vector<pd_Function*> mdlNormal;
-  vector<pdmodule *> mods;
+  const vector<pd_Function*> &getIncludedFunctions();
 
-private:
-  string file_;		/* image file name */
-  string name_;		/* filename part of file, no slashes */
+  // get all modules, including excluded ones....
+  const vector<pdmodule *> &getAllModules();
+  const vector<pdmodule *> &getIncludedModules();
 
-  Address codeOffset_;
-  unsigned codeLen_;
-  Address dataOffset_;
-  unsigned dataLen_;
+  //
+  //  ****  PUBLIC DATA MEMBERS  ****
+  //
 
-  // data from the symbol table 
-  Object linkedFile;
+ 
+  // 
+  //  **** PRIVATE DATA MEMBERS ****
+  //
+  private:
 
-  dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
+  // TODO -- get rid of one of these
+  // Note : as of 971001 (mcheyney), these hash tables only 
+  //  hold entries in includedMods --> this implies that
+  //  it may sometimes be necessary to do a linear sort
+  //  through excludedMods if searching for a module which
+  //  was excluded....
+  dictionary_hash <string, pdmodule *> modsByFileName;
+  dictionary_hash <string, pdmodule*> modsByFullName;
 
-  static vector<image*> allImages;
+  // list of modules which have not been excluded.
+  vector<pdmodule *> includedMods;
+  // list of excluded module.  includedMods && excludedMods
+  //  should be disjoint!!!!
+  vector<pdmodule *> excludedMods;
+  // list of all modules, should = includedMods + excludedMods;
+  // Not actually created until getAllModules called....
+  vector<pdmodule *> allMods;
 
+  //
+  // Lists of Functions....
+  //
+  //  ALERT ALERT!!!!  class image used to contain :
+  //vector<pd_Function*> mdlLib;       // functions NOT linked between
+  //                                   //   DYNINSTstart && DYNINSTend.
+  //vector<pd_Function*> mdlNormal;    // functions linked between 
+  //                                   //   DYNINSTstart && DYNINSTend.
+  //  changed to :
+  // list of all functions for which necessary instrumentation data
+  //  could be found which are NOT excluded....
+  vector<pd_Function*> includedFunctions;
+  // hash table of all functions for which necessary instrumentation data
+  //  could be found which ARE excluded....
+  dictionary_hash <string, pd_Function*> excludedFunctions;
+  // Note that notInstruFunctions holds list of functions for which
+  //  necessary instrumentation data could NOT be found....
+
+  // includedFunctions + excludedFunctions (but not \
+  //  notInstruFunctions)....
+  vector<pd_Function*> instrumentableFunctions;
+
+  dictionary_hash <string, pd_Function*> notInstruFunctions;
+  // The functions that we are not going to instrument
+
+  //
+  // Hash Tables of Functions....
+  //
+  // functions by address for all modules.  Only contains instrumented
+  //  funtions.
+  dictionary_hash <Address, pd_Function*> funcsByAddr;
   dictionary_hash <string, vector<pd_Function*>*> funcsByPretty;
   // note, a prettyName is not unique, it may map to a function appearing
-  // in several modules
+  // in several modules.  Also only contains instrumented functions....
 
-  dictionary_hash <string, vector<string>*> varsByPretty;
 
-  vector <pd_Function *> notInstruFunction;
-  // The functions that we are not going to instrument 
+  //
+  // Private Member Functions for placing pd_Functions in includedFunctions,
+  //  excludedFunctions, notInstruFunctions, instrumentableFunctions, 
+  //  and the assorted hash tables associated with them....
+  //
+  // Add a function which was successfully instrumented, and specify 
+  //  if excluded (e.g. via mdl "exclude" command).  Sticks it in 
+  //  instrumentableFunctions, mod->funcs, and for:
+  // excluded:
+  //   excludedFunctions, excludedFunctionsByName
+  // not excluded:
+  //   includedFunctions, funcsByPretty, funcsByAddr
+  void addInstruFunction(pd_Function *func, pdmodule *mod, \
+        const Address addr, bool excluded);
+  // Add a function which could not be instrumented.  Sticks it in
+  // notInstruFuncs (list), and notInstruFunctionsByName (hash table).
+  void addNotInstruFunc(pd_Function *func);
+
+  //
+  //  ****  PRIVATE MEMBERS FUNCTIONS  ****
+  //
+
+  // private methods for findind an excluded function by name or
+  //  address....
+  bool find_excluded_function(const string &name, \
+      vector<pd_Function*> &retList);
+  pd_Function *find_excluded_function(const Address &addr);
+
+  // merged code from shared_object and static executable constructor
+  //  versions....
+  void initialize(const string &fileName, bool &err, \
+	bool shared_library, u_int baseAddr = 0);
 
   bool newFunc(pdmodule *, const string &name, const Address addr, 
 	       const unsigned size, const unsigned tags, pd_Function *&retFunc);
@@ -503,20 +651,42 @@ private:
 		      const string &modName, const Address modAdr,
 		      pd_Function *&retFunc);
 
+
+  void insert_function_internal_static(vector<Symbol> &mods, \
+        Symbol &lookUp, \
+        const Address boundary_start,  const Address boundary_end, \
+	const Address startAddr, bool startB, const Address endAddr, \
+        bool endB, pdmodule *dyn, pdmodule *lib);
+  void image::insert_function_internal_dynamic(vector<Symbol>& mods, \
+      Symbol &lookUp, \
+      pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT);
+
+  //
+  //  ****  PRIVATE DATA MEMBERS  ****
+  //
+
+  string file_;		/* image file name */
+  string name_;		/* filename part of file, no slashes */
+
+  Address codeOffset_;
+  unsigned codeLen_;
+  Address dataOffset_;
+  unsigned dataLen_;
+
+  // data from the symbol table 
+  Object linkedFile;
+
+  dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
+
+  static vector<image*> allImages;
+
+  dictionary_hash <string, vector<string>*> varsByPretty;
+ 
   // knownJumpTargets: the addresses in this image that are known to 
   // be targets of jumps. It is used to check points with multiple 
   // instructions.
   // This is a subset of the addresses that are actually targets of jumps.
   dictionary_hash<Address, Address> knownJumpTargets;
-
-public:
-  void addJumpTarget(Address addr) {
-    if (!knownJumpTargets.defines(addr)) knownJumpTargets[addr] = addr; 
-  }
-
-  bool isJumpTarget(Address addr) { 
-    return knownJumpTargets.defines(addr); 
-  }
 
 };
 
@@ -646,3 +816,4 @@ inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
 }
 
 #endif
+

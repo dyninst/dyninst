@@ -106,7 +106,12 @@ extern "C" void baseTramp();
 extern trampTemplate baseTemplate;
 extern registerSpace *regSpace;
 extern int deadList[];
-extern instruction newInstr[1024];
+
+#define NEW_INSTR_ARRAY_LEN 1024
+extern instruction newInstr[NEW_INSTR_ARRAY_LEN];
+
+// amount of expansion for relocated functions....
+#define RELOCATED_FUNC_EXTRA_SPACE 36
 
 class instPoint;
 
