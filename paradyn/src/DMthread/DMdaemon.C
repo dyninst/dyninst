@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.127 2003/05/21 18:19:46 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.128 2003/05/21 21:30:14 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1786,11 +1786,18 @@ bool paradynDaemon::newExecutable(const string &machineArg,
    if (!machine.length()) {
       if (default_host.length()) {
 	 string m = getNetworkName(default_host);
+         if( m.length() == 0 )
+         {
+             string msg = string("Host \"") + default_host + 
+                            string("\" (given as default_host) not found.");
+             uiMgr->showError(90,P_strdup(msg.c_str()));
+             return false;
+         }
 	 machine = m;
       }
    }
    else if (getNetworkName(machine) == "") {
-         string msg = string("Machine \"") + machine + string("\" not defined.");
+         string msg = string("Host \"") + machine + string("\" not found.");
          uiMgr->showError(90,P_strdup(msg.c_str()));
          return false;
    }
