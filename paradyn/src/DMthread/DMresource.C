@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.56 2002/05/13 19:53:04 mjbrim Exp $
+// $Id: DMresource.C,v 1.57 2002/10/28 04:54:16 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,26 +222,30 @@ bool resource::string_to_handle(const string &res, resourceHandle *h) {
 }
 
 /*
- * Convinence function.
+ * Convenience function.
  *
  */
 bool resource::isDescendent(resourceHandle child_handle) const {
    resourceHandle root_handle = rootResource->getHandle();
    resourceHandle this_handle = getHandle();
-   
+      
    if(CallGraph::isDescendentOfAny(handle_to_resource(child_handle),this))
-     return TRUE;
-   if (this_handle == child_handle) 
-       return FALSE;
-   if (this_handle == root_handle) 
-       return TRUE;
+      return TRUE;
+
+   if (this_handle == child_handle)
+      return FALSE;
+
+   if (this_handle == root_handle)
+      return TRUE;
+
    while (child_handle != root_handle) {
-       if (child_handle == this_handle) {
-	  return TRUE;
-       } else {
-	  child_handle = handle_to_resource(child_handle)->getParent();
-       }
+      if (child_handle == this_handle) {
+         return TRUE;
+      } else {
+         child_handle = handle_to_resource(child_handle)->getParent();
+      }
    }
+
    return FALSE;
 }
 
@@ -407,6 +411,25 @@ bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsig
     return func_constraints.size();
 }
 
+bool resource::isStartFunction() {
+   CallGraph *cg = CallGraph::FindCallGraph();
+   return cg->isStartFunction(getHandle());
+}
+
+bool resource::isThreadType(unsigned *tid) {
+   if(fullName.size() >= 4) {
+      string thr_str = fullName[3];
+      if(thr_str.prefixed_by("thr_")) {
+	 string thrId_str = thr_str.substr(4, thr_str.length() - 4);
+	 int thread_id = atoi(thrId_str.c_str());
+	 *tid = thread_id;
+	 return true;
+      }
+   }
+
+   return false;
+}
+
 int DMresourceListNameCompare(const void *n1, const void *n2){
     
     const string *s1 = (const string*)n1, *s2 = (const string*)n2;
@@ -543,6 +566,16 @@ bool resourceList::convertToIDList(resourceListHandle rh,
     return false;
 }
 
+int resourceList::getThreadID() {
+   for(unsigned i=0; i<elements.size(); i++) {
+      unsigned tid;
+      if(elements[i]->isThreadType(&tid) == true) {
+	 return tid;
+      }
+   }
+   return -1;
+}
+
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
@@ -555,66 +588,96 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
     assert(type == OriginalSearch || type == CallGraphSearch);
 
     // check to see if rh is a component of this resourceList
-    unsigned rIndex = elements.size();
+    unsigned not_found_indicator = elements.size();
+    unsigned rIndex = not_found_indicator;
     for(unsigned i=0; i < elements.size(); i++){
         if(rh == elements[i]->getHandle()){
             rIndex = i;
 	    break;
 	}
     }
-    if(rIndex < elements.size()){
-      return_list = new vector<rlNameId>;
+    if(rIndex == not_found_indicator)  return 0;
 
-      // calls elements[rIndex]->getChildren or CallGraph::getChildren
-      //  depending on the magnify type and the characteristics of the 
-      //  resource....
+    return_list = new vector<rlNameId>;
 
+    // calls elements[rIndex]->getChildren or CallGraph::getChildren
+    // depending on the magnify type and the characteristics of the
+    // resource....
+    
 #ifdef PCDEBUG
-      printf("Calling magnifymanager::getChildren\n");
+    printf("Calling magnifymanager::getChildren\n");
 #endif
       
-      children = MagnifyManager::getChildren(elements[rIndex], type);
+    children = MagnifyManager::getChildren(elements[rIndex], type);
 
-      if(children->size()){ // for each child create a new focus
-	vector<resourceHandle> new_focus; 
-	for(unsigned i=0; i < elements.size(); i++){
+    if(children->size()){ // for each child create a new focus
+       vector<resourceHandle> new_focus; 
+       for(unsigned i=0; i < elements.size(); i++){
 	  new_focus += (elements[i])->getHandle();
-	}
-	rlNameId temp;
-	for(unsigned j=0; j < children->size(); j++){
+       }
+       rlNameId temp;
+       for(unsigned j=0; j < children->size(); j++){
 	  // check to see if this child can be magnified
 	  // if so, create a new focus with this child
 	  resource *child_res = resource::handle_to_resource((*children)[j]);
-	  if(child_res && !(child_res->isMagnifySuppressed())){
-	    //Call Graph magnification requests should not return functions
-	    //that are in excluded libraries.
-	    if(type == CallGraphSearch){
-	      assert(currentPath != NULL);
-	      resourceHandle parent_handle = child_res->getParent();
-	      resource *parent = resource::handle_to_resource(parent_handle);
-	      assert(parent);
-	      if(!parent->isMagnifySuppressed()){
+
+	  if(child_res == NULL || child_res->isMagnifySuppressed())
+	     continue;
+
+          // don't search down start functions that don't correspond to the
+          // thread that we are currently in (if we are in a thread in the
+          // search).  For example, don't search "main" start function if
+          // we're in a thread since this function wouldn't be the start
+          // function for the thread we're in.
+	  if(type == CallGraphSearch){
+	     if(child_res->isStartFunction()) {
+		int tid = getThreadID();
+
+		// if not thread specific, then use every available start func
+		if(tid != -1) {
+		   CallGraph *cg = CallGraph::FindCallGraph();
+		   resource *thrStartFunc = NULL;
+		   thrStartFunc = cg->getThreadStartFunc(tid);
+
+		   resourceHandle thrStartFunc_handle = 
+		      thrStartFunc->getHandle();
+		   resourceHandle child_handle = (*children)[j];
+		   if(thrStartFunc_handle != child_handle) {
+		      //skip... a start function for a different thread
+		      continue;  
+		   }
+		}
+	     }
+	  }
+
+	  //Call Graph magnification requests should not return functions
+	  //that are in excluded libraries.
+	  if(type == CallGraphSearch){
+	     assert(currentPath != NULL);
+	     resourceHandle parent_handle = child_res->getParent();
+	     resource *parent = resource::handle_to_resource(parent_handle);
+	     assert(parent);
+	     if(!parent->isMagnifySuppressed()){
 		//Only return resources that are descendents of the current
 		//path
 		if(currentPath->isDescendent((*children)[j])){
-		  new_focus[rIndex] = (*children)[j];
-		  temp.id = resourceList::getResourceList(new_focus);
-		  temp.res_name = resource::getName((*children)[j]);
-		  *return_list += temp;
+		   new_focus[rIndex] = (*children)[j];
+		   temp.id = resourceList::getResourceList(new_focus);
+		   temp.res_name = resource::getName((*children)[j]);
+		   *return_list += temp;
 		}
-	      }
-	    }
-	    else{
-	      new_focus[rIndex] = (*children)[j];
-	      temp.id = resourceList::getResourceList(new_focus);
-	      temp.res_name = resource::getName((*children)[j]);
-	      *return_list += temp; 
-	    }
-	  }
-	}
-	delete children;
-	return return_list;
-      }
+	     }
+          } 
+          
+          if(type != CallGraphSearch) {
+             new_focus[rIndex] = (*children)[j];
+             temp.id = resourceList::getResourceList(new_focus);
+             temp.res_name = resource::getName((*children)[j]);
+             *return_list += temp; 
+          }
+       }
+       delete children;
+       return return_list;
     }
     return 0;
 }
