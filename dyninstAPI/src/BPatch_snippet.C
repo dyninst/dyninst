@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.46 2003/03/07 22:16:17 zandy Exp $
+// $Id: BPatch_snippet.C,v 1.47 2003/03/14 19:02:48 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -245,6 +245,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
 #endif
 
+    ast->setType(lOperand.ast->getType());
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
