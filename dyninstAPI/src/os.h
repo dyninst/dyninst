@@ -11,6 +11,9 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.8  1996/05/12 05:16:58  tamches
+ * aix 4.1 commit
+ *
  * Revision 1.7  1995/08/24 15:04:24  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -55,7 +58,7 @@
 #include "sunos.h"
 #elif defined(sparc_sun_solaris2_4)
 #include "solaris.h"
-#elif defined(rs6000_ibm_aix3_2)
+#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "aix.h"
 #elif defined(sparc_tmc_cmost7_3)
 #include "cmost.h"

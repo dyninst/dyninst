@@ -33,7 +33,7 @@ int DYNINSTrexec(char *cmd)
      asm("ld	[%l0], %i4");
      asm("save  %sp, -144, %sp");
 #endif
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
      {
 	 register int temp asm("r10");
 	 register volatile char *cmdPtr asm("r9") = realCommand;

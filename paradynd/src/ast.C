@@ -1,6 +1,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.25  1996/05/12 05:15:56  tamches
+ * aix 4.1 commit
+ *
  * Revision 1.24  1996/04/26 20:16:16  lzheng
  * Move part of code in AstNode::generateCode to machine dependent file.
  * (Those code are put into the procedure emitFuncCall)
@@ -100,7 +103,7 @@
 #if defined(hppa1_1_hp_hpux)
 #include "inst-hppa.h"
 #else
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "inst-power.h"
 #endif
 #endif
@@ -411,7 +414,6 @@ int AstNode::generateTramp(process *proc, char *i,
 			   int trampCost) const {
     int cycles;
 
-    //static AstNode *trailer = new AstNode(trampTrailer, NULL, NULL);
     static AstNode trailer(trampTrailer); // private constructor
     // used to estimate cost.
     static AstNode preambleTemplate(trampPreamble, 

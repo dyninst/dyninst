@@ -52,9 +52,17 @@ extern "C" {
 // correct prototype (sigh)
 //  extern int gettimeofday (struct timeval *TP, struct timezone *TZP);
 
+// temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
+// anyway.
+#if defined(hppa1_1_hp_hpux)
+  extern void endservent(void);
   extern void endpwent(); 
+#elif !defined(rs6000_ibm_aix4_1)
+  extern int endservent(void);
+  extern void endpwent(); 
+#endif
 
-// This functino have moved to util/h/{PLATFORM}headers.h
+// This function have moved to util/h/{PLATFORM}headers.h
 // extern int endservent();
 
 extern int getdtablesize();

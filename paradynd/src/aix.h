@@ -1,4 +1,4 @@
-#if !defined(rs6000_ibm_aix3_2)
+#if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
 #endif
 

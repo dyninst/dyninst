@@ -1,5 +1,8 @@
 /*
  * $Log: arch.h,v $
+ * Revision 1.4  1996/05/12 05:15:45  tamches
+ * aix 4.1 commit
+ *
  * Revision 1.3  1995/08/24 15:03:40  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -20,6 +23,6 @@
 #include "arch-hppa.h"
 #endif
 
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "arch-power.h"
 #endif
