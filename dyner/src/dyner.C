@@ -32,6 +32,7 @@ extern "C" {
 	int dynerparse();
 }
 
+bool stopFlag = false;
 extern int dynerdebug;
 
 int debugPrint = 0;
@@ -103,6 +104,7 @@ void  INThandler(int sig)
 {
      signal(sig, SIG_IGN);
      signal(SIGINT, INThandler);
+     stopFlag = true;
 }
 #endif
 
@@ -425,6 +427,14 @@ int loadApp(char *pathname, char **args)
     //Create type info
     appImage->getModules();
 
+#if !defined(i386_unknown_nt4_0)
+    // make it a member of its own process group
+    int ret = setpgid(0, getpid());
+    if (ret != 0) {
+	perror("setpgid");
+    }
+#endif
+
     return TCL_OK;
 
 }
@@ -636,12 +646,17 @@ int runApp(ClientData, Tcl_Interp *, int, char **)
     dprintf("starting program execution.\n");
     appThread->continueExecution();
 
-    while (!appThread->isStopped() && !appThread->isTerminated())
+    while (!appThread->isStopped() && !appThread->isTerminated() && !stopFlag)
 #if defined(i386_unknown_nt4_0)
 	Sleep(1);
 #else
 	usleep(250);
 #endif
+
+    if (stopFlag) {
+	stopFlag = false;
+	appThread->stopExecution();
+    }
 
     int bp = -1;
     if (bpNumber) bpNumber->readValue(&bp);
@@ -2320,6 +2335,16 @@ int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
     return TCL_OK;
 }
 	
+int exitDyner(ClientData, Tcl_Interp *, int argc, char **argv)
+{
+
+    if (haveApp()) {
+	// this forces terminatation if the app has not been detached
+	if (appThread) delete appThread;
+    }
+    exit(0);
+}
+
 //
 //
 int Tcl_AppInit(Tcl_Interp *interp)
@@ -2340,6 +2365,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "listbreak", listBreak, NULL, NULL);
     Tcl_CreateCommand(interp, "deletebreak", deleteBreak, NULL, NULL);
     Tcl_CreateCommand(interp, "help", help, NULL, NULL);
+    Tcl_CreateCommand(interp, "exit", exitDyner, NULL, NULL);
     Tcl_CreateCommand(interp, "kill", killApp, NULL, NULL);
     Tcl_CreateCommand(interp, "load", loadCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "run", runApp, NULL, NULL);
