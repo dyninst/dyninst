@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.19  1994/11/10 18:58:02  jcargill
+ * Revision 1.20  1994/11/11 07:04:55  markc
+ * Added code to bundle extra command line argument.
+ *
+ * Revision 1.19  1994/11/10  18:58:02  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.18  1994/11/09  18:40:10  rbi
@@ -75,7 +78,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.19 1994/11/10 18:58:02 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.20 1994/11/11 07:04:55 markc Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -184,7 +187,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /* Build arglist */
     arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				  pd_known_socket, pd_flag, pd_machine);
+				  pd_known_socket, pd_flag, pd_machine, 0);
 
     sprintf (command, "%sCM5", programName);
     sprintf (application, "%s", (curr->symbols->file).string_of());
@@ -193,8 +196,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /*
      * It would be nice if this weren't sensitive to the size of
-     * arg_list.  For the moment, only arg_list[0] --> arg_list[4]
-     * are written by RPC_make_arg_list (arg_list[5] is NULL).
+     * arg_list.  For the moment, only arg_list[0] --> arg_list[5]
+     * are written by RPC_make_arg_list (arg_list[6] is NULL).
      * This is a small-time hack.
      */
 
@@ -207,7 +210,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     argv[6] = arg_list[2];
     argv[7] = arg_list[3];
     argv[8] = arg_list[4];
-    argv[9] = 0;
+    argv[9] = arg_list[5];
+    argv[10] = 0;
 
     if ((childPid=fork()) == 0) {		/* child */
 
