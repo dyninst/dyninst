@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.116 2004/02/07 18:34:15 schendel Exp $
+// $Id: pdwinnt.C,v 1.117 2004/03/02 22:46:05 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -229,6 +229,8 @@ walkStackFrame( HANDLE hProc, HANDLE hThread, STACKFRAME* psf )
 
 bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 {
+    if (!isStopped()) return false;
+
 #ifndef BPATCH_LIBRARY
     startTimingStackwalk();
 #endif
@@ -236,14 +238,6 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 #ifdef DEBUG_STACKWALK
     cout << "\n<stack>" << endl;
 #endif // DEBUG_STACKWALK
-    
-    if (status_ == running) {
-        cerr << "Error: stackwalk attempted on running process" << endl;
-#ifndef BPATCH_LIBRARY
-      stopTimingStackwalk();
-#endif
-      return false;
-    }
     
     // establish the current execution context
     CONTEXT cont;
@@ -434,10 +428,8 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 
 bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 {
-    if (status_ == running) {
-        cerr << "Error: stackwalk attempeded on running process" << endl;
-        return false;
-    }  
+    if (!isStopped()) return false;
+
     Address spOld = 0xffffffff;
     
     while (!currentFrame.isLastFrame(this)) {
@@ -1122,10 +1114,16 @@ void OS::osDisconnect(void) {
 #endif
 }
 
-bool process::installSyscallTracing()
+bool process::setProcessFlags()
 {
     return true;
 }
+
+bool process::unsetProcessFlags()
+{
+    return true;
+}
+
 
 /* continue a process that is stopped */
 bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
@@ -1172,19 +1170,6 @@ bool dyn_lwp::stop_() {
    }  else
       return true;
 }
-
-
-/*
-   detach from thr process, continuing its execution if the parameter "cont"
-   is true.
- */
-bool process::API_detach_(const bool cont)
-{
-    // XXX Not yet implemented
-    assert(false);
-    return false;
-}
-
 
 bool process::dumpCore_(const pdstring) {
     return false;

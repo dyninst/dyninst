@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.61 2004/02/07 18:35:44 schendel Exp $
+// $Id: osf.C,v 1.62 2004/03/02 22:46:04 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -169,19 +169,57 @@ Frame dyn_lwp::getActiveFrame()
   return theFrame;
 }
 
+/* 
+ * Syscall tracing wrappers
+ */
+bool process::get_entry_syscalls(sysset_t *entries) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCGENTRY, entries) < 0) {
+        perror("get_entry_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::set_entry_syscalls(sysset_t *entries) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCSENTRY, entries) < 0) {
+        perror("set_entry_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::get_exit_syscalls(sysset_t *exits) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCGEXIT, exits) < 0) {
+        perror("get_exit_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::set_exit_syscalls(sysset_t *exits) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCSEXIT, exits) < 0) {
+        perror("set_exit_syscalls");
+        return false;
+    }
+    return true;
+}
+
+
 /*
  * Use by dyninst to set events we care about from procfs
  *
  */
-bool process::installSyscallTracing()
+bool process::setProcessFlags()
 {
 
   long flags = 0;
-  if (BPatch::bpatch->postForkCallback) {
-      // cause the child to inherit trap-on-exit from exec and other traps
-      // so we can learn of the child (if the user cares)
-      flags = PR_FORK | PR_ASYNC | PR_RLC;
-  }
+  // cause the child to inherit trap-on-exit from exec and other traps
+  // so we can learn of the child (if the user cares)
+  flags = PR_FORK | PR_ASYNC;
 
   dyn_lwp *replwp = getRepresentativeLWP();
   if (ioctl(replwp->get_fd(), PIOCSET, &flags) < 0) {
@@ -189,50 +227,57 @@ bool process::installSyscallTracing()
     return false;
   }
 
-  // cause a stop on the exit from fork
-  sysset_t sysset;
-
-  if (ioctl(replwp->get_fd(), PIOCGEXIT, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
+   /* we don't catch any child signals, except SIGSTOP */
+   sigset_t sigs;
+   fltset_t faults;
+   premptyset(&sigs);
+   praddset(&sigs, SIGSTOP);
+   praddset(&sigs, SIGTRAP);
+   praddset(&sigs, SIGSEGV);
+   
+   if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
+       perror("setProcessFlags: PIOCSTRACE");
+      return false;
+   }
+   
+   premptyset(&faults);
+   praddset(&faults,FLTBPT);
+   if (ioctl(replwp->get_fd(), PIOCSFAULT, &faults) <0) {
+       perror("setProcessFlags: PIOCSFAULT");
+      return false;
   }
 
-  if (BPatch::bpatch->postForkCallback) {
-      praddset (&sysset, SYS_fork);
-      praddset (&sysset, SYS_execv);
-      praddset (&sysset, SYS_execve);
+   // Clear the list of traced syscalls 
+   sysset_t sysset;
+   premptyset(&sysset);
+   if (!set_entry_syscalls(&sysset)) return false;
+   if (!set_exit_syscalls(&sysset)) return false;
+    
+
+  return true;
+}
+
+bool process::unsetProcessFlags()
+{
+
+  long flags = 0;
+  // cause the child to inherit trap-on-exit from exec and other traps
+  // so we can learn of the child (if the user cares)
+  flags = PR_FORK | PR_ASYNC;
+
+  dyn_lwp *replwp = getRepresentativeLWP();
+  if (ioctl(replwp->get_fd(), PIOCRESET, &flags) < 0) {
+      perror("unsetProcessFlags: PIOCRESET");
+      return false;
   }
   
-  if (ioctl(replwp->get_fd(), PIOCSEXIT, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
+   sigset_t sigs;
+   premptyset(&sigs);
 
-  // now worry about entry too
-  if (ioctl(replwp->get_fd(), PIOCGENTRY, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
-  if (BPatch::bpatch->exitCallback) {
-      praddset (&sysset, SYS_exit);
-  }
-
-  if (BPatch::bpatch->preForkCallback) {
-      praddset (&sysset, SYS_fork);
-      praddset (&sysset, SYS_vfork);
-      // praddset (&sysset, SYS_waitsys);
-  }
-
-  // should these be for exec callback??
-  prdelset (&sysset, SYS_execv);
-  prdelset (&sysset, SYS_execve);
-  
-  if (ioctl(replwp->get_fd(), PIOCSENTRY, &sysset) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
+   if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
+       perror("unsetProcessFlags: PIOCSTRACE");
+       return false;
+   }
   return true;
 }
 
@@ -256,15 +301,16 @@ int process::waitforRPC(int *status, bool /* block */)
 
   if (selected_fds == 0) {
       for (unsigned u = 0; u < processVec.size(); u++) {
-	if (processVec[u]->status() == running || 
-	    processVec[u]->status() == neonatal) {
-	    fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
-	    selected_fds++;
-	} else {
-	  fds[u].fd = -1;
-	}
-	fds[u].events = 0xffff;
-	fds[u].revents = 0;
+          if (processVec[u] &&
+              (processVec[u]->status() == running || 
+               processVec[u]->status() == neonatal)) {
+              fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
+              selected_fds++;
+          } else {
+              fds[u].fd = -1;
+          }
+          fds[u].events = 0xffff;
+          fds[u].revents = 0;
       }
       curr = 0;
   }
@@ -834,57 +880,6 @@ bool dyn_lwp::representativeLWP_attach_() {
       perror("Error opening process file descriptor");
       return false;
    }
-
-   /* we don't catch any child signals, except SIGSTOP */
-   sigset_t sigs;
-   fltset_t faults;
-   premptyset(&sigs);
-   praddset(&sigs, SIGSTOP);
-   praddset(&sigs, SIGTRAP);
-   praddset(&sigs, SIGSEGV);
-   
-   if (ioctl(fd_, PIOCSTRACE, &sigs) < 0) {
-      fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-      close(fd_);
-      return false;
-   }
-   
-   premptyset(&faults);
-   praddset(&faults,FLTBPT);
-   if (ioctl(fd_, PIOCSFAULT, &faults) <0) {
-      fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-      close(fd_);
-      return false;
-  }
-   
-   /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
-      the process to be killed when paradynd exits.
-      Also, any child of this process will stop at the exit of an exec call.
-   */
-#if defined(PIOCSET)
-   {
-      long flags = PR_KLC | PR_FORK;
-      if (ioctl (fd_, PIOCSET, &flags) < 0) {
-         fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-         close(fd_);
-         return false;
-      }
-   }
-#else
-#if defined(PRFS_KOLC)
-   {
-      long pr_flags;
-      if (ioctl(fd_, PIOCGSPCACT, &pr_flags) < 0) {
-         sprintf(errorLine, "Cannot get status\n");
-         logLine(errorLine);
-         close(fd_);
-         return false;
-      }
-      pr_flags |= PRFS_KOLC;
-      ioctl(fd_, PIOCSSPCACT, &pr_flags);
-   }
-#endif
-#endif
 
    return true;
 }

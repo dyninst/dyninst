@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.73 2004/02/25 04:36:42 schendel Exp $
+// $Id: irix.C,v 1.74 2004/03/02 22:46:02 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -861,63 +861,6 @@ bool process::terminateProc_()
    return true;
 }
 
-
-/* API_detach_: detach from the process (clean up /proc state);
-   continue process' execution if "cont" is true. */
-bool process::API_detach_(const bool cont)
-{
-  //fprintf(stderr, ">>> process::API_detach_(%s)\n", (cont) ? ("continue") : ("abort"));
-  bool ret = true;
-
-  // remove shared object loading traps
-  if (dyn) dyn->unsetMappingHooks(this);
-
-  // signal handling
-  sigset_t sigs;
-  premptyset(&sigs);
-  dyn_lwp *replwp = getRepresentativeLWP();
-  if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) == -1) {
-    //perror("process::API_detach_(PIOCSTRACE)");
-    ret = false;
-  }
-  if (ioctl(replwp->get_fd(), PIOCSHOLD, &sigs) == -1) {
-    //perror("process::API_detach_(PIOCSHOLD)");
-    ret = false;
-  }
-  // fault handling
-  fltset_t faults;
-  premptyset(&faults);
-  if (ioctl(replwp->get_fd(), PIOCSFAULT, &faults) == -1) {
-    //perror("process::API_detach_(PIOCSFAULT)");
-    ret = false;
-  }
-  // system call handling
-  sysset_t syscalls;
-  premptyset(&syscalls);
-  if (ioctl(replwp->get_fd(), PIOCSENTRY, &syscalls) == -1) {
-    //perror("process::API_detach_(PIOCSENTRY)");
-    ret = false;
-  }
-  if (ioctl(replwp->get_fd(), PIOCSEXIT, &syscalls) == -1) {
-    //perror("process::API_detach_(PIOCSEXIT)");
-    ret = false;
-  }
-  // operation mode
-  long flags = PR_RLC | PR_KLC;
-  if (ioctl(replwp->get_fd(), PIOCRESET, &flags) == -1) {
-    //perror("process::API_detach_(PIOCRESET)");
-    ret = false;
-  }
-  flags = (cont) ? (PR_RLC) : (PR_KLC);
-  if (ioctl(replwp->get_fd(), PIOCSET, &flags) == -1) {
-    //perror("process::API_detach_(PIOCSET)");
-    ret = false;
-  }    
-
-  deleteLWP(replwp);
-  return ret;
-}
-
 pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/)
 {
   //fprintf(stderr, ">>> process::tryToFindExecutable(%s)\n", progpath.c_str());
@@ -1015,66 +958,63 @@ bool process::dumpImage() {
   return true;
 }
 
+#if 0 
+// Make emacs happy...
+}
+#endif
+
+/* 
+ * Syscall tracing wrappers
+ */
+bool process::get_entry_syscalls(sysset_t *entries) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCGENTRY, entries) < 0) {
+        perror("get_entry_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::set_entry_syscalls(sysset_t *entries) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCSENTRY, entries) < 0) {
+        perror("set_entry_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::get_exit_syscalls(sysset_t *exits) {
+    dyn_lwp *replwp = getRepresentativeLWP();    
+    if (ioctl(replwp->get_fd(), PIOCGEXIT, exits) < 0) {
+        perror("get_exit_syscalls");
+        return false;
+    }
+    return true;
+}
+
+bool process::set_exit_syscalls(sysset_t *exits) {
+    dyn_lwp *replwp = getRepresentativeLWP();
+    if (ioctl(replwp->get_fd(), PIOCSEXIT, exits) < 0) {
+        perror("set_exit_syscalls");
+        return false;
+    }
+    return true;
+}
+
 /*
  * Use by dyninst to set events we care about from procfs
  *
  */
 
-bool process::installSyscallTracing()
+bool process::setProcessFlags()
 {
     
-    long flags = PR_KLC | PR_FORK;
-    if (BPatch::bpatch->postForkCallback) {
-        // cause the child to inherit trap-on-exit from exec and other traps
-        // so we can learn of the child (if the user cares)
-        flags = PR_FORK | PR_RLC;
-    }
+    long flags = PR_FORK;
 
     dyn_lwp *replwp = getRepresentativeLWP();    
     if (ioctl(replwp->get_fd(), PIOCSET, &flags) < 0) {
         fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-        return false;
-    }
-    
-    // cause a stop on the exit from fork
-    sysset_t sysset;
-    
-    if (ioctl(replwp->get_fd(), PIOCGEXIT, &sysset) < 0) {
-        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-        return false;
-    }
-    
-    if (BPatch::bpatch->postForkCallback) {
-        praddset (&sysset, SYS_fork);
-        praddset (&sysset, SYS_execve);
-    }
-    
-    if (ioctl(replwp->get_fd(), PIOCSEXIT, &sysset) < 0) {
-        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-        return false;
-    }
-    
-    // now worry about entry too
-    if (ioctl(replwp->get_fd(), PIOCGENTRY, &sysset) < 0) {
-        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-        return false;
-    }
-    
-    if (BPatch::bpatch->exitCallback) {
-        praddset (&sysset, SYS_exit);
-    }
-    
-    if (BPatch::bpatch->preForkCallback) {
-        praddset (&sysset, SYS_fork);
-    }
-
-    praddset(&sysset, SYS_execve);
-    
-    // should these be for exec callback??
-    // prdelset (&sysset, SYS_execve);
-    
-    if (ioctl(replwp->get_fd(), PIOCSENTRY, &sysset) < 0) {
-        fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
         return false;
     }
     
@@ -1096,6 +1036,26 @@ bool process::installSyscallTracing()
     
     return true;
 }
+
+bool process::unsetProcessFlags() 
+{
+    bool ret = true;
+// signal handling
+    sigset_t sigs;
+    premptyset(&sigs);
+    dyn_lwp *replwp = getRepresentativeLWP();
+    if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) == -1) {
+        perror("process::unsetProcessFlags(PIOCSTRACE)");
+        ret = false;
+    }
+    long flags = PR_FORK;
+    if (ioctl(replwp->get_fd(), PIOCRESET, &flags) == -1) {
+        perror("process::unsetProcessFlags(PIOCRESET)");
+        ret = false;
+    }
+    return ret;
+}
+
 
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
@@ -1561,22 +1521,6 @@ bool dyn_lwp::representativeLWP_attach_() {
       perror("process::attach(PIOCSTRACE)");
       return false;
    }
-   
-   // environment variables
-   prpsinfo_t info;
-   if (ioctl(fd_, PIOCPSINFO, &info) < 0) {
-      perror("process::attach(PIOCPSINFO)");
-      return false;
-   }
-   // argv[0]
-   char *argv0_start = info.pr_psargs;
-   char *argv0_end = strstr(argv0_start, " ");
-   if (argv0_end) (*argv0_end) = 0;
-   proc_->argv0 = argv0_start;
-   // unused variables
-   proc_->pathenv = "";
-   proc_->cwdenv = "";
-
    return true;
 }
 

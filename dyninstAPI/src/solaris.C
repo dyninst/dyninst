@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.162 2004/02/25 04:36:32 schendel Exp $
+// $Id: solaris.C,v 1.163 2004/03/02 22:46:07 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -153,17 +153,28 @@ void OS::osDisconnect(void) {
   setpgrp();
 }
 
+/*
+ * The set operations (set_entry_syscalls and set_exit_syscalls) are defined
+ * in sol_proc.C
+ */
+
+
 // Compatibility for /proc
-bool process::get_entry_syscalls(pstatus_t *status,
-                                 sysset_t *entry)
+bool process::get_entry_syscalls(sysset_t *entry)
 {
-    memcpy(entry, &(status->pr_sysentry), sizeof(sysset_t));    
+    pstatus_t status;
+    if (!get_status(&status)) return false;
+    
+    memcpy(entry, &(status.pr_sysentry), sizeof(sysset_t));    
     return true;
 }
-bool process::get_exit_syscalls(pstatus_t *status,
-                                sysset_t *exit)
+
+bool process::get_exit_syscalls(sysset_t *exit)
 {
-    memcpy(exit, &(status->pr_sysexit), sizeof(sysset_t));
+    pstatus_t status;
+    if (!get_status(&status)) return false;
+
+    memcpy(exit, &(status.pr_sysexit), sizeof(sysset_t));
     return true;
 }    
 
@@ -791,7 +802,7 @@ bool process::dumpCore_(const pdstring coreName)
   sprintf(command, "gcore %d 2> /dev/null; mv core.%d %s", getPid(), getPid(), 
           coreName.c_str());
 
-  API_detach(false);
+  detach(false);
   system(command);
   attach();
 

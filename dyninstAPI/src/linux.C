@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.125 2004/02/25 04:36:44 schendel Exp $
+// $Id: linux.C,v 1.126 2004/03/02 22:46:03 bernat Exp $
 
 #include <fstream>
 
@@ -141,7 +141,8 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    }
 
    bool ret = (P_ptrace(request, get_lwp_id(), addr, data) != -1);
-
+   perror("Internal ptrace");
+   
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
          
@@ -490,43 +491,6 @@ dyn_lwp *process::createRepresentativeLWP() {
    return initialLWP;
 }
 
-bool process::installSyscallTracing() {
-    // We mimic system call tracing via instrumentation
-    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
-    AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
-
-    // Pre-fork - is this strictly necessary?
-    tracingRequests += new instMapping("__libc_fork", "DYNINST_instForkEntry",
-                                       FUNC_ENTRY);
-    // Post-fork:
-    instMapping *forkExit = new instMapping("__libc_fork", "DYNINST_instForkExit",
-                                            FUNC_EXIT|FUNC_ARG,
-                                            returnVal);
-    forkExit->dontUseTrampGuard();
-    tracingRequests += forkExit;
-
-    // Pre-exec: get the exec'ed file name
-    tracingRequests += new instMapping("execve", "DYNINST_instExecEntry",
-                                       FUNC_ENTRY|FUNC_ARG,
-                                       arg0);
-
-    // Post-exec: handled for us by the system
-
-    // Pre-exit: get the return code
-    tracingRequests += new instMapping("exit", "DYNINST_instExitEntry",
-                                       FUNC_ENTRY|FUNC_ARG,
-                                       arg0);
-
-    // Post-exit: handled for us by the system
-
-
-    removeAst(arg0);
-    removeAst(returnVal);
-    
-
-    return true;
-}
-
 bool process::trapAtEntryPointOfMain(Address)
 {
   // is the trap instr at main_brk_addr?
@@ -550,6 +514,17 @@ bool process::trapDueToDyninstLib()
     return(false);
   }
 }
+
+bool process::setProcessFlags() {
+    // None that I'm aware of -- bernat, 24FEB04
+    return true;
+}
+
+bool process::unsetProcessFlags(){
+    // As above
+    return true;
+}
+
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
@@ -773,37 +748,30 @@ bool dyn_lwp::waitUntilStopped() {
 
 
 void dyn_lwp::realLWP_detach_() {
-   if(! proc_->checkStatus())
-      return;
-
-   ptraceOps++;
-   ptraceOtherOps++;
-   deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
-   return;
+    if(! proc_->isAttached()) {
+        cerr << "Detaching, but not attached" << endl;
+        return;
+    }
+    
+    cerr <<"Detaching..." << endl;
+    ptraceOps++;
+    ptraceOtherOps++;
+    fprintf(stderr, "%d\n", deliverPtrace(PTRACE_DETACH, 1, SIGCONT));
+    
+    return;
 }
 
 void dyn_lwp::representativeLWP_detach_() {
-   if(! proc_->checkStatus())
-      return;
-
-   if (fd_) close(fd_);
-
-   ptraceOps++;
-   ptraceOtherOps++;
-   deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
-   return;
-}
-
-bool process::API_detach_(const bool cont) {
-   if (!checkStatus())
-      return false;
-  
-   ptraceOps++; ptraceOtherOps++;
-
-   if (!cont)
-      P_kill(pid, SIGSTOP);
-
-   return getRepresentativeLWP()->deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+    // If the process is already exited, then don't call ptrace
+    if(! proc_->isAttached())
+        return;
+    
+    if (fd_) close(fd_);
+    
+    ptraceOps++;
+    ptraceOtherOps++;
+    deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+    return;
 }
 
 bool process::dumpCore_(const pdstring/* coreFile*/) { return false; }
@@ -985,106 +953,6 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
 void process::recognize_threads(pdvector<unsigned> * /*completed_lwps*/) {
    // implement when handling forks for linux multi-threaded programs
 }
-
-/*
- * The old, ugly version that we don't need but can waste space anyhow
- * /
-pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
-   // returns empty string on failure.
-   // Otherwise, returns a full-path-name for the file.  Tries every
-   // trick to determine the full-path-name, even though "progpath" may be
-   // unspecified (empty string).
-   
-   // Remember, we can always return the empty string...no need to
-   // go nuts writing the world's most complex algorithm.
-
-   attach_cerr << "welcome to tryToFindExecutable; progpath=" << iprogpath << ", pid=" << pid << endl;
-
-   const pdstring progpath = expand_tilde_pathname(iprogpath);
-
-   // Trivial case: if "progpath" is specified and the file exists then nothing needed
-   if (exists_executable(progpath)) {
-     attach_cerr << "tryToFindExecutable succeeded immediately, returning "
-		 << progpath << endl;
-     return progpath;
-   }
-
-   attach_cerr << "tryToFindExecutable failed on filename " << progpath << endl;
-
-   pdstring argv0, path, cwd;
-
-   char buffer[128];
-   sprintf(buffer, "/proc/%d/environ", pid);
-   int procfd = open(buffer, O_RDONLY, 0);
-   if (procfd == -1) {
-     attach_cerr << "tryToFindExecutable failed since open of /proc/ * /environ failed" << endl;
-     return "";
-   }
-   attach_cerr << "tryToFindExecutable: opened /proc/ * /environ okay" << endl;
-
-   int strptr = 0;
-   while( true ) {
-     pdstring env_value = extract_pdstring( procfd, (char*)strptr );
-     if( !env_value.length() )
-       break;
-
-     if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
-       cwd = env_value.c_str() + 4; // skip past "PWD=" or "CWD="
-       attach_cerr << "get_ps_stuff: using PWD value of: " << cwd << endl;
-       if( path.length() )
-	 break;
-     } else if (env_value.prefixed_by("PATH=")) {
-       path = env_value.c_str() + 5; // skip past the "PATH="
-       attach_cerr << "get_ps_stuff: using PATH value of: " << path << endl;
-       if( cwd.length() )
-	 break;
-     }
-
-     strptr += env_value.length() + 1;
-   }
-
-   close( procfd );
-
-   sprintf(buffer, "/proc/%d/cmdline", pid);
-   procfd = open(buffer, O_RDONLY, 0);
-   if (procfd == -1) {
-     attach_cerr << "tryToFindExecutable failed since open of /proc/ * /cmdline failed" << endl;
-     return "";
-   }
-   attach_cerr << "tryToFindExecutable: opened /proc/ * /cmdline okay" << endl;
-
-   argv0 = extract_pdstring( procfd, (char*)0 );
-   close( procfd );
-
-   if ( argv0.length() && path.length() && cwd.length() ) {
-     // the following routine is implemented in the util lib.
-     pdstring result;
-     if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
-       attach_cerr << "tryToFindExecutable: returning " << result << endl;
-
-       // I feel picky today, let's make certain that /proc agrees that
-       // this is the executable by checking the inode number of
-       // /proc/ * /exe against the inode number of result
-
-       sprintf(buffer, "/proc/%d/exe", pid);
-       struct stat t_stat;
-       int t_inode;
-       if( stat( buffer, &t_stat ) ) {
-	 t_inode = t_stat.st_ino;
-	 if( stat( buffer, &t_stat ) && t_inode != t_stat.st_ino )
-	   cerr << "tryToFindExecutable: WARNING - found executable does not match /proc" << endl;
-       }
-
-       return result;
-     }
-   }
-
-   attach_cerr << "tryToFindExecutable: giving up" << endl;
-
-   return "";
-}
-*/
-
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
