@@ -5,9 +5,15 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.5  1994/07/26 19:58:03  hollings
- * removed slots executed counter.
+ * Revision 1.7  1994/11/02 11:18:32  markc
+ * Commented out the cost model.
  *
+# Revision 1.6  1994/10/13  07:25:08  krisna
+# solaris porting and updates
+#
+# Revision 1.5  1994/07/26  19:58:03  hollings
+# removed slots executed counter.
+#
 # Revision 1.4  1994/07/14  23:30:33  hollings
 # Hybrid cost model added.
 #
@@ -42,7 +48,7 @@
  * Initial revision
  *
  */
-#include "inst-sparc.h"
+#include "as-sparc.h"
 
 /*
  * This is the base where a tramp jumps off.
@@ -55,12 +61,18 @@
  ***************************************************************************
  *
  */
+	.global baseTramp
 	.global	_baseTramp
 .data
+baseTramp:
 _baseTramp:
 	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
-	add %g7, 5, %g7		/* cost of base tramp yp to emulate insn */
-				/* also needs to include cost of ba,a in */
+#ifdef COST_MODEL
+	add %g7, 5, %g7 	-- cost of base tramp yp to emulate insn */
+#else
+	/* I added the nop and commented out the g7 */
+	nop
+#endif				/* also needs to include cost of ba,a in */
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
 	.word 	EMULATE_INSN
@@ -69,6 +81,10 @@ _baseTramp:
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
 	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
-	add %g7, 0x9, %g7	/* cost of base tramp from nop to return */
+#ifdef COST_MODEL
+	add %g7, 0x9, %g7    -- cost of base tramp from nop to return */
+#else
+	nop
+#endif
 	.word	RETURN_INSN
 	.word	END_TRAMP
