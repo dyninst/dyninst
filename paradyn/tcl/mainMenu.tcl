@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.32  1994/11/09 16:17:20  karavan
+# Revision 1.33  1994/11/09 22:35:29  karavan
+# in which Karen gets all the resize functionality exactly the way we want
+# it and concedes defeat on the appearance ofthe initial screen startup...
+#
+# Revision 1.32  1994/11/09  16:17:20  karavan
 # back to original flicker solution; seems like this is the best we can do.
 #
 # Revision 1.31  1994/11/07  07:30:15  karavan
@@ -186,11 +190,11 @@ proc drawToolBar {} {
 
     bind Entry <2> { %W insert insert [selection get] }
 
-    wm minsize . 725 500
-    frame .parent -geometry 725x500
-    pack propagate .parent 0
+    wm minsize . 400 300
+    frame .parent -geometry 500x300
     frame .parent.menub -relief raised -borderwidth 2
-    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 
+    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 \
+	    -geometry 500x200
     frame .parent.status  -relief raised -borderwidth 4
     frame .parent.main
     frame .parent.buttons -relief raised -borderwidth 4 \
@@ -265,13 +269,20 @@ proc drawToolBar {} {
     pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
 
     pack .parent.menub -side top -fill x -expand 0
-    pack .parent.where -side top -fill both -expand 1
-    pack .parent.status -side top -fill x -expand 0
     pack .parent.buttons -side bottom -fill x -expand 0
+    pack .parent.status -side bottom -fill x -expand 0
+    pack .parent.where -side top -fill both -expand 1
 
     pack .parent -fill both -expand 1
+
+bind .parent <ResizeRequest> {
+    pack .parent.buttons -side bottom -fill x -expand 0
+    pack .parent.status -side bottom -fill x -expand 0
+    pack .parent.where -side top -fill both -expand 1
+}
 
     # read in error file
 
     uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
 }
+

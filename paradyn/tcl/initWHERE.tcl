@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.15  1994/11/09 16:17:25  karavan
+# Revision 1.16  1994/11/09 22:35:32  karavan
+# in which Karen gets all the resize functionality exactly the way we want
+# it and concedes defeat on the appearance ofthe initial screen startup...
+#
+# Revision 1.15  1994/11/09  16:17:25  karavan
 # back to original flicker solution; seems like this is the best we can do.
 #
 # Revision 1.14  1994/11/07  07:29:44  karavan
@@ -168,6 +172,8 @@ if {$toplvlflag == 1} {
     $wwindow.sbutts.2 configure -state disabled
 
     pack $wwindow.title -side top -fill x -expand 0 
+    pack $wwindow.sbutts -side bottom -fill x -expand 0
     pack $wwindow.dag -side top -fill both -expand 1
-    pack $wwindow.sbutts -side top -fill x -expand 0
 }
+
+
