@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.32  1994/11/03 04:38:47  karavan
+# Revision 1.33  1995/03/29 17:30:21  newhall
+# changed wording of error #14
+#
+# Revision 1.32  1994/11/03  04:38:47  karavan
 # created error #26
 #
 # Revision 1.31  1994/11/02  23:47:17  karavan
@@ -233,8 +236,8 @@ Call to thr_getspecific in a visi-thread function failed.
 %A vi
 %S serious
 %X
-A request to start a new visualization process failed.  This is due
-to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
+A request to start a new visualization process failed.  The
+visualization executable could not be located.
 %Y
 
 %N 15
