@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.36  1995/09/18 18:22:41  newhall
-/* changes to avoid for-scope problem
+/* Revision 1.37  1995/09/26 20:27:46  naim
+/* Minor changes in error messages
 /*
+ * Revision 1.36  1995/09/18  18:22:41  newhall
+ * changes to avoid for-scope problem
+ *
  * Revision 1.35  1995/09/08  19:51:27  krisna
  * stupid way to avoid the for-scope problem
  *
@@ -161,7 +164,7 @@ vector<VM_activeVisiInfo> *VM::VMActiveVisis(){
 
   vector<VM_activeVisiInfo> *temp;
   if (!(temp = new vector<VM_activeVisiInfo>)) {
-      ERROR_MSG(18,"malloc in VMActiveVisis");
+      ERROR_MSG(18,"malloc failure in VMActiveVisis");
       return NULL;
   }
 
