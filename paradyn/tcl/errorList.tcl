@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.37 1998/03/26 16:30:08 naim Exp $
+# $Id: errorList.tcl,v 1.38 1998/03/27 16:53:03 naim Exp $
 
 #
 # Error message format:
@@ -954,11 +954,13 @@ set pdError(107) {
 }
 
 set pdError(108) {
-{Internal error: main could not be instrumented. } 
+{Internal error: procedure main cannot be instrumented.}
 {paradynd}
 {fatal error}
-{It was not possible for paradyn to instrument "main". Please, contact
-paradyn@cs.wisc.edu for more information. }
+{Paradyn could not find or instrument procedure main. One possible explanation
+is that main has a jump to the middle of the instrumentation that Paradyn
+needs to insert. To avoid this, you can try to move any loops at the beginning
+of main to some other place. A future release will fix this problem.}
 }
 
 #
