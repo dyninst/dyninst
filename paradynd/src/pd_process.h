@@ -387,7 +387,7 @@ class pd_process {
       return llproc->getIncludedModules();
    }
 
-   module *findModule(const pdstring &mod_name,bool check_excluded) {
+   pdmodule *findModule(const pdstring &mod_name,bool check_excluded) {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->findModule(mod_name, check_excluded);
    }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.460 2003/10/24 21:25:53 jaw Exp $
+// $Id: process.C,v 1.461 2003/11/13 22:49:04 schendel Exp $
 
 #include <ctype.h>
 
@@ -3486,7 +3486,8 @@ void process::set_status(processState st, dyn_lwp *whichLWP) {
          iter++;
       }
    } else
-      whichLWP->set_status(st);
+      if(whichLWP->status() != st)
+         whichLWP->set_status(st);
 }
 
 bool process::pause() {
@@ -4577,13 +4578,13 @@ bool process::deleteCodeRange(Address addr) {
 // if check_excluded is true it checks to see if the module is excluded
 // and if it is it returns 0.  If check_excluded is false it doesn't check
 #ifndef BPATCH_LIBRARY
-module *process::findModule(const pdstring &mod_name, bool check_excluded) {
+pdmodule *process::findModule(const pdstring &mod_name, bool check_excluded) {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
    //  is the library name)
    if(dynamiclinking && shared_objects){
       for(u_int j=0; j < shared_objects->size(); j++){
-         module *next = ((*shared_objects)[j])->findModule(mod_name,
+         pdmodule *next = ((*shared_objects)[j])->findModule(mod_name,
                                                            check_excluded);
          if(next) {
             return(next);
@@ -4594,19 +4595,19 @@ module *process::findModule(const pdstring &mod_name, bool check_excluded) {
    // check a.out for function symbol
    //  Note that symbols is data member of type image* (comment says
    //  "information related to the process"....
-   module *mret = symbols->findModule(mod_name, check_excluded);
+   pdmodule *mret = symbols->findModule(mod_name, check_excluded);
    return mret;
 }
 #else
-module *process::findModule(const pdstring &mod_name)
+pdmodule *process::findModule(const pdstring &mod_name)
 {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
    //  is the library name)
    if(dynamiclinking && shared_objects){
       for(u_int j=0; j < shared_objects->size(); j++){
-	module *next = ((*shared_objects)[j])->findModule(mod_name);
-	if(next) {
+         pdmodule *next = ((*shared_objects)[j])->findModule(mod_name);
+         if(next) {
             return(next);
          }
       }
@@ -4615,7 +4616,7 @@ module *process::findModule(const pdstring &mod_name)
    // check a.out for function symbol
    //  Note that symbols is data member of type image* (comment says
    //  "information related to the process"....
-   module *mret = symbols->findModule(mod_name);
+   pdmodule *mret = symbols->findModule(mod_name);
    return mret;
 }
 #endif

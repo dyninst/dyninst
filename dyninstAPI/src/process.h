@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.276 2003/10/28 18:57:35 schendel Exp $
+/* $Id: process.h,v 1.277 2003/11/13 22:49:05 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -920,9 +920,9 @@ class process {
   // and if it is it returns 0.  If check_excluded is false it doesn't check
 
 #ifndef BPATCH_LIBRARY
-  module *findModule(const pdstring &mod_name,bool check_excluded);
+  pdmodule *findModule(const pdstring &mod_name,bool check_excluded);
 #else
-  module *findModule(const pdstring &mod_name);
+  pdmodule *findModule(const pdstring &mod_name);
 #endif
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
