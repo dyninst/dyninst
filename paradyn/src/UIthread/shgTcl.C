@@ -4,9 +4,12 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.1  1995/10/17 22:09:07  tamches
-/* initial version, for the new search history graph.
+/* Revision 1.2  1995/11/06 19:28:15  tamches
+/* removed some warnings
 /*
+ * Revision 1.1  1995/10/17 22:09:07  tamches
+ * initial version, for the new search history graph.
+ *
  */
 
 #include "tclclean.h"
@@ -373,7 +376,7 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv)
    return TCL_OK;
 }
 
-int shgSearchCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+int shgSearchCommand(ClientData, Tcl_Interp *, int, char **) {
    // we basically want to call "paradyn search true <curr-phase-name> -1",
    // as in "paradyn search true global -1"
    
@@ -395,7 +398,7 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
    return TCL_OK;
 }
 
-int shgPauseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+int shgPauseCommand(ClientData, Tcl_Interp *, int, char **) {
    // we basically want to call "paradyn search pause <curr-phase-name>",
    // as in "paradyn search pause global"
    

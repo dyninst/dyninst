@@ -3,10 +3,13 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.14  1995/10/17 20:49:12  tamches
-/* Where axis changes, e.g. abstractions* instead of
-/* abstractions<resourceHandle>*.
+/* Revision 1.15  1995/11/06 19:26:41  tamches
+/* removed some warnings
 /*
+ * Revision 1.14  1995/10/17 20:49:12  tamches
+ * Where axis changes, e.g. abstractions* instead of
+ * abstractions<resourceHandle>*.
+ *
  * Revision 1.13  1995/08/04 19:13:56  tamches
  * Added a status line for 'rethinking' after receiving data (whethere batch
  * mode or not)
@@ -84,7 +87,7 @@
  *  Creates dag for abstraction if none exists.
 */
 int numResourceAddedCBSoFar = 0;
-void resourceAddedCB (perfStreamHandle handle, 
+void resourceAddedCB (perfStreamHandle,
 		      resourceHandle parent, 
 		      resourceHandle newResource, 
 		      const char *name,
@@ -113,7 +116,7 @@ void resourceAddedCB (perfStreamHandle handle,
   whereAxis &theWhereAxis = theAbs[theAbstractionName];
      // may create a where axis!
 
-  char *nameLastPart = strrchr(name, '/');
+  const char *nameLastPart = strrchr(name, '/');
   assert(nameLastPart);
   nameLastPart++;
 
