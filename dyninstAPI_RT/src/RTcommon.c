@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.10 2000/07/27 14:05:47 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.11 2000/08/07 01:00:12 wylie Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -73,6 +73,14 @@ unsigned pcAtLastIRPC;  /* just used to check for errors */
    0 = there is not a trap that hasn't been processed */
 int trapNotHandled = 0;
 
+#ifdef DEBUG_PRINT_RT
+int DYNINSTdebugPrintRT = 1;
+#else
+int DYNINSTdebugPrintRT = 0;
+#endif
+
+extern const char V_libdyninstAPI_RT[];
+
 /*
  * The Dyninst API arranges for this function to be called at the entry to
  * main().
@@ -86,9 +94,11 @@ void DYNINSTinit(int cause, int pid)
     else if (cause == 3) calledByAttach = 1;
 
     /* sanity check */
-    assert(sizeof(time64) == 8);
-    assert(sizeof(int64_t)  == 8);
-    assert(sizeof(int32_t)  == 4);
+    assert(sizeof(time64)  == 8);
+    assert(sizeof(int64_t) == 8);
+    assert(sizeof(int32_t) == 4);
+
+    RTprintf("%s\n", V_libdyninstAPI_RT);
 
     DYNINSTos_init(calledByFork, calledByAttach);
 
