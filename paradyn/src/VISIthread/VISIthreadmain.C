@@ -20,14 +20,15 @@
 // * Callback routines for DataManager Upcalls:  VISIthreadDataCallback  
 //   		VISIthreadnewMetricCallback, VISIthreadFoldCallback 
 //   		VISIthreadnewResourceCallback
-// * visualizationUser routines:  GetMetricResource, PhaseName
-//		StopMetricResource
-// * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.23  1994/08/11 02:19:23  newhall
-/* added call to dataManager routine destroyPerformanceStream
+/* Revision 1.24  1994/08/13 20:52:38  newhall
+/* changed when a visualization process is started
+/* added new file VISIthreadpublic.C
 /*
+ * Revision 1.23  1994/08/11  02:19:23  newhall
+ * added call to dataManager routine destroyPerformanceStream
+ *
  * Revision 1.22  1994/08/10  17:20:59  newhall
  * changed call to chooseMetricsandResources to conform to new UI interface
  *
@@ -106,15 +107,10 @@
  * */
 #include <signal.h>
 #include <math.h>
-#include "thread/h/thread.h"
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
-#include "VM.CLNT.h"
-#include "UI.CLNT.h"
-#include "dataManager.CLNT.h"
-#include "visi.CLNT.h"
-#include "VISIthread.SRVR.h"
 #include "../VMthread/VMtypes.h"
+#include "VISIthread.SRVR.h"
 #include "VISIthreadTypes.h"
 #include "../pdMain/paradyn.h"
 #include "dyninstRPC.CLNT.h"
@@ -124,29 +120,11 @@
 	 printf("error# %d: %s\n",s1,s2); 
 
 char *AbbreviatedFocus(char *);
-
-//////////////////////////////////////////////////
-// VISIKillVisi:  VISIthread server routine 
-//
-//  called from VisiMgr, kills the visualization 
-//  process and sets thread local variable "quit"
-//  so that the VISIthread will die 
-//////////////////////////////////////////////////
- void VISIthread::VISIKillVisi(){
-
- VISIthreadGlobals *ptr;
-
-
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthread::VISIKillVisi"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIKillVisi");
-    return;
-  }
-
-  ptr->quit = 1;
-  kill(ptr->pid,SIGKILL);
-
-}
+/*
+#define  DEBUG3 
+#define  ASSERTTRUE(x) assert(x); 
+*/
+#define  ASSERTTRUE(x) 
 
 
 /////////////////////////////////////////////////////////////
@@ -171,6 +149,10 @@ void VISIthreadDataHandler(performanceStream *ps,
     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
     return;
   }
+
+  if(ptr->start_up)
+    return;
+
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
     PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
     ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
@@ -250,6 +232,8 @@ void VISIthreadnewMetricCallback(performanceStream *ps,
     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewMetricCallback");
     return;
   }
+  if(ptr->start_up)
+    return;
 }
 
 ///////////////////////////////////////////////////////////
@@ -269,6 +253,9 @@ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewResourceCallback");
    return;
 }
+
+  if(ptr->start_up)
+    return;
 
 }
 
@@ -292,6 +279,10 @@ void VISIthreadFoldCallback(performanceStream *ps,
      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadFoldCallback");
      return;
   }
+
+  if(ptr->start_up)
+    return;
+
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
      PARADYN_DEBUG(("bufferSize out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"bufferSize out of range: VISIthreadFoldCallback");
@@ -330,6 +321,51 @@ void VISIthreadFoldCallback(performanceStream *ps,
 
 }
 
+/////////////////////////////////////////////////////////////
+// Start the visualization process:  this is called when the
+// first set of valid metrics and resources is enabled
+///////////////////////////////////////////////////////////
+int VISIthreadStartProcess(){
+
+  VISIthreadGlobals *ptr;
+
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in VISIthreadStartProcess"));
+    ERROR_MSG(13,"Error in VISIthreadStartProcess: thr_getspecific");
+    return(0);
+  }
+
+  // start the visualization process
+  if(ptr->start_up){
+    PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
+    ptr->fd = RPCprocessCreate(&ptr->pid, "localhost", "",
+				 ptr->args->argv[0],ptr->args->argv);
+    if (ptr->fd < 0) {
+      PARADYN_DEBUG(("Error in process Create"));
+      ERROR_MSG(14,"Error in VISIthreadStartProcess: RPCprocessCreate");
+      ptr->quit = 1;
+      return(0);
+    }
+
+    ptr->visip = new visiUser(ptr->fd,NULL,NULL); 
+
+    if(msg_bind_buffered(ptr->fd,0,xdrrec_eof,ptr->visip->__xdrs__) 
+       != THR_OKAY) {
+      PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
+      ERROR_MSG(14,"Error VISIthreadStartProcess: msg_bind_buffered");
+      ptr->quit = 1;
+      return(0);
+    }
+
+  }
+  ptr->start_up = 0;  // indicates that process has been started
+  ptr->args->remenuFlag = 1;  // indicates that future metric/focus
+			      // choices will be initiated by visi process
+
+  return(1);
+}
+
+
 
 ///////////////////////////////////////////////////////////////////
 //  VISIthreadchooseMetRes: callback for User Interface Manager 
@@ -343,6 +379,9 @@ void VISIthreadFoldCallback(performanceStream *ps,
 //
 //  send each successfully enabled metric and focus to visualization 
 //  process (call visualizationUser::AddMetricsResources)
+//
+//  the visi process is started only after the first set of enabled
+//  metrics and resources has been obtained 
 ///////////////////////////////////////////////////////////////////
 void VISIthreadchooseMetRes(char **metricNames,
 			    int numMetrics,
@@ -359,7 +398,7 @@ void VISIthreadchooseMetRes(char **metricNames,
  dataValue_Array   tempdata;
  timeStamp binWidth = 0.0;
  int  numEnabled = 0;
- int  i,j,found;
+ int  i,found;
  int  numBins = 0;
  stringHandle *y;
  int  totalSize, where;
@@ -372,24 +411,27 @@ void VISIthreadchooseMetRes(char **metricNames,
  int_Array metricIds;
  List<metricInstance*> walk;
 
-  PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
+  PARADYN_DEBUG(("In VISIthreadchooseMetRes numMets = %d",numMetrics));
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadchooseMetRes");
+    ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
     return;
   }
 
-  // check for invalid reply
+  // check for invalid reply  ==> user picked "Cancel" menu option
   if((numMetrics <= 0) || (focusChoice == NULL)){
     PARADYN_DEBUG(("no metric and resource in VISIthreadchooseMetRes"));
-    ERROR_MSG(17,"Incomplete metric or focus list::VISIthreadchooseMetRes");
+    ERROR_MSG(17,"Incomplete metric/focus list:VISIthreadchooseMetRes");
+    if(ptr->start_up){
+      ptr->quit = 1;
+    }
     return;
   }
 
   key = focusChoice->getCanonicalName();
 
-  PARADYN_DEBUG(("\nin VISIthreadchooseMetRes callback: numMetrics = %d key = %d",numMetrics,key));
+  PARADYN_DEBUG(("\nnumMetrics = %d key = %d",numMetrics,key));
 
   // determine if this focus has been enabled before
   found = 0;
@@ -399,7 +441,7 @@ void VISIthreadchooseMetRes(char **metricNames,
       break;
     }
 
-  // this is a new focus, enable all metric/focus pairs
+  // this is a new focus, try to enable all metric/focus pairs
   if(!found){  
 
   PARADYN_DEBUG(("new focus = %d",key));
@@ -407,7 +449,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     for(i=0;i<numMetrics;i++){
 
       // convert metricName to metric* 
-      if((currMetric= ptr->dmp->findMetric(context,metricNames[i])) != 0){
+      if((currMetric = ptr->dmp->findMetric(context,metricNames[i])) != 0){
         // make enable request to DM
         //if successful, add metricInstance to mrlist  
 	PARADYN_DEBUG(("before enable metric/focus\n"));
@@ -416,7 +458,8 @@ void VISIthreadchooseMetRes(char **metricNames,
 	     ptr->dmp->enableDataCollection(ptr->perStream,
 	     focusChoice,currMetric)) 
 	     != NULL){
-	    PARADYN_DEBUG(("after enable metric/focus\n"));
+	    PARADYN_DEBUG(("after enable metric/focus metInst = %d\n",
+			   (int)currMetInst));
             ptr->mrlist->add(currMetInst,currMetInst);
 	    newEnabled[numEnabled] = currMetInst;
             numEnabled++;
@@ -425,7 +468,9 @@ void VISIthreadchooseMetRes(char **metricNames,
 
       else {
          // there is an error with findMetric
-         sprintf(errorString,"dataManager::findMetric failed (returned NULL)for metric %s.",metricNames[i]);
+         sprintf(errorString,
+	       "dataManager::findMetric failed (returned NULL)for metric %s.",
+		metricNames[i]);
          ERROR_MSG(17,errorString);
          ptr->quit = 1;
 	 return;
@@ -464,6 +509,17 @@ void VISIthreadchooseMetRes(char **metricNames,
   }
 
   if(numEnabled > 0){
+
+    // if this is the first set of enabled values, start visi process
+    if(ptr->start_up){
+      if(!VISIthreadStartProcess()){
+          ptr->quit = 1;
+          return;
+      }
+    }
+    ASSERTTRUE(!ptr->start_up);
+    ASSERTTRUE(ptr->args->remenuFlag);
+
     // create metric and resource arrays and send to visualization
     metrics.count = numEnabled;
     resources.count = 1;
@@ -593,7 +649,20 @@ void VISIthreadchooseMetRes(char **metricNames,
     free(y);
   }
   else {
+
       ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
+      PARADYN_DEBUG(("No enabled Metric/focus pairs: VISIthreadchooseMetRes"));
+      // remake menuing call with old metric and focus lists
+      if(ptr->args->remenuFlag){
+         ptr->ump->chooseMetricsandResources(
+		     (chooseMandRCBFunc)VISIthreadchooseMetRes,
+		     metricNames,
+		     numMetrics,
+		     focusChoice);
+      }
+      else{
+	 ptr->quit = 1;
+      }
   }
 }
 
@@ -635,112 +704,6 @@ void VISIthreadshowErrorREPLY(int userChoice){
 }
 
 
-//////////////////////////////////////////////////////////////////////
-//  GetMetricResource: visualizationUser routine (called by visi process)
-//  input: string of metric names, string of focus names, type of data
-//         (0: histogram, 1: scalar) currently only 0 supported
-//
-// check if metric and resource lists have wild card chars 
-// if so request metrics and resources form UIM (currently, the
-// only option), else make enable data collection call to DM for each
-// metric resource pair
-//////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(String metric,
-					  String resource,
-					  int type){
- VISIthreadGlobals *ptr;
-
-PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
- if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visiUser::GetMetricResource"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::GetMetricResource");
-    return;
- }
- ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes,NULL,0,NULL);
-}
-
-
-//////////////////////////////////////////////////////////////////////
-//  StopMetricResource: visualizationUser routine (called by visi process)
-//  input: metric and resource Ids 
-//
-//  if metricId and resourceId are valid, make disable data collection
-//  call to dataManager for the pair, and remove the associated metric
-//  instance from the threads local mrlist
-//////////////////////////////////////////////////////////////////////
-void visualizationUser::StopMetricResource(int metricId,
-					   int resourceId){
- VISIthreadGlobals *ptr;
- metricInstance *listItem;
- int found = 0;
- List<metricInstance*> walk;
-
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::StopMetricResource");
-    return;
-  }
-
-
-  // search metricList for matching metricId and resourceId
-  // if found request DM to disable data collection of metricInstance
-
-  found = 0;
-  for (walk = *ptr->mrlist; listItem=*walk; walk++) {
-    if ((listItem->met == (metric*) metricId) &&
-	(listItem->focus->getCanonicalName() == (char*) resourceId)) {
-      found = 1;
-      break;
-    }
-      PARADYN_DEBUG(("current list element: metId = %d resId = %d",
-		     (int)listItem->met,(int)listItem->focus));
-  }
-
-#ifdef DEBUG
-    if(found){
-     PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
-    }
-    else{
-     PARADYN_DEBUG(("visualizationUser::StopMetricResource: mi not found\n"));
-     PARADYN_DEBUG(("metricId = %d resourceId = %d\n",metricId,resourceId));
-    }
-#endif
-
-    if(found){
-      //make disable request to DM and remove this metric instance from list
-      ptr->dmp->disableDataCollection(ptr->perStream,listItem);
-      if(!(ptr->mrlist->remove(listItem))){
-        perror("ptr->mrlist->remove"); 
-	ERROR_MSG(16,"remove() in StopMetricResource()");
-	ptr->quit = 1;
-        return;
-      }
-    }
-}
-
-
-
-///////////////////////////////////////////////////////////////////
-//  PhaseName: visualizationUser routine (called by visi process)
-//  input: name of phase, begining and ending timestamp for phase 
-//
-//  not currently implemented
-///////////////////////////////////////////////////////////////////
-void visualizationUser::PhaseName(double begin,
-				  double end,
-				  String name){
-
- VISIthreadGlobals *ptr;
-
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visualizationUser::PhaseName"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::PhaseName");
-    return;
-  }
-
-}
-
-
 ///////////////////////////////////////////////////////////////////
 //  VISIthread main routine
 //  input: parent thread tid, visualization command line arguments
@@ -750,18 +713,16 @@ void visualizationUser::PhaseName(double begin,
 ///////////////////////////////////////////////////////////////////
 void *VISIthreadmain(void *vargs){ 
  
-  visi_thread_args* args = (visi_thread_args *) vargs;
   int from;
   thread_t tag;
   VISIthreadGlobals *globals;
   VISIthread *vtp;
-  controlCallback callbacks;
   metricInstance *listItem;
-  union dataCallback dataHandlers;
   List<metricInstance*> walk;
+  union dataCallback dataHandlers;
+  controlCallback callbacks;
 
   //initialize global variables
-
   if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
     PARADYN_DEBUG(("Error in malloc globals"));
     ERROR_MSG(13,"malloc in VISIthread::main");
@@ -772,110 +733,110 @@ void *VISIthreadmain(void *vargs){
   globals->ump = uiMgr;
   globals->vmp = vmMgr;
   globals->dmp = dataMgr;
+  globals->args = (visi_thread_args *) vargs;
+  globals->visip = NULL;     // assigned value in VISIthreadchooseMetRes 
+  globals->perStream = NULL; // assigned value in VISIthreadchooseMetRes
 
+  globals->start_up = 1;
   globals->bufferSize = 0;
   globals->fd = -1;
   globals->pid = -1;
   globals->quit = 0;
   globals->mrlist = new(List<metricInstance *>);
-
-
-  // start visualization process
-  PARADYN_DEBUG(("in visi thread"));
-  globals->fd = RPCprocessCreate(&globals->pid, "localhost", "",
-				 args->argv[0],args->argv);
-  if (globals->fd < 0) {
-    PARADYN_DEBUG(("Error in process Create"));
-    ERROR_MSG(14,"Error in VISIthreadmain: RPCprocessCreate");
-    globals->quit = 1;
-  }
-
-  globals->visip = new visiUser(globals->fd,NULL,NULL); 
-
-  if(msg_bind_buffered(globals->fd,0,xdrrec_eof,globals->visip->__xdrs__) 
-     != THR_OKAY) {
-    PARADYN_DEBUG(("Error in msg_bind(globals->fd)"));
-    ERROR_MSG(14,"Error in VISIthreadmain: msg_bind_buffered");
-    globals->quit = 1;
-    kill(globals->pid,SIGKILL);
-  }
-
   globals->bucketWidth = globals->dmp->getCurrentBucketWidth(); 
-
-  if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
-    PARADYN_DEBUG(("Error in thr_setspecific"));
-    ERROR_MSG(14,"Error in VISIthreadmain: thr_setspecific");
-    globals->quit = 1;
-    kill(globals->pid,SIGKILL);
-  }
-
 
   // set control callback routines 
   callbacks.mFunc = (metricInfoCallback)VISIthreadnewMetricCallback;
-  callbacks.rFunc = (resourceInfoCallback)VISIthreadnewResourceCallback;
+  callbacks.rFunc = (resourceInfoCallback)
+		      VISIthreadnewResourceCallback;
   callbacks.fFunc = (histFoldCallback)VISIthreadFoldCallback;
   callbacks.sFunc = NULL;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
+
   // create performance stream
-  dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
+  dataHandlers.sample =(sampleDataCallbackFunc)VISIthreadDataCallback;
   if((globals->perStream = globals->dmp->createPerformanceStream(context,
 		   Sample,BASE,dataHandlers,callbacks)) == NULL){
-    PARADYN_DEBUG(("Error in createPerformanceStream"));
-    ERROR_MSG(15,"Error in VISIthreadmain: createPerformanceStream");
-    globals->quit = 1;
-    kill(globals->pid,SIGKILL);
+      PARADYN_DEBUG(("Error in createPerformanceStream"));
+      ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
+      globals->quit = 1;
   }
 
- 
-  while(!(globals->quit)){
-    tag = MSG_TAG_ANY;
-    from = msg_poll(&tag, 1);
-    if (globals->ump->isValidUpCall(tag)) {
-       globals->ump->awaitResponce(-1);
-    }
-    else if (globals->vmp->isValidUpCall(tag)) {
-      globals->vmp->awaitResponce(-1);
-    }
-    else if (globals->dmp->isValidUpCall(tag)) {
-      globals->dmp->awaitResponce(-1);
-    }
-    else if ((RPC_readReady(globals->fd) == -1)) {
-	globals->quit = 1;  // visualization process has died
-    }
-    else if (tag == MSG_TAG_FILE){
-        globals->visip->awaitResponce(-1);
-        if(globals->visip->did_error_occur()){
-           PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
-            globals->quit = 1;
-        }
-    }
-    else {
-       vtp->mainLoop();
-    }
+  if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
+      PARADYN_DEBUG(("Error in thr_setspecific"));
+      ERROR_MSG(14,"Error in VISIthreadmain: thr_setspecific");
+      globals->quit = 1;
   }
+
+  // parse globals->args->metricList and globals->args->resourceList
+  // to determine if menuing needs to be done.  If so, call UIM rouitine
+  // chooseMetricsandResources before entering main loop, if not, call
+  // AddMetricsResources routine with metric and focus pointers (these
+  // need to be created from the metricList and resourceList) 
+  // until parsing routine is in place call chooseMetricsandResources
+  // with NULL metric and resource pointers
+
+  // call get metrics and resources with first set
+  globals->ump->chooseMetricsandResources(
+			    (chooseMandRCBFunc)VISIthreadchooseMetRes,
+                             NULL,0,NULL);
+
+ 
+  PARADYN_DEBUG(("before enter main loop"));
+  while(!(globals->quit)){
+      tag = MSG_TAG_ANY;
+      from = msg_poll(&tag, 1);
+      if (globals->ump->isValidUpCall(tag)) {
+           globals->ump->awaitResponce(-1);
+      }
+      else if (globals->vmp->isValidUpCall(tag)) {
+          globals->vmp->awaitResponce(-1);
+      }
+      else if (globals->dmp->isValidUpCall(tag)) {
+          globals->dmp->awaitResponce(-1);
+      }
+      else if (tag == MSG_TAG_FILE){
+          globals->visip->awaitResponce(-1);
+          if(globals->visip->did_error_occur()){
+             PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
+             globals->quit = 1;
+          }
+      }
+      else {
+          vtp->mainLoop();
+      }
+  }
+  PARADYN_DEBUG(("leaving main loop"));
 
   // disable all metricInstance data collection
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
-    globals->dmp->disableDataCollection(globals->perStream, listItem);
-    /*
-    if (!(globals->mrlist->remove(listItem))) {
-      perror("globals->mrlist->remove");
-      ERROR_MSG(16,"remove() in VISIthreadmain"); 
-    }
-    */
+      globals->dmp->disableDataCollection(globals->perStream, listItem);
+      if (!(globals->mrlist->remove(listItem))) {
+          perror("globals->mrlist->remove");
+          ERROR_MSG(16,"remove() in VISIthreadmain"); 
+      }
   }
+
+  // kill visi process
+  if(!globals->start_up){
+       kill(globals->pid,SIGKILL);
+  }
+
+  PARADYN_DEBUG(("before destroy perfomancestream"));
   if(!(globals->dmp->destroyPerformanceStream(context,globals->perStream))){
-    ERROR_MSG(16,"remove() in VISIthreadmain");
+      ERROR_MSG(16,"remove() in VISIthreadmain");
   }
 
   // notify VM 
+  PARADYN_DEBUG(("before notify VM of thread died"));
   globals->vmp->VMVisiDied(thr_self());
+  PARADYN_DEBUG(("after notify VM of thread died"));
 
   // unbind file descriptor associated with visualization
   if(msg_unbind(globals->fd) == THR_ERR){
-    PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
-    ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
+      PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
+      ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
   }
 
   delete globals->mrlist;
@@ -941,9 +902,6 @@ void visiUser::handle_error()
          ERROR_MSG(16,"IGEN ERROR igen_(send,read)_err"); 
          ptr->quit = 1;
          break;
-  }
-  if(ptr->quit == 1){
-     kill(ptr->pid,SIGKILL);
   }
 }
 

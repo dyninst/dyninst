@@ -16,9 +16,13 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.7  1994/08/11 02:19:22  newhall
-/* added call to dataManager routine destroyPerformanceStream
+/* Revision 1.8  1994/08/13 20:52:36  newhall
+/* changed when a visualization process is started
+/* added new file VISIthreadpublic.C
 /*
+ * Revision 1.7  1994/08/11  02:19:22  newhall
+ * added call to dataManager routine destroyPerformanceStream
+ *
  * Revision 1.6  1994/06/07  18:16:29  newhall
  * support for adding metrics/resources to an existing set
  *
@@ -69,6 +73,8 @@ struct VISIGlobalsStruct {
   int pid;
   int quit;
   double bucketWidth;
+  visi_thread_args* args;
+  int start_up;
   List<metricInstance *> *mrlist;  // data and key are metricInstance *
 
 };
@@ -81,4 +87,9 @@ class visiUser : public visualizationUser
 	visualizationUser(fd, r, w, 0) {;};
     virtual void handle_error();
 };
+
+extern void VISIthreadchooseMetRes(char **metricNames, 
+				   int numMetrics, 
+				   resourceList* focusChoice);
+
 #endif
