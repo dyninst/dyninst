@@ -106,15 +106,15 @@ typedef struct {
  */
 
 typedef struct uthread {
-        struct uthread   *t_link;  /* run/sleep queue */
-        char            *t_stk;         /* stack base */
-        unsigned int    t_stksize;      /* size of stack */
-        char            *t_tls;         /* pointer to thread local storage */
-        resumestate_t   t_resumestate;  /* any extra state needed by resume */
-        long            t_startpc;      /* start func called by thr_create() */
-        thread_t        t_tid;          /* thread id */
-        lwpid_t         t_lwpid;        /* lwp id */
-        int             t_usropts;      /* usr options, (THR_BOUND, ...) */
+        struct uthread   *dontcare1;  
+        char            *thread_stack;       
+        unsigned int    thread_stacksize;     
+        char            *dontcare2;         
+        resumestate_t   t_resumestate; 
+        long            start_pc;      
+        thread_t        thread_id;     
+        lwpid_t         lwp_id;        
+        int             opts;      /* usr options, (THR_BOUND, ...) */
 
 } uthread_t ;
 
@@ -123,7 +123,7 @@ void idtot(int tid) {
   if ( DYNINST_allthreads_p ) {
     uthread_t *ct = (uthread_t*) DYNINST_idtot(tid, DYNINST_allthreads_p);
     fprintf(stderr, "stk=0x%x, startpc=0x%x, lwpid=0x%x, resumestate=0x%x",
-	    ct->t_stk, ct->t_startpc, ct->t_lwpid, &(ct->t_resumestate));
+	    ct->thread_stack, ct->start_pc, ct->lwp_id, &(ct->t_resumestate));
   }
 }
 
@@ -135,12 +135,12 @@ void DYNINST_ThreadPInfo(
     int* lwpidp,
     void** resumestate_p) {
   uthread_t *ptr = (uthread_t *) tls ;
-  *stackbase = (void*) (ptr->t_stk);
-  *tidp = (int) ptr->t_tid ;
-  *startpc = ptr->t_startpc ;
-  *lwpidp = ptr->t_lwpid ;
+  *stackbase = (void*) (ptr->thread_stack);
+  *tidp = (int) ptr->thread_id ;
+  *startpc = ptr->start_pc ;
+  *lwpidp = ptr->lwp_id ;
   *resumestate_p = &(ptr->t_resumestate);
-/* fprintf(stderr, "------ tid=%d, stk=0x%x, stksize=0x%x\n",  ptr->t_tid, ptr->t_stk, ptr->t_stksize); */
+/* fprintf(stderr, "------ tid=%d, stk=0x%x, stksize=0x%x\n",  ptr->thread_id, ptr->thread_stack, ptr->thread_stacksize); */
 }
 
 int DYNINST_ThreadInfo(void** stackbase, 
