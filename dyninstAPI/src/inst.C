@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.89 2002/04/09 04:19:39 schendel Exp $
+// $Id: inst.C,v 1.90 2002/04/11 19:30:36 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -271,7 +271,6 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
                                                 deferred);
 
     if (!ret->baseInstance) {
-      cerr << "findAndInstallBaseTramp failed" << endl;
        return(NULL);
     }
 #if defined(MT_DEBUG_ON)
