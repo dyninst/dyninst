@@ -168,7 +168,9 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
    if (Options::ml->address_space() == message_layer::AS_many) {
      if (!void_type) {
        pdstring type = call_sig_.type();
-       if( (type != "int") && (type != "double") ) {
+       // TODO fix to ignore all scalar types, instead of trying to 
+       // list them all here.
+       if( (type != "int") && (type != "double") && (type != "bool") ) {
          if( type.prefixed_by(Options::type_prefix()) ) {
 	   //need to remove the type_prefix from type for destructor call
 	   int prefix_length = Options::type_prefix().length();
@@ -238,7 +240,9 @@ bool remote_func::free_async(const pdstring &spaces,
 
    if (call_sig_.type() != "void") {
      pdstring type = call_sig_.type();
-     if( (type != "int") && (type != "double") ) {
+     // TODO fix to ignore all scalar types, instead of trying to 
+     // list them all here.
+     if( (type != "int") && (type != "double") && (type != "bool") ) {
        if( type.prefixed_by(Options::type_prefix()) ) {
          //need to remove the type_prefix from type for destructor call
          int prefix_length = Options::type_prefix().length();
