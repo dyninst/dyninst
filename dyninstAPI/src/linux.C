@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.155 2005/02/18 22:21:41 bernat Exp $
+// $Id: linux.C,v 1.156 2005/02/21 22:28:51 legendre Exp $
 
 #include <fstream>
 
@@ -1458,9 +1458,8 @@ bool process::findCallee(instPoint &instr, int_function *&target){
    // get the target address of this function
    Address target_addr = 0;
    //    Address insn_addr = instr.pointAddr(); 
-   target_addr = instr.getTargetAddress();
-
-   if(!target_addr) {  
+   target_addr = instr.getTargetAddress(this);
+   if(!target_addr) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
       target = 0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.27 2005/01/21 23:44:37 bernat Exp $
+// $Id: instPoint-x86.h,v 1.28 2005/02/21 22:28:50 legendre Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -204,17 +204,21 @@ class instPoint : public instPointBase {
       return NULL;
   }
 
-  Address getTargetAddress() {
-      if (!hasInsnAtPoint()) return 0;
-     if (insnAtPoint().isCall()) {
-        if (insnAtPoint().isCallIndir()) {
-           return 0;
-        }
-        else {
-           return insnAtPoint().getTarget(pointAddr());
-        }
-     }
-     return 0;
+  //If p is non-NULL, then we return an absolute address,
+  //otherwise we return an address relative to the module.
+  Address getTargetAddress(process *p = NULL) {
+    if (!hasInsnAtPoint()) return 0;
+    if (insnAtPoint().isCall()) {
+      if (insnAtPoint().isCallIndir()) {
+	return 0;
+      }
+      else {
+	return p ? 
+	  insnAtPoint().getTarget(absPointAddr(p)) :
+	  insnAtPoint().getTarget(pointAddr());
+      }
+    }
+    return 0;
   }
 
   Address firstAddress() {return pointAddr();}

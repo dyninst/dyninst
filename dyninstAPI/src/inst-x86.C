@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.190 2005/02/17 02:19:53 rutar Exp $
+ * $Id: inst-x86.C,v 1.191 2005/02/21 22:28:49 legendre Exp $
  */
 #include <iomanip>
 
@@ -4403,13 +4403,12 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 }
 
 
-bool process::isDynamicCallSite(instPoint *callSite){
-  int_function *temp;
-  if(!findCallee(*(callSite),temp)){
-    return true;
-  }
-  return false;
+bool process::isDynamicCallSite(instPoint *callSite)
+{  
+  instruction i = callSite->insnAtPoint();
+  return i.isCallIndir();
 }
+
 bool process::getDynamicCallSiteArgs(instPoint *callSite,
                                      pdvector<AstNode *> &args)
 {
@@ -4419,7 +4418,6 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
    int addr_mode;
    unsigned Mod;
 
-   AstNode *func;
    instruction i = callSite->insnAtPoint();
    if(i.isCallIndir()){
       addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
@@ -4548,7 +4546,8 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
            break;
 
         default:
-           cerr << "Unexpected addressing type in MonitorCallSite at addr:"
+	  cerr << "Unexpected addressing type " << addr_mode 
+	       << " in MonitorCallSite at addr:"
                 << std::hex << callSite->pointAddr() << std::dec
                 << "The daemon declines the monitoring request of"
                 << " this call site." << endl;
@@ -4559,8 +4558,8 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
       //Regular callees are statically determinable, so no need to
       //instrument them
       //return true;
-      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n",
-             __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n at address %x (%s)",
+             __FILE__, __LINE__, callSite->pointAddr(), callSite->pointFunc()->prettyName().c_str());
       return false; // but we generate no args.
    }
    else {
@@ -6371,12 +6370,12 @@ bool int_function::setReturnValue(process *p, int val)
    return p->writeTextSpace((void *) addr, size, buffer);
 }
 
-bool registerSpace::clobberRegister(Register reg) 
+bool registerSpace::clobberRegister(Register /*reg*/) 
 {
   return false;
 }
 
-unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+unsigned saveGPRegister(char */*baseInsn*/, Address &/*base*/, Register /*reg*/)
 {
   return 0;
 }
