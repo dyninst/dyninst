@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.5 1997/05/19 19:43:06 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.6 1997/05/19 20:51:22 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.6  1997/05/19 20:51:22  tung
+ * Revised: the max. of Z is 1.5 times of current curves->maxz.
+ *
  * Revision 1.5  1997/05/19 19:43:06  tung
  * Make the axis appears before the curve surface shows up.
  *
@@ -418,7 +421,7 @@ Window win;
 	                                               x_interval;
       if (curves->points[startIndex + firstSample + i].x > curves->x_max)
       {
-        curves->x_max *= 2;
+        curves->x_max *= 1.5;
         change = 1;
       }
    
