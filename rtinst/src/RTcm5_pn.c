@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.13  1994/07/15 04:19:47  hollings
+ * Revision 1.14  1994/07/16 03:39:30  hollings
+ * stopped using assembly version of clocks (temporary).
+ *
+ * Revision 1.13  1994/07/15  04:19:47  hollings
  * added code to report stats at the end.
  *
  * Revision 1.12  1994/07/14  23:35:08  hollings
@@ -134,11 +137,12 @@ inline time64 getProcessTime()
     time64 end;
     time64 ni_end;
     time64 ni2;
+    time64 dummy;
 
 retry:
-    CMOS_get_NI_time(&ni_end);
+    CMOS_get_NI_time(&ni_end, &dummy);
     CMOS_get_time(&end);
-    CMOS_get_NI_time(&ni2);
+    CMOS_get_NI_time(&ni2, &dummy);
     if (ni_end != ni2) goto retry;
     return(end-ni_end);
 }
@@ -170,7 +174,6 @@ time64 DYNINSTgetCPUtime()
 }
 
 
-#ifdef notdef
 inline time64 getWallTime()
 {
     timeParts end;
@@ -258,7 +261,6 @@ retry:
 	timer->counter--;
     }
 }
-#endif
 
 double previous[1000];
 
@@ -326,7 +328,7 @@ void DYNINSTreportTimer(tTimer *timer)
 static time64 startWall;
 int DYNINSTnoHandlers;
 static int DYNINSTinitDone;
-tTimer DYNINSTelapsedTime;
+time64 DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
 
 extern double DYNINSTsamplingRate;
@@ -398,7 +400,7 @@ void DYNINSTinit()
 
     DYNINSTcyclesToUsec = NI_CLK_USEC;
 
-    DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+    CMOS_get_time(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 
     DYNINSTinitDone = 1;
@@ -484,11 +486,13 @@ extern double DYNINSTtotalSampleTime;
 void DYNINSTprintCost()
 {
     int64 value;
+    time64 endWall;
     struct endStatsRec stats;
     extern int64 DYNINSTgetObservedCycles(Boolean);
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
-    DYNINSTstopWallTimer(&DYNINSTelapsedTime);
+    CMOS_get_time(&endWall);
+    endWall -= DYNINSTelapsedTime;
 
     value = DYNINSTgetObservedCycles(0);
     stats.instCycles = value;
@@ -502,7 +506,7 @@ void DYNINSTprintCost()
 
     stats.totalCpuTime = ((double) DYNINSTelapsedCPUTime.total)/
 	(MILLION * NI_CLK_USEC);
-    stats.totalWallTime = ((double) DYNINSTelapsedTime.total)/ NI_CLK_USEC;
+    stats.totalWallTime = ((double) endWall)/ (NI_CLK_USEC * MILLION);
 
     stats.samplesReported = DYNINSTtotalSamples;
     stats.samplingRate = DYNINSTsamplingRate;

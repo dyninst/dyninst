@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.12  1994/07/14 23:35:36  hollings
+ * Revision 1.13  1994/07/16 03:39:31  hollings
+ * stopped using assembly version of clocks (temporary).
+ *
+ * Revision 1.12  1994/07/14  23:35:36  hollings
  * added return of cost model record.
  *
  * Revision 1.11  1994/07/11  22:47:51  jcargill
@@ -495,7 +498,7 @@ void DYNINSTprintCost()
 
     now = DYNINSTgetCPUtime();
     stats.totalCpuTime = ((double) DYNINSTelapsedCPUTime.total)/MILLION;
-    stats.totalWallTime = DYNINSTelapsedTime.total;
+    stats.totalWallTime = ((double) DYNINSTelapsedTime.total/MILLION);
 
     stats.samplesReported = DYNINSTtotalSamples;
     stats.samplingRate = DYNINSTsamplingRate;
