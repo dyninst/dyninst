@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.23 2003/05/16 21:22:24 bernat Exp $
+// $Id: Object-xcoff.C,v 1.24 2003/05/17 17:13:51 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -81,6 +81,11 @@
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "arch-power.h"
+
+/* For some reason this symbol type isn't global */
+#if !defined(C_WEAKEXT)
+#define C_WEAKEXT 0
+#endif
 
 //
 // Seek to the desired offset and read the passed length of the file
@@ -609,7 +614,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
          continue;
      }
      
-     if ((sym->n_sclass == C_WEAKEXT) ||
+     if ((C_WEAKEXT && (sym->n_sclass == C_WEAKEXT)) ||
          (sym->n_sclass == C_HIDEXT) || 
          (sym->n_sclass == C_EXT) ||
          (sym->n_sclass == C_FILE)) {
@@ -623,7 +628,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
          }
      }
      
-     if ((sym->n_sclass == C_WEAKEXT) ||
+     if ((C_WEAKEXT && (sym->n_sclass == C_WEAKEXT)) ||
          (sym->n_sclass == C_HIDEXT) || 
          (sym->n_sclass == C_EXT)) {
          if (sym->n_sclass == C_HIDEXT) {
