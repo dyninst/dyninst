@@ -2,10 +2,13 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.3  1995/07/24 21:32:48  tamches
-/* Added getTkWindow(), get*SBName(), and change(string) member
-/* functions.
+/* Revision 1.4  1995/08/07 00:00:34  tamches
+/* Added name2index
 /*
+ * Revision 1.3  1995/07/24  21:32:48  tamches
+ * Added getTkWindow(), get*SBName(), and change(string) member
+ * functions.
+ *
  * Revision 1.2  1995/07/18  03:41:17  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -75,6 +78,16 @@ whereAxis<USERNODEDATA> &abstractions<USERNODEDATA>::operator[](string &absName)
 
    add(theNewWhereAxis, absName);
    return *theNewWhereAxis;
+}
+
+template <class USERNODEDATA>
+int abstractions<USERNODEDATA>::name2index(const string &name) const {
+   // returns -1 if not found
+   for (int i=0; i < theAbstractions.size(); i++)
+      if (name == theAbstractions[i].abstractionName)
+         return i;
+
+   return -1;
 }
 
 template <class USERNODEDATA>
