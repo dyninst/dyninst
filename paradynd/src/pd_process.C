@@ -526,6 +526,13 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
        pd_thr->resetInferiorVtime(getVirtualTimer(thr->get_index()));
      }
    }
+   else {
+      // Make the "dummy" primary thread
+      for (unsigned j = 0; j < cp->threads.size(); j++) {
+         pd_thread *thr = new pd_thread(cp->threads[j], this);
+         addThread(thr);
+      }
+   }
 }
 
 pd_process::~pd_process() {
