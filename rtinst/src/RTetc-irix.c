@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.3 1999/08/09 05:43:22 csserra Exp $ */
+/* $Id: RTetc-irix.c,v 1.4 1999/10/27 21:49:53 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -48,6 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
 #include <sys/mman.h>                 /* mmap() */
@@ -132,9 +133,12 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
  * CPU timers 
  */
 
+static int cpuRollbackOccurred = 0;
+
 /* return (user+sys) CPU time in microseconds (us) */
 time64 DYNINSTgetCPUtime(void)
 {
+  static time64 cpuPrevious;
   time64 ret;
 
   /*
@@ -150,6 +154,20 @@ time64 DYNINSTgetCPUtime(void)
   }
   ret = mulMillion(t[AS_USR_RUN].tv_sec + t[AS_SYS_RUN].tv_sec);
   ret += div1000(t[AS_USR_RUN].tv_nsec + t[AS_SYS_RUN].tv_nsec);
+
+  if(ret < cpuPrevious) {
+    if(! cpuRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback with current time: %lld msecs, using previous value %lld msecs.",ret,cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
+				 1, 1, 1);
+    }
+    cpuRollbackOccurred = 1;
+    ret = cpuPrevious;
+  }
+  else  cpuPrevious = ret;
 
   return ret;
 }
@@ -206,8 +224,11 @@ static int ctr_mapCycleCounter(uint64_t **ctr_addr,
   return 0;
 }
 
+static int wallRollbackOccurred = 0;
+
 time64 DYNINSTgetWalltime(void)
 {
+  static time64 wallPrevious;
   time64 ret;
   static uint64_t *ctr_addr  = NULL;
   static uint64_t  ctr_numer = 1;
@@ -242,6 +263,21 @@ time64 DYNINSTgetWalltime(void)
   }
 
   /*fprintf(stderr, "*** 0x%016llx us: DYNINSTgetWalltime()\n", ret);*/
+
+  if (ret < wallPrevious) {  
+    if(! wallRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "Wall time rollback with current time: %lld msecs, using previous value %lld msecs.",ret,wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
+				 1, 1, 1);
+    }
+    wallRollbackOccurred = 1;
+    ret = wallPrevious;
+  }
+  else  wallPrevious = ret;
+
   return ret;
 }
 

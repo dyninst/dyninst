@@ -109,33 +109,48 @@ void DYNINST_install_ualarm(unsigned interval) {
    (((time64)(FT).dwHighDateTime<<32) | ((time64)(FT).dwLowDateTime))
 
 
+static int cpuRollbackOccurred = 0;
+
 time64 DYNINSTgetCPUtime() {
 
   FILETIME kernelT, userT, creatT, exitT;
-  static time64 last;
+  static time64 cpuPrevious = 0;
   time64 now;
   static HANDLE procHandle;
 
-  if (GetProcessTimes(DYNINSTprocHandle, &creatT, &exitT, &kernelT, &userT)) {
-    now = (FILETIME2time64(userT)+FILETIME2time64(kernelT))/(time64)10;
-    if (now < last) {
-      return last;
-    }
-    last = now;
-    return now;
+  if(GetProcessTimes(DYNINSTprocHandle, &creatT, &exitT, &kernelT,&userT)==0) {
+    abort();
+    return 0;
   }
-  abort();
-  return 0;
+
+  now = (FILETIME2time64(userT)+FILETIME2time64(kernelT)) / (time64)10;
+
+  if (now < cpuPrevious) {
+    if(! cpuRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback with current time: %I64d msecs, using previous value %I64d msecs.",now,cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    cpuRollbackOccurred = 1;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
+
+  return now;
 }
 
+static int wallRollbackOccurred = 1;
 
 time64 DYNINSTgetWalltime() {
   LARGE_INTEGER time;
 
   static int firstTime;
   static double freq = 1.0;
-  static time64 lastValue;
-  time64 newValue;
+  static time64 wallPrevious=0;
+  time64 now;
 
   if (firstTime == 0) {
     firstTime = 1;
@@ -148,13 +163,26 @@ time64 DYNINSTgetWalltime() {
     /* dividing time by freq gives a value is seconds.
        we need to multiply by 1000000.0 to get microseconds
        */
-    newValue = (time64)( ((double)time.QuadPart/freq) * 1000000.0);
+    now = (time64)( ((double)time.QuadPart/freq) * 1000000.0);
   } else {
     abort();
   }
 
-  lastValue = newValue;
-  return newValue;
+  if (now < wallPrevious) {
+    if(! wallRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "Wall time rollback with current time: %I64d msecs, using previous value %I64d msecs.",now,wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    wallRollbackOccurred = 1;
+    now = wallPrevious;
+  }
+  else  wallPrevious = now;
+
+  return now;
 }
 
 

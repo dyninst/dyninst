@@ -43,6 +43,10 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTaix.c,v $
+ * Revision 1.15  1999/10/27 21:49:52  schendel
+ * removed rollback checks in stop/startTimer functions and incorporated
+ * standardized rollback checks and reporting via trace records
+ *
  * Revision 1.14  1999/10/13 18:18:46  bernat
  * Removed any call to assert(), printf() from getWalltime.
  *
@@ -109,6 +113,7 @@
 #include <sys/resource.h>
 
 #include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
 #include <sys/types.h>
 
@@ -140,6 +145,7 @@ void
 DYNINSTos_init(int calledByFork, int calledByAttach) {
 }
 
+static int cpuRollbackOccurred = 0;
 
 /************************************************************************
  * time64 DYNINSTgetCPUtime(void)
@@ -150,7 +156,7 @@ time64 DYNINSTgetCPUtime(void)
 {
   time64        now;
 
-  static time64 prevTime = 0;
+  static time64 cpuPrevious = 0;
 
   /* I really hate to use an ifdef, but I don't want to toss the code.
 
@@ -183,16 +189,14 @@ time64 DYNINSTgetCPUtime(void)
 
 #ifndef USE_GETPROCS_METHOD
 
-  do {
-    if (!getrusage(RUSAGE_SELF, &ru)) {
-      now = (time64) ru.ru_utime.tv_sec + (time64) ru.ru_stime.tv_sec;
-      now *= (time64) 1000000;
-      now += (time64) ru.ru_utime.tv_usec + (time64) ru.ru_stime.tv_usec;
-    } else {
-      perror("getrusage");
-      abort();
-    }
-  } while(prevTime > now);
+  if (getrusage(RUSAGE_SELF, &ru)) {
+    perror("getrusage");
+    abort();
+  }
+  
+  now = (time64) ru.ru_utime.tv_sec + (time64) ru.ru_stime.tv_sec;
+  now *= (time64) 1000000;
+  now += (time64) ru.ru_utime.tv_usec + (time64) ru.ru_stime.tv_usec;
 
 #else /* Using GETPROCS */
   
@@ -221,16 +225,24 @@ time64 DYNINSTgetCPUtime(void)
 
 #endif
 
-  if (now < prevTime) /* Time ran backwards??? */
-    {
-      //logLine("********* time going backwards in paradynd **********\n");
-      now = prevTime;
+  if (now < cpuPrevious) {
+    if(! cpuRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback with current time: %lld msecs, using previous value %lld msecs.",now,cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
     }
-  else prevTime = now;
+    cpuRollbackOccurred = 1;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
 
-  
   return now;
 }
+
+static int wallRollbackOccurred = 0;
 
 /************************************************************************
  * time64 DYNINSTgetWalltime(void)
@@ -241,7 +253,7 @@ time64 DYNINSTgetCPUtime(void)
 
 time64 DYNINSTgetWalltime(void)
 {
-  static time64 prevTime = 0;
+  static time64 wallPrevious = 0;
   time64        now;
 #ifdef BERNAT_LIBCALL_FOR_TIME
   timebasestruct_t timestruct;
@@ -296,12 +308,21 @@ time64 DYNINSTgetWalltime(void)
   now += (time64) timestruct.tb_low;
 #endif
 
-  /* Note: this function does not handle rollback. That is taken care of
-     at the start/stopWallTimer level in RTinst. It checks whether the
-     returned time is less than the start time */
+  if (now < wallPrevious) {
+    if(! wallRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "Wall time rollback with current time: %lld msecs, using previous value %lld msecs.",now,wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    wallRollbackOccurred = 1;
+    now = wallPrevious;
+  }
+  else  wallPrevious = now;
 
   return now;
-
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.6 1999/10/19 05:18:06 nick Exp $ */
+/* $Id: RTetc-linux.c,v 1.7 1999/10/27 21:49:53 schendel Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -62,6 +62,7 @@
 #include <unistd.h> /* getpid() */
 
 #include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <thread.h>
@@ -271,9 +272,11 @@ static unsigned long long mul10000(unsigned long long in) {
    return result;
 }
 
+static int cpuRollbackOccurred = 0;
+
 time64
 DYNINSTgetCPUtime(void) {
-	static time64 previous=0;
+	static time64 cpuPrevious=0;
 	time64 now = 0;
 	FILE *tmp;
 	static int realMul = 0;
@@ -305,10 +308,19 @@ DYNINSTgetCPUtime(void) {
 	now = (time64)tm.tms_utime + (time64)tm.tms_stime;
 	now = now * (time64)realMul;
 
-	if( now < previous )
-		now = previous;
-	else
-		previous = now;
+	if( now < cpuPrevious ) {
+	  if(! cpuRollbackOccurred) {
+	    rtUIMsg traceData;
+	    sprintf(traceData.msgString, "CPU time rollback with current time: %lld msecs, using previous value %lld msecs.",now,cpuPrevious);
+	    traceData.errorNum = 112;
+	    traceData.msgType = rtWarning;
+	    DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
+				       &traceData, 1, 1, 1);
+	  }
+	  cpuRollbackOccurred = 1;	  
+	  now = cpuPrevious;
+	}
+	else  cpuPrevious = now;
 
 	return now;
 }
@@ -322,26 +334,38 @@ DYNINSTgetCPUtime(void) {
  * return value is in usec units.
 ************************************************************************/
 
+static int wallRollbackOccurred = 0;
+
 time64
 DYNINSTgetWalltime(void) {
-  static time64 previous=0;
+  static time64 wallPrevious=0;
   time64 now;
+  struct timeval tv;
 
-  while(1) {
-    struct timeval tv;
-    if (gettimeofday(&tv,NULL) == -1) {
-        perror("gettimeofday");
-	assert(0);
-        abort();
-    }
-
-    now = mulMillion( (time64)tv.tv_sec );
-	now += (time64)tv.tv_usec;
-
-    if (now < previous) continue;
-    previous = now;
-    return(now);
+  if (gettimeofday(&tv,NULL) == -1) {
+    perror("gettimeofday");
+    assert(0);
+    abort();
   }
+  
+  now = mulMillion( (time64)tv.tv_sec );
+  now += (time64)tv.tv_usec;
+
+  if (now < wallPrevious) {
+    if(! wallRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "Wall time rollback with current time: %lld msecs, using previous value %lld msecs.",now,wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
+			       1, 1, 1);
+    }
+    wallRollbackOccurred = 1;
+    wallPrevious = now;
+  }
+  else  wallPrevious = now;
+
+  return(now);
 }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)

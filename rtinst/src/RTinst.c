@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.17 1999/10/14 20:57:26 bernat Exp $
+ * $Id: RTinst.c,v 1.18 1999/10/27 21:49:52 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -335,10 +335,6 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 }
 
 
-/************************************************************************
- * void DYNINSTstartWallTimer(tTimer* timer)
- ************************************************************************/
-
 /* TODO: FIX THIS!!!! */
 
 #ifdef BERNAT_HORRIBLE_HACK
@@ -353,6 +349,10 @@ static int DYNINST_local_write = 0;
 #define LOCAL_WRITE_printf(x) {printf(x);}
 #define LOCAL_WRITE_assert(x) {assert(x);}
 #endif
+
+/************************************************************************
+ * void DYNINSTstartWallTimer(tTimer* timer)
+ ************************************************************************/
 
 void
 DYNINSTstartWallTimer(tTimer* timer) {
@@ -429,12 +429,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
     else if (--timer->counter == 0) {
        const time64 now = DYNINSTgetWalltime();
 
-       if (now < timer->start) {
-	 walltime_printf("rtinst wall timer rollback.\n");
-	  LOCAL_WRITE_assert(0);
-       }
        timer->total += (now - timer->start);
-
     }
     
     timer->protector2++; /* or, timer->protector2 = timer->protector1 */
@@ -455,15 +450,6 @@ DYNINSTstopWallTimer(tTimer* timer) {
          * been restarted).
          */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
-        if (now < timer->start) {
-            walltime_printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
-                   timer->id.id, (double)timer->snapShot,
-                   (double)timer->total, 
-                   (double)timer->start, (double)now);
-            printf("wall timer rollback\n"); 
-            fflush(stdout);
-            abort();
-        }
         timer->counter  = 0;
         timer->mutex    = 0;
     }
