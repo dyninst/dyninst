@@ -47,15 +47,18 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/instReqNode.h"
 
-class instrThrDataNode;
+class instrDataNode;
 
 class instrCodeNode_Val {
  public:
+  instrDataNode *sampledDataNode;
+  instrDataNode *constraintDataNode;
+  vector<instrDataNode*> tempCtrDataNodes;
+
   string name;
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
   vector<instInstance *> miniTrampInstances;
-  vector<instrThrDataNode *> dataNodes;  //if MT one for each thread, ST just 1
   vector<processMetFocusNode *> parentNodes;
   vector<catchupReq *> manuallyTriggerNodes;
   bool _baseTrampsHookedUp;
@@ -69,7 +72,8 @@ class instrCodeNode_Val {
   vector<string> thr_names;  
 #endif
 
-  instrCodeNode_Val(string name_, process *p) : name(name_), 
+  instrCodeNode_Val(string name_, process *p) : sampledDataNode(NULL),
+    constraintDataNode(NULL), name(name_), 
     _baseTrampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
     proc_(p), referenceCount(0)
   { }
@@ -84,7 +88,7 @@ class instrCodeNode_Val {
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
-  vector<instrThrDataNode *>& getDataNodes() { return dataNodes; }
+  vector<instrDataNode *> getDataNodes();
   process *proc() {  return proc_;  }
   string getName() { return name; }
 };
@@ -100,9 +104,8 @@ class instrCodeNode {
   static instrCodeNode *newInstrCodeNode(string name_, process *proc,
 					 bool arg_dontInsertData);
   ~instrCodeNode();
-  bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
-		 vector<dataReqNode*> &data_tuple2);
-  vector<dataReqNode *> getDataRequests();
+  //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
+  //               vector<dataReqNode*> &data_tuple2);
   vector<instReqNode> getInstRequests() { return V.getInstRequests(); }
   bool loadInstrIntoApp(pd_Function **func);
   int getID() { return reinterpret_cast<int>(&V); }
@@ -114,16 +117,32 @@ class instrCodeNode {
     if( V.manuallyTriggerNodes.size() > 0 )  return true;
     else  return false;
   }
+  int numDataNodes() { 
+    return (((V.sampledDataNode != NULL) ? 1 : 0) +
+	    ((V.constraintDataNode != NULL) ? 1 : 0) +
+	    (V.tempCtrDataNodes.size()));
+  }
   void recordAsParent(processMetFocusNode *procobj);
   unsigned numParents() { return V.parentNodes.size(); }
-  unsigned numDataNodes() { return V.dataNodes.size(); }
+  void setSampledDataNode(instrDataNode *dataNode) { 
+    assert(V.sampledDataNode == NULL);
+    V.sampledDataNode = dataNode;
+  }
+  void setConstraintDataNode(instrDataNode *dataNode) { 
+    assert(V.constraintDataNode == NULL);
+    V.constraintDataNode = dataNode;
+  }
+  void addTempCtrDataNode(instrDataNode *dataNode) { 
+    V.tempCtrDataNodes.push_back(dataNode);
+  }
+    
   // --- JUNK, REMOVE THIS SOMETIME SOON ---
   processMetFocusNode *getFirstParent() { 
     assert(V.parentNodes.size() > 0);
     return V.parentNodes[0];
   }
   // ---------------------------------------
-  vector<instrThrDataNode *>& getDataNodes() { return V.getDataNodes(); }
+  vector<instrDataNode *> getDataNodes() { return V.getDataNodes(); }
   void manuallyTrigger(int mid);
   void mapSampledDRNs2ThrNodes(const vector<threadMetFocusNode *> &thrNodes);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
@@ -136,10 +155,7 @@ class instrCodeNode {
   void print();
 
   static string collectThreadName;
-  instrThrDataNode* getThrDataNode(const string &tname);
-  instrThrDataNode* getThrDataNode(int thr_id);
-  const instrThrDataNode* getThrDataNode(int thr_id) const;
-  const dataReqNode* getFlagDRN(int thr_id) const;
+  const instrDataNode* getFlagDataNode() const;
   void markBaseTrampsAsHookedUp() { V._baseTrampsHookedUp = true; }
   void unmarkAsDeferred() {
     V.instrDeferred_ = false;
@@ -147,7 +163,6 @@ class instrCodeNode {
   bool instrLoaded() { return V.instrLoaded_; }
   bool baseTrampsHookedUp() { return V._baseTrampsHookedUp; }
 
-  void addDataNode(instrThrDataNode* part) { V.dataNodes.push_back(part); }
   inst_var_index allocateInstVarForThreads(inst_var_type varType);
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(vector<Frame> stackWalk);
