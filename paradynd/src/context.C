@@ -43,6 +43,10 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.50  1997/01/30 18:17:58  tamches
+ * continueAllProcesses() won't try to continue an already-running process;
+ * pauseAllProcesses won't try to pause an already-paused process
+ *
  * Revision 1.49  1997/01/27 19:40:38  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -262,16 +266,16 @@ bool isApplicationPaused()
 bool continueAllProcesses()
 {
     unsigned p_size = processVec.size();
-    for (unsigned u=0; u<p_size; u++)
-       if (processVec[u] != NULL) {
-	  processVec[u]->continueProc();
-       }
-
-    if (!appPause) return(false);
-
-    appPause = false;
+    for (unsigned u=0; u<p_size; u++) {
+       process *p = processVec[u];
+       if (p != NULL && p->status() != running)
+	  (void)processVec[u]->continueProc(); // ignore return value (is this right?)
+    }
 
     statusLine("application running");
+
+    if (!appPause) return(false);
+    appPause = false;
 
     if (!firstRecordTime) return (false);
 
@@ -286,18 +290,18 @@ bool continueAllProcesses()
 
 bool pauseAllProcesses()
 {
-    bool changed;
-    changed = markApplicationPaused();
+    bool changed = markApplicationPaused();
 
     unsigned p_size = processVec.size();
-    for (unsigned u=0; u<p_size; u++)
-       if (processVec[u] != NULL) {
-	 //cerr << "pauseAll pausing proc pid " << processVec[u]->getPid() << endl;
+    for (unsigned u=0; u<p_size; u++) {
+       process *p = processVec[u];
+       if (p != NULL && p->status() == running)
          processVec[u]->pause();
-       }
+    }
 
     if (changed)
       statusLine("application paused");
+
     return(changed);
 }
 
@@ -305,7 +309,7 @@ void processNewTSConnection(int tracesocket_fd) {
    // either a forked process or one created via attach is trying to get a new
    // tracestream connection.  accept() the new connection, then do some processing.
 
-   int fd = RPC_getConnect(tracesocket_fd); // accept();
+   int fd = RPC_getConnect(tracesocket_fd); // accept()
       // will become traceLink of new process
    assert(fd >= 0);
 
@@ -363,7 +367,7 @@ void processNewTSConnection(int tracesocket_fd) {
       assert(curr);
 
       // continue process...the next thing the process will do is call
-      // DYNINSTinit(-1, -1, -1, -1)
+      // DYNINSTinit(-1, -1, -1)
       string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
       statusLine(str.string_of());
 
@@ -399,7 +403,7 @@ void processNewTSConnection(int tracesocket_fd) {
    }
 
    if (calledFromAttach) {
-      // nothing needed...this routine gets called when the attached process is in
+      // This routine gets called when the attached process is in
       // the middle of running DYNINSTinit.
       curr = findProcess(pid);
       assert(curr);
