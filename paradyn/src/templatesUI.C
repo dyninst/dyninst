@@ -3,21 +3,14 @@
 //
 
 
-#pragma implementation "list.h"
 #include "util/h/list.h"
 
 #include "util/h/String.h"
 
-#pragma implementation "Vector.h"
 #include "util/h/Vector.h"
 
-//#pragma implementation "Queue.h"
-//#include "util/h/Queue.h"
-
-#pragma implementation "Dictionary.h"
 #include "util/h/Dictionary.h"
 
-#pragma implementation "DictionaryLite.h"
 #include "util/src/DictionaryLite.C"
 
 
@@ -43,15 +36,15 @@ template class vector< vector< dictionary_lite<string, tunableFloatConstant>::ha
 #include "../src/UIthread/UIglobals.h"
 
 template class List<metricInstInfo *>;
-template class ListItem<metricInstInfo *>;
+//template class ListItem<metricInstInfo *>;
 template class vector<VM_activeVisiInfo>;
-template class vector<string*>;
-template class dictionary<unsigned,string*>;
-template class dictionary_hash<unsigned, string*>;
-template class vector< pair<unsigned,string *> >;
-template class pair<unsigned, string*>;
-template class vector< vector<dictionary_hash<unsigned, string *>::hash_pair> >;
-template class vector< dictionary_hash<unsigned, string *>::hash_pair >;
+
+//template class dictionary<unsigned,string*>;
+//template class dictionary_hash<unsigned, string*>;
+//template class vector< pair<unsigned,string *> >;
+//template class pair<unsigned, string*>;
+//template class vector< vector<dictionary_hash<unsigned, string *>::hash_pair> >;
+//template class vector< dictionary_hash<unsigned, string *>::hash_pair >;
 
 template class dictionary_lite<unsigned, string>;
 template class vector< dictionary_lite<unsigned, string>::hash_pair >;
