@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.45 2002/05/13 19:53:05 mjbrim Exp $
+// $Id: DMresource.h,v 1.46 2002/10/28 04:54:17 schendel Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -111,6 +111,8 @@ class resource {
     bool isMagnifySuppressed() { return (suppressMagnify); }
     void setSuppressMagnify() {suppressMagnify = true;}
     void clearSuppressMagnify() {suppressMagnify = false;}
+    bool isStartFunction();
+    bool isThreadType(unsigned *tid);
 
     void AddChild(resourceHandle r){ children += r; }
     resourceHandle getHandle() const {return(res_handle);}
@@ -214,6 +216,11 @@ class resourceList {
 				resource *currentPath);
       vector<rlNameId> *magnify(magnifyType type);
       resourceListHandle *constrain(resourceHandle);
+
+      // returns the thread id if the resource list includes a path through
+      // a machine, process, and thread resource.
+      // returns -1 if thread not defined
+      int getThreadID();
 
       bool getMachineNameReferredTo(string &machName) const;
          // If this focus is specific to a machine, then fill in "machName"
