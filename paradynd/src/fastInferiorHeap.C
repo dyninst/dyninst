@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.15 2002/04/05 19:39:07 schendel Exp $
+// $Id: fastInferiorHeap.C,v 1.16 2002/04/09 18:06:17 mjbrim Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -218,7 +218,7 @@ bool fastInferiorHeap<HK, RAW>::doMajorSample(
 					      const vector<states> &statemap)
 #else
                      const vector<states> &statemap,
-                     const vector<HK> &houseKeeping)
+                     vector<HK> &houseKeeping)
 #endif
 {
    // return true iff a complete sample was made
@@ -267,7 +267,7 @@ template <class HK, class RAW>
 #if defined(MT_THREAD)
 bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap) 
 #else
-bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap, const vector<HK> &houseKeeping)
+bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap,  vector<HK> &houseKeeping)
 #endif
 {
    // samples items in currentSamplingSet[]; returns false if all done successfully

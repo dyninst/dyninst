@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.7 2002/04/05 19:38:59 schendel Exp $
+// $Id: baseTable.h,v 1.8 2002/04/09 18:06:16 mjbrim Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -118,7 +118,7 @@ class baseTable {
 			    unsigned allocatedLevel) const;
 
     HK *getHouseKeeping(unsigned position, unsigned allocatedIndex,
-			unsigned allocatedLevel) const;
+			unsigned allocatedLevel);
 
     void initializeHKAfterFork(unsigned allocatedIndex, 
 			       unsigned allocatedLevel,

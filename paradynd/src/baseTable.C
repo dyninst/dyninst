@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.9 2002/04/05 19:39:04 schendel Exp $
+// $Id: baseTable.C,v 1.10 2002/04/09 18:06:14 mjbrim Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -214,7 +214,7 @@ RAW *baseTable<HK, RAW>::index2InferiorAddr(unsigned position,
 template <class HK, class RAW>
 HK *baseTable<HK, RAW>::getHouseKeeping(unsigned position,
 					unsigned allocatedIndex,
-					unsigned allocatedLevel) const
+					unsigned allocatedLevel)
 {
   //cerr << "baseTable::getHouseKeeping, levelMap.size: " << levelMap.size()
   //   << ", allocatedLevel: " << allocatedLevel << "\n";

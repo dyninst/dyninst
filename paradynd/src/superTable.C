@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.10 2002/04/05 19:39:05 schendel Exp $
+// $Id: superTable.C,v 1.11 2002/04/09 18:06:20 mjbrim Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -338,7 +338,7 @@ void *superTable::getHouseKeeping(unsigned type,
 				  pdThread *thr,
 #endif
 				  unsigned allocatedIndex,
-				  unsigned allocatedLevel) const
+				  unsigned allocatedLevel)
 {
   unsigned pd_pos;
 #if defined(MT_THREAD)

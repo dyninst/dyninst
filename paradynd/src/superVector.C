@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.14 2002/04/05 19:39:06 schendel Exp $
+// $Id: superVector.C,v 1.15 2002/04/09 18:06:22 mjbrim Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -53,7 +53,7 @@
 
 template <class HK, class RAW>
 HK *superVector<HK, RAW>::getHouseKeeping(unsigned position, 
-					  unsigned allocatedIndex) const
+					  unsigned allocatedIndex)
 {
   assert(theSuperVector[position] != NULL);
 #if defined(MT_THREAD)

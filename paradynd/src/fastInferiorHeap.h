@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.13 2002/04/05 19:39:02 schendel Exp $
+// $Id: fastInferiorHeap.h,v 1.14 2002/04/09 18:06:19 mjbrim Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -101,9 +101,6 @@ class fastInferiorHeap {
    // Keeps track of what needs sampling, needed to sort out major/minor sampling
    vector<unsigned> permanentSamplingSet; // all allocated indexes
    vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
-   // since we don't define them, make sure they're not used:
-   // (VC++ requires template members to be defined if they are declared)
-   fastInferiorHeap(const fastInferiorHeap &)   {}
 #if defined(MT_THREAD)
    vector<sampling_states> activemap;
    vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
@@ -113,6 +110,8 @@ class fastInferiorHeap {
    fastInferiorHeap &operator=(const fastInferiorHeap &);
 
    fastInferiorHeap(){};
+
+   fastInferiorHeap(const fastInferiorHeap &)   {}
 
    fastInferiorHeap(RAW *iBaseAddrInParadynd,
 #if defined(MT_THREAD)
@@ -196,7 +195,7 @@ class fastInferiorHeap {
    }
 
 #if defined(MT_THREAD)
-   HK *getHouseKeeping(unsigned index) const {
+   HK *getHouseKeeping(unsigned index) {
      return &houseKeeping[index];
    }
 #endif
@@ -221,7 +220,7 @@ class fastInferiorHeap {
    bool doMajorSample(const vector<states> &statemap);
 #else
    bool doMajorSample(const vector<states> &statemap,
-		      const vector<HK> &houseKeeping);
+		      vector<HK> &houseKeeping);
 #endif
 
    // call every once in a while after a call to doMajorSample returned false.
@@ -234,7 +233,7 @@ class fastInferiorHeap {
    bool doMinorSample(const vector<states> &statemap);
 #else
    bool doMinorSample(const vector<states> &statemap,
-                      const vector<HK> &houseKeeping);
+                      vector<HK> &houseKeeping);
 #endif
    void reconstructPermanentSamplingSet(const vector<states> &statemap);
 

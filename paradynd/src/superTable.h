@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.6 2002/04/05 19:39:00 schendel Exp $
+// $Id: superTable.h,v 1.7 2002/04/09 18:06:21 mjbrim Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. The superTable class is the class
 // that has contact with the outside world. Rows on this table are represented by
@@ -164,7 +164,7 @@ class superTable {
 			  pdThread *thr, 
 #endif
 			  unsigned allocatedIndex, 
-			  unsigned allocatedLevel) const;
+			  unsigned allocatedLevel);
 
     void initializeHKAfterForkIntCounter(unsigned allocatedIndex,
 				         unsigned allocatedLevel,

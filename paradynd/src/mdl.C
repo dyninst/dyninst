@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.104 2002/04/05 19:38:18 schendel Exp $
+// $Id: mdl.C,v 1.105 2002/04/09 18:06:25 mjbrim Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -261,13 +261,13 @@ private:
 // assert's need to be removed.  --chun
 //
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
-				    u_int agg, u_int sty, u_int type,
-				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
-				    vector<string> *flav,
-				    vector<T_dyninstRPC::mdl_constraint*> *cons,
-				    vector<string> *temp_counters,
-				    bool developerMode,
-				    int unitstype)
+		       u_int agg, u_int sty, u_int type,
+		       vector<T_dyninstRPC::mdl_stmt*> *mv, 
+		       vector<string> *flav,
+		       vector<T_dyninstRPC::mdl_constraint*> *cons,
+		       vector<string> *temp_counters,
+		       bool developerMode,
+		       int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
   temp_ctr_(temp_counters), developerMode_(developerMode),
@@ -307,13 +307,9 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  int unitstype) 
 {
   assert (0);
-  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
-							     units, agg,
-							     sty, type, mv,
-							     flav, cons,
-							     temp_counters,
-							     developerMode,
-							     unitstype);
+  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, agg, sty, type, mv, flav, 
+				 cons, temp_counters, developerMode, 
+				 unitstype);
   if (!m)
     return false;
   else {
@@ -672,7 +668,7 @@ bool allocateConstraintData_and_generateCode(instrCodeNode *codeNode,
 		              instrThrDataNode* thrDataNode, process *proc,
 			      const vector< vector<string> > &focus,
 			      T_dyninstRPC::mdl_constraint *flag_con,
-                              unsigned flag_dex,
+                              const unsigned flag_dex,
 			      dataInstHandle *metricDataHandlePtr) {
   dataReqNode *flag = NULL;
 
@@ -737,8 +733,7 @@ bool allocateMetricData_and_generateCode(const processMetFocusNode* procNode,
      dataInstHandle replConsDataHandle;  // not sure about this data
      if (!repl_cons->apply(codeNode, thrDataNode, &flag, 
 			   focus[base_dex], proc, thr, 
-			   &replConsDataHandle))
-     {
+			   &replConsDataHandle)) {
        return false;
      }
   } else {
@@ -847,7 +842,7 @@ bool allDataGenCode_for_flagCons_threads(
                  process *proc,
                  const vector< vector<string> > &focus,
                  T_dyninstRPC::mdl_constraint *flag_con,
-		 unsigned& flag_dex,
+		 const unsigned& flag_dex,
                  bool dontInsertData) // flag: "for constraint" or "for metric"
 {
    vector <instrThrDataNode *> dataNodes;
@@ -909,18 +904,18 @@ vector< vector<string > > addProcessInfo2Focus(
    for (unsigned i=0; i<component_focus.size(); i++) {
       if (component_focus[i][0] == "Machine") {
 	 switch ( (component_focus[i].size()) ) {
-	 case 1: {
+	   case 1: {
             // There was no refinement to a specific machine
 	    string tmp_part_name = machineResource->part_name();
             component_focus[i] += tmp_part_name;
 	    // no break
-	 }
-	 case 2: {
+	   }
+	   case 2: {
 	    // There was no refinement to a specific process
 	    string tmp_part_name = proc->rid->part_name();
             component_focus[i] += tmp_part_name;
 	    break;
-	 }
+	   }
 	 }
       }
    }
@@ -1089,7 +1084,6 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	    vector< vector<string> > thr_focus =
 	       addThrInfo2Focus(component_focus, allThr[u]);
 	    thr_flat_name = metricAndCanonFocus2FlatName(metname, thr_focus);
-	    
 	    threadMetFocusNode *thrNode = 
 	       indivThreadMetFocusNode::newIndivThreadMetFocusNode(
 				  thr_flat_name, allThr[u]->get_tid());
@@ -1382,9 +1376,9 @@ T_dyninstRPC::mdl_constraint::mdl_constraint()
   data_type_(0), hierarchy_(0), type_(0) { }
 
 T_dyninstRPC::mdl_constraint::mdl_constraint(string id, 
-                                        vector<string> *match_path,
-					vector<T_dyninstRPC::mdl_stmt*> *stmts,
-					bool replace, u_int d_type, bool& err)
+                               vector<string> *match_path,
+			       vector<T_dyninstRPC::mdl_stmt*> *stmts,
+			       bool replace, u_int d_type, bool& err)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
   data_type_(d_type), hierarchy_(0), type_(0) 
 { assert(0); err = false; }
@@ -1400,7 +1394,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 }
 
 
-static bool do_trailing_resources(vector<string>& resource_,
+static bool do_trailing_resources(const vector<string>& resource_,
 				  process *proc)
 {
   vector<string>  resPath;
@@ -1476,7 +1470,7 @@ static bool do_trailing_resources(vector<string>& resource_,
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 					 instrThrDataNode *dataNode,
 					 dataReqNode **flag,
-					 vector<string>& resource,
+					 const vector<string>& resource,
 					 process *proc, pdThread* thr,
 					 dataInstHandle *metricDataHandlePtr)
 {
@@ -1697,7 +1691,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
   }
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(mdl_expr* expr, vector<string> fields) 
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, vector<string> fields) 
 : type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0),
   u_op_(0), left_(expr), right_(NULL), args_(NULL),
   fields_(fields), do_type_walk_(false), ok_(false)
@@ -1735,7 +1729,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
     type_ = MDL_EXPR_POSTUOP;
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, mdl_expr* index_expr) 
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, T_dyninstRPC::mdl_expr* index_expr) 
 : type_(MDL_EXPR_INDEX), int_literal_(0), var_(var), bin_op_(0),
   u_op_(0), left_(index_expr), right_(NULL), args_(NULL),
   do_type_walk_(false), ok_(false)
@@ -2495,7 +2489,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
 
    if (icode_reqs_ == NULL) {
     return false; // no instrumentation code to put in!
-   }
+  }
 
   mdl_var pointsVar(false);
   if (!point_expr_->apply(pointsVar)) { // process the 'point(s)' e.g. "$start.entry"
