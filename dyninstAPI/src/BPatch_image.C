@@ -220,6 +220,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 #else
     /* Not implemented on this platform (yet). */
     assert(false);
+    return NULL;
 #endif
 }
 
