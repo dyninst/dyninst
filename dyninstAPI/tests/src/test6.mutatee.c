@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.20 2003/05/19 15:55:32 chadd Exp $ */
+/* $Id: test6.mutatee.c,v 1.21 2003/10/18 00:56:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -702,6 +702,7 @@ int main(int iargc, char *argv[])
     printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
   }
 
+  fflush(stdout);
   dprintf("Mutatee %s terminating.\n", argv[0]);
   return (testsFailed ? 127 : 0);
 }

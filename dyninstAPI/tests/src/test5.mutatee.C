@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.9 2003/07/18 15:44:10 schendel Exp $ */
+/* $Id: test5.mutatee.C,v 1.10 2003/10/18 00:56:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -587,6 +587,7 @@ int main(int iargc, char *argv[])
 	    printf("\n");
     }
 
+    fflush(stdout);
     dprintf("Mutatee %s terminating.\n", argv[0]);
     return (testsFailed ? 127 : 0);
 }
