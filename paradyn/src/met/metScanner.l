@@ -1,7 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.6  1995/11/13 14:54:06  naim
+ * Revision 1.7  1995/11/17 17:22:16  newhall
+ * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
+ *
+ * Revision 1.6  1995/11/13  14:54:06  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
  *
@@ -143,6 +146,9 @@ i
 "mode"		{ return(tMODE);}
 "developer"	{ return(tDEVELOPER);}
 "normal"	{ return(tNORMAL);}
+"unitsType"	{ return(tUNITTYPE);}
+"normalized"	{ return(tNORMALIZE);}
+"unnormalized"	{ return(tUNNORMALIZE);}
 "foldOperator"	{ return(tFOLD);}
 "base"		{ return(tBASE);}
 "is"		{ return(tIS);}

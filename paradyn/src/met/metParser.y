@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.10  1995/11/13 14:53:28  naim
+ * Revision 1.11  1995/11/17 17:22:13  newhall
+ * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
+ *
+ * Revision 1.10  1995/11/13  14:53:28  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
  *
@@ -78,6 +81,7 @@ extern unsigned hacked_cons_type;
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
 %token tTYPE tAT tIN tLSQUARE tRSQUARE tBEFORE tAFTER
 %token tSTYLE tEVENT_COUNTER tSAMPLE_FUNC tMODE tDEVELOPER tNORMAL
+%token tUNITTYPE tNORMALIZE tUNNORMALIZE
 %token tPLUS tMINUS tDIV tMULT tLT tGT tLE tGE tEQ tNE tAND tOR tNOT
 %token tADD_COUNTER tSET_COUNTER tSUB_COUNTER 
 %token tSTART_PROC_TIMER tSTOP_PROC_TIMER 
@@ -480,6 +484,13 @@ mode_val: tDEVELOPER { $$.b = true; }
 met_mode: 		       { $$.b = false; };	
 	| tMODE mode_val tSEMI { $$.b = $2.b; };
 
+
+unittype_val: tNORMALIZE { $$.b = true; }
+	| tUNNORMALIZE { $$.b = false; };
+
+met_unittype:		{ $$.b = true; };
+	| tUNITTYPE unittype_val tSEMI {$$.b = $2.b;};
+
 met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.type = MDL_T_COUNTER;
   $$.base.m_stmt_v = $5.m_stmt_v;
@@ -514,10 +525,10 @@ constraint_list:      {
 met_temps:                                 { $$.vs = new vector<string>; }
          | met_temps tCOUNTER tIDENT tSEMI { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp;};
 
-metric_definition: tMETRIC tIDENT tLBLOCK met_name met_units met_fold met_agg met_style met_flavor met_mode constraint_list met_temps met_base tRBLOCK {
+metric_definition: tMETRIC tIDENT tLBLOCK met_name met_units met_fold met_agg met_style met_flavor met_mode met_unittype constraint_list met_temps met_base tRBLOCK {
   if (!mdl_data::new_metric(*$2.sp, *$4.sp, *$5.sp, $6.u, $7.u, $8.u, 
-			    $13.base.type, $13.base.m_stmt_v,
-			    $9.vs, $11.v_cons, $12.vs, $10.b)) {
+			    $14.base.type, $14.base.m_stmt_v,
+			    $9.vs, $12.v_cons, $13.vs, $10.b, $11.b)) {
     char msg[100];
     sprintf(msg, "Error defining %s\n", $2.sp->string_of());
     yyerror(msg);

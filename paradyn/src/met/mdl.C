@@ -35,9 +35,10 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 				    vector<string> *flav,
 				    vector<T_dyninstRPC::mdl_constraint*> *cons,
 				    vector<string> *temp_counters,
-				    bool developerMode)
+				    bool developerMode,
+				    bool normalized)
 : id_(id), name_(name), units_(units), developerMode_(developerMode),
-  fold_op_(fold), agg_op_(agg), 
+  normalized_(normalized), fold_op_(fold), agg_op_(agg), 
   style_(sty),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons), 
   temp_ctr_(temp_counters) { }
@@ -66,14 +67,16 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<string> *flavs,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
 			  vector<string> *temp_counters,
-			  bool developerMode) {
+			  bool developerMode,
+			  bool normalized) {
 
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, 
 							     fold, agg,
 							     sty, type, mv, 
 							     flavs, cons,
 							     temp_counters,
-							     developerMode);
+							     developerMode,
+							     normalized);
   if (!m)
     return false;
   else {
