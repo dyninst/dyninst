@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.85 2003/04/11 22:46:29 schendel Exp $
+// $Id: unix.C,v 1.86 2003/04/15 18:44:41 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -515,12 +515,22 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
             // but all the other shared libs aren't initialized yet. 
             // So we wait for main to be entered before working on the process.
             proc->setBootstrapState(begun);
-            proc->insertTrapAtEntryPointOfMain();
-            string buffer = string("PID=") + string(proc->getPid());
-            buffer += string(", attached to process, stepping to main");       
-            statusLine(buffer.c_str());
-            if (!proc->continueProc()) {
-                assert(0);
+            if (proc->insertTrapAtEntryPointOfMain()) {
+                string buffer = string("PID=") + string(proc->getPid());
+                buffer += string(", attached to process, stepping to main");       
+                statusLine(buffer.c_str());
+                if (!proc->continueProc()) {
+                    assert(0);
+                }
+            } else {
+                // We couldn't insert the trap... so detach from the process
+                // and let it run. 
+                cerr << "ERROR: couldn't insert at entry of main, instrumenting process" << endl;
+                cerr << "is impossible" << endl;
+                // We should actually delete any mention of this process... including
+                // (for Paradyn) removing it from the frontend.
+                handleProcessExit(proc, 0);
+                proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
             
@@ -781,19 +791,26 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
             int parentPid = proc->getPid();
 
             process *theChild = new process(*proc, (int)childPid, -1);
-            processVec.push_back(theChild);
-            activeProcesses++;
-
-            theChild->status_ = stopped;
-            
+            if (theChild) {
+                processVec.push_back(theChild);
+                activeProcesses++;
+                
+                theChild->status_ = stopped;
+                
 #if defined(rs6000_ibm_aix4_1)
-            // AIX has interesting fork behavior: the program image is
-            // loaded from disk instead of copied over. This means we 
-            // need to reinsert all instrumentation.
-            extern bool copyInstrumentationToChild(process *p, process *c);
-            copyInstrumentationToChild(proc, theChild);
+                // AIX has interesting fork behavior: the program image is
+                // loaded from disk instead of copied over. This means we 
+                // need to reinsert all instrumentation.
+                extern bool copyInstrumentationToChild(process *p, process *c);
+                copyInstrumentationToChild(proc, theChild);
 #endif
-            process::forkCallback(proc, theChild);
+                proc->handleForkExit(theChild);
+                
+            }
+            else {
+                // Can happen if we're forking something we can't trace
+                cerr << "Process forked, but unable to initialize child" << endl;
+            }
         }
     }
 
@@ -859,8 +876,14 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
             // Oh, and install that here.
         }
         proc->setBootstrapState(begun);
-        proc->insertTrapAtEntryPointOfMain();
-        proc->continueProc();
+        if (!proc->insertTrapAtEntryPointOfMain()) {
+            cerr << "Failed to initialize exec'ed process, assuming exit..." << endl;
+            proc->continueProc();
+            // We should actually delete any mention of this process... including
+            // (for Paradyn) removing it from the frontend.
+            handleProcessExit(proc, 0);
+        }
+        else proc->continueProc();
     }
     return 1;
 }
