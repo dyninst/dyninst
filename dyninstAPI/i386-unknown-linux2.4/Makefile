@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2003/04/18 22:35:17 tlmiller Exp $
+# $Id: Makefile,v 1.16 2003/04/22 21:46:34 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -63,7 +63,7 @@ TFLAGS          += $(MYFLAGS)
 #TFLAGS		+= -g
 
 SYSLIBS		= -lelf -ldl
-LIBS		= $(LIBDWARFDIR)/lib/libdwarf.a
+LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf
 
 AS		= /usr/bin/as
 

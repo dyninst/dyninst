@@ -19,6 +19,7 @@ include $(TO_CORE)/make.config
 #CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 
 SYSLIBS   += -lelf -lnsl 
+LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
 
 MUTATEE_CFLAGS += -rdynamic -ldl
 
