@@ -49,4 +49,28 @@
 #define ERROR_INT -1
 #define OK 0
 
+// trace data streams
+#include "util/h/ByteArray.h"
+
+class visi_TraceData {
+  public:
+     int metricIndex;
+     int resourceIndex;
+     byteArray *dataRecord;
+     visi_TraceData(){metricIndex=0; resourceIndex=0; dataRecord=NULL; }
+    ~visi_TraceData(){ }
+};
+
+//
+// returns the pointer to the trace data record
+//
+extern const visi_TraceData *visi_TraceDataValues();
+
+//
+// sets the trace data associated with metric_num and resource_num
+// returns 1 on success, or returns 0 on error
+//
+extern int visi_SetTraceData(int metric_num, int resource_num, 
+                             visi_sampleType data);
+
 #endif
