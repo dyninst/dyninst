@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.25 2003/06/27 20:57:48 tlmiller Exp $
+// $Id: String.C,v 1.26 2003/06/28 13:21:15 tlmiller Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -114,7 +114,7 @@ void dedemangle( const char * demangled, char * result ) {
 					offset = 0;
 					}
 				else{
-					resultBegins = &(resultBegins[offset]);
+					resultBegins = &(resultBegins[offset + 1]);
 					offset++;
 					}
 
@@ -150,7 +150,7 @@ void dedemangle( const char * demangled, char * result ) {
 		}
 
 	strcpy( result, resultBegins );
-} /* end dedemangle */
+	} /* end dedemangle */
 
 // Declare static member vrbles:
 string *string::nilptr = NULL;
