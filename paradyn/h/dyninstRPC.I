@@ -98,6 +98,8 @@ struct batch_buffer_entry {
    double startTimeStamp;
    double endTimeStamp;
    double value;
+   u_int weight;
+   bool  internal_met; 
 };
 
 
@@ -435,7 +437,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 28;
+    $version 30;
 
     //
     // Define a program to run. 

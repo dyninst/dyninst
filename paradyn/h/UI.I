@@ -2,10 +2,13 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.18  1996/01/23 06:51:29  tamches
-/* added "label" arg to add-edge; needed for effective use of shadow
-/* nodes.
+/* Revision 1.19  1996/01/31 19:51:54  newhall
+/* added a weight value and an internal metric flag to batch_buffer_entry
 /*
+# Revision 1.18  1996/01/23  06:51:29  tamches
+# added "label" arg to add-edge; needed for effective use of shadow
+# nodes.
+#
  * Revision 1.17  1995/11/08 23:41:36  tamches
  * removed obsolete igen calls showMsg, msgChoice, showMsgWait,
  * chooseMenuItem, and chooseMenuItemREPLY
@@ -119,7 +122,7 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 9;
+	$version 10;
 	//
 	// provides user with appropriate choices and passes back selections
 
