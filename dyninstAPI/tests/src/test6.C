@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.11 2002/09/23 21:47:12 gaburici Exp $
+// $Id: test6.C,v 1.12 2002/12/21 03:16:43 jaw Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -696,7 +696,20 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Set<BPatch_opCode> loads;
   loads.insert(BPatch_opLoad);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", loads);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(loads);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -724,7 +737,20 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Set<BPatch_opCode> stores;
   stores.insert(BPatch_opStore);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", stores);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(stores);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -751,7 +777,20 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
   BPatch_Set<BPatch_opCode> prefes;
   prefes.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", prefes);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(prefes);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -782,7 +821,20 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(axs);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -815,7 +867,21 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(axs);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -838,7 +904,20 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(axs);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -863,7 +942,20 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(axs);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
@@ -886,7 +978,20 @@ void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);
 
-  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  char *inFunction="loadsnstores";
+  if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    inFunction);
+    exit(1);
+  }
+       
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), inFunction);
+  }
+       
+  BPatch_Vector<BPatch_point *> *res1 = found_funcs[0]->findPoint(axs);
 
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");

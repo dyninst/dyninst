@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.37 2002/12/20 07:49:55 jaw Exp $
+// $Id: BPatch_image.C,v 1.38 2002/12/21 03:16:43 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -263,59 +263,6 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
   (void) getProcedures();
 
   return modlist;
-}
-
-/*
- * BPatch_image::findProcedurePoint
- *
- * Returns a vector of the instrumentation points from a procedure that is
- * identified by the parameters, or returns NULL upon failure.
- *
- * name		The name of the procedure in which to look up the points.
- * loc		The points within the procedure to return.  The following
- *		values are valid for this parameter:
- * 		  BPatch_entry         The function's entry point.
- * 		  BPatch_exit          The function's exit point(s).
- * 		  BPatch_subroutine    The points at which the procedure calls
- * 		                       other procedures.
- * 		  BPatch_longJump      The points at which the procedure make
- * 		                       long jump calls.
- *		  BPatch_allLocations  All of the points described above.
- */
-BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
-	const char *name, const BPatch_procedureLocation loc)
-{
-    /* XXX Right now this assumes that there's only one function with
-     * the given name.
-     */
-
-    BPatch_function *func = findBPFunction(name);
-    if (func == NULL) return NULL;
-
-    return func->findPoint(loc);
-}
-
-/*
- * BPatch_image::findProcedurePoint (VG 09/05/01)
- *
- * Returns a vector of the instrumentation points from a procedure that is
- * identified by the parameters, or returns NULL upon failure.
- *
- * name		The name of the procedure in which to look up the points.
- * ops          The points within the procedure to return. A set of op codes
- *              defined in ast.h
- */
-BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
-	const char *name, const BPatch_Set<BPatch_opCode>& ops)
-{
-    /* XXX Right now this assumes that there's only one function with
-     * the given name.
-     */
-
-    BPatch_function *func = findBPFunction(name);
-    if (func == NULL) return NULL;
-
-    return func->findPoint(ops);
 }
 
 /*
@@ -708,6 +655,60 @@ BPatch_function  *BPatch_image::findBPFunction(const char *name)
 	return (*funclist)[1];
       else 
 	return (*funclist)[0];
+    }
+    // check the default base types of last resort
+    else
+      return NULL;
+}
+
+
+/*
+ * BPatch_image::findBPFunnction
+ *
+ * Returns a BPatch_function* representing the named function or if no func
+ * exists, returns NULL.
+ *
+ * name		The name of function to look up.
+ */
+BPatch_Vector<BPatch_function *>  *BPatch_image::findBPFunction(const char *name,
+								BPatch_Vector<BPatch_function *> &funclist)
+{
+    char *fullName;
+    BPatch_function *func;
+    assert(BPatch::bpatch != NULL);
+
+    // XXX - should this stuff really be by image ??? jkh 3/19/99
+    BPatch_Vector<BPatch_module *> *mods = getModules();
+    //printf(" Number of Modules %d\n",mods->size());
+    for (unsigned int m = 0; m < mods->size(); m++) {
+	BPatch_module *module = (*mods)[m];
+	func = module->findFunction(name);
+	if (func) {
+	    if (func->getProc() != proc) {
+		printf("got func in the wrong proc\n");
+	    }
+	    funclist.push_back(func);
+	}
+    }
+
+    if (!funclist.size()) {
+	fullName = (char *) malloc(strlen(name) + 2);
+	sprintf(fullName, "%s_", name);
+	for (unsigned int m = 0; m < mods->size(); m++) {
+	    BPatch_module *module = (*mods)[m];
+	    func = module->findFunction(fullName);
+	    if (func) {
+		if (func->getProc() != proc) {
+		    printf("got func in the wrong proc\n");
+		}
+		funclist.push_back(func);
+	    }
+	}
+	free(fullName);
+    }
+
+    if( funclist.size()){
+      return &funclist;
     }
     // check the default base types of last resort
     else

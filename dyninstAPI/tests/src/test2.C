@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.49 2002/08/09 23:32:38 jaw Exp $
+// $Id: test2.C,v 1.50 2002/12/21 03:16:43 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -320,8 +320,21 @@ void test8a(BPatch_thread *appThread, BPatch_image *appImage)
     /*
      * Instrument a function with a BPatch_breakPointExpr.
      */
-    BPatch_Vector<BPatch_point*> *points =
-	appImage->findProcedurePoint("func8_1", BPatch_entry);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func8_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func8_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func8_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_entry);
+
     if (points == NULL) {
 	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
 	printf("    unable to locate function \"func8_1\".\n");
@@ -453,8 +466,20 @@ void test10(BPatch_thread *thread)
 void test11(BPatch_thread * appThread, BPatch_image *appImage)
 {
 
-    BPatch_Vector<BPatch_point*> *points =
-	appImage->findProcedurePoint("func11_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func11_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func11_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func11_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_entry);
+
     if (points == NULL) {
 	printf("**Failed** test #11 (getDisplacedInstructions)\n");
 	printf("    unable to locate function \"func11_1\".\n");
@@ -493,8 +518,19 @@ void test11(BPatch_thread * appThread, BPatch_image *appImage)
 void test12(BPatch_thread *appThread, BPatch_image *appImage)
 {
    
-  BPatch_Vector<BPatch_point*> *points =
-    appImage->findProcedurePoint("func12_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func12_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func12_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func12_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_entry);
     
     if (!points) {
 	printf("**Failed** test #12 (BPatch_point query funcs)\n");

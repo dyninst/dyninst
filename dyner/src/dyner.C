@@ -765,10 +765,22 @@ int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 		when = BPatch_callBefore;
 	}
 
-	points = appImage->findProcedurePoint(argv[1], where);
+	BPatch_Vector<BPatch_function *> found_funcs;
+	if ((NULL == appImage->findFunction(argv[1], found_funcs)) || (0 == found_funcs.size())) {
+	  printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, argv[1]);
+	  return TCL_ERROR;
+	}
+
+	if (1 < found_funcs.size()) {
+	  printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
+		 __FILE__, __LINE__, 
+		 found_funcs.size(), argv[1]);
+	}
+	
+	points = found_funcs[0]->findPoint(where);
 
 	if (points == NULL) {
-		printf("Unable to locate function %s\n", argv[1]);
+		printf("Unable to locate points for function %s\n", argv[1]);
 		return TCL_ERROR;
 	}
     }
@@ -1023,7 +1035,6 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
     }
 
     BPatch_Vector<BPatch_point *> *points = func->findPoint(where);
-				// appImage->findProcedurePoint(argv[1], where);
 
     if (points == NULL) {
 	fprintf(stderr, "Unable to locate function: %s\n", argv[1]);
@@ -2005,8 +2016,20 @@ int repCall(char *func1, char *func2) {
 	return TCL_ERROR;
     }
 
-    BPatch_Vector<BPatch_point *> *points = appImage->findProcedurePoint(func1, 
-									BPatch_subroutine);
+    BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction(func1, found_funcs, 1)) || (0 == found_funcs.size())) {
+      printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, func1);
+      return TCL_ERROR;
+    }
+    
+    if (1 < found_funcs.size()) {
+      printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
+	     __FILE__, __LINE__, 
+	     found_funcs.size(), func1);
+    }
+    
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
+
     if (points == NULL) {
 	printf("Could not locate function %s\n", func1);
 	return TCL_ERROR;
@@ -2266,8 +2289,20 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 	}
     }
 
-    BPatch_Vector<BPatch_point *> *points = appImage->findProcedurePoint(argv[1], 
-									BPatch_subroutine);
+    BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction(argv[1], found_funcs, 1)) || (0 == found_funcs.size())) {
+      printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, argv[1]);
+      return TCL_ERROR;
+    }
+    
+    if (1 < found_funcs.size()) {
+      printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
+	     __FILE__, __LINE__, 
+	     found_funcs.size(), argv[1]);
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
+
     if (points == NULL) {
 	printf("Could not locate function %s\n", argv[1]);
 	return TCL_ERROR;

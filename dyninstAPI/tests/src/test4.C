@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.13 2002/03/28 20:13:37 hollings Exp $
+// $Id: test4.C,v 1.14 2002/12/21 03:16:43 jaw Exp $
 //
 
 #include <stdio.h>
@@ -103,9 +103,23 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_function *func2_3 = appImage->findFunction("func2_3");
        assert(func2_3);
        BPatch_funcCallExpr callExpr2(*func2_3, nullArgs);
-       BPatch_Vector<BPatch_point *> *point2;
-       point2 = appImage->findProcedurePoint("func2_2", BPatch_exit);
+ 
+       BPatch_Vector<BPatch_function *> found_funcs;
+       char *inFunction="func2_2";
+       if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	 fprintf(stderr, "    Unable to find function %s\n",
+		 inFunction);
+	 exit(1);
+       }
+       
+       if (1 < found_funcs.size()) {
+	 fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		 __FILE__, __LINE__, found_funcs.size(), inFunction);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point2 = found_funcs[0]->findPoint(BPatch_exit);
        assert(point2);
+       
        parent->insertSnippet(callExpr2, *point2);
 
        // insert different code into child
@@ -113,9 +127,11 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        assert(appImage);
        BPatch_function *func2_4 = appImage->findFunction("func2_4");
        BPatch_funcCallExpr callExpr1(*func2_4, nullArgs);
-       BPatch_Vector<BPatch_point *> *point1;
-       point1 = appImage->findProcedurePoint("func2_2", BPatch_exit);
-       child->insertSnippet(callExpr1, *point1);
+       //BPatch_Vector<BPatch_point *> *point1;
+       //point1 = appImage->findProcedurePoint("func2_2", BPatch_exit);
+       //child->insertSnippet(callExpr1, *point1);
+       // JAW -- why are we looking up the same info twice here??? changed to following line:
+       child->insertSnippet(callExpr1, *point2);
 
        test2Child = child;
        test2Parent = parent;
@@ -128,8 +144,21 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_function *func4_3 = appImage->findFunction("func4_3");
        assert(func4_3);
        BPatch_funcCallExpr callExpr2(*func4_3, nullArgs);
-       BPatch_Vector<BPatch_point *> *point2;
-       point2 = appImage->findProcedurePoint("func4_2", BPatch_exit);
+
+       BPatch_Vector<BPatch_function *> found_funcs;
+       char *inFunction="func4_2";
+       if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	 fprintf(stderr, "    Unable to find function %s\n",
+		 inFunction);
+	 exit(1);
+       }
+       
+       if (1 < found_funcs.size()) {
+	 fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		 __FILE__, __LINE__, found_funcs.size(), inFunction);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point2 = found_funcs[0]->findPoint(BPatch_exit);
        assert(point2);
        parent->insertSnippet(callExpr2, *point2);
 
@@ -242,8 +271,23 @@ void execFunc(BPatch_thread *thread)
         BPatch_function *func3_2 = appImage->findFunction("func3_2");
         assert(func3_2);
         BPatch_funcCallExpr callExpr(*func3_2, nullArgs);
-        BPatch_Vector<BPatch_point *> *point;
-        point = appImage->findProcedurePoint("func3_1", BPatch_exit);
+
+       BPatch_Vector<BPatch_function *> found_funcs;
+       char *inFunction="func3_1";
+       if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	 fprintf(stderr, "    Unable to find function %s\n",
+		 inFunction);
+	 exit(1);
+       }
+       
+       if (1 < found_funcs.size()) {
+	 fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		 __FILE__, __LINE__, found_funcs.size(), inFunction);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point = found_funcs[0]->findPoint(BPatch_exit);
+
+
         assert(point);
         thread->insertSnippet(callExpr, *point);
     } else if (inTest == 4) {
@@ -256,8 +300,22 @@ void execFunc(BPatch_thread *thread)
         BPatch_function *func4_4 = appImage->findFunction("func4_4");
 	assert(func4_4);
         BPatch_funcCallExpr callExpr1(*func4_4, nullArgs);
-        BPatch_Vector<BPatch_point *> *point1;
-        point1 = appImage->findProcedurePoint("func4_2", BPatch_exit);
+
+       BPatch_Vector<BPatch_function *> found_funcs;
+       char *inFunction="func4_2";
+       if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	 fprintf(stderr, "    Unable to find function %s\n",
+		 inFunction);
+	 exit(1);
+       }
+       
+       if (1 < found_funcs.size()) {
+	 fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		 __FILE__, __LINE__, found_funcs.size(), inFunction);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point1 = found_funcs[0]->findPoint(BPatch_exit);
+
 	assert(point1);
         thread->insertSnippet(callExpr1, *point1);
     } else {

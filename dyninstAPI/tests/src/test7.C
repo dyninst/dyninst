@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.1 2002/06/26 21:15:03 schendel Exp $
+// $Id: test7.C,v 1.2 2002/12/21 03:16:43 jaw Exp $
 //
 
 #include <stdio.h>
@@ -173,8 +173,21 @@ void prepareTestCase1(procType proc_type, BPatch_thread *thread, forkWhen when)
    if(proc_type == Parent_p  &&  when == PreFork) {
       BPatch_image *parImage = thread->getImage();
       
-      BPatch_Vector<BPatch_point *> *point7_1p = 
-	 parImage->findProcedurePoint("func7_1", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_1";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *point7_1p = found_funcs[0]->findPoint(BPatch_entry);
+
       if(doError(1, !point7_1p || ((*point7_1p).size() == 0),
 		 "  Unable to find entry point to \"func7_1\".\n")) return;
 
@@ -224,8 +237,21 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
    if(proc_type == Parent_p  &&  when == PreFork) {
       BPatch_image *parImage = thread->getImage();
       
-      BPatch_Vector<BPatch_point *> *points7_2p = 
-	 parImage->findProcedurePoint("func7_2", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_2";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_2p = found_funcs[0]->findPoint(BPatch_entry);
+
       if(doError(2, !points7_2p || ((*points7_2p).size() == 0),
 		 "  Unable to find entry point to \"func7_2\".\n")) return;
       BPatch_point *point7_2p = (*points7_2p)[0];
@@ -242,8 +268,21 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
    } else if(proc_type == Child_p  &&  when == PostFork) {
       BPatch_image *childImage = thread->getImage();      
 
-      BPatch_Vector<BPatch_point *> *points7_2c = 
-	 childImage->findProcedurePoint("func7_2", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_2";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_2c = found_funcs[0]->findPoint(BPatch_entry);
+
       if(doError(2, !points7_2c || ((*points7_2c).size() == 0),
 		 "  Unable to find entry point to \"func7_2\".\n")) return;
       BPatch_point *point7_2c = (*points7_2c)[0];
@@ -296,8 +335,20 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
    if(proc_type == Parent_p  &&  when == PreFork) {
       BPatch_image *parImage = thread->getImage();
 
-      BPatch_Vector<BPatch_point *> *points7_3p = 
-	 parImage->findProcedurePoint("func7_3", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_3";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_3p = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(3, !points7_3p || ((*points7_3p).size() == 0),
 		 "  Unable to find entry point to \"func7_3\".\n")) return;
@@ -320,9 +371,23 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
 	 return;
       }
    } else if(proc_type == Child_p  &&  when == PostFork) {
-      BPatch_image *childImage = thread->getImage();      
-      BPatch_Vector<BPatch_point *> *points7_3c = 
-	 childImage->findProcedurePoint("func7_3", BPatch_entry);
+      BPatch_image *childImage = thread->getImage();
+
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_3";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_3c = found_funcs[0]->findPoint(BPatch_entry);
+      
       if(doError(3, !points7_3c || ((*points7_3c).size() == 0),
 		 "  Unable to find entry point to \"func7_3\".\n")) return;
       BPatch_point *point7_3c = (*points7_3c)[0];
@@ -373,9 +438,22 @@ void prepareTestCase4(procType proc_type, BPatch_thread *thread, forkWhen when)
    static BPatchSnippetHandle *parSnippetHandle4;
 
    if(proc_type == Child_p  &&  when == PostFork) {
-      BPatch_image *childImage = thread->getImage();      
-      BPatch_Vector<BPatch_point *> *points7_4c = 
-	 childImage->findProcedurePoint("func7_4", BPatch_entry);
+      BPatch_image *childImage = thread->getImage();
+
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_4";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_4c = found_funcs[0]->findPoint(BPatch_entry);
       if(doError(TN, !points7_4c || ((*points7_4c).size() == 0),
 		 "  Unable to find entry point to \"func7_4\".\n")) return;
       BPatch_point *point7_4c = (*points7_4c)[0];
@@ -427,8 +505,20 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
    if(proc_type == Parent_p  &&  when == PreFork) {
       BPatch_image *parImage = thread->getImage();
 
-      BPatch_Vector<BPatch_point *> *points7_5p = 
-	 parImage->findProcedurePoint("func7_5", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_5";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_5p = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_5p || ((*points7_5p).size() == 0),
 		 "  Unable to find entry point to \"func7_5\".\n")) return;
@@ -446,8 +536,20 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
    } else if(proc_type == Parent_p  &&  when == PostFork) {
       BPatch_image *parImage = thread->getImage();
 
-      BPatch_Vector<BPatch_point *> *points7_5p = 
-	 parImage->findProcedurePoint("func7_5", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_5";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_5p = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_5p || ((*points7_5p).size() == 0),
 		 "  Unable to find entry point to \"func7_5\".\n")) return;
@@ -471,8 +573,20 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
    } else if(proc_type == Child_p  &&  when == PostFork) {
       BPatch_image *childImage = thread->getImage();
 
-      BPatch_Vector<BPatch_point *> *points7_5c = 
-	 childImage->findProcedurePoint("func7_5", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_5";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_5c = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_5c || ((*points7_5c).size() == 0),
 		 "  Unable to find entry point to \"func7_5\".\n")) return;
@@ -593,8 +707,20 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
    } else if(proc_type == Parent_p  &&  when == PostFork) {
       BPatch_image *parImage = thread->getImage();
 
-      BPatch_Vector<BPatch_point *> *points7_7p = 
-	 parImage->findProcedurePoint("func7_7", BPatch_entry);
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_7";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_7p = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_7p || ((*points7_7p).size() == 0),
 		 "  Unable to find entry point to \"func7_7\".\n")) return;
@@ -607,8 +733,21 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
       var7_7c = thread->getInheritedVariable(*var7_7p);
 
       BPatch_image *childImage = thread->getImage();
-      BPatch_Vector<BPatch_point *> *points7_7c = 
-	 childImage->findProcedurePoint("func7_7", BPatch_entry);
+
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_7";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_7c = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_7c || ((*points7_7c).size() == 0),
 		 "  Unable to find entry point to \"func7_7\".\n")) return;
@@ -667,8 +806,21 @@ void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen when)
       thread->oneTimeCode(a_expr7_8p);
    } else if(proc_type == Parent_p  &&  when == PostFork) {
       BPatch_image *parImage = thread->getImage();
-      BPatch_Vector<BPatch_point *> *points7_8p = 
-	 parImage->findProcedurePoint("func7_8", BPatch_entry);
+
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_8";
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_8p = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_8p || ((*points7_8p).size() == 0),
 		 "  Unable to find entry point to \"func7_8\".\n")) return;
@@ -736,8 +888,21 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
       parentThread->free(*var7_9p);
 
       BPatch_image *childImage = thread->getImage();
-      BPatch_Vector<BPatch_point *> *points7_9c = 
-	 childImage->findProcedurePoint("func7_9", BPatch_entry);
+
+      BPatch_Vector<BPatch_function *> found_funcs;
+      char *inFunction="func7_9";
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+	fprintf(stderr, "    Unable to find function %s\n",
+		inFunction);
+	exit(1);
+      }
+      
+      if (1 < found_funcs.size()) {
+	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		__FILE__, __LINE__, found_funcs.size(), inFunction);
+      }
+      
+      BPatch_Vector<BPatch_point *> *points7_9c = found_funcs[0]->findPoint(BPatch_entry);
 
       if(doError(TN, !points7_9c || ((*points7_9c).size() == 0),
 		 "  Unable to find entry point to \"func7_9\".\n")) return;

@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.25 2002/02/11 22:02:37 tlmiller Exp $
+// $Id: test3.C,v 1.26 2002/12/21 03:16:43 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -124,8 +124,20 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 	BPatch_snippet &snippet, int testNo, char *testName)
 {
     // Find the point(s) we'll be instrumenting
-    BPatch_Vector<BPatch_point *> *points =
-	appImage->findProcedurePoint(inFunction, loc);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      inFunction);
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), inFunction);
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(loc);
 
     if (!points) {
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
@@ -391,8 +403,21 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
         const char *Var="test3ret";
         const char *Call="call3_1";
         BPatch_image *img = appThread[n]->getImage();
-        BPatch_Vector<BPatch_point *> *point =
-            img->findProcedurePoint(Func, BPatch_entry);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == img->findFunction(Func, found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      Func);
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), Func);
+    }
+
+    BPatch_Vector<BPatch_point *> *point = found_funcs[0]->findPoint(BPatch_entry);
+
         if (!point || (*point).size() == 0) {
             printf("  Unable to find entry point to \"%s\".\n", Func);
             printf("**Failed** test #3 (instrument multiple processes)\n");

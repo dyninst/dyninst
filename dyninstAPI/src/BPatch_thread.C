@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.67 2002/12/20 07:49:56 jaw Exp $
+// $Id: BPatch_thread.C,v 1.68 2002/12/21 03:16:43 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -103,8 +103,22 @@ static void insertVForkInst(BPatch_thread *thread)
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
 
-    BPatch_Vector<BPatch_point *> *points =
-      appImage->findProcedurePoint("vfork", BPatch_exit);
+    BPatch_Vector<BPatch_function *>  vforks;
+    if (NULL == appImage->findFunction("vfork", vforks, 1) || ( 0 == vforks.size())) {
+      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
+	      __FILE__, __LINE__);
+      return;
+    }
+    
+    if (vforks.size() > 1)
+      // we should really go through the modules and make sure we have the right one here -- JAW
+      fprintf(stderr, "%s[%d]:  SERIOUS  : found %d functions called 'vfork' in image, "
+	      "might be picking the wrong one\n", __FILE__, __LINE__, vforks.size());
+    
+    BPatch_function *one_vfork = vforks[0];
+    assert(one_vfork);
+
+    BPatch_Vector<BPatch_point *> *points = one_vfork->findPoint(BPatch_exit);
 
     if (vforkFunc && points) {
 	BPatch_Vector<BPatch_snippet *> args;

@@ -94,12 +94,6 @@ public:
 
     BPatch_Vector<BPatch_variableExpr *> *getGlobalVariables();
 
-    BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
-	    const BPatch_procedureLocation loc);
-
-    BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
-	    const BPatch_Set<BPatch_opCode>& ops);
-
     BPatch_point *createInstPointAtAddr(void *address);
 
     BPatch_point *createInstPointAtAddr(void *address,
@@ -109,7 +103,8 @@ public:
 
     BPatch_function	*findFunction(const char *name, bool showError=true);
     BPatch_function	*findBPFunction(const char *name);
-
+BPatch_Vector<BPatch_function *>  *findBPFunction(const char *name,
+						  BPatch_Vector<BPatch_function *> &funclist);
     BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 

@@ -159,8 +159,21 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 {
     int numReplaced = 0;
 
-    BPatch_Vector<BPatch_point *> *points =
-	appImage->findProcedurePoint(inFunction, BPatch_subroutine);
+    BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+      fprintf(stderr, "    Unable to find function %s\n",
+	      inFunction);
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), inFunction);
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
+
     if (!points || (points->size() < 1)) {
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
 	fprintf(stderr, "    Unable to find point %s - subroutine calls\n",
@@ -244,8 +257,21 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 	BPatch_snippet &snippet, int testNo, char *testName)
 {
     // Find the point(s) we'll be instrumenting
-    BPatch_Vector<BPatch_point *> *points =
-	appImage->findProcedurePoint(inFunction, loc);
+
+    BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+      fprintf(stderr, "    Unable to find function %s\n",
+	      inFunction);
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), inFunction);
+    }
+
+    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(loc);
 
     if (!points) {
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
@@ -350,9 +376,20 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func1_1"
 
-    BPatch_Vector<BPatch_point *> *point1_1;
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func1_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    "func1_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func1_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point1_1 = found_funcs[0]->findPoint(BPatch_entry);
 
-    point1_1 = appImage->findProcedurePoint("func1_1", BPatch_entry);
 
     if (!point1_1 || ((*point1_1).size() == 0)) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
@@ -385,15 +422,25 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func2_1"
 
-    BPatch_Vector<BPatch_point *> *point2_1;
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func2_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    "func2_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func2_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point2_1 = found_funcs[0]->findPoint(BPatch_entry);
 
-    point2_1 = appImage->findProcedurePoint("func2_1", BPatch_entry);
-
-    if (!point2_1 || ((*point2_1).size() == 0)) {
-	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-	fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
-	exit(1);
-    }
+  if (!point2_1 || ((*point2_1).size() == 0)) {
+    fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+    fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
+    exit(1);
+  }
 
     BPatch_function *call2_func;
     call2_func = appImage->findFunction("call2_1");
@@ -484,8 +531,19 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func3_1"
 
-    BPatch_Vector<BPatch_point *> *point3_1;
-    point3_1 = appImage->findProcedurePoint("func3_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func3_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    "func3_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func3_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point3_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point3_1 || ((*point3_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
@@ -502,8 +560,19 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> call3_args;
 
-    BPatch_Vector<BPatch_point *> *call3_1;
-    call3_1 = appImage->findProcedurePoint ("call3_1", BPatch_subroutine);
+  BPatch_Vector<BPatch_function *> found_funcs2;
+  if ((NULL == appImage->findFunction("call3_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    "call3_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs2.size(), "call3_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *call3_1 = found_funcs2[0]->findPoint(BPatch_subroutine);
 
     if (!call3_1 || ((*call3_1).size() == 0)) {
         fprintf(stderr, "    Unable to find entry point to \"call3_1.\"\n");
@@ -561,8 +630,19 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func4_1"
-    BPatch_Vector<BPatch_point *> *point4_1;
-    point4_1 = appImage->findProcedurePoint("func4_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func4_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+     fprintf(stderr, "    Unable to find function %s\n",
+	    "func4_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func4_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point4_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point4_1 || ((*point4_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
@@ -596,18 +676,41 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
     // Find the entry point to the procedure "func5_2"
-    BPatch_Vector<BPatch_point *> *point5_1;
-    point5_1 = appImage->findProcedurePoint("func5_2", BPatch_entry);
+    
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func5_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+     fprintf(stderr, "    Unable to find function %s\n",
+	    "func5_2");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func5_2");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point5_1 = found_funcs[0]->findPoint(BPatch_entry);  
 
     if (!point5_1 || ((*point5_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func5_2\".\n");
 	exit(1);
     }
 
-    BPatch_Vector<BPatch_point *> *point5_2;
-    point5_2 = appImage->findProcedurePoint ("func5_1", BPatch_subroutine);
-
-    if (!point5_2 || ((*point5_2).size() == 0)) {
+ BPatch_Vector<BPatch_function *> found_funcs2;
+  if ((NULL == appImage->findFunction("func5_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+     fprintf(stderr, "    Unable to find function %s\n",
+	    "func5_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs2.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs2.size(), "func5_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point5_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
+    
+  if (!point5_2 || ((*point5_2).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func5_1\".\n");
 	exit(1);
     }
@@ -648,16 +751,40 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func6_2"
-    BPatch_Vector<BPatch_point *> *point6_1;
-    point6_1 = appImage->findProcedurePoint("func6_2", BPatch_entry);
 
-    if (!point6_1 || ((*point6_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
-	exit(1);
-    }
+    
+  BPatch_Vector<BPatch_function *> found_funcs;
+  if ((NULL == appImage->findFunction("func6_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+    fprintf(stderr, "    Unable to find function %s\n",
+	    "func6_2");
+    exit(1);
+  }
+  
+  if (1 < found_funcs.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs.size(), "func6_2");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point6_1 = found_funcs[0]->findPoint(BPatch_entry);  
 
-    BPatch_Vector<BPatch_point *> *point6_2;
-    point6_2 = appImage->findProcedurePoint("func6_1", BPatch_subroutine);
+  if (!point6_1 || ((*point6_1).size() == 0)) {
+    fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
+    exit(1);
+  }
+
+  BPatch_Vector<BPatch_function *> found_funcs2;
+  if ((NULL == appImage->findFunction("func6_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+     fprintf(stderr, "    Unable to find function %s\n",
+	    "func6_1");
+    exit(1);
+  }
+  
+  if (1 < found_funcs2.size()) {
+    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	    __FILE__, __LINE__, found_funcs2.size(), "func6_1");
+  }
+  
+  BPatch_Vector<BPatch_point *> *point6_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
 
     if (!point6_2 || ((*point6_2).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func6_1\".\n");
@@ -781,8 +908,20 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1, 
 		BPatch_relOp op, int r1, int r2, char *var1)
 {
-    BPatch_Vector <BPatch_point *> *point7_1;
-    point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+
+   BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func7_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+        fprintf(stderr, "    Unable to find function %s\n",
+	      "func7_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func7_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point7_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -807,8 +946,20 @@ void genVRelTest(BPatch_image *appImage,
 		 BPatch_relOp op, BPatch_variableExpr *r1, 
 		 BPatch_variableExpr *r2, char *var1)
 {
-    BPatch_Vector <BPatch_point *> *point7_1;
-    point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+
+   BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func7_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func7_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func7_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point7_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -834,8 +985,20 @@ void genVRelTest(BPatch_image *appImage,
 void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func7_2"
-    BPatch_Vector<BPatch_point *> *point7_1;
-    point7_1 = appImage->findProcedurePoint("func7_2", BPatch_entry);
+
+   BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func7_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "func7_2");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func7_2");
+    }
+
+    BPatch_Vector<BPatch_point *> *point7_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_2\".\n");
@@ -861,8 +1024,19 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_or, 1, 0, "globalVariable7_15");
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
 
-    BPatch_Vector <BPatch_point *> *func7_1;
-    func7_1 = appImage->findProcedurePoint ("func7_1", BPatch_subroutine);
+   BPatch_Vector<BPatch_function *> found_funcs2;
+    if ((NULL == appImage->findFunction("func7_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "func7_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs2.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs2.size(), "func7_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *func7_1 = found_funcs2[0]->findPoint(BPatch_subroutine);
 
     if (!func7_1 || ((*func7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -932,8 +1106,20 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func8_1"
-    BPatch_Vector<BPatch_point *> *point8_1;
-    point8_1 = appImage->findProcedurePoint("func8_1", BPatch_entry);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func8_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func8_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func8_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point8_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point8_1 || ((*point8_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func8_1\".\n");
@@ -974,8 +1160,20 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func9_1"
-    BPatch_Vector<BPatch_point *> *point9_1;
-    point9_1 = appImage->findProcedurePoint("func9_1", BPatch_entry);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func9_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "func9_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func9_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point9_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point9_1 || ((*point9_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func9_1\".\n");
@@ -1069,8 +1267,19 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func10_1"
-    BPatch_Vector<BPatch_point *> *point10_1;
-    point10_1 = appImage->findProcedurePoint("func10_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func10_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "func10_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func10_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point10_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point10_1 || ((*point10_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func10_1\".\n");
@@ -1124,8 +1333,19 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_1;
-    point11_1 = appImage->findProcedurePoint("func11_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func11_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func11_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func11_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point11_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point11_1 || (point11_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - entry.\n");
@@ -1133,8 +1353,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     // Find the subroutine points for the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_2;
-    point11_2 = appImage->findProcedurePoint("func11_1", BPatch_subroutine);
+    BPatch_Vector<BPatch_point *> *point11_2 = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!point11_2 || (point11_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - calls.\n");
@@ -1142,9 +1361,8 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     // Find the exit point to the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_3;
-    point11_3 = appImage->findProcedurePoint("func11_1", BPatch_exit);
-
+    BPatch_Vector<BPatch_point *> *point11_3 = found_funcs[0]->findPoint(BPatch_exit);
+ 
     if (!point11_3 || (point11_3->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - exit.\n");
 	exit(-1);
@@ -1212,8 +1430,19 @@ const int HEAP_TEST_UNIT_SIZE = 5000;
 void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
-    BPatch_Vector<BPatch_point *> *point12_2;
-    point12_2 = appImage->findProcedurePoint("func12_2", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func12_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func12_2");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func12_2");
+    }
+
+    BPatch_Vector<BPatch_point *> *point12_2 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point12_2 || (point12_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func12_2 - entry.\n");
@@ -1305,8 +1534,19 @@ void mutatorTest12b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func13_1"
-    BPatch_Vector<BPatch_point *> *point13_1;
-    point13_1 = appImage->findProcedurePoint("func13_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func13_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func13_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func13_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point13_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point13_1 || (point13_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_1 - entry.\n");
@@ -1338,8 +1578,19 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(call13_2Expr, *point13_1);
 
     // now test that a return value can be read.
-    BPatch_Vector<BPatch_point *> *point13_2;
-    point13_2 = appImage->findProcedurePoint("func13_2", BPatch_exit);
+  BPatch_Vector<BPatch_function *> found_funcs2;
+    if ((NULL == appImage->findFunction("func13_2", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+        fprintf(stderr, "    Unable to find function %s\n",
+	      "func13_2");
+      exit(1);
+    }
+
+    if (1 < found_funcs2.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs2.size(), "func13_2");
+    }
+
+    BPatch_Vector<BPatch_point *> *point13_2 = found_funcs2[0]->findPoint(BPatch_exit);
 
     if (!point13_2 || (point13_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
@@ -1444,8 +1695,20 @@ BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 //
 void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    BPatch_Vector <BPatch_point *> *func16_1;
-    func16_1 = appImage->findProcedurePoint ("func16_1", BPatch_subroutine);
+
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func16_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func16_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func16_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *func16_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!func16_1 || ((*func16_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func16_1\".\n");
@@ -1533,8 +1796,19 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func17_1"
-    BPatch_Vector<BPatch_point *> *point17_1;
-    point17_1 = appImage->findProcedurePoint("func17_1", BPatch_exit);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func17_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "func17_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func17_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point17_1 = found_funcs[0]->findPoint(BPatch_exit);
 
     if (!point17_1 || (point17_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_1 - exit.\n");
@@ -1569,8 +1843,19 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(call17_1Expr, *point17_1, BPatch_callAfter, BPatch_lastSnippet);
 
     // Find the exit point to the procedure "func17_2"
-    BPatch_Vector<BPatch_point *> *point17_2;
-    point17_2 = appImage->findProcedurePoint("func17_2", BPatch_exit);
+  BPatch_Vector<BPatch_function *> found_funcs2;
+    if ((NULL == appImage->findFunction("func17_2", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func17_2");
+      exit(1);
+    }
+
+    if (1 < found_funcs2.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs2.size(), "func17_2");
+    }
+
+    BPatch_Vector<BPatch_point *> *point17_2 = found_funcs2[0]->findPoint(BPatch_exit);
 
     if (!point17_2 || (point17_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_2 - exit.\n");
@@ -1613,8 +1898,19 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    BPatch_Vector <BPatch_point *> *func18_1;
-    func18_1 = appImage->findProcedurePoint ("func18_1", BPatch_subroutine);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func18_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func18_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func18_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *func18_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!func18_1 || ((*func18_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func18_1\".\n");
@@ -1995,8 +2291,19 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call23_1
-        BPatch_Vector<BPatch_point *> *point23_1 =
-            appImage->findProcedurePoint("call23_1", BPatch_subroutine);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("call23_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "call23_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "call23_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point23_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
         assert(point23_1);
 
@@ -2031,15 +2338,16 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
         exprs.push_back(&expr23_3);
 
         BPatch_sequence allParts(exprs);
+	
+	// this should not be needed???  JAW
+	//BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
 
-        BPatch_Vector<BPatch_point *> *points =
-        appImage->findProcedurePoint("call23_1", BPatch_subroutine);
-        if (!points || (points->size() < 1)) {
+	if (!point23_1 || (point23_1->size() < 1)) {
             fprintf(stderr, "**Failed** test #23 (local variables)\n");
             fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
             exit(1);
         }
-        appThread->insertSnippet(allParts, *points);
+        appThread->insertSnippet(allParts, *point23_1);
     }
 #endif
 }
@@ -2058,10 +2366,22 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
            return;
         }
 
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("call24_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "call24_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "call24_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *temp = found_funcs[0]->findPoint(BPatch_subroutine);
+
         //     Then verify that we can find a local variable in call24_1
-        BPatch_Vector<BPatch_point *> *temp =
-        appImage->findProcedurePoint("call24_1", BPatch_subroutine);
-        if (!temp) {
+    if (!temp) {
             fprintf(stderr, "**Failed** test #24 (array variables)\n");
             fprintf(stderr, "  can't find function call24_1\n");
             return;
@@ -2073,13 +2393,10 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 	    new(BPatch_Vector<BPatch_point *>);
         point24_1->push_back((*temp)[0]);
 
-        BPatch_Vector<BPatch_point *> *point24_2 =
-            appImage->findProcedurePoint("call24_1", BPatch_exit);
-
-        BPatch_Vector<BPatch_point *> *point24_3 =
-        appImage->findProcedurePoint("func24_1", BPatch_entry);
-
-        assert(point24_1 && point24_2 && point24_3);
+	BPatch_Vector<BPatch_point *> *point24_2 = found_funcs[0]->findPoint(BPatch_exit);
+	BPatch_Vector<BPatch_point *> *point24_3 = found_funcs[0]->findPoint(BPatch_entry);
+ 
+	assert(point24_1 && point24_2 && point24_3);
 
         BPatch_variableExpr *lvar;
         BPatch_variableExpr *gvar[10];
@@ -2173,8 +2490,19 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 	bpatch->setTypeChecking (false);
 #if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
     //     First verify that we can find a local variable in call25_1
-    BPatch_Vector<BPatch_point *> *point25_1;
-    point25_1 = appImage->findProcedurePoint("call25_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("call25_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "call25_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "call25_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point25_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     assert(point25_1);
 //    assert(point25_1 && (point25_1->size() == 1));
@@ -2244,13 +2572,22 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call26_1
-        BPatch_Vector<BPatch_point *> *point26_1;
-	point26_1 = appImage->findProcedurePoint("call26_1", BPatch_subroutine);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("call26_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "call26_1");
+      exit(1);
+    }
 
-        BPatch_Vector<BPatch_point *> *point26_2;
-	point26_2 = appImage->findProcedurePoint("func26_1", BPatch_subroutine);
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "call26_1");
+    }
 
-        assert(point26_1 && (point26_1->size() == 1));
+    BPatch_Vector<BPatch_point *> *point26_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+    BPatch_Vector<BPatch_point *> *point26_2 = found_funcs[0]->findPoint(BPatch_subroutine);
+
+    assert(point26_1 && (point26_1->size() == 1));
         assert(point26_2);
 
         BPatch_variableExpr *lvar;
@@ -2433,8 +2770,19 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     }
     expectError = DYNINST_NO_ERROR;
 
-    BPatch_Vector<BPatch_point *> *point27_1;
-    point27_1 = appImage->findProcedurePoint("func27_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func27_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func27_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func27_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point27_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     assert (point27_1);
 
@@ -2531,8 +2879,19 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
     globalVariable28_1->setType(struct28_2);
 
     //     Next verify that we can find a local variable in call28
-    BPatch_Vector<BPatch_point *> *point28 =
-	appImage->findProcedurePoint("call28_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("call28_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+       fprintf(stderr, "    Unable to find function %s\n",
+	      "call28_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "call28_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point28 = found_funcs[0]->findPoint(BPatch_entry);
 
     assert(point28 && (point28->size() == 1));
 
@@ -2649,8 +3008,19 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
 	return;
     }
 
-    BPatch_Vector<BPatch_point *> *point29_1;
-    point29_1 = appImage->findProcedurePoint("func29_1", BPatch_entry);
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func29_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func29_1");
+      exit(1);
+    }
+
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func29_1");
+    }
+
+    BPatch_Vector<BPatch_point *> *point29_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     assert (point29_1);
 
@@ -2690,10 +3060,22 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	if (mutateeFortran) {
 	    return;
 	} 
+  BPatch_Vector<BPatch_function *> found_funcs;
+    if ((NULL == appImage->findFunction("func30_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+      fprintf(stderr, "    Unable to find function %s\n",
+	      "func30_1");
+      exit(1);
+    }
 
+    if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	      __FILE__, __LINE__, found_funcs.size(), "func30_1");
+    }
+
+
+    BPatch_Vector<BPatch_point *> *point30_1 = found_funcs[0]->findPoint(BPatch_entry);
 	//instrument with the function that will set the line number
-	BPatch_Vector<BPatch_point *> *point30_1 =
-		appImage->findProcedurePoint("func30_1", BPatch_entry);
+
 	if (!point30_1 || (point30_1->size() < 1)) {
 		fprintf(stderr, "Unable to find point func30_1 - entry.\n");
 		exit(-1);
