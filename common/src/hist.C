@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.24  1996/05/06 17:14:54  newhall
+ * Revision 1.25  1996/05/07 17:25:39  newhall
+ * fix to bug caused by my previous commit
+ *
+ * Revision 1.24  1996/05/06  17:14:54  newhall
  * initialize top half of buckets to PARADYN_NaN on a fold
  *
  * Revision 1.23  1996/05/03  20:34:45  tamches
@@ -358,7 +361,7 @@ void Histogram::foldAllHist()
 		}
 	        (allHist[i])->lastBin = j - 1; 
 		for(int k=numBins/2; k<numBins; k++){
-		    bins[j] = PARADYN_NaN;
+		    bins[k] = PARADYN_NaN;
 		}
 	    }
 	    (allHist[i])->total_time = startTime + 
