@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.56 1998/08/29 03:06:57 zhichen Exp $
+// $Id: ast.C,v 1.57 1998/09/08 21:35:27 buck Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -881,7 +881,7 @@ reg AstNode::generateCode_phase2(process *proc,
     if (type == opCodeNode) {
         if (op == branchOp) {
 	    assert(loperand->oType == Constant);
-	    unsigned offset = (unsigned)loperand->oValue;
+	    Address offset = (Address)loperand->oValue;
 	    loperand->useCount--;
 	    loperand->kept_register = -1 ;
             emit(branchOp, (reg) 0, (reg) 0, (int)offset, insn, base, noCost);
