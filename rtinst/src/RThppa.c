@@ -82,7 +82,7 @@
 ************************************************************************/
 
 void
-DYNINSTos_init(int,int) {
+DYNINSTos_init(int calledByFork, int calledByAttach) {
 }
 
 
