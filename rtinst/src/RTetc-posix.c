@@ -20,7 +20,16 @@
 
 /************************************************************************
  * RTposix.c: runtime instrumentation functions for generic posix.
-************************************************************************/
+ *
+ * $Log: RTetc-posix.c,v $
+ * Revision 1.9  1995/03/10 19:39:42  hollings
+ * Fixed an ugly race condition in observed cost.
+ *
+ * Added the use of unix profil to compute the time spent in inst code.
+ *
+ *
+ ************************************************************************/
+
 
 
 
@@ -57,6 +66,11 @@
 
 static const double MILLION = 1000000.0;
 
+#ifdef USE_PROF
+int DYNINSTbufsiz;
+int DYNINSTprofile;
+short *DYNINSTprofBuffer;
+#endif
 
 
 
@@ -110,8 +124,8 @@ DYNINSTbreakPoint(void) {
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
     if (timer->counter == 0) {
-        timer->start     = DYNINSTgetUserTime();
-        timer->normalize = MILLION;
+        timer->start     = DYNINSTgetCPUtime();
+        timer->normalize = 1000000;
     }
     timer->counter++;
 }
@@ -136,7 +150,7 @@ DYNINSTstopProcessTimer(tTimer* timer) {
         timer->snapShot = now - timer->start + timer->total;
         timer->mutex    = 1;
         timer->counter  = 0;
-        timer->total    = DYNINSTgetUserTime() - timer->start + timer->total;
+        timer->total    = DYNINSTgetCPUtime() - timer->start + timer->total;
         timer->mutex    = 0;
 
         if (now < timer->start) {
@@ -164,7 +178,7 @@ void
 DYNINSTstartWallTimer(tTimer* timer) {
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetWalltime();
-        timer->normalize = MILLION;
+        timer->normalize = 1000000;
     }
     timer->counter++;
 }
@@ -329,6 +343,11 @@ restoreFPUstate(float* base) {
 /* The current observed cost since the last call to 
  *      DYNINSTgetObservedCycles(false) 
  */
+
+/* This could be static, but gdb has can't find them if they are.  jkh 5/8/95 */
+int64    DYNINSTvalue = 0;
+unsigned DYNINSTlastLow;
+
 unsigned DYNINSTobsCostLow;
 
 /************************************************************************
@@ -342,18 +361,24 @@ unsigned DYNINSTobsCostLow;
  ************************************************************************/
 static int64 DYNINSTgetObservedCycles(RT_Boolean in_signal) 
 {
-    static int64    value = 0;
 
     if (in_signal) {
-        return value;
+        return DYNINSTvalue;
     }
 
     /* update the 64 bit version of the counter */
-    value += DYNINSTobsCostLow;
+    if (DYNINSTobsCostLow < DYNINSTlastLow) {
+        /* counter wrap around */
+        /* note the calc here assume 32 bit int, but if ints are 64bit, then
+           it won't wrap in the first place */
+        DYNINSTvalue += (((unsigned) 0xffffffff) - DYNINSTlastLow) + 
+ 	    DYNINSTobsCostLow + 1;
+    } else {
+        DYNINSTvalue += (DYNINSTobsCostLow - DYNINSTlastLow);
+    }
 
-    /* reset the low counter */
-    DYNINSTobsCostLow = 0;
-    return value;
+    DYNINSTlastLow = DYNINSTobsCostLow;
+    return DYNINSTvalue;
 }
 
 
@@ -601,6 +626,16 @@ DYNINSTinit(int doskip) {
         DYNINSTbreakPoint();
     }
 
+#ifdef USE_PROF
+    {   extern int end;
+
+        DYNINSTbufsiz = ((unsigned int) &end)/sizeof(int);
+        DYNINSTprofBuffer = (short *) calloc(sizeof(short), DYNINSTbufsiz);
+        profil(DYNINSTprofBuffer, DYNINSTbufsiz*sizeof(short), 0, 0xffff);
+        DYNINSTprofile = 1;
+    }
+#endif
+
     DYNINSTstartWallTimer(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 }
@@ -641,7 +676,7 @@ DYNINSTreportTimer(tTimer *timer) {
     else if (timer->counter) {
         /* timer is running */
         if (timer->type == processTime) {
-            now = DYNINSTgetUserTime();
+            now = DYNINSTgetCPUtime();
         } else {
             now = DYNINSTgetWalltime();
         }
@@ -754,6 +789,46 @@ DYNINSTprintCost(void) {
 
     fp = fopen("stats.out", "w");
 
+#ifdef USE_PROF
+    if (DYNINSTprofile) {
+        int i;
+        int limit;
+        int pageSize;
+        int fract;
+        int startInst;
+        extern void DYNINSTfirst();
+
+
+        limit = DYNINSTbufsiz;
+        fract = sizeof(short);
+        /* first inst code - assumes data area above code space in virtual
+         * address */
+        startInst = (int) &DYNINSTfirst;
+#ifdef notdef
+        fprintf(fp, "startInst = %x\n", startInst);
+        fprintf(fp, "limit = %x\n", limit * fract);
+#endif
+        for (i=0; i < limit; i++) {
+            if (DYNINSTprofBuffer[i]) {
+                /* fprintf(fp, "%x %d\n", i * fract, DYNINSTprofBuffer[i]); */
+            }
+            if (i * fract > startInst) {
+                stats.instTicks += DYNINSTprofBuffer[i];
+            } else {
+                stats.userTicks += DYNINSTprofBuffer[i];
+            }
+        }
+
+#ifdef notdef
+        /* fwrite(DYNINSTprofBuffer, DYNINSTbufsiz, 1, fp); */
+        fprintf(fp, "stats.instTicks %d\n", stats.instTicks);
+        fprintf(fp, "stats.userTicks %d\n", stats.userTicks);
+#endif
+
+    }
+#endif
+
+#ifdef notdef
     fprintf(fp, "DYNINSTtotalAlarmExpires %d\n", stats.alarms);
     fprintf(fp, "DYNINSTnumReported %d\n", stats.numReported);
     fprintf(fp,"Raw cycle count = %f\n", (double) stats.instCycles);
@@ -766,6 +841,7 @@ DYNINSTprintCost(void) {
     fprintf(fp,"sampling rate %f\n", stats.samplingRate);
     fprintf(fp,"Application program ticks %d\n", stats.userTicks);
     fprintf(fp,"Instrumentation ticks %d\n", stats.instTicks);
+#endif
 
     fclose(fp);
 
