@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.164 1999/11/06 22:54:27 paradyn Exp $
+// $Id: metricFocusNode.C,v 1.165 1999/12/06 22:54:33 chambrea Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2753,8 +2753,13 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 
    rpcCount = 0;
    do {
-	   theProc->launchRPCifAppropriate(false, false);
-	   checkProcStatus();
+       // Make sure that we are not currently in an RPC to avoid race
+       // conditions between catchup instrumentation and waitProcs()
+       // loops
+       if ( !theProc->isRPCwaitingForSysCallToComplete() )
+           theProc->launchRPCifAppropriate(false, false);
+       checkProcStatus();
+       
    } while ( !rpcCount && theProc->status() != exited );
 
    if( needToCont && (theProc->status() != running))
