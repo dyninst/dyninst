@@ -100,13 +100,25 @@ $remote dynRPC {
     // Handler that gets called when a new resource is defined.
     //
     // parent		- parent of new resource
-    // newResource		- new resource being created (full name)
-    // name			- short name of the new resource
+    // newResource	- new resource being created (full name)
+    // name		- short name of the new resource
+    // abstraction      - abstraction to which it belongs     
     //
     $upcall $async void resourceInfoCallback(int program, 
 					      String parent, 
 					      String newResource, 
-					      String name);
+					      String name,
+					      String abstraction);
+
+
+    //
+    // Handler that gets called when new mapping data is collected.
+    //
+    $upcall $async void mappingInfoCallback(int program, 
+					      String abstraction, 
+					      String type, 
+					      String key,
+					      String value);
 
     //
     // Request a unique resource name

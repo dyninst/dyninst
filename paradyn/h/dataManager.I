@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.17  1994/06/17 22:08:11  hollings
+ * Revision 1.18  1994/06/27 21:21:39  rbi
+ * Abstraction-specific resources and mapping information
+ *
+ * Revision 1.17  1994/06/17  22:08:11  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
  *
@@ -100,6 +103,7 @@ typedef metric *metricList;
 class metricInstance;		
 
 typedef enum { Trace, Sample } dataType;
+typedef enum { BASE, CMF, TCL } abstractionType;
 
 /*
  * error handler call back.
@@ -264,12 +268,14 @@ $remote dataManager {
     //
     // applicationContext	- an application context.
     // dataType 		- Sample or Trace
+    // abstractionType  - source language
     // dataCallback 	- Function to call when new data arrives
     // controlCallback	- Function to call when new structure info arrives
     // sampleInterval	- nominal interval between samples (sample only)
     //
     performanceStream *createPerformanceStream(applicationContext*, 
 					       dataType, 
+					       abstractionType, 
 					       dataCallback, 
 					       controlCallback);
 	
