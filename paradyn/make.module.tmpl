@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.4  1995/02/26 02:14:39  newhall
+# Revision 1.5  1995/02/27 18:32:30  tamches
+# Changes to reflect the new TCthread.
+#
+# Revision 1.4  1995/02/26  02:14:39  newhall
 # added source file DMphase.C
 #
 # Revision 1.3  1995/02/16  08:03:56  markc
@@ -52,6 +55,8 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/UIwhere.C \
 		../src/UIthread/dagCompute.C \
 		../src/UIthread/dag.C \
+		../src/TCthread/TCmain.C \
+		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \
 		metParser.C \
 		metScanner.C \
