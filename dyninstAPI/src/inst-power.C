@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.84 2000/02/18 20:40:52 bernat Exp $
+ * $Id: inst-power.C,v 1.85 2000/02/23 22:54:07 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -553,12 +553,11 @@ trampTemplate conservativeTemplate;
 #endif
 
 extern "C" void baseTramp();
-extern "C" void baseTrampNonRecursive();
 #ifdef BPATCH_LIBRARY
 extern "C" void conservativeTramp();
 #endif
 
-void initATramp(trampTemplate *thisTemp, instruction *tramp)
+void initATramp(trampTemplate *thisTemp, instruction *tramp, bool guardDesired = true)
 {
     instruction *temp;
 
@@ -619,6 +618,11 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	        break;
   	}	
     }
+    if (!guardDesired)
+      {
+	thisTemp->recursiveGuardPreJumpOffset = 0;
+	thisTemp->recursiveGuardPostJumpOffset = 0;
+      }
     thisTemp->cost = 8;
     thisTemp->prevBaseCost = 20;
     thisTemp->postBaseCost = 30;
@@ -660,8 +664,8 @@ void initTramps()
     if (inited) return;
     inited = true;
 
-    initATramp(&baseTemplate, (instruction *) baseTramp);
-    initATramp(&baseTemplateNonRecursive, (instruction *) baseTrampNonRecursive);
+    initATramp(&baseTemplateNonRecursive, (instruction *) baseTramp);
+    initATramp(&baseTemplate, (instruction *) baseTramp, false);
 #ifdef BPATCH_LIBRARY
     initATramp(&conservativeTemplate, (instruction *) conservativeTramp);
 #endif
@@ -1153,12 +1157,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
     else theRegSpace = regSpace;
 #endif
 
-    /* If the template is non-NULL, then use it */
-    if (templateType != NULL)
+    if (templateType) // Already have a preferred template type
       {
 	theTemplate = templateType;
       }
-    else 
+    else
       {
 #ifdef BPATCH_LIBRARY
 	if (location->ipLoc == ipOther) {
@@ -1167,13 +1170,17 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	else
 #endif
 	if (trampRecursiveDesired)
-          theTemplate = &baseTemplate;
-	else 
-          theTemplate = &baseTemplateNonRecursive;
-      }
+	  {
+	    theTemplate = &baseTemplate;
+	  }
+	else
+	  {
+	    theTemplate = &baseTemplateNonRecursive;
+	  }
 
+      }
     /* We allocate the guard location if it hasn't been already */
-    if (!trampRecursiveDesired  && !baseTemplateGuardAddr)
+    if (!trampRecursiveDesired && !baseTemplateGuardAddr)
       {
 	int zeroval = 0;
 	baseTemplateGuardAddr = inferiorMalloc(proc, sizeof(int), dataHeap);
@@ -1373,91 +1380,121 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  currAddr -= sizeof(instruction);          //`for' loop compensate
 	  break;
         case REENTRANT_GUARD_LOAD:
-	  // Need to write the following instructions:
-	  // cau 7,0,HIGH(baseAddr)
-	  genImmInsn(temp,
-		     CAUop,   // Add immediate and shift
-		     6,       // Destination
-		     0,       // Source
-		     HIGH((int)baseTemplateGuardAddr));
-	  temp++; currAddr += sizeof(instruction); // Step for loop
-	  // oril 6,7,LOW(baseAddr)
-	  genImmInsn(temp,
-		     ORILop,  // OR immediate
-		     6,       // Destination
-		     6,       // Source
-		     LOW((int)baseTemplateGuardAddr));
-	  temp++; currAddr += sizeof(instruction);
-	  // load (addr: 6, dest: 5)
-	  genImmInsn(temp,   // instruction
-		     Lop,    // Load
-		     5,      // Into register 5
-		     6,      // Addr in register 6
-		     0);     // No offset
-	  break;
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
+	      // Need to write the following instructions:
+	      // cau 7,0,HIGH(baseAddr)
+	      genImmInsn(temp,
+			 CAUop,   // Add immediate and shift
+			 6,       // Destination
+			 0,       // Source
+			 HIGH((int)baseTemplateGuardAddr));
+	      temp++; currAddr += sizeof(instruction); // Step for loop
+	      // oril 6,7,LOW(baseAddr)
+	      genImmInsn(temp,
+			 ORILop,  // OR immediate
+			 6,       // Destination
+			 6,       // Source
+			 LOW((int)baseTemplateGuardAddr));
+	      temp++; currAddr += sizeof(instruction);
+	      // load (addr: 6, dest: 5)
+	      genImmInsn(temp,   // instruction
+			 Lop,    // Load
+			 5,      // Into register 5
+			 6,      // Addr in register 6
+			 0);     // No offset
+	    }
+	  else // No guard wanted, so overwrite with noop
+	    temp->raw = NOOPraw;
+	    break;
         case REENTRANT_PRE_INSN_JUMP:
-	  // Need to write the following instruction:
-	  // cmp (addr: 5 != 0)
-	  genImmInsn(temp,   // Instruction
-		     CMPIop, // Compare immediate
-		     0,      // CR 0, L=0
-		     5,      // Source,
-		     0);     // Compare to 0
-  	  temp++; currAddr += sizeof(instruction);
-	  // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
-	  temp->raw = 0;
-	  temp->bform.op = BCop; // Branch conditional
-	  temp->bform.bo = BFALSEcond; // Branch if false
-	  temp->bform.bi = EQcond;
-	  temp->bform.bd = ( theTemplate->restorePreInsOffset - 
-			     theTemplate->recursiveGuardPreJumpOffset) / 4;
-	  temp->bform.aa = 0; // Relative branch
-	  temp->bform.lk = 0; // No link req'd
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
+	      // Need to write the following instruction:
+	      // cmp (addr: 5 != 0)
+	      genImmInsn(temp,   // Instruction
+			 CMPIop, // Compare immediate
+			 0,      // CR 0, L=0
+			 5,      // Source,
+			 0);     // Compare to 0
+	      temp++; currAddr += sizeof(instruction);
+	      // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
+	      temp->raw = 0;
+	      temp->bform.op = BCop; // Branch conditional
+	      temp->bform.bo = BFALSEcond; // Branch if false
+	      temp->bform.bi = EQcond;
+	      temp->bform.bd = ( theTemplate->restorePreInsOffset - 
+				 theTemplate->recursiveGuardPreJumpOffset) / 4;
+	      temp->bform.aa = 0; // Relative branch
+	      temp->bform.lk = 0; // No link req'd
+	    }
+	  else
+	    temp->raw = NOOPraw;
 	  break;
         case REENTRANT_POST_INSN_JUMP:
-	  // Need to write the following instruction:
-	  // cmp (addr: 5 != 0)
-	  genImmInsn(temp,   // Instruction
-		     CMPIop, // Compare immediate
-		     0,      // CR 0, L=0
-		     5,      // Source,
-		     0);     // Compare to 0
-  	  temp++; currAddr += sizeof(instruction);
-	  // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
-	  temp->raw = 0;
-	  temp->bform.op = BCop; // Branch conditional
-	  temp->bform.bo = BFALSEcond; // Branch if false
-	  temp->bform.bi = EQcond;
-	  temp->bform.bd = ( theTemplate->restorePostInsOffset - 
-			     theTemplate->recursiveGuardPostJumpOffset) / 4;
-	  temp->bform.aa = 0; // Relative branch
-	  temp->bform.lk = 0; // No link req'd
+	  if (theTemplate->recursiveGuardPostJumpOffset)
+	    {
+	      // Need to write the following instruction:
+	      // cmp (addr: 5 != 0)
+	      genImmInsn(temp,   // Instruction
+			 CMPIop, // Compare immediate
+			 0,      // CR 0, L=0
+			 5,      // Source,
+			 0);     // Compare to 0
+	      temp++; currAddr += sizeof(instruction);
+	      // bcxxx (4, 2, reentrant(Pre|Post)GuardJump);
+	      temp->raw = 0;
+	      temp->bform.op = BCop; // Branch conditional
+	      temp->bform.bo = BFALSEcond; // Branch if false
+	      temp->bform.bi = EQcond;
+	      temp->bform.bd = ( theTemplate->restorePostInsOffset - 
+				 theTemplate->recursiveGuardPostJumpOffset) / 4;
+	      temp->bform.aa = 0; // Relative branch
+	      temp->bform.lk = 0; // No link req'd
+	    }
+	  else
+	    temp->raw = NOOPraw;
 	  break;
         case REENTRANT_GUARD_INC:
-	  // Need to write:
-	  // cal 5,1(0) -- set register 5 to value 1
-	  genImmInsn(temp,  // instruction 
-		     CALop, // add immediate
-		     5,     // Destination
-		     0,     // Source
-		     1);    // Value of 1
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
+	      // Need to write:
+	      // cal 5,1(0) -- set register 5 to value 1
+	      genImmInsn(temp,  // instruction 
+			 CALop, // add immediate
+			 5,     // Destination
+			 0,     // Source
+			 1);    // Value of 1
+	    }
+	  else
+	    temp->raw = NOOPraw;
 	  break;
         case REENTRANT_GUARD_DEC:
-	  // Need to write:
-	  // cal 5,0(0)
-	  genImmInsn(temp,  // instruction,
-		     CALop, // Add immediate
-		     5,     // Destination 
-		     0,     // Source
-		     0);    // Set to 0
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
+	      // Need to write:
+	      // cal 5,0(0)
+	      genImmInsn(temp,  // instruction,
+			 CALop, // Add immediate
+			 5,     // Destination 
+			 0,     // Source
+			 0);    // Set to 0
+	    }
+	  else
+	    temp->raw = NOOPraw;
 	  break;
 	case REENTRANT_GUARD_STORE: 
-	  // stw 5,0(6)
-	  genImmInsn(temp,
-		     STop,
-		     5,         // Register 5 
-	             6,         // Dest addr in reg 6
- 	             0);        // 0 offset
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
+	      // stw 5,0(6)
+	      genImmInsn(temp,
+			 STop,
+			 5,         // Register 5 
+			 6,         // Dest addr in reg 6
+			 0);        // 0 offset
+	    }
+	  else
+	    temp->raw = NOOPraw;
 	  break;
 	default:
           break;
@@ -3169,7 +3206,8 @@ void emitFuncJump(opCode,
 		  char *, Address &, 
 		  const function_base *unused, process *)
 {
-     unused;
+  // Get rid of a warning about the unused parameter
+     if (unused) ;
      /* Unimplemented on this platform! */
      assert(0);
 }

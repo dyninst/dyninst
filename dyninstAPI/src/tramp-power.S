@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-power.S,v 1.13 2000/02/18 20:40:55 bernat Exp $ */
+/* $Id: tramp-power.S,v 1.14 2000/02/23 22:54:08 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -53,198 +53,7 @@
 #define nop oril 0,0,0
 #endif
 
-/*
- * This is the base where a tramp jumps off.
- *
- * - do global before local because global call DYNINSTinit.
- *
- */
-.csect .data[RW]
-	.globl baseTramp
-	.globl _baseTramp
-baseTramp:
-_baseTramp:
-	/* should update cost of base tramp here, but we don't have a
-	   register to use!
-         */
 
-	.long   UPDATE_LR
-	nop
-	nop
-	nop
-	nop
-	.long   SKIP_PRE_INSN		/* if no instrumentation, then skip */
-	.long	SAVE_PRE_INSN		/* save registers */    /* GPR10 */
-	nop                                                     /* GPR9  */
-	nop                                                     /* GPR8  */
-	nop                                                     /* GPR7  */
-	nop                                                     /* GPR6  */
-	nop                                                     /* GPR5  */
-	nop                                                     /* GPR4  */
-	nop                                                     /* GPR3  */
-	nop                             /* mfspr  1. Copy LR into a GPR  */
-	nop                             /* st     2. Copy GRP onto stack */
-	nop                                                     /* FPR0  */
-	nop                                                     /* FPR1  */
-	nop                                                     /* FPR2  */
-	nop                                                     /* FPR3  */
-	nop                                                     /* FPR4  */
-	nop                                                     /* FPR5  */
-	nop                                                     /* FPR6  */
-	nop                                                     /* FPR7  */
-	nop                                                     /* FPR8  */
-	nop                                                     /* FPR9  */
-	nop                                                     /* FPR10 */
-	nop                                                     /* FPR11 */
-	nop                                                     /* FPR12 */
-	nop                                                     /* FPR13 */
-	.long	GLOBAL_PRE_BRANCH	/* cau   */
-	nop				/* oril  */
-	nop				/* mtspr */
-	nop				/* bcrl  */
-        nop				/* fill this in with instructions to */
-	nop				/* compute the address of the vector */
-	nop				/* of counter/timers for each thread */
-	nop
-	nop
-	nop
-	nop
-	nop
-        nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	.long	LOCAL_PRE_BRANCH	/* cau   */
-	nop				/* oril  */
-	nop				/* mtspr */
-	nop				/* bcrl  */
-	.long   UPDATE_COST_INSN
-	nop
-	nop
-	nop
-	nop
-	nop
-PRE_INSN_SKIP:	
-	.long	RESTORE_PRE_INSN	/* restore registers *//* l     LR   */
-	nop                                                    /* mtspr ""   */
-	nop                                                          /* GPR10*/
-	nop                                                          /* GPR9 */
-	nop                                                          /* GPR8 */
-	nop                                                          /* GPR7 */
-	nop                                                          /* GPR6 */
-	nop                                                          /* GPR5 */
-	nop                                                          /* GPR4 */
-	nop                                                          /* GPR3 */
-	nop                                                          /* FPR0 */
-	nop                                                          /* FPR1 */
-	nop                                                          /* FPR2 */
-	nop                                                          /* FPR3 */
-	nop                                                          /* FPR4 */
-	nop                                                          /* FPR5 */
-	nop                                                          /* FPR6 */
-	nop                                                          /* FPR7 */
-	nop                                                          /* FPR8 */
-	nop                                                          /* FPR9 */
-	nop                                                          /* FPR10*/
-	nop                                                          /* FPR11*/
-	nop                                                          /* FPR12*/
-	nop                                                          /* FPR13*/
-	.long 	EMULATE_INSN
-	nop
-        .long	SKIP_POST_INSN		/* if no instrumentation, then skip */
-	.long	SAVE_POST_INSN		/* save registers */    /* GPR10 */
-	nop                                                     /* GPR9  */
-	nop                                                     /* GPR8  */
-	nop                                                     /* GPR7  */
-	nop                                                     /* GPR6  */
-	nop                                                     /* GPR5  */
-	nop                                                     /* GPR4  */
-	nop                                                     /* GPR3  */
-	nop                             /* mfspr  1. Copy LR into a GPR  */
-	nop                             /* st     2. Copy GRP onto stack */
-	nop                                                     /* FPR0  */
-	nop                                                     /* FPR1  */
-	nop                                                     /* FPR2  */
-	nop                                                     /* FPR3  */
-	nop                                                     /* FPR4  */
-	nop                                                     /* FPR5  */
-	nop                                                     /* FPR6  */
-	nop                                                     /* FPR7  */
-	nop                                                     /* FPR8  */
-	nop                                                     /* FPR9  */
-	nop                                                     /* FPR10 */
-	nop                                                     /* FPR11 */
-	nop                                                     /* FPR12 */
-	nop                                                     /* FPR13 */
-	.long	GLOBAL_POST_BRANCH	/* cau   */
-	nop				/* oril  */
-	nop				/* mtspr */
-	nop				/* bcrl  */
-        nop				/* fill this in with instructions to */
-	nop				/* compute the address of the vector */
-	nop				/* of counter/timers for each thread */
-	nop
-	nop
-	nop
-	nop
-	nop
-        nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	.long	LOCAL_POST_BRANCH	/* cau   */
-	nop				/* oril  */
-	nop				/* mtspr */
-	nop				/* bcrl  */
-POST_INSN_SKIP:
-        .long   RESTORE_POST_INSN       /* restore registers *//* l     LR   */
-	nop                                                    /* mtspr ""   */
-	nop                                                          /* GPR10*/
-	nop                                                          /* GPR9 */
-	nop                                                          /* GPR8 */
-	nop                                                          /* GPR7 */
-	nop                                                          /* GPR6 */
-	nop                                                          /* GPR5 */
-	nop                                                          /* GPR4 */
-	nop                                                          /* GPR3 */
-	nop                                                          /* FPR0 */
-	nop                                                          /* FPR1 */
-	nop                                                          /* FPR2 */
-	nop                                                          /* FPR3 */
-	nop                                                          /* FPR4 */
-	nop                                                          /* FPR5 */
-	nop                                                          /* FPR6 */
-	nop                                                          /* FPR7 */
-	nop                                                          /* FPR8 */
-	nop                                                          /* FPR9 */
-	nop                                                          /* FPR10*/
-        nop                                                          /* FPR11*/
-	nop                                                          /* FPR12*/
-	nop                                                          /* FPR13*/
-RET_INSN:
-	.long	RETURN_INSN
-	nop
-	.long	END_TRAMP
-
-	
 /*
  * Structure for recursion-protected base tramp.
  *
@@ -252,14 +61,10 @@ RET_INSN:
  *
  */
 .csect .data[RW]
-	.globl baseTrampNonRecursive
-	.globl _baseTrampNonRecursive
-baseTrampNonRecursive:
-_baseTrampNonRecursive:
-	/* should update cost of base tramp here, but we don't have a
-	   register to use!
-         */
-
+	.globl baseTramp
+	.globl _baseTramp
+baseTramp:		
+_baseTramp:	
 	.long   UPDATE_LR
 	nop
 	nop
@@ -340,7 +145,6 @@ _baseTrampNonRecursive:
 	nop				/* l 5,0,(6)              */
 	.long REENTRANT_GUARD_DEC	/* cal 5,0(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
-PRE_INSN_SKIP_NR:	
 	.long	RESTORE_PRE_INSN	/* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
 	nop                                                          /* GPR10*/
@@ -434,8 +238,7 @@ PRE_INSN_SKIP_NR:
 	nop				/* l 5,0,(6)              */
 	.long REENTRANT_GUARD_DEC	/* cal 5,0(0)             */
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
-POST_INSN_SKIP_NR:
-        .long   RESTORE_POST_INSN       /* restore registers *//* l     LR   */
+        .long RESTORE_POST_INSN         /* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
 	nop                                                          /* GPR10*/
 	nop                                                          /* GPR9 */
@@ -459,11 +262,9 @@ POST_INSN_SKIP_NR:
         nop                                                          /* FPR11*/
 	nop                                                          /* FPR12*/
 	nop                                                          /* FPR13*/
-RET_INSN_NR:
 	.long	RETURN_INSN
 	nop
 	.long	END_TRAMP
-
 
 /* #ifdef BPATCH_LIBRARY */
 /*
