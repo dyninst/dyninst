@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ***************************************************************************/
 
 /*==========================================================*/
 /*      EndPointImpl CLASS METHOD DEFINITIONS            */
@@ -12,8 +12,8 @@
 namespace MRN
 {
 
-EndPointImpl::EndPointImpl(Rank _rank, const char * _hostname, Port _port)
-  :rank(_rank), hostname(_hostname), port(_port)
+EndPointImpl::EndPointImpl(Rank irank, const char * ihostname, Port iport)
+  :rank(irank), hostname(ihostname), port(iport)
 {
 }
 

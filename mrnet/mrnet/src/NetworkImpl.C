@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 /*===========================================================*/
 /*             Network Class DEFINITIONS                  */
@@ -545,10 +545,10 @@ int NetworkImpl::getConnections( int** conns, unsigned int* nConns )
     int ret = 0;
 
     if( is_FrontEnd()  ) {
-        ret = front_end->getConnections( conns, nConns );
+        ret = front_end->get_SocketFd( conns, nConns );
     }
     else if( is_BackEnd() ) {
-        ret = back_end->getConnections( conns, nConns );
+        ret = back_end->get_SocketFd( );
         assert( ( ret != 0 ) || ( *nConns == 1 ) );
     }
     else{

@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ***************************************************************************/
 
 #if !defined(endpointimpl_h)
 #define endpointimpl_h 1
@@ -20,7 +20,7 @@ class EndPointImpl{
     Port port;
 
  public:
-    EndPointImpl(Rank _rank, const char * _hostname, Port _port);
+    EndPointImpl(Rank irank, const char * ihostname, Port iport);
     ~EndPointImpl();
     const char * get_HostName()const;
     Port get_Port()const;
