@@ -1,7 +1,15 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.2  1994/02/03 23:27:06  hollings
+ * Revision 1.3  1994/02/24 04:36:51  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ * Make depend differences due to new header files that igen produces.
+ * Added support to allow asynchronous starts of paradynd's.  The dataManager has
+ * an advertised port that new paradynd's can connect to.
+ * Changed header files to reflect changes in igen.
+ *
+ * Revision 1.2  1994/02/03  23:27:06  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:23  hollings
@@ -39,7 +47,7 @@
 
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
-#include "dataManager.h"
+#include "dataManager.CLNT.h"
 
 class PCmetric;
 class testValue;

@@ -3,8 +3,8 @@
 
 
 #include "thread/h/thread.h"
-#include "dataManager.h"
-#include "performanceConsultant.h"
+#include "dataManager.CLNT.h"
+#include "performanceConsultant.SRVR.h"
 #include "PCglobals.h"
 #include "PCmetric.h"
 

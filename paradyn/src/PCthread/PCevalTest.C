@@ -1,6 +1,14 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.2  1994/02/08 21:06:03  hollings
+ * Revision 1.3  1994/02/24 04:36:47  markc
+ * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
+ * startup.  Added a data member to the class that igen generates.
+ * Make depend differences due to new header files that igen produces.
+ * Added support to allow asynchronous starts of paradynd's.  The dataManager has
+ * an advertised port that new paradynd's can connect to.
+ * Changed header files to reflect changes in igen.
+ *
+ * Revision 1.2  1994/02/08  21:06:03  hollings
  * Found a few pointer problems.
  *
  * Revision 1.1  1994/02/02  00:38:12  hollings
@@ -47,7 +55,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.2 1994/02/08 21:06:03 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.3 1994/02/24 04:36:47 markc Exp $";
 #endif
 
 
@@ -61,7 +69,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCevalTest.h"
 #include "PCglobals.h"
-#include "performanceConsultant.h"
+#include "performanceConsultant.SRVR.h"
 
 extern Boolean textMode;
 Boolean printTestResults = FALSE;
