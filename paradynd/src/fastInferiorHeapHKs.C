@@ -185,13 +185,11 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    // an entirely different identifier that has no relation to our 'id'
 #endif
 
-   const float valToReport = (float)val;
-
    assert(mi);
    assert(mi->proc() == inferiorProc);
 
-//   mi->updateValue(wallTime, valToReport);
-   mi->updateValue(getCurrWallTime(), valToReport);
+   mi->updateValue(getCurrWallTime(), val);
+      // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
 }
@@ -304,7 +302,6 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
 
    const double valueToReport = (double)timeValueToUse / normalize;
    
-//   mi->updateValue(theWallTime, (float)valueToReport);
    mi->updateValue(currWallTime, (float)valueToReport);
 
    return true;
