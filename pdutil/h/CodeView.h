@@ -38,6 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
+// $Id: CodeView.h,v 1.2 1999/07/14 17:34:30 paradyn Exp $
+
 //
 // This file contains the declaration of the CodeView class.
 // The CodeView class also declares several sub-classes and 
