@@ -4098,6 +4098,7 @@ int numContainedLoops(BPatch_basicBlockLoop *loop)
 //
 void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
+#if !defined(os_windows) && !defined(os_aix)
     unsigned int i;
 
     BPatch_Vector<BPatch_function *> bpfv;
@@ -4260,7 +4261,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 		outerLoopGrandChildren1.size());
 	exit(1);
     }
-    
+#endif    
 }
 
 // Start Test Case #35 - (function relocation)
