@@ -43,6 +43,9 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
+ * Revision 1.5  2001/06/20 20:37:34  schendel
+ * Change order of including header files to fix dependency error.
+ *
  * Revision 1.4  1997/10/28 20:34:49  tamches
  * dictionary_lite --> dictionary_hash
  *
@@ -61,8 +64,8 @@
 
 #include <iostream.h>
 
-#include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
+#include "thread/h/thread.h"
 
 #include "tunableConst.h"
 

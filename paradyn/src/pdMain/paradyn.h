@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.18 2000/03/23 01:35:31 wylie Exp $ */
+/* $Id: paradyn.h,v 1.19 2001/06/20 20:37:37 schendel Exp $ */
 
 /* some global definitions for main.C */
 
 #ifndef _paradyn_h
 #define _paradyn_h
 
+#include "dataManager.thread.CLNT.h"  // putting this first fixes a header
+                                      // file dependency problem
 #include "thread/h/thread.h"
-
-#include "dataManager.thread.CLNT.h"
 #include "performanceConsultant.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "VM.thread.CLNT.h"
