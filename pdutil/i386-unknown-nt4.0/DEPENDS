@@ -129,6 +129,8 @@ mdlScanner.obj: mdlScanner.C y.tab.h ../../pdutil/h/mdlParse.h \
   ../../pdutil/h/ByteArray.h ../../pdutil/h/mdl.h \
   ../../common/h/Dictionary.h ../../common/h/Pair.h \
   ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h
+pdsocket-win.obj:   ../../pdutil/src/pdsocket-win.C ../../pdutil/h/pdsocket.h
+pddesc-win.obj:     ../../pdutil/src/pddesc-win.C ../../pdutil/h/pddesc.h
 templates.obj: ../src/templates.C ../../common/h/Vector.h \
  ../../common/h/Symbol.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/Types.h \

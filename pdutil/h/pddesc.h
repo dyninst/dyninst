@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pddesc.h,v 1.2 2003/07/24 16:42:53 pcroth Exp $
+// $Id: pddesc.h,v 1.3 2003/10/28 17:39:48 pcroth Exp $
 #ifndef PDDESC_H
 #define	PDDESC_H
 
@@ -73,6 +73,8 @@ struct PdFile
 
     bool operator==( const PdFile& testfd ) { return testfd.fd == fd; }
     bool operator!=( const PdFile& testfd ) { return testfd.fd != fd; }
+
+    bool IsBad( void ) const;
 };
 
 #endif // __cplusplus

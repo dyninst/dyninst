@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.37 2003/06/19 18:46:12 pcroth Exp $
+# $Id: make.module.tmpl,v 1.38 2003/10/28 17:39:46 pcroth Exp $
 #
 
 USES_FLEX       = true
@@ -55,6 +55,8 @@ SRCS	     += ../../common/src/String.C \
         ../src/mdl.C \
         mdlParser.C \
         mdlScanner.C \
+        ../src/pdsocket-unix.C \
+        ../src/pddesc-unix.C \
 		../src/templates.C
  
 IGEN_ISRCS      = dyninstRPC.I

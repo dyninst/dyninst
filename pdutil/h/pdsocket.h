@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdsocket.h,v 1.3 2003/07/24 16:42:53 pcroth Exp $
+// $Id: pdsocket.h,v 1.4 2003/10/28 17:39:48 pcroth Exp $
 #ifndef PDSOCKET_H
 #define PDSOCKET_H
 
@@ -93,6 +93,8 @@ struct PdSocket
 
     bool operator==( const PdSocket& origSock ) { return origSock.s == s; }
     bool operator!=( const PdSocket& origSock ) { return origSock.s != s; }
+
+    bool IsBad( void ) const;
 };
 
 #endif // __cplusplus

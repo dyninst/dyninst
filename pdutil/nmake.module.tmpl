@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.22 2003/07/18 15:45:03 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.23 2003/10/28 17:39:47 pcroth Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -48,6 +48,8 @@ SRCS	     = $(SRCS) \
                 mdlParser.C \
                 mdlScanner.C \
                 ../src/winMain.C \
+                ../src/pdsocket-win.C \
+                ../src/pddesc-win.C \
                 ../../pdutil/src/templates.C
 
 OBJS         = $(OBJS) \
@@ -84,6 +86,8 @@ OBJS         = $(OBJS) \
                 mdlParser.obj \
                 mdlScanner.obj \
                 winMain.obj \
+                pdsocket-win.obj \
+                pddesc-win.obj \
                 templates.obj 
 
 IGEN_ISRCS  = dyninstRPC.I
