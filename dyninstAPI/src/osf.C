@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.12 2000/06/14 22:39:41 paradyn Exp $
+// $Id: osf.C,v 1.13 2000/07/11 18:30:26 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -49,6 +49,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
+#include <sys/syscall.h>
 #include <filehdr.h>
 #include <scnhdr.h>
 #include <fcntl.h>
@@ -65,10 +66,13 @@
 #include "util/h/osfKludges.h"
 #endif
 
+#define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
 #define FP_REGNUM 15
+#define A0_REGNUM 16	/* first param to funcs and syscalls */
 #define RA_REGNUM 26
 extern bool exists_executable(const string &fullpathname);
+extern debug_ostream attach_cerr;
 
 
 int getNumberOfCPUs()
@@ -156,9 +160,82 @@ void Frame::getActiveFrame(process *p)
   }
 }
 
-static inline bool execResult(prstatus_t) 
+#ifdef BPATCH_LIBRARY
+/*
+ * Use by dyninst to set events we care about from procfs
+ *
+ */
+bool process::setProcfsFlags()
 {
-  return  1;
+
+  long flags = 0;
+  if (BPatch::bpatch->postForkCallback) {
+      // cause the child to inherit trap-on-exit from exec and other traps
+      // so we can learn of the child (if the user cares)
+      flags = PR_FORK | PR_ASYNC | PR_RLC;
+  }
+
+  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+    fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  // cause a stop on the exit from fork
+  sysset_t sysset;
+
+  if (ioctl(proc_fd, PIOCGEXIT, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  if (BPatch::bpatch->postForkCallback) {
+      praddset (&sysset, SYS_fork);
+      praddset (&sysset, SYS_execv);
+      praddset (&sysset, SYS_execve);
+  }
+  
+  if (ioctl(proc_fd, PIOCSEXIT, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  // now worry about entry too
+  if (ioctl(proc_fd, PIOCGENTRY, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  if (BPatch::bpatch->exitCallback) {
+      praddset (&sysset, SYS_exit);
+  }
+
+  if (BPatch::bpatch->preForkCallback) {
+      praddset (&sysset, SYS_fork);
+      praddset (&sysset, SYS_vfork);
+      // praddset (&sysset, SYS_waitsys);
+  }
+
+  // should these be for exec callback??
+  prdelset (&sysset, SYS_execv);
+  prdelset (&sysset, SYS_execve);
+  
+  if (ioctl(proc_fd, PIOCSENTRY, &sysset) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  return true;
+}
+#endif
+
+static inline bool execResult(prstatus_t stat) 
+{
+  return (stat.pr_reg.regs[V0_REGNUM] == 0);
 }
 
 #ifndef OPEN_MAX
@@ -227,80 +304,97 @@ int process::waitProcs(int *status)
     static struct pollfd fds[OPEN_MAX];  // argument for poll
     static int selected_fds;             // number of selected
     static int curr;                     // the current element of fds
-    bool skipPoll = false;
+
 #ifndef BPATCH_LIBRARY
     bool block = false;
 #endif
 
     do {
-         /* 
+       /* 
 	 Each call to poll may return many selected fds. Since we only report 
 	 the status of one process per each call to waitProcs, we keep the result of 
 	 the last poll buffered, and simply process an element from the buffer until 
 	 all of the selected fds in the last poll have been processed.
-	 */
+        */
       
-	if (selected_fds == 0) {
+	if (selected_fds <= 0) {
+	    selected_fds = 0;
 	    for (unsigned u = 0; u < processVec.size(); u++) {
-		if (processVec[u]->status_ == exited) {
+		if ((processVec[u]->status_ == exited)) {
 		    fds[u].fd = -1;
 		    continue;
 		}
-	        fds[u].fd = processVec[u]->proc_fd;
-	        fds[u].events = POLLPRI | POLLIN;
-	        fds[u].revents = 0;
-	        if (waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
-		    fds[u].revents = POLLPRI;
-		    selected_fds++;
-		    skipPoll = true;
-		    break;
-	        }
+
+		fds[u].events = POLLPRI | POLLIN;
+		fds[u].revents = 0;
+		if (processVec[u]) {
+		     fds[u].fd = processVec[u]->proc_fd;
+
+		     // need to check for this since is doesn't generate a poll event
+		     int retWait;
+		     if (retWait = waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
+			 if (retWait == -1) {
+			    // skip over stopped proceses
+			    if ((processVec[u]->status_ == stopped)) continue;
+
+			 }
+
+			 fds[u].revents = POLLPRI;
+			 selected_fds++;
+			 break;
+		     }
+		} else {
+		    fds[u].fd = -1;
+		}
 	    }
 
-	    if (!skipPoll) {
-		int timeout = 0;
-		if (block) timeout = 5; 
-		// if (block) timeout = INFTIM; 
-		//printf("about to poll with timeout = %d, %d processes ", 
-		     //timeout, processVec.size());
-		fflush(stdout);
+	    // only poll if no waitpid event was identified
+	    if (selected_fds == 0) {
+		int timeout;
+		// since exit doesn't provide an event, we need to timeout and test via waitpid
+
+		if (block) timeout = 5;
+		else timeout = 0;
 		selected_fds = poll(fds, processVec.size(), timeout);
-		if (selected_fds < 0) {
-		    fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
-		    selected_fds = 0;
-		    return 0;
-		}
-		//printf("got = %d, \n", selected_fds);
-
-		if (selected_fds <= 0) {
-		    if (!block) return 0;
-		    continue;
-		}
 	    }
-	    curr = 0;
 	}
 
-	while (fds[curr].revents == 0) ++curr;
+	if (selected_fds < 0) {
+	   fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
+	   selected_fds = 0;
+	   return 0;
+	}
 
+	curr = 0;
+
+      if (selected_fds > 0) {
+        while (fds[curr].revents == 0) {
+            ++curr;
+	    if (curr == processVec.size()) abort();
+	}
+
+        // fds[curr] has an event of interest
+        prstatus_t stat;
+        int ret = 0;
+
+// Re added code here
 #if defined(USES_LIBDYNINSTRT_SO)
-	if (!processVec[curr]->dyninstLibAlreadyLoaded() &&
-	     processVec[curr]->wasCreatedViaAttach()) {
-	   bool wasRunning = (processVec[curr]->status() == running);
-	   if (processVec[curr]->status() != stopped)
-	     processVec[curr]->Stopped();
-	   if(processVec[curr]->isDynamicallyLinked()) {
-	     processVec[curr]->handleIfDueToSharedObjectMapping();
-	   }
-	   if (processVec[curr]->trapDueToDyninstLib()) {
-	     // we need to load libdyninstRT.so.1 - naim
-	     processVec[curr]->handleIfDueToDyninstLib();
-	     if (wasRunning) processVec[curr]->continueProc();
-	   }
-	}
+        if (!processVec[curr]->dyninstLibAlreadyLoaded() &&
+             processVec[curr]->wasCreatedViaAttach()) {
+           bool wasRunning = (processVec[curr]->status() == running);
+           if (processVec[curr]->status() != stopped)
+             processVec[curr]->Stopped();
+           if(processVec[curr]->isDynamicallyLinked()) {
+             processVec[curr]->handleIfDueToSharedObjectMapping();
+           }
+           if (processVec[curr]->trapDueToDyninstLib()) {
+             // we need to load libdyninstRT.so.1 - naim
+             processVec[curr]->handleIfDueToDyninstLib();
+             if (wasRunning) processVec[curr]->continueProc();
+           }
+        }
 #endif
 
-	// fds[curr] has an event of interest
-	prstatus_t stat;
 	if (fds[curr].revents & POLLHUP) {
 	    do {
 		ret = waitpid(processVec[curr]->getPid(), status, 0);
@@ -310,6 +404,7 @@ int process::waitProcs(int *status)
 		// so it didn't wait around for us to get it's return code.  In
 		// this case, we can't know why it exited or what it's return
 		// code was.
+		printf("grand child exited\n");
 		ret = processVec[curr]->getPid();
 		*status = 0;
 	    }
@@ -342,18 +437,162 @@ int process::waitProcs(int *status)
 				ret = processVec[curr]->getPid();
 				break;
 			    }
-		      case PR_SYSEXIT:
-			    // exit of exec
-			    if (!execResult(stat)) {
-			      // a failed exec. continue the process
-			      processVec[curr]->continueProc_();
-			      break;
-			    }	    
-		
-			    *status = SIGTRAP << 8 | 0177;
-			    ret = processVec[curr]->getPid();
-			    break;
+		      case PR_SYSEXIT: {
+			 // exit of a system call.
+		         process *p = processVec[curr];
 
+			 if (p->RPCs_waiting_for_syscall_to_complete) {
+			    // reset PIOCSEXIT mask
+			    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
+			    printf("in RPCs_waiting_for_syscall_to_complete\n");
+			    assert(p->save_exitset_ptr != NULL);
+			    if (-1 == ioctl(p->proc_fd, PIOCSEXIT, p->save_exitset_ptr))
+			       assert(false);
+			    delete [] p->save_exitset_ptr;
+			    p->save_exitset_ptr = NULL;
+
+			    // fall through on purpose (so status, ret get set)
+			 } else if (((stat.pr_what == SYS_execv) ||
+				     (stat.pr_what == SYS_execve)) && !execResult(stat)) {
+			   // a failed exec. continue the process
+			   processVec[curr]->continueProc_();
+			   break;
+			 }
+#ifdef BPATCH_LIBRARY
+			 if (stat.pr_what == SYS_fork) {
+			     int childPid = stat.pr_reg.regs[V0_REGNUM];
+			     if (childPid > 0) {
+				 unsigned int i;
+
+				 for (i=0; i < processVec.size(); i++) {
+				     if (processVec[i]->getPid() == childPid) break;
+				 }
+				 if (i== processVec.size()) {
+
+				     // this is a new child, register it with dyninst
+				     int parentPid = processVec[curr]->getPid();
+
+
+				     process *theParent = processVec[curr];
+				     process *theChild = new process(*theParent, (int)childPid, -1);
+				     // the parent loaded it!
+				     theChild->hasLoadedDyninstLib = true;
+
+				     processVec += theChild;
+				     activeProcesses++;
+
+
+				     // it's really stopped, but we need to mark it running so
+				     //   it can report to us that it is stopped - jkh 1/5/00
+				     // or should this be exited???
+				     theChild->status_ = neonatal;
+
+				     // parent is stopped too (on exit fork event)
+				     theParent->status_ = stopped;
+
+				     theChild->execFilePath = 
+					 theChild->tryToFindExecutable("", childPid);
+				     theChild->inExec = false;
+				     BPatch::bpatch->registerForkedThread(parentPid,
+					 childPid, theChild);
+				     selected_fds = 0;
+				 }
+			     } else {
+				 printf("fork errno %lx\n", stat.pr_reg.regs[V0_REGNUM]);
+			     }
+			 } else if (((stat.pr_what == SYS_execv) || 
+				     (stat.pr_what == SYS_execve)) && execResult(stat)) {
+			     process *proc = processVec[curr];
+			     proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
+
+			     // only handle if this is in the child - is this right??? jkh
+			     if (proc->reachedFirstBreak) {
+				 // mark this for the sig TRAP that will occur soon
+				 proc->inExec = true;
+
+				 // leave process stopped until signal handler runs
+				 // mark it running so we get the stop signal
+				 proc->status_ = stopped;
+
+				 // reset buffer pool to empty (exec clears old mappings)
+				 vector<heapItem *> emptyHeap;
+				 proc->heap.bufferPool = emptyHeap;
+			     }
+			 } else {
+			     sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
+				 (int) stat.pr_what);
+			     logLine(errorLine);
+			 }
+#endif
+			 *status = SIGTRAP << 8 | 0177;
+			 ret = processVec[curr]->getPid();
+			  break;
+		     }
+
+#ifdef BPATCH_LIBRARY
+		     case PR_SYSENTRY: {
+			 bool alreadyCont = false;
+			 process *p = processVec[curr];
+
+			 if ((stat.pr_what == SYS_fork) || (stat.pr_what == SYS_vfork)) {
+			     if (BPatch::bpatch->preForkCallback) {
+				 assert(p->thread);
+				 p->setProcfsFlags();
+				 BPatch::bpatch->preForkCallback(p->thread, NULL);
+			     }
+
+			     if (stat.pr_what == SYS_vfork)  {
+				 unsigned int i;
+				 int childPid = 0;
+				 alreadyCont = true;
+				 struct DYNINST_bootstrapStruct bootRec;
+
+				 (void) processVec[curr]->continueProc_();
+				 processVec[curr]->status_ = stopped;
+				 do {
+				     processVec[curr]->extractBootstrapStruct(&bootRec);
+
+				     childPid = bootRec.pid;
+				 } while (bootRec.event != 3);
+
+				 for (i=0; i < processVec.size(); i++) {
+				     if (processVec[i]->getPid() == childPid) break;
+				 }
+				 if (i== processVec.size()) {
+				     // this is a new child, register it with dyninst
+				     int parentPid = processVec[curr]->getPid();
+				     process *theParent = processVec[curr];
+				     process *theChild = new process(*theParent, (int)childPid, -1);
+				     processVec += theChild;
+				     activeProcesses++;
+
+				     // it's really stopped, but we need to mark it running so
+				     //   it can report to us that it is stopped - jkh 1/5/00
+				     // or should this be exited???
+				     theChild->status_ = running;
+
+				     theChild->execFilePath = 
+					 theChild->tryToFindExecutable("", childPid);
+				     BPatch::bpatch->registerForkedThread(parentPid,
+					 childPid, theChild);
+				     selected_fds = 0;
+				 }
+			     }
+			 } else if (stat.pr_what == SYS_exit) {
+			     int code;
+			     bool readRet;
+			     unsigned long sp;
+			     
+			     code = stat.pr_reg.regs[A0_REGNUM];
+			     BPatch::bpatch->registerExit(processVec[curr]->thread, code);
+			 } else {
+			     printf("got PR_SYSENTRY\n");
+			     printf("    unhandeled sys call #%d\n", (int) stat.pr_what);
+			 }
+			 if (!alreadyCont) (void) processVec[curr]->continueProc_();
+			 break;
+		       }
+#endif
 		      case PR_REQUESTED:
 			    stat.pr_flags = PRCSIG;
 			    if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
@@ -370,25 +609,112 @@ int process::waitProcs(int *status)
 
 		      case PR_JOBCONTROL:
 			    *status = stat.pr_what << 8 | 0177;
-			    int ret = processVec[curr]->getPid();
+			    ret = processVec[curr]->getPid();
 			    break;
 		}	
 	    }
+	} else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) == -1) {
+	    ret = processVec[curr]->getPid();
+	    *status = 0;
 	}
     
 	// clear the processed event
 	fds[curr].revents = 0;
-	if (selected_fds > 0) --selected_fds;
-	++curr;
-	
+	--selected_fds;
+
+	if (selected_fds > 0) ++curr;
+
 	if (ret > 0) {
 	      return ret;
 	}
+
+	if (curr == processVec.size()) abort();
+      }
     } while(block);
     return ret;
 }
 
-Frame Frame::getCallerFrameNormal(process *p) const
+
+
+/*
+   Open the /proc file correspoding to process pid, 
+   set the signals to be caught to be only SIGSTOP,
+   and set the kill-on-last-close and inherit-on-fork flags.
+*/
+bool process::attach() {
+  char procName[128];
+
+  // why is this sleep here?? -- jkh 4/1/99
+  // sleep(15);
+  sprintf(procName,"/proc/%05d", (int)pid);
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0) {
+    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
+    return false;
+  }
+  proc_fd = fd;
+  /*  dumpCore_("core.real"); */
+
+  /* we don't catch any child signals, except SIGSTOP */
+  sigset_t sigs;
+  fltset_t faults;
+  premptyset(&sigs);
+  praddset(&sigs, SIGSTOP);
+  praddset(&sigs, SIGTRAP);
+  praddset(&sigs, SIGSEGV);
+
+  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+
+  premptyset(&faults);
+  praddset(&faults,FLTBPT);
+  if (ioctl(fd,PIOCSFAULT,&faults) <0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+
+  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
+     the process to be killed when paradynd exits.
+     Also, any child of this process will stop at the exit of an exec call.
+  */
+#if defined(PIOCSET)
+  {
+    long flags = PR_KLC | PR_FORK;
+    if (ioctl (fd, PIOCSET, &flags) < 0) {
+      fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+      close(fd);
+      return false;
+    }
+  }
+  #else
+  #if defined(PRFS_KOLC)
+  {
+    long pr_flags;
+    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
+      sprintf(errorLine, "Cannot get status\n");
+      logLine(errorLine);
+      close(fd);
+      return false;
+    }
+    pr_flags |= PRFS_KOLC;
+    ioctl(fd, PIOCSSPCACT, &pr_flags);
+  }
+#endif
+#endif
+
+  proc_fd = fd;
+
+#ifdef BPATCH_LIBRARY
+  setProcfsFlags();
+#endif
+  return true;
+}
+
+Frame Frame::getCallerFrameNormal(process * /* p */) const
 {
   Frame ret;
   Address values[2];
@@ -436,15 +762,43 @@ bool process::dumpCore_(const string coreFile)
 
 }
 
-string process::tryToFindExecutable(const string &progpath, int /* pid */) 
+string process::tryToFindExecutable(const string &progpath, int pid) 
 {
    // returns empty string on failure
 
-   if (progpath.length() == 0)
-      return "";
-
    if (exists_executable(progpath)) // util lib
       return progpath;
+
+   char buffer[128];
+   sprintf(buffer, "/proc/%05d", pid);
+   int procfd = open(buffer, O_RDONLY, 0);
+   if (procfd == -1) {
+      attach_cerr << "tryToFindExecutable failed since open of /proc failed" << endl;
+      return "";
+   }
+   attach_cerr << "tryToFindExecutable: opened /proc okay" << endl;
+
+   struct prpsinfo the_psinfo;
+
+   if (ioctl(procfd, PIOCPSINFO, &the_psinfo) == -1) {
+       close(procfd);
+       return "";
+   }
+
+   char commandName[256];
+   strcpy(commandName, the_psinfo.pr_psargs);
+   if (strchr(commandName, ' ')) *(strchr(commandName, ' ')) = '\0';
+
+   if (!access(commandName, X_OK)) {
+       // found the file, return the results
+       (void)close(procfd);
+       return commandName;
+   }
+
+   printf("access to  %s failed \n", commandName);
+   attach_cerr << "tryToFindExecutable: giving up" << endl;
+
+   (void)close(procfd);
 
    return ""; // failure
 }
@@ -558,10 +912,10 @@ bool process::dumpImage()
     }
 
     baseAddr = (Address) text_start;
-    sprintf(errorLine, "seeking to %d as the offset of the text segment \n",
+    sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
 	file_ofs);
     logLine(errorLine);
-    sprintf(errorLine, " code offset= %d\n", baseAddr);
+    sprintf(errorLine, " code offset= %ld\n", baseAddr);
     logLine(errorLine);
 
     /* seek to the text segment */
@@ -582,6 +936,7 @@ bool process::dumpImage()
 
     return true;
 }
+
 
 
 #ifdef SHM_SAMPLING

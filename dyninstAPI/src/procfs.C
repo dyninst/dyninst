@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.9 2000/03/14 00:49:22 hollings Exp $
+// $Id: procfs.C,v 1.10 2000/07/11 18:30:26 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -155,80 +155,6 @@ bool process::isRunning_() const {
 }
 
 
-/*
-   Open the /proc file correspoding to process pid, 
-   set the signals to be caught to be only SIGSTOP,
-   and set the kill-on-last-close and inherit-on-fork flags.
-*/
-bool process::attach() {
-  char procName[128];
-
-  // why is this sleep here?? -- jkh 4/1/99
-  // sleep(15);
-  sprintf(procName,"/proc/%05d", (int)pid);
-  int fd = P_open(procName, O_RDWR, 0);
-  if (fd < 0) {
-    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-  proc_fd = fd;
-  /*  dumpCore_("core.real"); */
-
-  /* we don't catch any child signals, except SIGSTOP */
-  sigset_t sigs;
-  fltset_t faults;
-  premptyset(&sigs);
-  praddset(&sigs, SIGSTOP);
-  praddset(&sigs, SIGTRAP);
-  praddset(&sigs, SIGSEGV);
-
-  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(fd);
-    return false;
-  }
-
-  premptyset(&faults);
-  praddset(&faults,FLTBPT);
-  if (ioctl(fd,PIOCSFAULT,&faults) <0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(fd);
-    return false;
-  }
-
-  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
-     the process to be killed when paradynd exits.
-     Also, any child of this process will stop at the exit of an exec call.
-  */
-#if defined(PIOCSET)
-  {
-    long flags = PR_KLC | PR_FORK;
-    if (ioctl (fd, PIOCSET, &flags) < 0) {
-      fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-      close(fd);
-      return false;
-    }
-  }
-  #else
-  #if defined(PRFS_KOLC)
-  {
-    long pr_flags;
-    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
-      sprintf(errorLine, "Cannot get status\n");
-      logLine(errorLine);
-      close(fd);
-      return false;
-    }
-    pr_flags |= PRFS_KOLC;
-    ioctl(fd, PIOCSSPCACT, &pr_flags);
-  }
-#endif
-#endif
-
-  proc_fd = fd;
-  return true;
-}
-
 bool process::restoreRegisters(void *buffer) 
 {
    assert(status_ == stopped); // /proc requires it
@@ -275,7 +201,11 @@ bool process::continueProc_() {
 
   int ret = ioctl(proc_fd, PIOCSTATUS, &stat);
 
-  assert(ret != -1);
+  if (ret == -1) {
+      perror("status error is ");
+      return true;
+  }
+
   if (!(stat.pr_flags & PR_STOPPED)) {
 	// not stopped, our work is done.
 	assert(!changedPCvalue);

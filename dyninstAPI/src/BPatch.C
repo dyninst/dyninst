@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.28 2000/06/26 17:02:34 wylie Exp $
+// $Id: BPatch.C,v 1.29 2000/07/11 18:30:26 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -312,7 +312,9 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 {
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(i386_unknown_solaris2_5) && \
+    !defined(alpha_dec_osf4_0)
     reportError(BPatchWarning, 0,
 	"fork callbacks not implemented on this platform");
     return NULL;
@@ -336,7 +338,9 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
  */
 BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(i386_unknown_solaris2_5) &&\
+    !defined(alpha_dec_osf4_0)
     reportError(BPatchWarning, 0,
 	"fork callbacks not implemented on this platform");
     return NULL;
@@ -361,7 +365,9 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 {
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(i386_unknown_solaris2_5) &&\
+    !defined(alpha_dec_osf4_0)
     reportError(BPatchWarning, 0,
 	"exec callbacks not implemented on this platform");
     return NULL;
@@ -386,7 +392,9 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 {
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(i386_unknown_solaris2_5) &&\
+    !defined(alpha_dec_osf4_0)
     reportError(BPatchWarning, 0,
 	"exec callbacks not implemented on this platform");
     return NULL;
