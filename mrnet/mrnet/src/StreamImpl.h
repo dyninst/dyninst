@@ -7,7 +7,6 @@
 #include <map>
 
 #include "mrnet/h/MR_Network.h"
-using namespace MRN;
 #include "mrnet/src/Message.h"
 #include "mrnet/src/CommunicatorImpl.h"
 
