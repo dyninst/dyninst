@@ -4,9 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.8  1996/02/07 21:51:35  tamches
-/* defineNewSearch now returns bool should-redraw flag
+/* Revision 1.9  1996/02/11 18:26:44  tamches
+/* shg message window now works correctly for multiple phases
+/* internal cleanup; more tk window name entities parameterized
 /*
+ * Revision 1.8  1996/02/07 21:51:35  tamches
+ * defineNewSearch now returns bool should-redraw flag
+ *
  * Revision 1.7  1996/02/07 19:12:23  tamches
  * added draw(), resize, single/middle/doubleClick, scroll-position,
  * and altPress/release routines.
@@ -50,10 +54,18 @@ extern performanceConsultantUser *perfConsult;
 shgPhases::shgPhases(const string &iMenuName,
 		     const string &iHorizSBName, const string &iVertSBName,
 		     const string &iCurrItemLabelName,
+		     const string &iMsgTextWindowName,
+		     const string &iSearchButtonName,
+		     const string &iPauseButtonName,
+		     const string &iCurrPhaseLabelName,
 		     Tcl_Interp *iInterp, Tk_Window iTkWindow) :
 		        menuName(iMenuName), horizSBName(iHorizSBName),
 			vertSBName(iVertSBName),
-			currItemLabelName(iCurrItemLabelName)
+			currItemLabelName(iCurrItemLabelName),
+			msgTextWindowName(iMsgTextWindowName),
+			searchButtonName(iSearchButtonName),
+			pauseButtonName(iPauseButtonName),
+			currPhaseLabelName(iCurrPhaseLabelName)
 {
    currShgPhaseIndex = UINT_MAX;
 
@@ -136,8 +148,6 @@ bool shgPhases::changeLL(unsigned newIndex) {
    myTclEval(interp, commandStr);
 
    // Set the Search(Resume) and Pause buttons:
-   const string searchButtonName = ".shg.nontop.buttonarea.left.search";
-   const string pauseButtonName  = ".shg.nontop.buttonarea.middle.pause";
    if (!theNewShgStruct.everSearched) {
       commandStr = searchButtonName + " config -text \"Search\" -state normal";
       myTclEval(interp, commandStr);
@@ -166,8 +176,14 @@ bool shgPhases::changeLL(unsigned newIndex) {
 	      string(theNewShgStruct.getPhaseId()).string_of(), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
-   commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
-	           "\"" + theNewShgStruct.phaseName + "\"";
+   commandStr = currPhaseLabelName + " config -text \"" +
+                theNewShgStruct.phaseName + "\"";
+   myTclEval(interp, commandStr);
+
+   // Update the message text:
+   commandStr = msgTextWindowName + " delete @0,0 end";
+   myTclEval(interp, commandStr);
+   commandStr = msgTextWindowName + " insert end \"" + theNewShgStruct.msgText + "\"";
    myTclEval(interp, commandStr);
 
    // We must resize, since newly displayed shg had been set aside (?)
@@ -184,6 +200,7 @@ bool shgPhases::changeByPhaseId(int id) {
          return changeLL(i);
    }
 
+   cout << "shgPhases::changeByPhaseId(): phase id " << id << " doesn't exist" << endl;
    return false; // could not find any phase with that name
 }
 
@@ -359,7 +376,7 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
       if (!theShgPhases[theShgPhases.size()-1].everSearched) {
          shgStruct &victimStruct = theShgPhases[theShgPhases.size()-1];
          
-         cout << "shgPhases: throwing out never-used phase " << victimStruct.phaseName << endl;
+         cout << "shgPhases: throwing out never-searched phase " << victimStruct.phaseName << endl;
          string commandStr = menuName + " delete " + string(theShgPhases.size());
          myTclEval(interp, commandStr);
 
@@ -487,13 +504,26 @@ bool shgPhases::configNode(int phaseId, unsigned nodeId,
    return isCurrShg;
 }
 
-void shgPhases::addToStatusDisplay(int phaseId, const char *msg) {
+void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    if (!existsCurrent()) {
       cerr << "addToStatusDisplay: no current phase to display msg:" << endl;
-      cerr << msg << endl;
+      cerr << iMsg << endl;
       return;
    }
 
-   shg &theShg = getByID(phaseId);
-   theShg.addToStatusDisplay(msg);
+   const bool isCurrShg = (getCurrentId() == phaseId);
+   shgStruct &theShgStruct = getByIDLL(phaseId);
+
+   //const string msg = iMsg + "\n";
+   const string msg = iMsg;
+
+   theShgStruct.msgText += msg;
+
+   if (isCurrShg) {
+      string commandStr = msgTextWindowName + " insert end {" + msg + "}";
+      myTclEval(interp, commandStr);
+
+      commandStr = msgTextWindowName + " yview -pickplace end";
+      myTclEval(interp, commandStr);
+   }
 }

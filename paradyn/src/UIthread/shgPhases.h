@@ -4,9 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.7  1996/02/07 21:51:04  tamches
-/* defineNewSearch now returns bool
+/* Revision 1.8  1996/02/11 18:25:54  tamches
+/* shg message window now works correctly for multiple phases
+/* internal cleanup; more tk window name entities parameterized
 /*
+ * Revision 1.7  1996/02/07 21:51:04  tamches
+ * defineNewSearch now returns bool
+ *
  * Revision 1.6  1996/02/07 19:11:26  tamches
  * former globals currInstalledAltMoveHandler, ignoreNextShgAltMove,
  * shgAltAnchorX/Y added
@@ -67,6 +71,9 @@ class shgPhases {
       float horizSBfirst, horizSBlast;
       float vertSBfirst, vertSBlast;
 
+      // Save the text in the shg message window, so we can restore it later:
+      string msgText;
+
       // Save the activeness/disabledness of the "Search(Resume)" and "Pause" buttons:
       // Note that the "everSearched" button will distinguish "Search" from "Resume"
       bool currSearching;
@@ -112,6 +119,7 @@ class shgPhases {
          horizSBlast = src.horizSBlast;
          vertSBfirst = src.vertSBfirst;
          vertSBlast = src.vertSBlast;
+	 msgText = src.msgText;
          currSearching = src.currSearching;
          everSearched = src.everSearched;
 
@@ -126,7 +134,11 @@ class shgPhases {
    Tcl_Interp *interp;
    Tk_Window theTkWindow;   
 
-   string menuName, horizSBName, vertSBName, currItemLabelName;
+   string menuName, horizSBName, vertSBName;
+   string currItemLabelName; // what you see when clicking on middle mouse button
+   string msgTextWindowName;
+   string searchButtonName, pauseButtonName;
+   string currPhaseLabelName;
 
    bool currInstalledAltMoveHandler;
    bool ignoreNextShgAltMove;
@@ -146,14 +158,14 @@ class shgPhases {
    shgPhases(const string &iMenuName,
              const string &iHorizSBName, const string &iVertSBName,
              const string &iCurrItemLabelName,
+             const string &iMsgTextWindowName,
+             const string &iSearchButtonName, const string &iPauseButtonName,
+             const string &iCurrPhaseLabelName,
              Tcl_Interp *iInterp, Tk_Window iTkWindow);
   ~shgPhases();
 
-//   Tk_Window getTkWindow() {return theTkWindow;} // needed for XWarpPointer
-//   const string &getMenuName() const {return menuName;}
    const string &getHorizSBName() const {return horizSBName;}
    const string &getVertSBName() const {return vertSBName;}
-//   const string &getCurrItemLabelName() const {return currItemLabelName;}
 
    int name2id (const string &phaseName) const;
       // returns -1 if not found
@@ -209,7 +221,8 @@ class shgPhases {
    bool configNode(int phaseId, unsigned nodeId,
                    bool active, shgRootNode::evaluationState);
 
-   void addToStatusDisplay(int phaseId, const char *msg);
+   void addToStatusDisplay(int phaseId, const string &msg);
+      // currently, we do not append the newline character for you
 };
 
 #endif
