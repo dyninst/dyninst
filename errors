@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.25  1994/07/12 16:52:14  newhall
+# Revision 1.26  1994/07/12 16:58:43  newhall
+# created error #20
+#
+# Revision 1.25  1994/07/12  16:52:14  newhall
 # created error #19
 #
 # Revision 1.24  1994/07/12  16:46:42  newhall
@@ -256,4 +259,12 @@ Call to malloc failed within a visi manager function.
 %S fatal
 %X
 Call to strdup failed within a visi manager function.
+%Y
+
+%N 20
+%E internal error
+%A vm
+%S fatal
+%X
+An unrecoverable error occurred within a visi manager function.
 %Y
