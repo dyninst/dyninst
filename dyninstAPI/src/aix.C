@@ -1510,11 +1510,13 @@ void resurrectBaseTramps(process *p)
 {
   if (! p) return;
 
+  vector<const instPoint*> allInstPoints = p->baseMap.keys();
+
+  extern void findAndReinstallBaseTramps(process *, vector<const instPoint*> &);
+  findAndReinstallBaseTramps(p, allInstPoints);
+
   vector<instInstance*> allInstInstances;             //Get all mini trampolines
   getAllInstInstancesForProcess(p, allInstInstances);
-
-  extern void findAndReinstallBaseTramps(process *, vector<instInstance*> &);
-  findAndReinstallBaseTramps(p, allInstInstances);
 
   extern void reattachMiniTramps(process *, vector<instInstance*> &);
   reattachMiniTramps(p, allInstInstances);
