@@ -30,6 +30,7 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "test_util.h"
+#include "test1.h"
 
 // #include <vector.h>
 
@@ -323,7 +324,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 //
-// Start Test Case #2 - mutator side (call a three argument function)
+// Start Test Case #2 - mutator side (call a four argument function)
 //
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
@@ -333,25 +334,61 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 	appImage->findProcedurePoint("func2_1", BPatch_entry);
 
     if (!point2_1 || ((*point2_1).size() == 0)) {
-	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
+	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
 	fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
 	exit(1);
     }
 
     BPatch_function *call2_func = appImage->findFunction("call2_1");
     if (call2_func == NULL) {
-	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
+	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
 	fprintf(stderr, "    Unable to find function \"call2_1.\"\n");
 	exit(1);
     }
+
+    void *ptr;
+
+#if defined(mips_sgi_irix6_4)
+    BPatch_variableExpr *pointerSizeVar = appImage->findVariable("pointerSize");
+    if (!pointerSizeVar) {
+	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+	fprintf(stderr, "    Unable to locate variable pointerSize\n");
+	exit(1);
+    }
+    int pointerSize;
+    if (!pointerSizeVar->readValue(&pointerSize)) {
+	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+	fprintf(stderr, "    Unable to read value of variable pointerSize\n");
+	exit(1);
+    }
+
+    assert(sizeof(void *) == sizeof(unsigned long) &&
+	   sizeof(void *) == TEST_PTR_SIZE);
+
+    /* Determine the size of pointer we should use dynamically. */
+    if (pointerSize == 4) {
+	ptr = TEST_PTR_32BIT;
+    } else if (pointerSize == 8) {
+	ptr = TEST_PTR_64BIT;
+    } else {
+	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+	fprintf(stderr, "    Unexpected value for pointerSize\n");
+	exit(1);
+    }
+#else
+    /* For platforms where there is only one possible size for a pointer. */
+    ptr = TEST_PTR;
+#endif
 
     BPatch_Vector<BPatch_snippet *> call2_args;
     BPatch_constExpr expr2_1(1);
     BPatch_constExpr expr2_2(2);
     BPatch_constExpr expr2_3("testString2_1");
+    BPatch_constExpr expr2_4(ptr);
     call2_args.push_back(&expr2_1);
     call2_args.push_back(&expr2_2);
     call2_args.push_back(&expr2_3);
+    call2_args.push_back(&expr2_4);
 
     BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
 

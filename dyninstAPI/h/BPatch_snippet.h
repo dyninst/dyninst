@@ -116,6 +116,7 @@ public:
     BPatch_constExpr(float value);
 #endif
     BPatch_constExpr(const char *value);
+    BPatch_constExpr(const void *value);
 };
 
 class BPatch_funcCallExpr : public BPatch_snippet {

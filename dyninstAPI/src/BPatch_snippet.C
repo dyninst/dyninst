@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.26 2000/02/15 23:48:00 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.27 2000/08/09 15:05:00 buck Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -383,6 +383,27 @@ BPatch_constExpr::BPatch_constExpr(const char *value)
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("char *");
+    assert(type != NULL);
+
+    ast->setType(type);
+}
+
+
+/*
+ * BPatch_constExpr::BPatch_constExpr
+ *
+ * Constructs a snippet representing a constant pointer.
+ *
+ * value        The desired constant pointer.
+ */
+BPatch_constExpr::BPatch_constExpr(const void *value)
+{
+    ast = new AstNode(AstNode::Constant, (void*)const_cast<void*>(value));
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("void *");
     assert(type != NULL);
 
     ast->setType(type);

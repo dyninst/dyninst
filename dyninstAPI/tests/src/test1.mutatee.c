@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.56 2000/08/07 00:40:00 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.57 2000/08/09 15:05:01 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -17,6 +17,7 @@
 #include <unistd.h>
 #endif
 
+#include "test1.h"
 #ifdef __cplusplus
 #include "cpp_test.h"
 #include <iostream.h>
@@ -103,6 +104,10 @@ static char *libNameA = "libtestA.so";
 #define MAGIC22_7   2200700
 
 int isAttached = 0;
+
+#if defined(mips_sgi_irix6_4)
+int pointerSize = sizeof(void *);
+#endif
 
 int globalVariable1_1 = 0;
 int globalVariable3_1 = 31;
@@ -372,19 +377,24 @@ void call1_1()
     globalVariable1_1 = 11;
 }
 
-void call2_1(int arg1, int arg2, char *arg3)
+void call2_1(int arg1, int arg2, char *arg3, void *arg4)
 {
-    if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString2_1"))) {
-	printf("Passed test #2 (three parameter function)\n");
+    assert(TEST_PTR_SIZE == sizeof(void *));
+
+    if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString2_1")) &&
+	(arg4 == TEST_PTR)) {
+	printf("Passed test #2 (four parameter function)\n");
 	passedTest[2] = TRUE;
     } else {
-	printf("**Failed** test #2 (three parameter function)\n");
+	printf("**Failed** test #2 (four parameter function)\n");
 	if (arg1 != 1) 
 	    printf("    arg1 = %d, should be 1\n", arg1);
-	if (arg1 != 2) 
+	if (arg2 != 2) 
 	    printf("    arg2 = %d, should be 2\n", arg2);
 	if (strcmp(arg3, "testString2_1")) 
 	    printf("    arg3 = %s, should be \"testString2_1\"\n", arg3);
+	if (arg4 != TEST_PTR) 
+	    printf("    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
     }
 }
 
