@@ -2,10 +2,14 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.27  1996/04/19 18:26:37  naim
-/* Adding a procedure that will be called from the DM to add a new process,
-/* as it is done using the "paradyn process" command - naim
+/* Revision 1.28  1996/05/01 14:03:48  naim
+/* Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
+/* and PC - naim
 /*
+# Revision 1.27  1996/04/19  18:26:37  naim
+# Adding a procedure that will be called from the DM to add a new process,
+# as it is done using the "paradyn process" command - naim
+#
 # Revision 1.26  1996/04/16  18:39:05  karavan
 # changed updateStatusDisplay to take a string
 #
@@ -115,6 +119,7 @@
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/UIthread/Status.h"
+#include "performanceConsultant.thread.h"
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
@@ -159,7 +164,7 @@ typedef struct uiSHGrequest uiSHGrequest;
 
 $remote UIM {
 	$base 3000;
-	$version 16;
+	$version 17;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -205,4 +210,9 @@ $remote UIM {
 	$async void DAGaddBatchOfEdges(int dagID, vector<uiSHGrequest> *requests,
 				       unsigned numRequests);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
+        
+        $async void requestNodeInfoCallback(unsigned phaseID, int nodeID, 
+                                            shg_node_info *theInfo, bool ok);
 };
+
+

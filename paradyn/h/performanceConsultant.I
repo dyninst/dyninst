@@ -3,7 +3,11 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.25  1996/04/21 21:37:18  newhall
+ * Revision 1.26  1996/05/01 14:04:28  naim
+ * Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
+ * and PC - naim
+ *
+ * Revision 1.25  1996/04/21  21:37:18  newhall
  * removed getPredictedDataCostCallbackPC
  *
  * Revision 1.24  1996/04/18  22:00:18  naim
@@ -143,7 +147,7 @@ $remote performanceConsultant {
 
     // Get loads of information about a node:
     // client's responsibility to provide valid shg_node_info struct pointer
-    bool getNodeInfo(unsigned phaseID, int nodeID, shg_node_info *theInfo);
+    $async void requestNodeInfo(unsigned phaseID, int nodeID);
 
     $signore
     // these globals hold values updated by tunable constant callbacks
