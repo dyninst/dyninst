@@ -153,6 +153,7 @@ static inline bool execResult(prstatus_t stat) {
    wait for inferior processes to terminate or stop.
 */
 int process::waitProcs(int *status) {
+   extern vector<process*> processVec;
 
    static struct pollfd fds[OPEN_MAX];  // argument for poll
    static int selected_fds;             // number of selected
