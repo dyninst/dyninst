@@ -40,6 +40,7 @@
  */
 
 #include "dyninstAPI/src/inst-sparc.h"
+#include "dyninstAPI/src/instPoint.h"
 
 instruction newInstr[1024];
 static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
@@ -103,7 +104,6 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
     }
   }
 }
-
 
 // Add the astNode opt to generate one instruction to get the 
 // return value for the compiler optimazed case
@@ -863,14 +863,29 @@ bool registerSpace::readOnlyRegister(reg reg_number) {
       return false;
 }
 
-bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
-{
-    for(u_int i=0; i < adr.size(); i++){
+bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) {
+    // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
+    // index.
+
+  //    cout << "checkReturnInstance: addr_=" << (void*)addr_ << "; size_=" <<
+  //            (void*)size_ << endl;
+  //    cout << "instruction sequence is:" << endl;
+  //    for (unsigned i=0; i < instSeqSize/4; i ++)
+  //       cout << (void*)instructionSeq[i].raw << endl;
+  //    cout << endl;
+  //    
+  //    for (unsigned i=0; i < stack.size(); i++)
+  //       cout << (void*)stack[i] << endl;
+
+    for (u_int i=0; i < stack.size(); i++) {
 	index = i;
-        if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
+
+	// Is the following check correct?  Shouldn't the ">" be changed to ">=",
+	// and the "<=" be changed to "<" ??? --ari 6/11/97
+        if (stack[i] > addr_ && stack[i] <= addr_+size_)
 	    return false;
-        }
     }
+
     return true;
 }
 
@@ -884,18 +899,18 @@ void generateBreakPoint(instruction &insn) {
 }
 
 void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
-
     // if there already is a TRAP set at this pc for this process don't
     // generate a trap instruction again...you will get the wrong original
     // instruction if you do a readDataSpace
     bool found = false;
     instruction insn;
-    for(u_int i=0; i < instWList.size(); i++){
-         if(((instWList[i])->pc_ == pc)&&((instWList[i])->which_proc == proc)){
+    for (u_int i=0; i < instWList.size(); i++) {
+         if (instWList[i]->pc_ == pc && instWList[i]->which_proc == proc) {
 	     found = true;
-	     insn = (instWList[i])->relocatedInstruction;
+	     insn = instWList[i]->relocatedInstruction;
 	     break;
-    } }
+	 }
+    }
     if(!found) {
         instruction insnTrap;
         generateBreakPoint(insnTrap);
@@ -906,9 +921,8 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
     }
 
     instWaitingList *instW = new instWaitingList(instructionSeq,instSeqSize,
-				     addr_,pc,insn,pc,proc);
+						 addr_,pc,insn,pc,proc);
     instWList += instW;
-
 }
 
 

@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.23  1997/06/23 17:09:29  tamches
+ * include of instPoint.h is new
+ *
  * Revision 1.22  1997/06/14 18:27:48  ssuen
  * Moved class instPoint from inst-x86.C to inst-x86.h and added/moved the following
  * standard definitions to the public section
@@ -161,6 +164,8 @@
 
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
+#include "dyninstAPI/src/instP.h" // class returnInstance
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -2276,7 +2281,7 @@ int getPointCost(process *proc, const instPoint *point)
 
 
 
-bool returnInstance::checkReturnInstance(const vector<Address>, u_int &) {
+bool returnInstance::checkReturnInstance(const vector<Address> &, u_int &) {
     return true;
 }
  

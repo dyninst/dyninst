@@ -40,6 +40,7 @@
  */
 
 #include "dyninstAPI/src/inst-sparc.h"
+#include "dyninstAPI/src/instPoint.h"
 
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means

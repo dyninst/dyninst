@@ -40,6 +40,7 @@
  */
 
 #include "dyninstAPI/src/inst-sparc.h"
+#include "dyninstAPI/src/instPoint.h"
 
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
@@ -359,7 +360,6 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
  */
 trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 {
-    // cerr << location->func->prettyName() << ":\t" << location->ipType << endl;
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
     instruction *code = new instruction[baseTemplate.size];
@@ -665,8 +665,8 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
  *  for system calls
  */ 
 trampTemplate *installBaseTrampSpecial(const instPoint *&location,
-			     process *proc,
-			     vector<instruction> &extra_instrs) 
+				       process *proc,
+				       vector<instruction> &extra_instrs) 
 {
     unsigned currAddr;
     instruction *code;
@@ -772,7 +772,9 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 
 /*
  * Allocate the space for the base Trampoline, and generate the instruction
- * we need for modifying the code segment
+ * we need for modifying the code segment.
+ *
+ * 'retInstance' tells you how to modify the code to jump to the base tramp
  *
  */
 trampTemplate *findAndInstallBaseTramp(process *proc, 
@@ -781,200 +783,195 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 				 bool)
 {
     Address adr = location->addr;
-    trampTemplate *ret;
     retInstance = NULL;
-    if (!proc->baseMap.defines((const instPoint *)location)) {
 
-	if (location->func->isTrapFunc()) {
-	    // get the base Address of this function if it is a 
-	    // shared object
-	    Address baseAddress = 0;
-  	    if(!(proc->getBaseAddress(location->image_ptr,baseAddress))){
-	        // TODO: what should be done here? 	
-		logLine("Error:findAndInstallBaseTramp call getBaseAddress\n"); 
-	    }
-	    // Install Base Tramp for the functions which are 
-	    // relocated to the heap.
-            vector<instruction> extra_instrs;
+    
+    trampTemplate *ret;
+    if (proc->baseMap.find((const instPoint *)location, ret)) // writes to ret if found
+       // This base tramp already exists; nothing to do.
+       return ret;
 
-	    ret = installBaseTrampSpecial(location, proc,extra_instrs);
+    if (location->func->isTrapFunc()) {
+       // get the base Address of this function if it is a 
+       // shared object
+       Address baseAddress = 0;
+       if(!proc->getBaseAddress(location->image_ptr,baseAddress)){
+	  // TODO: what should be done here? 	
+	  logLine("Error:findAndInstallBaseTramp call getBaseAddress\n"); 
+       }
+       // Install Base Tramp for the functions which are 
+       // relocated to the heap.
+       vector<instruction> extra_instrs;
 
-            // add a branch from relocated function to the base tramp
-	    // if function was just relocated than location has old address
-	    // otherwise location will have address in already relocated func
-            if(!(location->func->isInstalled(proc))){
-	        if (location->isBranchOut){
-		    changeBranch(proc, location->addr, 
+       ret = installBaseTrampSpecial(location, proc,extra_instrs);
+
+       // add a branch from relocated function to the base tramp
+       // if function was just relocated then location has old address
+       // otherwise location will have address in already relocated func
+       if (!location->func->isInstalled(proc)){
+	  if (location->isBranchOut){
+	     changeBranch(proc, location->addr, 
 		          (int) ret->baseAddr, location->originalInstruction);
-                } else {
-		    generateBranch(proc, location->addr, (int)ret->baseAddr);
-                }
-	    }
-	    else {  // location's address is correct...it is in the heap
-	        if (location->isBranchOut){
-		    changeBranch(proc, location->addr, 
+	   } else {
+	     generateBranch(proc, location->addr, (int)ret->baseAddr);
+	   }
+       }
+       else {  // location's address is correct...it is in the heap
+	  if (location->isBranchOut){
+	     changeBranch(proc, location->addr, 
 		          (int) ret->baseAddr, location->originalInstruction);
-                } else {
-		    generateBranch(proc, location->addr, (int)ret->baseAddr);
-                }
-	    }
+	  } else {
+	     generateBranch(proc, location->addr, (int)ret->baseAddr);
+	  }
+       }
 
-	    // If for this process, a call to the relocated function has not
-	    // yet be installed in its original location, then genterate the
-	    // following instructions at the begining of the function:
-	    //   SAVE;             CALL;         RESTORE.
-	    // so that it would jump the start of the relocated function
-	    // which is in heap.
-	    if(!(location->func->isInstalled(proc))){
-	    	location->func->setInstalled(proc);
-		u_int e_size = extra_instrs.size();
-		instruction *insn = new instruction[3 + e_size];
-		Address adr = location-> func -> getAddress(0);
-		genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-		generateCallInsn(insn+1, adr+baseAddress+4, 
-				 location->func->getAddress(proc));
-		genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0); 
-		for(u_int i=0; i < e_size; i++){
-		    insn[3+i] = extra_instrs[i];
-		}
-		retInstance = new returnInstance((instructUnion *)insn, 
-					 (3+e_size)*sizeof(instruction), 
-					 adr+baseAddress, 
-					 location->func->size());
-                assert(retInstance);
+       // If for this process, a call to the relocated function has not
+       // yet be installed in its original location, then genterate the
+       // following instructions at the begining of the function:
+       //   SAVE;             CALL;         RESTORE.
+       // so that it would jump the start of the relocated function
+       // which is in heap.
+       if (!location->func->isInstalled(proc)){
+	  location->func->setInstalled(proc);
+	  u_int e_size = extra_instrs.size();
+	  instruction *insn = new instruction[3 + e_size];
+	  Address adr = location-> func -> getAddress(0);
+	  genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	  generateCallInsn(insn+1, adr+baseAddress+4, 
+			   location->func->getAddress(proc));
+	  genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0); 
+	  for(u_int i=0; i < e_size; i++){
+	     insn[3+i] = extra_instrs[i];
+	  }
+	  retInstance = new returnInstance((instructUnion *)insn, 
+					   (3+e_size)*sizeof(instruction), 
+					   adr+baseAddress, 
+					   location->func->size());
+	  assert(retInstance);
 
-                //cerr << "created a new return instance (relocated fn)!" << endl;
-	    }
+	  //cerr << "created a new return instance (relocated fn)!" << endl;
+       }
+    } else {
+       // It's not a trap-function; it's a "normal" function
+       // compute the real from address if this instrumentation
+       // point is from a shared object image
+       Address baseAddress = 0;
+       if (proc->getBaseAddress(location->image_ptr,baseAddress)){
+	  adr += baseAddress;		
+       }
 
-	} else {
+       ret = installBaseTramp(location, proc);
+       // check to see if this is an entry point and if the delay 
+       // slot instruction is a call insn, if so, then if the 
+       // call is to a location within the function, then we need to 
+       // add an extra instruction after the restore to correctly
+       // set the o7 register
+       bool need_to_add = false;
+       if (location->ipType==functionEntry &&
+	   isInsnType(location->delaySlotInsn,CALLmask,CALLmatch)) {
+	  Address call_offset = location->addr + 8 + 
+	                        (location->delaySlotInsn.call.disp30<<2);
+	  Address fun_addr = location->func->getAddress(0);
+	  u_int fun_size = location->func->size();
+	  if (call_offset>fun_addr && call_offset<(fun_addr+fun_size)) {
+	     assert(location->isLongJump);
+	     need_to_add = true;
+	  }
+       }	
 
-	    // compute the real from address if this instrumentation
-	    // point is from a shared object image
-	    Address baseAddress = 0;
-	    if(proc->getBaseAddress(location->image_ptr,baseAddress)){
-		adr += baseAddress;		
-            }
+       if (location->leaf) {
+	  // if it is the leaf function, we need to generate
+	  // the following instruction sequence:
+	  //     SAVE;      CALL;      NOP.
 
-	    // Install base tramp for all the other regular functions. 
-	    ret = installBaseTramp(location, proc);
-            // check to see if this is an entry point and if the delay 
- 	    // slot instruction is a call insn, if so, then if the 
- 	    // call is to a location within the function we need to 
- 	    // add an extra instruction after the restore to correctly
- 	    // set the o7 register
- 	    bool need_to_add = false;
- 	    if((location->ipType==functionEntry) 
- 		    &&(isInsnType(location->delaySlotInsn,CALLmask,CALLmatch))){
-                 Address call_offset = location->addr + 8 + 
- 		                       (location->delaySlotInsn.call.disp30<<2);
-                 Address fun_addr = location->func->getAddress(0);
-                 u_int fun_size = location->func->size();
-                 if((call_offset>fun_addr)&&(call_offset<(fun_addr+fun_size))){
- 		     assert(location->isLongJump);
- 		     need_to_add = true;
- 	        }
- 	    }	
-
-	    if (location->leaf) {
-		// if it is the leaf function, we need to generate
-		// the following instruction sequence:
-		//     SAVE;      CALL;      NOP.
-
-		if (location -> isLongJump == false) {
-		    instruction *insn = new instruction;
-		    generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
-		    retInstance = new returnInstance((instructUnion *)insn,
-						     sizeof(instruction), adr, 
-						     sizeof(instruction));
-                } else if(need_to_add) {
-		    // generate  origninal; call; add $o7 imm4 
-		    instruction *insn = new instruction[2];
-		    generateCallInsn(insn, adr+4, (int) ret->baseAddr);
- 		    genImmInsn(insn+1,ADDop3,REG_O7,4,REG_O7);
-		    retInstance = new returnInstance((instructUnion *)insn,
+	  if (location -> isLongJump == false) {
+	     instruction *insn = new instruction;
+	     generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
+	     retInstance = new returnInstance((instructUnion *)insn,
+					      sizeof(instruction), adr, 
+					      sizeof(instruction));
+	  } else if (need_to_add) {
+	     // generate  original; call; add $o7 imm4 
+	     instruction *insn = new instruction[2];
+	     generateCallInsn(insn, adr+4, (int) ret->baseAddr);
+	     genImmInsn(insn+1,ADDop3,REG_O7,4,REG_O7);
+	     retInstance = new returnInstance((instructUnion *)insn,
 				 2*sizeof(instruction), adr+4,
 			         2*sizeof(instruction));
 
-                } else {
-		    instruction *insn = new instruction[3];
-		    genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-		    generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
-		    generateNOOP(insn+2);
-		    retInstance = new returnInstance((instructUnion *)insn, 
+	  } else {
+	     instruction *insn = new instruction[3];
+	     genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	     generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
+	     generateNOOP(insn+2);
+	     retInstance = new returnInstance((instructUnion *)insn, 
 						     3*sizeof(instruction), adr, 
 						     3*sizeof(instruction));
 		    
-		}
+	  }
 		
-		assert(retInstance);
-
-		//cerr << "created a new return instance (leaf)!" << endl;
-	    } else {
-		// Otherwise,
-		// Generate branch instruction from the application to the
-		// base trampoline and no SAVE instruction is needed
-
+	  assert(retInstance);
+       } else {
+	  // It's not a leaf.
+	  // Generate branch instruction from the application to the
+	  // base trampoline and no SAVE instruction is needed
 		
-		if (in1BranchInsnRange(adr, ret->baseAddr)) {
-		    // make sure that the isLongJump won't be true
-		    // which only is possible for shlib entry point 
-		    assert(location->isLongJump == false);
-		    instruction *insn = new instruction;
-		    if (location -> ipType == functionEntry) {
-			generateBranchInsn(insn, (int)(ret->baseAddr 
-					- location->addr+sizeof(instruction))); 
-			retInstance = new returnInstance((instructUnion *)insn,
-							 sizeof(instruction), 
-							 adr - sizeof(instruction), 
-							 sizeof(instruction));
-		    } else {
-			generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
-			retInstance = new returnInstance((instructUnion *)insn,
-							 sizeof(instruction), 
-							 adr, 
-							 sizeof(instruction));
-		    }
- 
- 		} else if(need_to_add) {
- 	          // the delay slot instruction is is a call to a location
- 	          // within the same function, then need to generate 3 instrs
- 		  //    call
- 		  //    nop          // delay slot (originally call insn)
- 		  //    add o7 imm4  // sets o7 register to correct value
- 		  instruction *insn = new instruction[3];	
- 		  generateCallInsn(insn, adr, (int) ret->baseAddr);
- 		  generateNOOP(insn+1);
- 		  genImmInsn(insn+2,ADDop3,REG_O7,4,REG_O7);
- 		  retInstance = new returnInstance((instructUnion *)insn, 
- 					     3*sizeof(instruction), adr, 
- 					     3*sizeof(instruction));
-		} else {
-		    instruction *insn = new instruction[2];	
-		    generateCallInsn(insn, adr, (int) ret->baseAddr);
-		    if (location -> ipType == functionEntry) {
-			if (location -> isLongJump)
-			    generateNOOP(insn+1);
-			else
-			    genSimpleInsn(insn+1, RESTOREop3, 0, 0, 0);
-		    } else
-			generateNOOP(insn+1);
-		    retInstance = new returnInstance((instructUnion *)insn, 
-						     2*sizeof(instruction), adr, 
-						     2*sizeof(instruction));
-		    assert(retInstance);
-		    
-		    //cerr << "created a new return instance (normal)!" << endl;
-		}
-	    }
-	}
+	  if (in1BranchInsnRange(adr, ret->baseAddr)) {
+	     // make sure that the isLongJump won't be true
+	     // which only is possible for shlib entry point 
+	     assert(location->isLongJump == false);
+	     instruction *insn = new instruction;
+	     if (location -> ipType == functionEntry) {
+	        generateBranchInsn(insn, (int)(ret->baseAddr -
+					       location->addr+sizeof(instruction))); 
+		retInstance = new returnInstance((instructUnion *)insn,
+						 sizeof(instruction), 
+						 adr - sizeof(instruction), 
+						 sizeof(instruction));
+	     } else {
+	        generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
+		retInstance = new returnInstance((instructUnion *)insn,
+						 sizeof(instruction), 
+						 adr, 
+						 sizeof(instruction));
+	     }
+	  } else if(need_to_add) {
+	     // the delay slot instruction is is a call to a location
+	     // within the same function, then need to generate 3 instrs
+	     //    call
+	     //    nop          // delay slot (originally call insn)
+	     //    add o7 imm4  // sets o7 register to correct value
+	     instruction *insn = new instruction[3];	
+	     generateCallInsn(insn, adr, (int) ret->baseAddr);
+	     generateNOOP(insn+1);
+	     genImmInsn(insn+2,ADDop3,REG_O7,4,REG_O7);
+	     retInstance = new returnInstance((instructUnion *)insn, 
+					      3*sizeof(instruction), adr, 
+					      3*sizeof(instruction));
+	  } else {
+	     instruction *insn = new instruction[2];	
+	     generateCallInsn(insn, adr, (int) ret->baseAddr);
+	     if (location -> ipType == functionEntry) {
+	        if (location -> isLongJump)
+		   generateNOOP(insn+1);
+		else
+		   genSimpleInsn(insn+1, RESTOREop3, 0, 0, 0);
+	     } else
+	        generateNOOP(insn+1);
 
-	proc->baseMap[(const instPoint *)location] = ret;
-	
-    } else {
-	ret = proc->baseMap[(const instPoint *)location];
+	     retInstance = new returnInstance((instructUnion *)insn, 
+					      2*sizeof(instruction), adr, 
+					      2*sizeof(instruction));
+	     assert(retInstance);
+	  }
+       }
     }
-    
+
+    proc->baseMap[(const instPoint *)location] = ret;
+	
     return(ret);
+       // remember, ret was the result of either installBaseTramp() or
+       // installBaseTrampSpecial()
 }
 
 /*

@@ -82,9 +82,9 @@
 #include "dyninstAPI/src/aix.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-// #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "paradynd/src/showerror.h"
 #include "util/h/debugOstream.h"
 
@@ -1992,7 +1992,7 @@ bool registerSpace::readOnlyRegister(reg reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const vector<Address> adr,
+bool returnInstance::checkReturnInstance(const vector<Address> &adr,
 					 u_int &index)
 {
 #ifdef ndef  
