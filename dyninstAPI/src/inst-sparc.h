@@ -122,10 +122,10 @@ public:
   void set_callee(pd_Function *to) { callee = to; }
 
 
-  function_base *iPgetFunction() const { return func;      }
-  function_base *iPgetCallee()   const { return callee;    }
-  const image   *iPgetOwner()    const { return image_ptr; }
-  Address        iPgetAddress()  const { return addr;      }
+  const function_base *iPgetFunction() const { return func;      }
+  const function_base *iPgetCallee()   const { return callee;    }
+  const image         *iPgetOwner()    const { return image_ptr; }
+        Address        iPgetAddress()  const { return addr;      }
 
 
   Address addr;                       // address of inst point

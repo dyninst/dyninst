@@ -45,6 +45,9 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.8  1997/06/15 19:24:07  ssuen
+ * Changed iPgetFunction and iPgetCallee to return const function_base *
+ *
  * Revision 1.7  1997/06/15 00:02:41  ssuen
  * Included following new public access functions in class instPoint.
  *
@@ -127,11 +130,11 @@ public:
   void set_callee(pd_Function *to) { callee = to; }
 
 
-  function_base *iPgetFunction() const { return func;   }
-  function_base *iPgetCallee()   const { return callee; }
-  const image   *iPgetOwner()    const { 
+  const function_base *iPgetFunction() const { return func;   }
+  const function_base *iPgetCallee()   const { return callee; }
+  const image         *iPgetOwner()    const { 
     return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-  Address        iPgetAddress()  const { return addr;   }
+        Address        iPgetAddress()  const { return addr;   }
 
 
   Address addr;                   /* address of inst point */

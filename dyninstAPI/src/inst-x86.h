@@ -80,10 +80,10 @@ class instPoint {
   };
 
 
-  function_base *iPgetFunction() const { return func();    }
-  function_base *iPgetCallee()   const { return callee();  }
-  const image   *iPgetOwner()    const { return owner();   }
-  Address        iPgetAddress()  const { return address(); }
+  const function_base *iPgetFunction() const { return func();    }
+  const function_base *iPgetCallee()   const { return callee();  }
+  const image         *iPgetOwner()    const { return owner();   }
+        Address        iPgetAddress()  const { return address(); }
 
 
   Address address() const { return addr_; }
