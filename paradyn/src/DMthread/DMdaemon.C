@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.145 2004/05/31 00:36:37 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.146 2004/06/21 19:37:11 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2238,7 +2238,7 @@ void paradynDaemon::addProcessInfo(const pdvector<pdstring> &resource_name) {
 //
 void paradynDaemon::resourceInfoCallback(u_int temporaryId,
                                          pdvector<pdstring> resource_name,
-                                         pdstring abstr,
+                                         pdstring /* abstr */,
                                          u_int type,
                                          u_int mdlType)
 {
@@ -2250,21 +2250,23 @@ void paradynDaemon::resourceInfoCallback(u_int temporaryId,
       }
    }
 
-   resourceHandle r = resource::createResource(temporaryId, resource_name, 
-                                               abstr,
-                                               (ResourceType)type,
-                                               mdlType);
+    resource* r = resource::create(resource_name,
+                                    (ResourceType)type,
+                                    mdlType,
+                                    temporaryId);
    if(!count){
-      if (r != temporaryId) {
-         pdvector<u_int>tempIds; pdvector<u_int>rIds;
-         tempIds += temporaryId; rIds += r;
+      if (r->getHandle() != temporaryId) {
+         pdvector<u_int>tempIds;
+         pdvector<u_int>rIds;
+         tempIds.push_back( temporaryId );
+         rIds.push_back( r->getHandle() );
          resourceInfoResponse(tempIds, rIds);
       }
    }
    else {
-      if (r != temporaryId) {
-         newResourceTempIds += temporaryId;
-         newResourceHandles += r;
+      if (r->getHandle() != temporaryId) {
+         newResourceTempIds.push_back( temporaryId );
+         newResourceHandles.push_back( r->getHandle() );
          assert(newResourceTempIds.size() == newResourceHandles.size());
       }
    }

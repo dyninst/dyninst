@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.68 2004/05/31 00:36:37 pcroth Exp $
+// $Id: DMdaemon.h,v 1.69 2004/06/21 19:37:11 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -146,7 +146,7 @@ class paradynDaemon: public dynRPCUser {
    friend void *DMmain(void* varg);
    friend void newSampleRate(timeLength rate);
    friend bool metDoDaemon();
-   friend int dataManager::DM_post_thread_create_init(thread_t tid);
+   friend int dataManager::DM_post_thread_create_init( DMthreadArgs* );
    friend void DMdoEnableData(perfStreamHandle, perfStreamHandle,
 			      pdvector<metricRLType>*, u_int, phaseType,
 			      phaseHandle,u_int,u_int,u_int);

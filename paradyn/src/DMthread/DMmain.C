@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.157 2004/04/12 19:38:32 igor Exp $
+// $Id: DMmain.C,v 1.158 2004/06/21 19:37:11 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -72,6 +72,8 @@ extern "C" {
 
 #include "CallGraph.h"
 
+#include "paradyn/src/met/metricExt.h"
+
 #if !defined(i386_unknown_nt4_0)
 #include "termWin.xdr.CLNT.h"
 #endif // !defined(i386_unknown_nt4_0)
@@ -87,7 +89,6 @@ extern const Ident V_id;
 typedef pdvector<pdstring> blahType;
 
 // bool parse_metrics(pdstring metric_file);
-bool metMain(pdstring &userFile);
 
 // this has to be declared before baseAbstr, cmfAbstr, and rootResource 
 PDSOCKET dataManager::sock_desc;  
@@ -146,10 +147,10 @@ extern void histDataCallBack(pdSample *buckets, relTimeStamp, int count,
 			     int first, void *callbackData);
 extern void histFoldCallBack(const timeLength *_width, void *callbackData);
 
-#if !defined(i386_unknown_nt4_0)
-void startTermWin( void );
+#if !defined(os_windows)
+void StartTermWin( bool useGUI );
 void mpichUnlinkWrappers( void );
-#endif // !defined(i386_unknown_nt4_0)
+#endif // !defined(os_windows)
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
@@ -703,18 +704,19 @@ bool dataManager::DM_sequential_init(const char* met_file){
    return(metMain(mfile)); 
 }
 
-int dataManager::DM_post_thread_create_init(thread_t tid) {
-
+int
+dataManager::DM_post_thread_create_init( DMthreadArgs* dmArgs )
+{
     thr_name("Data Manager");
-    dataManager::dm = new dataManager(tid);
+    dataManager::dm = new dataManager( dmArgs->mainTid );
 
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
     DMsetupSocket (dataManager::dm->sock_desc);
 
-#if !defined(i386_unknown_nt4_0)
-    startTermWin();
-#endif
+#if !defined(os_windows)
+    StartTermWin( dmArgs->useTermWinGUI );
+#endif // (os_windows)
 
     bool aflag;
 #if !defined(i386_unknown_nt4_0)
@@ -732,11 +734,11 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
 
     char DMbuff[64];
     unsigned int msgSize = 64;
-    msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
+    msg_send( dmArgs->mainTid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag_t tag = MSG_TAG_ALL_CHILDREN_READY;
-	thread_t from = MAINtid;
+	thread_t from = dmArgs->mainTid;
     msg_recv (&from, &tag, DMbuff, &msgSize);
-	assert( from == MAINtid );
+	assert( from == dmArgs->mainTid );
 
     return 1;
 }
@@ -744,9 +746,11 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
 //
 // Main loop for the dataManager thread.
 //
-void *DMmain(void* varg)
+void* 
+DMmain( void* varg )
 {
-	thread_t mainTid = *(thread_t*)varg;
+    DMthreadArgs* dmArgs = (DMthreadArgs*)varg;
+    assert( dmArgs != NULL );
 
     unsigned fd_first = 0;
     // We declare the "printChangeCollection" tunable constant here; it will
@@ -777,7 +781,7 @@ void *DMmain(void* varg)
 	      NULL,
 	      userConstant);
 
-    dataManager::DM_post_thread_create_init(mainTid);
+    dataManager::DM_post_thread_create_init( dmArgs );
 
     thread_t tid;
     unsigned int tag;
@@ -929,7 +933,7 @@ void ps_retiredResource(pdstring resource_name) {
    resourceHandle r_handle = res->getHandle();
    assert(res->getAbstractionName());
    while(allS.next(h,ps)) {
-      ps->callResourceRetireFunc(r_handle, res->getFullName(), 
+      ps->callResourceRetireFunc(r_handle, res->getFullName().c_str(),
                                  res->getAbstractionName());
    }
 }
@@ -943,17 +947,10 @@ void newSampleRate(timeLength rate)
     }
 }
 
-#ifdef ndef
-// Note - the metric parser has been moved into the dataManager
-bool parse_metrics(pdstring metric_file) {
-   bool parseResult = metMain(metric_file);
-   return parseResult;
-}
-#endif
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(os_windows)
 void
-startTermWin( void )
+StartTermWin( bool useTermWinGUI )
 {
     bool sawStartupError = false;
 
@@ -966,8 +963,15 @@ startTermWin( void )
 
     char buffer[256];
     sprintf(buffer,"%d",dataManager::termWin_sock);
-    pdvector<pdstring> *av = new pdvector<pdstring>;
-    *av += buffer;
+    pdvector<pdstring>* av = new pdvector<pdstring>;
+    av->push_back( buffer );
+
+    // if desired, ask GUI to use command-line interface
+    if( !useTermWinGUI )
+    {
+        av->push_back( "-cl" );
+    }
+
     PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
     if( tw_sock != PDSOCKET_ERROR )
     {

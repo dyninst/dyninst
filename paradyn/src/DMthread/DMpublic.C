@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.143 2004/06/14 22:25:55 legendre Exp $
+// $Id: DMpublic.C,v 1.144 2004/06/21 19:37:11 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -398,7 +398,16 @@ metricHandle *dataManager::findMetric(const char *name)
 
 pdvector<resourceHandle> *dataManager::getRootResources()
 {
-    return(resource::getRootResource()->getChildren());
+    pdvector<resourceHandle>* ret = new pdvector<resourceHandle>;
+    pdvector<const resource*> roots =
+        resource::getRootResource()->getChildren();
+    for( pdvector<const resource*>::const_iterator iter = roots.begin();
+            iter != roots.end();
+            iter++ )
+    {
+        ret->push_back( (*iter)->getHandle() );
+    }
+    return ret;
 }
 
 resourceHandle *dataManager::getRootResource()
@@ -730,7 +739,7 @@ pdvector<rlNameId> *dataManager::magnify(resourceHandle rh,
    resourceList *rl = resourceList::getFocus(rlh);
    resource *res = resource::handle_to_resource(currentSearchPath);
    if(rl) {
-      return rl->magnify(rh, m, res);
+      return rl->magnify(resource::handle_to_resource(rh), m, res);
    }
    return 0;
 }
@@ -745,10 +754,11 @@ resourceListHandle *dataManager::constrain(resourceHandle rh,
 					  resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if (rl) {
-	 resourceListHandle *return_handle = rl->constrain(rh);
-	if(return_handle){
-	    return return_handle;
-	}
+        resource* res = resource::handle_to_resource(rh);
+        resourceListHandle *return_handle = rl->constrain(res);
+        if(return_handle){
+            return return_handle;
+        }
     }
     resourceListHandle *default_handle = new resourceListHandle;
     *default_handle = rlh;
@@ -762,7 +772,7 @@ resourceListHandle *dataManager::morespecific(resourceHandle rh,
 					      resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if (rl) {
-	return(rl->constrain(rh));
+        return(rl->constrain( resource::handle_to_resource(rh)));
     }
     return 0;
 }
@@ -930,11 +940,8 @@ resourceHandle *dataManager::findResource(const char *name){
 //
 const char *dataManager::getResourceLabelName(resourceHandle h){
 
-     const char *s = resource::getName(h);
-     if(s){
-	 return(s);
-     }
-     return 0;
+    pdstring ret = resource::getName( h );
+    return ((ret.length() > 0) ? ret.c_str() : NULL);
 }
 
 //
@@ -942,11 +949,8 @@ const char *dataManager::getResourceLabelName(resourceHandle h){
 //
 const char *dataManager::getResourceName(resourceHandle h){
 
-     const char *s = resource::getFullName(h);
-     if(s){
-	 return(s);
-     }
-     return 0;
+    pdstring ret = resource::getFullName(h);
+    return ((ret.length() > 0) ? ret.c_str() : NULL);
 }
 
 //

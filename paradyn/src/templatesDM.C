@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.34 2004/05/17 00:50:52 pcroth Exp $
+// $Id: templatesDM.C,v 1.35 2004/06/21 19:37:06 pcroth Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -120,6 +120,7 @@ template class pdvector<metricInstInfo>;
 template class pdvector<met_name_id>;
 template class pdvector<metric*>;
 template class pdvector<resource*>;
+template class pdvector<const resource*>;
 template class pdvector<resourceList*>;
 template class pdvector<abstraction*>;
 template class pdvector<metricInstance*>;
@@ -183,9 +184,13 @@ template class pdvector<dictionary_hash<int,CallGraph*>::entry>;
 template class dictionary_hash<resource*,pdvector<resource*> >;
 template class pdvector<pdvector<resource*> >;
 template class pdvector<dictionary_hash<resource*,pdvector<resource*> >::entry>;
+template class dictionary_hash<const resource*,pdvector<const resource*> >;
+template class pdvector<dictionary_hash<const resource*,pdvector<const resource*> >::entry>;
 
-template class dictionary_hash<resource *, int>;
-template class pdvector<dictionary_hash<resource *, int>::entry>;
+template class dictionary_hash<resource*, int>;
+template class pdvector<dictionary_hash<resource*, int>::entry>;
+template class dictionary_hash<const resource*, int>;
+template class pdvector<dictionary_hash<const resource*, int>::entry>;
 
 #include "paradyn/src/DMthread/DMmetricFocusReqBundle.h"
 template class pdvector<metricFocusReqBundle *>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.11 2004/03/23 01:12:25 eli Exp $
+// $Id: CallGraph.h,v 1.12 2004/06/21 19:37:11 pcroth Exp $
 
 /**********************************************************
  *
@@ -78,23 +78,23 @@ class CallGraph;
 class CallGraph {
   // for each resource registered w/ call graph, list of children
     //  in call graph.... 
-    dictionary_hash <resource *, pdvector<resource *> > children;
+    dictionary_hash <const resource *, pdvector<const resource *> > children;
  
     // for each resource registered w/ call graph, list of parents
     //  in call graph....
-    dictionary_hash <resource *, pdvector<resource *> > parents;
+    dictionary_hash <const resource *, pdvector<const resource *> > parents;
     
     //used to avoid revisiting nodes that we have already visited when
     //traversing the call graph in displayCallGraph()
-    dictionary_hash <resource *, int> visited;
+    dictionary_hash <const resource *, int> visited;
 
     //Keeps track of those functions (that contain dynamic call sites)
     //for which we have already issued requests to the daemon to
     //instrument those dynamic call sites
-    dictionary_hash<resource *, int> instrumented_call_sites;
+    dictionary_hash<const resource *, int> instrumented_call_sites;
     
     //Vector holding all of those functions that contain dynamic call sites
-    pdvector<resource *> dynamic_call_sites;
+    pdvector<const resource *> dynamic_call_sites;
 
     dictionary_hash<unsigned, resourceHandle> tid_to_start_func;
 
@@ -120,8 +120,8 @@ class CallGraph {
     // holds known call graphs, indexed by program id....
     static dictionary_hash<int, CallGraph *> directory;
 
-    void addChildrenToDisplay(resource *parent, 
-			      dictionary_hash <resource *, int>);
+    void addChildrenToDisplay(const resource *parent, 
+			      dictionary_hash <const resource *, int>);
 
     //Used for issuing new program ids to new call graphs
     static int last_id_issued;
@@ -146,7 +146,7 @@ class CallGraph {
 
     // Return boolean value indicating whether was added (not added if resource
     //  was previously seen)....
-    bool AddResource(resource *r);
+    bool AddResource(const resource *r);
 
     // Return integer value indicating how many of the children were
     //  added....
@@ -154,7 +154,7 @@ class CallGraph {
     // registers resources in <children> not previously seen....
     int SetChildren(resource *r, const pdvector <resource *>children);
 
-    int AddChild(resource *parent, resource *child);
+    int AddChild(const resource *parent, const resource *child);
 
     bool isStartFunction(resourceHandle rh);
 
@@ -163,11 +163,11 @@ class CallGraph {
     // assert(c previously known to call graph).
     // returns false if c was previously known as child (and c not added),
     //  true otherwise (and c added)....
-    bool AddDynamicallyDeterminedChild(resource *r, resource *c);
+    bool AddDynamicallyDeterminedChild(const resource *r, const resource *c);
 
     //Used to notify the call graph of the functions that contain
     //dynamic call sites.
-    void AddDynamicCallSite(resource *parent);
+    void AddDynamicCallSite(const resource *parent);
 
     //Used to tell the call graph that we are done adding nodes,
     //so the call graph can create the display if requested.
@@ -180,7 +180,7 @@ class CallGraph {
     //  (e.g. Performance Consultant searches).
     // See above for discussion of why alternate resource hierarchies
     //  were not used....
-    pdvector <resourceHandle>* getChildren(resource *rh);
+    pdvector<const resource*> getChildren(const resource *rh);
 
     // Call Graph class also holds static directory of call graphs indexed
     //  by program id.  This function should return a pointer to the call
@@ -224,15 +224,15 @@ class CallGraph {
     static void determineAllDynamicCallees();
     void determineDynamicCallees();
 
-    //Calls isDescendent() for each call graph that we know about
+    //Calls isDescendant() for each call graph that we know about
     //(There may be more than one call graph, however this is 
     //currently unimplemented).
-    static bool isDescendentOfAny(resource *child, const resource *parent);
+    static bool isDescendantOfAny(const resource *child, const resource *parent);
 
     //Returns true if resource child is a descendent of resource
     //parent in the call graph.
-    bool isDescendent(resource *child, const resource *parent, 
-		      dictionary_hash <resource *, int>& have_visited);
+    bool isDescendant(const resource *child, const resource *parent, 
+		      dictionary_hash<const resource*, int>& have_visited);
 };
 
 

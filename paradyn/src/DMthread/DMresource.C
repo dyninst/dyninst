@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.67 2004/03/23 01:12:26 eli Exp $
+// $Id: DMresource.C,v 1.68 2004/06/21 19:37:11 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,99 +66,88 @@ inline unsigned newResourceHandle() {
 //
 // used only to construct root.
 //
-resource::resource()
-  : type( CategoryResourceType )
+resource::resource( void )
+  : flatName( "ROOT" ),
+    type( CategoryResourceType ),
+    mdlType( MDL_T_STRING ),
+    res_handle( 0 ),
+    parent( NULL ),
+    suppressSearch( false ),
+    suppressChildSearch( false ),
+    suppressMagnify( false ),
+    retired( false ),
+    abstr( NULL )
 {
-    pdstring temp = "ROOT"; 
-    assert(allResources.size()==0);
-    if(!allResources.defines(temp)){
-        name = temp; 
-	res_handle = 0;
-        parent = res_handle; 
-        suppressSearch = FALSE;
-        suppressChildSearch = FALSE;
-	suppressMagnify = false;
-        retired = false;
-        abstr = NULL;
-        resource *res = this;
-	resources[res_handle] = res;
-        allResources[name] = res;
+    assert( allResources.size()==0 );
+    assert( !allResources.defines( flatName ) );
+
+    // register ourselves as a new resource
+    resources[res_handle] = this;
+    allResources[flatName] = this;
+}
+
+
+//
+// used to construct all non-root resources
+//
+resource::resource( pdstring _resName,
+                    ResourceType _resType,
+                    unsigned int _mdlType,
+                    resource* _parent,
+                    unsigned int _id )
+  : type( _resType ),
+    mdlType( _mdlType ),
+    res_handle( _id ),
+    parent( _parent ),
+    suppressSearch( _parent->getSuppressChildren() ),
+    suppressChildSearch( suppressSearch ),
+    suppressMagnify( false ),
+    retired( false ),
+    abstr( NULL )
+{
+    assert( parent != NULL );
+
+    // ensure our names are set...
+    // ...flat name...
+    // Note: the root resource has a special name ("ROOT")
+    // that we do not want to include in our flat name
+    flatName = ((parent != rootResource) ?
+                            parent->getFullName() : pdstring("")) +
+                         "/" + _resName;
+    assert( !allResources.defines( flatName ) );
+
+    // ...and full (vector-based) name.
+    // (Note: we build the full name into a temporary in reverse order
+    // and then swap the order because we have neither the push_front()
+    // nor the insert() method in our vector class.)
+    assert( fullName.size() == 0 );
+    pdvector<pdstring> reverseFullName;
+    reverseFullName.push_back( _resName );
+    resource* currPart = _parent;
+    while( currPart != rootResource )
+    {
+        reverseFullName.push_back( currPart->getName() );
+        currPart = currPart->parent;
     }
-}
-
-
-resource::resource(resourceHandle p_handle, 
-		   unsigned tempId,
-		   pdvector<pdstring>& resource_name,
-		   pdstring& r_name,
-		   pdstring& a,
-           ResourceType _type,
-           unsigned int _mdlType)
-{
-    
-    if(!allResources.defines(r_name)){
-
-        type = _type;
-        mdlType = _mdlType;
-        name = r_name;
-	// the daemons generate an id for the resource. If there are no
-	// conflicts between this id and the id for other resource, we
-	// can keep the daemon id, otherwise we must generate a new
-	// id.
-	if (resources.defines(tempId))
-	   res_handle = newResourceHandle();
-	else
-	   res_handle = tempId;
-        parent = p_handle;
-	fullName = resource_name;
-	resource *p = resources[parent];
-	 
-	suppressSearch = p->getSuppressChildren();
-	suppressChildSearch = suppressSearch; // check for suppress
-					      // of parent's children
-	suppressMagnify = false;
-        retired = false;
-        abstr = AMfind(a.c_str());
-	resource *res = this;
-	allResources[name] = res;
-	resources[res_handle] = res;
-        p->AddChild(res_handle);
+    for( unsigned int i = reverseFullName.size(); i > 0; i-- )
+    {
+        fullName.push_back( reverseFullName[i-1] );
     }
-    else assert(0);
+
+    // the daemons generate an id for the resource. If there are no
+    // conflicts between this id and the id for other resource, we
+    // can keep the daemon id, otherwise we must generate a new id.
+    if( resources.defines(_id) )
+    {
+       res_handle = newResourceHandle();
+    }
+     
+    // register ourselves as a new resource
+    allResources[flatName] = this;
+    resources[res_handle] = this;
+    parent->AddChild( this );
 }
 
-resource::resource(resourceHandle p_handle, 
-		   pdvector<pdstring>& resource_name,
-		   pdstring& r_name,
-		   pdstring& a,
-           ResourceType _type,
-           unsigned int _mdlType)
-{
-    
-   if(!allResources.defines(r_name)){
-      name = r_name;
-      type = _type;
-      mdlType = _mdlType;
-      res_handle = pdstring::hash(name);
-      while (resources.defines(res_handle))
-         res_handle = (res_handle+1) % (unsigned)INT_MAX;
-      parent = p_handle;
-      fullName = resource_name;
-      resource *p = resources[parent];
-      
-      suppressSearch = p->getSuppressChildren();
-      suppressChildSearch = suppressSearch; // check for suppress
-      // of parent's children
-      suppressMagnify = false;
-      retired = false;
-      abstr = AMfind(a.c_str());
-      resource *res = this;
-      allResources[name] = res;
-      resources[res_handle] = res;
-      p->AddChild(res_handle);
-   }
-   else assert(0);
-}
 
 
 resource *resource::handle_to_resource(resourceHandle r_handle) {
@@ -172,243 +161,262 @@ resource *resource::handle_to_resource(resourceHandle r_handle) {
        return NULL;
 }
 
-// I don't want to parse for '/' more than once, thus the use of a string
-// vector
-resourceHandle resource::createResource(unsigned res_id, 
-                                        pdvector<pdstring>& resource_name,
-                                        pdstring& abstr, 
-                                        ResourceType type,
-                                        unsigned int mdlType)
+resource*
+resource::create( const pdvector<pdstring>& resource_name,
+                        ResourceType type,
+                        unsigned int mdlType,
+                        unsigned int resId )
 {
-   static const pdstring slashStr = "/";
-   static const pdstring baseStr = "BASE";
+    // determine the proposed resource's parent based on 
+    // the given resource name
+    resource* parent = NULL;
+    if( resource_name.size() > 1 )
+    {
+        // construct the parent's flat name
+        pdstring parentFlatName;
+        for( unsigned int i = 0; i < resource_name.size() - 1; i++ )
+        {
+            parentFlatName += "/";
+            parentFlatName += resource_name[i];
+        }
 
-   resource *parent = NULL;
-   unsigned r_size = resource_name.size();
-   pdstring p_name;
+        // look up the parent
+        parent = resource::string_to_resource( parentFlatName );
+        if( parent == NULL )
+        {
+            cerr << "FE: parent NULL when trying to define resource: name =\n ";
+            for( unsigned int i = 0; i < resource_name.size(); i++ )
+            {
+                cerr << "\t" << resource_name[i] << endl;
+            }
+            cerr << "\tparent name = " << parentFlatName
+                << endl;
+        }
+        assert( parent != NULL );
+    }
+    else if( resource_name.size() == 1 )
+    {
+        // this is a top-level resource
+        parent = resource::rootResource;
+    }
+    else
+    {
+        // we are being asked to create the root resource -
+        // this should never happen
+        assert( resource_name.size() >= 1 );
+    }
+    assert( parent != NULL );
+
+    // extract the proposed resource's own name
+    pdstring resName = resource_name[resource_name.size()-1];
+
+    // create the resource
+    return resource::create( resName, type, mdlType, parent, resId );
+}
+
+resource*
+resource::create( pdstring resFullName,
+                        ResourceType type,
+                        unsigned int mdlType,
+                        unsigned int resId )
+{
+    // find resource's parent based on its given full name
+    resource* parent = NULL;
+
+    // split its full name between its parent name and its own name
+    pdstring name;
+    const char* resFullNamePtr = resFullName.c_str();
+    assert( resFullNamePtr[0] == '/' );
+    const char* lastSepPtr = strrchr( resFullNamePtr, '/' );
+    assert( lastSepPtr != NULL );
+
+    if( lastSepPtr != resFullNamePtr )
+    {
+        pdstring parName = resFullName.substr( 0, (lastSepPtr - resFullNamePtr) );
+
+        // it is not a child of the root resource
+        // find its parent
+        parent = resource::string_to_resource(parName);
+    }
+    else
+    {
+        // it is a child of the root resource
+        parent = resource::getRootResource();
+    }
+    name = (lastSepPtr+1);
+    assert( parent != NULL );
+    assert( name.length() > 0 );
+
+    return resource::create( name, type, mdlType, parent, resId );
+}
+
+resource*
+resource::create( pdstring resName,
+                    ResourceType type,
+                    unsigned int mdlType,
+                    resource* parent,
+                    unsigned int resId )
+{
+    resource* ret = NULL;
 
 
-   switch (r_size) {
-     case 0:
-        // Should this case ever occur ?
-        assert(0); break;
-     case 1:
-        parent = resource::getRootResource(); break;
-     default:
-        for (unsigned ri=0; ri<(r_size-1); ri++) 
-           p_name += slashStr + resource_name[ri];
-        parent = resource::string_to_resource(p_name);
-        assert(parent);
-        break;
-   }
-   if (!parent) assert(0);
+    // check to see if the resource already exists
+    // Note: the root resource has a special name ("ROOT")
+    // that we don't want to include in our flat name
+    pdstring resFlatName = ((parent != rootResource) ?
+                            parent->getFullName() : pdstring("")) +
+                         "/" + resName;
+    if( resource::allResources.find( resFlatName, ret ) )
+    {
+        return ret;
+    }
 
+    // the resource does not already exist, so create it
+    ret = new resource( resName, type, mdlType, parent, resId );
 
-   /* first check to see if the resource has already been defined */
-   // resource *p = resource::resources[parent->getHandle()];
-   pdstring myName = p_name;
-   myName += slashStr;
-   myName += resource_name[r_size - 1];
+    // check to see if the suppressMagnify option should be set...if
+    // this resource is specifed in the mdl exclude_lib option
+    pdvector<pdstring> shared_lib_constraints;
+    pdvector<unsigned> constraint_flags;
+    if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
+       (parent->getFullName() == "/Code")) {
+        for(u_int i=0; i < shared_lib_constraints.size(); i++){
 
-   resource *child = resource::string_to_resource(myName.c_str());
-   if(child) {
-      return child->getHandle();
-   }
+            // grab the exclude flags
+            bool checkCase =
+                (constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG) == 0;
+            bool regex =
+                (constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
 
-   // if abstr is not defined then use default abstraction 
-   if(!abstr.c_str()){
-      abstr = baseStr;
-   }
+            // A regular expression will match any location within the string,
+            // unless otherwise specified with ^ and $
+            if( regex )
+            {
+                shared_lib_constraints[i] = "^" +
+                                            shared_lib_constraints[i] + "$";
+            }
 
-   /* then create it */
-   resource *ret =  new resource(parent->getHandle(),res_id, resource_name,
-                                 myName,abstr, type, mdlType);
+            // By default (!regex), check using wildcardEquiv, if the REGEX flag is 
+            // set, then use regexEquiv, passing the NOCASE flag as needed
 
-   // check to see if the suppressMagnify option should be set...if
-   // this resource is specifed in the mdl exclude_lib option
-   pdvector<pdstring> shared_lib_constraints;
-   pdvector<unsigned> constraint_flags;
-   if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
-      (pdstring(parent->getFullName()) == "/Code")) {
-      for(u_int i=0; i < shared_lib_constraints.size(); i++){
-
-         // grab the exclude flags
-         bool checkCase = ((constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG) 
-                           == 0);
-         bool regex = ( constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
-
-         // A regular expression will match any location within the string,
-         // unless otherwise specified with ^ and $
-         if( regex )
-            shared_lib_constraints[i] = "^" + shared_lib_constraints[i] + "$";
-
-         // By default (!regex), check using wildcardEquiv, if the REGEX flag
-         // is set, then use regexEquiv, passing the NOCASE flag as needed
-
-         if((regex && 
-             shared_lib_constraints[i].regexEquiv(ret->getName(), checkCase))
-            || (!regex && 
-                shared_lib_constraints[i].wildcardEquiv(ret->getName(), 
-                                                        checkCase))
-           )
-         {
-            ret->setSuppressMagnify();
+            if( ( regex &&
+                    shared_lib_constraints[i].regexEquiv( ret->getName(),
+                        checkCase ) ) ||
+                (!regex &&
+                    shared_lib_constraints[i].wildcardEquiv( ret->getName(),
+                        checkCase ) ) )
+            {
+                ret->setSuppressMagnify();
 #ifdef notdef
-            cerr << '\"' << ret->getName() << "\" hit against exclude \""
-                 << shared_lib_constraints[i] << '\"';
-            if( regex ) cerr << " using regex";
-            cerr << endl;
+                cerr << '\"' << ret->getName() << "\" hit against exclude \""
+                     << shared_lib_constraints[i] << '\"';
+                if( regex ) cerr << " using regex";
+                cerr << endl;
 #endif
-         }
-      }
-   }
+            }
+        }
+    }
 
-   // check to see if the suppressMagnify option should be set if the
-   // resource is a function that is specified in the mdl exclude_func
-   // options
-   if(!ret->isMagnifySuppressed()){
-      if(parent != resource::getRootResource()) {
-         // get parent of parent, if it is "/Code" then check the list of
-         // exculded_funcs
-         resourceHandle pph = parent->getParent();
-         resource *ppr = resource::handle_to_resource(pph);
-         if( ppr && (pdstring(ppr->getFullName()) == "/Code")) {
-            pdvector< pdvector<pdstring> > libs;
-            constraint_flags.resize( 0 );
-            if(resource::get_func_constraints(libs, constraint_flags)) {
-               for(u_int i=0; i < libs.size(); i++){
+    // check to see if the suppressMagnify option should be set if
+    // the resource is a function that is specified in the mdl exclude_func
+    // options
+    if(!ret->isMagnifySuppressed()){
+      if(parent != resource::rootResource) {
+      // get parent of parent, if it is "/Code" then check the 
+      // list of exculded_funcs
+      resource* ppr = parent->getParent();
+      if( ppr && (ppr->getFullName() == "/Code")) {
+          pdvector< pdvector<pdstring> > libs;
+          constraint_flags.resize( 0 );
+          if(resource::get_func_constraints(libs, constraint_flags)) {
+              for(u_int i=0; i < libs.size(); i++){
+
                   // grab the exclude flags
-                  bool checkCase = (constraint_flags[i] & 
-                                    LIB_CONSTRAINT_NOCASE_FLAG ) == 0;
-                  bool regex = (constraint_flags[i] & 
-                                LIB_CONSTRAINT_REGEX_FLAG ) != 0;
+                  bool checkCase = 
+                    (constraint_flags[i] & LIB_CONSTRAINT_NOCASE_FLAG) == 0;
+                  bool regex =
+                    (constraint_flags[i] & LIB_CONSTRAINT_REGEX_FLAG ) != 0;
 
-                  // By default (!regex), check using wildcardEquiv, if the
-                  // REGEX flag is set, then use regexEquiv, passing the
-                  // NOCASE flag as needed
-
+                  // By default (!regex), check using wildcardEquiv, if the REGEX flag is
+                  // set, then use regexEquiv, passing the NOCASE flag as needed
                   if( regex ) {
-                     // A regular expression will match any location within
-                     // the string, unless otherwise specified with ^ and $
-                     (libs[i])[0] = "^" + (libs[i])[0] + "$";
-                     (libs[i])[1] = "^" + (libs[i])[1] + "$";
+                      // A regular expression will match any location within the string,
+                      // unless otherwise specified with ^ and $
+                      (libs[i])[0] = "^" + (libs[i])[0] + "$";
+                      (libs[i])[1] = "^" + (libs[i])[1] + "$";
                   }
 
-                  if((regex && 
-                      ((libs[i])[0].regexEquiv(parent->getName(),checkCase)) &&
-                      ((libs[i])[1].regexEquiv(ret->getName(), checkCase)))
-                     || (!regex &&
-                         ((libs[i])[0].wildcardEquiv(parent->getName(), 
-                                                     checkCase )) && 
-                         ((libs[i])[1].wildcardEquiv(ret->getName(), 
-                                                     checkCase)) 
-                        )
-                    )
+                  if(  ( regex &&
+                         ( (libs[i])[0].regexEquiv( parent->getName(), checkCase )) &&
+                         ( (libs[i])[1].regexEquiv( ret->getName(), checkCase )) )
+                   || ( !regex &&
+                         ( (libs[i])[0].wildcardEquiv( parent->getName(), checkCase )) &&
+                         ( (libs[i])[1].wildcardEquiv( ret->getName(), checkCase )) ) )
                   {
-                     ret->setSuppressMagnify(); 
+                      ret->setSuppressMagnify();
 #ifdef notdef
-                     cerr << '\"' << parent->getName() << '/' << ret->getName()
-                          << "\" hit against exclude \""
-                          << (libs[i])[0] << '/' << (libs[i])[1] << '\"';
-                     if( regex ) cerr << " using regex";
-                     cerr << endl;
+                      cerr << '\"' << parent->getName() << '/' << ret->getName()
+                           << "\" hit against exclude \""
+                           << (libs[i])[0] << '/' << (libs[i])[1] << '\"';
+                      if( regex ) cerr << " using regex";
+                      cerr << endl;
 #endif
-                  }
-               } 
-            } 
-         }
+                  } 
+              }
+          }
       }
-   }
+      }
+    }
 
-   /* inform others about it if they need to know */
-   performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
-   perfStreamHandle h;
-   performanceStream *ps;
-   resourceHandle r_handle = ret->getHandle();
-   pdstring name = ret->getFullName(); 
-   while(allS.next(h,ps)){
-      ps->callResourceFunc(parent->getHandle(),r_handle,ret->getFullName(),
-                           ret->getAbstractionName());
-   }
-   return(r_handle);
+    /* inform others about it if they need to know */
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+    perfStreamHandle h;
+    performanceStream *ps;
+    pdstring name = ret->getFullName();
+    while(allS.next(h,ps)){
+        ps->callResourceFunc(parent->getHandle(),
+                                ret->getHandle(),
+                                ret->getFullName().c_str(),
+                                ret->getAbstractionName());
+    }
+
+    return ret;
 }
 
-resourceHandle resource::createResource_ncb(pdvector<pdstring>& resource_name, 
-                                            pdstring& abstr, 
-                                            ResourceType type,
-                                            unsigned int mdlType,
-                                            resourceHandle &p_handle, 
-                                            bool &exist)
+resource*
+resource::getRootResource( void )
 {
-   resource *parent = NULL;
-   unsigned r_size = resource_name.size();
-   pdstring p_name;
-
-
-   switch (r_size) {
-     case 0:
-        // Should this case ever occur ?
-        assert(0); break;
-     case 1:
-        parent = resource::getRootResource();  break;
-     default:
-        for (unsigned ri=0; ri<(r_size-1); ri++) 
-           p_name += pdstring("/") + resource_name[ri];
-        parent = resource::string_to_resource(p_name);
-        assert(parent);
-        break;
-   }
-   if (!parent) assert(0);
-
-
-   /* first check to see if the resource has already been defined */
-   p_handle = parent->getHandle() ;
-   resource *p = resource::handle_to_resource(parent->getHandle());
-   pdstring myName = p_name;
-   myName += "/";
-   myName += resource_name[r_size - 1];
-   if(!exist) {
-      resourceHandle *child = p->findChild(myName.c_str());
-      if (child){
-         return(*child); 
-         delete child;
-      }
-   } else {
-      exist = false ;
-   }
-
-   // if abstr is not defined then use default abstraction 
-   if(!abstr.c_str()){
-      abstr = pdstring("BASE");
-   }
-
-   /* then create it */
-   resource *ret =  new resource(parent->getHandle(),resource_name,
-                                 myName,abstr, type, mdlType);
-
-   resourceHandle r_handle = ret->getHandle() ;
-   return(r_handle);
+    if( rootResource == NULL )
+    {
+        rootResource = new resource();
+    }
+    assert( rootResource != NULL );
+    return rootResource;
 }
 
-pdvector<resourceHandle> *resource::getChildren(bool dontGetRetiredChildren) {
+
+
+pdvector<const resource*>
+resource::getChildren(bool dontGetRetiredChildren) const
+{
    // set member resource::retired to true when retired
    // query this member variable here
 
-    pdvector<resourceHandle> *temp = new pdvector<resourceHandle>;
+    pdvector<const resource*> ret;
     for(unsigned i=0; i < children.size(); i++){
-       resource *curRes = resources[children[i]];
+       resource *curRes = children[i];
        if(dontGetRetiredChildren == true && curRes->isRetired())  continue;
-       *temp += curRes->getHandle();      
+       ret.push_back( curRes );
     }
-    return(temp);
+    return ret;
 }
 
 resourceHandle *resource::findChild(const char *nm) const {
     pdstring temp = nm;
     for(unsigned i=0; i < children.size(); i++){
-        if((resources[children[i]])->match(temp)){
+        if(children[i]->match(temp)){
 	     resourceHandle *h = new resourceHandle;
-	     *h = children[i];
+	     *h = children[i]->getHandle();
 	     return(h);
         }
     }
@@ -418,7 +426,7 @@ resourceHandle *resource::findChild(const char *nm) const {
 
 void resource::print()
 {
-    printf("%s ", name.c_str());
+    printf("%s ", flatName.c_str());
 }
 
 void
@@ -438,10 +446,10 @@ resource::saveHierarchyToFile(std::ofstream& foo)
   resource *curr;
   unsigned childSize = children.size();
   if (childSize == 0) {
-    foo << name << endl;
+    foo << flatName << endl;
   } else {
     for (unsigned i = 0; i < childSize; i++) {
-      curr = resource::handle_to_resource(children[i]);
+      curr = children[i];
       curr->saveHierarchyToFile(foo);
     }
   }
@@ -461,50 +469,53 @@ bool resource::string_to_handle(const pdstring &res, resourceHandle *h) {
  * Convenience function.
  *
  */
-bool resource::isDescendent(resourceHandle child_handle) const {
-   resourceHandle root_handle = rootResource->getHandle();
-   resourceHandle this_handle = getHandle();
-      
-   if(CallGraph::isDescendentOfAny(handle_to_resource(child_handle),this))
-      return TRUE;
+bool resource::isDescendant(const resource* child) const {
 
-   if (this_handle == child_handle)
-      return FALSE;
+    const resource* root = getRootResource();
 
-   if (this_handle == root_handle)
-      return TRUE;
+    if(CallGraph::isDescendantOfAny(child,this))
+      return true;
 
-   while (child_handle != root_handle) {
-      if (child_handle == this_handle) {
-         return TRUE;
+    if (child == this)
+      return false;
+
+    if (this == root)
+      return true;
+
+    while (child != root) {
+      if (child == this) {
+         return true;
       } else {
-         child_handle = handle_to_resource(child_handle)->getParent();
+         child = child->getParent();
       }
-   }
+    }
 
-   return FALSE;
+    return false;
 }
 
 // Convenience function:
-bool resource::isDescendantOf(const resource &other) const {
-   // NOTE: Should merge with the above routine...
+bool resource::isDescendantOf(const resource* other) const
+{
+    const resource* curr = this;
+    const resource* root = getRootResource();
 
-   resourceHandle myHandle = getHandle();
-   resourceHandle root_handle = rootResource->getHandle();
+    if (this == root)
+    {
+        // the root node is the descendant of noone.
+        return false;
+    }
 
-   if (myHandle == root_handle)
-      // the root node is the descendant of noone.
-      return false;
+    // Keep moving "curr" upwards, until it reaches the root
+    // It we see "other.getHandle()" along the way, then we return true.
+    do {
+        curr = curr->getParent();
+        if (curr == other)
+        {
+            return true;
+        }
+    } while (curr != root);
 
-   // Keep moving "myHandle" upwards, until it reaches the root
-   // It we see "other.getHandle()" along the way, then we return true.
-   do {
-      myHandle = handle_to_resource(myHandle)->getParent();
-      if (myHandle == other.getHandle())
-	 return true;
-   } while (myHandle != root_handle);
-
-   return false;
+    return false;
 }
 
 
@@ -514,47 +525,45 @@ bool resource::isDescendantOf(const resource &other) const {
  * the test for a common base checks the node below the
  * common root.
  */
-bool resource::sameRoot(resourceHandle other) const {
+bool resource::sameRoot(const resource* other) const {
   const resource *myBase=0, *otherBase=0, *temp;
 
   temp = this;
-  resourceHandle root = rootResource->getHandle(); 
-  while (temp->getHandle() != root) {
+    const resource* root = getRootResource();
+  while (temp != root) {
     myBase = temp;
-    temp = handle_to_resource(temp->parent);
+    temp = temp->parent;
   }
-  temp = handle_to_resource(other);
-  while (temp->getHandle() != root) {
+  temp = other;
+  while (temp != root) {
     otherBase = temp;
-    temp = handle_to_resource(temp->parent);
+    temp = temp->parent;
   }
-  if (myBase == otherBase)
-    return TRUE;
-  else
-    return FALSE;
+
+    return (myBase == otherBase);
 }
 
-const char *resource::getName(resourceHandle h){
+pdstring resource::getName(resourceHandle h){
     resource *res;
     if (resources.find(h, res))
       return res->getName();
     else
-      return 0;
+      return "";
 }
 
-const char *resource::getFullName(resourceHandle h){
+pdstring resource::getFullName(resourceHandle h){
     resource *res;
     if (resources.find(h, res))
       return res->getFullName();
     else
-      return 0;
+      return "";
 }
 
 resource *resource::string_to_resource(const pdstring &res) {
     if(allResources.defines(res)){
         return(allResources[res]);
     }
-    return 0;
+    return NULL;
 }
 
 // get_lib_constraints: returns true if there is a list of lib constraints
@@ -647,12 +656,12 @@ bool resource::get_func_constraints(pdvector< pdvector<pdstring> > &list, pdvect
     return func_constraints.size();
 }
 
-bool resource::isStartFunction() {
+bool resource::isStartFunction( void ) const {
    CallGraph *cg = CallGraph::FindCallGraph();
    return cg->isStartFunction(getHandle());
 }
 
-bool resource::isThreadType(unsigned *tid) {
+bool resource::isThreadType(unsigned *tid) const {
    if(fullName.size() >= 4) {
       pdstring thr_str = fullName[3];
       if(thr_str.prefixed_by("thr_")) {
@@ -815,9 +824,8 @@ int resourceList::getThreadID() {
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
-pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
+pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
 					resource *currentPath){
-    pdvector<resourceHandle> *children;
     pdvector<rlNameId> *return_list;
 
     // supported magnify types....
@@ -827,12 +835,12 @@ pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
     unsigned not_found_indicator = elements.size();
     unsigned rIndex = not_found_indicator;
     for(unsigned i=0; i < elements.size(); i++){
-        if(rh == elements[i]->getHandle()){
+        if( res->getHandle() == elements[i]->getHandle()){
             rIndex = i;
-	    break;
-	}
+            break;
+        }
     }
-    if(rIndex == not_found_indicator)  return 0;
+    if(rIndex == not_found_indicator)  return NULL;
 
     return_list = new pdvector<rlNameId>;
 
@@ -844,18 +852,19 @@ pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
     printf("Calling magnifymanager::getChildren\n");
 #endif
       
-    children = MagnifyManager::getChildren(elements[rIndex], type);
+    pdvector<const resource*> children = 
+        MagnifyManager::getChildren(elements[rIndex], type);
 
-    if(children->size()){ // for each child create a new focus
+    if(children.size()){ // for each child create a new focus
        pdvector<resourceHandle> new_focus; 
        for(unsigned i=0; i < elements.size(); i++){
-	  new_focus += (elements[i])->getHandle();
+            new_focus.push_back( (elements[i])->getHandle() );
        }
        rlNameId temp;
-       for(unsigned j=0; j < children->size(); j++){
+       for(unsigned j=0; j < children.size(); j++){
 	  // check to see if this child can be magnified
 	  // if so, create a new focus with this child
-	  resource *child_res = resource::handle_to_resource((*children)[j]);
+        const resource* child_res = children[j];
 
 	  if(child_res == NULL || child_res->isMagnifySuppressed())
 	     continue;
@@ -877,7 +886,7 @@ pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
 
 		   resourceHandle thrStartFunc_handle = 
 		      thrStartFunc->getHandle();
-		   resourceHandle child_handle = (*children)[j];
+		   resourceHandle child_handle = children[j]->getHandle();
 		   if(thrStartFunc_handle != child_handle) {
 		      //skip... a start function for a different thread
 		      continue;  
@@ -889,44 +898,42 @@ pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
 	  //Call Graph magnification requests should not return functions
 	  //that are in excluded libraries.
 	  if(type == CallGraphSearch){
-	     assert(currentPath != NULL);
-	     resourceHandle parent_handle = child_res->getParent();
-	     resource *parent = resource::handle_to_resource(parent_handle);
-	     assert(parent);
+	        assert(currentPath != NULL);
+            resource* parent = child_res->getParent();
+	        assert(parent);
 	     if(!parent->isMagnifySuppressed()){
 		//Only return resources that are descendents of the current
 		//path
-		if(currentPath->isDescendent((*children)[j])){
-		   new_focus[rIndex] = (*children)[j];
+		if(currentPath->isDescendant(children[j])){
+		   new_focus[rIndex] = children[j]->getHandle();
 		   temp.id = resourceList::getResourceList(new_focus);
-		   temp.res_name = resource::getName((*children)[j]);
+		   temp.res_name = children[j]->getName();
 		   *return_list += temp;
 		}
 	     }
           } 
           
           if(type != CallGraphSearch) {
-             new_focus[rIndex] = (*children)[j];
+             new_focus[rIndex] = children[j]->getHandle();
              temp.id = resourceList::getResourceList(new_focus);
-             temp.res_name = resource::getName((*children)[j]);
-             *return_list += temp; 
+             temp.res_name = children[j]->getName();
+             return_list->push_back( temp );
           }
        }
-       delete children;
        return return_list;
     }
-    return 0;
+    return NULL;
 }
 
 // if resource rh is a decendent of a component of the focus, return a new
 // focus consisting of rh replaced with it's corresponding entry, 
 // otherwise return 0 
 //
-resourceListHandle *resourceList::constrain(resourceHandle rh){
-
+resourceListHandle *resourceList::constrain(resource* res)
+{
     unsigned rIndex = elements.size(); 
     for(unsigned i=0; i < elements.size(); i++){
-        if(elements[i]->isDescendent(rh)){
+        if(elements[i]->isDescendant( res )){
 	    rIndex = i;
             break;
     }}
@@ -935,7 +942,7 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
 	for(unsigned j=0; j < elements.size(); j++){
             new_focus += (elements[j])->getHandle();
 	}
-	new_focus[rIndex] = rh;
+	new_focus[rIndex] = res->getHandle();
 	resourceListHandle *new_handle = new resourceListHandle;
 	*new_handle = this->getResourceList(new_focus);
 	return new_handle;
@@ -1021,14 +1028,13 @@ bool resourceList::getMachineNameReferredTo(pdstring &machName) const {
    }
 
    assert(machine_resource_ptr);
-   const resource &machineResource = *machine_resource_ptr;
 
    for (unsigned hierarchy=0; hierarchy < elements.size(); hierarchy++) {
       const resource *the_resource_ptr = elements[hierarchy];
       const resource &theResource = *the_resource_ptr;
 
       // Is "theResource" a descendant of "/Machine"?
-      if (theResource.isDescendantOf(machineResource)) {
+      if (theResource.isDescendantOf(machine_resource_ptr)) {
          // bingo.  Now check out the resource's components.  The machine
          // name should be in the 2d component, and the first component
          // should be "Machine".  (For example, the resource "/Machine/goat"
@@ -1141,14 +1147,13 @@ bool resourceList::getProcessReferredTo(pdstring *procName, int *pid) const {
    }
 
    assert(machine_resource_ptr);
-   const resource &machineResource = *machine_resource_ptr;
 
    for (unsigned hierarchy=0; hierarchy < elements.size(); hierarchy++) {
       const resource *the_resource_ptr = elements[hierarchy];
       const resource &theResource = *the_resource_ptr;
 
       // Is "theResource" a descendant of "/Machine"?
-      if (theResource.isDescendantOf(machineResource)) {
+      if (theResource.isDescendantOf(machine_resource_ptr)) {
          // bingo.  Now check out the resource's components.  The machine
          // name should be in the 2d component, and the first component
          // should be "Machine".  (For example, the resource "/Machine/goat"

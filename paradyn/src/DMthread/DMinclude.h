@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.25 2004/03/23 01:12:25 eli Exp $
+// $Id: DMinclude.h,v 1.26 2004/06/21 19:37:11 pcroth Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -47,10 +47,11 @@
 // this should be the only DM header file included by other modules
 
 #include "common/h/String.h"
-// trace data streams
-#include "pdutil/h/ByteArray.h"
-
 #include "common/h/Vector.h"
+#include "pdutil/h/ByteArray.h"
+#include "pdthread/h/thread.h"
+
+
 // this is an upper limit for data buffering between DM and client threads
 // and between VISIthread and visis
 #define DM_DATABUF_LIMIT	50	
@@ -121,5 +122,20 @@ typedef struct rlNameIdType rlNameId;
 // client side of termWin igen interface
 class termWinUser;
 extern termWinUser* twUser;
+
+// arguments to the DM thread
+struct DMthreadArgs
+{
+    thread_t mainTid;
+    bool useTermWinGUI;
+
+    DMthreadArgs( thread_t _mainTid,
+                    bool _useTermWinGUI )
+        : mainTid( _mainTid ),
+          useTermWinGUI( _useTermWinGUI )
+    {
+        // nothing else to do
+    }
+};
 
 #endif

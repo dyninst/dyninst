@@ -39,13 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.19 2004/03/23 01:12:25 eli Exp $
+// $Id: CallGraph.C,v 1.20 2004/06/21 19:37:10 pcroth Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
 #include "pdutil/h/mdl.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "common/h/Types.h" // Address
+
+
+static bool sentCallGraphMsgs = false;
+
 
 inline unsigned intHash(const int &val) {
   return val;
@@ -62,7 +66,7 @@ int CallGraph::last_id_issued = 0;
 
 // simple function to convert from resource * to unsigned for use w/
 //  hashing....
-static inline unsigned hash_dummy(resource * const &r) {
+static inline unsigned hash_dummy(const resource * const &r) {
     const resource *p = r;
     unsigned u = (unsigned)(Address)p;
     return u;
@@ -74,10 +78,9 @@ static inline unsigned hash_dummy(resource * const &r) {
 //the code hierarchy.
 //
 //Yup- this is one ugly function. 
-static char *stripCodeFromName(const char *c){
-  char *newc = const_cast<char *>(c);
-  newc+=sizeof(char)*6;
-  return newc;
+static pdstring stripCodeFromName( pdstring s )
+{
+    return s.c_str() + 6;
 }
 
 static pdstring stripPathFromExecutableName(pdstring exe_name){
@@ -160,8 +163,8 @@ void CallGraph::CallGraphFillDone(){
   callGraphInitialized = true;
 }
 
-bool CallGraph::AddResource(resource *r) {
-    pdvector <resource *> empty;
+bool CallGraph::AddResource(const resource *r) {
+    pdvector <const resource *> empty;
 
     // make sure that resource refers to a function or loop
     assert(r == rootResource 
@@ -203,7 +206,7 @@ int CallGraph::SetChildren(resource *r, const pdvector <resource *>rchildren) {
     return (int)u;
 }
 
-int CallGraph::AddChild(resource *parent, resource *child) {
+int CallGraph::AddChild(const resource *parent, const resource *child) {
     // assert (p previously seen by call graph) 
     assert(children.defines(parent) && parents.defines(parent));
     AddResource(child);
@@ -212,7 +215,8 @@ int CallGraph::AddChild(resource *parent, resource *child) {
     return 1;
 }
 
-bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
+bool CallGraph::AddDynamicallyDeterminedChild(const resource *p, 
+                                                const resource *c) {
   // dynamically determined children not yet supported....
   assert(p != NULL && c != NULL);
   assert(children.defines(p) && parents.defines(p));
@@ -241,8 +245,8 @@ bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
     //If the new child is the descendent of an uninstrumentable function, 
     //then it's parent probably isn't in the call graph display, so we 
     //avoid adding the child to the display
-    dictionary_hash <resource *, int> have_visited(hash_dummy);
-    if(!isDescendent(p, rootResource, have_visited))
+    dictionary_hash <const resource *, int> have_visited(hash_dummy);
+    if(!isDescendant(p, rootResource, have_visited))
       return false;
     
     //TODO!!!: need to determine whether or not the dynamic function is
@@ -251,17 +255,17 @@ bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
       if(visited[c]){
 	uiMgr->CGaddNode(program_id, p->getHandle(), 
 			 c->getHandle(),c->getName(),
-			 stripCodeFromName(c->getFullName()),
+			 stripCodeFromName(c->getFullName()).c_str(),
 			 false, //function is not recursive
 			 true); //function is a shadow
       }
       else{
 	uiMgr->CGaddNode(program_id, p->getHandle(), 
 			 c->getHandle(),c->getName(),
-			 stripCodeFromName(c->getFullName()),
+			 stripCodeFromName(c->getFullName()).c_str(),
 			 false, //function is not recursive
 			 false); //function is not a shadow
-	dictionary_hash <resource *, int> callPath(hash_dummy); 
+	dictionary_hash <const resource *, int> callPath(hash_dummy); 
 	//callPath is used to avoid cycles in CG
 	callPath.clear();
 	callPath[c] = 1;
@@ -273,7 +277,7 @@ bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
   return true;
 }
 
-void CallGraph::AddDynamicCallSite(resource *parent){
+void CallGraph::AddDynamicCallSite(const resource *parent){
   assert(children.defines(parent) && parents.defines(parent));
   dynamic_call_sites+= parent;
 }
@@ -300,11 +304,10 @@ void CallGraph::SetEntryFunc(resource *r, unsigned tid) {
 }
 
 bool CallGraph::isStartFunction(resourceHandle rh) {
-   pdvector<resourceHandle> *entryFuncs = getChildren(rootResource);
-   for(unsigned i=0; i<entryFuncs->size(); i++) {
-      if((*entryFuncs)[i] == rh) return true;
+   pdvector<const resource*> entryFuncs = getChildren(rootResource);
+   for(unsigned i=0; i<entryFuncs.size(); i++) {
+        if( entryFuncs[i]->getHandle() == rh ) return true;
    }
-   delete entryFuncs;
    return false;
 }
 
@@ -335,21 +338,24 @@ CallGraph *CallGraph::FindCallGraph(){
 
 void CallGraph::displayCallGraph(){
 
-  dictionary_hash <resource *, int> callPath(hash_dummy); 
+  dictionary_hash <const resource *, int> callPath(hash_dummy); 
   //callPath is used to avoid cycles in CG
   callPath.clear();
   callGraphDisplayed = true;
   //add program function to display, which is probably 
   //rooted by the function "main"
 
+
   uiMgr->callGraphProgramAddedCB(0, entryFunction->getHandle(), 
 				 executableName.c_str(),
 				 entryFunction->getName(),
-			     stripCodeFromName(entryFunction->getFullName())); 
+			     stripCodeFromName(entryFunction->getFullName()).c_str()); 
   
   callPath[entryFunction] = 1;
   addChildrenToDisplay(entryFunction,callPath);
   uiMgr->CGDoneAddingNodesForNow(0);
+
+    sentCallGraphMsgs = true;
 }
 
 //Add Displays for all of the CallGraphs known to the DM
@@ -363,12 +369,11 @@ void CallGraph::displayAllCallGraphs(){
 //This function adds all of the children of resource specified by parent
 //to the callGraphDisplay. It then recursively adds all of the children
 //of parent to the callGraphDisplay, and their children, ...
-void CallGraph::addChildrenToDisplay(resource *parent,
-				     dictionary_hash <resource *, int> 
-				     callPath){
+void CallGraph::addChildrenToDisplay(const resource *parent,
+				     dictionary_hash <const resource *, int> callPath){
   
   unsigned i;
-  const pdvector<resource *> &these_children = children[parent];
+  const pdvector<const resource *> &these_children = children[parent];
   visited[parent] = 1;
   
   for(i =0; i < these_children.size(); i++){
@@ -380,7 +385,7 @@ void CallGraph::addChildrenToDisplay(resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()),
+		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
 		       false,//function is not recursive
 		       false); //function is not a shadow node
       addChildrenToDisplay(these_children[i], callPath);
@@ -392,7 +397,7 @@ void CallGraph::addChildrenToDisplay(resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()),
+		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
 		       true,//function is recursive
 		       true);//function is a shadown node
     }
@@ -400,7 +405,7 @@ void CallGraph::addChildrenToDisplay(resource *parent,
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
-		       stripCodeFromName(these_children[i]->getFullName()),
+		       stripCodeFromName(these_children[i]->getFullName()).c_str(),
 		       false,//function is not recursive
 		       true);//function is a shadown node
     }
@@ -411,19 +416,16 @@ void CallGraph::addChildrenToDisplay(resource *parent,
   }
 }
 
-pdvector <resourceHandle> *CallGraph::getChildren(resource *rh) {
+pdvector <const resource*> CallGraph::getChildren(const resource *rh) {
     unsigned i;
-    pdvector <resourceHandle> *ret;
     // rh should have been registsred w/ call graph....
     assert(children.defines(rh));
 
     // convert children[rh] from pdvector of resources to pdvector of 
     //  resource handles....
-    ret = new pdvector<resourceHandle>;
-    assert(ret);
-
+    pdvector<const resource*> ret;
     for (i=0;i<children[rh].size();i++) {
-      (*ret) += (children[rh])[i]->getHandle();
+        ret.push_back( (children[rh])[i] );
     }
 
     for(i = 0; i < dynamic_call_sites.size(); i++)
@@ -434,9 +436,10 @@ pdvector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     return ret;
 }
 
-bool CallGraph::isDescendentOfAny(resource *child, const resource *parent){
+bool 
+CallGraph::isDescendantOfAny(const resource *child, const resource *parent){
   static bool warned_about_multiple_cg = false;
-  dictionary_hash <resource *, int> have_visited(hash_dummy);
+  dictionary_hash <const resource *, int> have_visited(hash_dummy);
 
   if(directory.size() > 1) {
      if(! warned_about_multiple_cg) {
@@ -448,23 +451,23 @@ bool CallGraph::isDescendentOfAny(resource *child, const resource *parent){
   }
 
   CallGraph *cg = directory[0];
-  if(cg->isDescendent(child, parent,have_visited))
+  if(cg->isDescendant(child, parent,have_visited))
     return true;
   return false;
 }
 
 /*if child is a descendent of parent, return true, else false*/
-bool CallGraph::isDescendent(resource *child, const resource *parent,
-			     dictionary_hash <resource *, int>& have_visited) {
+bool CallGraph::isDescendant(const resource *child, const resource *parent,
+			     dictionary_hash <const resource *, int>& have_visited) {
   if(child == parent)
     return true;
   else {
     unsigned i;
-    pdvector<resource *>my_parents = parents[child];
+    pdvector<const resource *>my_parents = parents[child];
     for(i = 0; i < my_parents.size(); i++){
       if(!have_visited[my_parents[i]]){
 	have_visited[my_parents[i]] = 1;
-	if(isDescendent(my_parents[i], parent, have_visited)){
+	if(isDescendant(my_parents[i], parent, have_visited)){
 	  return true;
 	}
       }
