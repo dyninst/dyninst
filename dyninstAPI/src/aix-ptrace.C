@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.17 2004/02/07 18:33:59 schendel Exp $
+// $Id: aix-ptrace.C,v 1.18 2004/03/02 22:45:58 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -714,7 +714,7 @@ void dyn_lwp::realLWP_detach_() {
 
 void dyn_lwp::representativeLWP_detach_() {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
-   if(! proc_->checkStatus());
+   if(! proc_->isAttached()) return;
 
    ptraceOps++; ptraceOtherOps++;
    if(! deliverPtrace(PT_DETACH, (char*)1, SIGSTOP, NULL)) {
@@ -728,7 +728,7 @@ void dyn_lwp::representativeLWP_detach_() {
 }
 
 bool process::API_detach_(const bool cont) {
-  if (!checkStatus())
+  if (!isAttached())
       return false;
 
   ptraceOps++; ptraceOtherOps++;
@@ -738,7 +738,7 @@ bool process::API_detach_(const bool cont) {
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
 bool process::dumpCore_(const pdstring coreFile) {
-  if (!checkStatus()) 
+  if (!isAttached()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
 
