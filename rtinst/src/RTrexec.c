@@ -40,13 +40,14 @@
  */
 
 /*
+ * $Id: RTrexec.c,v 1.4 2000/06/14 22:30:02 paradyn Exp $
  * Code to trap rexec call and munge command.
- *
  */
 #include <sys/types.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <strings.h>
 
 char *realCommand;
 

@@ -40,19 +40,8 @@
  */
 
 /************************************************************************
+ * $Id: RTetc-posix.c,v 1.63 2000/06/14 22:30:02 paradyn Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
- *
- * RTposix.c,v
- * Revision 1.10  1995/05/18  11:08:27  markc
- * added guard prevent timer start-stop during alarm handler
- * added version number
- *
- * Revision 1.9  1995/03/10  19:39:42  hollings
- * Fixed an ugly race condition in observed cost.
- *
- * Added the use of unix profil to compute the time spent in inst code.
- *
- *
  ************************************************************************/
 
 #ifdef SHM_SAMPLING
@@ -87,22 +76,6 @@
 #include "util/h/sys.h"
 
 
-/* sunos's header files don't have these: */
-#ifdef sparc_sun_sunos4_1_3
-extern int socket(int, int, int);
-extern int connect(int, struct sockaddr *, int);
-extern int fwrite(void *, int, int, FILE *);
-extern int setvbuf(FILE *, char *, int, int);
-#ifdef SHM_SAMPLING
-extern int shmget(key_t, unsigned, unsigned);
-extern void *shmat(int, void *, int);
-extern int shmdt(void*);
-extern int shmctl(int, int, struct shmid_ds *);
-#endif
-#endif
-
-
-
 /************************************************************************
  * void DYNINSTbreakPoint(void)
  *
@@ -126,11 +99,7 @@ DYNINSTbreakPoint(void) {
  * interval is in microseconds
 ************************************************************************/
 
-#if !defined(hppa1_1_hp_hpux)
 extern void DYNINSTalarmExpire(int signo);
-#else 
-extern void DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp);
-#endif
 
 #ifndef SHM_SAMPLING
 void
@@ -220,9 +189,11 @@ DYNINSTwriteTrace(void *buffer, unsigned count) {
       if (errno || ret!=count) {
         if (errno==EINTR) {
           printf("(pid=%d) fwrite interrupted, trying again...\n",(int) getpid());
+#if defined(ERESTART)
         } else if (errno==ERESTART) {  /* fwrite partially completed */
           b     += ret;
           count -= ret;
+#endif
         } else {
 	  perror("unable to write trace record");
           printf("disabling further data logging, pid=%d\n", (int) getpid());
