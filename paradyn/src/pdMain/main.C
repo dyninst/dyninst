@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.4  1994/04/21 23:25:19  hollings
-/* changed to no initial paradynd being defined.
+/* Revision 1.5  1994/04/28 22:07:39  newhall
+/* added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
+/* environment variable has value >= 1
 /*
+ * Revision 1.4  1994/04/21  23:25:19  hollings
+ * changed to no initial paradynd being defined.
+ *
  * Revision 1.3  1994/04/10  19:08:48  newhall
  * added visualization manager thread create
  *
@@ -20,6 +24,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "paradyn.h"
 #include "thread/h/thread.h"
@@ -30,6 +35,7 @@ extern void *PCmain(int arg);
 extern void *VMmain (int arg);
 
 #define MBUFSIZE 256
+#define DEBUGBUFSIZE	4096
 
 thread_t UIMtid;
 thread_t MAINtid;
@@ -44,7 +50,26 @@ dataManagerUser *dataMgr;
 performanceConsultantUser *perfConsult;
 UIMUser *uiMgr;
 VMUser  *vmMgr;
+int paradyn_debug;
+char debug_buf[DEBUGBUFSIZE];
 
+#define PRINT_DEBUG_MACRO				\
+do {							\
+	va_list args;					\
+	va_start(args,format);				\
+	(void) fflush(stdout);				\
+	(void) vsprintf(debug_buf, format, args);	\
+	(void) fprintf(stdout,"THREAD %d: %s\n",	\
+	       thr_self(), debug_buf);			\
+	(void) fflush(stdout);                          \
+	va_end(args);					\
+} while (0)
+
+void print_debug_macro(const char* format, ...){
+  if(paradyn_debug > 0)
+     PRINT_DEBUG_MACRO;
+  return;
+}
 
 int eFunction(int errno, char *message)
 {
@@ -61,12 +86,24 @@ main (int argc, char *argv[])
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
   tag_t mtag;
+  char *temp;
 
 
   if (argc != 1) {
     printf("usage: %s\n", argv[0]);
     exit(-1);
   }
+
+  // get paradyn_debug environment var PARADYNDEBUG, if its value
+  // is > 1, then PARADYN_DEBUG msgs will be printed to stdout
+  if((temp = (char *) getenv("PARADYNDEBUG"))){
+     paradyn_debug = atoi(temp);
+  }
+  else {
+    paradyn_debug = 0;
+  }
+
+
 
 // get tid of parent
   MAINtid = thr_self();

@@ -1,7 +1,11 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.4  1994/04/10 19:16:19  newhall
-/* added VM definitions
+/* Revision 1.5  1994/04/28 22:07:40  newhall
+/* added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
+/* environment variable has value >= 1
 /*
+ * Revision 1.4  1994/04/10  19:16:19  newhall
+ * added VM definitions
+ *
  * Revision 1.3  1994/04/05  20:05:37  karavan
  * Reinstated User Interface.
  *
@@ -50,6 +54,12 @@ extern dataManagerUser *dataMgr;
 extern performanceConsultantUser *perfConsult;
 extern UIMUser *uiMgr;
 extern VMUser  *vmMgr;
+
+
+// PARADYN_DEBUG: if PARADYNDEBUG environment variable 
+//     has value > 0, prints msg to stdout
+extern void print_debug_macro(const char* format, ...);
+#define PARADYN_DEBUG(x) print_debug_macro x
 
 #endif
 
