@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.132 2003/03/21 23:40:39 jodom Exp $
+// $Id: aix.C,v 1.133 2003/03/24 01:38:27 jodom Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -97,7 +97,7 @@
 
 const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
 
-(void *) (*P_native_demangle)(char *, char **, unsigned long);
+void *(*P_native_demangle)(char *, char **, unsigned long);
 
 
 /* Getprocs() should be defined in procinfo.h, but it's not */

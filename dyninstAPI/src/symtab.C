@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.154 2003/03/22 00:35:29 jodom Exp $
+// $Id: symtab.C,v 1.155 2003/03/24 01:38:27 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1948,6 +1948,8 @@ bool pdmodule::isShared() const {
 //
 static bool parseCompilerType(Object *objPtr) {
 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+
   int stab_nsyms;
   char *stabstr_nextoffset;
   const char *stabstrs = 0;
@@ -1977,4 +1979,5 @@ static bool parseCompilerType(Object *objPtr) {
 
   }
   return false; // Shouldn't happen - maybe N_OPT stripped
+#endif
 }

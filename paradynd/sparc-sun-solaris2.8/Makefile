@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/01/03 21:57:29 bernat Exp $
+# $Id: Makefile,v 1.3 2003/03/24 01:38:28 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,7 @@ CFLAGS 		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl
+SYSLIBS = -lelf -lsocket -lnsl -ldl
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
