@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.29 1999/05/19 07:51:49 karavan Exp $
+// $Id: DMmetric.C,v 1.30 1999/10/03 21:36:22 karavan Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -225,56 +225,119 @@ int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
 
 }
 
-// 
-// write out all data for a single histogram to specified file
-// this routine assumes that fptr points to a valid file open for writing!  
-//
-void 
-metricInstance::saveAllData (ofstream& fptr, phaseType ph)
+void
+metricInstance::saveOneMI_Histo (ofstream& fptr,
+				 Histogram *hdata,
+				 int phaseid)
 {
-  // first locate the histogram
   timeStamp width;
-  Histogram *hdata;
-  if (ph == GlobalPhase) {
-    hdata = global_data;
-    width = phaseInfo::GetLastBucketWidth();
-  } else {
-    hdata = data;
-    width = phaseInfo::GetLastBucketWidth();
-  }
-  if (hdata == NULL)
-    // histogram not created yet for this MI
-    return;
+  timeStamp startTime;
+  sampleValue *buckets = NULL;
+  unsigned count;
+  int numBins;
 
-  string writeout;
-  int numBins = hdata->getNumBins();
-  sampleValue *buckets = new sampleValue [numBins];
-  unsigned count = hdata->getBuckets(buckets, numBins, 0);
-  // write header info:  datatype, numBuckets, bucketWidth
-  fptr << numBins << " " << width << endl;
-  // write all data values
+  fptr << "histogram " << getMetricName() << endl <<  
+    getFocusName() << endl;
+	
+  numBins = hdata->getNumBins();
+  buckets = new sampleValue [numBins];
+  count = hdata->getBuckets(buckets, numBins, 0);
+  width = hdata->getBucketWidth();
+  startTime = hdata->getStartTime();
+  // header info:  numBuckets, bucketWidth, startTime, count, id 
+  fptr << count << " " << width << " " << startTime << " " << 
+    " " << phaseid << endl;
+  // data
   for (unsigned k = 0; k < count; k++) {
-    fptr << string(buckets[k]) << endl;
-  }
-
-  if (ph == CurrentPhase) {
-    // save archived data, if any
-    for (unsigned i = 0; i < old_data.size(); i++) {
-      hdata = (old_data[i])->data;
-      if ( hdata ) {
-	count = hdata->getBuckets(buckets, numBins, 0);
-	// header info:  numBuckets, bucketWidth 
-	fptr << numBins << " " << width << endl;
-	// data
-	for (unsigned k = 0; k < count; k++) {
-	  fptr << buckets[k] << endl;
-	}
-      }
-    }
+    fptr << buckets[k] << endl;
   }
   delete buckets;
 }
 
+// 
+// write out all data for a single histogram to specified file
+// this routine assumes that fptr points to a valid file open for writing!  
+//
+bool 
+metricInstance::saveAllData (ofstream& iptr, 
+			     int &findex,
+			     const char *dirname,
+			     SaveRequestType oFlag)
+{
+  Histogram *hdata = NULL;
+  int phaseid = 0;
+
+  if ((oFlag == Phase) || (oFlag == All)) {
+    // save all phase data
+
+    // export archived (previous) phases, if any
+    for (unsigned i = 0; i < old_data.size(); i++) {
+      hdata = (old_data[i])->data;
+      if ( hdata ) {
+
+	string fileSuffix = string("hist_") + string(findex);
+	string miFileName = string(dirname) + fileSuffix;
+	
+	ofstream fptr (miFileName.string_of(), ios::out);
+	if (!fptr) {
+	  return false;
+	}
+	phaseid = old_data[i]->phaseId;
+	saveOneMI_Histo (fptr, hdata, phaseid);
+	fptr.close();
+	// update index file
+	iptr << fileSuffix.string_of() << " " <<  
+	  getMetricName() << " " << getFocusName() << " " << phaseid << endl;
+	findex++;  // increment fileid
+      }
+    }
+
+    // export current phase
+    hdata = data;
+    phaseid =  phaseInfo::CurrentPhaseHandle();
+    if (hdata != NULL) {
+      // check for histogram not created yet for this MI
+
+      string fileSuffix = string("hist_") + string(findex);
+      string miFileName = string(dirname) + fileSuffix;
+      
+      ofstream fptr (miFileName.string_of(), ios::out);
+      if (!fptr) {
+	return false;
+      }
+      saveOneMI_Histo (fptr, hdata, phaseid);
+      fptr.close();
+      // update index file
+      iptr << fileSuffix.string_of() << " " <<  
+	getMetricName() << " " << getFocusName() << " " << phaseid << endl;
+      findex++;  // increment fileid
+    }
+  }
+
+  if ((oFlag == Global)  || (oFlag == All)) {
+    hdata = global_data;
+    if (hdata != NULL) {
+      // check for histogram not created yet for this MI
+      //  (I think actually this is an error for the global phase - klk)
+      string fileSuffix = string("hist_") + string(findex);
+      string miFileName = string(dirname) + fileSuffix;
+      
+      ofstream fptr (miFileName.string_of(), ios::out);
+      if (!fptr) {
+	return false;
+      }
+      phaseid = -1;  // global phase id is set
+      saveOneMI_Histo (fptr, hdata, phaseid);
+      fptr.close();
+      // update index file
+      iptr << fileSuffix.string_of() << " " <<  
+	getMetricName() << " " << getFocusName() << " -1" //global phaseid
+	   << endl;
+      findex++;  // increment fileid
+    }
+  }
+  return true;
+}
 
 metricInstance *metricInstance::getMI(metricInstanceHandle mh){
 

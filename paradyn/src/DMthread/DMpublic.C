@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.112 1999/08/09 05:40:08 csserra Exp $
+// $Id: DMpublic.C,v 1.113 1999/10/03 21:36:23 karavan Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -320,41 +320,10 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
       activeMI = metricInstance::getMI(allMIHs[i]);
       if (activeMI == NULL)
 	continue;
-
-      if ((optionFlag == Phase) || (optionFlag == All)) {
-	// save all phase data
-	string fileSuffix = string("hist_") + string(findex);
-	string miFileName = dir + fileSuffix;
-	
-	ofstream activeFile (miFileName.string_of(), ios::out);
-	if (!activeFile)
-	  continue;
-	activeFile << "histogram " << activeMI->getMetricName() << endl <<  
-	  activeMI->getFocusName() << endl;
-	
-	activeMI->saveAllData (activeFile, CurrentPhase);
-	indexFile << fileSuffix.string_of() << " " << activeMI->getMetricName()
-	  << " " << activeMI->getFocusName() << endl;
-	findex++;  // increment fileid
-	// add index entry
-	activeFile.close();
-      } 
-      if ((optionFlag == Global) || (optionFlag == All)) { 
-	// save all global data
-	string fileSuffix = string("hist_") + string(findex);
-	string miFileName = dir + fileSuffix;
-
-	ofstream activeFile (miFileName.string_of(), ios::out);
-	if (!activeFile)
-	  continue;
-	activeFile << "histogram " << activeMI->getMetricName() << endl <<  
-	  activeMI->getFocusName() << endl;
-	activeMI->saveAllData (activeFile, GlobalPhase);
-	indexFile << fileSuffix.string_of() << " " <<  
-	  activeMI->getMetricName() << " " << activeMI->getFocusName() << endl;
-	findex++;  // increment fileid
-	// add index entry
-	activeFile.close();
+      if (! (activeMI->saveAllData (indexFile, findex, 
+				   dir.string_of(), optionFlag))) {
+	success = false;
+	break;
       }
     }
     indexFile.close();
