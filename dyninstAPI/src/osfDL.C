@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.40 2004/04/02 06:34:13 jaw Exp $
+// $Id: osfDL.C,v 1.41 2005/01/18 18:34:11 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -212,7 +212,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
 	   obj_name != proc->getImage()->name()) {
         if((!(proc->wasExeced())) || (proc->wasExeced() && !first_time)){
             shared_object *newobj = new shared_object(obj_name,
-                                                      offset,false,true,true,0);
+                                                      offset,false,true,true,0, proc);
             result->push_back(newobj);
         }
 	}

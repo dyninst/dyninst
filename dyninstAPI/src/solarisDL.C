@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.36 2004/04/02 06:34:15 jaw Exp $
+// $Id: solarisDL.C,v 1.37 2005/01/18 18:34:12 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -340,7 +340,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
          // so in this case, we ignore the first entry
          if((!(proc->wasExeced())) || (proc->wasExeced() && !first_time)) { 
             shared_object *newobj = new shared_object(obj_name,
-                                                      link_elm.l_addr,false,true,true,0);
+                                                      link_elm.l_addr,false,true,true,0, proc);
             (*shared_objects).push_back(newobj);
 #if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4)
@@ -460,7 +460,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address
             f_name[f_amount-1] = '\0';
             pdstring obj_name = pdstring(f_name);
             shared_object *newobj =
-               new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
+               new shared_object(obj_name, link_elm.l_addr, false,true,true,0, proc);
             (*new_shared_objects).push_back(newobj);
          }
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.25 2004/03/23 01:12:05 eli Exp $
+// $Id: irixDL.C,v 1.26 2005/01/18 18:34:09 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -334,7 +334,7 @@ pdvector<shared_object *> *dynamic_linking::getSharedObjects()
       
       // add new shared object
       Address dso_base = obj->pd_ehdr;
-      (*ret).push_back(new shared_object(dso_name, dso_base, false, true, true, 0));
+      (*ret).push_back(new shared_object(dso_name, dso_base, false, true, true, 0, proc));
   }
 
   return ret;
@@ -391,7 +391,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
                 pdElfObjInfo *obj = new_map[i];
                 Address base = obj->pd_ehdr;
                 pdstring name = obj->pd_pathname;
-                (**changed_objs).push_back(new shared_object(name, base, false, true, true, 0));
+                (**changed_objs).push_back(new shared_object(name, base, false, true, true, 0, proc));
             }
         }      
         ret = true;

@@ -368,7 +368,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
          // so in this case, we ignore the first entry
          if((!(proc->wasExeced())) || (proc->wasExeced() && !first_time)) { 
             shared_object *newobj =
-               new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
+               new shared_object(obj_name, link_elm.l_addr, false,true,true,0, proc);
             (*shared_objects).push_back(newobj);
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
@@ -484,7 +484,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address
             f_name[f_amount-1] = '\0';
             pdstring obj_name = pdstring(f_name);
             shared_object *newobj =
-               new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
+               new shared_object(obj_name, link_elm.l_addr, false,true,true,0, proc);
             (*new_shared_objects).push_back(newobj);
          }
       }
