@@ -3,9 +3,12 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.5  1994/10/04 22:11:31  tamches
-/* moved color codes to barChart.tcl variable
+/* Revision 1.6  1994/10/07 22:07:03  tamches
+/* Fixed some resize bugs
 /*
+ * Revision 1.5  1994/10/04  22:11:31  tamches
+ * moved color codes to barChart.tcl variable
+ *
  * Revision 1.4  1994/10/04  19:01:05  tamches
  * Cleaned up the resource bar color choices
  *
@@ -193,18 +196,18 @@ bool BarChart::TryFirstGoodWid() {
 					    );
 					 
       // simulate a resize
-      processResizeWindow();
+      processResizeWindow(Tk_Width(theWindow), Tk_Height(theWindow));
    }
 
    return true;   
 }
 
-void BarChart::processResizeWindow() {
+void BarChart::processResizeWindow(const int newWidth, const int newHeight) {
    if (!TryFirstGoodWid())
       return; // our window is still invalid
 
-   width  = Tk_Width(theWindow) - 2*borderPix; // subtract left+right border
-   height = Tk_Height(theWindow) - 2*borderPix; // subract top+bottom border
+   width  = newWidth - 2*borderPix; // subtract left+right border
+   height = newHeight - 2*borderPix; // subract top+bottom border
 
    // update off-screen pixmap's dimensions to accomodate the resize
    changeDoubleBuffering(drawMode==DoubleBuffer, drawMode==NoFlicker);
@@ -446,8 +449,7 @@ void BarChart::RethinkBarLayouts() {
       }
    }
 
-   if (drawMode == NoFlicker)
-      ResetPrevBarHeights();
+   RethinkBarHeights();
 }
 
 void BarChart::RethinkBarHeights() {
