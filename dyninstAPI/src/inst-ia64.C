@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.58 2004/06/02 20:17:35 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.59 2004/07/01 20:11:49 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -729,8 +729,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 /* Required by inst.C */
 bool deleteBaseTramp( process */*proc*/, trampTemplate *) {
 	return false;
-}
-
+	}
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
@@ -2411,9 +2410,7 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
  */
 
 /* private refactoring function */
-#define MAX_BASE_TRAMP_SIZE (16 * 256)	// FIXME: how do I do an inferiorReAlloc() equivalent?
-										// FIXME: Or do I need to build the whole thing twice, once with a dummy allocatedAddress,
-										// FIXME: and hope that doesn't change the size?
+#define MAX_BASE_TRAMP_SIZE (16 * 256)	// FIXME: it would be a lot cleaner to determine this dynamically.
 trampTemplate * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
 { // FIXME: updatecost
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
@@ -2466,13 +2463,12 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList );
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList, proc );
 	if( ! staticallyAnalyzed ) {
-		/* Handle special cases, e.g., system call stubs/wrappers. */
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-		/* FIXME */ // assert( 0 );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", location->pointAddr() + baseAddress );
 		return NULL;
-		}
+		} 
 
 	/* Generate the base tramp in insnPtr, and copy to allocatedAddress. */
 	unsigned int bundleCount = 0;
