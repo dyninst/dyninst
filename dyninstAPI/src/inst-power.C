@@ -1916,7 +1916,10 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     }
   }
 
-  string ghb = "_DYNINSTtext";
+  //string ghb = "_DYNINSTtext";
+  //aix.C does not change the leading "." of function names to "_" anymore.
+  //  Instead, the "." is simply skipped.
+  string ghb = "DYNINSTtext";
   if (!symbols->symbol_info(ghb, sym)) {
       string msg;
       msg = string("Cannot find ") + ghb + string(". Exiting");
