@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.191 2003/10/21 19:14:21 bernat Exp $
+// $Id: symtab.C,v 1.192 2003/10/22 16:01:14 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3641,7 +3641,7 @@ void pdmodule::parseFileLineInfo(process* proc)
 #include "LineInformation.h"
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
-void pdmodule::parseFileLineInfo( process * proc ) {
+void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 	if( lineInformation != NULL ) { return; }
 	initLineInformation();
 
