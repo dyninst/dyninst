@@ -14,6 +14,9 @@ class BackEndNode: public ChildNode, public CommunicationNode {
  private:
     unsigned int backend_id;    // id in the backend namespace
                                 // TODO does this duplicate "port" in ChildNode?
+
+    int proc_newStream( Packet* pkt );
+
  public:
   BackEndNode(std::string _hostname, unsigned short _backend_id,
                  std::string _phostname, unsigned short _pport, 

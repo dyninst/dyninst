@@ -206,6 +206,13 @@ int Stream::get_BlockingTimeOut( )
     return CommunicationNode::get_BlockingTimeOut( );
 }
 
+Stream*
+Stream::get_Stream( unsigned int id )
+{
+    return StreamImpl::get_Stream( id );
+}
+
+
 /*======================================================*/
 /*             Communicator class DEFINITIONS        */
 /*======================================================*/

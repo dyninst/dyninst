@@ -69,7 +69,6 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
     case MRN_RPT_SUBTREE_PROT:
     case MRN_NEW_APPLICATION_PROT:
     case MRN_DEL_APPLICATION_PROT:
-    case MRN_NEW_STREAM_PROT:
     case MRN_DEL_STREAM_PROT:
     case MRN_GET_LEAF_INFO_PROT:
     case MRN_CONNECT_LEAVES_PROT:
@@ -79,7 +78,12 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
       assert(0);
       break;
 
-        break;
+    case MRN_NEW_STREAM_PROT:
+      if(proc_newStream(cur_packet) == -1){
+        mrn_printf(1, MCFL, stderr, "proc_newStream() failed\n");
+        retval = -1;
+      }
+      break;
 
     default:
       //Any Unrecognized tag is assumed to be data
@@ -157,5 +161,42 @@ int BackEndNode::recv( bool blocking )
   return 1;
 }
 
-} // namespace MRN
 
+int
+BackEndNode::proc_newStream(Packet* pkt)
+{
+  mrn_printf( 3, MCFL, stderr, "In proc_newStream()\n" );
+
+  // extract the info needed to build the stream
+  int stream_id = -1;
+  int* backends = NULL;
+  unsigned int num_backends = 0;
+  int sync_id = -1;
+  int ds_filter_id = -1;
+  int us_filter_id = -1;
+  int uret = pkt->ExtractArgList( "%d %ad %d %d %d",
+                                        &stream_id,
+                                        &backends, &num_backends,
+                                        &sync_id,
+                                        &ds_filter_id,
+                                        &us_filter_id );
+  if( uret == -1 )
+  {
+    mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
+    return -1;
+  }
+
+  // Build a new stream object.
+  // (As a side effect, registers the stream.)
+  (void)new StreamImpl( stream_id,
+                        backends,
+                        num_backends,
+                        sync_id,
+                        ds_filter_id,
+                        us_filter_id );
+
+  mrn_printf( 3, MCFL, stderr, "procNewStream() succeeded\n" );
+  return 1;
+}
+
+} // namespace MRN

@@ -51,6 +51,7 @@ class StreamImpl: public Stream {
     static int unpack(void* buf, const char* fmt, va_list arg_list );
 
     virtual Communicator* get_Communicator( void ) { return communicator; }
+    virtual unsigned int get_Id( void ) const      { return stream_id; }
 };
 
 } // namespace MRN

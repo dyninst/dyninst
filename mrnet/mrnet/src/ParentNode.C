@@ -515,13 +515,11 @@ ParentNode::send_newStream(Packet * packet, StreamManager * stream_mgr)
   std::list<RemoteNode *>::iterator iter;
 
   for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
-    if( (*iter)->is_internal() ){ //only pass on to internal nodes
-      //printf(3, MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
-      if( (*iter)->send(packet) == -1){
-        mrn_printf(1, MCFL, stderr, "node_set.send() failed\n");
-        retval = -1;
-        continue;
-      }
+    //printf(3, MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
+    if( (*iter)->send(packet) == -1){
+      mrn_printf(1, MCFL, stderr, "node_set.send() failed\n");
+      retval = -1;
+      continue;
     }
     //printf(3, MCFL, stderr, "node_set.send() succeeded\n");
   }

@@ -80,14 +80,15 @@ class Stream{
   static int unpack(void * buf, const char * format_str, ...);
   static void set_BlockingTimeOut(int timeout);
   static int get_BlockingTimeOut( );
+  static Stream* get_Stream( unsigned int id );
 
   virtual int send(int tag, const char * format_str, ...)=NULL;
   virtual int flush()=NULL;
   virtual int recv(int *tag, void **buf, bool blocking=true)=NULL;
   virtual unsigned int get_NumEndPoints()=NULL;
   virtual Communicator* get_Communicator()=NULL;
+  virtual unsigned int get_Id( void ) const = NULL;
 
-  //static Stream * get_Stream(int stream_id);
   //static Stream * new_Stream(int stream_id, int * backends=NULL,
   // int num_backends=-1, int filter_id=-1)=NULL;
 };
