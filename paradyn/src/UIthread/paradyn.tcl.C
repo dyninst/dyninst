@@ -5,9 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.67  1996/02/21 16:10:50  naim
-/* Minor warning fix - naim
+/* Revision 1.68  1996/02/21 18:17:13  tamches
+/* ParadynPauseCmd and ParadynContCmd disable related tk buttons _before_
+/* making the dataMgr igen call.  No bool reentrancy protection flag used
+/* anymore.
 /*
+ * Revision 1.67  1996/02/21 16:10:50  naim
+ * Minor warning fix - naim
+ *
  * Revision 1.66  1996/02/19  14:41:35  naim
  * Fixing problem when pressing RUN or PAUSE buttons "continously" - naim
  *
@@ -269,10 +274,9 @@ extern appState PDapplicState;
 
 status_line *app_name=NULL;
 
-void disablePAUSEandRUN()
-{
-  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+void disablePAUSEandRUN() {
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
+    string msg = string("Tcl interpreter failed in routine changeApplicState: ");
     msg += string((const char *) interp->result);
     uiMgr->showError(83, P_strdup(msg.string_of()));
   }
@@ -296,30 +300,38 @@ void enablePAUSEorRUN()
 }
 
 int ParadynPauseCmd(ClientData,
-		Tcl_Interp *,
-		int,
-		char **)
-{
-  static bool inPause=0;
-  if (!inPause) {
-    inPause=1;
-    dataMgr->pauseApplication();
-    inPause=0;
-  }
+		    Tcl_Interp *interp,
+		    int, char **) {
+  // Called by mainMenu.tcl when the PAUSE button is clicked on.
+  
+  // First, disable the PAUSE button, so we can't click on it twice.
+  // Note that we won't enable the RUN button just yet...we wait until
+  // the pause has been processed.
+  myTclEval(interp, ".parent.buttons.2 configure -state disabled");
+
+  //sleep(1);
+  dataMgr->pauseApplication();
+
+  myTclEval(interp, ".parent.buttons.1 configure -state normal");
+  
   return TCL_OK;
 }
 
 int ParadynContCmd(ClientData,
-		Tcl_Interp *,
-		int,
-		char **)
-{
-  static bool inCont=0;
-  if (!inCont) {
-    inCont=1;
-    dataMgr->continueApplication();
-    inCont=0;
-  }
+		   Tcl_Interp *interp,
+		   int, char **) {
+  // Called by mainMenu.tcl when the RUN button is clicked on.
+
+  // First, we disable the RUN button so it can't be clicked on again.
+  // Note that we don't enable the PAUSE button just yet...we wait until
+  // the continue has been processed.
+  myTclEval(interp, ".parent.buttons.1 configure -state disabled");
+
+  //sleep(1);
+  dataMgr->continueApplication();
+
+  myTclEval(interp, ".parent.buttons.2 configure -state normal");
+
   return TCL_OK;
 }
 
