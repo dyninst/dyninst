@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.85 2004/03/23 01:12:29 eli Exp $
+/* $Id: UIpublic.C,v 1.86 2005/01/11 22:45:06 legendre Exp $
  */
 
 #include <stdio.h>
@@ -309,6 +309,14 @@ UIM::showSHGKey(bool /* newValue */)
 
 void
 UIM::showSHGTips(bool /* newValue */)
+{
+    // should be pure virtual
+    assert( false );
+}
+
+
+void
+UIM::useLoops(bool /* newValue */)
 {
     // should be pure virtual
     assert( false );

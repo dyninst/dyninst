@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.7 2004/07/14 18:24:12 eli Exp $
+// $Id: ParadynTkGUI.C,v 1.8 2005/01/11 22:45:04 legendre Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -159,6 +159,14 @@ ParadynTkGUI::Init( void )
         " italics, etc.  A setting of false saves screen real estate.",
     true, // default value
     ShowShgKeyCallback,
+    userConstant);
+
+    //ELI
+    tunableBooleanConstantDeclarator* tcUseLoops = 
+       new tunableBooleanConstantDeclarator("useLoops",
+      "If true, the PC will use loops in it search.",
+    false, // default value
+    UseLoopsCallback,
     userConstant);
 
     tunableBooleanConstantDeclarator* tcShgShowTips = 
@@ -408,6 +416,12 @@ void
 ParadynTkGUI::HideWhereAxisRetiredResCallback(bool)
 {
     // TODO implement this?   
+}
+
+void
+ParadynTkGUI::UseLoopsCallback( bool newVal )
+{
+	uiMgr->useLoops( newVal );
 }
 
 void
@@ -1230,6 +1244,11 @@ ParadynTkGUI::showWhereAxisTips(bool newValue)
 	}
 }
 
+void
+ParadynTkGUI::useLoops(bool newValue)
+{
+    //ELI
+}
 
 void
 ParadynTkGUI::showSHGKey(bool newValue)

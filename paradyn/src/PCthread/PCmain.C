@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.80 2004/07/26 02:37:22 pcroth Exp $ */
+/* $Id: PCmain.C,v 1.81 2005/01/11 22:45:01 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -74,6 +74,10 @@ bool performanceConsultant::printDataTrace = false;
 bool performanceConsultant::collectInstrTimings = false;
 bool performanceConsultant::useIndividualThresholds  = false;
 bool performanceConsultant::useCallGraphSearch = true;
+//ELI
+bool performanceConsultant::useLoops = false;
+bool performanceConsultant::searchMachineSync = false;
+
 // 0 means no current phase defined  
 unsigned performanceConsultant::currentPhase = 0; 
 unsigned performanceConsultant::DMcurrentPhaseToken = 0;
@@ -143,8 +147,9 @@ void PCenableDataCallback(pdvector<metricInstInfo> *bunchostuff, u_int phaseID,
     rawInput = performanceConsultant::globalRawDataServer;
   else if (phaseID == performanceConsultant::currentPhase)
     rawInput = performanceConsultant::currentRawDataServer;
-  if (rawInput)
+  if (rawInput) {
     rawInput-> newDataEnabled(bunchostuff);
+  }
 
   // allocated in metricFocusReqBundle::flushPerfStreamMsgs()
   delete bunchostuff;

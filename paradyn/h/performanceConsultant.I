@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.40 2003/07/15 22:45:19 schendel Exp $
+ * $Id: performanceConsultant.I,v 1.41 2005/01/11 22:44:59 legendre Exp $
  */
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dataManager.thread.h"
@@ -88,6 +88,8 @@ $remote performanceConsultant {
     static bool collectInstrTimings;
     static bool useIndividualThresholds;
     static bool useCallGraphSearch;
+    static bool searchMachineSync;
+    static bool useLoops;
     // other PC-globals
     static unsigned DMcurrentPhaseToken;
     static unsigned currentPhase;

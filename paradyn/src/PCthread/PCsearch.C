@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.36 2004/03/23 01:12:28 eli Exp $
+ * $Id: PCsearch.C,v 1.37 2005/01/11 22:45:03 legendre Exp $
  * class PCsearch
  */
 
@@ -82,7 +82,7 @@ searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 //** this is currently being studied!! (klk)
 const float costFudge = 0.1f;
 const int MaxPendingSearches = 30;
-const int MaxActiveExperiments = 300;
+const int MaxActiveExperiments = 1000;
 
 ostream& operator <<(ostream &os, PCsearch& srch)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.h,v 1.5 2004/07/14 18:24:13 eli Exp $
+// $Id: ParadynTkGUI.h,v 1.6 2005/01/11 22:45:05 legendre Exp $
 #ifndef PARADYNTKGUI_H
 #define PARADYNTKGUI_H
 
@@ -71,6 +71,7 @@ private:
     static void ShowWhereAxisTipsCallback( bool newVal );
     static void HideWhereAxisRetiredResCallback(bool);
     static void ShowShgKeyCallback( bool newVal );
+    static void UseLoopsCallback( bool newVal );
     static void ShowShgTipsCallback( bool newVal );
     static void ShowShgTrueCallback( bool show );
     static void ShowShgFalseCallback( bool show );
@@ -145,6 +146,7 @@ protected:
 	virtual void CGDoneAddingNodesForNow(int programId);
 	virtual void CloseTkConnection( void );
 	virtual void showWhereAxisTips( bool val );
+	virtual void useLoops( bool val );
 	virtual void showSHGKey( bool val );
 	virtual void showSHGTips( bool val );
 	virtual void showSHGTrueNodes( bool val );

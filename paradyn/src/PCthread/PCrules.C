@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.53 2004/03/23 01:12:28 eli Exp $
+ * $Id: PCrules.C,v 1.54 2005/01/11 22:45:02 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -278,8 +278,11 @@ void initPChypos()
   pdstring *plum;
   stringList plumList;
 
-  plum = new pdstring ("/Machine");
-  plumList += plum;
+  if (!performanceConsultant::searchMachineSync)
+  {
+    plum = new pdstring ("/Machine");
+    plumList += plum;
+  }
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveSyncWaitingTime", (const char *)NULL, 
 		   "NormSyncToCPURatio",

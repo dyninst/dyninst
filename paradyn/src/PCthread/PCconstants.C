@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.16 2004/06/21 19:37:25 pcroth Exp $
+ * $Id: PCconstants.C,v 1.17 2005/01/11 22:45:00 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -94,6 +94,11 @@ void TCuseIndividualThresholdsCB (bool newval)
   performanceConsultant::useIndividualThresholds = newval;
 }
 
+void TCuseLoopsCB (bool newval)
+{
+  performanceConsultant::useIndividualThresholds = newval;
+}
+
 void TCEnableCGSearchesCB (bool newval){
     if( !PCsearch::HasSearchBeenStarted() )
     {
@@ -103,6 +108,11 @@ void TCEnableCGSearchesCB (bool newval){
     {
         uiMgr->showError(111,"");
     }
+}
+
+void TCSearchMachineSyncCB(bool newval)
+{
+  performanceConsultant::searchMachineSync = newval;
 }
 
 void initPCconstants ()
@@ -168,6 +178,26 @@ void initPCconstants ()
         " callgraph-based searches.", 
      TCEnableCGSearchesCB, 
      developerConstant,
+     boolInitializer);
+
+  boolInitializer = performanceConsultant::searchMachineSync;
+  tunableConstantRegistry::createBoolTunableConstant
+    ("PCsearchMachinesInSync",
+     "Causes the Performance consultant to search the /Machine hierarchy for"
+     " synchronization bottlenecks.",
+     TCSearchMachineSyncCB,
+     userConstant,
+     boolInitializer);
+     
+
+  // whether to default to (new) callgraph-based search
+  boolInitializer = performanceConsultant::useLoops;
+  tunableConstantRegistry::createBoolTunableConstant
+    ("PCuseLoops", 
+     "Changes functionality of the Performance Consultant to use"
+        " loops in searches.", 
+     TCuseLoopsCB,
+     userConstant,
      boolInitializer);
 
   //
