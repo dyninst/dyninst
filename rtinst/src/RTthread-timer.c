@@ -159,6 +159,11 @@ rawTime64 getThreadCPUTime(unsigned index, int *valid) {
   
   *valid = 1 ;
   if (count > 0) {
+#if defined(os_solaris)
+    /* Might not have set the file descriptor */
+    if (!vt->rt_fd)
+      vt->rt_fd = PARADYNgetFD(vt->lwp);
+#endif
     now = DYNINSTgetCPUtime_LWP(vt->lwp, vt->rt_fd);
     
     /* Check against rollback value */
