@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.10  1997/01/30 18:19:27  tamches
+ * emitInferiorRPCtrailer revamped; can now stop to read the result value of
+ * an inferiorRPC
+ *
  * Revision 1.9  1997/01/27 19:40:57  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -1525,7 +1529,7 @@ unsigned emitFuncCall(opCode op,
   if (srcs.size() > 0)
      emitOpRegImm(0, ESP, srcs.size()*4, insn); // add esp, srcs.size()*4
 
-  // allocate a register to store the return value
+  // allocate a (virtual) register to store the return value
   reg ret = rs->allocateRegister((char *)insn, base, noCost);
   emitMovRegToRM(EBP, -(ret*4), EAX, insn);
 
@@ -2099,44 +2103,38 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &base) {
 }
 
 bool process::emitInferiorRPCtrailer(void *void_insnPtr, unsigned &base,
-				     unsigned &firstPossibBreakOffset,
-				     unsigned &lastPossibBreakOffset) {
+				     unsigned &breakOffset,
+				     bool shouldStopForResult,
+				     unsigned &stopForResultOffset,
+				     unsigned &justAfter_stopForResultOffset) {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
       // unsigned char * is the most natural to work with on x86, since instructions
       // are always an integral # of bytes.  Besides, it makes the following line easy:
    insnPtr += base; // start off in the right spot
-   unsigned char *origInsnPtr = insnPtr;
+
+   if (shouldStopForResult) {
+      // illegal insn: 0x0f0b does the trick.
+      stopForResultOffset = base;
+      *insnPtr++ = 0x0f;
+      *insnPtr++ = 0x0b;
+      base += 2;
+
+      justAfter_stopForResultOffset = base;
+   }
 
    // Sequence: popfd, popad, leave (0xc9), call DYNINSTbreakPoint(), illegal
-
-   initTramps();
-   extern registerSpace *regSpace;
-   regSpace->resetSpace();
 
    emitSimpleInsn(POPFD, insnPtr); // popfd
    emitSimpleInsn(POPAD, insnPtr); // popad
    emitSimpleInsn(LEAVE, insnPtr); // leave
+   base += 3; // all simple insns are 1 byte
 
-   base += (insnPtr - origInsnPtr);
-
-   // For now, do an illegal insn instead of DYNINSTbreakPoint()
-   // (received as SIGILL instead of SIGSTOP in paradynd)
-   firstPossibBreakOffset = base;
-   lastPossibBreakOffset = base;
+   // We can't do a SIGTRAP since SIGTRAP is reserved in x86.
+   // So we do a SIGILL instead.
+   breakOffset = base;
    *insnPtr++ = 0x0f;
    *insnPtr++ = 0x0b;
    base += 2;
-
-//   // Call DYNINSTbreakPoint, with no arguments
-//   vector<AstNode> args; // no arguments to DYNINSTbreakPoint
-//   AstNode ast("DYNINSTbreakPoint", args);
-//
-//   reg resultReg = ast.generateCode(this, regSpace, (char*)insnPtr, base, false);
-//   regSpace->freeRegister(resultReg);
-//
-//   // the actual PC instruction where the call is made will fall somewhere in these bounds:
-//   firstPossibBreakOffset = 0;
-//   lastPossibBreakOffset = base;
 
    // Here, we should generate an illegal insn, or something.
    // A two-byte insn, 0x0f0b, should do the trick.  The idea is that
