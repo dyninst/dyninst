@@ -1,12 +1,13 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.6  1994/08/01 20:26:34  karavan
+# Revision 1.7  1994/09/13 05:05:47  karavan
+# improved error handling
+#
+# Revision 1.6  1994/08/01  20:26:34  karavan
 # changes to accommodate new dag design.
 #
 # Revision 1.5  1994/07/07  05:57:04  karavan
 # UIM error service implementation
-#
-# CVr: ----------------------------------------------------------------------
 #
 # Revision 1.4  1994/06/29  21:47:39  hollings
 # killed old background colors and switched to motif like greys.
@@ -141,14 +142,26 @@ proc showError {errorCode errorStr} {
     global pdError pdErrorHistory PdBitmapDir
     set buttonfg red
     set buttonbg white
+    set retval [catch {set errRec $pdError($errorCode)}]
+    puts "showError $retval"
+    if {$retval == 1} {
+	set errorStr "No entry in error database for this error code."
+	set etype serious
+    } else {
+	set etype [lindex $errRec 2]
+	if {$errorStr == ""} {
+	    set errorStr [lindex $errRec 0]
+	}
+    }
+    
+    # the main error window
     set w .error$errorCode
-
     mkDialogWindow $w
     $w configure -bg red
-    # bitmap, title and Error Number
     frame $w.out -class "Paradyn.Error" 
     pack $w.out -padx 5 -pady 5
 
+    # Error screen header: bitmap, title and Error Number
     frame $w.out.top
     pack $w.out.top -padx 5 -pady 5
     label $w.out.top.exclaim -bitmap @$PdBitmapDir/dont.xbm \
@@ -162,14 +175,10 @@ proc showError {errorCode errorStr} {
 
     # specific error message text
     frame $w.out.mid
-    if {$errorStr == ""} {
-	set errorStr [lindex $pdError($errorCode) 0]
-    }
     message $w.out.mid.msg -width 300 -text $errorStr -relief groove \
 	-borderwidth 2
     pack $w.out.mid.msg -expand yes -fill both -padx 5 -pady 5
     pack $w.out.mid -expand yes -fill both  -padx 5
-    set etype [lindex $pdError($errorCode) 2]
     label $w.out.eclass -text "Error Category: $etype" -anchor center
     pack $w.out.eclass -side top -pady 5
 

@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.11  1994/08/10 17:21:35  newhall
-/* added parameters to chooseMetricsandResources
+/* Revision 1.12  1994/09/13 05:07:29  karavan
+/* improved error handling
 /*
+ * Revision 1.11  1994/08/10  17:21:35  newhall
+ * added parameters to chooseMetricsandResources
+ *
  * Revision 1.10  1994/08/01  20:24:40  karavan
  * new version of dag; new dag support commands
  *
@@ -215,16 +218,15 @@ UIM::endBatchMode ()
 void
 UIM::showError(int errCode, char *errString)
 {
-  char errNum[10];
-  sprintf (errNum, "%d", errCode);
-  if (errCode <= uim_maxError) {
+  char tcommand[300];
 
-  // custom error info string to be printed
-    if (Tcl_VarEval (interp, "showError ", errNum, " \{", errString, 
-		     "\}", (char *) NULL) == TCL_ERROR)
+    // custom error info string to be printed
+    sprintf (tcommand, "showError %d {%s}", errCode, errString);
+    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("newShowError: Tcl call to showError fails, %s\n", 
 	      interp->result);
-  }
+      thr_exit(0);
+    }
 }
 
 // ****************************************************************
@@ -245,7 +247,6 @@ UIM::showMsg(showMsgCBFunc cb,
 	int numChoices,
 	char **choices)
 {
-  thread_t client;
   char *clist;
   int retVal;
   UIMReplyRec *reply;
@@ -369,6 +370,10 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
     reply->tid = getRequestingThread();
     reply->cb = (showMsgCBFunc) cb;
     Tcl_SetHashValue (entryPtr, reply);
+  } 
+  else {
+    uiMgr->showError(22, "");
+    thr_exit(0);
   }
 
      // initialize metric menu 
@@ -378,15 +383,17 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   ml = Tcl_SetVar (interp, "metList", ml, 0);
   sprintf (ctr, "%d", availMets.count);
   Tcl_SetVar (interp, "metCount", ctr, 0);
-  sprintf (ctr, "%d", UIMMsgTokenID);
-  Tcl_SetVar (interp, "metsAndResID", ctr, 0);
 
       // tcl proc draws window & gets metrics and resources from user 
-  retVal = Tcl_VarEval (interp, "getMetsAndRes", 0);
+  sprintf (ctr, "%d", UIMMsgTokenID);
+  retVal = Tcl_VarEval (interp, "getMetsAndRes ", ctr, 0);
   if (retVal == TCL_ERROR)  {
+    uiMgr->showError (21, "getMetsAndRes in UIM::chooseMetricsandResources");
     printf ("%s\n", interp->result);
-  }
+    thr_exit(0);  
+  } 
 }
+
 // ****************************************************************
 //  DAG/SHG Display Service Routines
 // ****************************************************************
@@ -396,70 +403,58 @@ int getDagToken ()
   int token;
   static int nextActiveDag = 0;
   if (nextActiveDag == MAXNUMACTIVEDAGS) {
-    printf ("getDagToken error: max no. active dags exceeded\n");
     return -1;
   }
   token = nextActiveDag;
   nextActiveDag++;
   return token;
 }
- 
+
+/* 
+ * returns shg token if successful, -1 otherwise
+ */ 
 int 
 UIM::initSHG() 
 {
-  int token, retVal;
+  int token;
   char tcommand[100];
   char win[7] = ".shg";
   dag *shgdag;
   char tokstr[10];
   token = getDagToken();
+  if (token < 0) {
+    printf ("getDagToken error: max no. active dags exceeded\n");
+    return -1;
+  }
   sprintf (tokstr, "%d", token);
   sprintf (win+4, "%02d", token);
   printf ("creating dag name %s\n", win);
   shgdag = new dag (interp);
-      /* set this variable to unique window name */
+      /* set global tcl variable to unique window name */
   Tcl_SetVar (interp, "SHGname", win, 0);
   
-  if (Tcl_VarEval (interp, "initSHG ", tokstr, (char *) NULL) == TCL_ERROR)
+  if (Tcl_VarEval (interp, "initSHG ", tokstr, (char *) NULL) == TCL_ERROR) {
     printf ("initSHG error: %s\n", interp->result);
+    return -1;
+  }
 
   shgdag->createDisplay (win);
   ActiveDags[token] = shgdag;
 
   // add default styles for SHG
-  // style 1: not tested
-  retVal = shgdag->AddNStyle (1, "DarkSalmon", "DarkSlateGrey", NULL, 
-		      "-Adobe-times-medium-r-normal--*-100*",
-		      "black", 'r', 1.0);
-  // style 2: not active
-  retVal = shgdag->AddNStyle (2, "#a41bab855fe1", "DarkSlateGrey", NULL, 
-			      "-Adobe-times-medium-r-normal--*-80*",
-			      "DarkSlateGrey", 'r', 1.0);
-  // style 3: active and true
-  retVal = shgdag->AddNStyle (3, "#4cc6c43dc7ef", "SlateGrey", NULL,  
-			      "-Adobe-times-medium-r-normal--*-80*",
-			      "black", 'r', 1.0);
-  // style 4: active and false
-  retVal = shgdag->AddNStyle (4, "#8ba59f3b91f3", "DarkSlateGrey", NULL,
-			      "-Adobe-times-medium-r-normal--*-100*",
-			      "white", 'r', 1.0);
-  // edge 1:
-  retVal = shgdag->AddEStyle (1, 0, 0, 0, 0, NULL,
-			      "#c99e5f54dcab", 'b', 2.0);
-  // edge 2: 
-  retVal = shgdag->AddEStyle (2, 0, 0, 0, 0, NULL, 
-			      "#beb839376947", 'b', 2.0);
-  // edge 3:
-  retVal = shgdag->AddEStyle (3, 0, 0, 0, 0, NULL,
-			      "black", 'b', 2.0);
-  sprintf (tcommand, "all <2> {shgFullName $SHGname.dag._c_ %s}",
-	   tokstr);
-  retVal = shgdag->addTkBinding (tcommand);
-  printf ("addbinding returns: %d\n", retVal);
-  sprintf (tcommand, "all <1> {updateCurrentSelection $SHGname.dag._c_ %s}", 
-	   tokstr);
-  retVal = shgdag->addTkBinding (tcommand);
-  printf ("addbinding returns: %d\n", retVal);
+  sprintf (tcommand, "addDefaultShgStyles %d", token);
+  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+    printf ("addDefaultShgStyles in UIM::initSHG error: %s\n", interp->result);
+    return -1;
+  }
+  // add default bindings for SHG
+  sprintf (tcommand, "addDefaultShgBindings %s %d",
+	   shgdag->getCanvasName(), token);
+  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+    printf ("initSHGbindings error: %s\n", interp->result);
+    return -1;
+  }
+
       /* hash table for long node names */
   Tcl_InitHashTable (&shgNamesTbl, TCL_ONE_WORD_KEYS);
 

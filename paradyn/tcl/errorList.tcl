@@ -1,42 +1,4 @@
 
-#
-# $Log: errorList.tcl,v $
-# Revision 1.1  1994/07/07 05:59:33  karavan
-# initial version.
-#
-# Revision 1.10  1994/04/22  21:51:17  hollings
-# created error #9
-#
-# Revision 1.9  1994/04/22  21:48:54  hollings
-# created error #8
-#
-# Revision 1.8  1994/04/19  18:59:35  hollings
-# created error #7
-#
-# Revision 1.7  1994/04/19  18:54:43  hollings
-# created error #6
-#
-# Revision 1.6  1994/04/19  18:50:06  hollings
-# created error #5
-#
-# Revision 1.5  1994/04/19  18:46:30  hollings
-# created error #4
-#
-# Revision 1.4  1994/04/19  18:41:55  hollings
-# created error #3
-#
-# Revision 1.3  1994/04/19  18:37:43  hollings
-# created error #2
-#
-# Revision 1.2  1994/04/19  18:29:48  hollings
-# created error #1
-#
-# Revision 1.1  1994/04/19  18:26:56  hollings
-# Libray of error numbers in paradyn.
-#
-#
-
-
 set pdError(1) {
 
 {Application Process found for machine without paradynd
@@ -131,4 +93,96 @@ ancesstors of that node is false.  To manually select a SHG node, you must
 select a node which is true.  In addition, all of it's ancesstors back to
 the root must also be true.
 }} 
-set numPdErrors 9
+
+set pdError() {
+{malloc failed
+} {dm
+} {fatal
+} {
+Attempt to call malloc returned an error within a data manager function.
+
+}} 
+
+set pdError(10) {
+{malloc failure
+} {dm
+} {fatal
+} {
+Call to malloc failed within a data manager function.
+}} 
+
+set pdError(12) {
+{malloc failed
+} {vi
+} {serious
+} {
+Call to malloc failed within a visi-thread function
+}} 
+
+set pdError(13) {
+{thr_getspecific failed
+} {vi
+} {serious
+} {
+Call to thr_getspecific in a visi-thread function failed.
+}} 
+
+set pdError(14) {
+{unable to start visualization process
+} {vi
+} {serious
+} {
+A request to start a new visualization process failed.  This is due
+to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
+}} 
+
+set pdError(15) {
+{unable to create performance stream
+} {vi
+} {serious
+} {
+An attempt to create a performance stream for a new visualizaiton
+failed.
+}} 
+
+set pdError(16) {
+{internal error
+} {vi
+} {serious
+} {
+
+}} 
+
+set pdError(17) {
+{Adding new metrics and/or foci failed 
+} {vi
+} {information
+} {
+An incomplete or invalid metric or focus list was returned as a
+result of attempting to add metrics and/or foci to a visualization.
+}} 
+
+set pdError(18) {
+{malloc failure
+} {vm
+} {fatal
+} {
+Call to malloc failed within a visi manager function.
+}} 
+
+set pdError(19) {
+{strdup failure
+} {vm
+} {fatal
+} {
+Call to strdup failed within a visi manager function.
+}} 
+
+set pdError(20) {
+{internal error
+} {vm
+} {fatal
+} {
+An unrecoverable error occurred within a visi manager function.
+}} 
+set numPdErrors 20
