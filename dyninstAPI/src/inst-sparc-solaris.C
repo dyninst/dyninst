@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.58 1999/09/10 14:26:27 nash Exp $
+// $Id: inst-sparc-solaris.C,v 1.59 1999/10/28 23:00:41 zandy Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2294,6 +2294,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
     Address adr = getAddress(0);
 
     bool retl_inst = false;
+    bool restore_inst = false;
     // Check if there's any branch instruction jump to the middle
     // of the instruction sequence in the function entry point
     // and function exit point.
@@ -2301,7 +2302,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 
 	instr.raw = owner->get_instruction(adr);
 	if(isInsnType(instr, RETLmask, RETLmatch)) retl_inst = true;
-
+	if(isInsnType(instr, RESTOREmask, RESTOREmatch)) restore_inst = true;
 	if (isInsnType(instr, BRNCHmask, BRNCHmatch)||
 	    isInsnType(instr, FBRNCHmask, FBRNCHmatch)) {
 
@@ -2334,7 +2335,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
     // function then this is a way messed up function...well, at least we
     // we can't deal with this...the only example I can find is _cerror
     // and _cerror64 in libc.so.1
-    if(retl_inst && !noStackFrame){ 
+    if(retl_inst && !noStackFrame && !restore_inst){ 
         //cerr << "WARN : function " << prettyName().string_of()
         //     << " retl instruction in non-leaf function, can't instrument"
         //      << endl;
