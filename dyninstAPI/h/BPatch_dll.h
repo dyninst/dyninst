@@ -41,8 +41,20 @@
 #ifndef _BPatch_dll_h_
 #define _BPatch_dll_h_
 
-#if defined(BPATCH_LIBRARY) && (defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11)) //ccw 6 apr 2001
-// we are building for a Windows target AND not building paradynd
+// TEMPORARY PARADYND FLOWGRAPH KLUGE
+// If we are building BPatch classes into paradynd we want BPATCH_DLL_EXPORT 
+// to be defined as the empty string (for all platforms). This currently tests
+// SHM_SAMPLING because it is defined for paradynd and not for the dyninst
+// dll or dyninst clients, read '#if PARADYND'. 
+#ifdef SHM_SAMPLING
+
+#define	BPATCH_DLL_EXPORT
+
+// otherwise we are not building paradynd
+#else
+
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
+// we are building for a Windows target 
 
 // we get numerous spurious warnings about having some template classes
 // needing to have a dll-interface if instances of these classes are
@@ -69,12 +81,12 @@
 
 #else
 
-// we are not building for a Windows target OR are building paradynd
+// we are not building for a Windows target 
 #define	BPATCH_DLL_EXPORT
 
 #endif
 
-
+#endif // TEMPORARY PARADYND FLOWGRAPH KLUGE
 
 
 // declare our version string
