@@ -7,9 +7,17 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.17  1995/09/22 19:24:21  tamches
-/* removed warnings under g++ 2.7.0
+/* Revision 1.18  1996/01/10 02:36:11  tamches
+/* changed uses of dynamic1dArray/2d to the vector class
+/* removed theWindowName
+/* added a tkInstallIdle
+/* int --> unsigned for many index vrbles
+/* constructor now takes an array of color names
+/* added getMetricColorName; removed gimmeColorName, RethinkMetricColors
 /*
+ * Revision 1.17  1995/09/22 19:24:21  tamches
+ * removed warnings under g++ 2.7.0
+ *
  * Revision 1.16  1995/08/06  22:09:47  tamches
  * tk.h, tcl.h --> tkclean.h, tclclean.h
  *
@@ -51,36 +59,6 @@
  * Fixed deleting of resources.
  * Rearranged menus to be more standards-ish
  *
- * Revision 1.8  1994/10/11  22:05:11  tamches
- * Fixed resize bug whereupon a resize while paused would blank out the
- * bars until continue was pressed.
- *
- * Better support for deleted resources via variables
- * validMetrics and validResources
- *
- * Revision 1.7  1994/10/10  23:08:37  tamches
- * preliminary changes on the way to swapping the x and y axes
- *
- * Revision 1.6  1994/10/07  22:07:03  tamches
- * Fixed some resize bugs
- *
- * Revision 1.5  1994/10/04  22:11:31  tamches
- * moved color codes to barChart.tcl variable
- *
- * Revision 1.4  1994/10/04  19:01:05  tamches
- * Cleaned up the resource bar color choices
- *
- * Revision 1.3  1994/09/30  23:13:41  tamches
- * reads resource width from tcl as "currResourceWidth", to accomodate
- * new barChart.tcl code which adjusts this variable when resources
- * are added/deleted.  (previously it had been constant)
- *
- * Revision 1.2  1994/09/29  20:05:32  tamches
- * minor cvs fixes
- *
- * Revision 1.1  1994/09/29  19:48:27  tamches
- * initial implementation.  A to-do list is kept in barChart.tcl
- *
  */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
@@ -113,9 +91,6 @@
 #include "dg2.h"
 #include "barChartTcl.h"
 
-// g++ stuff for efficient template memory management:
-#pragma implementation "array2d.h"
-
 #include "barChart.h"
 
  // main data structure; holds bar information.  Does not
@@ -133,27 +108,24 @@ BarChart *theBarChart;
 */
 
 BarChart::BarChart(char *tkWindowName,
-		   const int initNumMetrics, const int initNumResources) :
-            metricColors(initNumMetrics),
+		   unsigned initNumMetrics, unsigned initNumResources,
+		   const vector<string> &barColorNames) :
+	    drawWhenIdle(&lowestLevelDrawBars),
+	    metricColorNames(barColorNames),
+            metricColors(metricColorNames.size()),
 	    indirectResources(initNumResources),
 	    validMetrics(initNumMetrics),
 	    validResources(initNumResources),
-	    barWidths (initNumMetrics, initNumResources),
-	    barValues  (initNumMetrics, initNumResources),
+	    values  (initNumMetrics, initNumResources),
+	    barPixWidths (initNumMetrics, initNumResources),
             metricCurrMaxVals(initNumMetrics)
              {
-
-   theWindowName = new char[strlen(tkWindowName)+1];
-   if (theWindowName == NULL)
-      panic("BarChart constructor: out of memory!");
-   strcpy(theWindowName, tkWindowName);
 
    theWindow = Tk_NameToWindow(MainInterp, tkWindowName, Tk_MainWindow(MainInterp));
    if (theWindow == NULL)
       panic("BarChart constructor: Tk_NameToWindow() failed!");
 
    HaveSeenFirstGoodWid = false;
-   wid      = Tk_WindowId(theWindow);
    borderPix = 2;
    currScrollOffset = 0;
    width    = Tk_Width(theWindow);
@@ -163,12 +135,21 @@ BarChart::BarChart(char *tkWindowName,
    height -= borderPix*2;
    
    greyColor = Tk_GetColor(MainInterp, theWindow, Tk_GetUid("grey"));
+   for (unsigned color=0; color < barColorNames.size(); color++) {
+      const string &colorName = barColorNames[color];
+
+      XColor *theColor = Tk_GetColor(MainInterp, theWindow,
+				     Tk_GetUid(colorName.string_of()));
+      assert(theColor);
+
+      metricColors[color] = theColor;
+   }
 
    DataFormat = Current;
    
    RethinkMetricsAndResources();
    // Rethinks numMetrics, numResources, numValidMetrics, numValidResources,
-   //         validMetrics[], validResources[], barValues[][] from DataGrid.
+   //         validMetrics[], validResources[], values[][] from DataGrid.
    // Rethinks indirectResources[] from tcl.
    // Rethinks metric max values, colors, bar positioning
    // Clears screen; redraws.
@@ -177,12 +158,10 @@ BarChart::BarChart(char *tkWindowName,
 BarChart::~BarChart() {
    Tk_CancelIdleCall(lowestLevelDrawBars, NULL);
 
-   delete [] theWindowName;
-
    XFreeGC(display, myGC);   
 
    Tk_FreeColor(greyColor);
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++)
+   for (unsigned metriclcv=0; metriclcv<metricColors.size(); metriclcv++)
       Tk_FreeColor(metricColors[metriclcv]);
 
    XFreePixmap(display, doubleBufferPixmap);
@@ -198,7 +177,7 @@ void BarChart::changeDoubleBuffering() {
    // erase offscreen pixmap and reallocate with new size
    XFreePixmap(display, doubleBufferPixmap);
 
-   doubleBufferPixmap = XCreatePixmap(display, wid,
+   doubleBufferPixmap = XCreatePixmap(display, Tk_WindowId(theWindow),
 				      Tk_Width(theWindow),
 				      Tk_Height(theWindow),
 				      Tk_Depth(theWindow));
@@ -209,32 +188,33 @@ void BarChart::changeDoubleBuffering() {
 bool BarChart::TryFirstGoodWid() {
    // returns true if the wid is valid
 
-   if (!HaveSeenFirstGoodWid) {
-      wid = Tk_WindowId(theWindow);
-      if (wid == 0)
-         return false; // sigh; still invalid
+   if (HaveSeenFirstGoodWid)
+      return true;
 
-      HaveSeenFirstGoodWid = true;
+   if (Tk_WindowId(theWindow) == 0)
+      return false; // sigh; still invalid
 
-      // initialize gc
-      XGCValues values;
-      values.foreground = greyColor->pixel;
-      values.background = greyColor->pixel;
-      // values.graphics_exposures = False;
+   HaveSeenFirstGoodWid = true;
 
-      myGC = XCreateGC(display, wid,
-		       GCForeground | GCBackground,
-		       &values);
-      if (NULL==myGC)
-         panic("BarChart constructor: XCreateGC() failed!");
+   // initialize gc
+   XGCValues values;
+   values.foreground = greyColor->pixel;
+   values.background = greyColor->pixel;
+   // values.graphics_exposures = False;
 
-      // initialize offscreen pixmap
-      doubleBufferPixmap = XCreatePixmap(display, wid, 1, 1, 1); // temporary
-      changeDoubleBuffering();
+   myGC = XCreateGC(display, Tk_WindowId(theWindow),
+		    GCForeground | GCBackground,
+		    &values);
+   if (NULL==myGC)
+      panic("BarChart constructor: XCreateGC() failed!");
+
+   // initialize offscreen pixmap
+   doubleBufferPixmap = XCreatePixmap(display, Tk_WindowId(theWindow),
+				      1, 1, 1); // temporary
+   changeDoubleBuffering();
 					 
-      // simulate a resize
-      processResizeWindow(Tk_Width(theWindow), Tk_Height(theWindow));
-   }
+   // simulate a resize
+   processResizeWindow(Tk_Width(theWindow), Tk_Height(theWindow));
 
    return true;   
 }
@@ -257,46 +237,12 @@ void BarChart::processExposeWindow() {
    if (!TryFirstGoodWid())
       return; // our window is still invalid
 
-   lowLevelDrawBars();
-}
-
-char *gimmeColorName(const int metriclcv) {
-   // look in the tcl array "barColors"
-
-   char *numColorsString = Tcl_GetVar(MainInterp, "numBarColors",
-				      TCL_GLOBAL_ONLY);
-   if (NULL==numColorsString) {
-      cerr << "gimmeColorName: could not read tcl variable numBarColors." << endl;
-      exit(5);
-   }
-   int numColors = atoi(numColorsString);
-
-   const int index = metriclcv % numColors;
-   char buffer[10];
-   sprintf(buffer, "%d", index);
-
-   char *resultString = Tcl_GetVar2(MainInterp, "barColors", buffer,
-				    TCL_GLOBAL_ONLY);
-   if (NULL==resultString)
-      panic("gimmeColorName: could not read tcl variable barColors().");
-
-   return resultString;
-}
-
-void BarChart::RethinkMetricColors() {
-   metricColors.reallocate(numMetrics);
-
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
-      XColor *theColor = Tk_GetColor(MainInterp, theWindow,
-				     Tk_GetUid(gimmeColorName(metriclcv)));
-
-      metricColors[metriclcv] = theColor;
-   }
+   drawWhenIdle.install(this);
 }
 
 void BarChart::RethinkMetricsAndResources() {
    // Rethink numMetrics, numResources, numValidMetrics, numValidResources,
-   //         validMetrics[], validResources[], barValues[][] from DataGrid.
+   //         validMetrics[], validResources[], values[][] from DataGrid.
    // Rethink indirectResources[] from tcl.
    // rethink metric max values, colors, bar positioning
    // Clears screen; redraws.
@@ -307,43 +253,43 @@ void BarChart::RethinkMetricsAndResources() {
    // reallocate and rethink validMetrics, validResources
    rethinkValidMetricsAndResources(); 
 
-   // rethink bar values from dataGrid
-   rethinkBarValues();
+   // reallocate values[][], then copy values in from the dataGrid
+   rethinkValues();
 
-   if (TCL_ERROR == Tcl_Eval(MainInterp, "rethinkIndirectResources false"))
-      panic("BarChart::RethinkMetricsAndResources() -- could not execute rethinkIndirectResources");
+   myTclEval(MainInterp, "rethinkIndirectResources false");
 
    rethinkIndirectResources();
 
    // rethink metric max values from tcl
    rethinkMetricMaxValues();
-   RethinkMetricColors(); // reallocates and rethinks metricColors[]
    RethinkBarLayouts(); // as if there were a resize (no reallocations, but
-                        // resets/rethinks barXoffsets[], barWidths[], barWidths[]
+                        // resets/rethinks barXoffsets[], barPixWidths[])
 
    if (HaveSeenFirstGoodWid)
-      lowLevelDrawBars();
+      drawWhenIdle.install(this);
 }
 
-void BarChart::rethinkBarValues() {
+void BarChart::rethinkValues() {
    // Given: updated numMetrics, numResources, numValidMetrics,
    //        numValidResources, validMetrics[], validResources[]
-   // Does:  reallocates and rethinks barValues[][] from dataGrid
+   // Does:  reallocates and rethinks values[][] from dataGrid
    // Does not: do anything to the screen
 
-   barValues.reallocate(numMetrics, numResources);
+   values.resize(numMetrics);
+   for (unsigned met=0; met < numMetrics; met++)
+      values[met].resize(numResources);
 
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+   for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++) {
       if (!validMetrics[metriclcv]) continue;
 
-      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+      for (unsigned resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
          if (!validResources[resourcelcv]) continue;
 
          visi_GridCellHisto &theCell = dataGrid[metriclcv][resourcelcv];
          const sampleType theValue = theCell.Value(theCell.LastBucketFilled());
             // warning: "theValue" may be a NaN
          
-         barValues[metriclcv][resourcelcv] = isnan(theValue) ? 0 : theValue;
+         values[metriclcv][resourcelcv] = isnan(theValue) ? 0 : theValue;
       }
    }
 }
@@ -353,9 +299,9 @@ void BarChart::rethinkMetricMaxValues() {
    // Does:  reallocates and rethinks metricCurrMaxVals[] from tcl
    // Does not: draw anything
 
-   metricCurrMaxVals.reallocate(numMetrics);
+   metricCurrMaxVals.resize(numMetrics);
    
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+   for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++) {
       if (!validMetrics[metriclcv]) continue;
 
       char buffer[64];
@@ -363,7 +309,7 @@ void BarChart::rethinkMetricMaxValues() {
       char *str = Tcl_GetVar2(MainInterp, "metricMaxValues", buffer,
 			      TCL_GLOBAL_ONLY);
       if (str == NULL)
-         panic("BarChart::RethinkMetricsAndResources() -- could not read 'metricMaxValues'");
+         panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'");
 
       metricCurrMaxVals[metriclcv] = atof(str);
    }
@@ -374,20 +320,20 @@ void BarChart::processNewData(const int newBucketIndex) {
    //        up-to-date numMetrics, numResources,
    //                   numValidMetrics, numValidResources,
    //                   validMetrics[], validResources[]
-   // Does:  rethinks barValues[][] and (if necessary) metricCurrMaxVals[].
-   //        Then calls rethinkBarWidths() which rethinks barWidths[][]
+   // Does:  rethinks values[][] and (if necessary) metricCurrMaxVals[].
+   //        Then calls rethinkBarPixWidths() which rethinks barPixWidths[][]
    //        and redraws.
    // Does not: care about sorting order in any way (a future, optimized
    //           version will)
 
    // Called on the critical path -- we must be quick!
    
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+   for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++) {
       if (!validMetrics[metriclcv]) continue;
 
       visi_GridHistoArray &metricValues = dataGrid[metriclcv];
 
-      for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
+      for (unsigned resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
          if (!validResources[resourcelcv]) continue;
 
          visi_GridCellHisto &theCell = metricValues[resourcelcv];
@@ -410,33 +356,30 @@ void BarChart::processNewData(const int newBucketIndex) {
                   panic("BarChart::processNewData() -- unknown data format!");
 	    }
 
-            barValues[metriclcv][resourcelcv] = isnan(newVal) ? 0 : newVal;
+            values[metriclcv][resourcelcv] = isnan(newVal) ? 0 : newVal;
 
             // the dreaded check for y-axis overflow (slows things down
             // greatly if there is indeed overflow)
             if (newVal > metricCurrMaxVals[metriclcv])
                setMetricNewMax(metriclcv, newVal); // nuts!
-            else
-               ; // yea!
 	 }
          else
-            barValues[metriclcv][resourcelcv]=0; // hmmm...
+            values[metriclcv][resourcelcv]=0; // hmmm...
       }
    }
 
-   RethinkBarWidths();
+   rethinkBarPixWidths();
 }
 
-double BarChart::nicelyRoundedMetricNewMaxValue(int metricindex, double newmaxval) {
-   assert(0<=metricindex && metricindex<numMetrics);
+double BarChart::nicelyRoundedMetricNewMaxValue(unsigned metricindex,
+						double newmaxval) {
+   assert(metricindex<numMetrics);
 
-   char buffer[256];
-   sprintf(buffer, "lindex [getMetricHints %s] 3", dataGrid.MetricName(metricindex));
-
-   if (TCL_OK != Tcl_Eval(MainInterp, buffer))
-      panic("BarChart::nicelyRoundedMetricNewMaxValue() -- could not eval");
-
-   double hintedStep = atof(MainInterp->result);
+   // far too arbitrary:
+   double hintedStep;
+   hintedStep = (double)((unsigned)(newmaxval / 10));
+   if (hintedStep == 0)
+      hintedStep = 0.1;
 
    double result = newmaxval + (hintedStep - fmod(newmaxval, hintedStep));
       // if fmod() doesn't return a number greater than 0, this won't work quite right
@@ -444,22 +387,24 @@ double BarChart::nicelyRoundedMetricNewMaxValue(int metricindex, double newmaxva
    return result;
 }
 
-void BarChart::setMetricNewMax(int metricindex, double newmaxval) {
+void BarChart::setMetricNewMax(unsigned metricindex, double newmaxval) {
    // given an actual bar value (newmaxval) that overflows the current
    // y-axis maximum value for the given metric, rethink what the
    // y-axis maximum value for the given metric should be.
    // Note that it may not be exactly "newmaxval"; we usually want
    // to round to a relatively nice number.
 
-   assert(0<=metricindex && metricindex<numMetrics);
+   assert(metricindex<numMetrics);
 
    newmaxval = nicelyRoundedMetricNewMaxValue(metricindex, newmaxval);
    metricCurrMaxVals[metricindex] = newmaxval;
 
-   char buffer[128];
-   sprintf(buffer, "processNewMetricMax %d %g", metricindex, newmaxval);
-   if (TCL_OK != Tcl_Eval(MainInterp, buffer))
-      cerr << "warning -- BarChart::setMetricNewMax() could not inform barChart.tcl of new max-y-value (no script processNewMetricMax?)" << endl;
+   // Inform our tcl code of the change, so it may update stuff:
+   string commandStr = string("processNewMetricMax ");
+   commandStr += string(metricindex);
+   commandStr += " ";
+   commandStr += string(newmaxval);
+   myTclEval(MainInterp, commandStr);
 }
 
 void BarChart::RethinkBarLayouts() {
@@ -469,7 +414,7 @@ void BarChart::RethinkBarLayouts() {
    // (but not new data callbacks), reallocate and fill in bar heights and
    // calculate individualResourceHeight, etc.
 
-   // does not touch metricCurrMaxVals or barValues[][]
+   // does not touch metricCurrMaxVals or values[][]
 
    // Start off by reading some tcl vrbles (barChart.tcl)
    char *totalResourceHeightStr =
@@ -515,15 +460,18 @@ void BarChart::RethinkBarLayouts() {
 
    resourceBorderHeight = (totalResourceHeight - fullResourceHeight) / 2;
 
-   barWidths.reallocate(numMetrics, numResources);
-   RethinkBarWidths();
+   barPixWidths.resize(numMetrics);
+   for (unsigned met=0; met < numMetrics; met++)
+      barPixWidths[met].resize(numResources);
+
+   rethinkBarPixWidths();
 }
 
-void BarChart::RethinkBarWidths() {
+void BarChart::rethinkBarPixWidths() {
    // Given: udpated numValidMetrics, indirectResources[], validResources[],
-   //                numValidResourcse, validMetrics[], barValues[][],
+   //                numValidResourcse, validMetrics[], values[][],
    //                metricCurrMaxVals[]
-   // Does: rethinks barWidths[][], redraws
+   // Does: rethinks barPixWidths[][], redraws
 
    // Set the height of each bar to the fraction of window height
    // that equals the fraction of the bar's current value to its
@@ -533,34 +481,32 @@ void BarChart::RethinkBarWidths() {
    // callbacks" arrive.  We must be quick! (but keep the assert()s)
 
    // Move on screen in sorted order, but store changes in actual order
-   for (int resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
+   for (unsigned resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
       // account for possible resources sorting:
-      const int actualResource = indirectResources[resourcelcv];
-      assert(0<=actualResource);
+      const unsigned actualResource = indirectResources[resourcelcv];
       assert(actualResource<numResources);
       assert(validResources[actualResource]);
 
-      for (int metriclcv=0; metriclcv<numValidMetrics; metriclcv++) {
+      for (unsigned metriclcv=0; metriclcv<numValidMetrics; metriclcv++) {
          // account for possible metrics sorting:
-         const int actualMetric = metriclcv;
-         assert(0<=actualMetric);
+         const unsigned actualMetric = metriclcv;
          assert(actualMetric<numMetrics);
          assert(validMetrics[actualMetric]);
 
-         register double theWidth = barValues[actualMetric][actualResource] /
+         register double theWidth = values[actualMetric][actualResource] /
 	                            metricCurrMaxVals[actualMetric];
          // scale by window width (excluding border pixels)
          theWidth *= this->width;
 
          // truncate, double-check for isnan(), and store
          int integerResult = isnan(theWidth) ? 0 : (int)theWidth;
-         barWidths[actualMetric][actualResource] = integerResult;
+         barPixWidths[actualMetric][actualResource] = integerResult;
       }
    }
 
    // Draw!
    if (HaveSeenFirstGoodWid)
-      lowLevelDrawBars();
+      drawWhenIdle.install(this);
 }
 
 void BarChart::processNewScrollPosition(int newPos) {
@@ -577,31 +523,11 @@ void BarChart::processNewScrollPosition(int newPos) {
    // simulate an expose event
    currScrollOffset = -newPos;
  
-   lowLevelDrawBars();
+   drawWhenIdle.install(this);
 }
 
-void BarChart::rethinkDataFormat() {
-   // assuming the data format has changed, read its
-   // value (from tcl) and adjust our internal settings accordingly.
-
-   char *dataFormatString = Tcl_GetVar(MainInterp, "DataFormat",
-				       TCL_GLOBAL_ONLY);
-   if (dataFormatString == NULL) {
-      cerr << "warning: BarChart::rethinkDataFormat() -- could not read tcl vrble 'DataFormat'; ignoring" << endl;
-      return;
-   }
-
-   if (0==strcmp(dataFormatString, "Instantaneous"))
-      DataFormat = Current;
-   else if (0==strcmp(dataFormatString, "Average"))
-      DataFormat = Average;
-   else if (0==strcmp(dataFormatString, "Sum"))
-      DataFormat = Total;
-   else {
-      cerr << "BarChart::rethinkDataFormat() -- unrecognized format '"
-           << dataFormatString << "'; ignoring" << endl;
-      return;
-   }
+void BarChart::rethinkDataFormat(BarChart::DataFormats theNewFormat) {
+   DataFormat = theNewFormat;
 
    // we have changed the data format.  The max y-values need
    // to be "re-thought" (else, what if we change from total to current;
@@ -616,28 +542,28 @@ void BarChart::rethinkValidMetricsAndResources() {
    //        numValidMetrics, numValidResources based on dataGrid enabled
    //        flags
 
-   validMetrics.reallocate(numMetrics);
-   for (int metriclcv=0; metriclcv<numMetrics; metriclcv++)
+   validMetrics.resize(numMetrics);
+   for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++)
       validMetrics[metriclcv]=false;
 
-   validResources.reallocate(numResources);
-   for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) 
+   validResources.resize(numResources);
+   for (unsigned resourcelcv=0; resourcelcv<numResources; resourcelcv++) 
       validResources[resourcelcv]=false;
 
-   for (int metlcv=0; metlcv<numMetrics; metlcv++)
-      for (int reslcv=0; reslcv<numResources; reslcv++)
+   for (unsigned metlcv=0; metlcv<numMetrics; metlcv++)
+      for (unsigned reslcv=0; reslcv<numResources; reslcv++)
          if (dataGrid[metlcv][reslcv].Enabled()) {
             validMetrics[metlcv] = true;
             validResources[reslcv] = true;
 	 }
 
    numValidMetrics=0;
-   for (int metlcv2=0; metlcv2<numMetrics; metlcv2++)
+   for (unsigned metlcv2=0; metlcv2<numMetrics; metlcv2++)
       if (validMetrics[metlcv2])
          numValidMetrics++;
 
    numValidResources=0;
-   for (int reslcv=0; reslcv<numResources; reslcv++)
+   for (unsigned reslcv=0; reslcv<numResources; reslcv++)
       if (validResources[reslcv])
          numValidResources++;
 }
@@ -647,9 +573,9 @@ void BarChart::rethinkIndirectResources() {
    // Does:  reallocates and rethinks indirectResources[]
    //        extensive assertion checking
 
-   indirectResources.reallocate(numValidResources);
+   indirectResources.resize(numValidResources);
 
-   for (int resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
+   for (unsigned resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
       char buffer[20];
       sprintf(buffer, "%d", resourcelcv);
 
@@ -658,10 +584,8 @@ void BarChart::rethinkIndirectResources() {
       if (string == NULL)
          panic("BarChart::rethinkIndirectResources -- could not read indirectResources() from tcl");
 
-      const int indirectNum = atoi(string);
-      if (indirectNum<0)
-         panic("BarChart::rethinkIndirectResources -- negative indirect value");
-      else if (indirectNum>=numResources) {
+      const unsigned indirectNum = atoi(string);
+      if (indirectNum>=numResources) {
          cerr << "BarChart::rethinkIndirectResources -- indirect value of "
               << indirectNum << ' ' << "is too high (numResources="
               << numResources << ')' << endl;
@@ -674,30 +598,6 @@ void BarChart::rethinkIndirectResources() {
       }
 
       indirectResources[resourcelcv] = indirectNum;
-   }
-}
-
-bool BarChart::currentlyInstalledLowLevelDrawBars=false;
-
-void BarChart::lowLevelDrawBars() {
-   // Called on the critical path (new-data callbacks).
-   // We must be quick!
-
-   // Perhaps we should check to see if the barchart program has
-   // been shut down before attempting to do anything?  Nah,
-   // just be sure to call Tk_CancelIdleCall() on lowestLevelDrawBars()
-   // in the destructor.
-
-   if (!Tk_IsMapped(theWindow))
-      return;
-
-   if (!HaveSeenFirstGoodWid)
-      return;
-
-   if (!currentlyInstalledLowLevelDrawBars) {
-      currentlyInstalledLowLevelDrawBars = true;
-
-      Tk_DoWhenIdle(lowestLevelDrawBars, NULL);
    }
 }
 
@@ -734,35 +634,34 @@ void BarChart::lowestLevelDrawBarsDoubleBuffer() {
    int resourceBoundary = borderPix + currScrollOffset;
    const int left = 0 + borderPix;
    
-   for (int resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
+   for (unsigned resourcelcv=0; resourcelcv<numValidResources; resourcelcv++) {
       // account for sorted resources:
-      const int actualResource = indirectResources[resourcelcv];
-      assert(actualResource>=0);
+      const unsigned actualResource = indirectResources[resourcelcv];
       assert(actualResource<numResources);
       assert(validResources[actualResource]);
 
       int top = resourceBoundary + resourceBorderHeight;
 
       // for robustness:
-      int thisTimeNumValidMetrics=0;      
+      unsigned thisTimeNumValidMetrics=0;      
 
-      for (int metriclcv=0; metriclcv<numMetrics; metriclcv++) {
+      for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++) {
          // Eventually, we will account for sorted metrics here.
          // Until then, we test the validMetrics[] field.  If false,
          // then skip this metric.
-         const int actualMetric = metriclcv;
+         const unsigned actualMetric = metriclcv;
          if (!validMetrics[actualMetric]) continue;
 
-         assert(actualMetric>=0);
          assert(actualMetric<numMetrics);
          assert(validMetrics[actualMetric]);
 
          // for robustness:
          thisTimeNumValidMetrics++;
 
-         XSetForeground(display, myGC, metricColors[actualMetric]->pixel);
+         XSetForeground(display, myGC,
+			metricColors[actualMetric % metricColors.size()]->pixel);
    
-         const int thisBarWidth = barWidths[actualMetric][actualResource];
+         const int thisBarWidth = barPixWidths[actualMetric][actualResource];
          XFillRectangle(display,
 			doubleBufferPixmap,
 			myGC,
@@ -784,23 +683,19 @@ void BarChart::lowestLevelDrawBarsDoubleBuffer() {
    
    XCopyArea(display,
 	     doubleBufferPixmap, // source
-	     wid,                // dest
+	     Tk_WindowId(theWindow), // dest
 	     myGC,
 	     borderPix, borderPix, // source x, y (note how we exclude the border)
 	     width, height, // these vrbles are preset to exclude the borders
 	     borderPix, borderPix // dest x, y (note how we exclude the border)
-	    );
+	     );
 }
 
-void BarChart::lowestLevelDrawBars(ClientData) {
+void BarChart::lowestLevelDrawBars(ClientData cd) {
    // NOTE: a --static-- member function --> no "this" exists!!
+   BarChart *pthis = (BarChart *)cd;
 
-   currentlyInstalledLowLevelDrawBars = false;
-      // now, new requests will be handled
-      // It seems wrong to delay this line until the bottom of the
-      // routine; it could cause new data to be ignored
-
-   if (!theBarChart->HaveSeenFirstGoodWid) {
+   if (!pthis->HaveSeenFirstGoodWid) {
       // Perhaps a race condition; new data arrived before the barchart
       // was fully constructed?
       cout << "BarChart::lowestLevelDrawBars -- haven't yet mapped? (ignoring)" << endl;
@@ -808,5 +703,5 @@ void BarChart::lowestLevelDrawBars(ClientData) {
    }
 
    // Finally, we actually draw:
-   theBarChart->lowestLevelDrawBarsDoubleBuffer();
+   pthis->lowestLevelDrawBarsDoubleBuffer();
 }
