@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.91 2003/04/14 16:21:20 pcroth Exp $
+// $Id: pdwinnt.C,v 1.92 2003/04/14 21:50:04 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -2243,6 +2243,33 @@ void process::handleTrapAtEntryPointOfMain()
     // Don't trap here accidentally
     main_brk_addr = 0;
 }
+
+bool process::getDyninstRTLibName() {
+    // Set the name of the dyninst RT lib
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
+LIB")
+                                + " has not been defined for process ") + string
+            (pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    if (_access(dyninstRT_name.c_str(), 04)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+
+    return true;
+}
+
 
 // Load the dyninst library
 bool process::loadDYNINSTlib()

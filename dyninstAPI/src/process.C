@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.408 2003/04/14 16:01:47 jodom Exp $
+// $Id: process.C,v 1.409 2003/04/14 21:50:05 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -198,7 +198,6 @@ unsigned inferiorMemAvailable=0;
 unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
 string process::programName;
-string process::dyninstRT_name;
 string process::pdFlavor;
 
 #ifndef BPATCH_LIBRARY
@@ -213,7 +212,7 @@ int pd_debug_catchup=0;
 void printLoadDyninstLibraryError() {
     cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
     cerr << "one of the following:" << endl;
-    cerr << "Incorrenct DYNINSTAPI_RT_LIB environment variable" << endl;
+    cerr << "Incorrect DYNINSTAPI_RT_LIB environment variable" << endl;
     cerr << "Missing RT library" << endl;
     cerr << "Unavailable dependency of the library" << endl;
 #if defined(rs6000_ibm_aix4_1)
@@ -2417,8 +2416,6 @@ void copyOverInstInstanceObjects(
    }
 }
 
-// #if !defined(BPATCH_LIBRARY)
-
 //
 // Process "fork" ctor, for when a process which is already being monitored by
 // paradynd executes the fork syscall.
@@ -3067,42 +3064,9 @@ bool process::loadDyninstLib() {
     dyn->setMappingHooks(this);
 #endif
 
-    // Set the name of the dyninst RT lib
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
-                                + " has not been defined for process ") + string(pid);
-            showErrorCallback(101, msg);
-            assert(0 && "Dyninst RT lib not defined!");
-        }
-    }
-#if !defined(i386_unknown_nt4_0)
-    // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK))
-#else
-    if (_access(dyninstRT_name.c_str(), 04))
-#endif
-    {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        assert(0 && "Dyninst RT lib cannot be accessed!");
-    }
-    // Set up a callback to be run when dyninst lib is loaded
-    // NT has some odd naming problems, so we only use the root
-#if defined(i386_unknown_nt4_0)
-    char dllFilename[_MAX_FNAME];
-    _splitpath (dyninstRT_name.c_str(),
-                NULL, NULL, dllFilename, NULL);
-    
-    registerLoadLibraryCallback(string(dllFilename), dyninstLibLoadCallback, NULL);
-#else
+    if (!getDyninstRTLibName()) return false;
+
     registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
-#endif
 
     // Force a call to dlopen(dyninst_lib)
     buffer = string("PID=") + string(pid);

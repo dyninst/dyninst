@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.127 2003/04/14 16:00:21 jodom Exp $
+ * $Id: inst-x86.C,v 1.128 2003/04/14 21:49:59 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -678,8 +678,9 @@ bool pd_Function::findInstPoints(const image *i_owner) {
             // Force relocation when instrumenting function
             relocatable_ = true;
          }
-      } else if (insn.isLeave())
-	noStackFrame = false;
+      }
+      else if (insn.isLeave())
+          noStackFrame = false;
 
       allInstr[numInsns] = insn;
       numInsns++;

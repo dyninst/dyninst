@@ -292,6 +292,32 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 Address savedProcessGP;
 Address savedReturnAddress;
 Address savedPFS;
+
+bool process::getDyninstRTLibName() {
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
+LIB")
+                                + " has not been defined for process ") + string
+            (pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    // Check to see if the library given exists.
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+    return true;
+}
+
 bool process::loadDYNINSTlib() {
 	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 

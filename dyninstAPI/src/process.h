@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.249 2003/04/11 22:46:25 schendel Exp $
+/* $Id: process.h,v 1.250 2003/04/14 21:50:06 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -744,7 +744,7 @@ void saveWorldData(Address address, int size, const void* src);
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (specifically, argv[0])
   static string pdFlavor;
-  static string dyninstRT_name; // the filename of the dyninst runtime library
+  string dyninstRT_name; // the filename of the dyninst runtime library
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
@@ -869,6 +869,7 @@ void saveWorldData(Address address, int size, const void* src);
 #if !defined(alpha_dec_osf4_0) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
   Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
 #endif
+  bool getDyninstRTLibName();
   bool loadDYNINSTlib();
   bool loadDYNINSTlibCleanup();
   bool trapDueToDyninstLib();

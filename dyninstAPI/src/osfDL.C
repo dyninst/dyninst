@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.30 2003/03/14 23:18:31 bernat Exp $
+// $Id: osfDL.C,v 1.31 2003/04/14 21:50:03 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -616,6 +616,33 @@ oc" << endl;
       return;
     }
 }
+
+
+bool process::getDyninstRTLibName() {
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
+LIB")
+                                + " has not been defined for process ") + string
+            (pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    // Check to see if the library given exists.
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+    return true;
+}
+
 
 
 bool process::loadDYNINSTlib()

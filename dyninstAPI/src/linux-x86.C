@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.23 2003/04/14 16:01:47 jodom Exp $
+// $Id: linux-x86.C,v 1.24 2003/04/14 21:50:02 bernat Exp $
 
 #include <fstream.h>
 
@@ -779,6 +779,30 @@ instruction generateTrapInstruction() {
 	} /* end generateTrapInstruction() */
 
 
+bool process::getDyninstRTLibName() {
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
+LIB")
+                                + " has not been defined for process ") + string
+            (pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    // Check to see if the library given exists.
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+    return true;
+}
 
 bool process::loadDYNINSTlib() {
 #if false && defined(PTRACEDEBUG)

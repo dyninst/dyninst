@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.36 2003/04/02 07:12:24 jaw Exp $
+// $Id: aixDL.C,v 1.37 2003/04/14 21:49:58 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -398,25 +398,33 @@ void process::insertTrapAtEntryPointOfMain()
   main_brk_addr = addr;
 }
 
-bool getDYN_DyninstRT_NameraryName(string &dyninst_rt_name, int pid)
-{
-  // get library name... 
-  // Get the name of the appropriate runtime library
-  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";//ccw 1 jun 2002 SPLIT
-
-  if (dyninst_rt_name.length()) {
-    // use the library name specified on the start-up command-line
-  } else {
-    // check the environment variable
-    if (getenv(DyninstEnvVar) != NULL) {
-      dyninst_rt_name = getenv(DyninstEnvVar);
-    } else {
+bool process::getDyninstRTLibName() {
+    if (dyninstRT_name.length() == 0) {
+        // Get env variable
+        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        }
+        else {
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
+LIB")
+                                + " has not been defined for process ") + string
+            (pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
     }
-  }
-
-  return true;
+    // Check to see if the library given exists.
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        return false;
+    }
+    return true;
 }
 
+
+  
 
 /*
  * loadDYNINSTlib()

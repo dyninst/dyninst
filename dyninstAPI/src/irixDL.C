@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.16 2003/02/04 15:18:59 bernat Exp $
+// $Id: irixDL.C,v 1.17 2003/04/14 21:50:00 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -405,56 +405,58 @@ pdvector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
   return ret;
 }
 
+bool process::getDyninstRTLibName() {
+    // find runtime library
+    char *rtlib_var;
+    char *rtlib_prefix;
+    
+    rtlib_var = "DYNINSTAPI_RT_LIB";
+    rtlib_prefix = "libdyninstAPI_RT";
+    
+    if (!dyninstRT_name.length()) {
+        dyninstRT_name = getenv(rtlib_var);
+        if (!dyninstRT_name.length()) {
+            string msg = string("Environment variable ") + string(rtlib_var)
+            + string(" has not been defined for process ") + string(pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    
+    const char *rtlib_val = dyninstRT_name.c_str();
+    assert(strstr(rtlib_val, rtlib_prefix));
+    
+    // for 32-bit apps, modify the rtlib environment variable
+    char *rtlib_mod = "_n32";
+    if (!getImage()->getObject().is_elf64() &&
+        !strstr(rtlib_val, rtlib_mod)) 
+    {
+        char *rtlib_suffix = ".so.1";
+        // truncate suffix
+        char *ptr_suffix = strstr(rtlib_val, rtlib_suffix);
+        assert(ptr_suffix);
+        *ptr_suffix = 0;
+        // construct environment variable
+        char buf[512];
+        sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
+        dyninstRT_name = string(rtlib_val)+string(rtlib_mod)+string(rtlib_suffix);
+    }
+
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        string msg = string("Runtime library ") + dyninstRT_name
+        + string(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        assert(0 && "Dyninst RT lib cannot be accessed!");
+        return false;
+    }
+    return true;
+}
+
+
 bool process::loadDYNINSTlib()
 {
   //fprintf(stderr, ">>> loadDYNINSTlib()\n");
 
-  // find runtime library
-  char *rtlib_var;
-  char *rtlib_prefix;
-
-  rtlib_var = "DYNINSTAPI_RT_LIB";
-  rtlib_prefix = "libdyninstAPI_RT";
-
-  if (!dyninstRT_name.length()) {
-    dyninstRT_name = getenv(rtlib_var);
-    if (!dyninstRT_name.length()) {
-      string msg = string("Environment variable ") + string(rtlib_var)
-                 + string(" has not been defined for process ") + string(pid);
-      showErrorCallback(101, msg);
-      return false;
-    }
-  }
-
-  const char *rtlib_val = dyninstRT_name.c_str();
-  assert(strstr(rtlib_val, rtlib_prefix));
-
-  // for 32-bit apps, modify the rtlib environment variable
-  char *rtlib_mod = "_n32";
-  if (!getImage()->getObject().is_elf64() &&
-      !strstr(rtlib_val, rtlib_mod)) 
-  {
-    char *rtlib_suffix = ".so.1";
-    // truncate suffix
-    // NOTE: this modifies the actual environment string
-    // (which we are about to replace, so it's OK)
-    char *ptr_suffix = strstr(rtlib_val, rtlib_suffix);
-    assert(ptr_suffix);
-    *ptr_suffix = 0;
-    // construct environment variable
-    char buf[512];
-    sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
-    dyninstRT_name = string(rtlib_val)+string(rtlib_mod)+string(rtlib_suffix);
-    // allocate environment buffer
-    char *env = (char *)malloc(strlen(buf)+1);
-    assert(env);
-    strcpy(env, buf);
-    // insert environment name/value pair
-    int ret = putenv(env);
-    assert(ret == 0);
-  }
-
-  
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   Address baseAddr = lookup_fn(this, "_start");
   char buf_[BYTES_TO_SAVE], *buf = buf_;
@@ -467,15 +469,14 @@ bool process::loadDYNINSTlib()
   // step 1: DYNINST library string (data)
   //Address libStart = bufSize; // debug
   Address libAddr = baseAddr + bufSize;
-  char *libPath = getenv(rtlib_var); // see above
-  if (access(libPath, R_OK)) {
-       string msg = string("Runtime library ") + string(libPath) + 
+  if (access(dyninstRT_name.c_str(), R_OK)) {
+       string msg = string("Runtime library ") + dyninstRT_name + 
                     string(" does not exist or cannot be accessed");
        showErrorCallback(101, msg);
        return false;
   }
-  int libSize = strlen(libPath) + 1;
-  strcpy(buf + bufSize, libPath);
+  int libSize = strlen(dyninstRT_name.c_str()) + 1;
+  strcpy(buf + bufSize, dyninstRT_name.c_str());
   bufSize += libSize;
   // pad to aligned instruction boundary
   if (!isAligned(baseAddr + bufSize)) {
