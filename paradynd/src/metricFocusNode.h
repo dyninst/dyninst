@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.41  1997/01/15 01:11:34  tamches
+ * completely revamped fork & exec -- they now work for shm sampling.
+ *
  * Revision 1.40  1996/11/14 14:28:01  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -59,24 +62,6 @@
  * Revision 1.37  1996/08/20 19:03:17  lzheng
  * Implementation of moving multiple instructions sequence and
  * Splitting the instrumentation into two phases
- *
- * Revision 1.36  1996/08/16 21:19:24  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.35  1996/08/12 16:27:05  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.34  1996/07/25 23:24:07  mjrg
- * Added sharing of metric components
- *
- * Revision 1.33  1996/05/10 22:36:38  naim
- * Bug fix and some improvements passing a reference instead of copying a
- * structure - naim
- *
- * Revision 1.32  1996/05/08  23:54:57  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
  *
  */
 
@@ -104,9 +89,6 @@ class dataReqNode {
   virtual unsigned getInferiorPtr() const = 0;
   virtual int getSampleId() const = 0;
 
-//  float getMetricValue();
-//  virtual float cost() const = 0;
-
   virtual bool insertInstrumentation(process *, metricDefinitionNode *) = 0;
      // Allocates stuff from inferior heap, instrumenting DYNINSTreportCounter
      // as appropriate.  
@@ -117,15 +99,76 @@ class dataReqNode {
      // the opposite of insertInstrumentation.  Deinstruments, deallocates
      // from inferior heap, etc.
 
-  virtual dataReqNode *dup(process *childProc, int iCounterId) const = 0;
+  virtual dataReqNode *dup(process *childProc, metricDefinitionNode *,
+			   int iCounterId,
+			   const dictionary_hash<instInstance*,instInstance*> &map
+			   ) const = 0;
      // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
+     // "map" provides a dictionary that maps instInstance's of the parent process to
+     // those in the child process; dup() may find it useful. (for now, the shm
+     // dataReqNodes have no need for it; the alarm sampled ones need it).
+
+  virtual bool unFork(dictionary_hash<instInstance*,instInstance*> &map) = 0;
+     // the fork syscall duplicates all instrumentation (except on AIX), which is a
+     // problem when we determine that a certain mi shouldn't be propagated to the child
+     // process.  Hence this routine.
 };
 
-//#ifndef SHM_SAMPLING
+/*
+ * Classes derived from dataReqNode
+ *
+ * There are a lot of classes derived from dataReqNode, so things can get a little
+ * confusing.  Most of them are used in either shm_sampling mode or not; few are
+ * used in both.  Here's a bit of documentation that should sort things out:
+ *
+ * A) classes used in _both_ shm_sampling and non-shm-sampling
+ *
+ *    nonSampledIntCounterReqNode --
+ *       provides an intCounter value that is never sampled.  Currently useful
+ *       for predicates (constraint booleans).  The intCounter is allocated from
+ *       the "conventional" heap (where tramps are allocated) using good old
+ *       inferiorMalloc(), even when shm_sampling.
+ *       (In the future, we may provide a separate shm_sampling version, to make
+ *       allocation faster [allocation in the shm seg heap is always faster])
+ *
+ * B) classes used only when shm_sampling
+ *
+ *    shmSampledIntCounterReqNode --
+ *       provides an intCounter value that is sampled with shm sampling.  The
+ *       intCounter is allocated from the shm segment (i.e., not with inferiorMalloc).
+ *
+ *    shmSampledWallTimerReqNode --
+ *       provides a wall timer value that is sampled with shm sampling.  The tTimer is
+ *       allocated from the shm segment (i.e., not with inferiorMalloc)
+ *    
+ *    shmSampledProcTimerReqNode --
+ *       provides a process timer value that is sampled with shm sampling.  The tTimer
+ *       is allocated from the shm segment (i.e., not with inferiorMalloc)
+ *    
+ * C) classes used only when _not_ shm-sampling
+ *    
+ *    alarmSampledIntCounterReqNode --
+ *       provides an intCounter value that is sampled.  The intCounter is allocated
+ *       in the conventional heap with inferiorMalloc().  Sampling is done the
+ *       old-fasioned SIGALRM way: by instrumenting DYNINSTsampleValues to call
+ *       DYNINSTreportTimer
+ *
+ *    alarmSampledTimerReqNode --
+ *       provides a tTimer value (can be wall or process timer) that is sampled.  The
+ *       tTimer is allocated in the conventional heap with inferiorMalloc().  Sampling
+ *       is done the old-fasioned SIGALRM way: by instrumenting DYNINSTsampleValues to
+ *       call DYNINSTreportTimer.
+ *
+ */
+
+#ifndef SHM_SAMPLING
 class sampledIntCounterReqNode : public dataReqNode {
+ // intCounter for use when not shm sampling.  Allocated in the conventional heap
+ // with inferiorMalloc().  Sampled the old-fasioned way: by instrumenting
+ // DYNINSTsampleValues() to call DYNINSTreportCounter.
  private:
    // The following fields are always properly initialized in ctor:
-   int sampleId;
+   int theSampleId;
    int initialValue; // needed when dup()'ing
 
    // The following fields are NULL until insertInstrumentation() called:   
@@ -138,7 +181,8 @@ class sampledIntCounterReqNode : public dataReqNode {
 
    // private fork-ctor called by dup():
    sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
-                    process *childProc, int iCounterId);
+			    process *childProc, metricDefinitionNode *, int iCounterId,
+                            const dictionary_hash<instInstance*,instInstance*> &map);
 
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
@@ -148,7 +192,8 @@ class sampledIntCounterReqNode : public dataReqNode {
       // Hopefully, disable() has already been called.  A bit of a complication
       // since disable() needs an arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *, int iCounterId) const;
+   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &map) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
       // allocates from inferior heap; initializes it; instruments
@@ -161,28 +206,37 @@ class sampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
+     // the fork syscall duplicates all instrumentation (except on AIX), which is a
+     // problem when we determine that a certain mi shouldn't be propagated to the child
+     // process.  Hence this routine (to remove unwanted instr of DYNINSTsampleValues())
 };
-//#endif
+#endif
 
 #ifdef SHM_SAMPLING
 class sampledShmIntCounterReqNode : public dataReqNode {
+ // intCounter for use when shm-sampling.  Allocated in the shm segment heap.
+ // Sampled using shm sampling.
  private:
    // The following fields are always properly initialized in ctor:
-   int sampleId;
+   int theSampleId; // obsolete with shm sampling; can be removed.
+
    int initialValue; // needed when dup()'ing
 
    // The following fields are NULL until insertInstrumentation() called:
    unsigned allocatedIndex; // probably redundant w/ next field; can be removed
    intCounter *inferiorCounterPtr;	/* NOT in our address space !!!! */
 
-   // Since we don't use these, disallow:
+   // Since we don't use these, making them privates ensures they're not used.
    sampledShmIntCounterReqNode &operator=(const sampledShmIntCounterReqNode &);
    sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &);
 
    // private fork-ctor called by dup():
    sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
-                               process *childProc, int iCounterId);
+                               process *childProc, metricDefinitionNode *,
+			       int iCounterId);
 
  public:
    sampledShmIntCounterReqNode(int iValue, int iCounterId);
@@ -191,7 +245,8 @@ class sampledShmIntCounterReqNode : public dataReqNode {
       // A bit of a complication since disable() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *, int iCounterId) const;
+   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
       // allocates from inferior heap; initializes it, etc.
@@ -203,14 +258,18 @@ class sampledShmIntCounterReqNode : public dataReqNode {
       return (unsigned)inferiorCounterPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
 #endif
 
 class nonSampledIntCounterReqNode : public dataReqNode {
+ // intCounter for predicates (because they don't need to be sampled).
+ // Allocated in the conventional heap with inferiorMalloc().
  private:
    // The following fields are always properly initialized in ctor:
-   int sampleId;
+   int theSampleId;
    int initialValue; // needed when dup()'ing
 
    // The following is NULL until insertInstrumentation() called:   
@@ -222,7 +281,8 @@ class nonSampledIntCounterReqNode : public dataReqNode {
 
    // private fork-ctor called by dup():
    nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
-                               process *childProc, int iCounterId);
+                               process *childProc, metricDefinitionNode *,
+			       int iCounterId);
 
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
@@ -233,7 +293,8 @@ class nonSampledIntCounterReqNode : public dataReqNode {
       // A bit of a complication since disable() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *, int iCounterId) const;
+   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
       // allocates from inferior heap; initializes it
@@ -245,14 +306,19 @@ class nonSampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
 
-//#ifndef SHM_SAMPLING
+#ifndef SHM_SAMPLING
 class sampledTimerReqNode : public dataReqNode {
+ // tTimer for use when not shm sampling.  Allocated in the conventional heap with
+ // inferiorMalloc().  Sampled the old-fasioned way: by instrumenting
+ // DYNINSTsampleValues to call DYNINSTreportTimer.
  private:
    // The following fields are always initialized in the ctor:   
-   int sampleId;
+   int theSampleId;
    timerType theTimerType;
 
    // The following fields are NULL until insertInstrumentation():
@@ -265,7 +331,8 @@ class sampledTimerReqNode : public dataReqNode {
 
    // fork ctor:
    sampledTimerReqNode(const sampledTimerReqNode &src, process *childProc,
-		       int iCounterId);
+		       metricDefinitionNode *, int iCounterId,
+		       const dictionary_hash<instInstance*,instInstance*> &map);
 
    void writeToInferiorHeap(process *theProc, const tTimer &dataSrc) const;
 
@@ -276,7 +343,8 @@ class sampledTimerReqNode : public dataReqNode {
       // a bit of a complication since freeInInferior() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *childProc, int iCounterId) const;
+   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &map) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
    void disable(process *, const vector< vector<unsigned> > &);
@@ -286,15 +354,22 @@ class sampledTimerReqNode : public dataReqNode {
       return (unsigned)timerPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
+     // the fork syscall duplicates all instrumentation (except on AIX), which is a
+     // problem when we determine that a certain mi shouldn't be propagated to the child
+     // process.  Hence this routine (to remove unwanted instr of DYNINSTsampleValues())
 };
-//#endif
+#endif
 
 #ifdef SHM_SAMPLING
 class sampledShmWallTimerReqNode : public dataReqNode {
+ // wall tTimer for use when shm sampling.  Allocated in the shm segment heap.
+ // Sampled using shm-sampling.
  private:
    // The following fields are always initialized in the ctor:   
-   int sampleId;
+   int theSampleId;
 
    // The following fields are NULL until insertInstrumentatoin():
    unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
@@ -306,7 +381,7 @@ class sampledShmWallTimerReqNode : public dataReqNode {
 
    // fork ctor:
    sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, process *childProc,
-			      int iCounterId);
+			      metricDefinitionNode *, int iCounterId);
 
  public:
    sampledShmWallTimerReqNode(int iCounterId);
@@ -315,7 +390,8 @@ class sampledShmWallTimerReqNode : public dataReqNode {
       // a bit of a complication since freeInInferior() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *childProc, int iCounterId) const;
+   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
    void disable(process *, const vector< vector<unsigned> > &);
@@ -325,13 +401,17 @@ class sampledShmWallTimerReqNode : public dataReqNode {
       return (unsigned)inferiorTimerPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
 
 class sampledShmProcTimerReqNode : public dataReqNode {
+ // process tTimer for use when shm sampling.  Allocated in the shm segment heap.
+ // Sampled using shm-sampling.
  private:
    // The following fields are always initialized in the ctor:   
-   int sampleId;
+   int theSampleId;
 
    // The following fields are NULL until insertInstrumentatoin():
    unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
@@ -343,7 +423,7 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 
    // fork ctor:
    sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, process *childProc,
-			      int iCounterId);
+			      metricDefinitionNode *, int iCounterId);
 
  public:
    sampledShmProcTimerReqNode(int iCounterId);
@@ -352,7 +432,8 @@ class sampledShmProcTimerReqNode : public dataReqNode {
       // a bit of a complication since freeInInferior() needs an
       // arg passed, which we can't do here.  Too bad.
 
-   dataReqNode *dup(process *childProc, int iCounterId) const;
+   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
+                    const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *);
    void disable(process *, const vector< vector<unsigned> > &);
@@ -362,7 +443,9 @@ class sampledShmProcTimerReqNode : public dataReqNode {
       return (unsigned)inferiorTimerPtr;
    }
 
-   int getSampleId() const {return sampleId;}
+   int getSampleId() const {return theSampleId;}
+
+   bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
 #endif
 
@@ -407,7 +490,15 @@ public:
   void disable(const vector<unsigned> &pointsToCheck);
   float cost(process *theProc) const;
 
-  static instReqNode forkProcess(const instReqNode &parent, process *child);
+  static instReqNode forkProcess(const instReqNode &parent,
+                                 const dictionary_hash<instInstance*,instInstance*> &);
+     // should become a copy-ctor...or at least, a non-static member fn.
+
+  bool unFork(dictionary_hash<instInstance*, instInstance*> &map) const;
+     // The fork syscall duplicates all trampolines from the parent into the child. For
+     // those mi's which we don't want to propagate to the child, this creates a
+     // problem.  We need to remove instrumentation code from the child.  This routine
+     // does that.  "map" maps instInstances of the parent to those in the child.
 
   instInstance *getInstance() const { return instance; }
 
@@ -419,7 +510,7 @@ private:
   AstNode	*ast;
   callWhen	when;
   callOrder	order;
-  instInstance	*instance;
+  instInstance	*instance; // undefined until insertInstrumentation() calls addInstFunc
   bool manuallyTrigger;
      // if true, then 'ast' is manually executed (inferiorRPC) when
      // inserting instrumentation.
@@ -451,21 +542,31 @@ friend int startCollecting(string&, vector<u_int>&, int id,
 
 public:
   // styles are enumerated in util/h/aggregation.h
-  metricDefinitionNode(process *p, string& metric_name, 
-                       vector< vector<string> >& foc,
-		       string& cat_name, int agg_style = aggSum);
-  metricDefinitionNode(string& metric_name, vector< vector<string> >& foc,
-		       string& cat_name, vector<metricDefinitionNode*>& parts,
+  metricDefinitionNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+		       const string& component_flat_name, int agg_style = aggSum);
+     // for component (per-process) (non-aggregate) mdn's
+
+  metricDefinitionNode(const string& metric_name, const vector< vector<string> >& foc,
+		       const string& cat_name,
+		       vector<metricDefinitionNode*>& parts,
 		       int agg_op);
+     // for aggregate (not component) mdn's
+
   ~metricDefinitionNode();
   void disable();
   void updateValue(time64, sampleValue);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
   int getMId() const { return id_; }
-  string getMetName() const { return met_; }
-  string getFullName() const { return flat_name_; }
+  const string &getMetName() const { return met_; }
+  const string &getFullName() const { return flat_name_; }
   const vector< vector<string> > &getFocus() const {return focus_;}
+  const vector< vector<string> > &getComponentFocus() const {
+     assert(!aggregate_); // defined for component mdn's only
+     return component_focus;
+  }
 
   process *proc() const { return proc_; }
 
@@ -480,7 +581,7 @@ public:
   // The following routines are (from the outside world's viewpoint)
   // the heart of it all.  They append to dataRequets or instRequests, so that
   // a future call to metricDefinitionNode::insertInstrumentation() will
-  // "do their thing".
+  // "do their thing".  The MDL calls these routines.
   dataReqNode *addSampledIntCounter(int initialValue);
   dataReqNode *addUnSampledIntCounter(int initialValue);
   dataReqNode *addWallTimer();
@@ -489,12 +590,38 @@ public:
                       callOrder o,
 		      bool manuallyTrigger);
 
-  // propagate this metric instance to process p
-  void propagateMetricInstance(process *p);  
+  // propagate this aggregate mi to a newly started process p (not for processes
+  // started via fork or exec, just for those started "normally")
+  void propagateToNewProcess(process *p);  
 
-  // what is the difference between the following 2?
-  metricDefinitionNode *forkProcess(process *child);
-  static void handleFork(const process *parent, process *child);
+  metricDefinitionNode *forkProcess(process *child,
+                                    const dictionary_hash<instInstance*,instInstance*> &map) const;
+     // called when it's determined that an mi should be propagated from the
+     // parent to the child.  "this" is a component mi, not an aggregator mi.
+  bool unFork(dictionary_hash<instInstance*, instInstance*> &map,
+	      bool unForkInstRequests, bool unForkDataRequests);
+     // the fork() sys call copies all trampoline code, so the child process can be
+     // left with code that writes to counters/timers that don't exist (in the case
+     // where we don't propagate the mi to the new process).  In such cases, we must
+     // remove instrumentation from the child process.  That's what this routine is
+     // for.  It looks at the instReqNodes of the mi, which are in place in the parent
+     // process, and removes them from the child process.  "this" is a component mi
+     // representing the parent process.  "map" maps instInstance's of the parent to
+     // those of the child.
+
+  static void handleFork(const process *parent, process *child,
+                         dictionary_hash<instInstance*, instInstance*> &map);
+     // called once per fork.  "map" maps all instInstance's of the parent
+     // process to the corresponding copy in the child process...we'll delete some
+     // instrumentation in the child process if we find that some instrumentation
+     // in the parent doesn't belong in the child.
+
+  static void handleExec(process *);
+     // called once per exec, once the "new" process has been bootstrapped.
+     // We decide which mi's that were present in the pre-exec process should be
+     // carried over to the new process.  For those that should, the instrumentation
+     // is actually inserted.  For others, the component mi in question is removed from
+     // the system.
 
   // remove an instance from an aggregate metric
   void removeThisInstance();
@@ -520,6 +647,7 @@ private:
   bool                  installed_;
   string met_;			// what type of metric
   vector< vector<string> > focus_;
+  vector< vector<string> > component_focus; // defined for component mdn's only
   string flat_name_;
 
   /* for aggregate metrics */
@@ -535,21 +663,27 @@ private:
   sampleValue cumulativeValue; // cumulative value for this metric
 
   // which metricDefinitionNode depend on this value.
-  vector<metricDefinitionNode*>   aggregators;	
-  vector<sampleInfo *> samples;  // one sample for each aggregator.
-                                 // samples[i] is the sample of aggregators[i].
+  vector<metricDefinitionNode*>   aggregators;
+     // remember, there can be more than one.  E.g. if cpu for whole program and
+     // cpu for process 100 are chosen, then we'll have just one component mi which is
+     // present in two aggregate mi's (cpu/whole and cpu/proc-100).
+
+  vector<sampleInfo *> samples;
+     // defined for component mi's only -- one sample for each aggregator, usually
+     // allocated with "aggregateMI.aggSample.newComponent()".
+     // samples[i] is the sample of aggregators[i].
 
   int id_;				// unique id for this one 
   float originalCost_;
-
-  // is this a final value or a component of a larger metric.
-//  bool inform_;
 
   process *proc_;
 
   string metric_name_;
   metricStyle style_; 
 
+  metricDefinitionNode* handleExec();
+     // called by static void handleExec(process *), for each component mi
+     // returns new component mi if propagation succeeded; NULL if not.
 };
 
 inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
@@ -562,9 +696,11 @@ inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
   instRequests += temp;
 };
 
+// allMIs: all aggregate (as opposed to component) metricDefinitionNodes
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
-// allMIComponents: the metric components indexed by flat_name.
+// allMIComponents: all component (as opposed to aggregate) metricDefinitionNodes,
+// indexed by the component's unique flat_name.
 extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
 
 extern double currentPredictedCost;
@@ -600,7 +736,7 @@ float guessCost(string& metric_name, vector<u_int>& focus);
  *
  */
 #ifndef SHM_SAMPLING
-void processSample(traceHeader*, traceSample *);
+void processSample(int pid, traceHeader*, traceSample *);
 #endif
 
 #endif
