@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2000/12/20 16:06:49 pcroth Exp $
+# $Id: Makefile,v 1.7 2000/12/20 16:08:13 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,7 +12,7 @@ USES_SHM_SAMPLING = true
 #If you have libhrtime, but it can't be found, the libhrtime path can 
 #  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
 #  this path is adjusted.
-#USES_LIBHRTIME = true
+USES_LIBHRTIME = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
