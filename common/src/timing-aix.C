@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-aix.C,v 1.5 2002/02/22 00:13:34 bernat Exp $
+// $Id: timing-aix.C,v 1.6 2003/02/04 14:59:19 bernat Exp $
 #include "common/h/timing.h"
 #include <stdio.h>
 #ifdef USES_PMAPI
@@ -50,6 +50,15 @@ double calcCyclesPerSecond_sys() {
 #if defined(USES_PMAPI)
   /* We have a function pm_cycles which returns the time in a double */
   double cycles = pm_cycles();
+
+  // A bit of a hack: I've seen pm_cycles returning abnormally low values
+  // (34 cps?) on AIX 5.1 machines. If this value isn't sensible, return
+  // as MethodNotAvailable
+  if (cycles < 1000) {
+      cerr << "WARNING: pm_cycles returned nonsensical value of " << cycles
+           << ", using default method to determine CPS." << endl;
+      return cpsMethodNotAvailable;
+  }
   if (cycles == 0.0)
     return cpsMethodNotAvailable;
   return cycles;
@@ -62,9 +71,12 @@ double calcCyclesPerSecondOS()
 {
   double cps;
   cps = calcCyclesPerSecond_sys();
+  cerr << "Return from system: " << cps << endl;
   if(cps == cpsMethodNotAvailable) {
+      cerr << "Using default" << endl;
     cps = calcCyclesPerSecond_default();
   }
+  cerr << "Returning " << cps << endl;
   return cps;
 }
 
