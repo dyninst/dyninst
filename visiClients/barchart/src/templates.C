@@ -1,22 +1,18 @@
 // templates.C
 
 #include <X11/Xlib.h> // XColor
-#include <array2d.h>
-
-template class dynamic1dArray<XColor *>;
-template class dynamic1dArray<double>;
-template class dynamic1dArray<int>;
-template class dynamic1dArray<bool>;
-
-template class dynamic2dArray<double>;
-template class dynamic2dArray<int>;
-template class dynamic2dArray<bool>;
 
 #include "minmax.C"
 template float max(float, float);
 
 #include "Vector.h"
 template class vector<unsigned>;
+template class vector< vector<double> >;
+template class vector< vector<int> >;
+template class vector<XColor *>;
+template class vector<bool>;
+template class vector<double>;
+template class vector<int>;
 
 #include "pdLogo.h"
 #include "String.h"
