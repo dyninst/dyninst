@@ -93,6 +93,12 @@ template class dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode
 template class vector<dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair>;
 template class vector< vector< dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair> >;
 
+template class dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> >;
+template class vector< vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair > >;
+template class vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair >;
+template class vector< vector<where4tree<shgRootNode>*> >;
+
+
 template class vector<Tk_3DBorder>; // shg consts
 
 /* *************************************
