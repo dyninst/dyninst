@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.30 2001/06/20 20:36:45 schendel Exp $
+ * $Id: PCsearch.C,v 1.31 2001/12/11 22:21:46 gurari Exp $
  * class PCsearch
  */
 
@@ -311,7 +311,7 @@ PCsearch::pause()
       // no nodes will be started off the current search queue until false
       CurrentSearchPaused = true;
     shg->updateDisplayedStatus ("Search paused by user.");
-    database->unsubscribeAllRawData();
+    //database->unsubscribeAllRawData();
   }
 }
 
@@ -324,7 +324,7 @@ PCsearch::resume()
       GlobalSearchPaused = false;
     else
       CurrentSearchPaused = false;
-    database->resubscribeAllRawData();
+    //database->resubscribeAllRawData();
     shg->updateDisplayedStatus ("Search resumed.");
   }
 }
