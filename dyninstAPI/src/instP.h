@@ -7,7 +7,12 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.3  1994/07/14 14:27:51  jcargill
+ * Revision 1.4  1994/09/22 02:01:19  markc
+ * change instInstanceRec struct to a class
+ * change signature to PCptrace
+ * changed #defines for cust PTRACE_
+ *
+ * Revision 1.3  1994/07/14  14:27:51  jcargill
  * Added a couple of new ptrace requests for CM5 nodes
  *
  * Revision 1.2  1994/07/05  03:26:07  hollings
@@ -37,11 +42,16 @@
  *
  */
 
+extern "C" {
+#include <sys/ptrace.h>
+}
+
 /*
  * Functions that need to be provided by the inst-arch file.
  *
  */
-struct trampTemplateRec {
+class trampTemplate {
+ public:
     int size;
     void *trampTemp;		/* template of code to execute */
 
@@ -52,9 +62,13 @@ struct trampTemplateRec {
     int localPostOffset;
 };
 
-typedef struct trampTemplateRec trampTemplate;
-
-struct instInstanceRec {
+class instInstance {
+ public:
+     instInstance() {
+       proc = NULL; location = NULL; trampBase=0;
+       returnAddr = 0; baseAddr=NULL; next = NULL;
+       prev = NULL; nextAtPoint = NULL; prevAtPoint = NULL; cost=0;
+     }
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
      instPoint *location;       /* where we put the code */
@@ -92,11 +106,11 @@ void continueProcess(process *proc);
 void pauseProcess(process *proc);
 
 /* do ptrace stuff */
-int PCptrace(int request, process *proc, void *addr, int data, void *addr2);
+int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2);
 
 int flushPtrace();
 
 /* we define this to be stop a process on the spot. */
-#define PTRACE_INTERRUPT	PTRACE_GETUCODE+1
-#define PTRACE_STATUS		PTRACE_GETUCODE+2
-#define PTRACE_SNARFBUFFER	PTRACE_GETUCODE+3
+#define PTRACE_INTERRUPT	PTRACE_26
+#define PTRACE_STATUS		PTRACE_27
+#define PTRACE_SNARFBUFFER	PTRACE_28
