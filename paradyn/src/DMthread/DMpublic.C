@@ -486,7 +486,7 @@ void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
         dictionary_hash<string, unsigned> upper(string::hash) ;
         dictionary_hash<string, unsigned> lower(string::hash) ;
 
-        for(unsigned j=0; j < request->size() ; j++)
+        for(unsigned j=0; request && (j < request->size()) ; j++)
         {
                 metricHandle  met =  ((*request)[j]).met ;
                 string unique_name ;
