@@ -2,8 +2,14 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.6  1994/10/10 23:08:41  tamches
-#  preliminary changes on the way to swapping the x and y axes
+#  Revision 1.7  1994/10/11 22:04:18  tamches
+#  Fixed bug whereupon a resize while paused would erase the bars
+#  until you continued.  Flickers too much on resize now, however...
+#
+#  Delete resources should now work
+#
+# Revision 1.6  1994/10/10  23:08:41  tamches
+# preliminary changes on the way to swapping the x and y axes
 #
 # Revision 1.5  1994/10/07  22:06:36  tamches
 # Fixed some bugs w.r.t. resizing the window (bars and resources were
@@ -55,14 +61,14 @@
 
 # ######################################################
 # TO DO LIST:
-# 1) draw numerical values on the bars (menu option) (default=on?)
-# 2) resources: make deletion work
-# 3) staggered x-axis names
-# 4) multiple metrics: put a "key" on screen
-# 5) multiple metrics: make them show on y axis
-# 6) multiple metrics: allow deletion
-# 7) option to sort resources (will be difficult--would need to map resourceid
+# 0) too much flickering on resize
+# 1) resources: make deletion work
+# 2) option to sort resources (will be difficult--would need to map resourceid
 #    as given by visi to our new ordering)
+# 3) swap axes
+# 3) multiple metrics: put a "key" on screen
+# 4) multiple metrics: make them show on y axis
+# 5) multiple metrics: allow deletion
 # ######################################################
 
 #  ################### Default options #################
@@ -314,6 +320,36 @@ proc getWindowHeight {wName} {
    return $result
 }
 
+# isMetricValid -- true iff at least one metric/focus pair for this metric is enabled
+proc isMetricValid {mindex} {
+   global numResources
+
+   for {set resourcelcv 0} {$resourcelcv<$numResources} {incr resourcelcv} {
+      if {[Dg enabled $mindex $resourcelcv]} {
+         # true
+         return 1
+      }
+   }
+
+   # false
+   return 0
+}
+
+# isResourceValid -- true iff at least one metric/focus pair for this resource is enabled
+proc isResourceValid {rindex} {
+   global numMetrics
+
+   for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
+      if {[Dg enabled $metriclcv $rindex]} {
+         # true
+         return 1
+      }
+   }
+
+   # false
+   return 0
+}
+
 # ################ Initialization and LaunchBarChart ######################
 proc Initialize {} {
    # a subset of DgConfigCallback that sets important global vrbles
@@ -324,8 +360,11 @@ proc Initialize {} {
    # flush stderr
 
    global W
+
    global numMetrics
    global metricNames
+   global validMetrics
+
    global metricUnits
    global metricMinValues
    global metricMaxValues
@@ -360,6 +399,7 @@ proc Initialize {} {
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set metricNames($metriclcv) [Dg metricname  $metriclcv]
+      set validMetrics($metriclcv) [isMetricValid $metriclcv]
       set metricUnits($metriclcv) [Dg metricunits $metriclcv]
       set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
@@ -368,7 +408,7 @@ proc Initialize {} {
    set numResources [Dg numresources]
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
-   }
+  }
 
    set minResourceWidth 45
    set maxResourceWidth 90
@@ -453,6 +493,7 @@ proc Initialize {} {
 #
 # ############################################################################
 
+# selectResource -- assuming this resource was clicked on, select it
 proc selectResource {widgetName} {
    global clickedOnResource
    global clickedOnResourceText
@@ -467,11 +508,15 @@ proc selectResource {widgetName} {
    set clickedOnResource $widgetName
    set clickedOnResourceText [lindex [$widgetName configure -text] 4]
    $widgetName configure -relief sunken
+
+   # update "delete resource xxx" menu item s.t. delResourceByName is called automatically
+   # on menu choice selection
    $Wmbar.resources.m entryconfigure 1 -state normal \
            -label "Remove \"$clickedOnResourceText\"" \
 	   -command {delResourceByName $clickedOnResourceText}
 }
 
+# unSelectResource -- pretend we never clicked on this resource
 proc unSelectResource {widgetName} {
    global clickedOnResource
    global clickedOnResourceText
@@ -485,6 +530,7 @@ proc unSelectResource {widgetName} {
            -command {puts "ignoring unexpected deletion..."}
 }
 
+# processEnterProcess -- routine to handle entry of mouse in a resource name
 proc processEnterResource {widgetName} {
    global clickedOnResource
    global clickedOnResourceText
@@ -497,10 +543,13 @@ proc processEnterResource {widgetName} {
    $widgetName configure -relief groove
 }
 
+# processClickResource -- routine to handle clicking on a resource name
 proc processClickResource {widgetName} {
    selectResource $widgetName
 }
 
+# processExitResource -- routine to handle mouse leaving resource name area
+#                        we may or may not have done a mouse-click in the meantime
 proc processExitResource {widgetName} {
    global clickedOnResource
    global clickedOnResourceText
@@ -556,6 +605,7 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    global numResources
    global numResourcesDrawn
    global resourceNames
+
    global clickedOnResource
    global clickedOnResourceText
 
@@ -565,8 +615,7 @@ proc drawResourcesAxis {resourcesAxisWidth} {
 
    global SortPrefs
 
-   # puts stderr "Welcome to drawResourcesAxis"
-   # flush stderr
+   # puts stderr "Welcome to drawResourcesAxis; numResources=$numResources"
 
    set top 3
    set tickHeight 5
@@ -575,7 +624,9 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    # ###### delete leftover stuff
    $WresourcesCanvas delete resourcesAxisItemTag
    for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
-      destroy $WresourcesCanvas.message$rindex
+      if {[isResourceValid $rindex]} {
+         destroy $WresourcesCanvas.message$rindex
+      }
    }
 
    # next, several tick marks extending down a few pixels from the resources axis (one per resource),
@@ -586,32 +637,38 @@ proc drawResourcesAxis {resourcesAxisWidth} {
    #         needed  : a way to detect when two message widgets have collided.
    #                   doesn't sound too difficult... (use winfo -geometry for each widget)
 
+   set left 0
    set right 0
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-      set left [expr $rindex * $currResourceWidth]
-      set right [expr $left + $currResourceWidth - 1]
-      set middle [expr ($left + $right) / 2]
+       if {[isResourceValid $rindex]} {
+         set right [expr $left + $currResourceWidth - 1]
+         set middle [expr ($left + $right) / 2]
+   
+         # create a tick line
+         $WresourcesCanvas create line $middle $top $middle [expr $top+$tickHeight-1] -tag resourcesAxisItemTag
+   
+         # create a message widget, bind some commands to it, and attach it to the
+         # canvas via "create window"
+   
+         message $WresourcesCanvas.message$rindex -text $resourceNames($rindex) \
+		 -justify center -width $currResourceWidth \
+		 -font $resourceNameFont
 
-      # create a tick line
-      $WresourcesCanvas create line $middle $top $middle [expr $top+$tickHeight-1] -tag resourcesAxisItemTag
+         bind $WresourcesCanvas.message$rindex <Enter> \
+                             {processEnterResource %W}
+         bind $WresourcesCanvas.message$rindex <Leave> \
+                             {processExitResource %W}
+         bind $WresourcesCanvas.message$rindex <ButtonPress> \
+                             {processClickResource %W}
 
-      # create a message widget, bind some commands to it, and attach it to the
-      # canvas via "create window"
-
-      set theText $resourceNames($rindex)
-
-      message $WresourcesCanvas.message$rindex -text $theText \
-                                           -justify center -width $currResourceWidth \
-					   -font $resourceNameFont
-      bind $WresourcesCanvas.message$rindex <Enter> \
-                          {processEnterResource %W}
-      bind $WresourcesCanvas.message$rindex <Leave> \
-                          {processExitResource %W}
-      bind $WresourcesCanvas.message$rindex <ButtonPress> \
-                          {processClickResource %W}
-      $WresourcesCanvas create window $middle [expr $top+$tickHeight] \
-                                         -anchor n -tag resourcesAxisItemTag \
-					 -window $WresourcesCanvas.message$rindex
+         $WresourcesCanvas create window $middle [expr $top+$tickHeight] \
+		 -anchor n -tag resourcesAxisItemTag \
+		 -window $WresourcesCanvas.message$rindex
+    
+         set left [expr $left + $currResourceWidth]
+      } else {
+         #puts stderr "drawResourcesAxis: not drawing resource #$rindex because its valid flag is false"
+      }
    }
 
    # the axis itself--a horizontal line
@@ -670,7 +727,10 @@ proc drawMetricsAxis {metricsAxisHeight} {
    global W
    global numMetrics
    global numLabelsDrawn
+
    global metricNames
+   global validMetrics
+
    global metricUnits
    global metricUnitTypes
    global metricMinValues
@@ -735,7 +795,10 @@ proc drawTitle {} {
 
    global W
    global numMetrics
+
    global metricNames
+   global validMetrics
+
    global metricUnits
 
    if {$numMetrics == 0} {
@@ -747,62 +810,66 @@ proc drawTitle {} {
    $W.titleLabel configure -text $newTitle
 }
 
+# myConfigureEventHandler - handle a resize of the bar sub-window
 proc myConfigureEventHandler {newWidth newHeight} {
-   #puts stderr "Welcome to myConfigureEventHandler; newWidth=$newWidth; newHeight=$newHeight"
-   #flush stderr
-
    # rethink how wide the resources should be
    rethinkResourceWidths $newWidth
 
-   # Call drawResourcesAxis to rethink the scrollbar and to rethink the resource widths
+   # Call drawResourcesAxis to rethink the scrollbar and to
+   # rethink how many resources can fit on the screen, now that
+   # we've changed the window size
    drawResourcesAxis $newWidth
 
-   # We only need to redraw the y axis if the window height has changed
+   # We only need to redraw the metrics axis if the window height has changed
    # (and at the beginning of the program)
    drawMetricsAxis $newHeight
 
    # Redraw the title (only needed if metrics changed)
    drawTitle
    
-   # if the resources axis has changed then call this: (barChart.C)
+   # the following routines will clear the bar window (ouch! But no
+   # choice since window size change can greatly affect bar layout
+   # --- sometimes)
+   # so resizeCallback has built-in hacks to simulate one new-data callback
+
    resourcesAxisHasChanged $newWidth
+   metricsAxisHasChanged   $newHeight
 
-   # if the y axis has changed then call this: (barChart.C)
-   metricsAxisHasChanged $newHeight
-
-   # inform our C++ code (barChart.C) that a resize has taken place
    resizeCallback $newWidth $newHeight
 }
 
+# myExposeEventHandler -- handle an expose in the bar sub-window
+#    (no need to handle exposes in the other windows because they're
+#     made of tcl widgets which redraw themselves)
 proc myExposeEventHandler {} {
-   # puts stderr "barChart.tcl -- welcome to myExposeEventHandler"
-   # flush stderr
-
    # all tk widgets redraw automatically (though not 'till the next idle)
 
    # all that's left to do is inform our C++ code of the expose
    exposeCallback
 }
 
-proc addResource {rName} {
-   global numResources
-   global resourceNames
-   global W
+#proc addResource {rName} {
+#   global numResources
+#   global resourceNames
+#   global W
+#
+#   # first, make sure this resource doesn't already exist
+#   for {set rindex 0} {$rindex < $numResources} {incr rindex} {
+#      if {$validResources($rindex) && $resourceNames($rindex) == $rName} {
+#         puts stderr "detected a duplicate resource: $rname (ignoring addition request)"
+#         return
+#      } 
+#   }
+#
+#   set resourceNames($numResources) $rName
+#   set validResources($numResources) [isResourceValid $numResources]
+#   incr numResources
+#
+#   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
+#}
 
-   # first, make sure this resource doesn't already exist
-   for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-      if {$resourceNames($rindex) == $rName} {
-         puts stderr "detected a duplicate resource: $rname (ignoring addition request)"
-         return
-      } 
-   }
-
-   set resourceNames($numResources) $rName
-   incr numResources
-
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
-}
-
+# delResource -- delete a resource, given the resource's index number
+# should match the resource we have clicked on
 proc delResource {delindex} {
    global numMetrics
    global numResources
@@ -818,6 +885,12 @@ proc delResource {delindex} {
       return
    }
 
+   if {![isResourceValid $delindex]} {
+      puts stderr "delResource -- ignoring request to delete an invalid (already deleted?) resource"
+      return
+   }
+
+   # we should be deleting the resource that was clicked on
    if {$clickedOnResourceText == $resourceNames($delindex)} {
       set clickedOnResource ""
       $Wmbar.resources.m entryconfigure 1 -state disabled \
@@ -827,32 +900,39 @@ proc delResource {delindex} {
       puts stderr "delResource -- no mbar changes since $clickedOnResourceText != $resourceNames($delindex)"
    }
 
-   # inform that visi lib that we don't want to receive anything
+   # Inform that visi lib that we don't want to receive anything
    # more about this resource
    # NOTE: unfortunately, [Dg numResources] etc. will not be
-   #       lowered, even after this is done!  (******A bug********)
+   #       lowered, even after this is done!
    #       The temporary solution is to rigidly test the
    #       Valid bit of each metric-resource pair before
-   #       drawing, etc.
+   #       using it in any way.
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
       Dg stop $mindex $delindex
    }
-   
-   # shift resourceNames
-   for {set rindex $delindex} {$rindex < [expr $numResources - 1]} {incr rindex} {
-      set resourceNames($rindex) $resourceNames([expr $rindex + 1])
+
+   #puts stderr "Dg stop executed for resource #$delindex"
+   #flush stderr
+
+   # note that this resource is now invalid
+   if {[isResourceValid $delindex]} {
+      puts stderr "delResource -- curious that validResources(delindex) wasn't changed to false after the deletion"
+      flush stderr
    }
 
-   set numResources [Dg numresources]
-      # as mentioned above, the current visi-lib won't
-      # lower the value by 1...
+   # reminder: no use in rethinking "numResources" with a call to [Dg numresources]
+   #           since the visi won't lower that value; instead, it will only clear
+   #           the appropriate valid bits
 
    # callback to barChart.C
-   resourcesAxisHasChanged
+   resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
 
-   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
+   drawResourcesAxis       [getWindowWidth $W.bottom.resourcesAxisCanvas]
 }
 
+# proc delResourceByName -- user clicked on a resource name and then
+#                           chose the menu item to delete it
+#      calls delResource when it determines an appropriate index number
 proc delResourceByName {rName} {
    global numResources
    global resourceNames
@@ -860,12 +940,16 @@ proc delResourceByName {rName} {
    # find the appropriate index and call delResource...
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
       if {$rName == $resourceNames($rindex)} {
+         if {! [isResourceValid $rindex]} {
+            puts stderr "delResourceByName -- ignoring request to delete invalid (already-deleted?) resource $rName"
+            return
+         }
          delResource $rindex
          return
       }
    }
 
-   puts stderr "delResourceByName: ignoring request to delete resource named: $rName (no such resource)"
+   puts stderr "delResourceByName: ignoring request to delete resource named: $rName (no such resource?)"
 }
 
 proc getMetricHints {theMetric} {
@@ -890,7 +974,7 @@ proc getMetricHints {theMetric} {
       "cpu"              {return {real 0.0 1.0 0.1}}
    }
 
-   puts stderr "NOTICE -- getMetricHints: unexpected metric: $theMetric...continuing"
+   puts stderr "getMetricHints--unexpected metric: $theMetric...continuing"
    return {real 0.0 1.0 0.1}
    # #pragma HACK done
 }
@@ -898,6 +982,8 @@ proc getMetricHints {theMetric} {
 proc addMetric {theName theUnits} {
    global numMetrics
    global metricNames
+   global validMetrics
+
    global metricUnits
    global metricUnitTypes
    global metricMinValues
@@ -908,7 +994,7 @@ proc addMetric {theName theUnits} {
 
    # first make sure that this metric isn't already present (if so, do nothing)
    for {set metricIndex 0} {$metricIndex < $numMetrics} {incr metricIndex} {
-      if {$metricNames($metricIndex) == $theName} {
+      if {$metricNames($metricIndex) == $theName && $validMetrics($metricIndex)} {
          puts stderr "addMetric: ignoring request to add $theName (already present)"
          return
       }
@@ -965,8 +1051,6 @@ proc processNewScrollPosition {newTop} {
    global WresourcesCanvas
    global W
 
-   # puts stderr "barChart.tcl: welcome to processNewScrollPosition: newTop is now: $newTop"
-
    if {$newTop < 0} {
       set newTop 0
    }
@@ -991,14 +1075,11 @@ proc processNewScrollPosition {newTop} {
    newScrollPosition $newTop
 }
 
+# myXScroll -- the -scrollcommand config of the resources axis canvas.
+#              Gets called whenever the canvas view changes or gets resized.
+#              Gives us an opportunity to rethink the bounds of the scrollbar.
+#              We get passed: total size, window size, left, right
 proc myXScroll {totalSize visibleSize left right} {
-   # the -scrollcommand configuration of the resources axis canvas.
-   # gets called whenever the canvas view changes or is resized.
-   # The idea is to give us the opportunity to rethink the scrollbar that
-   # we are associated with.  Four parameters are passed: total size,
-   # window size, left, right---arguments which we simply pass to the "set"
-   # command of the scrollbar
-
    global W
 
    $W.sbRegion.resourcesAxisScrollbar set $totalSize $visibleSize $left $right
@@ -1035,7 +1116,6 @@ proc DgFoldCallback {} {
    flush stderr
 }
 
-
 # ########### Called by visi library when metric/resource space changes. #######
 #
 # note: this routine is too generic; in the future, we plan to
@@ -1052,6 +1132,7 @@ proc DgConfigCallback {} {
 
    global numMetrics
    global metricNames
+   global validMetrics
    global metricUnits
    global metricMinValues
    global metricMaxValues
@@ -1059,11 +1140,15 @@ proc DgConfigCallback {} {
    global numResources
    global numResourcesDrawn
    global resourceNames
+#   global validResources
 
    set numMetrics [Dg nummetrics]
+   set numResources [Dg numresources]
+
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set metricNames($metriclcv) [Dg metricname  $metriclcv]
       set metricUnits($metriclcv) [Dg metricunits $metriclcv]
+      set validMetrics($metriclcv) [isMetricValid $metriclcv]
 
       # note -- the following 2 lines are very dubious for already-existing
       #         resources (i.e. we should try to stick with the initial values)
@@ -1071,7 +1156,6 @@ proc DgConfigCallback {} {
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
    }
 
-   set numResources [Dg numresources]
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
    }
@@ -1084,7 +1168,7 @@ proc DgConfigCallback {} {
 
    # inform our C++ code that stuff has changed
    resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
-   metricsAxisHasChanged [getWindowHeight $W.metricsAxisCanvas]
+   metricsAxisHasChanged   [getWindowHeight $W.metricsAxisCanvas]
 }
 
 # #################  AddMetricDialog -- Ask paradyn for another metric #################
@@ -1103,10 +1187,10 @@ proc ProcessNewSortPrefs {} {
    global SortPrefs
 
    # redraw the resources axis
-   drawResourcesAxis
+   drawResourcesAxis [getWindowWidth $W.bottom.resourcesAxisCanvas]
 
    # redraw the bars (callback to our C++ code)
-   resourcesAxisHasChanged
+   resourcesAxisHasChanged [getWindowWidth $W.bottom.resourcesAxisCanvas]
 }
 
 proc rethinkDataFormat {} {
