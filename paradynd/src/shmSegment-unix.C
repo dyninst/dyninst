@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.7 2002/05/02 21:29:05 schendel Exp $
+// $Id: shmSegment-unix.C,v 1.8 2002/10/15 17:12:08 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "shmSegment.h"
 #include "main.h"
-
+#include "paradynd/src/shmMgr.h"
 
 
 // enumeration for return values from TryToReleaseShmSegment function,
