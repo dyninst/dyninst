@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.38  1995/02/26 02:14:07  newhall
+ * Revision 1.39  1995/05/18 10:56:24  markc
+ * Modified daemon definition
+ *
+ * Revision 1.38  1995/02/26  02:14:07  newhall
  * added some of the phase interface support
  *
  * Revision 1.37  1995/02/16  19:10:44  markc
@@ -155,6 +158,11 @@ extern void DMremovePhaseNotify(performanceStream *);
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
 
+extern bool parse_metrics(applicationContext *appCon, string metric_file);
+void dataManager::kludge(char *file) {
+  parse_metrics(appContext, file);
+}
+
 applicationContext *dataManager::createApplicationContext(errorHandler foo)
 {
   appContext = new applicationContext(foo);
@@ -186,17 +194,6 @@ bool dataManager::addDaemon(applicationContext *app,
   return (app->getDaemon(machine, login, name));
 }
 
-bool dataManager::defineDaemon(applicationContext *app,
-				  const char *command,
-				  const char *dir,
-				  const char *login,
-				  const char *name,
-				  const char *machine,
-				  int flavor)
-{
-  return (app->defineDaemon(command, dir, login, name, machine, flavor));
-}
-
 bool dataManager::addExecutable(applicationContext *app,
 				   char  *machine,
 				   char *login,
@@ -204,7 +201,7 @@ bool dataManager::addExecutable(applicationContext *app,
 				   char *dir,
 				   vector<string> *argv)
 {
-    return(app->addExecutable(machine, login, name, dir, *argv));
+    return(app->addExecutable(machine, login, name, dir, argv));
 }
 
 bool dataManager::applicationDefined(applicationContext *app)
@@ -470,8 +467,12 @@ resource *dataManager::newResource(applicationContext *app,
     // to make right now.
     // the kludge works because we know that all calls to this method 
     // are for BASE abstraction resources.  
-    child = createResource(res, name, "BASE");  
-    app->tellDaemonsOfResource((const char *) res->getFullName(), name);
+
+    string abs = "BASE";
+    vector<string> parent_res = res->getParts();
+    parent_res += name;
+    child = createResource(parent_res, abs);
+    app->tellDaemonsOfResource(res->id(), child->id(), name);
     return(child);
 }
 
