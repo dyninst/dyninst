@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.297 2004/04/26 21:35:20 rchen Exp $
+/* $Id: process.h,v 1.298 2004/05/11 19:01:44 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -77,7 +77,7 @@
 
 #include "dyninstAPI/src/imageUpdate.h" //ccw 29 oct 2001
 
-#ifndef BPATCH_LIBRARY
+#if 0
 #include "paradynd/src/shmSegment.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/variableMgr.h"
@@ -340,19 +340,11 @@ class process {
  public:
 
   //removed for output redirection
-  process(int iPid, image *iImage, int iTraceLink
-#ifdef SHM_SAMPLING
-          , key_t theShmSegKey
-#endif
-          );
+  process(int iPid, image *iImage, int iTraceLink);
      // this is the "normal" ctor
 
   process(int iPid, image *iSymbols,
-          bool& success 
-#ifdef SHM_SAMPLING
-          , key_t theShmSegKey
-#endif
-          );
+          bool& success);
      // this is the "attach" ctor
 
   process(const process &parentProc, int iPid, int iTrace_fd);
@@ -381,27 +373,38 @@ class process {
   bool isInSignalHandler(Address addr);
 
   // Notify daemon of threads
-#if !defined(BPATCH_THREAD)
+
   dyn_thread *createThread(
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p, 
-    bool);
+      int tid, 
+      unsigned index, 
+      unsigned lwp,
+      unsigned stackbase, 
+      unsigned startpc, 
+      void* resumestate_p, 
+      bool);
   // For initial thread (assume main is top func)
-  void updateThread(dyn_thread *thr, int tid, unsigned pos,
+  void updateThread(dyn_thread *thr, int tid, unsigned index,
+                    unsigned lwp,
                     void* resumestate_p) ;
   // For new threads
   void updateThread(
     dyn_thread *thr, 
     int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
+    unsigned index,
+    unsigned lwp,
+    unsigned stackbase,
+    unsigned startpc, 
     void* resumestate_p);
   void deleteThread(int tid);
-#endif
+
+  // Thread index functions
+  unsigned getIndexToThread(unsigned index);
+  void setIndexToThread(unsigned index, unsigned value);
+  void updateThreadIndexAddr(Address addr);
+  
+  private:
+  Address threadIndexAddr;
+  public:
 
   processState status() const { return status_;}
 
@@ -782,10 +785,6 @@ class process {
 
  public:
 
-#if !defined(BPATCH_LIBRARY)
-  void init_shared_memory(process *parentProc);
-#endif
-
   Address dyninstlib_brk_addr;
   Address main_brk_addr;
 
@@ -1119,42 +1118,10 @@ class process {
   bool freeNotOK;
 #endif
 
-#ifdef SHM_SAMPLING
-  key_t getShmKeyUsed() const {return theSharedMemMgr->getShmKey();}
-
-  shmMgr *getSharedMemMgr() { return theSharedMemMgr; };
-
-  unsigned getShmHeapTotalNumBytes() {
-     return theSharedMemMgr->getHeapTotalNumBytes();
-  }
-
-  
-  void registerInferiorAttachedSegs(void *inferiorAttachedAtPtr);
-  // Where the inferior attached was left undefined in the constructor; this
-  // routine fills it in (tells paradynd where, in the inferior proc's addr
-  // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
-
-  Address initSharedMetaData();
-  sharedMetaData *shmMetaData;
-  sharedMetaOffsetData *shMetaOffsetData;   // used to communicate offsets of 
-                                            // shmMetaData memory to rtinst
  public:
-  virtualTimer *getVirtualTimer(int pos) {
-     return shmMetaData->getVirtualTimer(pos);
-  }
-
-  void *getObsCostLowAddrInApplicSpace() {
-    void *result = theSharedMemMgr->getAddressInApplic(
-                              (void *)shmMetaData->getObservedCost());
-    return result;
-  }
-  void *getObsCostLowAddrInParadyndSpace() {
-    return (void *)shmMetaData->getObservedCost();
-  }
 
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
-		   timeStamp processTime);
-#endif /* shm_sampling */
+                   timeStamp processTime);
 
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    bool isBootstrappedYet() const {
@@ -1199,18 +1166,16 @@ private:
   // getInferiorProcessCPUtime. We can't use a static variable inside this
   // procedure because there is one previous for each process - naim 5/28/97
   rawTime64 previous; 
-
-  // New components of the conceptual "inferior heap"
-  shmMgr *theSharedMemMgr;
 #endif
 
 public:
 
   dynamic_linking *getDyn() { return dyn; }
 
-  inline Address costAddr()  const { return costAddr_; }
-  void getObservedCostAddr();   
-
+  Address getObservedCostAddr() const { return costAddr_; }
+  void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
+  
+  
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
    bool uninstallMutations();
    bool reinstallMutations();

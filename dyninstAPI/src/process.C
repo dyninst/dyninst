@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.498 2004/04/26 21:35:14 rchen Exp $
+// $Id: process.C,v 1.499 2004/05/11 19:01:43 bernat Exp $
 
 #include <ctype.h>
 
@@ -185,9 +185,6 @@ unsigned enable_pd_aggregate_debug = 0;
 #endif
 
 unsigned MAX_NUMBER_OF_THREADS = 32;
-#if defined(SHM_SAMPLING)
-unsigned SHARED_SEGMENT_SIZE = 2097152;
-#endif
 
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
@@ -1644,13 +1641,6 @@ void process::deleteProcess() {
         trampTrapMapping.clear();
     }
     
-#if defined(SHM_SAMPLING)
-    delete shMetaOffsetData;
-    shMetaOffsetData = NULL;
-    delete shmMetaData;
-    shmMetaData = NULL;
-#endif
-
     // Our modifications to the dynamic linker so that we're made aware
     // of new shared libraries
     if (dyn) {
@@ -1758,11 +1748,7 @@ unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); 
 //
 
 //removed all ioLink related code for output redirection
-process::process(int iPid, image *iImage, int iTraceLink 
-#ifdef SHM_SAMPLING
-                 , key_t theShmKey
-#endif
-) :
+process::process(int iPid, image *iImage, int iTraceLink) :
   collectSaveWorldData(true),
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
  requestTextMiniTramp(0), //ccw 30 jul 2002
@@ -1775,9 +1761,6 @@ process::process(int iPid, image *iImage, int iTraceLink
   suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
-#ifndef BPATCH_LIBRARY
-  shmMetaData(NULL), shMetaOffsetData(NULL),
-#endif
   savedRegs(NULL),
   pid(iPid), // needed in fastInferiorHeap ctors below
 #if !defined(BPATCH_LIBRARY)
@@ -1845,17 +1828,6 @@ process::process(int iPid, image *iImage, int iTraceLink
    previousSignalAddr_ = 0;
    continueAfterNextStop_ = 0;
 
-#ifndef BPATCH_LIBRARY
-   theSharedMemMgr = new shmMgr(this, theShmKey, SHARED_SEGMENT_SIZE);
-   shmMetaData = 
-      new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
-   // previously was using maxNumberOfThreads() instead of
-   // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
-   // calls multithread_capable(), which isn't able to be
-   // called yet since the modules aren't parsed.
-   // We'll use the larger size for the ST case.  The increased
-   // size is fairly small, perhaps 2 KB.
-#endif
    parent = NULL;
    inExec = false;
 
@@ -1876,19 +1848,6 @@ process::process(int iPid, image *iImage, int iTraceLink
    execed_ = false;
 
    inInferiorMallocDynamic = false;
-
-#ifdef SHM_SAMPLING
-#ifdef sparc_sun_sunos4_1_3
-   kvmHandle = kvm_open(0, 0, 0, O_RDONLY, 0);
-   if (kvmHandle == NULL) {
-      perror("could not map child's uarea; kvm_open");
-      exit(5);
-   }
-
-   //   childUareaPtr = tryToMapChildUarea(iPid);
-   childUareaPtr = NULL;
-#endif
-#endif
 
 #if defined(i386_unknown_linux2_0)
     vsyscall_start_ = 0x0;
@@ -1943,11 +1902,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 //
 //
 process::process(int iPid, image *iSymbols,
-                 bool &success
-#if !defined(BPATCH_LIBRARY)
-                 , key_t theShmKey
-#endif
-                 ) :
+                 bool &success) :
   collectSaveWorldData(true),
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
@@ -1961,7 +1916,6 @@ process::process(int iPid, image *iSymbols,
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
-  shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
@@ -2016,16 +1970,6 @@ process::process(int iPid, image *iSymbols,
 
     inInferiorMallocDynamic = false;
     theRpcMgr = new rpcMgr(this);
-#ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, SHARED_SEGMENT_SIZE);
-    shmMetaData = new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS);
-               // previously was using maxNumberOfThreads() instead of
-               // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
-               // calls multithread_capable(), which isn't able to be
-               // called yet since the modules aren't parsed.
-               // We'll use the larger size for the ST case.  The increased
-               // size is fairly small, perhaps 2 KB.
-#endif
 
     parent = NULL;
     inExec = false;
@@ -2166,11 +2110,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(parentProc.cached_result),
 #ifndef BPATCH_LIBRARY
-  shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
   previous(0),
 #endif
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
@@ -2184,6 +2127,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
 #endif
 {
+    costAddr_ = parentProc.costAddr_;
+    
    // This is the "fork" ctor
    bootstrapState = initialized;
 
@@ -2313,10 +2258,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #endif
    execed_ = false;
 
-#if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
-   childUareaPtr = NULL;
-#endif
-
    createRepresentativeLWP();
 
    if (!attach()) {     // moved from ::forkProcess
@@ -2354,55 +2295,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 }
 
 // #endif
-
-#ifdef SHM_SAMPLING
-void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
-   shmsample_cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
-
-   theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
-}
-
-// returns the offset address (ie. the offset in the shared memory manager
-// segment) of the offset meta offset data (used to communicate the location
-// of the shared meta data to the RTinst library)
-Address process::initSharedMetaData() {
-   shmMetaData->mallocInShm();
-   shmMetaData->initialize(theSharedMemMgr->cookie, getpid(), getPid());
-   assert(shMetaOffsetData == NULL);
-   shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
-					       maxNumberOfThreads());
-   shmMetaData->saveOffsetsIntoRTstructure(shMetaOffsetData);
-
-   Address offsetOfShMetaOffsetData = shMetaOffsetData->getAddrInDaemon()
-                          - (Address) theSharedMemMgr->getBaseAddrInDaemon();
-   return offsetOfShMetaOffsetData;
-}
-#endif
-
-
-#if defined(rs6000_ibm_aix4_1)
-void aix_pre_allocate(process *theProc) {
-    // Pre-emptively allocate a HUGE chunk of memory right below
-    // the shared memory segment -- we need this to instrument 
-    // libraries anyway, so grab it now. This massively simplifies
-    // life. 
-    bool err = false;
-    Address alloc;
-    pdvector<Address> allocations;
-    do {
-        alloc = theProc->inferiorMalloc((unsigned) 1024*1024, 
-                                        (inferiorHeapType) anyHeap, 
-                                        (Address) 0xd0000000, 
-                                        &err);    
-        allocations.push_back(alloc);
-    } while (alloc > (0xd0000000 - 0x02000000));
-    // 0x02... is POWER's branch range. Basically, slurp the memory
-    // below the shared library segment (pre-allocate). 
-    for (unsigned i = 0; i < allocations.size(); i++)
-        if (allocations[i])
-            theProc->inferiorFree(allocations[i]);
-}
-#endif
 
 extern bool forkNewProcess(pdstring &file, pdstring dir,
                            pdvector<pdstring> argv, pdstring inputFile,
@@ -2569,12 +2461,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     /* parent */
     statusLine("initializing process data structures");
 
-    process *theProc = new process(pid, img, traceLink
-
-#ifdef SHM_SAMPLING
-			       , 7000 // shm seg key to try first
-#endif
-			       );
+    process *theProc = new process(pid, img, traceLink);
     // change this to a ctor that takes in more args
     assert(theProc);
 
@@ -2636,16 +2523,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 
        getSH()->checkForAndHandleProcessEvents(true);
     }
-
-#if defined(rs6000_ibm_aix4_1)
-    if(theProc->multithread_capable()) {
-#if !defined(AIX_PROC)
-        // Unneeded with aix's /proc -- we don't need to allocate
-        // base tramps within inferior RPCs
-       aix_pre_allocate(theProc);
-#endif
-    }
-#endif
 
     if(process::IndependentLwpControl())
        theProc->independentLwpControlInit();
@@ -2710,11 +2587,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 
   // NOTE: the actual attach happens in the process "attach" constructor:
   bool success=false;
-  process *theProc = new process(pid, theImage, success
-#ifdef SHM_SAMPLING
-				 ,7000 // shm seg key to try first
-#endif                            
-				 );
+  process *theProc = new process(pid, theImage, success);
   assert(theProc);
 
   if (!success) {
@@ -3076,9 +2949,11 @@ bool process::finalizeDyninstLib() {
 
    bool calledFromFork = (bs_record.event == 2);
    bool calledFromAttach = (bs_record.event == 3);
-   
+
+   // Get the address of the observed cost slot
+   costAddr_ = (Address) bs_record.obsCostAddr;
+
    if (!calledFromFork) {
-       getObservedCostAddr();
 
        // Install initial instrumentation requests
        pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", installing default (DYNINST) inst...";
@@ -3228,12 +3103,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
 
     // The same process ctro. is used as in the "normal" case but
     // here, traceLink is -1 instead of a positive value.
-    process *ret = new process(pid, img, traceLink
-
-#ifdef SHM_SAMPLING
-			       , 7000  // shm seg key to try first
-#endif
-                                   );
+    process *ret = new process(pid, img, traceLink);
 
     assert(ret);
 
@@ -3294,7 +3164,7 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
 } // end of AttachToCreatedProcess
 
 
-#ifdef SHM_SAMPLING
+#if !defined(BPATCH_LIBRARY)
 void process::processCost(unsigned obsCostLow,
                           timeStamp wallTime,
                           timeStamp processTime) {
@@ -3796,7 +3666,6 @@ bool process::pause() {
    if (status_ == stopped || status_ == neonatal) {
       return true;
    }
-
    if(IndependentLwpControl()) {      
      setSuppressEventConts(true);
      pdvector<dyn_thread *>::iterator iter = threads.begin();
@@ -5354,7 +5223,7 @@ void process::handleProcessExit() {
    // Set exited first, so detach doesn't try impossible things
    set_status(exited);
    detach(false);
-
+   deleteProcess();
   // Perhaps these lines can be un-commented out in the future, but since
   // cleanUpAndExit() does the same thing, and it always gets called
   // (when paradynd detects that paradyn died), it's not really necessary
@@ -5384,11 +5253,6 @@ void process::handleForkEntry() {
 void process::handleForkExit(process *child) {
     nextTrapIsFork = false;
 
-#if !defined(BPATCH_LIBRARY)
-    // shared memory will probably become part of dyninst soon
-    child->init_shared_memory(this);
-#endif
-
 #if defined(os_aix)
     // AIX doesn't copy memory past the ends of text segments, so we
     // do it manually here
@@ -5396,8 +5260,10 @@ void process::handleForkExit(process *child) {
 #endif
     
 #if !defined(BPATCH_LIBRARY)
-    if(pdFlavor == "mpi")
+    if(pdFlavor == "mpi") {
        child->detachProcess(true);
+       child->deleteProcess();
+    }
     else
 #endif
        BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
@@ -5436,11 +5302,6 @@ void process::handleExecExit() {
    dyn = new dynamic_linking(this);
 
    codeRangesByAddr_ = new codeRangeTree;
-   
-#ifdef SHM_SAMPLING
-   shmMetaData = 
-      new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
-#endif
    
    int status = pid;
 
@@ -5519,14 +5380,6 @@ void process::handleExecExit() {
 
    // we don't need to re-attach after an exec (is this right???)
  
-#ifdef SHM_SAMPLING
-   theSharedMemMgr->handleExec();
-      // reuses the shm seg (paradynd's already attached to it); resets applic-attached-
-      // at to NULL.  Quite similar to the (non-fork) ctor, really.
-
-   //theVariableMgr->handleExec();
-#endif
-
    inExec = false;
    execed_ = true;
 
@@ -5702,22 +5555,6 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
     return false;
   }
   return true;
-}
-
-void process::getObservedCostAddr() {
-
-#if !defined(SHM_SAMPLING) || 1 //ccw 19 apr 2002 : SPLIT
-    bool err;
-    costAddr_ = findInternalAddress("DYNINSTobsCostLow", true, err);
-    if (err) {
-        sprintf(errorLine,"Internal error: unable to find addr of DYNINSTobsCostLow\n");
-        logLine(errorLine);
-        showErrorCallback(79,errorLine);
-        P_abort();
-    }
-#else
-    costAddr_ = (Address)getObsCostLowAddrInApplicSpace();
-#endif
 }
 
 bool process::isAttached() const {
@@ -6221,91 +6058,17 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    delete lwp_to_delete;
 }
 
-void read_variables_after_fork(process *proc, int *shm_key,
-                               void **DYNINST_shmSegAttachedPtr) {
-   bool err = false;
-   Address addr = proc->findInternalAddress("DYNINST_shmSegKey", true, err);
-   assert(err==false);
-   if (!proc->readDataSpace((caddr_t)addr, sizeof(int), shm_key, true))
-      return;  // readDataSpace has it's own error reporting
 
-   addr = proc->findInternalAddress("DYNINST_shmSegAttachedPtr", true, err);
-   assert(err==false);
-   if (!proc->readDataSpace((caddr_t)addr, sizeof(int),
-                            DYNINST_shmSegAttachedPtr, true))
-      return;  // readDataSpace has it's own error reporting
-}
-
-void call_PARADYN_init_child_after_fork(process * /*theProc*/, 
-                                        unsigned /*rpc_id*/,
-                                        void * /*userData*/,
-                                        void *returnVal) {
-   //cerr << "called call_PARADYN_init callback, returnVal: " << returnVal 
-   //     << ", pid: " << theProc->getPid() << ", rpc_id: " << rpc_id << endl;
-   if(reinterpret_cast<long>(returnVal) != 123)
-      cerr << "WARNING, PARADYN_init_child_after_fork unsuccessful\n";
-}
-
-#if !defined(BPATCH_LIBRARY)
-void process::init_shared_memory(process *parentProc) {
-   pdvector<AstNode *> ast_args;
-   AstNode *ast = new AstNode("PARADYN_init_child_after_fork", ast_args);
-
-   // Use the lwp that is actually stopped at the fork exit if can. Seems to
-   // get around restoreRegister - device busy problem.
-   const int UNSET_LWP_STOPPED_FROM_EXIT_VAL = 0;
-   int lwp_stopped_from_exit = parentProc->getLWPStoppedFromForkExit();
-   dyn_lwp *lwp_to_use;
-   if(lwp_stopped_from_exit == UNSET_LWP_STOPPED_FROM_EXIT_VAL)
-      lwp_to_use = getRepresentativeLWP();
-   else
-      lwp_to_use = lookupLWP(lwp_stopped_from_exit);
-
-   unsigned rpc_id =
-      getRpcMgr()->postRPCtoDo(ast, false, call_PARADYN_init_child_after_fork,
-                               this, true, NULL, lwp_to_use);
-   
-   bool wasRunning = false;  // child should be paused after fork
-
-   do {
-       getRpcMgr()->launchRPCs(wasRunning);
-       if(hasExited()) return;
-       getSH()->checkForAndHandleProcessEvents(false);
-       // loop until the rpc has completed
-   } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid);
-
-   int shm_key;
-   void *shmSegAttachedPtr;
-   read_variables_after_fork(this, &shm_key, &shmSegAttachedPtr);
-
-   // since the child process inherits the parents instrumentation we'll
-   // need to inherit the parent process's data also
-   theSharedMemMgr = 
-      new shmMgr(*parentProc->theSharedMemMgr, shm_key, shmSegAttachedPtr,
-                 this);
-   shmMetaData = new sharedMetaData(*(parentProc->shmMetaData), 
-                                    *theSharedMemMgr);
-   shMetaOffsetData = 
-      new sharedMetaOffsetData(*theSharedMemMgr, 
-                               *(parentProc->shMetaOffsetData));
-
-   shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
-                         (theSharedMemMgr->getBaseAddrInDaemon())));
-   shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
-}
-#endif
-
-// MT section (move to processMT.C?)
-#if !defined(BPATCH_LIBRARY)
 // Called for new threads
 
 dyn_thread *process::createThread(
-  int tid, 
-  unsigned pos, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p,  
-  bool /*bySelf*/)
+    int tid, 
+    unsigned pos, 
+    unsigned lwp,
+    unsigned stackbase, 
+    unsigned startpc, 
+    void* resumestate_p,  
+    bool /*bySelf*/)
 {
   dyn_thread *thr;
   //bperr( "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
@@ -6313,17 +6076,16 @@ dyn_thread *process::createThread(
   thr = new dyn_thread(this, tid, pos, NULL);
   threads += thr;
 
-  thr->updateLWP();
-
+  thr->update_lwp(getLWP(lwp));
   thr->update_resumestate_p(resumestate_p);
   function_base *pdf ;
 
   if (startpc) {
-    thr->update_stack_addr(stackbase) ;
-    thr->update_start_pc(startpc) ;
-    codeRange *range = findCodeRangeByAddress(startpc);
-    pdf = range->is_pd_Function();
-    thr->update_start_func(pdf) ;
+      thr->update_stack_addr(stackbase) ;
+      thr->update_start_pc(startpc) ;
+      codeRange *range = findCodeRangeByAddress(startpc);
+      pdf = range->is_pd_Function();
+      thr->update_start_func(pdf) ;
   } else {
     pdf = findOnlyOneFunction("main");
     assert(pdf);
@@ -6343,11 +6105,13 @@ dyn_thread *process::createThread(
 // CALLED for mainThread
 //
 void process::updateThread(dyn_thread *thr, int tid, 
-			   unsigned index, void* resumestate_p)
+                           unsigned index, unsigned lwp,
+                           void* resumestate_p)
 {
   assert(thr);
   thr->update_tid(tid);
   thr->update_index(index);
+  thr->update_lwp(getLWP(lwp));
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOnlyOneFunction("main");
   assert(f_main);
@@ -6367,12 +6131,13 @@ void process::updateThread(dyn_thread *thr, int tid,
 // CALLED from Attach
 //
 void process::updateThread(
-  dyn_thread *thr, 
-  int tid, 
-  unsigned index, 
-  unsigned stackbase, 
-  unsigned startpc, 
-  void* resumestate_p) 
+    dyn_thread *thr, 
+    int tid, 
+    unsigned index, 
+    unsigned lwp,
+    unsigned stackbase, 
+    unsigned startpc, 
+    void* resumestate_p) 
 {
   assert(thr);
   //  
@@ -6382,6 +6147,7 @@ void process::updateThread(
 
   thr->update_tid(tid);
   thr->update_index(index);
+  thr->update_lwp(getLWP(lwp));
   thr->update_resumestate_p(resumestate_p);
 
   function_base *pdf;
@@ -6408,19 +6174,22 @@ void process::updateThread(
 
 void process::deleteThread(int tid)
 {
+// TODO: dyninst migration: we need THREAD_AWAITING_DELETION defined
+#if defined(BPATCH_LIBRARY)
+#define THREAD_AWAITING_DELETION 42
+#endif
    pdvector<dyn_thread *>::iterator iter = threads.end();
    while(iter != threads.begin()) {
       dyn_thread *thr = *(--iter);
       if(thr->get_tid() != (unsigned) tid)  continue;
-
+      
       // ===  Found It  ==========================
       // Set the INDEX to "reusable"
       // Note: we don't acquire a lock. This is okay, because we're simply
       //       clearing the bit, which was not usable before now anyway.
-      assert(shmMetaData->getIndexToThread(thr->get_index()) 
-             == THREAD_AWAITING_DELETION);
-      shmMetaData->setIndexToThread(thr->get_index(), 0);
-
+      assert(getIndexToThread(thr->get_index()) == THREAD_AWAITING_DELETION);
+      setIndexToThread(thr->get_index(), 0);
+      
       getRpcMgr()->deleteThread(thr);
 
       delete thr;    
@@ -6432,5 +6201,23 @@ void process::deleteThread(int tid)
    }
 }
 
-#endif /* MT*/
+// Pull whatever is in the slot out of the inferior process
+unsigned process::getIndexToThread(unsigned index) {
+    unsigned val;
+    
+    readDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
+                  sizeof(unsigned),
+                  (void *)&val,
+                  true);
+    return val;
+}
 
+void process::setIndexToThread(unsigned index, unsigned value) {
+    writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
+                   sizeof(unsigned),
+                   (void *)&value);
+}
+
+void process::updateThreadIndexAddr(Address addr) {
+    threadIndexAddr = addr;
+}
