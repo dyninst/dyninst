@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.56 2004/04/02 06:34:11 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.57 2004/04/05 18:19:24 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -745,7 +745,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 					 process *in_process,
 					 void *in_address,
 					 const BPatch_type *type) :
-    name(in_name), proc(in_process), address(in_address), scope(NULL)
+    name(in_name), proc(in_process), address(in_address), scope(NULL),isLocal(false)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -773,7 +773,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          AstNode *_ast,
                                          const BPatch_type *type,
                                          void* in_address) :
-  name(in_name), proc(in_process), address(in_address), scope(NULL)
+  name(in_name), proc(in_process), address(in_address), scope(NULL),isLocal(false)
 {
     ast = _ast;
 
@@ -789,7 +789,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          process *in_process,
                                          AstNode *_ast,
                                          const BPatch_type *type) :
-    name(in_name), proc(in_process), address(NULL), scope(NULL)
+    name(in_name), proc(in_process), address(NULL), scope(NULL), isLocal(false)
 {
     ast = _ast;
 
@@ -850,8 +850,10 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 {
     if (frameRelative) {
         ast = new AstNode(AstNode::FrameAddr, address);
+        isLocal = true;
     } else {
         ast = new AstNode(AstNode::DataAddr, address);
+        isLocal = false;
     }
 
     assert(BPatch::bpatch != NULL);
@@ -874,7 +876,7 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
                                          void *in_address,
                                          int in_size) :
-    proc(in_process), address(in_address), scope(NULL)
+    proc(in_process), address(in_address), scope(NULL), isLocal(false)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -897,8 +899,8 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  */
 bool BPatch_variableExpr::readValue(void *dst)
 {
-  if (scope) {
-    char msg[256];
+  if (isLocal) {
+    char msg[2048];
     sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
     BPatch_reportError(BPatchWarning, 109,msg);
     return false;
@@ -923,16 +925,17 @@ bool BPatch_variableExpr::readValue(void *dst)
  *              variable.  It is assumed to be the same size as the variable.
  * len          Number of bytes to read.
  */
-void BPatch_variableExpr::readValue(void *dst, int len)
+bool BPatch_variableExpr::readValue(void *dst, int len)
 {
-  if (scope) {
-    char msg[256];
+  if (isLocal) {
+    char msg[2048];
     sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
     BPatch_reportError(BPatchWarning, 109,msg);
-    return;
+    return false;
   }
 
     proc->readDataSpace(address, len, dst, true);
+    return true;
 }
 
 
@@ -948,8 +951,8 @@ void BPatch_variableExpr::readValue(void *dst, int len)
  */
 bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
 {
-  if (scope) {
-    char msg[256];
+  if (isLocal) {
+    char msg[2048];
     sprintf(msg, "variable %s is not a global variable, cannot write",name);
     BPatch_reportError(BPatchWarning, 109,msg);
     return false;
@@ -978,13 +981,13 @@ bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-void BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
+bool BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
 {
-  if (scope) {
-    char msg[256];
+  if (isLocal) {
+    char msg[2048];
     sprintf(msg, "variable %s is not a global variable, cannot write",name);
     BPatch_reportError(BPatchWarning, 109,msg);
-    return;
+    return false;
   }
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
@@ -993,6 +996,7 @@ void BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
     }
 #endif
     proc->writeDataSpace(address, len, src);
+    return true;
 }
 
 /*

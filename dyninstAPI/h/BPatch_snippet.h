@@ -183,7 +183,8 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     process		*proc;
     void		*address;
     int			size;
-    BPatch_point	*scope; // NULL scope implies that this var is global
+    BPatch_point	*scope; 
+    bool                isLocal;
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(char *name, process *in_process, void *in_address,
@@ -203,9 +204,9 @@ public:
 
 // Public functions for use by users of the library:
     bool readValue(void *dst);
-    void readValue(void *dst, int len);
+    bool readValue(void *dst, int len);
     bool writeValue(const void *src, bool saveWorld=false); //ccw 26 nov 2001
-    void writeValue(const void *src, int len,bool saveWorld=false);
+    bool writeValue(const void *src, int len,bool saveWorld=false);
 
     char *getName() { return name; }
     void *getBaseAddr() const { return address; }
