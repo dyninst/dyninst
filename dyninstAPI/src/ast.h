@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.34 1999/05/03 20:01:21 zandy Exp $
+// $Id: ast.h,v 1.35 1999/05/28 22:12:32 hollings Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -75,6 +75,7 @@ typedef enum { plusOp,
                neOp,
                loadOp,           
                loadConstOp,
+	       loadFrameRelativeOp,
                storeOp,
                ifOp,
 	       whileOp,  // Simple control structures will be useful
@@ -132,7 +133,7 @@ class AstNode {
         enum operandType { Constant, ConstantPtr, ConstantString,
 			   DataValue, DataPtr, 
                            DataId, DataIndir, DataReg,
-			   Param, ReturnVal, DataAddr,
+			   Param, ReturnVal, DataAddr, FrameAddr,
 			   SharedData};
 
         AstNode(); // mdl.C

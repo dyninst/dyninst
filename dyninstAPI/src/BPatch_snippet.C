@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.13 1999/05/13 23:08:09 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.14 1999/05/28 22:12:31 hollings Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -453,10 +453,15 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 					 void *in_address,
-					 const BPatch_type *type) :
+					 const BPatch_type *type,
+					 bool frameRelative = false) :
     proc(in_process), address(in_address)
 {
-    ast = new AstNode(AstNode::DataAddr, address);
+    if (frameRelative) {
+	ast = new AstNode(AstNode::FrameAddr, address);
+    } else {
+	ast = new AstNode(AstNode::DataAddr, address);
+    }
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());

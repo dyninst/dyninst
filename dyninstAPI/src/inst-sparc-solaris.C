@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.48 1999/05/19 21:22:30 zhichen Exp $
+// $Id: inst-sparc-solaris.C,v 1.49 1999/05/28 22:12:33 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1496,6 +1496,30 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 	generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
+    } else if (op ==  loadFrameRelativeOp) {
+	// return the value that is FP offset from the original fp
+	//   need to restore old fp and save it on the stack to get at it.
+	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	insn++;
+
+	generateStore(insn, REG_FP, REG_SP, 68); 
+	insn++;
+	      
+	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	insn++;
+
+	generateLoad(insn, REG_SP, 112+68, dest); 
+	insn++;
+
+	base += 4*sizeof(instruction);
+
+	if (((int) src1 < MIN_IMM13) || ((int) src1 > MAX_IMM13)) {
+	    abort();
+	} else {
+	    generateLoad(insn, dest, src1, dest);
+	    insn++;
+	    base += sizeof(instruction);
+	}
     } else {
         abort();       // unexpected op for this emit!
     }

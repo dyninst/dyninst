@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.63 1999/05/25 20:26:55 hollings Exp $
+// $Id: ast.C,v 1.64 1999/05/28 22:12:31 hollings Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1215,6 +1215,9 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataAddr) {
 	  addr = (Address) oValue;
 	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
+	} else if (oType == FrameAddr) {
+	  addr = (Address) oValue;
+	  emitVload(loadFrameRelativeOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == ConstantString) {
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.

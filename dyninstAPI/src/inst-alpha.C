@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.10 1999/05/25 20:26:56 hollings Exp $
+// $Id: inst-alpha.C,v 1.11 1999/05/28 22:12:32 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -1346,6 +1346,30 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 			   remainder, dw_long);
     base += words * 4; return;
 
+  } else if (op ==  loadFrameRelativeOp) {
+    unsigned long words = 0;
+    // frame offset is signed.
+    long offset = (long) src1;
+    assert(ABS(offset) < 32767);
+    words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
+			   104, dw_quad);
+    printf("offset is %ld\n", offset);
+    assert(ABS(offset) < (1<<30));
+    if (ABS(offset) > 32767) {
+        Offset low = offset & 0xffff;
+	offset -= SEXT_16(low);
+	Offset high = (offset >> 16) & 0xffff;
+        assert((Address)SEXT_16(low) +
+	 ((Address)SEXT_16(high)<<16) == src1);
+
+        words += generate_lda(insn+words, dest, dest, high, false);
+	words += generate_load(insn+words, (unsigned long) dest,  dest,
+			   low, dw_long);
+    } else {
+	words += generate_load(insn+words, (unsigned long) dest,  dest,
+			   offset, dw_long);
+    }
+    base += words * 4; 
   } else {
       abort();       // unexpected op for this emit!
   }
@@ -1631,7 +1655,18 @@ bool pd_Function::findInstPoints(const image *owner)
     //   end of the function.
     if (isReturnInsn(owner, adr, done)) {
       // define the return point
-      funcReturns += new instPoint(this, instr, owner, adr, false,functionExit);
+      // check to see if adr-8 is ldq fp, xx(sp), if so use it as the
+      // address since it will ensure the activation record is still active.
+      // Only gcc seems to use a frame pointer
+      instruction frameRestInsn;
+      frameRestInsn.raw = owner->get_instruction(adr-8);
+      if ((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) {
+	  Address tempAddr = adr - 8;
+	  funcReturns += new instPoint(this,frameRestInsn,owner,tempAddr,false, 
+	      functionExit);
+      } else {
+	  funcReturns += new instPoint(this,instr,owner,adr,false,functionExit);
+      }
 
       // see if this return is the last one 
       if (done) return true;

@@ -184,7 +184,7 @@ class BPatch_variableExpr : public BPatch_snippet {
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(process *in_process, void *in_address,
-			const BPatch_type *type);
+			const BPatch_type *type, bool frameRelative = false);
     BPatch_variableExpr(process *in_process, void *in_address,
 			int in_size);
 
