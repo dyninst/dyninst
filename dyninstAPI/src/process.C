@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.43  1996/04/24 15:00:34  naim
+ * Revision 1.44  1996/05/01 19:04:31  naim
+ * Adding debugging information during the deletion of instrumentation - naim
+ *
+ * Revision 1.43  1996/04/24  15:00:34  naim
  * Fixing misspelling error - naim
  *
  * Revision 1.42  1996/04/22  16:10:25  naim
@@ -378,6 +381,10 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
     maxDelTime = MAX_DELETING_TIME*10.0;
     sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->pid);
     logLine(errorLine);
+#ifdef FREEDEBUG
+    sprintf(errorLine,"***** disList.size() = %d\n",disList->size());
+    logLine(errorLine);
+#endif
   }
   else
     maxDelTime = MAX_DELETING_TIME;
@@ -498,7 +505,19 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       if (countingChances==2) secondChance=false;
 
       for (unsigned i=0; i < hp->heapFree.size(); i++) {
+#ifdef FREEDEBUG
+        if (!secondChance) {
+          sprintf(errorLine,"***** (pid=%d) i=%d, heapFree[%d].length=%d, heapFree.size()=%d\n",proc->pid,i,i,(hp->heapFree[i])->length,hp->heapFree.size()); 
+          logLine(errorLine);
+        }
+#endif
         if ((hp->heapFree[i])->length >= size) {
+#ifdef FREEDEBUG
+          if (!secondChance) {
+            sprintf(errorLine,"***** (pid=%d) i=%d, found is TRUE\n",proc->pid,i); 
+            logLine(errorLine);
+          }
+#endif
 	  np = hp->heapFree[i];
 	  found = true;
   	  foundIndex = i;
@@ -521,7 +540,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
     } while (secondChance);      
 
     if (!found) {
-      sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
+      sprintf(errorLine, "***** Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
       return(0);
@@ -546,7 +565,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	hp->heapFree[foundIndex] = hp->heapFree[i-1];
 	hp->heapFree.resize(i-1);
       } else if (i == 1) {
-        sprintf(errorLine, "Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
+        sprintf(errorLine, "----- Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
         logLine(errorLine);
         showErrorCallback(66, (const char *) errorLine);
         return(0);
