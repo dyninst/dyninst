@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.53 1998/12/25 22:31:59 wylie Exp $
+// $Id: aix.C,v 1.54 1998/12/26 18:21:45 wylie Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1445,7 +1445,7 @@ Object::Object(const Object& obj)
 
 // for shared object files: not currently implemented
 // this should call a load_shared_object routine to parse the shared obj. file
-Object::Object(const string file,u_int,void (*err_func)(const char *))
+Object::Object(const string file,Address,void (*err_func)(const char *))
     : AObject(file, err_func) {
 }
 
