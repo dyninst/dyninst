@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.124 2002/03/12 18:40:02 jaw Exp $
+ * $Id: inst-power.C,v 1.125 2002/03/15 19:01:47 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -2486,9 +2486,30 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 
 #ifdef BPATCH_LIBRARY
 // VG(11/16/01): Say if we have to restore a register to get its original value
+// VG(03/15/02): Sync'd with the new AIX tramp
 static inline bool needsRestore(Register x)
 {
-  return (x == 0) || ((x >= 3) && (x <= 12)) || (x == 9999);
+  //return (x == 0) || ((x >= 3) && (x <= 12)) || (x == 9999);
+  return ((x <= 12) && !(x==2)) || (x == 9999);
+}
+
+// VG(03/15/02): The new AIX tramp needs this
+static inline void restoreGPR(instruction *&insn, Address &base,
+                              Register reg, Register dest)
+{
+  if(reg == 1) // SP is in a different place, but we don't need to
+               // restore it, just subtract the stack frame size
+    genImmInsn(insn, CALop, dest, REG_SP, TRAMP_FRAME_SIZE);
+  else if((reg == 0) || ((reg >= 3) && (reg <=12)))
+    genImmInsn(insn, Lop, dest, 1, TRAMP_GPR_OFFSET + reg*GPRSIZE);
+  else {
+    fprintf(stderr, "GPR %d should not be restored...", reg);
+    assert(0);
+  }
+  //fprintf(stderr, "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
+  //  reg, dest, offset + reg*GPRSIZE);
+  insn++;
+  base += sizeof(instruction);
 }
 
 // VG(11/16/01): Emit code to add the original value of a register to
@@ -2536,7 +2557,7 @@ static inline void emitAddOriginal(Register src, Register acc,
       fprintf(stderr, "Restoring register %d into %d\n",
 	      src, temp);
 
-      restoreRegister(insn, base, src, temp, TRAMP_GPR_OFFSET);
+      restoreGPR(insn, base, src, temp);
     }
   }
   else

@@ -1,4 +1,4 @@
-# $Id: test6LS-power.s,v 1.4 2002/03/15 16:11:45 gaburici Exp $
+# $Id: test6LS-power.s,v 1.5 2002/03/15 19:01:48 gaburici Exp $
 
 .file "test6LS-power.s"
 .machine "any"
@@ -75,7 +75,7 @@ T.dfvard:	.tc	dfvardT[TC], dfvard[RW]
 
 	# Not sure if lwa, lwax, lwaux, ld, ldu, ldx, ldux work on PowerX, X<3.
 
-        li      0,0
+        li      0,12
 	lwa	5,4(3)		#l18
 	lwax	6,7,0		#l19
 	lwaux	5,7,8		#l20
