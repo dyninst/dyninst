@@ -81,8 +81,6 @@ template class vector<instPoint*>;
 
 // Igen - dyninstRPC stuff
 
-template class vector<T_dyninstRPC::mdl_rand *>;
-template class vector<T_dyninstRPC::mdl_instr_rand *>;
 template class vector<T_dyninstRPC::buf_struct*>;
 template class vector<string>;
 template class vector<T_dyninstRPC::mdl_expr*>;
@@ -194,13 +192,6 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
 			       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 			       T_dyninstRPC::mdl_metric**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_rand*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-			       T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-			       T_dyninstRPC::mdl_instr_rand**);
-
 
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
 			   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
@@ -217,13 +208,6 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constr
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
 				   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 				   T_dyninstRPC::mdl_metric**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_rand*>**,
-				   bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-				   T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>**,
-				   bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-				   T_dyninstRPC::mdl_instr_rand**);
-
 
 // Igen - visi stuff
 
