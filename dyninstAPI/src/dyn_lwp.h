@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.5 2002/11/14 20:26:18 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.6 2002/12/14 16:37:35 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -133,6 +133,7 @@ class dyn_lwp
   // Platform-specific method
   bool openFD();
   void closeFD();
+  process *proc() { return proc_; }
 
  private:
 
