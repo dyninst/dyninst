@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.7  1995/10/30 23:09:43  naim
+# Revision 1.8  1995/11/03 21:15:48  naim
+# Chaning message of error 11 - naim
+#
+# Revision 1.7  1995/10/30  23:09:43  naim
 # Modifing error message 11 - naim
 #
 # Revision 1.6  1995/10/12  19:45:52  naim
@@ -247,9 +250,9 @@ Call to malloc failed within a data manager function.
 set pdError(11) {
 {Application process has exited
 } {paradynd
-} {serious
+} {information
 } {
-An application process has exited. This situation may be produced, for example, by an unsuccessful request of memory made by this process. 
+An application process has exited. This situation may be produced, for example, by an unsuccessful request of memory made by this process, or it could be possible that the application just finished. 
 }} 
 
 set pdError(12) {
