@@ -3,7 +3,11 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.5  1994/04/13 03:08:59  markc
+ * Revision 1.6  1994/05/31 18:10:12  markc
+ * Added default instrumentation requests and modified the library functions
+ * that get are instrumented.
+ *
+ * Revision 1.5  1994/04/13  03:08:59  markc
  * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
  * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
  * in cm5 versions.
@@ -22,7 +26,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.5 1994/04/13 03:08:59 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.6 1994/05/31 18:10:12 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,10 +203,12 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
+    /*
     addLibFunc(&msgByteSentFunctions, "pvm_send", TAG_LIB_FUNC);
     addLibFunc(&msgByteRecvFunctions, "pvm_recv", TAG_LIB_FUNC);
     addLibFunc(&msgByteSentFunctions, "pvm_mcast", TAG_LIB_FUNC);
-
+    */
+    
     addLibFunc(&fileByteFunctions, "write",
 	    TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
     addLibFunc(&fileByteFunctions, "read",
@@ -214,20 +220,27 @@ void initLibraryFunctions()
     addLibFunc(&libraryFunctions, "main", 0);
     addLibFunc(&libraryFunctions, "pvm_bufinfo", TAG_LIB_FUNC);
 
-    addLibFunc(&msgFilterFunctions, "pvm_barrier", 
+    addLibFunc(&msgByteSentFunctions, "pvm_barrier", 
+	TAG_LIB_FUNC|TAG_SYNC_FUNC|TAG_CPU_STATE);
+
+    /* DONT COLLECT DATA FOR THIS NOW
+       addLibFunc(&msgByteSentFunctions, "pvm_mcast", 
+       TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
+       */
+    addLibFunc(&msgByteSentFunctions, "pvm_send", 
 	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
-    addLibFunc(&msgFilterFunctions, "pvm_mcast", 
-	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
-    addLibFunc(&msgFilterFunctions, "pvm_send", 
-	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
-    addLibFunc(&msgFilterFunctions, "pvm_recv", 
+    addLibFunc(&msgByteRecvFunctions, "pvm_recv", 
 	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
 
-    // don't add in msgByteSentFunctions, since they are added via msgFilterFunctions
+    msgFilterFunctions += msgByteSentFunctions;
+    msgFilterFunctions += msgByteRecvFunctions;
 
     libraryFunctions += fileByteFunctions;
     libraryFunctions += msgFilterFunctions;
 
+    // msgByteFunctions is not being used, since bytes sent and bytes
+    // received have separate metric generating functions in inst-pvm.C
+    // but it is being updated because it had been updated
     msgByteFunctions += msgByteSentFunctions;
     msgByteFunctions += msgByteRecvFunctions;
 }
