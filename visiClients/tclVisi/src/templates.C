@@ -39,8 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: templates.C,v 1.9 2000/07/28 14:39:32 paradyn Exp $
+
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "visi/h/visiTypes.h"
 
 class PhaseInfo;
@@ -51,8 +53,8 @@ template class vector<PhaseInfo *>;
 #include "paradyn/src/UIthread/minmax.C"
 template float max(const float, const float);
 
-#include "util/h/String.h"
-#include "util/src/Dictionary.C"
+#include "common/h/String.h"
+#include "common/src/Dictionary.C"
 #include "pdLogo.h"
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
