@@ -26,6 +26,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.10  1996/04/26 20:38:47  lzheng
+ * Some changes are moved so that function arguments registers are saved
+ * in miniTrampoline.
+ * Changes in emitFuncCall to remove the #ifdef in ast.C
+ *
  * Revision 1.9  1996/04/10 18:01:19  lzheng
  * Changes to support multiple arguments to calls
  *
@@ -219,6 +224,21 @@ inline void generateToBranchInsn2(instruction *insn, unsigned dest,
 
 }  
 
+void generateToBranch(process *proc, unsigned fromAddr, unsigned dest )
+{
+    instruction *insn = new instruction;
+
+    // Two instructions are needed to do the long jump
+    generateToBranchInsn1(insn, dest);
+    proc->writeTextWord((caddr_t)fromAddr, insn->raw);
+    insn++;
+    generateToBranchInsn2(insn, dest);
+    proc->writeTextWord((caddr_t)(fromAddr+4), insn->raw);
+
+//    proc->writeDataSpace((caddr_t)(fromAddr),2*sizeof(instruction), 
+//                          (caddr_t)insn);
+}
+
 inline void generateCompareBranch(instruction* insn, reg rs1, reg rs2,
   int offset) {
     offset -= 8; /* 8 always added to branch */
@@ -338,31 +358,35 @@ inline void generateStore(instruction *insn, int rd, int rs1, int im14 = 0)
 }
 
 instPoint::instPoint(pdFunction *f, const instruction &instr,
-		     const image *owner, Address adr,
-		     bool delayOK, instPointType pointType )
+		     const image *owner, Address adr, bool delayOK, 
+		     bool &err, instPointType pointType )
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f),
   ipType(pointType)
 {
   assert(pointType != noneType);
+  err = false;
 
   switch (pointType) {
 
     case functionEntry:
          nextInstruction.raw = owner->get_instruction(adr+4);
+	 if (IS_BRANCH_INSN(nextInstruction)) {
+	     err = true;
+	 } 
          break;
 
     case functionExit:
          originalInstruction.raw = owner->get_instruction(adr-4);
          if (IS_BRANCH_INSN(originalInstruction)) {
-	     return;
+	     err = true;
          }
 
          nextInstruction.raw = owner->get_instruction(adr);
 	 assert(nextInstruction.bi.op == BVop);
 	 if (nextInstruction.bi.r1_im5_w1_x != 0) {
              logLine("Internal Error: branch return instruction's strange.\n");  
-	     abort();
+	     err = true;
 	 }
          nextInstruction.bi.c_s_ext3 = 1;
 	 nextInstruction.bi.op = BEop;
@@ -377,6 +401,9 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 
     case callSite:
          nextInstruction.raw = owner->get_instruction(adr+4);
+	 if (IS_BRANCH_INSN(nextInstruction)) {
+	     err = true;
+	 } 
 	 break;
 
 	 // it might be an idea to put all these functions 
@@ -391,9 +418,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 
     case noneType:
     default:
-         logLine("Wrong pointType of instPoint\n");
-         abort();         
-
+         logLine("Wrong pointType of instPoint(impossible to reach here).\n");
   }  
 
   //if (owner->isValidAddress(adr-4)) {
@@ -409,6 +434,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
    // }
    //}
 }
+
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -471,7 +497,7 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     //   same reason as in the inst-sparc.C
     // bool err = true;
 
-    point = new instPoint(this, instr, owner, adr, false, pointType);
+    point = new instPoint(this, instr, owner, adr, false, err, pointType);
 
     if (!isCallInsn(instr)) {
 	logLine("what is a non-call (jump) doing in newCallPoint\n");
@@ -486,7 +512,9 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
 
     point->callAggregate = false;
 
-    calls += point;
+    if (err == true) {
+	calls += point;
+    }
     err = false;
     return ret;
 }
@@ -568,8 +596,8 @@ int getPointCost(process *proc, instPoint *point)
     } else {
         // 8 cycles for base tramp
         if (point->ipType == callSite)
-	    return(44+28);
-	else return(44);
+	    return(38+28);
+	else return(38);
     }
 }
 
@@ -761,22 +789,6 @@ void installBaseTramp(unsigned baseAddr,
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
 	    /* fill with no-op */
 	    generateNOOP(temp);
-	} else if (temp->raw == PARAM_SAV_0)  {
-            generateStore(temp, 26,  30, -36);  
-	} else if (temp->raw == PARAM_SAV_1)  {
-            generateStore(temp, 25,  30, -40);  
-	} else if (temp->raw == PARAM_SAV_2)  {
-            generateStore(temp, 24,  30, -44);  
-	} else if (temp->raw == PARAM_SAV_3)  {
-            generateStore(temp, 23,  30, -48);  
-	} else if (temp->raw == PARAM_RES_3)  {
-            generateLoad(temp,  30,  23, -48);  
-	} else if (temp->raw == PARAM_RES_2)  {
-            generateLoad(temp,  30,  24, -44);  
-	} else if (temp->raw == PARAM_RES_1)  {
-            generateLoad(temp,  30,  25, -40);  
-	} else if (temp->raw == PARAM_RES_0)  {
-            generateLoad(temp,  30,  26, -36);  
 	}
 
 }
@@ -843,20 +855,6 @@ void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr)
     proc->writeDataSpace((caddr_t)fromAddr,sizeof(int),(char *)&insn);
 }
 
-void generateToBranch(process *proc, unsigned fromAddr, unsigned dest )
-{
-    instruction *insn = new instruction;
-
-    // Two instructions are needed to do the long jump
-    generateToBranchInsn1(insn, dest);
-    proc->writeTextWord((caddr_t)fromAddr, insn->raw);
-    insn++;
-    generateToBranchInsn2(insn, dest);
-    proc->writeTextWord((caddr_t)(fromAddr+4), insn->raw);
-
-//    proc->writeDataSpace((caddr_t)(fromAddr),2*sizeof(instruction), 
-//                          (caddr_t)insn);
-}
 
 int callsTrackedFuncP(instPoint *point)
 {
@@ -944,11 +942,33 @@ pdFunction *getFunction(instPoint *point)
 }
 
 
-unsigned emitFuncCall(opCode op, char *i, unsigned &base, string callee, process *proc)
+unsigned emitFuncCall(opCode op, 
+		      registerSpace *rs,
+		      char *i, unsigned &base, 
+		      vector<AstNode> operands, 
+		      string callee, process *proc)
 {
-        // TODO cast
-        instruction *insn = (instruction *) ((void*)&i[base]);
+        register srcs;
 
+        for (unsigned u = 0; u < operands.size(); u++) {
+	    if (u >= 4) {
+                 string msg = "Too many arguments to function call in instrumentation code:
+ only 4 arguments can be passed on the sparc architecture.\n";
+                 fprintf(stderr, msg.string_of());
+                 showErrorCallback(94,msg);
+                 cleanUpAndExit(-1);
+            }  
+	    srcs = operands[u].generateCode(proc, rs, i, base);
+	    emit(storeMemOp, srcs, 30, -36-4*u, i, base);
+	    rs->freeRegister(srcs);
+        }
+
+	for (unsigned u = 0; u < operands.size(); u++) {
+	    assert(u < 4);
+	    emit(loadMemOp, 30, 26-u,-36-4*u, i, base);  
+	}
+
+	instruction *insn = (instruction *) ((void*)&i[base]);
         unsigned dest;
         bool err;
         pdFunction *func;
@@ -1025,6 +1045,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction)*2;
 	return(base - 2*sizeof(instruction)); 
     } else if (op ==  trampPreamble) {
+	for (int ind=0; ind < 4; ind++) {
+	    generateStore(insn, 26-ind,  30, -128-36-4*ind);
+	    base += sizeof(instruction);
+	    insn = (instruction *) ((void*)&i[base]);
+	}
+
 	generateLoadConst(insn, dest, 29, base);
         insn = (instruction *) ((void*)&i[base]);
 
@@ -1045,6 +1071,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
     } else if (op ==  trampTrailer) {
 	// restore any saved registers, but we never save them
 	// dest is in words of offset and generateBranchInsn is bytes offset
+	for (int ind=0; ind < 4; ind++) {
+	    generateLoad(insn, 30, 23+ind, -128-48+4*ind);
+	    base += sizeof(instruction);
+	    insn = (instruction *) ((void*)&i[base]);
+	}
+
 	generateBranchInsn(insn, dest << 2);
 	base += sizeof(instruction);
 	insn++;
@@ -1164,9 +1196,9 @@ int getInsnCost(opCode op)
     } else if (op ==  callOp) {
 	return(2+2+3);
     } else if (op ==  trampPreamble) {
-	return(2+1+1+2+1);
+	return(4+2+1+1+2+1);
     } else if (op ==  trampTrailer) {
-	return(1+1);
+	return(1+1+4);
     } else if (op == noOp) {
 	return(1);
     } else if (op == getParamOp) {
