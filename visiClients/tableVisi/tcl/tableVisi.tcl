@@ -3,6 +3,9 @@
 
 #
 # $Log: tableVisi.tcl,v $
+# Revision 1.6  1996/04/30 20:19:50  tamches
+# added label w/ phase name
+#
 # Revision 1.5  1995/12/29 08:16:46  tamches
 # added sort foci by value menu item
 # removed some old and obsolete code
@@ -126,10 +129,16 @@ proc initializeTableVisi {} {
    #  Add menu bar to display
    pack .top.left.menubar.file .top.left.menubar.acts .top.left.menubar.opts \
    	-side left -padx 4
-   
+
    makeLogo .top.logo paradynLogo raised 2 HotPink2
    pack .top.logo -side right
 
+   # Phase Name, below the menus (not filled in yet since asking for the
+   # phase name would fail this early.)
+   label .phasename -relief groove \
+	   -font *-Helvetica-*-r-*-12-* 
+   pack  .phasename -side top -fill x -expand false
+   
    # Horizontal Scrollbar
    scrollbar .horizScrollbar -orient horizontal \
 	   -background gray -activebackground gray -relief sunken \
@@ -193,11 +202,3 @@ proc DgPhaseDataCallback {} {
    puts stderr "welcome to DgPhaseEndCallback (tcl code)"
    return
 }
-
-#
-# DgValidCallback -- visi calls this when curve becomes valid
-#
-#proc DgValidCallback {m} {
-#  return
-#  puts stderr "Bucket $m is now valid"
-#}
