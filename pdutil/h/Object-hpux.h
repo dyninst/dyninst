@@ -309,6 +309,7 @@ Object::load_object() {
 		    continue;
 	        }
             case ST_ENTRY:
+	    case ST_SEC_PROG:	
                 type   = Symbol::PDST_FUNCTION;
 		underScore = true;
                 value  = (value >> 2) << 2; /* get rid of the lower-order 2 bits */
@@ -324,8 +325,8 @@ Object::load_object() {
 	    	if (syms[i].arg_reloc) {
 	    	    priProg = true;
 		    //underScore = true;    
-	    	} else        /*   XXX: is this necessay? */
- 		    continue;
+	    	} /* else           XXX: is this necessay? 
+ 		       continue;         doesn't matter?        */
 		value  = (value >> 2) << 2;
 	    	break;
 		
@@ -546,6 +547,18 @@ Object::load_object() {
 	    //	   unwind_start[j].Total_frame_size,
 	    //	   unwind_start[j].HP_UX_interrupt_marker);
 	}
+
+	//printf("\n-----------------------------\n");
+        //for (j=0; j< (unwind_end_len/(sizeof(struct unwind_table_entry))) ; j++)
+        //{
+          //  unwind += unwind_end[j];
+          //  printf("{Start: 0x%x(%d); End: 0x%x(%d); Size: %d, Interrupt: %d}\n",
+          //         unwind_end[j].region_start, unwind_end[j].region_start,
+          //         unwind_end[j].region_end, unwind_end[j].region_end,
+          //         unwind_end[j].Total_frame_size,
+          //         unwind_end[j].HP_UX_interrupt_marker);
+        //}
+
 
     }
     /* catch */
