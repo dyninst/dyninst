@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.95 2001/05/24 18:38:45 wxd Exp $
+// $Id: main.C,v 1.96 2001/08/23 14:44:14 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -417,9 +417,17 @@ InitRemotelyStarted( char* argv[], const string& pd_machine, bool report )
 
 static
 void
-InitLocallyStarted( char* argv[], const string& pd_machine )
-{
+InitLocallyStarted( char* []
 #if PARADYND_PVM
+                    argv
+#endif
+                    , const string& 
+#ifdef PARADYND_PVM
+                    pd_machine 
+#endif
+)
+{
+#ifdef PARADYND_PVM
 	// check if we are designated to monitor a PVM application
 	if( pvm_running && 
 		!PDYN_initForPVM( argv, pd_machine, pd_known_socket_portnum, 1 ))
