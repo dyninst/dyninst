@@ -118,7 +118,7 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
       max_speed = speed;
   }
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
   // the speed of the pentium is being overestimated by a factor of 2
   max_speed /= 2;
 #endif
