@@ -83,8 +83,11 @@ protected:
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
 
+ public:
   typedef BPatch_function::InstrucPos InstrucPos;
+  static InstrucPos *instructionPointerUnused;
 
+ protected:
   // changing this will change the common list in the function;
   InstrucPos*& instructionPointers;
 
@@ -136,7 +139,7 @@ public:
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    ,instructionPointers(new InstrucPos*)
+    , instructionPointers(InstrucIter::instructionPointerUnused)
     {
       init();
 #else

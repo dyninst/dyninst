@@ -17,6 +17,8 @@
 
 #include "BPatch_Set.h"
 
+InstrucIter::InstrucPos *InstrucIter::instructionPointerUnused;
+
 //some more function used to identify the properties of the instruction
 /** is the instruction used to return from the functions
   * @param i the instruction value 
