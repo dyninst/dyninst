@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.5 2003/08/25 19:22:28 jaw Exp $
+// $Id: test9.C,v 1.6 2003/09/11 18:20:54 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -472,7 +472,7 @@ void mutatorTest3(char *pathname, char** child_argv)
 {
   const char* testName = "four parameter function";
   int testNo = 3;
- #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
+ #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1) ||  defined(rs6000_ibm_aix4_1) 
 
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
@@ -639,7 +639,7 @@ void mutatorTest4(char *pathname, char** child_argv)
 //
 void mutatorTest5(char *pathname, char** child_argv)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1) 
 	int testNo = 5;
 	BPatch_image *appImage;
 	BPatch_thread *appThread;

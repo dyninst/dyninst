@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.3 2003/08/11 18:22:52 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.4 2003/09/11 18:21:03 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/ldr.h>
 
 
 #include <unistd.h>
@@ -77,7 +78,6 @@ void call2_1000(){
 	globalVariable2_1 += 1;
 }
 int func2_1000(){
-	int ret=0;
 	if(globalVariable2_1== 1000){
 		return  1;
 	}else{
@@ -12127,7 +12127,7 @@ int func1_1(){
  * Start of Test #3
  */
 void func3_1() {
-#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
+#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1) && !defined(rs6000_ibm_aix4_1) 
 /* 
 	&&  !defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 	mutated binary works fine when it is run by hand 
@@ -12197,7 +12197,7 @@ void func4_1()
 }
 
 void func5_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(i386_unknown_linux2_0) 
+#if !defined(sparc_sun_solaris2_4) &&  !defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix4_1)
 
     printf("Skipped test #5 (use loadLibrary and save the world)\n");
     printf("\t- not implemented on this platform\n");
@@ -12205,7 +12205,35 @@ void func5_1(){
 
 #else
 
+#if defined(rs6000_ibm_aix4_1)
+	/* 	This code checks to see if the library has been loaded. I cannot
+		get AIX to produce a shared library that updates a variable exported
+		by the main executable in an init (binitfini) routine.
+	*/
+	char buffer[4096];
+	struct ld_info *ldinfo;
+	int found = 0;
+	loadquery(L_GETINFO, (void*)buffer, 4096);
+
+	ldinfo = (struct ld_info*) (& (buffer[0]));
+
+	do{
+		if( ldinfo){
+			if(ldinfo->ldinfo_filename && strstr(ldinfo->ldinfo_filename, "libLoadMe")){
+				found = 1;
+			}
+
+			ldinfo = (struct ld_info*)(((char*)ldinfo)+ldinfo->ldinfo_next);
+		}
+		
+	
+	}while(ldinfo && !found);
+	
+
+	if(found){	
+#else
 	if(globalVariable5_1 == 99){
+#endif
 		/* init in libLoadMe.so should set globalVariable5_1 */
 
 		printf("Passed test #5 (use loadLibrary)\n");
