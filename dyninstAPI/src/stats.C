@@ -41,52 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- *
- * $Log: stats.C,v $
- * Revision 1.18  1997/03/18 19:44:24  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.17  1997/02/21 20:13:51  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.16  1996/08/16 21:19:52  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.15  1995/08/24 15:04:32  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.14  1995/02/16  08:54:16  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.13  1995/02/16  08:34:50  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.12  1994/11/02  11:19:41  markc
- * Removed compiler warnings.
- *
- * Revision 1.11  1994/09/22  02:25:13  markc
- * Change names of resource classes
- *
- * Revision 1.10  1994/09/20  18:18:31  hollings
- * added code to use actual clock speed for cost model numbers.
- *
+ * $Id: stats.C,v 1.19 1998/07/24 18:53:03 wylie Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -161,31 +116,31 @@ void printDyninstStats()
 
 void printAppStats(struct endStatsRec *stats, float clockSpeed)
 {
-    sprintf(errorLine, "    DYNINSTtotalAlaramExpires %d\n", stats->alarms);
+    sprintf(errorLine, "    DYNINSTtotalAlarmExpires %d\n", stats->alarms);
     logLine(errorLine);
 #ifdef notdef
     sprintf(errorLine, "    DYNINSTnumReported %d\n", stats->numReported);
     logLine(errorLine);
 #endif
-    sprintf(errorLine,"    Raw cycle count = %f\n", (double) stats->instCycles);
+    sprintf(errorLine, "    Raw cycle count = %f\n", (double) stats->instCycles);
     logLine(errorLine);
 
-    sprintf(errorLine,"    Total instrumentation (%dMhz clock) cost = %f\n", 
+    sprintf(errorLine, "    Total instrumentation (%dMHz clock) cost = %f\n", 
 	(int) (clockSpeed/1000000.0), stats->instCycles/(clockSpeed));
     logLine(errorLine);
-    sprintf(errorLine,"    Total inst (via prof) = %f\n", stats->instTicks/100.0);
+    sprintf(errorLine, "    Total inst (via prof) = %f\n", stats->instTicks/100.0);
     logLine(errorLine);
-    sprintf(errorLine,"    Total handler cost = %f\n", stats->handlerCost);
+    sprintf(errorLine, "    Total handler cost = %f\n", stats->handlerCost);
     logLine(errorLine);
-    sprintf(errorLine,"    Total cpu time of program %f\n", stats->totalCpuTime);
+    sprintf(errorLine, "    Total cpu time of program %f\n", stats->totalCpuTime);
     logLine(errorLine);
-    sprintf(errorLine,"     Total cpu time (via prof) = %f\n", stats->userTicks/100.0);
+    sprintf(errorLine, "    Total cpu time (via prof) = %f\n", stats->userTicks/100.0);
     logLine(errorLine);
-    sprintf(errorLine,"    Elapsed wall time of program %f\n",stats->totalWallTime);
+    sprintf(errorLine, "    Elapsed wall time of program %f\n",stats->totalWallTime);
     logLine(errorLine);
-    sprintf(errorLine,"    total data samples %d\n", stats->samplesReported);
+    sprintf(errorLine, "    total data samples %d\n", stats->samplesReported);
     logLine(errorLine);
-    sprintf(errorLine,"    sampling rate %f\n", stats->samplingRate);
+    sprintf(errorLine, "    sampling rate %f\n", stats->samplingRate);
     logLine(errorLine);
 }
 
