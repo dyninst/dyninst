@@ -47,7 +47,7 @@
 
 const pdSample *pdSample::_zero = NULL;
 const pdSample *pdSample::_nan  = NULL;
-const int64_t pdSample::MaxValue = I64_MAX;
+const pdSample *pdSample::_maxSample = NULL;
 
 ostream& operator<<(ostream&s, const pdSample &sm) {
   s << "[";
