@@ -59,10 +59,6 @@
 /* For location decode. */
 #include <stack>
 
-#include <map>
-typedef std::map< unsigned int, char *> LineNoToFnNameMap;
-typedef LineNoToFnNameMap::value_type LineAndNameEntry;
-
 /* A bound attribute can be either (a constant) or (a reference
    to a DIE which (describes an object containing the bound value) or
    (a constant value itself)). */
@@ -611,7 +607,19 @@ void convertFileNoToName( Dwarf_Debug & dbg, Dwarf_Signed fileNo, char ** return
 	if( fileNo <= fileNamesCount ) { * returnFileName = fileNames[fileNo - 1]; }
 	else { * returnFileName = NULL; }
 	} /* end convertFileNoToName() */
+	
+/* Utility function. */
+unsigned long tvDifference( struct timeval lhs, struct timeval rhs ) {
+	unsigned long seconds = lhs.tv_sec - rhs.tv_sec;
+	if( seconds == 0 ) { return lhs.tv_usec - rhs.tv_usec; }
+	else {
+		seconds *= 1000000;
+		seconds += lhs.tv_usec - rhs.tv_usec;
+		}
+	return seconds;
+	} /* end tvDifference() */
 
+/* For debugging. */
 void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 	char * entryName = NULL;
 	int status = dwarf_diename( dieEntry, & entryName, NULL );
@@ -637,24 +645,8 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 	dwarf_dealloc( dbg, entryName, DW_DLA_STRING );
 	} /* end dumpAttributeList() */
 
-int noFNF = 0;
-int searchCount = 0;
-unsigned long elapsedSearchTime = 0;
-unsigned long elapsedFailureTime = 0;
-unsigned long elapsedYoinkTime = 0;
-
-unsigned long tvDifference( struct timeval lhs, struct timeval rhs ) {
-	unsigned long seconds = lhs.tv_sec - rhs.tv_sec;
-	if( seconds == 0 ) { return lhs.tv_usec - rhs.tv_usec; }
-	else {
-		seconds *= 1000000;
-		seconds += lhs.tv_usec - rhs.tv_usec;
-		}
-	return seconds;
-	} /* end tvDifference() */
-
 bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
-			BPatch_module * module, LineNoToFnNameMap * lineNoToFnNameMap,
+			BPatch_module * module, 
 			BPatch_function * currentFunction = NULL,
 			BPatch_type * currentCommonBlock = NULL,
 			BPatch_type * currentEnclosure = NULL ) {
@@ -680,13 +672,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		/* case DW_TAG_inline_subroutine: we don't care about these */
 		case DW_TAG_subprogram:
 		case DW_TAG_entry_point: {
-			struct timeval yoinkStarted;
-			struct timeval yoinkEnded;
-			struct timeval searchStarted;
-			struct timeval searchEnded;
-
-			gettimeofday( & yoinkStarted, NULL );
-
 			/* Is this entry specified elsewhere?  We may need to look there for its name. */
 			Dwarf_Bool hasSpecification;
 			status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
@@ -777,23 +762,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;
 				} /* end if there's no name at all. */
 
-			gettimeofday( & yoinkEnded, NULL );
-			elapsedYoinkTime += tvDifference( yoinkEnded, yoinkStarted );
-
 			/* Try to find the function. */
-			searchCount++;
 			BPatch_Vector< BPatch_function * > functions = BPatch_Vector< BPatch_function * >();
-
-			gettimeofday( & searchStarted, NULL );
 			module->findFunction( functionName, functions, false );
-			gettimeofday( & searchEnded, NULL );
-
-			elapsedSearchTime += tvDifference( searchEnded, searchStarted );
 
 			if( functions.size() == 0 ) {
-				noFNF++;
-				elapsedFailureTime += tvDifference( searchEnded, searchStarted );
-
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
 
@@ -843,63 +816,19 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if not a void return type */
 
-			/* Extract data for lineInformation. */
-			Dwarf_Attribute fileNoAttr;
-			status = dwarf_attr( dieEntry, DW_AT_decl_file, & fileNoAttr, NULL );
-			assert( status != DW_DLV_ERROR );
-
-			Dwarf_Signed fileNo = 0;
-			char * fileName = "{anonymous}";
-			if( status == DW_DLV_OK ) {
-				status = dwarf_formsdata( fileNoAttr, & fileNo, NULL );
-				assert( status == DW_DLV_OK );
-				convertFileNoToName( dbg, fileNo, & fileName );
-
-				dwarf_dealloc( dbg, fileNoAttr, DW_DLA_ATTR );
-				}
-
-			Dwarf_Attribute lineNoAttr;
-			status = dwarf_attr( dieEntry, DW_AT_decl_line, & lineNoAttr, NULL );
-			assert( status != DW_DLV_ERROR );
-
-			Dwarf_Unsigned lineNo = 0;
-			if( status == DW_DLV_OK ) {
-				status = dwarf_formudata( lineNoAttr, & lineNo, NULL );
-				assert( status == DW_DLV_OK );
-
-				dwarf_dealloc( dbg, lineNoAttr, DW_DLA_ATTR );
-				}
-
-			Dwarf_Addr loPC = 0;
-			status = dwarf_lowpc( dieEntry, & loPC, NULL );
-			assert( status != DW_DLV_ERROR );
-
-			/* Update this module's lineInformation. */
-			module->getLineInformation()->insertSourceFileName( functionName, fileName );
-			if( loPC != 0x0 ) {
-				// fprintf( stderr, "Inserting first line address: %s %lu @ 0x%lx\n", functionName, (unsigned long)lineNo, (long unsigned)loPC );
-				module->getLineInformation()->insertLineAddress( functionName, fileName, lineNo, loPC );
-
-				/* Update the map we'll use to determine function extents in lines. */
-				LineAndNameEntry lane = LineAndNameEntry( lineNo, functionName );
-				lineNoToFnNameMap->insert( lane );
-				} else {
-				/* Forward declarations of functions within functions. */
-				// fprintf( stderr, "Not inserting first line address: %s %lu @ 0x%lx\n", functionName, (unsigned long)lineNo, (long unsigned)loPC );
-				} /* end if loPC == 0 */
-
 			/* If this is a member function, add it as a field, for backward compatibility */
 			if( currentEnclosure != NULL ) {
 				/* Using the mangled name allows us to distinguish between overridden
 				   functions, but confuses the tests.  Since BPatch_type uses vectors
 				   to hold field names, however, duplicate -- demangled names -- are OK. */
-				char demangledName[128];
-				assert( P_cplus_demangle( functionName, demangledName, 128, module->isNativeCompiler() ) == 0 );
-				
+				char * demangledName = P_cplus_demangle( functionName, module->isNativeCompiler() );
+				assert( demangledName != NULL );
+								
 				/* Strip everything left of the rightmost ':' off; see above. */
 				char * leftMost = strrchr( demangledName, ':' );
 
 				currentEnclosure->addField( leftMost + 1, BPatch_dataMethod, returnType, 0, 0 );
+				free( demangledName );
 				}
 
 			if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
@@ -948,7 +877,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status == DW_DLV_OK );
+			assert( status != DW_DLV_ERROR );
+
+			if( status == DW_DLV_NO_ENTRY ) {
+				/* FIXME: assume typeless constants are useless. */
+				break;
+				}
 			
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
@@ -1471,7 +1405,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	assert( status != DW_DLV_ERROR );
 
 	if( status == DW_DLV_OK && parsedChild == false ) {
-		walkDwarvenTree( dbg, moduleName, childDwarf, module, lineNoToFnNameMap, newFunction, newCommonBlock, newEnclosure );
+		walkDwarvenTree( dbg, moduleName, childDwarf, module, newFunction, newCommonBlock, newEnclosure );
 
 		dwarf_dealloc( dbg, childDwarf, DW_DLA_DIE );
 		}
@@ -1483,7 +1417,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 	if( status == DW_DLV_OK ) {
 		/* Siblings should all use the same function, common block, and enclosure. */
-		walkDwarvenTree( dbg, moduleName, siblingDwarf, module, lineNoToFnNameMap, currentFunction, currentCommonBlock, currentEnclosure );
+		walkDwarvenTree( dbg, moduleName, siblingDwarf, module, currentFunction, currentCommonBlock, currentEnclosure );
 
 		dwarf_dealloc( dbg, siblingDwarf, DW_DLA_DIE );
 		}
@@ -1495,9 +1429,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
-  //fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
-  //	 fprintf( stdout, "Parsing module '%s'\n", mod->fileName().c_str() );
-  //	 fflush(NULL);
+    // fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
 
 	/* Get the Object object. */
 	image * moduleImage = mod->exec();
@@ -1507,9 +1439,6 @@ void BPatch_module::parseDwarfTypes() {
 	/* Start the dwarven debugging. */
 	const char * fileName = moduleObject.getFileName();
 	// fprintf( stderr, "Parsing object '%s'\n", fileName );
-	if( strcmp( mod->fileName().c_str(), "libstdc++.so.5" ) == 0 ) {
-		return;
-		}
 
 	Dwarf_Debug dbg;
 
@@ -1522,7 +1451,7 @@ void BPatch_module::parseDwarfTypes() {
 	Dwarf_Unsigned hdr;
 
 	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
-	  /* Obtain the module DIE. */
+		/* Obtain the module DIE. */
 		Dwarf_Die moduleDIE;
 		status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL);
 		assert( status == DW_DLV_OK );
@@ -1541,7 +1470,7 @@ void BPatch_module::parseDwarfTypes() {
 			assert( moduleName != NULL );
 			}
 		assert( status != DW_DLV_ERROR );
-		//fprintf( stderr, "%s[%d]: Considering compilation unit '%s'\n", 
+		// fprintf( stderr, "%s[%d]: Considering compilation unit '%s'\n", 
 		//	 __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
@@ -1579,92 +1508,12 @@ void BPatch_module::parseDwarfTypes() {
 			setLanguage( BPatch_unknownLanguage );
 			} /* end language detection */
 
-		/* Initialize the line number to function name map. */
-		LineNoToFnNameMap * lineNoToFnNameMap = new LineNoToFnNameMap();
-
-		/* Initialize the file name lookup table. */
-		char ** srcFiles;
-		Dwarf_Signed srcFileCount;
-		status = dwarf_srcfiles( moduleDIE, & srcFiles, & srcFileCount, NULL );
-		if( status != DW_DLV_OK ) {
-			/* We can't insert lines without filenames. */
-			delete lineNoToFnNameMap;
-			continue;
-			}
-		convertFileNoToName( dbg, 0, NULL, srcFiles, srcFileCount );
-
 		/* Iterate over the tree rooted here. */
-		assert( walkDwarvenTree( dbg, moduleName, moduleDIE, this, lineNoToFnNameMap ) );
-
+		assert( walkDwarvenTree( dbg, moduleName, moduleDIE, this ) );
+		
 		dwarf_dealloc( dbg, moduleDIE, DW_DLA_ATTR );
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
-
-		/* Are there any functions whose line number-to-address mapping
-		   needs to be filled in? */
-		LineNoToFnNameMap::const_iterator currentIter = lineNoToFnNameMap->begin();
-		LineNoToFnNameMap::const_iterator lastIter = lineNoToFnNameMap->end();
-
-		if( currentIter != lastIter ) {
-			/* Acquire the complete set of source lines. */
-			Dwarf_Line * lineBuffer;
-			Dwarf_Signed lineCount;
-			status = dwarf_srclines( moduleDIE, & lineBuffer, & lineCount, NULL );
-			assert( status == DW_DLV_OK );
-
-			LineNoToFnNameMap::const_iterator nextIter = ++ lineNoToFnNameMap->begin();
-			for( int i = 0; i < lineCount; i++ ) {
-				/* Extract the line number. */
-				Dwarf_Unsigned lineNo;
-				status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-				assert( status == DW_DLV_OK );
-
-				/* Extract the corresponding address. */
-				Dwarf_Addr lineAddr;
-				status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-				assert( status == DW_DLV_OK );
-
-				/* Are we still in the same function? */
-				while( nextIter != lastIter && lineNo >= nextIter->first ) {
-					// fprintf( stderr, "Finished with function '%s', inserting into function '%s'\n", currentIter->second, nextIter->second );
-					dwarf_dealloc( dbg, currentIter->second, DW_DLA_STRING );
-
-					++ currentIter;
-					++ nextIter;
-					} /* end if we've finished a function */
-
-				/* Assume the function is not defined in more than one file. */
-				char * currentFunctionName = currentIter->second;
-				FileLineInformation * fli = this->mod->lineInformation->getFunctionLineInformation( currentFunctionName );
-				const char * currentFileName = fli->getFileName().c_str();
-
-				/* Insert the (assumed to be valid) line. */
-				// fprintf( stderr, "Inserting interior line address: %s %lu @ 0x%lx\n", currentFunctionName, (unsigned long)lineNo, (long unsigned)lineAddr );
-				this->mod->lineInformation->insertLineAddress( currentFunctionName, currentFileName, lineNo, lineAddr );
-
-				/* Clean up. */
-				dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-				} /* end line iteration */
-			assert( nextIter == lastIter );
-
-			/* Clean up. */
-			dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
-			} /* End if we need to construct a map. */
-
-			/* Destroy the file name lookup table. */
-		convertFileNoToName( dbg, 0, NULL, NULL, 0 );
-
-		/* Destroy the line number to function name map. */
-		delete lineNoToFnNameMap;
-//		fprintf( stderr, "Number of searches: %d\n", searchCount );
-//		fprintf( stderr, "Number of functions not found: %d\n", noFNF );
-//		fprintf( stderr, "Elapsed yoink time: %ld (millis)\n", elapsedYoinkTime/1000 );
-//		fprintf( stderr, "Elapsed search time: %ld (millis)\n", elapsedSearchTime/1000 );
-//		fprintf( stderr, "Elapsed time not find functions: %ld (millis)\n", elapsedFailureTime/1000 );
-//		fprintf( stderr, "Average time per failed search: %f (millis)\n", 
-//			((double)(elapsedFailureTime/1000))/noFNF );
-//		fprintf( stderr, "Average time per search including failures: %f (millis)\n", 
-//			((double)(elapsedSearchTime/1000))/searchCount );
-	} /* end iteration over compilation-unit headers. */
+		} /* end iteration over compilation-unit headers. */
 
 	/* Clean up. */
 	Elf * dwarfElf;
@@ -1679,21 +1528,107 @@ void BPatch_module::parseDwarfTypes() {
 	/* Run a sanity check. */
 	assert (moduleTypes);
 
-	dictionary_hash_iter<int, BPatch_type *> titer(moduleTypes->typesByID);
 	int tid;
-	BPatch_type *bptype;
+	BPatch_type * bptype;
+	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
+	while( titer.next( tid, bptype ) ){
+		if( bptype->getDataClass() == BPatch_dataUnknownType ) {
+			if( bptype->getConstituentType() != NULL ) {
+				/* Forward-referenced typedef's have unknown dataClasses but non-NULL
+				   constituents.  Correct their dataClass and move on. */
+				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
+				}
+			else {
+				fprintf( stderr, "Type %d is still a placeholder.\n", bptype->getID() );
+				}
+			} /* end if the datatype is unknown. */
+		} /* end iteration over moduleTypes */
+	} /* end parseDwarfTypes() */
 
-	while (titer.next(tid, bptype)){
-	  if (bptype->getDataClass() == BPatch_dataUnknownType) {
-	    if (bptype->getConstituentType() != NULL) {
-	      /* Forward-referenced typedef's have unknown dataClasses but non-NULL
-		 constituents.  Correct their dataClass and move on. */
-	      bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
-	    } else {
-	      fprintf( stderr, "Type %d is still a placeholder.\n", bptype->getID() );
-	    }
-	  }
-	}
+#if defined( USES_DWARF_DEBUG )
+void pdmodule::parseFileLineInfo( process * proc ) {
+	if( lineInformation != NULL ) { return; }
+	initLineInformation();
 
-	// cerr << * lineInformation << endl;
-} /* end parseDwarfTypes() */
+	/* Wind up libdwarf. */
+	image * moduleImage = exec();
+	assert( moduleImage != NULL );
+	const Object & moduleObject = moduleImage->getObject();	
+
+	const char * fileName = moduleObject.getFileName();
+	int fd = open( fileName, O_RDONLY );
+	assert( fd != -1 );
+	
+	Dwarf_Debug dbg;
+	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
+								moduleObject.getErrFunc(),
+								& dbg, NULL );
+	assert( status != DW_DLV_ERROR );
+	if( status == DW_DLV_NO_ENTRY ) { close( fd ); return; }
+	
+	/* Itereate over the CU headers. */
+	Dwarf_Unsigned header;
+	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
+		/* Acquire the CU DIE. */
+		Dwarf_Die cuDIE;
+		status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+		assert( status == DW_DLV_OK );
+
+		/* Acquire this CU's source lines. */
+		Dwarf_Line * lineBuffer;
+		Dwarf_Signed lineCount;
+		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+		assert( status == DW_DLV_OK );
+		
+		/* Iterate over this CU's source lines. */
+		pdstring currentFunctionName = "";
+		for( int i = 0; i < lineCount; i++ ) {
+			/* Acquire the line number, address, and source */
+			Dwarf_Unsigned lineNo;
+			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+			assert( status == DW_DLV_OK );			
+				
+			Dwarf_Addr lineAddr;
+			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+			assert( status == DW_DLV_OK );
+			
+			char * lineSource;
+			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
+			assert( status == DW_DLV_OK );
+			
+			// fprintf( stderr, "%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
+			
+			pd_Function * newFunction = moduleImage->findFuncByEntryAddr( lineAddr, NULL );
+			if( newFunction != NULL ) {
+				currentFunctionName = newFunction->symTabName();
+				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
+				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
+				}
+			fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
+			// lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
+			
+			/* Free the line source. */
+			dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+			} /* end iteration over source lines. */
+		
+		/* Free this CU's source lines. */
+		for( int i = 0; i < lineCount; i++ ) {
+			dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
+			}
+		dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+		
+		/* Free this CU's DIE. */
+		dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+		} /* end CU header iteration */
+
+	/* Wind down libdwarf. */
+	Elf * dwarfElf;
+	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
+	assert( status == DW_DLV_OK );
+	elf_end( dwarfElf );
+	                                              
+	status = dwarf_finish( dbg, NULL );
+	assert( status == DW_DLV_OK );
+	close( fd );
+	} /* end parseFileLineInfo() */
+#endif
