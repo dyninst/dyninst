@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.490 2004/04/06 16:37:15 bernat Exp $
+// $Id: process.C,v 1.491 2004/04/06 21:47:24 legendre Exp $
 
 #include <ctype.h>
 
@@ -295,6 +295,10 @@ Address process::getTOCoffsetInfo(Address dest)
 
 #endif
 
+#if defined(os_linux) && defined(arch_x86)
+extern void calcVSyscallFrame(process *p);
+#endif
+
 // Windows NT has its own version of the walkStack function in pdwinnt.C
 
 // Note: stack walks may terminate early. In this case, return what we can.
@@ -304,9 +308,6 @@ Address process::getTOCoffsetInfo(Address dest)
 bool process::walkStackFromFrame(Frame startFrame,
 				 pdvector<Frame> &stackWalk)
 {
-#if defined(ia64_unknown_linux2_4)
-  Address next_pc = 0;
-#endif
   Address fpOld   = 0;
   Address fpNew   = 0;
 
@@ -319,18 +320,26 @@ bool process::walkStackFromFrame(Frame startFrame,
   startTimingStackwalk();
 #endif
 
-#if defined(ia64_unknown_linux2_4)
-  next_pc = currentFrame.getPC();
+#if defined(os_linux) 
+  Address next_pc = currentFrame.getPC();
 
-  // Do a special check for the vsyscall page
+  // Do a special check for the vsyscall page.  Silently drop
+  //  the page if it exists.
+#if defined(arch_ia64)
   if (next_pc >= 0xffffffffffffe000 && next_pc < 0xfffffffffffff000) {
     fpOld = currentFrame.getSP();
     
     /* Suppress this frame; catch-up doesn't need it, and the user shouldn't see it. */
     currentFrame = currentFrame.getCallerFrame(this); 
   }
+#elif defined(arch_x86)
+  calcVSyscallFrame(this);
+  if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
+     currentFrame = currentFrame.getCallerFrame(this);
+  }
 #endif
 
+#endif
   // Do special check first time for leaf frames
   // Step through the stack frames
   while (!currentFrame.isLastFrame(this)) {
