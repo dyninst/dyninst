@@ -29,7 +29,7 @@ proc status_create {id title} {
     set tag    status_tag_$id
     set mark   status_mark_$id
 
-    text $widget
+    text $widget -relief raised
 
     $widget insert end $title
     $widget insert end ": "
@@ -54,8 +54,13 @@ proc status_create {id title} {
         -font       $status_mesg_font      \
         -height     1                      \
         -wrap       none                   \
-        -state      disabled
+        -state      disabled \
+	-highlightthickness 0 \
+	-borderwidth 1
+       # the default borderwidth is a much larger number
+
     pack $widget -in $status_parent -side top -fill x
+
     #update
     #
     # All the "update" commands have been commented because they
