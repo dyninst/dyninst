@@ -40,6 +40,7 @@
  */
 
 /************************************************************************
+ * $Id: Object-elf.h,v 1.31 1998/12/25 21:48:36 wylie Exp $
  * Object-elf32.h: ELF-32 object files.
 ************************************************************************/
 
@@ -129,7 +130,7 @@ public:
              // executable file version of constructor....
              Object (const string, void (*)(const char *) = log_msg);
              // shared library version of constructor....
-             Object (const string, u_int baseAddr, 
+             Object (const string, const Address baseAddr, 
 		     void (*)(const char *) = log_msg);
              Object (const Object &);
     virtual ~Object ();

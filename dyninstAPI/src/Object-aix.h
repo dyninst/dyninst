@@ -40,7 +40,8 @@
  */
 
 /************************************************************************
- * Object-aix.h: AIX object files.
+ * AIX object files.
+ * $Id: Object-aix.h,v 1.8 1998/12/25 21:48:33 wylie Exp $
 ************************************************************************/
 
 
@@ -88,7 +89,8 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const string, u_int, void (*)(const char *) = log_msg);
+	     Object (const string, const Address baseAddr,
+                void (*)(const char *) = log_msg);
     ~Object ();
 
     Object&   operator= (const Object &);

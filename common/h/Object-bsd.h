@@ -40,7 +40,8 @@
  */
 
 /************************************************************************
- * Object-bsd.h: BSD object files.
+ * BSD object files.
+ * $Id: Object-bsd.h,v 1.15 1998/12/25 21:48:35 wylie Exp $
 ************************************************************************/
 
 
@@ -89,7 +90,8 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const string, u_int, void (*)(const char *) = log_msg);
+	     Object (const string, const Address baseAddr,
+                void (*)(const char *) = log_msg);
     virtual ~Object ();
 
     Object&   operator= (const Object &);
