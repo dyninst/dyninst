@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.4 1997/05/19 01:00:08 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.5 1997/05/19 19:43:06 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.5  1997/05/19 19:43:06  tung
+ * Make the axis appears before the curve surface shows up.
+ *
  * Revision 1.4  1997/05/19 01:00:08  tung
  * Eliminate ips dependent library files.
  *
@@ -304,12 +307,13 @@ void ProcessNewSegments(printIndex)
 int printIndex;
 {
    struct surface_points* thisCurve;
-   int allvalid = 1;
+   int allvalid = 0;
    int i;
    int del = 0;
 
-   for (i = 0; i < curves->iso_samples; i++)
+   for (i = 0; curves->iso_samples == nocurves && i < nocurves; i++)
    {
+       allvalid = 1;
        if (curves->points[i * nopoints + printIndex].valid != 1)
        {
 	  allvalid = 0;
@@ -374,6 +378,7 @@ Window win;
   int i = 0;
   int decimal;
   static int curves_ready_afterFold = 0;
+  static int firstDraw = 1;
 
   x_interval = x_inter;
  
@@ -419,7 +424,7 @@ Window win;
    
       curves->points[startIndex + firstSample + i].valid = 1;
  
-      if (fold == 0)
+      if (fold == 0 && firstSample != 0)
       {
          if (curves->iso_samples == nocurves)
          {
@@ -465,7 +470,8 @@ Window win;
       i ++;
   }
 
-  if (fold == 1 && curves_ready_afterFold == nocurves)
+  if ((fold == 1 && curves_ready_afterFold == nocurves) ||
+      (curves->iso_samples == nocurves && firstSample == 0 && firstDraw == 1))
   { 
               #ifndef MOTIF
 	       if (color_disp) { /* Athena needs different erase for color and mono */
@@ -491,6 +497,8 @@ Window win;
                XClearArea(dpy, win, 0, 0, 0, 0, True);
 	       
 	       curves_ready_afterFold = 0;
+	       firstDraw = 0;
+	       change = 0;
   }  
 
   return ;

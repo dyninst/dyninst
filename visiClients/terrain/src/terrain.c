@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.2 1997/05/18 22:50:11 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.3 1997/05/19 19:43:07 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.3  1997/05/19 19:43:07  tung
+ * Make the axis appears before the curve surface shows up.
+ *
  * Revision 1.2  1997/05/18 22:50:11  tung
  * Eliminate ips dependent library files.
  *
@@ -317,7 +320,6 @@ static int process_datavalues(int parameter)
 
      if (visi_NumResources() > 11)
         visi_showErrorVisiCallback("Exceed the maximum number(11) of resources.\nOnly 11 of the resources selected will be shown.");
-
 
      checkError = 0;
   }

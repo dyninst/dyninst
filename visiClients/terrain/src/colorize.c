@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.1 1997/05/12 20:15:22 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.2 1997/05/19 19:43:02 tung Exp $";
 #endif
 
 /*
  * colorize.c - colorize surfaces according to their height.
  *
  * $Log: colorize.c,v $
+ * Revision 1.2  1997/05/19 19:43:02  tung
+ * Make the axis appears before the curve surface shows up.
+ *
  * Revision 1.1  1997/05/12 20:15:22  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -97,7 +100,7 @@ int pix_map;
    /* Initialize the tic list (mapping between z and colors if that */
    /* has not been done yet or there is change in maxz.             */
 
-   if (remap == -1)
+   if (remap == -1 && tics != NULL)
    {
       for (i = 0; tics->next != NULL; tics = tics->next)
           free(tics);
